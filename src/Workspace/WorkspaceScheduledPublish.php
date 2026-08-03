@@ -6,8 +6,8 @@ namespace Drupal\canvas\Workspace;
 
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AccountSwitcherInterface;
-use Drupal\Core\Session\UserSession;
 use Drupal\Core\Utility\Error;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -50,8 +50,13 @@ final class WorkspaceScheduledPublish {
       /** @var \Drupal\workspaces\WorkspaceInterface $workspace */
       $scheduler_id = (int) ($workspace->get('canvas_scheduled_publish_by')->target_id ?? 0);
       // Cron publishes on behalf of the user who set the schedule: the
-      // per-item update access checks in the pipeline run against them.
-      $account = new UserSession(['uid' => $scheduler_id > 0 ? $scheduler_id : 1]);
+      // per-item update access checks in the pipeline run against them. The
+      // full user entity is needed — a bare UserSession would carry no roles.
+      $account = $this->entityTypeManager->getStorage('user')->load($scheduler_id > 0 ? $scheduler_id : 1);
+      if (!$account instanceof AccountInterface) {
+        $this->cancelWithError($workspace, \sprintf('The scheduling user %d no longer exists.', $scheduler_id));
+        continue;
+      }
       $this->accountSwitcher->switchTo($account);
       try {
         $this->publisher->publish((string) $workspace->id(), $account);
@@ -59,7 +64,7 @@ final class WorkspaceScheduledPublish {
         $this->logger->info('Published the scheduled workspace %workspace.', ['%workspace' => (string) $workspace->label()]);
       }
       catch (WorkspacePublishValidationException $e) {
-        $this->cancelWithError($workspace, $this->formatValidationError($e));
+        $this->cancelWithError($workspace, self::formatValidationError($e));
       }
       catch (\Throwable $e) {
         Error::logException($this->logger, $e);
@@ -87,7 +92,7 @@ final class WorkspaceScheduledPublish {
     ]);
   }
 
-  private function formatValidationError(WorkspacePublishValidationException $e): string {
+  private static function formatValidationError(WorkspacePublishValidationException $e): string {
     $labels = [];
     foreach ($e->getViolationSets() as $set) {
       // @phpstan-ignore-next-line

@@ -71,7 +71,7 @@ describe('PublishReview conflict UI', () => {
     conflictUxEnabled = true;
   });
 
-  it('skips conflicted rows when selecting all', async () => {
+  it('marks conflicted rows and counts them in the banner', async () => {
     const user = userEvent.setup();
     renderReview([
       baseChange,
@@ -89,44 +89,8 @@ describe('PublishReview conflict UI', () => {
     expect(screen.getByTestId('conflict-banner')).toHaveTextContent(
       '1 conflict to resolve',
     );
-    expect(screen.getByLabelText('Select change Page 2')).toBeDisabled();
     expect(screen.getByTestId('change-conflict-icon')).toBeInTheDocument();
-
-    await user.click(screen.getByTestId('canvas-publish-review-select-all'));
-    expect(screen.getByText('1 of 2 changes selected')).toBeInTheDocument();
-  });
-
-  it('auto-unselects a row that becomes conflicted', async () => {
-    const user = userEvent.setup();
-    const { rerender } = renderReview([baseChange]);
-
-    await user.click(screen.getByTestId('canvas-publish-review'));
-    await user.click(screen.getByLabelText('Select change Page 1'));
-    expect(screen.getByText('1 of 1 changes selected')).toBeInTheDocument();
-
-    const store = makeStore();
-    rerender(
-      <AppWrapper store={store} location="/" path="*">
-        <PublishReview
-          changes={[{ ...baseChange, hasConflict: true }]}
-          conflictCount={1}
-          errors={undefined}
-          onOpenChangeCallback={vi.fn()}
-          onPublishClick={vi.fn()}
-          onDiscardClick={vi.fn()}
-          onResolveConflict={vi.fn()}
-          isPublishing={false}
-          isDiscarding={false}
-          isUpdating={false}
-        />
-      </AppWrapper>,
-    );
-
-    expect(screen.getByText('0 of 1 changes selected')).toBeInTheDocument();
-    expect(screen.getByLabelText('Select change Page 1')).toBeDisabled();
-    expect(
-      screen.getByTestId('canvas-publish-review-select-all'),
-    ).toBeDisabled();
+    expect(screen.getByText('2 unpublished changes')).toBeInTheDocument();
   });
 
   it('removes selected changes that disappear from the pending list', async () => {
@@ -247,10 +211,7 @@ describe('PublishReview conflict UI', () => {
     expect(
       screen.queryByTestId('change-conflict-icon'),
     ).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Select change Page 1')).toBeEnabled();
-
-    await user.click(screen.getByTestId('canvas-publish-review-select-all'));
-    expect(screen.getByText('1 of 1 changes selected')).toBeInTheDocument();
+    expect(screen.getByText('1 unpublished change')).toBeInTheDocument();
   });
 
   it('reviews the currently selected reviewable changes', async () => {

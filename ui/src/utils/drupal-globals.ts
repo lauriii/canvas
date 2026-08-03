@@ -4,6 +4,7 @@ import type {
   Language,
   PropsValues,
 } from '@drupal-canvas/types';
+import type { WorkspacesSettings } from '@/types/Workspaces';
 
 export type { Language };
 
@@ -100,6 +101,8 @@ export const restoreCanvasHeadlessFrontend = () => {
     setCanvasHeadlessFrontend(normalizedStoredFrontend);
   }
 };
+export const getWorkspacesSettings = (): WorkspacesSettings | undefined =>
+  drupalSettings?.canvas?.workspaces;
 
 export const setCanvasDrupalSetting = (
   property: 'layoutUtils' | 'navUtils',

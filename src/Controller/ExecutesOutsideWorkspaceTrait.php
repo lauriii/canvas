@@ -9,12 +9,11 @@ use Drupal\workspaces\WorkspaceManagerInterface;
 /**
  * Runs callables outside the auto-save workspace.
  *
- * The auto-save workspace is active during Canvas API requests, so reads and
- * writes that must target Live — publishes, listings, deletes, duplicates —
- * have to explicitly step outside it. The using class must inject the
- * `workspaces.manager` service into a nullable `$workspaceManager` property.
- *
- * @see \Drupal\canvas\EventSubscriber\AutoSave\AutoSaveWorkspaceActivationSubscriber
+ * A workspace may be active during Canvas API requests (core negotiation),
+ * so the few writes that must target Live — content deletion, translation
+ * removal — have to explicitly step outside it. The using class must inject
+ * the `workspaces.manager` service into a nullable `$workspaceManager`
+ * property.
  */
 trait ExecutesOutsideWorkspaceTrait {
 

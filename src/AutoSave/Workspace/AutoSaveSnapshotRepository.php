@@ -35,7 +35,7 @@ final class AutoSaveSnapshotRepository {
   /**
    * The workspace snapshot operations default to: active, or Main.
    */
-  private function defaultWorkspaceId(): string {
+  private static function defaultWorkspaceId(): string {
     return AutoSaveManager::activeWorkspaceId();
   }
 
@@ -74,7 +74,7 @@ final class AutoSaveSnapshotRepository {
     $storage = $this->entityTypeManager->getStorage(CanvasAutoSaveSnapshot::ENTITY_TYPE_ID);
     $ids = $storage->getQuery()
       ->accessCheck(FALSE)
-      ->condition('workspace', $workspaceId ?? $this->defaultWorkspaceId())
+      ->condition('workspace', $workspaceId ?? self::defaultWorkspaceId())
       ->condition('target_entity_type_id', $targetEntityTypeId)
       ->condition('target_entity_id', $targetEntityId)
       ->condition('target_langcode', $targetLangcode)
@@ -99,7 +99,7 @@ final class AutoSaveSnapshotRepository {
     if (!$this->isStagedStorageReady()) {
       throw new \RuntimeException('The canvas_auto_save_snapshot entity schema must be installed (run database updates).');
     }
-    $workspaceId ??= $this->defaultWorkspaceId();
+    $workspaceId ??= self::defaultWorkspaceId();
     $existing = $this->resolveLatestStaged($targetEntityTypeId, $targetEntityId, $targetLangcode, $workspaceId);
     if ($existing === NULL) {
       $storage = $this->entityTypeManager->getStorage(CanvasAutoSaveSnapshot::ENTITY_TYPE_ID);
@@ -151,7 +151,7 @@ final class AutoSaveSnapshotRepository {
     $storage = $this->entityTypeManager->getStorage(CanvasAutoSaveSnapshot::ENTITY_TYPE_ID);
     $query = $storage->getQuery()
       ->accessCheck(FALSE)
-      ->condition('workspace', $workspaceId ?? $this->defaultWorkspaceId());
+      ->condition('workspace', $workspaceId ?? self::defaultWorkspaceId());
     /** @var \Drupal\canvas\Entity\CanvasAutoSaveSnapshot[] */
     return $storage->loadMultiple($query->execute());
   }
@@ -166,7 +166,7 @@ final class AutoSaveSnapshotRepository {
     $storage = $this->entityTypeManager->getStorage(CanvasAutoSaveSnapshot::ENTITY_TYPE_ID);
     $entities = $storage->loadMultiple($storage->getQuery()
       ->accessCheck(FALSE)
-      ->condition('workspace', $workspaceId ?? $this->defaultWorkspaceId())
+      ->condition('workspace', $workspaceId ?? self::defaultWorkspaceId())
       ->execute());
     if ($entities) {
       $storage->delete($entities);

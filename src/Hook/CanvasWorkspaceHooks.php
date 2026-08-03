@@ -77,6 +77,8 @@ final class CanvasWorkspaceHooks {
    *
    * @return array<int, array<string, bool>>
    */
+  // Referenced by name in the canvas_require_review field definition.
+  // @phpstan-ignore shipmonk.deadMethod
   public static function defaultRequireReview(WorkspaceInterface $workspace): array {
     return [['value' => $workspace->id() !== AutoSaveWorkspace::ID]];
   }

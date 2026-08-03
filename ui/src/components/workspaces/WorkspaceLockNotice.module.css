@@ -1,0 +1,9 @@
+.container {
+  position: fixed;
+  z-index: 1000;
+  top: calc(var(--topbar-height) + var(--space-2));
+  left: 50%;
+  width: calc(100% - var(--space-8));
+  max-width: 640px;
+  transform: translateX(-50%);
+}

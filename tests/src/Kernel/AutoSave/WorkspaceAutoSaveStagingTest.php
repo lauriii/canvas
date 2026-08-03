@@ -338,60 +338,91 @@ final class WorkspaceAutoSaveStagingTest extends CanvasKernelTestBase {
     self::assertNotNull($workspace);
     self::assertSame(CanvasWorkspaceProvider::getId(), $workspace->get('provider')->value);
 
+    // The transitional Canvas provider keeps the Phase 1 view grant for
+    // authenticated users until the update path maps it onto core workspace
+    // permissions; everything else follows core permissions.
     $editor = $this->createUser([AutoSaveManager::PUBLISH_PERMISSION]);
     self::assertInstanceOf(User::class, $editor);
     self::assertTrue($workspace->access('view', $editor), 'Canvas editors may view (and therefore activate) the workspace.');
     self::assertFalse($workspace->access('update', $editor));
-    self::assertFalse($workspace->access('publish', $editor));
+    self::assertFalse($workspace->access('publish', $editor), 'Publish follows core workspace permissions, which this account lacks.');
     self::assertFalse($workspace->access('delete', $editor));
 
     $plain = $this->createUser(['view any workspace', 'edit any workspace']);
     self::assertInstanceOf(User::class, $plain);
-    // Any authenticated user may view (and therefore activate) the workspace:
-    // auto-save reads happen on behalf of whoever may edit some Canvas-enabled
-    // entity, and entity access still applies inside the workspace. Generic
-    // workspace permissions still grant no write access.
     self::assertTrue($workspace->access('view', $plain));
-    self::assertFalse($workspace->access('update', $plain), 'Generic workspace permissions grant no write access on the Canvas workspace.');
-    self::assertFalse($workspace->access('delete', $plain));
+    self::assertTrue($workspace->access('publish', $plain), 'Core workspace permissions grant publish access; the review gate, not access control, guards unreviewed publishes.');
 
     $admin = $this->createUser(['administer workspaces']);
     self::assertInstanceOf(User::class, $admin);
     self::assertTrue($workspace->access('view', $admin));
-    self::assertFalse($workspace->access('publish', $admin), 'Not even workspace administrators may core-publish the Canvas workspace: that would bypass per-item publish validation.');
+    self::assertTrue($workspace->access('publish', $admin));
   }
 
   /**
-   * Core workspace-level publishing is stopped, even programmatically.
+   * Core workspace-level publishing publishes the Main workspace.
    *
-   * Workspace::publish() would push every staged revision live without
-   * validating any entity, and does not check access. The pre-publish
-   * subscriber must stop it regardless of who calls it.
+   * Phase 2 removes the Phase 1 publish blockers: the Main workspace does
+   * not require review, so Workspace::publish() promotes its staged
+   * revisions and the post-publish subscriber clears Canvas staging.
    */
-  public function testCoreWorkspacePublishIsStopped(): void {
+  public function testCoreWorkspacePublishPublishesMainWorkspace(): void {
     $entity = EntityTestMulRevPub::create(['name' => 'live', 'status' => TRUE]);
     $entity->save();
     $draft = clone $entity;
     $draft->set('name', 'staged draft');
-    $this->autoSaveManager()->saveEntity($draft);
+    $this->autoSaveManager()->saveEntity($draft, immediateWorkspacePersist: TRUE);
 
     $workspace = Workspace::load(AutoSaveWorkspace::ID);
     self::assertNotNull($workspace);
+    $workspace->publish();
+
+    $live = $this->container->get('entity_type.manager')->getStorage('entity_test_mulrevpub')->loadUnchanged((string) $entity->id());
+    self::assertInstanceOf(EntityTestMulRevPub::class, $live);
+    self::assertSame('staged draft', $live->get('name')->value);
+    self::assertTrue($this->autoSaveManager()->getAutoSaveEntity($entity)->isEmpty(), 'Staging is cleared by the publish.');
+    self::assertSame(0, $this->trackedRevisionCount('entity_test_mulrevpub', (string) $entity->id()));
+  }
+
+  /**
+   * The review gate stops core publish of an unapproved workspace.
+   */
+  public function testCoreWorkspacePublishGatedOnReview(): void {
+    $workspace = Workspace::create([
+      'id' => 'gated',
+      'label' => 'Gated',
+      'canvas_require_review' => TRUE,
+    ]);
+    $workspace->save();
+
+    $entity = EntityTestMulRevPub::create(['name' => 'live', 'status' => TRUE]);
+    $entity->save();
+    /** @var \Drupal\workspaces\WorkspaceManagerInterface $workspace_manager */
+    $workspace_manager = $this->container->get('workspaces.manager');
+    $workspace_manager->executeInWorkspace('gated', function () use ($entity): void {
+      $draft = clone $entity;
+      $draft->set('name', 'gated draft');
+      $this->autoSaveManager()->saveEntity($draft, immediateWorkspacePersist: TRUE);
+    });
+
     try {
       $workspace->publish();
-      $this->fail('Core-publishing the Canvas workspace must throw.');
+      $this->fail('Publishing an unapproved review-required workspace must throw.');
     }
     catch (WorkspacePublishException $e) {
-      self::assertStringContainsString('Canvas publish endpoint', $e->getMessage());
+      self::assertStringContainsString('requires review', $e->getMessage());
     }
-
-    // Nothing leaked to Live, and the staged draft is intact.
     $live = $this->container->get('entity_type.manager')->getStorage('entity_test_mulrevpub')->loadUnchanged((string) $entity->id());
     self::assertInstanceOf(EntityTestMulRevPub::class, $live);
     self::assertSame('live', $live->get('name')->value);
-    $staged = $this->autoSaveManager()->getAutoSaveEntity($entity)->entity;
-    self::assertInstanceOf(EntityTestMulRevPub::class, $staged);
-    self::assertSame('staged draft', $staged->get('name')->value);
+
+    // Approving unlocks the same publish.
+    $workspace->set('canvas_workspace_status', 'approved');
+    $workspace->save();
+    $workspace->publish();
+    $live = $this->container->get('entity_type.manager')->getStorage('entity_test_mulrevpub')->loadUnchanged((string) $entity->id());
+    self::assertInstanceOf(EntityTestMulRevPub::class, $live);
+    self::assertSame('gated draft', $live->get('name')->value);
   }
 
   /**

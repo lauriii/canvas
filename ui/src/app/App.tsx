@@ -16,6 +16,7 @@ import ErrorBoundary from '@/components/error/ErrorBoundary';
 import SavingOverlay from '@/components/SavingOverlay';
 import Toast from '@/components/Toast';
 import Topbar from '@/components/topbar/Topbar';
+import WorkspaceLockNotice from '@/components/workspaces/WorkspaceLockNotice';
 import useExtensions from '@/features/extensions/useExtensions';
 import DragEventsHandler from '@/features/layout/previewOverlay/DragEventsHandler';
 import NotificationToastManager from '@/features/notifications/NotificationToastManager';
@@ -98,6 +99,7 @@ const App: React.FC = () => {
               </ErrorBoundary>
             </Flex>
             <Topbar />
+            <WorkspaceLockNotice />
             <DragEventsHandler />
             {import.meta.env.DEV && <DevTools />}
             <SavingOverlay />

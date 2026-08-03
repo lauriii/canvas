@@ -15,8 +15,10 @@ interface ChangeGroupProps {
   entityType: string;
   changes: UnpublishedChange[];
   isBusy: boolean;
-  selectedChanges: UnpublishedChange[];
-  setSelectedChanges: (changes: UnpublishedChange[]) => void;
+  // When false, the group and its rows render without selection checkboxes.
+  selectable?: boolean;
+  selectedChanges?: UnpublishedChange[];
+  setSelectedChanges?: (changes: UnpublishedChange[]) => void;
   onDiscardClick: (change: UnpublishedChange) => void;
   onViewClick?: (change: UnpublishedChange) => void;
   isViewChangeAvailable?: (change: UnpublishedChange) => boolean;
@@ -31,7 +33,8 @@ const ChangeGroup = ({
   entityType,
   changes,
   isBusy,
-  selectedChanges,
+  selectable = true,
+  selectedChanges = [],
   setSelectedChanges,
   onDiscardClick,
   onViewClick,
@@ -40,6 +43,7 @@ const ChangeGroup = ({
   pageStatusMap,
 }: ChangeGroupProps) => {
   const conflictUxEnabled = isConflictUxEnabled();
+  const showCheckboxes = selectable && !!setSelectedChanges;
   const selectableChanges = useMemo(
     () =>
       conflictUxEnabled
@@ -63,6 +67,9 @@ const ChangeGroup = ({
   }, [selectableChanges, selectedChanges]);
 
   const handleGroupSelection = useCallback(() => {
+    if (!setSelectedChanges) {
+      return;
+    }
     const groupPointers = selectableChanges.map((change) => change.pointer);
     // If the group is fully selected, deselect all changes in the group
     if (isGroupSelected === true) {
@@ -91,13 +98,15 @@ const ChangeGroup = ({
     <Box data-testid="pending-change-group">
       <Text as="label" size="1">
         <Flex as="div" direction="row" align="center" gap="2" mb="2">
-          <Checkbox
-            size="1"
-            disabled={isBusy || selectableChanges.length === 0}
-            checked={isGroupSelected}
-            onCheckedChange={handleGroupSelection}
-            aria-label={`Select all changes in ${groupLabel}`}
-          />
+          {showCheckboxes && (
+            <Checkbox
+              size="1"
+              disabled={isBusy || selectableChanges.length === 0}
+              checked={isGroupSelected}
+              onCheckedChange={handleGroupSelection}
+              aria-label={`Select all changes in ${groupLabel}`}
+            />
+          )}
           {groupLabel}
         </Flex>
       </Text>
@@ -107,6 +116,7 @@ const ChangeGroup = ({
             key={`${kebabCase(change.label + change.updated)}`}
             change={change}
             isBusy={isBusy}
+            selectable={selectable}
             selectedChanges={selectedChanges}
             setSelectedChanges={setSelectedChanges}
             onDiscardClick={onDiscardClick}

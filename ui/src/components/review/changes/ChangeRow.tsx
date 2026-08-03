@@ -28,8 +28,10 @@ import styles from './ChangeRow.module.css';
 interface ChangeRowProps {
   change: UnpublishedChange;
   isBusy: boolean;
-  selectedChanges: UnpublishedChange[];
-  setSelectedChanges: (changes: UnpublishedChange[]) => void;
+  // When false, the row renders without a selection checkbox.
+  selectable?: boolean;
+  selectedChanges?: UnpublishedChange[];
+  setSelectedChanges?: (changes: UnpublishedChange[]) => void;
   onDiscardClick: (change: UnpublishedChange) => void;
   onViewClick?: (change: UnpublishedChange) => void;
   isViewChangeAvailable?: (change: UnpublishedChange) => boolean;
@@ -43,7 +45,8 @@ interface ChangeRowProps {
 const ChangeRow = ({
   change,
   isBusy = false,
-  selectedChanges,
+  selectable = true,
+  selectedChanges = [],
   setSelectedChanges,
   onDiscardClick,
   onViewClick,
@@ -64,6 +67,7 @@ const ChangeRow = ({
     (isViewChangeAvailable ? isViewChangeAvailable(change) : true);
   const color = hasConflict ? 'red' : undefined;
   const weight = 'regular';
+  const showCheckbox = selectable && !!setSelectedChanges;
 
   const isSelected = useMemo(() => {
     return selectedChanges.some((c) => c.pointer === change.pointer);
@@ -94,7 +98,7 @@ const ChangeRow = ({
 
   const handleChangeSelection = useCallback(
     (checked: boolean) => {
-      if (hasConflict) {
+      if (hasConflict || !setSelectedChanges) {
         return;
       }
       if (checked) {
@@ -113,13 +117,15 @@ const ChangeRow = ({
       <Flex as="div" direction="row" align="start" justify="between" gap="4">
         <Text as="label" color={color} weight={weight} size="1">
           <Flex as="div" direction="row" align="start" gap="2" pt="1">
-            <Checkbox
-              size="1"
-              disabled={isBusy || hasConflict}
-              aria-label={`Select change ${changeLabel}`}
-              onCheckedChange={handleChangeSelection}
-              checked={isSelected}
-            />
+            {showCheckbox && (
+              <Checkbox
+                size="1"
+                disabled={isBusy || hasConflict}
+                aria-label={`Select change ${changeLabel}`}
+                onCheckedChange={handleChangeSelection}
+                checked={isSelected}
+              />
+            )}
             <Flex height="16px" align="center">
               {hasConflict ? (
                 <Tooltip content="This change has a conflict">

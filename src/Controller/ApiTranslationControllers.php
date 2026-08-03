@@ -53,12 +53,11 @@ final class ApiTranslationControllers extends ApiControllerBase {
     }
     $untranslated = $canvas_page->getUntranslated();
     $untranslated->removeTranslation($canvas_page->language()->getId());
-    // This endpoint deletes the translation from the Live entity: with the
-    // auto-save workspace active for Canvas API requests, an unscoped save
-    // would be forced into a workspace-pending revision, and deleting the
-    // translation's URL alias (a workspace-supported entity) is forbidden
-    // while a workspace is active.
-    // @see \Drupal\canvas\EventSubscriber\AutoSave\AutoSaveWorkspaceActivationSubscriber
+    // This endpoint deletes the translation from the Live entity: with a
+    // workspace active (core negotiation), an unscoped save would be forced
+    // into a workspace-pending revision, and deleting the translation's URL
+    // alias (a workspace-supported entity) is forbidden while a workspace is
+    // active.
     // @see \Drupal\workspaces\Provider\WorkspaceProviderBase::entityPredelete()
     $this->executeOutsideWorkspace(static fn () => $untranslated->save());
     return new JsonResponse(status: Response::HTTP_NO_CONTENT);

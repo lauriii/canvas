@@ -10,6 +10,7 @@ use Drupal\Core\Database\Database;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\workspace_config\EarlyWorkspaceResolver;
 use Drupal\workspace_config\KeyValue\WorkspaceConfigKeyValueFactory;
+use Drupal\workspace_config\KeyValue\WorkspaceConfigKeyValueInformation;
 
 /**
  * Reproduces the production key-value wiring of a workspace_config site.
@@ -61,6 +62,7 @@ trait CanvasWorkspaceConfigTestTrait {
       $this->container->get(EarlyWorkspaceResolver::class),
       new PhpSerialize(),
       Database::getConnection(),
+      $this->container->get(WorkspaceConfigKeyValueInformation::class),
     ));
   }
 

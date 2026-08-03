@@ -723,7 +723,7 @@ function canvas_post_update_0023_migrate_auto_save_to_workspace(array &$sandbox)
 function canvas_post_update_0024_main_workspace(): void {
   $storage = \Drupal::entityTypeManager()->getStorage('workspace');
   $workspace = $storage->load(\Drupal\canvas\AutoSave\Workspace\AutoSaveWorkspace::ID);
-  if ($workspace !== NULL) {
+  if ($workspace instanceof \Drupal\workspaces\WorkspaceInterface) {
     $workspace->set('label', \Drupal\canvas\AutoSave\Workspace\AutoSaveWorkspace::LABEL);
     $workspace->set('provider', 'default');
     // The Main workspace is the scratch space: it publishes without review.

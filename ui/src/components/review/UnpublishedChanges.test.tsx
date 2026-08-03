@@ -3,9 +3,6 @@ import { act, render, waitFor } from '@testing-library/react';
 
 import UnpublishedChanges from '@/components/review/UnpublishedChanges';
 
-import type { PendingChanges } from '@/services/pendingChangesApi';
-import type { UnpublishedChange } from '@/types/Review';
-
 const mocks = vi.hoisted(() => {
   const pendingChange = {
     owner: {
@@ -43,6 +40,11 @@ const mocks = vi.hoisted(() => {
     invalidateContentTags: vi.fn(),
     invalidateLayoutTags: vi.fn(),
     updateLayoutQueryData: vi.fn(),
+    refetchWorkspaces: vi.fn(),
+    transitionStatus: vi.fn(),
+    schedulePublish: vi.fn(),
+    unschedulePublish: vi.fn(),
+    invalidateWorkspacesTags: vi.fn(),
   };
 });
 
@@ -152,6 +154,30 @@ vi.mock('@/services/preview', () => ({
   useUpdateComponentMutation: () => [vi.fn(), { isLoading: false }],
 }));
 
+vi.mock('@/services/workspacesApi', () => ({
+  useGetWorkspacesQuery: () => ({
+    data: { data: [], activeWorkspaceId: null },
+    refetch: mocks.refetchWorkspaces,
+  }),
+  useTransitionWorkspaceStatusMutation: () => [
+    mocks.transitionStatus,
+    { isLoading: false },
+  ],
+  useScheduleWorkspacePublishMutation: () => [
+    mocks.schedulePublish,
+    { isLoading: false },
+  ],
+  useUnscheduleWorkspacePublishMutation: () => [
+    mocks.unschedulePublish,
+    { isLoading: false },
+  ],
+  workspacesApi: {
+    util: {
+      invalidateTags: mocks.invalidateWorkspacesTags,
+    },
+  },
+}));
+
 describe('UnpublishedChanges', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -185,23 +211,26 @@ describe('UnpublishedChanges', () => {
     );
   });
 
+  it('refreshes workspaces when the review panel opens', async () => {
+    mocks.locationSearch = '?reviewChanges=1';
+
+    render(<UnpublishedChanges />);
+
+    await waitFor(() => {
+      expect(mocks.publishReviewProps.open).toBe(true);
+    });
+    expect(mocks.refetchWorkspaces).toHaveBeenCalled();
+  });
+
   it('does not run publish success cleanup when publishing fails', async () => {
     render(<UnpublishedChanges />);
 
-    const selectedChange: UnpublishedChange = {
-      ...mocks.pendingChange,
-      pointer: 'canvas_page:1:en',
-    };
-
     await act(async () => {
-      await mocks.publishReviewProps.onPublishClick([selectedChange]);
+      await mocks.publishReviewProps.onPublishClick();
     });
 
-    expect(mocks.publishAllChanges).toHaveBeenCalledWith({
-      'canvas_page:1:en': {
-        ...mocks.pendingChange,
-      },
-    } satisfies PendingChanges);
+    // The endpoint publishes the whole workspace, so it takes no argument.
+    expect(mocks.publishAllChanges).toHaveBeenCalledWith();
     expect(mocks.updateLayoutQueryData).not.toHaveBeenCalled();
     expect(mocks.invalidateContentTags).not.toHaveBeenCalled();
     expect(mocks.invalidateLayoutTags).not.toHaveBeenCalled();
@@ -244,5 +273,16 @@ describe('UnpublishedChanges', () => {
     expect(mocks.publishReviewProps.onReviewSelectedChanges).toBeUndefined();
     expect(mocks.publishReviewProps.onViewClick).toBeUndefined();
     expect(mocks.publishReviewProps.isViewChangeAvailable).toBeUndefined();
+  it('invalidates the workspaces cache after a successful publish', async () => {
+    mocks.publishUnwrap.mockResolvedValue({ message: 'ok' });
+
+    render(<UnpublishedChanges />);
+
+    await act(async () => {
+      await mocks.publishReviewProps.onPublishClick();
+    });
+
+    expect(mocks.publishAllChanges).toHaveBeenCalledWith();
+    expect(mocks.invalidateWorkspacesTags).toHaveBeenCalledWith(['Workspaces']);
   });
 });

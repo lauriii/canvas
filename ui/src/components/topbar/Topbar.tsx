@@ -13,6 +13,7 @@ import PreviewControls from '@/components/PreviewControls';
 import UnpublishedChanges from '@/components/review/UnpublishedChanges';
 import ContentPreviewSelector from '@/components/templates/ContentPreviewSelector';
 import UndoRedo from '@/components/UndoRedo';
+import WorkspaceSwitcher from '@/components/workspaces/WorkspaceSwitcher';
 import NotificationBell from '@/features/notifications/NotificationBell';
 import { selectEditorFrameContext } from '@/features/ui/uiSlice';
 import { useCanvasHeadlessSettings } from '@/hooks/useCanvasHeadlessSettings';
@@ -148,6 +149,7 @@ const Topbar = () => {
             )}
           </Flex>
           <Flex align="center" justify="center" gap="2">
+            <WorkspaceSwitcher />
             <PageInfo />
             {isTemplateEditorContext && (
               <ContentPreviewSelector

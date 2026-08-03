@@ -42,7 +42,17 @@ import {
   useQueuedPostPreviewMutation,
   useUpdateComponentMutation,
 } from '@/services/preview';
+import {
+  useGetWorkspacesQuery,
+  useScheduleWorkspacePublishMutation,
+  useTransitionWorkspaceStatusMutation,
+  useUnscheduleWorkspacePublishMutation,
+  workspacesApi,
+} from '@/services/workspacesApi';
+import { findInChanges } from '@/utils/function-utils';
 
+import type { PendingChanges } from '@/services/pendingChangesApi';
+import type { WorkspaceStatusTransition } from '@/services/workspacesApi';
 import type { UnpublishedChange } from '@/types/Review';
 
 const REFETCH_INTERVAL_MS = 10000;
@@ -73,6 +83,18 @@ const UnpublishedChanges = () => {
     pollingInterval: pollingInterval,
     skipPollingIfUnfocused: true,
   });
+  const { data: workspacesData, refetch: refetchWorkspaces } =
+    useGetWorkspacesQuery();
+  const [transitionStatus, { isLoading: isTransitioning }] =
+    useTransitionWorkspaceStatusMutation();
+  const [schedulePublish, { isLoading: isScheduling }] =
+    useScheduleWorkspacePublishMutation();
+  const [unschedulePublish, { isLoading: isCancelingSchedule }] =
+    useUnscheduleWorkspacePublishMutation();
+  const activeWorkspace = useMemo(
+    () => workspacesData?.data.find((workspace) => workspace.isActive) ?? null,
+    [workspacesData],
+  );
   const { entityType, entityId, codeComponentId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -122,11 +144,14 @@ const UnpublishedChanges = () => {
       if (open) {
         setPollingInterval(0);
         refetch();
+        // The workspace status may have changed elsewhere (for example, an
+        // approval or a scheduled publish), so refresh it with the panel.
+        refetchWorkspaces();
       } else {
         setPollingInterval(REFETCH_INTERVAL_MS);
       }
     },
-    [refetch],
+    [refetch, refetchWorkspaces],
   );
 
   useEffect(() => {
@@ -153,8 +178,146 @@ const UnpublishedChanges = () => {
     onOpenChangeHandler,
   ]);
 
-  const onPublishClick = async (selectedChanges: UnpublishedChange[]) => {
-    await publishPendingChanges(selectedChanges);
+  const onPublishClick = async () => {
+    // Publishing covers the whole active workspace, so treat every pending
+    // change as published for the cleanup below.
+    const selectedChanges = unpublishedChanges;
+    if (selectedChanges?.length) {
+      const changesToPublish = selectedChanges.reduce((acc, change) => {
+        acc[change.pointer] = {
+          entity_type: change.entity_type,
+          entity_id: change.entity_id,
+          data_hash: change.data_hash,
+          langcode: change.langcode,
+          owner: change.owner,
+          label: change.label,
+          updated: change.updated,
+        };
+        return acc;
+      }, {} as PendingChanges);
+      const isCurrentChanged = findInChanges(
+        changesToPublish,
+        entityId,
+        entityType,
+      );
+      const changedCodeComponentIds = Object.values(changesToPublish)
+        .filter((change) => change.entity_type === 'js_component')
+        .map((change) => change.entity_id);
+      const changedBrandKitIds = Object.values(changesToPublish)
+        .filter((change) => change.entity_type === 'brand_kit')
+        .map((change) => String(change.entity_id));
+
+      try {
+        await publishAllChanges().unwrap();
+      } catch {
+        // Error state is handled in pendingChangesApi.publishAllPendingChanges.
+        return;
+      }
+
+      if (isCurrentChanged && entityId && entityType) {
+        // Update the isPublished and isNew status.
+        dispatch(
+          componentAndLayoutApi.util.updateQueryData(
+            'getPageLayout',
+            { entityId, entityType },
+            (draft) => {
+              draft.isPublished = true;
+              draft.isNew = false;
+            },
+          ),
+        );
+
+        // Pause updating the preview/POSTing to Drupal for this action.
+        dispatch(setUpdatePreview(false));
+
+        // Avoid the "The content has either been modified by another user, or
+        // you have already submitted modifications. As a result, your changes
+        // cannot be saved" error.
+        if ('changed' in entity_form_fields) {
+          // Pause updating the preview/POSTing to Drupal for this action.
+          dispatch(setUpdatePreview(false));
+          dispatch(
+            setInitialPageData({
+              ...entity_form_fields,
+              changed: Math.floor(new Date().getTime() / 1000),
+            }),
+          );
+        }
+      }
+
+      // After publishing, the list of other pages might be out of date where the pages' title/alias has been updated.
+      dispatch(
+        contentApi.util.invalidateTags([{ type: 'Content', id: 'LIST' }]),
+      );
+
+      if (changedCodeComponentIds.length) {
+        // Invalidate cache of all changed code component entities. This is
+        // critical to prevent data loss, which would otherwise occur in the
+        // following scenario:
+        // 1. A code component change is auto-saved, then published.
+        // 2. As a result, the auto-save entry gets deleted on the backend.
+        // 3. The auto-save that occurred previously invalidated the auto-save
+        //    query cache, so fetching data for the code component will correctly
+        //    see the 204 response that is now returned.
+        // 4. That will cause a fallback to the canonical source of the config
+        //    entity. This is why we need to invalidate the cache for those.
+        //    In the absence of this, a stale version would be returned, which
+        //    would get auto-saved if anything changes, resulting to the loss of
+        //    changes in step 1. E.g. with newly created and first-time published
+        //    code components, this would wipe out all data.
+        dispatch(
+          componentAndLayoutApi.util.invalidateTags(
+            changedCodeComponentIds.map((id) => ({
+              type: 'CodeComponents',
+              id,
+            })),
+          ),
+        );
+      }
+
+      if (changedBrandKitIds.length) {
+        dispatch(
+          brandKitApi.util.invalidateTags([
+            ...changedBrandKitIds.flatMap((id) => [
+              { type: 'BrandKits' as const, id },
+              { type: 'BrandKitsAutoSave' as const, id },
+            ]),
+            { type: 'BrandKits' as const, id: 'LIST' },
+          ]),
+        );
+      }
+
+      // Publishing resets the workspace lifecycle (for example, back to
+      // draft), so refresh the workspace list.
+      dispatch(workspacesApi.util.invalidateTags(['Workspaces']));
+    }
+  };
+
+  const onTransitionStatus = async (transition: WorkspaceStatusTransition) => {
+    if (!activeWorkspace) return;
+    try {
+      await transitionStatus({ id: activeWorkspace.id, transition }).unwrap();
+    } catch {
+      // Errors surface through the global query error handling.
+    }
+  };
+
+  const onSchedulePublish = async (publishAt: number) => {
+    if (!activeWorkspace) return;
+    try {
+      await schedulePublish({ id: activeWorkspace.id, publishAt }).unwrap();
+    } catch {
+      // Errors surface through the global query error handling.
+    }
+  };
+
+  const onCancelSchedule = async () => {
+    if (!activeWorkspace) return;
+    try {
+      await unschedulePublish(activeWorkspace.id).unwrap();
+    } catch {
+      // Errors surface through the global query error handling.
+    }
   };
 
   const navigateToReview = (selectedChanges: UnpublishedChange[]) => {
@@ -272,6 +435,7 @@ const UnpublishedChanges = () => {
       changes={unpublishedChanges}
       conflictCount={conflictCount}
       errors={errorResponse}
+      workspace={activeWorkspace}
       onOpenChangeCallback={onOpenChangeHandler}
       onPublishClick={onPublishClick}
       onDiscardClick={onDiscardClick}
@@ -280,6 +444,9 @@ const UnpublishedChanges = () => {
         conflictUxEnabled ? (change) => navigateToReview([change]) : undefined
       }
       isViewChangeAvailable={conflictUxEnabled ? isReviewableChange : undefined}
+      onTransitionStatus={onTransitionStatus}
+      onSchedulePublish={onSchedulePublish}
+      onCancelSchedule={onCancelSchedule}
       onResolveConflict={(change) => {
         if (change && conflictUxEnabled) {
           navigate(getConflictRouteForChange(change));
@@ -289,6 +456,8 @@ const UnpublishedChanges = () => {
       }}
       isPublishing={isPublishing}
       isDiscarding={isDiscarding}
+      isTransitioning={isTransitioning}
+      isScheduling={isScheduling || isCancelingSchedule}
       pageStatusMap={pageStatusMap}
     />
   );

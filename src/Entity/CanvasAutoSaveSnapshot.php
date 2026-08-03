@@ -121,10 +121,6 @@ final class CanvasAutoSaveSnapshot extends ContentEntityBase implements EntityOw
     return $fields;
   }
 
-  public function getWorkspaceId(): string {
-    return $this->get('workspace')->value ?? AutoSaveWorkspace::ID;
-  }
-
   public function getTargetEntityTypeId(): string {
     return $this->get('target_entity_type_id')->value;
   }

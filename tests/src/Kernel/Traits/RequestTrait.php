@@ -67,10 +67,10 @@ trait RequestTrait {
       }
 
       // When the controller throws (this harness handles requests with
-      // catch: FALSE), kernel terminate never runs, so the auto-save workspace
-      // activated for Canvas API routes would leak into subsequent test code.
-      // In production, exceptions become responses and terminate runs.
-      // @see \Drupal\canvas\EventSubscriber\AutoSave\AutoSaveWorkspaceActivationSubscriber::onKernelTerminate()
+      // catch: FALSE), kernel terminate never runs, so a workspace activated
+      // during the request (e.g. the Main-workspace fallback at editor boot)
+      // would leak into subsequent test code. In production, exceptions
+      // become responses and terminate runs.
       if ($this->container->has('workspaces.manager')) {
         $workspace_manager = $this->container->get('workspaces.manager');
         if ($workspace_manager->hasActiveWorkspace() && $workspace_manager->getActiveWorkspace()?->id() === AutoSaveWorkspace::ID) {

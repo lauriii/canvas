@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Controller;
 
-use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\AutoSave\Workspace\AutoSaveWorkspace;
 use Drupal\canvas\Workspace\WorkspaceReview;
 use Drupal\canvas\Workspace\WorkspaceReviewAccessException;
@@ -37,7 +36,6 @@ final class ApiWorkspaceController extends ApiControllerBase {
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly AccountInterface $currentUser,
-    private readonly AutoSaveManager $autoSaveManager,
     private readonly WorkspaceReview $workspaceReview,
     #[Autowire(service: 'transliteration')]
     private readonly TransliterationInterface $transliteration,
@@ -61,7 +59,7 @@ final class ApiWorkspaceController extends ApiControllerBase {
     $storage = $this->entityTypeManager->getStorage('workspace');
     /** @var \Drupal\workspaces\WorkspaceManagerInterface $wm */
     $wm = $this->workspaceManager;
-    $active_id = $wm->hasActiveWorkspace() ? (string) $wm->getActiveWorkspace()->id() : NULL;
+    $active_id = $wm->hasActiveWorkspace() ? (string) $wm->getActiveWorkspace()?->id() : NULL;
     $data = [];
     foreach ($storage->loadMultiple() as $workspace) {
       \assert($workspace instanceof WorkspaceInterface);
@@ -109,7 +107,7 @@ final class ApiWorkspaceController extends ApiControllerBase {
     $workspace->save();
     /** @var \Drupal\workspaces\WorkspaceManagerInterface $wm */
     $wm = $this->workspaceManager;
-    $active_id = $wm->hasActiveWorkspace() ? (string) $wm->getActiveWorkspace()->id() : NULL;
+    $active_id = $wm->hasActiveWorkspace() ? (string) $wm->getActiveWorkspace()?->id() : NULL;
     return new JsonResponse(data: $this->normalizeWorkspace($workspace, $active_id), status: Response::HTTP_CREATED);
   }
 
@@ -125,7 +123,7 @@ final class ApiWorkspaceController extends ApiControllerBase {
     }
     /** @var \Drupal\workspaces\WorkspaceManagerInterface $wm */
     $wm = $this->workspaceManager;
-    if ($wm->hasActiveWorkspace() && $wm->getActiveWorkspace()->id() === $workspace->id()) {
+    if ($wm->hasActiveWorkspace() && $wm->getActiveWorkspace()?->id() === $workspace->id()) {
       $wm->switchToLive();
     }
     $workspace->delete();
@@ -218,7 +216,7 @@ final class ApiWorkspaceController extends ApiControllerBase {
   private function activeWorkspaceIdOrNull(): ?string {
     /** @var \Drupal\workspaces\WorkspaceManagerInterface $wm */
     $wm = $this->workspaceManager;
-    return $wm->hasActiveWorkspace() ? (string) $wm->getActiveWorkspace()->id() : NULL;
+    return $wm->hasActiveWorkspace() ? (string) $wm->getActiveWorkspace()?->id() : NULL;
   }
 
   /**

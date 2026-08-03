@@ -46,7 +46,10 @@ final class AutoSaveRevisionPruner {
    */
   private function stagingWorkspaceId(): string {
     if ($this->workspaceManager !== NULL && $this->workspaceManager->hasActiveWorkspace()) {
-      return (string) $this->workspaceManager->getActiveWorkspace()->id();
+      $active = $this->workspaceManager->getActiveWorkspace();
+      if ($active !== NULL) {
+        return (string) $active->id();
+      }
     }
     return AutoSaveWorkspace::ID;
   }

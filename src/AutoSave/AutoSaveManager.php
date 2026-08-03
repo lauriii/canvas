@@ -486,10 +486,12 @@ class AutoSaveManager implements EventSubscriberInterface {
    * must wrap themselves in WorkspaceManagerInterface::executeInWorkspace().
    */
   public static function activeWorkspaceId(): string {
-    // @phpstan-ignore-next-line
     $manager = \Drupal::hasService('workspaces.manager') ? \Drupal::service('workspaces.manager') : NULL;
     if ($manager !== NULL && $manager->hasActiveWorkspace()) {
-      return (string) $manager->getActiveWorkspace()->id();
+      $active = $manager->getActiveWorkspace();
+      if ($active !== NULL) {
+        return (string) $active->id();
+      }
     }
     return AutoSaveWorkspace::ID;
   }
@@ -795,46 +797,6 @@ class AutoSaveManager implements EventSubscriberInterface {
   }
 
   /**
-   * Groups content entity auto-save entries by entity, one per translation.
-   *
-   * A single content entity may have multiple auto-save entries when several
-   * translations were edited independently. Each entry holds a snapshot for one
-   * translation. This method collects all snapshots for the same entity into a
-   * group so they can be passed to
-   * ApiAutoSaveController::applyAutoSaveTranslationSnapshots(), which applies
-   * them all onto one loaded copy in a single save.
-   *
-   * Content entity coalescing lives here rather than in getAutoSaveEntity() /
-   * getAllAutoSaveList() because it requires loadUnchanged() to merge
-   * field-level changes onto the stored entity — a publish-specific operation
-   * that must not run at reconstruction time. This method therefore only groups
-   * the raw snapshots; the actual merge happens in the controller at publish
-   * time.
-   * Contrast with config entities, where coalescing is non-destructive and
-   * happens at load time in ComponentTreeConfigEntityBase::getTranslation().
-   *
-   * @param array<string, AutoSaveEntry> $auto_saves
-   *   A subset of the getAllAutoSaveList() result, already filtered to the
-   *   entries that should be published, with 'entity' populated.
-   *
-   * @return array<string, \Drupal\Core\Entity\ContentEntityInterface[]>
-   *   Snapshot entities grouped by "{entity_type}:{entity_id}", preserving the
-   *   order of the input. Config entity entries are silently skipped.
-   */
-  public static function groupContentEntityAutoSaves(array $auto_saves): array {
-    $groups = [];
-    foreach ($auto_saves as $entry) {
-      $entity = $entry['entity'];
-      if (!$entity instanceof ContentEntityInterface) {
-        continue;
-      }
-      $group_key = $entity->getEntityTypeId() . ':' . $entity->id();
-      $groups[$group_key][] = $entity;
-    }
-    return $groups;
-  }
-
-  /**
    * Checks if there is an unresolved conflict and returns its id.
    *
    * This method only handles conflicts in scenarios where an entity on which
@@ -1009,9 +971,7 @@ class AutoSaveManager implements EventSubscriberInterface {
    * StagedLanguageConfigOverride drafts are separate auto-save entries that
    * must be discarded (and, eventually, published) together: each override's
    * entity ID is "{langcode}.{config_name}", so they are matched by config
-   * name. This is the config-translation sibling of
-   * ::groupContentEntityAutoSaves(), which groups a content entity's
-   * per-translation snapshots.
+   * name.
    *
    * @param \Drupal\canvas\Entity\ComponentTreeConfigEntityBase $entity
    *   The config entity whose staged translation drafts to collect.

@@ -433,8 +433,8 @@ HTML;
     }
     /** @var \Drupal\workspaces\WorkspaceManagerInterface $wm */
     $wm = $this->workspaceManager;
-    if ($wm->hasActiveWorkspace()) {
-      $active = $wm->getActiveWorkspace();
+    $active = $wm->hasActiveWorkspace() ? $wm->getActiveWorkspace() : NULL;
+    if ($active !== NULL) {
       $settings['activeWorkspace'] = [
         'id' => (string) $active->id(),
         'label' => (string) $active->label(),

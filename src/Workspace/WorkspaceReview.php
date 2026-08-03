@@ -58,12 +58,12 @@ final class WorkspaceReview {
     ],
   ];
 
-  public function getStatus(WorkspaceInterface $workspace): string {
+  public static function getStatus(WorkspaceInterface $workspace): string {
     $value = $workspace->get('canvas_workspace_status')->value;
     return \is_string($value) && $value !== '' ? $value : self::STATUS_DRAFT;
   }
 
-  public function requiresReview(WorkspaceInterface $workspace): bool {
+  public static function requiresReview(WorkspaceInterface $workspace): bool {
     return (bool) $workspace->get('canvas_require_review')->value;
   }
 
@@ -71,7 +71,7 @@ final class WorkspaceReview {
    * Whether the review gate currently blocks publishing this workspace.
    */
   public function isPublishBlocked(WorkspaceInterface $workspace): bool {
-    return $this->requiresReview($workspace) && $this->getStatus($workspace) !== self::STATUS_APPROVED;
+    return self::requiresReview($workspace) && self::getStatus($workspace) !== self::STATUS_APPROVED;
   }
 
   /**
@@ -83,7 +83,7 @@ final class WorkspaceReview {
    *   When the account lacks the transition's permission.
    */
   public function transition(WorkspaceInterface $workspace, string $to, AccountInterface $account): void {
-    $from = $this->getStatus($workspace);
+    $from = self::getStatus($workspace);
     if ($from === $to) {
       return;
     }
@@ -118,7 +118,7 @@ final class WorkspaceReview {
     if ($this->demotionSuppressed) {
       return;
     }
-    if ($this->getStatus($workspace) === self::STATUS_DRAFT) {
+    if (self::getStatus($workspace) === self::STATUS_DRAFT) {
       return;
     }
     $workspace->set('canvas_workspace_status', self::STATUS_DRAFT);

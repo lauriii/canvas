@@ -338,7 +338,7 @@ final class ApiConfigControllers extends ApiControllerBase {
     ]);
   }
 
-  public function delete(CanvasHttpApiEligibleConfigEntityInterface $canvas_config_entity): JsonResponse {
+  public static function delete(CanvasHttpApiEligibleConfigEntityInterface $canvas_config_entity): JsonResponse {
     // @todo First validate that there is no other entity depending on this. If there is, respond with a 400, 409, 412 or 422 (TBD).
     // @todo Permissions take into account config dependencies, but we might have content dependencies depending on it too. See https://www.drupal.org/project/canvas/issues/3516839
     // @see https://www.drupal.org/project/drupal/issues/3423459

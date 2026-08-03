@@ -118,7 +118,10 @@ final class WorkspaceAutoSave {
    */
   public function getStagingWorkspaceId(): string {
     if ($this->workspaceManager !== NULL && $this->workspaceManager->hasActiveWorkspace()) {
-      return (string) $this->workspaceManager->getActiveWorkspace()->id();
+      $active = $this->workspaceManager->getActiveWorkspace();
+      if ($active !== NULL) {
+        return (string) $active->id();
+      }
     }
     return AutoSaveWorkspace::ID;
   }
@@ -1170,7 +1173,7 @@ final class WorkspaceAutoSave {
       }
     }
     $this->cacheTagsInvalidator->invalidateTags([AutoSaveManager::CACHE_TAG]);
-    $this->cache->invalidateAll();
+    $this->cache->deleteAll();
   }
 
   public function deleteAll(): void {

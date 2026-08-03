@@ -10,8 +10,11 @@ import type {
 interface ChangeListProps {
   groups: UnpublishedChangeGroups;
   isBusy: boolean;
-  selectedChanges: UnpublishedChange[];
-  setSelectedChanges: (changes: UnpublishedChange[]) => void;
+  // When false, rows render without selection checkboxes; publishing always
+  // covers the whole workspace.
+  selectable?: boolean;
+  selectedChanges?: UnpublishedChange[];
+  setSelectedChanges?: (changes: UnpublishedChange[]) => void;
   onDiscardClick: (change: UnpublishedChange) => void;
   onViewClick?: (change: UnpublishedChange) => void;
   isViewChangeAvailable?: (change: UnpublishedChange) => boolean;
@@ -25,6 +28,7 @@ interface ChangeListProps {
 const ChangeList = ({
   groups,
   isBusy,
+  selectable = true,
   selectedChanges,
   setSelectedChanges,
   onDiscardClick,
@@ -43,6 +47,7 @@ const ChangeList = ({
               entityType={entityType}
               changes={changes}
               isBusy={isBusy}
+              selectable={selectable}
               selectedChanges={selectedChanges}
               setSelectedChanges={setSelectedChanges}
               onDiscardClick={onDiscardClick}

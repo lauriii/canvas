@@ -21,6 +21,7 @@ use Drupal\Core\Session\AccountInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationList;
+use Symfony\Component\Validator\ConstraintViolationListInterface;
 
 /**
  * Publishes a workspace atomically through core workspace publish.
@@ -153,7 +154,7 @@ final class CanvasWorkspacePublisher {
   /**
    * Validates one manifest item; NULL when it has no validatable form.
    */
-  private function validateItem(EntityInterface $entity): EntityConstraintViolationListInterface|ConstraintViolationList|NULL {
+  private function validateItem(EntityInterface $entity): ?ConstraintViolationListInterface {
     if (self::isManifestOnlyEntity($entity)) {
       return NULL;
     }
