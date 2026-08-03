@@ -1,5 +1,15 @@
 # @drupal-canvas/cli
 
+## 0.21.3
+
+### Patch Changes
+
+- 7bcf0cc: Fix reconcile-media to support bearer token authentication
+
+  The reconcile-media command now uses ensureAuthConfig() instead of directly
+  requiring clientId/clientSecret, allowing it to work with CANVAS_ACCESS_TOKEN
+  bearer token authentication like other commands (push, pull, build).
+
 ## 0.21.2
 
 ### Patch Changes
