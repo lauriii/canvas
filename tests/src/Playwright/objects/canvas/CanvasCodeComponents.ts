@@ -151,6 +151,11 @@ export function CanvasCodeComponentsMixin<
           `[data-canvas-type="component"][data-canvas-component-id="${componentName}"]`,
         ),
       ).toBeVisible();
+      await expect(
+        this.page.locator(
+          `[data-canvas-folder-name="Other"] + [data-state="open"] [data-canvas-type="component"][data-canvas-component-id="${componentName}"]`,
+        ),
+      ).toBeVisible();
     }
   };
 }
