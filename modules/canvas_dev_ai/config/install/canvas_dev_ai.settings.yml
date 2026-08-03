@@ -1,0 +1,4 @@
+main_agent: canvas_ai_orchestrator
+tools:
+  - canvas_component_agent
+  - canvas_page_builder_agent

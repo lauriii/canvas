@@ -42,6 +42,17 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
   ];
 
   /**
+   * {@inheritdoc}
+   */
+  protected function setUp(): void {
+    parent::setUp();
+    // canvas_dev_ai's shipped settings reference ai_agent entities from
+    // canvas_ai's config/install, and its schema constraints require them to
+    // exist, so they must be installed before canvas_dev_ai is.
+    $this->installConfig(['canvas_ai']);
+  }
+
+  /**
    * Tests that the `aiDevMode` flag follows the module install state.
    */
   public function testAiDevModeFlagFollowsInstallState(): void {
