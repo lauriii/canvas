@@ -298,7 +298,7 @@ describe('Contextual panel', () => {
     cy.findByTestId(/^canvas-component-form-.*/)
       .find('select[required]')
       .find('option')
-      .should('not.contain', '- None -');
+      .should('not.contain', 'No value');
 
     // Hitting enter within a field should not submit the form or alter that
     // prop within the layout.

@@ -2,6 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import ReactSelect, { components } from 'react-select';
 import { ChevronDownIcon, Cross2Icon } from '@radix-ui/react-icons';
 
+import {
+  EMPTY_OPTION_LABEL,
+  EMPTY_OPTION_VALUE,
+} from '@/components/form/components/selectEmptyOption';
 import { withRHF } from '@/components/form/react-hook-form/withRHF';
 import { a2p } from '@/local_packages/utils';
 
@@ -151,12 +155,14 @@ const DrupalSelectMultivalueForm = ({
 
   // Convert Drupal options format to react-select format (skip optgroup & _none).
   const reactSelectOptions: ReactSelectOption[] = options
-    .filter((opt) => opt.type !== 'optgroup' && opt.value !== '_none')
+    .filter(
+      (opt) => opt.type !== 'optgroup' && opt.value !== EMPTY_OPTION_VALUE,
+    )
     .map((opt) => ({ value: opt.value, label: opt.label }));
 
   // Build values from the options prop.
   const backendSelectedValues = options
-    .filter((opt) => opt.selected && opt.value !== '_none')
+    .filter((opt) => opt.selected && opt.value !== EMPTY_OPTION_VALUE)
     .map((opt) => ({ value: opt.value, label: opt.label }));
 
   // Local state provides immediate UI updates for ReactSelect.
@@ -189,10 +195,16 @@ const DrupalSelectMultivalueForm = ({
   };
 
   const fieldLabel = String(attributes['data-field-label'] || '');
-  const placeholderText = `Select ${fieldLabel}`;
+  // A multi-select has no `_none` option: an empty selection is the empty
+  // state. Say so with the same words the single-select uses, so "unset" reads
+  // the same to an author regardless of which control they are looking at.
+  const isEmpty = localSelectedValues.length === 0;
 
   return (
-    <div className={styles.container}>
+    <div
+      className={styles.container}
+      data-canvas-value-state={isEmpty ? 'unset' : 'set'}
+    >
       {/* Hidden native <select> wrapped with withRHF. */}
       <div ref={hiddenSelectContainerRef}>
         <HiddenSelectWithBehaviors
@@ -208,11 +220,11 @@ const DrupalSelectMultivalueForm = ({
         options={reactSelectOptions}
         value={localSelectedValues}
         onChange={handleChange}
-        placeholder={placeholderText}
-        aria-label={placeholderText}
+        placeholder={EMPTY_OPTION_LABEL}
+        aria-label={`Select ${fieldLabel}`}
         classNamePrefix="canvas-select"
         closeMenuOnSelect={false}
-        noOptionsMessage={() => 'No selection'}
+        noOptionsMessage={() => 'No options'}
         components={{
           DropdownIndicator,
           MultiValueRemove,

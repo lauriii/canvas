@@ -1,5 +1,6 @@
 import addFormats from 'ajv-formats';
 
+import { EMPTY_OPTION_VALUE } from '@/components/form/components/selectEmptyOption';
 import { isPropSourceComponent } from '@/types/Component';
 import { createAjv } from '@/utils/ajv';
 import { parseValue } from '@/utils/function-utils';
@@ -135,7 +136,7 @@ export const shouldSkipPropValidation = (
   // options where the select is not required.
   if (
     ['SELECT', 'OPTION'].includes(target.tagName) &&
-    newValue === '_none' &&
+    newValue === EMPTY_OPTION_VALUE &&
     !target.required
   ) {
     return true;
@@ -371,7 +372,11 @@ export const resolveOptionsOverrides = (
 ): { options?: object[] } => {
   if (!props.options || props.attributes.required) return {};
 
-  if (!props.options.some((option: PropsValues) => option.value === '_none')) {
+  if (
+    !props.options.some(
+      (option: PropsValues) => option.value === EMPTY_OPTION_VALUE,
+    )
+  ) {
     return {};
   }
 
@@ -380,7 +385,7 @@ export const resolveOptionsOverrides = (
     // selection is represented as an empty array. Remove it entirely.
     return {
       options: props.options.filter(
-        (option: PropsValues) => option.value !== '_none',
+        (option: PropsValues) => option.value !== EMPTY_OPTION_VALUE,
       ),
     };
   }
@@ -389,7 +394,7 @@ export const resolveOptionsOverrides = (
     return {
       options: props.options.map((option: PropsValues) => ({
         ...option,
-        selected: option.value === '_none',
+        selected: option.value === EMPTY_OPTION_VALUE,
       })),
     };
   }

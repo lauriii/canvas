@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 
+import { EMPTY_OPTION_VALUE } from '@/components/form/components/selectEmptyOption';
 import { setUpdatePreview } from '@/features/layout/layoutModelSlice';
 import {
   externalUpdateComplete,
@@ -26,7 +27,7 @@ export const extractPageDataValue = (e: any): any => {
     return (target as HTMLInputElement).checked ? '1' : '0';
   }
   if ('value' in target) {
-    return target.value === '_none' ? null : target.value;
+    return target.value === EMPTY_OPTION_VALUE ? null : target.value;
   }
   return null;
 };
