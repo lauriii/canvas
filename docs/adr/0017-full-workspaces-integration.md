@@ -151,3 +151,14 @@ unit of review and publish.
    draft moderation state blocks the whole workspace publish until a
    published moderation state is staged. Core publish-gate refusals
    (`WorkspacePublishException`) map to 409 on the Canvas publish endpoint.
+10. Workspace switches became frequent (staging enters and leaves workspace
+    context throughout), and every switch makes workspace_config clear
+    entity field definitions, which makes layout_builder clear block plugin
+    definitions, which reaches Canvas's component generation. Ungated, that
+    cascade re-entered itself through the config saves generation performs
+    and hung requests. Component generation therefore carries a re-entrancy
+    guard, runs outside any active workspace (generated Component config
+    mirrors code, not editorial intent, so it must never stage), and the
+    block manager decorator only regenerates when the block plugin ID set
+    actually changed within a request. A same-request definition-only change
+    (e.g. a relabeled Views block) regenerates on the next request instead.

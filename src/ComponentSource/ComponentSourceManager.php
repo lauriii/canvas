@@ -49,6 +49,18 @@ final class ComponentSourceManager extends DefaultPluginManager {
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache_backend
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    */
+  /**
+   * TRUE while ::generateComponents() is on the call stack.
+   *
+   * Component generation saves Component config entities; with a workspace
+   * active those saves switch workspace context, every switch dispatches
+   * WorkspaceSwitchEvent, workspace_config reacts by clearing entity field
+   * definitions, layout_builder reacts to that by clearing block plugin
+   * definitions, and BlockManagerDecorator::clearCachedDefinitions() would
+   * re-enter this method — recursing until memory or patience runs out.
+   */
+  private bool $generating = FALSE;
+
   public function __construct(
     \Traversable $namespaces,
     CacheBackendInterface $cache_backend,
@@ -86,6 +98,13 @@ final class ComponentSourceManager extends DefaultPluginManager {
   public function generateComponents(?string $source_id = NULL, ?array $source_specific_ids = NULL): self {
     \assert($source_specific_ids === NULL || \array_is_list($source_specific_ids));
     if ($this->isUpdateKernel) {
+      return $this;
+    }
+    // Re-entrancy guard: generation triggers cache invalidations (workspace
+    // switches during config saves, entity field definition rebuilds) whose
+    // listeners can call back into this method. One generation pass is
+    // already doing the work; re-entering would recurse indefinitely.
+    if ($this->generating) {
       return $this;
     }
 
@@ -127,25 +146,49 @@ final class ComponentSourceManager extends DefaultPluginManager {
       return $this;
     }
 
-    $source_definitions = $this->getDefinitions();
-    if ($source_id !== NULL) {
-      // Filter the set of definitions down to just the one that was asked for,
-      // if any.
-      $source_definitions = array_filter($source_definitions, fn($key) => $key === $source_id, ARRAY_FILTER_USE_KEY);
-    }
+    $this->generating = TRUE;
+    try {
+      // Generated Component config mirrors discovered code (block plugins,
+      // SDCs), not editorial intent: it must write to Live, never stage into
+      // the active workspace, or every workspace would fill up with
+      // machine-generated pending config changes.
+      $this->executeOutsideWorkspace(function () use ($source_id, $source_specific_ids): void {
+        $source_definitions = $this->getDefinitions();
+        if ($source_id !== NULL) {
+          // Filter the set of definitions down to just the one that was asked
+          // for, if any.
+          $source_definitions = array_filter($source_definitions, fn($key) => $key === $source_id, ARRAY_FILTER_USE_KEY);
+        }
 
-    $existing_components = Component::loadMultiple();
-    \assert(Inspector::assertAllObjects($existing_components, Component::class));
-    foreach ($source_definitions as $source_definition_id => $definition) {
-      if ($definition['discovery'] === FALSE) {
-        continue;
-      }
-      // @todo use static cache
-      $discovery = $this->classResolver->getInstanceFromDefinition($definition['discovery']);
-      \assert($discovery instanceof ComponentCandidatesDiscoveryInterface);
-      $this->generateComponentsForSource($source_definition_id, $discovery, $existing_components, $source_specific_ids);
+        $existing_components = Component::loadMultiple();
+        \assert(Inspector::assertAllObjects($existing_components, Component::class));
+        foreach ($source_definitions as $source_definition_id => $definition) {
+          if ($definition['discovery'] === FALSE) {
+            continue;
+          }
+          // @todo use static cache
+          $discovery = $this->classResolver->getInstanceFromDefinition($definition['discovery']);
+          \assert($discovery instanceof ComponentCandidatesDiscoveryInterface);
+          $this->generateComponentsForSource($source_definition_id, $discovery, $existing_components, $source_specific_ids);
+        }
+      });
+    }
+    finally {
+      $this->generating = FALSE;
     }
     return $this;
+  }
+
+  /**
+   * Runs $callable outside any active workspace.
+   */
+  private function executeOutsideWorkspace(callable $callable): mixed {
+    // @phpstan-ignore-next-line
+    $manager = \Drupal::hasService('workspaces.manager') ? \Drupal::service('workspaces.manager') : NULL;
+    if ($manager === NULL || !$manager->hasActiveWorkspace()) {
+      return $callable();
+    }
+    return $manager->executeOutsideWorkspace($callable);
   }
 
   /**
