@@ -16,6 +16,7 @@ use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Validator\ConstraintViolation;
@@ -49,6 +50,7 @@ final class CanvasWorkspacePublisher {
     private readonly AutoSaveManager $autoSaveManager,
     private readonly WorkspaceAutoSave $workspaceAutoSave,
     private readonly WorkspaceReview $workspaceReview,
+    private readonly ModuleHandlerInterface $moduleHandler,
     /**
      * @var \Drupal\workspaces\WorkspaceManagerInterface
      */
@@ -91,7 +93,12 @@ final class CanvasWorkspacePublisher {
           $this->autoSaveManager->flushDeferredContentEntity($entry['entity']);
         }
       }
-      $entries = $this->autoSaveManager->getAllAutoSaveList(with_entities: TRUE, with_conflicts: FALSE);
+      // The whole workspace publishes at once, so an unresolved external-edit
+      // conflict on any item must abort the publish: unlike per-item publish,
+      // there is no selection that could exclude the conflicted draft.
+      // @todo Remove the use of 'canvas_dev_cd' flag in https://git.drupalcode.org/project/canvas/-/work_items/3591732
+      $conflict_detection = $this->moduleHandler->moduleExists('canvas_dev_cd');
+      $entries = $this->autoSaveManager->getAllAutoSaveList(with_entities: TRUE, with_conflicts: $conflict_detection);
 
       // Validate every listed item and check update access up front, so no
       // live write happens when anything is invalid.
@@ -107,6 +114,10 @@ final class CanvasWorkspacePublisher {
         \assert($access instanceof AccessResultInterface);
         if (!$access->isAllowed() && !self::isManifestOnlyEntity($entity)) {
           $violation_sets[] = self::accessViolation($entity);
+          continue;
+        }
+        if (isset($entry[AutoSaveManager::AUTO_SAVE_CONFLICT_KEY])) {
+          $violation_sets[] = self::conflictViolation($entity);
           continue;
         }
         $item_violations = $this->validateItem($entity);
@@ -224,6 +235,22 @@ final class CanvasWorkspacePublisher {
    */
   private static function accessViolation(EntityInterface $entity): EntityConstraintViolationList {
     $message = \sprintf('You do not have permission to update %s.', (string) ($entity->label() ?? $entity->id()));
+    $violation = new ConstraintViolation(
+      message: $message,
+      messageTemplate: $message,
+      parameters: [],
+      root: $entity,
+      propertyPath: AutoSaveManager::getAutoSaveKey($entity),
+      invalidValue: NULL,
+    );
+    return new EntityConstraintViolationList($entity, [$violation]);
+  }
+
+  /**
+   * A per-item violation set for an unresolved external-edit conflict.
+   */
+  private static function conflictViolation(EntityInterface $entity): EntityConstraintViolationList {
+    $message = \sprintf('%s was changed outside this workspace after it was drafted. Resolve the conflict before publishing.', (string) ($entity->label() ?? $entity->id()));
     $violation = new ConstraintViolation(
       message: $message,
       messageTemplate: $message,

@@ -22,8 +22,13 @@ const WorkspaceLockNotice = () => {
   const { data: layout } = useGetPageLayoutQuery(
     entityId && entityType ? { entityId, entityType } : skipToken,
   );
+  // The boot settings only fill in until the layout response arrives: once
+  // it has, its value is authoritative, including an explicit "not locked"
+  // (otherwise a stale boot-time lock would linger after navigation).
   const lockedInWorkspace =
-    layout?.lockedInWorkspace ?? getWorkspacesSettings()?.lockedInWorkspace;
+    layout !== undefined
+      ? (layout.lockedInWorkspace ?? null)
+      : (getWorkspacesSettings()?.lockedInWorkspace ?? null);
   const [activateWorkspace, { isLoading }] = useActivateWorkspaceMutation();
 
   if (!lockedInWorkspace) {

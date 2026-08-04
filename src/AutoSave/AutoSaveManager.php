@@ -52,6 +52,7 @@ use Drupal\Core\TypedData\PrimitiveInterface;
 use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\path\Plugin\Field\FieldType\PathFieldItemList;
 use Drupal\workspaces\WorkspaceInterface;
+use Drupal\workspaces\WorkspaceManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\Validator\ConstraintViolationList;
@@ -352,10 +353,10 @@ class AutoSaveManager implements EventSubscriberInterface {
    */
   public function saveComponentInstanceFormViolations(string $component_uuid, ?ConstraintViolationListInterface $violations = NULL): self {
     if ($violations === NULL) {
-      $this->componentInstanceFormViolationsStore->delete($component_uuid);
+      $this->componentInstanceFormViolationsStore->delete(self::componentInstanceViolationsKey($component_uuid));
       return $this;
     }
-    $this->componentInstanceFormViolationsStore->set($component_uuid, $violations);
+    $this->componentInstanceFormViolationsStore->set(self::componentInstanceViolationsKey($component_uuid), $violations);
     return $this;
   }
 
@@ -364,7 +365,18 @@ class AutoSaveManager implements EventSubscriberInterface {
    *    https://drupal.org/i/3500795.
    */
   public function getComponentInstanceFormViolations(string $component_uuid): ConstraintViolationListInterface {
-    return $this->componentInstanceFormViolationsStore->get($component_uuid) ?? new ConstraintViolationList();
+    return $this->componentInstanceFormViolationsStore->get(self::componentInstanceViolationsKey($component_uuid)) ?? new ConstraintViolationList();
+  }
+
+  /**
+   * The store key for a component instance's form violations.
+   *
+   * Workspace-prefixed like every other staging key: config drafts can hold
+   * the same component UUID in different workspaces, and one workspace's
+   * violations must not leak into another.
+   */
+  private static function componentInstanceViolationsKey(string $component_uuid): string {
+    return self::activeWorkspaceId() . ':' . $component_uuid;
   }
 
   /**
@@ -487,7 +499,7 @@ class AutoSaveManager implements EventSubscriberInterface {
    * must wrap themselves in WorkspaceManagerInterface::executeInWorkspace().
    */
   public static function activeWorkspaceId(): string {
-    $manager = \Drupal::hasService('workspaces.manager') ? \Drupal::service('workspaces.manager') : NULL;
+    $manager = \Drupal::hasService('workspaces.manager') ? \Drupal::service(WorkspaceManagerInterface::class) : NULL;
     if ($manager !== NULL && $manager->hasActiveWorkspace()) {
       $active = $manager->getActiveWorkspace();
       if ($active !== NULL) {
@@ -961,7 +973,10 @@ class AutoSaveManager implements EventSubscriberInterface {
         ...$carry,
         ...\array_column($entity->get($field_name)->getValue(), 'uuid'),
       ], []);
-      $this->componentInstanceFormViolationsStore->deleteMultiple(\array_unique($component_uuids));
+      $this->componentInstanceFormViolationsStore->deleteMultiple(\array_map(
+        self::componentInstanceViolationsKey(...),
+        \array_unique($component_uuids),
+      ));
     }
   }
 

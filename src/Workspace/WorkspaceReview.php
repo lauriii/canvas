@@ -244,6 +244,19 @@ final class WorkspaceReview {
   }
 
   /**
+   * Whether publish-time staging is currently running.
+   *
+   * TRUE exactly while CanvasWorkspacePublisher stages and publishes, which
+   * doubles as the "this publish went through the validated Canvas
+   * pipeline" signal for the pre-publish snapshot gate.
+   *
+   * @see \Drupal\canvas\EventSubscriber\AutoSave\AutoSaveWorkspacePublishSubscriber::onPrePublish()
+   */
+  public function isDemotionSuppressed(): bool {
+    return $this->demotionSuppressed;
+  }
+
+  /**
    * Runs $callable with staged-write demotion suppressed.
    *
    * @see ::demoteOnStagedWrite()

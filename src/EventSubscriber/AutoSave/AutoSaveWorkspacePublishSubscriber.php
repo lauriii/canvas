@@ -52,6 +52,23 @@ final class AutoSaveWorkspacePublishSubscriber implements EventSubscriberInterfa
         (string) $workspace->label(),
         $this->workspaceReview->getStatusLabel($workspace),
       ));
+      return;
+    }
+    // Snapshot-held drafts (code editor working copies, payloads the storage
+    // layer rejected) are invisible to core's publish. Only the Canvas
+    // publisher stages them into the workspace — or refuses when they are
+    // invalid — before this event fires, signalled by its publish-time
+    // staging latch. Refuse every other surface (core Workspaces UI, direct
+    // API calls): letting them proceed would promote the workspace without
+    // those drafts and then silently discard them in the post-publish
+    // cleanup.
+    if (!$this->workspaceReview->isDemotionSuppressed()
+      && $this->workspaceAutoSave->workspaceHasSnapshotRows((string) $workspace->id())) {
+      $event->stopPublishing();
+      $event->setPublishingStoppedReason(\sprintf(
+        'The "%s" workspace has draft changes that cannot be published from here. Publish it from Drupal Canvas instead.',
+        (string) $workspace->label(),
+      ));
     }
   }
 

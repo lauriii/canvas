@@ -206,7 +206,11 @@ const withSerializedLayoutMutations: (
     try {
       return await baseQuery(args, api, extraOptions);
     } finally {
-      release();
+      // The response's refreshed autoSaves hash lands in Redux from the
+      // endpoint's queryFulfilled handler, which runs in the microtask
+      // cascade after this base query returns. Release on the next
+      // macrotask so the queued request cannot read the pre-response hash.
+      setTimeout(release, 0);
     }
   };
 };

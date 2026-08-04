@@ -15,6 +15,9 @@ use Drupal\canvas\Hook\CanvasWorkspaceHooks;
 use Drupal\canvas\Plugin\WorkflowType\WorkspaceReviewWorkflowType;
 use Drupal\Component\Serialization\Yaml;
 use Drupal\Core\Datetime\DateFormatterInterface;
+use Drupal\Core\Entity\EntityLastInstalledSchemaRepositoryInterface;
+use Drupal\Core\Extension\ModuleExtensionList;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Extension\Requirement\RequirementSeverity;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Extension\ThemeInstallerInterface;
@@ -213,7 +216,7 @@ function canvas_update_11200(): void {
  */
 function canvas_update_11201(): void {
   /** @var \Drupal\Core\Entity\EntityLastInstalledSchemaRepositoryInterface $repository */
-  $repository = \Drupal::service('entity.last_installed_schema.repository');
+  $repository = \Drupal::service(EntityLastInstalledSchemaRepositoryInterface::class);
   if ($repository->getLastInstalledDefinition(CanvasAutoSaveSnapshot::ENTITY_TYPE_ID) === NULL) {
     $definition = \Drupal::entityTypeManager()->getDefinition(CanvasAutoSaveSnapshot::ENTITY_TYPE_ID);
     \Drupal::entityDefinitionUpdateManager()->installEntityType($definition);
@@ -237,7 +240,7 @@ function canvas_update_11202(): void {
   // Config edits made while a workspace is active stage into it.
   if (!\Drupal::moduleHandler()->moduleExists('workspace_config')) {
     /** @var \Drupal\Core\Extension\ModuleInstallerInterface $installer */
-    $installer = \Drupal::service('module_installer');
+    $installer = \Drupal::service(ModuleInstallerInterface::class);
     $installer->install(['workspace_config']);
   }
 
@@ -276,6 +279,7 @@ function canvas_update_11202(): void {
   $collections = [
     AutoSaveManager::AUTO_SAVE_STORE,
     AutoSaveManager::FORM_VIOLATIONS_STORE,
+    AutoSaveManager::COMPONENT_INSTANCE_FORM_VIOLATIONS_STORE,
     'canvas_auto_save_pending',
     AutoSaveRevisionPruner::STORE,
   ];
@@ -304,7 +308,7 @@ function _canvas_ensure_workspaces_module_enabled(): void {
     return;
   }
   /** @var \Drupal\Core\Extension\ModuleInstallerInterface $installer */
-  $installer = \Drupal::service('module_installer');
+  $installer = \Drupal::service(ModuleInstallerInterface::class);
   $installer->install(['workspaces']);
 }
 
@@ -315,14 +319,14 @@ function _canvas_ensure_workspaces_module_enabled(): void {
 function canvas_update_11203(): void {
   if (!\Drupal::moduleHandler()->moduleExists('workflows')) {
     /** @var \Drupal\Core\Extension\ModuleInstallerInterface $installer */
-    $installer = \Drupal::service('module_installer');
+    $installer = \Drupal::service(ModuleInstallerInterface::class);
     $installer->install(['workflows']);
   }
 
   // The shipped review workflow; fresh installs get it from config/install.
   $workflow_storage = \Drupal::entityTypeManager()->getStorage('workflow');
   if ($workflow_storage->load(WorkspaceReviewWorkflowType::DEFAULT_WORKFLOW_ID) === NULL) {
-    $path = \Drupal::service('extension.list.module')->getPath('canvas') . '/config/install/workflows.workflow.canvas_workspace_review.yml';
+    $path = \Drupal::service(ModuleExtensionList::class)->getPath('canvas') . '/config/install/workflows.workflow.canvas_workspace_review.yml';
     $workflow_storage->create(Yaml::decode((string) \file_get_contents($path)))->save();
   }
 

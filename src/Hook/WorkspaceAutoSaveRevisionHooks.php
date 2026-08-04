@@ -87,4 +87,16 @@ final class WorkspaceAutoSaveRevisionHooks {
     $this->workspaceReview->demoteOnStagedWrite($active);
   }
 
+  /**
+   * Implements hook_ENTITY_TYPE_delete() for workspace entities.
+   *
+   * A deleted workspace's staged Canvas data goes with it, whichever surface
+   * performed the deletion (Canvas API, core Workspaces UI): a workspace
+   * later created with the same machine name must not inherit it.
+   */
+  #[Hook('workspace_delete')]
+  public function workspaceDelete(WorkspaceInterface $workspace): void {
+    $this->workspaceAutoSave->clearWorkspaceStores((string) $workspace->id());
+  }
+
 }

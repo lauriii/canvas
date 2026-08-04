@@ -1185,6 +1185,16 @@ final class WorkspaceAutoSave {
    *
    * @see \Drupal\canvas\EventSubscriber\AutoSave\AutoSaveWorkspacePublishSubscriber::onPostPublish()
    */
+
+  /**
+   * Whether any snapshot rows are staged in a workspace.
+   *
+   * @see \Drupal\canvas\EventSubscriber\AutoSave\AutoSaveWorkspacePublishSubscriber::onPrePublish()
+   */
+  public function workspaceHasSnapshotRows(string $workspace_id): bool {
+    return $this->snapshotRepository->loadAll($workspace_id) !== [];
+  }
+
   public function clearWorkspaceStores(string $workspace_id): void {
     $this->snapshotRepository->deleteAll($workspace_id);
     $prefix = $workspace_id . ':';
@@ -1193,7 +1203,7 @@ final class WorkspaceAutoSave {
         $this->pendingBuffer->delete((string) $key);
       }
     }
-    foreach ([AutoSaveManager::AUTO_SAVE_STORE, AutoSaveManager::FORM_VIOLATIONS_STORE, AutoSaveRevisionPruner::STORE] as $collection) {
+    foreach ([AutoSaveManager::AUTO_SAVE_STORE, AutoSaveManager::FORM_VIOLATIONS_STORE, AutoSaveManager::COMPONENT_INSTANCE_FORM_VIOLATIONS_STORE, AutoSaveRevisionPruner::STORE] as $collection) {
       $store = $this->keyValueFactory->get($collection);
       foreach (\array_keys($store->getAll()) as $key) {
         if (\str_starts_with((string) $key, $prefix)) {

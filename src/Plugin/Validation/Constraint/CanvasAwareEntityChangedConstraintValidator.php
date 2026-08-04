@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Validation\Constraint;
 
-use Drupal\canvas\AutoSave\Workspace\AutoSaveWorkspace;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityChangedInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Plugin\Validation\Constraint\EntityChangedConstraint;
+use Drupal\workspaces\WorkspaceManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
@@ -48,8 +48,8 @@ final class CanvasAwareEntityChangedConstraintValidator extends ConstraintValida
    */
   public static function create(ContainerInterface $container): static {
     return new static(
-      $container->get('entity_type.manager'),
-      $container->has('workspaces.manager') ? $container->get('workspaces.manager') : NULL,
+      $container->get(EntityTypeManagerInterface::class),
+      $container->has('workspaces.manager') ? $container->get(WorkspaceManagerInterface::class) : NULL,
     );
   }
 
@@ -62,11 +62,13 @@ final class CanvasAwareEntityChangedConstraintValidator extends ConstraintValida
       return;
     }
     $load = fn (): ?EntityInterface => $this->entityTypeManager->getStorage($entity->getEntityTypeId())->loadUnchanged($entity->id());
-    // With the Canvas auto-save workspace active, loadUnchanged() returns the
-    // staged draft revision; compare against the Live copy instead. Any other
-    // active workspace keeps core's behavior.
+    // With a workspace active, loadUnchanged() returns the staged draft
+    // revision, and every staged auto-save flush advances its changed
+    // timestamp; compare against the Live copy instead. Canvas staging
+    // follows the active workspace, so this applies in every workspace, not
+    // only the Main one.
     $saved_entity = $this->workspaceManager !== NULL
-      && $this->workspaceManager->getActiveWorkspace()?->id() === AutoSaveWorkspace::ID
+      && $this->workspaceManager->hasActiveWorkspace()
       ? $this->workspaceManager->executeOutsideWorkspace($load)
       : $load();
     if (!$saved_entity instanceof ContentEntityInterface || !$saved_entity instanceof EntityChangedInterface) {
