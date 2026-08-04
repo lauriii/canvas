@@ -35,6 +35,14 @@ export const patternApi = createApi({
       }),
       invalidatesTags: () => [{ type: 'Patterns', id: 'LIST' }],
     }),
+    updatePattern: builder.mutation<unknown, { id: string; name: string }>({
+      query: ({ id, name }) => ({
+        url: `/canvas/api/v0/config/pattern/${id}`,
+        method: 'PATCH',
+        body: { name },
+      }),
+      invalidatesTags: () => [{ type: 'Patterns', id: 'LIST' }],
+    }),
   }),
 });
 
@@ -44,4 +52,5 @@ export const {
   useGetPatternsQuery,
   useSavePatternMutation,
   useDeletePatternMutation,
+  useUpdatePatternMutation,
 } = patternApi;

@@ -1095,9 +1095,14 @@ class AutoSaveManager implements EventSubscriberInterface {
     return $events;
   }
 
-  public static function entityIsConsideredNew(ContentEntityInterface|ContentTemplate $entity): bool {
+  public static function entityIsConsideredNew(ContentEntityInterface|ComponentTreeConfigEntityBase $entity): bool {
     if ($entity instanceof ContentTemplate) {
       return !$entity->status();
+    }
+    // Other component-tree config entities (e.g. Pattern) are only ever edited
+    // once stored, so they are "new" only while unsaved.
+    if ($entity instanceof ComponentTreeConfigEntityBase) {
+      return $entity->isNew();
     }
     return (string) $entity->label() == ApiContentControllers::defaultTitle($entity->getEntityType()) || str_ends_with((string) $entity->label(), self::ENTITY_DUPLICATE_SUFFIX);
   }

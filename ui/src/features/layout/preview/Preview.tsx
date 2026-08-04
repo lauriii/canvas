@@ -27,7 +27,10 @@ import {
 } from '@/features/ui/uiSlice';
 import { useStableCallback } from '@/hooks/useStableCallback';
 import useSyncTitle from '@/hooks/useSyncTitle';
-import { usePostTemplateLayoutMutation } from '@/services/componentAndLayout';
+import {
+  usePostPatternLayoutMutation,
+  usePostTemplateLayoutMutation,
+} from '@/services/componentAndLayout';
 import {
   selectUpdateComponentLoadingState,
   useQueuedPostPreviewMutation,
@@ -70,12 +73,17 @@ const Preview: React.FC = () => {
     usePostTemplateLayoutMutation({
       fixedCacheKey: 'editorFrameTemplatePreview',
     });
+
+  const [postPatternPreview, { isLoading: isPatternFetching }] =
+    usePostPatternLayoutMutation({
+      fixedCacheKey: 'editorFramePatternPreview',
+    });
   const isPatching = useAppSelector((state) =>
     selectUpdateComponentLoadingState(state, selectedComponent),
   );
 
   const sendPreviewRequest = useCallback(
-    async (context: 'entity' | 'template') => {
+    async (context: 'entity' | 'template' | 'pattern') => {
       try {
         // Execute Request
         if (context === 'entity' && entityId && entityType) {
@@ -88,6 +96,12 @@ const Preview: React.FC = () => {
           });
         } else if (context === 'template') {
           await postTemplatePreview({
+            layout,
+            model,
+            entity_form_fields,
+          }).unwrap();
+        } else if (context === 'pattern') {
+          await postPatternPreview({
             layout,
             model,
             entity_form_fields,
@@ -105,6 +119,7 @@ const Preview: React.FC = () => {
       entityType,
       postPreview,
       postTemplatePreview,
+      postPatternPreview,
       showBoundary,
     ],
   );
@@ -116,7 +131,7 @@ const Preview: React.FC = () => {
    * without triggering the effect when layout/model changes.
    */
   const stableScheduleRequest = useStableCallback(
-    (context: 'entity' | 'template') => {
+    (context: 'entity' | 'template' | 'pattern') => {
       // Clear any existing polling to avoid double-requests
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
@@ -148,7 +163,12 @@ const Preview: React.FC = () => {
         dispatch(clearPreviewAfterUndoRedo());
       }
 
-      const context = editorFrameContext === 'template' ? 'template' : 'entity';
+      const context =
+        editorFrameContext === 'template'
+          ? 'template'
+          : editorFrameContext === 'pattern'
+            ? 'pattern'
+            : 'entity';
       stableScheduleRequest(context);
     }
   }, [
@@ -187,7 +207,10 @@ const Preview: React.FC = () => {
           <Viewport
             frameSrcDoc={frameSrcDoc}
             isFetching={
-              (isFetching || isPatching || isTemplateFetching) &&
+              (isFetching ||
+                isPatching ||
+                isTemplateFetching ||
+                isPatternFetching) &&
               !backgroundUpdate
             }
           />
