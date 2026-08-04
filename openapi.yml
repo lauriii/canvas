@@ -319,9 +319,9 @@ paths:
                   data:
                     $ref: '#/components/schemas/AutoSaveCollection'
   /canvas/api/v0/auto-saves/publish:
-    description: TODO
+    description: Publishes the active workspace as a whole.
     post:
-      summary: Publish the specified auto-save entries
+      summary: Publish every pending change in the active workspace
       requestBody:
         content:
           application/json:
@@ -4082,13 +4082,14 @@ components:
         $ref: '#/components/schemas/AutoSaveEntry'
     PublishAllRequest:
       type: object
-      # @todo Add key validation for the format in {entity_type}:{entity_id}:{langcode} https://drupal.org/i/3506543.
+      description: >
+        The workspace is the unit of publish: the request publishes every
+        pending change in the active workspace, so the body carries no item
+        selection and should be an empty object. Legacy per-item entries are
+        accepted and ignored.
       additionalProperties:
         type: object
-        title: Entries to publish
-        description: >
-          The body should be an object with keys that match unpublished
-          entries and a data-hash property for each item.
+        title: Legacy entries (ignored)
         properties:
           data_hash:
             type: string

@@ -50,6 +50,9 @@ final class NodeTemplatesTest extends CanvasKernelTestBase {
     'languages:language_interface',
     'theme',
     'user.permissions',
+    // The Workspaces module adds a required render cache context.
+    // @see \Drupal\workspaces\WorkspacesServiceProvider
+    'workspace',
   ];
 
   /**

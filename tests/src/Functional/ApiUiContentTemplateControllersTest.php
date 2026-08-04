@@ -694,14 +694,19 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       4 => ['id' => '4', 'label' => 'Entity 4'],
       5 => ['id' => '5', 'label' => 'Entity 5'],
     ];
+    // As soon as entities are listed, their access results are calculated
+    // while the Canvas auto-save workspace is active: core workspaces adds
+    // the 'user' cache context (absorbing the other contexts) plus the
+    // workspace's cache tag, making the response uncacheable for Dynamic
+    // Page Cache.
+    // @see \Drupal\workspaces\Hook\EntityAccess
     $json = $this->assertExpectedResponse(
       method: 'GET',
       url: Url::fromUri("base:/canvas/api/v0/ui/content_template/suggestions/preview/$content_entity_type_id/$bundle"),
       request_options: [],
       expected_status: Response::HTTP_OK,
       expected_cache_contexts: [
-        'user.node_grants:view',
-        'user.permissions',
+        'user',
       ],
       expected_cache_tags: [
         'http_response',
@@ -711,9 +716,10 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
         $content_entity_type_id . ':4',
         $content_entity_type_id . ':5',
         $content_entity_type_id . '_list:' . $bundle,
+        'workspace:canvas_default',
       ],
       expected_page_cache: 'UNCACHEABLE (request policy)',
-      expected_dynamic_page_cache: 'MISS',
+      expected_dynamic_page_cache: 'UNCACHEABLE (poor cacheability)',
     );
     $this->assertSame($expected, $json);
 
@@ -729,8 +735,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       request_options: [],
       expected_status: Response::HTTP_OK,
       expected_cache_contexts: [
-        'user.node_grants:view',
-        'user.permissions',
+        'user',
       ],
       expected_cache_tags: [
         'http_response',
@@ -741,9 +746,10 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
         $content_entity_type_id . ':5',
         $content_entity_type_id . ':6',
         $content_entity_type_id . '_list:' . $bundle,
+        'workspace:canvas_default',
       ],
       expected_page_cache: 'UNCACHEABLE (request policy)',
-      expected_dynamic_page_cache: 'MISS',
+      expected_dynamic_page_cache: 'UNCACHEABLE (poor cacheability)',
     );
     $expected = [6 => ['id' => '6', 'label' => 'Entity LAST']] + $expected;
     $this->assertSame($expected, $json);
@@ -758,8 +764,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       request_options: [],
       expected_status: Response::HTTP_OK,
       expected_cache_contexts: [
-        'user.node_grants:view',
-        'user.permissions',
+        'user',
       ],
       expected_cache_tags: [
         'http_response',
@@ -770,9 +775,10 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
         $content_entity_type_id . ':5',
         $content_entity_type_id . ':6',
         $content_entity_type_id . '_list:' . $bundle,
+        'workspace:canvas_default',
       ],
       expected_page_cache: 'UNCACHEABLE (request policy)',
-      expected_dynamic_page_cache: 'MISS',
+      expected_dynamic_page_cache: 'UNCACHEABLE (poor cacheability)',
     );
     $expected = [
       3 => ['id' => '3', 'label' => 'Updated article'],
@@ -840,6 +846,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
         $content_entity_type_id . ':8',
         $content_entity_type_id . ':9',
         $content_entity_type_id . '_list:' . $bundle,
+        'workspace:canvas_default',
       ],
       expected_page_cache: 'UNCACHEABLE (request policy)',
       expected_dynamic_page_cache: 'UNCACHEABLE (poor cacheability)',
@@ -910,8 +917,10 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
       request_options: [],
       expected_status: Response::HTTP_OK,
       expected_cache_contexts: [
-        'user.node_grants:view',
-        'user.permissions',
+        // Core workspaces adds the 'user' cache context (absorbing the other
+        // contexts) to the listed entities' access results while the Canvas
+        // auto-save workspace is active.
+        'user',
       ],
       expected_cache_tags: [
         'http_response',
@@ -919,9 +928,10 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
         $content_entity_type_id . ':2',
         $content_entity_type_id . ':3',
         $content_entity_type_id . '_list:' . $bundle,
+        'workspace:canvas_default',
       ],
       expected_page_cache: 'UNCACHEABLE (request policy)',
-      expected_dynamic_page_cache: 'MISS',
+      expected_dynamic_page_cache: 'UNCACHEABLE (poor cacheability)',
     );
 
     // Only published entities should be returned,

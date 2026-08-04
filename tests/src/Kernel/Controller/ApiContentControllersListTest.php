@@ -583,13 +583,14 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
     $actual_cache_contexts = $cache_metadata->getCacheContexts();
     self::assertEquals($expected_cache_contexts, $actual_cache_contexts, 'Cache contexts should match');
 
+    // Workspace-based auto-save staging does not add per-entity cache tags:
+    // staged changes are covered by the auto-save cache tag and entity saves
+    // by the list cache tag.
     $expected_cache_tags = [
       'canvas_page_list',
       'config:system.site',
       'test_create_access_cache_tag',
-      'canvas_page:1',
       AutoSaveManager::CACHE_TAG,
-      'canvas_page:5',
     ];
     $actual_cache_tags = $cache_metadata->getCacheTags();
     self::assertEquals($expected_cache_tags, $actual_cache_tags, 'Cache tags should match');

@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Drupal\canvas\Controller;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\AutoSave\Workspace\WorkspaceAutoSave;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -18,6 +20,7 @@ final class EntityFormController extends ControllerBase {
     private readonly AutoSaveManager $autoSaveManager,
     private readonly RequestStack $requestStack,
     protected ThemeHandlerInterface $themeHandler,
+    private readonly WorkspaceAutoSave $workspaceAutoSave,
   ) {
   }
 
@@ -45,6 +48,28 @@ final class EntityFormController extends ControllerBase {
       if (!$autoSave->isEmpty()) {
         \assert($autoSave->entity instanceof FieldableEntityInterface);
         $form_entity = $autoSave->entity;
+      }
+    }
+    elseif ($entity->id() !== NULL) {
+      // AJAX POST rebuild: core appended `workspace` + `token` query
+      // parameters to the form's AJAX URL because the GET above rendered the
+      // form while the Canvas auto-save workspace was active, so
+      // QueryParameterWorkspaceNegotiator re-activates that workspace before
+      // routing and the upcast $entity is the staged pending revision. Field
+      // widgets size their multi-value tables from the entity's item count
+      // (items_count), and the staged revision already contains drafted items
+      // the client's form still shows in its trailing empty row — rebuilding
+      // from it renders extra empty rows (e.g. "Add new" appears to add two).
+      // The submitted form values carry the client's state, so build from the
+      // Live copy, exactly as this endpoint did before workspace staging.
+      // @see \Drupal\workspaces\Negotiator\QueryParameterWorkspaceNegotiator
+      // @see \Drupal\Core\Field\WidgetBase::formMultipleElements()
+      $live = $this->workspaceAutoSave->loadUnchangedOutsideWorkspace($entity->getEntityTypeId(), $entity->id());
+      if ($live instanceof ContentEntityInterface && $entity instanceof ContentEntityInterface && $live->hasTranslation($entity->language()->getId())) {
+        $live = $live->getTranslation($entity->language()->getId());
+      }
+      if ($live instanceof FieldableEntityInterface) {
+        $form_entity = $live;
       }
     }
     $form_state = $this->buildFormState($form, $form_entity, $entity_form_mode);

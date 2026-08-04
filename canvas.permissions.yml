@@ -46,3 +46,6 @@ delete canvas_page:
 publish auto-saves:
   title: 'Publish Drupal Canvas Content'
   description: 'Update entities with auto-saved changes in Drupal Canvas (requires "update" access for those entities).'
+
+permission_callbacks:
+  - \Drupal\canvas\WorkspaceReviewPermissions::transitions

@@ -155,14 +155,22 @@ export const pendingChangesApi = createApi({
     }),
     publishAllPendingChanges: builder.mutation<
       SuccessResponse | ErrorResponse,
-      PendingChanges
+      void
     >({
-      query: (body) => ({
+      query: () => ({
         url: `/canvas/api/v0/auto-saves/publish`,
         method: 'POST',
-        body,
+        // The endpoint publishes the whole active workspace, so the body is
+        // intentionally empty.
+        body: {},
       }),
-      async onQueryStarted(body, { dispatch, queryFulfilled }) {
+      async onQueryStarted(_, { dispatch, getState, queryFulfilled }) {
+        // Snapshot the pending changes before the request resolves so the
+        // conflict path can restore them below.
+        const pendingChangesBeforePublish =
+          pendingChangesApi.endpoints.getAllPendingChanges.select(undefined)(
+            getState() as any,
+          ).data;
         try {
           await queryFulfilled;
 
@@ -171,8 +179,9 @@ export const pendingChangesApi = createApi({
               'getAllPendingChanges',
               undefined,
               (draft) => {
-                // Remove only the changes that were successfully published
-                Object.keys(body).forEach((key) => {
+                // Publishing covers the whole workspace, so all pending
+                // changes are gone after a successful publish.
+                Object.keys(draft).forEach((key) => {
                   delete draft[key];
                 });
                 return draft;
@@ -197,7 +206,7 @@ export const pendingChangesApi = createApi({
           // @todo https://www.drupal.org/i/3503404
           if (error.error?.status === STATUS_CODE.CONFLICT) {
             // set previous response
-            dispatch(setPreviousPendingChanges(body));
+            dispatch(setPreviousPendingChanges(pendingChangesBeforePublish));
             // set conflicts
             dispatch(setConflicts(error?.error?.data?.errors));
           }

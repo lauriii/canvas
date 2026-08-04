@@ -514,7 +514,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     ];
     $this->assertSame($expected_pattern_normalization, $body);
     // The same normalization should be present when GETting the `Location`.
-    $body = $this->assertExpectedResponse('GET', Url::fromUri("base:/canvas/api/v0/config/pattern/testpatternpleaseignore"), [], 200, ['languages:language_interface', 'theme', 'user.permissions'], ['config:canvas.component.sdc.canvas_test_sdc.props-no-slots', 'config:canvas.pattern.testpatternpleaseignore', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', Url::fromUri("base:/canvas/api/v0/config/pattern/testpatternpleaseignore"), [], 200, ['languages:language_interface', 'theme', 'user.permissions', 'workspace'], ['config:canvas.component.sdc.canvas_test_sdc.props-no-slots', 'config:canvas.pattern.testpatternpleaseignore', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame($expected_pattern_normalization, $body);
 
     // Creating a Pattern with an already-in-use ID: 409.
@@ -597,13 +597,13 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertExpectedResponse('DELETE', Url::fromUri('base:/canvas/api/v0/config/pattern/nested'), [], 204, NULL, NULL, NULL, NULL);
 
     // Re-retrieve list: 200, non-empty list. Dynamic Page Cache miss.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['languages:language_interface', 'user.permissions', 'theme'], ['config:canvas.component.sdc.canvas_test_sdc.props-no-slots', 'config:pattern_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['languages:language_interface', 'user.permissions', 'theme', 'workspace'], ['config:canvas.component.sdc.canvas_test_sdc.props-no-slots', 'config:pattern_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([
       "testpatternpleaseignore" => $expected_pattern_normalization,
     ], $body);
     // Use the individual URL in the list response body. Already requested
     // immediately after POSTing it, so should be a Dynamic Page Cache hit.
-    $individual_body = $this->assertExpectedResponse('GET', Url::fromUri('base:/canvas/api/v0/config/pattern/testpatternpleaseignore'), [], 200, ['languages:language_interface', 'user.permissions', 'theme'], ['config:canvas.component.sdc.canvas_test_sdc.props-no-slots', 'config:canvas.pattern.testpatternpleaseignore', 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
+    $individual_body = $this->assertExpectedResponse('GET', Url::fromUri('base:/canvas/api/v0/config/pattern/testpatternpleaseignore'), [], 200, ['languages:language_interface', 'user.permissions', 'theme', 'workspace'], ['config:canvas.component.sdc.canvas_test_sdc.props-no-slots', 'config:canvas.pattern.testpatternpleaseignore', 'http_response'], 'UNCACHEABLE (request policy)', 'HIT');
     $expected_individual_body_normalization = $expected_pattern_normalization;
     $expected_individual_body_normalization['js_footer'] = str_replace('canvas\/api\/config\/pattern', 'canvas\/api\/config\/pattern\/testpatternpleaseignore', $expected_pattern_normalization['js_footer']);
     $this->assertSame($expected_individual_body_normalization, $individual_body);
@@ -651,7 +651,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertSame($expected_individual_body_normalization, $body);
 
     // Re-retrieve list: 200, non-empty list. Dynamic Page Cache miss.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['languages:language_interface', 'user.permissions', 'theme'], ['config:canvas.component.sdc.canvas_test_sdc.props-no-slots', 'config:pattern_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['languages:language_interface', 'user.permissions', 'theme', 'workspace'], ['config:canvas.component.sdc.canvas_test_sdc.props-no-slots', 'config:pattern_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame([
       "testpatternpleaseignore" => $expected_pattern_normalization,
     ], $body);
@@ -973,14 +973,14 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     ];
 
     // The list response MUST contain unpublished Code Components.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['languages:language_interface', 'theme', 'user.permissions'], [AutoSaveManager::CACHE_TAG, 'config:js_component_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['languages:language_interface', 'theme', 'user.permissions', 'workspace'], [AutoSaveManager::CACHE_TAG, 'config:js_component_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     self::assertIsArray($body);
     $body_without_preview = self::assertPreviewForJavaScriptComponentIsPresentThenOmit($body, 'disabled_js_component', ['disabled_js_component']);
     $this->assertSame([
       'disabled_js_component' => $expected_disabled_js_component_normalization,
     ], $body_without_preview);
     $canonical_url = Url::fromUri('base:/canvas/api/v0/config/js_component/disabled_js_component');
-    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['languages:language_interface', 'theme', 'user.permissions'], [AutoSaveManager::CACHE_TAG, 'config:canvas.js_component.disabled_js_component', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['languages:language_interface', 'theme', 'user.permissions', 'workspace'], [AutoSaveManager::CACHE_TAG, 'config:canvas.js_component.disabled_js_component', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     self::assertIsArray($body);
     $body_without_preview = self::assertPreviewForJavaScriptComponentIsPresentThenOmit($body, 'disabled_js_component', []);
     $this->assertSame($expected_disabled_js_component_normalization, $body_without_preview);
@@ -1334,7 +1334,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
 
     // Admin should be able to get the Code Component from the Canvas HTTP API.
     $canonical_url = Url::fromUri('base:/canvas/api/v0/config/js_component/test');
-    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['languages:language_interface', 'theme', 'user.permissions'], [AutoSaveManager::CACHE_TAG, 'config:canvas.js_component.another_component', 'config:canvas.js_component.test', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['languages:language_interface', 'theme', 'user.permissions', 'workspace'], [AutoSaveManager::CACHE_TAG, 'config:canvas.js_component.another_component', 'config:canvas.js_component.test', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     self::assertIsArray($body);
     $body_without_preview = self::assertPreviewForJavaScriptComponentIsPresentThenOmit($body, 'test', []);
     $this->assertSame($expected_component, $body_without_preview);
@@ -1450,6 +1450,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'languages:language_interface',
       'theme',
       'user.permissions',
+      'workspace',
     ], [
       AutoSaveManager::CACHE_TAG,
       'config:js_component_list',
@@ -1568,6 +1569,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'languages:language_interface',
       'theme',
       'user.permissions',
+      'workspace',
     ], [
       AutoSaveManager::CACHE_TAG,
       'config:js_component_list',
@@ -2104,6 +2106,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'route.menu_active_trails:main',
       'theme',
       'user.permissions',
+      'workspace',
     ];
     $expected_cache_tags = [
       'config:component_list',
@@ -2186,6 +2189,9 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'theme',
       'user.node_grants:view',
       'user.permissions',
+      // Core workspaces adds this required render cache context, and the
+      // Canvas auto-save workspace is active during canvas.api.* requests.
+      'workspace',
     ];
 
     // 1. Test basic functionality.
@@ -2247,7 +2253,9 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     ])->save();
     $this->drupalGet('canvas/api/v0/config/component');
     $this->assertDynamicPageCacheAccelerated(maxAge: '3600');
-    $this->assertCacheTags(Cache::mergeTags($expected_tags, ['node:1', 'user:2']), FALSE);
+    // Rendering the node in the "recent content" preview while the Canvas
+    // auto-save workspace is active adds the workspace's cache tag.
+    $this->assertCacheTags(Cache::mergeTags($expected_tags, ['node:1', 'user:2', 'workspace:canvas_default']), FALSE);
     $this->assertCacheContexts($expected_contexts);
     $recent_content_preview = \json_decode($page->getContent(), TRUE)['block.views_block.content_recent-block_1']['default_markup'];
     self::assertStringNotContainsString('No content available.', $recent_content_preview);
@@ -2677,7 +2685,10 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     // Re-retrieve list: 200, now has suggested preview entity, Dynamic Page
     // Cache miss. Note the presence of the suggested preview entity's
     // individual cache tag: this is because it had its "view" access checked.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:core.extension', 'config:content_template_list', 'entity_bundles', 'config:node_type_list', 'http_response', 'node:1', 'node_list:bunny', 'node_list:llama', 'user.node_grants:view'], 'UNCACHEABLE (request policy)', 'MISS');
+    // That access check runs while the Canvas auto-save workspace is active,
+    // which adds the workspace's cache tag as well.
+    // @see \Drupal\workspaces\Hook\EntityAccess::bypassAccessResult()
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:core.extension', 'config:content_template_list', 'entity_bundles', 'config:node_type_list', 'http_response', 'node:1', 'node_list:bunny', 'node_list:llama', 'user.node_grants:view', 'workspace:canvas_default'], 'UNCACHEABLE (request policy)', 'MISS');
     // Change the expectation from `NULL` to the entity ID.
     $expected_list_normalization['node']['bundles']['llama']['viewModes']['full']['suggestedPreviewEntityId'] = (int) $node->id();
     $this->assertSame($expected_list_normalization, $body);
@@ -2693,7 +2704,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
 
     // Re-retrieve empty list: 200. Dynamic Page Cache miss. Note that the cache
     // tag related to the `bunny` NodeType has disappeared.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:core.extension', 'config:content_template_list', 'entity_bundles', 'config:node_type_list', 'http_response', 'node:1', 'node_list:llama', 'user.node_grants:view'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:core.extension', 'config:content_template_list', 'entity_bundles', 'config:node_type_list', 'http_response', 'node:1', 'node_list:llama', 'user.node_grants:view', 'workspace:canvas_default'], 'UNCACHEABLE (request policy)', 'MISS');
     unset($expected_list_normalization['node']['bundles']['bunny']['viewModes']['full']);
     $this->assertSame($expected_list_normalization, $body);
 
@@ -2710,7 +2721,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'editFieldsUrl' => NULL,
     ];
     ksort($expected_list_normalization['node']['bundles']);
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:core.extension', 'config:content_template_list', 'entity_bundles', 'config:node_type_list', 'http_response', 'node:1', 'node_list:llama', 'user.node_grants:view'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.node_grants:view', 'user.permissions'], ['config:core.extension', 'config:content_template_list', 'entity_bundles', 'config:node_type_list', 'http_response', 'node:1', 'node_list:llama', 'user.node_grants:view', 'workspace:canvas_default'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame($expected_list_normalization, $body);
 
     // PATCH the existing llama template (CLI push path).

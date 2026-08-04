@@ -1189,7 +1189,11 @@ class TranslationTest extends FunctionalTestBase {
     $this->drupalLogin($user);
     $request_options['headers']['X-CSRF-Token'] = $this->drupalGet('session/token');
 
-    // Deleting a non-default translation removes it and returns 204.
+    // Deleting a non-default translation removes it and returns 204. The
+    // endpoint deletes the translation from the Live entity: even though the
+    // Canvas auto-save workspace is active for Canvas API requests, the save
+    // is performed outside it.
+    // @see \Drupal\canvas\Controller\ApiTranslationControllers::delete()
     $response = $this->makeApiRequest('DELETE', $fr_delete_url, $request_options);
     self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
 

@@ -907,3 +907,95 @@ entity.page_region.edit_form:
       page_region:
         type: entity:page_region
     _admin_route: TRUE
+
+canvas.api.workspaces.list:
+  path: '/canvas/api/v0/workspaces'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiWorkspaceController::list'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _canvas_ui_access: 'TRUE'
+  methods: ['GET']
+  options:
+    _format: 'json'
+
+canvas.api.workspaces.create:
+  path: '/canvas/api/v0/workspaces'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiWorkspaceController::create'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _canvas_ui_access: 'TRUE'
+  methods: [POST]
+  options:
+    _format: 'json'
+
+canvas.api.workspaces.delete:
+  path: '/canvas/api/v0/workspaces/{workspace}'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiWorkspaceController::delete'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _canvas_ui_access: 'TRUE'
+  methods: [DELETE]
+  options:
+    parameters:
+      workspace:
+        type: entity:workspace
+    _format: 'json'
+
+canvas.api.workspaces.activate:
+  path: '/canvas/api/v0/workspaces/{workspace}/activate'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiWorkspaceController::activate'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _canvas_ui_access: 'TRUE'
+  methods: [POST]
+  options:
+    parameters:
+      workspace:
+        type: entity:workspace
+    _format: 'json'
+
+canvas.api.workspaces.status:
+  path: '/canvas/api/v0/workspaces/{workspace}/status'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiWorkspaceController::status'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _canvas_ui_access: 'TRUE'
+  methods: [POST]
+  options:
+    parameters:
+      workspace:
+        type: entity:workspace
+    _format: 'json'
+
+canvas.api.workspaces.schedule:
+  path: '/canvas/api/v0/workspaces/{workspace}/schedule'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiWorkspaceController::schedule'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _canvas_ui_access: 'TRUE'
+  methods: [POST]
+  options:
+    parameters:
+      workspace:
+        type: entity:workspace
+    _format: 'json'
+
+canvas.api.workspaces.unschedule:
+  path: '/canvas/api/v0/workspaces/{workspace}/schedule'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiWorkspaceController::unschedule'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _canvas_ui_access: 'TRUE'
+  methods: [DELETE]
+  options:
+    parameters:
+      workspace:
+        type: entity:workspace
+    _format: 'json'

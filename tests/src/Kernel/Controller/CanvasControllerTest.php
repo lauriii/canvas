@@ -87,6 +87,10 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
       'languages:language_interface',
       'theme',
       'url.site',
+      // Required cache context added by the Workspaces module, which Canvas
+      // installs for auto-save staging.
+      // @see \Drupal\workspaces\WorkspacesServiceProvider::alter()
+      'workspace',
     ];
     $actual_contexts = $response->getCacheableMetadata()->getCacheContexts();
     sort($expected_contexts);

@@ -20,6 +20,8 @@ class StagedConfigUpdateValidationTest extends BetterConfigEntityValidationTestB
   protected static $modules = [
     'canvas',
     'file',
+    'user',
+    'workspaces',
   ];
 
   /**
@@ -27,6 +29,11 @@ class StagedConfigUpdateValidationTest extends BetterConfigEntityValidationTestB
    */
   protected function setUp(): void {
     parent::setUp();
+
+    // The Workspaces module hooks into every entity save, so its schemas must
+    // exist for any entity save to work.
+    $this->installEntitySchema('workspace');
+    $this->installSchema('workspaces', ['workspace_association', 'workspace_association_revision']);
 
     $this->entity = StagedConfigUpdate::createFromClientSide([
       'id' => 'test_staged_config_update',

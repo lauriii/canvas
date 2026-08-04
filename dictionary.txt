@@ -5,6 +5,7 @@ adrs
 agentic
 aiwizard
 alternatewidths
+amateescu
 apikey
 astrojs
 atrule
@@ -34,6 +35,7 @@ CODEOWNERS
 codespaces
 cookieless
 cqmr
+CRDT
 cset
 csstree
 cycache
@@ -48,6 +50,7 @@ devizzent
 dhta
 diaclone
 demi
+discardable
 domcontentloaded
 drupalcode
 drupaldev
@@ -56,6 +59,7 @@ druplicon
 endapply
 entityviewdisplay
 Español
+Espinola
 esque
 extralight
 extensionless
@@ -70,6 +74,7 @@ gerbeaud
 gesturechange
 gestureend
 gesturestart
+Glaman
 granularities
 greppable
 heredocs
@@ -101,7 +106,9 @@ leftbar
 liftup
 lightningcss
 Linkit
+Loro
 Mautic
+Mercure
 metacharacter
 metatag
 microlink
@@ -116,6 +123,7 @@ nums
 Nygard
 Nygard's
 OPENCOLLECTIVE
+openspec
 outro
 parallelizable
 personalizable
@@ -158,6 +166,9 @@ reparse
 reparsed
 requiredness
 rescanning
+retag
+retagging
+retags
 rightbar
 rightclick
 roundtripped
@@ -187,6 +198,7 @@ SVAY
 tamperable
 targetable
 testid
+Timmanee
 tmgmt
 toctou
 toolset
@@ -203,6 +215,9 @@ ultrawide
 uncollapse
 uncollapsed
 uncollapses
+unconfigured
+unfork
+unforking
 unhydrated
 unlayered
 unloadable
@@ -275,3 +290,4 @@ wrappable
 xclip
 xsel
 zencoder
+unflushed

@@ -8,6 +8,7 @@ use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\language\ConfigurableLanguageManagerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -19,8 +20,15 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class ApiTranslationControllers extends ApiControllerBase {
 
+  use ExecutesOutsideWorkspaceTrait;
+
   public function __construct(
     private readonly LanguageManagerInterface $languageManager,
+    /**
+     * @var \Drupal\workspaces\WorkspaceManagerInterface|null
+     */
+    #[Autowire(service: 'workspaces.manager')]
+    private readonly ?object $workspaceManager = NULL,
   ) {}
 
   /**
@@ -33,7 +41,7 @@ final class ApiTranslationControllers extends ApiControllerBase {
    *   204 No Content on success, 400 if attempting to delete the default
    *   translation.
    */
-  public static function delete(ContentEntityInterface $canvas_page): JsonResponse {
+  public function delete(ContentEntityInterface $canvas_page): JsonResponse {
     // Guard: cannot delete the default (original/untranslated) language via
     // this endpoint. Callers should use the full entity delete route instead.
     // @see \Drupal\canvas\Controller\ApiContentControllers::delete()
@@ -45,7 +53,13 @@ final class ApiTranslationControllers extends ApiControllerBase {
     }
     $untranslated = $canvas_page->getUntranslated();
     $untranslated->removeTranslation($canvas_page->language()->getId());
-    $untranslated->save();
+    // This endpoint deletes the translation from the Live entity: with a
+    // workspace active (core negotiation), an unscoped save would be forced
+    // into a workspace-pending revision, and deleting the translation's URL
+    // alias (a workspace-supported entity) is forbidden while a workspace is
+    // active.
+    // @see \Drupal\workspaces\Provider\WorkspaceProviderBase::entityPredelete()
+    $this->executeOutsideWorkspace(static fn () => $untranslated->save());
     return new JsonResponse(status: Response::HTTP_NO_CONTENT);
   }
 
@@ -70,7 +84,12 @@ final class ApiTranslationControllers extends ApiControllerBase {
         Response::HTTP_BAD_REQUEST,
       );
     }
-    $override->delete();
+    // This endpoint deletes the override from Live configuration: with the
+    // auto-save workspace active and Workspace Config capturing config writes
+    // into it, an unscoped delete would be staged in the workspace instead of
+    // removing the Live override.
+    // @see \Drupal\canvas\Controller\ApiConfigControllers
+    $this->executeOutsideWorkspace(static fn () => $override->delete());
     return new JsonResponse(status: Response::HTTP_NO_CONTENT);
   }
 

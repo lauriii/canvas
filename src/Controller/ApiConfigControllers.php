@@ -37,15 +37,26 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 /**
  * Controllers exposing HTTP API for interacting with Canvas's Config entities.
  *
+ * The workspace is the unit of publish: while a workspace is active, config
+ * writes on these routes stage into it via the Workspace Config module and
+ * go live when the workspace is published. Reads on the same routes resolve
+ * inside the same workspace, so writes and reads share one config cache
+ * partition (the Phase 1 Live-write path split them, which is why it was
+ * removed). Without an active workspace (CLI, tests), writes go to Live
+ * directly, matching core behavior.
+ *
  * @internal This HTTP API is intended only for the Canvas UI. These controllers
  *   and associated routes may change at any time.
  *
  * @see \Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface
  * @see \Drupal\canvas\ClientSideRepresentation
+ * @see \Drupal\workspace_config\WorkspaceConfigDatabaseStorage::write()
+ * @see \Drupal\workspace_config\WorkspaceConfigCachedStorage
  */
 final class ApiConfigControllers extends ApiControllerBase {
 
   use ComponentTreeItemListInstantiatorTrait;
+  use ExecutesOutsideWorkspaceTrait;
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -58,6 +69,11 @@ final class ApiConfigControllers extends ApiControllerBase {
     private readonly AccessManagerInterface $accessManager,
     private readonly AccountProxyInterface $currentUser,
     private readonly ComponentSourceManager $componentSourceManager,
+    /**
+     * @var \Drupal\workspaces\WorkspaceManagerInterface|null
+     */
+    #[Autowire(service: 'workspaces.manager')]
+    private readonly ?object $workspaceManager = NULL,
   ) {}
 
   /**
@@ -300,6 +316,8 @@ final class ApiConfigControllers extends ApiControllerBase {
     }
 
     // Save the Canvas config entity, respond with a 201 if success. Else 409.
+    // The save stages into the active workspace (Workspace Config) and goes
+    // live with the workspace publish.
     try {
       $canvas_config_entity->save();
     }
@@ -341,7 +359,8 @@ final class ApiConfigControllers extends ApiControllerBase {
       ]);
     }
 
-    // Save the Canvas config entity, respond with a 200.
+    // Save the Canvas config entity, respond with a 200. The save stages
+    // into the active workspace (Workspace Config).
     $canvas_config_entity->save();
     $canvas_config_entity_type = $canvas_config_entity->getEntityType();
     \assert($canvas_config_entity_type instanceof ConfigEntityTypeInterface);

@@ -112,11 +112,13 @@ class ComponentOnDependencyRemovalTest extends FunctionalTestBase {
     $auto_save = \Drupal::service(AutoSaveManager::class);
     $auto_save->saveEntity($page);
 
-    // Before: one Component version, only auto-save usages.
+    // Before: one Component version, only auto-save usages. Auto-saves are
+    // staged as workspace-tracked revisions, so the all-revisions audit also
+    // sees the draft usage.
     $component_before = Component::load('sdc.test_theme_child.test-child');
     $this->assertInstanceOf(Component::class, $component_before);
     self::assertCount(1, $component_before->getVersions());
-    self::assertFalse(\Drupal::service(ComponentAudit::class)->hasUsages($component_before, RevisionAuditEnum::All));
+    self::assertTrue(\Drupal::service(ComponentAudit::class)->hasUsages($component_before, RevisionAuditEnum::All));
     self::assertTrue(\Drupal::service(ComponentAudit::class)->hasUsages($component_before, RevisionAuditEnum::AutoSave));
 
     // Install a different theme, set as default, and uninstall our previous theme.

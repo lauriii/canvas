@@ -18,7 +18,6 @@ use Drupal\Core\DefaultContent\Finder;
 use Drupal\Core\DefaultContent\Importer;
 use Drupal\Core\DefaultContent\InvalidEntityException;
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\EntityRepository;
 use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\file\Entity\File;
 use Drupal\FunctionalTests\Core\Recipe\RecipeTestTrait;
@@ -71,7 +70,9 @@ final class DefaultContentExportImportTest extends BrowserTestBase {
 
   public function testCanvasPage(): void {
     $entityRepository = $this->container->get(EntityRepositoryInterface::class);
-    self::assertInstanceOf(EntityRepository::class, $entityRepository);
+    // Workspaces (a canvas dependency) decorates the entity.repository
+    // service, so assert the interface rather than the concrete core class.
+    self::assertInstanceOf(EntityRepositoryInterface::class, $entityRepository);
     $original_user = $this->createUser(['access content']);
     self::assertInstanceOf(UserInterface::class, $original_user);
     $this->drupalLogin($original_user);

@@ -76,6 +76,8 @@ abstract class CanvasKernelTestBase extends KernelTestBase {
     'media_library',
     'options',
     'path',
+    'workspaces',
+    'workflows',
     // Canvas' indirect dependencies.
     'filter',
     'media',
@@ -100,6 +102,13 @@ abstract class CanvasKernelTestBase extends KernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
+    // The Workspaces module hooks into every entity save, so its schemas must
+    // exist for any entity save to work. Note this does not provision the
+    // shared auto-save workspace: without it, auto-save staging falls back to
+    // the key-value store.
+    // @see \Drupal\canvas\AutoSave\Workspace\WorkspaceAutoSave::usesKeyValueStaging()
+    $this->installEntitySchema('workspace');
+    $this->installSchema('workspaces', ['workspace_association', 'workspace_association_revision']);
     $this->container->get(ThemeInstallerInterface::class)->install(['stark']);
     $this->installConfig([
       // Needed for date formats.

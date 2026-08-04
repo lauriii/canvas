@@ -103,16 +103,24 @@ final class AutoSaveTempstoreToKeyValueUpdateTest extends CanvasUpdatePathTestBa
     // Run the update.
     $this->runUpdates();
 
-    // Verify data was migrated to key-value store.
+    // The tempstore data is first migrated to the key-value store
+    // (canvas_post_update_0010_migrate_auto_save) and from there into
+    // workspace staging (canvas_post_update_0022_migrate_auto_save_to_workspace),
+    // which removes the key-value row again.
     $keyvalue_factory = \Drupal::service('keyvalue');
     $keyvalue_store = $keyvalue_factory->get(AutoSaveManager::AUTO_SAVE_STORE);
-    $migrated_data = $keyvalue_store->get($auto_save_key);
-    $this->assertNotNull($migrated_data);
-    $this->assertIsArray($migrated_data);
+    $this->assertNull($keyvalue_store->get($auto_save_key));
+    $auto_save_manager = \Drupal::service(AutoSaveManager::class);
+    \assert($auto_save_manager instanceof AutoSaveManager);
+    $list = $auto_save_manager->getAllAutoSaveList(FALSE, FALSE);
+    $this->assertArrayHasKey($auto_save_key, $list);
+    $migrated_data = $list[$auto_save_key];
     $this->assertSame($auto_save_data['entity_type'], $migrated_data['entity_type']);
-    $this->assertSame($auto_save_data['entity_id'], $migrated_data['entity_id']);
+    $this->assertSame($auto_save_data['entity_id'], (string) $migrated_data['entity_id']);
     $this->assertSame($auto_save_data['label'], $migrated_data['label']);
-    $this->assertSame($auto_save_data['data_hash'], $migrated_data['data_hash']);
+    // The workspace-staged draft's hash is recomputed from the staged
+    // revision, so the seeded placeholder hash does not survive.
+    $this->assertNotEmpty($migrated_data['data_hash']);
 
     // Verify form violations were migrated.
     $violations_keyvalue = $keyvalue_factory->get(AutoSaveManager::FORM_VIOLATIONS_STORE);

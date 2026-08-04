@@ -6,6 +6,7 @@ namespace Drupal\canvas;
 
 use Drupal\canvas\Access\CanvasUiAccessCheck;
 use Drupal\canvas\Access\ViewModeAccessCheck;
+use Drupal\canvas\AutoSave\Workspace\CanvasWorkspaceProvider;
 use Drupal\canvas\Config\ThemeSettingsDiscovery;
 use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer;
 use Drupal\canvas\CoreBugFix\ConfigEntityQueryFactory;
@@ -27,11 +28,30 @@ use Symfony\Component\Validator\Constraints\RegexValidator;
 class CanvasServiceProvider extends ServiceProviderBase {
 
   /**
+   * The key-value factory backing auto-save staging bookkeeping.
+   *
+   * @see ::registerWorkspaceInvariantKeyValueFactory()
+   */
+  public const string STAGING_KEY_VALUE_SERVICE = 'canvas.keyvalue.staging';
+
+  /**
    * {@inheritdoc}
    */
   public function register(ContainerBuilder $container): void {
     $modules = $container->getParameter('container.modules');
     \assert(\is_array($modules));
+
+    // The provider class extends a workspaces module base class, so it can
+    // only be registered once that module is installed; until database
+    // updates enable it, auto-save staging falls back to the key-value store.
+    // @see \Drupal\canvas\AutoSave\Workspace\WorkspaceAutoSave::usesKeyValueStaging()
+    if (\array_key_exists('workspaces', $modules)) {
+      $container->register(CanvasWorkspaceProvider::class)
+        ->setClass(CanvasWorkspaceProvider::class)
+        ->setAutowired(TRUE)
+        ->addTag('workspace_provider');
+    }
+
     if (\array_key_exists('media_library', $modules)) {
       $container->register('canvas.media_library.opener', MediaLibraryCanvasPropOpener::class)
         ->addArgument(new Reference(CanvasUiAccessCheck::class))
@@ -120,7 +140,53 @@ class CanvasServiceProvider extends ServiceProviderBase {
     $container->getDefinition('config.typed')
       ->setClass(TypedConfigManagerWithCachePollutionFix::class);
 
+    self::registerWorkspaceInvariantKeyValueFactory($container);
+
     parent::alter($container);
+  }
+
+  /**
+   * Registers a key-value factory no workspace overlay can decorate.
+   *
+   * Auto-save staging bookkeeping (the legacy key-value store, the pending
+   * write buffer, form violations and revision pruning state) is written while
+   * the auto-save workspace is active — every `canvas.api.*` request activates
+   * it, and every staging persist runs inside ::executeInAutoSaveWorkspace() —
+   * but read, deleted and migrated outside it: entity delete hooks, Drush,
+   * module uninstall and update.php all run in Live.
+   *
+   * The workspace_config module decorates `keyvalue` so that, while any
+   * workspace is active, every collection becomes a per-workspace overlay:
+   * writes land only in the workspace partition and deletes only tombstone the
+   * key there, leaving the global row intact. Canvas's staging rows would then
+   * be invisible outside the workspace, and legacy key-value rows would never
+   * actually be removed once migrated, so migration would repeat forever.
+   * These collections are Canvas-private staging bookkeeping about workspace
+   * content, not per-workspace state, so they must resolve identically in
+   * every workspace. Cloning the pristine definition keeps the site's
+   * configured key-value backends (`%factory.keyvalue%`) while bypassing any
+   * decoration of the `keyvalue` service id itself.
+   *
+   * @see \Drupal\workspace_config\KeyValue\WorkspaceConfigKeyValueFactory
+   * @see \Drupal\canvas\AutoSave\Workspace\PendingContentAutoSaveBuffer
+   */
+  private static function registerWorkspaceInvariantKeyValueFactory(ContainerBuilder $container): void {
+    // A test may have registered its own pristine factory under this id, which
+    // is the only way to keep Canvas staging workspace-invariant when the
+    // decoration is applied to a synthetic `keyvalue` at runtime.
+    // @see \Drupal\Tests\canvas\Kernel\Traits\CanvasWorkspaceConfigTestTrait
+    if ($container->hasDefinition(self::STAGING_KEY_VALUE_SERVICE)) {
+      return;
+    }
+    $key_value = $container->getDefinition('keyvalue');
+    if ($key_value->isSynthetic()) {
+      // Kernel tests replace `keyvalue` with an in-memory factory instance and
+      // mark the definition synthetic; workspace_config skips decorating a
+      // synthetic definition, so the service is already workspace-invariant.
+      $container->setAlias(self::STAGING_KEY_VALUE_SERVICE, 'keyvalue');
+      return;
+    }
+    $container->setDefinition(self::STAGING_KEY_VALUE_SERVICE, clone $key_value);
   }
 
 }

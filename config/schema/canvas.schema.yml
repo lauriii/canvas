@@ -1269,3 +1269,32 @@ plugin.plugin_configuration.search_api_processor.canvas_component_tree_inputs:
       sequence:
         type: string
         label: 'Prop name'
+
+canvas.workspace_review_state:
+  type: workflows.state
+  mapping:
+    approved_for_publish:
+      type: boolean
+      label: 'Approved for publishing'
+
+workflow.type_settings.canvas_workspace_review:
+  type: mapping
+  label: 'Canvas workspace review settings'
+  mapping:
+    states:
+      type: sequence
+      label: 'Workspace review states'
+      orderby: key
+      sequence:
+        type: canvas.workspace_review_state
+        label: 'States'
+    transitions:
+      type: sequence
+      orderby: key
+      sequence:
+        type: workflows.transition
+        label: 'Transitions'
+    initial_state:
+      type: string
+      label: 'Initial state'
+      nullable: true

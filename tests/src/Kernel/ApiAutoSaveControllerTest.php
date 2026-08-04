@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
-use Drupal\canvas\ComponentSource\ComponentSourceManager;
+use Drupal\canvas\AutoSave\Workspace\AutoSaveWorkspace;
 use Drupal\canvas\Controller\ApiAutoSaveController;
-use Drupal\canvas\Controller\ErrorCodesEnum;
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
@@ -16,17 +15,14 @@ use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\StagedConfigUpdate;
 use Drupal\canvas\PropSource\PropSource;
-use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\Core\Access\CsrfRequestHeaderAccessCheck;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Cache\CacheableJsonResponse;
-use Drupal\Core\Config\ConfigFactoryInterface;
-use Drupal\Core\Database\Connection;
+use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\RevisionableStorageInterface;
-use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
-use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\SessionConfigurationInterface;
@@ -36,6 +32,7 @@ use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\block\Traits\BlockCreationTrait;
+use Drupal\Tests\canvas\Kernel\Traits\CanvasWorkspaceConfigTestTrait;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
 use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
@@ -47,14 +44,13 @@ use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\OpenApiSpecTrait;
 use Drupal\Tests\content_moderation\Traits\ContentModerationTestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
-use Drupal\user\Entity\Role;
+use Drupal\Tests\workspace_config\Kernel\WorkspaceConfigTestTrait;
 use Drupal\user\Entity\User;
 use Drupal\user\UserInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
-use PHPUnit\Framework\Attributes\TestWith;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -81,6 +77,26 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
   use CanvasFieldCreationTrait;
   use CanvasFieldTrait;
   use VfsPublicStreamUrlTrait;
+  use CanvasWorkspaceConfigTestTrait;
+  use WorkspaceConfigTestTrait;
+
+  /**
+   * {@inheritdoc}
+   *
+   * KernelTestBase replaces the 'keyvalue' service with a synthetic in-memory
+   * factory, which skips workspace_config's decoration; workspace publishes
+   * would then trip its publish-time factory assertion. Reproduce the
+   * production wiring: pin Canvas staging bookkeeping to the pristine factory
+   * first, then re-apply workspace_config's decoration. Registering both here
+   * (rather than in setUp) survives the mid-test container rebuilds that
+   * module installs trigger, because register() runs on every rebuild and the
+   * decorator resolves the workspace resolver lazily from the live container.
+   */
+  public function register(ContainerBuilder $container): void {
+    parent::register($container);
+    $this->registerCanvasStagingKeyValue($container);
+    $this->registerWorkspaceConfigKeyValue($container);
+  }
 
   /**
    * {@inheritdoc}
@@ -115,8 +131,10 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     ]);
     $anonAccountContent->save();
     \assert($anonAccountContent instanceof NodeInterface);
-    // Trigger a new hash.
-    $anonAccountContent->setRevisionUserId(2);
+    // Trigger a new hash with a content (non-label) change: revision
+    // bookkeeping fields are excluded from auto-save content hashing.
+    // @see \Drupal\canvas\AutoSave\AutoSaveManager::normalizeEntity()
+    $anonAccountContent->setSticky(TRUE);
     /** @var \Drupal\canvas\AutoSave\AutoSaveManager $autoSave */
     $autoSave = $this->container->get(AutoSaveManager::class);
     $autoSave->saveEntity($anonAccountContent);
@@ -160,7 +178,10 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     // Empty data.
     $account2content = Node::load(2);
     \assert($account2content instanceof NodeInterface);
-    $account2content->setRevisionUser($account2);
+    // Trigger a new hash with a content (non-label) change: revision
+    // bookkeeping fields are excluded from auto-save content hashing.
+    // @see \Drupal\canvas\AutoSave\AutoSaveManager::normalizeEntity()
+    $account2content->setSticky(TRUE);
     $this->setCurrentUser($account2);
     $autoSave->saveEntity($account2content);
     $code_component = JavaScriptComponent::create(
@@ -228,32 +249,35 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $response_body = \json_decode((string) $response->getContent(), TRUE);
     $this->assertArrayHasKey('data', $response_body);
     $content = $response_body['data'];
-    $anonContentIdentifier = \sprintf('node:%d:en', $anonAccountContent->id());
+    // Auto-save keys are workspace-prefixed; with no active workspace they
+    // resolve against the Main workspace.
+    $prefix = AutoSaveWorkspace::ID . ':';
+    $anonContentIdentifier = \sprintf('%snode:%d:en', $prefix, $anonAccountContent->id());
     self::assertEquals([
-      'asset_library:global',
-      'js_component:test_code',
-      'node:1:en',
-      'node:2:en',
+      $prefix . 'asset_library:global',
+      $prefix . 'js_component:test_code',
+      $prefix . 'node:1:en',
+      $prefix . 'node:2:en',
       $anonContentIdentifier,
-      'page_region:stark.highlighted',
-      'staged_config_update:canvas_set_homepage',
+      $prefix . 'page_region:stark.highlighted',
+      $prefix . 'staged_config_update:canvas_set_homepage',
     ], \array_keys($content));
     // We don't assert the exact value of these because of clock-drift during
     // the test, asserting their presence is enough.
-    \assert(\is_array($content['node:1:en']));
-    \assert(\is_array($content['node:2:en']));
-    \assert(\is_array($content['page_region:stark.highlighted']));
+    \assert(\is_array($content[$prefix . 'node:1:en']));
+    \assert(\is_array($content[$prefix . 'node:2:en']));
+    \assert(\is_array($content[$prefix . 'page_region:stark.highlighted']));
     \assert(\is_array($content[$anonContentIdentifier]));
-    \assert(\is_array($content['js_component:test_code']));
-    \assert(\is_array($content['staged_config_update:canvas_set_homepage']));
-    \assert(\is_array($content['asset_library:global']));
-    self::assertArrayHasKey('updated', $content['node:1:en']);
-    self::assertArrayHasKey('updated', $content['node:2:en']);
+    \assert(\is_array($content[$prefix . 'js_component:test_code']));
+    \assert(\is_array($content[$prefix . 'staged_config_update:canvas_set_homepage']));
+    \assert(\is_array($content[$prefix . 'asset_library:global']));
+    self::assertArrayHasKey('updated', $content[$prefix . 'node:1:en']);
+    self::assertArrayHasKey('updated', $content[$prefix . 'node:2:en']);
     self::assertArrayHasKey('updated', $content[$anonContentIdentifier]);
-    self::assertArrayHasKey('updated', $content['page_region:stark.highlighted']);
-    self::assertArrayHasKey('updated', $content['js_component:test_code']);
-    self::assertArrayHasKey('updated', $content['staged_config_update:canvas_set_homepage']);
-    self::assertArrayHasKey('updated', $content['asset_library:global']);
+    self::assertArrayHasKey('updated', $content[$prefix . 'page_region:stark.highlighted']);
+    self::assertArrayHasKey('updated', $content[$prefix . 'js_component:test_code']);
+    self::assertArrayHasKey('updated', $content[$prefix . 'staged_config_update:canvas_set_homepage']);
+    self::assertArrayHasKey('updated', $content[$prefix . 'asset_library:global']);
     $imageStyle = \Drupal::entityTypeManager()->getStorage('image_style')->load(ApiAutoSaveController::AVATAR_IMAGE_STYLE);
     self::assertInstanceOf(ImageStyleInterface::class, $imageStyle);
     // Smoke test this is of the expected format.
@@ -269,7 +293,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'uri' => $account1->toUrl()->toString(),
       ],
       'label' => $new_title,
-    ], \array_diff_key($content['node:1:en'], \array_flip(['updated', 'data_hash'])));
+    ], \array_diff_key($content[$prefix . 'node:1:en'], \array_flip(['updated', 'data_hash'])));
     self::assertEquals([
       'langcode' => 'en',
       'entity_type' => $account2content->getEntityTypeId(),
@@ -281,7 +305,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'uri' => $account2->toUrl()->toString(),
       ],
       'label' => $account2content->label(),
-    ], \array_diff_key($content['node:2:en'], \array_flip(['updated', 'data_hash'])));
+    ], \array_diff_key($content[$prefix . 'node:2:en'], \array_flip(['updated', 'data_hash'])));
     $anonAccount = User::load(0);
     self::assertInstanceOf(AccountInterface::class, $anonAccount);
     self::assertEquals([
@@ -311,7 +335,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'uri' => $account1->toUrl()->toString(),
       ],
       'label' => 'Highlighted region',
-    ], \array_diff_key($content['page_region:stark.highlighted'], \array_flip(['updated', 'data_hash'])));
+    ], \array_diff_key($content[$prefix . 'page_region:stark.highlighted'], \array_flip(['updated', 'data_hash'])));
     self::assertEquals([
       'langcode' => 'en',
       'entity_type' => $code_component->getEntityTypeId(),
@@ -323,7 +347,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'uri' => $account2->toUrl()->toString(),
       ],
       'label' => $code_component->label(),
-    ], \array_diff_key($content['js_component:test_code'], \array_flip(['updated', 'data_hash'])));
+    ], \array_diff_key($content[$prefix . 'js_component:test_code'], \array_flip(['updated', 'data_hash'])));
     self::assertEquals([
       'langcode' => 'en',
       'entity_type' => $staged_set_homepage->getEntityTypeId(),
@@ -335,7 +359,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'uri' => $account2->toUrl()->toString(),
       ],
       'label' => $staged_set_homepage->label(),
-    ], \array_diff_key($content['staged_config_update:canvas_set_homepage'], \array_flip(['updated', 'data_hash'])));
+    ], \array_diff_key($content[$prefix . 'staged_config_update:canvas_set_homepage'], \array_flip(['updated', 'data_hash'])));
     self::assertEquals([
       'langcode' => 'en',
       'entity_type' => $library->getEntityTypeId(),
@@ -347,7 +371,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         'uri' => $account2->toUrl()->toString(),
       ],
       'label' => $library->label(),
-    ], \array_diff_key($content['asset_library:global'], \array_flip(['updated', 'data_hash'])));
+    ], \array_diff_key($content[$prefix . 'asset_library:global'], \array_flip(['updated', 'data_hash'])));
     $this->assertDataCompliesWithApiSpecification($content, 'AutoSaveCollection');
   }
 
@@ -399,7 +423,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $this->assertArrayHasKey('data', $response_content);
     self::assertCount(1, $response_content['data']);
     $this->assertDataCompliesWithApiSpecification($response_content['data'], 'AutoSaveCollection');
-    $pageContentIdentifier = \sprintf('canvas_page:%d:en', $page->id());
+    $pageContentIdentifier = \sprintf('%s:canvas_page:%d:en', AutoSaveWorkspace::ID, $page->id());
 
     // Validate that conflict changes are not leaking into the endpoint response.
     self::assertArrayHasKey($pageContentIdentifier, $response_content['data']);
@@ -504,7 +528,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     self::assertCount(2, $response_content['data']);
     $this->assertArrayHasKey('errors', $response_content);
     self::assertCount(1, $response_content['errors']);
-    $page2ContentIdentifier = \sprintf('canvas_page:%d:en', $page2->id());
+    $page2ContentIdentifier = \sprintf('%s:canvas_page:%d:en', AutoSaveWorkspace::ID, $page2->id());
 
     // New page 2 entry without conflict.
     self::assertArrayHasKey($page2ContentIdentifier, $response_content['data']);
@@ -611,8 +635,10 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     ]);
     $article->save();
     \assert($article instanceof NodeInterface);
-    // Trigger a new hash.
-    $article->setRevisionUserId(2);
+    // Trigger a new hash with a content (non-label) change: revision
+    // bookkeeping fields are excluded from auto-save content hashing.
+    // @see \Drupal\canvas\AutoSave\AutoSaveManager::normalizeEntity()
+    $article->setSticky(TRUE);
     /** @var \Drupal\canvas\AutoSave\AutoSaveManager $autoSave */
     $autoSave = $this->container->get(AutoSaveManager::class);
     $autoSave->saveEntity($article);
@@ -717,20 +743,23 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       AutoSaveManager::CACHE_TAG,
       'http_response',
     ], $response->getCacheableMetadata()->getCacheTags());
-    self::assertSame(['user.permissions'], $response->getCacheableMetadata()->getCacheContexts());
+    // The pending list varies by the active workspace, expressed as the
+    // 'workspace' cache context.
+    self::assertSame(['workspace', 'user.permissions'], $response->getCacheableMetadata()->getCacheContexts());
     $response_body = \json_decode((string) $response->getContent(), TRUE);
     $this->assertArrayHasKey('data', $response_body);
     $content = $response_body['data'];
-    $anonContentIdentifier = \sprintf('node:%d:en', $article->id());
+    $prefix = AutoSaveWorkspace::ID . ':';
+    $anonContentIdentifier = \sprintf('%snode:%d:en', $prefix, $article->id());
     // Assert we get the keys of auto-save data that we can view (even if maybe
     // we aren't allowed to update).
     // We can view code components, contents and staged config updates
     // but not the page region entity.
     self::assertEquals([
-      'canvas_page:2:en',
-      'js_component:test_code',
+      $prefix . 'canvas_page:2:en',
+      $prefix . 'js_component:test_code',
       $anonContentIdentifier,
-      'staged_config_update:canvas_set_homepage',
+      $prefix . 'staged_config_update:canvas_set_homepage',
     ], \array_keys($content));
   }
 
@@ -766,11 +795,16 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       'bypass node access',
       Page::EDIT_PERMISSION,
       ContentTemplate::ADMIN_PERMISSION,
+      // Publish access follows core workspace access: the publish operation
+      // maps to the edit permissions.
+      'edit any workspace',
     ];
     if ($authorized) {
       $permissions[] = AutoSaveManager::PUBLISH_PERMISSION;
     }
-    $this->setUpCurrentUser(permissions: $permissions);
+    // Core workspace publish promotes the staged revisions as-is, so revision
+    // attribution stays with the user who staged the draft.
+    $stager = $this->setUpCurrentUser(permissions: $permissions);
     if ($expected_403_message) {
       $this->expectException(AccessDeniedHttpException::class);
       $this->expectExceptionMessage($expected_403_message);
@@ -981,55 +1015,93 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $library->set('css', $css);
     $autoSave->saveEntity($library);
 
-    // Try to publish all the changes. We are not allowed, as we are missing
-    // permissions for the code components and library assets and staged config
-    // updates.
-    try {
-      $this->makePublishAllRequest();
-      $this->fail('Expected access denied error after field check on publishing auto-saved changes.');
-    }
-    catch (CacheableAccessDeniedHttpException $exception) {
-      // Get access denied as expected. The label is the new one that we set.
-      $this->assertSame("Unable to update entities: 'New label', 'New name', 'Update the front page'.", $exception->getMessage());
-      $this->assertSame([
-        'config:canvas.asset_library.global',
-        AutoSaveManager::CACHE_TAG,
-        'config:canvas.js_component.test-component',
-        'config:system.site',
-      ], $exception->getCacheTags());
-      $this->assertSame(['user.permissions'], $exception->getCacheContexts());
-    }
-    // Grant that permission.
-    $this->setUpCurrentUser(permissions: [
-      ...$permissions,
-      AssetLibrary::ADMIN_PERMISSION,
-      JavaScriptComponent::ADMIN_PERMISSION,
-    ]);
+    // A grouped per-item violation for a missing update access, as produced
+    // by the whole-workspace publish pipeline.
+    $access_error = static fn (EntityInterface $entity): array => [
+      'detail' => \sprintf('You do not have permission to update %s.', (string) $entity->label()),
+      'source' => [
+        'pointer' => AutoSaveManager::getAutoSaveKey($entity),
+      ],
+      'meta' => [
+        'entity_type' => $entity->getEntityTypeId(),
+        'entity_id' => $entity->id(),
+        'label' => $entity->label(),
+        ApiAutoSaveController::AUTO_SAVE_KEY => AutoSaveManager::getAutoSaveKey($entity),
+      ],
+    ];
+    // Node 2's draft carries invalid component inputs; its violations recur
+    // in every publish attempt until the draft is fixed. Before publishing
+    // empty string properties are unset to enforce the 'required' validation.
+    // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::unsetEmptyProps()
+    $node2_errors = [
+      [
+        'detail' => 'The property text is required.',
+        'source' => [
+          'pointer' => 'model.' . self::TEST_HEADING_UUID . '.text',
+        ],
+        'meta' => [
+          'entity_type' => 'node',
+          'entity_id' => $node2->id(),
+          // The label should not be updated if model validation failed.
+          'label' => $node2_original_title,
+          ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($node2),
+        ],
+      ],
+      [
+        'detail' => 'Does not have a value in the enumeration ["primary","secondary"]. The provided value is: "flared".',
+        'source' => [
+          'pointer' => 'model.' . self::TEST_HEADING_UUID . '.style',
+        ],
+        'meta' => [
+          'entity_type' => 'node',
+          'entity_id' => $node2->id(),
+          // The label should not be updated if model validation failed.
+          'label' => $node2_original_title,
+          ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($node2),
+        ],
+      ],
+      [
+        'detail' => 'The property element is required.',
+        'source' => [
+          'pointer' => 'model.af42c3b3-6d62-4ea8-ad07-670c7b9ccf75.element',
+        ],
+        'meta' => [
+          'entity_type' => 'node',
+          'entity_id' => $node2->id(),
+          // The label should not be updated if model validation failed.
+          'label' => $node2_original_title,
+          ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($node2),
+        ],
+      ],
+    ];
 
-    // Verify that the user must have `administer site configuration` permission
-    // to change the homepage.
-    try {
-      $this->makePublishAllRequest();
-      $this->fail('Expected access denied error after field check on publishing auto-saved changes.');
-    }
-    catch (CacheableAccessDeniedHttpException $exception) {
-      // Get access denied as expected. The label is the new one that we set.
-      $this->assertSame("Unable to update entities: 'Update the front page'.", $exception->getMessage());
-      $this->assertSame([
-        'config:system.site',
-        AutoSaveManager::CACHE_TAG,
-      ], $exception->getCacheTags());
-      $this->assertSame(['user.permissions'], $exception->getCacheContexts());
-    }
-    // Grant that permission.
-    $user = $this->setUpCurrentUser(permissions: [
+    // Try to publish. The publish request carries no item selection: every
+    // item pending in the workspace is validated and access checked, and any
+    // failure blocks the whole publish. The user is missing update access for
+    // the code component, the library assets, and the staged config update,
+    // and node 2's draft is invalid: all of it is reported together, ordered
+    // by auto-save key.
+    $response = $this->makePublishAllRequest([]);
+    self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+    self::assertEquals([
+      'errors' => [
+        $access_error($library),
+        $access_error($code_component),
+        ...$node2_errors,
+        $access_error($staged_set_homepage),
+      ],
+    ], self::decodeResponse($response));
+    $this->assertSiteHomepage('/user/login');
+
+    // Grant the missing update access.
+    $this->setUpCurrentUser(permissions: [
       ...$permissions,
       AssetLibrary::ADMIN_PERMISSION,
       JavaScriptComponent::ADMIN_PERMISSION,
       'administer site configuration',
     ]);
 
-    $response = $this->makePublishAllRequest();
+    $response = $this->makePublishAllRequest([]);
     $json = json_decode((string) $response->getContent(), TRUE);
     self::assertEquals(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
     $errors[] = [
@@ -1084,48 +1156,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($code_component),
       ],
     ];
-    // Before publishing empty string properties are unset to enforce the
-    // 'required' validation.
-    // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::unsetEmptyProps()
-    $errors[] = [
-      'detail' => 'The property text is required.',
-      'source' => [
-        'pointer' => 'model.' . self::TEST_HEADING_UUID . '.text',
-      ],
-      'meta' => [
-        'entity_type' => 'node',
-        'entity_id' => $node2->id(),
-        // The label should not be updated if model validation failed.
-        'label' => $node2_original_title,
-        ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($node2),
-      ],
-    ];
-    $errors[] = [
-      'detail' => 'Does not have a value in the enumeration ["primary","secondary"]. The provided value is: "flared".',
-      'source' => [
-        'pointer' => 'model.' . self::TEST_HEADING_UUID . '.style',
-      ],
-      'meta' => [
-        'entity_type' => 'node',
-        'entity_id' => $node2->id(),
-        // The label should not be updated if model validation failed.
-        'label' => $node2_original_title,
-        ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($node2),
-      ],
-    ];
-    $errors[] = [
-      'detail' => 'The property element is required.',
-      'source' => [
-        'pointer' => 'model.af42c3b3-6d62-4ea8-ad07-670c7b9ccf75.element',
-      ],
-      'meta' => [
-        'entity_type' => 'node',
-        'entity_id' => $node2->id(),
-        // The label should not be updated if model validation failed.
-        'label' => $node2_original_title,
-        ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($node2),
-      ],
-    ];
+    $errors = [...$errors, ...$node2_errors];
 
     self::assertEquals($errors, $json['errors']);
     // Ensure none of the entities are updated if one is invalid.
@@ -1182,93 +1213,35 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $autoSave->saveEntity($library);
 
     $auto_save_data = $this->getAutoSaveStatesFromServer();
-    $node1_auto_save_key = 'node:' . $node1->id() . ':en';
+    $node1_auto_save_key = AutoSaveManager::getAutoSaveKey($node1);
     self::assertArrayHasKey($node1_auto_save_key, $auto_save_data);
-
-    // Make publish requests that have extra, and out-dated auto-save
-    // information.
-    $extra_auto_save_data = $auto_save_data;
-    $extra_key = 'node:' . (((int) $node2->id()) + 1) . ':en';
-    $extra_auto_save_data[$extra_key] = $auto_save_data[$node1_auto_save_key];
-    $response = $this->makePublishAllRequest($extra_auto_save_data);
-    self::assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
-    self::assertEquals([
-      'errors' => [
-        [
-          'detail' => ErrorCodesEnum::UnexpectedItemInPublishRequest->getMessage(),
-          'source' => [
-            'pointer' => $extra_key,
-          ],
-          'code' => ErrorCodesEnum::UnexpectedItemInPublishRequest->value,
-        ],
-      ],
-    ], \json_decode((string) $response->getContent(), TRUE, flags: JSON_THROW_ON_ERROR));
-
-    $out_dated_auto_save_data = $auto_save_data;
-    $out_dated_auto_save_data[$node1_auto_save_key]['data_hash'] = 'old-hash';
-    $response = $this->makePublishAllRequest($out_dated_auto_save_data);
-    self::assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
-    self::assertEquals([
-      'errors' => [
-        [
-          'detail' => ErrorCodesEnum::UnmatchedItemInPublishRequest->getMessage(),
-          'source' => [
-            'pointer' => $node1_auto_save_key,
-          ],
-          'code' => ErrorCodesEnum::UnmatchedItemInPublishRequest->value,
-          'meta' => [
-            'entity_type' => 'node',
-            'entity_id' => $node1->id(),
-            'label' => $validClientJson['entity_form_fields']['title[0][value]'],
-            ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($node1),
-          ],
-        ],
-      ],
-    ], \json_decode((string) $response->getContent(), TRUE, flags: JSON_THROW_ON_ERROR));
-
-    // Publish only node 1.
-    $auto_save_data = $this->getAutoSaveStatesFromServer();
-    $auto_save_count = \count($auto_save_data);
-    $node1_auto_save = [$node1_auto_save_key => $auto_save_data[$node1_auto_save_key]];
-    $response = $this->makePublishAllRequest($node1_auto_save);
-    $json = json_decode((string) $response->getContent(), TRUE);
-    self::assertEquals(['message' => 'Successfully published 1 item.'], $json);
-    self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
-    $this->assertValidJsonUpdateNode($node1, FALSE);
-    $auto_save_data = $this->getAutoSaveStatesFromServer();
-    self::assertArrayNotHasKey($node1_auto_save_key, $auto_save_data);
-    self::assertCount($auto_save_count - 1, $auto_save_data);
-    // Ensure none of other the entities were updated.
-    $this->assertNodeValues($node2, [], [], ['title' => $node2_original_title, 'status' => '1']);
-    $this->assertNotNull($code_component->id());
-    $this->assertEquals('Original JavaScriptComponent name', $code_component_storage->loadUnchanged($code_component->id())?->label());
-    $this->assertNotNull($library->id());
-    $this->assertEquals($originalGlobalLibraryName, $library_storage->loadUnchanged($library->id())?->label());
-    $this->assertNotNull($page->id());
-    $this->assertSame(self::NEW_PAGE_TITLE, $page_storage->loadUnchanged($page->id())->label());
-    $saved_template = $content_template_storage->loadUnchanged($template->id());
-    \assert($saved_template instanceof ContentTemplate);
-    $this->assertFalse($saved_template->status());
-    $this->assertSiteHomepage('/user/login');
-
-    // Try publishing something with a field change that we don't have access to.
-    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_test_field_access']);
-    try {
-      $this->makePublishAllRequest();
-      $this->fail('Expected access denied error after field check on publishing auto-saved changes.');
-    }
-    catch (CacheableAccessDeniedHttpException $exception) {
-      // Access denied as expected, the title listed must be the new one.
-      $this->assertSame('Unable to update field title for entity "The updated title.".', $exception->getMessage());
-    }
-    $this->container->get(ModuleInstallerInterface::class)->uninstall(['canvas_test_field_access']);
-
     self::assertArrayHasKey(AutoSaveManager::getAutoSaveKey($template), $auto_save_data);
-    $response = $this->makePublishAllRequest();
+    $auto_save_count = \count($auto_save_data);
+
+    // The workspace is the unit of publish: with every draft valid, one
+    // publish request promotes everything pending at once.
+    $response = $this->makePublishAllRequest([]);
     $json = json_decode((string) $response->getContent(), TRUE);
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
-    self::assertEquals(['message' => \sprintf('Successfully published %d items.', $auto_save_count - 1)], $json);
+    self::assertEquals(['message' => \sprintf('Successfully published %d items.', $auto_save_count)], $json);
 
+    // Core workspace publish promotes the staged revision verbatim: node 1
+    // was never published and its staged draft (built from a form submission
+    // that leaves the published checkbox unchecked) is unpublished, so it
+    // stays unpublished after the publish — drafts no longer auto-publish.
+    $this->assertNodeValues(
+      $node1,
+      [
+        'sdc.canvas_test_sdc.heading',
+        'sdc.canvas_test_sdc.image',
+        'block.system_branding_block',
+      ],
+      $this->getValidConvertedInputs(FALSE),
+      [
+        'title' => 'The updated title.',
+        'status' => '0',
+      ]
+    );
     $this->assertSiteHomepage('/home');
 
     $this->assertNodeValues(
@@ -1292,13 +1265,23 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $library_storage = $entity_type_manager->getStorage(AssetLibrary::ENTITY_TYPE_ID);
     $page_storage = $entity_type_manager->getStorage(Page::ENTITY_TYPE_ID);
     $content_template_storage = $entity_type_manager->getStorage(ContentTemplate::ENTITY_TYPE_ID);
+    // Same staleness hazard for the auto-save manager: its captured workspace
+    // manager instance would otherwise disagree with the current container's
+    // one about the active workspace, silently turning staged saves into Live
+    // saves.
+    $autoSave = $this->container->get(AutoSaveManager::class);
 
     $this->assertNotNull($page->id());
     $page = $page_storage->loadUnchanged($page->id());
     \assert($page instanceof Page);
-    $this->assertTrue($page->isPublished());
+    // The page was created unpublished and its staged draft never changed
+    // that: the staged status goes live verbatim — never-published drafts no
+    // longer auto-publish at publish time.
+    $this->assertFalse($page->isPublished());
     $this->assertSame('The updated title.', $page->label());
-    $this->assertSame($page->getRevisionUserId(), $user->id());
+    // The published revision is the staged draft revision itself; it remains
+    // attributed to the user who staged it, not the publishing user.
+    $this->assertSame($page->getRevisionUserId(), $stager->id());
 
     // The `path` field is computed (aliases are persisted as `path_alias`
     // entities), but the auto-saved alias must still be published.
@@ -1332,20 +1315,17 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     // affecting other tests the validator will only be applied to if the title
     // contains the string 'unique!'.
     // @see \Drupal\canvas_test_validation\Plugin\Validation\Constraint\UniqueTitleConstraintValidator
-    $node1_auto_save_key = 'node:' . $node1->id() . ':en';
     $node1->set('title', 'I am not unique!');
     $autoSave->saveEntity($node1);
-    $node2_auto_save_key = 'node:' . $node2->id() . ':en';
     $node2->set('title', 'I am not unique!');
     // Remove the invalid prop set above.
     $node2->set('field_canvas_demo', []);
     $autoSave->saveEntity($node2);
-    $auto_save_data = $this->getAutoSaveStatesFromServer();
-    $response = $this->makePublishAllRequest([
-      $node1_auto_save_key => $auto_save_data[$node1_auto_save_key],
-      $node2_auto_save_key => $auto_save_data[$node2_auto_save_key],
-    ]);
+    $response = $this->makePublishAllRequest([]);
     $decoded = self::decodeResponse($response);
+    // Validation runs inside the auto-save workspace, so each draft sees the
+    // other's staged title: both items report the collision up front, instead
+    // of only the second one failing mid-save against the first's Live copy.
     $this->assertSame(
       [
         'errors' => [
@@ -1353,6 +1333,24 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
             'detail' => 'A content item with Title <em class="placeholder">I am not unique!</em> already exists.',
             'source' => [
               'pointer' => 'title',
+            ],
+            'meta' => [
+              'entity_type' => 'node',
+              'entity_id' => $node1->id(),
+              'label' => 'I am not unique!',
+              ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($node1),
+            ],
+          ],
+          [
+            'detail' => 'A content item with Title <em class="placeholder">I am not unique!</em> already exists.',
+            'source' => [
+              'pointer' => 'title',
+            ],
+            'meta' => [
+              'entity_type' => 'node',
+              'entity_id' => $node2->id(),
+              'label' => 'I am not unique!',
+              ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($node2),
             ],
           ],
         ],
@@ -1363,21 +1361,16 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     // All should be good now.
     $autoSave->saveEntity($node1->set('title', 'I am unique!'));
     $autoSave->saveEntity($node2->set('title', 'I am different!'));
-    $auto_save_data = $this->getAutoSaveStatesFromServer();
-    $response = $this->makePublishAllRequest([
-      $node1_auto_save_key => $auto_save_data[$node1_auto_save_key],
-      $node2_auto_save_key => $auto_save_data[$node2_auto_save_key],
-    ]);
+    $response = $this->makePublishAllRequest([]);
     $this->assertSame(['message' => 'Successfully published 2 items.'], self::decodeResponse($response));
 
+    // A failure while writing inside the publish transaction rolls the whole
+    // publish back: neither draft goes live and both stay pending.
     $autoSave->saveEntity($node1->set('title', 'cause exception'));
     $autoSave->saveEntity($node2->set('title', 'this will be fine'));
-    $auto_save_data = $this->getAutoSaveStatesFromServer();
-    $response = $this->makePublishAllRequest([
-      $node1_auto_save_key => $auto_save_data[$node1_auto_save_key],
-      $node2_auto_save_key => $auto_save_data[$node2_auto_save_key],
-    ]);
+    $response = $this->makePublishAllRequest([]);
     $decoded = self::decodeResponse($response);
+    self::assertSame(500, $response->getStatusCode());
     $this->assertSame([
       'errors' => [
         [
@@ -1385,205 +1378,12 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
           'source' => [
             'pointer' => 'error',
           ],
-          'meta' => [
-            'entity_type' => 'node',
-            'entity_id' => $node1->id(),
-            'label' => 'cause exception',
-            ApiAutoSaveController::AUTO_SAVE_KEY => $autoSave->getAutoSaveKey($node1),
-          ],
         ],
       ],
     ], $decoded);
-
-    $autoSave->deleteAll();
-    // Test conflict detection for a single page entity during early validation
-    // of the auto-save items in ApiAutoSaveController.
-    // @see \Drupal\canvas\Controller\ApiAutoSaveController::post()
-    // @see \Drupal\canvas\Controller\ApiAutoSaveController::validateExpectedAutoSaves()
-    // @todo Remove the use of 'canvas_dev_cd' flag in https://git.drupalcode.org/project/canvas/-/work_items/3591732
-    $this->enableModules(['canvas_dev_cd']);
-    $autoSave->saveEntity($page->set('title', 'Safe title'));
-    $auto_save_data = $this->getAutoSaveStatesFromServer();
-    $page_content_identifier = $autoSave::getAutoSaveKey($page);
-
-    // Update the page title outside of the auto-save workflow.
-    // This will cause a conflict to be detected when attempting to publish this
-    // entity via the auto-save workflow.
-    $page->set('title', 'This will cause conflict');
-    $page->setNewRevision();
-    self::assertSame([], self::violationsToArray($page->validate()));
-    $page->save();
-
-    $response = $this->makePublishAllRequest([
-      $page_content_identifier => $auto_save_data[$page_content_identifier],
-    ]);
-
-    $this->assertConflictErrorResponse(
-      $response,
-      $page->getLoadedRevisionId(),
-      $page_content_identifier,
-    );
-
-    // Conflict detection during the handling of the publishing request should
-    // prevent the changes to the page entity from being saved.
-    self::assertNotNull($page->id());
-    $saved_page = $page_storage->loadUnchanged($page->id());
-    \assert($saved_page instanceof Page);
-    self::assertNotEquals($page->label(), $saved_page->label());
-    self::assertNotEquals($page->getRevisionId(), $saved_page->getRevisionId());
-
-    // Re-fetch AutoSaveManager so it uses the current container services.
-    // This ensures getUnresolvedConflictForEntity() uses the updated $page.
-    $autoSave = $this->container->get(AutoSaveManager::class);
-    $detected_conflicts[$page_content_identifier] = $autoSave->getUnresolvedConflictForEntity($page);
-    self::assertNotNull($detected_conflicts[$page_content_identifier]);
-
-    // Resolve the conflict so the publishing request can proceed.
-    $autoSave->resolveConflict($page, $detected_conflicts[$page_content_identifier]);
-
-    // Publishing should succeed now.
-    $response = $this->makePublishAllRequest([
-      $page_content_identifier => $auto_save_data[$page_content_identifier],
-    ]);
-    self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
-    $json = json_decode((string) $response->getContent(), TRUE);
-    self::assertEquals(['message' => 'Successfully published 1 item.'], $json);
-
-    // Test publishing multiple pages when one has an unresolved conflict.
-    $page_without_conflict = Page::create([
-      'title' => 'Page without conflict',
-      'status' => FALSE,
-      'components' => [],
-    ]);
-    self::assertSame(SAVED_NEW, $page_without_conflict->save());
-
-    $page_with_conflict = Page::create([
-      'title' => 'Page with conflict',
-      'status' => FALSE,
-      'components' => [],
-    ]);
-    self::assertSame(SAVED_NEW, $page_with_conflict->save());
-
-    $autoSave->saveEntity($page_without_conflict->setPublished());
-    $autoSave->saveEntity($page_with_conflict->setPublished());
-    $auto_save_data = $this->getAutoSaveStatesFromServer();
-    $page_without_conflict_key = $autoSave::getAutoSaveKey($page_without_conflict);
-    $page_with_conflict_key = $autoSave::getAutoSaveKey($page_with_conflict);
-
-    // Create a conflict only for the second page before sending the request.
-    $page_with_conflict->set('title', 'Persisted conflicting title');
-    $page_with_conflict->setUnpublished();
-    $page_with_conflict->setNewRevision();
-    $page_with_conflict->save();
-
-    // Make a publish request for both pages.
-    $response = $this->makePublishAllRequest([
-      $page_without_conflict_key => $auto_save_data[$page_without_conflict_key],
-      $page_with_conflict_key => $auto_save_data[$page_with_conflict_key],
-    ]);
-
-    // Expect the request to fail due to the conflict on the second page
-    // entity, because all entities in a publish request must be
-    // published together or not at all.
-    $this->assertConflictErrorResponse(
-      $response,
-      $page_with_conflict->getLoadedRevisionId(),
-      $page_with_conflict_key,
-    );
-
-    // Assert that auto-save changes for $page_with_conflict are not persisted
-    self::assertNotNull($page_with_conflict->id());
-    $saved_page_with_conflict = $page_storage->loadUnchanged($page_with_conflict->id());
-    \assert($saved_page_with_conflict instanceof Page);
-    self::assertFalse($saved_page_with_conflict->isPublished());
-
-    // Assert that auto-save changes for $page_without_conflict are not persisted.
-    self::assertNotNull($page_without_conflict->id());
-    $saved_page_without_conflict = $page_storage->loadUnchanged($page_without_conflict->id());
-    \assert($saved_page_without_conflict instanceof Page);
-    self::assertFalse($saved_page_without_conflict->isPublished());
-
-    // The auto-save items should not change if the publishing request fails due
-    // to detection of an unresolved conflict.
-    self::assertEquals($auto_save_data, $this->getAutoSaveStatesFromServer());
-
-    // Test the secondary conflict detection that is performed during the page
-    // entity validation when handling the publishing request.
-    // Test that a new conflict can be detected for an entity that previously
-    // had a resolved conflict.
-    // Test that consecutive conflicts for the same entity have different IDs.
-    // @see \Drupal\canvas\Controller\ApiAutoSaveController::getConflictAwareContentEntityViolations()
-    // @see \Drupal\canvas\EventSubscriber\ApiExceptionSubscriber::violationToJsonApiStyleErrorObject()
-    $autoSave->saveEntity($page->set('title', 'Another safe title'));
-    $auto_save_data = $this->getAutoSaveStatesFromServer();
-
-    // Validate that the auto-save key for the page is correct and that the
-    // previously detected conflict is resolved.
-    self::assertEquals($page_content_identifier, AutoSaveManager::getAutoSaveKey($page));
-    self::assertNull($autoSave->getUnresolvedConflictForEntity($page));
-    self::assertNotNull($detected_conflicts[$page_content_identifier]);
-
-    // Cause new conflict.
-    $page->set('title', 'this will cause new conflict');
-    $page->setNewRevision();
-    $page->save();
-
-    // Validate that a new conflict is detected for the page.
-    $current_conflict = $autoSave->getUnresolvedConflictForEntity($page);
-    self::assertNotNull($current_conflict);
-
-    // Validate that the new conflict ID is different from the previously
-    // resolved conflict ID for the same entity.
-    self::assertNotEquals($detected_conflicts[$page_content_identifier], $current_conflict);
-
-    // Mock AutoSaveManager to control the conflict information returned in the
-    // publish request validation and entity validation separately, to simulate
-    // a race condition from this single-threaded test.
-    $mockedAutoSave = $this->createMock(AutoSaveManager::class);
-    $mockedAutoSave->expects($this->any())
-      ->method('getAllAutoSaveList')
-      // First conflict detection is performed during the auto-save item
-      // validation in ApiAutoSaveController::validateExpectedAutoSaves().
-      // As we want to skip the first conflict detection, we intentionally fetch
-      // auto-save items without the conflict information.
-      ->willReturn($autoSave->getAllAutoSaveList(with_entities: TRUE, with_conflicts: FALSE));
-    $mockedAutoSave->expects($this->exactly(1))
-      ->method('getUnresolvedConflictForEntity')
-      ->with()
-      // Second conflict detection is performed during entity validation in
-      // ApiAutoSaveController::getConflictAwareContentEntityViolations(). We want
-      // to test that conflict can still be detected if it occurs mid-request
-      // after the validation in ::validateExpectedAutoSaves() is performed.
-      ->willReturn($autoSave->getUnresolvedConflictForEntity($page));
-
-    // Replace the AutoSaveManager in the container with the mocked one.
-    $this->container->set(AutoSaveManager::class, $mockedAutoSave);
-    // Force ApiAutoSaveController to be rebuilt with the mocked dependency.
-    $this->container->set(ApiAutoSaveController::class, new ApiAutoSaveController(
-        $this->container->get(Connection::class),
-        $this->container->get(EntityTypeManagerInterface::class),
-        $this->container->get(ConfigFactoryInterface::class),
-        $this->container->get(FileUrlGeneratorInterface::class),
-        $mockedAutoSave,
-        $this->container->get('logger.channel.canvas'),
-        $this->container->get(AccountInterface::class),
-        $this->container->get(ComponentSourceManager::class),
-        $this->container->get(ComponentTreeLoader::class),
-        $this->container->get(ModuleHandlerInterface::class),
-    ));
-
-    $response = $this->makePublishAllRequest([
-      $page_content_identifier => $auto_save_data[$page_content_identifier],
-    ]);
-
-    // Confirm that conflict was detected despite the fact that the conflict
-    // information was missing during the early validation in the
-    // ApiAutoSaveController::validateExpectedAutoSaves().
-    $this->assertConflictErrorResponse(
-      $response,
-      $current_conflict,
-      $page_content_identifier,
-    );
+    $node_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage('node');
+    self::assertSame('I am unique!', $node_storage->loadUnchanged((string) $node1->id())?->label());
+    self::assertSame('I am different!', $node_storage->loadUnchanged((string) $node2->id())?->label());
   }
 
   /**
@@ -1620,8 +1420,8 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     ]);
     $auto_save_data = $this->getAutoSaveStatesFromServer();
     self::assertCount(2, $auto_save_data);
-    self::assertArrayHasKey("node:{$node->id()}:en", $auto_save_data);
-    self::assertArrayHasKey(\sprintf('%s:global', AssetLibrary::ENTITY_TYPE_ID), $auto_save_data);
+    self::assertArrayHasKey(\sprintf('%s:node:%d:en', AutoSaveWorkspace::ID, $node->id()), $auto_save_data);
+    self::assertArrayHasKey(\sprintf('%s:%s:global', AutoSaveWorkspace::ID, AssetLibrary::ENTITY_TYPE_ID), $auto_save_data);
 
     $account = $this->createUser([]);
     \assert($account instanceof AccountInterface);
@@ -1724,101 +1524,14 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
   }
 
   /**
-   * Tests enforcement of global asset library publishing with code components.
+   * Tests that a draft moderation state blocks the workspace publish.
    *
-   * @todo Adjust this in https://www.drupal.org/project/canvas/issues/3535038
-   * @legacy-covers ::validateExpectedAutoSaves
-   */
-  #[TestWith([TRUE, ["js_component:test-enforce-component", "asset_library:global"], 200, "Successfully published 2 items."])]
-  #[TestWith([TRUE, ["js_component:test-enforce-component"], 424])]
-  #[TestWith([FALSE, ["js_component:test-enforce-component"], 200, "Successfully published 1 item."])]
-  public function testEnforceGlobalAssetPublish(bool $global_asset_library_auto_save_exists, array $auto_save_keys_to_publish, int $expected_status_code, ?string $expected_message = NULL): void {
-    $this->setUpCurrentUser(permissions: [
-      PageRegion::ADMIN_PERMISSION,
-      'edit any article content',
-      AssetLibrary::ADMIN_PERMISSION,
-      JavaScriptComponent::ADMIN_PERMISSION,
-      Page::EDIT_PERMISSION,
-      AutoSaveManager::PUBLISH_PERMISSION,
-    ]);
-
-    /** @var \Drupal\canvas\AutoSave\AutoSaveManager $autoSave */
-    $autoSave = \Drupal::service(AutoSaveManager::class);
-
-    $code_component = JavaScriptComponent::create([
-      'machineName' => 'test-enforce-component',
-      'name' => 'Test Enforce Component',
-      'status' => TRUE,
-      'props' => [],
-      'slots' => [],
-      'js' => [
-        'original' => 'console.log("Test")',
-        'compiled' => 'console.log("Test")',
-      ],
-      'css' => [
-        'original' => '.test { display: none; }',
-        'compiled' => '.test{display:none;}',
-      ],
-      'dataDependencies' => [],
-    ]);
-    self::assertCount(0, $code_component->getTypedData()->validate());
-    $this->assertSame(SAVED_NEW, $code_component->save());
-
-    // Always create an auto-save for the code component, maybe make one for the
-    // global asset library.
-    $code_component->set('name', 'Updated Component Name');
-    $autoSave->saveEntity($code_component);
-    if ($global_asset_library_auto_save_exists) {
-      $library = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
-      \assert($library instanceof AssetLibrary);
-      $library->set('css', [
-        'original' => '.test { display: block; }',
-        'compiled' => '.test{display:block;}',
-      ]);
-      $autoSave->saveEntity($library);
-    }
-
-    // Construct the request body to publish specified auto-saves, then send it.
-    $auto_save_data = $this->getAutoSaveStatesFromServer();
-    $publish_data = array_combine(
-      $auto_save_keys_to_publish,
-      \array_map(
-        fn (string $auto_save_key) => $auto_save_data[$auto_save_key],
-        $auto_save_keys_to_publish
-      ),
-    );
-    $response = $this->makePublishAllRequest($publish_data);
-
-    self::assertSame($expected_status_code, $response->getStatusCode());
-    $json = json_decode((string) $response->getContent(), TRUE);
-    if ($expected_status_code === 200) {
-      \assert(\is_string($expected_message));
-      self::assertSame(['message' => $expected_message], $json);
-    }
-    else {
-      \assert(\is_null($expected_message));
-      self::assertSame([
-        'errors' => [
-          [
-            'detail' => ErrorCodesEnum::GlobalAssetNotPublished->getMessage(),
-            'source' => [
-              'pointer' => AssetLibrary::ENTITY_TYPE_ID . ':' . AssetLibrary::GLOBAL_ID,
-            ],
-            'code' => ErrorCodesEnum::GlobalAssetNotPublished->value,
-            'meta' => [
-              'entity_type' => AssetLibrary::ENTITY_TYPE_ID,
-              'entity_id' => AssetLibrary::GLOBAL_ID,
-              'label' => 'Global CSS',
-              ApiAutoSaveController::AUTO_SAVE_KEY => AssetLibrary::ENTITY_TYPE_ID . ':' . AssetLibrary::GLOBAL_ID,
-            ],
-          ],
-        ],
-      ], $json);
-    }
-  }
-
-  /**
-   * Tests that publishing carries over the auto-saved moderation state.
+   * With the workspace as the unit of publish, core content_moderation
+   * refuses to publish a workspace that contains items in an unpublished
+   * moderation state: an auto-saved draft state therefore blocks the whole
+   * publish until a published state is staged.
+   *
+   * @see \Drupal\content_moderation\EventSubscriber\WorkspaceSubscriber
    */
   public function testPublishModeratedEntity(): void {
     $this->container->get(ModuleInstallerInterface::class)->install(['content_moderation']);
@@ -1830,6 +1543,9 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       'view own unpublished content',
       'edit any article content',
       AutoSaveManager::PUBLISH_PERMISSION,
+      // Publish access follows core workspace access: the publish operation
+      // maps to the edit permissions.
+      'edit any workspace',
       'use editorial transition create_new_draft',
       'use editorial transition publish',
     ]);
@@ -1847,27 +1563,123 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $node->set('moderation_state', 'draft');
     $autoSave->saveEntity($node);
 
-    $auto_save_data = $this->getAutoSaveStatesFromServer();
-    $auto_save_key = $autoSave->getAutoSaveKey($node);
-    $response = $this->makePublishAllRequest([$auto_save_key => $auto_save_data[$auto_save_key]]);
-    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
-    self::assertEquals(['message' => 'Successfully published 1 item.'], json_decode((string) $response->getContent(), TRUE));
+    self::assertArrayHasKey($autoSave->getAutoSaveKey($node), $this->getAutoSaveStatesFromServer());
 
-    // The `moderation_state` field is computed (states are persisted as
-    // `content_moderation_state` entities), but the auto-saved state must
-    // still be published: the latest revision must be a draft, while the
-    // default revision remains published.
+    // Core's moderation gate stops the whole workspace publish while the
+    // staged item is in an unpublished moderation state. The gate reason is
+    // surfaced from the publish exception as a client-resolvable conflict.
+    $response = $this->makePublishAllRequest([]);
+    self::assertSame(409, $response->getStatusCode());
+    $decoded = self::decodeResponse($response);
+    self::assertStringContainsString('unpublished moderation state', $decoded['errors'][0]['detail']);
+
+    // Nothing was published and the draft survived the refusal.
     $node_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage('node');
     \assert($node_storage instanceof RevisionableStorageInterface);
-    $latest_revision_id = $node_storage->getLatestRevisionId((int) $node->id());
-    self::assertNotNull($latest_revision_id);
-    $latest_revision = $node_storage->loadRevision($latest_revision_id);
-    \assert($latest_revision instanceof Node);
-    self::assertSame('draft', $latest_revision->get('moderation_state')->value);
-    self::assertFalse($latest_revision->isPublished());
-    $default_revision = $node_storage->loadUnchanged((string) $node->id());
-    \assert($default_revision instanceof Node);
-    self::assertTrue($default_revision->isPublished());
+    $live = $node_storage->loadUnchanged((string) $node->id());
+    \assert($live instanceof Node);
+    self::assertTrue($live->isPublished());
+    self::assertSame('Moderated node', $live->getTitle());
+    self::assertFalse($autoSave->getAutoSaveEntity($node)->isEmpty());
+
+    // Staging a published moderation state unblocks the same publish. The
+    // `moderation_state` field is computed (states are persisted as
+    // `content_moderation_state` entities), but the auto-saved state must
+    // still be published with the workspace.
+    $node->set('title', 'Moderated node updated');
+    $node->set('moderation_state', 'published');
+    $autoSave->saveEntity($node);
+    $response = $this->makePublishAllRequest([]);
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+    self::assertEquals(['message' => 'Successfully published 1 item.'], json_decode((string) $response->getContent(), TRUE));
+
+    $live = $node_storage->loadUnchanged((string) $node->id());
+    \assert($live instanceof Node);
+    self::assertTrue($live->isPublished());
+    self::assertSame('published', $live->get('moderation_state')->value);
+    self::assertSame('Moderated node updated', $live->getTitle());
+    self::assertTrue($autoSave->getAutoSaveEntity($node)->isEmpty());
+  }
+
+  /**
+   * Staging never validates; publishing refuses invalid items, per item.
+   *
+   * The auto-save validation contract for workspace-staged content entities:
+   * an invalid draft is retained verbatim (an auto-save is never refused or
+   * dropped), the publish endpoint refuses it with per-item violations
+   * before any live write, the draft survives the refusal, and fixing the
+   * draft lets the same publish succeed.
+   *
+   * @see docs/adr/0014-stage-autosaves-in-a-dedicated-workspace.md
+   */
+  public function testInvalidDraftIsStagedButRefusedAtPublish(): void {
+    $this->setUpCurrentUser(permissions: [
+      'bypass node access',
+      Page::EDIT_PERMISSION,
+      AutoSaveManager::PUBLISH_PERMISSION,
+      // Publish access follows core workspace access: the publish operation
+      // maps to the edit permissions.
+      'edit any workspace',
+    ]);
+
+    /** @var \Drupal\canvas\AutoSave\AutoSaveManager $autoSave */
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    $node = Node::create([
+      'type' => 'article',
+      'title' => 'Live title',
+      'status' => TRUE,
+    ]);
+    self::assertSame(SAVED_NEW, $node->save());
+
+    // An intermediate editing state that fails entity validation: a title
+    // longer than the field's 255 character limit. Depending on the database
+    // driver the draft is retained as a workspace revision or falls back to
+    // a payload snapshot; both are part of the retention contract and both
+    // are read through the same auto-save API.
+    $invalid_title = str_repeat('x', 300);
+    $draft = clone $node;
+    $draft->set('title', $invalid_title);
+    self::assertNotCount(0, $draft->validate());
+    $autoSave->saveEntity($draft);
+
+    // Staging is never refused: the invalid draft is retained verbatim.
+    $staged = $autoSave->getAutoSaveEntity($node)->entity;
+    \assert($staged instanceof NodeInterface);
+    self::assertSame($invalid_title, $staged->getTitle());
+
+    // Publishing the invalid draft is refused with a per-item violation.
+    $auto_save_key = AutoSaveManager::getAutoSaveKey($node);
+    self::assertArrayHasKey($auto_save_key, $this->getAutoSaveStatesFromServer());
+    $response = $this->makePublishAllRequest([]);
+    self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+    $json = json_decode((string) $response->getContent(), TRUE);
+    self::assertCount(1, $json['errors']);
+    self::assertStringContainsString('may not be longer than 255 characters', $json['errors'][0]['detail']);
+    self::assertStringStartsWith('title', $json['errors'][0]['source']['pointer']);
+    self::assertSame('node', $json['errors'][0]['meta']['entity_type']);
+    self::assertSame($auto_save_key, $json['errors'][0]['meta'][ApiAutoSaveController::AUTO_SAVE_KEY]);
+
+    // No live write happened, and the draft survived the refusal.
+    $node_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage('node');
+    $live = $node_storage->loadUnchanged((string) $node->id());
+    \assert($live instanceof NodeInterface);
+    self::assertSame('Live title', $live->getTitle());
+    $staged = $autoSave->getAutoSaveEntity($node)->entity;
+    \assert($staged instanceof NodeInterface);
+    self::assertSame($invalid_title, $staged->getTitle());
+
+    // Fixing the draft makes the same publish succeed.
+    $fixed = $autoSave->getEntityForLayoutEditing($node);
+    \assert($fixed instanceof NodeInterface);
+    $fixed->set('title', 'Draft title');
+    $autoSave->saveEntity($fixed);
+    $response = $this->makePublishAllRequest([]);
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    self::assertEquals(['message' => 'Successfully published 1 item.'], json_decode((string) $response->getContent(), TRUE));
+    $live = $node_storage->loadUnchanged((string) $node->id());
+    \assert($live instanceof NodeInterface);
+    self::assertSame('Draft title', $live->getTitle());
+    self::assertTrue($autoSave->getAutoSaveEntity($node)->isEmpty());
   }
 
   /**
@@ -1875,9 +1687,9 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
    *
    * This test covers different publishing scenarios:
    * - Draft pages (never published): auto-publish when publishing changes
-   * - Published pages: preserve status from autosaved entity
+   * - Published pages: preserve status from auto-saved entity
    * - Unpublished pages (previously published, now unpublished): preserve status
-   *   from autosaved entity, allowing both unpublishing and republishing.
+   *   from auto-saved entity, allowing both unpublishing and republishing.
    *
    * @legacy-covers ::post
    */
@@ -1886,6 +1698,9 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       'bypass node access',
       Page::EDIT_PERMISSION,
       AutoSaveManager::PUBLISH_PERMISSION,
+      // Publish access follows core workspace access: the publish operation
+      // maps to the edit permissions.
+      'edit any workspace',
     ]);
 
     /** @var \Drupal\canvas\AutoSave\AutoSaveManager $autoSave */
@@ -1918,9 +1733,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     self::assertArrayHasKey($published_node_key, $auto_save_data);
 
     // Publish the changes.
-    $response = $this->makePublishAllRequest([
-      $published_node_key => $auto_save_data[$published_node_key],
-    ]);
+    $response = $this->makePublishAllRequest([]);
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
 
     // Verify: Node should remain published with updated title.
@@ -1954,9 +1767,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     self::assertArrayHasKey($to_be_unpublished_node_key, $auto_save_data);
 
     // Publish the changes.
-    $response = $this->makePublishAllRequest([
-      $to_be_unpublished_node_key => $auto_save_data[$to_be_unpublished_node_key],
-    ]);
+    $response = $this->makePublishAllRequest([]);
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
 
     // Verify: Node should be unpublished with updated title.
@@ -2006,9 +1817,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     self::assertArrayHasKey($to_be_republished_node_key, $auto_save_data);
 
     // Publish the changes.
-    $response = $this->makePublishAllRequest([
-      $to_be_republished_node_key => $auto_save_data[$to_be_republished_node_key],
-    ]);
+    $response = $this->makePublishAllRequest([]);
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
 
     // Verify: Node should be published again with updated title.
@@ -2017,10 +1826,12 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     self::assertTrue($to_be_republished_node->isPublished());
     self::assertSame('Republished Article', $to_be_republished_node->getTitle());
 
-    // Test Case 4: Draft page auto-publishes.
-    // This verifies that draft pages (never published) are automatically
-    // published when publishing changes, even if the autosaved entity has
-    // status FALSE.
+    // Test Case 4: Draft pages no longer auto-publish. Core workspace
+    // publish promotes the staged revision verbatim, so a never-published
+    // draft whose staged status is FALSE stays unpublished; making it live
+    // requires staging the published status first (the editor's publish
+    // toggle stages exactly that).
+    // @see \Drupal\canvas\Controller\ApiContentAutoSaveControllers
     $draft_node = Node::create([
       'type' => 'article',
       'title' => self::NEW_NODE_TITLE,
@@ -2043,20 +1854,27 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     self::assertArrayHasKey($draft_node_key, $auto_save_data);
 
     // Publish the changes.
-    $response = $this->makePublishAllRequest([
-      $draft_node_key => $auto_save_data[$draft_node_key],
-    ]);
+    $response = $this->makePublishAllRequest([]);
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
 
-    // Verify: Draft should be auto-published (existing behavior).
+    // Verify: the staged (unpublished) state went live as-is.
+    $draft_node = $node_storage->loadUnchanged($draft_node_id);
+    \assert($draft_node instanceof NodeInterface);
+    self::assertFalse($draft_node->isPublished());
+    self::assertSame('Updated Draft Article', $draft_node->getTitle());
+
+    // Staging the published status and publishing again makes it live.
+    $draft_node->set('status', TRUE);
+    $autoSave->saveEntity($draft_node);
+    $response = $this->makePublishAllRequest([]);
+    self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
     $draft_node = $node_storage->loadUnchanged($draft_node_id);
     \assert($draft_node instanceof NodeInterface);
     self::assertTrue($draft_node->isPublished());
-    self::assertSame('Updated Draft Article', $draft_node->getTitle());
   }
 
   /**
-   * Tests access errors for publishing a set of auto-saves with varied access.
+   * Tests that one inaccessible item aborts the whole workspace publish.
    */
   public function testPublishAutoSaveItemsAccessCheckWithMixedAccess(): void {
     /** @var \Drupal\canvas\AutoSave\AutoSaveManager $autoSave */
@@ -2093,106 +1911,76 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $inaccessible_page_two->set('title', 'Publish Access Denied Page Two Modified');
     $autoSave->saveEntity($inaccessible_page_two);
 
-    // Construct the request body to publish the auto-saved Page.
     $auto_save_data = $autoSave->getAllAutoSaveList(FALSE, FALSE);
     self::assertCount(3, $auto_save_data, 'Only the 3 auto-saves exist that were just created are present.');
-    $publish_request_body = $auto_save_data;
-    // Publish in a deterministic order, to get predictable error responses.
-    ksort($publish_request_body);
 
-    // This test exercises `view` access to `Page` entities; so revoke it from
-    // all authenticated users
-    Role::load('authenticated')?->revokePermission('access content')->save();
-
-    // 1. Publish request as user that can publish auto-saves, but cannot view
-    // Page/Node entities, cannot update Page entities, but CAN update article
-    // Node entities:
-    // - TRICKY: note this was an artificially constructed request body, because
-    //   GET returns nothing.
-    // - `canvas_page:4:en`, 'canvas_page:5:en` and `node:4:en` do exist, so no
-    //   409.
-    // - No `view label` access for any of them: 403.
-    $this->setUpCurrentUser(permissions: [
-      'edit any article content',
-      AutoSaveManager::PUBLISH_PERMISSION,
-    ]);
-    self::assertSame([], $this->getAutoSaveStatesFromServer());
-    $response = $this->makePublishAllRequest($publish_request_body);
-    self::assertSame(403, $response->getStatusCode());
-    $response_content = \json_decode((string) $response->getContent(), TRUE);
-    $this->assertDataCompliesWithApiSpecification($response_content['errors'][0], 'Error');
-    self::assertSame([
-      'errors' => [
-        [
-          'detail' => 'An unexpected item was found in the publish request. Please refresh your page and try again.',
-          'source' => [
-            'pointer' => 'canvas_page:4:en',
-          ],
-          'code' => ErrorCodesEnum::UnexpectedItemInPublishRequest->value,
-        ],
-        [
-          'detail' => 'An unexpected item was found in the publish request. Please refresh your page and try again.',
-          'source' => [
-            'pointer' => 'canvas_page:5:en',
-          ],
-          'code' => ErrorCodesEnum::UnexpectedItemInPublishRequest->value,
-        ],
-        [
-          'detail' => 'An unexpected item was found in the publish request. Please refresh your page and try again.',
-          'source' => [
-            'pointer' => 'node:4:en',
-          ],
-          'code' => ErrorCodesEnum::UnexpectedItemInPublishRequest->value,
-        ],
-      ],
-    ], $response_content);
-
-    // 2. Same request, but now with permission to view Page and Node entities:
-    // no `update` access for Page entities, so 403 (but different reason).
+    // 1. Publishing requires publish access to the active workspace, which
+    // follows core workspace permissions (publish maps to edit).
     $this->setUpCurrentUser(permissions: [
       'access content',
       'edit any article content',
       AutoSaveManager::PUBLISH_PERMISSION,
     ]);
-    // The `GET` response now matches the artificially constructed `POST`
-    // request body precisely.
-    $available_to_publish = $this->getAutoSaveStatesFromServer();
-    ksort($available_to_publish);
-    self::assertSame(\array_keys($publish_request_body), \array_keys($available_to_publish));
-    self::assertArrayIsIdenticalToArrayOnlyConsideringListOfKeys($available_to_publish, $publish_request_body, ['entity_type', 'entity_id', 'owner', 'langcode', 'label', 'data_hash', 'updated']);
     try {
-      $this->makePublishAllRequest($publish_request_body);
-      $this->fail('Expected access denied error when publishing a mix of accessible and inaccessible auto-save items.');
+      $this->makePublishAllRequest([]);
+      $this->fail('Expected access denied error when publishing without workspace publish access.');
     }
     catch (CacheableAccessDeniedHttpException $exception) {
-      $message = $exception->getMessage();
-      $this->assertStringStartsWith('Unable to update entities: ', $message);
-      $this->assertStringContainsString("'{$inaccessible_page_one->label()}'", $message);
-      $this->assertStringContainsString("'{$inaccessible_page_two->label()}'", $message);
-      $this->assertStringNotContainsString("'{$accessible_article->label()}'", $message);
+      self::assertSame(\sprintf('You do not have permission to publish the "%s" workspace.', AutoSaveWorkspace::LABEL), $exception->getMessage());
     }
+
+    // 2. With workspace publish access but no update access to the Page
+    // items, the whole publish aborts with grouped per-item violations: the
+    // accessible article is not published either.
+    $this->setUpCurrentUser(permissions: [
+      'access content',
+      'edit any article content',
+      AutoSaveManager::PUBLISH_PERMISSION,
+      'edit any workspace',
+    ]);
+    // The GET response lists everything that is pending in the workspace.
+    $available_to_publish = $this->getAutoSaveStatesFromServer();
+    self::assertSame(\array_keys($auto_save_data), \array_keys($available_to_publish));
+    $response = $this->makePublishAllRequest([]);
+    self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+    $response_content = self::decodeResponse($response);
+    $this->assertDataCompliesWithApiSpecification($response_content['errors'][0], 'Error');
+    $access_error = static fn (Page $page): array => [
+      'detail' => \sprintf('You do not have permission to update %s.', (string) $page->label()),
+      'source' => [
+        'pointer' => AutoSaveManager::getAutoSaveKey($page),
+      ],
+      'meta' => [
+        'entity_type' => Page::ENTITY_TYPE_ID,
+        'entity_id' => $page->id(),
+        'label' => $page->label(),
+        ApiAutoSaveController::AUTO_SAVE_KEY => AutoSaveManager::getAutoSaveKey($page),
+      ],
+    ];
+    self::assertEquals([
+      'errors' => [
+        $access_error($inaccessible_page_one),
+        $access_error($inaccessible_page_two),
+      ],
+    ], $response_content);
+
+    // Nothing went live, and every draft survived the refusal.
+    $page_one_id = $inaccessible_page_one->id();
+    $page_two_id = $inaccessible_page_two->id();
+    $article_id = $accessible_article->id();
+    self::assertNotNull($page_one_id);
+    self::assertNotNull($page_two_id);
+    self::assertNotNull($article_id);
+    $page_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage(Page::ENTITY_TYPE_ID);
+    self::assertSame('Publish Access Denied Page One', $page_storage->loadUnchanged($page_one_id)?->label());
+    self::assertSame('Publish Access Denied Page Two', $page_storage->loadUnchanged($page_two_id)?->label());
+    $node_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage('node');
+    self::assertSame('Publish Access Allowed Article', $node_storage->loadUnchanged($article_id)?->label());
+    self::assertSame(\array_keys($auto_save_data), \array_keys($autoSave->getAllAutoSaveList(FALSE, FALSE)));
   }
 
   private function assertSiteHomepage(string $path): void {
     self::assertEquals($path, $this->config('system.site')->get('page.front'));
-  }
-
-  /**
-   * Asserts an unresolved-conflict error response.
-   */
-  private function assertConflictErrorResponse(Response $response, int|string $expected_conflict_id, string $expected_auto_save_key): void {
-    self::assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
-    $response_content = \json_decode((string) $response->getContent(), TRUE);
-    self::assertIsArray($response_content);
-    $this->assertArrayHasKey('errors', $response_content);
-    self::assertCount(1, $response_content['errors']);
-    $this->assertDataCompliesWithApiSpecification($response_content['errors'][0], 'Error');
-    self::assertArrayHasKey('code', $response_content['errors'][0]);
-    self::assertSame(ErrorCodesEnum::ItemEntityUpdatedExternally->value, $response_content['errors'][0]['code']);
-    self::assertArrayHasKey('meta', $response_content['errors'][0]);
-    self::assertArrayHasKey(AutoSaveManager::AUTO_SAVE_CONFLICT_KEY, $response_content['errors'][0]['meta']);
-    self::assertSame($expected_conflict_id, $response_content['errors'][0]['meta'][AutoSaveManager::AUTO_SAVE_CONFLICT_KEY]);
-    self::assertSame($expected_auto_save_key, $response_content['errors'][0]['meta']['api_auto_save_key']);
   }
 
 }

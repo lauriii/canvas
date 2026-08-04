@@ -32,6 +32,7 @@ use Drupal\Core\Form\FormInterface;
 use Drupal\Core\Form\FormState;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Form\SubformState;
+use Drupal\Core\Form\WorkspaceSafeFormInterface;
 use Drupal\Core\Link;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Plugin\PluginDependencyTrait;
@@ -547,7 +548,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
       $block_plugin,
       $this->pluginFormFactory,
       $this->autoSaveManager,
-    ) implements FormInterface {
+    ) implements FormInterface, WorkspaceSafeFormInterface {
 
       public function __construct(
         protected readonly string $formId,

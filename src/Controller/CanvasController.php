@@ -6,6 +6,8 @@ namespace Drupal\canvas\Controller;
 
 use Drupal\canvas\AssetRenderer;
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\AutoSave\Workspace\AutoSaveWorkspace;
+use Drupal\canvas\AutoSave\Workspace\WorkspaceAutoSave;
 use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\canvas\Config\ThemeSettingsDiscovery;
 use Drupal\canvas\Entity\BrandKit;
@@ -66,6 +68,12 @@ final class CanvasController {
     private readonly ThemeSettingsDiscovery $themeSettingsDiscovery,
     private readonly GlobalImports $globalImports,
     private readonly LanguageManagerInterface $languageManager,
+    private readonly WorkspaceAutoSave $workspaceAutoSave,
+    /**
+     * @var \Drupal\workspaces\WorkspaceManagerInterface|null
+     */
+    #[Autowire(service: 'workspaces.manager')]
+    private readonly ?object $workspaceManager = NULL,
   ) {}
 
   private const HTML = <<<HTML
@@ -110,6 +118,17 @@ HTML;
   public function __invoke(?string $entity_type, ?EntityInterface $entity) : HtmlResponse {
     // @phpstan-ignore-next-line function.alreadyNarrowedType
     \assert($this->validateTransformAssetLibraries());
+    // Canvas editing happens in a workspace. When core negotiation yields
+    // none at editor open, activate the Main workspace (persisting, so
+    // subsequent API requests and site preview follow it). Canvas API routes
+    // themselves never force-activate a workspace.
+    if ($this->workspaceManager !== NULL && !$this->workspaceManager->hasActiveWorkspace()) {
+      /** @var \Drupal\workspaces\WorkspaceInterface|null $main_workspace */
+      $main_workspace = $this->entityTypeManager->getStorage('workspace')->load(AutoSaveWorkspace::ID);
+      if ($main_workspace !== NULL && $main_workspace->access('view', $this->currentUser)) {
+        $this->workspaceManager->setActiveWorkspace($main_workspace);
+      }
+    }
     // List of libraries to load in the preview iframe.
     $preview_libraries = [
       'system/base',
@@ -273,6 +292,7 @@ HTML;
             'siteUrl' => $site_url,
             'loginUrl' => $this->urlGenerator->generateFromRoute('user.login'),
             'viewports' => $theme_settings['viewports'] ?? [],
+            'workspaces' => $this->buildWorkspaceSettings($entity),
           ],
           // Override actual `canvasData` with dummy data for code component
           // editor development purposes.
@@ -391,6 +411,53 @@ HTML;
       ];
     }
     return $libraries;
+  }
+
+  /**
+   * The workspace context for the editor boot payload.
+   *
+   * Reports the active workspace, whether the user may act on workspaces,
+   * and — when the opened entity's pending work lives in another workspace —
+   * the owning workspace, so the editor can show a lock notice before the
+   * first write instead of a failed save later.
+   *
+   * @return array<string, mixed>
+   */
+  private function buildWorkspaceSettings(?EntityInterface $entity): array {
+    $settings = [
+      'activeWorkspace' => NULL,
+      'lockedInWorkspace' => NULL,
+    ];
+    if ($this->workspaceManager === NULL) {
+      return $settings;
+    }
+    /** @var \Drupal\workspaces\WorkspaceManagerInterface $wm */
+    $wm = $this->workspaceManager;
+    $active = $wm->hasActiveWorkspace() ? $wm->getActiveWorkspace() : NULL;
+    if ($active !== NULL) {
+      $settings['activeWorkspace'] = [
+        'id' => (string) $active->id(),
+        'label' => (string) $active->label(),
+        'isDefault' => $active->id() === AutoSaveWorkspace::ID,
+      ];
+    }
+    // Editor deep links are rewritten to the entity-less boot route by the
+    // path processor, so this only carries lock info for direct boots; the
+    // layout API response is the authoritative per-entity source.
+    // @see \Drupal\canvas\PathProcessor\CanvasPathProcessor
+    // @see \Drupal\canvas\Controller\ApiLayoutController::get()
+    if ($entity !== NULL) {
+      $owning_id = $this->workspaceAutoSave->getOwningWorkspaceId($entity);
+      if ($owning_id !== NULL) {
+        $owning = $this->entityTypeManager->getStorage('workspace')->load($owning_id);
+        $settings['lockedInWorkspace'] = [
+          'id' => $owning_id,
+          'label' => $owning !== NULL ? (string) $owning->label() : $owning_id,
+          'canSwitch' => $owning !== NULL && $owning->access('view', $this->currentUser),
+        ];
+      }
+    }
+    return $settings;
   }
 
   /**

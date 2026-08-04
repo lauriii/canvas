@@ -42,7 +42,14 @@ import {
   useQueuedPostPreviewMutation,
   useUpdateComponentMutation,
 } from '@/services/preview';
-
+import {
+  useGetWorkspacesQuery,
+  useScheduleWorkspacePublishMutation,
+  useTransitionWorkspaceStatusMutation,
+  useUnscheduleWorkspacePublishMutation,
+  workspacesApi,
+} from '@/services/workspacesApi';
+import type { WorkspaceStatusTransition } from '@/services/workspacesApi';
 import type { UnpublishedChange } from '@/types/Review';
 
 const REFETCH_INTERVAL_MS = 10000;
@@ -73,6 +80,18 @@ const UnpublishedChanges = () => {
     pollingInterval: pollingInterval,
     skipPollingIfUnfocused: true,
   });
+  const { data: workspacesData, refetch: refetchWorkspaces } =
+    useGetWorkspacesQuery();
+  const [transitionStatus, { isLoading: isTransitioning }] =
+    useTransitionWorkspaceStatusMutation();
+  const [schedulePublish, { isLoading: isScheduling }] =
+    useScheduleWorkspacePublishMutation();
+  const [unschedulePublish, { isLoading: isCancelingSchedule }] =
+    useUnscheduleWorkspacePublishMutation();
+  const activeWorkspace = useMemo(
+    () => workspacesData?.data.find((workspace) => workspace.isActive) ?? null,
+    [workspacesData],
+  );
   const { entityType, entityId, codeComponentId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -122,11 +141,14 @@ const UnpublishedChanges = () => {
       if (open) {
         setPollingInterval(0);
         refetch();
+        // The workspace status may have changed elsewhere (for example, an
+        // approval or a scheduled publish), so refresh it with the panel.
+        refetchWorkspaces();
       } else {
         setPollingInterval(REFETCH_INTERVAL_MS);
       }
     },
-    [refetch],
+    [refetch, refetchWorkspaces],
   );
 
   useEffect(() => {
@@ -153,8 +175,50 @@ const UnpublishedChanges = () => {
     onOpenChangeHandler,
   ]);
 
-  const onPublishClick = async (selectedChanges: UnpublishedChange[]) => {
-    await publishPendingChanges(selectedChanges);
+  const onPublishClick = async () => {
+    // Publishing covers the whole active workspace, so every pending change
+    // is treated as published for the cleanup the hook performs.
+    const published = await publishPendingChanges(unpublishedChanges);
+    if (!published) {
+      return;
+    }
+    // Publishing completes a named workspace: the backend deletes it, and
+    // the session falls back to the Main workspace. Reload so the editor
+    // rebinds to it (the same deliberate full-reload strategy as switching
+    // workspaces). The Main workspace survives its publishes: refresh the
+    // workspace list in place.
+    if (activeWorkspace && !activeWorkspace.isDefault) {
+      window.location.reload();
+      return;
+    }
+    dispatch(workspacesApi.util.invalidateTags(['Workspaces']));
+  };
+
+  const onTransitionStatus = async (transition: WorkspaceStatusTransition) => {
+    if (!activeWorkspace) return;
+    try {
+      await transitionStatus({ id: activeWorkspace.id, transition }).unwrap();
+    } catch {
+      // Errors surface through the global query error handling.
+    }
+  };
+
+  const onSchedulePublish = async (publishAt: number) => {
+    if (!activeWorkspace) return;
+    try {
+      await schedulePublish({ id: activeWorkspace.id, publishAt }).unwrap();
+    } catch {
+      // Errors surface through the global query error handling.
+    }
+  };
+
+  const onCancelSchedule = async () => {
+    if (!activeWorkspace) return;
+    try {
+      await unschedulePublish(activeWorkspace.id).unwrap();
+    } catch {
+      // Errors surface through the global query error handling.
+    }
   };
 
   const navigateToReview = (selectedChanges: UnpublishedChange[]) => {
@@ -272,14 +336,17 @@ const UnpublishedChanges = () => {
       changes={unpublishedChanges}
       conflictCount={conflictCount}
       errors={errorResponse}
+      workspace={activeWorkspace}
       onOpenChangeCallback={onOpenChangeHandler}
       onPublishClick={onPublishClick}
       onDiscardClick={onDiscardClick}
-      onReviewSelectedChanges={conflictUxEnabled ? navigateToReview : undefined}
       onViewClick={
         conflictUxEnabled ? (change) => navigateToReview([change]) : undefined
       }
       isViewChangeAvailable={conflictUxEnabled ? isReviewableChange : undefined}
+      onTransitionStatus={onTransitionStatus}
+      onSchedulePublish={onSchedulePublish}
+      onCancelSchedule={onCancelSchedule}
       onResolveConflict={(change) => {
         if (change && conflictUxEnabled) {
           navigate(getConflictRouteForChange(change));
@@ -289,6 +356,8 @@ const UnpublishedChanges = () => {
       }}
       isPublishing={isPublishing}
       isDiscarding={isDiscarding}
+      isTransitioning={isTransitioning}
+      isScheduling={isScheduling || isCancelingSchedule}
       pageStatusMap={pageStatusMap}
     />
   );

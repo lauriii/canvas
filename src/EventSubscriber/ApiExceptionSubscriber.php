@@ -6,9 +6,11 @@ namespace Drupal\canvas\EventSubscriber;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Controller\ApiAutoSaveController;
+use Drupal\canvas\Controller\ErrorCodesEnum;
 use Drupal\canvas\Exception\ConstraintViolationException;
 use Drupal\canvas\Plugin\Validation\Constraint\AutoSaveEntityConflictConstraint;
 use Drupal\canvas\Utility\ExceptionHelper;
+use Drupal\canvas\Workspace\WorkspaceEntityLockedException;
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -70,6 +72,21 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface {
       // @see https://jsonapi.org/format/#error-objects
       if ($status >= 400 && $status < 500) {
         $response = match (TRUE) {
+          $exception instanceof WorkspaceEntityLockedException => [
+            'errors' => [
+              [
+                'detail' => $exception->getMessage(),
+                'source' => ['pointer' => 'workspace'],
+                'code' => ErrorCodesEnum::EntityLockedInAnotherWorkspace->value,
+                'meta' => [
+                  'workspace' => [
+                    'id' => $exception->workspaceId,
+                    'label' => $exception->workspaceLabel,
+                  ],
+                ],
+              ],
+            ],
+          ],
           $exception instanceof ConstraintViolationException => [
             'errors' => \array_map(
               fn($violation) => self::violationToJsonApiStyleErrorObject($violation),

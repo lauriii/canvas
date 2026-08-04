@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Controller;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\AutoSave\Workspace\WorkspaceAutoSave;
 use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\canvas\ClientDataToEntityConverter;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
@@ -25,6 +26,7 @@ use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Render\Markup;
@@ -32,6 +34,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\language\ConfigurableLanguageManagerInterface;
+use Drupal\user\UserInterface;
 use GuzzleHttp\Psr7\Query;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -49,6 +52,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 final class ApiLayoutController {
 
   use AutoSaveValidateTrait;
+  use BuildsAvatarUrlTrait;
   use ClientServerConversionTrait;
   use EntityFormTrait;
   public const string AUTO_SAVED_QUERY_KEY = 'autoSaved';
@@ -57,6 +61,7 @@ final class ApiLayoutController {
 
   public function __construct(
     private readonly AutoSaveManager $autoSaveManager,
+    private readonly WorkspaceAutoSave $workspaceAutoSave,
     private readonly ThemeManagerInterface $themeManager,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly FormBuilderInterface $formBuilder,
@@ -66,6 +71,7 @@ final class ApiLayoutController {
     private readonly ModuleHandlerInterface $moduleHandler,
     private readonly LanguageManagerInterface $languageManager,
     private readonly AccountProxyInterface $currentUser,
+    private readonly FileUrlGeneratorInterface $fileUrlGenerator,
   ) {
     $theme = $this->themeManager->getActiveTheme()->getName();
     $theme_regions = system_region_list($theme);
@@ -118,6 +124,12 @@ final class ApiLayoutController {
         \assert($entity instanceof ContentEntityInterface || $entity instanceof ContentTemplate);
       }
     }
+    elseif ($entity instanceof ContentEntityInterface) {
+      // The published version was explicitly requested. Route upcasting
+      // happens with the auto-save workspace active, so the upcast entity can
+      // be the workspace-staged revision; reload the Live version.
+      $entity = $this->loadLiveVersion($entity);
+    }
 
     $model = [];
     // Build the content region.
@@ -152,10 +164,14 @@ final class ApiLayoutController {
       // an object and not empty array.
       'model' => empty($model) ? new \stdClass() : $model,
       'isNew' => $is_new,
-      'autoSaves' => $this->getAutoSaveHashes(array_merge(
-        [$entity],
-        self::getEditableRegions($entity),
-      )),
+      'autoSaves' => $this->getAutoSaveHashesAfterFlush(
+        array_merge([$entity], self::getEditableRegions($entity)),
+      ),
+      // When the entity's pending work lives in another workspace, name it so
+      // the editor can show the lock before the first write. Editor deep
+      // links boot through canvas.boot.empty (the path processor rewrites
+      // them), so the boot payload cannot carry entity-specific lock info.
+      'lockedInWorkspace' => $this->buildWorkspaceLockInfo($original_entity),
     ];
     $available_translations = [];
     $links = [];
@@ -222,7 +238,7 @@ final class ApiLayoutController {
       $data['entity_form_fields'] = $this->getFilteredEntityData($entity);
 
       // Determine if there's an unsaved status change by comparing the current
-      // entity (which may be autosaved) with the original stored entity.
+      // entity (which may be auto-saved) with the original stored entity.
       $data['hasUnsavedStatusChange'] = FALSE;
       if ($original_entity instanceof EntityPublishedInterface
         && $entity !== $original_entity) {
@@ -455,10 +471,9 @@ final class ApiLayoutController {
     if ($entity instanceof FieldableEntityInterface) {
       $data['entity_form_fields'] = $this->getFilteredEntityData($entity);
     }
-    $data['autoSaves'] = $this->getAutoSaveHashes(array_merge(
-      [$entity],
-      self::getEditableRegions($entity),
-    ));
+    $data['autoSaves'] = $this->getAutoSaveHashesAfterFlush(
+      array_merge([$entity], self::getEditableRegions($entity)),
+    );
     return new PreviewEnvelope(
       $this->buildPreviewRenderable($entity, $preview_entity),
       additionalData: $data
@@ -551,12 +566,21 @@ final class ApiLayoutController {
     return new PreviewEnvelope(
       $this->buildPreviewRenderable($entity, $preview_entity),
       additionalData: [
-        'autoSaves' => $this->getAutoSaveHashes(array_merge(
-          [$entity],
-          self::getEditableRegions($entity),
-        )),
+        'autoSaves' => $this->getAutoSaveHashesAfterFlush(
+          array_merge([$entity], self::getEditableRegions($entity)),
+        ),
       ],
     );
+  }
+
+  /**
+   * @param array<int, \Drupal\Core\Entity\EntityInterface> $entities
+   *
+   * @return array<string, array{autoSaveStartingPoint: int|string|null, hash: string|null}>
+   */
+  private function getAutoSaveHashesAfterFlush(array $entities): array {
+    $this->autoSaveManager->flushDeferredContentEntities($entities);
+    return $this->getAutoSaveHashes($entities);
   }
 
   private function buildPreviewRenderable(ContentTemplate|FieldableEntityInterface $entity, ?FieldableEntityInterface $preview_entity = NULL): array {
@@ -597,8 +621,62 @@ final class ApiLayoutController {
         return (string) $auto_save_data->entity->label();
       }
     }
+    elseif ($entity instanceof ContentEntityInterface) {
+      // The published version was explicitly requested; the upcast entity can
+      // be the workspace-staged revision.
+      $entity = $this->loadLiveVersion($entity);
+    }
 
     return (string) $entity->label();
+  }
+
+  /**
+   * The owning-workspace lock info for the layout payload, or NULL.
+   *
+   * @return array{id: string, label: string, canSwitch: bool, updated: int, owner: array{name: string, avatar: string|null}|null}|null
+   */
+  private function buildWorkspaceLockInfo(ContentEntityInterface|ContentTemplate $entity): ?array {
+    if (!$entity instanceof ContentEntityInterface) {
+      return NULL;
+    }
+    $lock = $this->workspaceAutoSave->getOwningWorkspaceLockInfo($entity);
+    if ($lock === NULL) {
+      return NULL;
+    }
+    $owning = $this->entityTypeManager->getStorage('workspace')->load($lock['workspaceId']);
+    $owner = NULL;
+    if ($lock['ownerId'] > 0) {
+      $user = $this->entityTypeManager->getStorage('user')->load($lock['ownerId']);
+      if ($user instanceof UserInterface && $user->access('view label', $this->currentUser)) {
+        $owner = [
+          'name' => (string) $user->getDisplayName(),
+          'avatar' => $this->buildAvatarUrl($user),
+        ];
+      }
+    }
+    return [
+      'id' => $lock['workspaceId'],
+      'label' => $owning !== NULL ? (string) $owning->label() : $lock['workspaceId'],
+      'canSwitch' => $owning !== NULL && $owning->access('view', $this->currentUser),
+      'updated' => $lock['updated'],
+      'owner' => $owner,
+    ];
+  }
+
+  /**
+   * Loads the Live version of an entity, keeping the requested translation.
+   *
+   * Route upcasting during Canvas API requests happens with the auto-save
+   * workspace active, so an upcast entity with staged edits resolves to the
+   * staged revision even when the caller needs the published version.
+   */
+  private function loadLiveVersion(ContentEntityInterface $entity): ContentEntityInterface {
+    $live = $this->workspaceAutoSave->loadUnchangedOutsideWorkspace($entity->getEntityTypeId(), (string) $entity->id());
+    if (!$live instanceof ContentEntityInterface) {
+      return $entity;
+    }
+    $langcode = $entity->language()->getId();
+    return $live->hasTranslation($langcode) ? $live->getTranslation($langcode) : $live;
   }
 
   /**

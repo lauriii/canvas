@@ -138,6 +138,7 @@ final class PersonalizationTest extends ComponentSourceTestBase {
       'languages:language_interface',
       'theme',
       'user.permissions',
+      'workspace',
     ];
     $default_cacheability = (new CacheableMetadata())
       ->setCacheContexts($default_render_cache_contexts);
@@ -190,6 +191,7 @@ HTML,
       'languages:language_interface',
       'theme',
       'user.permissions',
+      'workspace',
     ];
     $default_cacheability = (new CacheableMetadata())
       ->setCacheContexts($default_render_cache_contexts);

@@ -67,7 +67,7 @@ export const assetLibraryApi = createApi({
       },
     }),
     updateAutoSave: builder.mutation<
-      void,
+      { autoSaves: AutoSavesHash },
       {
         id: string;
         data: Partial<AssetLibrary>;
@@ -81,6 +81,14 @@ export const assetLibraryApi = createApi({
       invalidatesTags: (result, error, { id }) => [
         { type: 'AssetLibrariesAutoSave', id },
       ],
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data, meta } = await queryFulfilled;
+          handleAutoSavesHashUpdate(dispatch, data.autoSaves, meta);
+        } catch {
+          // Errors are surfaced via the mutation hook; no need to log here.
+        }
+      },
     }),
   }),
 });

@@ -49,6 +49,11 @@ final class BlockComponentDiscovery implements ComponentCandidatesDiscoveryInter
     // deprecated: avoid flooding Canvas's tests with this news.
     // @see https://www.drupal.org/node/3519248
     'node_syndicate_block',
+    // The Workspaces module is installed as Canvas auto-save infrastructure;
+    // a block that switches the active workspace does not make sense inside a
+    // Canvas component tree.
+    // @see \Drupal\canvas\AutoSave\Workspace\AutoSaveWorkspace
+    'workspace_switcher',
   ];
 
   public function __construct(

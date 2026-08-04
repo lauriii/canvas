@@ -127,6 +127,7 @@ final class ApiContentAutoSaveControllers {
     // Save through auto-save instead of directly saving.
     $clientInstanceId = $body['clientInstanceId'] ?? NULL;
     $this->autoSaveManager->saveEntity($entity_to_update, $clientInstanceId);
+    $this->autoSaveManager->flushDeferredContentEntity($entity_to_update);
 
     return new JsonResponse(status: Response::HTTP_NO_CONTENT);
   }

@@ -27,6 +27,9 @@ parameters:
     # PHPStan rules are not Drupal module code; only scanned for autoloading.
     - phpstan_rules/**
   treatPhpDocTypesAsCertain: false
+  # Corrections for wrong @var/@param/@return PHPDocs in Drupal core.
+  stubFiles:
+    - phpstan_stubs/EntityBase.stub
   drupal:
     entityMapping:
       asset_library:
@@ -63,6 +66,10 @@ parameters:
       message: "#^Class .* extends @internal class#"
       count: 1
       path: src/MediaLibraryCanvasPropOpener.php
+    -
+      message: "#^Class .* extends @internal class#"
+      count: 1
+      path: src/Plugin/Validation/Constraint/CanvasAwareEntityWorkspaceConflictConstraintValidator.php
     -
       message: "#^Method Drupal\\\\canvas\\\\Entity\\\\ComponentTreeConfigEntityBase\\:\\:preCreate\\(\\) has no return type specified\\.$#"
       identifier: missingType.return

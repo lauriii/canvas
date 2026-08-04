@@ -17,6 +17,7 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Component\Assertion\Inspector;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Config\ConfigInstallerInterface;
+use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\DependencyInjection\ClassResolverInterface;
 use Drupal\Core\DrupalKernel;
 use Drupal\Core\Entity\ContentEntityInterface;
@@ -24,6 +25,7 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Plugin\DefaultPluginManager;
 use Drupal\Core\Update\UpdateKernel;
+use Drupal\workspaces\WorkspaceManagerInterface;
 
 /**
  * Defines a plugin manager for component source plugins.
@@ -48,6 +50,18 @@ final class ComponentSourceManager extends DefaultPluginManager {
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache_backend
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    */
+  /**
+   * TRUE while ::generateComponents() is on the call stack.
+   *
+   * Component generation saves Component config entities; with a workspace
+   * active those saves switch workspace context, every switch dispatches
+   * WorkspaceSwitchEvent, workspace_config reacts by clearing entity field
+   * definitions, layout_builder reacts to that by clearing block plugin
+   * definitions, and BlockManagerDecorator::clearCachedDefinitions() would
+   * re-enter this method — recursing until memory or patience runs out.
+   */
+  private bool $generating = FALSE;
+
   public function __construct(
     \Traversable $namespaces,
     CacheBackendInterface $cache_backend,
@@ -55,6 +69,7 @@ final class ComponentSourceManager extends DefaultPluginManager {
     private readonly ComponentIncompatibilityReasonRepository $reasonRepository,
     private readonly ClassResolverInterface $classResolver,
     private readonly ConfigInstallerInterface $configInstaller,
+    private readonly TypedConfigManagerInterface $typedConfigManager,
     DrupalKernel $kernel,
   ) {
     parent::__construct(
@@ -86,6 +101,13 @@ final class ComponentSourceManager extends DefaultPluginManager {
     if ($this->isUpdateKernel) {
       return $this;
     }
+    // Re-entrancy guard: generation triggers cache invalidations (workspace
+    // switches during config saves, entity field definition rebuilds) whose
+    // listeners can call back into this method. One generation pass is
+    // already doing the work; re-entering would recurse indefinitely.
+    if ($this->generating) {
+      return $this;
+    }
 
     // Do not auto-create/update Canvas configuration when syncing config o
     // deploying.
@@ -105,25 +127,68 @@ final class ComponentSourceManager extends DefaultPluginManager {
       return $this;
     }
 
-    $source_definitions = $this->getDefinitions();
-    if ($source_id !== NULL) {
-      // Filter the set of definitions down to just the one that was asked for,
-      // if any.
-      $source_definitions = array_filter($source_definitions, fn($key) => $key === $source_id, ARRAY_FILTER_USE_KEY);
+    // TRICKY: since Drupal 11.4, ModuleInstaller installs modules in groups
+    // that share a single container rebuild: every module in a group has its
+    // services available before any module in that group is installed. While
+    // Canvas is being installed, another module's hook_module_preinstall()
+    // can therefore trigger component generation — e.g. Workspaces applies
+    // entity definition updates, whose `entity_field_info` cache tag
+    // invalidation makes Layout Builder (if present) clear the block plugin
+    // definitions, which reaches this method via BlockManagerDecorator — at a
+    // point where the typed config manager still holds definitions cached
+    // before Canvas was added. Version hashes cannot be computed without
+    // Canvas's config schema, so skip; component generation happens in
+    // hook_modules_installed() at the end of every module install, after all
+    // plugin caches (including config schema) have been cleared.
+    // @see \Drupal\canvas\Block\BlockManagerDecorator::clearCachedDefinitions()
+    // @see \Drupal\canvas\ComponentSource\ComponentSourceBase::generateVersionHash()
+    // @see \Drupal\canvas\Hook\ComponentSourceHooks::modulesInstalled()
+    if (!$this->typedConfigManager->hasConfigSchema('canvas.component_source_settings.*')) {
+      return $this;
     }
 
-    $existing_components = Component::loadMultiple();
-    \assert(Inspector::assertAllObjects($existing_components, Component::class));
-    foreach ($source_definitions as $source_definition_id => $definition) {
-      if ($definition['discovery'] === FALSE) {
-        continue;
-      }
-      // @todo use static cache
-      $discovery = $this->classResolver->getInstanceFromDefinition($definition['discovery']);
-      \assert($discovery instanceof ComponentCandidatesDiscoveryInterface);
-      $this->generateComponentsForSource($source_definition_id, $discovery, $existing_components, $source_specific_ids);
+    $this->generating = TRUE;
+    try {
+      // Generated Component config mirrors discovered code (block plugins,
+      // SDCs), not editorial intent: it must write to Live, never stage into
+      // the active workspace, or every workspace would fill up with
+      // machine-generated pending config changes.
+      self::executeOutsideWorkspace(function () use ($source_id, $source_specific_ids): void {
+        $source_definitions = $this->getDefinitions();
+        if ($source_id !== NULL) {
+          // Filter the set of definitions down to just the one that was asked
+          // for, if any.
+          $source_definitions = array_filter($source_definitions, fn($key) => $key === $source_id, ARRAY_FILTER_USE_KEY);
+        }
+
+        $existing_components = Component::loadMultiple();
+        \assert(Inspector::assertAllObjects($existing_components, Component::class));
+        foreach ($source_definitions as $source_definition_id => $definition) {
+          if ($definition['discovery'] === FALSE) {
+            continue;
+          }
+          // @todo use static cache
+          $discovery = $this->classResolver->getInstanceFromDefinition($definition['discovery']);
+          \assert($discovery instanceof ComponentCandidatesDiscoveryInterface);
+          $this->generateComponentsForSource($source_definition_id, $discovery, $existing_components, $source_specific_ids);
+        }
+      });
+    }
+    finally {
+      $this->generating = FALSE;
     }
     return $this;
+  }
+
+  /**
+   * Runs $callable outside any active workspace.
+   */
+  private static function executeOutsideWorkspace(callable $callable): mixed {
+    $manager = \Drupal::hasService('workspaces.manager') ? \Drupal::service(WorkspaceManagerInterface::class) : NULL;
+    if ($manager === NULL || !$manager->hasActiveWorkspace()) {
+      return $callable();
+    }
+    return $manager->executeOutsideWorkspace($callable);
   }
 
   /**

@@ -26,7 +26,19 @@ use Drupal\Core\Block\BlockManagerInterface;
  * @see https://www.drupal.org/project/canvas/issues/3578142
  * @internal
  */
-final readonly class BlockManagerDecorator implements BlockManagerInterface, FallbackPluginManagerInterface, CachedDiscoveryInterface {
+final class BlockManagerDecorator implements BlockManagerInterface, FallbackPluginManagerInterface, CachedDiscoveryInterface {
+
+  /**
+   * Hash of the block plugin ID set the last generation pass ran against.
+   *
+   * Block plugin definitions are cleared far more often than they change —
+   * notably on every workspace switch, where workspace_config clears entity
+   * field definitions and layout_builder reacts by clearing block plugin
+   * definitions. Regenerating Canvas components is only useful when the set
+   * of block plugins actually changed (e.g. a new Views block), so identical
+   * rediscoveries are skipped.
+   */
+  private ?string $lastGeneratedForPluginSet = NULL;
 
   /**
    * The decorated block plugin manager is responsible for caching, not this!
@@ -34,8 +46,8 @@ final readonly class BlockManagerDecorator implements BlockManagerInterface, Fal
    * @phpstan-ignore pluginManagerSetsCacheBackend.missingCacheBackend
    */
   public function __construct(
-    private BlockManagerInterface&FallbackPluginManagerInterface&CachedDiscoveryInterface $decorated,
-    private ComponentSourceManager $componentSourceManager,
+    private readonly BlockManagerInterface&FallbackPluginManagerInterface&CachedDiscoveryInterface $decorated,
+    private readonly ComponentSourceManager $componentSourceManager,
   ) {}
 
   /**
@@ -43,6 +55,22 @@ final readonly class BlockManagerDecorator implements BlockManagerInterface, Fal
    */
   public function clearCachedDefinitions(): void {
     $this->decorated->clearCachedDefinitions();
+    try {
+      $ids = \array_keys($this->decorated->getDefinitions());
+      \sort($ids);
+      $plugin_set = \hash('xxh64', \implode("\n", $ids));
+    }
+    catch (\Throwable) {
+      // Discovery can fail mid-install (entity types or schema not ready);
+      // fall through without the memo — generateComponents() has its own
+      // early-state guards, and hook_modules_installed() regenerates at the
+      // end of every install.
+      $plugin_set = NULL;
+    }
+    if ($plugin_set !== NULL && $plugin_set === $this->lastGeneratedForPluginSet) {
+      return;
+    }
+    $this->lastGeneratedForPluginSet = $plugin_set;
     $this->componentSourceManager->generateComponents(BlockComponent::SOURCE_PLUGIN_ID);
   }
 

@@ -42,6 +42,16 @@ export type LayoutApiResponse = RootLayoutModel & {
   html: string;
   autoSaves: AutoSavesHash;
   translations?: Record<string, any>;
+  lockedInWorkspace?: {
+    id: string;
+    label: string;
+    canSwitch: boolean;
+    updated?: number;
+    owner?: {
+      name: string;
+      avatar: string | null;
+    } | null;
+  } | null;
 };
 
 export type TemplateViewMode = {
@@ -624,7 +634,7 @@ export const componentAndLayoutApi = createApi({
       },
     }),
     updateAutoSave: builder.mutation<
-      void,
+      { autoSaves: AutoSavesHash },
       {
         id: string;
         data: Partial<CodeComponentSerialized>;
@@ -639,6 +649,14 @@ export const componentAndLayoutApi = createApi({
         { type: 'CodeComponentAutoSave', id },
         { type: 'Components', id: 'LIST' }, // The component list contains markup for the preview thumbnails.
       ],
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data, meta } = await queryFulfilled;
+          handleAutoSavesHashUpdate(dispatch, data.autoSaves, meta);
+        } catch {
+          // Errors are surfaced via the mutation hook; no need to log here.
+        }
+      },
     }),
     createContentTemplate: builder.mutation<any, any>({
       query: (body) => ({

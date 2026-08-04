@@ -3,14 +3,62 @@
 declare(strict_types=1);
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\AutoSave\Workspace\AutoSaveRevisionPruner;
+use Drupal\canvas\AutoSave\Workspace\AutoSaveWorkspace;
+use Drupal\canvas\AutoSave\Workspace\CanvasWorkspaceProvider;
 use Drupal\canvas\CanvasNotificationHandler;
+use Drupal\canvas\CanvasServiceProvider;
+use Drupal\canvas\Entity\CanvasAutoSaveSnapshot;
 use Drupal\canvas\Health\HealthCheck;
 use Drupal\canvas\Health\HealthRecords;
+use Drupal\canvas\Hook\CanvasWorkspaceHooks;
+use Drupal\canvas\Plugin\WorkflowType\WorkspaceReviewWorkflowType;
+use Drupal\Component\Serialization\Yaml;
 use Drupal\Core\Datetime\DateFormatterInterface;
+use Drupal\Core\Entity\EntityLastInstalledSchemaRepositoryInterface;
+use Drupal\Core\Extension\ModuleExtensionList;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Extension\Requirement\RequirementSeverity;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Extension\ThemeInstallerInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
+
+/**
+ * Implements hook_install().
+ */
+function canvas_install(): void {
+  _canvas_ensure_workspaces_module_enabled();
+  // Fresh installs create the Main workspace as an ordinary workspace; the
+  // legacy `canvas` provider exists only for the update path.
+  _canvas_ensure_auto_save_workspace('default');
+}
+
+/**
+ * Creates the Main (canvas_default) workspace when missing.
+ *
+ * @param string $provider
+ *   The workspace provider ID: 'default' for ordinary (Phase 2) behavior;
+ *   the update path passes the legacy 'canvas' provider so the maintenance
+ *   -mode view relaxation stays in effect until the key-value migration in
+ *   canvas_post_update_0023 has run.
+ *
+ * @see \Drupal\canvas\AutoSave\Workspace\CanvasWorkspaceProvider
+ * @see canvas_post_update_0024_main_workspace()
+ */
+function _canvas_ensure_auto_save_workspace(string $provider = 'default'): void {
+  $storage = \Drupal::entityTypeManager()->getStorage('workspace');
+  if ($storage->load(AutoSaveWorkspace::ID) !== NULL) {
+    return;
+  }
+  $workspace = $storage->create([
+    'id' => AutoSaveWorkspace::ID,
+    'label' => AutoSaveWorkspace::LABEL,
+    'uid' => 1,
+    'provider' => $provider,
+  ]);
+  $workspace->save();
+}
 
 /**
  * Implements hook_module_preinstall().
@@ -157,5 +205,166 @@ function canvas_update_11200(): void {
 
     // No need to manually flush caches during the update.
     // @see \Drupal\system\Controller\DbUpdateController::triggerBatch()
+  }
+}
+
+/**
+ * Workspaces auto-save: entity schema, Workspaces module, shared workspace.
+ *
+ * Idempotent: installs canvas_auto_save_snapshot when missing, enables the
+ * Workspaces module if needed, creates the canvas_default workspace entity.
+ */
+function canvas_update_11201(): void {
+  /** @var \Drupal\Core\Entity\EntityLastInstalledSchemaRepositoryInterface $repository */
+  $repository = \Drupal::service(EntityLastInstalledSchemaRepositoryInterface::class);
+  if ($repository->getLastInstalledDefinition(CanvasAutoSaveSnapshot::ENTITY_TYPE_ID) === NULL) {
+    $definition = \Drupal::entityTypeManager()->getDefinition(CanvasAutoSaveSnapshot::ENTITY_TYPE_ID);
+    \Drupal::entityDefinitionUpdateManager()->installEntityType($definition);
+  }
+
+  _canvas_ensure_workspaces_module_enabled();
+  // The legacy provider keeps update.php able to switch into the workspace
+  // for the key-value migration; canvas_post_update_0024 makes it ordinary.
+  _canvas_ensure_auto_save_workspace(CanvasWorkspaceProvider::getId());
+}
+
+/**
+ * Full Workspaces integration: workspace_config, workspace-scoped staging.
+ *
+ * Enables the workspace_config module, adds the `workspace` field to
+ * canvas_auto_save_snapshot (backfilled with canvas_default), installs the
+ * Canvas review and scheduling base fields on the workspace entity, and
+ * re-keys Canvas's key-value staging rows with the workspace prefix.
+ */
+function canvas_update_11202(): void {
+  // Config edits made while a workspace is active stage into it.
+  if (!\Drupal::moduleHandler()->moduleExists('workspace_config')) {
+    /** @var \Drupal\Core\Extension\ModuleInstallerInterface $installer */
+    $installer = \Drupal::service(ModuleInstallerInterface::class);
+    $installer->install(['workspace_config']);
+  }
+
+  $edum = \Drupal::entityDefinitionUpdateManager();
+
+  // The snapshot rows' workspace column; existing rows belong to the Main
+  // workspace.
+  if ($edum->getFieldStorageDefinition('workspace', CanvasAutoSaveSnapshot::ENTITY_TYPE_ID) === NULL) {
+    $workspace_field = BaseFieldDefinition::create('string')
+      ->setLabel(t('Workspace'))
+      ->setSetting('max_length', 128)
+      ->setRequired(TRUE)
+      ->setDefaultValue(AutoSaveWorkspace::ID)
+      ->setInitialValue(AutoSaveWorkspace::ID);
+    $edum->installFieldStorageDefinition('workspace', CanvasAutoSaveSnapshot::ENTITY_TYPE_ID, 'canvas', $workspace_field);
+  }
+  // Refresh the entity schema so the unique key becomes
+  // (workspace, target type, target ID, langcode).
+  $snapshot_type = $edum->getEntityType(CanvasAutoSaveSnapshot::ENTITY_TYPE_ID);
+  if ($snapshot_type !== NULL) {
+    $edum->updateEntityType($snapshot_type);
+  }
+
+  // Canvas's review and scheduling base fields on the workspace entity.
+  $workspace_type = \Drupal::entityTypeManager()->getDefinition('workspace');
+  foreach (CanvasWorkspaceHooks::entityBaseFieldInfo($workspace_type) as $field_name => $field_definition) {
+    if ($edum->getFieldStorageDefinition($field_name, 'workspace') === NULL) {
+      $edum->installFieldStorageDefinition($field_name, 'workspace', 'canvas', $field_definition);
+    }
+  }
+
+  // Auto-save keys became workspace-prefixed; existing rows were all staged
+  // in the Main workspace.
+  /** @var \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $key_value_factory */
+  $key_value_factory = \Drupal::service(CanvasServiceProvider::STAGING_KEY_VALUE_SERVICE);
+  $collections = [
+    AutoSaveManager::AUTO_SAVE_STORE,
+    AutoSaveManager::FORM_VIOLATIONS_STORE,
+    AutoSaveManager::COMPONENT_INSTANCE_FORM_VIOLATIONS_STORE,
+    'canvas_auto_save_pending',
+    AutoSaveRevisionPruner::STORE,
+  ];
+  $prefix = AutoSaveWorkspace::ID . ':';
+  foreach ($collections as $collection) {
+    $store = $key_value_factory->get($collection);
+    foreach ($store->getAll() as $key => $value) {
+      $key = (string) $key;
+      if (\str_starts_with($key, $prefix)) {
+        continue;
+      }
+      $store->set($prefix . $key, $value);
+      $store->delete($key);
+    }
+  }
+}
+
+/**
+ * Enables the Workspaces module when missing.
+ *
+ * Canvas declares Workspaces as a dependency; extensions listed in
+ * core.extension may omit it on older sites until this runs.
+ */
+function _canvas_ensure_workspaces_module_enabled(): void {
+  if (\Drupal::moduleHandler()->moduleExists('workspaces')) {
+    return;
+  }
+  /** @var \Drupal\Core\Extension\ModuleInstallerInterface $installer */
+  $installer = \Drupal::service(ModuleInstallerInterface::class);
+  $installer->install(['workspaces']);
+}
+
+/**
+ * Adds the workflow-driven review process: Workflows module, shipped
+ * workflow, and workspace review-workflow fields.
+ */
+function canvas_update_11203(): void {
+  if (!\Drupal::moduleHandler()->moduleExists('workflows')) {
+    /** @var \Drupal\Core\Extension\ModuleInstallerInterface $installer */
+    $installer = \Drupal::service(ModuleInstallerInterface::class);
+    $installer->install(['workflows']);
+  }
+
+  // The shipped review workflow; fresh installs get it from config/install.
+  $workflow_storage = \Drupal::entityTypeManager()->getStorage('workflow');
+  if ($workflow_storage->load(WorkspaceReviewWorkflowType::DEFAULT_WORKFLOW_ID) === NULL) {
+    $path = \Drupal::service(ModuleExtensionList::class)->getPath('canvas') . '/config/install/workflows.workflow.canvas_workspace_review.yml';
+    $workflow_storage->create(Yaml::decode((string) \file_get_contents($path)))->save();
+  }
+
+  $edum = \Drupal::entityDefinitionUpdateManager();
+  $workspace_type = \Drupal::entityTypeManager()->getDefinition('workspace');
+  $fields = CanvasWorkspaceHooks::entityBaseFieldInfo($workspace_type);
+
+  // The review state became a plain string: valid values are whatever states
+  // the review workflow defines. The column type changes (list_string is
+  // varchar_ascii), which SQL storage refuses with data present, so the few
+  // workspace rows are carried across the change by hand.
+  $status_definition = $fields['canvas_workspace_status']
+    ->setName('canvas_workspace_status')
+    ->setTargetEntityTypeId('workspace')
+    ->setProvider('canvas');
+  $existing = $edum->getFieldStorageDefinition('canvas_workspace_status', 'workspace');
+  if ($existing !== NULL && $existing->getType() !== 'string') {
+    $database = \Drupal::database();
+    $result = $database->select('workspace', 'w')
+      ->fields('w', ['id', 'canvas_workspace_status'])
+      ->execute();
+    $statuses = $result === NULL ? [] : $result->fetchAllKeyed();
+    $database->update('workspace')
+      ->fields(['canvas_workspace_status' => NULL])
+      ->execute();
+    $edum->updateFieldStorageDefinition($status_definition);
+    foreach ($statuses as $id => $status) {
+      if ($status === NULL) {
+        continue;
+      }
+      $database->update('workspace')
+        ->fields(['canvas_workspace_status' => $status])
+        ->condition('id', (string) $id)
+        ->execute();
+    }
+  }
+
+  if ($edum->getFieldStorageDefinition('canvas_review_workflow', 'workspace') === NULL) {
+    $edum->installFieldStorageDefinition('canvas_review_workflow', 'workspace', 'canvas', $fields['canvas_review_workflow']);
   }
 }

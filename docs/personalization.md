@@ -163,26 +163,32 @@ The flow would be like:
 ```mermaid
 sequenceDiagram
         actor Client
-        participant Auto-Save Storage
+        participant Auto-Save Staging
         participant Live Storage
         Client->>Live Storage: Create Segment entity (unpublished)
         activate Live Storage
         Live Storage->>Client: HTTP OK
         deactivate Live Storage
         loop UI Changes
-        Client-->>Auto-Save Storage: Make changes to auto-saved data
-        activate Auto-Save Storage
-        Auto-Save Storage-->>Client: HTTP OK
-        deactivate Auto-Save Storage
+        Client-->>Auto-Save Staging: Make changes to auto-saved data
+        activate Auto-Save Staging
+        Auto-Save Staging-->>Client: HTTP OK
+        deactivate Auto-Save Staging
         end
-        Client->>Auto-Save Storage: Publish changes
-        activate Auto-Save Storage
-        Auto-Save Storage->>Live Storage: Submit changes to Segment entity (published)
+        Client->>Auto-Save Staging: Publish changes
+        activate Auto-Save Staging
+        Auto-Save Staging->>Live Storage: Validate and save Segment entity (published)
         activate Live Storage
         Live Storage->>Client: HTTP OK
-        deactivate Auto-Save Storage
+        deactivate Auto-Save Staging
         deactivate Live Storage
 ```
+
+Auto-save staging is backed by Workspaces, as described in
+[ADR 0014](adr/0014-stage-autosaves-in-a-dedicated-workspace.md) and the
+[workspace auto-save diagram](diagrams/workspace-autosave.md). Segments are
+config entities, so their drafts are stored as auto-save snapshot rows and
+validated when published through the Canvas publish pipeline.
 
 So the flow will start with a POST to create the original entity.
 This new segment will be disabled by default.

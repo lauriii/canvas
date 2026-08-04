@@ -54,6 +54,8 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
  */
 final class ApiContentControllers extends ApiControllerBase {
 
+  use ExecutesOutsideWorkspaceTrait;
+
   /**
    * The maximum number of entity search results to return.
    */
@@ -70,6 +72,11 @@ final class ApiContentControllers extends ApiControllerBase {
     #[Autowire(service: 'transliteration')]
     private readonly TransliterationInterface $transliteration,
     private readonly HomePageHelper $homePageHelper,
+    /**
+     * @var \Drupal\workspaces\WorkspaceManagerInterface|null
+     */
+    #[Autowire(service: 'workspaces.manager')]
+    private readonly ?object $workspaceManager = NULL,
   ) {}
 
   /**
@@ -104,33 +111,42 @@ final class ApiContentControllers extends ApiControllerBase {
     // them.
     // @see \Drupal\canvas\EventSubscriber\ApiExceptionSubscriber
 
-    // Ensure the path field carries the existing PID so Drupal updates the
-    // alias in place rather than creating a duplicate.
-    if (isset($body['path'])) {
-      $existing_pid = $canvas_page->get('path')->first()?->getValue()['pid'] ?? NULL;
-      $body['path'] = ['alias' => $body['path'], 'pid' => $existing_pid];
-    }
+    // The save targets the active workspace: while a workspace is active it
+    // stages a pending revision that goes live with the workspace publish,
+    // and without one it updates Live directly.
+    $validation_errors_response = (function () use ($body, $canvas_page): ?JsonResponse {
+      // Ensure the path field carries the existing PID so Drupal updates the
+      // alias in place rather than creating a duplicate.
+      if (isset($body['path'])) {
+        $existing_pid = $canvas_page->get('path')->first()?->getValue()['pid'] ?? NULL;
+        $body['path'] = ['alias' => $body['path'], 'pid' => $existing_pid];
+      }
 
-    foreach (['title', 'status', 'path', 'components', 'description'] as $field_name) {
-      if (!\array_key_exists($field_name, $body)) {
-        continue;
+      foreach (['title', 'status', 'path', 'components', 'description'] as $field_name) {
+        if (!\array_key_exists($field_name, $body)) {
+          continue;
+        }
+        $field_access = $canvas_page->get($field_name)->access(operation: 'edit', return_as_object: TRUE);
+        if ($field_access->isForbidden()) {
+          throw new CacheableAccessDeniedHttpException(
+            (new CacheableMetadata())->addCacheableDependency($field_access),
+            \sprintf('Unable to update field %s for entity "%s".', $field_name, $canvas_page->id()),
+          );
+        }
+        $canvas_page->set($field_name, $body[$field_name]);
       }
-      $field_access = $canvas_page->get($field_name)->access(operation: 'edit', return_as_object: TRUE);
-      if ($field_access->isForbidden()) {
-        throw new CacheableAccessDeniedHttpException(
-          (new CacheableMetadata())->addCacheableDependency($field_access),
-          \sprintf('Unable to update field %s for entity "%s".', $field_name, $canvas_page->id()),
-        );
+      $violations = $canvas_page->validate();
+      if ($violations->count() > 0) {
+        if ($validation_errors_response = self::createJsonResponseFromViolationSets($violations)) {
+          return $validation_errors_response;
+        }
       }
-      $canvas_page->set($field_name, $body[$field_name]);
+      $canvas_page->save();
+      return NULL;
+    })();
+    if ($validation_errors_response !== NULL) {
+      return $validation_errors_response;
     }
-    $violations = $canvas_page->validate();
-    if ($violations->count() > 0) {
-      if ($validation_errors_response = self::createJsonResponseFromViolationSets($violations)) {
-        return $validation_errors_response;
-      }
-    }
-    $canvas_page->save();
 
     // The response is never cacheable, so it will be discarded.
     $data = $this->normalizeWithMetadataAndComponents($canvas_page, new CacheableMetadata());
@@ -190,6 +206,9 @@ final class ApiContentControllers extends ApiControllerBase {
           return $validation_errors_response;
         }
       }
+      // The save targets the active workspace: an entity created while a
+      // workspace is active is tracked there (core keeps its Live default
+      // revision unpublished) and goes live with the workspace publish.
       $new->save();
     }
     \assert($new instanceof ContentEntityInterface && $new instanceof EntityPublishedInterface);
@@ -213,8 +232,12 @@ final class ApiContentControllers extends ApiControllerBase {
    *
    * @throws \Drupal\Core\Entity\EntityStorageException
    */
-  public static function delete(ContentEntityInterface $canvas_page): JsonResponse {
-    $canvas_page->delete();
+  public function delete(ContentEntityInterface $canvas_page): JsonResponse {
+    // Core has no staged deletion for content: deleting a workspace-supported
+    // entity is forbidden while a workspace is active, so this endpoint
+    // deletes the Live entity directly. It is an explicit, confirmed action,
+    // not part of the workspace's reviewed publish.
+    $this->executeOutsideWorkspace(static fn () => $canvas_page->delete());
     return new JsonResponse(status: Response::HTTP_NO_CONTENT);
   }
 
@@ -232,6 +255,16 @@ final class ApiContentControllers extends ApiControllerBase {
     if ($entity_type !== Page::ENTITY_TYPE_ID) {
       throw new BadRequestHttpException('Only the `canvas_page` content entity type is supported right now, will be generalized in a child issue of https://www.drupal.org/project/canvas/issues/3498525.');
     }
+    // The listing reflects the active workspace: workspace-aware entity
+    // queries and loads present that workspace's staged state, which is what
+    // the editor operates on.
+    return $this->doList($entity_type, $request);
+  }
+
+  /**
+   * @see ::list()
+   */
+  private function doList(string $entity_type, Request $request): CacheableJsonResponse {
     $storage = $this->entityTypeManager->getStorage($entity_type);
 
     $query_cacheability = (new CacheableMetadata())
@@ -619,6 +652,8 @@ final class ApiContentControllers extends ApiControllerBase {
     $duplicate->set($entity_key, $duplicate->label() . AutoSaveManager::ENTITY_DUPLICATE_SUFFIX);
     \assert($duplicate instanceof EntityPublishedInterface);
     $duplicate->setUnpublished();
+    // The save targets the active workspace: a duplicate created while a
+    // workspace is active is tracked there and goes live with the publish.
     $duplicate->save();
 
     // Delete temp data for the duplicate, it should not have it at this point.
