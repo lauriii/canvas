@@ -6,14 +6,17 @@ namespace Drupal\Tests\canvas\Kernel\Workspace;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\AutoSave\Workspace\AutoSaveWorkspace;
+use Drupal\canvas\Plugin\WorkflowType\WorkspaceReviewWorkflowType;
 use Drupal\canvas\Workspace\WorkspaceEntityLockedException;
 use Drupal\canvas\Workspace\WorkspaceReview;
 use Drupal\canvas\Workspace\WorkspaceReviewAccessException;
 use Drupal\canvas\Workspace\WorkspaceScheduledPublish;
+use Drupal\canvas\WorkspaceReviewPermissions;
 use Drupal\entity_test\Entity\EntityTestMulRevPub;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
+use Drupal\workflows\Entity\Workflow;
 use Drupal\workspaces\Entity\Workspace;
 use PHPUnit\Framework\Attributes\Group;
 
@@ -44,8 +47,9 @@ final class WorkspaceReviewTest extends CanvasKernelTestBase {
 
     $admin = $this->createUser([
       'administer workspaces',
-      WorkspaceReview::SUBMIT_PERMISSION,
-      WorkspaceReview::APPROVE_PERMISSION,
+      self::transitionPermission('submit_for_review'),
+      self::transitionPermission('approve'),
+      self::transitionPermission('send_back'),
       // The publish pipeline checks per-item update access against the
       // publishing account, which the scheduled publish resolves to this
       // user; entity_test updates require this permission.
@@ -65,6 +69,10 @@ final class WorkspaceReviewTest extends CanvasKernelTestBase {
       'uid' => (int) $admin->id(),
       'canvas_require_review' => TRUE,
     ])->save();
+  }
+
+  private static function transitionPermission(string $transition_id): string {
+    return WorkspaceReviewPermissions::transitionPermission(WorkspaceReviewWorkflowType::DEFAULT_WORKFLOW_ID, $transition_id);
   }
 
   private function review(): WorkspaceReview {
@@ -95,52 +103,113 @@ final class WorkspaceReviewTest extends CanvasKernelTestBase {
   }
 
   /**
-   * Transitions are permission-gated and follow the state machine.
+   * Transitions are permission-gated and follow the workflow's state machine.
    */
   public function testTransitions(): void {
     $review = $this->review();
-    $submitter = $this->createUser([WorkspaceReview::SUBMIT_PERMISSION]);
-    $approver = $this->createUser([WorkspaceReview::APPROVE_PERMISSION]);
+    $submitter = $this->createUser([self::transitionPermission('submit_for_review')]);
+    $approver = $this->createUser([
+      self::transitionPermission('approve'),
+      self::transitionPermission('send_back'),
+    ]);
     self::assertInstanceOf(User::class, $submitter);
     self::assertInstanceOf(User::class, $approver);
 
-    // Draft → approved is not a transition.
+    // A transition the workflow does not define is rejected.
     try {
-      $review->transition($this->campaign(), WorkspaceReview::STATUS_APPROVED, $approver);
+      $review->transition($this->campaign(), 'promote', $approver);
+      $this->fail('An unknown transition must be rejected.');
+    }
+    catch (\InvalidArgumentException) {
+    }
+
+    // "approve" does not apply to the draft state.
+    try {
+      $review->transition($this->campaign(), 'approve', $approver);
       $this->fail('draft → approved must be rejected.');
     }
     catch (\InvalidArgumentException) {
     }
 
-    // Submitting requires the submit permission.
+    // Each transition requires its own permission; the available set is
+    // filtered accordingly.
+    self::assertSame(['submit_for_review'], \array_keys($review->getAvailableTransitions($this->campaign(), $submitter)));
+    self::assertSame([], \array_keys($review->getAvailableTransitions($this->campaign(), $approver)));
     try {
-      $review->transition($this->campaign(), WorkspaceReview::STATUS_IN_REVIEW, $approver);
-      $this->fail('Submitting without the submit permission must be rejected.');
+      $review->transition($this->campaign(), 'submit_for_review', $approver);
+      $this->fail('Submitting without the transition permission must be rejected.');
     }
     catch (WorkspaceReviewAccessException) {
     }
-    $review->transition($this->campaign(), WorkspaceReview::STATUS_IN_REVIEW, $submitter);
+    $review->transition($this->campaign(), 'submit_for_review', $submitter);
     self::assertSame(WorkspaceReview::STATUS_IN_REVIEW, $review->getStatus($this->campaign()));
+    self::assertSame('In review', $review->getStatusLabel($this->campaign()));
 
-    // Approving requires the approve permission.
+    // Approving requires the approve transition's permission.
     try {
-      $review->transition($this->campaign(), WorkspaceReview::STATUS_APPROVED, $submitter);
-      $this->fail('Approving without the approve permission must be rejected.');
+      $review->transition($this->campaign(), 'approve', $submitter);
+      $this->fail('Approving without the transition permission must be rejected.');
     }
     catch (WorkspaceReviewAccessException) {
     }
-    $review->transition($this->campaign(), WorkspaceReview::STATUS_APPROVED, $approver);
+    $review->transition($this->campaign(), 'approve', $approver);
     self::assertSame(WorkspaceReview::STATUS_APPROVED, $review->getStatus($this->campaign()));
+    self::assertTrue($review->isApproved($this->campaign()));
     self::assertFalse($review->isPublishBlocked($this->campaign()));
 
-    // Sending back to draft requires the approve permission and cancels any
+    // Sending back to draft leaves the approved state, cancelling any
     // schedule.
     $workspace = $this->campaign();
     $workspace->set('canvas_scheduled_publish_at', \time() + 1000);
     $workspace->save();
-    $review->transition($this->campaign(), WorkspaceReview::STATUS_DRAFT, $approver);
+    $review->transition($this->campaign(), 'send_back', $approver);
     self::assertSame(WorkspaceReview::STATUS_DRAFT, $review->getStatus($this->campaign()));
     self::assertNull($this->campaign()->get('canvas_scheduled_publish_at')->value);
+  }
+
+  /**
+   * A site-defined workflow of the review type drives the review process.
+   */
+  public function testCustomWorkflow(): void {
+    Workflow::create([
+      'id' => 'legal',
+      'label' => 'Legal review',
+      'type' => WorkspaceReviewWorkflowType::PLUGIN_ID,
+      'type_settings' => [
+        'states' => [
+          'open' => ['label' => 'Open', 'weight' => 0, 'approved_for_publish' => FALSE],
+          'signed_off' => ['label' => 'Signed off', 'weight' => 1, 'approved_for_publish' => TRUE],
+        ],
+        'transitions' => [
+          'sign_off' => ['label' => 'Sign off', 'from' => ['open'], 'to' => 'signed_off', 'weight' => 0],
+          'reopen' => ['label' => 'Reopen', 'from' => ['signed_off'], 'to' => 'open', 'weight' => 1],
+        ],
+        'initial_state' => 'open',
+      ],
+    ])->save();
+    $workspace = $this->campaign();
+    $workspace->set('canvas_review_workflow', 'legal');
+    $workspace->save();
+
+    $review = $this->review();
+    // The stored "draft" state is not a state of the legal workflow, so the
+    // workspace resolves to the workflow's initial state.
+    self::assertSame('open', $review->getStatus($this->campaign()));
+    self::assertTrue($review->isInitialState($this->campaign()));
+    self::assertSame('Open', $review->getStatusLabel($this->campaign()));
+    self::assertTrue($review->isPublishBlocked($this->campaign()));
+
+    $signer = $this->createUser([WorkspaceReviewPermissions::transitionPermission('legal', 'sign_off')]);
+    self::assertInstanceOf(User::class, $signer);
+    $review->transition($this->campaign(), 'sign_off', $signer);
+    self::assertSame('signed_off', $review->getStatus($this->campaign()));
+    self::assertSame('Signed off', $review->getStatusLabel($this->campaign()));
+    self::assertTrue($review->isApproved($this->campaign()));
+    self::assertFalse($review->isPublishBlocked($this->campaign()));
+
+    // A staged-write demotion returns to the custom workflow's initial state.
+    $review->demoteOnStagedWrite($this->campaign());
+    self::assertSame('open', $review->getStatus($this->campaign()));
   }
 
   /**

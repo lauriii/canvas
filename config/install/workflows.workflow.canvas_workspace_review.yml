@@ -1,0 +1,43 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - canvas
+id: canvas_workspace_review
+label: 'Workspace review'
+type: canvas_workspace_review
+type_settings:
+  states:
+    draft:
+      label: Draft
+      weight: 0
+      approved_for_publish: false
+    in_review:
+      label: 'In review'
+      weight: 1
+      approved_for_publish: false
+    approved:
+      label: Approved
+      weight: 2
+      approved_for_publish: true
+  transitions:
+    submit_for_review:
+      label: 'Send for review'
+      from:
+        - draft
+      to: in_review
+      weight: 0
+    approve:
+      label: Approve
+      from:
+        - in_review
+      to: approved
+      weight: 1
+    send_back:
+      label: 'Send back to draft'
+      from:
+        - in_review
+        - approved
+      to: draft
+      weight: 2
+  initial_state: draft

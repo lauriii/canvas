@@ -17,6 +17,9 @@ use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Entity\StagedLanguageConfigOverride;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Plugin\WorkflowType\WorkspaceReviewWorkflowType;
+use Drupal\canvas\Workspace\WorkspaceReview;
+use Drupal\canvas\WorkspaceReviewPermissions;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\Core\Config\Entity\ConfigEntityUpdater;
@@ -764,6 +767,43 @@ function canvas_post_update_0024_main_workspace(): void {
           $changed = TRUE;
         }
       }
+    }
+    if ($changed) {
+      $role->save();
+    }
+  }
+}
+
+/**
+ * Maps the legacy review permissions onto the shipped workflow's
+ * per-transition permissions.
+ */
+function canvas_post_update_0025_review_workflow_permissions(): void {
+  $legacy_map = [
+    WorkspaceReview::SUBMIT_PERMISSION => ['submit_for_review'],
+    WorkspaceReview::APPROVE_PERMISSION => ['approve', 'send_back'],
+  ];
+  $workflow_id = WorkspaceReviewWorkflowType::DEFAULT_WORKFLOW_ID;
+  /** @var \Drupal\user\RoleInterface $role */
+  foreach (\Drupal::entityTypeManager()->getStorage('user_role')->loadMultiple() as $role) {
+    if ($role->isAdmin()) {
+      continue;
+    }
+    $changed = FALSE;
+    foreach ($legacy_map as $legacy => $transition_ids) {
+      if (!$role->hasPermission($legacy)) {
+        continue;
+      }
+      foreach ($transition_ids as $transition_id) {
+        $permission = WorkspaceReviewPermissions::transitionPermission($workflow_id, $transition_id);
+        if (!$role->hasPermission($permission)) {
+          $role->grantPermission($permission);
+        }
+      }
+      // The legacy permission no longer exists; leaving it on the role would
+      // fail config validation.
+      $role->revokePermission($legacy);
+      $changed = TRUE;
     }
     if ($changed) {
       $role->save();

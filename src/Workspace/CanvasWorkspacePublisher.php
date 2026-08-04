@@ -72,6 +72,9 @@ final class CanvasWorkspacePublisher {
    * @throws \Drupal\workspaces\WorkspacePublishException
    *   When core (or a pre-publish subscriber, e.g. the review gate) refuses
    *   the publish.
+   * @throws \Exception
+   *   Publishing saves entities and applies staged config, running arbitrary
+   *   hooks; anything they throw propagates.
    */
   public function publish(string $workspace_id, AccountInterface $account): int {
     /** @var \Drupal\workspaces\WorkspaceInterface $workspace */

@@ -152,7 +152,7 @@ final class ComponentSourceManager extends DefaultPluginManager {
       // SDCs), not editorial intent: it must write to Live, never stage into
       // the active workspace, or every workspace would fill up with
       // machine-generated pending config changes.
-      $this->executeOutsideWorkspace(function () use ($source_id, $source_specific_ids): void {
+      self::executeOutsideWorkspace(function () use ($source_id, $source_specific_ids): void {
         $source_definitions = $this->getDefinitions();
         if ($source_id !== NULL) {
           // Filter the set of definitions down to just the one that was asked
@@ -182,8 +182,7 @@ final class ComponentSourceManager extends DefaultPluginManager {
   /**
    * Runs $callable outside any active workspace.
    */
-  private function executeOutsideWorkspace(callable $callable): mixed {
-    // @phpstan-ignore-next-line
+  private static function executeOutsideWorkspace(callable $callable): mixed {
     $manager = \Drupal::hasService('workspaces.manager') ? \Drupal::service('workspaces.manager') : NULL;
     if ($manager === NULL || !$manager->hasActiveWorkspace()) {
       return $callable();

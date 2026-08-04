@@ -28,8 +28,6 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\PluralTranslatableMarkup;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Utility\Error;
-use Drupal\image\Entity\ImageStyle;
-use Drupal\user\UserInterface;
 use Drupal\workspaces\WorkspacePublishException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -45,6 +43,7 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  */
 final class ApiAutoSaveController extends ApiControllerBase {
 
+  use BuildsAvatarUrlTrait;
   use ConstraintPropertyPathTranslatorTrait;
 
   public const AUTO_SAVE_KEY = 'api_auto_save_key';
@@ -61,6 +60,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
     private readonly ModuleHandlerInterface $moduleHandler,
     private readonly WorkspaceAutoSave $workspaceAutoSave,
     private readonly CanvasWorkspacePublisher $canvasWorkspacePublisher,
+    private readonly WorkspaceReview $workspaceReview,
   ) {}
 
   /**
@@ -209,11 +209,11 @@ final class ApiAutoSaveController extends ApiControllerBase {
 
     // Fail fast on the review gate with an actionable message; the
     // pre-publish subscriber enforces it authoritatively inside the publish.
-    if (WorkspaceReview::isPublishBlocked($workspace)) {
+    if ($this->workspaceReview->isPublishBlocked($workspace)) {
       return new JsonResponse(data: [
         'errors' => [
           [
-            'detail' => \sprintf('The "%s" workspace requires review: it must be approved before it can be published. Its current review state is "%s".', (string) $workspace->label(), WorkspaceReview::getStatus($workspace)),
+            'detail' => \sprintf('The "%s" workspace requires review: it must be approved before it can be published. Its current review state is "%s".', (string) $workspace->label(), $this->workspaceReview->getStatusLabel($workspace)),
             'source' => ['pointer' => 'workspace'],
             'code' => ErrorCodesEnum::WorkspaceNotApproved->value,
           ],
@@ -294,33 +294,6 @@ final class ApiAutoSaveController extends ApiControllerBase {
       $this->autoSaveManager->delete($member);
     }
     return new JsonResponse(data: ['message' => 'Auto-save data deleted successfully.'], status: Response::HTTP_NO_CONTENT);
-  }
-
-  /**
-   * Gets URL to avatar.
-   *
-   * @param \Drupal\user\UserInterface $owner
-   *
-   * @return string|null
-   */
-  private function buildAvatarUrl(UserInterface $owner): ?string {
-    if (!$owner->hasField('user_picture') || $owner->get('user_picture')->isEmpty()) {
-      return NULL;
-    }
-    /** @var \Drupal\file\FileInterface|null $file */
-    $file = $owner->get('user_picture')->entity;
-    if ($file === NULL) {
-      return NULL;
-    }
-    $uri = $file->getFileUri();
-    if ($uri === NULL) {
-      return NULL;
-    }
-    $imageStyle = $this->entityTypeManager->getStorage('image_style')->load(self::AVATAR_IMAGE_STYLE);
-    if (!$imageStyle instanceof ImageStyle || !$imageStyle->supportsUri($uri)) {
-      return $this->fileUrlGenerator->generateString($uri);
-    }
-    return $imageStyle->buildUrl($uri);
   }
 
   public static function getViolationSetsFromPropertyPathsAndRoot(

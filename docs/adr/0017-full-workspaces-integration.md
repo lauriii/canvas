@@ -70,19 +70,28 @@ unit of review and publish.
    cannot be persisted (code editor working copies, storage-rejected
    payloads), now per workspace.
 
-4. **Review workflow in Canvas.** Workspaces gain base fields
-   `canvas_workspace_status` (draft / in_review / approved),
-   `canvas_require_review` (default TRUE for named workspaces, FALSE for
-   Main), and scheduling fields. Transitions are a fixed server-side state
-   machine gated by two permissions (submit for review; approve, which
-   includes sending back). The pre-publish subscriber rejects publishes of
-   review-required workspaces not in `approved` — covering the Canvas API,
-   core Workspaces UI, and cron alike. Any staged write into an in-review or
-   approved workspace demotes it to draft and cancels its schedule;
+4. **Review process defined as a core workflow.** The review steps are an
+   ordinary workflow of a Canvas-provided workflow type
+   (`canvas_workspace_review`): states carry an "approved for publishing"
+   flag (the publish gate), one state is the initial state, and each
+   transition is gated by its own generated permission
+   (`use {workflow} transition {transition}`, mirroring content_moderation).
+   Canvas ships a default workflow (draft → in review → approved with
+   submit/approve/send-back transitions); sites can reshape it in the core
+   Workflows UI or define their own and point a workspace at it via the
+   `canvas_review_workflow` base field. Workspaces also gain
+   `canvas_workspace_status` (a state ID of that workflow; unknown or empty
+   values resolve to the initial state), `canvas_require_review` (default
+   TRUE for named workspaces, FALSE for Main), and scheduling fields. The
+   pre-publish subscriber rejects publishes of review-required workspaces
+   whose state is not approved-for-publishing — covering the Canvas API,
+   core Workspaces UI, and cron alike. Any staged write into a workspace
+   beyond the initial state demotes it back and cancels its schedule;
    publish-time staging suppresses demotion since it is not an editorial
    write. Contrib (wse, workspace_approval, entity_workflow) was evaluated
-   and rejected in the spec process; core Workflows was rejected as
-   configurability Canvas does not need yet.
+   and rejected in the spec process; core Workflows was initially deferred,
+   then adopted once the fixed three-state machine proved to be a strict
+   subset of what a workflow type expresses.
 
 5. **Scheduled publishing.** `canvas_scheduled_publish_at/by/error` fields
    on the workspace; scheduling requires publish access and (where review is
@@ -101,10 +110,13 @@ unit of review and publish.
    so it can warn before the first write.
 
 7. **Management API.** Thin endpoints wrap core: list viewable workspaces
-   (with review state, schedule, pending count, access flags), create,
-   delete, activate (persisting via core negotiation, so external surfaces
-   such as a site dashboard observe the same active workspace), review
-   transitions, schedule/unschedule.
+   (with review state ID, its label, approved/initial flags, the
+   permission-filtered available transitions, schedule, pending count,
+   access flags), create, delete, activate (persisting via core
+   negotiation, so external surfaces such as a site dashboard observe the
+   same active workspace), review transitions (by workflow transition ID;
+   the UI renders whatever transitions the server offers), and
+   schedule/unschedule.
 
 8. **Update path.** `canvas_update_11202` enables `workspace_config`,
    installs the new fields, backfills snapshot rows, and re-keys the
@@ -114,6 +126,13 @@ unit of review and publish.
    permissions ("view any workspace" for Canvas-editor roles; "edit any
    workspace" and "create workspace" for publisher roles). The legacy
    `canvas` workspace provider class remains only for the update window.
+   `canvas_update_11203` enables the Workflows module, creates the shipped
+   review workflow, converts `canvas_workspace_status` to a plain string
+   (workflow state IDs are open-ended), and installs
+   `canvas_review_workflow`;
+   `canvas_post_update_0025_review_workflow_permissions` maps the two
+   legacy review permissions onto the shipped workflow's per-transition
+   permissions and revokes them.
 
 ## Consequences
 
@@ -166,3 +185,14 @@ unit of review and publish.
     block manager decorator only regenerates when the block plugin ID set
     actually changed within a request. A same-request definition-only change
     (e.g. a relabeled Views block) regenerates on the next request instead.
+11. Adopting core Workflows makes the review process site-configurable:
+    review states and transitions are config, access is per-transition, and
+    the shipped three-step workflow is only a default. The Canvas UI renders
+    transitions dynamically from the API, so a reshaped workflow needs no UI
+    change. The cost is a hard dependency on the Workflows module, config
+    schema for the workflow type, and an update path that converts the
+    status field to a plain string and remaps the two legacy review
+    permissions onto per-transition ones. A workspace whose stored state its
+    workflow no longer defines resolves to the workflow's initial state
+    (mirroring content_moderation), so editing or swapping workflows cannot
+    strand a workspace.

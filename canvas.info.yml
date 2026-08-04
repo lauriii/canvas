@@ -50,6 +50,10 @@ dependencies:
   # Workspace revisions and associations back Canvas auto-save staging, and
   # workspaces are the unit of review and publish.
   - drupal:workspaces
+  # The workspace review process (states, transitions, publish approval) is
+  # defined as a workflow of the canvas_workspace_review type.
+  # @see \Drupal\canvas\Plugin\WorkflowType\WorkspaceReviewWorkflowType
+  - drupal:workflows
   # Stages configuration changes per workspace, so config edits made while a
   # workspace is active go live with that workspace's publish.
   - workspace_config:workspace_config

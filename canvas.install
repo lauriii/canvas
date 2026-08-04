@@ -12,6 +12,8 @@ use Drupal\canvas\Entity\CanvasAutoSaveSnapshot;
 use Drupal\canvas\Health\HealthCheck;
 use Drupal\canvas\Health\HealthRecords;
 use Drupal\canvas\Hook\CanvasWorkspaceHooks;
+use Drupal\canvas\Plugin\WorkflowType\WorkspaceReviewWorkflowType;
+use Drupal\Component\Serialization\Yaml;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Extension\Requirement\RequirementSeverity;
 use Drupal\Core\Extension\ThemeHandlerInterface;
@@ -304,4 +306,61 @@ function _canvas_ensure_workspaces_module_enabled(): void {
   /** @var \Drupal\Core\Extension\ModuleInstallerInterface $installer */
   $installer = \Drupal::service('module_installer');
   $installer->install(['workspaces']);
+}
+
+/**
+ * Adds the workflow-driven review process: Workflows module, shipped
+ * workflow, and workspace review-workflow fields.
+ */
+function canvas_update_11203(): void {
+  if (!\Drupal::moduleHandler()->moduleExists('workflows')) {
+    /** @var \Drupal\Core\Extension\ModuleInstallerInterface $installer */
+    $installer = \Drupal::service('module_installer');
+    $installer->install(['workflows']);
+  }
+
+  // The shipped review workflow; fresh installs get it from config/install.
+  $workflow_storage = \Drupal::entityTypeManager()->getStorage('workflow');
+  if ($workflow_storage->load(WorkspaceReviewWorkflowType::DEFAULT_WORKFLOW_ID) === NULL) {
+    $path = \Drupal::service('extension.list.module')->getPath('canvas') . '/config/install/workflows.workflow.canvas_workspace_review.yml';
+    $workflow_storage->create(Yaml::decode((string) \file_get_contents($path)))->save();
+  }
+
+  $edum = \Drupal::entityDefinitionUpdateManager();
+  $workspace_type = \Drupal::entityTypeManager()->getDefinition('workspace');
+  $fields = CanvasWorkspaceHooks::entityBaseFieldInfo($workspace_type);
+
+  // The review state became a plain string: valid values are whatever states
+  // the review workflow defines. The column type changes (list_string is
+  // varchar_ascii), which SQL storage refuses with data present, so the few
+  // workspace rows are carried across the change by hand.
+  $status_definition = $fields['canvas_workspace_status']
+    ->setName('canvas_workspace_status')
+    ->setTargetEntityTypeId('workspace')
+    ->setProvider('canvas');
+  $existing = $edum->getFieldStorageDefinition('canvas_workspace_status', 'workspace');
+  if ($existing !== NULL && $existing->getType() !== 'string') {
+    $database = \Drupal::database();
+    $result = $database->select('workspace', 'w')
+      ->fields('w', ['id', 'canvas_workspace_status'])
+      ->execute();
+    $statuses = $result === NULL ? [] : $result->fetchAllKeyed();
+    $database->update('workspace')
+      ->fields(['canvas_workspace_status' => NULL])
+      ->execute();
+    $edum->updateFieldStorageDefinition($status_definition);
+    foreach ($statuses as $id => $status) {
+      if ($status === NULL) {
+        continue;
+      }
+      $database->update('workspace')
+        ->fields(['canvas_workspace_status' => $status])
+        ->condition('id', (string) $id)
+        ->execute();
+    }
+  }
+
+  if ($edum->getFieldStorageDefinition('canvas_review_workflow', 'workspace') === NULL) {
+    $edum->installFieldStorageDefinition('canvas_review_workflow', 'workspace', 'canvas', $fields['canvas_review_workflow']);
+  }
 }

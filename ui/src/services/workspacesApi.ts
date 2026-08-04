@@ -3,15 +3,21 @@ import { createApi } from '@reduxjs/toolkit/query/react';
 
 import { baseQuery } from '@/services/baseQuery';
 
-export type WorkspaceStatus = 'draft' | 'in_review' | 'approved';
+// A state ID of the workspace's review workflow; sites can define their own
+// workflows, so the set of values is open-ended.
+export type WorkspaceStatus = string;
 
-export type WorkspaceStatusTransition = 'submit' | 'approve' | 'reject';
+// A transition ID of the workspace's review workflow.
+export type WorkspaceStatusTransition = string;
+
+export interface WorkspaceTransition {
+  id: WorkspaceStatusTransition;
+  label: string;
+}
 
 export interface WorkspaceAccess {
   delete: boolean;
   publish: boolean;
-  submitForReview: boolean;
-  approve: boolean;
 }
 
 export interface Workspace {
@@ -20,7 +26,11 @@ export interface Workspace {
   isDefault: boolean;
   isActive: boolean;
   status: WorkspaceStatus;
+  statusLabel: string;
+  statusIsApproved: boolean;
+  statusIsInitial: boolean;
   requireReview: boolean;
+  availableTransitions: WorkspaceTransition[];
   scheduledPublishAt: number | null;
   scheduledPublishError: string | null;
   pendingChangesCount: number;

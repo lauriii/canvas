@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Hook;
 
 use Drupal\canvas\AutoSave\Workspace\AutoSaveWorkspace;
+use Drupal\canvas\Plugin\WorkflowType\WorkspaceReviewWorkflowType;
 use Drupal\canvas\Workspace\WorkspaceReview;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
@@ -31,16 +32,19 @@ final class CanvasWorkspaceHooks {
       return [];
     }
     $fields = [];
-    $fields['canvas_workspace_status'] = BaseFieldDefinition::create('list_string')
+    // A state ID of the workspace's review workflow. A plain string, not a
+    // list: the valid values are whatever states the workflow defines. Empty
+    // resolves to the workflow's initial state.
+    // @see \Drupal\canvas\Workspace\WorkspaceReview::getStatus()
+    $fields['canvas_workspace_status'] = BaseFieldDefinition::create('string')
       ->setLabel(new TranslatableMarkup('Review state'))
       ->setDescription(new TranslatableMarkup('The Canvas review state of the workspace.'))
-      ->setSetting('allowed_values', [
-        WorkspaceReview::STATUS_DRAFT => new TranslatableMarkup('Draft'),
-        WorkspaceReview::STATUS_IN_REVIEW => new TranslatableMarkup('In review'),
-        WorkspaceReview::STATUS_APPROVED => new TranslatableMarkup('Approved'),
-      ])
-      ->setDefaultValue(WorkspaceReview::STATUS_DRAFT)
-      ->setRequired(TRUE);
+      ->setDefaultValue(WorkspaceReview::STATUS_DRAFT);
+
+    $fields['canvas_review_workflow'] = BaseFieldDefinition::create('string')
+      ->setLabel(new TranslatableMarkup('Review workflow'))
+      ->setDescription(new TranslatableMarkup('The workflow whose states and transitions govern this workspace\'s review process.'))
+      ->setDefaultValue(WorkspaceReviewWorkflowType::DEFAULT_WORKFLOW_ID);
 
     $fields['canvas_require_review'] = BaseFieldDefinition::create('boolean')
       ->setLabel(new TranslatableMarkup('Require review before publishing'))

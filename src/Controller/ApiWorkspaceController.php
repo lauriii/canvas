@@ -35,6 +35,7 @@ final class ApiWorkspaceController extends ApiControllerBase {
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly WorkspaceReview $workspaceReview,
     private readonly AccountInterface $currentUser,
     #[Autowire(service: 'transliteration')]
     private readonly TransliterationInterface $transliteration,
@@ -143,22 +144,28 @@ final class ApiWorkspaceController extends ApiControllerBase {
   }
 
   /**
-   * Applies a review-state transition: submit, approve, or reject.
+   * Executes a review workflow transition on the workspace.
+   *
+   * The body's "transition" is a transition ID of the workspace's review
+   * workflow. The legacy aliases "submit" and "reject" map onto the shipped
+   * workflow's transition IDs.
    */
   public function status(WorkspaceInterface $workspace, Request $request): JsonResponse {
     $body = \json_decode($request->getContent(), TRUE);
-    $transition = \is_array($body) ? (string) ($body['transition'] ?? '') : '';
-    $target = match ($transition) {
-      'submit' => WorkspaceReview::STATUS_IN_REVIEW,
-      'approve' => WorkspaceReview::STATUS_APPROVED,
-      'reject' => WorkspaceReview::STATUS_DRAFT,
-      default => throw new BadRequestHttpException('The "transition" must be one of "submit", "approve", or "reject".'),
+    $transition_id = \is_array($body) ? (string) ($body['transition'] ?? '') : '';
+    if ($transition_id === '') {
+      throw new BadRequestHttpException('A non-empty "transition" is required.');
+    }
+    $transition_id = match ($transition_id) {
+      'submit' => 'submit_for_review',
+      'reject' => 'send_back',
+      default => $transition_id,
     };
     if (!$workspace->access('view', $this->currentUser)) {
       throw new AccessDeniedHttpException('You do not have permission to act on this workspace.');
     }
     try {
-      WorkspaceReview::transition($workspace, $target, $this->currentUser);
+      $this->workspaceReview->transition($workspace, $transition_id, $this->currentUser);
     }
     catch (WorkspaceReviewAccessException $e) {
       throw new AccessDeniedHttpException($e->getMessage(), $e);
@@ -186,10 +193,10 @@ final class ApiWorkspaceController extends ApiControllerBase {
     }
     // Scheduling inherits the review gate: a review-required workspace must
     // already be approved, exactly as if it were being published now.
-    if (WorkspaceReview::isPublishBlocked($workspace)) {
+    if ($this->workspaceReview->isPublishBlocked($workspace)) {
       throw new ConflictHttpException(\sprintf(
         'The workspace must be approved before it can be scheduled; its review state is "%s".',
-        WorkspaceReview::getStatus($workspace),
+        $this->workspaceReview->getStatusLabel($workspace),
       ));
     }
     $workspace->set('canvas_scheduled_publish_at', $publish_at);
@@ -230,16 +237,24 @@ final class ApiWorkspaceController extends ApiControllerBase {
       'label' => (string) $workspace->label(),
       'isDefault' => $workspace->id() === AutoSaveWorkspace::ID,
       'isActive' => $active_id === (string) $workspace->id(),
-      'status' => WorkspaceReview::getStatus($workspace),
+      'status' => $this->workspaceReview->getStatus($workspace),
+      'statusLabel' => $this->workspaceReview->getStatusLabel($workspace),
+      'statusIsApproved' => $this->workspaceReview->isApproved($workspace),
+      'statusIsInitial' => $this->workspaceReview->isInitialState($workspace),
       'requireReview' => WorkspaceReview::requiresReview($workspace),
+      'availableTransitions' => \array_values(\array_map(
+        static fn ($transition): array => [
+          'id' => (string) $transition->id(),
+          'label' => (string) $transition->label(),
+        ],
+        $this->workspaceReview->getAvailableTransitions($workspace, $this->currentUser),
+      )),
       'scheduledPublishAt' => $scheduled_at !== NULL ? (int) $scheduled_at : NULL,
       'scheduledPublishError' => $workspace->get('canvas_scheduled_publish_error')->value,
       'pendingChangesCount' => $this->countPendingChanges($workspace),
       'access' => [
         'delete' => $workspace->access('delete', $this->currentUser),
         'publish' => $workspace->access('publish', $this->currentUser),
-        'submitForReview' => $this->currentUser->hasPermission(WorkspaceReview::SUBMIT_PERMISSION),
-        'approve' => $this->currentUser->hasPermission(WorkspaceReview::APPROVE_PERMISSION),
       ],
     ];
   }

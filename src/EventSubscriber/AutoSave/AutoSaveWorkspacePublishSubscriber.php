@@ -30,6 +30,7 @@ final class AutoSaveWorkspacePublishSubscriber implements EventSubscriberInterfa
 
   public function __construct(
     private readonly WorkspaceAutoSave $workspaceAutoSave,
+    private readonly WorkspaceReview $workspaceReview,
   ) {}
 
   public static function getSubscribedEvents(): array {
@@ -42,14 +43,14 @@ final class AutoSaveWorkspacePublishSubscriber implements EventSubscriberInterfa
     ];
   }
 
-  public static function onPrePublish(WorkspacePrePublishEvent $event): void {
+  public function onPrePublish(WorkspacePrePublishEvent $event): void {
     $workspace = $event->getWorkspace();
-    if (WorkspaceReview::isPublishBlocked($workspace)) {
+    if ($this->workspaceReview->isPublishBlocked($workspace)) {
       $event->stopPublishing();
       $event->setPublishingStoppedReason(\sprintf(
         'The "%s" workspace requires review: it must be approved before it can be published. Its current review state is "%s".',
         (string) $workspace->label(),
-        WorkspaceReview::getStatus($workspace),
+        $this->workspaceReview->getStatusLabel($workspace),
       ));
     }
   }
@@ -59,8 +60,10 @@ final class AutoSaveWorkspacePublishSubscriber implements EventSubscriberInterfa
     $this->workspaceAutoSave->clearWorkspaceStores((string) $workspace->id());
     if ($workspace->id() === AutoSaveWorkspace::ID) {
       // The Main workspace is permanent: a publish consumes the approval and
-      // any schedule, and the next editing cycle starts from draft.
-      $workspace->set('canvas_workspace_status', WorkspaceReview::STATUS_DRAFT);
+      // any schedule, and the next editing cycle starts over. An empty state
+      // resolves to the review workflow's initial state.
+      // @see \Drupal\canvas\Workspace\WorkspaceReview::getStatus()
+      $workspace->set('canvas_workspace_status', NULL);
       $workspace->set('canvas_scheduled_publish_at', NULL);
       $workspace->set('canvas_scheduled_publish_by', NULL);
       $workspace->set('canvas_scheduled_publish_error', NULL);

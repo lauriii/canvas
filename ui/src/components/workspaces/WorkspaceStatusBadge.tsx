@@ -7,7 +7,14 @@ import type { Workspace } from '@/services/workspacesApi';
 // so everything beyond it is optional.
 export type WorkspaceStatusInfo = Pick<Workspace, 'isDefault'> &
   Partial<
-    Pick<Workspace, 'status' | 'scheduledPublishAt' | 'scheduledPublishError'>
+    Pick<
+      Workspace,
+      | 'statusLabel'
+      | 'statusIsApproved'
+      | 'statusIsInitial'
+      | 'scheduledPublishAt'
+      | 'scheduledPublishError'
+    >
   >;
 
 interface WorkspaceStatusBadgeProps {
@@ -15,6 +22,9 @@ interface WorkspaceStatusBadgeProps {
 }
 
 const WorkspaceStatusBadge = ({ workspace }: WorkspaceStatusBadgeProps) => {
+  // The badge color keys off what the state means for publishing (its ID is
+  // workflow-specific): green when approved, amber while under way, gray for
+  // the initial state of a non-default workspace.
   let badge = null;
   if (workspace.scheduledPublishAt) {
     badge = (
@@ -22,24 +32,26 @@ const WorkspaceStatusBadge = ({ workspace }: WorkspaceStatusBadgeProps) => {
         Scheduled
       </Badge>
     );
-  } else if (workspace.status === 'in_review') {
-    badge = (
-      <Badge size="1" variant="solid" color="amber">
-        In review
-      </Badge>
-    );
-  } else if (workspace.status === 'approved') {
-    badge = (
-      <Badge size="1" variant="solid" color="green">
-        Approved
-      </Badge>
-    );
-  } else if (workspace.status === 'draft' && !workspace.isDefault) {
-    badge = (
-      <Badge size="1" variant="solid" color="gray">
-        Draft
-      </Badge>
-    );
+  } else if (workspace.statusLabel) {
+    if (workspace.statusIsApproved) {
+      badge = (
+        <Badge size="1" variant="solid" color="green">
+          {workspace.statusLabel}
+        </Badge>
+      );
+    } else if (!workspace.statusIsInitial) {
+      badge = (
+        <Badge size="1" variant="solid" color="amber">
+          {workspace.statusLabel}
+        </Badge>
+      );
+    } else if (!workspace.isDefault) {
+      badge = (
+        <Badge size="1" variant="solid" color="gray">
+          {workspace.statusLabel}
+        </Badge>
+      );
+    }
   }
 
   const errorIcon = workspace.scheduledPublishError ? (

@@ -40,16 +40,30 @@ const baseWorkspace: Workspace = {
   isDefault: false,
   isActive: true,
   status: 'draft',
+  statusLabel: 'Draft',
+  statusIsApproved: false,
+  statusIsInitial: true,
   requireReview: false,
+  availableTransitions: [{ id: 'submit_for_review', label: 'Send for review' }],
   scheduledPublishAt: null,
   scheduledPublishError: null,
   pendingChangesCount: 1,
   access: {
     delete: true,
     publish: true,
-    submitForReview: true,
-    approve: true,
   },
+};
+
+const inReviewWorkspace: Workspace = {
+  ...baseWorkspace,
+  requireReview: true,
+  status: 'in_review',
+  statusLabel: 'In review',
+  statusIsInitial: false,
+  availableTransitions: [
+    { id: 'approve', label: 'Approve' },
+    { id: 'send_back', label: 'Send back to draft' },
+  ],
 };
 
 const renderReview = (workspace: Workspace) => {
@@ -116,36 +130,30 @@ describe('PublishReview workspace states', () => {
     await openReview(user);
 
     await user.click(screen.getByRole('button', { name: 'Send for review' }));
-    expect(props.onTransitionStatus).toHaveBeenCalledWith('submit');
+    expect(props.onTransitionStatus).toHaveBeenCalledWith('submit_for_review');
   });
 
-  it('disables send for review without access', async () => {
+  it('shows a disabled state button when no transitions are available', async () => {
     const user = userEvent.setup();
     renderReview({
       ...baseWorkspace,
       requireReview: true,
-      access: { ...baseWorkspace.access, submitForReview: false },
+      availableTransitions: [],
     });
     await openReview(user);
 
-    expect(
-      screen.getByRole('button', { name: 'Send for review' }),
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Draft' })).toBeDisabled();
   });
 
-  it('offers approve and reject to reviewers', async () => {
+  it('offers the review transitions to reviewers', async () => {
     const user = userEvent.setup();
-    const { props } = renderReview({
-      ...baseWorkspace,
-      requireReview: true,
-      status: 'in_review',
-    });
+    const { props } = renderReview(inReviewWorkspace);
     await openReview(user);
 
     await user.click(
       screen.getByRole('button', { name: 'Send back to draft' }),
     );
-    expect(props.onTransitionStatus).toHaveBeenCalledWith('reject');
+    expect(props.onTransitionStatus).toHaveBeenCalledWith('send_back');
 
     await user.click(screen.getByRole('button', { name: 'Approve' }));
     expect(props.onTransitionStatus).toHaveBeenCalledWith('approve');
@@ -154,10 +162,8 @@ describe('PublishReview workspace states', () => {
   it('shows a disabled in review state to non-reviewers', async () => {
     const user = userEvent.setup();
     renderReview({
-      ...baseWorkspace,
-      requireReview: true,
-      status: 'in_review',
-      access: { ...baseWorkspace.access, approve: false },
+      ...inReviewWorkspace,
+      availableTransitions: [],
     });
     await openReview(user);
 

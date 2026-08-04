@@ -256,48 +256,41 @@ const PublishReview: React.FC<PublishReviewProps> = ({
       );
     }
 
-    if (workspace && needsReview && workspace.status === 'draft') {
-      return (
-        <Button
-          size="1"
-          variant="solid"
-          disabled={
-            isBusy || !changes?.length || !workspace.access.submitForReview
-          }
-          onClick={() => onTransitionStatus?.('submit')}
-        >
-          Send for review
-          <Spinner loading={isTransitioning} />
-        </Button>
-      );
-    }
-
-    if (workspace && workspace.status === 'in_review') {
-      if (!workspace.access.approve) {
+    // Mid-review: the actions are the review workflow's transitions from the
+    // current state, filtered server-side to what the user may execute. The
+    // first (lowest-weight) transition is the primary action.
+    if (workspace && needsReview && !workspace.statusIsApproved) {
+      const [primary, ...secondary] = workspace.availableTransitions;
+      if (!primary) {
         return (
           <Button size="1" variant="solid" disabled>
-            In review
+            {workspace.statusLabel}
           </Button>
         );
       }
+      // An initial-state workspace with nothing in it has nothing to review.
+      const noContentToReview = workspace.statusIsInitial && !changes?.length;
       return (
         <>
-          <Button
-            size="1"
-            variant="soft"
-            color="gray"
-            disabled={isBusy}
-            onClick={() => onTransitionStatus?.('reject')}
-          >
-            Send back to draft
-          </Button>
+          {secondary.map((transition) => (
+            <Button
+              key={transition.id}
+              size="1"
+              variant="soft"
+              color="gray"
+              disabled={isBusy || noContentToReview}
+              onClick={() => onTransitionStatus?.(transition.id)}
+            >
+              {transition.label}
+            </Button>
+          ))}
           <Button
             size="1"
             variant="solid"
-            disabled={isBusy}
-            onClick={() => onTransitionStatus?.('approve')}
+            disabled={isBusy || noContentToReview}
+            onClick={() => onTransitionStatus?.(primary.id)}
           >
-            Approve
+            {primary.label}
             <Spinner loading={isTransitioning} />
           </Button>
         </>
@@ -341,13 +334,14 @@ const PublishReview: React.FC<PublishReviewProps> = ({
               >
                 Schedule publish
               </DropdownMenu.Item>
-              {needsReview && (
+              {workspace.availableTransitions.map((transition) => (
                 <DropdownMenu.Item
-                  onSelect={() => onTransitionStatus?.('reject')}
+                  key={transition.id}
+                  onSelect={() => onTransitionStatus?.(transition.id)}
                 >
-                  Send back to draft
+                  {transition.label}
                 </DropdownMenu.Item>
-              )}
+              ))}
             </DropdownMenu.Content>
           </DropdownMenu.Root>
         )}
