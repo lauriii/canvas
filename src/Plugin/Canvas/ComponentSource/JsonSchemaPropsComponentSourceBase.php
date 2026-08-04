@@ -8,6 +8,7 @@ use Drupal\canvas\ComponentSource\ComponentSourceBase;
 use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\InvalidComponentInputsPropSourceException;
 use Drupal\canvas\MissingHostEntityException;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
@@ -859,6 +860,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
     $entity_object_for_field_widget = match (TRUE) {
       $entity instanceof FieldableEntityInterface => $entity,
       $entity instanceof ContentTemplate => $entity->createEmptyTargetEntity(),
+      $entity instanceof Pattern => Pattern::createEmptyHostEntity(),
       default => throw new \LogicException(),
     };
 

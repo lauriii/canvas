@@ -29,9 +29,11 @@ export const componentInstanceFormApi = createApi({
           url = `canvas/api/v0/form/component-instance/{entity_type}/{entity_id}`;
         } else if (type === 'template') {
           url = `canvas/api/v0/form/component-instance/content_template/{entity_type}.{template_bundle}.{template_view_mode}/{entity_id}`;
+        } else if (type === 'pattern') {
+          url = `canvas/api/v0/form/component-instance/pattern/{entity_id}`;
         } else {
           throw new Error(
-            `Cannot render component instance form for unknown type: ${type}. Type must be one of 'entity' or 'template'.`,
+            `Cannot render component instance form for unknown type: ${type}. Type must be one of 'entity', 'template' or 'pattern'.`,
           );
         }
         return {
