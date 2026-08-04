@@ -287,8 +287,15 @@ const UnpublishedChanges = () => {
         );
       }
 
-      // Publishing resets the workspace lifecycle (for example, back to
-      // draft), so refresh the workspace list.
+      // Publishing completes a named workspace: the backend deletes it, and
+      // the session falls back to the Main workspace. Reload so the editor
+      // rebinds to it (the same deliberate full-reload strategy as switching
+      // workspaces). The Main workspace survives its publishes: refresh the
+      // workspace list in place.
+      if (activeWorkspace && !activeWorkspace.isDefault) {
+        window.location.reload();
+        return;
+      }
       dispatch(workspacesApi.util.invalidateTags(['Workspaces']));
     }
   };

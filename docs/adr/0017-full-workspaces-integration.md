@@ -53,8 +53,12 @@ unit of review and publish.
    sibling translations and dependent path aliases included, which removes
    Phase 1's grouping and dependent-publish workarounds — and the
    `workspace_config` pre-publish subscriber applies staged configuration.
-   A post-publish subscriber clears Canvas's staging stores, consumes any
-   schedule, and resets the review state.
+   A post-publish subscriber clears Canvas's staging stores and completes
+   the workspace: a published named workspace is deleted (its content is
+   live; nothing is lost), and sessions pointing at it fall back to the
+   Main workspace. The Main workspace is the one permanent workspace — it
+   survives its publishes with the schedule consumed and the review state
+   reset to draft.
 
 3. **Configuration stages into the workspace.** `workspace_config` is now a
    hard dependency and enabled. The Phase 1 Live-write wrappers on

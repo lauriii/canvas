@@ -428,6 +428,10 @@ final class WorkspaceAutoSaveStagingTest extends CanvasKernelTestBase {
     $live = $this->container->get('entity_type.manager')->getStorage('entity_test_mulrevpub')->loadUnchanged((string) $entity->id());
     self::assertInstanceOf(EntityTestMulRevPub::class, $live);
     self::assertSame('gated draft', $live->get('name')->value);
+    // Publishing completes a named workspace: it is deleted. The Main
+    // workspace is the one permanent workspace.
+    self::assertNull($this->container->get('entity_type.manager')->getStorage('workspace')->loadUnchanged('gated'));
+    self::assertNotNull($this->container->get('entity_type.manager')->getStorage('workspace')->loadUnchanged(AutoSaveWorkspace::ID));
   }
 
   /**

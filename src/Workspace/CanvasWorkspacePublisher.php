@@ -80,7 +80,7 @@ final class CanvasWorkspacePublisher {
 
     /** @var \Drupal\workspaces\WorkspaceManagerInterface $wm */
     $wm = $this->workspaceManager;
-    return $wm->executeInWorkspace($workspace_id, function () use ($workspace, $account): int {
+    $published_count = $wm->executeInWorkspace($workspace_id, function () use ($workspace, $account): int {
       // Flush deferred buffers so validation sees durable staged state.
       $entries = $this->autoSaveManager->getAllAutoSaveList(with_entities: TRUE, with_conflicts: FALSE);
       foreach ($entries as $entry) {
@@ -147,6 +147,16 @@ final class CanvasWorkspacePublisher {
       }
       return $published_count;
     });
+
+    // Publishing deletes named workspaces; scrub a session (or restored
+    // context) still pointing at the deleted one so the next negotiation
+    // does not resolve a dead ID.
+    if ($this->entityTypeManager->getStorage('workspace')->load($workspace_id) === NULL
+      && $wm->hasActiveWorkspace()
+      && $wm->getActiveWorkspace()?->id() === $workspace_id) {
+      $wm->switchToLive();
+    }
+    return $published_count;
   }
 
   /**

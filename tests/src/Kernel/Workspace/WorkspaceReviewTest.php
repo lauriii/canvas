@@ -216,8 +216,8 @@ final class WorkspaceReviewTest extends CanvasKernelTestBase {
     $live = $this->container->get('entity_type.manager')->getStorage('entity_test_mulrevpub')->loadUnchanged((string) $entity->id());
     self::assertInstanceOf(EntityTestMulRevPub::class, $live);
     self::assertSame('scheduled draft', $live->get('name')->value);
-    self::assertNull($this->campaign()->get('canvas_scheduled_publish_at')->value);
-    self::assertSame(WorkspaceReview::STATUS_DRAFT, $this->review()->getStatus($this->campaign()));
+    // Publishing completes a named workspace: it is deleted.
+    self::assertNull($this->container->get('entity_type.manager')->getStorage('workspace')->loadUnchanged('campaign'));
   }
 
   /**
