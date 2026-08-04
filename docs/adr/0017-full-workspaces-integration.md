@@ -141,3 +141,13 @@ unit of review and publish.
    workspaces shares them. Accepted as an edge case.
 7. Kernel and functional tests that asserted Phase 1's publish blockers and
    per-item flow assert the new semantics instead.
+8. Core promotes staged revisions verbatim, which retires two Phase 1
+   publish-time mutations: never-published drafts no longer auto-publish at
+   publish (the editor's publish toggle stages the status instead), and
+   published revisions keep the stager's revision authorship rather than the
+   publisher's. Per-item update-access failures surface as grouped
+   violations (422), not a 403.
+9. content_moderation's own workspace gate applies: an item staged in a
+   draft moderation state blocks the whole workspace publish until a
+   published moderation state is staged. Core publish-gate refusals
+   (`WorkspacePublishException`) map to 409 on the Canvas publish endpoint.

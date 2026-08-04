@@ -252,11 +252,15 @@ final class WorkspaceAutoSaveStagingTest extends CanvasKernelTestBase {
 
     $list = $manager->getAllAutoSaveList(FALSE, FALSE);
     $id = $entity->id();
-    self::assertArrayHasKey("entity_test_mulrevpub:$id:en", $list);
-    self::assertArrayHasKey("entity_test_mulrevpub:$id:fr", $list);
-    self::assertNotSame($list["entity_test_mulrevpub:$id:en"]['data_hash'], $list["entity_test_mulrevpub:$id:fr"]['data_hash']);
-    self::assertSame('en', $list["entity_test_mulrevpub:$id:en"]['langcode']);
-    self::assertSame('fr', $list["entity_test_mulrevpub:$id:fr"]['langcode']);
+    // Auto-save keys are workspace-prefixed; with no active workspace they
+    // resolve against the Main workspace.
+    $en_key = AutoSaveWorkspace::ID . ":entity_test_mulrevpub:$id:en";
+    $fr_key = AutoSaveWorkspace::ID . ":entity_test_mulrevpub:$id:fr";
+    self::assertArrayHasKey($en_key, $list);
+    self::assertArrayHasKey($fr_key, $list);
+    self::assertNotSame($list[$en_key]['data_hash'], $list[$fr_key]['data_hash']);
+    self::assertSame('en', $list[$en_key]['langcode']);
+    self::assertSame('fr', $list[$fr_key]['langcode']);
   }
 
   /**
@@ -320,9 +324,10 @@ final class WorkspaceAutoSaveStagingTest extends CanvasKernelTestBase {
     });
     self::assertNotSame(0, $this->trackedRevisionCount('path_alias', '1'));
 
-    // Dependents are not pending changes of their own.
+    // Dependents are not pending changes of their own. Keys carry the
+    // workspace prefix, so match on the prefixed form.
     foreach (\array_keys($manager->getAllAutoSaveList(FALSE, FALSE)) as $key) {
-      self::assertStringStartsNotWith('path_alias:', $key);
+      self::assertStringStartsNotWith(AutoSaveWorkspace::ID . ':path_alias:', $key);
     }
 
     // Discarding the host discards the dependent's staging with it.

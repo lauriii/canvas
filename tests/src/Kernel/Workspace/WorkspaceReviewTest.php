@@ -35,6 +35,9 @@ final class WorkspaceReviewTest extends CanvasKernelTestBase {
 
   protected function setUp(): void {
     parent::setUp();
+    // Workspaces wraps the alias manager, so path_alias storage must exist
+    // for entity saves inside workspaces.
+    $this->installEntitySchema('path_alias');
     $this->installEntitySchema('user');
     $this->installEntitySchema('entity_test_mulrevpub');
     $this->installEntitySchema('canvas_auto_save_snapshot');
@@ -43,6 +46,10 @@ final class WorkspaceReviewTest extends CanvasKernelTestBase {
       'administer workspaces',
       WorkspaceReview::SUBMIT_PERMISSION,
       WorkspaceReview::APPROVE_PERMISSION,
+      // The publish pipeline checks per-item update access against the
+      // publishing account, which the scheduled publish resolves to this
+      // user; entity_test updates require this permission.
+      'administer entity_test content',
     ]);
     self::assertInstanceOf(User::class, $admin);
     $this->setCurrentUser($admin);
@@ -97,7 +104,7 @@ final class WorkspaceReviewTest extends CanvasKernelTestBase {
     self::assertInstanceOf(User::class, $submitter);
     self::assertInstanceOf(User::class, $approver);
 
-    // draft → approved is not a transition.
+    // Draft → approved is not a transition.
     try {
       $review->transition($this->campaign(), WorkspaceReview::STATUS_APPROVED, $approver);
       $this->fail('draft → approved must be rejected.');
@@ -184,10 +191,14 @@ final class WorkspaceReviewTest extends CanvasKernelTestBase {
     // Not scheduled: nothing publishes.
     self::assertSame(0, $scheduler->publishDue());
 
+    // The due check compares against the request time, which in kernel tests
+    // is the (much earlier) process start time, not the wall clock.
+    $due = $this->container->get('datetime.time')->getRequestTime() - 10;
+
     // Scheduled but demoted (draft): the review gate cancels the schedule
     // and records the error instead of publishing.
     $workspace = $this->campaign();
-    $workspace->set('canvas_scheduled_publish_at', \time() - 10);
+    $workspace->set('canvas_scheduled_publish_at', $due);
     $workspace->set('canvas_scheduled_publish_by', $this->container->get('current_user')->id());
     $workspace->save();
     self::assertSame(0, $scheduler->publishDue());
@@ -198,7 +209,7 @@ final class WorkspaceReviewTest extends CanvasKernelTestBase {
     // consumed.
     $workspace = $this->campaign();
     $workspace->set('canvas_workspace_status', WorkspaceReview::STATUS_APPROVED);
-    $workspace->set('canvas_scheduled_publish_at', \time() - 10);
+    $workspace->set('canvas_scheduled_publish_at', $due);
     $workspace->set('canvas_scheduled_publish_by', $this->container->get('current_user')->id());
     $workspace->save();
     self::assertSame(1, $scheduler->publishDue());

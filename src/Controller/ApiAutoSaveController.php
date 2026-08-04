@@ -30,6 +30,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Utility\Error;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\user\UserInterface;
+use Drupal\workspaces\WorkspacePublishException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -227,6 +228,19 @@ final class ApiAutoSaveController extends ApiControllerBase {
       $violations_response = self::createJsonResponseFromViolationSets(...$e->getViolationSets());
       \assert($violations_response instanceof JsonResponse);
       return $violations_response;
+    }
+    catch (WorkspacePublishException $e) {
+      // A pre-publish gate refused the publish (e.g. the review gate raced a
+      // demotion, or content_moderation blocking draft moderation states):
+      // a client-resolvable conflict, not a server error.
+      return new JsonResponse(data: [
+        'errors' => [
+          [
+            'detail' => $e->getMessage(),
+            'source' => ['pointer' => 'workspace'],
+          ],
+        ],
+      ], status: Response::HTTP_CONFLICT);
     }
     catch (\Exception $e) {
       Error::logException($this->logger, $e);

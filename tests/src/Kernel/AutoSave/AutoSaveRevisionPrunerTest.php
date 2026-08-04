@@ -130,7 +130,9 @@ final class AutoSaveRevisionPrunerTest extends CanvasKernelTestBase {
     $entity->set('name', 'staged');
     $workspaceAutoSave->persistStagedEntity($entity, NULL, TRUE);
 
-    $key = 'entity_test_mulrevpub:' . $entity->id();
+    // Pruner bookkeeping keys are workspace-prefixed; with no active
+    // workspace they resolve against the Main workspace.
+    $key = AutoSaveWorkspace::ID . ':entity_test_mulrevpub:' . $entity->id();
     $store = \Drupal::keyValue(AutoSaveRevisionPruner::STORE);
     self::assertNotNull($store->get($key), 'KV state should exist after an auto-save save.');
 
