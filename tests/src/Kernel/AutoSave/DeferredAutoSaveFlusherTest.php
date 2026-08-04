@@ -7,10 +7,13 @@ namespace Drupal\Tests\canvas\Kernel\AutoSave;
 use Drupal\canvas\AutoSave\Workspace\AutoSaveWorkspace;
 use Drupal\canvas\AutoSave\Workspace\DeferredAutoSaveFlusher;
 use Drupal\canvas\AutoSave\Workspace\WorkspaceAutoSave;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\entity_test\Entity\EntityTestMulRevPub;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\workspaces\Entity\Workspace;
+use Drupal\workspaces\WorkspaceManagerInterface;
+use Drupal\workspaces\WorkspaceTrackerInterface;
 use PHPUnit\Framework\Attributes\Group;
 
 /**
@@ -42,7 +45,7 @@ final class DeferredAutoSaveFlusherTest extends CanvasKernelTestBase {
     self::assertNotFalse($account);
     $this->setCurrentUser($account);
 
-    $ws_storage = $this->container->get('entity_type.manager')->getStorage('workspace');
+    $ws_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage('workspace');
     if ($ws_storage->load(AutoSaveWorkspace::ID) === NULL) {
       Workspace::create([
         'id' => AutoSaveWorkspace::ID,
@@ -63,7 +66,7 @@ final class DeferredAutoSaveFlusherTest extends CanvasKernelTestBase {
    * Deferred persist does not write workspace revisions until flushed.
    */
   public function testDeferredDoesNotWriteWorkspaceUntilFlush(): void {
-    $this->container->get('workspaces.manager')->switchToLive();
+    $this->container->get(WorkspaceManagerInterface::class)->switchToLive();
 
     /** @var \Drupal\entity_test\Entity\EntityTestMulRevPub $entity */
     $entity = EntityTestMulRevPub::create([
@@ -74,9 +77,9 @@ final class DeferredAutoSaveFlusherTest extends CanvasKernelTestBase {
     $entity_id = (string) $entity->id();
 
     $workspaceAutoSave = $this->getWorkspaceAutoSave();
-    $tracker = $this->container->get('workspaces.tracker');
+    $tracker = $this->container->get(WorkspaceTrackerInterface::class);
 
-    $storage = $this->container->get('entity_type.manager')->getStorage('entity_test_mulrevpub');
+    $storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage('entity_test_mulrevpub');
     $storage->resetCache([$entity_id]);
     /** @var \Drupal\entity_test\Entity\EntityTestMulRevPub $working */
     $working = $storage->load($entity_id);
@@ -99,7 +102,7 @@ final class DeferredAutoSaveFlusherTest extends CanvasKernelTestBase {
    * Immediate persist writes to the workspace without requiring flush.
    */
   public function testImmediatePersistWritesWorkspaceRevision(): void {
-    $this->container->get('workspaces.manager')->switchToLive();
+    $this->container->get(WorkspaceManagerInterface::class)->switchToLive();
 
     /** @var \Drupal\entity_test\Entity\EntityTestMulRevPub $entity */
     $entity = EntityTestMulRevPub::create([
@@ -110,9 +113,9 @@ final class DeferredAutoSaveFlusherTest extends CanvasKernelTestBase {
     $entity_id = (string) $entity->id();
 
     $workspaceAutoSave = $this->getWorkspaceAutoSave();
-    $tracker = $this->container->get('workspaces.tracker');
+    $tracker = $this->container->get(WorkspaceTrackerInterface::class);
 
-    $storage = $this->container->get('entity_type.manager')->getStorage('entity_test_mulrevpub');
+    $storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage('entity_test_mulrevpub');
     $storage->resetCache([$entity_id]);
     /** @var \Drupal\entity_test\Entity\EntityTestMulRevPub $working */
     $working = $storage->load($entity_id);

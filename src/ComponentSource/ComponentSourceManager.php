@@ -25,6 +25,7 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Plugin\DefaultPluginManager;
 use Drupal\Core\Update\UpdateKernel;
+use Drupal\workspaces\WorkspaceManagerInterface;
 
 /**
  * Defines a plugin manager for component source plugins.
@@ -183,7 +184,7 @@ final class ComponentSourceManager extends DefaultPluginManager {
    * Runs $callable outside any active workspace.
    */
   private static function executeOutsideWorkspace(callable $callable): mixed {
-    $manager = \Drupal::hasService('workspaces.manager') ? \Drupal::service('workspaces.manager') : NULL;
+    $manager = \Drupal::hasService('workspaces.manager') ? \Drupal::service(WorkspaceManagerInterface::class) : NULL;
     if ($manager === NULL || !$manager->hasActiveWorkspace()) {
       return $callable();
     }

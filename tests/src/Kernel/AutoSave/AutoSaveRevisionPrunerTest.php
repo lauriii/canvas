@@ -7,10 +7,13 @@ namespace Drupal\Tests\canvas\Kernel\AutoSave;
 use Drupal\canvas\AutoSave\Workspace\AutoSaveRevisionPruner;
 use Drupal\canvas\AutoSave\Workspace\AutoSaveWorkspace;
 use Drupal\canvas\AutoSave\Workspace\WorkspaceAutoSave;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\entity_test\Entity\EntityTestMulRevPub;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\workspaces\Entity\Workspace;
+use Drupal\workspaces\WorkspaceManagerInterface;
+use Drupal\workspaces\WorkspaceTrackerInterface;
 use PHPUnit\Framework\Attributes\Group;
 
 /**
@@ -36,7 +39,7 @@ final class AutoSaveRevisionPrunerTest extends CanvasKernelTestBase {
 
   protected function setUp(): void {
     parent::setUp();
-    $this->workspaceManager = \Drupal::service('workspaces.manager');
+    $this->workspaceManager = \Drupal::service(WorkspaceManagerInterface::class);
     $this->installEntitySchema('path_alias');
     $this->installEntitySchema('user');
     $this->installEntitySchema('entity_test_mulrevpub');
@@ -49,7 +52,7 @@ final class AutoSaveRevisionPrunerTest extends CanvasKernelTestBase {
     self::assertNotFalse($account);
     $this->setCurrentUser($account);
 
-    $ws_storage = $this->container->get('entity_type.manager')->getStorage('workspace');
+    $ws_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage('workspace');
     if ($ws_storage->load(AutoSaveWorkspace::ID) === NULL) {
       Workspace::create([
         'id' => AutoSaveWorkspace::ID,
@@ -76,11 +79,11 @@ final class AutoSaveRevisionPrunerTest extends CanvasKernelTestBase {
     $entity_id = (string) $entity->id();
 
     $workspaceAutoSave = $this->getWorkspaceAutoSave();
-    $tracker = \Drupal::service('workspaces.tracker');
+    $tracker = \Drupal::service(WorkspaceTrackerInterface::class);
 
     $iterations = 32;
     for ($i = 0; $i < $iterations; $i++) {
-      $storage = $this->container->get('entity_type.manager')->getStorage('entity_test_mulrevpub');
+      $storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage('entity_test_mulrevpub');
       $storage->resetCache([$entity_id]);
       /** @var \Drupal\entity_test\Entity\EntityTestMulRevPub $working */
       $working = $storage->load($entity_id);
@@ -101,7 +104,7 @@ final class AutoSaveRevisionPrunerTest extends CanvasKernelTestBase {
     self::assertLessThanOrEqual($max_expected, \count($tracked_latest));
 
     $this->workspaceManager->switchToLive();
-    $live = $this->container->get('entity_type.manager')->getStorage('entity_test_mulrevpub')->load($entity_id);
+    $live = $this->container->get(EntityTypeManagerInterface::class)->getStorage('entity_test_mulrevpub')->load($entity_id);
     self::assertInstanceOf(EntityTestMulRevPub::class, $live);
     self::assertSame($default_revision_id, (int) $live->getRevisionId(), 'Default (published) revision should be unchanged while edits are workspace-only.');
   }

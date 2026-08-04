@@ -119,7 +119,7 @@ final class WorkspaceInvariantStagingStoreTest extends CanvasKernelTestBase {
   }
 
   private function executeInAutoSaveWorkspace(callable $callback): void {
-    $workspace_manager = $this->container->get('workspaces.manager');
+    $workspace_manager = $this->container->get(WorkspaceManagerInterface::class);
     \assert($workspace_manager instanceof WorkspaceManagerInterface);
     $workspace_manager->executeInWorkspace(AutoSaveWorkspace::ID, $callback);
   }

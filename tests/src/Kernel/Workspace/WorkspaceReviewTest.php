@@ -12,12 +12,16 @@ use Drupal\canvas\Workspace\WorkspaceReview;
 use Drupal\canvas\Workspace\WorkspaceReviewAccessException;
 use Drupal\canvas\Workspace\WorkspaceScheduledPublish;
 use Drupal\canvas\WorkspaceReviewPermissions;
+use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\entity_test\Entity\EntityTestMulRevPub;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
 use Drupal\workflows\Entity\Workflow;
 use Drupal\workspaces\Entity\Workspace;
+use Drupal\workspaces\WorkspaceManagerInterface;
 use PHPUnit\Framework\Attributes\Group;
 
 /**
@@ -82,7 +86,7 @@ final class WorkspaceReviewTest extends CanvasKernelTestBase {
   }
 
   private function campaign(): Workspace {
-    $workspace = $this->container->get('entity_type.manager')->getStorage('workspace')->loadUnchanged('campaign');
+    $workspace = $this->container->get(EntityTypeManagerInterface::class)->getStorage('workspace')->loadUnchanged('campaign');
     self::assertInstanceOf(Workspace::class, $workspace);
     return $workspace;
   }
@@ -225,7 +229,7 @@ final class WorkspaceReviewTest extends CanvasKernelTestBase {
     $workspace->save();
 
     /** @var \Drupal\workspaces\WorkspaceManagerInterface $workspace_manager */
-    $workspace_manager = $this->container->get('workspaces.manager');
+    $workspace_manager = $this->container->get(WorkspaceManagerInterface::class);
     $workspace_manager->executeInWorkspace('campaign', function () use ($entity): void {
       $draft = clone $entity;
       $draft->set('name', 'campaign draft');
@@ -245,7 +249,7 @@ final class WorkspaceReviewTest extends CanvasKernelTestBase {
     $entity = EntityTestMulRevPub::create(['name' => 'live', 'status' => TRUE]);
     $entity->save();
     /** @var \Drupal\workspaces\WorkspaceManagerInterface $workspace_manager */
-    $workspace_manager = $this->container->get('workspaces.manager');
+    $workspace_manager = $this->container->get(WorkspaceManagerInterface::class);
     $workspace_manager->executeInWorkspace('campaign', function () use ($entity): void {
       $draft = clone $entity;
       $draft->set('name', 'scheduled draft');
@@ -262,13 +266,13 @@ final class WorkspaceReviewTest extends CanvasKernelTestBase {
 
     // The due check compares against the request time, which in kernel tests
     // is the (much earlier) process start time, not the wall clock.
-    $due = $this->container->get('datetime.time')->getRequestTime() - 10;
+    $due = $this->container->get(TimeInterface::class)->getRequestTime() - 10;
 
     // Scheduled but demoted (draft): the review gate cancels the schedule
     // and records the error instead of publishing.
     $workspace = $this->campaign();
     $workspace->set('canvas_scheduled_publish_at', $due);
-    $workspace->set('canvas_scheduled_publish_by', $this->container->get('current_user')->id());
+    $workspace->set('canvas_scheduled_publish_by', $this->container->get(AccountProxyInterface::class)->id());
     $workspace->save();
     self::assertSame(0, $scheduler->publishDue());
     self::assertNull($this->campaign()->get('canvas_scheduled_publish_at')->value);
@@ -279,14 +283,14 @@ final class WorkspaceReviewTest extends CanvasKernelTestBase {
     $workspace = $this->campaign();
     $workspace->set('canvas_workspace_status', WorkspaceReview::STATUS_APPROVED);
     $workspace->set('canvas_scheduled_publish_at', $due);
-    $workspace->set('canvas_scheduled_publish_by', $this->container->get('current_user')->id());
+    $workspace->set('canvas_scheduled_publish_by', $this->container->get(AccountProxyInterface::class)->id());
     $workspace->save();
     self::assertSame(1, $scheduler->publishDue());
-    $live = $this->container->get('entity_type.manager')->getStorage('entity_test_mulrevpub')->loadUnchanged((string) $entity->id());
+    $live = $this->container->get(EntityTypeManagerInterface::class)->getStorage('entity_test_mulrevpub')->loadUnchanged((string) $entity->id());
     self::assertInstanceOf(EntityTestMulRevPub::class, $live);
     self::assertSame('scheduled draft', $live->get('name')->value);
     // Publishing completes a named workspace: it is deleted.
-    self::assertNull($this->container->get('entity_type.manager')->getStorage('workspace')->loadUnchanged('campaign'));
+    self::assertNull($this->container->get(EntityTypeManagerInterface::class)->getStorage('workspace')->loadUnchanged('campaign'));
   }
 
   /**
@@ -296,7 +300,7 @@ final class WorkspaceReviewTest extends CanvasKernelTestBase {
     $entity = EntityTestMulRevPub::create(['name' => 'live', 'status' => TRUE]);
     $entity->save();
     /** @var \Drupal\workspaces\WorkspaceManagerInterface $workspace_manager */
-    $workspace_manager = $this->container->get('workspaces.manager');
+    $workspace_manager = $this->container->get(WorkspaceManagerInterface::class);
     $auto_save_manager = $this->container->get(AutoSaveManager::class);
     self::assertInstanceOf(AutoSaveManager::class, $auto_save_manager);
 

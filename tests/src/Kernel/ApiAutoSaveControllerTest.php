@@ -1381,7 +1381,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         ],
       ],
     ], $decoded);
-    $node_storage = $this->container->get('entity_type.manager')->getStorage('node');
+    $node_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage('node');
     self::assertSame('I am unique!', $node_storage->loadUnchanged((string) $node1->id())?->label());
     self::assertSame('I am different!', $node_storage->loadUnchanged((string) $node2->id())?->label());
   }

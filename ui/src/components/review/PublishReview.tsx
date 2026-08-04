@@ -58,6 +58,7 @@ interface PublishReviewProps {
   onPublishClick: () => void;
   onDiscardClick: (selectedChange: UnpublishedChange) => void;
   onViewClick?: (change: UnpublishedChange) => void;
+  isViewChangeAvailable?: (change: UnpublishedChange) => boolean;
   onResolveConflict?: (change?: UnpublishedChange) => void;
   onOpenChangeCallback: (open: boolean) => void;
   onTransitionStatus?: (transition: WorkspaceStatusTransition) => void;
@@ -85,6 +86,7 @@ const PublishReview: React.FC<PublishReviewProps> = ({
   onPublishClick,
   onDiscardClick,
   onViewClick,
+  isViewChangeAvailable,
   onResolveConflict,
   onOpenChangeCallback,
   onTransitionStatus,
@@ -449,6 +451,7 @@ const PublishReview: React.FC<PublishReviewProps> = ({
                       selectable={false}
                       onDiscardClick={onDiscardClick}
                       onViewClick={onViewClick}
+                      isViewChangeAvailable={isViewChangeAvailable}
                       onResolveConflict={handleResolveConflict}
                       pageStatusMap={pageStatusMap}
                     />

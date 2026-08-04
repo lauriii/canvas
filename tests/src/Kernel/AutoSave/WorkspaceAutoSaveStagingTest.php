@@ -14,7 +14,9 @@ use Drupal\canvas\AutoSave\Workspace\CanvasWorkspaceProvider;
 use Drupal\canvas\AutoSave\Workspace\PendingContentAutoSaveBuffer;
 use Drupal\canvas\Entity\CanvasAutoSaveSnapshot;
 use Drupal\canvas\Entity\Page;
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityConstraintViolationListInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Plugin\Validation\Constraint\EntityChangedConstraint;
 use Drupal\entity_test\Entity\EntityTest;
 use Drupal\entity_test\Entity\EntityTestMulRevPub;
@@ -24,7 +26,9 @@ use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
 use Drupal\workspaces\Entity\Workspace;
+use Drupal\workspaces\WorkspaceManagerInterface;
 use Drupal\workspaces\WorkspacePublishException;
+use Drupal\workspaces\WorkspaceTrackerInterface;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationInterface;
@@ -79,7 +83,7 @@ final class WorkspaceAutoSaveStagingTest extends CanvasKernelTestBase {
   }
 
   private function trackedRevisionCount(string $entity_type_id, string $entity_id): int {
-    $tracked = $this->container->get('workspaces.tracker')
+    $tracked = $this->container->get(WorkspaceTrackerInterface::class)
       ->getTrackedEntities(AutoSaveWorkspace::ID, $entity_type_id, [$entity_id]);
     return \count($tracked[$entity_type_id] ?? []);
   }
@@ -91,7 +95,7 @@ final class WorkspaceAutoSaveStagingTest extends CanvasKernelTestBase {
    * cannot measure revision churn.
    */
   private function revisionCount(string $entity_type_id, string $entity_id): int {
-    return (int) $this->container->get('entity_type.manager')->getStorage($entity_type_id)
+    return (int) $this->container->get(EntityTypeManagerInterface::class)->getStorage($entity_type_id)
       ->getQuery()
       ->allRevisions()
       ->condition('id', $entity_id)
@@ -318,7 +322,7 @@ final class WorkspaceAutoSaveStagingTest extends CanvasKernelTestBase {
     // Simulate the alias implicitly staged by saving a host whose path field
     // changed: an alias entity saved while the auto-save workspace is active.
     $host_path = '/' . $entity->toUrl()->getInternalPath();
-    $workspace_manager = $this->container->get('workspaces.manager');
+    $workspace_manager = $this->container->get(WorkspaceManagerInterface::class);
     $workspace_manager->executeInWorkspace(AutoSaveWorkspace::ID, static function () use ($host_path): void {
       PathAlias::create(['path' => $host_path, 'alias' => '/staged-alias'])->save();
     });
@@ -382,7 +386,7 @@ final class WorkspaceAutoSaveStagingTest extends CanvasKernelTestBase {
     self::assertNotNull($workspace);
     $workspace->publish();
 
-    $live = $this->container->get('entity_type.manager')->getStorage('entity_test_mulrevpub')->loadUnchanged((string) $entity->id());
+    $live = $this->container->get(EntityTypeManagerInterface::class)->getStorage('entity_test_mulrevpub')->loadUnchanged((string) $entity->id());
     self::assertInstanceOf(EntityTestMulRevPub::class, $live);
     self::assertSame('staged draft', $live->get('name')->value);
     self::assertTrue($this->autoSaveManager()->getAutoSaveEntity($entity)->isEmpty(), 'Staging is cleared by the publish.');
@@ -403,7 +407,7 @@ final class WorkspaceAutoSaveStagingTest extends CanvasKernelTestBase {
     $entity = EntityTestMulRevPub::create(['name' => 'live', 'status' => TRUE]);
     $entity->save();
     /** @var \Drupal\workspaces\WorkspaceManagerInterface $workspace_manager */
-    $workspace_manager = $this->container->get('workspaces.manager');
+    $workspace_manager = $this->container->get(WorkspaceManagerInterface::class);
     $workspace_manager->executeInWorkspace('gated', function () use ($entity): void {
       $draft = clone $entity;
       $draft->set('name', 'gated draft');
@@ -417,7 +421,7 @@ final class WorkspaceAutoSaveStagingTest extends CanvasKernelTestBase {
     catch (WorkspacePublishException $e) {
       self::assertStringContainsString('requires review', $e->getMessage());
     }
-    $live = $this->container->get('entity_type.manager')->getStorage('entity_test_mulrevpub')->loadUnchanged((string) $entity->id());
+    $live = $this->container->get(EntityTypeManagerInterface::class)->getStorage('entity_test_mulrevpub')->loadUnchanged((string) $entity->id());
     self::assertInstanceOf(EntityTestMulRevPub::class, $live);
     self::assertSame('live', $live->get('name')->value);
 
@@ -425,13 +429,13 @@ final class WorkspaceAutoSaveStagingTest extends CanvasKernelTestBase {
     $workspace->set('canvas_workspace_status', 'approved');
     $workspace->save();
     $workspace->publish();
-    $live = $this->container->get('entity_type.manager')->getStorage('entity_test_mulrevpub')->loadUnchanged((string) $entity->id());
+    $live = $this->container->get(EntityTypeManagerInterface::class)->getStorage('entity_test_mulrevpub')->loadUnchanged((string) $entity->id());
     self::assertInstanceOf(EntityTestMulRevPub::class, $live);
     self::assertSame('gated draft', $live->get('name')->value);
     // Publishing completes a named workspace: it is deleted. The Main
     // workspace is the one permanent workspace.
-    self::assertNull($this->container->get('entity_type.manager')->getStorage('workspace')->loadUnchanged('gated'));
-    self::assertNotNull($this->container->get('entity_type.manager')->getStorage('workspace')->loadUnchanged(AutoSaveWorkspace::ID));
+    self::assertNull($this->container->get(EntityTypeManagerInterface::class)->getStorage('workspace')->loadUnchanged('gated'));
+    self::assertNotNull($this->container->get(EntityTypeManagerInterface::class)->getStorage('workspace')->loadUnchanged(AutoSaveWorkspace::ID));
   }
 
   /**
@@ -450,7 +454,7 @@ final class WorkspaceAutoSaveStagingTest extends CanvasKernelTestBase {
    */
   public function testEntityChangedValidationComparesAgainstLive(): void {
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
-    $live_changed = $this->container->get('datetime.time')->getRequestTime() - 100;
+    $live_changed = $this->container->get(TimeInterface::class)->getRequestTime() - 100;
     $page = Page::create(['title' => 'live', 'components' => []]);
     $page->setChangedTime($live_changed);
     $page->save();
@@ -463,7 +467,7 @@ final class WorkspaceAutoSaveStagingTest extends CanvasKernelTestBase {
     $draft->set('title', 'staged draft');
     $this->autoSaveManager()->saveEntity($draft);
     /** @var \Drupal\workspaces\WorkspaceManagerInterface $workspace_manager */
-    $workspace_manager = $this->container->get('workspaces.manager');
+    $workspace_manager = $this->container->get(WorkspaceManagerInterface::class);
     $staged_changed = $workspace_manager->executeInWorkspace(AutoSaveWorkspace::ID, static function () use ($page): int {
       $staged = Page::load($page->id());
       self::assertInstanceOf(Page::class, $staged);
@@ -487,7 +491,7 @@ final class WorkspaceAutoSaveStagingTest extends CanvasKernelTestBase {
     $external = clone $live;
     $external->set('title', 'externally edited');
     $external->save();
-    $reloaded_live = $this->container->get('entity_type.manager')->getStorage(Page::ENTITY_TYPE_ID)->loadUnchanged((string) $page->id());
+    $reloaded_live = $this->container->get(EntityTypeManagerInterface::class)->getStorage(Page::ENTITY_TYPE_ID)->loadUnchanged((string) $page->id());
     self::assertInstanceOf(Page::class, $reloaded_live);
     self::assertGreaterThan($live_changed, $reloaded_live->getChangedTime());
     $violations = $workspace_manager->executeInWorkspace(AutoSaveWorkspace::ID, static fn () => $edit->validate());

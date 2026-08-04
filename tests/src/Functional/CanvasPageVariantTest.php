@@ -25,6 +25,7 @@ use Drupal\Component\Serialization\Json;
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\Context\CacheContextsManager;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Render\Plugin\DisplayVariant\SimplePageVariant;
 use Drupal\Core\Session\AccountInterface;
@@ -615,7 +616,7 @@ class CanvasPageVariantTest extends FunctionalTestBase {
     // workspaces adds the required 'workspace' cache context to every render
     // array.
     // @see \Drupal\workspaces\WorkspacesServiceProvider
-    if ($this->container->get('module_handler')->moduleExists('workspaces')) {
+    if ($this->container->get(ModuleHandlerInterface::class)->moduleExists('workspaces')) {
       $expected_cache_contexts[] = 'workspace';
     }
     $optimized_cache_contexts = $this->container->get(CacheContextsManager::class)->optimizeTokens($expected_cache_contexts);

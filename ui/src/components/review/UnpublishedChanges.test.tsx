@@ -3,6 +3,8 @@ import { act, render, waitFor } from '@testing-library/react';
 
 import UnpublishedChanges from '@/components/review/UnpublishedChanges';
 
+import type { UnpublishedChange } from '@/types/Review';
+
 const mocks = vi.hoisted(() => {
   const pendingChange = {
     owner: {
@@ -237,29 +239,19 @@ describe('UnpublishedChanges', () => {
     expect(mocks.dispatch).not.toHaveBeenCalled();
   });
 
-  it('opens review with selected and reviewable pending change pointers', () => {
+  it('opens the side-by-side review for a viewed change', () => {
     render(<UnpublishedChanges />);
 
-    const selectedPageChange: UnpublishedChange = {
+    const viewedPageChange: UnpublishedChange = {
       ...mocks.pendingChange,
       pointer: 'canvas_page:1:en',
     };
-    const selectedCodeComponentChange: UnpublishedChange = {
-      ...mocks.pendingChange,
-      pointer: 'js_component:hero:en',
-      entity_type: 'js_component',
-      entity_id: 'hero',
-      label: 'Hero',
-    };
 
-    mocks.publishReviewProps.onReviewSelectedChanges([
-      selectedPageChange,
-      selectedCodeComponentChange,
-    ]);
+    mocks.publishReviewProps.onViewClick(viewedPageChange);
 
     expect(mocks.navigate).toHaveBeenCalledWith('/review/canvas_page/1', {
       state: {
-        selectedPointers: ['canvas_page:1:en', 'js_component:hero:en'],
+        selectedPointers: ['canvas_page:1:en'],
         reviewPointers: ['canvas_page:1:en'],
       },
     });
@@ -270,9 +262,10 @@ describe('UnpublishedChanges', () => {
 
     render(<UnpublishedChanges />);
 
-    expect(mocks.publishReviewProps.onReviewSelectedChanges).toBeUndefined();
     expect(mocks.publishReviewProps.onViewClick).toBeUndefined();
     expect(mocks.publishReviewProps.isViewChangeAvailable).toBeUndefined();
+  });
+
   it('invalidates the workspaces cache after a successful publish', async () => {
     mocks.publishUnwrap.mockResolvedValue({ message: 'ok' });
 

@@ -63,7 +63,9 @@ export const usePublishPendingChanges = ({
         .map((change) => String(change.entity_id));
 
       try {
-        await publishAllChanges(changesToPublish).unwrap();
+        // The workspace is the unit of publish: the request takes no item
+        // selection. $selectedChanges only scopes the cache cleanup below.
+        await publishAllChanges().unwrap();
       } catch {
         // Error state is handled in pendingChangesApi.publishAllPendingChanges.
         return false;
