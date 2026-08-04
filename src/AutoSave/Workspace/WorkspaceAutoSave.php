@@ -208,6 +208,36 @@ final class WorkspaceAutoSave {
   }
 
   /**
+   * Attribution for the pending change locking an entity to a workspace.
+   *
+   * @return array{workspaceId: string, ownerId: int, updated: int}|null
+   *   The owning workspace with the staged revision's editor and time, or
+   *   NULL when the entity is unowned or owned by the staging workspace.
+   */
+  public function getOwningWorkspaceLockInfo(EntityInterface $entity): ?array {
+    $owning_id = $this->getOwningWorkspaceId($entity);
+    if ($owning_id === NULL || $this->workspaceManager === NULL) {
+      return NULL;
+    }
+    \assert($entity instanceof ContentEntityInterface);
+    /** @var \Drupal\workspaces\WorkspaceManagerInterface $wm */
+    $wm = $this->workspaceManager;
+    $id = $entity->id();
+    if ($id === NULL) {
+      return NULL;
+    }
+    return $wm->executeInWorkspace($owning_id, function () use ($entity, $id, $owning_id): array {
+      $staged = $this->entityTypeManager->getStorage($entity->getEntityTypeId())->load($id);
+      $info = ['workspaceId' => $owning_id, 'ownerId' => 0, 'updated' => (int) $this->time->getRequestTime()];
+      if ($staged instanceof ContentEntityInterface) {
+        $info['ownerId'] = self::stagedRevisionOwner($staged);
+        $info['updated'] = $this->stagedRevisionTime($staged);
+      }
+      return $info;
+    });
+  }
+
+  /**
    * Rejects a staged write for an entity owned by another workspace.
    *
    * @throws \Drupal\canvas\Workspace\WorkspaceEntityLockedException

@@ -46,6 +46,11 @@ export type LayoutApiResponse = RootLayoutModel & {
     id: string;
     label: string;
     canSwitch: boolean;
+    updated?: number;
+    owner?: {
+      name: string;
+      avatar: string | null;
+    } | null;
   } | null;
 };
 

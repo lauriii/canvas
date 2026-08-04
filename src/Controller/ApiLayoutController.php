@@ -26,6 +26,7 @@ use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Render\Markup;
@@ -33,6 +34,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\language\ConfigurableLanguageManagerInterface;
+use Drupal\user\UserInterface;
 use GuzzleHttp\Psr7\Query;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -50,6 +52,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 final class ApiLayoutController {
 
   use AutoSaveValidateTrait;
+  use BuildsAvatarUrlTrait;
   use ClientServerConversionTrait;
   use EntityFormTrait;
   public const string AUTO_SAVED_QUERY_KEY = 'autoSaved';
@@ -68,6 +71,7 @@ final class ApiLayoutController {
     private readonly ModuleHandlerInterface $moduleHandler,
     private readonly LanguageManagerInterface $languageManager,
     private readonly AccountProxyInterface $currentUser,
+    private readonly FileUrlGeneratorInterface $fileUrlGenerator,
   ) {
     $theme = $this->themeManager->getActiveTheme()->getName();
     $theme_regions = system_region_list($theme);
@@ -629,21 +633,33 @@ final class ApiLayoutController {
   /**
    * The owning-workspace lock info for the layout payload, or NULL.
    *
-   * @return array{id: string, label: string, canSwitch: bool}|null
+   * @return array{id: string, label: string, canSwitch: bool, updated: int, owner: array{name: string, avatar: string|null}|null}|null
    */
   private function buildWorkspaceLockInfo(ContentEntityInterface|ContentTemplate $entity): ?array {
     if (!$entity instanceof ContentEntityInterface) {
       return NULL;
     }
-    $owning_id = $this->workspaceAutoSave->getOwningWorkspaceId($entity);
-    if ($owning_id === NULL) {
+    $lock = $this->workspaceAutoSave->getOwningWorkspaceLockInfo($entity);
+    if ($lock === NULL) {
       return NULL;
     }
-    $owning = $this->entityTypeManager->getStorage('workspace')->load($owning_id);
+    $owning = $this->entityTypeManager->getStorage('workspace')->load($lock['workspaceId']);
+    $owner = NULL;
+    if ($lock['ownerId'] > 0) {
+      $user = $this->entityTypeManager->getStorage('user')->load($lock['ownerId']);
+      if ($user instanceof UserInterface && $user->access('view label', $this->currentUser)) {
+        $owner = [
+          'name' => (string) $user->getDisplayName(),
+          'avatar' => $this->buildAvatarUrl($user),
+        ];
+      }
+    }
     return [
-      'id' => $owning_id,
-      'label' => $owning !== NULL ? (string) $owning->label() : $owning_id,
+      'id' => $lock['workspaceId'],
+      'label' => $owning !== NULL ? (string) $owning->label() : $lock['workspaceId'],
       'canSwitch' => $owning !== NULL && $owning->access('view', $this->currentUser),
+      'updated' => $lock['updated'],
+      'owner' => $owner,
     ];
   }
 
