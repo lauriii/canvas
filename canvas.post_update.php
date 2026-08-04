@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\AutoSave\Workspace\AutoSaveWorkspace;
 use Drupal\canvas\AutoSave\Workspace\LegacyAutoSaveMigrator;
 use Drupal\canvas\CanvasConfigUpdater;
 use Drupal\canvas\CanvasServiceProvider;
@@ -28,6 +29,7 @@ use Drupal\Core\Site\Settings;
 use Drupal\Core\TempStore\SharedTempStoreFactory;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\image\Entity\ImageStyle;
+use Drupal\workspaces\WorkspaceInterface;
 
 /**
  * Track that props have the required flag in component config entities.
@@ -722,9 +724,9 @@ function canvas_post_update_0023_migrate_auto_save_to_workspace(array &$sandbox)
  */
 function canvas_post_update_0024_main_workspace(): void {
   $storage = \Drupal::entityTypeManager()->getStorage('workspace');
-  $workspace = $storage->load(\Drupal\canvas\AutoSave\Workspace\AutoSaveWorkspace::ID);
-  if ($workspace instanceof \Drupal\workspaces\WorkspaceInterface) {
-    $workspace->set('label', \Drupal\canvas\AutoSave\Workspace\AutoSaveWorkspace::LABEL);
+  $workspace = $storage->load(AutoSaveWorkspace::ID);
+  if ($workspace instanceof WorkspaceInterface) {
+    $workspace->set('label', AutoSaveWorkspace::LABEL);
     $workspace->set('provider', 'default');
     // The Main workspace is the scratch space: it publishes without review.
     if ($workspace->hasField('canvas_require_review')) {

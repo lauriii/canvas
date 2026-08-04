@@ -51,6 +51,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\TypedData\PrimitiveInterface;
 use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\path\Plugin\Field\FieldType\PathFieldItemList;
+use Drupal\workspaces\WorkspaceInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\Validator\ConstraintViolationList;
@@ -289,7 +290,7 @@ class AutoSaveManager implements EventSubscriberInterface {
     $workspace = $this->entityTypeManager->getStorage('workspace')->load(self::activeWorkspaceId());
     if ($workspace instanceof FieldableEntityInterface
       && $workspace->hasField('canvas_workspace_status')) {
-      \assert($workspace instanceof \Drupal\workspaces\WorkspaceInterface);
+      \assert($workspace instanceof WorkspaceInterface);
       $this->workspaceReview->demoteOnStagedWrite($workspace);
     }
   }

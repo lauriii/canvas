@@ -42,6 +42,11 @@ export type LayoutApiResponse = RootLayoutModel & {
   html: string;
   autoSaves: AutoSavesHash;
   translations?: Record<string, any>;
+  lockedInWorkspace?: {
+    id: string;
+    label: string;
+    canSwitch: boolean;
+  } | null;
 };
 
 export type TemplateViewMode = {

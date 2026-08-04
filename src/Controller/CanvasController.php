@@ -441,6 +441,11 @@ HTML;
         'isDefault' => $active->id() === AutoSaveWorkspace::ID,
       ];
     }
+    // Editor deep links are rewritten to the entity-less boot route by the
+    // path processor, so this only carries lock info for direct boots; the
+    // layout API response is the authoritative per-entity source.
+    // @see \Drupal\canvas\PathProcessor\CanvasPathProcessor
+    // @see \Drupal\canvas\Controller\ApiLayoutController::get()
     if ($entity !== NULL) {
       $owning_id = $this->workspaceAutoSave->getOwningWorkspaceId($entity);
       if ($owning_id !== NULL) {

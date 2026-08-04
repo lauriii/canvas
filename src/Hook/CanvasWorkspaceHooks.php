@@ -75,9 +75,10 @@ final class CanvasWorkspaceHooks {
    * named workspaces require review by default, matching the designed flow
    * where "Send for review" is the primary action.
    *
+   * Referenced by name in the canvas_require_review field definition.
+   *
    * @return array<int, array<string, bool>>
    */
-  // Referenced by name in the canvas_require_review field definition.
   // @phpstan-ignore shipmonk.deadMethod
   public static function defaultRequireReview(WorkspaceInterface $workspace): array {
     return [['value' => $workspace->id() !== AutoSaveWorkspace::ID]];

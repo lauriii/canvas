@@ -163,6 +163,11 @@ final class ApiLayoutController {
       'autoSaves' => $this->getAutoSaveHashesAfterFlush(
         array_merge([$entity], self::getEditableRegions($entity)),
       ),
+      // When the entity's pending work lives in another workspace, name it so
+      // the editor can show the lock before the first write. Editor deep
+      // links boot through canvas.boot.empty (the path processor rewrites
+      // them), so the boot payload cannot carry entity-specific lock info.
+      'lockedInWorkspace' => $this->buildWorkspaceLockInfo($original_entity),
     ];
     $available_translations = [];
     $links = [];
@@ -619,6 +624,27 @@ final class ApiLayoutController {
     }
 
     return (string) $entity->label();
+  }
+
+  /**
+   * The owning-workspace lock info for the layout payload, or NULL.
+   *
+   * @return array{id: string, label: string, canSwitch: bool}|null
+   */
+  private function buildWorkspaceLockInfo(ContentEntityInterface|ContentTemplate $entity): ?array {
+    if (!$entity instanceof ContentEntityInterface) {
+      return NULL;
+    }
+    $owning_id = $this->workspaceAutoSave->getOwningWorkspaceId($entity);
+    if ($owning_id === NULL) {
+      return NULL;
+    }
+    $owning = $this->entityTypeManager->getStorage('workspace')->load($owning_id);
+    return [
+      'id' => $owning_id,
+      'label' => $owning !== NULL ? (string) $owning->label() : $owning_id,
+      'canSwitch' => $owning !== NULL && $owning->access('view', $this->currentUser),
+    ];
   }
 
   /**

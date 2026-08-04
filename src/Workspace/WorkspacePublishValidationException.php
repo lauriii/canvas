@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Workspace;
 
-use Symfony\Component\Validator\ConstraintViolationListInterface;
-
 /**
  * Publish aborted: one or more tracked items failed validation.
  *

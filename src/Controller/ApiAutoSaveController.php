@@ -107,6 +107,8 @@ final class ApiAutoSaveController extends ApiControllerBase {
    */
   public function get(): CacheableJsonResponse {
     $cache = new CacheableMetadata();
+    // The pending list is scoped to the active workspace.
+    $cache->addCacheContexts(['workspace']);
     // @todo Remove the use of 'canvas_dev_cd' flag in https://git.drupalcode.org/project/canvas/-/work_items/3591732
     $conflict_detection_dev_mode = $this->moduleHandler->moduleExists('canvas_dev_cd');
 
