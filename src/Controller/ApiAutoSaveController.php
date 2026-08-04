@@ -59,7 +59,6 @@ final class ApiAutoSaveController extends ApiControllerBase {
     private readonly AccountInterface $currentUser,
     private readonly ModuleHandlerInterface $moduleHandler,
     private readonly WorkspaceAutoSave $workspaceAutoSave,
-    private readonly WorkspaceReview $workspaceReview,
     private readonly CanvasWorkspacePublisher $canvasWorkspacePublisher,
   ) {}
 
@@ -209,11 +208,11 @@ final class ApiAutoSaveController extends ApiControllerBase {
 
     // Fail fast on the review gate with an actionable message; the
     // pre-publish subscriber enforces it authoritatively inside the publish.
-    if ($this->workspaceReview->isPublishBlocked($workspace)) {
+    if (WorkspaceReview::isPublishBlocked($workspace)) {
       return new JsonResponse(data: [
         'errors' => [
           [
-            'detail' => \sprintf('The "%s" workspace requires review: it must be approved before it can be published. Its current review state is "%s".', (string) $workspace->label(), $this->workspaceReview->getStatus($workspace)),
+            'detail' => \sprintf('The "%s" workspace requires review: it must be approved before it can be published. Its current review state is "%s".', (string) $workspace->label(), WorkspaceReview::getStatus($workspace)),
             'source' => ['pointer' => 'workspace'],
             'code' => ErrorCodesEnum::WorkspaceNotApproved->value,
           ],

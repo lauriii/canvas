@@ -36,7 +36,6 @@ final class ApiWorkspaceController extends ApiControllerBase {
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly AccountInterface $currentUser,
-    private readonly WorkspaceReview $workspaceReview,
     #[Autowire(service: 'transliteration')]
     private readonly TransliterationInterface $transliteration,
     private readonly TimeInterface $time,
@@ -159,7 +158,7 @@ final class ApiWorkspaceController extends ApiControllerBase {
       throw new AccessDeniedHttpException('You do not have permission to act on this workspace.');
     }
     try {
-      $this->workspaceReview->transition($workspace, $target, $this->currentUser);
+      WorkspaceReview::transition($workspace, $target, $this->currentUser);
     }
     catch (WorkspaceReviewAccessException $e) {
       throw new AccessDeniedHttpException($e->getMessage(), $e);
@@ -187,10 +186,10 @@ final class ApiWorkspaceController extends ApiControllerBase {
     }
     // Scheduling inherits the review gate: a review-required workspace must
     // already be approved, exactly as if it were being published now.
-    if ($this->workspaceReview->isPublishBlocked($workspace)) {
+    if (WorkspaceReview::isPublishBlocked($workspace)) {
       throw new ConflictHttpException(\sprintf(
         'The workspace must be approved before it can be scheduled; its review state is "%s".',
-        $this->workspaceReview->getStatus($workspace),
+        WorkspaceReview::getStatus($workspace),
       ));
     }
     $workspace->set('canvas_scheduled_publish_at', $publish_at);
@@ -231,8 +230,8 @@ final class ApiWorkspaceController extends ApiControllerBase {
       'label' => (string) $workspace->label(),
       'isDefault' => $workspace->id() === AutoSaveWorkspace::ID,
       'isActive' => $active_id === (string) $workspace->id(),
-      'status' => $this->workspaceReview->getStatus($workspace),
-      'requireReview' => $this->workspaceReview->requiresReview($workspace),
+      'status' => WorkspaceReview::getStatus($workspace),
+      'requireReview' => WorkspaceReview::requiresReview($workspace),
       'scheduledPublishAt' => $scheduled_at !== NULL ? (int) $scheduled_at : NULL,
       'scheduledPublishError' => $workspace->get('canvas_scheduled_publish_error')->value,
       'pendingChangesCount' => $this->countPendingChanges($workspace),

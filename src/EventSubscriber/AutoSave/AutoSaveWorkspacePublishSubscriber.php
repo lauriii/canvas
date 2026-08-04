@@ -27,7 +27,6 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 final class AutoSaveWorkspacePublishSubscriber implements EventSubscriberInterface {
 
   public function __construct(
-    private readonly WorkspaceReview $workspaceReview,
     private readonly WorkspaceAutoSave $workspaceAutoSave,
   ) {}
 
@@ -38,14 +37,14 @@ final class AutoSaveWorkspacePublishSubscriber implements EventSubscriberInterfa
     ];
   }
 
-  public function onPrePublish(WorkspacePrePublishEvent $event): void {
+  public static function onPrePublish(WorkspacePrePublishEvent $event): void {
     $workspace = $event->getWorkspace();
-    if ($this->workspaceReview->isPublishBlocked($workspace)) {
+    if (WorkspaceReview::isPublishBlocked($workspace)) {
       $event->stopPublishing();
       $event->setPublishingStoppedReason(\sprintf(
         'The "%s" workspace requires review: it must be approved before it can be published. Its current review state is "%s".',
         (string) $workspace->label(),
-        $this->workspaceReview->getStatus($workspace),
+        WorkspaceReview::getStatus($workspace),
       ));
     }
   }

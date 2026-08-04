@@ -70,7 +70,7 @@ final class WorkspaceReview {
   /**
    * Whether the review gate currently blocks publishing this workspace.
    */
-  public function isPublishBlocked(WorkspaceInterface $workspace): bool {
+  public static function isPublishBlocked(WorkspaceInterface $workspace): bool {
     return self::requiresReview($workspace) && self::getStatus($workspace) !== self::STATUS_APPROVED;
   }
 
@@ -82,7 +82,7 @@ final class WorkspaceReview {
    * @throws \Drupal\canvas\Workspace\WorkspaceReviewAccessException
    *   When the account lacks the transition's permission.
    */
-  public function transition(WorkspaceInterface $workspace, string $to, AccountInterface $account): void {
+  public static function transition(WorkspaceInterface $workspace, string $to, AccountInterface $account): void {
     $from = self::getStatus($workspace);
     if ($from === $to) {
       return;
