@@ -1111,6 +1111,13 @@ class AutoSaveManager implements EventSubscriberInterface {
       return;
     }
 
+    // Publish-time staging saves the draft itself: the auto-save entry is
+    // about to be consumed by the publish, so there is nothing to update —
+    // and re-staging it here would write into the workspace mid-publish.
+    if ($this->workspaceReview->isDemotionSuppressed()) {
+      return;
+    }
+
     $entity = $this->configManager->loadConfigEntityByName($event->getConfig()->getName());
     if (!$entity) {
       return;
@@ -1213,7 +1220,13 @@ class AutoSaveManager implements EventSubscriberInterface {
   private function setStoredEntityHash(string $auto_save_item_key, string $current_hash, ?array $auto_save_item = NULL): void {
     if (\is_null($auto_save_item)) {
       $auto_save_item = $this->autoSaveStore->get($auto_save_item_key);
-      \assert(!\is_null($auto_save_item));
+      // Drafts staged as snapshot rows or workspace-scoped configuration
+      // have no key-value entry to advance; their hash bookkeeping lives
+      // with the staged entry itself.
+      // @see \Drupal\canvas\AutoSave\Workspace\WorkspaceAutoSave::advanceStagedEntryOriginalHash()
+      if (\is_null($auto_save_item)) {
+        return;
+      }
     }
     $auto_save_item[self::AUTO_SAVE_STORED_ENTITY_HASH_KEY] = $current_hash;
     $this->autoSaveStore->set($auto_save_item_key, $auto_save_item);
