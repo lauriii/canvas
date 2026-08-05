@@ -422,12 +422,16 @@ describe('Push component dependencies', () => {
   });
 
   it('updates the global asset library once with CSS and dependency manifest fields', async () => {
+    const getGlobalAssetLibrary = vi.fn().mockResolvedValue({
+      bundledSources: null,
+      packageJson: null,
+    });
     const updateGlobalAssetLibrary = vi.fn().mockResolvedValue({});
 
     await updateGlobalAssetLibraryForPush(
-      { updateGlobalAssetLibrary } as unknown as Pick<
+      { getGlobalAssetLibrary, updateGlobalAssetLibrary } as unknown as Pick<
         ApiService,
-        'updateGlobalAssetLibrary'
+        'getGlobalAssetLibrary' | 'updateGlobalAssetLibrary'
       >,
       {
         css: {
@@ -508,12 +512,16 @@ describe('Push component dependencies', () => {
   });
 
   it('sends empty manifest groups so deleted imports are cleared on the server', async () => {
+    const getGlobalAssetLibrary = vi.fn().mockResolvedValue({
+      bundledSources: null,
+      packageJson: null,
+    });
     const updateGlobalAssetLibrary = vi.fn().mockResolvedValue({});
 
     await updateGlobalAssetLibraryForPush(
-      { updateGlobalAssetLibrary } as unknown as Pick<
+      { getGlobalAssetLibrary, updateGlobalAssetLibrary } as unknown as Pick<
         ApiService,
-        'updateGlobalAssetLibrary'
+        'getGlobalAssetLibrary' | 'updateGlobalAssetLibrary'
       >,
       undefined,
       {
@@ -533,6 +541,61 @@ describe('Push component dependencies', () => {
       assets: [],
       shared: [],
       bundledSources: [],
+    });
+  });
+
+  it('uses the legacy asset library payload for older Canvas sites', async () => {
+    const getGlobalAssetLibrary = vi.fn().mockResolvedValue({
+      id: 'global',
+      label: 'Global asset library',
+      css: null,
+      js: null,
+      imports: null,
+      assets: null,
+      shared: null,
+    });
+    const updateGlobalAssetLibrary = vi.fn().mockResolvedValue({});
+
+    await updateGlobalAssetLibraryForPush(
+      { getGlobalAssetLibrary, updateGlobalAssetLibrary } as unknown as Pick<
+        ApiService,
+        'getGlobalAssetLibrary' | 'updateGlobalAssetLibrary'
+      >,
+      {
+        packageJson: '{"name":"example"}',
+      },
+      {
+        artifactCount: 1,
+        groupedManifest: {
+          vendor: [],
+          local: [
+            {
+              name: '@/lib/example',
+              uri: 'public://canvas/assets/example.js',
+              path: 'src/lib/example.ts',
+              source: 'export const example = true;\n',
+            },
+          ],
+          shared: [],
+          bundledSources: [
+            {
+              path: 'src/lib/bundled.ts',
+              source: 'export const bundled = true;\n',
+            },
+          ],
+        },
+      },
+    );
+
+    expect(updateGlobalAssetLibrary).toHaveBeenCalledWith({
+      imports: [],
+      assets: [
+        {
+          name: '@/lib/example',
+          uri: 'public://canvas/assets/example.js',
+        },
+      ],
+      shared: [],
     });
   });
 
