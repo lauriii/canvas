@@ -199,11 +199,21 @@ export interface AssetLibrary {
   imports?: AssetLibraryManifestEntry[] | null;
   assets?: AssetLibraryManifestEntry[] | null;
   shared?: AssetLibraryManifestEntry[] | null;
+  bundledSources?: AssetLibraryBundledSource[] | null;
+  packageJson?: string | null;
 }
 
 export interface AssetLibraryManifestEntry {
   name: string;
   uri: string;
+  path?: string;
+  source?: string;
+  url?: string;
+}
+
+export interface AssetLibraryBundledSource {
+  path: string;
+  source: string;
 }
 
 export interface BrandKit {

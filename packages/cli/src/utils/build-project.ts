@@ -426,6 +426,8 @@ export async function buildCanvasProject(
     outputDir,
     vendorImportMap: vendorResult.importMap,
     localImportMap: localResult.localImportMap,
+    localSources: localResult.localSources,
+    bundledSources: localResult.bundledSources,
     sharedChunks: [...vendorResult.sharedChunks, ...localResult.sharedChunks],
   });
   if (!manifestResult.success) {
