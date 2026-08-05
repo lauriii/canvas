@@ -769,3 +769,178 @@ from
 and validates authored pages, content templates, and global regions. With
 `--fix` option specified, also applies automatic fixes available for some
 validation rules.
+
+## Fleet management
+
+Fleet management distributes one component library to many Canvas sites. It is
+additive: `push` and `pull` are unchanged and keep working against a single site
+when no fleet files are present.
+
+All fleet state lives in the library repository and in git. There is no
+server-side registry, link record, or rollout API. Three committed files
+describe everything:
+
+- `canvas.library.json` — the library's identity, version, and contents.
+- `canvas.fleet.json` — the inventory of sites and groups. Contains no secrets.
+- `canvas.lock.json` — a cache of last-known per-site state. **Not truth.**
+  Truth is reconstructed by reading the sites with `canvas plan`.
+
+Credentials are never committed. Each site names an environment variable in
+`credentialsEnv` holding `client_id:client_secret`. A site with no
+`credentialsEnv` falls back to the token `canvas login` stored for its URL.
+
+### What fleet management does not guarantee
+
+These limits are real. Read them before relying on the commands.
+
+- **No locking.** Two operators running `apply` against overlapping sites
+  concurrently will race, and the lockfile can be left inconsistent with
+  reality. Run `apply` from CI, one pipeline at a time.
+- **Drift detection is advisory and point-in-time.** A site edited five minutes
+  after `plan` shows as in sync until the next refresh. Nothing self-heals.
+  Component contract changes are detected exactly, from the site-reported
+  `active_version`; edits that only change component code are detected by
+  comparing authored source, which assumes the API returns that source
+  unchanged.
+- **No blast radius reporting.** The CLI cannot count how many page instances
+  reference a component: Canvas's usage endpoints are not part of the external
+  API that OAuth clients may call.
+- **The lockfile can be wrong** whenever anyone bypasses the CLI, including
+  pushing without committing the updated lockfile. Git records intent, not what
+  actually happened on each site.
+- **The permission model is credential possession.** Anyone holding a site's
+  OAuth client credentials can push anything to that site. The CLI cannot
+  enforce an authority boundary because there is no server to enforce it.
+- **No fleet-wide rollback.** `changeset restore` restores one site from one
+  captured changeset, bounded by what the client captured.
+
+### `library init`
+
+Scaffold `canvas.library.json` from the components discovered in the project.
+
+```bash
+npx canvas library init --name @acme/canvas-library --library-version 3.4.0
+```
+
+**Options:**
+
+- `--name <name>`: Library name
+- `--library-version <version>`: Library semver version (default `0.1.0`)
+- `-d, --dir <directory>`: Component directory
+- `--force`: Overwrite an existing manifest
+
+### `fleet init`, `fleet add`, `fleet list`
+
+```bash
+npx canvas fleet init
+npx canvas fleet add marketing-eu --url https://marketing-eu.example.com --group canary
+npx canvas fleet list
+```
+
+`fleet add` options:
+
+- `--url <url>` (required): Site URL
+- `--credentials-env <name>`: Environment variable holding
+  `client_id:client_secret` (defaults to `CANVAS_OAUTH_<SITE_NAME>`)
+- `--group <name>`: Group to join (repeatable)
+- `--overlay <path>`: Per-site overlay directory (recorded for a later stage;
+  overlays are not applied yet)
+
+`fleet list` accepts `--json`.
+
+### `plan`
+
+Read the targeted sites and report what an `apply` would change.
+
+```bash
+npx canvas plan --all
+npx canvas plan --group prod --json
+```
+
+**Options:**
+
+- `--site <name>`, `--group <name>`, `--all`, `--exclude <name>`: targeting.
+  `plan` defaults to `--all`.
+- `--refresh-only`: report drift without proposing a library change. Skips the
+  build and updates the lockfile's observed columns.
+- `--no-refresh`: use the lockfile without reading the sites. Prints a prominent
+  staleness warning including each site's `lastRefresh`.
+- `--parallelism <n>`: bound concurrent site operations (default `4`)
+- `--json`: machine-readable output
+
+Each library component on each site lands in one of five states:
+
+| State      | Condition                                    | Meaning                             |
+| ---------- | -------------------------------------------- | ----------------------------------- |
+| In sync    | the site holds what the CLI last pushed      | Nothing to do                       |
+| Behind     | the library moved, the site did not          | Normal update, safe to apply        |
+| Unknown    | no lockfile entry for this site or component | First apply, or lockfile lost       |
+| Diverged   | the site moved, the library did not          | Site-side edit, apply would clobber |
+| Conflicted | both moved                                   | Both sides changed                  |
+
+**Exit codes** follow Terraform's `-detailed-exitcode` convention:
+
+- `0`: success, no changes
+- `1`: error
+- `2`: success, changes pending
+- `3`: at least one site diverged, so a pipeline can fail closed
+
+### `apply`
+
+Build the library once and push it to the targeted sites.
+
+```bash
+npx canvas apply --group canary
+npx canvas apply --all --exclude brand-main --parallelism 2
+```
+
+**Options:**
+
+- `--site <name>`, `--group <name>`, `--all`, `--exclude <name>`: targeting. One
+  of `--site`, `--group`, or `--all` is required: `apply` never targets the
+  whole fleet implicitly.
+- `--to <version>`: the library version being applied. Must match
+  `canvas.library.json`; the library is consumed from a git ref, so applying an
+  older version means checking that ref out first.
+- `--parallelism <n>`: bound concurrent site operations (default `4`)
+- `--on-error <stop|continue>`: `stop` (default) leaves earlier sites applied
+  and later sites untouched, and names the untouched sites so the operator can
+  resume with `--site` targeting. `continue` prefers coverage over consistency.
+  Both write the lockfile incrementally so a crash does not lose the record.
+- `--json`, `-y, --yes`, `-d, --dir <directory>`
+- `--i-know-what-i-am-doing`: required to target a group listed in
+  `protectedGroups` from outside CI. This is a speed bump, not a control.
+
+Before touching a site, `apply` captures a changeset under `.canvas/changesets/`
+holding the pre-push state of every component it is about to write. **Diverged
+and conflicted components are skipped and reported, never overwritten**: a push
+replaces a component's source wholesale, so an unguarded fan-out would destroy
+site-side work across the whole fleet in one command.
+
+Components present on a site that the library does not define are site-local and
+are never touched. Removing a component from the library does not remove it from
+the sites; deletion propagation is not implemented.
+
+Re-running `apply` with no library change and no site drift produces no writes.
+It is not idempotent in the stronger sense of producing byte-identical
+artifacts, because the build step is not guaranteed deterministic.
+
+### `changeset list`, `changeset restore`
+
+```bash
+npx canvas changeset list
+npx canvas changeset restore 2026-08-05T10-22-00-000Z-marketing-eu
+```
+
+`restore` re-pushes the captured pre-push payload for one site. Components that
+the recorded apply created are reported but never deleted: removing a component
+that pages already reference is destructive in a way a source change is not.
+
+### Recommended governance
+
+The CLI cannot enforce who may publish where, so put governance in git and CI:
+production credentials exist only in CI, humans hold non-production credentials,
+the library repository uses branch protection and CODEOWNERS, a release is a git
+tag, and `apply --group prod` runs only from the pipeline on a tagged commit.
+List production groups in `protectedGroups` so a local `apply` has to be
+deliberate.
