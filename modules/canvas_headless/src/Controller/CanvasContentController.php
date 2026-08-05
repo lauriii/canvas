@@ -63,6 +63,7 @@ final class CanvasContentController {
       : NULL;
     $content = NULL;
     $rendered_entity = NULL;
+    $managed_by_canvas = FALSE;
 
     if ($entity instanceof ContentEntityInterface) {
       $is_preview = PreviewTokenInspector::hasPreviewScope($this->currentUser->getAccount());
@@ -76,6 +77,7 @@ final class CanvasContentController {
         $entity,
         $is_preview,
       );
+      $managed_by_canvas = $build !== NULL;
       $head_result = $this->headBuilder->build($rendered_entity);
       $cacheability = (new BubbleableMetadata())
         ->addCacheableDependency($render_cacheability)
@@ -119,6 +121,7 @@ final class CanvasContentController {
         $route_match,
         $request_uri,
         $rendered_entity,
+        $managed_by_canvas,
       ),
     ]);
     $response->addCacheableDependency($cacheability);
@@ -196,6 +199,7 @@ final class CanvasContentController {
     RouteMatchInterface $route_match,
     string $request_uri,
     ?ContentEntityInterface $rendered_entity = NULL,
+    bool $managed_by_canvas = FALSE,
   ): array {
     $route = $route_match->getRouteObject();
     \assert($route !== NULL);
@@ -222,6 +226,7 @@ final class CanvasContentController {
       'name' => (string) $route_match->getRouteName(),
       'requestUri' => $request_uri,
       'params' => $params,
+      'managedByCanvas' => $managed_by_canvas,
       'entity' => $entity,
     ];
   }

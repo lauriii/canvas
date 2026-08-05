@@ -26,6 +26,4 @@ services:
   Drupal\canvas_headless\RenderConverter\JsComponentCanvasRenderConverter:
     decorates: custom_elements.canvas_render_converter
     decoration_on_invalid: ignore
-  Drupal\canvas_headless\Controller\AutoSavePreviewController: {}
-  Drupal\canvas_headless\EventSubscriber\AutoSavePreviewControllerSubscriber: {}
   Drupal\canvas_headless\Controller\CanvasContentController: {}

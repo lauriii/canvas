@@ -32,7 +32,7 @@ import type { JsonApiClient } from '@drupal-api-client/json-api-client';
 import type { DraftData } from '../draft-data';
 import type { DraftServerAdapter } from './adapter';
 import type { DraftConfig } from './config';
-import type { Page } from './content-api';
+import type { PageResult } from './content-api';
 
 /**
  * The result of redeeming an assertion at Drupal's token endpoint: the
@@ -195,7 +195,7 @@ export interface DraftServer {
    * Fetches a page by its Drupal path (see ./content-api), carrying the
    * live draft session's bearer token when there is one.
    */
-  fetchPage(path: string): Promise<Page | null>;
+  fetchPage(path: string): Promise<PageResult | null>;
 }
 
 /**
@@ -401,7 +401,7 @@ export function createDraftServer(options: DraftServerOptions): DraftServer {
         : getPublicClient(getConfig());
     },
 
-    async fetchPage(path: string): Promise<Page | null> {
+    async fetchPage(path: string): Promise<PageResult | null> {
       return fetchPage(path, {
         baseUrl: getConfig().baseUrl,
         draftData: await getDraftData(),

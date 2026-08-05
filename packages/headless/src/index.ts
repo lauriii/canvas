@@ -57,6 +57,7 @@ export {
   componentNameFromElement,
   findCanvasComponent,
   getCanvasComponentRenderData,
+  isCanvasComponentTreeDraft,
   isCanvasComponentTreeEmpty,
   isCanvasComponentTreeSlotEmpty,
   normalizeCanvasComponentTreeSlot,

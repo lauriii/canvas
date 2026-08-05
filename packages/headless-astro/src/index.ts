@@ -30,10 +30,16 @@ export {
   type AccessToken,
   type DraftData,
 } from '@drupal-canvas/headless';
+export { isPageRedirect } from '@drupal-canvas/headless/server';
 export type {
   CanvasComponentTreeElement,
   CanvasComponentTreeSlot,
+  DrupalRoute,
+  DrupalRouteEntity,
   Page,
+  PageHead,
+  PageRedirect,
+  PageResult,
   DraftConfig,
   DraftServer,
 } from '@drupal-canvas/headless/server';

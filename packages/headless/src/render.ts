@@ -37,7 +37,10 @@ export function normalizeCanvasComponentTreeSlot(
   if (slot === undefined) {
     return [];
   }
-  return Array.isArray(slot) ? slot : [slot];
+  if (!Array.isArray(slot)) {
+    return [slot];
+  }
+  return slot.flatMap((child) => normalizeCanvasComponentTreeSlot(child));
 }
 
 /**
@@ -54,19 +57,32 @@ export function isCanvasComponentTreeSlotEmpty(
 
 /** Whether a top-level Canvas region has no rendered page content. */
 export function isCanvasComponentTreeEmpty(
-  tree: CanvasComponentTreeElement | string,
+  tree: CanvasComponentTreeElement | null,
 ): boolean {
-  if (typeof tree === 'string') {
-    return tree.trim() === '';
-  }
-  if (getCanvasComponentRenderData(tree)) {
+  return tree === null || isCanvasComponentTreeElementEmpty(tree);
+}
+
+/** Whether one structured element contains no rendered page content. */
+function isCanvasComponentTreeElementEmpty(
+  element: CanvasComponentTreeElement,
+): boolean {
+  if (getCanvasComponentRenderData(element)) {
     return false;
   }
-  return Object.values(tree.slots ?? {}).every((slot) =>
+  return Object.values(element.slots ?? {}).every((slot) =>
     normalizeCanvasComponentTreeSlot(slot).every((child) =>
-      isCanvasComponentTreeEmpty(child),
+      typeof child === 'string'
+        ? child.trim() === ''
+        : isCanvasComponentTreeElementEmpty(child),
     ),
   );
+}
+
+/** Whether the structured root node was marked as draft output. */
+export function isCanvasComponentTreeDraft(
+  tree: CanvasComponentTreeElement | null,
+): boolean {
+  return tree?.canvasDraftMode === true;
 }
 
 /** Whether one slot child is default markup rather than a Canvas component. */

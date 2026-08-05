@@ -204,6 +204,7 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
       'name' => 'entity.canvas_page.canonical',
       'requestUri' => '/page/' . $page->id(),
       'params' => ['canvas_page' => (string) $page->id()],
+      'managedByCanvas' => TRUE,
       'entity' => [
         'entityType' => 'canvas_page',
         'bundle' => 'canvas_page',
@@ -218,8 +219,10 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
 
     $page->setComponentTree([])->save();
     $empty_response = $this->renderPage($page);
+    $empty_data = self::responseData($empty_response);
     self::assertSame(200, $empty_response->getStatusCode());
-    self::assertNull(self::responseData($empty_response)['content']);
+    self::assertNull($empty_data['content']);
+    self::assertTrue($empty_data['route']['managedByCanvas']);
   }
 
   /**
@@ -335,6 +338,7 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
 
     self::assertSame(200, $response->getStatusCode());
     self::assertSame('js-canvas-headless-test', $data['content']['element']);
+    self::assertTrue($data['route']['managedByCanvas']);
     self::assertStringContainsString('Published template heading', $content);
     self::assertContains(
       'config:canvas.content_template.node.article.full',
@@ -346,6 +350,7 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     $without_canvas_content_data = self::responseData($without_canvas_content);
     self::assertSame(200, $without_canvas_content->getStatusCode());
     self::assertNull($without_canvas_content_data['content']);
+    self::assertFalse($without_canvas_content_data['route']['managedByCanvas']);
     self::assertSame('Template-backed content', $without_canvas_content_data['head']['title']);
     self::assertSame(
       '/node/' . $node->id(),
@@ -391,8 +396,10 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     $draft->setComponentTree([]);
     $this->container->get(AutoSaveManager::class)->saveEntity($draft);
     $empty_preview = $this->renderContentPath('/node/' . $node->id());
+    $empty_preview_data = self::responseData($empty_preview);
     self::assertSame(200, $empty_preview->getStatusCode());
-    self::assertNull(self::responseData($empty_preview)['content']);
+    self::assertNull($empty_preview_data['content']);
+    self::assertTrue($empty_preview_data['route']['managedByCanvas']);
   }
 
   /**
@@ -443,6 +450,7 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
         'name' => 'user.login',
         'requestUri' => '/user/login',
         'params' => [],
+        'managedByCanvas' => FALSE,
         'entity' => NULL,
       ],
     ], self::responseData($without_entity));
@@ -460,6 +468,7 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     $without_canvas_content_data = self::responseData($without_canvas_content);
     self::assertSame(200, $without_canvas_content->getStatusCode());
     self::assertNull($without_canvas_content_data['content']);
+    self::assertFalse($without_canvas_content_data['route']['managedByCanvas']);
     self::assertSame('Not rendered by Canvas', $without_canvas_content_data['head']['title']);
     self::assertSame('entity.node.canonical', $without_canvas_content_data['route']['name']);
     self::assertSame(

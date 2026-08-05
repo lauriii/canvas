@@ -18,6 +18,7 @@ export {
   type DraftRouteHandlers,
 } from './route-handlers';
 export { createComponentMetadataHandlers } from './component-metadata';
+export { toTanStackHead, type TanStackHead } from './head';
 export {
   disableDraftMode,
   enableDraftMode,
@@ -39,11 +40,17 @@ export {
   type AccessToken,
   type DraftData,
 } from '@drupal-canvas/headless';
+export { isPageRedirect } from '@drupal-canvas/headless/server';
 export type {
   CanvasComponentTreeElement,
   CanvasComponentTreeSlot,
   DraftConfig,
+  DrupalRoute,
+  DrupalRouteEntity,
   Page,
+  PageHead,
+  PageRedirect,
+  PageResult,
 } from '@drupal-canvas/headless/server';
 export type {
   ComponentMetadataEntry,

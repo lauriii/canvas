@@ -10,9 +10,7 @@ hooks, and configuration may change without a deprecation path.
 
 - [Simple OAuth module](https://www.drupal.org/project/simple_oauth) (>=6.1.0), with its RSA keypair configured (see
   `/admin/config/people/simple_oauth`). The same keypair signs preview assertions; no additional keys are needed.
-- The [Lupus Decoupled](https://lupus-decoupled.org/) CE API stack (`custom_elements`, `lupus_ce_renderer`,
-  `lupus_decoupled_ce_api`), declared as module dependencies; it provides the rendered-routes endpoint
-  (`/ce-api/{path}`).
+- The `custom_elements` module.
 - A frontend app built on the Drupal Canvas Headless SDK. The SDK ships as the workspace package
   `@drupal-canvas/headless` (framework-agnostic core) plus one adapter per framework —
   `@drupal-canvas/headless-next` (Next.js), `@drupal-canvas/headless-astro` (Astro),
@@ -93,6 +91,7 @@ are supported; fragments are rejected.
     "params": {
       "canvas_page": "1"
     },
+    "managedByCanvas": true,
     "entity": {
       "entityType": "canvas_page",
       "bundle": "canvas_page",
@@ -105,7 +104,8 @@ are supported; fragments are rejected.
 ```
 
 `content` is one structured root or `null`. Multiple roots use a transparent `renderless-container` with the ordered
-roots in its `default` slot. For routes without canonical content entity that Canvas can render `content` is `null`.
+roots in its `default` slot. Routes Canvas does not manage and managed routes with empty trees both use `content: null`.
+`route.managedByCanvas` distinguishes them and remains `true` for an empty managed tree.
 
 `head` is compatible with the [Unhead](https://unhead.unjs.io/) package. It always contains `title` and may also
 contain `meta`, `link`, and `script`. Canonical links are omitted because the frontend owns its public URLs.

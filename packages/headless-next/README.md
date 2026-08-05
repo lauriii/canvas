@@ -79,5 +79,13 @@ the registry updates when components are added, removed, or renamed.
 ## Data access
 
 `getClient()` returns the draft-aware JSON:API client; `fetchPage()` fetches
-rendered content, resolved through Drupal's routing. Both are
-draft-session-aware.
+Canvas-rendered content when available, plus route and document-head data, for a
+path resolved through Drupal routing. Both are draft-session-aware. Render
+`page.content` directly. Use `toNextMetadata(page.head)` from
+`@drupal-canvas/headless-next` in `generateMetadata()`. Handle `PageRedirect`
+before page rendering with `permanentRedirect()` for permanent redirects and
+`redirect()` for other redirects.
+
+`toNextMetadata()` maps the Canvas head entries that Next.js Metadata can
+represent. It omits entries that Next.js Metadata cannot represent. Render
+omitted entries as native head elements in the page or layout.
