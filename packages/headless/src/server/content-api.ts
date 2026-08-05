@@ -1,12 +1,11 @@
 /**
  * @file
  * The client for the Canvas Headless module's rendered-content endpoint:
- * resolve a Drupal path and get the routed content back as structured
- * data. The endpoint is currently provided by the Lupus Decoupled CE API
- * stack the module depends on (custom_elements + lupus_ce_renderer, at
- * `/ce-api/{path}`) — an implementation detail confined to this file:
- * names here describe what the caller gets, not who serves it, so the
- * serving stack can change without touching the SDK's surface.
+ * resolve a Drupal request URI and get the routed content back as structured
+ * data. Drupal Canvas Headless exposes it at
+ * `/canvas/content-api?requestUri={requestUri}`. The endpoint path remains an
+ * implementation detail confined to this file so the SDK's public surface
+ * describes what the caller gets rather than how Drupal serves it.
  */
 
 import { getSessionToken } from '../token';
@@ -28,19 +27,73 @@ export type JsonValue =
   | JsonValue[]
   | { [key: string]: JsonValue };
 
+/** Scalar attributes for one document meta tag. */
+export type PageHeadMeta = Record<string, string>;
+
+/** Scalar attributes for one non-stylesheet document link tag. */
+export type PageHeadLink = Record<string, string> & {
+  rel: string;
+  href: string;
+};
+
+/** One inert JSON-LD data script. */
+export interface PageHeadScript {
+  [dataAttribute: `data-${string}`]: never;
+  type: 'application/ld+json';
+  textContent: JsonValue[] | { [key: string]: JsonValue };
+}
+
+/** The filtered Unhead-compatible document head returned by Drupal. */
+export interface PageHead {
+  title: string;
+  meta?: PageHeadMeta[];
+  link?: PageHeadLink[];
+  script?: PageHeadScript[];
+}
+
+/** Identity-only metadata for the rendered Drupal entity. */
+export interface DrupalRouteEntity {
+  entityType: string;
+  bundle: string;
+  id: string;
+  uuid: string;
+  langcode: string;
+}
+
+/** The Drupal route that was resolved for the requested frontend URI. */
+export interface DrupalRoute {
+  name: string;
+  requestUri: string;
+  params: Record<string, string>;
+  /** Whether Canvas manages the route's complete component tree. */
+  managedByCanvas: boolean;
+  entity: DrupalRouteEntity | null;
+}
+
 /**
- * Drupal's resolved-and-rendered answer for a path: the routed entity
- * rendered as a structured element tree (or markup), plus page-level data.
+ * Drupal's resolved-and-rendered answer for a request URI.
  */
 export interface Page {
-  title: string;
-  content_format: 'json' | 'markup';
-  content: CanvasComponentTreeElement | string;
-  breadcrumbs?: Array<{ url: string; label: string; frontpage?: boolean }>;
-  metatags?: Record<string, JsonValue>;
-  page_layout?: string;
-  local_tasks?: JsonValue[];
-  messages?: JsonValue[];
+  content: CanvasComponentTreeElement | null;
+  head: PageHead;
+  route: DrupalRoute;
+}
+
+/** A redirect Drupal resolved before routed content. */
+export interface PageRedirect {
+  redirect: {
+    external: boolean;
+    url: string;
+    statusCode: number;
+  };
+}
+
+/** Drupal's content or redirect result for one frontend request URI. */
+export type PageResult = Page | PageRedirect;
+
+/** Distinguishes redirect results without inspecting framework state. */
+export function isPageRedirect(result: PageResult): result is PageRedirect {
+  return 'redirect' in result;
 }
 
 /**
@@ -58,14 +111,16 @@ export interface CanvasComponentTreeElement {
 /**
  * Slot values emitted by the Custom Elements API. A slot with one child is
  * serialized as that value; a multi-value slot is serialized as an array.
+ * Drupal render arrays can preserve nested child groups, so arrays may be
+ * nested while retaining their render order.
  */
 export type CanvasComponentTreeSlot =
   | string
   | CanvasComponentTreeElement
-  | Array<string | CanvasComponentTreeElement>;
+  | CanvasComponentTreeSlot[];
 
 /**
- * Fetches a page by its Drupal path (e.g. `/node/4`).
+ * Fetches a page by its Drupal request URI (e.g. `/node/4?view=full`).
  *
  * With a draft session the request carries the session's user-bound bearer
  * token, so content the initiating editor may see (e.g. unpublished
@@ -78,25 +133,29 @@ export type CanvasComponentTreeSlot =
  * is served; it has no notion of JSON:API's resourceVersion.
  */
 export async function fetchPage(
-  path: string,
+  requestUri: string,
   options: {
     baseUrl: string;
     draftData?: DraftData | null;
     fetchImpl?: typeof fetch;
   },
-): Promise<Page | null> {
+): Promise<PageResult | null> {
   const { baseUrl, draftData, fetchImpl = fetch } = options;
 
-  const headers: HeadersInit = { Accept: 'application/json' };
+  const headers: Record<string, string> = { Accept: 'application/json' };
+  let liveDraft = false;
   if (draftData) {
     const token = getSessionToken(draftData);
     if (token) {
+      liveDraft = true;
       headers.Authorization = `${token.tokenType} ${token.value}`;
     }
     // Expired session: stay anonymous; the draft indicator surfaces it.
   }
 
-  const response = await fetchImpl(`${baseUrl}/ce-api${path}`, {
+  const url = new URL(`${baseUrl.replace(/\/$/, '')}/canvas/content-api`);
+  url.searchParams.set('requestUri', requestUri);
+  const response = await fetchImpl(url, {
     headers,
     cache: 'no-store',
   });
@@ -104,12 +163,30 @@ export async function fetchPage(
   if (!response.ok) {
     return null;
   }
-  const page = (await response.json()) as Page;
-  if (draftData && typeof page.content !== 'string') {
+  const result = (await response.json()) as PageResult;
+  if (isPageRedirect(result)) {
+    return result;
+  }
+  if (liveDraft && result.route.managedByCanvas) {
     return {
-      ...page,
-      content: { ...page.content, canvasDraftMode: true },
+      ...result,
+      content: {
+        ...(result.content ?? { element: 'renderless-container' }),
+        canvasDraftMode: true,
+      },
     };
   }
-  return page;
+  return result;
+}
+
+/**
+ * Serializes JSON for an inline data script without creating HTML markup.
+ */
+export function serializeJsonForHtml(value: JsonValue): string {
+  return JSON.stringify(value)
+    .replace(/</g, '\\u003C')
+    .replace(/>/g, '\\u003E')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
 }

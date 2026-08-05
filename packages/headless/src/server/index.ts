@@ -29,10 +29,20 @@ export {
 export { getDraftClient, getPublicClient } from './json-api-client';
 export {
   fetchPage,
+  isPageRedirect,
+  serializeJsonForHtml,
   type CanvasComponentTreeElement,
   type CanvasComponentTreeSlot,
+  type DrupalRoute,
+  type DrupalRouteEntity,
   type JsonValue,
   type Page,
+  type PageHead,
+  type PageHeadLink,
+  type PageHeadMeta,
+  type PageHeadScript,
+  type PageRedirect,
+  type PageResult,
 } from './content-api';
 export {
   verifyAssertionByRedemption,

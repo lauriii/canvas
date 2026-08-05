@@ -16,6 +16,7 @@ export {
   createComponentMetadataHandler,
   type ComponentMetadataHandlerOptions,
 } from './component-metadata';
+export { toNextMetadata } from './head';
 export {
   disableDraftMode,
   enableDraftMode,
@@ -36,10 +37,16 @@ export {
   type AccessToken,
   type DraftData,
 } from '@drupal-canvas/headless';
+export { isPageRedirect } from '@drupal-canvas/headless/server';
 export type {
   CanvasComponentTreeElement,
   CanvasComponentTreeSlot,
+  DrupalRoute,
+  DrupalRouteEntity,
   Page,
+  PageHead,
+  PageRedirect,
+  PageResult,
   DraftConfig,
 } from '@drupal-canvas/headless/server';
 export type {
