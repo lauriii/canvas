@@ -6,12 +6,10 @@ namespace Drupal\Tests\canvas_ai\Kernel;
 
 use Drupal\canvas_ai\CanvasAiPermissions;
 use Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder;
-use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
-use Drupal\Core\Session\SessionConfigurationInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -21,9 +19,9 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
- * Tests the canvas_dev_ai mock AI controller and its drupalSettings flag.
+ * Tests the canvas_dev_ai AI controller access and its drupalSettings flag.
  *
- * @todo Remove in https://git.drupalcode.org/project/canvas/-/work_items/3591777
+ * @see \Drupal\Tests\canvas_ai\Kernel\Agents\CanvasComponentAgentEndToEndTest
  */
 #[Group('canvas_ai')]
 #[CoversClass(CanvasDevAiBuilder::class)]
@@ -66,32 +64,6 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
     $this->container->get(ModuleInstallerInterface::class)->uninstall(['canvas_dev_ai']);
     $this->refreshContainer();
     $this->assertArrayNotHasKey('aiDevMode', $this->alterJsSettings()['canvas']);
-  }
-
-  /**
-   * Tests that the controller returns the mocked response.
-   */
-  public function testControllerReturnsMockedResponse(): void {
-    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
-    $this->refreshContainer();
-    $this->installEntitySchema('user');
-    $this->installEntitySchema('path_alias');
-    $this->setUpCurrentUser(permissions: [CanvasAiPermissions::USE_CANVAS_AI]);
-
-    $request = Request::create('/admin/api/canvas/ai-dev', 'POST');
-    $session_configuration = $this->container->get(SessionConfigurationInterface::class)->getOptions($request);
-    $request->cookies->set($session_configuration['name'], 'ABCD');
-    $this->container->get('session')->start();
-    $request->headers->set('X-CSRF-Token', $this->container->get(CsrfTokenGenerator::class)->get('canvas_ai.canvas_builder'));
-    $response = $this->request($request);
-
-    $this->assertSame(200, $response->getStatusCode());
-    $this->assertSame([
-      'status' => TRUE,
-      'should_continue' => FALSE,
-      'message' => 'This is a mocked response from the Canvas Dev AI controller.',
-      'progress' => '',
-    ], static::decodeResponse($response));
   }
 
   /**
