@@ -4288,6 +4288,86 @@ components:
             compiled:
               type: string
               description: Compiled JS code, compiled from the original
+        imports:
+          description: File references for third party dependencies
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: object
+                required:
+                  - name
+                  - uri
+                properties:
+                  name:
+                    type: string
+                    description: Name of the manifest entry
+                  uri:
+                    type: string
+                    description: Managed file URI (a `public://` stream wrapper URI)
+        assets:
+          description: File references for local module imports
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: object
+                required:
+                  - name
+                  - uri
+                properties:
+                  name:
+                    type: string
+                    description: Name of the manifest entry
+                  uri:
+                    type: string
+                    description: Managed file URI (a `public://` stream wrapper URI)
+                  path:
+                    type: string
+                    description: Original relative disk path
+                  source:
+                    type: [string, "null"]
+                    description: Original source code
+                  url:
+                    type: string
+                    description: Generated URL for fetching the asset over HTTP (normalize-time only; never stored)
+        shared:
+          description: Shared chunk file references
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: object
+                required:
+                  - name
+                  - uri
+                properties:
+                  name:
+                    type: string
+                    description: Name of the manifest entry
+                  uri:
+                    type: string
+                    description: Managed file URI (a `public://` stream wrapper URI)
+        bundledSources:
+          description: Sources of local modules bundled into other artifacts. These entries have no `uri` and are never part of the runtime import map.
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: object
+                required:
+                  - path
+                  - source
+                properties:
+                  path:
+                    type: string
+                    description: Original relative disk path
+                  source:
+                    type: string
+                    description: Original source code
+        packageJson:
+          type: [string, "null"]
+          description: Package.json of the source repository, tracked so a project can be reconstructed with original dependencies
     NewAssetLibrary:
       type: object
       allOf:

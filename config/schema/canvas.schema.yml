@@ -886,6 +886,21 @@ canvas.asset_library.*:
         NotBlank: ~
       sequence:
         type: canvas.asset_library_manifest_entry
+    bundledSources:
+      type: sequence
+      label: 'Bundled local module sources'
+      requiredKey: false
+      orderby: value
+      constraints:
+        # There must be >=1 entry; otherwise the key should be omitted.
+        NotBlank: ~
+      sequence:
+        type: canvas.asset_library_bundled_source
+    packageJson:
+      type: string
+      label: 'Project package.json'
+      requiredKey: false
+      nullable: true
 
 canvas.asset_library_manifest_entry:
   type: mapping
@@ -902,6 +917,30 @@ canvas.asset_library_manifest_entry:
       constraints:
         NotBlank: []
         UriScheme: ['public']
+    path:
+      type: string
+      label: 'Original relative disk path'
+      requiredKey: false
+    source:
+      type: string
+      label: 'Original source code of a module'
+      requiredKey: false
+      nullable: true
+
+canvas.asset_library_bundled_source:
+  type: mapping
+  label: 'Bundled local module source'
+  mapping:
+    path:
+      type: string
+      label: 'Original relative disk path'
+      constraints:
+        NotBlank: []
+    source:
+      type: string
+      label: 'Verbatim original source code'
+      constraints:
+        NotBlank: []
 
 canvas.brand_kit.*:
   type: config_entity

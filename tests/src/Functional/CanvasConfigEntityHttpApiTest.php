@@ -25,6 +25,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\Entity\ConfigEntityType;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ThemeInstallerInterface;
+use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Url;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
@@ -1750,6 +1751,8 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'imports' => NULL,
       'assets' => NULL,
       'shared' => NULL,
+      'bundledSources' => NULL,
+      'packageJson' => NULL,
     ];
     $request_options[RequestOptions::JSON] = $asset_library_to_send;
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
@@ -1894,7 +1897,17 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
           'shared' => [$shared_entry],
         ],
         'expected_imports' => [$imports_entry],
-        'expected_assets' => [$assets_entry],
+        // The normalized `assets` entries expose a generated `url` alongside
+        // the stored `uri` for client-side fetching. The public files path is
+        // randomized per test run, so compute it the same way the source does.
+        // @see \Drupal\canvas\Entity\AssetLibrary::normalizeAssetsForClientSide()
+        'expected_assets' => [
+          [
+            ...$assets_entry,
+            'url' => \Drupal::service(FileUrlGeneratorInterface::class)
+              ->generateString($assets_entry['uri']),
+          ],
+        ],
         'expected_shared' => [$shared_entry],
       ],
     ];
