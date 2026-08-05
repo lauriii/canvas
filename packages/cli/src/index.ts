@@ -13,6 +13,7 @@ import {
   libraryCommand,
 } from './commands/fleet';
 import { loginCommand, logoutCommand } from './commands/login';
+import { planCommand } from './commands/plan';
 import { pullCommand } from './commands/pull';
 import { pushCommand } from './commands/push';
 import { reconcileMediaCommand } from './commands/reconcile-media';
@@ -46,6 +47,7 @@ buildCommand(program);
 // against a single site with no fleet files present.
 libraryCommand(program);
 fleetCommand(program);
+planCommand(program);
 applyCommand(program);
 changesetCommand(program);
 deprecatedDownloadUploadCommands(program);
