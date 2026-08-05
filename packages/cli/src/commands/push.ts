@@ -600,7 +600,10 @@ export async function syncManifestArtifacts(
 }
 
 export async function updateGlobalAssetLibraryForPush(
-  apiService: Pick<ApiService, 'updateGlobalAssetLibrary'>,
+  apiService: Pick<
+    ApiService,
+    'getGlobalAssetLibrary' | 'updateGlobalAssetLibrary'
+  >,
   globalAssetLibraryUpdate: Partial<AssetLibrary> | undefined,
   manifestSyncResult: {
     artifactCount: number;
@@ -617,6 +620,19 @@ export async function updateGlobalAssetLibraryForPush(
   assetLibraryPatch.shared = manifestSyncResult.groupedManifest.shared;
   assetLibraryPatch.bundledSources =
     manifestSyncResult.groupedManifest.bundledSources;
+
+  const currentAssetLibrary = await apiService.getGlobalAssetLibrary();
+  const supportsCodebaseSync =
+    Object.hasOwn(currentAssetLibrary, 'bundledSources') &&
+    Object.hasOwn(currentAssetLibrary, 'packageJson');
+
+  if (!supportsCodebaseSync) {
+    delete assetLibraryPatch.bundledSources;
+    delete assetLibraryPatch.packageJson;
+    assetLibraryPatch.assets = assetLibraryPatch.assets?.map(
+      ({ name, uri }) => ({ name, uri }),
+    );
+  }
 
   await apiService.updateGlobalAssetLibrary(assetLibraryPatch);
 }
