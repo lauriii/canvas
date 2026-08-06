@@ -1,3 +1,4 @@
+// @canvas-ci weight=6
 /**
  * Comprehensive tests for multi-value form design for link fields.
  *

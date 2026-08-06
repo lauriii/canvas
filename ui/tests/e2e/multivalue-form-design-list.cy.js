@@ -1,3 +1,4 @@
+// @canvas-ci weight=10
 /**
  * Comprehensive tests for multi-value form design for List (Text) and
  * List (Integer) fields.
