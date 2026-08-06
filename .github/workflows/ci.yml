@@ -1,0 +1,213 @@
+name: Canvas CI
+
+on:
+  pull_request:
+    branches: [1.x]
+  push:
+    # `ci/drop-ddev` is included so the workflow runs on this branch before it is
+    # merged to 1.x (push events use the workflow from the pushed branch).
+    branches: [1.x, ci/drop-ddev]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Core minor series. Everything is pinned to the latest patch of this series
+  # (see .github/scripts/setup-drupal.sh) for parity with .gitlab-ci.yml.
+  DRUPAL_CORE: "11.3"
+  # The build/test jobs run as root inside the container image.
+  COMPOSER_ALLOW_SUPERUSER: "1"
+  COMPOSER_NO_INTERACTION: "1"
+  COMPOSER_PROCESS_TIMEOUT: "0"
+  # Match .gitlab-ci.yml: don't let Composer block on advisories/abandonment.
+  COMPOSER_NO_BLOCKING: "1"
+  COMPOSER_NO_SECURITY_BLOCKING: "1"
+
+jobs:
+  # ---- Standalone JS checks (no Drupal needed) -------------------------------
+  # Mirrors GitLab's `lint (node)` + `vitest` jobs (node:24-alpine). All lint
+  # tools (incl. the `yamllint` bin, which is the npm `yaml-lint` package) are
+  # provided by npm, so ubuntu-latest + node 24 has full parity.
+  node:
+    name: Lint + Vitest (UI)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install deps
+        run: npm ci
+      - name: Build UI
+        run: npm run build --workspace=drupal-canvas
+      - name: Build the headless SDK core
+        # The headless SDK dependents type-check against the core's compiled
+        # dist (GitLab's `lint (node)` job does the same).
+        run: npm run build --workspace=@drupal-canvas/headless
+      - name: Lint (eslint/prettier/stylelint/tsc/cspell/yaml/openapi)
+        run: npm run lint
+      - name: Vitest (UI unit)
+        run: npm run test --workspace=@drupal-canvas/ui
+
+  # ---- Build the Drupal site (ddev-free) once, then reuse it -----------------
+  # Runs inside the drupal-testing image and uses composer (not ddev) to build a
+  # Drupal project with Canvas installed as a copied path repo, then tars it for
+  # the downstream jobs. The module's own copy inside the tarball carries
+  # .github/scripts, so downstream jobs invoke serve-drupal.sh from there.
+  build:
+    name: Build Drupal site
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/drupal-canvas/drupal-testing:2.1.1
+      # The build/serve/test steps need root (chown, apache2, sudo -u www-data).
+      options: --user root
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Drupal site with Canvas
+        run: bash .github/scripts/setup-drupal.sh
+      - name: Verify Canvas is in place
+        run: test -f _drupal/web/modules/contrib/canvas/canvas.info.yml
+      - name: Tar the built site
+        run: tar -czf built-site.tgz _drupal
+      - uses: actions/upload-artifact@v4
+        with:
+          name: built-site
+          path: built-site.tgz
+          retention-days: 1
+
+  static:
+    name: phpcs + phpstan
+    needs: build
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/drupal-canvas/drupal-testing:2.1.1
+      options: --user root
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: built-site }
+      - name: Unpack built site
+        run: |
+          tar -xzf built-site.tgz
+          git config --global --add safe.directory '*'
+          echo "MODULE_DIR=$PWD/_drupal/web/modules/contrib/canvas" >> "$GITHUB_ENV"
+      - name: phpcs + phpstan + validate
+        run: |
+          cd "$MODULE_DIR"
+          composer validate --strict || true
+          composer run lint:phpcs
+          # Core resolves to the latest 11.3 patch, newer than the minimum core
+          # the committed phpstan baseline targets. Regenerate the non-min-core
+          # ignore baseline so the handful of version-delta errors are absorbed.
+          # This is the module's own designed mechanism for core drift; the
+          # committed baseline stays empty.
+          composer run phpstan-regenerate-ignores-for-non-min-core-version-features
+          composer run lint:phpstan
+
+  phpunit:
+    name: PHPUnit (${{ matrix.suite }})
+    needs: build
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/drupal-canvas/drupal-testing:2.1.1
+      options: --user root
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Full Unit suite (fast, must be green).
+          - suite: Unit
+            args: "--types PHPUnit-Unit"
+          # Kernel/Functional scoped to a small sub-dir so the jobs demonstrate
+          # the suites *executing* via run-tests.sh without a multi-hour run.
+          - suite: Kernel
+            args: "--types PHPUnit-Kernel tests/src/Kernel/Config"
+          - suite: Functional
+            args: "--types PHPUnit-Functional tests/src/Functional/Config"
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: built-site }
+      - name: Unpack built site
+        run: |
+          tar -xzf built-site.tgz
+          git config --global --add safe.directory '*'
+          echo "DRUPAL_ROOT=$PWD/_drupal" >> "$GITHUB_ENV"
+          echo "MODULE_DIR=$PWD/_drupal/web/modules/contrib/canvas" >> "$GITHUB_ENV"
+      - name: Start webserver
+        run: bash "$MODULE_DIR/.github/scripts/serve-drupal.sh"
+      - name: Run PHPUnit-${{ matrix.suite }}
+        # Functional tests make HTTP requests to the served site as www-data;
+        # run the runner as the same user so both share the sqlite/files it
+        # writes (SIMPLETEST_BASE_URL/SIMPLETEST_DB come from .env.defaults).
+        env:
+          DRUPAL_TEST_WEBSERVER_USER: www-data
+        run: |
+          cd "$MODULE_DIR"
+          composer run phpunit -- ${{ matrix.args }}
+
+  browser:
+    name: ${{ matrix.tool }} (headless)
+    needs: build
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/drupal-canvas/drupal-testing:2.1.1
+      options: --user root
+    strategy:
+      fail-fast: false
+      matrix:
+        tool: [playwright, cypress]
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: built-site }
+      - name: Unpack built site
+        run: |
+          tar -xzf built-site.tgz
+          git config --global --add safe.directory '*'
+          echo "DRUPAL_ROOT=$PWD/_drupal" >> "$GITHUB_ENV"
+          echo "MODULE_DIR=$PWD/_drupal/web/modules/contrib/canvas" >> "$GITHUB_ENV"
+      - name: Start webserver
+        run: bash "$MODULE_DIR/.github/scripts/serve-drupal.sh"
+      - name: Build the Canvas editor UI
+        # Build the `ui` workspace = the Canvas editor app the browser tests
+        # drive (GitLab's `.canvas-ui` step). Building only the `drupal-canvas`
+        # library is not enough — the editor never renders.
+        run: |
+          cd "$MODULE_DIR"
+          npm ci
+          # The UI depends on headless-host, which imports the headless core's
+          # compiled dist.
+          npm run build -w @drupal-canvas/headless
+          npm run build -w ui
+      - name: Playwright (one spec, headless chromium)
+        if: matrix.tool == 'playwright'
+        run: |
+          # @drupal/playwright installs its test site with test-site.php, which
+          # leaves the sqlite db owned by the installing user and not
+          # world-writable. If root installs it, apache (www-data) can't write
+          # the session on login and loginAsAdmin() fails. Run the whole suite as
+          # www-data so the installer and apache are the same user — matching the
+          # cypress and functional suites (chromium also dislikes running
+          # headless as root). @drupal/playwright ignores
+          # DRUPAL_TEST_WEBSERVER_USER, so wrap the command in sudo.
+          export PW_HOME=/tmp/pw-home
+          mkdir -p "$PW_HOME" && chown www-data:www-data "$PW_HOME"
+          sudo -u www-data env \
+            HOME="$PW_HOME" PATH="$PATH" MODULE_DIR="$MODULE_DIR" \
+            PLAYWRIGHT_BROWSERS_PATH="$PW_HOME/ms-playwright" \
+            DRUPAL_TEST_BASE_URL=http://localhost \
+            DRUPAL_TEST_DB_URL=sqlite://localhost/sites/default/files/.ht.sqlite \
+            bash -c 'cd "$MODULE_DIR" && npx playwright install chromium && npx playwright test --project=chromium tests/src/Playwright/tests/isolatedPerTest/canaryMinimal.spec.ts'
+      - name: Cypress (one spec, headless electron)
+        if: matrix.tool == 'cypress'
+        env:
+          BASE_URL: http://localhost
+          DB_URL: sqlite://localhost/sites/default/files/.ht.sqlite
+          # The test-site installer runs as this user so apache (also www-data)
+          # can read/write the sqlite db and files it creates.
+          DRUPAL_TEST_WEBSERVER_USER: www-data
+        run: |
+          umask 000
+          export DRUPAL_ROOT_CORE="$DRUPAL_ROOT/web/core"
+          cd "$MODULE_DIR/ui"
+          npx cypress install
+          npx cypress run --browser electron --spec tests/e2e/canary.cy.js

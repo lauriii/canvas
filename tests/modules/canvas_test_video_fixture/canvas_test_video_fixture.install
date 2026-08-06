@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Extension\ModuleExtensionList;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\file\Entity\File;
 use Drupal\file\FileInterface;
 use Drupal\media\Entity\Media;
@@ -30,8 +32,8 @@ function canvas_test_video_fixture_install(): void {
       ->save();
   }
 
-  $module_path = \Drupal::service('extension.list.module')->getPath('canvas_test_video_fixture');
-  \Drupal::service('file_system')->copy($module_path . '/videos/duck.mp4', 'public://duck.mp4');
+  $module_path = \Drupal::service(ModuleExtensionList::class)->getPath('canvas_test_video_fixture');
+  \Drupal::service(FileSystemInterface::class)->copy($module_path . '/videos/duck.mp4', 'public://duck.mp4');
 
   $file_1 = File::create([
     'uri' => 'public://duck.mp4',
@@ -39,7 +41,7 @@ function canvas_test_video_fixture_install(): void {
   ]);
   $file_1->save();
 
-  \Drupal::service('file_system')->copy($module_path . '/videos/waterfall.mp4', 'public://waterfall.mp4');
+  \Drupal::service(FileSystemInterface::class)->copy($module_path . '/videos/waterfall.mp4', 'public://waterfall.mp4');
 
   $file_2 = File::create([
     'uri' => 'public://waterfall.mp4',

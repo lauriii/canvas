@@ -8,6 +8,7 @@ use Drupal\canvas_personalization\Entity\SegmentInterface;
 use Drupal\Core\Condition\ConditionInterface;
 use Drupal\Core\Condition\ConditionManager;
 use Drupal\Core\Entity\EntityForm;
+use Drupal\Core\Executable\ExecutableManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Form\SubformState;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -24,7 +25,7 @@ final class SegmentRuleForm extends EntityForm {
   public function __construct(protected ConditionManager $conditionManager) {}
 
   public static function create(ContainerInterface $container): self {
-    $condition_manager = $container->get('plugin.manager.condition');
+    $condition_manager = $container->get(ExecutableManagerInterface::class);
     \assert($condition_manager instanceof ConditionManager);
     return new static(
       $condition_manager,

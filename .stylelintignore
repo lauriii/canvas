@@ -4,9 +4,3 @@
 docs/user/dist/**
 packages/**/dist/**
 ui/dist/**
-# Example app build outputs.
-modules/canvas_headless/examples/**/dist/**
-modules/canvas_headless/examples/**/.astro/**
-modules/canvas_headless/examples/**/.nuxt/**
-modules/canvas_headless/examples/**/.output/**
-modules/canvas_headless/examples/**/.next/**

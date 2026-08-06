@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\PropSource;
 
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
+use Drupal\content_translation\BundleTranslationSettingsInterface;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\TranslatableInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\File\FileExists;
+use Drupal\Core\File\FileSystemInterface;
+use Drupal\Core\Language\LanguageDefault;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\file\Entity\File;
@@ -76,7 +79,7 @@ abstract class PropSourceTestBase extends CanvasKernelTestBase {
     $this->createMediaType('test', ['id' => 'image_but_not_image_media_source']);
 
     /** @var \Drupal\Core\File\FileSystemInterface $file_system */
-    $file_system = \Drupal::service('file_system');
+    $file_system = \Drupal::service(FileSystemInterface::class);
     $this->installEntitySchema('file');
     $this->installSchema('file', 'file_usage');
     $this->installEntitySchema('user');
@@ -178,7 +181,7 @@ abstract class PropSourceTestBase extends CanvasKernelTestBase {
     if ($langcode !== $default_langcode) {
       $language = \Drupal::languageManager()->getLanguage($langcode);
       \assert($language !== NULL);
-      \Drupal::service('language.default')->set($language);
+      \Drupal::service(LanguageDefault::class)->set($language);
       \Drupal::languageManager()->reset();
     }
   }
@@ -212,7 +215,7 @@ abstract class PropSourceTestBase extends CanvasKernelTestBase {
    *   The saved EN media entity (with ES translation attached).
    */
   protected function createTranslatedMediaFixture(): Media {
-    \Drupal::service('content_translation.manager')
+    \Drupal::service(BundleTranslationSettingsInterface::class)
       ->setEnabled('media', 'image', TRUE);
 
     $media = Media::create([

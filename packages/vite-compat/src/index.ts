@@ -660,20 +660,43 @@ export async function buildCanvasComponentEntry(options: {
   return metadata;
 }
 
+/**
+ * Per-specifier metadata for a local artifact.
+ */
+export interface CanvasLocalSource {
+  path: string;
+  source?: string;
+}
+
+/**
+ * The verbatim source of a local module that was bundled into another runtime
+ * artifact and so has no standalone artifact of its own.
+ */
+export interface CanvasBundledSource {
+  path: string;
+  source: string;
+}
+
 export interface CanvasLocalArtifactBuildResult {
   localImportMap: Record<string, string>;
+  localSources: Record<string, CanvasLocalSource>;
+  bundledSources: CanvasBundledSource[];
   sharedChunks: string[];
   thirdPartyPackages: Set<string>;
 }
 
 function createLocalAssetEmitterPlugin(options: {
+  projectRoot: string;
+  aliasBaseDir: string;
   assetImports: Map<string, string>;
   localImportMap: Record<string, string>;
+  localSources: Record<string, CanvasLocalSource>;
 }): Plugin {
   const referenceIds = new Map<string, string>();
 
   return {
     name: 'canvas-local-asset-emitter',
+    enforce: 'pre',
     async buildStart() {
       for (const [specifier, filePath] of options.assetImports) {
         const source = await fs.readFile(filePath);
@@ -683,12 +706,115 @@ function createLocalAssetEmitterPlugin(options: {
           source,
         });
         referenceIds.set(specifier, referenceId);
+        // Record the original disk path for binary assets. No `source`: the
+        // emitted artifact (referenced by `uri`) already holds the original
+        // bytes, so pull writes those directly.
+        options.localSources[specifier] = {
+          path: normalizePath(path.relative(options.projectRoot, filePath)),
+        };
       }
+    },
+    // Give assets imported by local modules the same import-map treatment as
+    // assets imported directly by components.
+    async transform(code, id) {
+      const importerPath = stripQueryAndHash(normalizeViteImporterPath(id));
+      if (!isPathWithinRoot(importerPath, options.projectRoot)) {
+        return null;
+      }
+
+      const result = rewriteCanvasAssetImports(code, {
+        filePath: importerPath,
+        hostRoot: options.projectRoot,
+        hostAliasBaseDir: options.aliasBaseDir,
+      });
+      for (const asset of result.assets) {
+        if (!existsSync(asset.filePath)) {
+          continue;
+        }
+        options.assetImports.set(asset.specifier, asset.filePath);
+        if (referenceIds.has(asset.specifier)) {
+          continue;
+        }
+        const source = await fs.readFile(asset.filePath);
+        const referenceId = this.emitFile({
+          type: 'asset',
+          name: path.basename(asset.filePath),
+          source,
+        });
+        referenceIds.set(asset.specifier, referenceId);
+        options.localSources[asset.specifier] = {
+          path: normalizePath(
+            path.relative(options.projectRoot, asset.filePath),
+          ),
+        };
+      }
+
+      return result.assets.length > 0 ? { code: result.code, map: null } : null;
     },
     generateBundle() {
       for (const [specifier, referenceId] of referenceIds) {
         options.localImportMap[specifier] =
           `./local/${this.getFileName(referenceId)}`.replace(/\\/g, '/');
+      }
+    },
+  };
+}
+
+/**
+ * Harvest, during the single build pass, the verbatim source of every local
+ * module that was bundled into another artifact and so has no
+ * standalone artifact of its own.
+ *
+ * `buildEnd` runs after Rollup has resolved the whole module graph but before
+ * output is written, so this reads the graph without changing what is bundled.
+ * Modules that ARE their own entry (recorded in `sourceByResolvedPath`) already
+ * round-trip via `localImportMap` and are skipped here.
+ */
+function createBundledSourceHarvestPlugin(options: {
+  projectRoot: string;
+  sourceByResolvedPath: Map<string, string>;
+  bundledSourcesByPath: Map<string, CanvasBundledSource>;
+}): Plugin {
+  return {
+    name: 'canvas-bundled-source-harvest',
+    async buildEnd() {
+      for (const id of this.getModuleIds()) {
+        const info = this.getModuleInfo(id);
+        if (!info || info.isExternal || info.isEntry) {
+          continue;
+        }
+        // Skip virtual modules and anything resolved outside the project.
+        if (id.startsWith('\0')) {
+          continue;
+        }
+        const filePath = stripQueryAndHash(id);
+        if (!isPathWithinRoot(filePath, options.projectRoot)) {
+          continue;
+        }
+        // Canvas-provided externals and binary assets are not restorable source.
+        if (
+          isCanvasProvidedExternal(filePath) ||
+          isCanvasAssetSpecifier(filePath)
+        ) {
+          continue;
+        }
+        // Modules that are their own entry already carry a source record.
+        if (options.sourceByResolvedPath.has(path.resolve(filePath))) {
+          continue;
+        }
+        const relativePath = normalizePath(
+          path.relative(options.projectRoot, filePath),
+        );
+        if (options.bundledSourcesByPath.has(relativePath)) {
+          continue;
+        }
+        // Read verbatim source from disk, NOT `info.code`, which is
+        // post-transform (JSX compiled, etc.) and not editable.
+        const source = await fs.readFile(filePath, 'utf-8');
+        options.bundledSourcesByPath.set(relativePath, {
+          path: relativePath,
+          source,
+        });
       }
     },
   };
@@ -715,6 +841,8 @@ export async function buildCanvasLocalArtifacts(options: {
   assetImports: Map<string, string>;
 }): Promise<CanvasLocalArtifactBuildResult> {
   const localImportMap: Record<string, string> = {};
+  const localSources: Record<string, CanvasLocalSource> = {};
+  const bundledSourcesByPath = new Map<string, CanvasBundledSource>();
   const sharedChunks: string[] = [];
   const metadata = createCanvasDependencyMetadata();
   const outputDirForLocalImports = path.join(
@@ -739,13 +867,28 @@ export async function buildCanvasLocalArtifacts(options: {
     entryNameCounts.set(entryBaseName, previousCount + 1);
     codeEntries[entryName] = resolvedPath;
     sourceByResolvedPath.set(path.resolve(resolvedPath), source);
+    // Record the original disk path and verbatim source for this text module.
+    // The emitted `uri` artifact holds minified compiled JS, so a pull needs the
+    // original source to restore editable code. `path` is derived from the
+    // resolved absolute disk path, never from the (possibly synthetic) `@/…`
+    // specifier.
+    localSources[source] = {
+      path: normalizePath(path.relative(options.projectRoot, resolvedPath)),
+      source: await fs.readFile(resolvedPath, 'utf-8'),
+    };
   }
 
   if (
     Object.keys(codeEntries).length === 0 &&
     options.assetImports.size === 0
   ) {
-    return { localImportMap, sharedChunks, thirdPartyPackages: new Set() };
+    return {
+      localImportMap,
+      localSources,
+      bundledSources: [],
+      sharedChunks,
+      thirdPartyPackages: new Set(),
+    };
   }
 
   const baseConfig = createCanvasViteBuildConfig({
@@ -761,8 +904,16 @@ export async function buildCanvasLocalArtifacts(options: {
     logLevel: 'silent',
     plugins: [
       createLocalAssetEmitterPlugin({
+        projectRoot: options.projectRoot,
+        aliasBaseDir: options.aliasBaseDir,
         assetImports: options.assetImports,
         localImportMap,
+        localSources,
+      }),
+      createBundledSourceHarvestPlugin({
+        projectRoot: options.projectRoot,
+        sourceByResolvedPath,
+        bundledSourcesByPath,
       }),
       ...(hasCodeEntries ? [] : [createVirtualAssetEntryPlugin()]),
       createCanvasDependencyMetadataPlugin({
@@ -822,8 +973,12 @@ export async function buildCanvasLocalArtifacts(options: {
       continue;
     }
 
+    // `entry.src` is relative to the Vite root (the project root), so resolve
+    // it against that root rather than the process cwd.
     const sourcePath = entry.src ?? entryPath;
-    const source = sourceByResolvedPath.get(path.resolve(sourcePath));
+    const source = sourceByResolvedPath.get(
+      path.resolve(options.projectRoot, sourcePath),
+    );
     if (source) {
       localImportMap[source] = `./local/${entry.file}`.replace(/\\/g, '/');
     }
@@ -831,6 +986,10 @@ export async function buildCanvasLocalArtifacts(options: {
 
   return {
     localImportMap,
+    localSources,
+    bundledSources: [...bundledSourcesByPath.values()].sort((a, b) =>
+      a.path.localeCompare(b.path),
+    ),
     sharedChunks,
     thirdPartyPackages: metadata.thirdPartyPackages,
   };

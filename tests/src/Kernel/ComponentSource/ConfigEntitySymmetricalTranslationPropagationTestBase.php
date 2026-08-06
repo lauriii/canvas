@@ -12,6 +12,8 @@ use Drupal\canvas\Controller\ApiAutoSaveController;
 use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
 use Drupal\canvas\Entity\StagedLanguageConfigOverride;
 use Drupal\Core\Access\AccessResultReasonInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Routing\RouteBuilderInterface;
 use Drupal\language\Config\LanguageConfigOverride;
 use Drupal\language\ConfigurableLanguageManagerInterface;
 use Drupal\language\Entity\ConfigurableLanguage;
@@ -266,7 +268,7 @@ abstract class ConfigEntitySymmetricalTranslationPropagationTestBase extends Tra
     \assert($this->entity instanceof ComponentTreeConfigEntityBase);
     // Router must be built before UserCreationTrait::setUpCurrentUser()
     // triggers FilterPermissions::permissions()  URL generation.
-    $this->container->get('router.builder')->rebuild();
+    $this->container->get(RouteBuilderInterface::class)->rebuild();
 
     $admin_permission = $this->entity->getEntityType()->getAdminPermission();
     \assert(\is_string($admin_permission));
@@ -490,7 +492,7 @@ abstract class ConfigEntitySymmetricalTranslationPropagationTestBase extends Tra
     // updateComponentInstances() prunes optional_text from the pending draft
     // while keeping the editor's required_text (getTranslation() is auto-save-
     // aware), and both reconciled drafts are written back to auto-save.
-    $base = $this->container->get('entity_type.manager')
+    $base = $this->container->get(EntityTypeManagerInterface::class)
       ->getStorage($this->entity->getEntityTypeId())
       ->loadUnchanged((string) $this->entity->id());
     \assert($base instanceof ComponentTreeConfigEntityBase);
@@ -552,7 +554,7 @@ abstract class ConfigEntitySymmetricalTranslationPropagationTestBase extends Tra
     $config_name = $this->entity->getConfigDependencyName();
     $entity_type_id = $this->entity->getEntityTypeId();
 
-    $handler = $this->container->get('entity_type.manager')
+    $handler = $this->container->get(EntityTypeManagerInterface::class)
       ->getAccessControlHandler(StagedLanguageConfigOverride::ENTITY_TYPE_ID);
 
     // An override targeting the existing (saved) base config entity.
@@ -654,7 +656,7 @@ abstract class ConfigEntitySymmetricalTranslationPropagationTestBase extends Tra
 
     // Router must be built before UserCreationTrait::setUpCurrentUser() triggers
     // FilterPermissions::permissions() URL generation.
-    $this->container->get('router.builder')->rebuild();
+    $this->container->get(RouteBuilderInterface::class)->rebuild();
     $admin_permission = $this->entity->getEntityType()->getAdminPermission();
     \assert(\is_string($admin_permission));
     $this->setUpCurrentUser([], [$admin_permission]);

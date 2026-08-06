@@ -2,6 +2,7 @@ import { getCookie } from 'h3';
 import { isDraftSessionExpired } from '@drupal-canvas/headless';
 import {
   createDraftServer,
+  isPageRedirect,
   resolveDraftConfig,
 } from '@drupal-canvas/headless/server';
 
@@ -11,7 +12,7 @@ import type { DraftData } from '@drupal-canvas/headless';
 import type {
   DraftConfig,
   DraftServer,
-  Page,
+  PageResult,
 } from '@drupal-canvas/headless/server';
 import type { H3Event } from 'h3';
 
@@ -78,8 +79,19 @@ export function getClient(
  * Fetches a page by its Drupal path, resolved through Drupal's routing,
  * carrying the live draft session's bearer token when there is one.
  */
-export function fetchPage(event: H3Event, path: string): Promise<Page | null> {
+export function fetchPage(
+  event: H3Event,
+  path: string,
+): Promise<PageResult | null> {
   return getDraftServer(event).fetchPage(path);
 }
 
-export { isDraftSessionExpired, NUXT_DRAFT_FLAG_COOKIE_NAME };
+export { isDraftSessionExpired, isPageRedirect, NUXT_DRAFT_FLAG_COOKIE_NAME };
+export type {
+  DrupalRoute,
+  DrupalRouteEntity,
+  Page,
+  PageHead,
+  PageRedirect,
+  PageResult,
+} from '@drupal-canvas/headless/server';

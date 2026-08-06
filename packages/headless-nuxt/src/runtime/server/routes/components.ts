@@ -14,8 +14,7 @@ import {
  * The component metadata endpoint (see the framework-free handler in
  * @drupal-canvas/headless/components-endpoint for the payload and its
  * proof-by-redemption protection). Mounted at /api/canvas/components by
- * the module, methods unrestricted so the handler can answer the CORS
- * preflight itself.
+ * the module.
  *
  * `import.meta.dev` is Nitro's build-time mode flag: `nuxt dev` scans the
  * codebase live on every request, while a production build serves the

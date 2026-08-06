@@ -19,6 +19,7 @@ interface ChangeGroupProps {
   setSelectedChanges: (changes: UnpublishedChange[]) => void;
   onDiscardClick: (change: UnpublishedChange) => void;
   onViewClick?: (change: UnpublishedChange) => void;
+  isViewChangeAvailable?: (change: UnpublishedChange) => boolean;
   onResolveConflict?: (change: UnpublishedChange) => void;
   pageStatusMap?: Record<
     string,
@@ -34,6 +35,7 @@ const ChangeGroup = ({
   setSelectedChanges,
   onDiscardClick,
   onViewClick,
+  isViewChangeAvailable,
   onResolveConflict,
   pageStatusMap,
 }: ChangeGroupProps) => {
@@ -109,6 +111,7 @@ const ChangeGroup = ({
             setSelectedChanges={setSelectedChanges}
             onDiscardClick={onDiscardClick}
             onViewClick={onViewClick}
+            isViewChangeAvailable={isViewChangeAvailable}
             onResolveConflict={onResolveConflict}
             pageStatusMap={pageStatusMap}
           />

@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://git.drupalcode.org/project/canvas/-/raw/HEAD/docs/data-health.schema.json",
+  "title": "Canvas Doctor JSON report envelope",
+  "description": "The `--format=json` output of `canvas:doctor` (see docs/data-health.md). The envelope — report_version, environment_fingerprint, overall, and each checks entry's type/status/total/healthy/cached/duration_s — is stable: additive changes (new keys, new checks) do not bump report_version, a breaking change does. A check's `details` shape is frozen exactly when this schema constrains it with its own $defs entry; a check validating only against the generic checkEntry makes no such promise, so consume its `details` defensively. This schema tracks HEAD: validate a pinned report against the schema of the same Canvas version.",
+  "type": "object",
+  "required": ["report_version", "environment_fingerprint", "overall", "checks"],
+  "additionalProperties": false,
+  "properties": {
+    "report_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Version of this envelope. See \\Drupal\\canvas\\Command\\DoctorCommand::REPORT_VERSION."
+    },
+    "environment_fingerprint": {
+      "type": "string",
+      "description": "Hash of the Canvas schema version, applied post-updates, and every installed extension's version; decides whether stored per-item results can be reused."
+    },
+    "overall": {
+      "type": "object",
+      "description": "Aggregate verdict across every requested check.",
+      "required": ["healthy", "problems", "risks"],
+      "additionalProperties": false,
+      "properties": {
+        "healthy": { "type": "boolean", "description": "True when no check has status \"problem\". Advisory risks do not affect this." },
+        "problems": { "type": "integer", "minimum": 0, "description": "Number of checks with status \"problem\"." },
+        "risks": { "type": "integer", "minimum": 0, "description": "Number of checks with status \"risk\"." }
+      }
+    },
+    "checks": {
+      "type": "object",
+      "description": "One entry per requested check, keyed by check name. A check with its own $defs entry below freezes its `details` shape. The map is open: a check added by a later release validates against the generic entry.",
+      "properties": {
+        "code_tagged_releases": { "$ref": "#/$defs/codeTaggedReleasesEntry" },
+        "update_path_executed": { "$ref": "#/$defs/updatesExecutedEntry" },
+        "update_path_escaped_config": { "$ref": "#/$defs/updatesEscapedConfigEntry" },
+        "component_source_supports_schema_evolution": { "$ref": "#/$defs/checkEntry" },
+        "config": { "$ref": "#/$defs/dataCheckEntry" },
+        "content": { "$ref": "#/$defs/dataCheckEntry" },
+        "content_past_revisions": { "$ref": "#/$defs/dataCheckEntry" },
+        "content_forward_revisions": { "$ref": "#/$defs/dataCheckEntry" },
+        "auto_save": { "$ref": "#/$defs/dataCheckEntry" }
+      },
+      "additionalProperties": { "$ref": "#/$defs/checkEntry" }
+    }
+  },
+  "$defs": {
+    "checkEntry": {
+      "type": "object",
+      "description": "A single check's normalized report entry, shaped uniformly for system and data checks alike so tooling can iterate `checks` without special-casing.",
+      "required": ["type", "status", "total", "healthy", "cached", "duration_s", "details"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "type": "string", "enum": ["system", "data"], "description": "\"system\" answers one environment/state question; \"data\" validates many data items." },
+        "status": { "type": "string", "enum": ["healthy", "problem", "risk"], "description": "\"problem\" makes the overall run unhealthy; \"risk\" is advisory only." },
+        "total": { "type": "integer", "minimum": 0, "description": "Items considered by this check." },
+        "healthy": { "type": "integer", "minimum": 0, "description": "Items with no problem. Risks do not reduce this." },
+        "cached": { "type": "integer", "minimum": 0, "description": "Items reused from a prior run instead of revalidated. Always 0 for system checks." },
+        "duration_s": { "type": "number", "minimum": 0, "description": "Wall-clock time for this check, in seconds." },
+        "details": { "type": "object", "description": "Per-check payload, unconstrained here; frozen only for checks with their own precise entries." }
+      }
+    },
+    "dataCheckEntry": {
+      "description": "A data check (config, content, the revision checks, auto-save): `details` lists the failing data items and their constraint violations. auto-save findings surface as status `risk`, never `problem`: drafts are allowed to be invalid.",
+      "allOf": [
+        { "$ref": "#/$defs/checkEntry" },
+        {
+          "properties": {
+            "details": {
+              "type": "object",
+              "required": ["failures"],
+              "additionalProperties": false,
+              "properties": {
+                "failures": { "type": "array", "description": "One entry per failing finding. Empty when the check is healthy.", "items": { "$ref": "#/$defs/finding" } }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "finding": {
+      "type": "object",
+      "description": "One validated data item (an entity revision/translation, or an auto-save snapshot) and its violations.",
+      "required": ["label", "violations"],
+      "additionalProperties": false,
+      "properties": {
+        "label": { "type": "string", "description": "Human-readable identifier of the data item, e.g. \"canvas_page 8 (default revision, nl)\"." },
+        "violations": { "type": "array", "items": { "$ref": "#/$defs/violation" } }
+      }
+    },
+    "violation": {
+      "type": "object",
+      "required": ["message", "property_path", "code"],
+      "additionalProperties": false,
+      "properties": {
+        "message": { "type": "string", "description": "The constraint violation message, with any markup stripped." },
+        "property_path": { "type": "string", "description": "Path to the offending value, e.g. \"components.0.inputs.href\". Empty when the violation applies to the whole item." },
+        "code": { "type": ["string", "null"], "description": "The constraint's violation code, when it defines one." }
+      }
+    },
+    "updatesExecutedEntry": {
+      "description": "update_path_executed: the Canvas schema version and its post-update state.",
+      "allOf": [
+        { "$ref": "#/$defs/checkEntry" },
+        {
+          "properties": {
+            "details": {
+              "type": "object",
+              "required": ["schema_version", "applied_post_updates", "pending_post_updates"],
+              "additionalProperties": false,
+              "properties": {
+                "schema_version": { "type": "integer", "description": "The schema version the Canvas database is currently at." },
+                "applied_post_updates": { "type": "array", "items": { "type": "string" }, "description": "Names of the Canvas post-update functions already applied." },
+                "pending_post_updates": { "type": "array", "items": { "type": "string" }, "description": "Names of not-yet-applied post-update functions. Non-empty means results are untrustworthy until `drush updatedb` runs." }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "codeTaggedReleasesEntry": {
+      "description": "code_tagged_releases: installed extensions that are development checkouts. A dev checkout is an advisory RISK, not a problem: it disables incremental result reuse but never fails the run.",
+      "allOf": [
+        { "$ref": "#/$defs/checkEntry" },
+        {
+          "properties": {
+            "details": {
+              "type": "object",
+              "required": ["dev_extensions"],
+              "additionalProperties": false,
+              "properties": {
+                "dev_extensions": { "type": "array", "items": { "type": "string" }, "description": "Machine names of installed extensions with no release version. Non-empty disables incremental result reuse and makes this check's status \"risk\"." }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "updatesEscapedConfigEntry": {
+      "description": "update_path_escaped_config: config entities with a detectable pending migration.",
+      "allOf": [
+        { "$ref": "#/$defs/checkEntry" },
+        {
+          "properties": {
+            "details": {
+              "type": "object",
+              "required": ["pending"],
+              "additionalProperties": false,
+              "properties": {
+                "pending": { "type": "object", "description": "Config dependency name => the CanvasConfigUpdater needs*() methods reporting a pending migration for it.", "additionalProperties": { "type": "array", "items": { "type": "string" } } }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

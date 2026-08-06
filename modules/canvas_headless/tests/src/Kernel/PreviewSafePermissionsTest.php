@@ -7,6 +7,7 @@ namespace Drupal\Tests\canvas_headless\Kernel;
 use Drupal\Component\Plugin\Exception\PluginException;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
+use Drupal\user\PermissionHandlerInterface;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
@@ -30,6 +31,7 @@ class PreviewSafePermissionsTest extends CanvasKernelTestBase {
     'serialization',
     'consumers',
     'simple_oauth',
+    'custom_elements',
     'canvas_headless',
   ];
 
@@ -82,7 +84,7 @@ class PreviewSafePermissionsTest extends CanvasKernelTestBase {
     $this->assertNotContains('access canvas headless preview', $permissions);
 
     // Every permission in the ceiling is a defined permission.
-    $defined = \array_keys($this->container->get('user.permissions')->getPermissions());
+    $defined = \array_keys($this->container->get(PermissionHandlerInterface::class)->getPermissions());
     $this->assertSame([], array_diff($permissions, $defined));
   }
 

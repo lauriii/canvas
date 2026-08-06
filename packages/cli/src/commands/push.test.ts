@@ -4,7 +4,10 @@ import path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { generateManifest } from '../utils/generate-manifest';
-import { pushBuiltComponents } from '../utils/prepare-push';
+import {
+  prepareGlobalAssetLibraryUpdate,
+  pushBuiltComponents,
+} from '../utils/prepare-push';
 import {
   formatDiscoveryWarning,
   formatDiscoveryWarningReport,
@@ -37,6 +40,7 @@ vi.mock('tailwindcss-in-browser', () => ({
 
 vi.mock('../utils/build-tailwind', () => ({
   buildTailwindForComponents: vi.fn(),
+  getGlobalCss: vi.fn(async () => 'body {}'),
 }));
 
 function mockApiService(): ApiService {
@@ -276,6 +280,88 @@ describe('Push component dependencies', () => {
     expect(result.artifactCount).toBe(2);
   });
 
+  it('carries localSources path onto all local entries and source onto text modules only', async () => {
+    const outputDir = path.join(tmpDir, 'dist');
+    await fs.mkdir(path.join(outputDir, 'vendor'), { recursive: true });
+    await fs.mkdir(path.join(outputDir, 'local'), { recursive: true });
+
+    await fs.writeFile(
+      path.join(outputDir, 'vendor/lodash-abc123.js'),
+      'export default {}',
+      'utf-8',
+    );
+    await fs.writeFile(
+      path.join(outputDir, 'local/utils-def456.js'),
+      'export const cn = () => "";',
+      'utf-8',
+    );
+    await fs.writeFile(
+      path.join(outputDir, 'local/poster-ghi789.webp'),
+      'webp fixture',
+      'utf-8',
+    );
+
+    await generateManifest({
+      outputDir,
+      vendorImportMap: { imports: { lodash: './vendor/lodash-abc123.js' } },
+      localImportMap: {
+        '@/lib/utils': './local/utils-def456.js',
+        '@/assets/poster.webp': './local/poster-ghi789.webp',
+      },
+      localSources: {
+        '@/lib/utils': {
+          path: 'src/lib/utils.ts',
+          source: 'export const cn = () => "";\n',
+        },
+        '@/assets/poster.webp': { path: 'src/assets/poster.webp' },
+      },
+      sharedChunks: [],
+    });
+
+    const uploadArtifact = vi.fn(async (filename: string) => ({
+      uri: `public://canvas/artifacts/${filename}`,
+      fid: 1,
+    }));
+    const syncManifest = vi.fn().mockResolvedValue({ ok: true });
+
+    await syncManifestArtifacts(outputDir, {
+      apiService: { uploadArtifact, syncManifest },
+      createSpinner: () => ({
+        start: vi.fn(),
+        stop: vi.fn(),
+        message: vi.fn(),
+      }),
+      logInfo: vi.fn(),
+    });
+
+    expect(syncManifest).toHaveBeenCalledWith({
+      // Vendor entries stay {name, uri} — no path/source.
+      vendor: [
+        {
+          name: 'lodash',
+          uri: 'public://canvas/artifacts/lodash-abc123.js',
+        },
+      ],
+      // Sorted by specifier: assets before lib.
+      local: [
+        // Binary asset: path only, no source.
+        {
+          name: '@/assets/poster.webp',
+          uri: 'public://canvas/artifacts/poster-ghi789.webp',
+          path: 'src/assets/poster.webp',
+        },
+        // Text module: path + verbatim source.
+        {
+          name: '@/lib/utils',
+          uri: 'public://canvas/artifacts/utils-def456.js',
+          path: 'src/lib/utils.ts',
+          source: 'export const cn = () => "";\n',
+        },
+      ],
+      shared: [],
+    });
+  });
+
   it('uploads component dependencies without syncing the dependency map', async () => {
     const outputDir = path.join(tmpDir, 'dist');
     await fs.mkdir(path.join(outputDir, 'vendor'), { recursive: true });
@@ -330,17 +416,22 @@ describe('Push component dependencies', () => {
           },
         ],
         shared: [],
+        bundledSources: [],
       },
     });
   });
 
   it('updates the global asset library once with CSS and dependency manifest fields', async () => {
+    const getGlobalAssetLibrary = vi.fn().mockResolvedValue({
+      bundledSources: null,
+      packageJson: null,
+    });
     const updateGlobalAssetLibrary = vi.fn().mockResolvedValue({});
 
     await updateGlobalAssetLibraryForPush(
-      { updateGlobalAssetLibrary } as unknown as Pick<
+      { getGlobalAssetLibrary, updateGlobalAssetLibrary } as unknown as Pick<
         ApiService,
-        'updateGlobalAssetLibrary'
+        'getGlobalAssetLibrary' | 'updateGlobalAssetLibrary'
       >,
       {
         css: {
@@ -371,6 +462,12 @@ describe('Push component dependencies', () => {
             {
               name: './vendor/chunk-shared-ghi789.js',
               uri: 'public://canvas/artifacts/chunk-shared-ghi789.js',
+            },
+          ],
+          bundledSources: [
+            {
+              path: 'src/lib/lib-a.ts',
+              source: 'export const a = 1;\n',
             },
           ],
         },
@@ -405,6 +502,100 @@ describe('Push component dependencies', () => {
           uri: 'public://canvas/artifacts/chunk-shared-ghi789.js',
         },
       ],
+      bundledSources: [
+        {
+          path: 'src/lib/lib-a.ts',
+          source: 'export const a = 1;\n',
+        },
+      ],
+    });
+  });
+
+  it('sends empty manifest groups so deleted imports are cleared on the server', async () => {
+    const getGlobalAssetLibrary = vi.fn().mockResolvedValue({
+      bundledSources: null,
+      packageJson: null,
+    });
+    const updateGlobalAssetLibrary = vi.fn().mockResolvedValue({});
+
+    await updateGlobalAssetLibraryForPush(
+      { getGlobalAssetLibrary, updateGlobalAssetLibrary } as unknown as Pick<
+        ApiService,
+        'getGlobalAssetLibrary' | 'updateGlobalAssetLibrary'
+      >,
+      undefined,
+      {
+        artifactCount: 0,
+        groupedManifest: {
+          vendor: [],
+          local: [],
+          shared: [],
+          bundledSources: [],
+        },
+      },
+    );
+
+    expect(updateGlobalAssetLibrary).toHaveBeenCalledTimes(1);
+    expect(updateGlobalAssetLibrary).toHaveBeenCalledWith({
+      imports: [],
+      assets: [],
+      shared: [],
+      bundledSources: [],
+    });
+  });
+
+  it('uses the legacy asset library payload for older Canvas sites', async () => {
+    const getGlobalAssetLibrary = vi.fn().mockResolvedValue({
+      id: 'global',
+      label: 'Global asset library',
+      css: null,
+      js: null,
+      imports: null,
+      assets: null,
+      shared: null,
+    });
+    const updateGlobalAssetLibrary = vi.fn().mockResolvedValue({});
+
+    await updateGlobalAssetLibraryForPush(
+      { getGlobalAssetLibrary, updateGlobalAssetLibrary } as unknown as Pick<
+        ApiService,
+        'getGlobalAssetLibrary' | 'updateGlobalAssetLibrary'
+      >,
+      {
+        packageJson: '{"name":"example"}',
+      },
+      {
+        artifactCount: 1,
+        groupedManifest: {
+          vendor: [],
+          local: [
+            {
+              name: '@/lib/example',
+              uri: 'public://canvas/assets/example.js',
+              path: 'src/lib/example.ts',
+              source: 'export const example = true;\n',
+            },
+          ],
+          shared: [],
+          bundledSources: [
+            {
+              path: 'src/lib/bundled.ts',
+              source: 'export const bundled = true;\n',
+            },
+          ],
+        },
+      },
+    );
+
+    expect(updateGlobalAssetLibrary).toHaveBeenCalledWith({
+      imports: [],
+      assets: [
+        {
+          name: '@/lib/example',
+          uri: 'public://canvas/assets/example.js',
+        },
+      ],
+      shared: [],
     });
   });
 
@@ -528,6 +719,7 @@ describe('Push component dependencies', () => {
       vendor: [],
       local: [],
       shared: [],
+      bundledSources: [],
     });
   });
 });
@@ -631,5 +823,57 @@ describe('Push components', () => {
         details: [{ content: uploadError }],
       },
     ]);
+  });
+});
+
+describe('prepareGlobalAssetLibraryUpdate package.json', () => {
+  let outputDir: string;
+  let projectRoot: string;
+
+  beforeEach(async () => {
+    outputDir = await fs.mkdtemp(path.join(os.tmpdir(), 'push-out-test-'));
+    projectRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'push-root-test-'));
+    // The compiled global CSS/JS must exist for a successful prepare.
+    await fs.writeFile(path.join(outputDir, 'index.css'), 'body {}', 'utf-8');
+    await fs.writeFile(path.join(outputDir, 'index.js'), '', 'utf-8');
+  });
+
+  afterEach(async () => {
+    await fs.rm(outputDir, { recursive: true, force: true });
+    await fs.rm(projectRoot, { recursive: true, force: true });
+  });
+
+  it('includes the project package.json verbatim when present', async () => {
+    const packageJson = '{\n  "name": "my-project"\n}\n';
+    await fs.writeFile(
+      path.join(projectRoot, 'package.json'),
+      packageJson,
+      'utf-8',
+    );
+
+    const { result, assetLibrary } = await prepareGlobalAssetLibraryUpdate(
+      outputDir,
+      projectRoot,
+    );
+
+    expect(result.success).toBe(true);
+    expect(assetLibrary?.packageJson).toBe(packageJson);
+  });
+
+  it('omits the packageJson key when no package.json exists', async () => {
+    const { result, assetLibrary } = await prepareGlobalAssetLibraryUpdate(
+      outputDir,
+      projectRoot,
+    );
+
+    expect(result.success).toBe(true);
+    expect(assetLibrary).toBeDefined();
+    expect('packageJson' in (assetLibrary ?? {})).toBe(false);
+  });
+
+  it('omits the packageJson key when no projectRoot is given', async () => {
+    const { assetLibrary } = await prepareGlobalAssetLibraryUpdate(outputDir);
+
+    expect('packageJson' in (assetLibrary ?? {})).toBe(false);
   });
 });

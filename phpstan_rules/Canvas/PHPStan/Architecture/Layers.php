@@ -16,6 +16,7 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Entity\StagedLanguageConfigOverride;
 use Drupal\canvas\EntityHandlers\StagedLanguageConfigOverrideAccessControlHandler;
 use Drupal\canvas\EntityHandlers\StagedLanguageConfigOverrideStorage;
@@ -40,6 +41,7 @@ use Drupal\canvas\PropExpressions\PropExpressionInterface;
 use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\canvas\Utility\TypedDataHelper;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\Entity\ConfigEntityStorageInterface;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Datetime\DrupalDateTime;
@@ -254,6 +256,7 @@ final class Layers {
         Selector::classname(FormStateInterface::class),
         Selector::classname(WidgetPluginManager::class),
         Selector::classname(ContentTemplate::class),
+        Selector::classname(Pattern::class),
         // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::validateComponentInput()
         self::usesConstraintViolationValueObjects(),
         // For the translatability of inputs.
@@ -332,6 +335,8 @@ final class Layers {
         Selector::classname(JsonSchemaPropsComponentInstanceInputsConfigSchemaGenerator::class),
         // Config entity types powering code components.
         Selector::classname(ConfigEntityStorageInterface::class),
+        // Selects Drupal or external rendering from Canvas Headless config.
+        Selector::classname(ConfigFactoryInterface::class),
         Selector::classname(EntityTypeManagerInterface::class),
         Selector::classname(AssetLibrary::class),
         Selector::classname(BrandKit::class),

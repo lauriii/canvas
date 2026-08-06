@@ -7,6 +7,7 @@ import {
   CodeIcon,
   CubeIcon,
   FileTextIcon,
+  GlobeIcon,
   HomeIcon,
   SectionIcon,
   StackIcon,
@@ -32,7 +33,12 @@ import {
   setHomepagePath,
 } from '@/features/configuration/configurationSlice';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
-import { DEFAULT_REGION, selectPreviouslyEdited } from '@/features/ui/uiSlice';
+import {
+  DEFAULT_REGION,
+  EditorFrameContext,
+  selectEditorFrameContext,
+  selectPreviouslyEdited,
+} from '@/features/ui/uiSlice';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { useEntityTitle } from '@/hooks/useEntityTitle';
 import { usePaginatedContentList } from '@/hooks/usePaginatedContentList';
@@ -48,6 +54,7 @@ import {
   useUpdateContentMutation,
 } from '@/services/content';
 import { pageDataFormApi } from '@/services/pageDataForm';
+import { useGetPatternsQuery } from '@/services/patterns';
 import { getCanvasSettings } from '@/utils/drupal-globals';
 import { getQueryErrorMessage } from '@/utils/error-handling';
 import {
@@ -83,9 +90,18 @@ const PageInfo = () => {
     regionId: focusedRegion = DEFAULT_REGION,
     entityType,
     entityId,
+    patternId,
   } = useParams();
   const codeComponentName = useAppSelector(selectCodeComponentProperty('name'));
   const isCodeEditor = codeComponentName !== '';
+  const editorFrameContext = useAppSelector(selectEditorFrameContext);
+  const isPatternContext = editorFrameContext === EditorFrameContext.PATTERN;
+  // Show the name of the pattern being edited. Sourced from the patterns list
+  // (not the layout) so it stays current after a rename.
+  const { data: patterns } = useGetPatternsQuery(undefined, {
+    skip: !isPatternContext,
+  });
+  const patternName = (patternId && patterns?.[patternId]?.name) || 'Pattern';
   const layout = useAppSelector(selectLayout);
   const previouslyEdited = useAppSelector(selectPreviouslyEdited);
   const dispatch = useAppDispatch();
@@ -277,6 +293,8 @@ const PageInfo = () => {
     }
   }, [updateContentError, showBoundary]);
 
+  const isHeadlessFrontends = location.pathname.startsWith('/headless');
+
   return (
     <Flex gap="2" align="center">
       {isCodeEditor && previouslyEdited.path ? (
@@ -313,10 +331,20 @@ const PageInfo = () => {
               data-testid="canvas-navigation-button"
             >
               <Flex gap="2" align="center">
-                {isCodeEditor ? (
+                {isHeadlessFrontends ? (
+                  <>
+                    <GlobeIcon />
+                    Headless frontends
+                  </>
+                ) : isCodeEditor ? (
                   <>
                     <CodeIcon />
                     {codeComponentName}
+                  </>
+                ) : isPatternContext ? (
+                  <>
+                    {iconMap['GlobalPatternName']}
+                    {patternName}
                   </>
                 ) : isTemplateRoute ? (
                   <>

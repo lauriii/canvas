@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas\Kernel\Entity;
 
 use Drupal\canvas\Entity\Page;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
@@ -45,7 +46,7 @@ final class PageAccessControlHandlerTest extends CanvasKernelTestBase {
   public function testAccess(array $permissions, string $op, bool $published, bool $expected_result): void {
     $this->installPageEntitySchema();
 
-    $access_handler = $this->container->get('entity_type.manager')->getAccessControlHandler(Page::ENTITY_TYPE_ID);
+    $access_handler = $this->container->get(EntityTypeManagerInterface::class)->getAccessControlHandler(Page::ENTITY_TYPE_ID);
     self::assertNotNull($access_handler);
 
     $account = $this->createMock(AccountInterface::class);
@@ -135,7 +136,7 @@ final class PageAccessControlHandlerTest extends CanvasKernelTestBase {
       ->getStorage(Page::ENTITY_TYPE_ID)
       ->loadRevision((int) $original_vid);
 
-    $access_handler = $this->container->get('entity_type.manager')
+    $access_handler = $this->container->get(EntityTypeManagerInterface::class)
       ->getAccessControlHandler(Page::ENTITY_TYPE_ID);
 
     $account = $this->createMock(AccountInterface::class);

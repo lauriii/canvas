@@ -8,6 +8,7 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Component\Utility\SortArray;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\file\Entity\File;
 use Drupal\media\Entity\Media;
 use Drupal\node\Entity\Node;
@@ -89,7 +90,7 @@ trait CanvasFieldTrait {
     $nid = $node->id();
     \assert(\is_string($nid));
     // Reset the node to ensure we're not getting a cached version.
-    $this->container->get('entity_type.manager')
+    $this->container->get(EntityTypeManagerInterface::class)
       ->getStorage('node')
       ->resetCache([$nid]);
     $node = Node::load($nid);

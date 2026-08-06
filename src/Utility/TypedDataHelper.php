@@ -4,14 +4,22 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Utility;
 
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Validation\Constraint\UriSchemeConstraint;
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\Plugin\DataType\EntityReference;
 use Drupal\Core\Field\FieldItemInterface;
+use Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem;
+use Drupal\Core\TypedData\ComplexDataInterface;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\Core\TypedData\DataDefinitionInterface;
+use Drupal\Core\TypedData\PrimitiveInterface;
+use Drupal\Core\TypedData\TraversableTypedDataInterface;
+use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
+use Drupal\path\Plugin\Field\FieldType\PathItem;
+use Drupal\text\Plugin\Field\FieldType\TextItemBase;
 
 /**
  * @internal
@@ -118,6 +126,79 @@ final readonly class TypedDataHelper {
       return new CacheableMetadata();
     }
     return (new CacheableMetadata())->addCacheTags([$target_entity_type_id . ':' . $target_id]);
+  }
+
+  /**
+   * Normalizes typed data to canonical, comparable PHP values.
+   *
+   * Produces a deterministic representation intended for hashing and for
+   * storing the data in an auto-save item:
+   * - Primitives are cast to their canonical PHP type (e.g. a boolean stored
+   *   as the string '1' becomes `TRUE`), so equivalent values compare equal.
+   * - `ComponentTreeItem` inputs are optimized (on a clone, without side
+   *   effects) so equivalent component trees produce identical output.
+   * - Traversable elements are recursively cast; an all-NULL value stays NULL,
+   *   and a present-but-empty complex value becomes [].
+   *
+   * @param \Drupal\Core\TypedData\TypedDataInterface $element
+   *   The typed data to normalize.
+   *
+   * @return mixed
+   *   Scalar/NULL for primitives; an array (keys preserved) for traversable
+   *   elements.
+   */
+  public static function castRawPhpTypes(TypedDataInterface $element): mixed {
+    // For component instances, always consider the data as it will be stored
+    // in its optimized form, without causing side effects.
+    if ($element instanceof ComponentTreeItem) {
+      $element = clone $element;
+      $element->optimizeInputs();
+    }
+
+    if ($element instanceof PrimitiveInterface) {
+      return match (TRUE) {
+        // Some properties of ComponentTreeItem use `'string'` data type in
+        // combination with `NotBlank(allowNull: TRUE)` constraint. Casting them
+        // via `getCastedValue()` results in an `''` if the property value is
+        // `NULL`. We don't want that, as `NULL` is a valid value for these
+        // properties and `''` is not.
+        $element->getParent() instanceof ComponentTreeItem && \in_array($element->getName(), ComponentTreeItem::NULLABLE_STRING_PROPERTIES, TRUE),
+        // The `langcode` property of PathItem field starts as `NULL` when its
+        // fieldable entity is instantiated, so we retain `NULL` value.
+        $element->getParent() instanceof PathItem && $element->getName() === 'langcode',
+        // Entity reference property `target_uuid` is nullable , retain `NULL`.
+        $element->getParent() instanceof EntityReferenceItem && $element->getName() === 'target_uuid',
+        // The `format` property of text fields is nullable, retain `NULL`.
+        $element->getParent() instanceof TextItemBase && $element->getName() === 'format' =>
+          !\is_null($element->getValue()) ? $element->getCastedValue() : NULL,
+
+        // Other primitives should be cast as per their ::getCastedValue().
+        default => $element->getCastedValue(),
+      };
+    }
+
+    if ($element instanceof TraversableTypedDataInterface) {
+      // Preserve `toArray()` NULL-vs-array distinction: an optional, unset
+      // sequence/mapping stays NULL rather than becoming an empty array, which
+      // would needlessly change the hash of components that have such a key.
+      if ($element->getValue() === NULL) {
+        return NULL;
+      }
+
+      // A present-but-empty complex value is an empty array, not NULL: NULL is
+      // reserved above for an absent value, and collapsing the two would change
+      // the hash of items that exist but hold no data.
+      if ($element instanceof ComplexDataInterface && $element->isEmpty()) {
+        return [];
+      }
+
+      $children = \iterator_to_array($element);
+
+      return \array_map(fn ($child) => self::castRawPhpTypes($child), $children);
+    }
+    // Anything that is neither a primitive nor traversable (e.g. an `ignore`
+    // element) has no canonical config-schema type; use its value verbatim.
+    return $element->getValue();
   }
 
   private static function getTypedDataManger(): TypedDataManagerInterface {

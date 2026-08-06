@@ -1,5 +1,6 @@
 {
   "name": "@drupal-canvas/cli",
+  "version": "0.21.3",
   "description": "CLI tool for managing Drupal Canvas code components",
   "license": "GPL-2.0-or-later",
   "repository": {
@@ -16,9 +17,8 @@
     "start": "node dist/index.js",
     "build": "NODE_ENV=production tsup",
     "dev": "NODE_ENV=development tsup --watch",
-    "test:vitest": "vitest run",
+    "test": "vitest run",
     "watch:test": "vitest watch",
-    "test": "npx concurrently --group npm:test:*",
     "type-check": "tsc --noEmit --pretty"
   },
   "files": [
@@ -46,7 +46,7 @@
   "dependencies": {
     "@babel/parser": "^7.26.9",
     "@clack/prompts": "^0.11.0",
-    "@drupal-canvas/eslint-config": "^0.6.1",
+    "@drupal-canvas/eslint-config": "^0.7.0",
     "@swc/wasm": "^1.12.1",
     "ajv": "^8.18.0",
     "ajv-formats": "^3.0.1",

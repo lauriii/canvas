@@ -54,6 +54,7 @@ export const initialState: CodeEditorState = {
     machineName: '',
     name: '',
     status: false,
+    type: 'react',
     props: [],
     required: [],
     slots: [],

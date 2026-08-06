@@ -1,6 +1,7 @@
 {
   "name": "@drupal-canvas/test-utils",
   "version": "0.0.1",
+  "private": true,
   "description": "Test utilities for Drupal Canvas",
   "license": "GPL-2.0-or-later",
   "repository": {

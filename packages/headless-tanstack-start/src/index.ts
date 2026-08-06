@@ -18,6 +18,7 @@ export {
   type DraftRouteHandlers,
 } from './route-handlers';
 export { createComponentMetadataHandlers } from './component-metadata';
+export { toTanStackHead, type TanStackHead } from './head';
 export {
   disableDraftMode,
   enableDraftMode,
@@ -34,16 +35,29 @@ export {
 
 // Core helpers and types app code commonly needs alongside the adapter.
 export {
+  getDraftEditorOrigin,
   getSessionToken,
   type AccessToken,
   type DraftData,
 } from '@drupal-canvas/headless';
+export { isPageRedirect } from '@drupal-canvas/headless/server';
 export type {
+  CanvasComponentTreeElement,
+  CanvasComponentTreeSlot,
   DraftConfig,
+  DrupalRoute,
+  DrupalRouteEntity,
   Page,
-  PageElement,
+  PageHead,
+  PageRedirect,
+  PageResult,
 } from '@drupal-canvas/headless/server';
 export type {
   ComponentMetadataEntry,
   ComponentMetadataPayload,
 } from '@drupal-canvas/headless/components-endpoint';
+export {
+  CanvasComponentTree,
+  type CanvasComponentRegistry,
+  type CanvasComponentTreeProps,
+} from '@drupal-canvas/headless-react';

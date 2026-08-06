@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\ContentTranslation\SymmetricalTranslationSynchronizationTrait;
 use Drupal\canvas\Controller\ClientServerConversionTrait;
 use Drupal\canvas\Controller\EntityFormTrait;
 use Drupal\canvas\Entity\EntityConstraintViolationList;
@@ -15,6 +16,7 @@ use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\Component\Render\PlainTextOutput;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\NestedArray;
+use Drupal\content_translation\FieldTranslationSynchronizerInterface;
 use Drupal\Core\Access\AccessException;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Entity\EntityChangedInterface;
@@ -34,6 +36,7 @@ class ClientDataToEntityConverter {
 
   use ClientServerConversionTrait;
   use EntityFormTrait;
+  use SymmetricalTranslationSynchronizationTrait;
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -42,9 +45,27 @@ class ClientDataToEntityConverter {
     private readonly CsrfTokenGenerator $csrfTokenGenerator,
     private readonly ComponentTreeLoader $componentTreeLoader,
     private readonly AutoSaveManager $autoSaveManager,
+    // The synchronizer belongs to content_translation, an optional dependency,
+    // so it is NULL when that module is not installed.
+    // @see \Drupal\canvas\CanvasServiceProvider
+    private readonly ?FieldTranslationSynchronizerInterface $translationSynchronizer = NULL,
   ) {}
 
   /**
+   * Applies client data onto the given entity, for auto-save — NOT for saving.
+   *
+   * When the entity has multiple translations, non-translatable component
+   * inputs are synchronized in place across its translations (see below). The
+   * converted entity must therefore NOT be saved via ::save():
+   * content_translation's presave hook would synchronize a second time, and
+   * FieldTranslationSynchronizer::synchronizeItems() is not idempotent after a
+   * structural (insert/reorder) edit — the second pass re-maps the already-
+   * synchronized translations and corrupts their inputs. Auto-saving is safe:
+   * the auto-save entry only captures the edited translation, so the in-place
+   * synchronization of sibling translations is never persisted.
+   *
+   * @see \Drupal\canvas\Controller\ApiAutoSaveController::getConflictAwareContentEntityViolations()
+   *
    * @todo remove the validate flag in https://www.drupal.org/i/3505018.
    */
   public function convert(array $client_data, FieldableEntityInterface $entity, bool $validate = TRUE): void {
@@ -66,6 +87,16 @@ class ClientDataToEntityConverter {
       // @todo Remove iterator_to_array() after https://www.drupal.org/project/drupal/issues/3497677
       throw new ConstraintViolationException(new EntityConstraintViolationList($entity, iterator_to_array($e->getConstraintViolationList())));
     }
+
+    // Converge stale sibling translations' non-translatable component inputs
+    // before either validation below runs, mirroring what content_translation's
+    // presave hook does on save. Otherwise
+    // ComponentTreeSymmetricalTranslationConstraint records a violation —
+    // persisted via AutoSaveManager::saveEntityFormViolations() and re-attached
+    // at publish — for a transient state the save path converges anyway.
+    // @see \Drupal\canvas\Controller\ApiAutoSaveController::getConflictAwareContentEntityViolations()
+    // @see \Drupal\canvas\ContentTranslation\SymmetricalTranslationSynchronizationTrait
+    self::synchronizeTranslations($this->translationSynchronizer, $entity);
 
     // The current user may not have access any other fields on the entity or
     // this function may have been called to only update the layout.

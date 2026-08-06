@@ -1,3 +1,4 @@
+// @canvas-ci flaky
 describe('Copy and paste a node using keyboard shortcuts', () => {
   before(() => {
     cy.drupalCanvasInstall();

@@ -159,11 +159,12 @@ final class JavascriptComponentAccessTest extends CanvasKernelTestBase {
       ],
     ]);
     $auto_save_manager->saveEntity($page);
+    $data_hash = $auto_save_manager->getAutoSaveEntity($page)->hash;
     // The suffix is the auto-save `data_hash`: an xxh64 hash of the normalized
     // entity. It changed because empty path aliases are no longer part of that
     // normalization.
     // @see \Drupal\canvas\AutoSave\AutoSaveManager::normalizeEntity()
-    self::assertSame([Page::ENTITY_TYPE_ID => ['auto-save-4fbb5b01eba7863c' => '1']], $audit->getAutoSavesUsingComponentIds([$component_id]));
+    self::assertSame([Page::ENTITY_TYPE_ID => ['auto-save-' . $data_hash => '1']], $audit->getAutoSavesUsingComponentIds([$component_id]));
     // And reset the access cache.
     $entity_type_manager->getAccessControlHandler(JavaScriptComponent::ENTITY_TYPE_ID)->resetCache();
     self::assertEquals(
@@ -171,9 +172,46 @@ final class JavascriptComponentAccessTest extends CanvasKernelTestBase {
       $js_component->access('delete', $code_component_maintainer, TRUE),
     );
 
+    // A usage in a *forward* (pending, non-default) revision must also forbid
+    // deletion: publishing that revision (for example from a workspace) would
+    // otherwise render the fallback for a deleted code component.
+    // @see https://www.drupal.org/i/3549885
+    $auto_save_manager->delete($page);
+    $page->setNewRevision(TRUE);
+    $page->isDefaultRevision(FALSE);
+    $page->set('components', [
+      [
+        'uuid' => '2c6e91ae-23ac-433d-9bb8-687144464b34',
+        'component_id' => $component_id,
+        'inputs' => [],
+      ],
+    ]);
+    $page->save();
+    self::assertSame(5, (int) $page->getRevisionId());
+    self::assertFalse($page->isDefaultRevision());
+    self::assertSame([Page::ENTITY_TYPE_ID => []], $audit->getContentRevisionIdsUsingComponentIds([$component_id], which_revisions: RevisionAuditEnum::Default));
+    self::assertSame([Page::ENTITY_TYPE_ID => [5 => '1']], $audit->getContentRevisionIdsUsingComponentIds([$component_id], which_revisions: RevisionAuditEnum::Latest));
+    $entity_type_manager->getAccessControlHandler(JavaScriptComponent::ENTITY_TYPE_ID)->resetCache();
+    self::assertEquals(
+      AccessResult::forbidden('This code component is in use in the latest revision and cannot be deleted.')->addCacheContexts(['user.permissions']),
+      $js_component->access('delete', $code_component_maintainer, TRUE),
+    );
+
+    // A newer forward revision without the component supersedes the previous
+    // one, restoring the ability to delete.
+    $page->setNewRevision(TRUE);
+    $page->isDefaultRevision(FALSE);
+    $page->set('components', [])->save();
+    self::assertSame(6, (int) $page->getRevisionId());
+    self::assertSame([Page::ENTITY_TYPE_ID => []], $audit->getContentRevisionIdsUsingComponentIds([$component_id], which_revisions: RevisionAuditEnum::Latest));
+    $entity_type_manager->getAccessControlHandler(JavaScriptComponent::ENTITY_TYPE_ID)->resetCache();
+    self::assertEquals(
+      AccessResult::allowed()->addCacheContexts(['user.permissions']),
+      $js_component->access('delete', $code_component_maintainer, TRUE),
+    );
+
     // Ensure >=1 component instance exists in a *config* entity.
     // @see \Drupal\Core\Config\Entity\ConfigEntityBase::getDependencies()
-    $auto_save_manager->delete($page);
     $pattern = Pattern::create([
       'label' => $this->randomMachineName(),
       'component_tree' => [

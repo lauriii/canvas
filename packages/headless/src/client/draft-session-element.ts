@@ -10,6 +10,10 @@
  * - The element owns the machine lifecycle: one machine per session epoch,
  *   re-created in place when a renewal delivers a new tokenExpiresAt (the
  *   'renewed' event carries it, so no server re-render is needed).
+ * - A host refresh request reloads the current document so server-rendered
+ *   adapters fetch the latest Canvas auto-save data. Before reloading, the
+ *   element emits a cancelable refresh event so framework adapters can use
+ *   their own data-refresh or navigation primitive instead.
  * - Session state is reflected as host attributes (`expired`, `embedded`,
  *   `renew-state`) and announced via a bubbling
  *   `canvas-draft-session:change` CustomEvent, for consumers that want to
@@ -33,11 +37,19 @@
  * the element alive across navigations, and the host must hear about the
  * current path — status reports and the renew link both carry it. Without
  * the attribute the path is read from window.location at connect time.
+ *
+ * Alongside the session machine, the element also runs a content-height
+ * reporter (./height-report) for the same `editor-origin`: an independent
+ * exchange that lets the host size the preview iframe to fit.
  */
 
 import { createDraftSession } from './draft-session';
+import { createCanvasGeometryBridge } from './geometry-bridge';
+import { createHeightReporter } from './height-report';
 
 import type { DraftSession, DraftSessionRenewState } from './draft-session';
+import type { CanvasGeometryBridge } from './geometry-bridge';
+import type { HeightReporter } from './height-report';
 
 export const DRAFT_SESSION_ELEMENT_TAG = 'canvas-draft-session';
 
@@ -59,6 +71,14 @@ export interface DraftSessionElementSnapshot {
  */
 export const DRAFT_SESSION_CHANGE_EVENT = 'canvas-draft-session:change';
 
+/**
+ * Cancelable event emitted when the host reports new Canvas auto-save data.
+ * Preventing its default behavior tells the element that an adapter owns the
+ * refresh; otherwise the current document reloads.
+ */
+export const DRAFT_SESSION_REFRESH_EVENT =
+  'canvas-draft-session:refresh-requested';
+
 // The element must be importable in server-side module graphs (an Astro or
 // Nuxt component imports it next to server code), where HTMLElement does
 // not exist. The stand-in base is never instantiated there: only
@@ -72,6 +92,8 @@ export class DraftSessionElement extends BaseElement {
   static observedAttributes = ['path'];
 
   #machine: DraftSession | null = null;
+  #geometryBridge: CanvasGeometryBridge | null = null;
+  #heightReporter: HeightReporter | null = null;
   #connected = false;
   #tokenExpiresAt: number | null = null;
   #expired = false;
@@ -96,6 +118,14 @@ export class DraftSessionElement extends BaseElement {
     this.#connected = true;
 
     this.#startEpoch();
+    const editorOrigin = this.getAttribute('editor-origin');
+    this.#heightReporter = createHeightReporter({
+      editorOrigin,
+      embedded: this.#embedded,
+    });
+    if (this.#embedded && editorOrigin) {
+      this.#geometryBridge = createCanvasGeometryBridge({ editorOrigin });
+    }
     this.#render();
   }
 
@@ -103,6 +133,10 @@ export class DraftSessionElement extends BaseElement {
     this.#connected = false;
     this.#machine?.destroy();
     this.#machine = null;
+    this.#heightReporter?.destroy();
+    this.#heightReporter = null;
+    this.#geometryBridge?.destroy();
+    this.#geometryBridge = null;
   }
 
   attributeChangedCallback(
@@ -134,11 +168,20 @@ export class DraftSessionElement extends BaseElement {
       initialExpired: this.#expired,
       embedded: this.#embedded,
       path: this.#path,
-      embedderOrigins: (this.getAttribute('embedder-origins') ?? '')
-        .split(/\s+/)
-        .filter(Boolean),
+      editorOrigin: this.getAttribute('editor-origin'),
       renewEndpoint: this.getAttribute('renew-endpoint') ?? undefined,
       onEvent: (event) => {
+        if (event.type === 'refresh-requested') {
+          const refreshEvent = new Event(DRAFT_SESSION_REFRESH_EVENT, {
+            bubbles: true,
+            cancelable: true,
+            composed: true,
+          });
+          if (this.dispatchEvent(refreshEvent)) {
+            window.location.reload();
+          }
+          return;
+        }
         if (event.type === 'renewed') {
           if (event.tokenExpiresAt === null) {
             // The renewal succeeded (the cookie holds the new token) but

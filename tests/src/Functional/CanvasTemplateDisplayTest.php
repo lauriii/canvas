@@ -9,6 +9,8 @@ use Drupal\canvas\Hook\ContentTemplateHooks;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\layout_builder\Entity\LayoutBuilderEntityViewDisplay;
 use Drupal\node\NodeTypeInterface;
 use Drupal\Tests\BrowserTestBase;
@@ -94,7 +96,7 @@ final class CanvasTemplateDisplayTest extends BrowserTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $entityTypeManager = $this->container->get('entity_type.manager');
+    $entityTypeManager = $this->container->get(EntityTypeManagerInterface::class);
     $this->viewDisplayStorage = $entityTypeManager->getStorage('entity_view_display');
     $this->contentTemplateStorage = $entityTypeManager->getStorage(ContentTemplate::ENTITY_TYPE_ID);
 
@@ -204,11 +206,11 @@ final class CanvasTemplateDisplayTest extends BrowserTestBase {
    */
   public function testLayoutBuilderCompatibility(): void {
     $bundle = 'page';
-    $this->container->get('module_installer')->install(['layout_builder']);
+    $this->container->get(ModuleInstallerInterface::class)->install(['layout_builder']);
     $this->resetAll();
 
     // Refresh storage after module installation.
-    $this->viewDisplayStorage = $this->container->get('entity_type.manager')->getStorage('entity_view_display');
+    $this->viewDisplayStorage = $this->container->get(EntityTypeManagerInterface::class)->getStorage('entity_view_display');
 
     $this->createNodeType(['type' => $bundle]);
     $this->createViewDisplay($bundle, 'teaser');
@@ -370,7 +372,7 @@ final class CanvasTemplateDisplayTest extends BrowserTestBase {
       'type' => $this->randomMachineName(8),
       'name' => $this->randomMachineName(8),
     ];
-    $type = $this->container->get('entity_type.manager')
+    $type = $this->container->get(EntityTypeManagerInterface::class)
       ->getStorage('node_type')->create($values);
     $status = $type->save();
     $this->assertSame($status, SAVED_NEW);

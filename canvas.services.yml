@@ -73,7 +73,11 @@ services:
     class: \Drupal\canvas\Asset\AssetResolver
     decorates: asset.resolver
     arguments: ['@asset.resolver.canvas.inner', '@library.discovery', '@library.dependency_resolver', '@module_handler', '@theme.manager', '@language_manager', '@cache.data', '@theme_handler']
-  Drupal\canvas\ClientDataToEntityConverter: {}
+  Drupal\canvas\ClientDataToEntityConverter:
+    arguments:
+      # content_translation is an optional dependency; the '?' keeps the
+      # converter buildable when it is not installed (argument is then NULL).
+      $translationSynchronizer: '@?content_translation.synchronizer'
   Drupal\canvas\AutoSave\AutoSaveManager: {}
   # Non-serializing in-memory cache for AutoSaveManager's reconstructed entities.
   # Bounded (LRU) like core's entity.memory_cache so it cannot grow without
@@ -91,6 +95,20 @@ services:
   Drupal\canvas\ComponentTreeInputExtractor: {}
   Drupal\canvas\GlobalImports: {}
   Drupal\canvas\Tmgmt\ComponentInputsTranslatablesExtractor: ~
+
+  # Health.
+  # Note: the `canvas:doctor` command is discovered and registered automatically by core's ConsoleCompilerPass.
+  Drupal\canvas\Health\Environment:
+    public: true
+  # Alias so consumers can type-hint the interface (Environment is
+  # final and cannot be mocked/subclassed; tests substitute a stub instead).
+  Drupal\canvas\Health\EnvironmentInterface: '@Drupal\canvas\Health\Environment'
+  Drupal\canvas\Health\HealthRecords:
+    public: true
+  Drupal\canvas\Health\Inventory:
+    public: true
+  Drupal\canvas\Health\Doctor:
+    public: true
 
   # Cache contexts.
   cache_context.route.name.is_canvas_editor_ui:
@@ -122,6 +140,7 @@ services:
     class: Drupal\canvas\EventSubscriber\CanvasRouteOptionsEventSubscriber
     tags:
       - { name: 'event_subscriber' }
+  Drupal\canvas\EventSubscriber\ComponentConfigImportValidator: ~
   Drupal\canvas\EventSubscriber\ComponentTreeConfigEntityTransformer: ~
   Drupal\canvas\EventSubscriber\DefaultContentSubscriber: ~
   # @todo Remove in https://git.drupalcode.org/project/canvas/-/work_items/3571130
@@ -209,7 +228,11 @@ services:
   Drupal\canvas\Controller\ComponentStatusController: {}
   Drupal\canvas\Controller\ComponentAuditController: {}
   Drupal\canvas\Controller\CanvasController: {}
-  Drupal\canvas\Controller\ApiAutoSaveController: {}
+  Drupal\canvas\Controller\ApiAutoSaveController:
+    arguments:
+      # content_translation is an optional dependency; the '?' keeps the
+      # controller buildable when it is not installed (argument is then NULL).
+      $translationSynchronizer: '@?content_translation.synchronizer'
   Drupal\canvas\Controller\ApiUiContentEntityReferenceControllers: {}
   Drupal\canvas\Controller\ApiUiContentTemplateControllers: {}
   Drupal\canvas\Controller\ApiUsageControllers: {}

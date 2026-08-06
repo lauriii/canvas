@@ -534,7 +534,8 @@ export function deserializeCodeComponent(
   const props = deserializeProps(codeComponent.props);
   // Lift the persisted `entityFields` onto the props editing state.
   // @see serializeDataDependencies
-  const { entityFields, ...dataDependencies } = codeComponent.dataDependencies;
+  const { entityFields, ...dataDependencies } =
+    codeComponent.dataDependencies ?? {};
   if (entityFields) {
     for (const prop of props) {
       const expressions = prop.name
@@ -547,8 +548,14 @@ export function deserializeCodeComponent(
   }
   return {
     ...codeComponent,
+    type: codeComponent.type ?? 'react',
     props,
     slots: deserializeSlots(codeComponent.slots),
+    sourceCodeJs: codeComponent.sourceCodeJs ?? '',
+    sourceCodeCss: codeComponent.sourceCodeCss ?? '',
+    compiledJs: codeComponent.compiledJs ?? '',
+    compiledCss: codeComponent.compiledCss ?? '',
+    importedJsComponents: codeComponent.importedJsComponents ?? [],
     dataFetches: {},
     dataDependencies,
   };

@@ -6,6 +6,8 @@ namespace Drupal\Tests\canvas\Functional;
 
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\PropSource\PropSource;
+use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Url;
 use Drupal\field\Entity\FieldConfig;
@@ -117,7 +119,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
 
     // Set explicitly the form display components to ensure the suggestions
     // sorting is as expected.
-    $form_display = \Drupal::service('entity_display.repository')
+    $form_display = \Drupal::service(EntityDisplayRepositoryInterface::class)
       ->getFormDisplay('node', 'article');
     $weight = 10;
     foreach (['field_silly_image', 'uid', 'field_screenshots', 'user_picture', 'field_tags'] as $form_display_component_id) {
@@ -676,7 +678,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
     $this->assertSame([], $json);
 
     // As soon as we create some, we are going to return those.
-    $entity_storage = $this->container->get('entity_type.manager')->getStorage($content_entity_type_id);
+    $entity_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage($content_entity_type_id);
     for ($i = 1; $i <= 5; ++$i) {
       $entity_storage->create([
         'title' => 'Entity ' . $i,
@@ -874,7 +876,7 @@ final class ApiUiContentTemplateControllersTest extends HttpApiTestBase {
     \assert($user_without_permission instanceof UserInterface);
 
     // Create published and unpublished content entities.
-    $entity_storage = $this->container->get('entity_type.manager')->getStorage($content_entity_type_id);
+    $entity_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage($content_entity_type_id);
 
     // Create published entities.
     for ($i = 1; $i <= 3; ++$i) {

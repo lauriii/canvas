@@ -566,7 +566,6 @@ export class ApiService {
    * Create a new content template.
    */
   async createContentTemplate(template: {
-    label: string;
     entityType: string;
     bundle: string;
     viewMode: string;

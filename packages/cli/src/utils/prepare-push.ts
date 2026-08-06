@@ -61,7 +61,14 @@ async function buildComponentUploadTasks(
   apiService: { listComponents: () => Promise<Record<string, unknown>> },
   onProgress: () => void,
 ): Promise<ComponentUploadTask[]> {
-  const existingComponents = await apiService.listComponents();
+  // External components are implemented by the configured external
+  // application and synced into Drupal as metadata only: the CLI must never
+  // update or delete them, so they are invisible to push planning.
+  const existingComponents = Object.fromEntries(
+    Object.entries(await apiService.listComponents()).filter(
+      ([, component]) => (component as Component).type !== 'external',
+    ),
+  );
   const remoteNames = new Set(Object.keys(existingComponents));
 
   const tasks: ComponentUploadTask[] = [];
@@ -99,7 +106,7 @@ async function buildComponentUploadTasks(
       // Parse imports from server component's source code (no local file exists)
       let importedJsComponents: string[] = [];
       try {
-        const ast = parse(serverComponent.sourceCodeJs, {
+        const ast = parse(serverComponent.sourceCodeJs ?? '', {
           sourceType: 'module',
           plugins: ['jsx', 'typescript'],
         });
@@ -387,10 +394,34 @@ export async function pushBuiltComponents(
 }
 
 /**
+ * Reads the project's `package.json` verbatim, if present.
+ *
+ * @param projectRoot
+ *   The project root directory.
+ *
+ * @returns The raw file contents, or `undefined` when no `package.json` exists.
+ */
+async function readProjectPackageJson(
+  projectRoot: string,
+): Promise<string | undefined> {
+  const packageJsonPath = path.join(projectRoot, 'package.json');
+  if (!(await fileExists(packageJsonPath))) {
+    return undefined;
+  }
+  return fs.readFile(packageJsonPath, 'utf-8');
+}
+
+/**
  * Prepare the global asset library (CSS/JS) update for Drupal.
+ *
+ * @param outputDir
+ *   The build output directory containing the compiled global CSS/JS.
+ * @param projectRoot
+ *   The project root.
  */
 export async function prepareGlobalAssetLibraryUpdate(
   outputDir: string,
+  projectRoot?: string,
 ): Promise<{
   result: Result;
   assetLibrary?: Partial<AssetLibrary>;
@@ -408,6 +439,9 @@ export async function prepareGlobalAssetLibraryUpdate(
         'utf-8',
       );
       const originalCss = await getGlobalCss();
+      const packageJson = projectRoot
+        ? await readProjectPackageJson(projectRoot)
+        : undefined;
       return {
         result: {
           success: true,
@@ -417,6 +451,9 @@ export async function prepareGlobalAssetLibraryUpdate(
         assetLibrary: {
           css: { original: originalCss, compiled: globalCompiledCss },
           js: { original: classNameCandidateIndexFile, compiled: '' },
+          // Only send the key when a package.json exists, so an absent file
+          // never clobbers a previously stored one.
+          ...(packageJson !== undefined ? { packageJson } : {}),
         },
       };
     }

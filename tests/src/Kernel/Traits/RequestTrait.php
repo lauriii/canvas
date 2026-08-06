@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas\Kernel\Traits;
 
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\HttpKernel\TerminableInterface;
@@ -29,13 +30,13 @@ trait RequestTrait {
     // to boot the kernel, but it is also needed for any URL generation in tests
     // to work. We also need to reset the request stack every time we make a
     // request.
-    $request_stack = $this->container->get('request_stack');
+    $request_stack = $this->container->get(RequestStack::class);
     $previous_requests = [];
     while ($request_stack->getCurrentRequest() !== NULL) {
       $previous_requests[] = $request_stack->pop();
     }
 
-    $http_kernel = $this->container->get('http_kernel');
+    $http_kernel = $this->container->get(HttpKernelInterface::class);
     self::assertInstanceOf(HttpKernelInterface::class, $http_kernel);
 
     try {

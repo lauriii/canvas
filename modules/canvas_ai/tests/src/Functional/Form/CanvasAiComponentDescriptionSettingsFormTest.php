@@ -5,8 +5,13 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas_ai\Functional\Form;
 
 use Drupal\canvas\Plugin\ComponentPluginManager;
+use Drupal\Core\Block\BlockManagerInterface;
 use Drupal\Core\Block\BlockPluginInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Config\TypedConfigManagerInterface;
+use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait;
@@ -72,7 +77,7 @@ final class CanvasAiComponentDescriptionSettingsFormTest extends BrowserTestBase
   public function testFormTitleDisplay(): void {
 
     // Get the expected title from the route definition.
-    $route = \Drupal::service('router.route_provider')->getRouteByName(self::ROUTE_NAME);
+    $route = \Drupal::service(RouteProviderInterface::class)->getRouteByName(self::ROUTE_NAME);
     $expected_title = $route->getDefault('_title');
 
     // Navigate to the form using the route.
@@ -166,7 +171,7 @@ final class CanvasAiComponentDescriptionSettingsFormTest extends BrowserTestBase
     // this will be the same as the block's label.
     // @see Drupal\canvas_ai\CanvasAiPageBuilderHelper::getAllComponentsKeyedBySource().
     // Get the block plugin manager
-    $block_manager = \Drupal::service('plugin.manager.block');
+    $block_manager = \Drupal::service(BlockManagerInterface::class);
     $plugin_block = $block_manager->createInstance('system_branding_block', []);
     \assert($plugin_block instanceof BlockPluginInterface);
     // Get the admin label.
@@ -181,7 +186,7 @@ final class CanvasAiComponentDescriptionSettingsFormTest extends BrowserTestBase
     // Verify the form exposes non-excluded block props and hides excluded ones.
     // Drive the assertion from the raw schema so the test stays correct if the
     // block gains or loses settings in future Drupal versions.
-    $raw_schema = \Drupal::service('config.typed')->getDefinition('block.settings.system_branding_block');
+    $raw_schema = \Drupal::service(TypedConfigManagerInterface::class)->getDefinition('block.settings.system_branding_block');
     $mapping = array_filter(\is_array($raw_schema['mapping'] ?? NULL) ? $raw_schema['mapping'] : [], 'is_array');
     $excluded = ['id', 'provider', 'admin_label', 'context_mapping'];
     foreach ($excluded as $key) {
@@ -247,7 +252,7 @@ final class CanvasAiComponentDescriptionSettingsFormTest extends BrowserTestBase
     // Create a code component so the JS source is available on the form.
     $this->createMyCtaComponentFromSdc();
     // getComponentContextForAi() is access-gated, so act as the admin here too.
-    $this->container->get('current_user')->setAccount($this->adminUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->adminUser);
 
     // Enable every source.
     $this->drupalGet(Url::fromRoute(self::ROUTE_NAME));
@@ -287,7 +292,7 @@ final class CanvasAiComponentDescriptionSettingsFormTest extends BrowserTestBase
    *   The parsed component context, keyed by component ID.
    */
   private function loadComponentContext(): array {
-    $this->container->get('config.factory')->reset('canvas_ai.component_description.settings');
+    $this->container->get(ConfigFactoryInterface::class)->reset('canvas_ai.component_description.settings');
     $yaml = \Drupal::service('canvas_ai.page_builder_helper')->getComponentContextForAi();
     return Yaml::parse($yaml) ?? [];
   }

@@ -1136,7 +1136,10 @@ describe('defineComponentCatalog', () => {
     ];
 
     const catalog = defineComponentCatalog(metadata);
-    expect(catalog.componentNames).toEqual(['js.avatar']);
+    expect(catalog.componentNames).toEqual([
+      'js.avatar',
+      'canvas:component-tree',
+    ]);
 
     // Validate a spec with resolved image props passes.
     const spec = {
@@ -1180,7 +1183,10 @@ describe('defineComponentCatalog', () => {
     const catalog = defineComponentCatalog(metadata);
 
     expect(catalog).toBeDefined();
-    expect(catalog.componentNames).toEqual(['js.button']);
+    expect(catalog.componentNames).toEqual([
+      'js.button',
+      'canvas:component-tree',
+    ]);
     expect(catalog.data.components['js.button']).toBeDefined();
   });
 
@@ -1226,7 +1232,10 @@ describe('defineComponentCatalog', () => {
 
     const catalog = defineComponentCatalog(metadata);
 
-    expect(catalog.componentNames).toEqual(['js.divider']);
+    expect(catalog.componentNames).toEqual([
+      'js.divider',
+      'canvas:component-tree',
+    ]);
     expect(catalog.data.components['js.divider'].slots).toEqual([]);
   });
 
@@ -1254,7 +1263,11 @@ describe('defineComponentCatalog', () => {
 
     const catalog = defineComponentCatalog(metadata);
 
-    expect(catalog.componentNames).toEqual(['js.button', 'js.text']);
+    expect(catalog.componentNames).toEqual([
+      'js.button',
+      'js.text',
+      'canvas:component-tree',
+    ]);
   });
 
   it('should produce a catalog that can generate a prompt', () => {

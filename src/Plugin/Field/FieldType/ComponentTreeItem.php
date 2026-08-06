@@ -123,6 +123,18 @@ class ComponentTreeItem extends FieldItemBase {
   // @todo Decide what the best location is for this constant.
   public const string VIOLATION_CODE_GARBAGE_INPUT = 'garbage';
 
+  /**
+   * String-typed properties that are nullable and must not be cast to ''.
+   *
+   * @see \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator::validate()
+   * @see \Drupal\canvas\Utility\TypedDataHelper::castRawPhpTypes()
+   */
+  public const array NULLABLE_STRING_PROPERTIES = [
+    'parent_uuid',
+    'slot',
+    'label',
+  ];
+
   use ComponentTreeItemListInstantiatorTrait;
 
   // phpcs:disable Drupal.Commenting.DataTypeNamespace.DataTypeNamespace

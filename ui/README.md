@@ -18,6 +18,9 @@ DDEV setup is fully automated through our custom add-on: https://github.com/drup
 #### Build steps
 1. `npm install` from /modules/canvas
 2. `npm run build` from /modules/canvas/ui
+   - This runs through Turborepo, which first builds the workspace packages
+     the UI depends on (`headless`, `astro-hydration`, and their
+     dependencies), then the UI itself.
 
 ##### Development mode
 1. `npm install` from /modules/canvas

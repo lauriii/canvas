@@ -1,9 +1,24 @@
 {
   "name": "@drupal-canvas/headless-astro",
-  "version": "0.1.0",
-  "description": "Astro adapter for the Drupal Canvas Headless SDK: cookie-based draft sessions, injectable draft and component metadata routes, the canvas() integration, and the <DraftSession> banner component.",
-  "private": true,
+  "version": "0.1.1",
+  "description": "Astro adapter for the Drupal Canvas Headless SDK.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://git.drupalcode.org/project/canvas.git",
+    "directory": "packages/headless-astro"
+  },
+  "bugs": "https://git.drupalcode.org/project/canvas/-/work_items",
+  "files": [
+    "src",
+    "!src/**/*.test.*",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
+  "sideEffects": false,
   "main": "./src/index.ts",
   "exports": {
     ".": {
@@ -41,14 +56,15 @@
       "types": "./src/routes/components.ts",
       "default": "./src/routes/components.ts"
     },
-    "./DraftSession.astro": "./src/components/DraftSession.astro"
+    "./DraftSession.astro": "./src/components/DraftSession.astro",
+    "./CanvasComponentTree.astro": "./src/components/CanvasComponentTree.astro"
   },
   "scripts": {
+    "test": "vitest run",
     "type-check": "astro check --tsconfig ./tsconfig.json && tsc --noEmit --pretty"
   },
-  "license": "GPL-2.0-or-later",
   "dependencies": {
-    "@drupal-canvas/headless": "*"
+    "@drupal-canvas/headless": "^0.1.1"
   },
   "peerDependencies": {
     "astro": ">=5.17.0",
@@ -58,7 +74,7 @@
     "@astrojs/check": "^0.9.6",
     "astro": "^7.0.7",
     "typescript": "^5.9.3",
-    "vite": "^7.0.0"
-  },
-  "sideEffects": false
+    "vite": "^7.0.0",
+    "vitest": "^4.0.18"
+  }
 }

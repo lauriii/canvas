@@ -20,10 +20,7 @@ import {
 } from '@dnd-kit/sortable';
 
 import { toPropName } from '@/components/form/react-hook-form/fields/componentFormData';
-import {
-  isEvaluatedComponentModel,
-  syncPropSourcesToResolvedValues,
-} from '@/features/layout/layoutModelSlice';
+import { isEvaluatedComponentModel } from '@/features/layout/layoutModelSlice';
 import useInputUIData from '@/hooks/useInputUIData';
 import { usePatchComponent, usePatchProp } from '@/services/preview';
 import { isAjaxing } from '@/utils/isAjaxing';
@@ -55,14 +52,12 @@ function collectTargetIds(
 
 /**
  * Builds the model payload for a remove operation.
- * Clears the prop value (or resets to required defaults) and syncs sources to
- * resolved values.
+ * Clears the removed prop's value (or resets it to the required default).
  */
 function buildRemoveModel(
   model: EvaluatedComponentModel,
   propName: string,
   propSourceData: any,
-  componentData: any,
 ) {
   const isRequired = !!propSourceData?.required;
 
@@ -71,14 +66,11 @@ function buildRemoveModel(
   const source: Sources = JSON.parse(JSON.stringify(model.source));
 
   resolved[propName] = isRequired ? propSourceData.default_values.resolved : [];
-  if (!isRequired) {
-    source[propName].value = [];
-  }
+  // Rewrite only the removed prop's source value, leaving other props' sources
+  // untouched.
+  source[propName] = { ...source[propName], value: resolved[propName] };
 
-  return {
-    source: syncPropSourcesToResolvedValues(source, componentData, resolved),
-    resolved,
-  };
+  return { source, resolved };
 }
 interface DrupalMediaListContainerProps {
   children: ReactNode;
@@ -242,7 +234,6 @@ const DrupalMediaListContainer = ({
         selectedModel,
         propName,
         propSourceData,
-        componentData,
       );
 
       setTimeout(() => {

@@ -18,6 +18,8 @@ variables:
   PLAYWRIGHT_BROWSERS_PATH: $CI_PROJECT_DIR/.cache/ms-playwright
   COMPOSER_CACHE_DIR: $CI_PROJECT_DIR/.cache/composer
   npm_config_cache: $CI_PROJECT_DIR/.cache/npm
+  # Persist Turborepo's task cache between jobs and pipelines.
+  TURBO_CACHE_DIR: $CI_PROJECT_DIR/.cache/turbo
 
   # Disable npm lifecycle scripts.
   npm_config_ignore_scripts: "true"
@@ -67,15 +69,20 @@ variables:
   - "tests/**/*"
   - "!tests/src/Playwright/**/*"
 
-.cli-files: &cli-files
-  - "packages/cli/**/*"
+.packages-files: &packages-files
+  - "packages/**/*"
+  - ".changeset/**/*"
   - package.json
   - package-lock.json
+  - turbo.json
+
+# Backend files the CLI integration tests exercise through a live Drupal site.
+.packages-integration-files: &packages-integration-files
   - openapi.yml
   # Everything below is a subset of .backend-files
   - src/Entity/**/*
   - src/Controller/**/*
-  # CLI Test checks these components so changes may affect test results.
+  # The CLI tests check these components so changes may affect test results.
   - tests/modules/canvas_test_code_components/**/*
 
 .data-integrity-files: &data-integrity-files
@@ -96,9 +103,14 @@ variables:
   # Workspace packages can affect dependency hoisting to the root node_modules.
   - packages/*/package.json
   - ui/**/*
-  # Dependencies of the Canvas UI.
-  - packages/astro-hydration
-  - packages/types
+  # Workspace packages the UI consumes, directly or transitively: changes to
+  # them change the built UI, so the UI jobs must run.
+  - packages/astro-hydration/**/*
+  - packages/discovery/**/*
+  - packages/drupal-canvas/**/*
+  - packages/headless/**/*
+  - packages/headless-host/**/*
+  - packages/types/**/*
 
 .user-docs-files: &user-docs-files
   - "docs/user/**/*"
@@ -119,8 +131,28 @@ variables:
 .mr-e2e-rule: &mr-e2e-rule
   if: ($CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "merge_train") && $E2E_TESTS_ENABLED == "true"
 
-.cli-release-rule: &cli-release-rule
-  if: '$CI_COMMIT_TAG =~ /^cli-\d+\.\d+\.\d+(-\w+\d*)?$/'
+# Skip a job on the automated version merge request (`changeset-release/*`).
+# That merge request only adds version bumps, changelogs, and lockfile range
+# updates on top of a 1.x commit whose full test suite already ran on the
+# push pipeline. Publishing is gated after the merge anyway: the `publish
+# packages` job needs `lint (node)` and `test (packages)` from the 1.x push
+# pipeline of the merged result, so a broken bump cannot publish. Skipping
+# the test and cache jobs here avoids re-running the whole suite every time
+# a push to 1.x force-updates the version merge request.
+.changeset-release-skip-rule: &changeset-release-skip-rule
+  if: '$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^changeset-release\//'
+  when: never
+
+# Skip a job on the 1.x push created by merging the automated version merge
+# request. The squashed merge commit keeps the git identity that the
+# `version packages` job configures; that identity is used by no other job or
+# workflow, so no other push to 1.x can carry it. The commit only adds
+# version bumps, changelogs, and lockfile updates on top of an already fully
+# tested commit, and publishing still gates on `lint (node)` and
+# `test (packages)`, which keep running in this pipeline.
+.version-merge-skip-rule: &version-merge-skip-rule
+  if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_AUTHOR == "Canvas version bot <canvas-version-bot@drupal.org>"'
+  when: never
 
 .manual-rule: &manual-rule
   - when: manual
@@ -139,6 +171,11 @@ workflow:
   # protected branches, scheduled, and manually triggered through the UI.
   # i.e. no CI on feature branches until an MR is opened.
   rules:
+    # npm package tags (e.g. drupal-canvas@0.4.4 or @drupal-canvas/cli@0.22.0)
+    # are created by the `publish packages` job after the packages are already
+    # tested and published; they must not start pipelines of their own.
+    - if: '$CI_COMMIT_TAG =~ /@\d+\.\d+\.\d+/'
+      when: never
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_PIPELINE_SOURCE == "merge_train"
     - if: $CI_COMMIT_TAG
@@ -158,6 +195,7 @@ default:
       - .cache/npm
       - .cache/astro
       - .cache/tsc
+      - .cache/turbo
     policy: pull
 
 cache dependencies:
@@ -165,6 +203,7 @@ cache dependencies:
   allow_failure: true
   needs: []
   rules:
+    - *changeset-release-skip-rule
     - *push-rule
     - <<: *mr-rule
       changes:
@@ -179,6 +218,7 @@ cache dependencies:
         - .cache/npm
         - .cache/astro
         - .cache/tsc
+        - .cache/turbo
     - key: ${CI_PARENT_PROJECT_NAME}-phplint-${CI_COMMIT_REF_NAME}
       paths:
         - .cache/phpcs
@@ -300,6 +340,8 @@ lint (php):
   stage: validate
   needs: []
   rules:
+    - *version-merge-skip-rule
+    - *changeset-release-skip-rule
     - *push-rule
     - *mr-rule
   variables:
@@ -313,6 +355,7 @@ lint (php):
         - .cache/npm
         - .cache/astro
         - .cache/tsc
+        - .cache/turbo
       policy: pull
     - key: ${CI_PARENT_PROJECT_NAME}-phplint-${CI_COMMIT_REF_NAME}
       fallback_keys:
@@ -359,10 +402,12 @@ lint (node):
   rules:
     - *push-rule
     - *mr-rule
-    - *cli-release-rule
   script:
     - npm ci
-    - npm run build --workspace=drupal-canvas
+    # Runs every lint:* script across the whole repository, plus type-check
+    # in every workspace. Turborepo builds workspace dependencies first where
+    # type-checking needs their compiled dist (e.g. the UI depends on
+    # @drupal-canvas/headless-host).
     - npm run lint
     - |
       if [ "$E2E_TESTS_ENABLED" != "true" ]; then
@@ -370,8 +415,43 @@ lint (node):
         exit 1
       fi
 
+# Every merge request that changes a package must declare its release intent
+# with a changeset (or explicitly opt out with an empty changeset).
+# `changeset status` ignores private packages, so merge requests that only
+# change private packages pass without one.
+changesets:
+  stage: validate
+  # Runs git commands, so it uses the default drupal-testing image; the node
+  # images do not contain git.
+  needs: []
+  variables:
+    # `changeset status` diffs against the target branch, which requires
+    # history beyond the default shallow clone.
+    GIT_DEPTH: "0"
+  rules:
+    # The version MR consumes changesets and bumps versions; it is exempt.
+    - *changeset-release-skip-rule
+    - <<: *mr-rule
+      changes:
+        paths:
+          - "packages/**/*"
+        compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
+  script:
+    - git fetch origin $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
+    - npm ci
+    - |
+      if ! npx changeset status --since="origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"; then
+        echo ""
+        echo "ERROR: This merge request changes files in packages/ but has no changeset."
+        echo "To fix: run 'npx changeset', pick the affected packages and bump levels, and commit the result."
+        echo "To write the changeset with an AI coding agent, run 'npm run changeset:prompt'."
+        echo "For changes that must not be released (e.g. tests only), run 'npx changeset --empty' instead."
+        exit 1
+      fi
+
 phpunit (11.3 sqlite):
   rules:
+    - *version-merge-skip-rule
     - *push-rule
     - <<: *mr-rule
       changes:
@@ -509,6 +589,8 @@ vitest:
   stage: test
   image: *image-node
   rules:
+    - *version-merge-skip-rule
+    - *changeset-release-skip-rule
     - *push-rule
     - <<: *mr-rule
       changes:
@@ -539,6 +621,7 @@ vitest:
         - .cache/npm
         - .cache/astro
         - .cache/tsc
+        - .cache/turbo
       policy: pull
     - key: ${CI_PARENT_PROJECT_NAME}-cypress-${CI_COMMIT_REF_NAME}
       fallback_keys:
@@ -582,6 +665,8 @@ vitest:
 cypress E2E:
   extends: .cypress-base
   rules:
+    - *version-merge-skip-rule
+    - *changeset-release-skip-rule
     - *push-rule
     - <<: *mr-e2e-rule
       changes:
@@ -595,11 +680,13 @@ cypress E2E:
   parallel: 4
   script:
     - npx cypress run --browser electron --reporter junit --reporter-options "mochaFile=junit-[hash].xml" --spec=`node ./tests/support/parallel.js` 2>&1 | tee cypress.log; EXIT_CODE=${PIPESTATUS[0]}
-    # Auto-retry when known frequent random failures occur.
-    - grep "✖.*autocomplete-props" $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/ui/cypress.log && exit 112 || true
-    - grep "✖.*copy-and-paste" $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/ui/cypress.log && exit 112 || true
-    - grep "✖.*global-regions-interact" $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/ui/cypress.log && exit 112 || true
-    - grep "✖.*media-library-component-instance" $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/ui/cypress.log && exit 112 || true
+    # Auto-retry the job when a known-flaky spec fails. The list comes from the
+    # specs tagged `// @canvas-ci flaky`, so those markers are the single source
+    # of truth for both the split (parallel.js) and this retry guard.
+    - |
+      for spec in $(node ./tests/support/flaky-specs.js); do
+        grep "✖.*$spec" $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/ui/cypress.log && exit 112 || true
+      done
     # If no auto-retry was attempted, use the original exit code.
     - exit $EXIT_CODE
   retry:
@@ -611,6 +698,8 @@ cypress unit:
   script:
     - npx cypress run --component --browser electron --reporter junit --reporter-options "mochaFile=junit-[hash].xml"
   rules:
+    - *version-merge-skip-rule
+    - *changeset-release-skip-rule
     - *push-rule
     - <<: *mr-rule
       changes:
@@ -626,6 +715,8 @@ playwright:
       - SHARD: [ "1/6", "2/6", "3/6", "4/6", "5/6", "6/6" ]
         #PROJECT: [ "chromium", "firefox", "webkit" ]
   rules:
+    - *version-merge-skip-rule
+    - *changeset-release-skip-rule
     - *push-rule
     - <<: *mr-e2e-rule
       changes:
@@ -651,6 +742,7 @@ playwright:
         - .cache/npm
         - .cache/astro
         - .cache/tsc
+        - .cache/turbo
       policy: pull
     - key: ${CI_PARENT_PROJECT_NAME}-playwright-${CI_COMMIT_REF_NAME}
       fallback_keys:
@@ -739,19 +831,26 @@ playwright-reports:
         - test-results/playwright.xml
       annotations: test-results/links.json
 
-CLI Test:
+# Builds and tests every npm workspace package. Runs against an installed
+# Drupal site because the CLI's integration tests exercise the Internal HTTP
+# API; tests that need the site skip themselves when it is unavailable.
+test (packages):
   stage: test
   rules:
+    - *changeset-release-skip-rule
     - *push-rule
     - <<: *mr-rule
       changes:
-        paths: *cli-files
+        paths: *packages-files
+        compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
+    - <<: *mr-rule
+      changes:
+        paths: *packages-integration-files
         compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
     - <<: *mr-rule
       changes:
         paths: *data-integrity-files
         compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
-    - *cli-release-rule
     - *manual-rule
   variables:
     _TARGET_DB_TYPE: sqlite
@@ -761,42 +860,128 @@ CLI Test:
   before_script:
     - !reference [ .drupal-with-dev-dependencies ]
     - !reference [ .canvas-ui ]
-    - mkdir -p test-results
-  # This job must pass, but must also not disrupt Canvas's CI if dependencies have a security vulnerability.
-  allow_failure:
-    exit_codes:
-      # `npm audit …` fails (implies upstream security vulnerability that may or may not affect Canvas)
-      - 100
+  script:
+    - npm run packages:build
+    - npm run packages:test
+
+# Pre-release dependency vulnerability check on the automated version merge
+# request, as a warning rather than a blocker: an unfixable upstream advisory
+# must not make releasing impossible.
+audit (packages):
+  stage: validate
+  image: *image-node
+  needs: []
+  allow_failure: true
+  rules:
+    - if: ($CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "merge_train") && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^changeset-release\//
   script:
     - npm ci
-    - npm run test --workspace=@drupal-canvas/cli
-    - npm run build --workspace=@drupal-canvas/cli
-    - npm version 0.0.1 --workspace=@drupal-canvas/cli
-    - npm pack --pack-destination=test-results --workspace=@drupal-canvas/cli
-    - npm audit --audit-level=moderate --production || exit 100
-  artifacts:
-    expose_as: 'CLI package'
-    when: always
-    expire_in: 6 mos
-    paths:
-      - test-results/
+    - npm audit --audit-level=moderate --omit=dev
 
-CLI Publish:
+# Turns pending changesets into version bumps, changelogs, and a "Version
+# packages" merge request against 1.x. Merging that MR triggers
+# `publish packages`. Requires GITLAB_CI_RELEASE_TOKEN with api scope.
+version packages:
   stage: publish
-  image: *image-node
+  # Runs git commands, so it uses the default drupal-testing image; the node
+  # images do not contain git.
   interruptible: false
-  needs:
-    - lint (node)
-    - CLI Test
+  needs: []
+  # Serialize with other pipelines' runs of this job so concurrent pipelines
+  # cannot force-push the version branch simultaneously.
+  resource_group: version-packages
+  variables:
+    GIT_DEPTH: "50"
   rules:
-    - *cli-release-rule
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
+  script:
+    # Set the resource group to process jobs oldest-first. When commits merge
+    # to 1.x in quick succession, their pipelines each run this job; with the
+    # default unordered mode an older pipeline's run can execute last and
+    # force-push stale content over the version merge request. Oldest-first
+    # ordering guarantees the newest pipeline writes last. The process mode
+    # can only be set through the API, not in the YAML, so every run applies
+    # it; `--fail` makes a rejected request fail the job loudly instead of
+    # silently running unordered.
+    # @see https://docs.gitlab.com/ci/resource_groups/#change-the-process-mode
+    - 'curl --fail --silent --request PUT --header "PRIVATE-TOKEN: ${GITLAB_CI_RELEASE_TOKEN}" --data "process_mode=oldest_first" "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/resource_groups/version-packages" > /dev/null'
+    - |
+      if ! find .changeset -name '*.md' ! -name 'README.md' | grep -q .; then
+        echo "No pending changesets; nothing to version."
+        exit 0
+      fi
+    - npm ci
+    # This identity is used exclusively by this job: the squashed merge of the
+    # version merge request keeps it as the commit author, which is what the
+    # `.version-merge-skip-rule` matches. Keep the two in sync.
+    - git config --local user.email "canvas-version-bot@drupal.org"
+    - git config --local user.name "Canvas version bot"
+    - git remote set-url origin https://gitlab-ci-token:${GITLAB_CI_RELEASE_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git
+    - git checkout -B changeset-release/$CI_DEFAULT_BRANCH
+    - npx changeset version
+    # Sync the lockfile with the new package versions.
+    - npm install --package-lock-only
+    - git add -A
+    - 'git commit -m "chore: version packages"'
+    - git push -f origin changeset-release/$CI_DEFAULT_BRANCH
+    - |
+      EXISTING=$(curl --silent --header "PRIVATE-TOKEN: ${GITLAB_CI_RELEASE_TOKEN}" \
+        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests?state=opened&source_branch=changeset-release/${CI_DEFAULT_BRANCH}" \
+        | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>process.stdout.write(String(JSON.parse(d).length)))')
+      if [ "$EXISTING" = "0" ]; then
+        curl --silent --fail --request POST --header "PRIVATE-TOKEN: ${GITLAB_CI_RELEASE_TOKEN}" \
+          --data-urlencode "source_branch=changeset-release/${CI_DEFAULT_BRANCH}" \
+          --data-urlencode "target_branch=${CI_DEFAULT_BRANCH}" \
+          --data-urlencode "title=chore: version packages" \
+          --data-urlencode "description=Automated merge request created from pending changesets. Merging it publishes the new package versions to npm. Do not commit to this branch manually; it is force-pushed on every push to ${CI_DEFAULT_BRANCH}." \
+          --data-urlencode "remove_source_branch=true" \
+          "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests" > /dev/null
+        echo "Opened merge request for changeset-release/${CI_DEFAULT_BRANCH}."
+      else
+        echo "Merge request for changeset-release/${CI_DEFAULT_BRANCH} already open; branch updated."
+      fi
+
+# Publishes every public package whose version is ahead of the npm registry,
+# then pushes the corresponding <name>@<version> git tags. Idempotent: already
+# published versions are skipped, so a failed job can be retried safely.
+publish packages:
+  stage: publish
+  # Runs git commands, so it uses the default drupal-testing image; the node
+  # images do not contain git.
+  interruptible: false
+  # Serialize publishes across pipelines; `changeset publish` skips versions
+  # that are already on the registry, so ordering resolves safely.
+  resource_group: publish-packages
+  # Gate on the node jobs only; unrelated report-stage failures (e.g.
+  # Playwright flakiness) must not block publishing.
+  needs:
+    - job: lint (node)
+      optional: true
+    - job: test (packages)
+      optional: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
+      changes:
+        paths:
+          - "packages/*/package.json"
   before_script:
     - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
   script:
     - npm ci
-    - npm run build --workspace=@drupal-canvas/cli
-    - npm version $(echo ${CI_COMMIT_TAG} | cut -c5-) --workspace=@drupal-canvas/cli
-    - npm publish --access public --workspace=@drupal-canvas/cli
+    # Lifecycle scripts (including prepack) are disabled in CI through
+    # npm_config_ignore_scripts: the published dist comes from this build step.
+    - npm run packages:build
+    - git config --local user.email "no-reply@drupal.org"
+    - git config --local user.name "drupal.org GitLab CI"
+    - git remote set-url origin https://gitlab-ci-token:${GITLAB_CI_RELEASE_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git
+    # Fetch existing tags so `changeset tag` below only creates missing ones.
+    - git fetch --tags --quiet --depth=1 origin
+    - npx changeset publish
+    # `changeset publish` only tags what it published in this run; `changeset
+    # tag` backfills tags for versions published by an earlier, partially
+    # failed run so a retry leaves the git bookkeeping complete.
+    - npx changeset tag
+    - git push origin --tags
 
 # User facing documentation.
 pages-mr:

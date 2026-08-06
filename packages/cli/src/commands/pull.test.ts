@@ -350,12 +350,23 @@ describe('Pull Command', () => {
 
     function mockApiService(
       css: string,
+      packageJson?: string,
+      assets?: unknown[],
+      downloadFile?: ReturnType<typeof vi.fn>,
+      bundledSources?: unknown[],
       importMap?: { imports: Record<string, string> },
     ): ApiService {
       return {
-        getGlobalAssetLibrary: vi
-          .fn()
-          .mockResolvedValue({ css: { original: css }, importMap }),
+        getGlobalAssetLibrary: vi.fn().mockResolvedValue({
+          css: { original: css },
+          packageJson,
+          assets,
+          bundledSources,
+          importMap,
+        }),
+        downloadFile:
+          downloadFile ??
+          vi.fn().mockResolvedValue(Buffer.from([0x00, 0x01, 0x02])),
       } as unknown as ApiService;
     }
 
@@ -368,11 +379,21 @@ describe('Pull Command', () => {
         },
         scopes: {},
       };
-      const api = mockApiService('body {}', importMap);
+      const api = mockApiService(
+        'body {}',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        importMap,
+      );
       const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
 
       const { summaryLines } = await task.prepare();
-      expect(summaryLines).toContain('Assets: canvas-importmap.json pull');
+      // The import map joins the compact asset summary line.
+      expect(summaryLines).toEqual([
+        'Assets: global CSS, canvas-importmap.json pull',
+      ]);
 
       await task.execute();
       const written = JSON.parse(
@@ -383,9 +404,14 @@ describe('Pull Command', () => {
     });
 
     it('writes the site import map even when there is no global CSS', async () => {
-      const api = mockApiService('', {
-        imports: { react: '/modules/contrib/canvas/react.js' },
-      });
+      const api = mockApiService(
+        '',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { imports: { react: '/modules/contrib/canvas/react.js' } },
+      );
       const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
 
       await task.prepare();
@@ -503,6 +529,270 @@ describe('Pull Command', () => {
       // File should NOT be updated.
       const cssContent = await fs.readFile(globalCssPath, 'utf-8');
       expect(cssContent).toBe('old css');
+    });
+
+    it('should write package.json to project root when present', async () => {
+      const packageJson = '{\n  "name": "my-project"\n}\n';
+      const api = mockApiService('body {}', packageJson);
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
+
+      const { summaryLines } = await task.prepare();
+      expect(summaryLines).toEqual(['Assets: global CSS, package.json pull']);
+
+      const results = await task.execute();
+      const packageJsonResult = results.results.find(
+        (r) => r.itemName === 'package.json',
+      );
+      expect(packageJsonResult?.success).toBe(true);
+
+      const written = await fs.readFile(
+        path.join(tmpDir, 'package.json'),
+        'utf-8',
+      );
+      expect(written).toBe(packageJson);
+    });
+
+    it('should write package.json even when no global CSS exists', async () => {
+      const packageJson = '{ "name": "css-less" }';
+      const api = mockApiService('', packageJson);
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
+
+      const { summaryLines } = await task.prepare();
+      expect(summaryLines).toEqual(['Assets: package.json pull']);
+
+      const results = await task.execute();
+      expect(results.results).toHaveLength(1);
+      expect(results.results[0].itemName).toBe('package.json');
+      expect(results.results[0].success).toBe(true);
+      expect(
+        await fs.readFile(path.join(tmpDir, 'package.json'), 'utf-8'),
+      ).toBe(packageJson);
+    });
+
+    it('should overwrite an existing package.json by default', async () => {
+      await fs.writeFile(
+        path.join(tmpDir, 'package.json'),
+        '{ "name": "old" }',
+        'utf-8',
+      );
+      const api = mockApiService('', '{ "name": "new" }');
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
+
+      await task.prepare();
+      await task.execute();
+
+      expect(
+        await fs.readFile(path.join(tmpDir, 'package.json'), 'utf-8'),
+      ).toBe('{ "name": "new" }');
+    });
+
+    it('should skip writing package.json with skipOverwrite when it already exists', async () => {
+      await fs.writeFile(
+        path.join(tmpDir, 'package.json'),
+        '{ "name": "old" }',
+        'utf-8',
+      );
+      const api = mockApiService('', '{ "name": "new" }');
+      const task = createAssetsPullTask(api, globalCssPath, true, tmpDir);
+
+      await task.prepare();
+      const results = await task.execute();
+
+      expect(results.results[0].itemName).toBe('package.json');
+      expect(results.results[0].details?.[0].content).toContain('Skipped');
+      expect(
+        await fs.readFile(path.join(tmpDir, 'package.json'), 'utf-8'),
+      ).toBe('{ "name": "old" }');
+    });
+
+    it('should summarize codebase files with a path', async () => {
+      const api = mockApiService('', undefined, [
+        {
+          name: '@/lib/foo',
+          uri: 'public://x',
+          path: 'src/lib/foo.ts',
+          source: 'export const x = 1;\n',
+        },
+        {
+          name: '@/assets/p.webp',
+          uri: 'public://p',
+          path: 'src/assets/p.webp',
+          url: 'http://h/p',
+        },
+        // Legacy/vendor entry without a path is ignored.
+        { name: 'lodash', uri: 'public://l' },
+      ]);
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
+
+      const { summaryLines } = await task.prepare();
+      expect(summaryLines).toEqual(['Assets: 2 local imports pull']);
+    });
+
+    it('should write a text module from source, not download it', async () => {
+      const downloadFile = vi.fn();
+      const source = 'export const cn = () => "";\n';
+      const api = mockApiService(
+        '',
+        undefined,
+        [
+          {
+            name: '@/lib/utils',
+            uri: 'public://u',
+            path: 'src/lib/utils.ts',
+            source,
+          },
+        ],
+        downloadFile,
+      );
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
+
+      await task.prepare();
+      const results = await task.execute();
+
+      const result = results.results.find(
+        (r) => r.itemName === 'src/lib/utils.ts',
+      );
+      expect(result?.success).toBe(true);
+      expect(downloadFile).not.toHaveBeenCalled();
+      expect(
+        await fs.readFile(path.join(tmpDir, 'src/lib/utils.ts'), 'utf-8'),
+      ).toBe(source);
+    });
+
+    it('should download a binary asset and write the bytes', async () => {
+      const bytes = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+      const downloadFile = vi.fn().mockResolvedValue(bytes);
+      const api = mockApiService(
+        '',
+        undefined,
+        [
+          {
+            name: '@/assets/p.png',
+            uri: 'public://p',
+            path: 'src/assets/p.png',
+            url: 'http://h/p.png',
+          },
+        ],
+        downloadFile,
+      );
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
+
+      await task.prepare();
+      const results = await task.execute();
+
+      const result = results.results.find(
+        (r) => r.itemName === 'src/assets/p.png',
+      );
+      expect(result?.success).toBe(true);
+      expect(downloadFile).toHaveBeenCalledWith('http://h/p.png');
+      expect(await fs.readFile(path.join(tmpDir, 'src/assets/p.png'))).toEqual(
+        bytes,
+      );
+    });
+
+    it('should skip an existing flexible file with skipOverwrite', async () => {
+      await fs.mkdir(path.join(tmpDir, 'src/lib'), { recursive: true });
+      await fs.writeFile(path.join(tmpDir, 'src/lib/utils.ts'), 'old', 'utf-8');
+      const api = mockApiService('', undefined, [
+        {
+          name: '@/lib/utils',
+          uri: 'public://u',
+          path: 'src/lib/utils.ts',
+          source: 'new',
+        },
+      ]);
+      const task = createAssetsPullTask(api, globalCssPath, true, tmpDir);
+
+      await task.prepare();
+      const results = await task.execute();
+
+      const result = results.results.find(
+        (r) => r.itemName === 'src/lib/utils.ts',
+      );
+      expect(result?.details?.[0].content).toContain('Skipped');
+      expect(
+        await fs.readFile(path.join(tmpDir, 'src/lib/utils.ts'), 'utf-8'),
+      ).toBe('old');
+    });
+
+    it('should reject a flexible file that escapes the project root', async () => {
+      const api = mockApiService('', undefined, [
+        {
+          name: '@/evil',
+          uri: 'public://e',
+          path: '../escape.ts',
+          source: 'x',
+        },
+      ]);
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
+
+      await task.prepare();
+      const results = await task.execute();
+
+      const result = results.results.find((r) => r.itemName === '../escape.ts');
+      expect(result?.success).toBe(false);
+      expect(result?.details?.[0].content).toContain(
+        'outside the project root',
+      );
+    });
+
+    it('should reject asset paths redirected outside through a symlink', async () => {
+      const outsideDir = await fs.mkdtemp(
+        path.join(os.tmpdir(), 'pull-assets-outside-test-'),
+      );
+      try {
+        await fs.symlink(outsideDir, path.join(tmpDir, 'linked'));
+        const api = mockApiService(
+          '',
+          undefined,
+          [
+            {
+              name: '@/linked/asset.ts',
+              uri: 'public://asset',
+              path: 'linked/asset.ts',
+              source: 'asset',
+            },
+          ],
+          undefined,
+          [
+            {
+              path: 'linked/helper.ts',
+              source: 'helper',
+            },
+          ],
+        );
+        const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
+
+        await task.prepare();
+        const results = await task.execute();
+
+        expect(results.results).toHaveLength(2);
+        expect(results.results.every((result) => !result.success)).toBe(true);
+        for (const result of results.results) {
+          expect(result.details?.[0].content).toContain(
+            'outside the project root through a symbolic link',
+          );
+        }
+        await expect(
+          fs.access(path.join(outsideDir, 'asset.ts')),
+        ).rejects.toThrow();
+        await expect(
+          fs.access(path.join(outsideDir, 'helper.ts')),
+        ).rejects.toThrow();
+      } finally {
+        await fs.rm(outsideDir, { recursive: true, force: true });
+      }
+    });
+
+    it('should complete cleanly when no flexible files exist server-side', async () => {
+      const api = mockApiService('', undefined, []);
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
+
+      const { summaryLines } = await task.prepare();
+      expect(summaryLines).toEqual([]);
+
+      const results = await task.execute();
+      expect(results.results).toEqual([]);
     });
   });
 

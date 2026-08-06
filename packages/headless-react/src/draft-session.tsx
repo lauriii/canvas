@@ -1,7 +1,14 @@
+// The directive below must survive any future compiled build of this
+// package: without it, React Server Component bundlers treat this module
+// as server code and every consumer build breaks.
 'use client';
 
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { createDraftSession } from '@drupal-canvas/headless/client';
+import {
+  createCanvasGeometryBridge,
+  createDraftSession,
+  createHeightReporter,
+} from '@drupal-canvas/headless/client';
 
 import type { ReactNode } from 'react';
 import type {
@@ -47,8 +54,8 @@ export interface DraftSessionProps {
    * Passed through to the render prop; the machine itself never uses it.
    */
   renewUrl: string | null;
-  /** Origins allowed to embed this app (postMessage peers). */
-  embedderOrigins: string[];
+  /** The signed editor origin used as the postMessage peer. */
+  editorOrigin: string | null;
   /** The app endpoint that redeems a fresh assertion. */
   renewEndpoint?: string;
   /**
@@ -59,12 +66,11 @@ export interface DraftSessionProps {
    */
   path?: string;
   /**
-   * Refreshes the consumer's server-derived data after a successful
-   * renewal (Next.js: router.refresh()); the refreshed data carries the
-   * new tokenExpiresAt as new props, which re-arm the machine. Omit it and
-   * the component re-arms in place from the renew response's own
-   * tokenExpiresAt instead — the renewed token already lives in the
-   * session cookie, so no server round trip is required.
+   * Refreshes the consumer's server-derived data after a successful renewal
+   * or a Canvas auto-save change (Next.js: router.refresh()). Refreshed
+   * renewal data carries the new tokenExpiresAt as new props, which re-arm
+   * the machine. Without it, renewal re-arms in place from the response's
+   * tokenExpiresAt, while an auto-save change reloads the current document.
    */
   refreshData?: () => void;
   /**
@@ -89,12 +95,15 @@ export interface DraftSessionProps {
  * destroy, recreate, re-arm. Without it, in place: the 'renewed' event
  * carries the new expiry, which becomes the internal epoch until the next
  * server-provided props arrive.
+ *
+ * Alongside the session machine, this component also runs a content-height
+ * reporter (see @drupal-canvas/headless/client's createHeightReporter).
  */
 export function DraftSession({
   tokenExpiresAt,
   initialExpired,
   renewUrl,
-  embedderOrigins,
+  editorOrigin,
   renewEndpoint,
   path,
   refreshData,
@@ -140,10 +149,6 @@ export function DraftSession({
     }
   }, [path]);
 
-  // Stable identity for the effect dependencies (the array prop is fresh
-  // each render).
-  const originsKey = embedderOrigins.join(' ');
-
   useEffect(() => {
     if (embedded === null) {
       return;
@@ -156,9 +161,18 @@ export function DraftSession({
       initialExpired: effectiveInitialExpired,
       embedded,
       path: pathRef.current,
-      embedderOrigins: originsKey.split(' ').filter(Boolean),
+      editorOrigin,
       renewEndpoint,
       onEvent: (event) => {
+        if (event.type === 'refresh-requested') {
+          const refresh = refreshDataRef.current;
+          if (refresh) {
+            refresh();
+          } else {
+            window.location.reload();
+          }
+          return;
+        }
         if (event.type === 'renewed') {
           const refresh = refreshDataRef.current;
           if (refresh) {
@@ -186,9 +200,29 @@ export function DraftSession({
     embedded,
     effectiveExpiresAt,
     effectiveInitialExpired,
-    originsKey,
+    editorOrigin,
     renewEndpoint,
   ]);
+
+  // An independent, one-way signal alongside the session machine above: the
+  // host sizes the preview iframe to fit this app's rendered content.
+  useEffect(() => {
+    if (embedded === null) {
+      return;
+    }
+    const reporter = createHeightReporter({ editorOrigin, embedded });
+    return () => {
+      reporter.destroy();
+    };
+  }, [embedded, editorOrigin]);
+
+  useEffect(() => {
+    if (embedded !== true || !editorOrigin) {
+      return;
+    }
+    const bridge = createCanvasGeometryBridge({ editorOrigin });
+    return () => bridge.destroy();
+  }, [editorOrigin, embedded]);
 
   if (embedded === null || !children) {
     return null;

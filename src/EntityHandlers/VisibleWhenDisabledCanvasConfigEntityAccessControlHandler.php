@@ -71,13 +71,18 @@ final class VisibleWhenDisabledCanvasConfigEntityAccessControlHandler extends Ca
         return $parent_result;
       }
       // *First* check usages in auto-save, because that tends to require far
-      // less I/O.
+      // less I/O. A forward (pending, non-default) revision counts as a usage
+      // too: publishing it (for example from a workspace) must not end up
+      // rendering the fallback for a deleted code component.
       return $parent_result->orIf(AccessResult::forbiddenIf(
         $this->componentAudit->hasUsages($component, RevisionAuditEnum::AutoSave),
         'This code component is in use in a Canvas auto-save and cannot be deleted.'
       ))->orIf(AccessResult::forbiddenIf(
         $this->componentAudit->hasUsages($component, RevisionAuditEnum::Default),
         'This code component is in use in a default revision and cannot be deleted.'
+      ))->orIf(AccessResult::forbiddenIf(
+        $this->componentAudit->hasUsages($component, RevisionAuditEnum::Latest),
+        'This code component is in use in the latest revision and cannot be deleted.'
       ));
     }
 

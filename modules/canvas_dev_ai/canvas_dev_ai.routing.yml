@@ -1,0 +1,14 @@
+canvas_dev_ai.builder:
+  path: '/admin/api/canvas/ai-dev'
+  defaults:
+    _controller: '\Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::render'
+  requirements:
+    _permission: 'use Drupal Canvas AI'
+
+canvas_dev_ai.agent_selection:
+  path: '/admin/config/ai/canvas-ai-agent-selection'
+  defaults:
+    _title: 'Agents & Tools'
+    _form: 'Drupal\canvas_dev_ai\Form\CanvasDevAiAgentSelectionForm'
+  requirements:
+    _permission: 'use Drupal Canvas AI'

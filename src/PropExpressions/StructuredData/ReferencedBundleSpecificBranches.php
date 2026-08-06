@@ -121,6 +121,17 @@ final class ReferencedBundleSpecificBranches {
         throw new \InvalidArgumentException(\sprintf('`%s` targets multiple bundles: only a single bundle per branch is allowed.', (string) $expr));
       }
 
+      // A branch that descends through a multi-bundle reference at any depth
+      // would make this a nested branch, which is not yet supported. Reject it
+      // as an invalid branch set here — before the assert below fires — so
+      // callers (like the Coalescer) can bail cleanly.
+      // @todo Remove this guard once nested branching is supported, in https://git.drupalcode.org/project/canvas/-/work_items/3591865
+      for ($branch_cursor = $expr; $branch_cursor instanceof ReferenceFieldPropExpression; $branch_cursor = $branch_cursor->referenced) {
+        if ($branch_cursor->targetsMultipleBundles()) {
+          throw new NestedBranchNotSupportedException(\sprintf('`%s` is a nested branch: descending through a multi-bundle reference within a branch is not yet supported.', (string) $expr));
+        }
+      }
+
       // Gather information for cross-branch validation.
       $leaf = match (TRUE) {
         $expr instanceof ReferencePropExpressionInterface => $expr->getFinalTargetExpression(),
@@ -211,6 +222,24 @@ final class ReferencedBundleSpecificBranches {
       throw new \OutOfRangeException(\sprintf("No branch found for entity type '%s' and bundle '%s'.", $entity_type_id, $bundle));
     }
     return $this->bundleSpecificReferencedExpressions[$data_type_id];
+  }
+
+  /**
+   * Returns the branch matching an entity's type + bundle, or NULL if none.
+   *
+   * This value object owns the branch-key format, so callers that resolve a
+   * concrete referenced entity to its branch (for example the render path in
+   * JsComponent::buildReferencePayload()) need not hand-build the key nor
+   * presence-check before looking it up.
+   *
+   * @param \Drupal\Core\Entity\FieldableEntityInterface $entity
+   *   The resolved referenced entity to select a branch for.
+   *
+   * @return \Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface|null
+   *   The matching branch, or NULL when no branch targets the entity's bundle.
+   */
+  public function getBranchForEntityOrNull(FieldableEntityInterface $entity): ?EntityFieldBasedPropExpressionInterface {
+    return $this->bundleSpecificReferencedExpressions["entity:{$entity->getEntityTypeId()}:{$entity->bundle()}"] ?? NULL;
   }
 
   public function calculateDependencies(FieldableEntityInterface|null $host_entity = NULL): array {

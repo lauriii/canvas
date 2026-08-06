@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas_personalization\Kernel\Plugin\Condition;
 
 use Drupal\canvas_personalization\Plugin\Condition\UtmParameters;
 use Drupal\Core\Condition\ConditionManager;
+use Drupal\Core\Executable\ExecutableManagerInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -34,7 +35,7 @@ class UtmParametersTest extends CanvasKernelTestBase {
     $request->setSession(new Session());
     $this->container->set('request_stack', new RequestStack([$request]));
 
-    $condition_manager = \Drupal::service('plugin.manager.condition');
+    $condition_manager = \Drupal::service(ExecutableManagerInterface::class);
     \assert($condition_manager instanceof ConditionManager);
     $condition = $condition_manager->createInstance(UtmParameters::PLUGIN_ID, $configuration);
     \assert($condition instanceof UtmParameters);

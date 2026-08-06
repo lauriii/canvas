@@ -1,70 +1,102 @@
 # @drupal-canvas/headless
 
-The framework-agnostic core of the Drupal Canvas Headless SDK.
+Framework-agnostic core of the Drupal Canvas Headless SDK: draft preview
+sessions, draft-aware content clients, and component metadata exposure for
+decoupled frontend apps.
 
-The Canvas Headless module lets the Drupal Canvas editor embed your decoupled
-frontend app, so editors preview their work rendered by the app itself — draft
-content included, with the app's components registered in Canvas. This SDK is
-the app side of that integration. It gives your app:
+The Canvas Headless module lets the Drupal Canvas editor embed your frontend
+app, so editors preview their work — draft content included — rendered by the
+app itself, with the app's components registered in Canvas. Draft previews
+include the markers and geometry Canvas needs for selection and drag-and-drop,
+while published pages keep normal application markup.
 
-- **Draft preview**: editors opening a preview get a session bound to their own
-  Drupal account, carried in secure cookies, so the app can fetch unpublished
-  content exactly as that editor may see it. Sessions renew invisibly while the
-  app sits inside the editor frame, and expire safely when it does not.
-- **Component metadata exposure**: an authenticated endpoint answering the app's
-  component registry, which the Canvas Headless module reads to register your
-  components in the editor.
+This package is the framework-neutral app side of that integration. Most apps
+use a framework adapter instead of this package directly:
 
-Most apps never use this package directly: the framework adapters —
-`@drupal-canvas/headless-next` (Next.js), `@drupal-canvas/headless-astro`
-(Astro), `@drupal-canvas/headless-nuxt` (Nuxt), and
-`@drupal-canvas/headless-tanstack-start` (TanStack Start) — wire everything to
-their framework's routing, cookies, and build pipeline, and
-`@drupal-canvas/headless-react` carries the shared React `<DraftSession>`
-component the React-based adapters build on. The adapters stay deliberately
-thin: assertion redemption, cookie contents, claim validation, identity pinning,
-the renewal protocol, and the component metadata handler all live here, so every
-framework behaves identically.
+- `@drupal-canvas/headless-next` (Next.js)
+- `@drupal-canvas/headless-astro` (Astro)
+- `@drupal-canvas/headless-nuxt` (Nuxt)
+- `@drupal-canvas/headless-tanstack-start` (TanStack Start)
+
+## Rendered pages
+
+`fetchPage()` asks Drupal to resolve a site-relative path. Drupal returns route
+context and document-head data, plus a Canvas component tree when Canvas renders
+the route:
+
+```ts
+import { isPageRedirect } from '@drupal-canvas/headless/server';
+
+const result = await server.fetchPage('/articles/hello-world');
+if (result && isPageRedirect(result)) {
+  // Propagate result.redirect.url through the framework router.
+} else {
+  result?.head.title;
+  result?.content;
+  result?.route.managedByCanvas;
+  result?.route.entity;
+}
+```
+
+Pass `page.content` directly to the framework's `CanvasComponentTree` renderer.
+It contains one structured root, or `null` when Canvas does not return managed
+content. Multiple rendered roots are nested under a transparent structural root.
+Pass `page.head` to the framework bridge documented by the adapter.
+
+When Drupal resolves a configured redirect, `fetchPage()` returns `PageRedirect`
+instead of `Page`. It contains `redirect.url`, `redirect.external`, and Drupal's
+configured `redirect.statusCode`. Handle it before reading page fields using the
+framework's redirect primitive.
+
+During an authorized draft session, the same call uses available content drafts.
+Public calls use stored content.
+
+Routes that Canvas does not render still return their document-head and route
+data with `content` set to `null` and `route.managedByCanvas` set to `false`. An
+empty managed tree also has `content` set to `null`, but keeps
+`route.managedByCanvas` set to `true`. Route-not-found and access-denied
+responses make `fetchPage()` return `null`.
+
+## Installation
+
+```bash
+npm install @drupal-canvas/headless
+```
+
+Type-checking with `skipLibCheck: false` can surface errors from a transitive
+dependency's type declarations (`jsona`, via the JSON:API client); the
+`skipLibCheck: true` default of framework tsconfigs avoids them.
 
 ## Entry points
 
 The subpaths keep browser bundles free of Node-only code and vice versa:
 
-- `@drupal-canvas/headless` — isomorphic, dependency-free: the protocol
-  constants (the client id and the postMessage message types; the latter are the
-  wire contract with the embedding editor and are re-exported by the host-side
-  `@drupal-canvas/headless-host` so both sides share one source of truth), the
-  `DraftData` session contract with parse/serialize/expiry helpers, assertion
-  claim decoding, and the session token helper.
-- `@drupal-canvas/headless/client` — browser-only: `createDraftSession()`, the
-  app side of the host renewal protocol as a framework-free state machine
-  (expiry timing, status reporting, origin-checked assertion handling), and the
-  `<canvas-draft-session>` custom element wrapping it for consumers without a
-  component runtime. The consumer owns presentation; a machine serves one
-  session epoch and is replaced when a renewal delivers a new `tokenExpiresAt`.
-- `@drupal-canvas/headless/server` — server-side, edge-safe (no filesystem): the
-  `DraftServerAdapter` interface, `createDraftServer()` with the
-  activation/renewal/exit flows, the RFC 7523 token exchange with its PKCE
-  session proof (RFC 7636, binding in-place renewal to the app server), the
-  draft-aware JSON:API client and rendered-content fetcher, the
-  proof-by-redemption request verifier, and CORS resolution.
-- `@drupal-canvas/headless/components-endpoint` — Node-only (component discovery
-  reads the filesystem): the component metadata endpoint handler,
-  `buildComponentMetadataPayload()` on top of `@drupal-canvas/discovery`, and
-  the build-time component manifest (`writeComponentManifest()` /
-  `readComponentManifest()`).
+- `@drupal-canvas/headless` — isomorphic: the protocol constants and the
+  `DraftData` session contract.
+- `@drupal-canvas/headless/client` — browser-only: the draft session state
+  machine, the `<canvas-draft-session>` element, and preview geometry helpers.
+- `@drupal-canvas/headless/server` — server-side, edge-safe: the draft server
+  with its activation, renewal, and exit flows, the draft-aware content clients,
+  and CSP helpers.
+- `@drupal-canvas/headless/components-endpoint` — Node-only: the component
+  metadata endpoint handler and the build-time component manifest.
+- `@drupal-canvas/headless/component-registry` — Node-only: generates component
+  implementation registry source.
+- `@drupal-canvas/headless/vite` — Node-only: the shared component registry
+  plugin for adapters built on Vite.
+- `@drupal-canvas/headless/preview.css` — styles empty slot and region drop
+  targets in draft previews.
 
 ## Writing a framework adapter
 
-Use an existing adapter if one exists for your framework; writing a new one is
-mostly wiring. The four in this repository are worked examples of every step.
+Use an existing adapter if one exists for your framework. Writing a new one is
+mostly wiring:
 
-1. **Implement `DraftServerAdapter`** (from `@drupal-canvas/headless/server`):
-   how your framework reads a request cookie, sets a response cookie, flips its
-   draft/preview flag (or a self-managed flag cookie where the framework has
-   none), and redirects. That is the whole interface.
-
-2. **Create the draft server and mount its flows as routes**:
+1. Implement `DraftServerAdapter` from `@drupal-canvas/headless/server`: how
+   your framework reads and sets cookies, flips its draft or preview flag, and
+   redirects.
+2. Create the draft server and mount its flows as routes. The flows take a web
+   `Request` and answer a web `Response`:
 
    ```ts
    import { createDraftServer } from '@drupal-canvas/headless/server';
@@ -75,33 +107,24 @@ mostly wiring. The four in this repository are worked examples of every step.
    // POST /api/disable-draft  -> server.disableDraftMode()
    ```
 
-   The flows take a web `Request` and answer a web `Response`, so any framework
-   with standard request handling mounts them directly.
+3. Mount `createComponentMetadataHandler()` from
+   `@drupal-canvas/headless/components-endpoint` as a route, with both its `GET`
+   and `OPTIONS` handlers.
+4. Provide the component implementation registry — `canvasComponentRegistry()`
+   from `@drupal-canvas/headless/vite` for Vite-based frameworks, or generated
+   source from `@drupal-canvas/headless/component-registry` — and expose a
+   `CanvasComponentTree` renderer that consumes it.
 
-3. **Mount the component metadata endpoint**: wrap
-   `createComponentMetadataHandler()` (from
-   `@drupal-canvas/headless/components-endpoint`) in a route, passing your
-   framework's production signal, a `loadManifest` that answers the component
-   manifest your build inlined into the server bundle (a Vite virtual module,
-   Nitro's `virtual`, Next.js env injection — the handler itself never touches
-   the filesystem, so bundlers' file tracers have nothing to over-trace), and a
-   `scanComponents` that runs `buildComponentMetadataPayload()` for
-   development's live scanning.
+   In draft mode, the renderer must emit Canvas boundaries and use
+   `@drupal-canvas/headless/preview.css` for empty drop targets.
 
-4. **Wire the client side**: render the `<canvas-draft-session>` element (or the
-   React `<DraftSession>` from `@drupal-canvas/headless-react`) with the session
-   state your server gathered — token expiry, embedder origins, the renew URL.
-   It runs the renewal protocol with the embedding editor and drives the app's
-   session banner.
+5. Wire the client side: render the `<canvas-draft-session>` element, or the
+   React `<DraftSession>` from `@drupal-canvas/headless-react`, with the session
+   state your server gathered.
 
-5. **Expose data access**: `server.getClient()` (draft-aware JSON:API) and
-   `server.fetchPage()` (rendered content, resolved through Drupal's routing),
-   surfaced however your framework reaches per-request state.
+   To refresh after Canvas auto-saves without reloading the document, pass
+   `refreshData` to React's `DraftSession`, or handle
+   `DRAFT_SESSION_REFRESH_EVENT` when using `<canvas-draft-session>`.
 
-## Publishing note
-
-The package ships raw TypeScript (`exports` point at `./src`); consumers compile
-it (Next.js: `transpilePackages`). A future compiled build must preserve the
-`'use client'` directive of `@drupal-canvas/headless-react` and the adapters'
-client entries, and vendor the type-only `@drupal-canvas/ui` references
-reachable through `@drupal-canvas/discovery`.
+6. Expose data access: `server.getClient()` and `server.fetchPage()`, surfaced
+   however your framework reaches per-request state.

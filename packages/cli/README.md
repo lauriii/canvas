@@ -301,9 +301,13 @@ import Button from '@/components/button';
 
 ### `pull`
 
-Pull code components, global CSS, pages, content templates, and global regions
-from Drupal to your local filesystem. Brand Kit fonts are only included when
-explicitly enabled.
+Pull code components, global CSS, package.json, local modules imported by
+components, pages, content templates, global regions from Drupal to your local
+filesystem. Brand Kit fonts are only included when explicitly enabled.
+
+If the project's `package.json` was captured on a previous `push`, it is written
+back to the project root during pull. It is overwritten by default, or skipped
+with `--skip-overwrite`, the same as global CSS.
 
 **Usage:**
 
@@ -538,7 +542,10 @@ artifact sync are skipped so page-only or Brand Kit-only pushes do not overwrite
 component assets. Push can include:
 
 1. **Components** - Built and uploaded as js_component config entities
-2. **Global CSS** - Tailwind CSS assets uploaded as asset_library
+2. **Global CSS** - Tailwind CSS assets uploaded as asset_library. The project's
+   `package.json`, when present, is stored verbatim on the same asset_library
+   entity so a later `pull` can reconstruct it. It is opaque metadata and is
+   never parsed.
 3. **Fonts** - If `canvas.brand-kit.json` is present, fonts are resolved (via
    unifont or local `src`), uploaded, and synced to the global Brand Kit.
    Requires `--include-brand-kit` or `CANVAS_INCLUDE_BRAND_KIT` which will add

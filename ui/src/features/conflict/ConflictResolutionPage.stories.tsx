@@ -4,15 +4,13 @@ import { configureStore } from '@reduxjs/toolkit';
 import { fn } from '@storybook/test';
 
 import { uiSliceReducer } from '@/features/ui/uiSlice';
+import { PageVersionComparisonView } from '@/features/versionComparison/PageVersionComparisonView';
 
-import {
-  ConflictResolutionView,
-  PageConflictComparisonView,
-} from './ConflictResolutionView';
+import { ConflictResolutionView } from './ConflictResolutionView';
 
 import type React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import type { ConflictVersionSelection } from './ConflictResolutionView';
+import type { PageVersionSelection } from '@/features/versionComparison/PageVersionComparisonView';
 
 const publishedPageHtml = `
   <!doctype html>
@@ -71,35 +69,11 @@ const newPageHtml = `
 const publishedVersion = {
   html: publishedPageHtml,
   updated: 'Updated 8/19/26 at 12:01 PM',
-  props: {
-    entity_form_fields: {
-      title: 'Homepage',
-      status: true,
-    },
-    layout: [{ uuid: 'published-hero', type: 'example:hero' }],
-    model: {
-      'published-hero': {
-        title: 'Welcome to our site',
-      },
-    },
-  },
 };
 
 const newVersion = {
   html: newPageHtml,
   updated: 'Updated 8/20/26 at 8:10 PM',
-  props: {
-    entity_form_fields: {
-      title: 'Homepage',
-      status: true,
-    },
-    layout: [{ uuid: 'new-hero', type: 'example:hero' }],
-    model: {
-      'new-hero': {
-        title: 'Welcome to our new site',
-      },
-    },
-  },
   changed: true,
 };
 
@@ -127,6 +101,8 @@ const STORY_ENTITY_ID = '1';
 
 const onPublishedPreviewClick = fn().mockName('onPublishedPreviewClick');
 const onNewPreviewClick = fn().mockName('onNewPreviewClick');
+const onNavigateToCanvas = fn().mockName('onNavigateToCanvas');
+const onNavigateToConflict = fn().mockName('onNavigateToConflict');
 
 const PageComparison = ({
   loading = false,
@@ -134,12 +110,10 @@ const PageComparison = ({
   onSelectVersion,
 }: {
   loading?: boolean;
-  selectedVersion?: ConflictVersionSelection;
-  onSelectVersion?: (
-    version: Exclude<ConflictVersionSelection, undefined>,
-  ) => void;
+  selectedVersion?: PageVersionSelection;
+  onSelectVersion?: (version: Exclude<PageVersionSelection, undefined>) => void;
 }) => (
-  <PageConflictComparisonView
+  <PageVersionComparisonView
     entityType={STORY_ENTITY_TYPE}
     entityId={STORY_ENTITY_ID}
     publishedVersion={{ ...publishedVersion, loading }}
@@ -156,11 +130,12 @@ const ConflictResolutionStory = ({
   loading = false,
   ...args
 }: React.ComponentProps<typeof ConflictResolutionView> & {
-  defaultSelectedVersion?: ConflictVersionSelection;
+  defaultSelectedVersion?: PageVersionSelection;
   loading?: boolean;
 }) => {
-  const [selectedVersion, setSelectedVersion] =
-    useState<ConflictVersionSelection>(defaultSelectedVersion);
+  const [selectedVersion, setSelectedVersion] = useState<PageVersionSelection>(
+    defaultSelectedVersion,
+  );
 
   return (
     <ConflictResolutionView
@@ -213,11 +188,13 @@ Resolving with **Published version** discards the conflicting auto-save. Resolvi
     onNext: fn(),
     onResolveConflict: fn(),
     onClose: fn(),
+    onNavigateToCanvas,
+    onNavigateToConflict,
   },
   argTypes: {
     comparison: {
       control: false,
-      description: 'PageConflictComparisonView content for both Page versions.',
+      description: 'PageVersionComparisonView content for both Page versions.',
     },
     label: {
       control: 'text',

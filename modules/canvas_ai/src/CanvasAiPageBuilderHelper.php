@@ -166,6 +166,38 @@ class CanvasAiPageBuilderHelper {
    *   Structured array with calculated nodePaths for components.
    */
   public function customYamlToArrayMapper(string $yaml_string): array {
+    $parsed_yaml = Yaml::parse($yaml_string);
+    $parsed_yaml = \is_array($parsed_yaml) ? $parsed_yaml : [];
+    return $this->computePlacement($parsed_yaml, FALSE)->operations;
+  }
+
+  /**
+   * Generates the placement data for a component structure request.
+   *
+   * @param array $operations_data
+   *   The operations structure, keyed by 'operations'.
+   *
+   * @return \Drupal\canvas_ai\CanvasAiPlacementResult
+   *   The operations (with assigned UUIDs) for the UI, plus the component
+   *   structure with those UUIDs and the predicted post-placement layout for
+   *   the model to reference in follow-up placements.
+   */
+  public function generateComponentPlacementData(array $operations_data): CanvasAiPlacementResult {
+    return $this->computePlacement($operations_data, TRUE);
+  }
+
+  /**
+   * Computes the operations, assigned UUIDs, and predicted layout for a request.
+   *
+   * @param array $data
+   *   The operations structure, keyed by 'operations'.
+   * @param bool $include_uuid
+   *   Whether to include each component's assigned UUID in the operations.
+   *
+   * @return \Drupal\canvas_ai\CanvasAiPlacementResult
+   *   The mapped placement result.
+   */
+  private function computePlacement(array $data, bool $include_uuid): CanvasAiPlacementResult {
     $result = [
       'operations' => [
         [
@@ -174,11 +206,9 @@ class CanvasAiPageBuilderHelper {
         ],
       ],
     ];
-    $parsed_yaml = Yaml::parse($yaml_string);
-    $parsed_yaml = \is_array($parsed_yaml) ? $parsed_yaml : [];
     // Add UUIDs to all components in the page builder output, so that their
     // nodePaths can be extracted later from the expected layout.
-    $data_to_process = $this->addUuidToAllComponents($parsed_yaml);
+    $data_to_process = $this->addUuidToAllComponents($data);
 
     $current_layout = $this->canvasAiTempstore->getData(CanvasAiTempStore::CURRENT_LAYOUT_KEY) ?? '';
     $current_layout = Json::decode($current_layout);
@@ -192,10 +222,10 @@ class CanvasAiPageBuilderHelper {
     // Then append them to the result.
     foreach ($data_to_process['operations'] as $operation) {
       $target = strpos($operation['target'], '/') === FALSE ? $operation['target'] : NULL;
-      $this->appendComponentsRecursive($operation['components'], $predicted_layout, $target, $result['operations'][0]['components']);
+      $this->appendComponentsRecursive($operation['components'], $predicted_layout, $target, $result['operations'][0]['components'], $include_uuid);
     }
 
-    return $result;
+    return new CanvasAiPlacementResult($result, $data_to_process, $predicted_layout);
   }
 
   /**
@@ -209,8 +239,11 @@ class CanvasAiPageBuilderHelper {
    *   The target region, if any.
    * @param array &$result_components
    *   Reference to array where processed components are collected.
+   * @param bool $include_uuid
+   *   Whether to include the component's assigned UUID in the output, so a tool
+   *   can echo it back to the model for reference_uuid chaining.
    */
-  protected function appendComponentsRecursive(array $components, array $predicted_layout, ?string $target, array &$result_components): void {
+  protected function appendComponentsRecursive(array $components, array $predicted_layout, ?string $target, array &$result_components, bool $include_uuid = FALSE): void {
     foreach ($components as $component) {
       foreach ($component as $id => $component_data) {
         // Process the current component.
@@ -219,6 +252,9 @@ class CanvasAiPageBuilderHelper {
         // the uuid.
         $node_path = $this->getCalculatedNodepath($predicted_layout, $component_data['uuid'], $target);
         $component_data_to_append['id'] = $id;
+        if ($include_uuid) {
+          $component_data_to_append['uuid'] = $component_data['uuid'];
+        }
         $component_data_to_append['nodePath'] = $node_path;
         $component_data_to_append['fieldValues'] = $component_data['props'] ?? [];
         $result_components[] = $component_data_to_append;
@@ -227,7 +263,7 @@ class CanvasAiPageBuilderHelper {
         if (!empty($component_data['slots'])) {
           foreach ($component_data['slots'] as $slot_components) {
             if (\is_array($slot_components)) {
-              $this->appendComponentsRecursive($slot_components, $predicted_layout, $target, $result_components);
+              $this->appendComponentsRecursive($slot_components, $predicted_layout, $target, $result_components, $include_uuid);
             }
           }
         }
@@ -1642,6 +1678,56 @@ class CanvasAiPageBuilderHelper {
    */
   public function formatMessageWithContext(string $context, string $userMessage): string {
     return "<context>\n{$context}\n</context>\n\n<user_message>\n{$userMessage}\n</user_message>";
+  }
+
+  /**
+   * Indexes every component in the current layout by its UUID.
+   *
+   * Walks all regions and nested slots, collecting each component's id and its
+   * resolved prop values.
+   *
+   * @param array $current_layout
+   *   The decoded current layout, as stored under
+   *   \Drupal\canvas_ai\CanvasAiTempStore::CURRENT_LAYOUT_KEY.
+   *
+   * @return array
+   *   An array keyed by component UUID, each value being
+   *   ['component_id' => string, 'props' => array].
+   */
+  public function getComponentsByUuid(array $current_layout): array {
+    $components_by_uuid = [];
+    foreach ($current_layout['regions'] ?? [] as $region_data) {
+      if (!\is_array($region_data)) {
+        continue;
+      }
+      $this->collectComponentsByUuid($region_data['components'] ?? [], $components_by_uuid);
+    }
+    return $components_by_uuid;
+  }
+
+  /**
+   * Recursively collects components keyed by UUID.
+   *
+   * @param array $components
+   *   The components at a given region or slot.
+   * @param array $components_by_uuid
+   *   Reference to the accumulating UUID-keyed array.
+   */
+  private function collectComponentsByUuid(array $components, array &$components_by_uuid): void {
+    foreach ($components as $component) {
+      if (!\is_array($component) || !isset($component['uuid'])) {
+        continue;
+      }
+      $components_by_uuid[$component['uuid']] = [
+        'component_id' => $component['name'] ?? '',
+        'props' => \is_array($component['props'] ?? NULL) ? $component['props'] : [],
+      ];
+      foreach ($component['slots'] ?? [] as $slot_payload) {
+        if (\is_array($slot_payload) && \is_array($slot_payload['components'])) {
+          $this->collectComponentsByUuid($slot_payload['components'], $components_by_uuid);
+        }
+      }
+    }
   }
 
 }

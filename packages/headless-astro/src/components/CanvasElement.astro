@@ -1,0 +1,115 @@
+---
+import {
+  findCanvasComponent,
+  formatCanvasCommentMarker,
+  getCanvasComponentRenderData,
+  normalizeCanvasComponentTreeSlot,
+  reportMissingCanvasComponent,
+  reportMissingCanvasComponentUuid,
+} from '@drupal-canvas/headless';
+import {
+  render as renderTemplate,
+  renderComponent,
+} from 'astro/runtime/server/index.js';
+import CanvasSlot from './CanvasSlot.astro';
+
+import type {
+  AstroComponentFactory,
+  ComponentSlots,
+} from 'astro/runtime/server/index.js';
+import type { CanvasComponentTreeElement } from '@drupal-canvas/headless/server';
+
+interface Props {
+  node: CanvasComponentTreeElement;
+  components: Record<string, unknown>;
+  path: string;
+  editor: boolean;
+}
+
+const { node, components, path, editor } = Astro.props;
+const componentData = getCanvasComponentRenderData(node);
+const Component = componentData
+  ? findCanvasComponent(components, componentData)
+  : undefined;
+const slots = Object.entries(node.slots ?? {}).map(([name, value]) => ({
+  name,
+  children: normalizeCanvasComponentTreeSlot(value),
+}));
+
+if (componentData && !Component) {
+  reportMissingCanvasComponent(componentData, path);
+}
+if (
+  editor &&
+  componentData &&
+  !componentData.componentUuid
+) {
+  reportMissingCanvasComponentUuid(componentData, path);
+}
+
+// Astro's template syntax compiles named slots statically. Canvas slot names
+// arrive at runtime, so construct the slot map through Astro's server renderer.
+const RuntimeComponent: AstroComponentFactory = (result) => {
+  const runtimeSlots: ComponentSlots = Object.fromEntries(
+    slots.map(({ name, children }) => [
+      name,
+      (slotResult) =>
+        renderTemplate`${renderComponent(
+          slotResult,
+          'CanvasSlot',
+          CanvasSlot,
+          {
+            name,
+            children,
+            components,
+            path,
+            editor,
+            componentUuid: componentData?.componentUuid,
+          },
+        )}`,
+    ]),
+  );
+
+  return renderTemplate`${renderComponent(
+    result,
+    componentData?.componentName ?? 'CanvasComponent',
+    Component,
+    componentData?.props ?? {},
+    runtimeSlots,
+  )}`;
+};
+RuntimeComponent.isAstroComponentFactory = true;
+---
+
+{
+  node.element === 'drupal-markup' || !componentData ? (
+    slots.map(({ name, children }) =>
+      children.map((child, index) =>
+        typeof child === 'string' ? (
+          <Fragment set:html={child} />
+        ) : (
+          <Astro.self
+            node={child}
+            components={components}
+            path={`${path}:${name}:${index}`}
+            editor={editor}
+          />
+        ),
+      ),
+    )
+  ) : Component ? (
+    <>
+      {editor && componentData?.componentUuid && (
+        <Fragment
+          set:html={`<!-- ${formatCanvasCommentMarker({ type: 'component', position: 'start', id: componentData.componentUuid })} -->`}
+        />
+      )}
+      <RuntimeComponent />
+      {editor && componentData?.componentUuid && (
+        <Fragment
+          set:html={`<!-- ${formatCanvasCommentMarker({ type: 'component', position: 'end', id: componentData.componentUuid })} -->`}
+        />
+      )}
+    </>
+  ) : null
+}

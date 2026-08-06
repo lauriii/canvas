@@ -12,6 +12,7 @@ use Drupal\canvas\Exception\ConstraintViolationException;
 use Drupal\canvas\Validation\ConstraintPropertyPathTranslatorTrait;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Plugin\Context\ContextDefinition;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Psr\Log\LoggerInterface;
@@ -86,7 +87,7 @@ final class EditComponentJs extends FunctionCallBase implements ExecutableFuncti
       $container->get('ai.context_definition_normalizer'),
     );
     $instance->entityTypeManager = $container->get(EntityTypeManagerInterface::class);
-    $instance->logger = $container->get('logger.factory')->get('canvas_ai');
+    $instance->logger = $container->get(LoggerChannelFactoryInterface::class)->get('canvas_ai');
     return $instance;
   }
 

@@ -10,11 +10,14 @@ use Drupal\canvas\EntityHandlers\CanvasConfigEntityAccessControlHandler;
 use Drupal\canvas\Exception\ConstraintViolationException;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponentDiscovery;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\Core\Entity\EntityStorageInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
+use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Theme\ThemeManagerInterface;
 
@@ -149,13 +152,22 @@ final class PageRegion extends ComponentTreeConfigEntityBase implements CanvasHt
    * {@inheritdoc}
    */
   public function normalizeForClientSide(): ClientSideRepresentation {
+    $component_tree = [];
+    foreach ($this->getComponentTree() as $item) {
+      \assert($item instanceof ComponentTreeItem);
+      $values = \array_map(fn($property) => $property->getValue(), $item->getProperties(TRUE));
+      unset($values['parent_item'], $values['component']);
+      $values['inputs'] = $item->getInputs();
+      $component_tree[] = $values;
+    }
+
     return ClientSideRepresentation::create(
       values: [
         'id' => $this->id(),
         'theme' => $this->theme,
         'region' => $this->region,
         'status' => $this->status(),
-        'component_tree' => $this->getComponentTree()->getValue(),
+        'component_tree' => $component_tree,
       ],
       preview: NULL,
     )->addCacheableDependency($this);
@@ -221,7 +233,7 @@ final class PageRegion extends ComponentTreeConfigEntityBase implements CanvasHt
    *   Page regions for the active theme.
    */
   public static function loadForActiveTheme(): array {
-    $theme = \Drupal::service('theme.manager')->getActiveTheme()->getName();
+    $theme = \Drupal::service(ThemeManagerInterface::class)->getActiveTheme()->getName();
     return self::loadForTheme($theme);
   }
 
@@ -232,7 +244,7 @@ final class PageRegion extends ComponentTreeConfigEntityBase implements CanvasHt
     if (!$include_non_editable) {
       $properties['status'] = TRUE;
     }
-    $regions = \Drupal::service('entity_type.manager')->getStorage(self::ENTITY_TYPE_ID)->loadByProperties($properties);
+    $regions = \Drupal::service(EntityTypeManagerInterface::class)->getStorage(self::ENTITY_TYPE_ID)->loadByProperties($properties);
 
     return $regions;
   }
@@ -284,14 +296,14 @@ final class PageRegion extends ComponentTreeConfigEntityBase implements CanvasHt
    * @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant::MAIN_CONTENT_REGION
    */
   public static function createFromBlockLayout(string $theme): array {
-    $theme_info = \Drupal::service('theme_handler')->getTheme($theme);
+    $theme_info = \Drupal::service(ThemeHandlerInterface::class)->getTheme($theme);
     $region_names = array_filter(
       \array_keys($theme_info->info['regions']),
       // No PageRegion config entity is allowed for the `content` region.
       fn ($s) => $s !== CanvasPageVariant::MAIN_CONTENT_REGION,
     );
 
-    $blocks = \Drupal::service('entity_type.manager')->getStorage('block')
+    $blocks = \Drupal::service(EntityTypeManagerInterface::class)->getStorage('block')
       ->loadByProperties([
         'theme' => $theme,
         'status' => TRUE,

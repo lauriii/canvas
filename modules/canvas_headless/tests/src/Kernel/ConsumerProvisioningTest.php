@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas_headless\Kernel;
 
 use Drupal\canvas_headless\PreviewAssertionFactory;
 use Drupal\consumers\Entity\Consumer;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -29,6 +30,7 @@ class ConsumerProvisioningTest extends CanvasKernelTestBase {
     'serialization',
     'consumers',
     'simple_oauth',
+    'custom_elements',
     'canvas_headless',
   ];
 
@@ -48,7 +50,7 @@ class ConsumerProvisioningTest extends CanvasKernelTestBase {
   public function testProvisionedConsumerIsDeletedOnUninstall(): void {
     canvas_headless_install();
 
-    $storage = $this->container->get('entity_type.manager')->getStorage('consumer');
+    $storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage('consumer');
     $consumers = $storage->loadByProperties(['client_id' => PreviewAssertionFactory::CLIENT_ID]);
     self::assertCount(1, $consumers);
     $consumer = reset($consumers);
@@ -79,7 +81,7 @@ class ConsumerProvisioningTest extends CanvasKernelTestBase {
 
     canvas_headless_install();
 
-    $storage = $this->container->get('entity_type.manager')->getStorage('consumer');
+    $storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage('consumer');
     self::assertCount(1, $storage->loadByProperties(['client_id' => PreviewAssertionFactory::CLIENT_ID]));
     self::assertNull($this->container->get('state')->get('canvas_headless.provisioned_consumer_uuid'));
 

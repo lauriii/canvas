@@ -9,6 +9,9 @@ use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\UrlHelper;
+use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\node\Entity\Node;
@@ -147,7 +150,7 @@ class CodeComponentDataProviderTest extends FunctionalTestBase {
     // Set up multiple languages so the translations data covers a translated
     // language (French), an untranslated one (German), and the default and
     // currently active language (English).
-    $this->container->get('module_installer')->install(['language']);
+    $this->container->get(ModuleInstallerInterface::class)->install(['language']);
     // Refresh the container so the language schema is known before saving
     // language.negotiation below.
     $this->rebuildContainer();
@@ -231,7 +234,7 @@ class CodeComponentDataProviderTest extends FunctionalTestBase {
 
     // Visiting the German URL: German is requested and current, but the page has
     // no German translation so the content renders in English (the fallback).
-    $de = $this->container->get('language_manager')->getLanguage('de');
+    $de = $this->container->get(LanguageManagerInterface::class)->getLanguage('de');
     $this->drupalGet($page->toUrl('canonical', ['language' => $de]));
     $drupalSettings = $this->getDrupalSettings();
     self::assertSame([
@@ -275,7 +278,7 @@ class CodeComponentDataProviderTest extends FunctionalTestBase {
    * @legacy-covers \Drupal\canvas\CodeComponentDataProvider::getCanvasDataMainEntityV0
    */
   public function testGetCanvasDataMainEntityV0TranslationViewAccess(): void {
-    $this->container->get('module_installer')->install(['language']);
+    $this->container->get(ModuleInstallerInterface::class)->install(['language']);
     // Refresh the container so the language schema is known before saving
     // language.negotiation below.
     $this->rebuildContainer();
@@ -361,7 +364,7 @@ class CodeComponentDataProviderTest extends FunctionalTestBase {
    */
   public function testGetCanvasDataMainEntityV0OnPreviewEntityRoute(): void {
     // Preview route should use 'preview_entity' when present.
-    $this->container->get('module_installer')->install(['node', 'language']);
+    $this->container->get(ModuleInstallerInterface::class)->install(['node', 'language']);
     // Refresh the container so the language schema is known before saving
     // language.negotiation below.
     $this->rebuildContainer();
@@ -371,7 +374,7 @@ class CodeComponentDataProviderTest extends FunctionalTestBase {
       ->save();
     $this->rebuildContainer();
     $this->drupalCreateContentType(['type' => 'article', 'name' => 'Article']);
-    self::assertTrue($this->container->get('module_handler')->moduleExists('canvas'));
+    self::assertTrue($this->container->get(ModuleHandlerInterface::class)->moduleExists('canvas'));
 
     $node = Node::create([
       'title' => 'Some article',
@@ -467,7 +470,7 @@ class CodeComponentDataProviderTest extends FunctionalTestBase {
    * @legacy-covers \Drupal\canvas\CodeComponentDataProvider::getCanvasDataMainEntityV0
    */
   public function testGetCanvasDataMainEntityV0OnInvalidCanvasRoute(): void {
-    $this->container->get('module_installer')->install(['node']);
+    $this->container->get(ModuleInstallerInterface::class)->install(['node']);
 
     $regular_user = $this->drupalCreateUser([ContentTemplate::ADMIN_PERMISSION, 'access content', 'administer nodes']);
     $this->assertInstanceOf(AccountInterface::class, $regular_user);

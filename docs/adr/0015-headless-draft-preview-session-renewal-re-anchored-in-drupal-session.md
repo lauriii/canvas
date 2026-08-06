@@ -39,8 +39,10 @@ directly: only the live Drupal session mints. (Core's header CSRF check does not
 permits requests carrying no session cookie.)
 
 **The renewal lane (embedded).** A three-message postMessage protocol between the app and its host, origin-checked in
-both directions (the app validates against the same origin allowlist that feeds its CSP `frame-ancestors`; the host
-validates the frontend origin from module config and addresses replies to it, never `*`):
+both directions. The app derives the exact Drupal editor origin from the signed `renewUrl` claim in the redeemed
+assertion, requires messages to come from both that origin and its parent window, and addresses messages only to that
+origin. The host validates the frontend origin from module config, requires messages to come from the embedded app
+window, and addresses replies to that origin. Neither direction uses `*`:
 
 | Direction  | Message                          | Meaning                                          |
 | ---------- | -------------------------------- | ------------------------------------------------ |

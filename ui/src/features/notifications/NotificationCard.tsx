@@ -26,17 +26,23 @@ const SHOW_READ_INDICATOR = new Set(['info', 'warning', 'error']);
 interface NotificationCardProps {
   notification: Notification;
   onMarkRead: (id: string) => void;
+  onAction?: (id: string, href: string) => void;
 }
 
 const NotificationCard = ({
   notification,
   onMarkRead,
+  onAction,
 }: NotificationCardProps) => {
   const Icon = TYPE_ICONS[notification.type];
   const showReadIndicator = SHOW_READ_INDICATOR.has(notification.type);
 
   return (
-    <div className={styles.card} data-type={notification.type}>
+    <div
+      className={styles.card}
+      data-type={notification.type}
+      data-key={notification.key ?? undefined}
+    >
       <div
         className={clsx(styles.icon, {
           [styles.spin]: notification.type === 'processing',
@@ -58,6 +64,14 @@ const NotificationCard = ({
                   className={styles.actionLink}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={
+                    onAction
+                      ? (event) => {
+                          event.preventDefault();
+                          onAction(notification.id, action.href);
+                        }
+                      : undefined
+                  }
                 >
                   {action.label}
                 </a>

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_headless\Kernel;
 
+use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -19,7 +20,7 @@ class SettingsValidationTest extends CanvasKernelTestBase {
   /**
    * The frontend URL constraint's violation message.
    */
-  private const MESSAGE = 'The frontend URL must be an absolute http:// or https:// URL whose host is a hostname or a dotted-quad IPv4 address, with no credentials, query, fragment, or trailing slash.';
+  private const MESSAGE = 'The frontend URL must be an absolute http:// or https:// URL whose host is a hostname or a dotted-quad IPv4 address, with no credentials, query, fragment, dot path segments, or trailing slash.';
 
   /**
    * {@inheritdoc}
@@ -30,6 +31,7 @@ class SettingsValidationTest extends CanvasKernelTestBase {
     'serialization',
     'consumers',
     'simple_oauth',
+    'custom_elements',
     'canvas_headless',
   ];
 
@@ -46,15 +48,13 @@ class SettingsValidationTest extends CanvasKernelTestBase {
    */
   public function testConstraintsRejectInvalidValues(): void {
     $violations = $this->validate([
-      'frontend_url' => 'http://localhost:3000/',
-      'draft_path' => 'api/draft',
+      'frontends' => [['url' => 'http://localhost:3000/']],
       'assertion_expiration' => 3600,
     ]);
 
     $this->assertSame([
       'assertion_expiration' => ['This value should be between <em class="placeholder">10</em> and <em class="placeholder">300</em>.'],
-      'draft_path' => ['The draft path must begin with a slash.'],
-      'frontend_url' => [self::MESSAGE],
+      'frontends.0.url' => [self::MESSAGE],
     ], $violations);
   }
 
@@ -71,8 +71,7 @@ class SettingsValidationTest extends CanvasKernelTestBase {
   #[DataProvider('providerFrontendUrls')]
   public function testFrontendUrlRestriction(string $frontend_url, bool $valid): void {
     $violations = $this->validate([
-      'frontend_url' => $frontend_url,
-      'draft_path' => '/api/draft',
+      'frontends' => [['url' => $frontend_url]],
       'assertion_expiration' => 60,
     ]);
 
@@ -82,8 +81,8 @@ class SettingsValidationTest extends CanvasKernelTestBase {
     else {
       // Some cases additionally violate the uri primitive type; the
       // restriction must reject them all regardless.
-      $this->assertSame(['frontend_url'], \array_keys($violations));
-      $this->assertContains(self::MESSAGE, $violations['frontend_url']);
+      $this->assertSame(['frontends.0.url'], \array_keys($violations));
+      $this->assertContains(self::MESSAGE, $violations['frontends.0.url']);
     }
   }
 
@@ -120,6 +119,10 @@ class SettingsValidationTest extends CanvasKernelTestBase {
       'embedded credentials' => ['https://evil.test@trusted.example', FALSE],
       'query string' => ['https://example.com?assertion=x', FALSE],
       'fragment' => ['https://example.com#x', FALSE],
+      'literal dot segment' => ['https://example.com/./app', FALSE],
+      'literal dot-dot segment' => ['https://example.com/a/../app', FALSE],
+      'encoded dot segment' => ['https://example.com/%2e/app', FALSE],
+      'encoded dot-dot segment' => ['https://example.com/a/%2E%2e/app', FALSE],
       'javascript scheme' => ['javascript:parent.alert(document.domain)#x', FALSE],
       'data scheme' => ['data:text/html,<script>parent.alert(1)</script>', FALSE],
       'scheme only, no host' => ['https://', FALSE],
@@ -130,18 +133,34 @@ class SettingsValidationTest extends CanvasKernelTestBase {
   }
 
   /**
-   * Tests that every key is required and no other key is allowed.
+   * Tests that required keys are present and no other key is allowed.
    */
   public function testUnknownAndMissingKeysAreRejected(): void {
     $violations = $this->validate([
-      'frontend_url' => 'http://localhost:3000',
-      'draft_path' => '/api/draft',
+      'frontends' => [['url' => 'http://localhost:3000']],
+      'component_metadata_url' => '/custom/components',
       'unknown_key' => 'whatever',
     ]);
 
     $this->assertSame([
       '' => ["'assertion_expiration' is a required key."],
+      'component_metadata_url' => ["'component_metadata_url' is not a supported key."],
       'unknown_key' => ["'unknown_key' is not a supported key."],
+    ], $violations);
+  }
+
+  /**
+   * Tests that frontend items require the url key and allow nothing else.
+   */
+  public function testFrontendItemKeysAreValidated(): void {
+    $violations = $this->validate([
+      'frontends' => [['label' => 'Production']],
+      'assertion_expiration' => 60,
+    ]);
+
+    $this->assertSame([
+      'frontends.0' => ["'url' is a required key."],
+      'frontends.0.label' => ["'label' is not a supported key."],
     ], $violations);
   }
 
@@ -155,7 +174,7 @@ class SettingsValidationTest extends CanvasKernelTestBase {
    *   Violation messages keyed by property path, sorted by path.
    */
   private function validate(array $data): array {
-    $typed_data = $this->container->get('config.typed')
+    $typed_data = $this->container->get(TypedConfigManagerInterface::class)
       ->createFromNameAndData('canvas_headless.settings', $data);
     $violations = [];
     foreach ($typed_data->validate() as $violation) {

@@ -1,0 +1,32 @@
+{
+  "name": "@drupal-canvas/height-reader",
+  "version": "0.0.0",
+  "description": "Shared DOM logic for measuring rendered content height across viewport-relative CSS, used by the Canvas UI editor preview and the headless SDK",
+  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://git.drupalcode.org/project/canvas.git"
+  },
+  "bugs": "https://www.drupal.org/project/issues/canvas",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "test": "vitest run",
+    "type-check": "tsc --noEmit --pretty"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "jsdom": "^26.1.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  },
+  "sideEffects": false
+}

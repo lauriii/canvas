@@ -163,6 +163,14 @@ canvas.js_component.*:
     name:
       type: required_label
       label: 'Name'
+    type:
+      type: string
+      label: 'Code component type'
+      requiredKey: false
+      constraints:
+        Choice:
+          - react
+          - external
     # See core/assets/schemas/v1/metadata-full.schema.json#properties.props.properties.required
     required:
       type: sequence
@@ -195,9 +203,11 @@ canvas.js_component.*:
     js:
       type: canvas.compilable_code
       label: 'JS'
+      requiredKey: false
     css:
       type: canvas.compilable_code
       label: 'CSS'
+      requiredKey: false
     dataDependencies:
       type: mapping
       label: 'Data dependencies'
@@ -266,6 +276,15 @@ canvas.js_component.*:
               # expand → edit → coalesce round trip without losing data.
               # @see \Drupal\canvas\PropExpressions\StructuredData\Coalescer::expand()
               EntityFieldExpressionsMustBeIdempotent: ~
+              # A nested branch (a branch inside a branch) is not yet supported;
+              # reject selections that would coalesce into one.
+              # @todo Remove once nested branching is supported, in https://git.drupalcode.org/project/canvas/-/work_items/3591865
+              EntityFieldExpressionsMustNotNestBranches: ~
+              # Reading multiple/differing fields per bundle across bundles
+              # coalesces into an object that mixes bundle-specific picks, which
+              # is unrenderable; reject it until it coalesces into a branch.
+              # @todo Remove once such selections coalesce into a branch, in https://git.drupalcode.org/project/canvas/-/work_items/3591873
+              EntityFieldExpressionsMustNotMixBundlesInObject: ~
             sequence:
               type: string
               label: 'Entity field prop expression'
@@ -281,10 +300,6 @@ canvas.js_component.*:
                   message: 'The expression is valid, but not one of the allowed types: %choices.'
                 # Validate that the expression targets an existing entity type and bundle.
                 ExpressionTargetEntityBundleExists: ~
-                # Reject references targeting multiple bundles: resolving them at
-                # render time is not yet supported.
-                # @todo https://git.drupalcode.org/project/canvas/-/work_items/3591656
-                MultiTargetBundleReferenceNotSupported: ~
                 # Reject expressions on multi-valued fields: resolving them at
                 # render time is not yet supported.
                 # @todo https://git.drupalcode.org/project/canvas/-/work_items/3589536
@@ -871,6 +886,21 @@ canvas.asset_library.*:
         NotBlank: ~
       sequence:
         type: canvas.asset_library_manifest_entry
+    bundledSources:
+      type: sequence
+      label: 'Bundled local module sources'
+      requiredKey: false
+      orderby: value
+      constraints:
+        # There must be >=1 entry; otherwise the key should be omitted.
+        NotBlank: ~
+      sequence:
+        type: canvas.asset_library_bundled_source
+    packageJson:
+      type: string
+      label: 'Project package.json'
+      requiredKey: false
+      nullable: true
 
 canvas.asset_library_manifest_entry:
   type: mapping
@@ -887,6 +917,30 @@ canvas.asset_library_manifest_entry:
       constraints:
         NotBlank: []
         UriScheme: ['public']
+    path:
+      type: string
+      label: 'Original relative disk path'
+      requiredKey: false
+    source:
+      type: string
+      label: 'Original source code of a module'
+      requiredKey: false
+      nullable: true
+
+canvas.asset_library_bundled_source:
+  type: mapping
+  label: 'Bundled local module source'
+  mapping:
+    path:
+      type: string
+      label: 'Original relative disk path'
+      constraints:
+        NotBlank: []
+    source:
+      type: string
+      label: 'Verbatim original source code'
+      constraints:
+        NotBlank: []
 
 canvas.brand_kit.*:
   type: config_entity

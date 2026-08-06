@@ -29,6 +29,11 @@
   color: var(--blue-9);
 }
 
+.reviewSelectedButton {
+  justify-content: center;
+  margin: 0 !important;
+}
+
 .loading {
   padding-right: 10px;
 }

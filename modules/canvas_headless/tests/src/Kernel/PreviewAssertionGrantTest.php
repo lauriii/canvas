@@ -9,8 +9,11 @@ use Drupal\canvas_headless\PreviewAssertionFactory;
 use Drupal\canvas_headless\PreviewAssertionFactoryInterface;
 use Drupal\canvas_headless\PreviewUrlGeneratorInterface;
 use Drupal\consumers\Entity\Consumer;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Session\PermissionCheckerInterface;
 use Drupal\Core\Url;
 use Drupal\simple_oauth\Authentication\TokenAuthUser;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\simple_oauth\Kernel\AuthorizedRequestBase;
 use Drupal\user\UserInterface;
@@ -21,7 +24,9 @@ use Lcobucci\JWT\Signer\Rsa\Sha256;
 use Lcobucci\JWT\Token\Builder;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Symfony\Bridge\PsrHttpMessage\HttpMessageFactoryInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
@@ -35,7 +40,10 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
  *
  * Note this cannot use CanvasKernelTestBase because the Simple OAuth token
  * endpoint needs the fixtures its own kernel test base provides (signing
- * keys, entity schemas, and a baseline consumer).
+ * keys, entity schemas, and a baseline consumer). The canvas module itself
+ * must still be installed: the container cannot compile without it because
+ * canvas_headless's ExternalComponentSync service references canvas
+ * services.
  */
 #[RunTestsInSeparateProcesses]
 #[Group('canvas_headless')]
@@ -52,6 +60,8 @@ class PreviewAssertionGrantTest extends AuthorizedRequestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
+    ...CanvasKernelTestBase::CANVAS_KERNEL_TEST_MINIMAL_MODULES,
+    'custom_elements',
     'canvas_headless',
   ];
 
@@ -59,6 +69,15 @@ class PreviewAssertionGrantTest extends AuthorizedRequestBase {
    * The editor whose Drupal presence the assertions assert.
    */
   protected UserInterface $editor;
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function bootKernel(): void {
+    parent::bootKernel();
+    // AuthorizedRequestBase generates a URL before this class's setUp() runs.
+    $this->installEntitySchema('path_alias');
+  }
 
   /**
    * {@inheritdoc}
@@ -108,7 +127,7 @@ class PreviewAssertionGrantTest extends AuthorizedRequestBase {
 
     // The issued token is bound to the editor and carries only the module's
     // scope — the two facts the whole design rests on.
-    $tokens = $this->container->get('entity_type.manager')
+    $tokens = $this->container->get(EntityTypeManagerInterface::class)
       ->getStorage('oauth2_token')
       ->loadByProperties(['bundle' => 'access_token']);
     self::assertCount(1, $tokens);
@@ -138,16 +157,16 @@ class PreviewAssertionGrantTest extends AuthorizedRequestBase {
     $response = $this->exchange($this->mintAssertion());
     self::assertSame(200, $response->getStatusCode());
 
-    $tokens = $this->container->get('entity_type.manager')
+    $tokens = $this->container->get(EntityTypeManagerInterface::class)
       ->getStorage('oauth2_token')
       ->loadByProperties(['bundle' => 'access_token']);
     /** @var \Drupal\simple_oauth\Entity\Oauth2TokenInterface $token */
     $token = reset($tokens);
     $account = new TokenAuthUser(
-      $this->container->get('permission_checker'),
+      $this->container->get(PermissionCheckerInterface::class),
       $token,
-      $this->container->get('psr7.http_message_factory'),
-      $this->container->get('request_stack'),
+      $this->container->get(HttpMessageFactoryInterface::class),
+      $this->container->get(RequestStack::class),
     );
 
     // A preview-safe permission resolves; write and administrative
@@ -168,7 +187,7 @@ class PreviewAssertionGrantTest extends AuthorizedRequestBase {
    * yield a 15-minute preview token.
    */
   public function testTokenLifetimeIsCapped(): void {
-    $consumers = $this->container->get('entity_type.manager')
+    $consumers = $this->container->get(EntityTypeManagerInterface::class)
       ->getStorage('consumer')
       ->loadByProperties(['client_id' => PreviewAssertionFactory::CLIENT_ID]);
     /** @var \Drupal\consumers\Entity\Consumer $consumer */
@@ -192,7 +211,7 @@ class PreviewAssertionGrantTest extends AuthorizedRequestBase {
    */
   public function testDisablingGrantOnScopeRefusesIssuance(): void {
     /** @var \Drupal\simple_oauth\Entity\Oauth2Scope $entity */
-    $entity = $this->container->get('entity_type.manager')
+    $entity = $this->container->get(EntityTypeManagerInterface::class)
       ->getStorage('oauth2_scope')
       ->load(PreviewAssertionGrant::SCOPE);
     $grant_types = $entity->get('grant_types');
@@ -464,7 +483,7 @@ class PreviewAssertionGrantTest extends AuthorizedRequestBase {
     self::assertSame(200, $response->getStatusCode());
 
     /** @var \Drupal\simple_oauth\Entity\Oauth2Scope $entity */
-    $entity = $this->container->get('entity_type.manager')
+    $entity = $this->container->get(EntityTypeManagerInterface::class)
       ->getStorage('oauth2_scope')
       ->load(PreviewAssertionGrant::SCOPE);
     $grant_types = $entity->get('grant_types');
@@ -634,16 +653,16 @@ class PreviewAssertionGrantTest extends AuthorizedRequestBase {
     // Prove the premise: authenticated with this token, the preview
     // permission itself resolves — so a denial on the routes below can only
     // mean the authentication method was refused.
-    $tokens = $this->container->get('entity_type.manager')
+    $tokens = $this->container->get(EntityTypeManagerInterface::class)
       ->getStorage('oauth2_token')
       ->loadByProperties(['bundle' => 'access_token']);
     /** @var \Drupal\simple_oauth\Entity\Oauth2TokenInterface $token */
     $token = reset($tokens);
     $account = new TokenAuthUser(
-      $this->container->get('permission_checker'),
+      $this->container->get(PermissionCheckerInterface::class),
       $token,
-      $this->container->get('psr7.http_message_factory'),
-      $this->container->get('request_stack'),
+      $this->container->get(HttpMessageFactoryInterface::class),
+      $this->container->get(RequestStack::class),
     );
     self::assertTrue($account->hasPermission(PreviewUrlGeneratorInterface::PREVIEW_PERMISSION));
 

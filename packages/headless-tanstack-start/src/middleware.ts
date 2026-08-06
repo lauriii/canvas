@@ -5,8 +5,9 @@ import { createMiddleware } from '@tanstack/react-start';
  * Content-Security-Policy, restricting who may embed the app — the
  * TanStack Start counterpart of the header withCanvas() configures for
  * Next.js. Merged, not set: a policy the app already sends (default-src,
- * script-src, ...) is preserved; only the frame-ancestors directive is
- * this SDK's to own. Wire it into the app's global request middleware:
+ * script-src, ...) is preserved. An application-owned frame-ancestors
+ * directive remains authoritative. Wire it into the app's global request
+ * middleware:
  *
  * ```ts
  * // src/start.ts
@@ -18,9 +19,8 @@ import { createMiddleware } from '@tanstack/react-start';
  * }));
  * ```
  *
- * The environment is read per request, not at module load, so the dev
- * server picks up .env changes the same way the rest of the SDK does; see
- * resolveFrameAncestors() for the source list rules.
+ * Responses are 'self'-only by default; a draft session also admits the
+ * exact editor origin from its signed renewal URL.
  */
 export const cspMiddleware = createMiddleware().server(async ({ next }) => {
   // Imported lazily: createStart's configuration is an isomorphic module
@@ -29,10 +29,13 @@ export const cspMiddleware = createMiddleware().server(async ({ next }) => {
   const [
     { getResponseHeader, setResponseHeader },
     { mergeFrameAncestors, resolveFrameAncestors },
+    { getDraftData },
   ] = await Promise.all([
     import('@tanstack/react-start/server'),
     import('@drupal-canvas/headless/server'),
+    import('./server'),
   ]);
+  const draftData = await getDraftData();
   // The handler chain runs first so a policy it sets is merged, not lost.
   const result = await next();
   setResponseHeader(
@@ -41,7 +44,7 @@ export const cspMiddleware = createMiddleware().server(async ({ next }) => {
     // one header field.
     mergeFrameAncestors(
       getResponseHeader('Content-Security-Policy') ?? null,
-      resolveFrameAncestors(),
+      resolveFrameAncestors(draftData),
     ).join(', '),
   );
   return result;

@@ -12,6 +12,7 @@ use Drupal\canvas\PropSource\PropSource;
 use Drupal\Component\Uuid\UuidInterface;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableDependencyInterface;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\file\Entity\File;
@@ -102,7 +103,7 @@ class ComponentInputsDependenciesTest extends CanvasKernelTestBase {
     ]);
     $this->createMediaType('image', ['id' => 'image', 'label' => 'Image']);
 
-    $field_definitions = \Drupal::service('entity_field.manager')->getFieldDefinitions('node', 'alpha');
+    $field_definitions = \Drupal::service(EntityFieldManagerInterface::class)->getFieldDefinitions('node', 'alpha');
     $image_field_sample_value = ImageItem::generateSampleValue($field_definitions['field_hero']);
     \assert(\is_array($image_field_sample_value) && \array_key_exists('target_id', $image_field_sample_value));
     $hero_reference = Media::create([

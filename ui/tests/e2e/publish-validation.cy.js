@@ -1,3 +1,4 @@
+// @canvas-ci weight=5
 // cspell:ignore Duderino
 
 describe('Publish review functionality', () => {

@@ -7,7 +7,7 @@ namespace Drupal\canvas_headless;
 /**
  * Canonicalizes the configured frontend URL for security-relevant consumers.
  *
- * The frontend_url setting feeds an iframe src, a trusted redirect target,
+ * The active frontend URL feeds an iframe src, a trusted redirect target,
  * and the origin postMessage checks compare against. Two hazards make a
  * naive parse unsafe:
  *
@@ -30,9 +30,12 @@ namespace Drupal\canvas_headless;
  *     would produce, and refuses every other spelling. An internationalized
  *     site is configured by its ASCII name — which is exactly the string its
  *     MessageEvents will report.
- * - Divergent derivation. The origin and the draft URL must describe the
- *   same site, so both are built from one canonical parse here rather than
- *   from the raw string in two places.
+ * - Path rewriting. Browsers remove literal and percent-encoded dot segments
+ *   before navigating, while parse_url() preserves them. Refusing those
+ *   segments keeps the configured base URL identical to the browser's URL.
+ * - Divergent derivation. The origin and the draft URL must describe the same
+ *   site, so both are built from one canonical parse here rather than from the
+ *   raw string in two places.
  *
  * The config schema restricts the setting to this same shape on save; this
  * class is the runtime counterpart, so a value that bypassed validation (a
@@ -69,7 +72,7 @@ final class FrontendUrl {
    *   The canonical representation, or NULL when the value is not an
    *   unambiguous absolute http(s) URL whose host is already spelled the
    *   way a browser would spell it, and which carries no credentials,
-   *   query, fragment, backslash, or trailing slash.
+   *   query, fragment, backslash, dot path segment, or trailing slash.
    */
   public static function fromConfig(string $frontend_url): ?self {
     // Reject the characters browsers and PHP's parser disagree on, or that
@@ -102,6 +105,14 @@ final class FrontendUrl {
       return NULL;
     }
     $path = $parts['path'] ?? '';
+    // A browser resolves both literal and percent-encoded dot segments before
+    // navigation. PHP preserves them, so accepting one would give the stored
+    // frontend a different base URL than the iframe actually loads.
+    foreach (explode('/', $path) as $segment) {
+      if (preg_match('/^(?:\.|%2e){1,2}$/i', $segment) === 1) {
+        return NULL;
+      }
+    }
     // The draft path is appended verbatim, so a trailing slash here would
     // produce a double slash in every generated URL. A bare "/" path counts.
     if (str_ends_with($path, '/')) {

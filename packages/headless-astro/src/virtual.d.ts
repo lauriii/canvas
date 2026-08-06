@@ -9,3 +9,8 @@ declare module 'virtual:@drupal-canvas/headless-astro/manifest' {
   const manifest: ComponentMetadataPayload | null;
   export default manifest;
 }
+
+declare module 'virtual:@drupal-canvas/headless/components' {
+  const components: Record<string, unknown>;
+  export default components;
+}

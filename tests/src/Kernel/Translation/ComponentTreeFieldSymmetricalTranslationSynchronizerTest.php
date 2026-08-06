@@ -10,7 +10,9 @@ use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSyn
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\content_translation\BundleTranslationSettingsInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\RevisionableStorageInterface;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -51,7 +53,7 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizerTest extends Con
   #[TestWith([Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID, 'components'], 'base field (BaseFieldOverride)')]
   public function test(string $entity_type_id, string $bundle, string $field_name): void {
     $this->setUpSymmetricalContentTranslation($entity_type_id, $bundle, $field_name);
-    $entity_storage = $this->container->get('entity_type.manager')->getStorage($entity_type_id);
+    $entity_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage($entity_type_id);
 
     // Create either content entity, with an initial default translation.
     $cta_uuid = self::CTA_UUID;
@@ -99,7 +101,7 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizerTest extends Con
     // 1. Create a French translation. The non-translatable 'target' is set to a
     // different value here — it must be overwritten by the synchronizer on save.
     $translation = $entity->addTranslation('fr');
-    $this->container->get('content_translation.manager')
+    $this->container->get(BundleTranslationSettingsInterface::class)
       ->getTranslationMetadata($translation)
       ->setSource($entity->language()->getId());
     $translation->set('title', 'French title')->set($field_name, self::populateActiveComponentVersionPlaceholders([

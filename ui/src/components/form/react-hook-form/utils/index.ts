@@ -55,6 +55,15 @@ export const getCurrentValueFromProps = (props: Record<string, any>) => {
   if (props.options && props.options.some((opt: any) => opt.selected)) {
     return props.options.find((opt: any) => opt.selected).value;
   }
+  if (props.attributes?.type === 'checkbox') {
+    // A checkbox's value attribute is its return value when checked (usually
+    // "1"), not its state, so it must never be used as the current value.
+    // Derive the boolean state from #checked (or the checked attribute)
+    // instead of falling through to the truthy value fallbacks below, which
+    // would report an unchecked checkbox as checked.
+    const checked = props.element?.['#checked'] ?? props.attributes?.checked;
+    return checked === true || checked === 'checked' || checked === 'true';
+  }
   if (props.checked !== undefined) return props.checked;
   if (props.value !== undefined) return props.value;
   if (props.attributes?.checked !== undefined) return props.attributes.checked;

@@ -8,6 +8,7 @@ import {
   getPropsValues,
   propInputData,
 } from '@/components/form/react-hook-form/fields/componentFormData';
+import { getCurrentValueFromProps } from '@/components/form/react-hook-form/utils';
 
 let formState = {
   'canvas_component_props[all-props][heading][0][value]': 'hello, world!',
@@ -787,5 +788,53 @@ describe('propInputData', () => {
     expect(propsInThisForm).to.include('size');
     // Single value props should not have brackets.
     expect(propsInThisForm).to.not.include(']');
+  });
+});
+
+describe('getCurrentValueFromProps', () => {
+  it('should return false for an unchecked checkbox despite a truthy value attribute', () => {
+    // An unchecked Drupal checkbox: #checked is false, but the checkbox
+    // return value ("1") is present in attributes.value and #default_value.
+    expect(
+      getCurrentValueFromProps({
+        attributes: { type: 'checkbox', value: '1' },
+        element: { '#checked': false, '#default_value': 0 },
+      }),
+    ).to.equal(false);
+  });
+
+  it('should return false for an unchecked checkbox when #checked is absent', () => {
+    expect(
+      getCurrentValueFromProps({
+        attributes: { type: 'checkbox', value: '1' },
+        element: {},
+      }),
+    ).to.equal(false);
+  });
+
+  it('should return true for a checked checkbox', () => {
+    expect(
+      getCurrentValueFromProps({
+        attributes: { type: 'checkbox', value: '1' },
+        element: { '#checked': true, '#default_value': 1 },
+      }),
+    ).to.equal(true);
+  });
+
+  it('should return true for a checkbox with attributes.checked set', () => {
+    expect(
+      getCurrentValueFromProps({
+        attributes: { type: 'checkbox', value: '1', checked: 'checked' },
+      }),
+    ).to.equal(true);
+  });
+
+  it('should return the value attribute for non-checkbox elements', () => {
+    expect(
+      getCurrentValueFromProps({
+        attributes: { type: 'text' },
+        element: { '#value': 'hello' },
+      }),
+    ).to.equal('hello');
   });
 });

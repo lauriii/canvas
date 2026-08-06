@@ -6,8 +6,24 @@ services:
     class: Drupal\canvas_headless\PreviewAssertionFactory
   Drupal\canvas_headless\PreviewUrlGeneratorInterface:
     class: Drupal\canvas_headless\PreviewUrlGenerator
-  Drupal\canvas_headless\Access\PreviewCeilingAccessPolicy:
+  Drupal\canvas_headless\StackMiddleware\CanvasContentApiRequest:
+    autowire: false
+    tags:
+      - { name: http_middleware, priority: 150 }
+  Drupal\canvas_headless\Routing\CanvasContentRouteEnhancer:
+    tags:
+      - { name: route_enhancer, priority: -1000 }
+  Drupal\canvas_headless\EventSubscriber\CanvasContentResponseSubscriber: {}
+  Drupal\canvas_headless\CanvasContentEntityRenderer: {}
+  Drupal\canvas_headless\CanvasContentHeadBuilder:
     arguments:
-      - '@simple_oauth.oauth2_scope.provider'
+      $metatagManager: '@?metatag.manager'
+  Drupal\canvas_headless\Access\PreviewCeilingAccessPolicy:
     tags:
       - { name: access_policy }
+  Drupal\canvas_headless\ExternalComponentSync: {}
+  Drupal\canvas_headless\Controller\ExternalComponentSyncController: {}
+  Drupal\canvas_headless\RenderConverter\JsComponentCanvasRenderConverter:
+    decorates: custom_elements.canvas_render_converter
+    decoration_on_invalid: ignore
+  Drupal\canvas_headless\Controller\CanvasContentController: {}

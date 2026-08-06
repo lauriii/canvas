@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\Render;
 
 use Drupal\canvas\Entity\Page;
+use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\Render\HtmlResponse;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
@@ -43,7 +44,7 @@ final class ComponentTreeFieldRenderingTest extends CanvasKernelTestBase {
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
 
     $themes = ['olivero', 'claro'];
-    \Drupal::service('theme_installer')->install($themes);
+    \Drupal::service(ThemeInstallerInterface::class)->install($themes);
     $this->config('system.theme')->set('default', 'olivero')->save();
 
     $this->generateComponentConfig();

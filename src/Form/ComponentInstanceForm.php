@@ -9,6 +9,7 @@ use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Fallback;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\canvas\Storage\ComponentTreeLoader;
@@ -48,7 +49,7 @@ final class ComponentInstanceForm extends FormBase {
 
     return new static(
       $component_tree_loader,
-      $container->get('theme_handler'),
+      $container->get(ThemeHandlerInterface::class),
       $component_source_manager,
     );
   }
@@ -72,7 +73,7 @@ final class ComponentInstanceForm extends FormBase {
     if (\is_null($entity)) {
       throw new \UnexpectedValueException('The $entity parameter should never be NULL.');
     }
-    \assert($entity instanceof FieldableEntityInterface || ($entity instanceof ContentTemplate && $preview_entity instanceof FieldableEntityInterface));
+    \assert($entity instanceof FieldableEntityInterface || $entity instanceof Pattern || ($entity instanceof ContentTemplate && $preview_entity instanceof FieldableEntityInterface));
     // @phpstan-ignore-next-line property.notFound
     if (!$this->themeHandler->themeExists('canvas_stark') || !$this->themeHandler->listInfo()['canvas_stark']->status) {
       return [
@@ -80,7 +81,13 @@ final class ComponentInstanceForm extends FormBase {
         '#markup' => $this->t('The canvas_stark theme must be enabled for this form to work.'),
       ];
     }
-    $host_entity = $entity instanceof ContentTemplate ? $preview_entity : $entity;
+    // A Pattern renders standalone, so it has no host content entity against
+    // which dynamic prop sources would be resolved.
+    $host_entity = match (TRUE) {
+      $entity instanceof ContentTemplate => $preview_entity,
+      $entity instanceof FieldableEntityInterface => $entity,
+      default => NULL,
+    };
 
     $request = $this->getRequest();
     $tree = $request->request->getString('form_canvas_tree');

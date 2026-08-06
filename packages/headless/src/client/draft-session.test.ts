@@ -2,8 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   HEADLESS_ASSERTION_MESSAGE,
+  HEADLESS_REFRESH_ACK_MESSAGE,
+  HEADLESS_REFRESH_MESSAGE,
   HEADLESS_RENEW_REQUEST_MESSAGE,
   HEADLESS_STATUS_MESSAGE,
+  HEADLESS_STATUS_REQUEST_MESSAGE,
 } from '../constants';
 import { EXPIRY_SLACK_MS } from '../draft-data';
 import {
@@ -16,6 +19,7 @@ import type { DraftSessionEvent, DraftSessionOptions } from './draft-session';
 
 const ORIGIN = 'https://drupal.example';
 const OTHER_ORIGIN = 'https://other.example';
+const HOST_SESSION_ID = 'host-session';
 
 function makeHarness(overrides: Partial<DraftSessionOptions> = {}) {
   const postMessage = vi.fn();
@@ -38,7 +42,7 @@ function makeHarness(overrides: Partial<DraftSessionOptions> = {}) {
     initialExpired: false,
     embedded: true,
     path: '/node/1',
-    embedderOrigins: [ORIGIN, OTHER_ORIGIN],
+    editorOrigin: ORIGIN,
     refreshData,
     onEvent: (event) => events.push(event),
     hostWindow,
@@ -50,14 +54,18 @@ function makeHarness(overrides: Partial<DraftSessionOptions> = {}) {
   const session = createDraftSession(options);
 
   const dispatchMessage = (event: Record<string, unknown>) => {
+    const data = event.data as Record<string, unknown> | undefined;
     for (const listener of [...listeners]) {
       listener({
         source: hostWindow,
         origin: ORIGIN,
         ...event,
+        ...(data ? { data: { hostSessionId: HOST_SESSION_ID, ...data } } : {}),
       } as unknown as Event);
     }
   };
+
+  dispatchMessage({ data: { type: HEADLESS_STATUS_REQUEST_MESSAGE } });
 
   return {
     session,
@@ -86,12 +94,22 @@ afterEach(() => {
 });
 
 describe('createDraftSession', () => {
-  it('reports the initial status to every allowlisted origin', () => {
+  it('reports the initial status to the signed editor origin', () => {
     const { postMessage } = makeHarness();
     const initial = statusMessages(postMessage);
     expect(initial).toHaveLength(2);
-    expect(initial[0][0]).toMatchObject({ status: 'active', path: '/node/1' });
-    expect(initial.map(([, origin]) => origin)).toEqual([ORIGIN, OTHER_ORIGIN]);
+    expect(initial[1][0]).toMatchObject({
+      status: 'active',
+      path: '/node/1',
+      hostSessionId: HOST_SESSION_ID,
+    });
+    expect(initial[1][1]).toBe(ORIGIN);
+  });
+
+  it('posts nothing without a signed editor origin', () => {
+    const { postMessage } = makeHarness({ editorOrigin: null });
+    vi.advanceTimersByTime(600_000);
+    expect(postMessage).not.toHaveBeenCalled();
   });
 
   it('posts nothing when standalone', () => {
@@ -138,7 +156,41 @@ describe('createDraftSession', () => {
     expect(session.getState().renewState).toBe('requested');
     expect(events).toContainEqual({ type: 'renew-requested' });
     expect(postMessage).toHaveBeenCalledWith(
-      { type: HEADLESS_RENEW_REQUEST_MESSAGE, path: '/node/1' },
+      {
+        type: HEADLESS_RENEW_REQUEST_MESSAGE,
+        path: '/node/1',
+        hostSessionId: HOST_SESSION_ID,
+      },
+      ORIGIN,
+    );
+  });
+
+  it('reports expiry instead of renewing when a background tab delays the timer', () => {
+    const expiresAt = Date.now() + 300_000;
+    const { session, events, postMessage } = makeHarness({
+      tokenExpiresAt: expiresAt,
+    });
+    postMessage.mockClear();
+
+    // Moving the wall clock without advancing timers simulates a background
+    // tab whose scheduled renewal did not run until after the token expired.
+    vi.setSystemTime(expiresAt);
+    vi.advanceTimersToNextTimer();
+    vi.runAllTimers();
+
+    expect(session.getState()).toEqual({
+      expired: true,
+      renewState: 'idle',
+    });
+    expect(events).toEqual([{ type: 'expired' }]);
+    expect(postMessage).toHaveBeenCalledExactlyOnceWith(
+      {
+        type: HEADLESS_STATUS_MESSAGE,
+        status: 'expired',
+        path: '/node/1',
+        tokenExpiresAt: expiresAt,
+        hostSessionId: HOST_SESSION_ID,
+      },
       ORIGIN,
     );
   });
@@ -200,6 +252,57 @@ describe('createDraftSession', () => {
       tokenExpiresAt: renewedExpiry,
     });
     expect(refreshData).toHaveBeenCalledOnce();
+  });
+
+  it('acknowledges and refreshes data when the host reports a new auto-save', () => {
+    const { events, fetchImpl, postMessage, refreshData, dispatchMessage } =
+      makeHarness();
+
+    dispatchMessage({
+      data: { type: HEADLESS_REFRESH_MESSAGE, refreshId: 7 },
+    });
+
+    expect(events).toContainEqual({ type: 'refresh-requested' });
+    expect(refreshData).toHaveBeenCalledOnce();
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(postMessage).toHaveBeenCalledWith(
+      {
+        type: HEADLESS_REFRESH_ACK_MESSAGE,
+        refreshId: 7,
+        hostSessionId: HOST_SESSION_ID,
+      },
+      ORIGIN,
+    );
+  });
+
+  it.each([
+    ['a non-host source', { source: { postMessage: vi.fn() } }],
+    ['a different origin', { origin: OTHER_ORIGIN }],
+  ])('ignores refresh messages from %s', (_label, event) => {
+    const { events, refreshData, dispatchMessage } = makeHarness();
+
+    dispatchMessage({
+      data: { type: HEADLESS_REFRESH_MESSAGE },
+      ...event,
+    });
+
+    expect(events).not.toContainEqual({ type: 'refresh-requested' });
+    expect(refreshData).not.toHaveBeenCalled();
+  });
+
+  it('ignores commands from a previous host protocol session', () => {
+    const { events, refreshData, dispatchMessage } = makeHarness();
+
+    dispatchMessage({
+      data: {
+        type: HEADLESS_REFRESH_MESSAGE,
+        refreshId: 7,
+        hostSessionId: 'previous-session',
+      },
+    });
+
+    expect(events).not.toContainEqual({ type: 'refresh-requested' });
+    expect(refreshData).not.toHaveBeenCalled();
   });
 
   it('renews without refreshData and without a usable response body', async () => {
@@ -265,7 +368,7 @@ describe('createDraftSession', () => {
 
   it.each([
     ['a non-host source', { source: { postMessage: vi.fn() } }],
-    ['a non-allowlisted origin', { origin: 'https://evil.example' }],
+    ['a different origin', { origin: OTHER_ORIGIN }],
     ['a different message type', { data: { type: 'other', assertion: 'x' } }],
     [
       'a non-string assertion',

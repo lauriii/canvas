@@ -1,26 +1,21 @@
 # @drupal-canvas/headless-host
 
-Host-side implementation of the Drupal Canvas headless draft-preview protocol.
-Use it in any application that embeds a Canvas headless frontend app in an
-iframe and runs inside an authenticated Drupal session — the Canvas editor uses
-it for its own editor frame.
+Host-side implementation of the Drupal Canvas Headless draft-preview protocol,
+for applications that embed a Canvas headless frontend app.
 
-The package owns the protocol state machine:
+Use it in any application that embeds a Canvas headless frontend in an iframe
+and can mint Drupal preview assertions for the editing user — typically one
+running inside an authenticated Drupal session. The Drupal Canvas UI uses it for
+the editor's preview frame. The package owns the protocol state machine:
+activation, in-place session renewal over origin-checked postMessage, recovery
+after an expired session, content refresh after Canvas auto-saves, rendered
+content-height reporting, and preview geometry synchronization.
 
-- activation: mint a single-use preview assertion and load the app's draft-mode
-  endpoint in the iframe,
-- the renewal lane: relay fresh assertions to the app over origin-checked
-  postMessage, so sessions renew in place without a reload. Renewal mints carry
-  a `renewal` flag: Drupal only redeems the resulting assertions with PKCE proof
-  held by the app's server, so a script inside the iframe cannot exchange an
-  intercepted assertion for a token,
-- the recovery lane: reset the iframe to a new activation URL when the app
-  reports an expired session, one attempt per expiry.
+## Installation
 
-Transport specifics stay with the consumer: `fetchAssertion` is a callback, so
-each host decides how it reaches its assertion-minting endpoint (for the Canvas
-editor: `POST /canvas-headless/assertion` with an `X-CSRF-Token` header from
-core's `/session/token`).
+```bash
+npm install @drupal-canvas/headless-host
+```
 
 ## Usage
 
@@ -43,14 +38,25 @@ const host = createHeadlessPreviewHost({
     return (await response.json()).assertion;
   },
   onEvent: (event) => console.log(event),
+  onHeight: (height) => {
+    document.querySelector('iframe#preview')!.style.height = `${height}px`;
+  },
 });
 
 await host.activate({ entity_type: 'canvas_page', entity: '5' });
+// After Canvas reports that an auto-save request succeeded:
+host.refresh();
 // Later: host.destroy();
 ```
 
-The app side of the protocol ships in the Drupal Canvas Headless SDK:
-`@drupal-canvas/headless` (the `./client` entry's draft session state machine),
-with framework bindings in the adapter packages (`@drupal-canvas/headless-next`,
-`-astro`, `-nuxt`, `-tanstack-start`); the message-type constants this package
-re-exports are declared there.
+`fetchAssertion` is a callback, so each host decides how it reaches its
+assertion-minting endpoint. The Canvas editor posts to
+`/canvas-headless/assertion` with an `X-CSRF-Token` header from core's
+`/session/token`.
+
+## Learn more
+
+The app side of the protocol ships in
+[`@drupal-canvas/headless`](https://www.npmjs.com/package/@drupal-canvas/headless)
+and its framework adapters; the message-type constants this package re-exports
+are declared there.

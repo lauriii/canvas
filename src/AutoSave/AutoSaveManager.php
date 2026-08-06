@@ -15,7 +15,10 @@ use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\StagedConfigUpdate;
 use Drupal\canvas\Entity\StagedLanguageConfigOverride;
+use Drupal\canvas\Health\HealthCheck;
+use Drupal\canvas\Health\HealthRecords;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Utility\TypedDataHelper;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Component\Utility\SortArray;
 use Drupal\content_moderation\Plugin\Field\ModerationStateFieldItemList;
@@ -24,7 +27,6 @@ use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\Core\Config\ConfigCrudEvent;
 use Drupal\Core\Config\ConfigEvents;
 use Drupal\Core\Config\ConfigManagerInterface;
-use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\ContentEntityInterface;
@@ -41,8 +43,6 @@ use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
 use Drupal\Core\KeyValueStore\KeyValueStoreInterface;
 use Drupal\Core\Session\AccountProxyInterface;
-use Drupal\Core\TypedData\PrimitiveInterface;
-use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\path\Plugin\Field\FieldType\PathFieldItemList;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -126,6 +126,7 @@ class AutoSaveManager implements EventSubscriberInterface {
     KeyValueFactoryInterface $keyValueFactory,
     private readonly AccountProxyInterface $currentUser,
     private readonly TimeInterface $time,
+    private readonly HealthRecords $healthRecords,
   ) {
     $this->autoSaveStore = $keyValueFactory->get(self::AUTO_SAVE_STORE);
     $this->formViolationsStore = $keyValueFactory->get(self::FORM_VIOLATIONS_STORE);
@@ -161,7 +162,14 @@ class AutoSaveManager implements EventSubscriberInterface {
    * For content entities, exclude computed fields: only actually stored data
    * matters here — except computed fields that are persisted on save.
    *
+   * For config entities that carry a component tree, the tree's inputs are
+   * optimized so the stored form is canonical (two equivalent trees produce
+   * identical output). Content entities receive the equivalent treatment via
+   * TypedDataHelper::castRawPhpTypes(), which optimizes ComponentTreeItem
+   * instances as it walks the fields.
+   *
    * @see self::isPersistedComputedField()
+   * @see \Drupal\canvas\Utility\TypedDataHelper::castRawPhpTypes()
    */
   private static function toStorableArray(EntityInterface $entity): array {
     if ($entity instanceof FieldableEntityInterface) {
@@ -171,10 +179,24 @@ class AutoSaveManager implements EventSubscriberInterface {
         if ($field_item_list->getFieldDefinition()->isComputed() && !self::isPersistedComputedField($field_item_list->getFieldDefinition())) {
           continue;
         }
-        $values[$name] = $field_item_list->getValue();
+        $values[$name] = TypedDataHelper::castRawPhpTypes($field_item_list);
       }
       return $values;
     }
+
+    if ($entity instanceof ComponentTreeEntityInterface) {
+      // Optimize the component inputs so the stored form is canonical. Operate
+      // on a clone: ::toArray() below reads the mutated tree, but the entity
+      // passed in by the caller must not be modified as a side effect.
+      $entity = clone $entity;
+      $tree = $entity->getComponentTree();
+      foreach ($tree as $component) {
+        \assert($component instanceof ComponentTreeItem);
+        $component->optimizeInputs();
+      }
+      $entity->setComponentTree($tree->getValue());
+    }
+
     return $entity->toArray();
   }
 
@@ -183,6 +205,7 @@ class AutoSaveManager implements EventSubscriberInterface {
     $data = self::normalizeEntity($entity);
     $data_hash = self::generateHash($data);
     $original_hash = $this->getUnchangedHash($entity);
+
     $has_form_violations = FALSE;
     if ($entity instanceof FieldableEntityInterface) {
       $has_form_violations = $this->getEntityFormViolations($entity)->count() > 0;
@@ -202,6 +225,12 @@ class AutoSaveManager implements EventSubscriberInterface {
       // keep the hash.
       $this->delete($entity);
       return;
+    }
+
+    // Avoid overwriting the original hash; it would break conflict detection.
+    $existing_entry = $this->autoSaveStore->get($key);
+    if (\is_array($existing_entry) && \array_key_exists(self::AUTO_SAVE_STORED_ENTITY_HASH_KEY, $existing_entry)) {
+      $original_hash = $existing_entry[self::AUTO_SAVE_STORED_ENTITY_HASH_KEY];
     }
 
     $auto_save_data = [
@@ -287,14 +316,6 @@ class AutoSaveManager implements EventSubscriberInterface {
 
   private static function normalizeEntity(EntityInterface $entity): array {
     if (!$entity instanceof FieldableEntityInterface) {
-      if ($entity instanceof ComponentTreeEntityInterface && $entity instanceof ConfigEntityInterface) {
-        $tree = $entity->getComponentTree();
-        foreach ($tree as $component) {
-          \assert($component instanceof ComponentTreeItem);
-          $component->optimizeInputs();
-        }
-        $entity->setComponentTree($tree->getValue());
-      }
       return self::toStorableArray($entity);
     }
     $normalized = [];
@@ -334,25 +355,7 @@ class AutoSaveManager implements EventSubscriberInterface {
           continue;
         }
       }
-      $normalized[$name] = \array_map(
-        static function (FieldItemInterface $item): array {
-          if ($item instanceof ComponentTreeItem) {
-            // Optimize component inputs to ensure the normalized value is
-            // determinative.
-            $item->optimizeInputs();
-          }
-          $value = $item->toArray();
-          foreach (\array_filter($item->getProperties(), static fn (TypedDataInterface $property) => $property instanceof PrimitiveInterface) as $property) {
-            \assert($property instanceof PrimitiveInterface);
-            // For items that support it, cast to their primitive value, this
-            // ensures consistency, for example a boolean field with value '1'
-            // will be normalized to TRUE.
-            $value[$property->getName()] = $property->getCastedValue();
-          }
-          return $value;
-        },
-        $item_list
-      );
+      $normalized[$name] = TypedDataHelper::castRawPhpTypes($items);
     }
     return $normalized;
   }
@@ -751,7 +754,7 @@ class AutoSaveManager implements EventSubscriberInterface {
    * ::resolveConflict() advances 'original_hash' to the current stored entity
    * hash so that subsequent calls find no mismatch.
    *
-   * @param array{data: array, owner: int, updated: int, entity_type: string, entity_id: string|int, label: string, original_hash: ?string, data_hash: string, client_id: ?string, langcode: ?string, entity?: ?EntityInterface} $entry
+   * @param AutoSaveEntry $entry
    *
    * @return string|null
    */
@@ -759,14 +762,6 @@ class AutoSaveManager implements EventSubscriberInterface {
     // For now, only Page entities supported.
     // @todo Expand in https://www.drupal.org/project/canvas/issues/3591544
     if ($entry['entity_type'] !== Page::ENTITY_TYPE_ID) {
-      return NULL;
-    }
-
-    if (!\array_key_exists(self::AUTO_SAVE_STORED_ENTITY_HASH_KEY, $entry)) {
-      // If there is no original hash, we have no basis to determine if there is
-      // a conflict, so we assume there isn't one. This can only occur for auto-
-      // save entries created before https://git.drupalcode.org/project/canvas/-/commit/e31e9442e857c3a61d87a0eba8b626962a38208c
-      // @todo Remove this in Canvas 2.0.
       return NULL;
     }
 
@@ -838,14 +833,11 @@ class AutoSaveManager implements EventSubscriberInterface {
       return ConflictResolutionOutcomeEnum::NoAutoSaveItem;
     }
 
-    if (!\array_key_exists(self::AUTO_SAVE_STORED_ENTITY_HASH_KEY, $auto_save_data)) {
-      // No stored hash — no basis for conflict detection (legacy entry).
-      return ConflictResolutionOutcomeEnum::NoActiveConflict;
-    }
-
-    $stored = $this->entityTypeManager->getStorage($entity->getEntityTypeId())->loadUnchanged($auto_save_data['entity_id']);
+    \assert(!$entity->isNew());
+    $stored = $this->entityTypeManager->getStorage($entity->getEntityTypeId())->loadUnchanged($entity->id());
     \assert(!\is_null($stored));
     $current_hash = self::generateHash(self::normalizeEntity($stored));
+    /** @var AutoSaveEntry $auto_save_data */
 
     if ($auto_save_data[self::AUTO_SAVE_STORED_ENTITY_HASH_KEY] === $current_hash) {
       // Hashes match — no conflict to resolve.
@@ -859,10 +851,8 @@ class AutoSaveManager implements EventSubscriberInterface {
     if ($active_conflict !== $resolved_conflict_id) {
       return ConflictResolutionOutcomeEnum::ConflictMismatch;
     }
-
-    // Advance original_hash to the current stored entity hash.
-    $auto_save_data[self::AUTO_SAVE_STORED_ENTITY_HASH_KEY] = $current_hash;
-    $this->autoSaveStore->set($key, $auto_save_data);
+    // Advance stored entity hash.
+    $this->setStoredEntityHash($key, $current_hash, $auto_save_data);
     $this->cache->delete($key);
     $this->cacheTagsInvalidator->invalidateTags([self::CACHE_TAG]);
 
@@ -881,6 +871,8 @@ class AutoSaveManager implements EventSubscriberInterface {
     $key = $this->getAutoSaveKey($entity);
     $this->autoSaveStore->delete($key);
     $this->formViolationsStore->delete($key);
+    // A discarded auto-save entry must not leave an orphan health result.
+    $this->healthRecords->deleteForEntity($entity, HealthCheck::AutoSave);
     if ($entity instanceof ContentEntityInterface) {
       $canvas_fields = \array_keys(
         \array_filter(
@@ -997,6 +989,7 @@ class AutoSaveManager implements EventSubscriberInterface {
     $this->autoSaveStore->deleteAll();
     $this->formViolationsStore->deleteAll();
     $this->componentInstanceFormViolationsStore->deleteAll();
+    $this->healthRecords->clear(HealthCheck::AutoSave);
   }
 
   private static function generateHash(array $data): string {
@@ -1069,6 +1062,14 @@ class AutoSaveManager implements EventSubscriberInterface {
     // Finally: the goal: to update rather than delete the auto-save entry when
     // safe.
     if ($auto_save_update_needed) {
+      // Advance `original_hash` before `saveEntity()` so the preservation
+      // guard in `saveEntity()` picks up the already-advanced hash in a
+      // single write.
+      $this->setStoredEntityHash(
+        self::getAutoSaveKey($autoSaveEntity),
+        // Hash the freshly-saved stored entity, not the auto-save draft.
+        self::generateHash(self::normalizeEntity($entity)),
+      );
       $this->saveEntity($autoSaveEntity, $autoSaveData->clientId);
     }
   }
@@ -1094,11 +1095,33 @@ class AutoSaveManager implements EventSubscriberInterface {
     return $events;
   }
 
-  public static function entityIsConsideredNew(ContentEntityInterface|ContentTemplate $entity): bool {
+  public static function entityIsConsideredNew(ContentEntityInterface|ComponentTreeConfigEntityBase $entity): bool {
     if ($entity instanceof ContentTemplate) {
       return !$entity->status();
     }
+    // Other component-tree config entities (e.g. Pattern) are only ever edited
+    // once stored, so they are "new" only while unsaved.
+    if ($entity instanceof ComponentTreeConfigEntityBase) {
+      return $entity->isNew();
+    }
     return (string) $entity->label() == ApiContentControllers::defaultTitle($entity->getEntityType()) || str_ends_with((string) $entity->label(), self::ENTITY_DUPLICATE_SUFFIX);
+  }
+
+  /**
+   * Sets $current_hash into the stored auto-save item's original_hash key.
+   *
+   * Callers are responsible for any cache invalidation that follows, since the
+   * appropriate scope differs per call site.
+   *
+   * @param AutoSaveEntry|null $auto_save_item
+   */
+  private function setStoredEntityHash(string $auto_save_item_key, string $current_hash, ?array $auto_save_item = NULL): void {
+    if (\is_null($auto_save_item)) {
+      $auto_save_item = $this->autoSaveStore->get($auto_save_item_key);
+      \assert(!\is_null($auto_save_item));
+    }
+    $auto_save_item[self::AUTO_SAVE_STORED_ENTITY_HASH_KEY] = $current_hash;
+    $this->autoSaveStore->set($auto_save_item_key, $auto_save_item);
   }
 
 }

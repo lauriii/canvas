@@ -5,7 +5,7 @@ import { isolatedPerTest as test } from '../../fixtures/test.js';
 import type { Page } from '@playwright/test';
 
 type PendingResponse = {
-  data?: Record<string, { data_hash?: string }>;
+  data?: Record<string, { data_hash?: string; label?: string }>;
   errors?: Array<{
     source?: { pointer?: string };
     meta?: { conflict_id?: string };
@@ -24,12 +24,20 @@ const getPendingChanges = async (page: Page): Promise<PendingResponse> => {
   return response.json();
 };
 
-const waitForPendingChange = async (page: Page, canvasPageId: number) => {
+const waitForPendingChange = async (
+  page: Page,
+  canvasPageId: number,
+  expectedLabel?: string,
+) => {
   const pointer = pendingPointer(canvasPageId);
   await expect
     .poll(async () => {
       const response = await getPendingChanges(page);
-      return Object.hasOwn(response.data ?? {}, pointer);
+      const pendingChange = response.data?.[pointer];
+      return (
+        !!pendingChange &&
+        (!expectedLabel || pendingChange.label === expectedLabel)
+      );
     })
     .toBe(true);
 };
@@ -42,13 +50,16 @@ const waitForConflict = async (
   let conflictId: string | undefined;
 
   await expect
-    .poll(async () => {
-      const response = await getPendingChanges(page);
-      conflictId = response.errors?.find(
-        (error) => error.source?.pointer === pointer,
-      )?.meta?.conflict_id;
-      return conflictId;
-    })
+    .poll(
+      async () => {
+        const response = await getPendingChanges(page);
+        conflictId = response.errors?.find(
+          (error) => error.source?.pointer === pointer,
+        )?.meta?.conflict_id;
+        return conflictId;
+      },
+      { timeout: 30_000 },
+    )
     .toBeTruthy();
 
   if (!conflictId) {
@@ -234,7 +245,11 @@ test.describe('Conflict UX enabled', () => {
       title: 'Conflict resolution page',
     });
     const currentEntityId = String(canvasPage.entity_id);
-    await waitForPendingChange(page, canvasPage.entity_id);
+    await waitForPendingChange(
+      page,
+      canvasPage.entity_id,
+      'Conflict resolution page',
+    );
     await updateCanvasPageTitleOutsideAutoSave(
       page,
       canvasPage.entity_id,
@@ -283,14 +298,22 @@ test.describe('Conflict UX enabled', () => {
     const queuedConflictPage = await canvas.createCanvas({
       title: 'Queued conflict page',
     });
-    await waitForPendingChange(page, queuedConflictPage.entity_id);
+    await waitForPendingChange(
+      page,
+      queuedConflictPage.entity_id,
+      'Queued conflict page',
+    );
 
     const canvasPage = await canvas.createCanvas({
       title: 'Side by side conflict page',
     });
     const currentEntityId = String(canvasPage.entity_id);
     const queuedEntityId = String(queuedConflictPage.entity_id);
-    await waitForPendingChange(page, canvasPage.entity_id);
+    await waitForPendingChange(
+      page,
+      canvasPage.entity_id,
+      'Side by side conflict page',
+    );
 
     await updateCanvasPageTitleOutsideAutoSave(
       page,
@@ -330,18 +353,9 @@ test.describe('Conflict UX enabled', () => {
     await expect(page.getByText('New version').first()).toBeVisible();
     await expect(page.getByText(/Updated .+ at .+/).first()).toBeVisible();
     await expect(resolveConflictButton).toBeDisabled();
-
-    await page.getByRole('tab', { name: 'Text' }).click();
     await expect(
-      page
-        .getByTestId('conflict-published-version-card')
-        .getByText('Externally updated side by side conflict page'),
-    ).toBeVisible();
-    await expect(
-      page
-        .getByTestId('conflict-new-version-card')
-        .getByText('Side by side conflict page'),
-    ).toBeVisible();
+      page.locator('iframe[title="Page version preview"]'),
+    ).toHaveCount(2);
 
     // The UI state cannot prove the exact conflict revision was sent, so this
     // waits for the PATCH and asserts the resolved_conflict_id payload below.
@@ -392,7 +406,7 @@ test.describe('Conflict UX enabled', () => {
     await drupal.login({ username: 'editor', password: 'editor' });
 
     const canvasPage = await canvas.createCanvas({ title: 'Selectable page' });
-    await waitForPendingChange(page, canvasPage.entity_id);
+    await waitForPendingChange(page, canvasPage.entity_id, 'Selectable page');
 
     await canvas.openCanvas(canvasPage);
     let review = await openPublishReview(page);
@@ -438,7 +452,7 @@ test.describe('Conflict UX disabled', () => {
     await drupal.login({ username: 'editor', password: 'editor' });
 
     const canvasPage = await canvas.createCanvas({ title: 'Flag off page' });
-    await waitForPendingChange(page, canvasPage.entity_id);
+    await waitForPendingChange(page, canvasPage.entity_id, 'Flag off page');
     await updateCanvasPageTitleOutsideAutoSave(
       page,
       canvasPage.entity_id,
@@ -472,7 +486,11 @@ test.describe('Conflict UX disabled', () => {
       title: 'Legacy publish conflict page',
     });
     const pointer = pendingPointer(canvasPage.entity_id);
-    await waitForPendingChange(page, canvasPage.entity_id);
+    await waitForPendingChange(
+      page,
+      canvasPage.entity_id,
+      'Legacy publish conflict page',
+    );
     await waitForPendingChangeWithoutConflict(page, canvasPage.entity_id);
 
     const review = await openPublishReview(page);

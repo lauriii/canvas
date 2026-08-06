@@ -37,19 +37,7 @@ core spec) defines four roles
 | **Resource owner** | The party — usually a person — whose data is being accessed | The **editor** (their content access is what the preview borrows) |
 | **Client** | The application that wants to access the data | The **frontend app** (the example app is Next.js) |
 | **Authorization server** (AS) | Issues access tokens after deciding a request is legitimate | **Drupal** (Simple OAuth's `/oauth/token`) |
-| **Resource server** (RS) | Holds the data; accepts access tokens | **Drupal again** (JSON:API and the CE API) |
-
-(A note on "the CE API" in that last row: the example app currently
-resolves arbitrary Drupal paths through the Lupus Decoupled CE API —
-a `/ce-api/{path}` endpoint that marks the request for the Lupus Custom
-Elements Renderer. That is a placeholder rather than a commitment: the
-eventual integration will likely reproduce that mechanism under an
-endpoint of its own, and the path will likely change. Nothing in the
-auth design cares — as this section explains below, the same bearer
-token works against any OAuth-enabled Drupal route — so read "CE API"
-throughout
-this document as "the rendered-routes endpoint, whatever it ends up
-being".)
+| **Resource server** (RS) | Holds the data; accepts access tokens | **Drupal again** (JSON:API and the rendered-content API) |
 
 (Terminology warning for Drupal readers: the RFC's own wording for the
 resource owner is "an entity capable of granting access to a protected
@@ -337,7 +325,7 @@ same keypair:
 | Kind | Job | Where it travels |
 | --- | --- | --- |
 | **Preview assertion** | Proof that an editor initiated a preview; redeemable once at `/oauth/token` for an access token | Inside the preview URL |
-| **Access token** | The API credential draft fetches present to JSON:API and the CE API | The `Authorization: Bearer` header |
+| **Access token** | The API credential draft fetches present to JSON:API and the rendered-content API | The `Authorization: Bearer` header |
 
 Both are valid RS256 JWTs signed by the same private key — so signature
 verification alone cannot tell them apart. To be precise about what the
@@ -822,7 +810,7 @@ Module paths are relative to `modules/canvas_headless`.
 | --- | --- |
 | `src/PreviewAssertionFactory.php` | Mints assertions (claims + RS256 signature) |
 | `src/PreviewUrlGenerator.php` | Permission gate + wraps the assertion in the frontend URL |
-| `src/FrontendUrl.php` | Canonicalizes `frontend_url` into one origin + base URL; refuses ambiguous or non-web values |
+| `src/FrontendUrl.php` | Canonicalizes a frontend list URL into one origin + base URL; refuses ambiguous or non-web values |
 | `src/Controller/AssertionController.php` | Minting endpoints: activation/renewal assertions (JSON, CSRF header, cookie auth only) + the standalone renew redirect |
 | `src/Grant/PreviewAssertionGrant.php` | The league grant: the fifteen checks, then token issuance |
 | `src/Plugin/Oauth2Grant/PreviewAssertion.php` | Registers the grant with Simple OAuth; wires Drupal services |

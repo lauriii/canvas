@@ -1,25 +1,51 @@
 # @drupal-canvas/headless-react
 
-Shared React binding for the Drupal Canvas Headless SDK
-(`@drupal-canvas/headless`): the `<DraftSession>` client component around the
-SDK core's framework-free draft session state machine.
+Shared React bindings for the Drupal Canvas Headless SDK.
 
-React frameworks differ in routing and data refresh, not in React — so the
-framework adapters (`@drupal-canvas/headless-next`,
-`@drupal-canvas/headless-tanstack-start`) re-export this component with their
-router wiring filled in:
+The framework adapters (`@drupal-canvas/headless-next`,
+`@drupal-canvas/headless-tanstack-start`) re-export these components with their
+router wiring filled in — use those in an app. An app on a React framework
+without an adapter can use this package directly; it depends only on React and
+`@drupal-canvas/headless`.
 
-- `path` — the current pathname from the framework's router, reported to the
-  embedding host and carried by the renew link.
+## Installation
+
+```bash
+npm install @drupal-canvas/headless-react
+```
+
+## Usage
+
+### Draft session
+
+`<DraftSession>` runs the in-editor session renewal protocol and drives your
+banner UI through a render prop. It takes the session state gathered on the
+server, plus two framework hooks:
+
+- `path` — the current pathname from the router, reported to the embedding
+  editor and carried by the renew link.
 - `refreshData` — the framework's server-data refresh (`router.refresh()` in
-  Next.js). Optional: without it the component re-arms in place from the renew
-  endpoint's `{tokenExpiresAt}` answer — the renewed token already lives in the
-  session cookie, so no server round trip is required.
+  Next.js). Optional: without it the component resets its expiry timer in place
+  from the renew endpoint's response.
 
-Everything else — expiry timing, the origin-checked postMessage renewal protocol
-with the embedding Canvas editor, status reporting — lives in the SDK core;
-presentation lives in the consumer's render prop. See the adapter packages'
-READMEs for the banner pattern.
+### Component rendering
 
-An app on a React framework without an adapter package can use the component
-directly; it has no dependency beyond React and the SDK core.
+`<CanvasComponentTree>` renders the structured content returned by
+`fetchPage()`. Registry keys are `component.yml` machine names:
+
+```tsx
+import { CanvasComponentTree } from '@drupal-canvas/headless-react';
+
+import HelloCard from './components/canvas/hello-card';
+
+<CanvasComponentTree
+  tree={page.content}
+  components={{ 'hello-card': HelloCard }}
+/>;
+```
+
+Named Canvas slots become React props with rendered `ReactNode` values; a
+`default` slot becomes `children`. Drupal markup strings are inserted as trusted
+HTML. Because React does not natively support rendering comment nodes, draft
+trees use layout-neutral `<template>` markers for Canvas boundaries, which may
+affect structural CSS selectors. Published trees remain marker-free.

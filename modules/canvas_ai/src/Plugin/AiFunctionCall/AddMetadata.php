@@ -11,6 +11,10 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
  * Plugin implementation of the add metadata function.
+ *
+ * This tool will soon be replaced by set_page_value once it is wired.
+ *
+ * @see \Drupal\canvas_ai\Plugin\AiFunctionCall\SetPageValue
  */
 #[FunctionCall(
   id: 'ai_agent:add_metadata',

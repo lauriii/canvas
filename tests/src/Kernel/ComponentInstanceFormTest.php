@@ -17,6 +17,10 @@ use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
 use Drupal\canvas\PropExpressions\StructuredData\NegotiatedLanguage;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
+use Drupal\Core\Block\BlockManagerInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Form\FormState;
 use Drupal\Core\Url;
@@ -52,9 +56,9 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->container->get('theme_installer')->install(['stark']);
-    $this->container->get('module_installer')->install(['system', 'canvas_test_sdc', 'canvas_test_block']);
-    $this->container->get('config.factory')->getEditable('system.theme')->set('default', 'stark')->save();
+    $this->container->get(ThemeInstallerInterface::class)->install(['stark']);
+    $this->container->get(ModuleInstallerInterface::class)->install(['system', 'canvas_test_sdc', 'canvas_test_block']);
+    $this->container->get(ConfigFactoryInterface::class)->getEditable('system.theme')->set('default', 'stark')->save();
 
     // @todo Refactor this away in https://www.drupal.org/project/canvas/issues/3531679
     (new CanvasTestSetup())->setup();
@@ -458,7 +462,7 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     // @see \Drupal\Tests\canvas\Kernel\BrokenBlockManager
     // @see \Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource\BlockComponentTest::triggerBrokenComponent()
     $this->container->get('state')->set('canvas_test_block.remove_definitions', [$block_plugin_id]);
-    $this->container->get('plugin.manager.block')->clearCachedDefinitions();
+    $this->container->get(BlockManagerInterface::class)->clearCachedDefinitions();
 
     // Despite the tested block plugin being broken:
     self::assertTrue($component->getComponentSource()->isBroken());
@@ -517,7 +521,7 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
 
     // Delete the code component through the config factory to avoid normal
     // dependency cleanup that would also remove the Component entity.
-    $this->container->get('config.factory')
+    $this->container->get(ConfigFactoryInterface::class)
       ->getEditable($code_component->getConfigDependencyName())
       ->delete();
 

@@ -10,6 +10,7 @@ import {
   getImportsFromAst,
 } from '@/features/code-editor/utils/ast-utils';
 import {
+  deserializeCodeComponent,
   deserializeProps,
   deserializeSlots,
   formatToValidImportName,
@@ -640,5 +641,18 @@ describe('formatToValidImportName', () => {
     expect(formatToValidImportName('')).toBe('');
     expect(formatToValidImportName(null)).toBe('');
     expect(formatToValidImportName('!@#$%^&*()')).toBe('');
+  });
+});
+
+describe('deserializeCodeComponent', () => {
+  // Reusing a machine name that was previously deleted can serve a stale,
+  // emptied RTK Query cache entry: an object without `dataDependencies`.
+  // Deserializing it must not throw.
+  it('tolerates a missing dataDependencies', () => {
+    expect(() => deserializeCodeComponent({})).not.toThrow();
+    const result = deserializeCodeComponent({});
+    expect(result.dataDependencies).toEqual({});
+    expect(result.props).toEqual([]);
+    expect(result.slots).toEqual([]);
   });
 });

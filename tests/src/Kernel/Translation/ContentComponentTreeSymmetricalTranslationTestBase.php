@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas\Kernel\Translation;
 
 use Drupal\canvas\Entity\Page;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Field\Entity\BaseFieldOverride;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\language\Entity\ConfigurableLanguage;
@@ -128,7 +129,7 @@ abstract class ContentComponentTreeSymmetricalTranslationTestBase extends Canvas
         ?? BaseFieldOverride::createFromBaseFieldDefinition(
           // @todo Remove this ignore once core's getBaseFieldDefinitions() return type is fixed.
           // @phpstan-ignore-next-line argument.type
-          $this->container->get('entity_field.manager')
+          $this->container->get(EntityFieldManagerInterface::class)
             ->getBaseFieldDefinitions($entity_type_id)[$field_name],
           $bundle,
         );

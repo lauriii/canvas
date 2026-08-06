@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas_headless\Kernel;
 
 use Drupal\canvas_headless\PreviewAssertionFactory;
 use Drupal\canvas_headless\PreviewAssertionFactoryInterface;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\language\Entity\ConfigurableLanguage;
@@ -33,6 +34,7 @@ class PreviewAssertionFactoryTest extends CanvasKernelTestBase {
     'serialization',
     'consumers',
     'simple_oauth',
+    'custom_elements',
     'canvas_headless',
   ];
 
@@ -64,8 +66,7 @@ class PreviewAssertionFactoryTest extends CanvasKernelTestBase {
       ->save();
 
     $this->config('canvas_headless.settings')
-      ->set('frontend_url', 'http://localhost:3000')
-      ->set('draft_path', '/api/draft')
+      ->set('frontends', [['url' => 'http://localhost:3000']])
       ->set('assertion_expiration', 60)
       ->save();
     $this->config('system.site')
@@ -139,7 +140,7 @@ class PreviewAssertionFactoryTest extends CanvasKernelTestBase {
    */
   public function testAudienceIsDerivedInDefaultLanguage(): void {
     ConfigurableLanguage::createFromLangcode('de')->save();
-    $language_manager = $this->container->get('language_manager');
+    $language_manager = $this->container->get(LanguageManagerInterface::class);
     self::assertSame('en', $language_manager->getDefaultLanguage()->getId());
 
     $expected = Url::fromRoute('oauth2_token.token', [], [

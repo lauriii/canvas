@@ -216,7 +216,7 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizer implements Fiel
    * @todo Remove in https://git.drupalcode.org/project/canvas/-/work_items/3571130
    */
   public static function ensureSymmetricalCanvasPageComponents(): void {
-    $entity_field_manager = \Drupal::service('entity_field.manager');
+    $entity_field_manager = \Drupal::service(EntityFieldManagerInterface::class);
     \assert($entity_field_manager instanceof EntityFieldManagerInterface);
     $base_field_definitions = $entity_field_manager->getBaseFieldDefinitions(Page::ENTITY_TYPE_ID);
     \assert($base_field_definitions['components'] instanceof BaseFieldDefinition);

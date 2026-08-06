@@ -7,7 +7,10 @@
  * the renewal protocol with the embedding host, re-arming after a
  * renewal). Renders nothing when draft mode is off. The element's `path`
  * attribute is bound to the route, so client-side navigations keep the
- * host's status reports and the renew link on the current page.
+ * host's status reports and the renew link on the current page. Auto-save
+ * refresh events are handled by the module's client plugin instead of
+ * reloading the page. The element also reports content height to the embedding
+ * host.
  *
  * The slot owns presentation: children marked
  * `data-draft-session-view="active"` show while the session is live and
@@ -20,7 +23,9 @@
  */
 import { onMounted } from 'vue';
 import { useFetch, useRoute } from 'nuxt/app';
-import { defineDraftSessionElement } from '@drupal-canvas/headless/client';
+import {
+  defineDraftSessionElement,
+} from '@drupal-canvas/headless/client';
 
 import type { DraftSessionState } from '../server/routes/session-state';
 
@@ -56,7 +61,7 @@ onMounted(() => {
     :token-expires-at="session.tokenExpiresAt ?? undefined"
     :initial-expired="session.expired || undefined"
     :renew-url="session.renewUrl ?? undefined"
-    :embedder-origins="session.embedderOrigins.join(' ')"
+    :editor-origin="session.editorOrigin ?? undefined"
     :renew-endpoint="renewEndpoint"
     :path="route.path"
   >

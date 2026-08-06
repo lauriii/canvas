@@ -8,6 +8,7 @@ import {
 import { Flex } from '@radix-ui/themes';
 
 import App from '@/app/App';
+import CodeEditorRouteGuard from '@/app/CodeEditorRouteGuard';
 import ComponentInstanceForm from '@/components/ComponentInstanceForm';
 import { RouteErrorBoundary } from '@/components/error/ErrorBoundary';
 import ErrorCard from '@/components/error/ErrorCard';
@@ -18,16 +19,19 @@ import SideMenu from '@/components/sideMenu/SideMenu';
 import PrimaryPanel from '@/components/sidePanel/PrimaryPanel';
 import CodeEditorContainer from '@/features/code-editor/CodeEditorContainer';
 import CodeComponentDialogs from '@/features/code-editor/dialogs/CodeComponentDialogs';
-import ConflictPreview from '@/features/conflict/ConflictPreview';
 import ConflictResolutionPage from '@/features/conflict/ConflictResolutionPage';
 import EditorLayout from '@/features/editor/EditorLayout';
 import TemplateRoot from '@/features/editor/TemplateRoot';
+import HeadlessFrontendsPage from '@/features/headlessFrontends/HeadlessFrontendsPage';
 import PagePreview from '@/features/pagePreview/PagePreview';
 import PatternDialogs from '@/features/pattern/PatternDialogs';
 import SegmentDashboard from '@/features/personalization/SegmentDashboard';
 import SegmentPanel from '@/features/personalization/SegmentPanel';
+import ReviewChangesPage from '@/features/review/ReviewChangesPage';
 import { EditorFrameContext } from '@/features/ui/uiSlice';
+import VersionPreview from '@/features/versionComparison/VersionPreview';
 import Welcome from '@/features/welcome/Welcome';
+import { getCanvasSettings } from '@/utils/drupal-globals';
 
 import type React from 'react';
 
@@ -63,6 +67,24 @@ const CodeEditorUi = (
     </UiShell>
   </PermissionCheck>
 );
+
+const CodeEditorRoute = () => (
+  <CodeEditorRouteGuard>{CodeEditorUi}</CodeEditorRouteGuard>
+);
+
+const HeadlessFrontendsUi = () =>
+  getCanvasSettings()?.canAdministerHeadlessFrontends ? (
+    <UiShell>
+      <HeadlessFrontendsPage />
+    </UiShell>
+  ) : (
+    <Flex align="center" justify="center" height="100vh" width="100%">
+      <ErrorCard
+        title="You do not have permission to administer headless frontends."
+        error="Please contact your site administrator if you believe this is an error."
+      />
+    </Flex>
+  );
 
 const Dialogs = () => (
   <div style={{ position: 'absolute' }}>
@@ -157,6 +179,20 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
             ],
           },
           {
+            path: '/pattern/:patternId',
+            element: (
+              <UiShell>
+                <EditorLayout context={EditorFrameContext.PATTERN} />
+              </UiShell>
+            ),
+            children: [
+              {
+                path: '/pattern/:patternId/component/:componentId',
+                element: <ComponentInstanceForm />,
+              },
+            ],
+          },
+          {
             path: '/preview/:entityType/:entityId/',
             element: <PagePreview />,
           },
@@ -173,12 +209,12 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
             element: <PagePreview />,
           },
           {
-            path: '/conflict-preview/:entityType/:entityId',
-            element: <ConflictPreview />,
+            path: '/version-preview/:entityType/:entityId',
+            element: <VersionPreview />,
           },
           {
-            path: '/conflict-preview/:entityType/:entityId/:width',
-            element: <ConflictPreview />,
+            path: '/version-preview/:entityType/:entityId/:width',
+            element: <VersionPreview />,
           },
           {
             path: '/conflict',
@@ -197,13 +233,29 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
             ),
           },
           {
+            path: '/review',
+            element: (
+              <UiShell>
+                <ReviewChangesPage />
+              </UiShell>
+            ),
+          },
+          {
+            path: '/review/:entityType/:entityId',
+            element: (
+              <UiShell>
+                <ReviewChangesPage />
+              </UiShell>
+            ),
+          },
+          {
             // belt and braces to catch navigation to /code-editor without component id rather than showing a 404
             path: '/code-editor/',
-            element: CodeEditorUi,
+            element: <CodeEditorRoute />,
           },
           {
             path: '/code-editor/component',
-            element: CodeEditorUi,
+            element: <CodeEditorRoute />,
           },
           {
             // Legacy route for backward compatibility.
@@ -213,7 +265,7 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
           {
             // Opens the code editor for an item under 'Components'.
             path: '/code-editor/component/:codeComponentId',
-            element: CodeEditorUi,
+            element: <CodeEditorRoute />,
           },
           {
             path: '/app/:extensionId/*',
@@ -222,6 +274,11 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
                 <ExtensionPage />
               </UiShell>
             ),
+          },
+          {
+            // Headless frontends configuration.
+            path: '/headless/',
+            element: <HeadlessFrontendsUi />,
           },
           {
             // Personalization

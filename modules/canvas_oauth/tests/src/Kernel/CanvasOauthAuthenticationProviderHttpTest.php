@@ -11,6 +11,7 @@ use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\consumers\Entity\Consumer;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Url;
 use Drupal\image\Entity\ImageStyle;
@@ -129,7 +130,7 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
     $this->mockFileSystemForUploads();
 
     $source = \dirname(__DIR__, 5) . '/tests/fixtures/images/gracie-big.jpg';
-    $temp_dir = $this->container->get('file_system')->getTempDirectory();
+    $temp_dir = $this->container->get(FileSystemInterface::class)->getTempDirectory();
     $this->testImagePath = $temp_dir . '/canvas-oauth-test-upload-' . \uniqid() . '.jpg';
     \copy($source, $this->testImagePath);
   }

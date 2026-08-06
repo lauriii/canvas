@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_ai\Kernel;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Config\StorageCacheInterface;
+use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\Group;
 
@@ -48,7 +51,7 @@ final class CanvasAiOrchestratorPostUpdateTest extends CanvasKernelTestBase {
     $this->config(self::ORCHESTRATOR)->set('system_prompt', 'stale prompt')->save(TRUE);
 
     canvas_ai_post_update_0003_reimport_orchestrator_agent();
-    $this->container->get('config.factory')->reset(self::ORCHESTRATOR);
+    $this->container->get(ConfigFactoryInterface::class)->reset(self::ORCHESTRATOR);
 
     $updated = $this->config(self::ORCHESTRATOR);
     self::assertSame($uuid, $updated->get('uuid'));
@@ -64,16 +67,16 @@ final class CanvasAiOrchestratorPostUpdateTest extends CanvasKernelTestBase {
 
     // Simulate the active config left behind by the original 0003, which
     // dropped both the uuid and _core when it replaced the whole record.
-    $storage = $this->container->get('config.storage');
+    $storage = $this->container->get(StorageCacheInterface::class);
     $data = $storage->read(self::ORCHESTRATOR);
     unset($data['uuid'], $data['_core']);
     $storage->write(self::ORCHESTRATOR, $data);
-    $this->container->get('config.factory')->reset(self::ORCHESTRATOR);
+    $this->container->get(ConfigFactoryInterface::class)->reset(self::ORCHESTRATOR);
     self::assertEmpty($this->config(self::ORCHESTRATOR)->get('uuid'));
     self::assertEmpty($this->config(self::ORCHESTRATOR)->get('_core'));
 
     canvas_ai_post_update_0006_restore_orchestrator_agent_uuid();
-    $this->container->get('config.factory')->reset(self::ORCHESTRATOR);
+    $this->container->get(ConfigFactoryInterface::class)->reset(self::ORCHESTRATOR);
 
     $repaired = $this->config(self::ORCHESTRATOR);
     self::assertNotEmpty($repaired->get('uuid'));
@@ -84,7 +87,7 @@ final class CanvasAiOrchestratorPostUpdateTest extends CanvasKernelTestBase {
    * Includes the Canvas AI post-update file.
    */
   private function includePostUpdateFile(): void {
-    $module_path = $this->container->get('extension.list.module')->getPath('canvas_ai');
+    $module_path = $this->container->get(ModuleExtensionList::class)->getPath('canvas_ai');
     require_once DRUPAL_ROOT . '/' . $module_path . '/canvas_ai.post_update.php';
   }
 

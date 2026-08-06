@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas_ai\Kernel;
 
 use Drupal\ai\OperationType\GenericType\ImageFile;
 use Drupal\canvas_ai\CanvasAiChatHelper;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\Schema\SchemaIncompleteException;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -55,7 +56,7 @@ final class CanvasAiChatHelperTest extends CanvasKernelTestBase {
   public function testDefaultMaxMessagesIsApplied(): void {
     $this->assertSame(
       10,
-      (int) $this->container->get('config.factory')->get('canvas_ai.settings')->get('chat_history_max_messages'),
+      (int) $this->container->get(ConfigFactoryInterface::class)->get('canvas_ai.settings')->get('chat_history_max_messages'),
     );
 
     $result = $this->canvasAiChatHelper->getFilteredChatHistory(
@@ -84,7 +85,7 @@ final class CanvasAiChatHelperTest extends CanvasKernelTestBase {
    */
   #[DataProvider('maxMessagesProvider')]
   public function testChatHistoryRespectMaxMessages(int $max_messages, int $expected_count): void {
-    $this->container->get('config.factory')
+    $this->container->get(ConfigFactoryInterface::class)
       ->getEditable('canvas_ai.settings')
       ->set('chat_history_max_messages', $max_messages)
       ->save();
@@ -103,7 +104,7 @@ final class CanvasAiChatHelperTest extends CanvasKernelTestBase {
     $this->expectException(SchemaIncompleteException::class);
     $this->expectExceptionMessageMatches('/-1.*or more/');
 
-    $this->container->get('config.factory')
+    $this->container->get(ConfigFactoryInterface::class)
       ->getEditable('canvas_ai.settings')
       ->set('chat_history_max_messages', -5)
       ->save();
@@ -117,7 +118,7 @@ final class CanvasAiChatHelperTest extends CanvasKernelTestBase {
    * most recent context for the agent.
    */
   public function testLastNMessagesAreReturnedNotFirstN(): void {
-    $this->container->get('config.factory')
+    $this->container->get(ConfigFactoryInterface::class)
       ->getEditable('canvas_ai.settings')
       ->set('chat_history_max_messages', 15)
       ->save();
@@ -148,7 +149,7 @@ final class CanvasAiChatHelperTest extends CanvasKernelTestBase {
     $this->assertArrayHasKey('files', $history[2]);
 
     // Set the history limit to 20.
-    $this->container->get('config.factory')
+    $this->container->get(ConfigFactoryInterface::class)
       ->getEditable('canvas_ai.settings')
       ->set('chat_history_max_messages', 20)
       ->save();

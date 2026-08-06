@@ -18,6 +18,9 @@
  * place, invisible); *recovery* is reactive (after expiry, the host resets
  * the iframe src — coarse but dependable). The app triggers recovery simply
  * by reporting status "expired"; it never asks for renewal after expiry.
+ * The same origin-checked channel carries host refresh requests after Canvas
+ * persists new auto-save data; consumers refresh through their framework or
+ * reload the current document without replaying an activation assertion.
  *
  * A session epoch is immutable: a successful renewal produces a new
  * tokenExpiresAt (via the refreshed server data), and the consumer destroys
@@ -25,8 +28,8 @@
  * prop-driven state resets with a plain lifecycle, which is what keeps
  * non-React consumers trivial.
  *
- * Messages are origin-checked in both directions against the embedder
- * allowlist (the same origins the CSP frame-ancestors policy admits).
+ * Messages are origin-checked in both directions against the exact editor
+ * origin carried by the redeemed assertion's signed renewal URL.
  *
  * The design record behind this protocol, in the Drupal Canvas repository:
  * docs/adr/0015-headless-draft-preview-session-renewal-re-anchored-in-drupal-session.md.
@@ -34,8 +37,11 @@
 
 import {
   HEADLESS_ASSERTION_MESSAGE,
+  HEADLESS_REFRESH_ACK_MESSAGE,
+  HEADLESS_REFRESH_MESSAGE,
   HEADLESS_RENEW_REQUEST_MESSAGE,
   HEADLESS_STATUS_MESSAGE,
+  HEADLESS_STATUS_REQUEST_MESSAGE,
 } from '../constants';
 import { EXPIRY_SLACK_MS } from '../draft-data';
 
@@ -74,6 +80,7 @@ export interface DraftSessionState {
  */
 export type DraftSessionEvent =
   | { type: 'expired' }
+  | { type: 'refresh-requested' }
   | { type: 'renew-requested' }
   | { type: 'renew-failed' }
   | {
@@ -100,22 +107,21 @@ export interface DraftSessionOptions {
   embedded: boolean;
   /** The current app path, reported to the host; update via setPath(). */
   path: string;
-  /** Origins allowed to embed the app (postMessage peers, both directions). */
-  embedderOrigins: string[];
+  /** The signed editor origin used as the postMessage peer in both directions. */
+  editorOrigin: string | null;
   /** The app endpoint that redeems a fresh assertion into the session. */
   renewEndpoint?: string;
   /**
-   * Refreshes the consumer's server-derived data after a successful
-   * renewal (Next.js: router.refresh()). The refreshed data carries the new
+   * Refreshes the consumer's server-derived data after a successful renewal
+   * or when the host reports a new Canvas auto-save (Next.js:
+   * router.refresh()). The refreshed renewal data carries the new
    * tokenExpiresAt, on which the consumer replaces this machine. Optional:
-   * a consumer without such a primitive re-creates the machine from the
-   * 'renewed' event's tokenExpiresAt instead — the renewed token already
-   * lives in the session cookie, so no server re-render is required.
+   * a consumer without such a primitive handles the corresponding event.
    */
   refreshData?: () => void;
   /** Receives session lifecycle events. */
   onEvent?: (event: DraftSessionEvent) => void;
-  /** The window renewal messages are exchanged with. Default: the parent. */
+  /** The window host commands are exchanged with. Default: the parent. */
   hostWindow?: Pick<Window, 'postMessage'>;
   /** Where the assertion message listener is installed. Default: window. */
   listenerTarget?: Pick<Window, 'addEventListener' | 'removeEventListener'>;
@@ -141,7 +147,7 @@ export function createDraftSession(options: DraftSessionOptions): DraftSession {
     tokenExpiresAt,
     initialExpired,
     embedded,
-    embedderOrigins,
+    editorOrigin,
     renewEndpoint = DEFAULT_RENEW_ENDPOINT,
     refreshData,
     onEvent,
@@ -154,6 +160,7 @@ export function createDraftSession(options: DraftSessionOptions): DraftSession {
   let expired = initialExpired;
   let renewState: DraftSessionRenewState = 'idle';
   let destroyed = false;
+  let hostSessionId: string | null = null;
   const timers = new Set<ReturnType<typeof setTimeout>>();
 
   const emit = (event: DraftSessionEvent) => {
@@ -176,10 +183,11 @@ export function createDraftSession(options: DraftSessionOptions): DraftSession {
   };
 
   const postToHost = (message: Record<string, unknown>) => {
-    // postMessage takes a single targetOrigin; address every allowlisted
-    // embedder — the browser delivers only to the one that matches.
-    for (const origin of embedderOrigins) {
-      hostWindow?.postMessage(message, origin);
+    if (editorOrigin) {
+      hostWindow?.postMessage(
+        hostSessionId ? { ...message, hostSessionId } : message,
+        editorOrigin,
+      );
     }
   };
 
@@ -197,13 +205,25 @@ export function createDraftSession(options: DraftSessionOptions): DraftSession {
     });
   };
 
+  const expireIfDue = () => {
+    if (
+      expired ||
+      tokenExpiresAt === null ||
+      Date.now() < tokenExpiresAt - EXPIRY_SLACK_MS
+    ) {
+      return false;
+    }
+    expired = true;
+    emit({ type: 'expired' });
+    reportStatus();
+    return true;
+  };
+
   // Flip to expired on the clock, in sync with the server's slack.
   if (tokenExpiresAt !== null && !expired) {
     schedule(
       () => {
-        expired = true;
-        emit({ type: 'expired' });
-        reportStatus();
+        expireIfDue();
       },
       tokenExpiresAt - EXPIRY_SLACK_MS - Date.now(),
     );
@@ -215,6 +235,12 @@ export function createDraftSession(options: DraftSessionOptions): DraftSession {
     const margin = Math.min(RENEW_MARGIN_MS, remaining / 2);
     schedule(() => {
       if (expired || renewState !== 'idle') {
+        return;
+      }
+      // Background tabs may delay both timers until after expiry. The renewal
+      // timer was scheduled first, so reconcile against the wall clock before
+      // it can start a stale renewal and race the recovery lane.
+      if (expireIfDue()) {
         return;
       }
       renewState = 'requested';
@@ -230,17 +256,53 @@ export function createDraftSession(options: DraftSessionOptions): DraftSession {
     }, remaining - margin);
   }
 
-  // Redeem assertions the host sends down.
+  // Handle origin-checked commands from the embedding host.
   const onMessage = embedded
     ? (event: MessageEvent) => {
-        // Only the embedding host may hand us assertions: the source must be
-        // the parent window, not merely any window on an allowlisted origin
+        // Only the embedding host may hand us commands: the source must be
+        // the parent window, not merely any window on the editor origin
         // (a popup opener, a nested frame). Mirrors the host checking
         // event.source === iframe.contentWindow in the other direction.
         if (
           event.source !== hostWindow ||
-          !embedderOrigins.includes(event.origin) ||
+          event.origin !== editorOrigin ||
           !event.data ||
+          typeof event.data.type !== 'string'
+        ) {
+          return;
+        }
+
+        if (event.data.type === HEADLESS_STATUS_REQUEST_MESSAGE) {
+          if (
+            typeof event.data.hostSessionId === 'string' &&
+            event.data.hostSessionId !== ''
+          ) {
+            hostSessionId = event.data.hostSessionId;
+            reportStatus();
+          }
+          return;
+        }
+
+        if (
+          hostSessionId === null ||
+          event.data.hostSessionId !== hostSessionId
+        ) {
+          return;
+        }
+
+        if (event.data.type === HEADLESS_REFRESH_MESSAGE) {
+          if (typeof event.data.refreshId === 'number') {
+            postToHost({
+              type: HEADLESS_REFRESH_ACK_MESSAGE,
+              refreshId: event.data.refreshId,
+            });
+          }
+          emit({ type: 'refresh-requested' });
+          refreshData?.();
+          return;
+        }
+
+        if (
           event.data.type !== HEADLESS_ASSERTION_MESSAGE ||
           typeof event.data.assertion !== 'string'
         ) {

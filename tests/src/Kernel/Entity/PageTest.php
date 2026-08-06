@@ -7,6 +7,8 @@ namespace Drupal\Tests\canvas\Kernel\Entity;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
@@ -39,7 +41,7 @@ final class PageTest extends CanvasKernelTestBase {
   }
 
   public function testDefinition(): void {
-    $sut = $this->container->get('entity_type.manager')
+    $sut = $this->container->get(EntityTypeManagerInterface::class)
       ->getDefinition(Page::ENTITY_TYPE_ID);
     self::assertNotNull($sut);
     self::assertEquals(
@@ -62,7 +64,7 @@ final class PageTest extends CanvasKernelTestBase {
     // correctly filtered to only allow media types that use `image`.
     $this->createMediaType('file');
 
-    $fields = $this->container->get('entity_field.manager')
+    $fields = $this->container->get(EntityFieldManagerInterface::class)
       ->getFieldDefinitions(Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID);
     self::assertArrayHasKey('image', $fields);
     $field = $fields['image'];
@@ -83,7 +85,7 @@ final class PageTest extends CanvasKernelTestBase {
     // Verify adding a new media type causes the base field's settings to be
     // automatically updated.
     $second_image_media_type = $this->createMediaType('image');
-    $fields = $this->container->get('entity_field.manager')
+    $fields = $this->container->get(EntityFieldManagerInterface::class)
       ->getFieldDefinitions(Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID);
     self::assertArrayHasKey('image', $fields);
     $field = $fields['image'];

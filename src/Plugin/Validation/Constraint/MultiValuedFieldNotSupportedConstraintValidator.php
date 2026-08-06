@@ -7,6 +7,7 @@ namespace Drupal\canvas\Plugin\Validation\Constraint;
 use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ObjectPropExpressionInterface;
+use Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
@@ -109,9 +110,16 @@ final class MultiValuedFieldNotSupportedConstraintValidator extends ConstraintVa
       if ($found !== NULL) {
         return $found;
       }
-      // Multi-target-bundle references are rejected separately.
-      // @see \Drupal\canvas\Plugin\Validation\Constraint\MultiTargetBundleReferenceNotSupportedConstraint
+      // A multi-target-bundle reference has one branch per bundle; descend into
+      // every branch, since a multi-valued field in any branch is a violation.
       if ($expression->targetsMultipleBundles()) {
+        \assert($expression->referenced instanceof ReferencedBundleSpecificBranches);
+        foreach ($expression->referenced->bundleSpecificReferencedExpressions as $branch_expression) {
+          $found = $this->findMultiValuedField($branch_expression);
+          if ($found !== NULL) {
+            return $found;
+          }
+        }
         return NULL;
       }
       $referenced = $expression->referenced;

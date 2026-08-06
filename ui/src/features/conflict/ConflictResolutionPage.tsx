@@ -17,28 +17,21 @@ import {
 } from '@/features/conflict/conflictComparison';
 import { isConflictUxEnabled } from '@/features/conflict/conflictUtils';
 import { unsetActivePanel } from '@/features/ui/primaryPanelSlice';
-import {
-  componentAndLayoutApi,
-  useGetConflictPageLayoutQuery,
-} from '@/services/componentAndLayout';
+import { PageVersionComparison } from '@/features/versionComparison/PageVersionComparison';
+import { componentAndLayoutApi } from '@/services/componentAndLayout';
 import { contentApi, useUpdateContentMutation } from '@/services/content';
 import {
   useDiscardPendingChangeMutation,
   useGetAllPendingChangesQuery,
 } from '@/services/pendingChangesApi';
 
-import {
-  ConflictResolutionView,
-  PageConflictComparisonView,
-} from './ConflictResolutionView';
+import { ConflictResolutionView } from './ConflictResolutionView';
 
 import type { ConflictChangeEntry } from '@/features/conflict/conflictComparison';
-import type { LayoutApiResponse } from '@/services/componentAndLayout';
-import type { ConflictVersionSelection } from './ConflictResolutionView';
+import type { PageVersionSelection } from '@/features/versionComparison/PageVersionComparisonView';
 
-import styles from './ConflictResolutionPage.module.css';
+import styles from '@/features/versionComparison/VersionComparisonPage.module.css';
 
-const EMPTY_HTML = '<main></main>';
 const REVIEW_CHANGES_QUERY = 'reviewChanges=1';
 const RESOLUTION_ERROR_MESSAGE =
   'Unable to resolve this conflict. Please try again.';
@@ -76,38 +69,6 @@ const showResolutionError = () => {
   });
 };
 
-const versionUpdatedDateFormatter = new Intl.DateTimeFormat(undefined, {
-  month: 'numeric',
-  day: 'numeric',
-  year: '2-digit',
-});
-
-const versionUpdatedTimeFormatter = new Intl.DateTimeFormat(undefined, {
-  hour: 'numeric',
-  minute: '2-digit',
-});
-
-const formatConflictVersionUpdated = (
-  timestamp: number | undefined,
-): string | undefined => {
-  if (typeof timestamp !== 'number' || !Number.isFinite(timestamp)) {
-    return undefined;
-  }
-
-  const date = new Date(
-    timestamp < 1_000_000_000_000 ? timestamp * 1000 : timestamp,
-  );
-
-  if (Number.isNaN(date.getTime())) {
-    return undefined;
-  }
-
-  const formattedDate = versionUpdatedDateFormatter.format(date);
-  const formattedTime = versionUpdatedTimeFormatter.format(date);
-
-  return `Updated ${formattedDate} at ${formattedTime}`;
-};
-
 const ConflictResolutionPage = () =>
   isConflictUxEnabled() ? (
     <EnabledConflictResolutionPage />
@@ -132,7 +93,7 @@ const EnabledConflictResolutionPage = () => {
   const [discardChange, { isLoading: isDiscarding }] =
     useDiscardPendingChangeMutation();
   const [selectedVersion, setSelectedVersion] =
-    useState<ConflictVersionSelection>();
+    useState<PageVersionSelection>();
 
   const conflictQueue = useMemo(
     () => getConflictQueue(pendingChanges),
@@ -181,8 +142,16 @@ const EnabledConflictResolutionPage = () => {
     setSelectedVersion(undefined);
   }, [currentEntry?.pointer]);
 
+  const navigateToEditor = () => navigate('/editor');
+  const navigateToConflictOverview = () => navigate('/conflict');
+
   if (pendingChanges === undefined && isPendingChangesFetching) {
-    return <ConflictResolutionLoadingState />;
+    return (
+      <ConflictResolutionLoadingState
+        onNavigateToCanvas={navigateToEditor}
+        onNavigateToConflict={navigateToConflictOverview}
+      />
+    );
   }
 
   if (!entityType || !entityId || !currentEntry) {
@@ -195,12 +164,15 @@ const EnabledConflictResolutionPage = () => {
       <ResolvedConflictState
         pendingChangesCount={pendingChangesCount}
         onReviewChanges={() => navigate(`/editor?${REVIEW_CHANGES_QUERY}`)}
-        onClose={() => navigate('/editor')}
+        onClose={navigateToEditor}
+        onNavigateToCanvas={navigateToEditor}
+        onNavigateToConflict={navigateToConflictOverview}
       />
     );
   }
 
   const activeChange = currentEntry.change;
+  const activeDraftVersionKey = `${activeChange.data_hash}:${activeChange.updated}`;
 
   const finishResolution = async () => {
     const nextEntry = getNextConflictEntry(
@@ -217,7 +189,7 @@ const EnabledConflictResolutionPage = () => {
   };
 
   const handleSelectVersion = (
-    version: Exclude<ConflictVersionSelection, undefined>,
+    version: Exclude<PageVersionSelection, undefined>,
   ) => {
     setSelectedVersion((currentVersion) =>
       currentVersion === version ? undefined : version,
@@ -262,11 +234,12 @@ const EnabledConflictResolutionPage = () => {
     <ConflictResolutionView
       label={activeChange.label}
       comparison={
-        <PageConflictComparison
-          key={currentEntry.pointer}
+        <PageVersionComparison
+          key={`${currentEntry.pointer}:${activeDraftVersionKey}`}
           entityId={String(activeChange.entity_id)}
           entityType={activeChange.entity_type}
           autoSaveUpdated={activeChange.updated}
+          draftVersionKey={activeDraftVersionKey}
           selectedVersion={selectedVersion}
           onSelectVersion={handleSelectVersion}
         />
@@ -287,109 +260,10 @@ const EnabledConflictResolutionPage = () => {
       }
       onResolveConflict={handleResolveConflict}
       onClose={handleClose}
+      onNavigateToCanvas={navigateToEditor}
+      onNavigateToConflict={navigateToConflictOverview}
       isResolving={isResolutionInProgress}
       canResolveConflict={!!selectedVersion}
-    />
-  );
-};
-
-const PageConflictComparison = ({
-  entityId,
-  entityType,
-  autoSaveUpdated,
-  selectedVersion,
-  onSelectVersion,
-}: {
-  entityId: string;
-  entityType: string;
-  autoSaveUpdated?: number;
-  selectedVersion: ConflictVersionSelection;
-  onSelectVersion: (
-    version: Exclude<ConflictVersionSelection, undefined>,
-  ) => void;
-}) => {
-  const [draftLayoutSnapshot, setDraftLayoutSnapshot] =
-    useState<LayoutApiResponse>();
-  const [publishedLayoutSnapshot, setPublishedLayoutSnapshot] =
-    useState<LayoutApiResponse>();
-  const {
-    data: draftLayout,
-    isFetching: isDraftLoading,
-    isError: isDraftError,
-  } = useGetConflictPageLayoutQuery({
-    entityId,
-    entityType: 'canvas_page',
-  });
-  const {
-    data: publishedLayout,
-    isFetching: isPublishedLoading,
-    isError: isPublishedError,
-  } = useGetConflictPageLayoutQuery({
-    entityId,
-    entityType: 'canvas_page',
-    publishedVersion: true,
-  });
-
-  useEffect(() => {
-    setDraftLayoutSnapshot((currentSnapshot) => currentSnapshot ?? draftLayout);
-  }, [draftLayout]);
-
-  useEffect(() => {
-    setPublishedLayoutSnapshot(
-      (currentSnapshot) => currentSnapshot ?? publishedLayout,
-    );
-  }, [publishedLayout]);
-
-  const stableDraftLayout = draftLayoutSnapshot ?? draftLayout;
-  const stablePublishedLayout = publishedLayoutSnapshot ?? publishedLayout;
-
-  if (
-    (!stableDraftLayout && isDraftError) ||
-    (!stablePublishedLayout && isPublishedError)
-  ) {
-    return (
-      <Flex
-        align="center"
-        justify="center"
-        height="100%"
-        data-testid="conflict-preview-error"
-      >
-        <Text color="red">
-          Unable to load both versions of this page for comparison.
-        </Text>
-      </Flex>
-    );
-  }
-
-  return (
-    <PageConflictComparisonView
-      entityId={entityId}
-      entityType={entityType}
-      publishedVersion={{
-        html: stablePublishedLayout?.html || EMPTY_HTML,
-        props: {
-          entity_form_fields: stablePublishedLayout?.entity_form_fields ?? {},
-          layout: stablePublishedLayout?.layout ?? [],
-          model: stablePublishedLayout?.model ?? {},
-        },
-        loading: !stablePublishedLayout && isPublishedLoading,
-        updated: formatConflictVersionUpdated(stablePublishedLayout?.updated),
-      }}
-      newVersion={{
-        html: stableDraftLayout?.html || EMPTY_HTML,
-        props: {
-          entity_form_fields: stableDraftLayout?.entity_form_fields ?? {},
-          layout: stableDraftLayout?.layout ?? [],
-          model: stableDraftLayout?.model ?? {},
-        },
-        loading: !stableDraftLayout && isDraftLoading,
-        changed: true,
-        updated: formatConflictVersionUpdated(
-          stableDraftLayout?.updated ?? autoSaveUpdated,
-        ),
-      }}
-      selectedVersion={selectedVersion}
-      onSelectVersion={onSelectVersion}
     />
   );
 };
@@ -401,17 +275,33 @@ const getReviewChangesButtonText = (count: number): string => {
   return `Review ${count} changes`;
 };
 
-const ConflictResolutionLoadingState = () => (
+const ConflictResolutionLoadingState = ({
+  onNavigateToCanvas,
+  onNavigateToConflict,
+}: {
+  onNavigateToCanvas: () => void;
+  onNavigateToConflict: () => void;
+}) => (
   <div className={styles.page} data-testid="conflict-resolution-loading-state">
     <div className={styles.header}>
       <Flex align="center" gap="1">
-        <Text size="1" color="blue">
+        <button
+          type="button"
+          className={styles.breadcrumbLink}
+          onClick={onNavigateToCanvas}
+        >
           Canvas
-        </Text>
+        </button>
         <Text size="1" color="gray">
           /
         </Text>
-        <Text size="1">Conflict</Text>
+        <button
+          type="button"
+          className={styles.breadcrumbLink}
+          onClick={onNavigateToConflict}
+        >
+          Conflict
+        </button>
       </Flex>
     </div>
     <Flex
@@ -431,21 +321,35 @@ const ResolvedConflictState = ({
   pendingChangesCount,
   onReviewChanges,
   onClose,
+  onNavigateToCanvas,
+  onNavigateToConflict,
 }: {
   pendingChangesCount: number;
   onReviewChanges: () => void;
   onClose: () => void;
+  onNavigateToCanvas: () => void;
+  onNavigateToConflict: () => void;
 }) => (
   <div className={styles.page} data-testid="conflict-resolved-state">
     <div className={styles.header}>
       <Flex align="center" gap="1">
-        <Text size="1" color="blue">
+        <button
+          type="button"
+          className={styles.breadcrumbLink}
+          onClick={onNavigateToCanvas}
+        >
           Canvas
-        </Text>
+        </button>
         <Text size="1" color="gray">
           /
         </Text>
-        <Text size="1">Conflict</Text>
+        <button
+          type="button"
+          className={styles.breadcrumbLink}
+          onClick={onNavigateToConflict}
+        >
+          Conflict
+        </button>
         <Text size="1" color="gray">
           /
         </Text>

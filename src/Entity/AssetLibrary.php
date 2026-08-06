@@ -14,6 +14,7 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
+use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\file\FileInterface;
 use Drupal\file\FileUsage\FileUsageInterface;
@@ -42,6 +43,8 @@ use Drupal\file\FileUsage\FileUsageInterface;
     'imports',
     'assets',
     'shared',
+    'bundledSources',
+    'packageJson',
   ],
 )]
 final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterface {
@@ -71,7 +74,11 @@ final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterfac
   /**
    * Asset file references.
    *
-   * @var list<array{name: string, uri: string}>|null
+   * Each entry may additionally carry `path` (the original relative disk path)
+   * and, for text modules, `source` (the verbatim original source text), stored
+   * so a CLI pull can reconstruct the file on disk.
+   *
+   * @var list<array{name: string, uri: string, path?: string, source?: string}>|null
    */
   protected ?array $assets = NULL;
 
@@ -81,6 +88,27 @@ final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterfac
    * @var list<array{name: string, uri: string}>|null
    */
   protected ?array $shared = NULL;
+
+  /**
+   * Verbatim sources of local modules bundled into other artifacts.
+   *
+   * A local helper reached only transitively (or via a relative import inside
+   * another local module) is inlined by the bundler and has no standalone
+   * artifact. Its source is kept here, keyed by original relative disk `path`,
+   * so a CLI pull can reconstruct the editable file. These entries have no
+   * `uri` and are never part of the runtime import map.
+   *
+   * @var list<array{path: string, source: string}>|null
+   */
+  protected ?array $bundledSources = NULL;
+
+  /**
+   * The package.json of the source project.
+   *
+   * Stored so that a subsequent CLI `pull` can reconstruct the project's
+   * `package.json` on disk.
+   */
+  protected ?string $packageJson = NULL;
 
   /**
    * {@inheritdoc}
@@ -97,8 +125,10 @@ final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterfac
         'css' => $this->css,
         'js' => $this->js,
         'imports' => $this->imports,
-        'assets' => $this->assets,
+        'assets' => $this->normalizeAssetsForClientSide(),
         'shared' => $this->shared,
+        'bundledSources' => $this->bundledSources,
+        'packageJson' => $this->packageJson,
         'importMap' => self::getSiteImportMap(),
       ],
       preview: NULL
@@ -129,6 +159,33 @@ final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterfac
   }
 
   /**
+   * Adds a fetchable `url` to each asset entry for the client side.
+   *
+   * The stored `uri` is a `public://` stream wrapper URI, which the CLI cannot
+   * fetch directly. A CLI `pull` downloads binary assets over HTTP, so expose a
+   * generated URL alongside each entry. This value is normalize-time only; it
+   * is not part of `config_export` and is never stored.
+   *
+   * @return list<array{name: string, uri: string, path?: string, source?: string, url: string}>|null
+   *   The asset entries with an added `url`, or NULL when there are none.
+   */
+  private function normalizeAssetsForClientSide(): ?array {
+    if ($this->assets === NULL) {
+      return NULL;
+    }
+    $file_url_generator = \Drupal::service(FileUrlGeneratorInterface::class);
+    \assert($file_url_generator instanceof FileUrlGeneratorInterface);
+    $normalized = [];
+    foreach ($this->assets as $entry) {
+      $normalized[] = [
+        ...$entry,
+        'url' => $file_url_generator->generateString((string) $entry['uri']),
+      ];
+    }
+    return $normalized;
+  }
+
+  /**
    * {@inheritdoc}
    *
    * This corresponds to `AssetLibrary` in openapi.yml.
@@ -154,6 +211,8 @@ final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterfac
         'imports' => $this->setImports(\is_array($value) ? array_values($value) : NULL),
         'assets' => $this->setAssets(\is_array($value) ? array_values($value) : NULL),
         'shared' => $this->setShared(\is_array($value) ? array_values($value) : NULL),
+        'bundledSources' => $this->setBundledSources(\is_array($value) ? array_values($value) : NULL),
+        'packageJson' => $this->setPackageJson(\is_string($value) ? $value : NULL),
         // Computed for clients, never stored: a client that sends back the
         // object it received must not be able to write it.
         // @see self::getSiteImportMap()
@@ -216,17 +275,30 @@ final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterfac
   }
 
   /**
-   * @return list<array{name: string, uri: string}>
+   * @return list<array{name: string, uri: string, path?: string, source?: string}>
    */
   public function getAssets(): array {
     return $this->assets ?? [];
   }
 
   /**
-   * @param list<array{name: string, uri: string}>|null $entries
+   * @param list<array{name: string, uri: string, path?: string, source?: string}>|null $entries
    */
   public function setAssets(?array $entries): void {
-    $this->assets = $entries === [] ? NULL : $entries;
+    if ($entries === NULL || $entries === []) {
+      $this->assets = NULL;
+      return;
+    }
+    // Keep only the stored keys. Drops the normalize-time `url` so a client
+    // PATCH of the normalized representation cannot persist a key that is not
+    // in the config schema.
+    $this->assets = array_values(\array_map(
+      static fn (array $entry): array => array_intersect_key(
+        $entry,
+        array_flip(['name', 'uri', 'path', 'source']),
+      ),
+      $entries,
+    ));
   }
 
   /**
@@ -241,6 +313,46 @@ final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterfac
    */
   public function setShared(?array $entries): void {
     $this->shared = $entries === [] ? NULL : $entries;
+  }
+
+  /**
+   * @return list<array{path: string, source: string}>
+   */
+  public function getBundledSources(): array {
+    return $this->bundledSources ?? [];
+  }
+
+  /**
+   * @param list<array{path: string, source: string}>|null $entries
+   */
+  public function setBundledSources(?array $entries): void {
+    if ($entries === NULL || $entries === []) {
+      $this->bundledSources = NULL;
+      return;
+    }
+    // Keep only the stored keys, guarding against a client PATCH persisting
+    // unexpected keys that are not in the config schema.
+    $this->bundledSources = array_values(\array_map(
+      static fn (array $entry): array => array_intersect_key(
+        $entry,
+        array_flip(['path', 'source']),
+      ),
+      $entries,
+    ));
+  }
+
+  /**
+   * Gets the stored project `package.json`, if any.
+   */
+  public function getPackageJson(): ?string {
+    return $this->packageJson;
+  }
+
+  /**
+   * Sets the verbatim project `package.json` to store for round-tripping.
+   */
+  public function setPackageJson(?string $packageJson): void {
+    $this->packageJson = ($packageJson === NULL || trim($packageJson) === '') ? NULL : $packageJson;
   }
 
   /**
@@ -270,10 +382,14 @@ final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterfac
     $properties = parent::toArray();
     // Omit NULL manifest properties to satisfy NotBlank constraint.
     // If there are no entries, the key should be omitted entirely.
-    foreach (['imports', 'assets', 'shared'] as $key) {
+    foreach (['imports', 'assets', 'shared', 'bundledSources'] as $key) {
       if ($properties[$key] === NULL) {
         unset($properties[$key]);
       }
+    }
+    // Omit the package.json when absent; the schema key is optional.
+    if (($properties['packageJson'] ?? NULL) === NULL) {
+      unset($properties['packageJson']);
     }
     return $properties;
   }
@@ -333,7 +449,7 @@ final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterfac
    *   The file usage service.
    */
   private static function getFileUsage(): FileUsageInterface {
-    $file_usage = \Drupal::service('file.usage');
+    $file_usage = \Drupal::service(FileUsageInterface::class);
     \assert($file_usage instanceof FileUsageInterface);
     return $file_usage;
   }

@@ -1,7 +1,10 @@
 import { defineEventHandler } from 'h3';
-import { isDraftSessionExpired } from '@drupal-canvas/headless';
+import {
+  getDraftEditorOrigin,
+  isDraftSessionExpired,
+} from '@drupal-canvas/headless';
 
-import { getDraftConfig, getDraftData, isDraftModeEnabled } from '../session';
+import { getDraftData, isDraftModeEnabled } from '../session';
 
 /**
  * What the <DraftSession> component needs to drive the client-side session
@@ -12,7 +15,7 @@ export interface DraftSessionState {
   tokenExpiresAt: number | null;
   expired: boolean;
   renewUrl: string | null;
-  embedderOrigins: string[];
+  editorOrigin: string | null;
 }
 
 /**
@@ -21,9 +24,8 @@ export interface DraftSessionState {
  * at GET /api/draft/session by the module.
  *
  * Nothing here is a secret: the expiry instant, Drupal's own renew URL (a
- * signed assertion claim), and the embedder origin allowlist that is also
- * published through the CSP header. The access token never leaves the
- * httpOnly cookie.
+ * signed assertion claim), and its origin. The access token never leaves
+ * the httpOnly cookie.
  */
 export default defineEventHandler(async (event): Promise<DraftSessionState> => {
   if (!isDraftModeEnabled(event)) {
@@ -32,7 +34,7 @@ export default defineEventHandler(async (event): Promise<DraftSessionState> => {
       tokenExpiresAt: null,
       expired: false,
       renewUrl: null,
-      embedderOrigins: [],
+      editorOrigin: null,
     };
   }
 
@@ -42,6 +44,6 @@ export default defineEventHandler(async (event): Promise<DraftSessionState> => {
     tokenExpiresAt: draftData?.tokenExpiresAt ?? null,
     expired: !draftData || isDraftSessionExpired(draftData),
     renewUrl: draftData?.renewUrl ?? null,
-    embedderOrigins: getDraftConfig().embedderOrigins,
+    editorOrigin: getDraftEditorOrigin(draftData),
   };
 });

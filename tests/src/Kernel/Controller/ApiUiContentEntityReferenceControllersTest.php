@@ -13,7 +13,9 @@ use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\comment\Entity\CommentType;
+use Drupal\content_translation\BundleTranslationSettingsInterface;
 use Drupal\Core\Cache\CacheableJsonResponse;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\field\Entity\FieldConfig;
@@ -56,9 +58,9 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
   protected static $modules = [
     'node',
     'field',
-    // `comment` has an access handler that dereferences a field
-    // (`commented_entity`) the stub can't populate; including it here keeps
-    // the defensive catch in getBundleViewAccess() honest.
+    // `comment` has an access handler that dereferences the commented (parent)
+    // entity a bundle stub can't populate; including it exercises the
+    // commented-entity stub injection in createBundleStub().
     'comment',
     // Provides `internal_string_field` (a base field marked internal), to assert
     // the picker omits internal fields.
@@ -241,6 +243,25 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
       'label' => 'Media',
       'settings' => ['handler_settings' => ['target_bundles' => ['video' => 'video', 'image' => 'image']]],
     ])->save();
+
+    // A self-referential multi-target-bundle reference on the media bundles —
+    // exercises withholding a further multi-bundle descent when the parent chain
+    // already descends through one (which would coalesce into a nested branch).
+    FieldStorageConfig::create([
+      'field_name' => 'field_media_related',
+      'entity_type' => 'media',
+      'type' => 'entity_reference',
+      'settings' => ['target_type' => 'media'],
+    ])->save();
+    foreach (['image', 'video'] as $media_bundle) {
+      FieldConfig::create([
+        'field_name' => 'field_media_related',
+        'entity_type' => 'media',
+        'bundle' => $media_bundle,
+        'label' => 'Related media',
+        'settings' => ['handler_settings' => ['target_bundles' => ['image' => 'image', 'video' => 'video']]],
+      ])->save();
+    }
   }
 
   public function testContentEntityTypesEndpoint(): void {
@@ -286,21 +307,20 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
   }
 
   /**
-   * Pins the defensive catch in getBundleViewAccess().
+   * Comment is referenceable and can be browsed when permissions allow.
    *
-   * CommentAccessControlHandler dereferences `entity_id` (commented entity)
-   * which an unsaved stub cannot populate, so the stub-based view-access check
-   * throws. The controller catches that and treats the bundle as forbidden so
-   * one misbehaving entity type does not 500 the entire response. The endpoint
-   * must therefore (a) still return 200 and (b) omit the comment bundle even
-   * for a user who holds 'access comments'.
+   * CommentAccessControlHandler ANDs the commented (parent) entity's view
+   * access into the comment's: `$entity->getCommentedEntity()->access('view')`.
+   * A bundle stub has no commented entity, so the controller injects a
+   * normalized stub of the comment type's target entity type. Eligibility is
+   * therefore the conjunction of 'access comments' and coarse view access to
+   * the parent type ('access content' for comment-on-node). With both, comment
+   * appears in the listing and its fields endpoint can be browsed.
+   *
+   * @see \Drupal\canvas\Controller\ApiUiContentEntityReferenceControllers::createBundleStub()
    */
-  public function testContentEntityTypesCatchesStubAccessThrow(): void {
-    CommentType::create([
-      'id' => 'comment',
-      'label' => 'Default comments',
-      'target_entity_type_id' => 'node',
-    ])->save();
+  public function testCommentIsReferenceableWithPermissions(): void {
+    self::createNodeCommentType();
 
     $this->setUpCurrentUser([], [
       JavaScriptComponent::ADMIN_PERMISSION,
@@ -311,7 +331,87 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
     $response = $this->request(Request::create(self::URL_TYPES));
     self::assertSame(Response::HTTP_OK, $response->getStatusCode());
     $data = self::decodeResponse($response)['data'];
+
+    self::assertArrayHasKey('comment', $data);
+    self::assertArrayHasKey('comment', $data['comment']['bundles']);
+    self::assertSame('Default comments', $data['comment']['bundles']['comment']['label']);
+    self::assertSame(
+      '/canvas/api/v0/ui/content-entity-reference/comment/comment',
+      $data['comment']['bundles']['comment']['links'][CanvasUriDefinitions::LINK_REL_TYPED_DATA_BROWSER]['href'],
+    );
+
+    // The shared bundle-view-access gate now admits comment, so the fields
+    // endpoint can be browsed (200), not access-denied.
+    $fields_response = $this->request(Request::create(\sprintf(self::URL_FIELDS, 'comment', 'comment')));
+    self::assertSame(Response::HTTP_OK, $fields_response->getStatusCode());
+    $field_names = \array_column(self::decodeResponse($fields_response)['data'], 'name');
+    self::assertSame([
+      'cid',
+      'uuid',
+      'langcode',
+      'comment_type',
+      'status',
+      'uid',
+      'pid',
+      'entity_id',
+      'subject',
+      'name',
+      'created',
+      'changed',
+      'thread',
+      'entity_type',
+      'field_name',
+    ], $field_names);
+  }
+
+  /**
+   * Comment is omitted for a user lacking 'access comments'.
+   */
+  public function testCommentOmittedWithoutAccessCommentsPermission(): void {
+    self::createNodeCommentType();
+
+    $this->setUpCurrentUser([], [
+      JavaScriptComponent::ADMIN_PERMISSION,
+      'access content',
+    ]);
+
+    $response = $this->request(Request::create(self::URL_TYPES));
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    $data = self::decodeResponse($response)['data'];
     self::assertArrayNotHasKey('comment', $data);
+  }
+
+  /**
+   * Comment is omitted when the parent type is not coarsely viewable.
+   *
+   * Pins the coarse-gate conjunction: holding 'access comments' is not enough
+   * if the commented entity type (node) cannot be viewed at all ('access
+   * content' missing), because the injected parent stub's view access is ANDed
+   * in by CommentAccessControlHandler.
+   */
+  public function testCommentOmittedWithoutParentTypeViewAccess(): void {
+    self::createNodeCommentType();
+
+    $this->setUpCurrentUser([], [
+      JavaScriptComponent::ADMIN_PERMISSION,
+      'access comments',
+    ]);
+
+    $response = $this->request(Request::create(self::URL_TYPES));
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    $data = self::decodeResponse($response)['data'];
+    self::assertArrayNotHasKey('comment', $data);
+  }
+
+  /**
+   * Creates a default comment type targeting node.
+   */
+  private static function createNodeCommentType(): void {
+    CommentType::create([
+      'id' => 'comment',
+      'label' => 'Default comments',
+      'target_entity_type_id' => 'node',
+    ])->save();
   }
 
   /**
@@ -655,6 +755,40 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
   }
 
   /**
+   * A further multi-bundle reference descent is withheld to prevent nesting.
+   *
+   * `field_media` targets two bundles; descending into one and then offering
+   * `field_media_related` (also multi-bundle) would let the developer pick
+   * across bundles at both levels, coalescing into a branch inside a branch —
+   * nested branching, not yet supported. So the second reference's descent is
+   * withheld (no targetBundles, hasChildren = FALSE), though its own leaf
+   * properties still surface.
+   *
+   * @see \Drupal\canvas\Plugin\Validation\Constraint\EntityFieldExpressionsMustNotNestBranchesConstraint
+   */
+  public function testFieldsEndpointWithholdsNestedMultiBundleDescent(): void {
+    $this->setUpCurrentUser([], [JavaScriptComponent::ADMIN_PERMISSION, 'access content', 'view media']);
+
+    // Top level: field_media (multi-bundle) can be browsed into both bundles.
+    $response = $this->request(Request::create(\sprintf(self::URL_FIELDS, 'node', 'article')));
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    $by_name = \array_column(self::decodeResponse($response)['data'], NULL, 'name');
+    self::assertTrue($by_name['field_media']['hasChildren']);
+    self::assertCount(2, $by_name['field_media']['targetBundles']);
+    $href = $by_name['field_media']['targetBundles']['image']['links'][CanvasUriDefinitions::LINK_REL_TYPED_DATA_BROWSER]['href'];
+
+    // One level in (inside a multi-bundle reference): field_media_related's
+    // descent is withheld, but its leaf properties still surface.
+    $descend = $this->request(Request::create($href));
+    self::assertSame(Response::HTTP_OK, $descend->getStatusCode());
+    $media_fields = \array_column(self::decodeResponse($descend)['data'], NULL, 'name');
+    self::assertArrayHasKey('field_media_related', $media_fields);
+    self::assertFalse($media_fields['field_media_related']['hasChildren']);
+    self::assertArrayNotHasKey('targetBundles', $media_fields['field_media_related']);
+    self::assertNotEmpty($media_fields['field_media_related']['properties']);
+  }
+
+  /**
    * File field exposes its non-`entity` properties.
    *
    * File fields are references (target=file). `display`/`description` survive
@@ -717,14 +851,13 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
   }
 
   /**
-   * Multi-target-bundle reference field is not offered for browsing.
+   * Multi-target-bundle reference field is offered for per-bundle browsing.
    *
-   * A reference field targeting more than one bundle would let the picker
-   * compose a multi-target-bundle expression, which is not yet supported at
-   * render time. So it is not walkable (`hasChildren` is FALSE and there is no
-   * `targetBundles`); only its own leaf properties surface.
-   *
-   * @todo Update in https://git.drupalcode.org/project/canvas/-/work_items/3591656
+   * A reference field targeting more than one bundle is walkable: `hasChildren`
+   * is TRUE and `targetBundles` carries one entry per target bundle, each with
+   * its own label, a single-bundle composed parent expression, and a distinct
+   * browse URL. Per-bundle browsing keeps each parent a single-bundle chain;
+   * the picker's per-bundle picks are merged into a branch expression on save.
    */
   public function testFieldsEndpointMultiTargetBundleReferenceField(): void {
     $this->setUpCurrentUser([], [JavaScriptComponent::ADMIN_PERMISSION, 'access content', 'view media']);
@@ -734,9 +867,30 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
 
     self::assertArrayHasKey('field_media', $by_name);
     $row = $by_name['field_media'];
-    self::assertFalse($row['hasChildren']);
-    self::assertArrayNotHasKey('targetEntityType', $row);
-    self::assertArrayNotHasKey('targetBundles', $row);
+    self::assertTrue($row['hasChildren']);
+    self::assertSame('media', $row['targetEntityType']);
+    self::assertArrayHasKey('targetBundles', $row);
+    // Both target bundles are offered, keyed by bundle ID in sorted order.
+    self::assertSame(['image', 'video'], \array_keys($row['targetBundles']));
+
+    // Each bundle carries its own label and a single-bundle composed parent
+    // expression, and the two browse URLs are distinct.
+    $image = $row['targetBundles']['image'];
+    $video = $row['targetBundles']['video'];
+    self::assertSame('Image', $image['label']);
+    self::assertSame('Video', $video['label']);
+    $image_parent = 'ℹ︎␜entity:node:article␝field_media␞␟entity␜␜entity:media:image␝name␞␟value';
+    $video_parent = 'ℹ︎␜entity:node:article␝field_media␞␟entity␜␜entity:media:video␝name␞␟value';
+    self::assertSame($image_parent, $image['labelExpression']);
+    self::assertSame($video_parent, $video['labelExpression']);
+    self::assertSame(
+      '/canvas/api/v0/ui/content-entity-reference/media/image?parent=' . \urlencode($image_parent),
+      $image['links'][CanvasUriDefinitions::LINK_REL_TYPED_DATA_BROWSER]['href'],
+    );
+    self::assertSame(
+      '/canvas/api/v0/ui/content-entity-reference/media/video?parent=' . \urlencode($video_parent),
+      $video['links'][CanvasUriDefinitions::LINK_REL_TYPED_DATA_BROWSER]['href'],
+    );
 
     // Leaf properties are still present; the `entity` descend path is not.
     $props_by_name = \array_column($row['properties'], NULL, 'name');
@@ -835,8 +989,8 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
     // Make article translatable so content_translation adds its metadata base
     // fields alongside core's default_langcode / revision_log_message /
     // revision_translation_affected.
-    \Drupal::service('content_translation.manager')->setEnabled('node', 'article', TRUE);
-    $this->container->get('entity_field.manager')->clearCachedFieldDefinitions();
+    \Drupal::service(BundleTranslationSettingsInterface::class)->setEnabled('node', 'article', TRUE);
+    $this->container->get(EntityFieldManagerInterface::class)->clearCachedFieldDefinitions();
 
     $this->setUpCurrentUser([], [JavaScriptComponent::ADMIN_PERMISSION, 'access content']);
     $response = $this->request(Request::create(\sprintf(self::URL_FIELDS, 'node', 'article')));
@@ -850,7 +1004,7 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
     // (default_langcode), "Revision log message" (node's `revision_log`),
     // "Revision translation affected" (revision_translation_affected),
     // "Translation source"/"Translation outdated" (content_translation_*).
-    $field_definitions = $this->container->get('entity_field.manager')->getFieldDefinitions('node', 'article');
+    $field_definitions = $this->container->get(EntityFieldManagerInterface::class)->getFieldDefinitions('node', 'article');
     foreach ([
       'default_langcode',
       'revision_log',
@@ -1059,10 +1213,13 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
   }
 
   /**
-   * A crafted multi-target-bundle `?parent=` is a 404, not a 500.
+   * Per-bundle browsing round-trips; a crafted multi-bundle `?parent=` is a 404.
    *
-   * The picker never composes such parents (multi-target-bundle references
-   * are not walkable), so one can only arrive hand-crafted — and it must be
+   * Each per-bundle browse URL of a multi-target-bundle reference carries a
+   * single-bundle parent; following it lists that bundle's fields whose
+   * picked leaves compose onto the single-bundle parent chain. Because
+   * per-bundle browsing only ever composes single-bundle parents, a
+   * multi-target-bundle parent can only arrive hand-crafted and must be
    * rejected before reaching
    * ReferenceFieldPropExpression::withFinalTargetReplaced(), which throws.
    *
@@ -1070,11 +1227,47 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
    */
   public function testFieldsEndpointParentWithMultiTargetBundleReference(): void {
     $this->setUpCurrentUser([], [JavaScriptComponent::ADMIN_PERMISSION, 'access content', 'view media']);
-    // `field_media` targets both the `image` and `video` media bundles.
-    $parent = 'ℹ︎␜entity:node:article␝field_media␞␟entity␜[␜entity:media:image␝name␞␟value][␜entity:media:video␝name␞␟value]';
-    $this->expectException(NotFoundHttpException::class);
-    $this->expectExceptionMessage('Multi-target-bundle parent expressions are not supported.');
-    $this->request(Request::create(\sprintf(self::URL_FIELDS, 'media', 'image') . '?parent=' . \urlencode($parent)));
+
+    // `field_media` targets both the `image` and `video` media bundles; read
+    // the per-bundle browse URLs the picker generates for it.
+    $response = $this->request(Request::create(\sprintf(self::URL_FIELDS, 'node', 'article')));
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    $by_name = \array_column(self::decodeResponse($response)['data'], NULL, 'name');
+    $target_bundles = $by_name['field_media']['targetBundles'];
+
+    // Follow each per-bundle browse URL and confirm it lists that bundle's own
+    // fields, whose picked leaves compose onto the single-bundle parent chain
+    // into the referenced bundle. The `name` (label) leaf round-trips to the
+    // browse URL's parent; a different field re-points that chain's leaf.
+    foreach (['image', 'video'] as $bundle) {
+      $href = $target_bundles[$bundle]['links'][CanvasUriDefinitions::LINK_REL_TYPED_DATA_BROWSER]['href'];
+      $descend = $this->request(Request::create($href));
+      self::assertSame(Response::HTTP_OK, $descend->getStatusCode());
+      $media_fields = \array_column(self::decodeResponse($descend)['data'], NULL, 'name');
+
+      self::assertArrayHasKey('name', $media_fields);
+      self::assertArrayHasKey('created', $media_fields);
+      $name_props = \array_column($media_fields['name']['properties'], NULL, 'name');
+      self::assertSame(
+        "ℹ︎␜entity:node:article␝field_media␞␟entity␜␜entity:media:{$bundle}␝name␞␟value",
+        $name_props['value']['expression'],
+      );
+      $created_props = \array_column($media_fields['created']['properties'], NULL, 'name');
+      self::assertSame(
+        "ℹ︎␜entity:node:article␝field_media␞␟entity␜␜entity:media:{$bundle}␝created␞␟value",
+        $created_props['value']['expression'],
+      );
+    }
+
+    // A hand-crafted multi-target-bundle `?parent=` is still a 404, not a 500.
+    $multi_bundle_parent = 'ℹ︎␜entity:node:article␝field_media␞␟entity␜[␜entity:media:image␝name␞␟value][␜entity:media:video␝name␞␟value]';
+    try {
+      $this->request(Request::create(\sprintf(self::URL_FIELDS, 'media', 'image') . '?parent=' . \urlencode($multi_bundle_parent)));
+      self::fail('Expected NotFoundHttpException for a multi-target-bundle parent expression.');
+    }
+    catch (NotFoundHttpException $exception) {
+      self::assertSame('Multi-target-bundle parent expressions are not supported.', $exception->getMessage());
+    }
   }
 
   /**

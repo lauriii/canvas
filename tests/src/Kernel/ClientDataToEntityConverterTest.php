@@ -75,7 +75,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
 
   public function setUp(): void {
     parent::setUp();
-    $this->container->get('module_installer')->install(['system']);
+    $this->container->get(ModuleInstallerInterface::class)->install(['system']);
     // @todo Refactor this away in https://www.drupal.org/project/canvas/issues/3531679
     (new CanvasTestSetup())->setup();
     $this->setUpImages();
@@ -404,7 +404,7 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
       'Modified!',
     );
 
-    $this->container->get('module_installer')->install(['canvas_test_article_fields']);
+    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_test_article_fields']);
     // Remove the field_cvt_textarea_summary field installed by
     // canvas_test_article_fields because it is not used in the test and causes
     // unrelated validation errors.

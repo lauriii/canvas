@@ -64,6 +64,7 @@ use Symfony\Component\Validator\ConstraintViolation;
   config_export: [
     'machineName',
     'name',
+    'type',
     'props',
     'required',
     'slots',
@@ -73,6 +74,7 @@ use Symfony\Component\Validator\ConstraintViolation;
   ],
   constraints: [
     'JsComponentHasValidAndSupportedSdcMetadata' => NULL,
+    'JsComponentAssetsMatchType' => NULL,
   ],
 )]
 final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetInterface, FolderItemInterface {
@@ -93,6 +95,11 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
    * The human-readable label of the component.
    */
   protected ?string $name;
+
+  /**
+   * The Code Component implementation type.
+   */
+  protected ?string $type = NULL;
 
   /**
    * The props of the component.
@@ -137,6 +144,23 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
     return $this->machineName;
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function toArray(): array {
+    $data = parent::toArray();
+    if ($this->type === NULL || $this->type === 'react') {
+      unset($data['type']);
+    }
+    if ($this->js === NULL) {
+      unset($data['js']);
+    }
+    if ($this->css === NULL) {
+      unset($data['css']);
+    }
+    return $data;
+  }
+
   private function getEntityOperations(): CanvasResourceLinkCollection {
     $links = new CanvasResourceLinkCollection([]);
     // Link relation type => route name.
@@ -175,33 +199,41 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
     // TRICKY: config entity properties may allow NULL, but only valid, saved
     // config entities are ever normalized: those that have passed validation
     // against config schema.
-    \assert(\is_array($this->js));
-    \assert(\is_array($this->css));
     $linkCollection = $this->getEntityOperations();
-    return ClientSideRepresentation::create(
-      values: [
-        'machineName' => $this->id(),
-        'name' => (string) $this->label(),
-        'status' => $this->status(),
-        // Provide props with projected `x-allowed-entity-type-id` and
-        // `x-allowed-bundle` (for `content-entity-reference` props).
-        'props' => $this->toSdcDefinition()['props']['properties'] ?? $this->props,
-        'required' => $this->required,
-        'slots' => $this->slots,
+    $values = [
+      'machineName' => $this->id(),
+      'name' => (string) $this->label(),
+      'status' => $this->status(),
+      ...($this->isExternal() ? ['type' => 'external'] : []),
+      // Provide props with projected `x-allowed-entity-type-id` and
+      // `x-allowed-bundle` (for `content-entity-reference` props).
+      'props' => $this->toSdcDefinition()['props']['properties'] ?? $this->props,
+      'required' => $this->required,
+      'slots' => $this->slots,
+    ];
+    if (!$this->isExternal()) {
+      \assert(\is_array($this->js));
+      \assert(\is_array($this->css));
+      $values += [
         'sourceCodeJs' => $this->js['original'] ?? '',
         'sourceCodeCss' => $this->css['original'] ?? '',
         'compiledJs' => $this->js['compiled'] ?? '',
         'compiledCss' => $this->css['compiled'] ?? '',
-        // The UI should not need to have any knowledge/understanding of "field
-        // prop expressions" per ADR #5. To the UI, these should simply be
-        // opaque strings that are associated with some checkbox that can be
-        // picked by a Code Component Developer.
-        // @see ::updateFromClientSide()
-        'dataDependencies' => self::expandEntityFields($this->dataDependencies ?? []),
-        // @see https://jsonapi.org/format/#document-links
-        'links' => $linkCollection->asArray(),
-      ],
-      preview: $this->buildPreview(),
+      ];
+    }
+    $values += [
+      // The UI should not need to have any knowledge/understanding of "field
+      // prop expressions" per ADR #5. To the UI, these should simply be
+      // opaque strings that are associated with some checkbox that can be
+      // picked by a Code Component Developer.
+      // @see ::updateFromClientSide()
+      'dataDependencies' => self::expandEntityFields($this->dataDependencies ?? []),
+      // @see https://jsonapi.org/format/#document-links
+      'links' => $linkCollection->asArray(),
+    ];
+    return ClientSideRepresentation::create(
+      values: $values,
+      preview: $this->isExternal() ? NULL : $this->buildPreview(),
     )->addCacheableDependency($this)
       ->addCacheableDependency($linkCollection);
   }
@@ -340,10 +372,54 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
     if (isset($data['dataDependencies']) && \is_array($data['dataDependencies'])) {
       $data['dataDependencies'] = self::coalesceEntityFields($data['dataDependencies']);
     }
+    // The external application's component metadata owns the identity of an
+    // external component: client-side renames, status changes, and type
+    // changes would be reverted by the next synchronization, so reject them.
+    // (The synchronization itself writes entity properties directly and is
+    // not affected.)
+    if (!$this->isNew()) {
+      $violation_list = new EntityConstraintViolationList($this);
+      if ($this->isExternal()) {
+        if (\array_key_exists('name', $data) && $data['name'] !== $this->label()) {
+          $violation_list->add(new ConstraintViolation(
+            'External code components cannot be renamed: the external application owns the component name.',
+            'External code components cannot be renamed: the external application owns the component name.',
+            [],
+            NULL,
+            'name',
+            $data['name'],
+          ));
+        }
+        if (\array_key_exists('status', $data) && $data['status'] !== $this->status()) {
+          $violation_list->add(new ConstraintViolation(
+            'External code components cannot be exposed or unexposed: the external application owns the component status.',
+            'External code components cannot be exposed or unexposed: the external application owns the component status.',
+            [],
+            NULL,
+            'status',
+            $data['status'],
+          ));
+        }
+      }
+      if (\array_key_exists('type', $data) && $data['type'] !== $this->getComponentType()) {
+        $violation_list->add(new ConstraintViolation(
+          'The code component type cannot be changed.',
+          NULL,
+          [],
+          NULL,
+          'type',
+          $data['type'],
+        ));
+      }
+      if ($violation_list->count() > 0) {
+        throw new ConstraintViolationException($violation_list);
+      }
+    }
     foreach (array_intersect_key($data, array_flip([
       'machineName',
       'name',
       'status',
+      'type',
       'required',
       'props',
       'slots',
@@ -365,6 +441,42 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
           unset($this->props[$prop_name]['minItems']);
         }
       }
+    }
+
+    $code_fields = [
+      'sourceCodeJs',
+      'compiledJs',
+      'sourceCodeCss',
+      'compiledCss',
+    ];
+    if ($this->isExternal()) {
+      $violation_list = new EntityConstraintViolationList($this);
+      foreach ($code_fields as $code_field) {
+        if (\array_key_exists($code_field, $data)) {
+          $violation_list->add(new ConstraintViolation(
+            'External code components cannot contain JavaScript or CSS.',
+            'External code components cannot contain JavaScript or CSS.',
+            [],
+            NULL,
+            $code_field,
+            $data[$code_field],
+          ));
+        }
+      }
+      if (!empty($data['importedJsComponents'])) {
+        $violation_list->add(new ConstraintViolation(
+          'External code components cannot import other code components.',
+          'External code components cannot import other code components.',
+          [],
+          NULL,
+          'importedJsComponents',
+          $data['importedJsComponents'],
+        ));
+      }
+      if ($violation_list->count() > 0) {
+        throw new ConstraintViolationException($violation_list);
+      }
+      return;
     }
 
     if (\array_key_exists('sourceCodeCss', $data) || \array_key_exists('compiledCss', $data)) {
@@ -785,6 +897,27 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
    */
   public function getRequiredProps(): array {
     return $this->required ?? [];
+  }
+
+  /**
+   * Gets the Code Component implementation type.
+   */
+  public function getComponentType(): string {
+    return $this->type ?? 'react';
+  }
+
+  /**
+   * Whether this component is implemented by an external application.
+   */
+  public function isExternal(): bool {
+    return $this->getComponentType() === 'external';
+  }
+
+  /**
+   * Whether this external component retains a fallback implementation.
+   */
+  public function hasFallbackImplementation(): bool {
+    return $this->isExternal() && $this->js !== NULL && $this->css !== NULL;
   }
 
   /**

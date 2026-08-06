@@ -10,7 +10,9 @@ use Drupal\canvas\Entity\Page;
 use Drupal\canvas_ai\CanvasAiPermissions;
 use Drupal\canvas_ai\CanvasAiTempStore;
 use Drupal\canvas_ai\Plugin\AiFunctionCall\SetAIGeneratedComponentStructure;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait;
 use Drupal\Tests\canvas_ai\Traits\FunctionalCallTestTrait;
@@ -22,6 +24,12 @@ use Symfony\Component\Yaml\Yaml;
 
 /**
  * Tests for the SetAIGeneratedComponentStructure function call plugin.
+ *
+ * This test will be replaced by
+ * \Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall\PlaceComponentsTest
+ * once the set_component_structure tool is deleted.
+ *
+ * @see \Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall\PlaceComponentsTest
  */
 #[Group('canvas_ai')]
 final class SetAIGeneratedComponentStructureTest extends CanvasKernelTestBase {
@@ -55,7 +63,7 @@ final class SetAIGeneratedComponentStructureTest extends CanvasKernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    ...CanvasKernelTestBase::CANVAS_KERNEL_TEST_MINIMAL_MODULES,
+    ...self::CANVAS_KERNEL_TEST_MINIMAL_MODULES,
     'ai',
     'ai_agents',
     'canvas_ai',
@@ -82,7 +90,7 @@ final class SetAIGeneratedComponentStructureTest extends CanvasKernelTestBase {
     }
     $this->privilegedUser = $privileged_user;
     $this->unprivilegedUser = $unprivileged_user;
-    $this->container->get('config.factory')
+    $this->container->get(ConfigFactoryInterface::class)
       ->getEditable('system.theme')
       ->set('default', 'stark')
       ->save();
@@ -93,9 +101,9 @@ final class SetAIGeneratedComponentStructureTest extends CanvasKernelTestBase {
    */
   #[DataProvider('componentStructureDataProvider')]
   public function testSetComponentStructureWithPermissionsAndValidData(string $layout_type, string $yaml_input, array $expected_output): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
     // Set the current layout to a valid layout.
-    $this->container->get('canvas_ai.tempstore')->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout($layout_type));
+    $this->container->get(CanvasAiTempStore::class)->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout($layout_type));
 
     $tool = $this->functionCallManager->createInstance('canvas_ai:set_component_structure');
     $this->assertInstanceOf(SetAIGeneratedComponentStructure::class, $tool);
@@ -108,7 +116,7 @@ final class SetAIGeneratedComponentStructureTest extends CanvasKernelTestBase {
    * Tests setting component structure without proper permissions.
    */
   public function testSetComponentStructureWithoutPermissions(): void {
-    $this->container->get('current_user')->setAccount($this->unprivilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->unprivilegedUser);
 
     $tool = $this->functionCallManager->createInstance('canvas_ai:set_component_structure');
     $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);
@@ -126,9 +134,9 @@ final class SetAIGeneratedComponentStructureTest extends CanvasKernelTestBase {
    */
   #[DataProvider('invalidComponentStructureDataProvider')]
   public function testSetComponentStructureWithInvalidYaml(string $layout_type, string $yaml_input, array $expected_error): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
     // Set the current layout to a valid layout.
-    $this->container->get('canvas_ai.tempstore')->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout($layout_type));
+    $this->container->get(CanvasAiTempStore::class)->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout($layout_type));
 
     $result = $this->getComponentToolOutput($yaml_input);
     $expected_error = 'Failed to process layout data: ' . Yaml::dump($expected_error);
@@ -139,9 +147,9 @@ final class SetAIGeneratedComponentStructureTest extends CanvasKernelTestBase {
    * Tests setting component structure with invalid component validation.
    */
   public function testSetComponentStructureWithInvalidComponents(): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
     // Set the current layout to a valid layout.
-    $this->container->get('canvas_ai.tempstore')->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout('multi_region_empty'));
+    $this->container->get(CanvasAiTempStore::class)->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout('multi_region_empty'));
 
     $valid_yaml = <<<YAML
       operations:
@@ -184,7 +192,7 @@ final class SetAIGeneratedComponentStructureTest extends CanvasKernelTestBase {
    * Tests component validation logic.
    */
   public function testValidateComponent(): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
 
     $invalid_yaml = <<<YAML
       operations:
@@ -241,7 +249,7 @@ YAML;
    * Tests that props that do not exist on a component fail validation.
    */
   public function testValidateComponentWithNonExistentProps(): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
 
     // A valid required prop plus a prop the component does not define.
     $bogus_prop_yaml = <<<YAML

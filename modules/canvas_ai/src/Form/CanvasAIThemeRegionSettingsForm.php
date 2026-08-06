@@ -33,7 +33,7 @@ final class CanvasAIThemeRegionSettingsForm extends ConfigFormBase {
    */
   public static function create(ContainerInterface $container): static {
     return new static(
-      $container->get('theme_handler'),
+      $container->get(ThemeHandlerInterface::class),
     );
   }
 

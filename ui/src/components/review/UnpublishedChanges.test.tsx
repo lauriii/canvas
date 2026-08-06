@@ -38,6 +38,7 @@ const mocks = vi.hoisted(() => {
     locationPathname: '/editor',
     locationSearch: '',
     locationHash: '',
+    conflictUxEnabled: true,
     invalidateBrandKitTags: vi.fn(),
     invalidateContentTags: vi.fn(),
     invalidateLayoutTags: vi.fn(),
@@ -98,7 +99,7 @@ vi.mock('@/components/review/PublishReview', () => ({
 }));
 
 vi.mock('@/features/conflict/conflictUtils', () => ({
-  isConflictUxEnabled: () => false,
+  isConflictUxEnabled: () => mocks.conflictUxEnabled,
 }));
 
 vi.mock('@/services/brandKit', () => ({
@@ -158,6 +159,7 @@ describe('UnpublishedChanges', () => {
     mocks.locationPathname = '/editor';
     mocks.locationSearch = '';
     mocks.locationHash = '';
+    mocks.conflictUxEnabled = true;
     mocks.publishUnwrap.mockRejectedValue({ status: 409 });
     mocks.publishAllChanges.mockReturnValue({
       unwrap: mocks.publishUnwrap,
@@ -204,5 +206,43 @@ describe('UnpublishedChanges', () => {
     expect(mocks.invalidateContentTags).not.toHaveBeenCalled();
     expect(mocks.invalidateLayoutTags).not.toHaveBeenCalled();
     expect(mocks.dispatch).not.toHaveBeenCalled();
+  });
+
+  it('opens review with selected and reviewable pending change pointers', () => {
+    render(<UnpublishedChanges />);
+
+    const selectedPageChange: UnpublishedChange = {
+      ...mocks.pendingChange,
+      pointer: 'canvas_page:1:en',
+    };
+    const selectedCodeComponentChange: UnpublishedChange = {
+      ...mocks.pendingChange,
+      pointer: 'js_component:hero:en',
+      entity_type: 'js_component',
+      entity_id: 'hero',
+      label: 'Hero',
+    };
+
+    mocks.publishReviewProps.onReviewSelectedChanges([
+      selectedPageChange,
+      selectedCodeComponentChange,
+    ]);
+
+    expect(mocks.navigate).toHaveBeenCalledWith('/review/canvas_page/1', {
+      state: {
+        selectedPointers: ['canvas_page:1:en', 'js_component:hero:en'],
+        reviewPointers: ['canvas_page:1:en'],
+      },
+    });
+  });
+
+  it('does not expose side-by-side review handlers when conflict UX is disabled', () => {
+    mocks.conflictUxEnabled = false;
+
+    render(<UnpublishedChanges />);
+
+    expect(mocks.publishReviewProps.onReviewSelectedChanges).toBeUndefined();
+    expect(mocks.publishReviewProps.onViewClick).toBeUndefined();
+    expect(mocks.publishReviewProps.isViewChangeAvailable).toBeUndefined();
   });
 });

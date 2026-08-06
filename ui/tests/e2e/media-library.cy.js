@@ -21,9 +21,12 @@ describe('Media Library', () => {
     cy.loadURLandWaitForCanvasLoaded({ url: 'canvas/editor/node/2' });
 
     cy.openLibraryPanel();
-    cy.insertComponent({
-      name: 'Canvas test SDC with optional image, without example',
-    });
+    cy.insertComponent(
+      {
+        name: 'Canvas test SDC with optional image, without example',
+      },
+      { waitForVisible: false },
+    );
 
     cy.waitForElementNotInIframe('.layout-content img');
     cy.get(

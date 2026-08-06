@@ -25,13 +25,21 @@ export {
 
 // Core helpers and types app code commonly needs alongside the adapter.
 export {
+  getDraftEditorOrigin,
   getSessionToken,
   type AccessToken,
   type DraftData,
 } from '@drupal-canvas/headless';
+export { isPageRedirect } from '@drupal-canvas/headless/server';
 export type {
+  CanvasComponentTreeElement,
+  CanvasComponentTreeSlot,
+  DrupalRoute,
+  DrupalRouteEntity,
   Page,
-  PageElement,
+  PageHead,
+  PageRedirect,
+  PageResult,
   DraftConfig,
   DraftServer,
 } from '@drupal-canvas/headless/server';

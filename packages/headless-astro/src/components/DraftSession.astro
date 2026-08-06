@@ -1,10 +1,10 @@
 ---
 import {
   getDraftData,
-  getDraftConfig,
   isDraftModeEnabled,
   isDraftSessionExpired,
 } from '../server';
+import { getDraftEditorOrigin } from '@drupal-canvas/headless';
 
 /**
  * The Astro lifecycle around the draft session: gathers the session state
@@ -12,6 +12,9 @@ import {
  * from @drupal-canvas/headless/client, which owns the machine (expiry
  * timing, the renewal protocol with the embedding host, re-arming after a
  * renewal). Renders nothing when draft mode is off.
+ * Auto-save refresh events use Astro's navigate() API, which swaps the page
+ * through ClientRouter when enabled and navigates the document otherwise.
+ * The element also reports content height to the embedding host.
  *
  * The slot owns presentation: children marked
  * `data-draft-session-view="active"` show while the session is live and
@@ -44,7 +47,7 @@ const expired = !draftData || isDraftSessionExpired(draftData);
       token-expires-at={draftData?.tokenExpiresAt}
       initial-expired={expired ? '' : undefined}
       renew-url={draftData?.renewUrl}
-      embedder-origins={getDraftConfig().embedderOrigins.join(' ')}
+      editor-origin={getDraftEditorOrigin(draftData)}
       renew-endpoint={renewEndpoint}
     >
       <slot />
@@ -65,7 +68,25 @@ const expired = !draftData || isDraftSessionExpired(draftData);
 </style>
 
 <script>
-  import { defineDraftSessionElement } from '@drupal-canvas/headless/client';
+  import {
+    createAsyncRefreshQueue,
+    defineDraftSessionElement,
+    DRAFT_SESSION_REFRESH_EVENT,
+  } from '@drupal-canvas/headless/client';
+  import { navigate } from 'astro:transitions/client';
 
   defineDraftSessionElement();
+
+  const draftDataRefreshQueue = createAsyncRefreshQueue(
+    () => navigate(window.location.href, { history: 'replace' }),
+    (error) =>
+      console.error('[canvas] Failed to refresh Astro draft data.', error),
+  );
+
+  // ClientRouter performs an in-place server-page fetch when enabled. Astro's
+  // navigate() falls back to a document navigation when it is not enabled.
+  document.addEventListener(DRAFT_SESSION_REFRESH_EVENT, (event) => {
+    event.preventDefault();
+    void draftDataRefreshQueue.request();
+  });
 </script>

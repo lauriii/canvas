@@ -9,6 +9,7 @@ namespace Drupal\Tests\canvas\Kernel\Controller;
 use Drupal\canvas\Controller\ApiMediaControllers;
 use Drupal\canvas\Entity\Page;
 use Drupal\Core\Cache\CacheableJsonResponse;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\MockFileUploadTrait;
 use Drupal\Tests\canvas\Kernel\Traits\PredictableImageStyleItokTestTrait;
@@ -82,7 +83,7 @@ class ApiMediaControllersPostTest extends CanvasKernelTestBase {
     // Copy a test image into the vfsStream-backed temporary directory so
     // FileUploadHandler can move it to the public:// destination.
     $source = \dirname(__DIR__, 3) . '/fixtures/images/gracie-big.jpg';
-    $temp_dir = $this->container->get('file_system')->getTempDirectory();
+    $temp_dir = $this->container->get(FileSystemInterface::class)->getTempDirectory();
     $this->testImagePath = $temp_dir . '/canvas-test-upload-' . \uniqid() . '.jpg';
     \copy($source, $this->testImagePath);
   }

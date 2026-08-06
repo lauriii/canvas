@@ -9,6 +9,7 @@ use Drupal\Core\Url;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
+use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\UserInterface;
@@ -29,6 +30,9 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * Note this cannot use CanvasKernelTestBase because the endpoints under
  * test are independent of the canvas module: booting the full Canvas stack
  * would only add overhead without exercising anything these routes touch.
+ * The canvas module itself must still be installed: the container cannot
+ * compile without it because canvas_headless's ExternalComponentSync
+ * service references canvas services.
  */
 #[RunTestsInSeparateProcesses]
 #[Group('canvas_headless')]
@@ -41,18 +45,13 @@ class AssertionControllerTest extends KernelTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'system',
-    'user',
+    ...CanvasKernelTestBase::CANVAS_KERNEL_TEST_MINIMAL_MODULES,
     'field',
-    'text',
-    'filter',
     'node',
-    'file',
-    'image',
-    'options',
     'serialization',
     'consumers',
     'simple_oauth',
+    'custom_elements',
     'canvas_headless',
   ];
 
@@ -68,6 +67,7 @@ class AssertionControllerTest extends KernelTestBase {
     parent::setUp();
     $this->installEntitySchema('user');
     $this->installEntitySchema('node');
+    $this->installEntitySchema('path_alias');
     // The consumers module queries for the default consumer on every
     // request.
     $this->installEntitySchema('consumer');
@@ -93,8 +93,7 @@ class AssertionControllerTest extends KernelTestBase {
       ->save();
 
     $this->config('canvas_headless.settings')
-      ->set('frontend_url', 'http://localhost:3000')
-      ->set('draft_path', '/api/draft')
+      ->set('frontends', [['url' => 'http://localhost:3000']])
       ->set('assertion_expiration', 60)
       ->save();
     $this->config('system.site')

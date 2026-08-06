@@ -10,7 +10,7 @@ import type { PendingChanges } from '@/services/pendingChangesApi';
 
 const mocks = vi.hoisted(() => ({
   dispatch: vi.fn(),
-  devMode: true,
+  devConflictDetectionMode: true,
   invalidateContent: vi.fn(),
   invalidateLayout: vi.fn(),
   layoutRequests: vi.fn(),
@@ -43,7 +43,9 @@ vi.mock('@/app/hooks', () => ({
 }));
 
 vi.mock('@/utils/drupal-globals', () => ({
-  getCanvasSettings: () => ({ devConflictDetectionMode: mocks.devMode }),
+  getCanvasSettings: () => ({
+    devConflictDetectionMode: mocks.devConflictDetectionMode,
+  }),
 }));
 
 vi.mock('@/services/componentAndLayout', () => ({
@@ -57,18 +59,20 @@ vi.mock('@/services/componentAndLayout', () => ({
     publishedVersion?: boolean;
   }) => {
     mocks.layoutRequests(arg);
+    const data = {
+      html: arg.publishedVersion
+        ? `<main>Published version ${arg.entityId} content</main>`
+        : `<main>New version ${arg.entityId} content</main>`,
+      entity_form_fields: {},
+      layout: [],
+      model: {},
+      updated: arg.publishedVersion
+        ? mocks.publishedLayoutUpdated
+        : mocks.draftLayoutUpdated,
+    };
     return {
-      data: {
-        html: arg.publishedVersion
-          ? `<main>Published version ${arg.entityId} content</main>`
-          : `<main>New version ${arg.entityId} content</main>`,
-        entity_form_fields: {},
-        layout: [],
-        model: {},
-        updated: arg.publishedVersion
-          ? mocks.publishedLayoutUpdated
-          : mocks.draftLayoutUpdated,
-      },
+      data,
+      currentData: data,
       isFetching: false,
       isError: false,
     };
@@ -158,6 +162,8 @@ vi.mock('./ConflictResolutionView', () => ({
     comparison,
     canResolveConflict,
     onNext,
+    onNavigateToCanvas,
+    onNavigateToConflict,
     onResolveConflict,
     reviewIndex,
     reviewTotal,
@@ -165,11 +171,19 @@ vi.mock('./ConflictResolutionView', () => ({
     comparison: ReactNode;
     canResolveConflict: boolean;
     onNext: () => void;
+    onNavigateToCanvas: () => void;
+    onNavigateToConflict: () => void;
     onResolveConflict: () => void;
     reviewIndex: number;
     reviewTotal: number;
   }) => (
     <div>
+      <button type="button" onClick={onNavigateToCanvas}>
+        Canvas
+      </button>
+      <button type="button" onClick={onNavigateToConflict}>
+        Conflict
+      </button>
       {comparison}
       <span>
         Review {reviewIndex + 1} of {reviewTotal}
@@ -186,14 +200,23 @@ vi.mock('./ConflictResolutionView', () => ({
       </button>
     </div>
   ),
-  PageConflictComparisonView: ({
+}));
+
+vi.mock('@/features/versionComparison/PageVersionComparisonView', () => ({
+  PageVersionComparisonView: ({
     publishedVersion,
     newVersion,
     selectedVersion,
     onSelectVersion,
   }: {
-    publishedVersion: { html: string; updated?: string };
-    newVersion: { html: string; updated?: string };
+    publishedVersion: {
+      html: string;
+      updated?: string;
+    };
+    newVersion: {
+      html: string;
+      updated?: string;
+    };
     selectedVersion?: 'published' | 'new';
     onSelectVersion?: (version: 'published' | 'new') => void;
   }) => (
@@ -241,7 +264,13 @@ const renderPage = () => render(getPage());
 describe('ConflictResolutionPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.devMode = true;
+    mocks.devConflictDetectionMode = true;
+    mocks.publishedLayoutUpdated = Math.floor(
+      new Date(2026, 7, 19, 12, 1).getTime() / 1000,
+    );
+    mocks.draftLayoutUpdated = Math.floor(
+      new Date(2026, 7, 20, 20, 10).getTime() / 1000,
+    );
     mocks.pendingChanges = pendingChanges;
     mocks.pendingChangesFetching = false;
     mocks.discardChange.mockResolvedValue(undefined);
@@ -269,6 +298,7 @@ describe('ConflictResolutionPage', () => {
     expect(mocks.layoutRequests).toHaveBeenCalledWith({
       entityId: '1',
       entityType: 'canvas_page',
+      versionKey: 'draft-hash:100',
     });
     expect(mocks.layoutRequests).toHaveBeenCalledWith({
       entityId: '1',
@@ -277,19 +307,6 @@ describe('ConflictResolutionPage', () => {
     });
     expect(screen.getByText(/Published version 1 content/)).toBeInTheDocument();
     expect(screen.getByText(/New version 1 content/)).toBeInTheDocument();
-  });
-
-  it('passes formatted updated timestamps to the comparison view', () => {
-    renderPage();
-
-    expect(
-      screen.getByText(
-        formatExpectedVersionUpdated(mocks.publishedLayoutUpdated),
-      ),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(formatExpectedVersionUpdated(mocks.draftLayoutUpdated)),
-    ).toBeInTheDocument();
   });
 
   it('starts with no selected version and disables resolution', () => {
@@ -524,8 +541,24 @@ describe('ConflictResolutionPage', () => {
     expect(screen.getByText(/Published version 2 content/)).toBeInTheDocument();
   });
 
+  it('uses conflict breadcrumb links for navigation', async () => {
+    const user = userEvent.setup();
+    const { unmount } = renderPage();
+
+    await user.click(screen.getByRole('button', { name: 'Conflict' }));
+
+    expect(await screen.findByText('Conflict queue complete')).toBeVisible();
+
+    unmount();
+    renderPage();
+
+    await user.click(screen.getByRole('button', { name: 'Canvas' }));
+
+    expect(await screen.findByText('Editor')).toBeVisible();
+  });
+
   it('does not expose the comparison route outside dev mode', async () => {
-    mocks.devMode = false;
+    mocks.devConflictDetectionMode = false;
 
     renderPage();
 

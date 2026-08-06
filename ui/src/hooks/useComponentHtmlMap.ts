@@ -1,34 +1,37 @@
 import { useEffect } from 'react';
+import { createCanvasGeometryObserver } from '@drupal-canvas/preview-geometry';
 
-import { useDataToHtmlMapUpdater } from '@/features/layout/preview/DataToHtmlMapContext';
-import { mapComponents, mapRegions, mapSlots } from '@/utils/function-utils';
+import { usePreviewDomUpdater } from '@/features/layout/preview/PreviewDomContext';
+import { usePreviewGeometryUpdater } from '@/features/layout/preview/PreviewGeometryContext';
+import { mapCanvasDocument } from '@/utils/function-utils';
 
 export function useComponentHtmlMap(iframe: HTMLIFrameElement | null) {
-  const { updateRegionsMap, updateComponentsMap, updateSlotsMap } =
-    useDataToHtmlMapUpdater();
-
-  const pendingTemplates = iframe?.contentDocument?.querySelectorAll(
-    'template[data-astro-template]',
-  ).length;
+  const { updateDomMaps, clearDomMaps } = usePreviewDomUpdater();
+  const { updateGeometry, clearGeometry } = usePreviewGeometryUpdater();
+  const iframeDocument = iframe?.contentDocument ?? null;
 
   useEffect(() => {
-    const iframeDocument = iframe?.contentDocument;
-    if (!iframeDocument || !iframeDocument.body) {
+    clearDomMaps();
+    clearGeometry();
+    const view = iframeDocument?.defaultView;
+    if (!iframeDocument?.body || !view) {
       return;
     }
 
-    // Initial mapping
-    updateRegionsMap(mapRegions(iframeDocument));
-    updateComponentsMap(mapComponents(iframeDocument));
-    updateSlotsMap(mapSlots(iframeDocument));
+    const refreshDomMaps = () => {
+      updateDomMaps(mapCanvasDocument(iframeDocument));
+    };
+    refreshDomMaps();
+    const geometryObserver = createCanvasGeometryObserver({
+      root: iframeDocument,
+      onChange: updateGeometry,
+    });
 
-    const observer = new MutationObserver((mutations) => {
+    const observer = new view.MutationObserver((mutations) => {
       if (mutations.length === 0) {
         return;
       }
-      updateRegionsMap(mapRegions(iframeDocument));
-      updateComponentsMap(mapComponents(iframeDocument));
-      updateSlotsMap(mapSlots(iframeDocument));
+      refreshDomMaps();
     });
 
     observer.observe(iframeDocument, {
@@ -40,12 +43,15 @@ export function useComponentHtmlMap(iframe: HTMLIFrameElement | null) {
 
     return () => {
       observer.disconnect();
+      geometryObserver.disconnect();
+      clearDomMaps();
+      clearGeometry();
     };
   }, [
-    iframe,
-    updateComponentsMap,
-    updateRegionsMap,
-    updateSlotsMap,
-    pendingTemplates,
+    clearDomMaps,
+    clearGeometry,
+    iframeDocument,
+    updateDomMaps,
+    updateGeometry,
   ]);
 }

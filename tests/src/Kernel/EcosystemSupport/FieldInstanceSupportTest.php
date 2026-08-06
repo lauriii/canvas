@@ -12,6 +12,7 @@ use Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher;
 use Drupal\canvas\ShapeMatcher\PropSourceSuggester;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldTypePluginManagerInterface;
 use Drupal\Core\Field\TypedData\FieldItemDataDefinitionInterface;
 use Drupal\Core\Plugin\Component;
 use Drupal\Core\Theme\ComponentPluginManager;
@@ -390,7 +391,7 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
 
     $entity_type_id = $bundle = 'entity_test';
 
-    $field_type_definitions = $this->container->get('plugin.manager.field.field_type')->getDefinitions();
+    $field_type_definitions = $this->container->get(FieldTypePluginManagerInterface::class)->getDefinitions();
     ksort($field_type_definitions);
 
     foreach ($field_type_definitions as $field_type_id => $def) {
@@ -411,14 +412,14 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
           'entity_type' => $entity_type_id,
           'type' => $field_type_id,
           'field_name' => $field_name,
-          'settings' => \Drupal::service('plugin.manager.field.field_type')->getDefaultStorageSettings($field_type_id),
+          'settings' => \Drupal::service(FieldTypePluginManagerInterface::class)->getDefaultStorageSettings($field_type_id),
         ])->save();
         FieldConfig::create([
           'entity_type' => $entity_type_id,
           'bundle' => $bundle,
           'type' => $field_type_id,
           'field_name' => $field_name,
-          'settings' => \Drupal::service('plugin.manager.field.field_type')->getDefaultFieldSettings($field_type_id),
+          'settings' => \Drupal::service(FieldTypePluginManagerInterface::class)->getDefaultFieldSettings($field_type_id),
         ])
           ->setRequired($required)
           ->save();

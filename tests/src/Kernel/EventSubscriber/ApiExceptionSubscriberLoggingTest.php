@@ -12,13 +12,14 @@ use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Routing\Route;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Tests that exceptions on Canvas API routes are both logged and JSON-encoded.
@@ -43,7 +44,7 @@ final class ApiExceptionSubscriberLoggingTest extends CanvasKernelTestBase {
    * ApiExceptionSubscriber must run at a lower priority than the logger.
    */
   public function testRunsAfterExceptionLoggingSubscriber(): void {
-    $event_dispatcher = $this->container->get('event_dispatcher');
+    $event_dispatcher = $this->container->get(EventDispatcherInterface::class);
     \assert($event_dispatcher instanceof EventDispatcherInterface);
     $api_priority = self::exceptionPriority($event_dispatcher, ApiExceptionSubscriber::class);
     $logging_priority = self::exceptionPriority($event_dispatcher, ExceptionLoggingSubscriber::class);
@@ -111,13 +112,13 @@ final class ApiExceptionSubscriberLoggingTest extends CanvasKernelTestBase {
     $request = Request::create('/canvas/api/v0/test');
     $request->attributes->set('_route', 'canvas.api.test');
     $request->attributes->set('_route_object', new Route('/canvas/api/v0/test'));
-    $request_stack = $this->container->get('request_stack');
+    $request_stack = $this->container->get(RequestStack::class);
     $request_stack->push($request);
 
     try {
-      $event_dispatcher = $this->container->get('event_dispatcher');
+      $event_dispatcher = $this->container->get(EventDispatcherInterface::class);
       \assert($event_dispatcher instanceof EventDispatcherInterface);
-      $http_kernel = $this->container->get('http_kernel');
+      $http_kernel = $this->container->get(HttpKernelInterface::class);
       \assert($http_kernel instanceof HttpKernelInterface);
       $event = new ExceptionEvent(
         $http_kernel,

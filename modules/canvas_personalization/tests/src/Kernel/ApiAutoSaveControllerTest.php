@@ -10,6 +10,7 @@ use Drupal\canvas\Controller\ErrorCodesEnum;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas_personalization\Entity\Segment;
 use Drupal\Core\Cache\CacheableJsonResponse;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
@@ -175,7 +176,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
   #[TestWith([TRUE, NULL])]
   public function testPost(bool $authorized, ?string $expected_403_message): void {
     $this->setUpImages();
-    $entity_type_manager = $this->container->get('entity_type.manager');
+    $entity_type_manager = $this->container->get(EntityTypeManagerInterface::class);
     $segment_storage = $entity_type_manager->getStorage(Segment::ENTITY_TYPE_ID);
     /** @var \Drupal\canvas\AutoSave\AutoSaveManager $autoSave */
     $autoSave = \Drupal::service(AutoSaveManager::class);

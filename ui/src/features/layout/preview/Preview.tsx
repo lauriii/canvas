@@ -3,13 +3,15 @@ import { useErrorBoundary } from 'react-error-boundary';
 import { useParams } from 'react-router';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { selectAutoSavesHash } from '@/components/review/PublishReview.slice';
 import {
   selectLayout,
   selectModel,
   selectUpdatePreview,
 } from '@/features/layout/layoutModelSlice';
-import ComponentHtmlMapProvider from '@/features/layout/preview/DataToHtmlMapContext';
 import HeadlessPreview from '@/features/layout/preview/HeadlessPreview';
+import { PreviewDomProvider } from '@/features/layout/preview/PreviewDomContext';
+import { PreviewGeometryProvider } from '@/features/layout/preview/PreviewGeometryContext';
 import { useHeadlessPreviewSettings } from '@/features/layout/preview/useHeadlessPreviewSettings';
 import Viewport from '@/features/layout/preview/Viewport';
 import { selectPageData } from '@/features/pageData/pageDataSlice';
@@ -25,7 +27,10 @@ import {
 } from '@/features/ui/uiSlice';
 import { useStableCallback } from '@/hooks/useStableCallback';
 import useSyncTitle from '@/hooks/useSyncTitle';
-import { usePostTemplateLayoutMutation } from '@/services/componentAndLayout';
+import {
+  usePostPatternLayoutMutation,
+  usePostTemplateLayoutMutation,
+} from '@/services/componentAndLayout';
 import {
   selectUpdateComponentLoadingState,
   useQueuedPostPreviewMutation,
@@ -49,6 +54,7 @@ const Preview: React.FC = () => {
   const editorFrameContext = useAppSelector(selectEditorFrameContext);
   const headlessSettings = useHeadlessPreviewSettings();
   const frameSrcDoc = useAppSelector(selectPreviewHtml);
+  const autoSavesHash = useAppSelector(selectAutoSavesHash);
   const { showBoundary } = useErrorBoundary();
   useSyncTitle();
 
@@ -67,12 +73,17 @@ const Preview: React.FC = () => {
     usePostTemplateLayoutMutation({
       fixedCacheKey: 'editorFrameTemplatePreview',
     });
+
+  const [postPatternPreview, { isLoading: isPatternFetching }] =
+    usePostPatternLayoutMutation({
+      fixedCacheKey: 'editorFramePatternPreview',
+    });
   const isPatching = useAppSelector((state) =>
     selectUpdateComponentLoadingState(state, selectedComponent),
   );
 
   const sendPreviewRequest = useCallback(
-    async (context: 'entity' | 'template') => {
+    async (context: 'entity' | 'template' | 'pattern') => {
       try {
         // Execute Request
         if (context === 'entity' && entityId && entityType) {
@@ -85,6 +96,12 @@ const Preview: React.FC = () => {
           });
         } else if (context === 'template') {
           await postTemplatePreview({
+            layout,
+            model,
+            entity_form_fields,
+          }).unwrap();
+        } else if (context === 'pattern') {
+          await postPatternPreview({
             layout,
             model,
             entity_form_fields,
@@ -102,6 +119,7 @@ const Preview: React.FC = () => {
       entityType,
       postPreview,
       postTemplatePreview,
+      postPatternPreview,
       showBoundary,
     ],
   );
@@ -113,7 +131,7 @@ const Preview: React.FC = () => {
    * without triggering the effect when layout/model changes.
    */
   const stableScheduleRequest = useStableCallback(
-    (context: 'entity' | 'template') => {
+    (context: 'entity' | 'template' | 'pattern') => {
       // Clear any existing polling to avoid double-requests
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
@@ -145,7 +163,12 @@ const Preview: React.FC = () => {
         dispatch(clearPreviewAfterUndoRedo());
       }
 
-      const context = editorFrameContext === 'template' ? 'template' : 'entity';
+      const context =
+        editorFrameContext === 'template'
+          ? 'template'
+          : editorFrameContext === 'pattern'
+            ? 'pattern'
+            : 'entity';
       stableScheduleRequest(context);
     }
   }, [
@@ -172,19 +195,28 @@ const Preview: React.FC = () => {
   // When the canvas_headless module embeds a frontend app, the app owns
   // the rendering: the srcdoc preview pipeline is bypassed, while the
   // mutation flow above keeps running so edits still persist to auto-save.
-  if (headlessSettings) {
-    return <HeadlessPreview settings={headlessSettings} />;
-  }
-
   return (
-    <ComponentHtmlMapProvider>
-      <Viewport
-        frameSrcDoc={frameSrcDoc}
-        isFetching={
-          (isFetching || isPatching || isTemplateFetching) && !backgroundUpdate
-        }
-      />
-    </ComponentHtmlMapProvider>
+    <PreviewGeometryProvider>
+      {headlessSettings ? (
+        <HeadlessPreview
+          settings={headlessSettings}
+          autoSavesHash={autoSavesHash}
+        />
+      ) : (
+        <PreviewDomProvider>
+          <Viewport
+            frameSrcDoc={frameSrcDoc}
+            isFetching={
+              (isFetching ||
+                isPatching ||
+                isTemplateFetching ||
+                isPatternFetching) &&
+              !backgroundUpdate
+            }
+          />
+        </PreviewDomProvider>
+      )}
+    </PreviewGeometryProvider>
   );
 };
 export default Preview;

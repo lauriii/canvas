@@ -4,7 +4,8 @@ import {
   readComponentManifest,
   writeComponentManifest,
 } from '@drupal-canvas/headless/components-endpoint';
-import { parseEmbedderOrigins } from '@drupal-canvas/headless/server';
+import { resolveDraftConfig } from '@drupal-canvas/headless/server';
+import { canvasComponentRegistry } from '@drupal-canvas/headless/vite';
 
 import type { AstroIntegration } from 'astro';
 import type { Plugin as VitePlugin } from 'vite';
@@ -28,6 +29,7 @@ function manifestPlugin(
 ): VitePlugin {
   return {
     name: '@drupal-canvas/headless-astro:manifest',
+    enforce: 'pre',
     resolveId(id) {
       return id === MANIFEST_VIRTUAL_ID
         ? RESOLVED_MANIFEST_VIRTUAL_ID
@@ -50,11 +52,11 @@ function manifestPlugin(
 
 /**
  * The environment variables the SDK reads through process.env (see
- * resolveDraftConfig() and the CSP middleware). Astro's own .env loading
+ * resolveDraftConfig()). Astro's own .env loading
  * targets import.meta.env, which the framework-agnostic core cannot read,
  * so the integration bridges these keys across.
  */
-const ENV_KEYS = ['DRUPAL_BASE_URL', 'DRAFT_ALLOWED_FRAME_ANCESTORS'] as const;
+const ENV_KEYS = ['CANVAS_SITE_URL'] as const;
 
 export interface CanvasIntegrationOptions {
   /**
@@ -70,18 +72,17 @@ export interface CanvasIntegrationOptions {
 }
 
 /**
- * The Drupal Canvas headless integration for Astro — the counterpart of
- * @drupal-canvas/headless-next's withCanvas():
+ * The Drupal Canvas headless integration for Astro:
  *
  * - Injects the draft session routes (/api/draft, /api/draft/renew,
  *   /api/disable-draft) and the component metadata endpoint
  *   (/api/canvas/components). All are server-rendered
  *   (`prerender = false`), so they work from a fully static project too.
- * - Registers the CSP `frame-ancestors` middleware, restricting who may
- *   embed the app to DRAFT_ALLOWED_FRAME_ANCESTORS (plus 'self').
- * - Bundles the raw-TypeScript SDK packages into the SSR build
- *   (`vite.ssr.noExternal` — the Astro counterpart of Next.js's
- *   `transpilePackages`).
+ * - Registers the CSP `frame-ancestors` middleware. Responses are
+ *   'self'-only by default; draft sessions also admit the exact editor
+ *   origin from the signed renewal URL.
+ * - Bundles the SDK packages into the SSR build (`vite.ssr.noExternal`;
+ *   the adapter package ships TypeScript source).
  * - Bridges the SDK's environment variables from Astro's .env files into
  *   process.env, where the framework-agnostic core reads them.
  * - Generates the component manifest (`.canvas/components.manifest.json`)
@@ -90,6 +91,8 @@ export interface CanvasIntegrationOptions {
  *   manifest, so the registry always describes the deployed build and no
  *   file outside `dist/` is needed at runtime. A malformed component.yml
  *   fails the build; a broken registry never ships silently.
+ * - Registers the shared Vite component implementation registry, which updates
+ *   when local components are added, removed, or renamed during development.
  *
  * ```ts
  * // astro.config.mjs
@@ -118,6 +121,7 @@ export function canvas(
         updateConfig,
         config,
         command,
+        logger,
       }) => {
         // Vite's loadEnv merges the project's .env files with the actual
         // process environment, real environment variables winning — so
@@ -132,53 +136,42 @@ export function canvas(
             process.env[key] = env[key];
           }
         }
-
-        // The embedding Drupal origin must be able to call the component
-        // metadata endpoint cross-origin in dev too: Astro's dev server
-        // blocks cross-site subresource requests (Sec-Fetch-Site) unless
-        // the Origin matches security.allowedDomains, so the embedder
-        // allowlist doubles as that list. (In production the endpoint's
-        // own CORS handling is the only gate.)
-        const embedderDomains = parseEmbedderOrigins(
-          process.env.DRAFT_ALLOWED_FRAME_ANCESTORS,
-        ).map((origin) => {
-          const url = new URL(origin);
-          return {
-            protocol: url.protocol.slice(0, -1),
-            hostname: url.hostname,
-            ...(url.port ? { port: url.port } : {}),
-          };
-        });
+        if (command === 'dev') {
+          try {
+            resolveDraftConfig();
+          } catch (error) {
+            logger.error(
+              error instanceof Error ? error.message : String(error),
+            );
+            throw error;
+          }
+        }
 
         const configRoot = fileURLToPath(config.root);
         updateConfig({
-          security: {
-            allowedDomains: embedderDomains,
-          },
+          // Astro's dev server rejects cross-site subresource requests before
+          // routing. Let the browser reach the metadata handler in development;
+          // that route still owns CORS and binds authenticated responses to the
+          // editor origin in the accepted assertion. Production host validation
+          // remains unchanged.
+          ...(command === 'dev' ? { security: { allowedDomains: [{}] } } : {}),
           vite: {
+            // Vite's CORS middleware otherwise answers the authorization
+            // preflight before Astro routes it, using a localhost-only origin
+            // policy. The metadata endpoint must answer its own claim-bound
+            // CORS contract.
+            ...(command === 'dev' ? { server: { cors: false } } : {}),
             plugins: [
+              canvasComponentRegistry(),
               manifestPlugin(() => ({
                 isDev: command === 'dev',
                 projectRoot: projectRoot ?? configRoot,
               })),
             ],
-            // Vite's dev-server CORS middleware answers cross-origin
-            // preflights itself, and its default origin policy
-            // (localhost-only) omits Access-Control-Allow-Origin for the
-            // embedding Drupal origin — the browser then fails the fetch
-            // before the component metadata route's own CORS handling
-            // (embedder-allowlist-gated) ever runs. Disabling it lets
-            // OPTIONS reach the route; Vite then adds no CORS headers of
-            // its own anywhere, so nothing else becomes cross-origin
-            // readable. Production has no Vite server and is unaffected.
-            server: {
-              cors: false,
-            },
             ssr: {
               noExternal: [
                 '@drupal-canvas/headless',
                 '@drupal-canvas/headless-astro',
-                '@drupal-canvas/discovery',
               ],
             },
           },

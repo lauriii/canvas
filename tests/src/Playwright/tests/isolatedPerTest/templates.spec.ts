@@ -392,6 +392,7 @@ test.describe('Templates - General', () => {
     await expect(
       page.locator('iframe[title="Page preview"]'),
     ).not.toBeAttached();
+    await canvas.waitForEditorFrame();
 
     await canvas.publishAllChanges();
 
@@ -471,6 +472,24 @@ test.describe('Templates - General', () => {
 
     // Verify the linked field box appears
     await expect(page.getByTestId('linked-field-box-heading')).toBeVisible();
+
+    // The preview iframe must be as tall as its content. View modes other than
+    // "full" have their height driven entirely by their content, so a
+    // regression there collapses the iframe and renders the preview invisible
+    // while the preview document itself stays correct.
+    // @see useSyncIframeHeightToContent()
+    await expect(async () => {
+      const { outer, inner } = await page
+        .locator(
+          '[data-testid="canvas-editor-frame-scaling"] iframe[data-test-canvas-content-initialized="true"][data-canvas-swap-active="true"]',
+        )
+        .evaluate((iframe: HTMLIFrameElement) => ({
+          outer: iframe.clientHeight,
+          inner: iframe.contentDocument?.documentElement.offsetHeight ?? 0,
+        }));
+      expect(inner).toBeGreaterThan(0);
+      expect(outer).toBeGreaterThanOrEqual(inner);
+    }).toPass();
 
     // Publish changes
     await canvas.publishAllChanges();

@@ -16,6 +16,7 @@ export {
   createComponentMetadataHandler,
   type ComponentMetadataHandlerOptions,
 } from './component-metadata';
+export { toNextMetadata } from './head';
 export {
   disableDraftMode,
   enableDraftMode,
@@ -30,17 +31,30 @@ export {
 
 // Core helpers and types app code commonly needs alongside the adapter.
 export {
+  getDraftEditorOrigin,
   getSessionToken,
   isDraftSessionExpired,
   type AccessToken,
   type DraftData,
 } from '@drupal-canvas/headless';
+export { isPageRedirect } from '@drupal-canvas/headless/server';
 export type {
+  CanvasComponentTreeElement,
+  CanvasComponentTreeSlot,
+  DrupalRoute,
+  DrupalRouteEntity,
   Page,
-  PageElement,
+  PageHead,
+  PageRedirect,
+  PageResult,
   DraftConfig,
 } from '@drupal-canvas/headless/server';
 export type {
   ComponentMetadataEntry,
   ComponentMetadataPayload,
 } from '@drupal-canvas/headless/components-endpoint';
+export {
+  CanvasComponentTree,
+  type CanvasComponentRegistry,
+  type CanvasComponentTreeProps,
+} from '@drupal-canvas/headless-react';

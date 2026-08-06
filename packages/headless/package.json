@@ -1,51 +1,81 @@
 {
   "name": "@drupal-canvas/headless",
-  "version": "0.1.0",
-  "description": "Framework-agnostic core of the Drupal Canvas Headless SDK: draft preview sessions bound to the editing user, in-place session renewal inside the Canvas editor frame, draft-aware content clients, and the component metadata endpoint Drupal Canvas registers an app's components from.",
-  "private": true,
+  "version": "0.1.1",
+  "description": "Framework-agnostic core of the Drupal Canvas Headless SDK: draft preview sessions, draft-aware content clients, and component metadata exposure for decoupled frontend apps.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://git.drupalcode.org/project/canvas.git",
+    "directory": "packages/headless"
+  },
+  "bugs": "https://git.drupalcode.org/project/canvas/-/work_items",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
-  "main": "./src/index.ts",
+  "sideEffects": [
+    "./dist/preview.css"
+  ],
+  "main": "./dist/index.js",
   "exports": {
     ".": {
-      "import": "./src/index.ts",
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./client": {
-      "import": "./src/client/index.ts",
-      "types": "./src/client/index.ts",
-      "default": "./src/client/index.ts"
+      "types": "./dist/client/index.d.ts",
+      "import": "./dist/client/index.js",
+      "default": "./dist/client/index.js"
     },
     "./server": {
-      "import": "./src/server/index.ts",
-      "types": "./src/server/index.ts",
-      "default": "./src/server/index.ts"
+      "types": "./dist/server/index.d.ts",
+      "import": "./dist/server/index.js",
+      "default": "./dist/server/index.js"
     },
     "./components-endpoint": {
-      "import": "./src/components-endpoint/index.ts",
-      "types": "./src/components-endpoint/index.ts",
-      "default": "./src/components-endpoint/index.ts"
+      "types": "./dist/components-endpoint/index.d.ts",
+      "import": "./dist/components-endpoint/index.js",
+      "default": "./dist/components-endpoint/index.js"
     },
     "./components-endpoint/handler": {
-      "import": "./src/components-endpoint/handler.ts",
-      "types": "./src/components-endpoint/handler.ts",
-      "default": "./src/components-endpoint/handler.ts"
-    }
+      "types": "./dist/components-endpoint/handler.d.ts",
+      "import": "./dist/components-endpoint/handler.js",
+      "default": "./dist/components-endpoint/handler.js"
+    },
+    "./component-registry": {
+      "types": "./dist/component-registry.d.ts",
+      "import": "./dist/component-registry.js",
+      "default": "./dist/component-registry.js"
+    },
+    "./vite": {
+      "types": "./dist/vite.d.ts",
+      "import": "./dist/vite.js",
+      "default": "./dist/vite.js"
+    },
+    "./preview.css": "./dist/preview.css"
   },
   "scripts": {
+    "dev": "NODE_ENV=development tsdown --watch",
+    "build": "npm run type-check && NODE_ENV=production tsdown",
     "test": "vitest run",
     "type-check": "tsc --noEmit --pretty"
   },
-  "license": "GPL-2.0-or-later",
   "dependencies": {
-    "@drupal-api-client/json-api-client": "^1.4.1",
-    "@drupal-canvas/discovery": "*"
+    "@drupal-api-client/json-api-client": "^1.4.1"
   },
   "devDependencies": {
+    "@drupal-canvas/discovery": "*",
+    "@drupal-canvas/height-reader": "*",
+    "@drupal-canvas/preview-geometry": "*",
     "@types/node": "^24.10.1",
     "jsdom": "^26.1.0",
+    "tsdown": "^0.22.12",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
-  },
-  "sideEffects": false
+  }
 }

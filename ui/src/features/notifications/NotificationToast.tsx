@@ -34,7 +34,11 @@ const NotificationToast = ({
   const Icon = TYPE_ICONS[notification.type];
 
   return (
-    <div className={styles.toast} data-type={notification.type}>
+    <div
+      className={styles.toast}
+      data-type={notification.type}
+      data-key={notification.key ?? undefined}
+    >
       <div
         className={clsx(styles.icon, {
           [styles.spin]: notification.type === 'processing',

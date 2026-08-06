@@ -42,6 +42,10 @@ import type {
   DiscoveredPage,
   DiscoveredRegion,
 } from '@drupal-canvas/discovery';
+import type {
+  AssetLibraryBundledSource,
+  AssetLibraryManifestEntry,
+} from '@drupal-canvas/ui/types/CodeComponent';
 import type { ImportMap } from '@drupal-canvas/vite-compat';
 import type { Command } from 'commander';
 import type { ApiService } from '../services/api';
@@ -86,6 +90,7 @@ export interface PullTaskResult {
   results: Result[];
   title: string;
   label: string;
+  notes?: string[];
 }
 
 function pluralizeLabel(count: number, singular: string, plural?: string) {
@@ -123,6 +128,67 @@ function pullFailureItemName(message: string): string {
     message.includes('Authentication failed')
     ? 'Authentication failed'
     : 'Pull failed';
+}
+
+function isWithinDirectory(directory: string, candidate: string): boolean {
+  const relative = path.relative(directory, candidate);
+  return (
+    relative === '' ||
+    (!relative.startsWith(`..${path.sep}`) &&
+      relative !== '..' &&
+      !path.isAbsolute(relative))
+  );
+}
+
+async function resolveAssetPullDestination(
+  projectRoot: string,
+  relativePath: string,
+): Promise<string> {
+  const destination = path.resolve(projectRoot, relativePath);
+  if (
+    destination === projectRoot ||
+    !isWithinDirectory(projectRoot, destination)
+  ) {
+    throw new Error(
+      `File "${relativePath}" resolves outside the project root.`,
+    );
+  }
+
+  let currentPath = projectRoot;
+  for (const segment of path
+    .relative(projectRoot, destination)
+    .split(path.sep)) {
+    currentPath = path.join(currentPath, segment);
+    let stats;
+    try {
+      stats = await fs.lstat(currentPath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        break;
+      }
+      throw error;
+    }
+    if (!stats.isSymbolicLink()) {
+      continue;
+    }
+
+    let resolvedLink: string;
+    try {
+      resolvedLink = await fs.realpath(currentPath);
+    } catch {
+      throw new Error(
+        `File "${relativePath}" cannot be safely resolved within the project root.`,
+      );
+    }
+    if (!isWithinDirectory(projectRoot, resolvedLink)) {
+      throw new Error(
+        `File "${relativePath}" resolves outside the project root through a symbolic link.`,
+      );
+    }
+    currentPath = resolvedLink;
+  }
+
+  return destination;
 }
 
 export function buildSkippedLocalOnlyPullResources(
@@ -205,7 +271,14 @@ export function createComponentsPullTask(
         discoverCanvasProject({ componentRoot: componentDir }),
       ]);
 
-      components = fetchedComponents;
+      // External components are implemented by the configured external
+      // application and synced into Drupal as metadata only: pulling them
+      // would create phantom local components without an implementation.
+      components = Object.fromEntries(
+        Object.entries(fetchedComponents).filter(
+          ([, component]) => component.type !== 'external',
+        ),
+      );
 
       for (const discovered of discoveryResult.components) {
         localComponentMap.set(discovered.name, discovered);
@@ -669,6 +742,11 @@ export function createAssetsPullTask(
   let globalCss = '';
   let localExists = false;
   let siteImportMap: ImportMap | undefined;
+  let packageJson: string | null = null;
+  let packageJsonExists = false;
+  const packageJsonPath = path.join(projectRoot, 'package.json');
+  let codebaseAssets: AssetLibraryManifestEntry[] = [];
+  let bundledSources: AssetLibraryBundledSource[] = [];
 
   return {
     startLabel: 'Pulling assets',
@@ -678,18 +756,48 @@ export function createAssetsPullTask(
       const globalAssetLibrary = await apiService.getGlobalAssetLibrary();
       siteImportMap = globalAssetLibrary?.importMap;
       globalCss = globalAssetLibrary?.css?.original || '';
-      const summaryLines: string[] = [];
+      packageJson = globalAssetLibrary?.packageJson || null;
+      codebaseAssets = (globalAssetLibrary?.assets ?? []).filter(
+        (entry): entry is AssetLibraryManifestEntry =>
+          typeof entry.path === 'string' && entry.path.length > 0,
+      );
+      // Sources of local modules bundled into other artifacts. They have no
+      // `uri` and are absent from the runtime import map; a pull restores them
+      // verbatim so the editable file reappears on disk.
+      bundledSources = (globalAssetLibrary?.bundledSources ?? []).filter(
+        (entry): entry is AssetLibraryBundledSource =>
+          typeof entry.path === 'string' &&
+          entry.path.length > 0 &&
+          typeof entry.source === 'string',
+      );
+      // Collect the asset sub-items that are present into one compact line,
+      // e.g. `Assets: global CSS, package.json, 7 local imports pull`.
+      const assetParts: string[] = [];
+      if (globalCss) {
+        localExists = await fs
+          .access(globalCssPath)
+          .then(() => true)
+          .catch(() => false);
+        assetParts.push('global CSS');
+      }
+      if (packageJson) {
+        packageJsonExists = await fs
+          .access(packageJsonPath)
+          .then(() => true)
+          .catch(() => false);
+        assetParts.push('package.json');
+      }
+      const localCount = codebaseAssets.length + bundledSources.length;
+      if (localCount > 0) {
+        assetParts.push(
+          `${localCount} local ${pluralizeLabel(localCount, 'import')}`,
+        );
+      }
       if (siteImportMap) {
-        summaryLines.push(`Assets: ${SITE_IMPORT_MAP_FILE} pull`);
+        assetParts.push(SITE_IMPORT_MAP_FILE);
       }
-      if (!globalCss) {
-        return { summaryLines, localOnlyCount: 0 };
-      }
-      localExists = await fs
-        .access(globalCssPath)
-        .then(() => true)
-        .catch(() => false);
-      summaryLines.push('Assets: global CSS pull');
+      const summaryLines: string[] =
+        assetParts.length > 0 ? [`Assets: ${assetParts.join(', ')} pull`] : [];
       return { summaryLines, localOnlyCount: 0 };
     },
 
@@ -713,32 +821,153 @@ export function createAssetsPullTask(
           });
         }
       }
-      if (!globalCss) {
-        return { results, title: 'Pulled assets', label: 'Asset' };
-      }
-      try {
-        if (skipOverwrite && localExists) {
+      const notes: string[] = [];
+      // Set when the pulled `package.json` is newly created or its content
+      // differs from what was on disk, so the user is reminded to reinstall
+      // dependencies. An identical overwrite raises no note.
+      let packageJsonChanged = false;
+      if (globalCss) {
+        try {
+          if (skipOverwrite && localExists) {
+            results.push({
+              itemName: 'global.css',
+              success: true,
+              details: [{ content: 'Skipped (already exists)' }],
+            });
+          } else {
+            await fs.mkdir(path.dirname(globalCssPath), { recursive: true });
+            const outputCss = ensureTailwindImportAtTop(globalCss);
+            await fs.writeFile(globalCssPath, outputCss, 'utf-8');
+            results.push({ itemName: 'global.css', success: true });
+          }
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
           results.push({
             itemName: 'global.css',
-            success: true,
-            details: [{ content: 'Skipped (already exists)' }],
+            success: false,
+            details: [{ content: errorMessage }],
           });
-        } else {
-          await fs.mkdir(path.dirname(globalCssPath), { recursive: true });
-          const outputCss = ensureTailwindImportAtTop(globalCss);
-          await fs.writeFile(globalCssPath, outputCss, 'utf-8');
-          results.push({ itemName: 'global.css', success: true });
         }
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        results.push({
-          itemName: 'global.css',
-          success: false,
-          details: [{ content: errorMessage }],
-        });
       }
-      return { results, title: 'Pulled assets', label: 'Asset' };
+      if (packageJson) {
+        try {
+          if (skipOverwrite && packageJsonExists) {
+            results.push({
+              itemName: 'package.json',
+              success: true,
+              details: [{ content: 'Skipped (already exists)' }],
+            });
+          } else {
+            // Compare against the on-disk file (if any) before overwriting, so
+            // the dependency-install reminder only fires on a real change.
+            const previous = packageJsonExists
+              ? await fs.readFile(packageJsonPath, 'utf-8').catch(() => null)
+              : null;
+            packageJsonChanged = previous !== packageJson;
+            await fs.writeFile(packageJsonPath, packageJson, 'utf-8');
+            results.push({ itemName: 'package.json', success: true });
+          }
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          results.push({
+            itemName: 'package.json',
+            success: false,
+            details: [{ content: errorMessage }],
+          });
+        }
+      }
+      const resolvedProjectRoot = await fs.realpath(projectRoot);
+      for (const entry of codebaseAssets) {
+        // `entry.path` is guaranteed a non-empty string by the prepare() filter.
+        const relativePath = entry.path as string;
+        try {
+          const dest = await resolveAssetPullDestination(
+            resolvedProjectRoot,
+            relativePath,
+          );
+          const destExists = await fs
+            .access(dest)
+            .then(() => true)
+            .catch(() => false);
+          if (skipOverwrite && destExists) {
+            results.push({
+              itemName: relativePath,
+              success: true,
+              details: [{ content: 'Skipped (already exists)' }],
+            });
+            continue;
+          }
+          await fs.mkdir(path.dirname(dest), { recursive: true });
+          if (typeof entry.source === 'string') {
+            // Text module: write the verbatim original source (the `uri`
+            // artifact holds minified compiled JS, which is not editable).
+            await fs.writeFile(dest, entry.source, 'utf-8');
+          } else if (entry.url) {
+            // Binary asset: the `uri` artifact holds the original bytes;
+            // download over HTTP and write verbatim.
+            const buffer = await apiService.downloadFile(entry.url);
+            await fs.writeFile(dest, buffer);
+          } else {
+            throw new Error('No source or downloadable URL available.');
+          }
+          results.push({ itemName: relativePath, success: true });
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          results.push({
+            itemName: relativePath,
+            success: false,
+            details: [{ content: errorMessage }],
+          });
+        }
+      }
+      for (const entry of bundledSources) {
+        const relativePath = entry.path;
+        try {
+          const dest = await resolveAssetPullDestination(
+            resolvedProjectRoot,
+            relativePath,
+          );
+          const destExists = await fs
+            .access(dest)
+            .then(() => true)
+            .catch(() => false);
+          if (skipOverwrite && destExists) {
+            results.push({
+              itemName: relativePath,
+              success: true,
+              details: [{ content: 'Skipped (already exists)' }],
+            });
+            continue;
+          }
+          await fs.mkdir(path.dirname(dest), { recursive: true });
+          // Bundled sources are always verbatim text; they never carry a `uri`
+          // or downloadable URL because they are not standalone artifacts.
+          await fs.writeFile(dest, entry.source, 'utf-8');
+          results.push({ itemName: relativePath, success: true });
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          results.push({
+            itemName: relativePath,
+            success: false,
+            details: [{ content: errorMessage }],
+          });
+        }
+      }
+      if (packageJsonChanged) {
+        notes.push(
+          'package.json changed. Run `npm install` to install dependencies.',
+        );
+      }
+      return {
+        results,
+        title: 'Pulled assets',
+        label: 'Asset',
+        notes: notes.length > 0 ? notes : undefined,
+      };
     },
   };
 }
@@ -1052,6 +1281,10 @@ export function pullCommand(program: Command): void {
             'skipped',
           );
           p.log.message(skippedLines.join('\n'));
+        }
+        const notes = outcomes.flatMap((outcome) => outcome.notes ?? []);
+        if (notes.length > 0) {
+          p.note(notes.join('\n'));
         }
         p.outro(hasFailures ? 'Pull incomplete' : 'Pull completed');
         if (hasFailures) {

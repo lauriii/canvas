@@ -1,15 +1,25 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createHeadlessPreviewHost } from '@drupal-canvas/headless-host';
 
 import { fetchCsrfToken } from '@/utils/csrf';
 import { getBaseUrl } from '@/utils/drupal-globals';
 
 import type { RefObject } from 'react';
-import type { HeadlessPreviewHostEvent } from '@drupal-canvas/headless-host';
+import type {
+  HeadlessPreviewHost,
+  HeadlessPreviewHostEvent,
+} from '@drupal-canvas/headless-host';
+import type { CanvasGeometry } from '@drupal-canvas/preview-geometry';
 import type { HeadlessSettings } from '@drupal-canvas/types';
+import type { AutoSavesHashRecord } from '@/types/AutoSaves';
 
 export interface HeadlessDraftSession {
   statusText: string;
+  /** The app's last-reported rendered content height, in CSS pixels; null until a report arrives. */
+  contentHeight: number | null;
+  /** Whether the active document has reported its first content height. */
+  contentHeightReady: boolean;
+  geometry: CanvasGeometry[];
 }
 
 const WAITING_TEXT = 'Waiting for the preview to report its draft session…';
@@ -17,7 +27,9 @@ const WAITING_TEXT = 'Waiting for the preview to report its draft session…';
 /**
  * Maps host protocol events to the editor's status line text.
  */
-function statusTextFor(event: HeadlessPreviewHostEvent): string {
+function statusTextFor(
+  event: Exclude<HeadlessPreviewHostEvent, { type: 'geometry' }>,
+): string {
   switch (event.type) {
     case 'active':
       return `Draft session active — renews automatically around ${new Date(event.tokenExpiresAt).toLocaleTimeString()}.`;
@@ -42,16 +54,26 @@ function statusTextFor(event: HeadlessPreviewHostEvent): string {
  * assertions are fetched from the canvas_headless module's endpoint with
  * the same CSRF token the editor's API mutations use (fetchCsrfToken, sent
  * as the X-CSRF-Token header), and a new session activates whenever the
- * edited entity changes, including in-SPA navigation between entities.
+ * edited entity changes, including in-SPA navigation between entities. A
+ * successful auto-save asks the app to refresh through the same protocol.
  */
 export function useHeadlessDraftSession(
   iframeRef: RefObject<HTMLIFrameElement>,
   settings: HeadlessSettings,
   entityType: string | undefined,
   entityId: string | undefined,
+  autoSavesHash?: AutoSavesHashRecord,
+  viewportHeight?: number,
 ): HeadlessDraftSession {
   const { frontendOrigin, draftUrl, assertionUrl } = settings;
   const [statusText, setStatusText] = useState(WAITING_TEXT);
+  const [geometry, setGeometry] = useState<CanvasGeometry[]>([]);
+  const hostRef = useRef<HeadlessPreviewHost | null>(null);
+  const lastAutoSavesHashRef = useRef(autoSavesHash);
+  const viewportHeightRef = useRef(viewportHeight);
+  viewportHeightRef.current = viewportHeight;
+  const [contentHeight, setContentHeight] = useState<number | null>(null);
+  const [contentHeightReady, setContentHeightReady] = useState(false);
 
   const fetchAssertion = useCallback(
     async (params: Record<string, string>): Promise<string> => {
@@ -80,24 +102,43 @@ export function useHeadlessDraftSession(
     [assertionUrl],
   );
 
-  // One host per (iframe, app, entity) combination: switching to another
-  // entity — including via in-SPA navigation — tears the host down and
-  // activates a fresh session entering at the new entity's path.
+  // One host per (iframe, app, entity) combination. HeadlessPreview keeps the
+  // current combination alive while a second iframe activates the next entity,
+  // then unmounts this hook after the replacement is ready.
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe || !entityType || !entityId) {
       return;
     }
     setStatusText(WAITING_TEXT);
+    setContentHeightReady(false);
+    setGeometry([]);
     const host = createHeadlessPreviewHost({
       iframe,
       frontendOrigin,
       draftUrl,
       fetchAssertion,
-      onEvent: (event) => setStatusText(statusTextFor(event)),
+      onEvent: (event) => {
+        if (event.type === 'geometry') {
+          setGeometry(event.geometry);
+        } else {
+          setStatusText(statusTextFor(event));
+        }
+      },
+      onHeight: (height) => {
+        setContentHeight(height);
+        setContentHeightReady(true);
+      },
     });
+    hostRef.current = host;
+    if (viewportHeightRef.current !== undefined) {
+      host.setViewportHeight(viewportHeightRef.current);
+    }
     void host.activate({ entity_type: entityType, entity: entityId });
     return () => {
+      if (hostRef.current === host) {
+        hostRef.current = null;
+      }
       host.destroy();
     };
   }, [
@@ -109,5 +150,25 @@ export function useHeadlessDraftSession(
     entityId,
   ]);
 
-  return { statusText };
+  useEffect(() => {
+    if (
+      autoSavesHash === undefined ||
+      autoSavesHash === lastAutoSavesHashRef.current
+    ) {
+      return;
+    }
+    lastAutoSavesHashRef.current = autoSavesHash;
+    hostRef.current?.refresh();
+  }, [autoSavesHash]);
+
+  useEffect(() => {
+    if (viewportHeight === undefined) {
+      return;
+    }
+    setContentHeight(null);
+    setContentHeightReady(false);
+    hostRef.current?.setViewportHeight(viewportHeight);
+  }, [viewportHeight]);
+
+  return { statusText, contentHeight, contentHeightReady, geometry };
 }

@@ -6,10 +6,13 @@ export interface DataFetch {
   error: boolean;
 }
 
+export type CodeComponentType = 'react' | 'external';
+
 export interface CodeComponent {
   machineName: string;
   name: string;
   status: boolean;
+  type: CodeComponentType;
   props: CodeComponentProp[];
   required: string[];
   slots: any[];
@@ -32,11 +35,25 @@ export interface DataDependencies {
 
 export interface CodeComponentSerialized extends Omit<
   CodeComponent,
-  'props' | 'slots' | 'dataFetches'
+  | 'props'
+  | 'slots'
+  | 'dataFetches'
+  | 'type'
+  | 'sourceCodeJs'
+  | 'sourceCodeCss'
+  | 'compiledJs'
+  | 'compiledCss'
+  | 'importedJsComponents'
 > {
   props: Record<string, CodeComponentPropSerialized>;
   slots: Record<string, CodeComponentSlotSerialized>;
   dataDependencies: DataDependencies;
+  type?: CodeComponentType;
+  sourceCodeJs?: string;
+  sourceCodeCss?: string;
+  compiledJs?: string;
+  compiledCss?: string;
+  importedJsComponents?: string[];
   links?: Record<string, string>;
 }
 
@@ -182,6 +199,8 @@ export interface AssetLibrary {
   imports?: AssetLibraryManifestEntry[] | null;
   assets?: AssetLibraryManifestEntry[] | null;
   shared?: AssetLibraryManifestEntry[] | null;
+  bundledSources?: AssetLibraryBundledSource[] | null;
+  packageJson?: string | null;
   /**
    * The site's effective import map, in import map spec shape. Read-only: the
    * server computes it and ignores it on write.
@@ -197,6 +216,14 @@ export interface AssetLibrary {
 export interface AssetLibraryManifestEntry {
   name: string;
   uri: string;
+  path?: string;
+  source?: string;
+  url?: string;
+}
+
+export interface AssetLibraryBundledSource {
+  path: string;
+  source: string;
 }
 
 export interface BrandKit {

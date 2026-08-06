@@ -1,9 +1,24 @@
 {
   "name": "@drupal-canvas/headless-nuxt",
-  "version": "0.1.0",
-  "description": "Nuxt adapter for the Drupal Canvas Headless SDK: the drupalCanvas module (draft and component metadata routes, CSP middleware, build-time manifest), h3-based draft sessions, and the <DraftSession> banner component.",
-  "private": true,
+  "version": "0.1.1",
+  "description": "Nuxt adapter for the Drupal Canvas Headless SDK.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://git.drupalcode.org/project/canvas.git",
+    "directory": "packages/headless-nuxt"
+  },
+  "bugs": "https://git.drupalcode.org/project/canvas/-/work_items",
+  "files": [
+    "src",
+    "!src/**/*.test.*",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
+  "sideEffects": false,
   "main": "./src/module.ts",
   "exports": {
     ".": {
@@ -40,14 +55,19 @@
       "import": "./src/runtime/server/routes/components.ts",
       "types": "./src/runtime/server/routes/components.ts",
       "default": "./src/runtime/server/routes/components.ts"
+    },
+    "./CanvasComponentTree": {
+      "import": "./src/runtime/components/CanvasComponentTree.ts",
+      "types": "./src/runtime/components/CanvasComponentTree.ts",
+      "default": "./src/runtime/components/CanvasComponentTree.ts"
     }
   },
   "scripts": {
+    "test": "vitest run",
     "type-check": "vue-tsc --noEmit --pretty"
   },
-  "license": "GPL-2.0-or-later",
   "dependencies": {
-    "@drupal-canvas/headless": "*",
+    "@drupal-canvas/headless": "^0.1.1",
     "@nuxt/kit": "^4.4.8",
     "h3": "^1.15.0"
   },
@@ -57,10 +77,11 @@
   },
   "devDependencies": {
     "@nuxt/nitro-server": "^4.4.8",
+    "jsdom": "^26.1.0",
     "nuxt": "^4.4.8",
     "typescript": "^5.9.3",
     "vue": "^3.5.39",
-    "vue-tsc": "^3.2.2"
-  },
-  "sideEffects": false
+    "vue-tsc": "^3.2.2",
+    "vitest": "^4.0.18"
+  }
 }

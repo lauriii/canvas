@@ -7,6 +7,7 @@ namespace Drupal\canvas\PropSource;
 use Drupal\canvas\MissingHostEntityException;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
@@ -79,7 +80,7 @@ final class HostEntityPropSource extends PropSourceBase implements LinkablePropS
     $entity_type = \Drupal::entityTypeManager()->getDefinition($entity_type_id);
     if ($entity_type->getBundleEntityType() !== NULL) {
       // @phpstan-ignore globalDrupalDependencyInjection.useDependencyInjection
-      $bundle_label = (string) (\Drupal::service('entity_type.bundle.info')->getBundleInfo($entity_type_id)[$bundle]['label'] ?? '');
+      $bundle_label = (string) (\Drupal::service(EntityTypeBundleInfoInterface::class)->getBundleInfo($entity_type_id)[$bundle]['label'] ?? '');
       if ($bundle_label !== '') {
         return new TranslatableMarkup('This @bundle @entity_type', [
           '@bundle' => $bundle_label,

@@ -1,3 +1,4 @@
+// @canvas-ci flaky
 describe('Contextual panel', () => {
   before(() => {
     cy.drupalCanvasInstall();

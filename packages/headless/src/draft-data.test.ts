@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   EXPIRY_SLACK_MS,
+  getDraftEditorOrigin,
   isDraftSessionExpired,
   parseDraftData,
   serializeDraftData,
@@ -19,6 +20,26 @@ const validDraftData: DraftData = {
   tokenExpiresAt: 1_800_000_000_000,
   codeVerifier: 'stored-verifier',
 };
+
+describe('getDraftEditorOrigin', () => {
+  it('returns the exact HTTP(S) origin of the signed renewal URL', () => {
+    expect(getDraftEditorOrigin(validDraftData)).toBe('https://drupal.example');
+    expect(
+      getDraftEditorOrigin({
+        renewUrl: 'http://localhost:8080/canvas-headless/renew',
+      }),
+    ).toBe('http://localhost:8080');
+  });
+
+  it.each([
+    null,
+    { renewUrl: 'not a URL' },
+    { renewUrl: 'ftp://drupal.example/renew' },
+    { renewUrl: 'https://user:secret@drupal.example/renew' },
+  ])('returns null for an unusable renewal URL', (draftData) => {
+    expect(getDraftEditorOrigin(draftData)).toBeNull();
+  });
+});
 
 describe('parseDraftData', () => {
   it('round-trips serialized draft data', () => {

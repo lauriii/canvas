@@ -55,10 +55,10 @@ final class CanvasBuilder extends ControllerBase {
     return new static(
       $container->get('ai.provider'),
       $container->get('plugin.manager.ai_agents'),
-      $container->get('csrf_token'),
+      $container->get(CsrfTokenGenerator::class),
       $container->get('canvas_ai.page_builder_helper'),
-      $container->get('canvas_ai.tempstore'),
-      $container->get('file.upload_handler'),
+      $container->get(CanvasAiTempStore::class),
+      $container->get(FileUploadHandlerInterface::class),
       $container->get('ai_agents.agent_status_poller'),
       $container->get('canvas_ai.chat_helper'),
     );
