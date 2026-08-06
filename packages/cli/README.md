@@ -878,6 +878,17 @@ Each library component on each site lands in one of five states:
 | Diverged   | the site moved, the library did not          | Site-side edit, apply would clobber |
 | Conflicted | both moved                                   | Both sides changed                  |
 
+The global asset library (global CSS and `package.json`) is diffed alongside the
+components and appears in the report as `global CSS`, so a release that changes
+only global CSS is not reported as no changes.
+
+A component the library declares but that no longer exists on a site reads as
+Unknown, not Diverged: there is nothing to clobber, so `apply` recreates it.
+
+Only components listed in `canvas.library.json`'s `components` are planned and
+distributed. A component the build produces but the manifest does not declare is
+reported and left alone; re-run `canvas library init --force` after adding one.
+
 **Exit codes** follow Terraform's `-detailed-exitcode` convention:
 
 - `0`: success, no changes

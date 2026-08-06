@@ -7,6 +7,7 @@ import {
   changesetId,
   classifyDrift,
   componentConfigEntityId,
+  globalAssetFingerprint,
   hasFleetFiles,
   isDiverged,
   listChangesets,
@@ -201,18 +202,21 @@ describe('sourceFingerprint', () => {
 });
 
 describe('classifyDrift', () => {
+  /** A component pushed as `s1`, which the site returned as `a1` / `v1`. */
   const locked = {
     pushedHash: 'v1',
-    observedHash: 'v1',
     pushedSourceHash: 's1',
-    observedSourceHash: 's1',
+    appliedSourceHash: 'a1',
+    observedHash: 'v1',
+    observedSourceHash: 'a1',
   };
 
   it('is unknown without a lockfile entry', () => {
     expect(
       classifyDrift({
         desiredSourceHash: 's1',
-        observedSourceHash: 's1',
+        refreshed: true,
+        observedSourceHash: 'a1',
         observedHash: 'v1',
       }),
     ).toBe('unknown');
@@ -223,7 +227,8 @@ describe('classifyDrift', () => {
       classifyDrift({
         desiredSourceHash: 's1',
         locked,
-        observedSourceHash: 's1',
+        refreshed: true,
+        observedSourceHash: 'a1',
         observedHash: 'v1',
       }),
     ).toBe('in-sync');
@@ -234,7 +239,8 @@ describe('classifyDrift', () => {
       classifyDrift({
         desiredSourceHash: 's2',
         locked,
-        observedSourceHash: 's1',
+        refreshed: true,
+        observedSourceHash: 'a1',
         observedHash: 'v1',
       }),
     ).toBe('behind');
@@ -245,7 +251,8 @@ describe('classifyDrift', () => {
       classifyDrift({
         desiredSourceHash: 's1',
         locked,
-        observedSourceHash: 's9',
+        refreshed: true,
+        observedSourceHash: 'edited',
         observedHash: 'v1',
       }),
     ).toBe('diverged');
@@ -256,7 +263,8 @@ describe('classifyDrift', () => {
       classifyDrift({
         desiredSourceHash: 's1',
         locked,
-        observedSourceHash: 's1',
+        refreshed: true,
+        observedSourceHash: 'a1',
         observedHash: 'v9',
       }),
     ).toBe('diverged');
@@ -267,15 +275,55 @@ describe('classifyDrift', () => {
       classifyDrift({
         desiredSourceHash: 's2',
         locked,
-        observedSourceHash: 's9',
+        refreshed: true,
+        observedSourceHash: 'edited',
         observedHash: 'v9',
       }),
     ).toBe('conflicted');
   });
 
+  it('compares against the apply-time baseline, not the last observation', () => {
+    // A refresh recorded the site-side edit in the observed columns. The
+    // divergence must survive that, or the next apply would clobber the edit.
+    const afterRefresh = {
+      ...locked,
+      observedSourceHash: 'edited',
+      observedHash: 'v9',
+    };
+    expect(
+      classifyDrift({
+        desiredSourceHash: 's1',
+        locked: afterRefresh,
+        refreshed: true,
+        observedSourceHash: 'edited',
+        observedHash: 'v9',
+      }),
+    ).toBe('diverged');
+    expect(
+      classifyDrift({
+        desiredSourceHash: 's2',
+        locked: afterRefresh,
+        refreshed: true,
+        observedSourceHash: 'edited',
+        observedHash: 'v9',
+      }),
+    ).toBe('conflicted');
+  });
+
+  it('treats a component deleted on the site as unapplied, not diverged', () => {
+    // Nothing is there to clobber, so reconcile it forward.
+    expect(
+      classifyDrift({ desiredSourceHash: 's1', locked, refreshed: true }),
+    ).toBe('unknown');
+  });
+
   it('cannot see divergence without a refresh', () => {
-    expect(classifyDrift({ desiredSourceHash: 's1', locked })).toBe('in-sync');
-    expect(classifyDrift({ desiredSourceHash: 's2', locked })).toBe('behind');
+    expect(
+      classifyDrift({ desiredSourceHash: 's1', locked, refreshed: false }),
+    ).toBe('in-sync');
+    expect(
+      classifyDrift({ desiredSourceHash: 's2', locked, refreshed: false }),
+    ).toBe('behind');
   });
 
   it('marks only diverged and conflicted as unsafe to overwrite', () => {
@@ -284,6 +332,34 @@ describe('classifyDrift', () => {
     expect(isDiverged('behind')).toBe(false);
     expect(isDiverged('unknown')).toBe(false);
     expect(isDiverged('in-sync')).toBe(false);
+  });
+});
+
+describe('globalAssetFingerprint', () => {
+  it('hashes authored global CSS and package.json only', () => {
+    const base = {
+      css: { original: 'body { color: red }', compiled: 'a' },
+      js: { original: 'x', compiled: 'y' },
+      packageJson: '{"name":"lib"}',
+    };
+    // Compiled output and manifest URIs differ per site and per build.
+    expect(globalAssetFingerprint(base)).toBe(
+      globalAssetFingerprint({
+        ...base,
+        css: { original: base.css.original, compiled: 'b' },
+        js: { original: 'z', compiled: 'w' },
+        imports: [{ name: 'react', uri: 'public://x' }],
+      }),
+    );
+    expect(globalAssetFingerprint(base)).not.toBe(
+      globalAssetFingerprint({
+        ...base,
+        css: { original: 'body { color: blue }', compiled: 'a' },
+      }),
+    );
+    expect(globalAssetFingerprint(base)).not.toBe(
+      globalAssetFingerprint({ ...base, packageJson: '{"name":"other"}' }),
+    );
   });
 });
 

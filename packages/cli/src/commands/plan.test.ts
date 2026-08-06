@@ -5,7 +5,11 @@ import { Command } from 'commander';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as p from '@clack/prompts';
 
-import { readLock, sourceFingerprint } from '../lib/fleet';
+import {
+  globalAssetFingerprint,
+  readLock,
+  sourceFingerprint,
+} from '../lib/fleet';
 import { createSiteApiService, readObservedSite } from '../lib/fleet-site';
 import { buildCanvasProject } from '../utils/build-project';
 import { planCommand } from './plan';
@@ -49,6 +53,13 @@ vi.mock('../utils/command-helpers', () => ({
 
 vi.mock('../utils/build-project', () => ({ buildCanvasProject: vi.fn() }));
 
+vi.mock('../utils/prepare-push', () => ({
+  prepareGlobalAssetLibraryUpdate: vi.fn(async () => ({
+    result: { itemName: 'css', success: true },
+    assetLibrary: { css: { original: 'body {}', compiled: 'compiled-a' } },
+  })),
+}));
+
 vi.mock('../lib/fleet-site', () => ({
   createSiteApiService: vi.fn(),
   readObservedSite: vi.fn(),
@@ -67,6 +78,22 @@ const HERO = {
 } as unknown as Component;
 const HERO_HASH = sourceFingerprint(HERO);
 
+/** Global asset library the mocked site reports; matches the local build. */
+const GLOBAL_ASSET = {
+  id: 'global',
+  label: 'Global',
+  css: { original: 'body {}', compiled: 'compiled-on-site' },
+  js: { original: 'site', compiled: 'site' },
+};
+const GLOBAL_HASH = globalAssetFingerprint(GLOBAL_ASSET);
+
+/** A lockfile global-asset entry recording a clean apply. */
+const GLOBAL_IN_SYNC = {
+  pushedSourceHash: GLOBAL_HASH,
+  appliedSourceHash: GLOBAL_HASH,
+  observedSourceHash: GLOBAL_HASH,
+};
+
 let root: string;
 let previousCwd: string;
 let observedBySite: Record<string, ObservedSite>;
@@ -81,6 +108,7 @@ function writeLockFile(lock: LockFile): void {
 
 function lockWith(
   components: LockFile['sites'][string]['components'],
+  globalAsset: LockFile['sites'][string]['globalAsset'] = GLOBAL_IN_SYNC,
 ): LockFile {
   return {
     lockfileVersion: 1,
@@ -92,10 +120,20 @@ function lockWith(
         appliedBy: 'ci',
         lastRefresh: '2026-08-04T09:00:00Z',
         components,
+        globalAsset,
       },
     },
   };
 }
+
+/** A lockfile component entry recording a clean apply of `hero`. */
+const HERO_IN_SYNC = {
+  pushedHash: 'v1',
+  pushedSourceHash: HERO_HASH,
+  appliedSourceHash: HERO_HASH,
+  observedHash: 'v1',
+  observedSourceHash: HERO_HASH,
+};
 
 async function run(...args: string[]): Promise<void> {
   const program = new Command();
@@ -148,7 +186,11 @@ describe('planCommand', () => {
     } as unknown as Awaited<ReturnType<typeof buildCanvasProject>>);
 
     vi.mocked(createSiteApiService).mockImplementation(
-      async (siteName) => ({ siteName }) as never,
+      async (siteName) =>
+        ({
+          siteName,
+          getGlobalAssetLibrary: vi.fn(async () => GLOBAL_ASSET),
+        }) as never,
     );
     vi.mocked(readObservedSite).mockImplementation(
       async (apiService) =>
@@ -164,16 +206,7 @@ describe('planCommand', () => {
   });
 
   it('exits 0 when the fleet already runs the library', async () => {
-    writeLockFile(
-      lockWith({
-        hero: {
-          pushedHash: 'v1',
-          observedHash: 'v1',
-          pushedSourceHash: HERO_HASH,
-          observedSourceHash: HERO_HASH,
-        },
-      }),
-    );
+    writeLockFile(lockWith({ hero: HERO_IN_SYNC }));
     await run();
     expect(process.exitCode).toBe(0);
     expect(p.outro).toHaveBeenCalledWith('No changes');
@@ -182,12 +215,7 @@ describe('planCommand', () => {
   it('exits 2 when a site is behind the library', async () => {
     writeLockFile(
       lockWith({
-        hero: {
-          pushedHash: 'v0',
-          observedHash: 'v1',
-          pushedSourceHash: 'older-source',
-          observedSourceHash: HERO_HASH,
-        },
+        hero: { ...HERO_IN_SYNC, pushedSourceHash: 'older-source' },
       }),
     );
     await run();
@@ -203,12 +231,7 @@ describe('planCommand', () => {
   it('exits 3 when a site diverged, even with other changes pending', async () => {
     writeLockFile(
       lockWith({
-        hero: {
-          pushedHash: 'v1',
-          observedHash: 'v1',
-          pushedSourceHash: 'older-source',
-          observedSourceHash: 'older-source',
-        },
+        hero: { ...HERO_IN_SYNC, pushedSourceHash: 'older-source' },
       }),
     );
     observedBySite.alpha = {
@@ -221,6 +244,49 @@ describe('planCommand', () => {
     );
   });
 
+  it('exits 2 when only the global CSS changed', async () => {
+    writeLockFile(
+      lockWith(
+        { hero: HERO_IN_SYNC },
+        { ...GLOBAL_IN_SYNC, pushedSourceHash: 'older-global-css' },
+      ),
+    );
+    await run();
+    expect(process.exitCode).toBe(2);
+  });
+
+  it('reports a global CSS edit made on the site as diverged', async () => {
+    writeLockFile(
+      lockWith(
+        { hero: HERO_IN_SYNC },
+        { ...GLOBAL_IN_SYNC, appliedSourceHash: 'what-we-left-there' },
+      ),
+    );
+    await run();
+    expect(process.exitCode).toBe(3);
+  });
+
+  it('does not absorb a divergence by observing it', async () => {
+    // A previous refresh already wrote the site-side edit into the observed
+    // columns. Comparing against those would report in sync and the next apply
+    // would clobber the edit.
+    writeLockFile(
+      lockWith({
+        ...{ hero: HERO_IN_SYNC },
+        hero: {
+          ...HERO_IN_SYNC,
+          observedSourceHash: 'edited-on-site',
+          observedHash: 'v2',
+        },
+      }),
+    );
+    observedBySite.alpha = {
+      hero: { sourceHash: 'edited-on-site', versionHash: 'v2', payload: HERO },
+    };
+    await run();
+    expect(process.exitCode).toBe(3);
+  });
+
   it('always labels drift detection as advisory', async () => {
     await run();
     expect(p.log.info).toHaveBeenCalledWith(
@@ -229,16 +295,7 @@ describe('planCommand', () => {
   });
 
   it('warns prominently and reads no site with --no-refresh', async () => {
-    writeLockFile(
-      lockWith({
-        hero: {
-          pushedHash: 'v1',
-          observedHash: 'v1',
-          pushedSourceHash: HERO_HASH,
-          observedSourceHash: HERO_HASH,
-        },
-      }),
-    );
+    writeLockFile(lockWith({ hero: HERO_IN_SYNC }));
     await run('--no-refresh');
     expect(readObservedSite).not.toHaveBeenCalled();
     expect(p.log.warn).toHaveBeenCalledWith(
@@ -248,16 +305,7 @@ describe('planCommand', () => {
   });
 
   it('refreshes the lockfile without building for --refresh-only', async () => {
-    writeLockFile(
-      lockWith({
-        hero: {
-          pushedHash: 'v1',
-          observedHash: 'v1',
-          pushedSourceHash: HERO_HASH,
-          observedSourceHash: HERO_HASH,
-        },
-      }),
-    );
+    writeLockFile(lockWith({ hero: HERO_IN_SYNC }));
     observedBySite.alpha = {
       hero: { sourceHash: 'edited-on-site', versionHash: 'v2', payload: HERO },
     };
@@ -276,14 +324,7 @@ describe('planCommand', () => {
   });
 
   it('leaves the lockfile alone on a plain plan', async () => {
-    const before = lockWith({
-      hero: {
-        pushedHash: 'v1',
-        observedHash: 'v1',
-        pushedSourceHash: HERO_HASH,
-        observedSourceHash: HERO_HASH,
-      },
-    });
+    const before = lockWith({ hero: HERO_IN_SYNC });
     writeLockFile(before);
     observedBySite.alpha = {
       hero: { sourceHash: 'edited-on-site', versionHash: 'v2', payload: HERO },
@@ -320,6 +361,7 @@ describe('planCommand', () => {
     expect(payload.stale).toBe(false);
     expect(payload.plans[0].components).toStrictEqual([
       { component: 'hero', state: 'unknown' },
+      { component: 'global CSS', state: 'unknown' },
     ]);
     log.mockRestore();
   });

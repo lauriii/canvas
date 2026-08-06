@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import type { Component } from '../types/Component.js';
+import type { AssetLibrary, Component } from '../types/Component.js';
 
 /** Root-level file declaring the library's identity, version and contents. */
 export const LIBRARY_FILENAME = 'canvas.library.json';
@@ -42,17 +42,31 @@ export interface FleetFile {
   protectedGroups?: string[];
 }
 
+/**
+ * What the CLI knows about one component on one site.
+ *
+ * The `pushed*` and `applied*` fields form a stable baseline written only by a
+ * successful apply. The `observed*` fields are the mutable last-refresh values.
+ * Keeping them apart is load-bearing: if a refresh overwrote the baseline, a
+ * skipped divergence would read as in sync on the next run and the next library
+ * change would silently clobber the site-side edit.
+ */
 export interface LockComponentEntry {
   /**
-   * Canvas `active_version` observed immediately after the CLI pushed this
-   * component. Server-computed; the CLI cannot derive it locally.
+   * Canvas `active_version` read back immediately after the CLI pushed this
+   * component. Server-computed; the CLI cannot derive it locally. Baseline.
    */
   pushedHash?: string;
-  /** Canvas `active_version` observed at the last refresh. */
-  observedHash?: string;
-  /** Fingerprint of the source payload the CLI sent. */
+  /** Fingerprint of the source payload the CLI sent. Baseline, local domain. */
   pushedSourceHash?: string;
-  /** Fingerprint of the source payload the site returned at the last refresh. */
+  /**
+   * Fingerprint of the source payload the site returned immediately after that
+   * push. Baseline, server domain — this is what an observation is compared to.
+   */
+  appliedSourceHash?: string;
+  /** Canvas `active_version` at the last refresh. Mutable. */
+  observedHash?: string;
+  /** Fingerprint of the source the site returned at the last refresh. Mutable. */
   observedSourceHash?: string;
 }
 
@@ -64,6 +78,12 @@ export interface LockSiteEntry {
   appliedRef?: string;
   lastRefresh?: string;
   components: Record<string, LockComponentEntry>;
+  /**
+   * The global asset library (global CSS and `package.json`), tracked with the
+   * same baseline/observation split as a component. Without it a release that
+   * only changes global CSS would read as no changes and never be distributed.
+   */
+  globalAsset?: LockComponentEntry;
 }
 
 export interface LockFile {
@@ -86,6 +106,8 @@ export interface Changeset {
     string,
     { present: boolean; version?: string; payload?: Component }
   >;
+  /** Pre-push global asset library, when the apply was about to write it. */
+  globalAsset?: AssetLibrary;
 }
 
 /**
@@ -114,7 +136,15 @@ function readJsonFile<T>(filePath: string): T | undefined {
 
 function writeJsonFile(filePath: string, contents: unknown): void {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, `${JSON.stringify(contents, null, 2)}\n`, 'utf-8');
+  // Write to a sibling and rename: a crash mid-write must never truncate the
+  // lockfile, which is the only record of what already landed on the fleet.
+  const temporaryPath = `${filePath}.${String(process.pid)}.tmp`;
+  fs.writeFileSync(
+    temporaryPath,
+    `${JSON.stringify(contents, null, 2)}\n`,
+    'utf-8',
+  );
+  fs.renameSync(temporaryPath, filePath);
 }
 
 export function libraryPath(root: string = process.cwd()): string {
@@ -167,6 +197,22 @@ export function readFleet(root: string = process.cwd()): FleetFile {
       if (!(member in fleet.sites)) {
         throw new Error(
           `Group "${group}" in ${FLEET_FILENAME} references unknown site "${member}".`,
+        );
+      }
+    }
+  }
+  // A misspelled or non-array `protectedGroups` would silently disable the gate
+  // on production applies, so it is rejected rather than ignored.
+  if (fleet.protectedGroups !== undefined) {
+    if (!Array.isArray(fleet.protectedGroups)) {
+      throw new Error(
+        `"protectedGroups" in ${FLEET_FILENAME} must be an array of group names.`,
+      );
+    }
+    for (const group of fleet.protectedGroups) {
+      if (!(group in (fleet.groups ?? {}))) {
+        throw new Error(
+          `"protectedGroups" in ${FLEET_FILENAME} names unknown group "${String(group)}".`,
         );
       }
     }
@@ -374,13 +420,42 @@ export function componentConfigEntityId(machineName: string): string {
   return `js.${machineName}`;
 }
 
+/**
+ * Fingerprints the global asset library's authored content.
+ *
+ * Only authored fields are hashed. `css.compiled` and `js.*` are Tailwind and
+ * Vite output, and the manifest groups carry server-assigned URIs that differ
+ * per site, so including any of them would report drift on every run.
+ */
+export function globalAssetFingerprint(
+  assetLibrary: Partial<AssetLibrary> | undefined,
+): string {
+  return crypto
+    .createHash('sha256')
+    .update(
+      JSON.stringify(
+        canonicalize({
+          css: assetLibrary?.css?.original ?? '',
+          packageJson: assetLibrary?.packageJson ?? '',
+        }),
+      ),
+    )
+    .digest('hex')
+    .slice(0, 16);
+}
+
 export interface DriftInputs {
   /** Fingerprint of the payload the CLI would push now. */
   desiredSourceHash?: string;
   locked?: LockComponentEntry;
-  /** Fingerprint of the payload the site returns now. Absent when unread. */
+  /**
+   * Whether the site was read. Distinguishes "not refreshed" from "refreshed
+   * and the component is not there", which are different states.
+   */
+  refreshed: boolean;
+  /** Fingerprint of the payload the site returns now. */
   observedSourceHash?: string;
-  /** `active_version` the site reports now. Absent when unread. */
+  /** `active_version` the site reports now. */
   observedHash?: string;
 }
 
@@ -388,10 +463,11 @@ export interface DriftInputs {
  * Classifies one component on one site into the five-state diff.
  *
  * Every comparison stays inside one domain: desired against what the CLI sent
- * (both locally computed), observed against what the site reported at the last
- * apply or refresh (both server-reported). Comparing a locally built payload
- * directly against a server-stored one would report drift for any server-side
- * normalization.
+ * (both locally computed), observed against what the site returned right after
+ * that push (both server-reported). Comparing a locally built payload directly
+ * against a server-stored one would report drift for any server-side
+ * normalization. The baseline is the apply-time record, never the last
+ * observation, so drift cannot be absorbed by simply looking at it again.
  */
 export function classifyDrift(inputs: DriftInputs): DriftState {
   const { locked } = inputs;
@@ -405,18 +481,25 @@ export function classifyDrift(inputs: DriftInputs): DriftState {
   const desiredEqPushed = inputs.desiredSourceHash === locked.pushedSourceHash;
 
   // No refresh happened: the site was not read, so divergence is undetectable.
-  if (inputs.observedSourceHash === undefined) {
+  if (!inputs.refreshed) {
     return desiredEqPushed ? 'in-sync' : 'behind';
   }
 
-  const observedEqPushed =
-    inputs.observedSourceHash === locked.observedSourceHash &&
-    inputs.observedHash === locked.observedHash;
+  // Refreshed, and the component is not on the site: it was deleted there.
+  // There is nothing to clobber, so treat it as unapplied and reconcile it
+  // forward rather than blocking the operator on a divergence.
+  if (inputs.observedSourceHash === undefined) {
+    return 'unknown';
+  }
 
-  if (desiredEqPushed && observedEqPushed) {
+  const observedEqApplied =
+    inputs.observedSourceHash === locked.appliedSourceHash &&
+    inputs.observedHash === locked.pushedHash;
+
+  if (desiredEqPushed && observedEqApplied) {
     return 'in-sync';
   }
-  if (observedEqPushed) {
+  if (observedEqApplied) {
     return 'behind';
   }
   if (desiredEqPushed) {
@@ -434,9 +517,15 @@ export function changesetDir(root: string = process.cwd()): string {
   return path.resolve(root, CHANGESET_DIR);
 }
 
-/** Builds a filename-safe changeset ID. */
+/**
+ * Builds a filename-safe changeset ID.
+ *
+ * The site name comes from a committed file, so it is sanitized rather than
+ * trusted: a name containing a path separator would otherwise write outside the
+ * changeset directory.
+ */
 export function changesetId(siteName: string, at: Date): string {
-  return `${at.toISOString().replace(/[:.]/g, '-')}-${siteName}`;
+  return `${at.toISOString().replace(/[:.]/g, '-')}-${siteName.replace(/[^A-Za-z0-9._-]+/g, '_')}`;
 }
 
 export function writeChangeset(
@@ -464,6 +553,9 @@ export function readChangeset(
   id: string,
   root: string = process.cwd(),
 ): Changeset {
+  if (id.includes('/') || id.includes('\\') || id.includes('..')) {
+    throw new Error(`Invalid changeset id "${id}".`);
+  }
   const changeset = readJsonFile<Changeset>(
     path.join(changesetDir(root), `${id}.json`),
   );

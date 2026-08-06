@@ -255,6 +255,16 @@ export function changesetCommand(program: Command): void {
         process.exitCode = 1;
         return;
       }
+      // A reused site name pointing at a different URL would send one site's
+      // captured payload to another site.
+      if (record.siteUrl && record.siteUrl !== site.url) {
+        p.log.error(
+          `Changeset "${id}" was captured from ${record.siteUrl}, but "${record.site}" now points at ${site.url}. Restore refuses to write one site's state to another.`,
+        );
+        p.outro('Nothing restored');
+        process.exitCode = 1;
+        return;
+      }
 
       const restorable = Object.entries(record.components).flatMap(
         ([machineName, entry]) =>

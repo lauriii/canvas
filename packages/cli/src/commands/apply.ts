@@ -9,6 +9,7 @@ import { createSiteApiService, readObservedSite } from '../lib/fleet-site.js';
 import {
   changesetId,
   classifyDrift,
+  globalAssetFingerprint,
   isDiverged,
   readFleet,
   readLibrary,
@@ -36,11 +37,13 @@ import {
 import type { Command } from 'commander';
 import type {
   Changeset,
+  DriftState,
   FleetFile,
   LibraryFile,
   LockFile,
   LockSiteEntry,
 } from '../lib/fleet.js';
+import type { AssetLibrary } from '../types/Component.js';
 import type { BuiltComponent } from '../utils/build-project.js';
 
 export interface ApplyOptions {
@@ -68,19 +71,75 @@ interface SiteOutcome {
   skipped: string[];
 }
 
-/** Compares two dotted numeric versions. Non-numeric parts compare as 0. */
+/**
+ * Compares two semver versions by precedence.
+ *
+ * Only enough of semver to decide whether an apply is a downgrade: numeric
+ * release parts, then the rule that a prerelease sorts before its release.
+ */
 export function compareVersions(a: string, b: string): number {
-  const parts = (value: string) =>
-    value.split(/[.-]/).map((part) => Number.parseInt(part, 10) || 0);
-  const left = parts(a);
-  const right = parts(b);
-  for (let i = 0; i < Math.max(left.length, right.length); i++) {
-    const diff = (left[i] ?? 0) - (right[i] ?? 0);
+  const split = (value: string) => {
+    const [release, ...prerelease] = value.split('-');
+    return {
+      release: release.split('.').map((part) => Number.parseInt(part, 10) || 0),
+      prerelease: prerelease.join('-'),
+    };
+  };
+  const left = split(a);
+  const right = split(b);
+  const length = Math.max(left.release.length, right.release.length);
+  for (let i = 0; i < length; i++) {
+    const diff = (left.release[i] ?? 0) - (right.release[i] ?? 0);
     if (diff !== 0) {
       return diff < 0 ? -1 : 1;
     }
   }
-  return 0;
+  if (left.prerelease === right.prerelease) {
+    return 0;
+  }
+  if (left.prerelease === '') {
+    return 1;
+  }
+  if (right.prerelease === '') {
+    return -1;
+  }
+  return left.prerelease < right.prerelease ? -1 : 1;
+}
+
+/**
+ * Restricts the build to the components the manifest declares.
+ *
+ * The manifest is the library's declared contents, so a component that is not
+ * listed is not distributed. Both directions of a mismatch are reported: a
+ * silently undistributed component is exactly the surprise this avoids.
+ */
+export function selectDeclaredComponents(
+  builtComponents: BuiltComponent[],
+  declared: string[] | undefined,
+  warn: (message: string) => void,
+): BuiltComponent[] {
+  if (!Array.isArray(declared) || declared.length === 0) {
+    return builtComponents;
+  }
+  const declaredSet = new Set(declared);
+  const builtSet = new Set(
+    builtComponents.map((component) => component.machineName),
+  );
+  const undeclared = [...builtSet].filter((name) => !declaredSet.has(name));
+  const missing = declared.filter((name) => !builtSet.has(name));
+  if (undeclared.length > 0) {
+    warn(
+      `Not distributing ${undeclared.join(', ')}: not listed in canvas.library.json "components". Add them there, or re-run \`canvas library init --force\`.`,
+    );
+  }
+  if (missing.length > 0) {
+    warn(
+      `canvas.library.json declares ${missing.join(', ')}, which the build did not produce.`,
+    );
+  }
+  return builtComponents.filter((component) =>
+    declaredSet.has(component.machineName),
+  );
 }
 
 function isCi(env: NodeJS.ProcessEnv = process.env): boolean {
@@ -138,6 +197,7 @@ async function applyToSite(
   );
   const observed = await readObservedSite(apiService);
   const lockEntry = lock.sites[siteName];
+  const includesGlobalCss = library.includes?.globalCss !== false;
 
   const desired = builtComponents.map((component) => ({
     component,
@@ -150,6 +210,7 @@ async function applyToSite(
     const state = classifyDrift({
       desiredSourceHash: entry.sourceHash,
       locked: lockEntry?.components[machineName],
+      refreshed: true,
       observedSourceHash: observed[machineName]?.sourceHash,
       observedHash: observed[machineName]?.versionHash,
     });
@@ -162,11 +223,34 @@ async function applyToSite(
     }
   }
 
+  // The global asset library is diffed like a component. Without it a release
+  // that only changes global CSS would look like no changes at all.
+  const desiredGlobalHash = globalAssetFingerprint(globalAssetLibraryUpdate);
+  let observedGlobalAsset: AssetLibrary | undefined;
+  let globalAssetState: DriftState = 'in-sync';
+  if (includesGlobalCss) {
+    observedGlobalAsset = await apiService.getGlobalAssetLibrary();
+    globalAssetState = classifyDrift({
+      desiredSourceHash: desiredGlobalHash,
+      locked: lockEntry?.globalAsset,
+      refreshed: true,
+      observedSourceHash: globalAssetFingerprint(observedGlobalAsset),
+    });
+    if (isDiverged(globalAssetState)) {
+      outcome.skipped.push(`global CSS (${globalAssetState})`);
+    }
+  }
+  const pushGlobalAsset =
+    includesGlobalCss &&
+    !isDiverged(globalAssetState) &&
+    globalAssetState !== 'in-sync';
+
+  // The observed columns are refreshed on every apply, but the baseline columns
+  // are only written by a successful push, so looking at a divergence can never
+  // absorb it.
   const nextComponents: LockSiteEntry['components'] = {
     ...(lockEntry?.components ?? {}),
   };
-  // Record what the site reports right now for every library component, so a
-  // skipped divergence is still visible in the lockfile.
   for (const entry of desired) {
     const machineName = entry.component.machineName;
     nextComponents[machineName] = {
@@ -175,16 +259,37 @@ async function applyToSite(
       observedSourceHash: observed[machineName]?.sourceHash,
     };
   }
+  const nextGlobalAsset: LockSiteEntry['globalAsset'] = includesGlobalCss
+    ? {
+        ...lockEntry?.globalAsset,
+        observedSourceHash: globalAssetFingerprint(observedGlobalAsset),
+      }
+    : lockEntry?.globalAsset;
 
-  if (toUpload.length === 0) {
+  /** Writes this site's lockfile entry from the state accumulated so far. */
+  const recordLockEntry = (changed: boolean) => {
+    const now = new Date().toISOString();
     lock.sites[siteName] = {
-      libraryVersion: lockEntry?.libraryVersion ?? version,
-      appliedAt: lockEntry?.appliedAt ?? new Date().toISOString(),
-      appliedBy: lockEntry?.appliedBy ?? appliedBy(),
-      ...(lockEntry?.appliedRef ? { appliedRef: lockEntry.appliedRef } : {}),
-      lastRefresh: new Date().toISOString(),
+      libraryVersion: changed
+        ? version
+        : (lockEntry?.libraryVersion ?? version),
+      appliedAt: changed ? now : (lockEntry?.appliedAt ?? now),
+      appliedBy: changed ? appliedBy() : (lockEntry?.appliedBy ?? appliedBy()),
+      ...(changed
+        ? appliedRef
+          ? { appliedRef }
+          : {}
+        : lockEntry?.appliedRef
+          ? { appliedRef: lockEntry.appliedRef }
+          : {}),
+      lastRefresh: now,
       components: nextComponents,
+      ...(nextGlobalAsset ? { globalAsset: nextGlobalAsset } : {}),
     };
+  };
+
+  if (toUpload.length === 0 && !pushGlobalAsset) {
+    recordLockEntry(false);
     outcome.success = true;
     return outcome;
   }
@@ -212,38 +317,48 @@ async function applyToSite(
         ];
       }),
     ),
+    ...(pushGlobalAsset && observedGlobalAsset
+      ? { globalAsset: observedGlobalAsset }
+      : {}),
   };
   writeChangeset(changeset);
   outcome.changesetId = changeset.id;
 
   await apiService.signalPushStart();
+  let uploaded: string[] = [];
   try {
-    // Create and update only. Components on the site that the library does not
-    // define are site-local and are never touched; deletion propagation needs
-    // its own design because removing an in-use component is destructive.
-    const uploadResults = await uploadComponents(
-      toUpload.map(({ component }) => ({
-        machineName: component.machineName,
-        operation: observed[component.machineName] ? 'update' : 'create',
-        componentPayload: component.componentPayload,
-        importedJsComponents: component.importedJsComponents,
-      })),
-      apiService,
-      () => {},
-    );
-    const failed = uploadResults.filter((result) => !result.success);
-    if (failed.length > 0) {
-      throw new Error(
-        failed
-          .map(
-            (result) =>
-              `${result.machineName}: ${result.error?.message ?? 'unknown error'}`,
-          )
-          .join('; '),
+    if (toUpload.length > 0) {
+      // Create and update only. Components on the site that the library does
+      // not define are site-local and are never touched; deletion propagation
+      // needs its own design because removing an in-use component is
+      // destructive.
+      const uploadResults = await uploadComponents(
+        toUpload.map(({ component }) => ({
+          machineName: component.machineName,
+          operation: observed[component.machineName] ? 'update' : 'create',
+          componentPayload: component.componentPayload,
+          importedJsComponents: component.importedJsComponents,
+        })),
+        apiService,
+        () => {},
       );
+      uploaded = uploadResults
+        .filter((result) => result.success)
+        .map((result) => result.machineName);
+      const failed = uploadResults.filter((result) => !result.success);
+      if (failed.length > 0) {
+        throw new Error(
+          failed
+            .map(
+              (result) =>
+                `${result.machineName}: ${result.error?.message ?? 'unknown error'}`,
+            )
+            .join('; '),
+        );
+      }
     }
 
-    if (library.includes?.globalCss !== false) {
+    if (pushGlobalAsset) {
       const manifestSyncResult = await syncManifestArtifacts(
         getConfig().outputDir,
         { apiService, logInfo: () => {} },
@@ -253,40 +368,74 @@ async function applyToSite(
         globalAssetLibraryUpdate,
         manifestSyncResult,
       );
+      nextGlobalAsset!.pushedSourceHash = desiredGlobalHash;
     }
     await apiService.signalPushComplete();
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await apiService.signalPushFail(message);
     outcome.error = message;
+    // Record the components that did land. Leaving them out would make the next
+    // plan read them as Conflicted and block a resume.
+    await recordBaselines(apiService, uploaded, toUpload, nextComponents);
+    if (nextGlobalAsset?.pushedSourceHash === desiredGlobalHash) {
+      nextGlobalAsset.appliedSourceHash = globalAssetFingerprint(
+        await apiService.getGlobalAssetLibrary().catch(() => undefined),
+      );
+      nextGlobalAsset.observedSourceHash = nextGlobalAsset.appliedSourceHash;
+    }
+    outcome.pushed = uploaded;
+    recordLockEntry(uploaded.length > 0);
     return outcome;
   }
 
-  // Read back the server-assigned active versions. They are the only
-  // authoritative component identity and cannot be computed locally.
-  const after = await readObservedSite(apiService);
-  const now = new Date().toISOString();
-  for (const { component, sourceHash } of toUpload) {
-    const machineName = component.machineName;
-    nextComponents[machineName] = {
-      pushedSourceHash: sourceHash,
-      pushedHash: after[machineName]?.versionHash,
-      observedSourceHash: after[machineName]?.sourceHash,
-      observedHash: after[machineName]?.versionHash,
-    };
-    outcome.pushed.push(machineName);
+  await recordBaselines(
+    apiService,
+    toUpload.map(({ component }) => component.machineName),
+    toUpload,
+    nextComponents,
+  );
+  if (pushGlobalAsset && nextGlobalAsset) {
+    nextGlobalAsset.appliedSourceHash = globalAssetFingerprint(
+      await apiService.getGlobalAssetLibrary(),
+    );
+    nextGlobalAsset.observedSourceHash = nextGlobalAsset.appliedSourceHash;
   }
-  lock.sites[siteName] = {
-    libraryVersion: version,
-    appliedAt: now,
-    appliedBy: appliedBy(),
-    ...(appliedRef ? { appliedRef } : {}),
-    lastRefresh: now,
-    components: nextComponents,
-  };
+  outcome.pushed = toUpload.map(({ component }) => component.machineName);
+  recordLockEntry(true);
   outcome.success = true;
   outcome.changed = true;
   return outcome;
+}
+
+/**
+ * Reads the server-assigned active versions back and records the baseline.
+ *
+ * The active version is the only authoritative component identity and cannot be
+ * computed locally, so it has to be read after every push.
+ */
+async function recordBaselines(
+  apiService: Awaited<ReturnType<typeof createSiteApiService>>,
+  machineNames: string[],
+  desired: { component: BuiltComponent; sourceHash: string }[],
+  into: LockSiteEntry['components'],
+): Promise<void> {
+  if (machineNames.length === 0) {
+    return;
+  }
+  const after = await readObservedSite(apiService);
+  const desiredByName = new Map(
+    desired.map((entry) => [entry.component.machineName, entry.sourceHash]),
+  );
+  for (const machineName of machineNames) {
+    into[machineName] = {
+      pushedSourceHash: desiredByName.get(machineName),
+      pushedHash: after[machineName]?.versionHash,
+      appliedSourceHash: after[machineName]?.sourceHash,
+      observedSourceHash: after[machineName]?.sourceHash,
+      observedHash: after[machineName]?.versionHash,
+    };
+  }
 }
 
 export function applyCommand(program: Command): void {
@@ -418,6 +567,11 @@ export function applyCommand(program: Command): void {
           `Built ${String(build.builtComponents.length)} components`,
           0,
         );
+        const declaredComponents = selectDeclaredComponents(
+          build.builtComponents,
+          library.components,
+          (message) => p.log.warn(message),
+        );
 
         const globalAssetLibrary =
           library.includes?.globalCss === false
@@ -443,23 +597,36 @@ export function applyCommand(program: Command): void {
         );
         const outcomes: SiteOutcome[] = [];
         let stopped = false;
+        // The lockfile is written as soon as each site settles, so a kill
+        // mid-chunk never loses a sibling's record. Writes are serialized
+        // through one promise chain because they all target the same file.
+        let pendingWrite: Promise<void> = Promise.resolve();
+        const persist = () => {
+          pendingWrite = pendingWrite.then(() => {
+            writeLock(lock);
+          });
+          return pendingWrite;
+        };
 
         for (let i = 0; i < targets.length; i += parallelism) {
           const chunk = targets.slice(i, i + parallelism);
           const chunkOutcomes = await Promise.all(
             chunk.map(async (siteName): Promise<SiteOutcome> => {
               try {
-                return await applyToSite(
+                const outcome = await applyToSite(
                   siteName,
                   fleet,
                   library,
                   version,
-                  build.builtComponents,
+                  declaredComponents,
                   globalAssetLibrary,
                   lock,
                   appliedRef,
                 );
+                await persist();
+                return outcome;
               } catch (error) {
+                await persist();
                 return {
                   site: siteName,
                   url: fleet.sites[siteName].url,
@@ -473,9 +640,7 @@ export function applyCommand(program: Command): void {
             }),
           );
           outcomes.push(...chunkOutcomes);
-          // The lockfile is written after every chunk so a crash never loses
-          // the record of what already landed.
-          writeLock(lock);
+          await persist();
           if (
             chunkOutcomes.some((outcome) => !outcome.success) &&
             options.onError === 'stop'

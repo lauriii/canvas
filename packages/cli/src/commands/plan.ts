@@ -6,6 +6,7 @@ import { getConfig } from '../config.js';
 import { createSiteApiService, readObservedSite } from '../lib/fleet-site.js';
 import {
   classifyDrift,
+  globalAssetFingerprint,
   isDiverged,
   readFleet,
   readLibrary,
@@ -18,7 +19,9 @@ import {
 import { buildCanvasProject } from '../utils/build-project.js';
 import { updateConfigFromOptions } from '../utils/command-helpers.js';
 import { printCommandIntro } from '../utils/command-intro.js';
+import { prepareGlobalAssetLibraryUpdate } from '../utils/prepare-push.js';
 import { processInPool } from '../utils/request-pool.js';
+import { selectDeclaredComponents } from './apply.js';
 import { collectRepeatable } from './fleet.js';
 
 import type { Command } from 'commander';
@@ -87,12 +90,19 @@ function summarize(components: ComponentPlan[]): Record<DriftState, number> {
   return counts;
 }
 
-/** Refreshes the lockfile's observed columns for one site. */
+/**
+ * Refreshes the lockfile's observed columns for one site.
+ *
+ * Only the observed columns. The baseline columns record what a successful
+ * apply left behind, so refreshing must never touch them: otherwise looking at
+ * a divergence would absorb it and the next apply would clobber the edit.
+ */
 function recordRefresh(
   lock: LockFile,
   siteName: string,
   observed: ObservedSite,
   componentNames: string[],
+  observedGlobalHash: string | undefined,
 ): void {
   const entry = lock.sites[siteName];
   if (!entry) {
@@ -103,6 +113,12 @@ function recordRefresh(
       ...entry.components[machineName],
       observedHash: observed[machineName]?.versionHash,
       observedSourceHash: observed[machineName]?.sourceHash,
+    };
+  }
+  if (observedGlobalHash !== undefined) {
+    entry.globalAsset = {
+      ...entry.globalAsset,
+      observedSourceHash: observedGlobalHash,
     };
   }
   entry.lastRefresh = new Date().toISOString();
@@ -156,7 +172,9 @@ export function planCommand(program: Command): void {
         // `--refresh-only` asks whether the sites still hold what the CLI last
         // pushed, so the desired state is by definition the pushed state and no
         // build is needed.
+        const includesGlobalCss = library.includes?.globalCss !== false;
         let desiredByComponent = new Map<string, string>();
+        let desiredGlobalHash: string | undefined;
         if (!options.refreshOnly) {
           const { componentDir, aliasBaseDir, outputDir } = getConfig();
           const discoveryResult = await discoverCanvasProject({
@@ -179,11 +197,21 @@ export function planCommand(program: Command): void {
             throw new Error('Library build failed. Cannot compute a plan.');
           }
           desiredByComponent = new Map(
-            build.builtComponents.map((component) => [
+            selectDeclaredComponents(
+              build.builtComponents,
+              library.components,
+              (message) => p.log.warn(message),
+            ).map((component) => [
               component.machineName,
               sourceFingerprint(component.componentPayload),
             ]),
           );
+          if (includesGlobalCss) {
+            desiredGlobalHash = globalAssetFingerprint(
+              (await prepareGlobalAssetLibraryUpdate(outputDir, process.cwd()))
+                .assetLibrary,
+            );
+          }
         }
 
         const results = await processInPool(
@@ -200,6 +228,7 @@ export function planCommand(program: Command): void {
             };
 
             let observed: ObservedSite | undefined;
+            let observedGlobalHash: string | undefined;
             if (options.refresh) {
               const apiService = await createSiteApiService(
                 siteName,
@@ -207,6 +236,11 @@ export function planCommand(program: Command): void {
                 resolveSiteCredentials(siteName, site),
               );
               observed = await readObservedSite(apiService);
+              if (includesGlobalCss) {
+                observedGlobalHash = globalAssetFingerprint(
+                  await apiService.getGlobalAssetLibrary(),
+                );
+              }
             }
 
             const componentNames = [
@@ -227,14 +261,37 @@ export function planCommand(program: Command): void {
                     ? locked?.pushedSourceHash
                     : desiredByComponent.get(machineName),
                   locked,
+                  refreshed: options.refresh,
                   observedSourceHash: observed?.[machineName]?.sourceHash,
                   observedHash: observed?.[machineName]?.versionHash,
                 }),
               });
             }
 
+            // Global CSS is diffed alongside the components: a release that
+            // only changes it must not read as no changes.
+            if (includesGlobalCss) {
+              plan.components.push({
+                component: 'global CSS',
+                state: classifyDrift({
+                  desiredSourceHash: options.refreshOnly
+                    ? lockEntry?.globalAsset?.pushedSourceHash
+                    : desiredGlobalHash,
+                  locked: lockEntry?.globalAsset,
+                  refreshed: options.refresh,
+                  observedSourceHash: observedGlobalHash,
+                }),
+              });
+            }
+
             if (options.refreshOnly && observed) {
-              recordRefresh(lock, siteName, observed, componentNames);
+              recordRefresh(
+                lock,
+                siteName,
+                observed,
+                componentNames,
+                observedGlobalHash,
+              );
             }
             return plan;
           },

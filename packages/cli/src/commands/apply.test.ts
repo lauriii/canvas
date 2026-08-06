@@ -8,8 +8,12 @@ import * as p from '@clack/prompts';
 import { readLock, sourceFingerprint } from '../lib/fleet';
 import { createSiteApiService, readObservedSite } from '../lib/fleet-site';
 import { buildCanvasProject } from '../utils/build-project';
-import { uploadComponents } from '../utils/prepare-push';
+import {
+  prepareGlobalAssetLibraryUpdate,
+  uploadComponents,
+} from '../utils/prepare-push';
 import { applyCommand, compareVersions } from './apply';
+import { updateGlobalAssetLibraryForPush } from './push';
 
 import type { ObservedSite } from '../lib/fleet-site';
 import type { Component } from '../types/Component';
@@ -57,7 +61,10 @@ vi.mock('../utils/prepare-push', () => ({
   uploadComponents: vi.fn(),
   prepareGlobalAssetLibraryUpdate: vi.fn(async () => ({
     result: { itemName: 'css', success: true },
-    assetLibrary: {},
+    assetLibrary: {
+      css: { original: 'body {}', compiled: 'compiled-a' },
+      js: { original: '', compiled: '' },
+    },
   })),
 }));
 
@@ -86,6 +93,16 @@ const HERO = {
   dataDependencies: {},
 } as unknown as Component;
 const HERO_HASH = sourceFingerprint(HERO);
+
+/** What the mocked sites report for the global asset library. */
+const GLOBAL_ASSET = {
+  id: 'global',
+  label: 'Global',
+  // The compiled column differs from the local build on purpose: only authored
+  // content is fingerprinted.
+  css: { original: 'body {}', compiled: 'compiled-on-site' },
+  js: { original: 'site', compiled: 'site' },
+};
 
 const FLEET = {
   groups: { 'wave-1': ['alpha', 'beta'], prod: ['gamma'] },
@@ -188,6 +205,7 @@ describe('applyCommand', () => {
           signalPushStart: vi.fn(),
           signalPushComplete: vi.fn(),
           signalPushFail: vi.fn(),
+          getGlobalAssetLibrary: vi.fn(async () => GLOBAL_ASSET),
         }) as never,
     );
     vi.mocked(readObservedSite).mockImplementation(async (apiService) => {
@@ -315,17 +333,118 @@ describe('applyCommand', () => {
     expect(readLock(root).sites.alpha.components.hero.observedSourceHash).toBe(
       'edited-on-site',
     );
+    // ...but the baseline is untouched, or the divergence would be absorbed.
+    expect(readLock(root).sites.alpha.components.hero.appliedSourceHash).toBe(
+      HERO_HASH,
+    );
+  });
+
+  it('keeps refusing a divergence it has already seen once', async () => {
+    await run('--site', 'alpha', '--yes');
+    const edited: ObservedSite = {
+      hero: {
+        sourceHash: 'edited-on-site',
+        versionHash: 'v-hero',
+        payload: HERO,
+      },
+    };
+    // First apply after the edit records the observation and skips.
+    observedQueues.alpha = [edited];
+    await run('--site', 'alpha', '--yes');
+    vi.mocked(uploadComponents).mockClear();
+
+    // A second apply must still refuse, not treat the recorded observation as
+    // the new baseline.
+    observedQueues.alpha = [edited];
+    await run('--site', 'alpha', '--yes');
+
+    expect(uploadComponents).not.toHaveBeenCalled();
+    expect(p.log.warn).toHaveBeenCalledWith(
+      expect.stringContaining('skipped hero (diverged)'),
+    );
+  });
+
+  it('records the components that landed when a later step fails', async () => {
+    vi.mocked(updateGlobalAssetLibraryForPush).mockRejectedValueOnce(
+      new Error('asset library rejected'),
+    );
+
+    await run('--site', 'alpha', '--yes');
+
+    expect(process.exitCode).toBe(1);
+    // Without this the next plan would read hero as Conflicted and block a
+    // resume, even though it was pushed successfully.
+    expect(readLock(root).sites.alpha.components.hero).toMatchObject({
+      pushedSourceHash: HERO_HASH,
+      pushedHash: 'v-hero',
+      appliedSourceHash: HERO_HASH,
+    });
+  });
+
+  it('does not distribute components the manifest does not declare', async () => {
+    vi.mocked(buildCanvasProject).mockResolvedValue({
+      builtComponents: [
+        {
+          machineName: 'hero',
+          componentName: 'Hero',
+          componentPayload: HERO,
+          importedJsComponents: [],
+        },
+        {
+          machineName: 'experiment',
+          componentName: 'Experiment',
+          componentPayload: HERO,
+          importedJsComponents: [],
+        },
+      ],
+      componentResults: [{ itemName: 'hero', success: true }],
+      tailwindResult: { itemName: 'Tailwind CSS', success: true },
+    } as unknown as Awaited<ReturnType<typeof buildCanvasProject>>);
+
+    await run('--site', 'alpha', '--yes');
+
+    expect(vi.mocked(uploadComponents).mock.calls[0][0]).toStrictEqual([
+      expect.objectContaining({ machineName: 'hero' }),
+    ]);
+    expect(p.log.warn).toHaveBeenCalledWith(
+      expect.stringContaining('Not distributing experiment'),
+    );
   });
 
   it('writes nothing when every component is already in sync', async () => {
     await run('--site', 'alpha', '--yes');
     vi.mocked(uploadComponents).mockClear();
+    vi.mocked(updateGlobalAssetLibraryForPush).mockClear();
 
     observedQueues.alpha = [inSync()];
     await run('--site', 'alpha', '--yes');
 
     expect(uploadComponents).not.toHaveBeenCalled();
+    expect(updateGlobalAssetLibraryForPush).not.toHaveBeenCalled();
     expect(process.exitCode).toBeUndefined();
+  });
+
+  it('distributes a release that only changes global CSS', async () => {
+    await run('--site', 'alpha', '--yes');
+    vi.mocked(uploadComponents).mockClear();
+    vi.mocked(updateGlobalAssetLibraryForPush).mockClear();
+
+    // Components unchanged; only the authored global CSS moved.
+    observedQueues.alpha = [inSync(), inSync()];
+    vi.mocked(prepareGlobalAssetLibraryUpdate).mockResolvedValue({
+      result: { itemName: 'css', success: true },
+      assetLibrary: {
+        css: { original: 'body { color: red }', compiled: 'compiled-b' },
+        js: { original: '', compiled: '' },
+      },
+    } as unknown as Awaited<
+      ReturnType<typeof prepareGlobalAssetLibraryUpdate>
+    >);
+
+    await run('--site', 'alpha', '--yes');
+
+    expect(uploadComponents).not.toHaveBeenCalled();
+    expect(updateGlobalAssetLibraryForPush).toHaveBeenCalledTimes(1);
   });
 
   it('stops after a failing site and names the untouched ones', async () => {
@@ -358,6 +477,7 @@ describe('applyCommand', () => {
         signalPushStart: vi.fn(),
         signalPushComplete: vi.fn(),
         signalPushFail: vi.fn(),
+        getGlobalAssetLibrary: vi.fn(async () => GLOBAL_ASSET),
       } as never;
     });
 
