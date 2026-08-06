@@ -40,6 +40,7 @@ import type {
   DriftState,
   FleetFile,
   LibraryFile,
+  LockComponentEntry,
   LockFile,
   LockSiteEntry,
 } from '../lib/fleet.js';
@@ -326,6 +327,7 @@ async function applyToSite(
 
   await apiService.signalPushStart();
   let uploaded: string[] = [];
+  let globalAssetWritten = false;
   try {
     if (toUpload.length > 0) {
       // Create and update only. Components on the site that the library does
@@ -368,24 +370,25 @@ async function applyToSite(
         globalAssetLibraryUpdate,
         manifestSyncResult,
       );
-      nextGlobalAsset!.pushedSourceHash = desiredGlobalHash;
+      globalAssetWritten = true;
     }
     await apiService.signalPushComplete();
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await apiService.signalPushFail(message);
     outcome.error = message;
-    // Record the components that did land. Leaving them out would make the next
-    // plan read them as Conflicted and block a resume.
+    // Record what did land. Leaving it out would make the next plan read those
+    // components as Conflicted and block a resume.
     await recordBaselines(apiService, uploaded, toUpload, nextComponents);
-    if (nextGlobalAsset?.pushedSourceHash === desiredGlobalHash) {
-      nextGlobalAsset.appliedSourceHash = globalAssetFingerprint(
-        await apiService.getGlobalAssetLibrary().catch(() => undefined),
+    if (globalAssetWritten && nextGlobalAsset) {
+      await recordGlobalAssetBaseline(
+        apiService,
+        nextGlobalAsset,
+        desiredGlobalHash,
       );
-      nextGlobalAsset.observedSourceHash = nextGlobalAsset.appliedSourceHash;
     }
     outcome.pushed = uploaded;
-    recordLockEntry(uploaded.length > 0);
+    recordLockEntry(uploaded.length > 0 || globalAssetWritten);
     return outcome;
   }
 
@@ -395,17 +398,39 @@ async function applyToSite(
     toUpload,
     nextComponents,
   );
-  if (pushGlobalAsset && nextGlobalAsset) {
-    nextGlobalAsset.appliedSourceHash = globalAssetFingerprint(
-      await apiService.getGlobalAssetLibrary(),
+  if (globalAssetWritten && nextGlobalAsset) {
+    await recordGlobalAssetBaseline(
+      apiService,
+      nextGlobalAsset,
+      desiredGlobalHash,
     );
-    nextGlobalAsset.observedSourceHash = nextGlobalAsset.appliedSourceHash;
   }
   outcome.pushed = toUpload.map(({ component }) => component.machineName);
   recordLockEntry(true);
   outcome.success = true;
   outcome.changed = true;
   return outcome;
+}
+
+/**
+ * Records the global asset baseline after a successful write.
+ *
+ * If the read-back fails the entry is left without a baseline, so the next run
+ * treats the global asset as unapplied and re-pushes it rather than reporting a
+ * divergence that did not happen.
+ */
+async function recordGlobalAssetBaseline(
+  apiService: Awaited<ReturnType<typeof createSiteApiService>>,
+  entry: LockComponentEntry,
+  desiredHash: string,
+): Promise<void> {
+  const after = await apiService.getGlobalAssetLibrary().catch(() => undefined);
+  if (!after) {
+    return;
+  }
+  entry.pushedSourceHash = desiredHash;
+  entry.appliedSourceHash = globalAssetFingerprint(after);
+  entry.observedSourceHash = entry.appliedSourceHash;
 }
 
 /**
