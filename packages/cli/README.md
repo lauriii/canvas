@@ -799,9 +799,11 @@ These limits are real. Read them before relying on the commands.
 - **Drift detection is advisory and point-in-time.** A site edited five minutes
   after `plan` shows as in sync until the next refresh. Nothing self-heals.
   Component contract changes are detected exactly, from the site-reported
-  `active_version`; edits that only change component code are detected by
-  comparing authored source, which assumes the API returns that source
-  unchanged.
+  `active_version`. Edits that only change component code do **not** change
+  `active_version`, so they are detected by comparing authored source instead.
+  That comparison has been verified to round-trip exactly against a live site,
+  but it remains advisory: it depends on the API continuing to return authored
+  source unchanged, and is not backed by a server-computed identity.
 - **No blast radius reporting.** The CLI cannot count how many page instances
   reference a component: Canvas's usage endpoints are not part of the external
   API that OAuth clients may call.

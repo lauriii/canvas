@@ -20,6 +20,7 @@ import {
   resolveSiteCredentials,
 } from '../lib/fleet.js';
 import { printCommandIntro } from '../utils/command-intro.js';
+import { parseImportedJsComponents } from '../utils/process-component-files.js';
 
 import type { Command } from 'commander';
 import type { FleetFile, LibraryFile } from '../lib/fleet.js';
@@ -295,7 +296,14 @@ export function changesetCommand(program: Command): void {
       let failures = 0;
       for (const { machineName, payload } of restorable) {
         try {
-          await apiService.updateComponent(machineName, payload);
+          // The API omits `importedJsComponents` on read but requires it on
+          // write, so a captured payload cannot be sent back untouched.
+          await apiService.updateComponent(machineName, {
+            ...payload,
+            importedJsComponents:
+              payload.importedJsComponents ??
+              parseImportedJsComponents(payload.sourceCodeJs),
+          });
           p.log.success(`Restored ${machineName}`);
         } catch (error) {
           failures += 1;

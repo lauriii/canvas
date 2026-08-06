@@ -369,15 +369,20 @@ export function resolveSiteCredentials(
 }
 
 function canonicalize(value: unknown): unknown {
+  // PHP serializes an empty map as `[]`, so the API returns `[]` for the same
+  // `slots` or `dataDependencies` the CLI sends as `{}`. Both mean "no
+  // entries"; collapsing them keeps a round-trip from looking like an edit.
   if (Array.isArray(value)) {
-    return value.map(canonicalize);
+    return value.length === 0 ? null : value.map(canonicalize);
   }
   if (value && typeof value === 'object') {
     const source = value as Record<string, unknown>;
+    const keys = Object.keys(source).sort();
+    if (keys.length === 0) {
+      return null;
+    }
     return Object.fromEntries(
-      Object.keys(source)
-        .sort()
-        .map((key) => [key, canonicalize(source[key])]),
+      keys.map((key) => [key, canonicalize(source[key])]),
     );
   }
   return value;

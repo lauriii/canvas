@@ -242,6 +242,8 @@ describe('changeset commands', () => {
         version: 'v0',
         payload: {
           machineName: 'hero',
+          sourceCodeJs:
+            "import Button from '@/components/button';\nexport default Button;",
         } as Changeset['components'][string]['payload'],
       },
       cta: { present: false },
@@ -285,8 +287,13 @@ describe('changeset commands', () => {
     await run('changeset', 'restore', changeset.id, '--yes');
 
     expect(updateComponent).toHaveBeenCalledTimes(1);
+    // The API omits `importedJsComponents` on read but requires it on write, so
+    // restore has to derive it from the captured source.
     expect(updateComponent).toHaveBeenCalledWith('hero', {
       machineName: 'hero',
+      sourceCodeJs:
+        "import Button from '@/components/button';\nexport default Button;",
+      importedJsComponents: ['button'],
     });
     expect(p.log.warn).toHaveBeenCalledWith(expect.stringContaining('cta'));
     expect(process.exitCode).toBeUndefined();

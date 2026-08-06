@@ -199,6 +199,18 @@ describe('sourceFingerprint', () => {
       sourceFingerprint(component({ sourceCodeCss: '.hero { color: red }' })),
     );
   });
+
+  it('treats an empty map and an empty list as the same nothing', () => {
+    // The CLI sends `slots: {}`; PHP serializes the same empty map back as
+    // `slots: []`. A round-trip must not read as an edit.
+    expect(
+      sourceFingerprint(component({ slots: {}, dataDependencies: {} })),
+    ).toBe(sourceFingerprint(component({ slots: [], dataDependencies: [] })));
+    // A populated map is still distinguishable.
+    expect(sourceFingerprint(component({ slots: {} }))).not.toBe(
+      sourceFingerprint(component({ slots: { body: { title: 'Body' } } })),
+    );
+  });
 });
 
 describe('classifyDrift', () => {
