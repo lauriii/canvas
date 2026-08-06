@@ -32,15 +32,34 @@ final class CanvasContentApiRequestTest extends UnitTestCase {
           self::assertSame(HttpKernelInterface::MAIN_REQUEST, $type);
           self::assertTrue($catch);
           self::assertSame('/articles/example', $request->getPathInfo());
-          self::assertSame('/articles/example?campaign=test', $request->getRequestUri());
+          self::assertSame(
+            '/articles/example?' . http_build_query([
+              'campaign' => 'test',
+              CanvasContentApiRequest::PREVIEW_VIEW_MODE_QUERY => 'route-view-mode',
+              CanvasContentApiRequest::API_QUERY_PARAMETERS_KEY => [
+                CanvasContentApiRequest::PREVIEW_VIEW_MODE_QUERY => 'teaser',
+              ],
+            ]),
+            $request->getRequestUri(),
+          );
           self::assertSame(
             CanvasContentApiRequest::REQUEST_FORMAT,
             $request->getRequestFormat(),
           );
-          self::assertSame(['campaign' => 'test'], $request->query->all());
+          self::assertSame([
+            'campaign' => 'test',
+            CanvasContentApiRequest::PREVIEW_VIEW_MODE_QUERY => 'route-view-mode',
+            CanvasContentApiRequest::API_QUERY_PARAMETERS_KEY => [
+              CanvasContentApiRequest::PREVIEW_VIEW_MODE_QUERY => 'teaser',
+            ],
+          ], $request->query->all());
           self::assertSame(
-            '/articles/example?campaign=test',
+            '/articles/example?campaign=test&viewMode=route-view-mode',
             $request->attributes->get(CanvasContentApiRequest::REQUESTED_URI_ATTRIBUTE),
+          );
+          self::assertSame(
+            [CanvasContentApiRequest::PREVIEW_VIEW_MODE_QUERY => 'teaser'],
+            $request->attributes->get(CanvasContentApiRequest::API_QUERY_PARAMETERS_KEY),
           );
           self::assertSame('Bearer preview-token', $request->headers->get('Authorization'));
           return new Response();
@@ -49,7 +68,10 @@ final class CanvasContentApiRequestTest extends UnitTestCase {
     $middleware = new CanvasContentApiRequest($kernel);
     $request = Request::create(
       'https://drupal.example/canvas/content-api?' .
-      http_build_query(['requestUri' => '/articles/example?campaign=test']),
+      http_build_query([
+        'requestUri' => '/articles/example?campaign=test&viewMode=route-view-mode',
+        CanvasContentApiRequest::PREVIEW_VIEW_MODE_QUERY => 'teaser',
+      ]),
     );
     $request->headers->set('Authorization', 'Bearer preview-token');
 

@@ -27,10 +27,12 @@ interface PreviewAssertionFactoryInterface {
    *   context. The grant requires PKCE proof of the running session to
    *   redeem them; activation assertions (FALSE) travel in URLs and are
    *   redeemed server-side, never touching script context.
+   * @param array{viewMode?: string} $preview_context
+   *   Optional rendering context for a content-template preview.
    *
    * @return string
    *   The serialized, signed JWT.
    */
-  public function issue(AccountInterface $user, string $path, string $resource_version, bool $renewal = FALSE): string;
+  public function issue(AccountInterface $user, string $path, string $resource_version, bool $renewal = FALSE, array $preview_context = []): string;
 
 }

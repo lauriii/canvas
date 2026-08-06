@@ -13,6 +13,7 @@ import {
   HEADLESS_GEOMETRY_REQUEST_MESSAGE,
   HEADLESS_REFRESH_ACK_MESSAGE,
   HEADLESS_REFRESH_MESSAGE,
+  HEADLESS_RENEW_REQUEST_MESSAGE,
   HEADLESS_STATUS_MESSAGE,
   HEADLESS_STATUS_REQUEST_MESSAGE,
 } from './index';
@@ -117,6 +118,51 @@ describe('headless height probing', () => {
     expect(iframe.style.height).toBe('500px');
     expect(postMessage).not.toHaveBeenCalled();
 
+    host.destroy();
+  });
+
+  it('preserves content-template context when renewing', async () => {
+    const iframe = document.createElement('iframe');
+    document.body.append(iframe);
+    const fetchAssertion = vi.fn().mockResolvedValue('signed assertion');
+    const host = createHeadlessPreviewHost({
+      iframe,
+      frontendOrigin: FRONTEND_ORIGIN,
+      draftUrl: 'https://app.example/api/draft',
+      fetchAssertion,
+    });
+
+    await host.activate({
+      entity_type: 'node',
+      entity: '42',
+      view_mode: 'teaser',
+    });
+    const postMessage = vi.spyOn(iframe.contentWindow!, 'postMessage');
+    iframe.dispatchEvent(new Event('load'));
+    const statusRequest = postMessage.mock.calls[0][0] as {
+      hostSessionId: string;
+    };
+    fetchAssertion.mockClear();
+
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        origin: FRONTEND_ORIGIN,
+        source: iframe.contentWindow,
+        data: {
+          type: HEADLESS_RENEW_REQUEST_MESSAGE,
+          path: '/node/42',
+          hostSessionId: statusRequest.hostSessionId,
+        },
+      }),
+    );
+
+    await vi.waitFor(() =>
+      expect(fetchAssertion).toHaveBeenCalledWith({
+        path: '/node/42',
+        view_mode: 'teaser',
+        renewal: '1',
+      }),
+    );
     host.destroy();
   });
 

@@ -11,6 +11,7 @@ use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas_headless\Grant\PreviewAssertionGrant;
 use Drupal\canvas_headless\PreviewAssertionFactory;
+use Drupal\canvas_headless\StackMiddleware\CanvasContentApiRequest;
 use Drupal\consumers\Entity\Consumer;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
@@ -330,6 +331,21 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
       'status' => TRUE,
     ]);
     $template->save();
+    ContentTemplate::create([
+      'id' => 'node.article.teaser',
+      'content_entity_type_id' => 'node',
+      'content_entity_type_bundle' => 'article',
+      'content_entity_type_view_mode' => 'teaser',
+      'component_tree' => [
+        [
+          'uuid' => $this->container->get('uuid')->generate(),
+          'component_id' => $component->id(),
+          'component_version' => $component->getActiveVersion(),
+          'inputs' => ['heading' => 'Teaser template heading'],
+        ],
+      ],
+      'status' => TRUE,
+    ])->save();
     $this->setCurrentAccount($this->editor);
 
     $response = $this->renderContentPath('/node/' . $node->id());
@@ -362,6 +378,18 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     );
 
     $this->setCurrentAccount($this->createTokenAccount(with_preview_scope: TRUE));
+    $teaser_preview = $this->renderContentPath(
+      '/node/' . $node->id(),
+      ['viewMode' => 'teaser'],
+    );
+    self::assertStringContainsString(
+      'Teaser template heading',
+      \json_encode(self::responseData($teaser_preview)['content'], JSON_THROW_ON_ERROR),
+    );
+    self::assertContains(
+      'url.query_args:' . CanvasContentApiRequest::API_QUERY_PARAMETERS_KEY,
+      $teaser_preview->getCacheableMetadata()->getCacheContexts(),
+    );
     $stored_preview = $this->renderContentPath('/node/' . $node->id());
     $stored_preview_content = \json_encode(
       self::responseData($stored_preview)['content'],
@@ -672,10 +700,16 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
 
   /**
    * Renders a routed entity through the public kernel boundary.
+   *
+   * @param array{viewMode?: string} $preview_context
+   *   Optional content-template preview context.
    */
-  private function renderContentPath(string $request_uri): CacheableJsonResponse {
+  private function renderContentPath(string $request_uri, array $preview_context = []): CacheableJsonResponse {
     $request = Request::create(
-      '/canvas/content-api?' . http_build_query(['requestUri' => $request_uri]),
+      '/canvas/content-api?' . http_build_query([
+        'requestUri' => $request_uri,
+        ...$preview_context,
+      ]),
     );
     $response = $this->request($request);
     self::assertInstanceOf(CacheableJsonResponse::class, $response);

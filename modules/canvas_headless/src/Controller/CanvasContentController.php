@@ -67,15 +67,24 @@ final class CanvasContentController {
 
     if ($entity instanceof ContentEntityInterface) {
       $is_preview = PreviewTokenInspector::hasPreviewScope($this->currentUser->getAccount());
+      $view_mode = NULL;
       if ($is_preview) {
         $route = $route_match->getRouteObject();
         \assert($route !== NULL);
         $route->setOption('_canvas_use_template_draft', TRUE);
+        $api_query_parameters = $request->attributes->get(
+          CanvasContentApiRequest::API_QUERY_PARAMETERS_KEY,
+          [],
+        );
+        \assert(\is_array($api_query_parameters));
+        $view_mode = $api_query_parameters[CanvasContentApiRequest::PREVIEW_VIEW_MODE_QUERY] ?? NULL;
+        \assert($view_mode === NULL || \is_string($view_mode));
       }
 
       [$build, $rendered_entity, $render_cacheability] = $this->renderEntity(
         $entity,
         $is_preview,
+        $view_mode ?? 'full',
       );
       $managed_by_canvas = $build !== NULL;
       $head_result = $this->headBuilder->build($rendered_entity);
@@ -175,6 +184,11 @@ final class CanvasContentController {
       ->addCacheableDependency($entity)
       ->addCacheTags([$entity->getEntityTypeId() . '_view'])
       ->addCacheContexts(['oauth2_scopes']);
+    if ($is_preview) {
+      $cacheability->addCacheContexts([
+        'url.query_args:' . CanvasContentApiRequest::API_QUERY_PARAMETERS_KEY,
+      ]);
+    }
     if ($build !== NULL) {
       $cacheability->addCacheableDependency(
         CacheableMetadata::createFromRenderArray($build),

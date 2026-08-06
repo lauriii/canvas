@@ -12,7 +12,6 @@ import {
 import HeadlessPreview from '@/features/layout/preview/HeadlessPreview';
 import { PreviewDomProvider } from '@/features/layout/preview/PreviewDomContext';
 import { PreviewGeometryProvider } from '@/features/layout/preview/PreviewGeometryContext';
-import { useHeadlessPreviewSettings } from '@/features/layout/preview/useHeadlessPreviewSettings';
 import Viewport from '@/features/layout/preview/Viewport';
 import { selectPageData } from '@/features/pageData/pageDataSlice';
 import {
@@ -25,6 +24,7 @@ import {
   selectNeedsPreviewAfterUndoRedo,
   selectSelectedComponentUuid,
 } from '@/features/ui/uiSlice';
+import { useCanvasHeadlessSettings } from '@/hooks/useCanvasHeadlessSettings';
 import { useStableCallback } from '@/hooks/useStableCallback';
 import useSyncTitle from '@/hooks/useSyncTitle';
 import {
@@ -52,7 +52,7 @@ const Preview: React.FC = () => {
   );
   const { entityId, entityType } = useParams();
   const editorFrameContext = useAppSelector(selectEditorFrameContext);
-  const headlessSettings = useHeadlessPreviewSettings();
+  const headlessSettings = useCanvasHeadlessSettings();
   const frameSrcDoc = useAppSelector(selectPreviewHtml);
   const autoSavesHash = useAppSelector(selectAutoSavesHash);
   const { showBoundary } = useErrorBoundary();
