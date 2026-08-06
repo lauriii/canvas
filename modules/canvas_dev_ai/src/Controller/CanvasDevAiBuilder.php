@@ -115,8 +115,8 @@ final class CanvasDevAiBuilder extends ControllerBase {
     // Store the current layout in the temp store. This will be later used by
     // the ai agents.
     // @see \Drupal\canvas_ai\Plugin\AiFunctionCall\GetCurrentLayout.
-    // Only the JSON request branch carries the layout; multipart requests,
-    // which the chat sends when the user attaches an image, do not.
+    // Both request branches carry the layout; multipart requests send it as a
+    // JSON string, which normalizePrompt() decodes before this point.
     $current_layout = Json::encode($prompt['current_layout'] ?? '');
     if (!empty($prompt['current_layout'])) {
       $this->canvasAiTempStore->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $current_layout);
@@ -377,7 +377,6 @@ final class CanvasDevAiBuilder extends ControllerBase {
       'entity_type' => $prompt['entity_type'] ?? NULL,
       'entity_id' => $prompt['entity_id'] ?? NULL,
       'selected_component' => $selected_component,
-      'layout' => $prompt['layout'] ?? NULL,
       'derived_proptypes' => Json::encode($prompt['derived_proptypes']),
       'page_title' => $prompt['page_title'] ?? NULL,
       'page_description' => $prompt['page_description'] ?? NULL,
