@@ -43,11 +43,9 @@ import { isPropSourceComponent } from '@/types/Component';
 import { getBaseUrl, getDrupalSettings } from '@/utils/drupal-globals';
 
 import fixtureProps from '../../../../modules/canvas_ai/src/PropsSchema.json';
+import { buildCurrentLayout } from './currentLayout';
 
-import type {
-  ComponentNode,
-  LayoutModelSliceState,
-} from '@/features/layout/layoutModelSlice';
+import type { LayoutModelSliceState } from '@/features/layout/layoutModelSlice';
 import type { CodeComponent } from '@/types/CodeComponent';
 import type { CanvasComponent, PropSourceComponent } from '@/types/Component';
 
@@ -620,60 +618,15 @@ const AiWizardDev = () => {
     }
   }, [availableComponents]);
 
-  // Helper to transform the current layout into a JSON representation.
-  const transformLayout = useCallback(() => {
-    const theLayout = store.getState()?.layoutModel?.present as
+  // Reads the layout and its model from the same store snapshot, so the
+  // structure and the prop values describe the same state.
+  const transformLayout = () => {
+    const state = store.getState();
+    const theLayout = state?.layoutModel?.present as
       | LayoutModelSliceState
       | undefined;
     if (!theLayout?.layout) return null;
-    const result: any = { regions: {} };
-    theLayout.layout.forEach((region, regionIndex) => {
-      result.regions[region.id] = {
-        nodePathPrefix: [regionIndex],
-        components: [],
-      };
-      result.regions[region.id].components = processComponents(
-        region.components,
-        theLayout.layout,
-      );
-    });
-    return result;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [store]);
-
-  // Helper to recursively process components
-  const processComponents = (
-    components: ComponentNode[] | undefined,
-    layout: LayoutModelSliceState['layout'],
-    parentPath: string[] = [],
-  ): any[] => {
-    if (!components) return [];
-    return components.map((component) => {
-      let nodePath: number[] | null = null;
-      try {
-        nodePath = layoutUtils.findNodePathByUuid(layout, component.uuid);
-      } catch (e) {
-        console.warn(`Could not find nodePath for ${component.uuid}`);
-      }
-      const transformedComponent: any = {
-        name: component.type?.split('@')[0],
-        uuid: component.uuid,
-        nodePath: nodePath,
-      };
-      // Handle slots if they exist
-      if (component.slots && component.slots.length > 0) {
-        transformedComponent.slots = {};
-        component.slots.forEach((slot) => {
-          transformedComponent.slots[slot.id] = {
-            components: processComponents(slot.components, layout, [
-              ...parentPath,
-              component.uuid,
-            ]),
-          };
-        });
-      }
-      return transformedComponent;
-    });
+    return buildCurrentLayout(theLayout.layout, selectModel(state));
   };
 
   // Cleanup effect to abort requests when component unmounts
@@ -874,14 +827,6 @@ const AiWizardDev = () => {
               current.params.codeComponentId || current.codeComponentName,
             selected_component_required_props:
               current.codeComponentRequiredProps || [],
-            layout: JSON.stringify(
-              Object.fromEntries(
-                Object.entries(selectModel(state)).map(([uuid, comp]) => [
-                  uuid,
-                  comp.resolved,
-                ]),
-              ),
-            ),
             active_component_uuid: state.ui.selection.items[0] ?? '',
             current_layout: transformLayout(),
             derived_proptypes: fixtureProps,
