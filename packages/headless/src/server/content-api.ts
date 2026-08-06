@@ -155,6 +155,9 @@ export async function fetchPage(
 
   const url = new URL(`${baseUrl.replace(/\/$/, '')}/canvas/content-api`);
   url.searchParams.set('requestUri', requestUri);
+  if (liveDraft && draftData?.previewContext?.viewMode) {
+    url.searchParams.set('viewMode', draftData.previewContext.viewMode);
+  }
   const response = await fetchImpl(url, {
     headers,
     cache: 'no-store',

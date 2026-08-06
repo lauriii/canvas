@@ -14,6 +14,7 @@ import type { HeadlessSettings } from '@drupal-canvas/types';
 let latestOnHeight: ((height: number) => void) | undefined;
 let navigateTo: ReturnType<typeof useNavigate> | undefined;
 const setViewportHeight = vi.fn();
+const activate = vi.fn().mockResolvedValue(undefined);
 const PREVIEW_HEIGHT_PROPERTY = '--canvas-headless-preview-height';
 
 vi.mock('@/features/layout/preview/PreviewGeometryContext', () => ({
@@ -38,7 +39,7 @@ vi.mock('@drupal-canvas/headless-host', () => ({
     }) => {
       latestOnHeight = onHeight;
       return {
-        activate: vi.fn().mockResolvedValue(undefined),
+        activate,
         destroy: vi.fn(),
         refresh: vi.fn(),
         setViewportHeight,
@@ -60,18 +61,22 @@ const SETTINGS: HeadlessSettings = {
   assertionUrl: '/canvas-headless/assertion',
 };
 
-function renderPreview(viewportMinHeight: number) {
+function renderPreview(
+  viewportMinHeight: number,
+  initialEntry = '/node/1',
+  routePath = '/:entityType/:entityId',
+) {
   const store = makeStore();
   store.dispatch(setViewportWidth(800));
   store.dispatch(setViewportMinHeight(viewportMinHeight));
 
   render(
     <Provider store={store}>
-      <MemoryRouter initialEntries={['/node/1']}>
+      <MemoryRouter initialEntries={[initialEntry]}>
         <NavigationBridge />
         <Routes>
           <Route
-            path="/:entityType/:entityId"
+            path={routePath}
             element={<HeadlessPreview settings={SETTINGS} autoSavesHash={{}} />}
           />
         </Routes>
@@ -92,6 +97,46 @@ function getPreviewHeight(element: HTMLElement) {
 describe('HeadlessPreview', () => {
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it('activates a content-template preview through its selected content entity', async () => {
+    renderPreview(
+      500,
+      '/template/node/article/full/42',
+      '/template/:entityType/:bundle/:viewMode/:previewEntityId',
+    );
+
+    await waitFor(() =>
+      expect(activate).toHaveBeenCalledWith({
+        entity_type: 'node',
+        entity: '42',
+        view_mode: 'full',
+      }),
+    );
+  });
+
+  it('ignores viewportMinHeight for non-full view modes so the frame is content-sized', async () => {
+    renderPreview(
+      500,
+      '/template/node/article/teaser/42',
+      '/template/:entityType/:bundle/:viewMode/:previewEntityId',
+    );
+
+    // The device-viewport floor never reaches the app or the frame: a non-full
+    // view mode is sized entirely by its reported content height.
+    await waitFor(() => expect(setViewportHeight).toHaveBeenCalledWith(0));
+
+    const iframe = screen.getByTestId('canvas-headless-iframe');
+    expect(getPreviewHeight(iframe)).toEqual({
+      declaration: `var(${PREVIEW_HEIGHT_PROPERTY})`,
+      value: '0px',
+    });
+
+    act(() => latestOnHeight?.(200));
+    expect(getPreviewHeight(iframe)).toEqual({
+      declaration: `var(${PREVIEW_HEIGHT_PROPERTY})`,
+      value: '200px',
+    });
   });
 
   it('falls back to viewportMinHeight before any height report arrives', () => {

@@ -89,7 +89,7 @@ class PreviewAssertionFactory implements PreviewAssertionFactoryInterface {
   /**
    * {@inheritdoc}
    */
-  public function issue(AccountInterface $user, string $path, string $resource_version, bool $renewal = FALSE): string {
+  public function issue(AccountInterface $user, string $path, string $resource_version, bool $renewal = FALSE, array $preview_context = []): string {
     $expiration = (int) $this->configFactory->get('canvas_headless.settings')->get('assertion_expiration');
     $audience = self::tokenEndpointAudience($this->languageManager);
     // The absolute URL of the standalone renewal route, as seen by the
@@ -111,24 +111,29 @@ class PreviewAssertionFactory implements PreviewAssertionFactoryInterface {
     $token = (new JwtFacade())->issue(
       new Sha256(),
       InMemory::file($this->getKeyPath()),
-      fn (Builder $builder, \DateTimeImmutable $now): Builder => $builder
-        ->withHeader('typ', self::TYP_HEADER)
-        ->issuedBy($issuer)
-        ->permittedFor($audience)
-        ->relatedTo((string) $user->id())
-        ->identifiedBy($jti)
-        ->expiresAt($now->modify(\sprintf('+%d seconds', $expiration)))
-        ->withClaim('azp', self::CLIENT_ID)
-        // Which lane the assertion serves. Activation assertions travel in
-        // URLs and are redeemed server-side; renewal assertions are relayed
-        // into the embedded app over postMessage and pass through script
-        // context, so the grant demands PKCE proof of the running session
-        // before redeeming them — a script that intercepts one cannot turn
-        // it into a token.
-        ->withClaim('use', $renewal ? 'renewal' : 'activation')
-        ->withClaim('path', $path)
-        ->withClaim('resourceVersion', $resource_version)
-        ->withClaim('renewUrl', $renew_url),
+      function (Builder $builder, \DateTimeImmutable $now) use ($audience, $expiration, $issuer, $jti, $path, $preview_context, $renew_url, $renewal, $resource_version, $user): Builder {
+        $builder = $builder
+          ->withHeader('typ', self::TYP_HEADER)
+          ->issuedBy($issuer)
+          ->permittedFor($audience)
+          ->relatedTo((string) $user->id())
+          ->identifiedBy($jti)
+          ->expiresAt($now->modify(\sprintf('+%d seconds', $expiration)))
+          ->withClaim('azp', self::CLIENT_ID)
+          // Which lane the assertion serves. Activation assertions travel in
+          // URLs and are redeemed server-side; renewal assertions are relayed
+          // into the embedded app over postMessage and pass through script
+          // context, so the grant demands PKCE proof of the running session
+          // before redeeming them — a script that intercepts one cannot turn
+          // it into a token.
+          ->withClaim('use', $renewal ? 'renewal' : 'activation')
+          ->withClaim('path', $path)
+          ->withClaim('resourceVersion', $resource_version)
+          ->withClaim('renewUrl', $renew_url);
+        return $preview_context === []
+          ? $builder
+          : $builder->withClaim('previewContext', $preview_context);
+      },
     );
 
     return $token->toString();

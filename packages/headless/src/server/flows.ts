@@ -92,6 +92,20 @@ export async function redeemAssertion(
   const path = typeof claims?.path === 'string' ? claims.path : null;
   const resourceVersion =
     typeof claims?.resourceVersion === 'string' ? claims.resourceVersion : null;
+  const rawPreviewContext =
+    typeof claims?.previewContext === 'object' && claims.previewContext !== null
+      ? (claims.previewContext as Record<string, unknown>)
+      : null;
+  const previewContext =
+    rawPreviewContext &&
+    (rawPreviewContext.viewMode === undefined ||
+      typeof rawPreviewContext.viewMode === 'string')
+      ? {
+          ...(typeof rawPreviewContext.viewMode === 'string' && {
+            viewMode: rawPreviewContext.viewMode,
+          }),
+        }
+      : undefined;
   const sub = typeof claims?.sub === 'string' && claims.sub ? claims.sub : null;
   const renewUrl =
     typeof claims?.renewUrl === 'string' && /^https?:\/\//.test(claims.renewUrl)
@@ -120,6 +134,7 @@ export async function redeemAssertion(
     draftData: {
       path,
       resourceVersion,
+      ...(previewContext && { previewContext }),
       sub,
       renewUrl,
       accessToken: exchange.accessToken,

@@ -19,6 +19,9 @@ const FLAG_COOKIE = '__test_bypass';
 const validClaims = {
   path: '/node/1',
   resourceVersion: 'rel:working-copy',
+  previewContext: {
+    viewMode: 'teaser',
+  },
   sub: '42',
   renewUrl: 'https://drupal.example/canvas-headless/renew',
 };
@@ -128,6 +131,7 @@ describe('redeemAssertion', () => {
       expect(result.draftData).toMatchObject({
         path: '/node/1',
         resourceVersion: 'rel:working-copy',
+        previewContext: validClaims.previewContext,
         sub: '42',
         renewUrl: validClaims.renewUrl,
         accessToken: 'access-token-value',
@@ -542,7 +546,13 @@ describe('fetchPage', () => {
     const { server, seedSession } = makeServer(
       fetchImpl as unknown as typeof fetch,
     );
-    seedSession(liveDraftData());
+    seedSession(
+      liveDraftData({
+        previewContext: {
+          viewMode: 'teaser',
+        },
+      }),
+    );
 
     await expect(server.fetchPage('/example')).resolves.toEqual({
       ...page,
@@ -550,7 +560,7 @@ describe('fetchPage', () => {
     });
     expect(fetchImpl).toHaveBeenCalledWith(
       new URL(
-        'https://drupal.example/canvas/content-api?requestUri=%2Fexample',
+        'https://drupal.example/canvas/content-api?requestUri=%2Fexample&viewMode=teaser',
       ),
       expect.objectContaining({
         headers: {
