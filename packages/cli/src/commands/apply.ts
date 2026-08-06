@@ -710,7 +710,7 @@ export function applyCommand(program: Command): void {
             );
             if (outcome.skipped.length > 0) {
               p.log.warn(
-                `${outcome.site}: skipped ${outcome.skipped.join(', ')} — run \`canvas plan --site ${outcome.site}\` to inspect.`,
+                `${outcome.site}: skipped ${outcome.skipped.join(', ')}. Run \`canvas plan --site ${outcome.site}\` to inspect.`,
               );
             }
           }

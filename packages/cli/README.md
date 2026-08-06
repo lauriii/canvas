@@ -772,49 +772,60 @@ validation rules.
 
 ## Fleet management
 
-Fleet management distributes one component library to many Canvas sites. It is
-additive: `push` and `pull` are unchanged and keep working against a single site
-when no fleet files are present.
+Fleet management distributes one component library to many Canvas sites. It sits
+alongside what you already use: `push` and `pull` are unchanged, and keep
+working against a single site exactly as before if you do not add the fleet
+files.
 
-All fleet state lives in the library repository and in git. There is no
-server-side registry, link record, or rollout API. Three committed files
-describe everything:
+Everything lives in your library repository, in git. Nothing is stored on the
+Canvas sites themselves beyond the components you push. Three committed files
+describe the whole setup:
 
-- `canvas.library.json` — the library's identity, version, and contents.
-- `canvas.fleet.json` — the inventory of sites and groups. Contains no secrets.
-- `canvas.lock.json` — a cache of last-known per-site state. **Not truth.**
-  Truth is reconstructed by reading the sites with `canvas plan`.
+- `canvas.library.json`: what your library is called, its version, and which
+  components it contains.
+- `canvas.fleet.json`: the list of sites and the groups they belong to. Contains
+  no secrets.
+- `canvas.lock.json`: a record of what was last pushed to each site. Use
+  `canvas plan` to check it against what the sites actually have.
 
 Credentials are never committed. Each site names an environment variable in
 `credentialsEnv` holding `client_id:client_secret`. A site with no
 `credentialsEnv` falls back to the token `canvas login` stored for its URL.
 
-### What fleet management does not guarantee
+### Before you rely on this
 
-These limits are real. Read them before relying on the commands.
+**Run `apply` from one place at a time.** If two people apply to the same sites
+at once, the two runs will overwrite each other's record of what happened. There
+is no locking to stop them. Running applies from CI, one pipeline at a time,
+avoids this.
 
-- **No locking.** Two operators running `apply` against overlapping sites
-  concurrently will race, and the lockfile can be left inconsistent with
-  reality. Run `apply` from CI, one pipeline at a time.
-- **Drift detection is advisory and point-in-time.** A site edited five minutes
-  after `plan` shows as in sync until the next refresh. Nothing self-heals.
-  Component contract changes are detected exactly, from the site-reported
-  `active_version`. Edits that only change component code do **not** change
-  `active_version`, so they are detected by comparing authored source instead.
-  That comparison has been verified to round-trip exactly against a live site,
-  but it remains advisory: it depends on the API continuing to return authored
-  source unchanged, and is not backed by a server-computed identity.
-- **No blast radius reporting.** The CLI cannot count how many page instances
-  reference a component: Canvas's usage endpoints are not part of the external
-  API that OAuth clients may call.
-- **The lockfile can be wrong** whenever anyone bypasses the CLI, including
-  pushing without committing the updated lockfile. Git records intent, not what
-  actually happened on each site.
-- **The permission model is credential possession.** Anyone holding a site's
-  OAuth client credentials can push anything to that site. The CLI cannot
-  enforce an authority boundary because there is no server to enforce it.
-- **No fleet-wide rollback.** `changeset restore` restores one site from one
-  captured changeset, bounded by what the client captured.
+**`plan` tells you what it saw, not what is true right now.** It reads the sites
+when you run it. A component edited a minute later still shows as in sync until
+you run it again. Nothing corrects itself in the background.
+
+**`plan` is a strong check, not a guarantee.** It reliably notices when a
+component's props or slots change. It also notices edits to component code, by
+comparing the code on the site with what was last pushed. That works today, but
+it relies on sites returning component code exactly as it was sent, so treat a
+clean plan as good evidence rather than proof.
+
+**`plan` cannot tell you how many pages use a component.** Canvas can work this
+out, but not through the API this CLI is allowed to call, so no numbers are
+reported rather than misleading ones.
+
+**`canvas.lock.json` only knows what this CLI did.** If someone edits a site
+directly, or runs `apply` without committing the updated lockfile, it will be
+out of date. Run `canvas plan` to check it against the sites and bring it up to
+date.
+
+**Anyone with a site's credentials can push to it.** The CLI has no way to
+restrict who may publish where, because there is no server keeping track. See
+[Keeping production safe](#keeping-production-safe) for where to put those
+controls instead.
+
+**There is no fleet-wide undo.** `changeset restore` puts one site back to the
+state captured before one apply. It cannot roll back the fleet, and it cannot
+recover anything that was never captured.
 
 ### `library init`
 
@@ -872,26 +883,25 @@ npx canvas plan --group prod --json
 
 Each library component on each site lands in one of five states:
 
-| State      | Condition                                    | Meaning                             |
-| ---------- | -------------------------------------------- | ----------------------------------- |
-| In sync    | the site holds what the CLI last pushed      | Nothing to do                       |
-| Behind     | the library moved, the site did not          | Normal update, safe to apply        |
-| Unknown    | no lockfile entry for this site or component | First apply, or lockfile lost       |
-| Diverged   | the site moved, the library did not          | Site-side edit, apply would clobber |
-| Conflicted | both moved                                   | Both sides changed                  |
+| State      | Condition                                   | Meaning                                              |
+| ---------- | ------------------------------------------- | ---------------------------------------------------- |
+| In sync    | the site has what you last pushed           | Nothing to do                                        |
+| Behind     | the library changed, the site did not       | A normal update, safe to apply                       |
+| Unknown    | nothing recorded for this site or component | First apply, or the lockfile was lost                |
+| Diverged   | the site changed, the library did not       | Someone edited the site; applying would overwrite it |
+| Conflicted | both changed                                | You changed it and so did the site                   |
 
-The global asset library (global CSS and `package.json`) is diffed alongside the
-components and appears in the report as `global CSS`, so a release that changes
-only global CSS is not reported as no changes.
+Global CSS is checked alongside the components and shows up as `global CSS`, so
+a release that only changes global CSS is not reported as "no changes".
 
-A component the library declares but that no longer exists on a site reads as
-Unknown, not Diverged: there is nothing to clobber, so `apply` recreates it.
+A component that the library defines but the site no longer has shows as
+Unknown, not Diverged. There is nothing to overwrite, so `apply` recreates it.
 
-Only components listed in `canvas.library.json`'s `components` are planned and
-distributed. A component the build produces but the manifest does not declare is
-reported and left alone; re-run `canvas library init --force` after adding one.
+Only the components listed in `canvas.library.json` are distributed. If the
+build produces a component the file does not list, it is named in the output and
+left alone; re-run `canvas library init --force` after adding one.
 
-**Exit codes** follow Terraform's `-detailed-exitcode` convention:
+**Exit codes**, so a pipeline can act on the result:
 
 - `0`: success, no changes
 - `1`: error
@@ -924,19 +934,19 @@ npx canvas apply --all --exclude brand-main --parallelism 2
 - `--i-know-what-i-am-doing`: required to target a group listed in
   `protectedGroups` from outside CI. This is a speed bump, not a control.
 
-Before touching a site, `apply` captures a changeset under `.canvas/changesets/`
-holding the pre-push state of every component it is about to write. **Diverged
-and conflicted components are skipped and reported, never overwritten**: a push
-replaces a component's source wholesale, so an unguarded fan-out would destroy
-site-side work across the whole fleet in one command.
+Before writing to a site, `apply` saves that site's current state to
+`.canvas/changesets/`, so you can put it back with `changeset restore`.
 
-Components present on a site that the library does not define are site-local and
-are never touched. Removing a component from the library does not remove it from
-the sites; deletion propagation is not implemented.
+**Components that someone has edited on a site are skipped, never overwritten.**
+They are listed in the output so you can decide what to do. This matters because
+pushing a component replaces its code completely, so applying to a whole fleet
+without this check would wipe out other people's work everywhere at once.
 
-Re-running `apply` with no library change and no site drift produces no writes.
-It is not idempotent in the stronger sense of producing byte-identical
-artifacts, because the build step is not guaranteed deterministic.
+Components on a site that your library does not define belong to that site, and
+`apply` leaves them alone. Removing a component from your library does not
+remove it from the sites.
+
+Running `apply` again when nothing has changed writes nothing.
 
 ### `changeset list`, `changeset restore`
 
@@ -949,11 +959,15 @@ npx canvas changeset restore 2026-08-05T10-22-00-000Z-marketing-eu
 the recorded apply created are reported but never deleted: removing a component
 that pages already reference is destructive in a way a source change is not.
 
-### Recommended governance
+### Keeping production safe
 
-The CLI cannot enforce who may publish where, so put governance in git and CI:
-production credentials exist only in CI, humans hold non-production credentials,
-the library repository uses branch protection and CODEOWNERS, a release is a git
-tag, and `apply --group prod` runs only from the pipeline on a tagged commit.
-List production groups in `protectedGroups` so a local `apply` has to be
-deliberate.
+The CLI cannot decide who is allowed to publish where, so put those controls
+where they can actually be enforced:
+
+- Keep production credentials in CI only, and give people credentials for
+  non-production sites.
+- Protect the library repository with branch protection and CODEOWNERS.
+- Make a release a git tag, and run `apply` for production only from your
+  pipeline, on a tagged commit.
+- List your production groups in `protectedGroups`. The CLI then refuses to
+  apply to them from a laptop unless you pass `--i-know-what-i-am-doing`.

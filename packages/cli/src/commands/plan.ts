@@ -29,7 +29,7 @@ import type { ObservedSite } from '../lib/fleet-site.js';
 import type { DriftState, LockFile } from '../lib/fleet.js';
 
 /**
- * What `plan` can and cannot see.
+ * The caveat printed with every plan.
  *
  * Canvas computes a component's `active_version` server-side from the prop
  * contract, using per-site prop shape resolution the CLI has no access to, so
@@ -37,10 +37,14 @@ import type { DriftState, LockFile } from '../lib/fleet.js';
  * signals: the site-reported `active_version` (exact, but blind to code edits
  * that do not change the prop contract) and a fingerprint of the authored
  * source (covers code edits, but assumes the API round-trips that source
- * unchanged). The combination is advisory.
+ * unchanged). Worded for operators, not for the design doc.
  */
-export const ADVISORY_NOTICE =
-  'Drift detection is ADVISORY. Contract changes are exact (server-reported active_version); source edits are detected by comparing authored source and assume the API returns it unchanged. Blast radius is not reported: the usage endpoints are not part of the external API.';
+export const PLAN_ACCURACY_NOTE = [
+  'This compares what was last pushed with what each site reports now.',
+  'It reliably catches prop and slot changes, and catches code edits as long as',
+  'sites return code unchanged, so treat a clean plan as strong evidence rather',
+  'than proof. It cannot tell you how many pages use a component.',
+].join(' ');
 
 export interface PlanOptions {
   site: string[];
@@ -330,7 +334,7 @@ export function planCommand(program: Command): void {
                 library: library.name,
                 version: library.version,
                 driftDetection: 'advisory',
-                driftDetectionNotice: ADVISORY_NOTICE,
+                driftDetectionNotice: PLAN_ACCURACY_NOTE,
                 stale: !options.refresh,
                 plans,
               },
@@ -379,12 +383,12 @@ export function planCommand(program: Command): void {
               );
             }
           }
-          p.log.info(ADVISORY_NOTICE);
+          p.log.info(PLAN_ACCURACY_NOTE);
           p.outro(
             failed.length > 0
               ? `Could not read ${String(failed.length)} of ${String(plans.length)} sites`
               : anyDiverged
-                ? 'Divergence detected — resolve before applying'
+                ? 'Divergence detected: resolve before applying'
                 : anyPending
                   ? 'Changes pending'
                   : 'No changes',

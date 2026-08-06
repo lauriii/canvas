@@ -8,7 +8,7 @@ import type { AssetLibrary, Component } from '../types/Component.js';
 export const LIBRARY_FILENAME = 'canvas.library.json';
 /** Root-level committed inventory of the fleet. Contains no secrets. */
 export const FLEET_FILENAME = 'canvas.fleet.json';
-/** Root-level committed cache of last-known per-site state. Not truth. */
+/** Root-level committed record of what was last pushed to each site. */
 export const LOCK_FILENAME = 'canvas.lock.json';
 /** Directory holding pre-push state captures, relative to the library root. */
 export const CHANGESET_DIR = path.join('.canvas', 'changesets');
@@ -61,7 +61,7 @@ export interface LockComponentEntry {
   pushedSourceHash?: string;
   /**
    * Fingerprint of the source payload the site returned immediately after that
-   * push. Baseline, server domain — this is what an observation is compared to.
+   * push. Baseline, server domain: this is what an observation is compared to.
    */
   appliedSourceHash?: string;
   /** Canvas `active_version` at the last refresh. Mutable. */

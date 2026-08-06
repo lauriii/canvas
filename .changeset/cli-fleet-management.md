@@ -2,8 +2,10 @@
 '@drupal-canvas/cli': minor
 ---
 
-Add fleet management: distribute one component library to many Canvas sites with
-`canvas library init`, `canvas fleet init/add/list`, `canvas plan`,
-`canvas apply`, and `canvas changeset list/restore`. `push` and `pull` are
-unchanged when no fleet files are present. Drift detection is advisory and blast
-radius is not reported; see the README for the stated non-guarantees.
+Add fleet management: keep one component library in sync across many Canvas
+sites. Describe your sites in `canvas.fleet.json`, then use `canvas plan` to see
+what would change and `canvas apply` to push to all of them at once. Components
+that someone has edited on a site are skipped rather than overwritten, and
+`canvas changeset restore` puts a single site back the way it was. `push` and
+`pull` are unchanged if you do not add the fleet files. See the README for what
+these commands can and cannot tell you.

@@ -240,7 +240,7 @@ describe('planCommand', () => {
     await run();
     expect(process.exitCode).toBe(3);
     expect(p.outro).toHaveBeenCalledWith(
-      'Divergence detected — resolve before applying',
+      'Divergence detected: resolve before applying',
     );
   });
 
@@ -287,10 +287,13 @@ describe('planCommand', () => {
     expect(process.exitCode).toBe(3);
   });
 
-  it('always labels drift detection as advisory', async () => {
+  it('always states what the check can and cannot tell you', async () => {
     await run();
     expect(p.log.info).toHaveBeenCalledWith(
-      expect.stringContaining('ADVISORY'),
+      expect.stringContaining('strong evidence rather than proof'),
+    );
+    expect(p.log.info).toHaveBeenCalledWith(
+      expect.stringContaining('cannot tell you how many pages use a component'),
     );
   });
 
