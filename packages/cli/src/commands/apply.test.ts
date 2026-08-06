@@ -274,6 +274,12 @@ describe('applyCommand', () => {
       present: true,
       version: 'v-old',
     });
+    // The operator has to be told the restore point exists to be able to use it.
+    expect(p.log.message).toHaveBeenCalledWith(
+      expect.stringContaining(
+        `canvas changeset restore ${files[0].replace('.json', '')}`,
+      ),
+    );
   });
 
   it('records components the apply created as absent in the changeset', async () => {

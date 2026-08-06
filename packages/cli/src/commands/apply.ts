@@ -510,7 +510,14 @@ export function applyCommand(program: Command): void {
                 ? ` ${String(outcome.pushed.length)} components`
                 : ''
               : ` ${outcome.error ?? ''}`;
-            p.log.message(`${chalk.bold(outcome.site)}: ${label}${detail}`);
+            const restorePoint = outcome.changesetId
+              ? chalk.dim(
+                  `\n  restore with \`canvas changeset restore ${outcome.changesetId}\``,
+                )
+              : '';
+            p.log.message(
+              `${chalk.bold(outcome.site)}: ${label}${detail}${restorePoint}`,
+            );
             if (outcome.skipped.length > 0) {
               p.log.warn(
                 `${outcome.site}: skipped ${outcome.skipped.join(', ')} — run \`canvas plan --site ${outcome.site}\` to inspect.`,
