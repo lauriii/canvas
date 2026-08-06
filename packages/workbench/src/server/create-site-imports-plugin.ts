@@ -3,6 +3,8 @@ import { resolveFromImportMap } from '@drupal-canvas/vite-compat';
 import type { ImportMap } from '@drupal-canvas/vite-compat';
 import type { Plugin } from 'vite';
 
+const VIRTUAL_PREFIX = '\0canvas-site-import:';
+
 /**
  * Resolves bare specifiers that only the Drupal site can resolve.
  *
@@ -13,13 +15,40 @@ import type { Plugin } from 'vite';
  * The site and the in-browser code editor's preview both hand the import map to
  * the browser and let it resolve these natively. Workbench cannot: Vite's dev
  * server owns module resolution and rewrites every bare import, including ones
- * left external, to a `/@id/` URL that no import map gets a say in. So the
- * mapping is applied here instead, from the same recorded map.
+ * left external, to a `/@id/` URL that no import map gets a say in.
+ *
+ * So the module is fetched from the site and handed to Vite as a real module
+ * instead. That matters beyond just loading it: these modules have imports of
+ * their own — a hook that calls `useState` imports React — and going through
+ * Vite means those resolve to the same copies the component uses. Serving the
+ * file to the browser directly would leave its bare imports unresolvable, and
+ * mapping them to the site's copies would put two Reacts in one preview.
  *
  * @see \Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor
  * @see ui/src/features/code-editor/Preview.tsx
  */
-export function createSiteImportsPlugin(importMap: ImportMap): Plugin {
+export function createSiteImportsPlugin(
+  importMap: ImportMap,
+  siteUrl: string | undefined,
+): Plugin {
+  const sources = new Map<string, Promise<string>>();
+
+  const fetchModule = (url: string): Promise<string> => {
+    const cached = sources.get(url);
+    if (cached) {
+      return cached;
+    }
+    const pending = (async () => {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`${response.status} ${response.statusText} for ${url}`);
+      }
+      return response.text();
+    })();
+    sources.set(url, pending);
+    return pending;
+  };
+
   return {
     name: 'canvas-workbench-site-imports',
     // Runs after every other resolver, so it only sees specifiers nothing else
@@ -27,7 +56,16 @@ export function createSiteImportsPlugin(importMap: ImportMap): Plugin {
     // and never reach this, which is what keeps the preview on a single React
     // runtime.
     enforce: 'post',
-    resolveId(source) {
+    resolveId(source, importer) {
+      // An import from inside a module already fetched from the site: resolve
+      // it against that module's URL so multi-file modules work.
+      if (importer?.startsWith(VIRTUAL_PREFIX) && !source.startsWith('\0')) {
+        const importerUrl = importer.slice(VIRTUAL_PREFIX.length);
+        if (source.startsWith('.') || source.startsWith('/')) {
+          return VIRTUAL_PREFIX + new URL(source, importerUrl).href;
+        }
+      }
+
       if (
         source.startsWith('.') ||
         source.startsWith('/') ||
@@ -36,26 +74,36 @@ export function createSiteImportsPlugin(importMap: ImportMap): Plugin {
         return null;
       }
 
-      const url = resolveFromImportMap(source, importMap);
-      if (url === null) {
+      const mapped = resolveFromImportMap(source, importMap);
+      if (mapped === null) {
         return null;
       }
 
-      // Mapped URLs are root-relative, so the browser requests them from the
-      // Workbench dev server, which proxies them to the site. Going direct
-      // would be a cross-origin module fetch that Drupal sends no CORS headers
-      // for. An absolute URL is left alone: it is somebody else's host, so
-      // there is nothing to proxy it through.
-      return { id: url, external: true };
+      if (!siteUrl) {
+        throw new Error(
+          `Cannot preview an import of "${source}": it is provided by the Drupal site, ` +
+            'so Workbench needs to fetch it. Set CANVAS_SITE_URL to the site this project was pulled from.',
+        );
+      }
+
+      return VIRTUAL_PREFIX + new URL(mapped, siteUrl).href;
+    },
+    async load(id) {
+      if (!id.startsWith(VIRTUAL_PREFIX)) {
+        return null;
+      }
+      return fetchModule(id.slice(VIRTUAL_PREFIX.length));
     },
   };
 }
 
 /**
- * Path prefixes the dev server must proxy for the mapped modules to load.
+ * Path prefixes the dev server must proxy for site-provided assets to load.
  *
- * Derived from the mapped URLs rather than hardcoded, because where a module or
- * theme serves its JavaScript from depends on how the site is installed.
+ * JavaScript goes through Vite, but a module's stylesheets and images are
+ * requested by the browser against the mapped URLs, which are root-relative to
+ * the site. Derived from those URLs rather than hardcoded, because where a
+ * module or theme serves its files from depends on how the site is installed.
  */
 export function getSiteImportProxyPrefixes(importMap: ImportMap): string[] {
   const prefixes = new Set<string>();

@@ -95,7 +95,9 @@ export async function createWorkbenchConfig(
       ...drupalCanvasCompat({
         hostRoot: paths.hostProjectRoot,
       }),
-      ...(siteImportMap ? [createSiteImportsPlugin(siteImportMap)] : []),
+      ...(siteImportMap
+        ? [createSiteImportsPlugin(siteImportMap, siteUrl)]
+        : []),
     ] as any,
     resolve: {
       dedupe: [
