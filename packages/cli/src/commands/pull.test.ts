@@ -160,6 +160,95 @@ describe('Pull Command', () => {
       expect(parsed).toHaveProperty('machineName', 'my-button');
     });
 
+    it('should use JSX for a new component when all local components use JavaScript', async () => {
+      const existingDir = path.join(tmpDir, 'existing');
+      await fs.mkdir(existingDir, { recursive: true });
+      await fs.writeFile(
+        path.join(existingDir, 'component.yml'),
+        yaml.dump({ name: 'Existing', machineName: 'existing', status: true }),
+        'utf-8',
+      );
+      await fs.writeFile(
+        path.join(existingDir, 'index.jsx'),
+        'export default function Existing() {}',
+        'utf-8',
+      );
+
+      const api = mockApiService({
+        a: {
+          ...mockComponent('my-button'),
+          sourceCodeJs: 'export default function MyButton() {}',
+        },
+      });
+      const task = createComponentsPullTask(api, tmpDir, false);
+
+      await task.prepare();
+      await task.execute();
+
+      await expect(
+        fs.access(path.join(tmpDir, 'my-button', 'index.jsx')),
+      ).resolves.toBeUndefined();
+      await expect(
+        fs.access(path.join(tmpDir, 'my-button', 'index.tsx')),
+      ).rejects.toMatchObject({ code: 'ENOENT' });
+    });
+
+    it('should use TSX for a new component when a local component uses TypeScript', async () => {
+      const existingDir = path.join(tmpDir, 'existing');
+      await fs.mkdir(existingDir, { recursive: true });
+      await fs.writeFile(
+        path.join(existingDir, 'component.yml'),
+        yaml.dump({ name: 'Existing', machineName: 'existing', status: true }),
+        'utf-8',
+      );
+      await fs.writeFile(
+        path.join(existingDir, 'index.tsx'),
+        'export default function Existing() {}',
+        'utf-8',
+      );
+
+      const api = mockApiService({ a: mockComponent('my-button') });
+      const task = createComponentsPullTask(api, tmpDir, false);
+
+      await task.prepare();
+      await task.execute();
+
+      await expect(
+        fs.access(path.join(tmpDir, 'my-button', 'index.tsx')),
+      ).resolves.toBeUndefined();
+      await expect(
+        fs.access(path.join(tmpDir, 'my-button', 'index.jsx')),
+      ).rejects.toMatchObject({ code: 'ENOENT' });
+    });
+
+    it('should use TSX for a new component whose source requires TypeScript', async () => {
+      const sourceCodeJs = [
+        "import type { ComponentProps } from 'react';",
+        'interface ButtonProps extends ComponentProps<"button"> {}',
+        'export default function Button(props: ButtonProps) {',
+        '  return <button {...props} />;',
+        '}',
+      ].join('\n');
+      const component: Component = {
+        ...mockComponent('my-button'),
+        sourceCodeJs,
+      };
+      const api = mockApiService({ a: component });
+      const task = createComponentsPullTask(api, tmpDir, false);
+
+      await task.prepare();
+      const results = await task.execute();
+
+      expect(results.results).toHaveLength(1);
+      expect(results.results[0].success).toBe(true);
+      expect(
+        await fs.readFile(path.join(tmpDir, 'my-button', 'index.tsx'), 'utf-8'),
+      ).toBe(sourceCodeJs);
+      await expect(
+        fs.access(path.join(tmpDir, 'my-button', 'index.jsx')),
+      ).rejects.toMatchObject({ code: 'ENOENT' });
+    });
+
     it('should write entity field data dependencies to component metadata', async () => {
       const component: Component = {
         ...mockComponent('article-card'),
@@ -236,6 +325,82 @@ describe('Pull Command', () => {
       expect(await fs.readFile(cssEntryPath, 'utf-8')).toBe(
         '.btn { color: blue; }',
       );
+    });
+
+    it('should migrate an existing JSX entry when pulled source requires TypeScript', async () => {
+      const componentDir = path.join(tmpDir, 'my-button');
+      await fs.mkdir(componentDir, { recursive: true });
+
+      const metadataPath = path.join(componentDir, 'component.yml');
+      const jsxEntryPath = path.join(componentDir, 'index.jsx');
+      const tsxEntryPath = path.join(componentDir, 'index.tsx');
+
+      await fs.writeFile(
+        metadataPath,
+        yaml.dump({ name: 'Old', machineName: 'my-button', status: true }),
+        'utf-8',
+      );
+      await fs.writeFile(jsxEntryPath, 'export default () => <button />;');
+
+      const sourceCodeJs = [
+        "import type { ComponentProps } from 'react';",
+        'interface ButtonProps extends ComponentProps<"button"> {}',
+        'export default function Button(props: ButtonProps) {',
+        '  return <button {...props} />;',
+        '}',
+      ].join('\n');
+      const component: Component = {
+        ...mockComponent('my-button'),
+        sourceCodeJs,
+      };
+
+      const api = mockApiService({ a: component });
+      const task = createComponentsPullTask(api, tmpDir, false);
+
+      await task.prepare();
+      const results = await task.execute();
+
+      expect(results.results).toHaveLength(1);
+      expect(results.results[0].success).toBe(true);
+      expect(await fs.readFile(tsxEntryPath, 'utf-8')).toBe(sourceCodeJs);
+      await expect(fs.access(jsxEntryPath)).rejects.toMatchObject({
+        code: 'ENOENT',
+      });
+    });
+
+    it('should create a TSX entry for an existing component with no local entry', async () => {
+      const componentDir = path.join(tmpDir, 'my-button');
+      await fs.mkdir(componentDir, { recursive: true });
+      await fs.writeFile(
+        path.join(componentDir, 'component.yml'),
+        yaml.dump({ name: 'Old', machineName: 'my-button', status: true }),
+        'utf-8',
+      );
+
+      const sourceCodeJs = [
+        'type ButtonProps = { label: string };',
+        'export default function Button({ label }: ButtonProps) {',
+        '  return <button>{label}</button>;',
+        '}',
+      ].join('\n');
+      const component: Component = {
+        ...mockComponent('my-button'),
+        sourceCodeJs,
+      };
+      const api = mockApiService({ a: component });
+      const task = createComponentsPullTask(api, tmpDir, false);
+
+      await task.prepare();
+      const results = await task.execute();
+
+      expect(results.results).toHaveLength(1);
+      expect(results.results[0].success).toBe(true);
+      expect(
+        await fs.readFile(path.join(componentDir, 'index.tsx'), 'utf-8'),
+      ).toBe(sourceCodeJs);
+      await expect(
+        fs.access(path.join(componentDir, 'index.jsx')),
+      ).rejects.toMatchObject({ code: 'ENOENT' });
     });
 
     it('should create new CSS file when updating component that lacks local CSS', async () => {
