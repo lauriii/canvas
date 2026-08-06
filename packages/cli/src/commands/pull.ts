@@ -2,6 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { Option } from 'commander';
 import yaml from 'js-yaml';
+import { parse } from '@babel/parser';
 import * as p from '@clack/prompts';
 import { discoverCanvasProject } from '@drupal-canvas/discovery';
 import { resolveHostGlobalCssPath } from '@drupal-canvas/vite-compat';
@@ -186,6 +187,29 @@ async function resolveAssetPullDestination(
   return destination;
 }
 
+function sourceCanUseJsx(source: string): boolean {
+  try {
+    parse(source, {
+      sourceType: 'module',
+      plugins: ['jsx'],
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function getPulledJsPath(existingPath: string, source: string): string {
+  const extension = path.extname(existingPath).toLowerCase();
+  if (
+    (extension === '.js' || extension === '.jsx') &&
+    !sourceCanUseJsx(source)
+  ) {
+    return `${existingPath.slice(0, -extension.length)}.tsx`;
+  }
+  return existingPath;
+}
+
 export function buildSkippedLocalOnlyPullResources(
   localOnlyCount: number,
   deleteLocalOnly: boolean,
@@ -212,6 +236,7 @@ export function createComponentsPullTask(
   let components: Record<string, Component> = {};
   const localComponentMap = new Map<string, DiscoveredComponent>();
   let localOnlyComponents: DiscoveredComponent[] = [];
+  let preferJsxForNewComponents = false;
 
   function buildMetadata(component: Component): Metadata {
     const metadata: Metadata = {
@@ -278,6 +303,15 @@ export function createComponentsPullTask(
       for (const discovered of discoveryResult.components) {
         localComponentMap.set(discovered.name, discovered);
       }
+      preferJsxForNewComponents =
+        discoveryResult.components.length > 0 &&
+        discoveryResult.components.every((component) => {
+          if (!component.jsEntryPath) {
+            return false;
+          }
+          const extension = path.extname(component.jsEntryPath).toLowerCase();
+          return extension === '.js' || extension === '.jsx';
+        });
 
       const remoteMachineNames = new Set(
         Object.values(components).map((c) => c.machineName),
@@ -330,17 +364,35 @@ export function createComponentsPullTask(
             }
 
             const dir = path.dirname(discovered.metadataPath);
+            const existingJsPath = discovered.jsEntryPath;
+            const defaultJsPath = existingJsPath ?? path.join(dir, 'index.tsx');
+            const pulledJsPath = component.sourceCodeJs
+              ? getPulledJsPath(defaultJsPath, component.sourceCodeJs)
+              : defaultJsPath;
             await writeComponentFiles(component, {
               metadataPath: discovered.metadataPath,
-              jsPath: discovered.jsEntryPath ?? path.join(dir, 'index.tsx'),
+              jsPath: pulledJsPath,
               cssPath: discovered.cssEntryPath ?? path.join(dir, 'index.css'),
             });
+            if (existingJsPath && pulledJsPath !== existingJsPath) {
+              await fs.rm(existingJsPath);
+            }
           } else {
             const dir = path.join(componentDir, component.machineName);
             await fs.mkdir(dir, { recursive: true });
+            const defaultExtension =
+              preferJsxForNewComponents &&
+              component.sourceCodeJs &&
+              sourceCanUseJsx(component.sourceCodeJs)
+                ? '.jsx'
+                : '.tsx';
+            const defaultJsPath = path.join(dir, `index${defaultExtension}`);
+            const pulledJsPath = component.sourceCodeJs
+              ? getPulledJsPath(defaultJsPath, component.sourceCodeJs)
+              : defaultJsPath;
             await writeComponentFiles(component, {
               metadataPath: path.join(dir, 'component.yml'),
-              jsPath: path.join(dir, 'index.tsx'),
+              jsPath: pulledJsPath,
               cssPath: path.join(dir, 'index.css'),
             });
           }
