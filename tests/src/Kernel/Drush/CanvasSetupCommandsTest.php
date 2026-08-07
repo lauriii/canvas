@@ -11,7 +11,9 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\media\MediaTypeInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
+use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
+use Drupal\user\RoleInterface;
 use Drupal\user\UserInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
@@ -179,12 +181,17 @@ final class CanvasSetupCommandsTest extends CanvasKernelTestBase {
    * Every unmet precondition names the command that meets it.
    */
   public function testPreconditionFailuresNameTheFix(): void {
+    User::create(['name' => 'blocked', 'status' => FALSE])->save();
     $cases = [
       // A key directory under the docroot is refused, not warned about.
       'where the web server can serve the private key' => ['key-dir' => DRUPAL_ROOT . '/sites/default/files/keys'],
       // A relative directory would resolve against whoever ran the command.
       'must be an absolute path' => ['key-dir' => 'keys'],
       'drush user:create nobody' => ['account' => 'nobody'],
+      'drush user:unblock blocked' => ['account' => 'blocked'],
+      'not a port the CLI can listen on' => ['port' => 'abc'],
+      'not usable as an OAuth client ID' => ['client-id' => 'a client id'],
+      'not an http or https URL' => ['site-url' => 'ftp://example.com'],
     ];
     foreach ($cases as $expected => $options) {
       try {
@@ -198,6 +205,41 @@ final class CanvasSetupCommandsTest extends CanvasKernelTestBase {
     // Nothing was half-written on the way to those failures.
     $this->assertFileDoesNotExist($this->keyDirectory . '/private.key');
     $this->assertEmpty(\Drupal::entityTypeManager()->getStorage('consumer')->loadByProperties(['client_id' => 'cli-test']));
+  }
+
+  /**
+   * A scope the CLI requests but the site lacks is a failure, not a warning.
+   */
+  public function testMissingScopeFails(): void {
+    $this->runSetup();
+    \Drupal::entityTypeManager()->getStorage('oauth2_scope')->load('canvas_asset_library')?->delete();
+
+    $this->expectException(\RuntimeException::class);
+    $this->expectExceptionMessage('logging in would fail with invalid_scope');
+    $this->runSetup();
+  }
+
+  /**
+   * A role the site already uses for something else is not quietly widened.
+   */
+  public function testForeignRoleIsNotWidened(): void {
+    $this->runSetup();
+    $role = Role::load('canvas_code_components');
+    $this->assertInstanceOf(RoleInterface::class, $role);
+    $role->grantPermission('administer site configuration')->save();
+
+    // A second account that does not hold the permissions yet, so the command
+    // reaches the role step rather than returning early.
+    User::create(['name' => 'other', 'status' => TRUE])->save();
+    try {
+      $this->runSetup(['account' => 'other']);
+      $this->fail('Expected the pre-existing role to be refused.');
+    }
+    catch (\RuntimeException $e) {
+      $this->assertStringContainsString('administer site configuration', $e->getMessage());
+      $this->assertStringContainsString('drush user:role:add', $e->getMessage());
+    }
+    $this->assertFalse(User::load(1)?->hasRole('canvas_code_components'));
   }
 
   /**
@@ -218,6 +260,17 @@ final class CanvasSetupCommandsTest extends CanvasKernelTestBase {
     $this->assertTrue(\Drupal::service('password')->check($secret, $consumer->get('secret')->value));
 
     $this->assertStringNotContainsString($secret, $this->runSetup(['ci' => TRUE]));
+
+    // A consumer that exists but has drifted is corrected rather than reported
+    // ready, and its secret survives the correction.
+    $consumer = $this->loadConsumer('cli-test-ci');
+    $consumer->set('confidential', FALSE)->set('grant_types', ['authorization_code'])->save();
+    $output = $this->runSetup(['ci' => TRUE]);
+    $this->assertStringContainsString('Corrected consumer `cli-test-ci`', $output);
+    $consumer = $this->loadConsumer('cli-test-ci');
+    $this->assertTrue((bool) $consumer->get('confidential')->value);
+    $this->assertSame(['client_credentials'], array_column($consumer->get('grant_types')->getValue(), 'value'));
+    $this->assertTrue(\Drupal::service('password')->check($secret, $consumer->get('secret')->value));
   }
 
   /**

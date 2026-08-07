@@ -143,22 +143,59 @@ final class CanvasSetupCommands extends DrushCommands {
     $account_name = $options['account'] ?? $io->ask('Drupal account that will log in from the CLI', self::defaultAccountName());
     $key_dir = $options['key-dir'] ?? $io->ask('Directory for the OAuth signing keys (outside the docroot)', self::defaultKeyDirectory());
     $site_url = $options['site-url'] ?? $io->ask('Site URL', self::defaultSiteUrl());
-    $port = (int) ($options['port'] ?? self::DEFAULT_CALLBACK_PORT);
 
+    $port = self::validatePort($options['port'] ?? self::DEFAULT_CALLBACK_PORT);
+    $client_id = self::validateClientId((string) $client_id);
+    $site_url = self::validateSiteUrl((string) $site_url);
     $account = self::loadAccount((string) $account_name);
-    $site_url = rtrim((string) $site_url, '/');
 
     $this->ensureImageMediaType();
     $this->ensureKeys((string) $key_dir);
-    $this->ensureLoginConsumer((string) $client_id, (string) $label, $port);
+    $this->ensureLoginConsumer($client_id, (string) $label, $port);
     $this->ensurePermissions($account);
     if ($options['ci'] === TRUE) {
       $this->ensureCiConsumer($client_id . '-ci', $label . ' (CI)', $account);
     }
 
-    $this->printNextSteps($site_url, (string) $client_id, (string) $account_name, $port);
+    $this->printNextSteps($site_url, $client_id, (string) $account_name, $port);
 
     return self::EXIT_SUCCESS;
+  }
+
+  /**
+   * Rejects a port the CLI's callback server could not listen on.
+   */
+  private static function validatePort(mixed $port): int {
+    $validated = filter_var($port, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 65535]]);
+    if ($validated === FALSE) {
+      throw new \RuntimeException(\sprintf("`%s` is not a port the CLI can listen on. Pass one between 1 and 65535:\n\n  drush %s --port=%d\n", (string) $port, self::COMMAND, self::DEFAULT_CALLBACK_PORT));
+    }
+    return $validated;
+  }
+
+  /**
+   * Rejects a client ID that would not survive being copied into a shell.
+   *
+   * The next steps this command prints are meant to be pasted verbatim, so the
+   * value has to be free of whitespace and shell metacharacters. RFC 6749
+   * leaves client IDs opaque; this is the unreserved set from RFC 3986.
+   */
+  private static function validateClientId(string $client_id): string {
+    if (preg_match('/^[A-Za-z0-9._~-]+$/', $client_id) !== 1) {
+      throw new \RuntimeException(\sprintf("`%s` is not usable as an OAuth client ID: use letters, digits, and `.`, `_`, `~` or `-`. Run:\n\n  drush %s --client-id=canvas-cli\n", $client_id, self::COMMAND));
+    }
+    return $client_id;
+  }
+
+  /**
+   * Rejects a site URL that is not an http(s) origin, and drops any trailing /.
+   */
+  private static function validateSiteUrl(string $site_url): string {
+    $scheme = parse_url($site_url, PHP_URL_SCHEME);
+    if (filter_var($site_url, FILTER_VALIDATE_URL) === FALSE || !\in_array($scheme, ['http', 'https'], TRUE)) {
+      throw new \RuntimeException(\sprintf("`%s` is not an http or https URL, so the CLI could not talk to it. Run:\n\n  drush %s --site-url=%s\n", $site_url, self::COMMAND, self::defaultSiteUrl()));
+    }
+    return rtrim($site_url, '/');
   }
 
   /**
@@ -273,9 +310,12 @@ final class CanvasSetupCommands extends DrushCommands {
     if (!is_writable($key_dir)) {
       throw new \RuntimeException(\sprintf("The key directory `%s` is not writable by the user running this command. Fix that, then run me again:\n\n  chmod 700 %s\n", $key_dir, $key_dir));
     }
-    // Wherever this directory landed, it must survive being inside somebody's
-    // checkout without ever being committed.
-    file_put_contents($key_dir . '/.gitignore', "*\n");
+    // Now that it exists, the path resolves fully: a symlinked ancestor that
+    // leads back under the docroot only becomes visible at this point.
+    if (self::isInsideDocroot($key_dir)) {
+      throw new \RuntimeException(\sprintf("Refusing to put the OAuth signing keys at `%s`: it resolves to somewhere inside the docroot (%s), where the web server can serve the private key. Pick a directory outside it:\n\n  drush %s --key-dir=%s/keys\n", $key_dir, DRUPAL_ROOT, self::COMMAND, \dirname(DRUPAL_ROOT)));
+    }
+    self::protectFromGit($key_dir);
 
     $private_key = $key_dir . '/private.key';
     $public_key = $key_dir . '/public.key';
@@ -297,6 +337,29 @@ final class CanvasSetupCommands extends DrushCommands {
     $warning = self::replacedKeysWarning($previous_private_key, $private_key);
     if ($warning !== NULL) {
       $this->io()->warning($warning);
+    }
+  }
+
+  /**
+   * Makes sure a checkout containing the key directory cannot commit the keys.
+   *
+   * A directory the site already keeps secrets in may have its own rules, so
+   * those are added to rather than replaced.
+   */
+  private static function protectFromGit(string $key_dir): void {
+    $gitignore = $key_dir . '/.gitignore';
+    if (!file_exists($gitignore)) {
+      file_put_contents($gitignore, "*\n");
+      return;
+    }
+    $split = preg_split('/\R/', (string) file_get_contents($gitignore));
+    $lines = \array_map('trim', $split === FALSE ? [] : $split);
+    if (\in_array('*', $lines, TRUE)) {
+      return;
+    }
+    $missing = array_diff(['private.key', 'public.key'], $lines);
+    if ($missing !== []) {
+      file_put_contents($gitignore, implode("\n", $missing) . "\n", FILE_APPEND);
     }
   }
 
@@ -362,22 +425,33 @@ final class CanvasSetupCommands extends DrushCommands {
    * Ensures a confidential consumer for unattended client_credentials runs.
    */
   private function ensureCiConsumer(string $client_id, string $label, UserInterface $account): void {
-    if (self::loadConsumer($client_id) !== NULL) {
-      $this->step(\sprintf('Consumer `%s` already exists. Its secret is hashed and cannot be shown again; set a new one at /admin/config/services/consumer if you need it.', $client_id));
-      return;
-    }
-    // Shown once below and never again: the field hashes the value on save.
-    // @see \Drupal\Core\Field\Plugin\Field\FieldType\PasswordItem::preSave()
-    $secret = Crypt::randomBytesBase64(32);
-    self::ensureConsumer($client_id, [
+    $values = [
       'label' => $label,
       'confidential' => TRUE,
       'pkce' => FALSE,
-      'secret' => $secret,
       'grant_types' => ['client_credentials'],
       'user_id' => $account->id(),
       'scopes' => self::canvasScopeIds(),
-    ]);
+    ];
+    // A secret is generated only when the consumer is created. It is stored
+    // hashed, so rotating it on a re-run would break whatever already uses it
+    // and could not show the replacement in exchange. Every other field is
+    // still corrected, so a half-configured consumer does not read as ready.
+    // @see \Drupal\Core\Field\Plugin\Field\FieldType\PasswordItem::preSave()
+    $secret = self::loadConsumer($client_id) === NULL ? Crypt::randomBytesBase64(32) : NULL;
+    if ($secret !== NULL) {
+      $values['secret'] = $secret;
+    }
+    $unchanged = self::ensureConsumer($client_id, $values);
+
+    if ($secret === NULL) {
+      $this->step($unchanged
+        ? \sprintf('Consumer `%s` is already configured for client_credentials.', $client_id)
+        : \sprintf('Corrected consumer `%s` for client_credentials.', $client_id)
+      );
+      $this->step(\sprintf('Its secret is hashed, so it cannot be shown again; set a new one at %s/admin/config/services/consumer if you need it.', self::defaultSiteUrl()));
+      return;
+    }
     $this->step(\sprintf('Configured consumer `%s` for client_credentials, acting as `%s`.', $client_id, $account->getAccountName()));
     // Deliberately printed here and nowhere else: never handed to the logger,
     // never written to config, and not recoverable from the site afterwards.
@@ -455,9 +529,12 @@ final class CanvasSetupCommands extends DrushCommands {
     $permissions = [];
     foreach (self::LOGIN_SCOPES as $scope_name) {
       $scope = $scope_storage->load(Oauth2Scope::scopeToMachineName($scope_name));
-      if ($scope instanceof Oauth2Scope) {
-        $permissions = [...$permissions, ...$scope->getPermissions()];
+      // Skipping a missing scope would let this command report readiness for a
+      // login that dies with invalid_scope, since the CLI asks for all four.
+      if (!$scope instanceof Oauth2Scope) {
+        throw new \RuntimeException(\sprintf("The `%s` scope does not exist on this site, and the CLI requests it on every login, so logging in would fail with invalid_scope. It ships with canvas_oauth; re-add it at:\n\n  %s/admin/config/people/simple_oauth/oauth2_scope/dynamic\n", $scope_name, self::defaultSiteUrl()));
       }
+      $permissions = [...$permissions, ...$scope->getPermissions()];
     }
     $permissions = array_values(array_unique($permissions));
 
@@ -468,10 +545,19 @@ final class CanvasSetupCommands extends DrushCommands {
     }
 
     $role_storage = self::entityTypeManager()->getStorage('user_role');
-    $role = $role_storage->load(self::ROLE_ID) ?? $role_storage->create([
-      'id' => self::ROLE_ID,
-      'label' => 'Canvas code components',
-    ]);
+    $role = $role_storage->load(self::ROLE_ID);
+    if ($role instanceof RoleInterface) {
+      // Widening a role the site already uses for something else would hand
+      // these permissions to everyone who holds it, which is not this
+      // command's call to make.
+      $foreign = array_diff($role->getPermissions(), $permissions);
+      if ($foreign !== []) {
+        throw new \RuntimeException(\sprintf("A role `%s` already exists here and grants other permissions (%s), so adding Canvas' to it would widen what everyone holding it can do.\nGrant them through a role you control instead, then run me again:\n\n  drush role:create canvas_cli\n  drush role:perm:add canvas_cli '%s'\n  drush user:role:add canvas_cli %s\n", self::ROLE_ID, implode(', ', $foreign), implode(',', $permissions), $account->getAccountName()));
+      }
+    }
+    else {
+      $role = $role_storage->create(['id' => self::ROLE_ID, 'label' => 'Canvas code components']);
+    }
     \assert($role instanceof RoleInterface);
     foreach ($permissions as $permission) {
       $role->grantPermission($permission);
@@ -517,6 +603,11 @@ final class CanvasSetupCommands extends DrushCommands {
     $account = reset($accounts);
     if (!$account instanceof UserInterface) {
       throw new \RuntimeException(\sprintf("No Drupal account is named `%s`. Create it, then run me again:\n\n  drush user:create %s\n", $name, $name));
+    }
+    // `canvas login` sends the developer to this site's login form, which a
+    // blocked account cannot get through.
+    if (!$account->isActive()) {
+      throw new \RuntimeException(\sprintf("The account `%s` is blocked, so it cannot log in through the browser the CLI opens. Unblock it, then run me again:\n\n  drush user:unblock %s\n", $name, $name));
     }
     return $account;
   }
@@ -588,16 +679,40 @@ final class CanvasSetupCommands extends DrushCommands {
 
   /**
    * Whether a path sits under the docroot, and so may be web-reachable.
+   *
+   * @phpstan-impure
    */
   private static function isInsideDocroot(string $path): bool {
     $docroot = realpath(DRUPAL_ROOT);
     if ($docroot === FALSE) {
       return FALSE;
     }
-    $resolved = realpath($path);
-    // A directory that does not exist yet is judged on the path it would take.
-    $candidate = $resolved === FALSE ? $path : $resolved;
-    return $candidate === $docroot || str_starts_with($candidate, $docroot . '/');
+    // realpath() gives up on a directory that does not exist yet, so resolve
+    // the nearest ancestor that does and re-attach the rest. Comparing the raw
+    // string instead would let a symlinked ancestor pointing back under the
+    // docroot pass this check and only be noticed once the keys were written.
+    $unresolved = [];
+    $candidate = $path;
+    $resolved = $path;
+    while (TRUE) {
+      $real = realpath($candidate);
+      if ($real !== FALSE) {
+        $resolved = $real;
+        break;
+      }
+      $parent = \dirname($candidate);
+      if ($parent === $candidate) {
+        $resolved = $candidate;
+        break;
+      }
+      array_unshift($unresolved, basename($candidate));
+      $candidate = $parent;
+    }
+    $resolved = rtrim($resolved, '/');
+    if ($unresolved !== []) {
+      $resolved .= '/' . implode('/', $unresolved);
+    }
+    return $resolved === $docroot || str_starts_with($resolved, $docroot . '/');
   }
 
   /**
