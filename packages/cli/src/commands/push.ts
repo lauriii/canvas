@@ -20,6 +20,7 @@ import {
   updateConfigFromOptions,
 } from '../utils/command-helpers';
 import { printCommandIntro } from '../utils/command-intro';
+import { detectHeadlessSdk } from '../utils/detect-headless-sdk';
 import {
   collectContentTemplateResults,
   prepareContentTemplates,
@@ -737,6 +738,12 @@ export function pushCommand(program: Command): void {
         const includesRegions = config.includeRegions;
         const includesBrandKit = config.includeBrandKit;
         const hasBrandKitFontsConfig = config.fonts !== undefined;
+        // When the Canvas Headless SDK is installed, components are pushed as
+        // external components (metadata only): the headless app renders them.
+        // The app's entries may be framework single-file components (.vue,
+        // .astro, .svelte) that the Canvas build pipeline cannot compile, so
+        // discovery must not require a JavaScript entry in this mode.
+        const headlessSdkDetected = await detectHeadlessSdk(process.cwd());
         // Step 1. Discover all components, pages, content templates and regions.
         const discoveryResult = await discoverCanvasProject({
           componentRoot: componentDir,
@@ -744,6 +751,7 @@ export function pushCommand(program: Command): void {
           contentTemplatesRoot: config.contentTemplatesDir,
           regionsRoot: config.regionsDir,
           projectRoot: process.cwd(),
+          requireJsEntry: !headlessSdkDetected,
         });
         const {
           components,
@@ -1016,6 +1024,12 @@ export function pushCommand(program: Command): void {
           p.log.warn(formatDiscoveryWarning(warning));
         }
 
+        if (headlessSdkDetected && components.length > 0) {
+          p.log.info(
+            'Canvas Headless SDK detected: components are pushed as external (metadata only).',
+          );
+        }
+
         if (!options.yes) {
           const parts: string[] = [];
           if (components.length > 0) {
@@ -1067,6 +1081,7 @@ export function pushCommand(program: Command): void {
             discoveryResult,
             cleanOutputDir: true,
             requireJsEntries: true,
+            headlessSdkDetected,
           }).catch((error) => {
             const message = formatErrorMessage(error);
             if (message.startsWith('Missing local Tailwind CSS file')) {

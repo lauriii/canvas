@@ -53,6 +53,16 @@ function validateRawMetadata(
     );
   }
 
+  if (
+    raw.type !== undefined &&
+    raw.type !== 'react' &&
+    raw.type !== 'external'
+  ) {
+    throw new Error(
+      `Invalid "type" in ${metadataPath}: expected "react" or "external", got ${JSON.stringify(raw.type)}.`,
+    );
+  }
+
   if (raw.dataDependencies !== undefined && !isRecord(raw.dataDependencies)) {
     throw new Error(
       `Invalid "dataDependencies" in ${metadataPath}: expected an object, got ${typeof raw.dataDependencies}.`,
@@ -130,6 +140,7 @@ export async function loadComponentsMetadata(
         name: (raw.name as string) || component.name,
         machineName: (raw.machineName as string) ?? component.name,
         status: (raw.status as boolean) ?? true,
+        type: raw.type as ComponentMetadata['type'],
         props: { properties: rawProps },
         required: (raw.required as string[]) ?? [],
         slots: (raw.slots as ComponentMetadata['slots']) ?? {},

@@ -1081,14 +1081,20 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'message' => 'Body does not match schema for content-type "application/json" for Request [post /canvas/api/v0/config/js_component]. [Keyword validation failed: Required property \'title\' must be present in the object in slots->test-slot->title]',
     ], $body, 'Fails with invalid shape.');
 
-    // Create a Code Component via the Canvas HTTP API, but forget 'importedJsComponents': 500, courtesy of OpenAPI.
+    // Create a Code Component via the Canvas HTTP API, but forget
+    // 'importedJsComponents' while sending JS source code: 422.
     $code_component_to_send['slots']['test-slot']['title'] = 'Test';
     unset($code_component_to_send['importedJsComponents']);
     $request_options[RequestOptions::JSON] = $code_component_to_send;
-    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 422, NULL, NULL, NULL, NULL);
     $this->assertSame([
-      'message' => 'Body does not match schema for content-type "application/json" for Request [post /canvas/api/v0/config/js_component]. [Keyword validation failed: Required property \'importedJsComponents\' must be present in the object in importedJsComponents]',
-    ], $body, 'Fails with invalid shape.');
+      'errors' => [
+        [
+          'detail' => "The 'importedJsComponents' field is required when 'sourceCodeJs' or 'compiledJs' is provided",
+          'source' => ['pointer' => 'importedJsComponents'],
+        ],
+      ],
+    ], $body, 'Fails backend validation.');
 
     // Meet data shape requirements, but violate internal consistency for
     // `props`: 422 (i.e. validation constraint violation).

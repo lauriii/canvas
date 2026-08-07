@@ -780,6 +780,114 @@ describe('Push components', () => {
     ]);
   });
 
+  it('updates an existing external component instead of recreating it', async () => {
+    const api = mockApiService();
+    vi.mocked(api.listComponents).mockResolvedValue({
+      hero: { machineName: 'hero', name: 'hero', type: 'external' },
+    } as never);
+    vi.mocked(api.updateComponent).mockResolvedValue({} as never);
+
+    const results = await pushBuiltComponents(
+      [
+        {
+          machineName: 'hero',
+          componentName: 'hero',
+          importedJsComponents: [],
+          componentPayload: {
+            machineName: 'hero',
+            name: 'hero',
+            type: 'external',
+          } as never,
+        },
+      ],
+      api,
+      'Pushing',
+    );
+
+    expect(api.updateComponent).toHaveBeenCalledWith(
+      'hero',
+      expect.objectContaining({ machineName: 'hero', type: 'external' }),
+    );
+    expect(api.createComponent).not.toHaveBeenCalled();
+    expect(api.deleteComponent).not.toHaveBeenCalled();
+    expect(results.map((result) => result.itemName)).toEqual(['hero']);
+  });
+
+  it('converts an existing react component to external in place', async () => {
+    const api = mockApiService();
+    // The remote "hero" is a react component (with code); the local push sends
+    // it as external metadata. The server accepts the react-to-external change,
+    // so the CLI updates it in place rather than recreating it.
+    vi.mocked(api.listComponents).mockResolvedValue({
+      hero: {
+        machineName: 'hero',
+        name: 'hero',
+        type: 'react',
+        sourceCodeJs: 'export default () => null;',
+        dataDependencies: {
+          drupalSettings: ['v0.pageTitle'],
+          entityFields: {
+            obsoleteArticle: ['entity:node:article.field_obsolete.value'],
+          },
+        },
+      },
+    } as never);
+    vi.mocked(api.updateComponent).mockResolvedValue({} as never);
+
+    const results = await pushBuiltComponents(
+      [
+        {
+          machineName: 'hero',
+          componentName: 'hero',
+          importedJsComponents: [],
+          componentPayload: {
+            machineName: 'hero',
+            name: 'hero',
+            type: 'external',
+            dataDependencies: {
+              entityFields: {
+                article: ['entity:node:article.title.value'],
+              },
+            },
+          } as never,
+        },
+      ],
+      api,
+      'Pushing',
+    );
+
+    expect(api.updateComponent).toHaveBeenCalledWith(
+      'hero',
+      expect.objectContaining({
+        machineName: 'hero',
+        type: 'external',
+        dataDependencies: {
+          drupalSettings: ['v0.pageTitle'],
+          entityFields: {
+            article: ['entity:node:article.title.value'],
+          },
+        },
+      }),
+    );
+    expect(api.createComponent).not.toHaveBeenCalled();
+    expect(results).toEqual([
+      expect.objectContaining({ itemName: 'hero', success: true }),
+    ]);
+  });
+
+  it('never deletes a remote external component missing locally', async () => {
+    const api = mockApiService();
+    vi.mocked(api.listComponents).mockResolvedValue({
+      hero: { machineName: 'hero', name: 'hero', type: 'external' },
+    } as never);
+
+    await pushBuiltComponents([], api, 'Pushing');
+
+    expect(api.deleteComponent).not.toHaveBeenCalled();
+    expect(api.createComponent).not.toHaveBeenCalled();
+    expect(api.updateComponent).not.toHaveBeenCalled();
+  });
+
   it('returns component upload failures as component results', async () => {
     const api = mockApiService();
     const uploadError = [

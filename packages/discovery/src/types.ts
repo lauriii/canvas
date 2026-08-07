@@ -20,6 +20,15 @@ export interface DiscoveryOptions {
    * the Canvas build pipeline could not compile.
    */
   entryExtensions?: readonly string[];
+  /**
+   * Whether a component must have a JavaScript entry file to be discovered.
+   * Default: true. When false, components without an entry are still
+   * discovered (with `jsEntryPath: null`) and no `missing_js_entry` warning is
+   * emitted. Consumers that push metadata only — for example when the Canvas
+   * Headless SDK renders every component in a decoupled app — set this false so
+   * framework single-file components (.vue, .astro, .svelte) are not dropped.
+   */
+  requireJsEntry?: boolean;
 }
 
 export interface DiscoveryWarning {
@@ -38,6 +47,7 @@ export interface DiscoveredComponent {
   metadataPath: string;
   jsEntryPath: string | null;
   cssEntryPath: string | null;
+  type?: CodeComponentSerialized['type'];
 }
 
 export interface DiscoveredPage {
@@ -81,7 +91,7 @@ export interface DiscoveryResult {
 
 export interface ComponentMetadata extends Pick<
   CodeComponentSerialized,
-  'name' | 'machineName' | 'status' | 'required' | 'slots'
+  'name' | 'machineName' | 'status' | 'required' | 'slots' | 'type'
 > {
   props: {
     properties: CodeComponentSerialized['props'];
