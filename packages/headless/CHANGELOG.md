@@ -1,5 +1,12 @@
 # @drupal-canvas/headless
 
+## 0.3.0
+
+### Minor Changes
+
+- 9c6de1e: Expose rendered-page types, redirect detection, and JSON script
+  serialization from the isomorphic root entry.
+
 ## 0.2.0
 
 ### Minor Changes
