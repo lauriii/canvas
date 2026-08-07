@@ -202,6 +202,72 @@ describe('discoverCanvasProject', () => {
     ).toBe(true);
   });
 
+  it('discovers external components without a JavaScript entry', async () => {
+    const root = await makeTempDir();
+    tempDirs.push(root);
+
+    await writeFile(
+      path.join(root, 'src/hero/component.yml'),
+      ['name: Hero', 'type: external'].join('\n'),
+    );
+
+    const result = await discoverCanvasProject({ componentRoot: root });
+
+    expect(result.components).toHaveLength(1);
+    expect(result.components[0].type).toBe('external');
+    expect(result.components[0].jsEntryPath).toBeNull();
+    expect(
+      result.warnings.some((warning) => warning.code === 'missing_js_entry'),
+    ).toBe(false);
+  });
+
+  it('keeps entry-less components when requireJsEntry is false', async () => {
+    const root = await makeTempDir();
+    tempDirs.push(root);
+
+    // A framework single-file component (.vue) the build pipeline cannot
+    // compile, without an explicit `type: external`. It is dropped by default
+    // but kept when the caller pushes metadata only.
+    await writeFile(path.join(root, 'src/card/component.yml'), 'name: Card');
+    await writeFile(
+      path.join(root, 'src/card/index.vue'),
+      '<template><div /></template>',
+    );
+
+    const dropped = await discoverCanvasProject({ componentRoot: root });
+    expect(dropped.components).toHaveLength(0);
+    expect(
+      dropped.warnings.some((warning) => warning.code === 'missing_js_entry'),
+    ).toBe(true);
+
+    const kept = await discoverCanvasProject({
+      componentRoot: root,
+      requireJsEntry: false,
+    });
+    expect(kept.components).toHaveLength(1);
+    expect(kept.components[0].name).toBe('card');
+    expect(kept.components[0].jsEntryPath).toBeNull();
+    expect(
+      kept.warnings.some((warning) => warning.code === 'missing_js_entry'),
+    ).toBe(false);
+  });
+
+  it('leaves type undefined when metadata omits it', async () => {
+    const root = await makeTempDir();
+    tempDirs.push(root);
+
+    await writeFile(path.join(root, 'src/card/component.yml'), 'name: Card');
+    await writeFile(
+      path.join(root, 'src/card/index.tsx'),
+      'export default function Card() { return null; }',
+    );
+
+    const result = await discoverCanvasProject({ componentRoot: root });
+
+    expect(result.components).toHaveLength(1);
+    expect(result.components[0].type).toBeUndefined();
+  });
+
   it('keeps components when CSS is missing', async () => {
     const root = await makeTempDir();
     tempDirs.push(root);

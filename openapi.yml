@@ -4035,7 +4035,6 @@ components:
         - name
         - machineName
         - status
-        - importedJsComponents
         - dataDependencies
       # @todo Sending `links` in PATCH & POST requests should be reported as invalid by OpenAPI validation, but it isn't today.
       # @see https://github.com/thephpleague/openapi-psr7-validator/issues/124#issuecomment-1483323527
