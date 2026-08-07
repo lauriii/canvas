@@ -5,7 +5,7 @@ import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
 
 import type { AutoSavesHash } from '@/types/AutoSaves';
-import type { BrandKit } from '@/types/CodeComponent';
+import type { BrandKit, BrandKitColor } from '@/types/CodeComponent';
 
 export interface UploadedArtifact {
   fid: number;
@@ -82,6 +82,41 @@ export const brandKitApi = createApi({
     uploadFont: builder.mutation<UploadedArtifact, File>({
       query: (file) => createUploadFontRequest(file),
     }),
+    createColor: builder.mutation<BrandKitColor, Omit<BrandKitColor, 'id'>>({
+      query: (body) => ({
+        url: 'canvas/api/v0/config/color',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: [
+        { type: 'BrandKits', id: 'LIST' },
+        { type: 'BrandKits', id: 'global' },
+      ],
+    }),
+    updateColor: builder.mutation<
+      BrandKitColor,
+      { id: string; changes: Partial<BrandKitColor> }
+    >({
+      query: ({ id, changes }) => ({
+        url: `canvas/api/v0/config/color/${id}`,
+        method: 'PATCH',
+        body: changes,
+      }),
+      invalidatesTags: [
+        { type: 'BrandKits', id: 'LIST' },
+        { type: 'BrandKits', id: 'global' },
+      ],
+    }),
+    deleteColor: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `canvas/api/v0/config/color/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: [
+        { type: 'BrandKits', id: 'LIST' },
+        { type: 'BrandKits', id: 'global' },
+      ],
+    }),
   }),
 });
 
@@ -91,4 +126,7 @@ export const {
   useGetAutoSaveQuery,
   useUpdateAutoSaveMutation,
   useUploadFontMutation,
+  useCreateColorMutation,
+  useUpdateColorMutation,
+  useDeleteColorMutation,
 } = brandKitApi;

@@ -29,3 +29,22 @@ export const validateFolderNameClientSide = (name: string) => {
   }
   return '';
 };
+
+/**
+ * Validates CSS custom property name.
+ *
+ * @param value - The value to validate (may or may not include '--' prefix).
+ * @returns An error message if invalid, or an empty string if valid.
+ */
+export const validateCssVariableClientSide = (value: string): string => {
+  // Strip leading '--' if present — we accept input with or without it.
+  const stripped = value.startsWith('--') ? value.slice(2) : value;
+  if (!stripped) {
+    return 'Variable name cannot be empty.';
+  }
+  // Must start with a letter, hyphen, or underscore; rest alphanumeric/hyphen/underscore.
+  if (!/^[a-zA-Z_-][a-zA-Z0-9_-]*$/.test(stripped)) {
+    return 'Must be a valid CSS custom property name (letters, numbers, hyphens, underscores only).';
+  }
+  return '';
+};

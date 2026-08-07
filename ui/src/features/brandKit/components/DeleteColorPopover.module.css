@@ -1,0 +1,26 @@
+/* DeleteColorPopover: popover content styling for delete confirmation. */
+
+.popoverContent {
+  z-index: 6;
+  width: 287px;
+  padding: 0;
+  border: 1px solid var(--gray-6);
+  border-radius: 4px;
+  background-color: white;
+  box-shadow: var(--shadow-4);
+}
+
+/* Header with title and close button */
+.header {
+  border-bottom: 1px solid var(--gray-4);
+}
+
+/* Title icon - trash icon in red */
+.titleIcon {
+  color: var(--red-9);
+}
+
+/* Footer with action buttons */
+.footer {
+  border-top: 1px solid var(--gray-4);
+}

@@ -8,6 +8,7 @@ use Drupal\canvas\Audit\ComponentAudit;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\BrandKit;
+use Drupal\canvas\Entity\Color;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ContentTemplate;
@@ -265,6 +266,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       PageRegion::ADMIN_PERMISSION,
       Folder::ADMIN_PERMISSION,
       ContentTemplate::ADMIN_PERMISSION,
+      Color::ADMIN_PERMISSION,
     ]);
     \assert($user instanceof UserInterface);
     $this->httpApiUser = $user;
@@ -1962,7 +1964,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
 
     // Authenticated and authorized: list returns the default global brand kit.
     $this->drupalLogin($this->httpApiUser);
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:brand_kit_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:brand_kit_list', 'config:color_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertIsArray($body);
     $this->assertArrayHasKey(BrandKit::GLOBAL_ID, $body);
     $brand_kit_from_list = $body[BrandKit::GLOBAL_ID];
@@ -1986,7 +1988,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     ], $body);
 
     // GET canonical: 200.
-    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['user.permissions'], ['config:canvas.brand_kit.global', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['user.permissions'], ['config:canvas.brand_kit.global', 'config:color_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertIsArray($body);
     $this->assertArrayHasKey('id', $body);
     $this->assertArrayHasKey('label', $body);
@@ -2005,7 +2007,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertArrayHasKey('fonts', $body);
 
     // GET canonical again: 200 with updated data (cache miss after PATCH).
-    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['user.permissions'], ['config:canvas.brand_kit.global', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['user.permissions'], ['config:canvas.brand_kit.global', 'config:color_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertIsArray($body);
     $this->assertArrayHasKey('label', $body);
     $this->assertSame($updated_label, $body['label']);
@@ -2068,7 +2070,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     ];
     $request_options[RequestOptions::JSON] = $this->getConfigRequestPostExample($entity_type_id);
     $response = $this->makeApiRequest('POST', $list_url, $request_options);
-    self::assertEquals(Response::HTTP_CREATED, $response->getStatusCode());
+    self::assertEquals(Response::HTTP_CREATED, $response->getStatusCode(), $response->getBody()->getContents());
     $body = json_decode((string) $response->getBody(), TRUE);
     $config_entity_type_definition = $this->container->get(EntityTypeManagerInterface::class)->getDefinition($entity_type_id);
     \assert($config_entity_type_definition instanceof ConfigEntityType);
@@ -2763,6 +2765,192 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
 
     // Clean up the templates we just created/mutated.
     $this->assertExpectedResponse('DELETE', Url::fromUri('base:/canvas/api/v0/config/content_template/node.cat.full'), [], 204, NULL, NULL, NULL, NULL);
+  }
+
+  public function testColor(): void {
+    $this->drupalLogin($this->httpApiUser);
+    $list_url = Url::fromUri("base:/canvas/api/v0/config/color");
+
+    $request_options = [
+      RequestOptions::HEADERS => [
+        'Content-Type' => 'application/json',
+      ],
+    ];
+
+    // POST with missing required field (name) → 500 (OpenAPI schema mismatch).
+    $color_to_send = [
+      'name' => NULL,
+      'cssVariable' => '--color-test',
+      'value' => [
+        'colorSpace' => 'srgb',
+        'components' => [1.0, 0.0, 0.0],
+        'hex' => '#ff0000',
+      ],
+      'weight' => 0,
+    ];
+    $request_options[RequestOptions::JSON] = $color_to_send;
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'message' => 'Body does not match schema for content-type "application/json" for Request [post /canvas/api/v0/config/color]. [Keyword validation failed: Value cannot be null in name]',
+    ], $body);
+
+    // POST with invalid cssVariable (no -- prefix) → 422 (validation).
+    $color_to_send = [
+      'name' => 'Test Color',
+      'cssVariable' => 'invalid-css-var',
+      'value' => [
+        'colorSpace' => 'srgb',
+        'components' => [1.0, 0.0, 0.0],
+        'hex' => '#ff0000',
+      ],
+      'weight' => 0,
+    ];
+    $request_options[RequestOptions::JSON] = $color_to_send;
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 422, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'errors' => [
+        [
+          'detail' => 'The <em class="placeholder">&quot;invalid-css-var&quot;</em> is not a valid CSS custom property name.',
+          'source' => ['pointer' => 'cssVariable'],
+        ],
+      ],
+    ], $body);
+
+    // POST with invalid hex format → 422.
+    $color_to_send = [
+      'name' => 'Test Color',
+      'cssVariable' => '--color-test',
+      'value' => [
+        'colorSpace' => 'srgb',
+        'components' => [1.0, 0.0, 0.0],
+        'hex' => 'ff0000',
+      ],
+      'weight' => 0,
+    ];
+    $request_options[RequestOptions::JSON] = $color_to_send;
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 422, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'errors' => [
+        [
+          'detail' => 'The <em class="placeholder">&quot;ff0000&quot;</em> is not a valid 6-digit hex color.',
+          'source' => ['pointer' => 'value.hex'],
+        ],
+      ],
+    ], $body);
+
+    // POST with valid data → 201 + Location header with UUID-based URL.
+    $color_to_send = [
+      'name' => 'Test Red',
+      'cssVariable' => '--color-test-red',
+      'value' => [
+        'colorSpace' => 'srgb',
+        'components' => [0.8, 0.0, 0.0],
+        'alpha' => NULL,
+        'hex' => '#cc0000',
+      ],
+      'weight' => 0,
+    ];
+    $request_options[RequestOptions::JSON] = $color_to_send;
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 201, NULL, NULL, NULL, NULL);
+    $this->assertIsArray($body);
+    $this->assertArrayHasKey('id', $body);
+    $this->assertArrayHasKey('name', $body);
+    $this->assertSame('Test Red', $body['name']);
+    $this->assertSame('--color-test-red', $body['cssVariable']);
+    $this->assertSame('srgb', $body['value']['colorSpace']);
+    $this->assertSame([0.8, 0, 0], $body['value']['components']);
+    $this->assertSame('#cc0000', $body['value']['hex']);
+    $this->assertNull($body['value']['alpha']);
+    $this->assertSame(0, $body['weight']);
+    $uuid = $body['id'];
+    $this->assertTrue(Uuid::isValid($uuid), 'ID should be a valid UUID');
+
+    // Verify the global BrandKit now contains this Color's UUID.
+    $brand_kit = BrandKit::load('global');
+    self::assertNotNull($brand_kit);
+    $this->assertContains($uuid, $brand_kit->getColors(), 'Color should be visible in BrandKit after creation via HTTP API');
+
+    // GET list → 200, contains the Color keyed by UUID.
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:color_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertIsArray($body);
+    $this->assertArrayHasKey($uuid, $body);
+    $this->assertSame('Test Red', $body[$uuid]['name']);
+
+    // GET individual by UUID → 200, matches normalization.
+    $canonical_url = Url::fromUri("base:/canvas/api/v0/config/color/$uuid");
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['user.permissions'], ["config:canvas.color.$uuid", 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertIsArray($body);
+    $this->assertSame($uuid, $body['id']);
+    $this->assertSame('Test Red', $body['name']);
+    $this->assertSame('--color-test-red', $body['cssVariable']);
+    $this->assertSame('srgb', $body['value']['colorSpace']);
+    $this->assertSame([0.8, 0, 0], $body['value']['components']);
+    $this->assertSame('#cc0000', $body['value']['hex']);
+    $this->assertSame(0, $body['weight']);
+    $this->assertNull($body['value']['alpha']);
+
+    // POST with duplicate cssVariable → 422.
+    $duplicate_color = [
+      'name' => 'Duplicate CSS Var',
+      'cssVariable' => '--color-test-red',
+      'value' => [
+        'colorSpace' => 'srgb',
+        'components' => [0, 0.8, 0],
+        'hex' => '#00cc00',
+      ],
+      'weight' => 1,
+    ];
+    $request_options[RequestOptions::JSON] = $duplicate_color;
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 422, NULL, NULL, NULL, NULL);
+    $this->assertSame([
+      'errors' => [
+        [
+          'detail' => 'CSS variable <em class="placeholder">--color-test-red</em> is already in use by another color.',
+          'source' => ['pointer' => 'cssVariable'],
+        ],
+      ],
+    ], $body);
+
+    // PATCH to update name → 200 with updated data.
+    $updated_name = 'Updated Red';
+    $request_options[RequestOptions::JSON] = ['name' => $updated_name];
+    $body = $this->assertExpectedResponse('PATCH', $canonical_url, $request_options, 200, NULL, NULL, NULL, NULL);
+    $this->assertIsArray($body);
+    $this->assertSame($uuid, $body['id']);
+    $this->assertSame($updated_name, $body['name']);
+    // Other fields unchanged.
+    $this->assertSame('--color-test-red', $body['cssVariable']);
+    $this->assertSame('#cc0000', $body['value']['hex']);
+
+    // PATCH to add alpha → 200 with updated data.
+    $request_options[RequestOptions::JSON] = ['value' => ['alpha' => 0.75]];
+    $body = $this->assertExpectedResponse('PATCH', $canonical_url, $request_options, 200, NULL, NULL, NULL, NULL);
+    $this->assertIsArray($body);
+    $this->assertSame(0.75, $body['value']['alpha']);
+
+    // Verify GET reflects changes.
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['user.permissions'], ["config:canvas.color.$uuid", 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertSame($updated_name, $body['name'] ?? []);
+    $this->assertSame(0.75, $body['value']['alpha'] ?? []);
+
+    // PATCH id (UUID) field → silently ignored, UUID stays the same.
+    $new_uuid = \Drupal::service('uuid')->generate();
+    $request_options[RequestOptions::JSON] = ['id' => $new_uuid];
+    $body = $this->assertExpectedResponse('PATCH', $canonical_url, $request_options, 200, NULL, NULL, NULL, NULL);
+    $this->assertIsArray($body);
+    $this->assertSame($uuid, $body['id'], 'UUID should be immutable via PATCH');
+
+    // DELETE → 204.
+    $this->assertExpectedResponse('DELETE', $canonical_url, [], 204, NULL, NULL, NULL, NULL);
+
+    // GET list after delete → 200, empty.
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], ['config:color_list', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertSame([], $body);
+
+    // Verify BrandKit no longer contains the deleted Color's UUID.
+    $brand_kit = BrandKit::load('global');
+    self::assertNotNull($brand_kit);
+    $this->assertNotContains($uuid, $brand_kit->getColors(), 'Color should be absent from BrandKit after deletion');
   }
 
 }

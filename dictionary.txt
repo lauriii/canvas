@@ -76,7 +76,12 @@ greppable
 heredocs
 herobanner
 herobannersecond
+Hexa
 hotfixes
+hsla
+hsva
+HSLA
+HSVA
 hyperscriptification
 hyperscriptified
 hyperscriptify
@@ -159,6 +164,8 @@ reparse
 reparsed
 requiredness
 rescanning
+rgba
+RGBA
 rightbar
 rightclick
 roundtripped
