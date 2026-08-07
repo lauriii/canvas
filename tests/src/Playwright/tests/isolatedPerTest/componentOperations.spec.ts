@@ -136,8 +136,8 @@ test.describe('Perform CRUD operations on components', () => {
       '.componentOverlay:has([data-canvas-component-id="sdc.canvas_test_sdc.my-hero"])',
     );
     // A newly added component is also selected, and the selected outline uses
-    // the same colour as the hover outline, so assert on the hovered state
-    // itself rather than on the resolved outline colour.
+    // the same color as the hover outline, so assert on the hovered state
+    // itself rather than on the resolved outline color.
     const anyHovered = page.locator(
       '#canvasPreviewOverlay .componentOverlay[class*="hovered"]',
     );
