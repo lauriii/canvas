@@ -208,6 +208,36 @@ final class CanvasSetupCommandsTest extends CanvasKernelTestBase {
   }
 
   /**
+   * A symlink under the docroot that leads to the keys is caught.
+   *
+   * The key directory is outside the docroot in every sense the containment
+   * check can see, and the web server still serves the private key through the
+   * link, so being outside is not on its own enough.
+   */
+  public function testDocrootSymlinkToTheKeysIsRefused(): void {
+    $this->runSetup();
+    $link = DRUPAL_ROOT . '/canvas-setup-test-' . bin2hex(random_bytes(6));
+    $this->assertTrue(symlink($this->keyDirectory, $link));
+
+    try {
+      $this->runSetup();
+      $this->fail('Expected the symlink leading to the keys to be refused.');
+    }
+    catch (\RuntimeException $e) {
+      $this->assertStringContainsString('is a symlink that leads there', $e->getMessage());
+      // The failure names the URL that serves the key, and the fix.
+      $this->assertStringContainsString('https://example.com/' . basename($link) . '/private.key', $e->getMessage());
+      $this->assertStringContainsString('rm ' . $link, $e->getMessage());
+    }
+    finally {
+      unlink($link);
+    }
+
+    // With the link gone the same run succeeds and says what it checked.
+    $this->assertStringContainsString('Verified nothing under the docroot reaches', $this->runSetup());
+  }
+
+  /**
    * A scope the CLI requests but the site lacks is a failure, not a warning.
    */
   public function testMissingScopeFails(): void {

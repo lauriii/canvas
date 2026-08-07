@@ -150,7 +150,7 @@ final class CanvasSetupCommands extends DrushCommands {
     $account = self::loadAccount((string) $account_name);
 
     $this->ensureImageMediaType();
-    $this->ensureKeys((string) $key_dir);
+    $this->ensureKeys((string) $key_dir, $site_url);
     $this->ensureLoginConsumer($client_id, (string) $label, $port);
     $this->ensurePermissions($account);
     if ($options['ci'] === TRUE) {
@@ -291,7 +291,7 @@ final class CanvasSetupCommands extends DrushCommands {
    * than not having it at all, so an unsafe directory is a hard failure rather
    * than a warning: on nginx there is no .htaccess to fall back on.
    */
-  private function ensureKeys(string $key_dir): void {
+  private function ensureKeys(string $key_dir, string $site_url): void {
     if (!\extension_loaded('openssl')) {
       throw new \RuntimeException("PHP's openssl extension is not loaded, so the OAuth signing keys cannot be generated. Enable it, then run me again.\n");
     }
@@ -315,7 +315,9 @@ final class CanvasSetupCommands extends DrushCommands {
     if (self::isInsideDocroot($key_dir)) {
       throw new \RuntimeException(\sprintf("Refusing to put the OAuth signing keys at `%s`: it resolves to somewhere inside the docroot (%s), where the web server can serve the private key. Pick a directory outside it:\n\n  drush %s --key-dir=%s/keys\n", $key_dir, DRUPAL_ROOT, self::COMMAND, \dirname(DRUPAL_ROOT)));
     }
+    self::assertDocrootCannotReachKeys($key_dir, $site_url);
     self::protectFromGit($key_dir);
+    $this->step(\sprintf('Verified nothing under the docroot reaches %s.', $key_dir));
 
     $private_key = $key_dir . '/private.key';
     $public_key = $key_dir . '/public.key';
@@ -337,6 +339,50 @@ final class CanvasSetupCommands extends DrushCommands {
     $warning = self::replacedKeysWarning($previous_private_key, $private_key);
     if ($warning !== NULL) {
       $this->io()->warning($warning);
+    }
+  }
+
+  /**
+   * Fails when anything under the docroot leads into the key directory.
+   *
+   * Keeping the keys out of the docroot is not the same as the docroot being
+   * unable to reach them. A symlink under it serves the private key just as
+   * happily, and comparing paths cannot see that, because the key directory
+   * itself still resolves to somewhere outside. So this looks for the route
+   * rather than assuming there is none.
+   *
+   * Package-managed trees are skipped: nobody hand-links to their signing keys
+   * from inside `node_modules`, and walking them costs seconds.
+   */
+  private static function assertDocrootCannotReachKeys(string $key_dir, string $site_url): void {
+    $docroot = realpath(DRUPAL_ROOT);
+    $target = realpath($key_dir);
+    if ($docroot === FALSE || $target === FALSE) {
+      return;
+    }
+    $pruned = ['node_modules' => TRUE, 'vendor' => TRUE, '.git' => TRUE];
+    $entries = new \RecursiveIteratorIterator(
+      new \RecursiveCallbackFilterIterator(
+        new \RecursiveDirectoryIterator($docroot, \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::UNIX_PATHS),
+        static fn (\SplFileInfo $entry): bool => !($entry->isDir() && isset($pruned[$entry->getFilename()])),
+      ),
+      \RecursiveIteratorIterator::SELF_FIRST,
+      \RecursiveIteratorIterator::CATCH_GET_CHILD,
+    );
+    foreach ($entries as $entry) {
+      \assert($entry instanceof \SplFileInfo);
+      if (!$entry->isLink()) {
+        continue;
+      }
+      $resolved = realpath($entry->getPathname());
+      // The keys are exposed when the link lands on the key directory itself
+      // or on any directory above it.
+      if ($resolved === FALSE || ($resolved !== $target && !str_starts_with($target, $resolved . '/'))) {
+        continue;
+      }
+      $link = $entry->getPathname();
+      $url = $site_url . '/' . substr($link, \strlen($docroot) + 1) . substr($target, \strlen($resolved)) . '/private.key';
+      throw new \RuntimeException(\sprintf("The OAuth signing keys at `%s` are outside the docroot, but `%s` is a symlink that leads there, so the web server serves the private key at:\n\n  %s\n\nRemove the symlink, or point the keys somewhere it cannot reach:\n\n  rm %s\n", $key_dir, $link, $url, $link));
     }
   }
 

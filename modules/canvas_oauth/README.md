@@ -56,6 +56,10 @@ $ openssl rsa -in private.key -pubout > public.key
 1. Store the keys at a secure location on your server, outside of your document root. This matters: the example above
    writes them into the current directory, and a key pair that ends up somewhere like `sites/default/files` is
    downloadable. Simple OAuth writes a deny-all `.htaccess` beside the keys, which nginx never reads.
+1. Check that nothing under the document root leads back to that location. Being outside the document root is not the
+   same as being unreachable from it: a symlink under the document root pointing at the key directory serves the
+   private key just as well. `drush canvas:setup-code-components` checks this for you and names the URL that would
+   serve the key.
 1. Configure the path to your keys at `/admin/config/people/simple_oauth`.
 
 #### 2.2.2. Client
