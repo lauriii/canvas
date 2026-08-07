@@ -14,6 +14,7 @@ import {
   setTargetSlot,
   setTreeDragging,
   setUpdatingComponent,
+  unsetHoveredComponent,
   unsetTargetSlot,
 } from '@/features/ui/uiSlice';
 import { useDropFromLayoutHandler } from '@/hooks/useDropFromLayoutHandler';
@@ -127,6 +128,12 @@ const DragEventsHandler: React.FC = () => {
 
   function handleDragStart(event: DragStartEvent) {
     initMouseTracking();
+    // Nothing is hovered while dragging. The hover handlers already refuse to
+    // set a hovered component mid-drag, but they only run on pointer movement
+    // across an element boundary, so a drag that starts without the pointer
+    // leaving the component it started on would otherwise keep that component
+    // marked as hovered for the whole drag and beyond.
+    dispatch(unsetHoveredComponent());
     setComponentName(event.active.data?.current?.name);
     const isFolderDrag = event.active.data?.current?.type === 'folder';
     setIsDraggingFolder(isFolderDrag);

@@ -122,6 +122,52 @@ test.describe('Perform CRUD operations on components', () => {
     ).toBeVisible();
   });
 
+  test('Hover outline is cleared when a drag starts', async ({
+    page,
+    drupal,
+    canvas,
+  }) => {
+    await drupal.login({ username: 'editor', password: 'editor' });
+    await canvas.openCanvas(await canvas.createCanvas());
+    await canvas.openLibraryPanel();
+    await canvas.addComponent({ id: 'sdc.canvas_test_sdc.my-hero' });
+
+    const hero = page.locator(
+      '.componentOverlay:has([data-canvas-component-id="sdc.canvas_test_sdc.my-hero"])',
+    );
+    // A newly added component is also selected, and the selected outline uses
+    // the same colour as the hover outline, so assert on the hovered state
+    // itself rather than on the resolved outline colour.
+    const anyHovered = page.locator(
+      '#canvasPreviewOverlay .componentOverlay[class*="hovered"]',
+    );
+    const box = (await hero.boundingBox())!;
+    const centerX = box.x + box.width / 2;
+    const centerY = box.y + box.height / 2;
+
+    // Hover the component with a real pointer so it gets the hover outline.
+    await page.mouse.move(centerX, centerY);
+    await page.mouse.move(centerX + 1, centerY + 1);
+    await expect(hero).toHaveClass(/hovered/);
+    await expect(hero).toHaveCSS('outline-style', 'solid');
+
+    // Start a drag without moving the pointer outside the component. The drag
+    // sensor activates after 3px, so this is what happens on a normal drag: no
+    // mouseout fires, and before this was fixed the hover outline stayed on for
+    // the whole drag and after it ended.
+    await page.mouse.down();
+    await page.mouse.move(centerX + 5, centerY + 5);
+    await page.mouse.move(centerX + 9, centerY + 9);
+    await expect(hero).toHaveClass(/dragging/);
+    await expect(anyHovered).toHaveCount(0);
+
+    // The outline must still be gone once the drag ends with the pointer never
+    // having left the component.
+    await page.mouse.up();
+    await expect(hero).not.toHaveClass(/dragging/);
+    await expect(anyHovered).toHaveCount(0);
+  });
+
   test('Shows prop descriptions, but omits link field help', async ({
     page,
     drupal,
