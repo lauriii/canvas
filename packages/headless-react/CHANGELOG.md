@@ -1,5 +1,18 @@
 # @drupal-canvas/headless-react
 
+## 0.2.0
+
+### Minor Changes
+
+- f16deaf: Support component-tree results from `/canvas/content-api` in the
+  React binding.
+
+### Patch Changes
+
+- Updated dependencies [f16deaf]
+- Updated dependencies [7f3da8f]
+  - @drupal-canvas/headless@0.2.0
+
 ## 0.1.1
 
 ### Patch Changes

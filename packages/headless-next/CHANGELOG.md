@@ -1,5 +1,19 @@
 # @drupal-canvas/headless-next
 
+## 0.1.0
+
+### Minor Changes
+
+- f16deaf: Add a Next.js document-head helper for `/canvas/content-api` results.
+
+### Patch Changes
+
+- Updated dependencies [f16deaf]
+- Updated dependencies [f16deaf]
+- Updated dependencies [7f3da8f]
+  - @drupal-canvas/headless@0.2.0
+  - @drupal-canvas/headless-react@0.2.0
+
 ## 0.0.3
 
 ### Patch Changes
