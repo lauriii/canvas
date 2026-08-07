@@ -51,6 +51,19 @@ function customCollisionDetectionAlgorithm(
   return rectIntersection(args);
 }
 
+// The editor pane runs its own drag auto-scroll (see EditorFrame), driven purely
+// by the pointer's distance from the pane edges. That is consistent regardless of
+// what drop target — if any — is under the pointer, unlike dnd-kit's built-in
+// auto-scroll, which only fires over a droppable and only after movement in the
+// scroll direction (#3534972). Exclude the pane here so the two don't both scroll
+// it; other scrollable containers (e.g. the layers panel) keep dnd-kit's default.
+function canAutoScroll(element: Element): boolean {
+  return !(
+    element instanceof HTMLElement &&
+    element.dataset.canvasEditorPane === 'true'
+  );
+}
+
 const App: React.FC = () => {
   useRouteSync();
   useExtensions();
@@ -90,6 +103,9 @@ const App: React.FC = () => {
           <DndContext
             sensors={sensors}
             collisionDetection={customCollisionDetectionAlgorithm}
+            // The editor pane auto-scrolls itself (see EditorFrame); keep dnd-kit
+            // from also scrolling it. See #3534972 and canAutoScroll above.
+            autoScroll={{ canScroll: canAutoScroll }}
           >
             <Flex className={styles.canvasContainer} gap="0">
               <ErrorBoundary variant="page">
