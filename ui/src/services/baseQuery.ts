@@ -194,6 +194,9 @@ export const withAutoSavesInjection: (
           'createContentTemplate',
           'updateFolder',
           'uploadFont',
+          'createColor',
+          'updateColor',
+          'deleteColor',
         ].includes(api.endpoint)
       ) {
         const state = api.getState() as RootState;

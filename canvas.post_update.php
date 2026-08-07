@@ -6,6 +6,7 @@ use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CanvasConfigUpdater;
 use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer;
 use Drupal\canvas\Entity\BrandKit;
+use Drupal\canvas\Entity\Color;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Folder;
@@ -661,6 +662,8 @@ function _canvas_coerce_block_label_display_in_raw(array &$data): bool {
 }
 
 /**
+ * Installs the Color config entity type.
+ *
  * Rehash existing auto-save items with the strengthened normalization.
  *
  * Changes to AutoSaveManager::toStorableArray() and ::normalizeEntity() mean
@@ -705,5 +708,17 @@ function canvas_post_update_0026_rehash_auto_save_items(): void {
     $item[AutoSaveManager::AUTO_SAVE_STORED_ENTITY_HASH_KEY] = $generate_hash->invoke(NULL, $normalize->invoke(NULL, $stored));
 
     $auto_save_store->set($key, $item);
+  }
+}
+
+/**
+ * Installs the Color config entity type.
+ */
+function canvas_post_update_0027_install_color_entity_type(): void {
+  $entity_definition_update_manager = \Drupal::service(EntityDefinitionUpdateManagerInterface::class);
+  \assert($entity_definition_update_manager instanceof EntityDefinitionUpdateManagerInterface);
+  $change_list = $entity_definition_update_manager->getChangeList();
+  if (($change_list[Color::ENTITY_TYPE_ID]['entity_type'] ?? NULL) === EntityDefinitionUpdateManagerInterface::DEFINITION_CREATED) {
+    $entity_definition_update_manager->installEntityType(\Drupal::entityTypeManager()->getDefinition(Color::ENTITY_TYPE_ID));
   }
 }

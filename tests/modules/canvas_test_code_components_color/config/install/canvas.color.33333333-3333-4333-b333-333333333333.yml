@@ -1,0 +1,17 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - canvas_test_code_components_color
+uuid: 33333333-3333-4333-b333-333333333333
+name: 'Brand Blue'
+cssVariable: '--brand-blue'
+value:
+  colorSpace: srgb
+  components:
+    - 0.0
+    - 0.2667
+    - 0.8
+  alpha: 0.9
+weight: 2
