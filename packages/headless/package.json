@@ -1,6 +1,6 @@
 {
   "name": "@drupal-canvas/headless",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Framework-agnostic core of the Drupal Canvas Headless SDK: draft preview sessions, draft-aware content clients, and component metadata exposure for decoupled frontend apps.",
   "license": "MIT",
   "repository": {

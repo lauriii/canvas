@@ -1,5 +1,13 @@
 # @drupal-canvas/headless
 
+## 0.2.0
+
+### Minor Changes
+
+- f16deaf: Use `/canvas/content-api` in the draft-aware page client.
+- 7f3da8f: Add content-template view mode support to live draft content
+  requests.
+
 ## 0.1.1
 
 ### Patch Changes
