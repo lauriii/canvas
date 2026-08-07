@@ -1,5 +1,15 @@
 # @drupal-canvas/headless-next
 
+## 0.1.1
+
+### Patch Changes
+
+- 9c6de1e: Fix framework bindings to use the isomorphic rendered-page exports.
+- Updated dependencies [9c6de1e]
+- Updated dependencies [9c6de1e]
+  - @drupal-canvas/headless@0.3.0
+  - @drupal-canvas/headless-react@0.2.1
+
 ## 0.1.0
 
 ### Minor Changes

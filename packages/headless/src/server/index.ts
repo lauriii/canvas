@@ -27,8 +27,8 @@ export {
   type RedemptionResult,
 } from './flows';
 export { getDraftClient, getPublicClient } from './json-api-client';
+export { fetchPage } from './content-api';
 export {
-  fetchPage,
   isPageRedirect,
   serializeJsonForHtml,
   type CanvasComponentTreeElement,
@@ -43,7 +43,7 @@ export {
   type PageHeadScript,
   type PageRedirect,
   type PageResult,
-} from './content-api';
+} from '../page';
 export {
   verifyAssertionByRedemption,
   type AssertionVerification,

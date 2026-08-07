@@ -3,10 +3,11 @@
  * TanStack Start adapter for the Drupal Canvas Headless SDK. This entry is
  * server-side (it reaches @tanstack/react-start/server). The pieces other
  * bundles need live in their own entries: the <DraftSession> client
- * component under `./client`, the canvas() Vite plugin under `./vite`
- * (the Vite config runs outside any request scope), and cspMiddleware
- * under `./middleware` — createStart's configuration is isomorphic, so a
- * module it imports must never reach this entry.
+ * component under `./client`, the route head translator under `./head`, the
+ * canvas() Vite plugin under `./vite` (the Vite config runs outside any
+ * request scope), and cspMiddleware under `./middleware` — createStart's
+ * configuration is isomorphic, so a module it imports must never reach this
+ * entry.
  */
 
 export {
@@ -37,21 +38,19 @@ export {
 export {
   getDraftEditorOrigin,
   getSessionToken,
+  isPageRedirect,
   type AccessToken,
+  type CanvasComponentTreeElement,
+  type CanvasComponentTreeSlot,
   type DraftData,
+  type DrupalRoute,
+  type DrupalRouteEntity,
+  type Page,
+  type PageHead,
+  type PageRedirect,
+  type PageResult,
 } from '@drupal-canvas/headless';
-export { isPageRedirect } from '@drupal-canvas/headless/server';
-export type {
-  CanvasComponentTreeElement,
-  CanvasComponentTreeSlot,
-  DraftConfig,
-  DrupalRoute,
-  DrupalRouteEntity,
-  Page,
-  PageHead,
-  PageRedirect,
-  PageResult,
-} from '@drupal-canvas/headless/server';
+export type { DraftConfig } from '@drupal-canvas/headless/server';
 export type {
   ComponentMetadataEntry,
   ComponentMetadataPayload,

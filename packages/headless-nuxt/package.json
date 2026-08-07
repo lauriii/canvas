@@ -1,6 +1,6 @@
 {
   "name": "@drupal-canvas/headless-nuxt",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Nuxt adapter for the Drupal Canvas Headless SDK.",
   "license": "MIT",
   "repository": {
@@ -67,7 +67,7 @@
     "type-check": "vue-tsc --noEmit --pretty"
   },
   "dependencies": {
-    "@drupal-canvas/headless": "^0.2.0",
+    "@drupal-canvas/headless": "^0.3.0",
     "@nuxt/kit": "^4.4.8",
     "h3": "^1.15.0"
   },

@@ -1,5 +1,18 @@
 # @drupal-canvas/headless-tanstack-start
 
+## 0.2.0
+
+### Minor Changes
+
+- 9c6de1e: Add an isomorphic `./head` entry for route head translation.
+
+### Patch Changes
+
+- Updated dependencies [9c6de1e]
+- Updated dependencies [9c6de1e]
+  - @drupal-canvas/headless@0.3.0
+  - @drupal-canvas/headless-react@0.2.1
+
 ## 0.1.0
 
 ### Minor Changes

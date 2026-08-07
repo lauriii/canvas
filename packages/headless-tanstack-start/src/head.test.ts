@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { toTanStackHead } from './head';
 
-import type { PageHead } from '@drupal-canvas/headless/server';
+import type { PageHead } from '@drupal-canvas/headless';
 
 describe('toTanStackHead', () => {
   it('maps React attributes and safely serialized JSON-LD', () => {

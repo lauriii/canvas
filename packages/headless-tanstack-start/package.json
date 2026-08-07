@@ -1,6 +1,6 @@
 {
   "name": "@drupal-canvas/headless-tanstack-start",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "TanStack Start adapter for the Drupal Canvas Headless SDK.",
   "license": "MIT",
   "repository": {
@@ -36,6 +36,11 @@
       "types": "./src/client/index.ts",
       "default": "./src/client/index.ts"
     },
+    "./head": {
+      "import": "./src/head.ts",
+      "types": "./src/head.ts",
+      "default": "./src/head.ts"
+    },
     "./vite": {
       "import": "./src/vite.ts",
       "types": "./src/vite.ts",
@@ -52,8 +57,8 @@
     "type-check": "tsc --noEmit --pretty"
   },
   "dependencies": {
-    "@drupal-canvas/headless": "^0.2.0",
-    "@drupal-canvas/headless-react": "^0.2.0"
+    "@drupal-canvas/headless": "^0.3.0",
+    "@drupal-canvas/headless-react": "^0.2.1"
   },
   "peerDependencies": {
     "@tanstack/react-router": ">=1.130.0",

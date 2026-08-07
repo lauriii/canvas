@@ -9,7 +9,7 @@ import type {
   CanvasComponentTreeElement,
   CanvasComponentTreeSlot,
   JsonValue,
-} from './server/content-api';
+} from './page';
 
 /** The prop used on the wire for a Canvas component instance UUID. */
 export const CANVAS_COMPONENT_UUID_PROP = 'canvasUuid';

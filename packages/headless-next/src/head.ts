@@ -1,4 +1,4 @@
-import type { PageHead } from '@drupal-canvas/headless/server';
+import type { PageHead } from '@drupal-canvas/headless';
 import type { Metadata } from 'next';
 
 /**
