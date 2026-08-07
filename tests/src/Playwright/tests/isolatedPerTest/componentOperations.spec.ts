@@ -152,9 +152,8 @@ test.describe('Perform CRUD operations on components', () => {
     await expect(hero).toHaveCSS('outline-style', 'solid');
 
     // Start a drag without moving the pointer outside the component. The drag
-    // sensor activates after 3px, so this is what happens on a normal drag: no
-    // mouseout fires, and before this was fixed the hover outline stayed on for
-    // the whole drag and after it ended.
+    // sensor activates after 3px, so this is the normal case, and no mouseout
+    // fires to clear the hover.
     await page.mouse.down();
     await page.mouse.move(centerX + 5, centerY + 5);
     await page.mouse.move(centerX + 9, centerY + 9);

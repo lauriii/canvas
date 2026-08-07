@@ -128,11 +128,9 @@ const DragEventsHandler: React.FC = () => {
 
   function handleDragStart(event: DragStartEvent) {
     initMouseTracking();
-    // Nothing is hovered while dragging. The hover handlers already refuse to
-    // set a hovered component mid-drag, but they only run on pointer movement
-    // across an element boundary, so a drag that starts without the pointer
-    // leaving the component it started on would otherwise keep that component
-    // marked as hovered for the whole drag and beyond.
+    // Nothing is hovered while dragging. The overlay only clears its hovered
+    // component on mouseout, which never fires when a drag starts without the
+    // pointer leaving that component.
     dispatch(unsetHoveredComponent());
     setComponentName(event.active.data?.current?.name);
     const isFolderDrag = event.active.data?.current?.type === 'folder';
