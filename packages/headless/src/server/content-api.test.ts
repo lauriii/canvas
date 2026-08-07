@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isPageRedirect, serializeJsonForHtml } from './content-api';
+import { isPageRedirect, serializeJsonForHtml } from '../index';
 
 describe('isPageRedirect', () => {
   it('distinguishes redirect and page results', () => {

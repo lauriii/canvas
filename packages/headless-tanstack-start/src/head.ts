@@ -1,6 +1,6 @@
-import { serializeJsonForHtml } from '@drupal-canvas/headless/server';
+import { serializeJsonForHtml } from '@drupal-canvas/headless';
 
-import type { PageHead } from '@drupal-canvas/headless/server';
+import type { PageHead } from '@drupal-canvas/headless';
 import type { AnyRouteMatch } from '@tanstack/react-router';
 
 /** The result accepted by a TanStack route's head callback. */

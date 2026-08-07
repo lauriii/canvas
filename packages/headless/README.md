@@ -25,7 +25,7 @@ context and document-head data, plus a Canvas component tree when Canvas renders
 the route:
 
 ```ts
-import { isPageRedirect } from '@drupal-canvas/headless/server';
+import { isPageRedirect } from '@drupal-canvas/headless';
 
 const result = await server.fetchPage('/articles/hello-world');
 if (result && isPageRedirect(result)) {
@@ -71,8 +71,9 @@ dependency's type declarations (`jsona`, via the JSON:API client); the
 
 The subpaths keep browser bundles free of Node-only code and vice versa:
 
-- `@drupal-canvas/headless` — isomorphic: the protocol constants and the
-  `DraftData` session contract.
+- `@drupal-canvas/headless` — isomorphic: protocol constants, the `DraftData`
+  session contract, rendered-page types, `isPageRedirect()`, and JSON script
+  serialization.
 - `@drupal-canvas/headless/client` — browser-only: the draft session state
   machine, the `<canvas-draft-session>` element, and preview geometry helpers.
 - `@drupal-canvas/headless/server` — server-side, edge-safe: the draft server

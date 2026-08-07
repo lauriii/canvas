@@ -36,6 +36,11 @@
       "types": "./src/client/index.ts",
       "default": "./src/client/index.ts"
     },
+    "./head": {
+      "import": "./src/head.ts",
+      "types": "./src/head.ts",
+      "default": "./src/head.ts"
+    },
     "./vite": {
       "import": "./src/vite.ts",
       "types": "./src/vite.ts",

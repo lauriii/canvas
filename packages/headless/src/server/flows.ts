@@ -30,9 +30,9 @@ import { exchangeAssertion } from './token-exchange';
 
 import type { JsonApiClient } from '@drupal-api-client/json-api-client';
 import type { DraftData } from '../draft-data';
+import type { PageResult } from '../page';
 import type { DraftServerAdapter } from './adapter';
 import type { DraftConfig } from './config';
-import type { PageResult } from './content-api';
 
 /**
  * The result of redeeming an assertion at Drupal's token endpoint: the

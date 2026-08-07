@@ -17,8 +17,10 @@ import {
 } from '@drupal-canvas/headless';
 
 import type { ElementType, ReactNode } from 'react';
-import type { CanvasMarker as CanvasMarkerProps } from '@drupal-canvas/headless';
-import type { CanvasComponentTreeElement } from '@drupal-canvas/headless/server';
+import type {
+  CanvasComponentTreeElement,
+  CanvasMarker as CanvasMarkerProps,
+} from '@drupal-canvas/headless';
 
 /** App component implementations keyed by component.yml machine name. */
 export type CanvasComponentRegistry = Record<string, ElementType>;

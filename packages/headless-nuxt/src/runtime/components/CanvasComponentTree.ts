@@ -23,8 +23,10 @@ import {
   reportMissingCanvasComponentUuid,
 } from '@drupal-canvas/headless';
 
-import type { CanvasMarker } from '@drupal-canvas/headless';
-import type { CanvasComponentTreeElement } from '@drupal-canvas/headless/server';
+import type {
+  CanvasComponentTreeElement,
+  CanvasMarker,
+} from '@drupal-canvas/headless';
 import type { Component, PropType, VNodeChild } from 'vue';
 
 export type CanvasComponentRegistry = Record<string, Component>;

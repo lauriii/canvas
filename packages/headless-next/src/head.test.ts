@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { toNextMetadata } from './head';
 
-import type { PageHead } from '@drupal-canvas/headless/server';
+import type { PageHead } from '@drupal-canvas/headless';
 
 const head: PageHead = {
   title: 'Article',
