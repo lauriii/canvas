@@ -263,6 +263,11 @@ enum JsonSchemaType: string {
       }
       $array_item_prop_shape = PropShape::normalize($schema['items']);
 
+      // The resolution below reuses the field type, widget and settings of the
+      // item prop shape. The array prop shape then depends on whatever config
+      // that resolution depended on (e.g. `config:media_type_list`), and must
+      // carry the same cache tags.
+      // @see \Drupal\canvas\PropShape\EphemeralPropShapeRepository::getStorablePropShape()
       $item_storable_prop_shape = $shape_repository->getStorablePropShape($array_item_prop_shape);
       if ($item_storable_prop_shape === NULL) {
         return NULL;
