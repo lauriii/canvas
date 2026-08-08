@@ -26,10 +26,16 @@ import UnifiedMenu from '@/components/UnifiedMenu';
 import ColorFormPopover from '@/features/brandKit/components/ColorFormPopover';
 import ColorRow from '@/features/brandKit/components/ColorRow';
 import FolderNameInput from '@/features/brandKit/components/FolderNameInput';
-import { DELETE_COLOR_CACHE_KEY } from '@/features/brandKit/constants';
+import {
+  DELETE_COLOR_CACHE_KEY,
+  UPDATE_COLOR_CACHE_KEY,
+} from '@/features/brandKit/constants';
 import { useBrandKitColors } from '@/features/brandKit/hooks/useBrandKitColors';
 import { extractErrorMessageFromApiResponse } from '@/features/error-handling/error-handling';
-import { useDeleteColorMutation } from '@/services/brandKit';
+import {
+  useDeleteColorMutation,
+  useUpdateColorMutation,
+} from '@/services/brandKit';
 import { useGetFoldersQuery } from '@/services/componentAndLayout';
 
 import type { FormEvent } from 'react';
@@ -49,11 +55,15 @@ const BrandKitColorsSection = () => {
     error: foldersError,
     isLoading: isLoadingFolders,
   } = useGetFoldersQuery();
-  // Deleting a color removes its row optimistically, which unmounts the row and
-  // the popover that started the delete. Subscribing to the same fixed cache
-  // key keeps a rejected delete reportable once its popover has gone.
+  // Editing and deleting a color both apply optimistically and close or unmount
+  // the popover that started them, so neither has a form left to report a
+  // rejection in. Subscribing to the same fixed cache keys keeps those failures
+  // reportable here, which outlives both.
   const [, { error: deleteColorError }] = useDeleteColorMutation({
     fixedCacheKey: DELETE_COLOR_CACHE_KEY,
+  });
+  const [, { error: updateColorError }] = useUpdateColorMutation({
+    fixedCacheKey: UPDATE_COLOR_CACHE_KEY,
   });
 
   // Folder creation state
@@ -226,7 +236,10 @@ const BrandKitColorsSection = () => {
         />
       )}
 
-      {(errorMessage || foldersError || deleteColorError) && (
+      {(errorMessage ||
+        foldersError ||
+        deleteColorError ||
+        updateColorError) && (
         <Text color="red" size="2">
           {errorMessage ||
             (foldersError &&
@@ -235,6 +248,12 @@ const BrandKitColorsSection = () => {
               <>
                 Failed to delete color:{' '}
                 {parse(extractErrorMessageFromApiResponse(deleteColorError))}
+              </>
+            )) ||
+            (updateColorError && (
+              <>
+                Failed to update color:{' '}
+                {parse(extractErrorMessageFromApiResponse(updateColorError))}
               </>
             ))}
         </Text>
