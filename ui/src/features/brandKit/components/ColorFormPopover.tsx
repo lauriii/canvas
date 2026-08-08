@@ -13,6 +13,7 @@ import {
 import ColorPicker from '@/components/ColorPicker';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import ErrorCard from '@/components/error/ErrorCard';
+import { UPDATE_COLOR_CACHE_KEY } from '@/features/brandKit/constants';
 import { validateCssVariableClientSide } from '@/features/validation/validation';
 import {
   useCreateColorMutation,
@@ -183,13 +184,8 @@ const ColorFormPopover = ({
   ] = useCreateColorMutation();
   const [
     updateColor,
-    {
-      isLoading: isUpdating,
-      isError: isUpdateError,
-      error: updateError,
-      reset: resetUpdate,
-    },
-  ] = useUpdateColorMutation();
+    { isLoading: isUpdating, isError: isUpdateError, error: updateError },
+  ] = useUpdateColorMutation({ fixedCacheKey: UPDATE_COLOR_CACHE_KEY });
   const [updateFolder] = useUpdateFolderMutation();
   const { data: foldersData } = useGetFoldersQuery();
 
@@ -211,9 +207,12 @@ const ColorFormPopover = ({
   useEffect(() => {
     if (!open) {
       resetCreate();
-      resetUpdate();
+      // The update mutation is deliberately not reset here. It uses a shared
+      // cache key so the colors section can report a rejected edit after this
+      // popover closes, and closing is exactly when that happens. Starting the
+      // next edit clears it.
     }
-  }, [open, resetCreate, resetUpdate]);
+  }, [open, resetCreate]);
 
   // Initialize form when opening
   useEffect(() => {
@@ -243,7 +242,9 @@ const ColorFormPopover = ({
   };
 
   const handleSave = async () => {
-    if (isCreating || isUpdating) return;
+    // Only creation can be double-submitted: an edit closes this popover
+    // immediately, and `isUpdating` now covers edits started elsewhere too.
+    if (isCreating) return;
 
     updateForm({ type: 'SHOW_VALIDATION_ERRORS' });
 
@@ -291,12 +292,13 @@ const ColorFormPopover = ({
           }
         }
       } else if (operation === 'edit' && color) {
-        await updateColor({
-          id: color.id,
-          changes: {
-            value: colorValue,
-          },
-        }).unwrap();
+        // The edit is applied to the cache before the request is sent, so there
+        // is nothing here to wait for. Close now rather than holding the form
+        // open on a spinner; a rejection is reported by the colors section,
+        // which outlives this popover.
+        onOpenChange(false);
+        updateColor({ id: color.id, changes: { value: colorValue } });
+        return;
       }
 
       onOpenChange(false);

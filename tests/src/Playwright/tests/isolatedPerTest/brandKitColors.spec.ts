@@ -704,9 +704,11 @@ test.describe('brand kit colors', () => {
     await page.locator(SEL.form.rgba.b).fill('255');
     await page.locator(SEL.form.save).click();
 
-    // The row swatch shows the new color while the request is still open. This
-    // is the whole point of the optimistic write: no waiting for the server.
+    // The row swatch shows the new color while the request is still open, and
+    // the form has already closed. This is the whole point of the optimistic
+    // write: nothing waits for the server.
     await expect(redSwatch).toHaveCSS('background-color', 'rgb(0, 0, 255)');
+    await expect(page.locator(POP_SEL)).toBeHidden();
 
     releaseWrite();
     await expect(redSwatch).toHaveCSS('background-color', 'rgb(0, 0, 255)');
@@ -748,8 +750,10 @@ test.describe('brand kit colors', () => {
 
     // The rejected value must not survive anywhere in the UI.
     await expect(greenSwatch).toHaveCSS('background-color', storedGreen);
-    // The popover stays open so the failure is visible rather than silent.
-    await expect(page.locator(POP_SEL)).toBeVisible();
+    // The form closes as soon as the edit is applied, so the failure is
+    // reported by the colors section rather than by the form.
+    await expect(page.locator(POP_SEL)).toBeHidden();
+    await expect(page.getByText(/Failed to update color/)).toBeVisible();
   });
 
   test('restores a color when deleting it fails', async ({
