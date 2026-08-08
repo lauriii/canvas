@@ -26,8 +26,10 @@ import UnifiedMenu from '@/components/UnifiedMenu';
 import ColorFormPopover from '@/features/brandKit/components/ColorFormPopover';
 import ColorRow from '@/features/brandKit/components/ColorRow';
 import FolderNameInput from '@/features/brandKit/components/FolderNameInput';
+import { DELETE_COLOR_CACHE_KEY } from '@/features/brandKit/constants';
 import { useBrandKitColors } from '@/features/brandKit/hooks/useBrandKitColors';
 import { extractErrorMessageFromApiResponse } from '@/features/error-handling/error-handling';
+import { useDeleteColorMutation } from '@/services/brandKit';
 import { useGetFoldersQuery } from '@/services/componentAndLayout';
 
 import type { FormEvent } from 'react';
@@ -47,6 +49,12 @@ const BrandKitColorsSection = () => {
     error: foldersError,
     isLoading: isLoadingFolders,
   } = useGetFoldersQuery();
+  // Deleting a color removes its row optimistically, which unmounts the row and
+  // the popover that started the delete. Subscribing to the same fixed cache
+  // key keeps a rejected delete reportable once its popover has gone.
+  const [, { error: deleteColorError }] = useDeleteColorMutation({
+    fixedCacheKey: DELETE_COLOR_CACHE_KEY,
+  });
 
   // Folder creation state
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
@@ -218,11 +226,17 @@ const BrandKitColorsSection = () => {
         />
       )}
 
-      {(errorMessage || foldersError) && (
+      {(errorMessage || foldersError || deleteColorError) && (
         <Text color="red" size="2">
           {errorMessage ||
             (foldersError &&
-              parse(extractErrorMessageFromApiResponse(foldersError)))}
+              parse(extractErrorMessageFromApiResponse(foldersError))) ||
+            (deleteColorError && (
+              <>
+                Failed to delete color:{' '}
+                {parse(extractErrorMessageFromApiResponse(deleteColorError))}
+              </>
+            ))}
         </Text>
       )}
 
