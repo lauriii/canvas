@@ -39,16 +39,17 @@ const jsonResponse = (body: unknown, status: number) =>
     headers: { 'Content-Type': 'application/json' },
   });
 
-const brandKitResponse = () =>
-  jsonResponse(
-    {
-      id: BRAND_KIT_ID,
-      label: 'Global brand kit',
-      fonts: null,
-      colors: serverColors,
-    } satisfies BrandKit,
-    200,
-  );
+const brandKitBody = (): BrandKit => ({
+  id: BRAND_KIT_ID,
+  label: 'Global brand kit',
+  fonts: null,
+  colors: serverColors,
+});
+
+const brandKitResponse = () => jsonResponse(brandKitBody(), 200);
+
+/** When set, the auto-save read waits on this before responding. */
+let heldAutoSave: Promise<void> | null = null;
 
 /**
  * Applies a write to the fake server's stored colors.
@@ -66,6 +67,7 @@ const applyToServer = (method: string, id: string, body: unknown) => {
 
 beforeEach(() => {
   pending = [];
+  heldAutoSave = null;
   vi.stubGlobal(
     'fetch',
     async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -80,6 +82,12 @@ beforeEach(() => {
       // Reads, including the reconcile refetch that invalidation triggers,
       // always return current server truth.
       if (method === 'GET') {
+        if (url.includes('/config/auto-save/brand_kit/')) {
+          if (heldAutoSave) {
+            await heldAutoSave;
+          }
+          return jsonResponse({ data: brandKitBody(), autoSaves: {} }, 200);
+        }
         if (url.includes('/config/brand_kit/')) {
           return brandKitResponse();
         }
@@ -164,6 +172,18 @@ const setup = async (colors: BrandKitColor[]) => {
   const readHex = (id: string): string | null | undefined =>
     readColors().find((color) => color.id === id)?.value.hex;
 
+  /**
+   * Reads the color the way `useBrandKitColors` does: the auto-save draft's
+   * colors win over the canonical ones when a draft is loaded.
+   */
+  const readEffectiveHex = (id: string): string | null | undefined => {
+    const draft = brandKitApi.endpoints.getAutoSave.select(BRAND_KIT_ID)(
+      store.getState(),
+    ).data?.data;
+    const colors = draft?.colors ?? readColors();
+    return colors.find((color) => color.id === id)?.value.hex;
+  };
+
   // Deliberately not async: returning the mutation promise from an async
   // helper would make `await editColor(...)` wait on a request the test has
   // not settled yet. Callers await `flush()` themselves.
@@ -178,7 +198,14 @@ const setup = async (colors: BrandKitColor[]) => {
   const deleteColor = (id: string) =>
     store.dispatch(brandKitApi.endpoints.deleteColor.initiate(id));
 
-  return { store, readColors, readHex, editColor, deleteColor };
+  return {
+    store,
+    readColors,
+    readHex,
+    readEffectiveHex,
+    editColor,
+    deleteColor,
+  };
 };
 
 describe('brand kit color optimistic writes', () => {
@@ -294,5 +321,31 @@ describe('brand kit color optimistic writes', () => {
     await flush();
 
     expect(readColors().map((color) => color.id)).toEqual(['b']);
+  });
+
+  it('survives an auto-save response that lands mid-write', async () => {
+    // Hold the auto-save read open so it resolves *after* the optimistic patch,
+    // carrying pre-edit colors. useBrandKitColors prefers the draft, so without
+    // re-application this response reverts the swatch to the old color.
+    let releaseAutoSave: () => void = () => {};
+    heldAutoSave = new Promise<void>((resolve) => {
+      releaseAutoSave = resolve;
+    });
+
+    const { store, readEffectiveHex, editColor } = await setup([
+      makeColor('a', '#ff0000'),
+    ]);
+    store.dispatch(brandKitApi.endpoints.getAutoSave.initiate(BRAND_KIT_ID));
+    await flush();
+
+    editColor('a', '#00ff00');
+    await flush();
+    expect(readEffectiveHex('a')).toBe('#00ff00');
+
+    releaseAutoSave();
+    await flush();
+
+    // The stale draft must not overwrite the value the user just chose.
+    expect(readEffectiveHex('a')).toBe('#00ff00');
   });
 });
