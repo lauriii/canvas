@@ -22,6 +22,7 @@ use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 
@@ -53,9 +54,9 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
    * Copies a real 640×427 image to public://balloons.png for Image API use.
    */
   private function installBalloonsFixture(): void {
-    $file_system = $this->container->get('file_system');
+    $file_system = $this->container->get(FileSystemInterface::class);
     \assert($file_system instanceof FileSystemInterface);
-    $extension_path_resolver = $this->container->get('extension.path.resolver');
+    $extension_path_resolver = $this->container->get(ExtensionPathResolver::class);
     \assert($extension_path_resolver instanceof ExtensionPathResolver);
     $module_path = $extension_path_resolver->getPath('module', 'canvas_test_sdc');
     $source = $module_path . '/components/card/balloons.png';
@@ -81,7 +82,7 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
       ],
     );
     $request->setSession(new Session(new MockArraySessionStorage()));
-    $this->container->get('request_stack')->push($request);
+    $this->container->get(RequestStack::class)->push($request);
   }
 
   /**
@@ -475,6 +476,121 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
       '/sites/default/files/styles/test_style/public/test-image.jpg',
       $src,
     );
+  }
+
+  /**
+   * Tests a language prefix on the request and on the image source.
+   *
+   * Drupal serves files from a path that never carries the language prefix, so
+   * a request negotiated to a prefixed path still resolves an unprefixed public
+   * files URL, and a source that does carry a prefix is not a public files URL
+   * and is left alone rather than guessed at.
+   */
+  public function testApplyImageStyleWithLanguagePrefix(): void {
+    ImageStyle::create([
+      'name' => 'test_style',
+      'label' => 'Test Style',
+    ])->save();
+
+    $request = Request::create('/fr/node/1');
+    $request->setSession(new Session(new MockArraySessionStorage()));
+    $this->container->get(RequestStack::class)->push($request);
+
+    $publicBasePath = PublicStream::basePath();
+    $unprefixed = [
+      'src' => '/' . $publicBasePath . '/test-image.jpg',
+      'width' => 400,
+      'height' => 300,
+    ];
+    $src = $this->renderDrupalInlineTemplate(
+      "{% set r = image|apply_image_style('test_style') %}{{ r.src }}",
+      ['image' => $unprefixed]
+    );
+
+    $this->assertStyledDerivativeRelativeUrl(
+      '/sites/default/files/styles/test_style/public/test-image.jpg',
+      $src,
+    );
+
+    $prefixed = [
+      'src' => '/fr/' . $publicBasePath . '/test-image.jpg',
+      'width' => 400,
+      'height' => 300,
+    ];
+    $rendered = $this->renderDrupalInlineTemplate(
+      "{% set r = image|apply_image_style('test_style') %}{{ r.src }}###{{ r.width }}###{{ r.height }}",
+      ['image' => $prefixed]
+    );
+    [$prefixedSrc, $width, $height] = explode('###', $rendered, 3);
+
+    $this->assertSame('/fr/' . $publicBasePath . '/test-image.jpg', $prefixedSrc);
+    $this->assertSame('400', $width);
+    $this->assertSame('300', $height);
+  }
+
+  /**
+   * Tests the apply_image_style filter with a private files URL.
+   *
+   * The derivative is no more accessible than the file it derives from: core's
+   * ImageStyleDownloadController invokes hook_file_download() for a derivative
+   * whose scheme is not public, and denies access unless an implementation
+   * returns headers.
+   */
+  public function testApplyImageStyleWithPrivateFilesUrl(): void {
+    // CoreServiceProvider only registers the private stream wrapper when the
+    // setting is present at container build time, so the container has to be
+    // rebuilt for it to exist.
+    $this->setSetting('file_private_path', $this->siteDirectory . '/private');
+    $this->container = $this->container->get('kernel')->rebuildContainer();
+
+    ImageStyle::create([
+      'name' => 'test_style',
+      'label' => 'Test Style',
+    ])->save();
+
+    $image = [
+      'src' => '/system/files/test-image.jpg',
+      'width' => 400,
+      'height' => 300,
+    ];
+    $src = $this->renderDrupalInlineTemplate(
+      "{% set r = image|apply_image_style('test_style') %}{{ r.src }}",
+      ['image' => $image]
+    );
+
+    $this->assertStyledDerivativeRelativeUrl(
+      '/system/files/styles/test_style/private/test-image.jpg',
+      $src,
+    );
+  }
+
+  /**
+   * Tests a private files URL on a site that has no private file system.
+   *
+   * The private stream wrapper is only registered when `file_private_path` is
+   * set, so a URL that merely looks like one must be left alone rather than
+   * resolved into a URI that cannot be built.
+   */
+  public function testApplyImageStyleWithPrivateFilesUrlAndNoPrivateFileSystem(): void {
+    ImageStyle::create([
+      'name' => 'test_style',
+      'label' => 'Test Style',
+    ])->save();
+
+    $image = [
+      'src' => '/system/files/test-image.jpg',
+      'width' => 400,
+      'height' => 300,
+    ];
+    $rendered = $this->renderDrupalInlineTemplate(
+      "{% set r = image|apply_image_style('test_style') %}{{ r.src }}###{{ r.width }}###{{ r.height }}",
+      ['image' => $image]
+    );
+    [$src, $width, $height] = explode('###', $rendered, 3);
+
+    $this->assertSame('/system/files/test-image.jpg', $src);
+    $this->assertSame('400', $width);
+    $this->assertSame('300', $height);
   }
 
   /**
