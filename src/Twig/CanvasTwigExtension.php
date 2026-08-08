@@ -15,7 +15,7 @@ use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Image\ImageFactory;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\Render\RendererInterface;
-use Drupal\Core\StreamWrapper\PublicStream;
+use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\image\Entity\ImageStyle;
@@ -40,6 +40,13 @@ final class CanvasTwigExtension extends AbstractExtension {
     private readonly RendererInterface $renderer,
     private readonly RequestStack $requestStack,
   ) {}
+
+  /**
+   * Memoized result of ::getStreamWrapperUrlPrefixes(), per request.
+   *
+   * @var array<string, string>|null
+   */
+  private ?array $streamWrapperUrlPrefixes = NULL;
 
   /**
    * {@inheritdoc}
@@ -174,37 +181,96 @@ final class CanvasTwigExtension extends AbstractExtension {
   }
 
   /**
-   * Converts a public files URL back to its stream wrapper URI.
+   * Converts a local file URL back to its stream wrapper URI.
    *
-   * This reverses what \Drupal\Core\StreamWrapper\PublicStream::getLocalPath()
-   * does, but only for public:// files.
+   * This reverses what a stream wrapper's ::getExternalUrl() did, for whichever
+   * visible local stream wrappers the site has registered. Nothing about any
+   * particular scheme's URL shape is assumed: the prefixes come from the
+   * wrappers themselves, so a site with a relocated files directory, a private
+   * file system, or a contrib local wrapper all work.
+   *
+   * Reversing a private:// URL does not widen access to the file. Core's
+   * \Drupal\image\Controller\ImageStyleDownloadController::deliver() invokes
+   * hook_file_download() for any derivative whose scheme is not public and
+   * denies access unless an implementation returns headers, so a derivative of
+   * a private file stays as protected as the file it derives from.
    *
    * @param string $url
-   *   A public files URL (e.g., /sites/default/files/image.jpg).
+   *   A local file URL (e.g., /sites/default/files/image.jpg for public files,
+   *   /system/files/image.jpg for private files).
    *
    * @return string|null
-   *   The public:// stream wrapper URI, or NULL if not a public files URL.
+   *   The stream wrapper URI, or NULL if not a local file URL.
    */
   private function urlToStreamWrapperUri(string $url): ?string {
-    $publicBasePath = PublicStream::basePath();
     $pathSegment = parse_url($url, PHP_URL_PATH);
     $path = ltrim(\is_string($pathSegment) ? $pathSegment : $url, '/');
+
+    foreach ($this->getStreamWrapperUrlPrefixes() as $prefix => $scheme) {
+      if (str_starts_with($path, $prefix)) {
+        // Decode the path so the URI uses actual characters, avoiding
+        // double-encoding when Drupal builds the styled URL.
+        return $scheme . '://' . rawurldecode(substr($path, \strlen($prefix)));
+      }
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Maps each visible local stream wrapper's URL path prefix to its scheme.
+   *
+   * Each wrapper is asked to build the URL of a sentinel target; stripping the
+   * sentinel back off leaves the prefix that identifies that wrapper's URLs.
+   *
+   * @return array<string, string>
+   *   Scheme keyed by URL path prefix, longest prefix first.
+   */
+  private function getStreamWrapperUrlPrefixes(): array {
+    if ($this->streamWrapperUrlPrefixes !== NULL) {
+      return $this->streamWrapperUrlPrefixes;
+    }
+
+    // Chosen to survive URL encoding unchanged, so it can be found again.
+    $sentinel = 'canvasStreamWrapperSentinel';
     $basePath = trim($this->requestStack->getCurrentRequest()?->getBasePath() ?? '', '/');
-    $prefix = $publicBasePath . '/';
+    $prefixes = [];
 
-    if (str_starts_with($path, $prefix)) {
-      $target = substr($path, strlen($prefix));
-    }
-    elseif ($basePath !== '' && str_starts_with($path, $basePath . '/' . $prefix)) {
-      $target = substr($path, strlen($basePath . '/' . $prefix));
-    }
-    else {
-      return NULL;
+    foreach (\array_keys($this->streamWrapperManager->getWrappers(StreamWrapperInterface::LOCAL_NORMAL)) as $scheme) {
+      $scheme = (string) $scheme;
+      $wrapper = $this->streamWrapperManager->getViaScheme($scheme);
+      if (!$wrapper instanceof StreamWrapperInterface) {
+        continue;
+      }
+      $wrapper->setUri($scheme . '://' . $sentinel);
+      $sentinelPath = parse_url($wrapper->getExternalUrl(), PHP_URL_PATH);
+      // A wrapper that does not put the file's path in the URL path cannot be
+      // reversed, temporary:// being one that passes it as a query parameter.
+      if (!\is_string($sentinelPath) || !str_ends_with($sentinelPath, $sentinel)) {
+        continue;
+      }
+      $prefix = ltrim(substr($sentinelPath, 0, -\strlen($sentinel)), '/');
+      // A wrapper serving from the root of a domain, which a
+      // `file_public_base_url` pointing at a bare CDN host produces, has no
+      // prefix to tell its URLs apart. Matching on it would claim every path,
+      // including external images. Telling those apart needs the URL's host,
+      // which is not compared here, so such a wrapper is skipped.
+      if ($prefix === '') {
+        continue;
+      }
+      $prefixes[$prefix] = $scheme;
+      // `file_public_base_url` may be configured without the base path of a
+      // site served from a subdirectory, so accept that form as well.
+      if ($basePath !== '' && !str_starts_with($prefix, $basePath . '/')) {
+        $prefixes[$basePath . '/' . $prefix] = $scheme;
+      }
     }
 
-    // Decode the path so the URI uses actual characters, avoiding
-    // double-encoding when Drupal builds the styled URL.
-    return 'public://' . rawurldecode($target);
+    // Longest first, so a wrapper serving from inside another wrapper's
+    // directory is matched before the one that contains it.
+    \uksort($prefixes, static fn(string $a, string $b): int => \strlen($b) <=> \strlen($a));
+
+    return $this->streamWrapperUrlPrefixes = $prefixes;
   }
 
   /**

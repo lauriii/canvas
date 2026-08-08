@@ -117,6 +117,13 @@ still benefiting from Canvas's responsive image handling.
 {% include 'canvas:image' with styled only %}
 ```
 
+The image's `src` can be a stream wrapper URI (`public://photo.jpg`), a public
+files URL (`/sites/default/files/photo.jpg`), or a private files URL
+(`/system/files/photo.jpg`). A styled derivative of a private file stays as
+protected as the original. Anything the filter cannot resolve, such as a remote
+URL or a missing image style, leaves the image untouched rather than failing the
+page.
+
 ### Combining with responsive images
 
 When you pass a styled image to `canvas:image`, Canvas will generate responsive

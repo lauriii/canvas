@@ -9,6 +9,7 @@ namespace Drupal\Tests\canvas\Kernel\Twig;
 use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
 use Drupal\canvas\Twig\CanvasTwigExtension;
 use Drupal\Component\Utility\UrlHelper;
+use Drupal\Core\DrupalKernelInterface;
 use Drupal\Core\Extension\ExtensionPathResolver;
 use Drupal\Core\File\FileExists;
 use Drupal\Core\File\FileSystemInterface;
@@ -86,10 +87,24 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
   }
 
   /**
+   * The URL path prefix that public files are served from, without slashes.
+   *
+   * Deliberately not PublicStream::basePath(): that is the filesystem
+   * directory, which under a kernel test's virtual filesystem is not the path
+   * a browser would send. The filter reverses URLs, so tests must build URLs.
+   */
+  private static function publicFilesUrlPath(): string {
+    $path = parse_url(PublicStream::baseUrl(), PHP_URL_PATH);
+    return trim(\is_string($path) ? $path : '', '/');
+  }
+
+  /**
    * Renders inline Twig via Drupal (registered extensions, production filter wiring).
    */
-  private function renderDrupalInlineTemplate(string $template, array $context = []): string {
-    $twig = $this->container->get('twig');
+  private static function renderDrupalInlineTemplate(string $template, array $context = []): string {
+    // Resolved from the active container rather than a captured one, so this
+    // still works for a test that rebuilds the container.
+    $twig = \Drupal::service('twig');
     \assert($twig instanceof TwigEnvironment);
     return (string) $twig->renderInline($template, $context);
   }
@@ -214,7 +229,7 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
    * Tests toSrcSet with a root-relative public files URL (urlToStreamWrapperUri).
    */
   public function testToSrcSetWithRootRelativePublicFilesUrl(): void {
-    $publicBasePath = PublicStream::basePath();
+    $publicBasePath = self::publicFilesUrlPath();
     $src = '/' . $publicBasePath . '/balloons.png';
     $expected = self::expectedBalloonsSrcset();
     $html = $this->renderCanvasImageComponent([
@@ -229,7 +244,7 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
    * Tests toSrcSet with a full URL including a non-default port.
    */
   public function testToSrcSetWithFullUrlIncludingNonDefaultPort(): void {
-    $publicBasePath = PublicStream::basePath();
+    $publicBasePath = self::publicFilesUrlPath();
     $src = 'http://127.0.0.1:8080/' . $publicBasePath . '/balloons.png';
     $expected = self::expectedBalloonsSrcset();
     $html = $this->renderCanvasImageComponent([
@@ -244,7 +259,7 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
    * Tests toSrcSet with a subdirectory site base path (Request on stack).
    */
   public function testToSrcSetWithSubdirectoryPublicFilesUrl(): void {
-    $publicBasePath = PublicStream::basePath();
+    $publicBasePath = self::publicFilesUrlPath();
     $subdirectoryBaseUrl = '/subdirectory';
     $this->pushSubdirectorySiteRequest($subdirectoryBaseUrl);
 
@@ -279,14 +294,14 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
     ]);
     $style->save();
 
-    $publicBasePath = PublicStream::basePath();
+    $publicBasePath = self::publicFilesUrlPath();
     $originalSrc = 'http://127.0.0.1:8080/' . $publicBasePath . '/balloons.png';
     $image = [
       'src' => $originalSrc,
       'width' => 640,
       'height' => 427,
     ];
-    $styledSrc = $this->renderDrupalInlineTemplate(
+    $styledSrc = self::renderDrupalInlineTemplate(
       "{% set r = image|apply_image_style('test_style') %}{{ r.src }}",
       ['image' => $image]
     );
@@ -343,7 +358,7 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
       'height' => 600,
       'alt' => 'Test image',
     ];
-    $rendered = $this->renderDrupalInlineTemplate(
+    $rendered = self::renderDrupalInlineTemplate(
       "{% set r = image|apply_image_style('test_style') %}{{ r.src }}###{{ r.width }}###{{ r.height }}###{{ r.alt }}",
       ['image' => $image]
     );
@@ -374,14 +389,14 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
       'label' => 'Test Style',
     ])->save();
 
-    $publicBasePath = PublicStream::basePath();
+    $publicBasePath = self::publicFilesUrlPath();
     // URL with encoded space (%20) in filename, e.g. "MIOT U-6_4.png".
     $image = [
       'src' => '/' . $publicBasePath . '/litters/MIOT%20U-6_4.png',
       'width' => 400,
       'height' => 300,
     ];
-    $src = $this->renderDrupalInlineTemplate(
+    $src = self::renderDrupalInlineTemplate(
       "{% set r = image|apply_image_style('test_style') %}{{ r.src }}",
       ['image' => $image]
     );
@@ -406,13 +421,13 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
     ])->save();
 
     // Test with local file URL matching the actual public files path.
-    $publicBasePath = PublicStream::basePath();
+    $publicBasePath = self::publicFilesUrlPath();
     $image = [
       'src' => '/' . $publicBasePath . '/test-image.jpg',
       'width' => 400,
       'height' => 300,
     ];
-    $src = $this->renderDrupalInlineTemplate(
+    $src = self::renderDrupalInlineTemplate(
       "{% set r = image|apply_image_style('test_style') %}{{ r.src }}",
       ['image' => $image]
     );
@@ -432,13 +447,13 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
       'label' => 'Test Style',
     ])->save();
 
-    $publicBasePath = PublicStream::basePath();
+    $publicBasePath = self::publicFilesUrlPath();
     $image = [
       'src' => 'http://127.0.0.1:8080/' . $publicBasePath . '/test-image.jpg',
       'width' => 400,
       'height' => 300,
     ];
-    $src = $this->renderDrupalInlineTemplate(
+    $src = self::renderDrupalInlineTemplate(
       "{% set r = image|apply_image_style('test_style') %}{{ r.src }}",
       ['image' => $image]
     );
@@ -458,7 +473,7 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
       'label' => 'Test Style',
     ])->save();
 
-    $publicBasePath = PublicStream::basePath();
+    $publicBasePath = self::publicFilesUrlPath();
     $subdirectoryBaseUrl = '/subdirectory';
     $this->pushSubdirectorySiteRequest($subdirectoryBaseUrl);
 
@@ -467,7 +482,7 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
       'width' => 400,
       'height' => 300,
     ];
-    $src = $this->renderDrupalInlineTemplate(
+    $src = self::renderDrupalInlineTemplate(
       "{% set r = image|apply_image_style('test_style') %}{{ r.src }}",
       ['image' => $image]
     );
@@ -496,13 +511,13 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
     $request->setSession(new Session(new MockArraySessionStorage()));
     $this->container->get(RequestStack::class)->push($request);
 
-    $publicBasePath = PublicStream::basePath();
+    $publicBasePath = self::publicFilesUrlPath();
     $unprefixed = [
       'src' => '/' . $publicBasePath . '/test-image.jpg',
       'width' => 400,
       'height' => 300,
     ];
-    $src = $this->renderDrupalInlineTemplate(
+    $src = self::renderDrupalInlineTemplate(
       "{% set r = image|apply_image_style('test_style') %}{{ r.src }}",
       ['image' => $unprefixed]
     );
@@ -517,7 +532,7 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
       'width' => 400,
       'height' => 300,
     ];
-    $rendered = $this->renderDrupalInlineTemplate(
+    $rendered = self::renderDrupalInlineTemplate(
       "{% set r = image|apply_image_style('test_style') %}{{ r.src }}###{{ r.width }}###{{ r.height }}",
       ['image' => $prefixed]
     );
@@ -526,6 +541,64 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
     $this->assertSame('/fr/' . $publicBasePath . '/test-image.jpg', $prefixedSrc);
     $this->assertSame('400', $width);
     $this->assertSame('300', $height);
+  }
+
+  /**
+   * Tests a site that serves its public files from a relocated path.
+   *
+   * The URL prefixes are derived from the registered stream wrappers, so
+   * nothing assumes files live under `sites/default/files`.
+   */
+  public function testApplyImageStyleWithRelocatedPublicFilesPath(): void {
+    $this->setSetting('file_public_base_url', 'http://localhost/custom-files-dir');
+
+    ImageStyle::create([
+      'name' => 'test_style',
+      'label' => 'Test Style',
+    ])->save();
+
+    $image = [
+      'src' => '/custom-files-dir/test-image.jpg',
+      'width' => 400,
+      'height' => 300,
+    ];
+    $src = self::renderDrupalInlineTemplate(
+      "{% set r = image|apply_image_style('test_style') %}{{ r.src }}",
+      ['image' => $image]
+    );
+
+    $this->assertStyledDerivativeRelativeUrl(
+      '/custom-files-dir/styles/test_style/public/test-image.jpg',
+      $src,
+    );
+  }
+
+  /**
+   * Tests a site serving public files from the root of a domain.
+   *
+   * Such a wrapper has no prefix to identify its URLs by, so matching on it
+   * would claim every path, including images hosted elsewhere. It is skipped
+   * rather than allowed to swallow them.
+   */
+  public function testApplyImageStyleWithPublicFilesAtDomainRoot(): void {
+    $this->setSetting('file_public_base_url', 'http://cdn.example.com');
+
+    ImageStyle::create([
+      'name' => 'test_style',
+      'label' => 'Test Style',
+    ])->save();
+
+    foreach (['/some-image.jpg', 'https://elsewhere.example.com/other.jpg'] as $src) {
+      $rendered = self::renderDrupalInlineTemplate(
+        "{% set r = image|apply_image_style('test_style') %}{{ r.src }}###{{ r.width }}###{{ r.height }}",
+        ['image' => ['src' => $src, 'width' => 400, 'height' => 300]]
+      );
+      [$actualSrc, $width, $height] = explode('###', $rendered, 3);
+
+      $this->assertSame($src, $actualSrc, "$src should be left alone.");
+      $this->assertSame('400', $width);
+      $this->assertSame('300', $height);
+    }
   }
 
   /**
@@ -541,7 +614,9 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
     // setting is present at container build time, so the container has to be
     // rebuilt for it to exist.
     $this->setSetting('file_private_path', $this->siteDirectory . '/private');
-    $this->container = $this->container->get('kernel')->rebuildContainer();
+    $kernel = $this->container->get('kernel');
+    \assert($kernel instanceof DrupalKernelInterface);
+    $kernel->rebuildContainer();
 
     ImageStyle::create([
       'name' => 'test_style',
@@ -553,7 +628,7 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
       'width' => 400,
       'height' => 300,
     ];
-    $src = $this->renderDrupalInlineTemplate(
+    $src = self::renderDrupalInlineTemplate(
       "{% set r = image|apply_image_style('test_style') %}{{ r.src }}",
       ['image' => $image]
     );
@@ -582,7 +657,7 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
       'width' => 400,
       'height' => 300,
     ];
-    $rendered = $this->renderDrupalInlineTemplate(
+    $rendered = self::renderDrupalInlineTemplate(
       "{% set r = image|apply_image_style('test_style') %}{{ r.src }}###{{ r.width }}###{{ r.height }}",
       ['image' => $image]
     );
@@ -602,7 +677,7 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
       'label' => 'Test Style',
     ])->save();
 
-    $publicBasePath = PublicStream::basePath();
+    $publicBasePath = self::publicFilesUrlPath();
     $subdirectoryBaseUrl = '/subdirectory';
     $this->pushSubdirectorySiteRequest($subdirectoryBaseUrl);
 
@@ -611,7 +686,7 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
       'width' => 400,
       'height' => 300,
     ];
-    $rendered = $this->renderDrupalInlineTemplate(
+    $rendered = self::renderDrupalInlineTemplate(
       "{% set r = image|apply_image_style('test_style') %}{{ r.src }}###{{ r.width }}###{{ r.height }}",
       ['image' => $image]
     );
@@ -638,7 +713,7 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
       'width' => 400,
       'height' => 300,
     ];
-    $rendered = $this->renderDrupalInlineTemplate(
+    $rendered = self::renderDrupalInlineTemplate(
       "{% set r = image|apply_image_style('test_style') %}{{ r.src }}###{{ r.width }}###{{ r.height }}",
       ['image' => $image]
     );
@@ -668,7 +743,7 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
         'width' => 400,
         'height' => 300,
       ];
-      $rendered = $this->renderDrupalInlineTemplate(
+      $rendered = self::renderDrupalInlineTemplate(
         "{% set r = image|apply_image_style('test_style') %}{{ r.src }}###{{ r.width }}###{{ r.height }}",
         ['image' => $image]
       );
@@ -693,7 +768,7 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
       'width' => 400,
       'height' => 300,
     ];
-    $rendered = $this->renderDrupalInlineTemplate(
+    $rendered = self::renderDrupalInlineTemplate(
       "{% set r = image|apply_image_style('nonexistent_style') %}{{ r.src }}###{{ r.width }}###{{ r.height }}",
       ['image' => $image]
     );

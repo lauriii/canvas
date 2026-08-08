@@ -38,6 +38,8 @@ class CanvasTwigExtensionFiltersTest extends UnitTestCase {
 
     // Mock the required dependencies.
     $streamWrapperManager = $this->createMock(StreamWrapperManagerInterface::class);
+    // No stream wrappers are registered, so no file URL resolves to a URI.
+    $streamWrapperManager->method('getWrappers')->willReturn([]);
     $imageFactory = $this->createMock(ImageFactory::class);
     $fileUrlInterfaceManager = $this->createMock(FileUrlGeneratorInterface::class);
     $renderer = $this->createMock(RendererInterface::class);
