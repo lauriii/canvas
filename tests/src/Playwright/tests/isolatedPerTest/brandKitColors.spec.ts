@@ -785,4 +785,43 @@ test.describe('brand kit colors', () => {
     // The row must come back rather than silently vanishing from a failed write.
     await expect(page.locator(SEL.row('Brand Blue'))).toBeVisible();
   });
+
+  test('reopens the add form on the entered values when the create fails', async ({
+    page,
+    drupal,
+    canvas,
+  }) => {
+    await drupal.login({ username: 'colormaster', password: 'colormaster' });
+    await canvas.openCanvasRoot();
+    await canvas.openBrandKitPanel();
+
+    await page.route(/\/canvas\/api\/v0\/config\/color$/, async (route) => {
+      if (route.request().method() !== 'POST') {
+        await route.continue();
+        return;
+      }
+      await route.fulfill({
+        status: 422,
+        contentType: 'application/json',
+        body: JSON.stringify({ errors: [{ detail: 'Rejected by test.' }] }),
+      });
+    });
+
+    await page.locator(SEL.newBtn).click();
+    await page.locator(SEL.newColorBtn).click();
+    await page.locator(SEL.form.name).fill('Doomed Color');
+    await page.locator(SEL.form.rgba.r).fill('1');
+    await page.locator(SEL.form.rgba.g).fill('2');
+    await page.locator(SEL.form.rgba.b).fill('3');
+    await page.locator(SEL.form.save).click();
+
+    // The optimistic row is withdrawn, and the form comes back holding what was
+    // entered so it does not have to be retyped.
+    await expect(page.locator(SEL.row('Doomed Color'))).toBeHidden();
+    await expect(page.locator(SEL.form.name)).toHaveValue('Doomed Color');
+    await expect(page.locator(SEL.form.rgba.r)).toHaveValue('1');
+    await expect(page.locator(SEL.form.rgba.g)).toHaveValue('2');
+    await expect(page.locator(SEL.form.rgba.b)).toHaveValue('3');
+    await expect(page.getByText(/Failed to create color/)).toBeVisible();
+  });
 });

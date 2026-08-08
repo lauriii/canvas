@@ -217,19 +217,30 @@ export const brandKitApi = createApi({
     uploadFont: builder.mutation<UploadedArtifact, File>({
       query: (file) => createUploadFontRequest(file),
     }),
-    createColor: builder.mutation<BrandKitColor, Omit<BrandKitColor, 'id'>>({
-      // ponytail: no optimistic insert here. The server assigns the UUID, so an
-      // optimistic row would need a placeholder id that the row's rename, edit,
-      // and delete actions would then send to the server. The add popover is an
-      // explicit submit that already reports progress and errors inline, so the
-      // wait is visible rather than surprising. Add one if creation latency is
-      // measured as a problem, keying the placeholder row as non-interactive
-      // until the real id arrives.
+    createColor: builder.mutation<BrandKitColor, BrandKitColor>({
+      // The client mints the UUID, so the new row carries the identifier it
+      // will keep and is fully interactive straight away. A placeholder id
+      // would otherwise reach the server through the row's edit, rename, and
+      // delete actions.
       query: (body) => ({
         url: 'canvas/api/v0/config/color',
         method: 'POST',
         body,
       }),
+      async onQueryStarted(color, { dispatch, queryFulfilled }) {
+        await applyOptimisticColorWrite(
+          color.id,
+          (colors) => {
+            // Idempotent: this mutator is re-applied on top of Brand kit reads
+            // that land while the create is still in flight.
+            if (!colors.some((candidate) => candidate.id === color.id)) {
+              colors.push(color);
+            }
+          },
+          dispatch,
+          queryFulfilled,
+        );
+      },
       invalidatesTags: [
         { type: 'BrandKits', id: 'LIST' },
         { type: 'BrandKits', id: 'global' },

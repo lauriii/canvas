@@ -13,6 +13,16 @@ export const BRAND_KIT_ID = 'global';
 export const DELETE_COLOR_CACHE_KEY = 'brand-kit-delete-color';
 
 /**
+ * Shared cache key for the add-color mutation.
+ *
+ * Adding a color applies optimistically and closes its form, so a rejected
+ * add has no form left to report itself in. A fixed cache key lets the colors
+ * section reopen the form on the failed values, rather than making the author
+ * retype a name, variable, and color they already entered.
+ */
+export const CREATE_COLOR_CACHE_KEY = 'brand-kit-create-color';
+
+/**
  * Shared cache key for the edit-color mutation.
  *
  * Editing a color applies optimistically and closes its popover straight away,

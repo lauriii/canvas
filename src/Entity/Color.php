@@ -128,6 +128,13 @@ final class Color extends ConfigEntityBase implements CanvasHttpApiEligibleConfi
    * @see docs/adr/0005-Keep-the-front-end-simple.md
    */
   public static function createFromClientSide(array $data): static {
+    // A client may mint the UUID itself, which lets it render the new color
+    // immediately under the identifier the color will keep. Both failure modes
+    // are already handled: a malformed UUID fails validation, and a duplicate
+    // one is refused by the storage layer as a conflict.
+    if (isset($data['id'])) {
+      $data['uuid'] = $data['id'];
+    }
     unset($data['id']);
     return static::create($data);
   }

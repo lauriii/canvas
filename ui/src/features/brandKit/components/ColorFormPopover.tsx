@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useReducer } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import { Cross2Icon } from '@radix-ui/react-icons';
 import * as Popover from '@radix-ui/react-popover';
 import {
@@ -13,7 +14,10 @@ import {
 import ColorPicker from '@/components/ColorPicker';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import ErrorCard from '@/components/error/ErrorCard';
-import { UPDATE_COLOR_CACHE_KEY } from '@/features/brandKit/constants';
+import {
+  CREATE_COLOR_CACHE_KEY,
+  UPDATE_COLOR_CACHE_KEY,
+} from '@/features/brandKit/constants';
 import { validateCssVariableClientSide } from '@/features/validation/validation';
 import {
   useCreateColorMutation,
@@ -32,6 +36,12 @@ import type { BrandKitColor, BrandKitColorValue } from '@/types/CodeComponent';
 import styles from './ColorFormPopover.module.css';
 
 interface ColorFormPopoverProps {
+  /** Values from a rejected add, so reopening does not lose them. */
+  rejectedColor?: BrandKitColor;
+  /** Reports a color that saved but could not be filed into its folder. */
+  onFolderAssignmentError?: (message: string) => void;
+  /** Reports a rejected add, so the form can be reopened on its values. */
+  onCreateRejected?: (color: BrandKitColor) => void;
   operation: 'add' | 'edit';
   color?: BrandKitColor;
   folderId?: string;
@@ -57,19 +67,17 @@ interface FormState {
   originalColor: { value: BrandKitColorValue } | null;
   colorNameError: string;
   variableNameError: string;
-  folderError: string | null;
   colorValueError: string;
   isColorValueValid: boolean;
 }
 
 type FormAction =
-  | { type: 'INIT_ADD' }
+  | { type: 'INIT_ADD'; color?: BrandKitColor }
   | { type: 'INIT_EDIT'; color: BrandKitColor }
   | { type: 'SET_COLOR_NAME'; value: string }
   | { type: 'SET_VARIABLE_NAME'; value: string }
   | { type: 'SET_COLOR_VALUE'; value: BrandKitColorValue }
   | { type: 'SET_COLOR_VALIDITY'; isValid: boolean }
-  | { type: 'SET_FOLDER_ERROR'; error: string }
   | { type: 'SHOW_VALIDATION_ERRORS' };
 
 const INITIAL_FORM_STATE: FormState = {
@@ -80,7 +88,6 @@ const INITIAL_FORM_STATE: FormState = {
   originalColor: null,
   colorNameError: '',
   variableNameError: '',
-  folderError: null,
   colorValueError: '',
   isColorValueValid: true,
 };
@@ -95,7 +102,19 @@ function generateVariableName(colorName: string): string {
 function formReducer(state: FormState, action: FormAction): FormState {
   switch (action.type) {
     case 'INIT_ADD':
-      return { ...INITIAL_FORM_STATE };
+      if (!action.color) {
+        return { ...INITIAL_FORM_STATE };
+      }
+      // Reopening after a rejected add: keep what the author typed.
+      return {
+        ...INITIAL_FORM_STATE,
+        colorName: action.color.name,
+        variableName: action.color.cssVariable.startsWith('--')
+          ? action.color.cssVariable.slice(2)
+          : action.color.cssVariable,
+        colorValue: action.color.value,
+        variableNameTouched: true,
+      };
 
     case 'INIT_EDIT':
       return {
@@ -146,9 +165,6 @@ function formReducer(state: FormState, action: FormAction): FormState {
         colorValueError: action.isValid ? '' : 'Must be a valid color.',
       };
 
-    case 'SET_FOLDER_ERROR':
-      return { ...state, folderError: action.error };
-
     case 'SHOW_VALIDATION_ERRORS':
       return {
         ...state,
@@ -167,6 +183,9 @@ function formReducer(state: FormState, action: FormAction): FormState {
 const ColorFormPopover = ({
   operation,
   color,
+  rejectedColor,
+  onFolderAssignmentError,
+  onCreateRejected,
   folderId,
   anchorRef,
   align = 'start',
@@ -175,13 +194,8 @@ const ColorFormPopover = ({
 }: ColorFormPopoverProps) => {
   const [
     createColor,
-    {
-      isLoading: isCreating,
-      isError: isCreateError,
-      error: createError,
-      reset: resetCreate,
-    },
-  ] = useCreateColorMutation();
+    { isLoading: isCreating, isError: isCreateError, error: createError },
+  ] = useCreateColorMutation({ fixedCacheKey: CREATE_COLOR_CACHE_KEY });
   // Only the trigger is taken from this mutation. Its state is shared with
   // every other form through the fixed cache key, so reading `isLoading` or
   // `error` here would make one form's in-flight edit spin another form's Save
@@ -202,21 +216,15 @@ const ColorFormPopover = ({
     originalColor,
     colorNameError,
     variableNameError,
-    folderError,
     colorValueError,
     isColorValueValid,
   } = formState;
 
-  // Reset mutations when popover opens/closes
-  useEffect(() => {
-    if (!open) {
-      resetCreate();
-      // The update mutation is deliberately not reset here. It uses a shared
-      // cache key so the colors section can report a rejected edit after this
-      // popover closes, and closing is exactly when that happens. Starting the
-      // next edit clears it.
-    }
-  }, [open, resetCreate]);
+  // Neither mutation is reset when this popover closes. Both use a shared cache
+  // key, and closing is exactly when their failures still need to be reachable:
+  // an edit is reported by the colors section, and a rejected add reopens this
+  // form on the values that were entered. The section clears the add state when
+  // a new color is started.
 
   // Initialize form when opening
   useEffect(() => {
@@ -224,10 +232,10 @@ const ColorFormPopover = ({
       if (operation === 'edit' && color) {
         updateForm({ type: 'INIT_EDIT', color });
       } else {
-        updateForm({ type: 'INIT_ADD' });
+        updateForm({ type: 'INIT_ADD', color: rejectedColor });
       }
     }
-  }, [open, operation, color]);
+  }, [open, operation, color, rejectedColor]);
 
   const handleVariableNameChange = (value: string) => {
     updateForm({ type: 'SET_VARIABLE_NAME', value });
@@ -264,12 +272,25 @@ const ColorFormPopover = ({
 
     try {
       if (operation === 'add') {
-        const newColor = await createColor({
+        // Mint the id here so the row can be rendered under its final
+        // identifier before the response arrives.
+        const newColor: BrandKitColor = {
+          id: uuidv4(),
           name: colorName,
           cssVariable,
           value: colorValue,
           weight: 0,
-        }).unwrap();
+        };
+        // The row appears immediately, so there is nothing to wait for. A
+        // rejection reopens this form on these values.
+        onOpenChange(false);
+        try {
+          await createColor(newColor).unwrap();
+        } catch (createErr) {
+          console.error('Failed to create color:', createErr);
+          onCreateRejected?.(newColor);
+          return;
+        }
 
         if (folderId && foldersData?.folders) {
           const folder = foldersData.folders[folderId];
@@ -285,16 +306,14 @@ const ColorFormPopover = ({
               }).unwrap();
             } catch (folderErr) {
               console.error('Failed to add color to folder:', folderErr);
-              updateForm({
-                type: 'SET_FOLDER_ERROR',
-                error:
-                  'The color was created but could not be added to the folder. You can move it manually.',
-              });
-              // Keep the popover open so the user sees the error.
-              return;
+              // This form has closed, so the colors section reports it.
+              onFolderAssignmentError?.(
+                'The color was created but could not be added to the folder. You can move it manually.',
+              );
             }
           }
         }
+        return;
       } else if (operation === 'edit' && color) {
         // The edit is applied to the cache before the request is sent, so there
         // is nothing here to wait for. Close now rather than holding the form
@@ -338,9 +357,11 @@ const ColorFormPopover = ({
     operation,
   ]);
 
-  const error = folderError
-    ? { title: 'Color created with an issue', message: folderError }
-    : isCreateError && createError
+  // The create state is shared through a fixed cache key, so only the add form
+  // may render it. An edit form reading it would surface an unrelated past
+  // failure.
+  const error =
+    operation === 'add' && isCreateError && createError
       ? {
           title: 'Failed to create color',
           message: normalizeError(createError).message,
