@@ -742,10 +742,11 @@ test.describe('brand kit colors', () => {
     await page.locator(SEL.row('Brand Green')).hover();
     await page.locator(SEL.rowMenu('Brand Green')).click();
     await page.locator(SEL.menu.edit).click();
-    await expect(page.locator(SEL.form.rgba.r)).toBeVisible();
-    await page.locator(SEL.form.rgba.r).fill('255');
-    await page.locator(SEL.form.rgba.g).fill('0');
-    await page.locator(SEL.form.rgba.b).fill('255');
+    // Brand Green is stored in the HSL color space, so its form opens in HSLA.
+    await expect(page.locator(SEL.form.hsla.h)).toBeVisible();
+    await page.locator(SEL.form.hsla.h).fill('300');
+    await page.locator(SEL.form.hsla.s).fill('100');
+    await page.locator(SEL.form.hsla.l).fill('50');
     await page.locator(SEL.form.save).click();
 
     // The rejected value must not survive anywhere in the UI.

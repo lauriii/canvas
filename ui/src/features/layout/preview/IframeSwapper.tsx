@@ -61,6 +61,14 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
         // The load event in some browsers (e.g., Safari) fires on page load if the srcdoc is empty, but we don't want to swap in that case.
         return;
       }
+      // Assigning srcdoc again before the previous assignment has finished
+      // loading fires two load events on the same iframe. Only the iframe that
+      // is still inactive may swap in: without this the second event swaps
+      // straight back, and because that leaves isReloading already false the
+      // parent never marks the newly active iframe as initialized.
+      if (iframe !== iFrameRefs.current[whichActiveRef.current ? 0 : 1]) {
+        return;
+      }
 
       iframe.style.display = '';
 
