@@ -602,6 +602,57 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Tests a style whose effects cannot predict the derivative's dimensions.
+   *
+   * `ImageStyle::transformDimensions()` reports NULL for those, a random
+   * rotation being core's own example. `canvas:image` types width and height
+   * as integers and its component validator rejects NULL, so passing them
+   * through fails the whole render.
+   */
+  public function testApplyImageStyleWithUnpredictableDimensions(): void {
+    $style = ImageStyle::create([
+      'name' => 'test_style',
+      'label' => 'Test Style',
+    ]);
+    $style->addImageEffect([
+      'id' => 'image_rotate',
+      'data' => ['degrees' => 90, 'random' => TRUE, 'bgcolor' => NULL],
+      'weight' => 0,
+    ]);
+    $style->save();
+
+    $image = [
+      'src' => 'public://balloons.png',
+      'width' => 640,
+      'height' => 427,
+      'alt' => 'Balloons',
+    ];
+
+    $rendered = self::renderDrupalInlineTemplate(
+      "{% set r = image|apply_image_style('test_style') %}{{ r.src is defined }}###{{ r.width is defined }}###{{ r.height is defined }}###{{ r.alt }}",
+      ['image' => $image]
+    );
+    [$hasSrc, $hasWidth, $hasHeight, $alt] = explode('###', $rendered, 4);
+
+    $this->assertSame('1', $hasSrc, 'The styled source is still set.');
+    $this->assertSame('', $hasWidth, 'An unpredictable width is dropped, not passed through as NULL.');
+    $this->assertSame('', $hasHeight, 'An unpredictable height is dropped, not passed through as NULL.');
+    $this->assertSame('Balloons', $alt, 'Everything else is preserved.');
+
+    // The component still renders, without dimension attributes to guess at.
+    $build = [
+      '#type' => 'inline_template',
+      '#template' => "{% set s = image|apply_image_style('test_style') %}{{ include('canvas:image', s, with_context = false) }}",
+      '#context' => ['image' => $image],
+    ];
+    $html = trim((string) $this->container->get('renderer')->renderRoot($build));
+
+    $this->assertStringContainsString('<img', $html);
+    $this->assertDoesNotMatchRegularExpression('/\swidth="/', $html);
+    $this->assertDoesNotMatchRegularExpression('/\sheight="/', $html);
+  }
+
+  /**
    * Tests the apply_image_style filter with a private files URL.
    *
    * The derivative is no more accessible than the file it derives from: core's

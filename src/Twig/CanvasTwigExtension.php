@@ -328,6 +328,7 @@ final class CanvasTwigExtension extends AbstractExtension {
    *
    * @return array
    *   Image array with 'src' as styled URL and transformed 'width'/'height'.
+   *   Both dimensions are omitted when the style's effects cannot predict them.
    */
   public function applyImageStyle(array $image, string $styleName): array {
     $result = $image;
@@ -363,8 +364,18 @@ final class CanvasTwigExtension extends AbstractExtension {
       \assert(Inspector::assertAllNumeric($dimensions));
       $dimensions = \array_map('intval', $dimensions);
       $style->transformDimensions($dimensions, $uri);
-      $result['width'] = $dimensions['width'];
-      $result['height'] = $dimensions['height'];
+      if (Inspector::assertAllNumeric($dimensions)) {
+        $result['width'] = $dimensions['width'];
+        $result['height'] = $dimensions['height'];
+      }
+      else {
+        // An effect is allowed to report that it cannot predict the
+        // derivative's size, a random rotation being core's own example.
+        // Keeping the source's dimensions would describe a different image and
+        // passing NULL through fails `canvas:image`, which types them as
+        // integers, so the caller is told nothing rather than something wrong.
+        unset($result['width'], $result['height']);
+      }
     }
 
     return $result;
