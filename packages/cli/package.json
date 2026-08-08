@@ -9,6 +9,16 @@
   },
   "bugs": "https://www.drupal.org/project/issues/canvas",
   "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./internals": {
+      "types": "./dist/internals.d.ts",
+      "import": "./dist/internals.js"
+    }
+  },
   "bin": {
     "canvas": "./dist/index.js"
   },

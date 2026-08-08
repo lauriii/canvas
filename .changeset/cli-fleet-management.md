@@ -2,12 +2,8 @@
 '@drupal-canvas/cli': minor
 ---
 
-Add fleet management: keep one component library in sync across many Canvas
-sites. Describe your sites in `canvas.fleet.json`, then use `canvas plan` to see
-what would change and `canvas apply` to push to all of them at once. Plans can be
-written to a file with `canvas plan --out` and applied verbatim with
-`canvas apply --plan`, so a rollout can be reviewed before it happens. Components
-that someone has edited on a site are skipped rather than overwritten, and
-`canvas changeset restore` puts a single site back the way it was. `push` and
-`pull` are unchanged if you do not add the fleet files. See the README for what
-these commands can and cannot tell you.
+Add a supported `@drupal-canvas/cli/internals` entry point exposing the build,
+upload and API code, so other tools can build on the CLI instead of reaching
+into `dist/` by path or duplicating it. This is what the new `canvas-fleet`
+package uses to distribute one component library to many sites. Everything
+exported there is a compatibility commitment; anything else remains private.

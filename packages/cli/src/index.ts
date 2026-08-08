@@ -4,16 +4,9 @@ import { Command } from 'commander';
 
 import packageJson from '../package.json';
 import { agentsContextCommand } from './commands/agents-context';
-import { applyCommand } from './commands/apply';
 import { buildCommand } from './commands/build';
 import { deprecatedDownloadUploadCommands } from './commands/deprecated-commands';
-import {
-  changesetCommand,
-  fleetCommand,
-  libraryCommand,
-} from './commands/fleet';
 import { loginCommand, logoutCommand } from './commands/login';
-import { planCommand } from './commands/plan';
 import { pullCommand } from './commands/pull';
 import { pushCommand } from './commands/push';
 import { reconcileMediaCommand } from './commands/reconcile-media';
@@ -43,23 +36,13 @@ reconcileMediaCommand(program);
 scaffoldCommand(program);
 validateCommand(program);
 buildCommand(program);
-// Fleet management. Additive: `push` and `pull` are unchanged and keep working
-// against a single site with no fleet files present.
-libraryCommand(program);
-fleetCommand(program);
-planCommand(program);
-applyCommand(program);
-changesetCommand(program);
 deprecatedDownloadUploadCommands(program);
 
 program.hook('preAction', async (command, actionCommand) => {
   // Skip canvas.config.json migration for commands that do not use a component
   // directory and have no need for legacy config migration.
   if (
-    ['login', 'logout', 'download', 'upload'].includes(actionCommand.name()) ||
-    // `fleet` and `changeset` subcommands operate on the inventory and captured
-    // state, never on a component directory.
-    ['fleet', 'changeset'].includes(actionCommand.parent?.name() ?? '')
+    ['login', 'logout', 'download', 'upload'].includes(actionCommand.name())
   ) {
     return;
   }

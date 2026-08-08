@@ -772,225 +772,28 @@ validation rules.
 
 ## Fleet management
 
-Fleet management distributes one component library to many Canvas sites. It sits
-alongside what you already use: `push` and `pull` are unchanged, and keep
-working against a single site exactly as before if you do not add the fleet
-files.
-
-Everything lives in your library repository, in git. Nothing is stored on the
-Canvas sites themselves beyond the components you push. Three committed files
-describe the whole setup:
-
-- `canvas.library.json`: what your library is called, its version, and which
-  components it contains.
-- `canvas.fleet.json`: the list of sites and the groups they belong to. Contains
-  no secrets.
-- `canvas.lock.json`: a record of what was last pushed to each site. Use
-  `canvas plan` to check it against what the sites actually have.
-
-Credentials are never committed. Each site names an environment variable in
-`credentialsEnv` holding `client_id:client_secret`. A site with no
-`credentialsEnv` falls back to the token `canvas login` stored for its URL.
-
-### Before you rely on this
-
-**Run `apply` from one place at a time.** If two people apply to the same sites
-at once, the two runs will overwrite each other's record of what happened. There
-is no locking to stop them, though `apply` does notice afterwards and tells you
-to re-check with `canvas plan`. Running applies from CI, one pipeline at a time,
-avoids the problem.
-
-**`plan` tells you what it saw, not what is true right now.** It reads the sites
-when you run it. A component edited a minute later still shows as in sync until
-you run it again. Nothing corrects itself in the background.
-
-**`plan` is a strong check, not a guarantee.** It reliably notices when a
-component's props or slots change. It also notices edits to component code, by
-comparing the code on the site with what was last pushed. That works today, but
-it relies on sites returning component code exactly as it was sent, so treat a
-clean plan as good evidence rather than proof.
-
-**`plan` tells you _whether_ a component is used, not how many pages use it.**
-Components with content pointing at them are marked `(in use)`, which is the
-signal that matters before a breaking change. Exact page counts are not
-available to the CLI, so no numbers are reported rather than misleading ones.
-Sites running an older Canvas cannot report usage at all; `plan` says so when
-that happens.
-
-**`canvas.lock.json` only knows what this CLI did.** If someone edits a site
-directly, or runs `apply` without committing the updated lockfile, it will be
-out of date. Run `canvas plan` to check it against the sites and bring it up to
-date.
-
-**Anyone with a site's credentials can push to it.** The CLI has no way to
-restrict who may publish where, because there is no server keeping track. See
-[Keeping production safe](#keeping-production-safe) for where to put those
-controls instead.
-
-**There is no fleet-wide undo.** `changeset restore` puts one site back to the
-state captured before one apply. It cannot roll back the fleet, and it cannot
-recover anything that was never captured.
-
-### `library init`
-
-Scaffold `canvas.library.json` from the components discovered in the project.
+Distributing one component library to many Canvas sites lives in a separate
+package, [`canvas-fleet`](https://www.npmjs.com/package/canvas-fleet). It builds
+on this CLI rather than replacing it: `canvas push` and `canvas pull` are
+unchanged and keep working against a single site.
 
 ```bash
-npx canvas library init --name @acme/canvas-library --library-version 3.4.0
+npm install -g canvas-fleet
+canvas-fleet library init
+canvas-fleet fleet init
+canvas-fleet plan --all
 ```
 
-**Options:**
+### Building on this CLI
 
-- `--name <name>`: Library name
-- `--library-version <version>`: Library semver version (default `0.1.0`)
-- `-d, --dir <directory>`: Component directory
-- `--force`: Overwrite an existing manifest
+`canvas-fleet` imports the build, upload and API code from this package through
+a supported entry point:
 
-### `fleet init`, `fleet add`, `fleet list`
-
-```bash
-npx canvas fleet init
-npx canvas fleet add marketing-eu --url https://marketing-eu.example.com --group canary
-npx canvas fleet list
+```ts
+import { ApiService, buildCanvasProject } from '@drupal-canvas/cli/internals';
 ```
 
-`fleet add` options:
-
-- `--url <url>` (required): Site URL
-- `--credentials-env <name>`: Environment variable holding
-  `client_id:client_secret` (defaults to `CANVAS_OAUTH_<SITE_NAME>`)
-- `--group <name>`: Group to join (repeatable)
-- `--overlay <path>`: Per-site overlay directory (recorded for a later stage;
-  overlays are not applied yet)
-
-`fleet list` accepts `--json`.
-
-### `plan`
-
-Read the targeted sites and report what an `apply` would change.
-
-```bash
-npx canvas plan --all
-npx canvas plan --group prod --json
-```
-
-**Options:**
-
-- `--site <name>`, `--group <name>`, `--all`, `--exclude <name>`: targeting.
-  `plan` defaults to `--all`.
-- `--refresh-only`: report drift without proposing a library change. Skips the
-  build and updates the lockfile's observed columns.
-- `--no-refresh`: use the lockfile without reading the sites. Prints a prominent
-  staleness warning including each site's `lastRefresh`.
-- `--parallelism <n>`: bound concurrent site operations (default `4`)
-- `--json`: machine-readable output
-- `--out <file>`: write the plan to a file so it can be reviewed, committed, or
-  attached to a pull request, then applied verbatim with `canvas apply --plan`
-
-Each library component on each site lands in one of five states:
-
-| State      | Condition                                   | Meaning                                              |
-| ---------- | ------------------------------------------- | ---------------------------------------------------- |
-| In sync    | the site has what you last pushed           | Nothing to do                                        |
-| Behind     | the library changed, the site did not       | A normal update, safe to apply                       |
-| Unknown    | nothing recorded for this site or component | First apply, or the lockfile was lost                |
-| Diverged   | the site changed, the library did not       | Someone edited the site; applying would overwrite it |
-| Conflicted | both changed                                | You changed it and so did the site                   |
-
-Global CSS is checked alongside the components and shows up as `global CSS`, so
-a release that only changes global CSS is not reported as "no changes".
-
-A component that the library defines but the site no longer has shows as
-Unknown, not Diverged. There is nothing to overwrite, so `apply` recreates it.
-
-Only the components listed in `canvas.library.json` are distributed. If the
-build produces a component the file does not list, it is named in the output and
-left alone; re-run `canvas library init --force` after adding one.
-
-**Exit codes**, so a pipeline can act on the result:
-
-- `0`: success, no changes
-- `1`: error
-- `2`: success, changes pending
-- `3`: at least one site diverged, so a pipeline can fail closed
-
-### `apply`
-
-Build the library once and push it to the targeted sites.
-
-```bash
-npx canvas apply --group canary
-npx canvas apply --all --exclude brand-main --parallelism 2
-```
-
-**Options:**
-
-- `--site <name>`, `--group <name>`, `--all`, `--exclude <name>`: targeting. One
-  of `--site`, `--group`, or `--all` is required: `apply` never targets the
-  whole fleet implicitly.
-- `--to <version>`: the library version being applied. Must match
-  `canvas.library.json`; the library is consumed from a git ref, so applying an
-  older version means checking that ref out first.
-- `--plan <file>`: apply a plan written by `canvas plan --out`. If the library
-  changed after the plan was written, or the plan does not cover a targeted
-  site, the run is refused, so what gets applied is what somebody reviewed.
-- `--parallelism <n>`: bound concurrent site operations (default `4`)
-- `--on-error <stop|continue>`: `stop` (default) leaves earlier sites applied
-  and later sites untouched, and names the untouched sites so the operator can
-  resume with `--site` targeting. `continue` prefers coverage over consistency.
-  Both write the lockfile incrementally so a crash does not lose the record.
-- `--json`, `-y, --yes`, `-d, --dir <directory>`
-- `--i-know-what-i-am-doing`: required to target a group listed in
-  `protectedGroups` from outside CI. This is a speed bump, not a control.
-
-Before writing to a site, `apply` saves that site's current state to
-`.canvas/changesets/`, so you can put it back with `changeset restore`.
-
-**Components that someone has edited on a site are skipped, never overwritten.**
-They are listed in the output so you can decide what to do. This matters because
-pushing a component replaces its code completely, so applying to a whole fleet
-without this check would wipe out other people's work everywhere at once.
-
-Components on a site that your library does not define belong to that site, and
-`apply` leaves them alone. Removing a component from your library does not
-remove it from the sites.
-
-Running `apply` again when nothing has changed writes nothing.
-
-### `changeset list`, `changeset restore`
-
-```bash
-npx canvas changeset list
-npx canvas changeset restore 2026-08-05T10-22-00-000Z-marketing-eu
-```
-
-`restore` re-pushes the captured pre-push payload for one site. Components that
-the recorded apply created are reported but never deleted: removing a component
-that pages already reference is destructive in a way a source change is not.
-
-### Reviewing a rollout before it happens
-
-For production, split planning from applying so a human sees exactly what will
-change:
-
-```bash
-npx canvas plan --group prod --out rollout.json   # review or commit this file
-npx canvas apply --group prod --plan rollout.json
-```
-
-`apply --plan` refuses the file if the library changed after the plan was
-written, or if you target a site the plan does not cover. That keeps the thing
-that was reviewed and the thing that ships from drifting apart.
-
-### Keeping production safe
-
-The CLI cannot decide who is allowed to publish where, so put those controls
-where they can actually be enforced:
-
-- Keep production credentials in CI only, and give people credentials for
-  non-production sites.
-- Protect the library repository with branch protection and CODEOWNERS.
-- Make a release a git tag, and run `apply` for production only from your
-  pipeline, on a tagged commit.
-- List your production groups in `protectedGroups`. The CLI then refuses to
-  apply to them from a laptop unless you pass `--i-know-what-i-am-doing`.
+Everything exported from `@drupal-canvas/cli/internals` is a compatibility
+commitment and changes to it are treated as changes to a published API. Anything
+not exported there is private and may move without notice. If you need something
+that is not exposed, open an issue rather than importing from `dist/` by path.
