@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { usePreviewBrandKitColors } from '@/features/brandKit/hooks/usePreviewBrandKitColors';
 import IframeSwapper from '@/features/layout/preview/IframeSwapper';
 import PreviewProgress from '@/features/layout/preview/PreviewProgress';
 import { RegionSpotlight } from '@/features/layout/preview/RegionSpotlight/RegionSpotlight';
@@ -46,6 +47,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
       ? NON_FULL_VIEW_MODE_MIN_HEIGHT
       : viewportMinHeight;
   useComponentHtmlMap(iframeRef.current);
+  usePreviewBrandKitColors();
 
   useSyncIframeHeightToContent(
     iframeRef.current,
