@@ -7,6 +7,7 @@ namespace Drupal\Tests\canvas\Kernel\Config;
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\Color;
+use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\Group;
@@ -714,6 +715,82 @@ final class ColorTest extends CanvasKernelTestBase {
       // No file means the BrandKit has no CSS output — the variable is gone.
       $this->assertStringNotContainsString('--color-delete-test', '');
     }
+  }
+
+  /**
+   * Tests that a client-minted UUID becomes the color's identifier.
+   *
+   * The editor mints the UUID so it can show a new color before the response
+   * arrives, which only holds if the color keeps that identifier.
+   */
+  public function testCreateFromClientSideHonoursSuppliedUuid(): void {
+    $uuid = '11111111-2222-4333-8444-555555555555';
+    $color = Color::createFromClientSide([
+      'id' => $uuid,
+      'name' => 'Client Minted',
+      'cssVariable' => '--color-client-minted',
+      'value' => [
+        'colorSpace' => 'srgb',
+        'components' => [0.0, 0.0, 1.0],
+        'hex' => '#0000ff',
+      ],
+      'weight' => 0,
+    ]);
+    $color->save();
+
+    $this->assertSame($uuid, $color->uuid());
+    $this->assertSame($uuid, $color->id());
+    $this->assertSame($uuid, Color::load($uuid)?->id());
+    $this->assertSame($uuid, $color->normalizeForClientSide()->values['id']);
+  }
+
+  /**
+   * Tests that omitting the identifier still assigns one.
+   */
+  public function testCreateFromClientSideAssignsUuidWhenOmitted(): void {
+    $color = Color::createFromClientSide([
+      'name' => 'Server Minted',
+      'cssVariable' => '--color-server-minted',
+      'value' => [
+        'colorSpace' => 'srgb',
+        'components' => [0.0, 0.0, 1.0],
+        'hex' => '#0000ff',
+      ],
+      'weight' => 0,
+    ]);
+    $color->save();
+
+    $this->assertNotEmpty($color->id());
+  }
+
+  /**
+   * Tests that reusing an existing color's UUID is refused.
+   *
+   * The HTTP layer turns this into a 409 rather than letting a second create
+   * silently overwrite the first color.
+   */
+  public function testCreateFromClientSideRejectsDuplicateUuid(): void {
+    $uuid = '99999999-8888-4777-8666-555555555555';
+    $values = [
+      'id' => $uuid,
+      'name' => 'First',
+      'cssVariable' => '--color-first',
+      'value' => [
+        'colorSpace' => 'srgb',
+        'components' => [1.0, 0.0, 0.0],
+        'hex' => '#ff0000',
+      ],
+      'weight' => 0,
+    ];
+    Color::createFromClientSide($values)->save();
+
+    $duplicate = Color::createFromClientSide([
+      ...$values,
+      'name' => 'Second',
+      'cssVariable' => '--color-second',
+    ]);
+    $this->expectException(EntityStorageException::class);
+    $duplicate->save();
   }
 
 }

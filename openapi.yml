@@ -4660,6 +4660,13 @@ components:
         - weight
       additionalProperties: false
       properties:
+        id:
+          type: string
+          format: uuid
+          description: >-
+            Optional client-minted UUID for the color, letting the client render
+            it before the response arrives. Omit it to have one assigned. Reusing
+            an existing color's UUID is refused with a 409.
         name:
           type: string
           description: Human-readable name for the color

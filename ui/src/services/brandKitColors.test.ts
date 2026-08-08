@@ -59,6 +59,10 @@ const applyToServer = (method: string, id: string, body: unknown) => {
     serverColors = serverColors.filter((color) => color.id !== id);
     return;
   }
+  if (method === 'POST') {
+    serverColors = [...serverColors, body as BrandKitColor];
+    return;
+  }
   const changes = (body ?? {}) as Partial<BrandKitColor>;
   serverColors = serverColors.map((color) =>
     color.id === id ? { ...color, ...changes } : color,
@@ -94,7 +98,9 @@ beforeEach(() => {
         return jsonResponse({}, 404);
       }
 
-      const id = url.split('/').pop() ?? '';
+      const id = url.endsWith('/config/color')
+        ? ''
+        : (url.split('/').pop() ?? '');
       // RTK Query passes a fully built Request, so `init` carries no body.
       const body = await request
         .clone()
@@ -198,6 +204,11 @@ const setup = async (colors: BrandKitColor[]) => {
   const deleteColor = (id: string) =>
     store.dispatch(brandKitApi.endpoints.deleteColor.initiate(id));
 
+  const createColor = (id: string, hex: string) =>
+    store.dispatch(
+      brandKitApi.endpoints.createColor.initiate(makeColor(id, hex)),
+    );
+
   return {
     store,
     readColors,
@@ -205,6 +216,7 @@ const setup = async (colors: BrandKitColor[]) => {
     readEffectiveHex,
     editColor,
     deleteColor,
+    createColor,
   };
 };
 
@@ -347,5 +359,39 @@ describe('brand kit color optimistic writes', () => {
 
     // The stale draft must not overwrite the value the user just chose.
     expect(readEffectiveHex('a')).toBe('#00ff00');
+  });
+
+  it('shows a new color before the create completes', async () => {
+    const { readColors, createColor } = await setup([
+      makeColor('a', '#ff0000'),
+    ]);
+
+    const create = createColor('b', '#00ff00');
+    await flush();
+
+    // The client mints the id, so the row is present under its final
+    // identifier while the request is still open.
+    expect(readColors().map((color) => color.id)).toEqual(['a', 'b']);
+
+    writeFor('color').succeed();
+    await create;
+    await flush();
+    expect(readColors().map((color) => color.id)).toEqual(['a', 'b']);
+  });
+
+  it('removes an optimistically added color when the create is rejected', async () => {
+    const { readColors, createColor } = await setup([
+      makeColor('a', '#ff0000'),
+    ]);
+
+    const create = createColor('b', '#00ff00');
+    await flush();
+    expect(readColors().map((color) => color.id)).toEqual(['a', 'b']);
+
+    writeFor('color').fail(422);
+    await create;
+
+    // The rejected color must not linger in a list that claims to be stored.
+    expect(readColors().map((color) => color.id)).toEqual(['a']);
   });
 });
