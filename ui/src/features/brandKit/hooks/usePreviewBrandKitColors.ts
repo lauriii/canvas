@@ -1,10 +1,8 @@
 import { useEffect } from 'react';
 
-import { useAppSelector } from '@/app/hooks';
 import { buildColorStyles } from '@/features/brandKit/colorCss';
-import { selectBrandKit } from '@/features/code-editor/codeEditorSlice';
-
-import type { BrandKit } from '@/types/CodeComponent';
+import { BRAND_KIT_ID } from '@/features/brandKit/constants';
+import { useGetBrandKitQuery } from '@/services/brandKit';
 
 const STYLE_ID = 'canvas-brand-kit-colors';
 
@@ -20,11 +18,22 @@ const STYLE_ID = 'canvas-brand-kit-colors';
  * The injected block is appended to the preview's head, so it comes after the
  * server stylesheet and wins on equal specificity, and it is replaced by server
  * truth on the next full load.
+ *
+ * This subscribes to the Brand kit query itself rather than reading the
+ * `codeEditor` mirror of it or selecting the cache without a subscription.
+ * Only the Brand kit panel keeps that mirror in step, and an unsubscribed cache
+ * entry is never refetched when a write invalidates it, so either would strand
+ * the preview on a rejected or stale color once the panel is closed. Holding
+ * the subscription keeps this entry reconciled for as long as the editor is
+ * open.
+ *
+ * The canonical entry is the authority for colors: they are separate
+ * `canvas.color.*` entities written straight to the config routes, never
+ * through the Brand kit auto-save.
  */
 export const usePreviewBrandKitColors = () => {
-  const colors = useAppSelector((state) =>
-    selectBrandKit<BrandKit['colors']>(state, 'colors'),
-  );
+  const { data: brandKit } = useGetBrandKitQuery(BRAND_KIT_ID);
+  const colors = brandKit?.colors ?? null;
 
   useEffect(() => {
     const css = buildColorStyles(colors ?? []);
