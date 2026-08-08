@@ -66,11 +66,19 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
       // is still inactive may swap in: without this the second event swaps
       // straight back, and because that leaves isReloading already false the
       // parent never marks the newly active iframe as initialized.
-      if (iframe !== iFrameRefs.current[whichActiveRef.current ? 0 : 1]) {
+      if (iframe === iFrameRefs.current[whichActiveRef.current]) {
         return;
       }
 
       iframe.style.display = '';
+
+      const activate = () => {
+        // Move the ref in step with the swap rather than waiting for the effect
+        // below to sync it, so a load event arriving before that effect runs
+        // still sees which iframe is active.
+        whichActiveRef.current = whichActiveRef.current ? 0 : 1;
+        setWhichActive(whichActiveRef.current);
+      };
 
       const startTime = Date.now();
       const checkIFrameContent = () => {
@@ -81,7 +89,7 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
 
         // Ensure there are no pending templates (non-hydrated astro-islands) before swapping in the iframe.
         if (pendingTemplates === 0) {
-          setWhichActive((current) => 1 - current);
+          activate();
         } else if (Date.now() - startTime < 1000) {
           // If the hydration still hasn't finished and 1 second hasn't yet elapsed, try again after the next animation frame.
           requestAnimationFrame(checkIFrameContent);
@@ -90,7 +98,7 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
           console.warn(
             'Astro hydration in iFrame did not complete within 1 second, swapping anyway.',
           );
-          setWhichActive((current) => 1 - current);
+          activate();
         }
       };
 
