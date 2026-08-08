@@ -1119,6 +1119,52 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Different field types must cache their prototypes under different names.
+   *
+   * Otherwise they collide: `TypedDataManager` caches prototypes for the
+   * detached, re-parented prop fields keyed by the host root plus the field's
+   * path, so without a per-field name every prop field shares one prototype.
+   * Building an integer prop widget before an image prop widget then handed the
+   * image widget an `IntegerItem`, which crashed on `getUploadLocation()`. The
+   * order is forced here so the test does not depend on prop shape discovery
+   * order.
+   *
+   * @param \Drupal\canvas\PropShape\StorablePropShape[] $storable_prop_shapes
+   *
+   * @see \Drupal\canvas\PropSource\StaticPropSource::formTemporaryRemoveThisExclamationExclamationExclamation()
+   */
+  #[Depends('testStorablePropShapes')]
+  public function testDifferentFieldTypeWidgetsDoNotShareItemPrototype(array $storable_prop_shapes): void {
+    $integer_shape = array_find($storable_prop_shapes, fn (StorablePropShape $s): bool => $s->fieldTypeProp->getFieldType() === 'integer');
+    $image_shape = array_find($storable_prop_shapes, fn (StorablePropShape $s): bool => $s->fieldWidget === 'image_image');
+    self::assertNotNull($integer_shape);
+    self::assertNotNull($image_shape);
+
+    // Build the integer prop widget first: it seeds the item prototype cache
+    // with an IntegerItem under the shared host-entity path.
+    $this->buildTemporaryWidgetForm($integer_shape);
+
+    // Now the image prop widget. Before the field type named the dangling field,
+    // this reused the integer prototype and crashed in the file widget.
+    $image_form = $this->buildTemporaryWidgetForm($image_shape);
+
+    // The file widget built its rows, proving it received ImageItems.
+    self::assertArrayHasKey('widget', $image_form);
+  }
+
+  /**
+   * Builds the temporary widget form for a storable prop shape under a host.
+   */
+  private function buildTemporaryWidgetForm(StorablePropShape $storable_prop_shape): array {
+    $prop_source = $storable_prop_shape->toStaticPropSource();
+    $widget = $prop_source->getWidget('irrelevant-for-this-test', 'irrelevant-for-this-test', $this->randomMachineName(), $this->randomString(), $storable_prop_shape->fieldWidget);
+    $form = ['#parents' => [$this->randomMachineName()]];
+    $form_state = new FormState();
+    $form_state->setFormObject(new StubForm('some_id', $form));
+    return $prop_source->formTemporaryRemoveThisExclamationExclamationExclamation($widget, 'some-prop-name', FALSE, User::create([]), $form, $form_state);
+  }
+
+  /**
    * Tests all widgets for prop shapes have transforms.
    *
    * @param \Drupal\canvas\PropShape\StorablePropShape[] $storable_prop_shapes
