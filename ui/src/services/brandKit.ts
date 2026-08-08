@@ -29,7 +29,7 @@ export interface UploadedArtifact {
  *
  * @param mutate - Mutates the draft color list in place.
  */
-export const buildColorCachePatches = (
+const buildColorCachePatches = (
   mutate: (colors: BrandKitColor[]) => void,
 ) => [
   brandKitApi.util.updateQueryData('getBrandKit', BRAND_KIT_ID, (draft) => {
