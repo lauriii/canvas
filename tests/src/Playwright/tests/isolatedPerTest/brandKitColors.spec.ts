@@ -151,6 +151,7 @@ const SEL = {
     delete: '[data-testid="canvas-color-row-delete"]',
   },
   renameInput: '[data-testid="canvas-color-row-rename-input"]',
+  deleteConfirm: '[data-testid="canvas-color-delete-confirm-button"]',
   instancesPop: '[data-testid="canvas-find-color-instances-popover"]',
 };
 
@@ -669,5 +670,115 @@ test.describe('brand kit colors', () => {
         colorSpace: 'srgb',
       });
     });
+  });
+
+  test('optimistic color edits', async ({ page, drupal, canvas }) => {
+    await drupal.login({ username: 'colormaster', password: 'colormaster' });
+    await canvas.openCanvasRoot();
+    await canvas.openBrandKitPanel();
+
+    const redSwatch = page.locator(SEL.rowSwatch('Brand Red'));
+    await expect(redSwatch).toHaveCSS('background-color', 'rgb(204, 0, 0)');
+
+    // Hold the write open so the assertions below land while it is in flight.
+    let releaseWrite: () => void = () => {};
+    const writeHeld = new Promise<void>((resolve) => {
+      releaseWrite = resolve;
+    });
+    await page.route(/\/canvas\/api\/v0\/config\/color\/.+/, async (route) => {
+      if (route.request().method() !== 'PATCH') {
+        await route.continue();
+        return;
+      }
+      await writeHeld;
+      await route.continue();
+    });
+
+    // Edit "Brand Red" to pure blue (0, 0, 255).
+    await page.locator(SEL.row('Brand Red')).hover();
+    await page.locator(SEL.rowMenu('Brand Red')).click();
+    await page.locator(SEL.menu.edit).click();
+    await expect(page.locator(SEL.form.rgba.r)).toBeVisible();
+    await page.locator(SEL.form.rgba.r).fill('0');
+    await page.locator(SEL.form.rgba.g).fill('0');
+    await page.locator(SEL.form.rgba.b).fill('255');
+    await page.locator(SEL.form.save).click();
+
+    // The row swatch shows the new color while the request is still open. This
+    // is the whole point of the optimistic write: no waiting for the server.
+    await expect(redSwatch).toHaveCSS('background-color', 'rgb(0, 0, 255)');
+
+    releaseWrite();
+    await expect(redSwatch).toHaveCSS('background-color', 'rgb(0, 0, 255)');
+  });
+
+  test('rolls back a rejected color edit', async ({ page, drupal, canvas }) => {
+    await drupal.login({ username: 'colormaster', password: 'colormaster' });
+    await canvas.openCanvasRoot();
+    await canvas.openBrandKitPanel();
+
+    // Capture the stored color rather than hard-coding the hsl() conversion,
+    // so this asserts "restored to what it was" without depending on how the
+    // browser rounds the components.
+    const greenSwatch = page.locator(SEL.rowSwatch('Brand Green'));
+    const storedGreen = await greenSwatch.evaluate(
+      (element) => getComputedStyle(element).backgroundColor,
+    );
+
+    await page.route(/\/canvas\/api\/v0\/config\/color\/.+/, async (route) => {
+      if (route.request().method() !== 'PATCH') {
+        await route.continue();
+        return;
+      }
+      await route.fulfill({
+        status: 422,
+        contentType: 'application/json',
+        body: JSON.stringify({ errors: [{ detail: 'Rejected by test.' }] }),
+      });
+    });
+
+    await page.locator(SEL.row('Brand Green')).hover();
+    await page.locator(SEL.rowMenu('Brand Green')).click();
+    await page.locator(SEL.menu.edit).click();
+    await expect(page.locator(SEL.form.rgba.r)).toBeVisible();
+    await page.locator(SEL.form.rgba.r).fill('255');
+    await page.locator(SEL.form.rgba.g).fill('0');
+    await page.locator(SEL.form.rgba.b).fill('255');
+    await page.locator(SEL.form.save).click();
+
+    // The rejected value must not survive anywhere in the UI.
+    await expect(greenSwatch).toHaveCSS('background-color', storedGreen);
+    // The popover stays open so the failure is visible rather than silent.
+    await expect(page.locator(POP_SEL)).toBeVisible();
+  });
+
+  test('restores a color when deleting it fails', async ({
+    page,
+    drupal,
+    canvas,
+  }) => {
+    await drupal.login({ username: 'colormaster', password: 'colormaster' });
+    await canvas.openCanvasRoot();
+    await canvas.openBrandKitPanel();
+
+    await page.route(/\/canvas\/api\/v0\/config\/color\/.+/, async (route) => {
+      if (route.request().method() !== 'DELETE') {
+        await route.continue();
+        return;
+      }
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ errors: [{ detail: 'Rejected by test.' }] }),
+      });
+    });
+
+    await page.locator(SEL.row('Brand Blue')).hover();
+    await page.locator(SEL.rowMenu('Brand Blue')).click();
+    await page.locator(SEL.menu.delete).click();
+    await page.locator(SEL.deleteConfirm).click();
+
+    // The row must come back rather than silently vanishing from a failed write.
+    await expect(page.locator(SEL.row('Brand Blue'))).toBeVisible();
   });
 });

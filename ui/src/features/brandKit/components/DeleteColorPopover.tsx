@@ -116,6 +116,7 @@ const DeleteColorPopover = ({
               loading={isDeleting}
               size="1"
               color="red"
+              data-testid="canvas-color-delete-confirm-button"
             >
               Delete
             </Button>
