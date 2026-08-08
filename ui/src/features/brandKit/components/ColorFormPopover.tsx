@@ -182,10 +182,14 @@ const ColorFormPopover = ({
       reset: resetCreate,
     },
   ] = useCreateColorMutation();
-  const [
-    updateColor,
-    { isLoading: isUpdating, isError: isUpdateError, error: updateError },
-  ] = useUpdateColorMutation({ fixedCacheKey: UPDATE_COLOR_CACHE_KEY });
+  // Only the trigger is taken from this mutation. Its state is shared with
+  // every other form through the fixed cache key, so reading `isLoading` or
+  // `error` here would make one form's in-flight edit spin another form's Save
+  // button and surface a past rejection in an unrelated form. An edit closes
+  // its form immediately, so the colors section owns reporting it.
+  const [updateColor] = useUpdateColorMutation({
+    fixedCacheKey: UPDATE_COLOR_CACHE_KEY,
+  });
   const [updateFolder] = useUpdateFolderMutation();
   const { data: foldersData } = useGetFoldersQuery();
 
@@ -341,12 +345,7 @@ const ColorFormPopover = ({
           title: 'Failed to create color',
           message: normalizeError(createError).message,
         }
-      : isUpdateError && updateError
-        ? {
-            title: 'Failed to update color',
-            message: normalizeError(updateError).message,
-          }
-        : null;
+      : null;
 
   return (
     <Popover.Root open={open} onOpenChange={onOpenChange}>
@@ -638,7 +637,7 @@ const ColorFormPopover = ({
               <Button
                 type="submit"
                 disabled={isConfirmDisabled}
-                loading={isCreating || isUpdating}
+                loading={isCreating}
                 size="1"
                 color="blue"
                 data-testid="canvas-color-save-button"
