@@ -29,9 +29,7 @@ export interface UploadedArtifact {
  *
  * @param mutate - Mutates the draft color list in place.
  */
-const buildColorCachePatches = (
-  mutate: (colors: BrandKitColor[]) => void,
-) => [
+const buildColorCachePatches = (mutate: (colors: BrandKitColor[]) => void) => [
   brandKitApi.util.updateQueryData('getBrandKit', BRAND_KIT_ID, (draft) => {
     if (draft.colors) {
       mutate(draft.colors);
@@ -45,15 +43,48 @@ const buildColorCachePatches = (
 ];
 
 /**
- * The most recent in-flight write per color id.
+ * The in-flight optimistic write per color id, newest last.
  *
- * A rejected write must not roll back a newer write to the same color that has
- * already been applied optimistically, so each write records a token and only
- * rolls back while it is still the newest one. Without this, saving twice in
- * quick succession and having the first request fail would revert the second
- * edit and leave the UI showing a value the user did not choose.
+ * Two things need this. A rejected write must not roll back a newer write to
+ * the same color that has already been applied, so each write carries a token
+ * and only rolls back while it is still the newest. And a Brand kit read that
+ * resolves mid-write arrives with pre-edit colors, so the mutator is kept here
+ * to be re-applied on top of that response.
  */
-const latestColorWrites = new Map<string, symbol>();
+const pendingColorWrites = new Map<
+  string,
+  { token: symbol; mutate: (colors: BrandKitColor[]) => void }
+>();
+
+/**
+ * The dispatch handed to an endpoint lifecycle, narrowed to what is used here.
+ */
+interface PatchDispatch {
+  (patch: ReturnType<typeof buildColorCachePatches>[number]): {
+    undo: () => void;
+  };
+  (action: ReturnType<typeof brandKitApi.util.invalidateTags>): unknown;
+}
+
+/**
+ * Re-applies every in-flight optimistic write to the Brand kit caches.
+ *
+ * `useBrandKitColors` prefers the auto-save draft's colors, and the UI becomes
+ * interactive as soon as the canonical query resolves. A `getAutoSave` response
+ * that lands while a write is in flight therefore carries pre-edit colors and
+ * would replace the optimistic value with the old one until reconciliation —
+ * a visible flash of a color the user already changed.
+ *
+ * @param dispatch - The lifecycle dispatch.
+ */
+const reapplyPendingColorWrites = (dispatch: PatchDispatch) => {
+  if (pendingColorWrites.size === 0) {
+    return;
+  }
+  buildColorCachePatches((colors) => {
+    pendingColorWrites.forEach(({ mutate }) => mutate(colors));
+  }).forEach((patch) => dispatch(patch));
+};
 
 /**
  * Applies a color change optimistically and reconciles it with the response.
@@ -66,29 +97,38 @@ const latestColorWrites = new Map<string, symbol>();
 const applyOptimisticColorWrite = async (
   id: string,
   mutate: (colors: BrandKitColor[]) => void,
-  dispatch: (patch: ReturnType<typeof buildColorCachePatches>[number]) => {
-    undo: () => void;
-  },
+  dispatch: PatchDispatch,
   queryFulfilled: Promise<unknown>,
 ) => {
   const token = Symbol(id);
-  latestColorWrites.set(id, token);
+  pendingColorWrites.set(id, { token, mutate });
   const patches = buildColorCachePatches(mutate).map((patch) =>
     dispatch(patch),
   );
-  const isNewest = () => latestColorWrites.get(id) === token;
+  const isNewest = () => pendingColorWrites.get(id)?.token === token;
   try {
     await queryFulfilled;
+    if (isNewest()) {
+      pendingColorWrites.delete(id);
+    }
   } catch {
     // The server rejected the write, so restore the previous value. The UI must
     // never keep showing something that was not stored.
-    if (isNewest()) {
-      patches.forEach((patch) => patch.undo());
+    if (!isNewest()) {
+      return;
     }
-  } finally {
-    if (isNewest()) {
-      latestColorWrites.delete(id);
-    }
+    pendingColorWrites.delete(id);
+    patches.forEach((patch) => patch.undo());
+    // A read may have re-applied this write on top of a response since the
+    // patches above were recorded, which their inverses do not account for.
+    // Failure is the rare path, so resync from the server rather than trying to
+    // reconstruct the difference. `invalidatesTags` only fires on success.
+    dispatch(
+      brandKitApi.util.invalidateTags([
+        { type: 'BrandKits', id: BRAND_KIT_ID },
+        { type: 'BrandKitsAutoSave', id: BRAND_KIT_ID },
+      ]),
+    );
   }
 };
 
@@ -113,6 +153,14 @@ export const brandKitApi = createApi({
     getBrandKit: builder.query<BrandKit, string>({
       query: (id) => `canvas/api/v0/config/brand_kit/${id}`,
       providesTags: (result, error, id) => [{ type: 'BrandKits', id }],
+      async onQueryStarted(id, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+        } catch {
+          return;
+        }
+        reapplyPendingColorWrites(dispatch);
+      },
     }),
     getAutoSave: builder.query<
       { data: BrandKit; autoSaves: AutoSavesHash },
@@ -127,7 +175,10 @@ export const brandKitApi = createApi({
           handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         } catch (err) {
           console.error(err);
+          return;
         }
+        // This response carries pre-edit colors if a write is in flight.
+        reapplyPendingColorWrites(dispatch);
       },
     }),
     updateAutoSave: builder.mutation<
