@@ -13,6 +13,11 @@ export interface ObservedComponent {
   sourceHash: string;
   /** Canvas `active_version`, server-computed. Absent for unknown components. */
   versionHash?: string;
+  /**
+   * Whether anything on the site references this component. Undefined when the
+   * site does not expose usage to external clients.
+   */
+  inUse?: boolean;
   payload: Component;
 }
 
@@ -68,17 +73,23 @@ export async function createSiteApiService(
  * authoritative identity Canvas exposes and cannot be recomputed locally.
  */
 export async function readObservedSite(
-  apiService: Pick<ApiService, 'listComponents' | 'listComponentVersions'>,
+  apiService: Pick<
+    ApiService,
+    'listComponents' | 'listComponentVersions' | 'listComponentUsage'
+  >,
 ): Promise<ObservedSite> {
-  const [components, versions] = await Promise.all([
+  const [components, versions, usage] = await Promise.all([
     apiService.listComponents(),
     apiService.listComponentVersions(),
+    apiService.listComponentUsage(),
   ]);
   const observed: ObservedSite = {};
   for (const [machineName, payload] of Object.entries(components)) {
+    const id = componentConfigEntityId(machineName);
     observed[machineName] = {
       sourceHash: sourceFingerprint(payload),
-      versionHash: versions.get(componentConfigEntityId(machineName)),
+      versionHash: versions.get(id),
+      inUse: usage?.get(id),
       payload,
     };
   }

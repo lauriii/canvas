@@ -369,6 +369,58 @@ describe('planCommand', () => {
     log.mockRestore();
   });
 
+  it('writes a reviewable plan file with --out', async () => {
+    writeLockFile(lockWith({ hero: HERO_IN_SYNC }));
+    const out = path.join(root, 'plan.json');
+    await run('--out', out);
+
+    const saved = JSON.parse(fs.readFileSync(out, 'utf-8')) as {
+      planVersion: number;
+      libraryVersion: string;
+      desired: Record<string, string>;
+      plans: { site: string }[];
+    };
+    expect(saved.planVersion).toBe(1);
+    expect(saved.libraryVersion).toBe('3.4.0');
+    // Pins what was planned, so apply can refuse a moved library.
+    expect(saved.desired).toStrictEqual({ hero: HERO_HASH });
+    expect(saved.plans.map((entry) => entry.site)).toStrictEqual(['alpha']);
+  });
+
+  it('refuses --out for a refresh-only run, which plans nothing', async () => {
+    await run('--out', path.join(root, 'plan.json'), '--refresh-only');
+    expect(process.exitCode).toBe(1);
+    expect(fs.existsSync(path.join(root, 'plan.json'))).toBe(false);
+  });
+
+  it('reports which components a site actually uses', async () => {
+    observedBySite.alpha = {
+      hero: {
+        sourceHash: HERO_HASH,
+        versionHash: 'v1',
+        inUse: true,
+        payload: HERO,
+      },
+    };
+    writeLockFile(
+      lockWith({
+        hero: { ...HERO_IN_SYNC, pushedSourceHash: 'older-source' },
+      }),
+    );
+    await run();
+    expect(p.log.message).toHaveBeenCalledWith(
+      expect.stringContaining('(in use)'),
+    );
+  });
+
+  it('says so when a site cannot report usage', async () => {
+    // Older sites do not expose the usage endpoint; `inUse` stays undefined.
+    await run();
+    expect(p.log.info).toHaveBeenCalledWith(
+      expect.stringContaining('did not report which components are in use'),
+    );
+  });
+
   it('honors --exclude', async () => {
     fs.writeFileSync(
       path.join(root, 'canvas.fleet.json'),

@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import chalk from 'chalk';
 import * as p from '@clack/prompts';
 import { discoverCanvasProject } from '@drupal-canvas/discovery';
@@ -55,12 +57,15 @@ export interface PlanOptions {
   refresh: boolean;
   parallelism: string;
   json?: boolean;
+  out?: string;
   dir?: string;
 }
 
 interface ComponentPlan {
   component: string;
   state: DriftState;
+  /** Whether the site has content using this component. */
+  inUse?: boolean;
 }
 
 interface SitePlan {
@@ -70,6 +75,23 @@ interface SitePlan {
   libraryVersion?: string;
   lastRefresh?: string;
   components: ComponentPlan[];
+}
+
+/**
+ * A plan written to disk, so it can be reviewed and then applied verbatim.
+ *
+ * `libraryVersion` and `desired` pin what was planned: `apply --plan` refuses
+ * the file if the library has moved since, rather than applying something the
+ * reviewer never saw.
+ */
+export interface SavedPlan {
+  planVersion: 1;
+  library: string;
+  libraryVersion: string;
+  generatedAt: string;
+  /** Component machine name to the fingerprint that was planned. */
+  desired: Record<string, string>;
+  plans: SitePlan[];
 }
 
 const STATE_STYLE: Record<DriftState, (value: string) => string> = {
@@ -155,6 +177,10 @@ export function planCommand(program: Command): void {
     .option('--no-refresh', 'Use the lockfile without reading the sites')
     .option('--parallelism <n>', 'Max concurrent site operations', '4')
     .option('--json', 'Emit machine-readable output')
+    .option(
+      '--out <file>',
+      'Write the plan to a file so it can be reviewed and applied verbatim',
+    )
     .option('-d, --dir <directory>', 'Component directory')
     .action(async (options: PlanOptions) => {
       try {
@@ -260,6 +286,7 @@ export function planCommand(program: Command): void {
               const locked = lockEntry?.components[machineName];
               plan.components.push({
                 component: machineName,
+                inUse: observed?.[machineName]?.inUse,
                 state: classifyDrift({
                   desiredSourceHash: options.refreshOnly
                     ? locked?.pushedSourceHash
@@ -315,6 +342,32 @@ export function planCommand(program: Command): void {
 
         if (options.refreshOnly && options.refresh) {
           writeLock(lock);
+        }
+
+        if (options.out) {
+          if (options.refreshOnly) {
+            throw new Error(
+              '--out needs a full plan; it cannot be combined with --refresh-only.',
+            );
+          }
+          const saved: SavedPlan = {
+            planVersion: 1,
+            library: library.name,
+            libraryVersion: library.version,
+            generatedAt: new Date().toISOString(),
+            desired: Object.fromEntries(desiredByComponent),
+            plans,
+          };
+          fs.writeFileSync(
+            path.resolve(options.out),
+            `${JSON.stringify(saved, null, 2)}\n`,
+            'utf-8',
+          );
+          if (!options.json) {
+            p.log.success(
+              `Wrote ${options.out}. Review it, then run \`canvas apply --plan ${options.out}\`.`,
+            );
+          }
         }
 
         const failed = plans.filter((plan) => plan.error);
@@ -373,15 +426,38 @@ export function planCommand(program: Command): void {
               (entry) => entry.state !== 'in-sync',
             );
             if (notable.length > 0) {
+              // Grouped by state: a flat list becomes unreadable once a fleet
+              // has more than a handful of components.
+              const byState = new Map<DriftState, ComponentPlan[]>();
+              for (const entry of notable) {
+                byState.set(entry.state, [
+                  ...(byState.get(entry.state) ?? []),
+                  entry,
+                ]);
+              }
               p.log.message(
-                notable
-                  .map(
-                    (entry) =>
-                      `  ${STATE_STYLE[entry.state](entry.state.padEnd(10))} ${entry.component}`,
-                  )
+                [...byState.entries()]
+                  .map(([state, entries]) => {
+                    const names = entries
+                      .map(
+                        (entry) =>
+                          `${entry.component}${entry.inUse ? chalk.yellow(' (in use)') : ''}`,
+                      )
+                      .join(', ');
+                    return `  ${STATE_STYLE[state](state.padEnd(10))} ${names}`;
+                  })
                   .join('\n'),
               );
             }
+          }
+          if (
+            plans.some((plan) =>
+              plan.components.some((entry) => entry.inUse === undefined),
+            )
+          ) {
+            p.log.info(
+              'Some sites did not report which components are in use. Update Canvas on those sites to see it.',
+            );
           }
           p.log.info(PLAN_ACCURACY_NOTE);
           p.outro(

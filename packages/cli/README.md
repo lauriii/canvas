@@ -796,8 +796,9 @@ Credentials are never committed. Each site names an environment variable in
 
 **Run `apply` from one place at a time.** If two people apply to the same sites
 at once, the two runs will overwrite each other's record of what happened. There
-is no locking to stop them. Running applies from CI, one pipeline at a time,
-avoids this.
+is no locking to stop them, though `apply` does notice afterwards and tells you
+to re-check with `canvas plan`. Running applies from CI, one pipeline at a time,
+avoids the problem.
 
 **`plan` tells you what it saw, not what is true right now.** It reads the sites
 when you run it. A component edited a minute later still shows as in sync until
@@ -809,9 +810,12 @@ comparing the code on the site with what was last pushed. That works today, but
 it relies on sites returning component code exactly as it was sent, so treat a
 clean plan as good evidence rather than proof.
 
-**`plan` cannot tell you how many pages use a component.** Canvas can work this
-out, but not through the API this CLI is allowed to call, so no numbers are
-reported rather than misleading ones.
+**`plan` tells you _whether_ a component is used, not how many pages use it.**
+Components with content pointing at them are marked `(in use)`, which is the
+signal that matters before a breaking change. Exact page counts are not
+available to the CLI, so no numbers are reported rather than misleading ones.
+Sites running an older Canvas cannot report usage at all; `plan` says so when
+that happens.
 
 **`canvas.lock.json` only knows what this CLI did.** If someone edits a site
 directly, or runs `apply` without committing the updated lockfile, it will be
@@ -880,6 +884,8 @@ npx canvas plan --group prod --json
   staleness warning including each site's `lastRefresh`.
 - `--parallelism <n>`: bound concurrent site operations (default `4`)
 - `--json`: machine-readable output
+- `--out <file>`: write the plan to a file so it can be reviewed, committed, or
+  attached to a pull request, then applied verbatim with `canvas apply --plan`
 
 Each library component on each site lands in one of five states:
 
@@ -925,6 +931,9 @@ npx canvas apply --all --exclude brand-main --parallelism 2
 - `--to <version>`: the library version being applied. Must match
   `canvas.library.json`; the library is consumed from a git ref, so applying an
   older version means checking that ref out first.
+- `--plan <file>`: apply a plan written by `canvas plan --out`. If the library
+  changed after the plan was written, or the plan does not cover a targeted
+  site, the run is refused, so what gets applied is what somebody reviewed.
 - `--parallelism <n>`: bound concurrent site operations (default `4`)
 - `--on-error <stop|continue>`: `stop` (default) leaves earlier sites applied
   and later sites untouched, and names the untouched sites so the operator can
@@ -958,6 +967,20 @@ npx canvas changeset restore 2026-08-05T10-22-00-000Z-marketing-eu
 `restore` re-pushes the captured pre-push payload for one site. Components that
 the recorded apply created are reported but never deleted: removing a component
 that pages already reference is destructive in a way a source change is not.
+
+### Reviewing a rollout before it happens
+
+For production, split planning from applying so a human sees exactly what will
+change:
+
+```bash
+npx canvas plan --group prod --out rollout.json   # review or commit this file
+npx canvas apply --group prod --plan rollout.json
+```
+
+`apply --plan` refuses the file if the library changed after the plan was
+written, or if you target a site the plan does not cover. That keeps the thing
+that was reviewed and the thing that ships from drifting apart.
 
 ### Keeping production safe
 

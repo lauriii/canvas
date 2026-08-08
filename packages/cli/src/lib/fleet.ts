@@ -89,6 +89,12 @@ export interface LockSiteEntry {
 export interface LockFile {
   lockfileVersion: number;
   generatedAt: string;
+  /**
+   * Fresh random value stamped on every write, used to notice that another run
+   * wrote the file. A timestamp cannot do this: two writes in the same
+   * millisecond are indistinguishable.
+   */
+  writeToken?: string;
   sites: Record<string, LockSiteEntry>;
 }
 
@@ -240,7 +246,28 @@ export function writeLock(lock: LockFile, root: string = process.cwd()): void {
     ...lock,
     lockfileVersion: LOCKFILE_VERSION,
     generatedAt: new Date().toISOString(),
+    writeToken: crypto.randomUUID(),
   });
+}
+
+/**
+ * Detects another run that wrote the lockfile while this one was working.
+ *
+ * There is no locking, so this cannot prevent a concurrent apply. It can notice
+ * one after the fact, which is the difference between a confusing lockfile and
+ * a reported collision. Compares `generatedAt` against what this run read.
+ */
+export function detectConcurrentWrite(
+  readToken: string | undefined,
+  root: string = process.cwd(),
+): string | undefined {
+  if (!readToken) {
+    return undefined;
+  }
+  const onDisk = readJsonFile<LockFile>(lockPath(root));
+  return onDisk?.writeToken && onDisk.writeToken !== readToken
+    ? (onDisk.generatedAt ?? 'an unknown time')
+    : undefined;
 }
 
 export interface TargetOptions {

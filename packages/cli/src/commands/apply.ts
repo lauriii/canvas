@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
 import chalk from 'chalk';
 import { Option } from 'commander';
 import * as p from '@clack/prompts';
@@ -9,6 +10,7 @@ import { createSiteApiService, readObservedSite } from '../lib/fleet-site.js';
 import {
   changesetId,
   classifyDrift,
+  detectConcurrentWrite,
   globalAssetFingerprint,
   isDiverged,
   readFleet,
@@ -46,6 +48,7 @@ import type {
 } from '../lib/fleet.js';
 import type { AssetLibrary } from '../types/Component.js';
 import type { BuiltComponent } from '../utils/build-project.js';
+import type { SavedPlan } from './plan.js';
 
 export interface ApplyOptions {
   site: string[];
@@ -53,12 +56,47 @@ export interface ApplyOptions {
   all?: boolean;
   exclude: string[];
   to?: string;
+  plan?: string;
   parallelism: string;
   onError: 'stop' | 'continue';
   json?: boolean;
   dir?: string;
   yes?: boolean;
   iKnowWhatIAmDoing?: boolean;
+}
+
+/**
+ * Reads a plan file and checks it still describes this library.
+ *
+ * A plan is only worth reviewing if what gets applied is what was reviewed, so
+ * a plan whose library version or component fingerprints no longer match the
+ * working tree is refused rather than silently re-planned.
+ */
+export function loadApprovedPlan(
+  planPath: string,
+  library: LibraryFile,
+  desired: Map<string, string>,
+): SavedPlan {
+  const saved = JSON.parse(fs.readFileSync(planPath, 'utf-8')) as SavedPlan;
+  if (saved.planVersion !== 1) {
+    throw new Error(
+      `${planPath} has planVersion ${String(saved.planVersion)}, which this CLI does not understand.`,
+    );
+  }
+  if (saved.libraryVersion !== library.version) {
+    throw new Error(
+      `${planPath} was made for ${saved.library} ${saved.libraryVersion}, but this is ${library.name} ${library.version}. Re-run \`canvas plan --out ${planPath}\`.`,
+    );
+  }
+  const changed = Object.keys(saved.desired)
+    .filter((name) => saved.desired[name] !== desired.get(name))
+    .concat([...desired.keys()].filter((name) => !(name in saved.desired)));
+  if (changed.length > 0) {
+    throw new Error(
+      `The library changed since ${planPath} was written (${[...new Set(changed)].sort().join(', ')}). Re-run \`canvas plan --out ${planPath}\` and review it again.`,
+    );
+  }
+  return saved;
 }
 
 interface SiteOutcome {
@@ -487,6 +525,10 @@ export function applyCommand(program: Command): void {
       [],
     )
     .option('--to <version>', 'Library version to apply')
+    .option(
+      '--plan <file>',
+      'Apply a plan written by `canvas plan --out`, refusing it if the library moved since',
+    )
     .option('--parallelism <n>', 'Max concurrent site operations', '4')
     .addOption(
       new Option('--on-error <mode>', 'Behavior when a site fails')
@@ -551,6 +593,7 @@ export function applyCommand(program: Command): void {
         }
 
         const lock = readLock();
+        const lockReadToken = lock.writeToken;
         for (const target of targets) {
           const locked = lock.sites[target]?.libraryVersion;
           if (locked && compareVersions(locked, version) > 0) {
@@ -598,6 +641,33 @@ export function applyCommand(program: Command): void {
           (message) => p.log.warn(message),
         );
 
+        if (options.plan) {
+          // Refuses the file if the library moved since it was written, so what
+          // gets applied is what somebody reviewed.
+          const approved = loadApprovedPlan(
+            options.plan,
+            library,
+            new Map(
+              declaredComponents.map((component) => [
+                component.machineName,
+                sourceFingerprint(component.componentPayload),
+              ]),
+            ),
+          );
+          const planned = new Set(approved.plans.map((entry) => entry.site));
+          const unplanned = targets.filter((name) => !planned.has(name));
+          if (unplanned.length > 0) {
+            throw new Error(
+              `${options.plan} does not cover ${unplanned.join(', ')}. Target only the sites it planned, or re-plan.`,
+            );
+          }
+          if (!options.json) {
+            p.log.info(
+              `Applying ${options.plan}, planned ${approved.generatedAt}.`,
+            );
+          }
+        }
+
         const globalAssetLibrary =
           library.includes?.globalCss === false
             ? undefined
@@ -626,8 +696,12 @@ export function applyCommand(program: Command): void {
         // mid-chunk never loses a sibling's record. Writes are serialized
         // through one promise chain because they all target the same file.
         let pendingWrite: Promise<void> = Promise.resolve();
+        let collidedWith: string | undefined;
         const persist = () => {
           pendingWrite = pendingWrite.then(() => {
+            // There is no locking, so a concurrent apply cannot be prevented.
+            // Noticing it is still worth more than a silently mixed lockfile.
+            collidedWith ??= detectConcurrentWrite(lockReadToken);
             writeLock(lock);
           });
           return pendingWrite;
@@ -683,7 +757,13 @@ export function applyCommand(program: Command): void {
         if (options.json) {
           console.log(
             JSON.stringify(
-              { library: library.name, version, outcomes, untouched },
+              {
+                library: library.name,
+                version,
+                outcomes,
+                untouched,
+                ...(collidedWith ? { concurrentWriteAt: collidedWith } : {}),
+              },
               null,
               2,
             ),
@@ -713,6 +793,11 @@ export function applyCommand(program: Command): void {
                 `${outcome.site}: skipped ${outcome.skipped.join(', ')}. Run \`canvas plan --site ${outcome.site}\` to inspect.`,
               );
             }
+          }
+          if (collidedWith) {
+            p.log.warn(
+              `Another run wrote canvas.lock.json at ${collidedWith} while this one was working. The two runs may have overwritten each other's record. Run \`canvas plan --all\` to see what the sites actually have.`,
+            );
           }
           if (stopped && untouched.length > 0) {
             p.log.warn(

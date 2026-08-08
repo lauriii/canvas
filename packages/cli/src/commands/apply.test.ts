@@ -12,7 +12,7 @@ import {
   prepareGlobalAssetLibraryUpdate,
   uploadComponents,
 } from '../utils/prepare-push';
-import { applyCommand, compareVersions } from './apply';
+import { applyCommand, compareVersions, loadApprovedPlan } from './apply';
 import { updateGlobalAssetLibraryForPush } from './push';
 
 import type { ObservedSite } from '../lib/fleet-site';
@@ -570,6 +570,74 @@ describe('applyCommand', () => {
     expect(process.exitCode).toBe(1);
     expect(p.log.message).toHaveBeenCalledWith(
       expect.stringContaining('$ALPHA_CREDENTIALS'),
+    );
+  });
+});
+
+describe('loadApprovedPlan', () => {
+  let dir: string;
+  const library = { name: '@acme/l', version: '1.0.0', components: ['hero'] };
+  const plan = {
+    planVersion: 1,
+    library: '@acme/l',
+    libraryVersion: '1.0.0',
+    generatedAt: '2026-08-08T00:00:00Z',
+    desired: { hero: 'aaa' },
+    plans: [{ site: 'alpha', url: 'https://a', components: [] }],
+  };
+
+  beforeEach(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'canvas-plan-file-'));
+  });
+  afterEach(() => {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  function write(contents: unknown): string {
+    const file = path.join(dir, 'plan.json');
+    fs.writeFileSync(file, JSON.stringify(contents), 'utf-8');
+    return file;
+  }
+
+  it('accepts a plan that still matches the library', () => {
+    const file = write(plan);
+    expect(
+      loadApprovedPlan(file, library, new Map([['hero', 'aaa']])).plans,
+    ).toHaveLength(1);
+  });
+
+  it('refuses a plan written for another library version', () => {
+    const file = write({ ...plan, libraryVersion: '0.9.0' });
+    expect(() =>
+      loadApprovedPlan(file, library, new Map([['hero', 'aaa']])),
+    ).toThrow(/was made for @acme\/l 0.9.0/);
+  });
+
+  it('refuses a plan whose components changed since it was reviewed', () => {
+    const file = write(plan);
+    expect(() =>
+      loadApprovedPlan(file, library, new Map([['hero', 'edited-since']])),
+    ).toThrow(/library changed since .*hero/s);
+  });
+
+  it('refuses a plan that predates a newly added component', () => {
+    const file = write(plan);
+    expect(() =>
+      loadApprovedPlan(
+        file,
+        library,
+        new Map([
+          ['hero', 'aaa'],
+          ['cta', 'bbb'],
+        ]),
+      ),
+    ).toThrow(/library changed since .*cta/s);
+  });
+
+  it('refuses a plan format it does not understand', () => {
+    const file = write({ ...plan, planVersion: 99 });
+    expect(() => loadApprovedPlan(file, library, new Map())).toThrow(
+      /planVersion 99/,
     );
   });
 });

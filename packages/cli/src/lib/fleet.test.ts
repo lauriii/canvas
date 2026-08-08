@@ -7,6 +7,7 @@ import {
   changesetId,
   classifyDrift,
   componentConfigEntityId,
+  detectConcurrentWrite,
   globalAssetFingerprint,
   hasFleetFiles,
   isDiverged,
@@ -500,5 +501,28 @@ describe('file round-trips', () => {
 
   it('lists nothing before any changeset is captured', () => {
     expect(listChangesets(root)).toStrictEqual([]);
+  });
+
+  it('notices another run writing the lockfile underneath it', () => {
+    const lock: LockFile = {
+      lockfileVersion: 1,
+      generatedAt: 'ignored',
+      sites: {},
+    };
+    writeLock(lock, root);
+    const readToken = readLock(root).writeToken;
+
+    // Nothing else has written since this run read it.
+    expect(detectConcurrentWrite(readToken, root)).toBeUndefined();
+
+    // Somebody else's apply lands. Detection must not depend on the clock:
+    // two writes can land in the same millisecond.
+    writeLock(lock, root);
+    expect(detectConcurrentWrite(readToken, root)).toBeDefined();
+    expect(readLock(root).writeToken).not.toBe(readToken);
+  });
+
+  it('reports no collision when there was no lockfile to begin with', () => {
+    expect(detectConcurrentWrite(undefined, root)).toBeUndefined();
   });
 });
