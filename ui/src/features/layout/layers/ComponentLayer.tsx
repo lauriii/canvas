@@ -14,6 +14,9 @@ import { selectModel } from '@/features/layout/layoutModelSlice';
 import {
   DEFAULT_VARIANT_ID,
   getCaseVariantId,
+  getContentSlot,
+  getPreviewedVariant,
+  getSwitchCases,
   humanizeVariantId,
   isCaseNode,
   isSwitchNode,
@@ -25,6 +28,7 @@ import {
   selectCollapsedLayers,
   selectComponentIsSelected,
   selectIsComponentHovered,
+  selectPreviewedVariants,
   setHoveredComponent,
   toggleCollapsedLayer,
   unsetHoveredComponent,
@@ -36,11 +40,33 @@ import { useGetSegmentsQuery } from '@/services/personalization';
 import type React from 'react';
 import type { CollapsibleTriggerProps } from '@radix-ui/react-collapsible';
 import type {
+  ComponentModels,
   ComponentNode,
   LayoutNode,
 } from '@/features/layout/layoutModelSlice';
 
 import styles from './ComponentLayer.module.css';
+
+/**
+ * Finds the case of a switch matching the previewed variant. The layer tree
+ * presents a switch as a single "Personalized" section, so the active case's
+ * children are what render beneath the section row.
+ */
+function getActiveCase(
+  model: ComponentModels,
+  previewedVariants: Record<string, string>,
+  switchNode: ComponentNode,
+): ComponentNode | null {
+  const activeVariantId = getPreviewedVariant(
+    previewedVariants,
+    switchNode.uuid,
+  );
+  return (
+    getSwitchCases(switchNode).find(
+      (caseNode) => getCaseVariantId(model, caseNode) === activeVariantId,
+    ) ?? null
+  );
+}
 
 interface ComponentLayerProps {
   component: ComponentNode;
@@ -75,7 +101,28 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
   const caseSegments = useAppSelector((state) =>
     isCase ? selectModel(state)[component.uuid]?.resolved?.segments : undefined,
   );
-  const { data: segments } = useGetSegmentsQuery(undefined, { skip: !isCase });
+  const activeVariantId = useAppSelector((state) =>
+    isSwitch
+      ? getPreviewedVariant(selectPreviewedVariants(state), component.uuid)
+      : undefined,
+  );
+  const activeCase = useAppSelector((state) =>
+    isSwitch
+      ? getActiveCase(
+          selectModel(state),
+          selectPreviewedVariants(state),
+          component,
+        )
+      : null,
+  );
+  const activeCaseSegments = useAppSelector((state) =>
+    activeCase
+      ? selectModel(state)[activeCase.uuid]?.resolved?.segments
+      : undefined,
+  );
+  const { data: segments } = useGetSegmentsQuery(undefined, {
+    skip: !isCase && !isSwitch,
+  });
   // Case rows are titled by their variant and audience instead of the
   // generic case component name.
   let nodeName = defaultName;
@@ -93,6 +140,27 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
       ? `${humanizeVariantId(caseVariantId)} — ${audience}`
       : humanizeVariantId(caseVariantId);
   }
+  // A switch renders as a single "Personalized" section titled by the active
+  // variant; its slot and case plumbing is not shown as rows.
+  if (isSwitch && activeVariantId) {
+    nodeName = `Personalized: ${humanizeVariantId(activeVariantId)}`;
+  }
+  // The audience of the active variant, shown as a compact badge on the
+  // section row.
+  let switchAudience: string | undefined;
+  if (isSwitch && activeVariantId) {
+    if (activeVariantId === DEFAULT_VARIANT_ID) {
+      switchAudience = 'Everyone (fallback)';
+    } else {
+      const segmentIds = Array.isArray(activeCaseSegments)
+        ? (activeCaseSegments as string[])
+        : [];
+      switchAudience = segmentIds
+        .map((segmentId) => segments?.[segmentId]?.label ?? segmentId)
+        .join(', ');
+    }
+  }
+  const activeCaseSlot = activeCase ? getContentSlot(activeCase) : null;
   const isSelected = useAppSelector((state) =>
     selectComponentIsSelected(state, componentId),
   );
@@ -181,15 +249,15 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
             className="canvas-drag-handle"
             title={nodeName}
             draggable={true}
-            variant="component"
+            variant={isSwitch ? 'personalized' : 'component'}
             hovered={isHovered}
             selected={isSelected}
             disabled={disableDrop || isDragging}
             open={component.slots.length ? !isCollapsed : false}
             trailingContent={
-              isSwitch ? (
-                <Badge size="1" color="gray" aria-label="Personalized section">
-                  Personalized
+              isSwitch && switchAudience ? (
+                <Badge size="1" color="gray" aria-label="Audience">
+                  {switchAudience}
                 </Badge>
               ) : undefined
             }
@@ -238,15 +306,29 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
                 [styles.componentChildrenDisabled]: disableDrop || isDragging,
               })}
             >
-              {component.slots.map((slot) => (
+              {isSwitch && activeCase && activeCaseSlot ? (
+                // The switch's own slot row, the case row, and the case's
+                // slot row are plumbing: the active case's children render
+                // directly under the section row. The case's slot stays the
+                // structural parent so drop paths are unchanged.
                 <SlotLayer
-                  key={slot.id}
-                  slot={slot}
-                  indent={indent + 1}
-                  parentNode={component}
+                  slot={activeCaseSlot}
+                  indent={indent}
+                  parentNode={activeCase}
                   disableDrop={disableDrop || isDragging}
+                  hideRow
                 />
-              ))}
+              ) : (
+                component.slots.map((slot) => (
+                  <SlotLayer
+                    key={slot.id}
+                    slot={slot}
+                    indent={indent + 1}
+                    parentNode={component}
+                    disableDrop={disableDrop || isDragging}
+                  />
+                ))
+              )}
             </CollapsibleContent>
           )}
         </Collapsible.Root>

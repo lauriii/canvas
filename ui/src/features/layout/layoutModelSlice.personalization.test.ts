@@ -4,6 +4,7 @@ import {
   addVariant,
   layoutModelReducer,
   NodeType,
+  personalizeComponent,
   personalizePage,
   promoteVariantToDefault,
   removeVariant,
@@ -179,6 +180,88 @@ describe('layoutModelSlice personalization reducers', () => {
       const personalized = personalize(makeBaseState());
       const again = personalize(personalized);
       expect(again).toBe(personalized);
+    });
+  });
+
+  describe('personalizeComponent', () => {
+    const personalizeHero = (
+      state: LayoutModelSliceState,
+      componentUuid: string,
+    ): LayoutModelSliceState =>
+      layoutModelReducer(
+        state,
+        personalizeComponent({
+          componentUuid,
+          switchComponentType: SWITCH_TYPE,
+          caseComponentType: CASE_TYPE,
+        }),
+      );
+
+    it('wraps a top-level component in a switch in place', () => {
+      const state = personalizeHero(makeBaseState(), HERO_UUID);
+      const region = getContentRegion(state);
+
+      // The switch takes the component's position; siblings are untouched.
+      expect(region.components).toHaveLength(2);
+      const [switchNode, card] = region.components;
+      expect(switchNode.type).toBe(SWITCH_TYPE);
+      expect(card.uuid).toBe(CARD_UUID);
+      expect(switchNode.slots[0].id).toBe(`${switchNode.uuid}/content`);
+
+      const cases = getSwitchCases(switchNode);
+      expect(cases).toHaveLength(1);
+      const defaultCase = cases[0];
+      expect(defaultCase.type).toBe(CASE_TYPE);
+      expect(defaultCase.slots[0].id).toBe(`${defaultCase.uuid}/content`);
+      // The component moved into the default case with its UUID preserved.
+      expect(
+        defaultCase.slots[0].components.map((component) => component.uuid),
+      ).toEqual([HERO_UUID]);
+
+      // Existing models are untouched; only the switch/case models are new.
+      expect(state.model[HERO_UUID]).toEqual({ resolved: { title: 'Hello' } });
+      expect(state.model[CARD_UUID]).toEqual({ resolved: { style: 'plain' } });
+      expect(state.model[switchNode.uuid]).toEqual({
+        resolved: { variants: ['default'] },
+      });
+      expect(state.model[defaultCase.uuid]).toEqual({
+        resolved: { variant_id: 'default', segments: ['default'] },
+      });
+      expect(Object.keys(state.model)).toHaveLength(5);
+      expect(state.updatePreview).toBe(true);
+    });
+
+    it('wraps a component nested in a slot without disturbing the tree', () => {
+      const state = personalizeHero(makeBaseState(), INNER_UUID);
+      const region = getContentRegion(state);
+
+      // The regions and top-level components are untouched.
+      expect(region.components.map((component) => component.uuid)).toEqual([
+        HERO_UUID,
+        CARD_UUID,
+      ]);
+      const bodySlot = region.components[1].slots[0];
+      expect(bodySlot.id).toBe(`${CARD_UUID}/body`);
+      expect(bodySlot.components).toHaveLength(1);
+
+      // The switch replaced the nested component at its exact position.
+      const switchNode = bodySlot.components[0];
+      expect(switchNode.type).toBe(SWITCH_TYPE);
+      const defaultCase = getSwitchCases(switchNode)[0];
+      expect(
+        defaultCase.slots[0].components.map((component) => component.uuid),
+      ).toEqual([INNER_UUID]);
+      expect(state.model[INNER_UUID]).toEqual({ resolved: { text: 'Inner' } });
+    });
+
+    it('refuses switch nodes, case nodes, and unknown components', () => {
+      const personalized = personalize(makeBaseState());
+      const switchNode = getRootSwitch(personalized);
+      const caseNode = getSwitchCases(switchNode)[0];
+
+      expect(personalizeHero(personalized, switchNode.uuid)).toBe(personalized);
+      expect(personalizeHero(personalized, caseNode.uuid)).toBe(personalized);
+      expect(personalizeHero(personalized, 'missing-uuid')).toBe(personalized);
     });
   });
 

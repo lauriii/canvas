@@ -9,12 +9,14 @@ import { makeStore } from '@/app/store';
 import {
   addVariant,
   NodeType,
+  personalizeComponent,
   personalizePage,
   setInitialLayoutModel,
   setVariantDisabled,
 } from '@/features/layout/layoutModelSlice';
 import {
   findRootSwitch,
+  findSwitchNodes,
   getCaseVariantId,
   getSwitchCases,
   getSwitchVariants,
@@ -47,6 +49,7 @@ const mocks = vi.hoisted(() => {
     components: {
       'p13n.switch': { id: 'p13n.switch', version: 'v1', name: 'Switch' },
       'p13n.case': { id: 'p13n.case', version: 'v1', name: 'Case' },
+      'sdc.hero': { id: 'sdc.hero', version: '1', name: 'Hero' },
     },
   };
 });
@@ -135,6 +138,8 @@ const renderMenu = (store: AppStore) =>
 describe('VariantsMenu', () => {
   beforeEach(() => {
     mocks.segments = mocks.baseSegments;
+    // The first-run explainer dismissal persists in localStorage.
+    window.localStorage.clear();
   });
 
   it('personalizes the page after confirmation', async () => {
@@ -402,6 +407,132 @@ describe('VariantsMenu', () => {
     const { layout, model } = getPresent(store);
     expect(getSwitchVariants(model, switchUuid)).toEqual(['default']);
     expect(getSwitchCases(findRootSwitch(layout[0])!)).toHaveLength(1);
+  });
+
+  it('states the first-match rule in the popover', async () => {
+    const user = userEvent.setup();
+    const store = buildStore();
+    personalizeStore(store);
+    renderMenu(store);
+
+    await user.click(screen.getByRole('button', { name: 'Manage variants' }));
+
+    expect(
+      screen.getByText(
+        'Visitors see the first variant whose audience matches, top to bottom.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('shows the first-run explainer until it is dismissed', async () => {
+    const user = userEvent.setup();
+    const store = buildStore();
+    personalizeStore(store);
+    const { unmount } = renderMenu(store);
+
+    await user.click(screen.getByRole('button', { name: 'Manage variants' }));
+    const explainer = screen.getByTestId('personalization-explainer');
+    expect(explainer).toHaveTextContent(
+      'Each variant targets an audience (segments).',
+    );
+    expect(explainer).toHaveTextContent(
+      'Visitors see the first matching variant, top to bottom.',
+    );
+    expect(explainer).toHaveTextContent(
+      'The Default variant is the fallback for everyone else.',
+    );
+
+    await user.click(
+      within(explainer).getByRole('button', { name: 'Dismiss' }),
+    );
+    expect(
+      screen.queryByTestId('personalization-explainer'),
+    ).not.toBeInTheDocument();
+    expect(
+      window.localStorage.getItem('canvas.personalization.explainerDismissed'),
+    ).toBe('true');
+
+    // The dismissal persists across mounts.
+    unmount();
+    renderMenu(store);
+    await user.click(screen.getByRole('button', { name: 'Manage variants' }));
+    expect(
+      screen.queryByTestId('personalization-explainer'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('offers the visitor simulation inside the popover', async () => {
+    const user = userEvent.setup();
+    const store = buildStore();
+    personalizeStore(store);
+    renderMenu(store);
+
+    await user.click(screen.getByRole('button', { name: 'Manage variants' }));
+    expect(
+      screen.getByRole('button', { name: 'Preview as visitor' }),
+    ).toBeInTheDocument();
+  });
+
+  it('lists each switch as a section when the layout has multiple switches', async () => {
+    const user = userEvent.setup();
+    const store = buildStore();
+    const rootSwitchUuid = personalizeStore(store);
+    // Personalize the hero component inside the default case, creating a
+    // second, nested switch.
+    store.dispatch(
+      personalizeComponent({
+        componentUuid: HERO_UUID,
+        switchComponentType: 'p13n.switch@v1',
+        caseComponentType: 'p13n.case@v1',
+      }),
+    );
+    const componentSwitch = findSwitchNodes(getPresent(store).layout).find(
+      (switchNode) => switchNode.uuid !== rootSwitchUuid,
+    );
+    if (!componentSwitch) {
+      throw new Error('Expected personalizeComponent to create a switch.');
+    }
+    store.dispatch(
+      addVariant({
+        switchUuid: componentSwitch.uuid,
+        variantId: 'offer',
+        segments: ['returning'],
+        sourceVariantId: 'default',
+      }),
+    );
+    renderMenu(store);
+
+    await user.click(screen.getByRole('button', { name: 'Manage variants' }));
+
+    // The root switch is labeled "Page"; the component switch is named
+    // after the component it personalizes.
+    const pageSection = screen.getByTestId(
+      `variant-switch-section-${rootSwitchUuid}`,
+    );
+    const componentSection = screen.getByTestId(
+      `variant-switch-section-${componentSwitch.uuid}`,
+    );
+    expect(within(pageSection).getByText('Page')).toBeInTheDocument();
+    expect(within(componentSection).getByText('Hero')).toBeInTheDocument();
+    // Every switch lists its own rows and its own create action.
+    expect(screen.getAllByTestId('variant-row-default')).toHaveLength(2);
+    expect(
+      within(componentSection).getByTestId('variant-row-offer'),
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'New variant' })).toHaveLength(
+      2,
+    );
+
+    // Selecting a variant only affects that section's switch.
+    await user.click(
+      within(componentSection).getByRole('radio', { name: 'Offer' }),
+    );
+    expect(store.getState().ui.previewedVariants[componentSwitch.uuid]).toBe(
+      'offer',
+    );
+    expect(
+      store.getState().ui.previewedVariants[rootSwitchUuid] ?? 'default',
+    ).toBe('default');
   });
 
   it('dims disabled variants in the list', async () => {

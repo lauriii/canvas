@@ -1,5 +1,6 @@
 import { NodeType } from './layoutModelSlice';
 
+import type { ComponentsList } from '@/types/Component';
 import type {
   ComponentModels,
   ComponentNode,
@@ -24,6 +25,25 @@ const P13N_COMPONENT_ID_PREFIX = 'p13n.';
  */
 export function isPersonalizationComponentId(componentId: string): boolean {
   return componentId.startsWith(P13N_COMPONENT_ID_PREFIX);
+}
+
+/**
+ * Builds the versioned layout node `type` strings of the switch/case pair
+ * from the components listing, or null when either component is unavailable
+ * (for example, when the personalization module is not installed).
+ */
+export function getP13nComponentTypes(
+  components: ComponentsList | undefined,
+): { switchComponentType: string; caseComponentType: string } | null {
+  const switchComponent = components?.[SWITCH_COMPONENT_ID];
+  const caseComponent = components?.[CASE_COMPONENT_ID];
+  if (!switchComponent || !caseComponent) {
+    return null;
+  }
+  return {
+    switchComponentType: `${switchComponent.id}@${switchComponent.version}`,
+    caseComponentType: `${caseComponent.id}@${caseComponent.version}`,
+  };
 }
 
 // The default variant always exists, always matches, and is conventionally
@@ -165,6 +185,41 @@ export function findSwitchNodes(layout: RegionNode[]): ComponentNode[] {
     collect(region.components);
   }
   return switches;
+}
+
+/**
+ * Whether the component identified by `uuid` sits inside the subtree of a
+ * personalization switch (at any depth). The switch node itself is not
+ * considered part of its own subtree.
+ */
+export function isInSwitchSubtree(layout: RegionNode[], uuid: string): boolean {
+  // Returns null while the node is not yet found so sibling branches keep
+  // being searched.
+  const search = (
+    components: ComponentNode[],
+    withinSwitch: boolean,
+  ): boolean | null => {
+    for (const component of components) {
+      if (component.uuid === uuid) {
+        return withinSwitch;
+      }
+      const within = withinSwitch || isSwitchNode(component);
+      for (const slot of component.slots) {
+        const result = search(slot.components, within);
+        if (result !== null) {
+          return result;
+        }
+      }
+    }
+    return null;
+  };
+  for (const region of layout) {
+    const result = search(region.components, false);
+    if (result !== null) {
+      return result;
+    }
+  }
+  return false;
 }
 
 /**

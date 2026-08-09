@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
+import VariantContextBar from '@/components/personalization/variants/VariantContextBar';
 import ConflictWarning from '@/features/editor/ConflictWarning';
 import EditorFrame from '@/features/editorFrame/EditorFrame';
 import { selectLatestError } from '@/features/error-handling/queryErrorSlice';
@@ -111,6 +112,7 @@ const Editor: React.FC<EditorProps> = ({ context, disable = false }) => {
     <>
       <div className={styles.editorMainPane}>
         {renderContextContent()}
+        <VariantContextBar />
         <EditorFrame />
       </div>
       <div

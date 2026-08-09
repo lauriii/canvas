@@ -15,6 +15,7 @@ import ErrorCard from '@/components/error/ErrorCard';
 import ExtensionDialog from '@/components/extensions/ExtensionDialog';
 import ExtensionPage from '@/components/extensions/ExtensionPage';
 import PermissionCheck from '@/components/PermissionCheck';
+import PersonalizeComponentDialog from '@/components/personalization/PersonalizeComponentDialog';
 import SideMenu from '@/components/sideMenu/SideMenu';
 import PrimaryPanel from '@/components/sidePanel/PrimaryPanel';
 import CodeEditorContainer from '@/features/code-editor/CodeEditorContainer';
@@ -92,6 +93,7 @@ const Dialogs = () => (
     <PatternDialogs />
     <CodeComponentDialogs />
     <ExtensionDialog />
+    <PersonalizeComponentDialog />
   </div>
 );
 
