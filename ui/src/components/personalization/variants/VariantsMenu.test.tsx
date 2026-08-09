@@ -246,14 +246,13 @@ describe('VariantsMenu', () => {
       within(ghostRow).getByTitle('Missing segment: missing_segment'),
     ).toBeInTheDocument();
 
-    // The popover header states the previewed variant's audience.
-    expect(screen.getByTestId('previewed-variant-audience')).toHaveTextContent(
-      'Previewing Default — Everyone (fallback)',
-    );
+    // The previewed variant reads from the trigger and the checked radio;
+    // there is no separate "previewing" line.
+    expect(
+      screen.queryByTestId('previewed-variant-audience'),
+    ).not.toBeInTheDocument();
     await user.click(screen.getByRole('radio', { name: 'Offer' }));
-    expect(screen.getByTestId('previewed-variant-audience')).toHaveTextContent(
-      'Previewing Offer — Audience: Returning visitors',
-    );
+    expect(screen.getByRole('radio', { name: 'Offer' })).toBeChecked();
   });
 
   it('flags a targeted segment that is disabled', async () => {

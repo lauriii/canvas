@@ -322,9 +322,6 @@ const VariantsMenu = () => {
     previewedVariants,
     triggerSwitch.uuid,
   );
-  const triggerCase = getSwitchCases(triggerSwitch).find(
-    (caseNode) => getCaseVariantId(model, caseNode) === triggerVariantId,
-  );
 
   const getSectionLabel = (switchNode: ComponentNode): string => {
     if (rootSwitch && switchNode.uuid === rootSwitch.uuid) {
@@ -389,21 +386,6 @@ const VariantsMenu = () => {
               Visitors see the first variant whose audience matches, top to
               bottom.
             </Text>
-            {!isMultiSwitch && (
-              <Text
-                size="1"
-                color="gray"
-                data-testid="previewed-variant-audience"
-              >
-                Previewing {humanizeVariantId(triggerVariantId)} —{' '}
-                <VariantAudience
-                  isDefault={triggerVariantId === DEFAULT_VARIANT_ID}
-                  segmentIds={
-                    triggerCase ? getCaseSegmentIds(model, triggerCase) : []
-                  }
-                />
-              </Text>
-            )}
             {switches.map((switchNode) => (
               <SwitchVariantsSection
                 key={switchNode.uuid}
