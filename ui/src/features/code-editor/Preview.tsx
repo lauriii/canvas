@@ -4,6 +4,7 @@ import { Flex, ScrollArea, Spinner } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ErrorCard from '@/components/error/ErrorCard';
+import { buildColorStyles } from '@/features/brandKit/colorCss';
 import {
   buildFontFaceStyles,
   getFontPreloadDefinitions,
@@ -71,6 +72,9 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
   const brandKitFonts = useAppSelector((state) =>
     selectBrandKit<BrandKit['fonts']>(state, 'fonts'),
   );
+  const brandKitColors = useAppSelector((state) =>
+    selectBrandKit<BrandKit['colors']>(state, 'colors'),
+  );
   const previewCompiledJsForSlots = useAppSelector(
     selectPreviewCompiledJsForSlots,
   );
@@ -116,6 +120,7 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
   const getIframeSrc = useCallback(
     ({
       previewGlobalCss,
+      previewGlobalColorCss,
       previewGlobalFontCss,
       previewGlobalFontPreloads,
       previewCss,
@@ -123,6 +128,7 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
     }: {
       previewCss: string;
       previewGlobalCss: string;
+      previewGlobalColorCss: string;
       previewGlobalFontCss: string;
       previewGlobalFontPreloads: string;
       previewJsData: string;
@@ -132,6 +138,7 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
         ${importMapTags}
         ${previewGlobalFontPreloads}
         <style>${previewGlobalFontCss}</style>
+        <style>${previewGlobalColorCss}</style>
         <style>${previewGlobalCss}</style>
         ${
           // Add CSS for all code components except the current one.
@@ -249,6 +256,7 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
     // @see ui/lib/code-editor-preview.js
     const propValues = getPropValuesForPreview(props);
     const slotNames = getSlotNamesForPreview(slots);
+    const previewGlobalColorCss = buildColorStyles(brandKitColors ?? []);
     const previewGlobalFontCss = buildFontFaceStyles(brandKitFonts ?? []);
     const previewGlobalFontPreloads = getFontPreloadDefinitions(
       brandKitFonts ?? [],
@@ -277,6 +285,7 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
       getIframeSrc({
         previewCss: compiledCss,
         previewGlobalCss: compiledGlobalCss,
+        previewGlobalColorCss,
         previewGlobalFontCss,
         previewGlobalFontPreloads,
         previewJsData,
@@ -288,6 +297,7 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
     compiledJs,
     getIframeSrc,
     brandKitFonts,
+    brandKitColors,
     previewCompiledJsForSlots,
     props,
     slots,

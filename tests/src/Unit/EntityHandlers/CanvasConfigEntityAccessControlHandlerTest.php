@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit\EntityHandlers;
 
+use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\Folder;
 use Drupal\canvas\Entity\JavaScriptComponent;
@@ -84,6 +85,11 @@ final class CanvasConfigEntityAccessControlHandlerTest extends UnitTestCase {
       'id' => Folder::ENTITY_TYPE_ID,
       'provider' => 'canvas',
       'config_prefix' => 'folder',
+    ]));
+    $entityTypeManager->getDefinition(BrandKit::ENTITY_TYPE_ID)->willReturn(new ConfigEntityType([
+      'id' => BrandKit::ENTITY_TYPE_ID,
+      'provider' => 'canvas',
+      'config_prefix' => 'brand_kit',
     ]));
     $sut = new CanvasConfigEntityAccessControlHandler($entityType, $configManager, $entityTypeManager->reveal());
     $sut->setModuleHandler($moduleHandler);

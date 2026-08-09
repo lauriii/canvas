@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
-import parse from 'html-react-parser';
+import { useRef, useState } from 'react';
 import FolderIcon from '@assets/icons/folder.svg?react';
 import {
   ChevronDownIcon,
@@ -9,14 +8,11 @@ import {
 import { Button, DropdownMenu, Flex, Text, TextField } from '@radix-ui/themes';
 
 import PermissionCheck from '@/components/PermissionCheck';
+import FolderNameInput from '@/features/brandKit/components/FolderNameInput';
 import AddCodeComponentButton from '@/features/code-editor/AddCodeComponentButton';
-import { extractErrorMessageFromApiResponse } from '@/features/error-handling/error-handling';
-import { validateFolderNameClientSide } from '@/features/validation/validation';
-import { useCreateFolderMutation } from '@/services/componentAndLayout';
 
 import type { FormEvent } from 'react';
-
-type FolderType = 'component' | 'pattern' | 'js_component';
+import type { FolderType } from '@/types/Component';
 
 interface ManageLibraryToolbarProps {
   type: FolderType;
@@ -34,140 +30,27 @@ const LibraryToolbar = ({
   onFolderCreating,
 }: ManageLibraryToolbarProps) => {
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
-  const [folderName, setFolderName] = useState(Drupal.t('New folder'));
-  const [validationError, setValidationError] = useState('');
-  const [createFolder, { reset, isSuccess, isError, error, isLoading }] =
-    useCreateFolderMutation();
-  const textFieldRef = useRef<HTMLDivElement>(null);
-  const isSubmittingRef = useRef(false);
-  const shouldFocusInputRef = useRef(false);
-  const suppressBlurSubmitRef = useRef(false);
-  const isFinishingSuccessfulCreateRef = useRef(false);
 
-  useEffect(() => {
-    if (isCreatingFolder) {
-      // Use setTimeout to select the text after the component has rendered
-      // and autoFocus has taken effect.
-      const timeoutId = setTimeout(() => {
-        const inputElement = textFieldRef.current?.querySelector('input');
-        if (inputElement) {
-          inputElement.focus();
-          inputElement.select();
-        }
-      }, 0);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [isCreatingFolder]);
-
-  useEffect(() => {
-    if (isSuccess) {
-      setFolderName(Drupal.t('New folder'));
-      setIsCreatingFolder(false);
-      setValidationError('');
-      isSubmittingRef.current = false;
-      onFolderCreating?.(false);
-      reset();
-    }
-  }, [isSuccess, reset, onFolderCreating]);
-
-  useEffect(() => {
-    if (isError) {
-      console.error('Failed to add folder:', error);
-      isSubmittingRef.current = false;
-    }
-  }, [isError, error]);
-
-  const cancelFolderCreation = () => {
-    setIsCreatingFolder(false);
-    setFolderName(Drupal.t('New folder'));
-    setValidationError('');
-    reset();
-    isSubmittingRef.current = false;
-    isFinishingSuccessfulCreateRef.current = false;
-    onFolderCreating?.(false);
-  };
-
-  const handleCreateFolder = async () => {
-    if (
-      isFinishingSuccessfulCreateRef.current ||
-      isSubmittingRef.current ||
-      isLoading
-    ) {
-      suppressBlurSubmitRef.current = false;
-      return;
-    }
-
-    const trimmedName = folderName.trim();
-
-    if (
-      !trimmedName ||
-      trimmedName === Drupal.t('New folder') ||
-      validationError
-    ) {
-      suppressBlurSubmitRef.current = false;
-      cancelFolderCreation();
-      return;
-    }
-
-    isSubmittingRef.current = true;
-    try {
-      await createFolder({
-        name: trimmedName,
-        type: type,
-      }).unwrap();
-      isFinishingSuccessfulCreateRef.current = true;
-    } catch {
-      // Error UI uses `isError` / `error` from the mutation hook.
-    } finally {
-      isSubmittingRef.current = false;
-      suppressBlurSubmitRef.current = false;
-    }
-  };
-
-  const handleOnChange = (newName: string) => {
-    setFolderName(newName);
-    reset();
-    setValidationError(
-      newName.trim() && newName.trim() !== Drupal.t('New folder')
-        ? validateFolderNameClientSide(newName)
-        : '',
-    );
-  };
-
-  const handleBlur = () => {
-    if (suppressBlurSubmitRef.current) {
-      return;
-    }
-    if (isFinishingSuccessfulCreateRef.current) {
-      return;
-    }
-    void handleCreateFolder();
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      suppressBlurSubmitRef.current = true;
-      void handleCreateFolder();
-    } else if (e.key === 'Escape') {
-      cancelFolderCreation();
-    }
-  };
+  // Suppresses the DropdownMenu's onCloseAutoFocus focus-return so the
+  // folder name input can receive focus instead.
+  const suppressAutoFocusRef = useRef(false);
 
   const handleAddFolderClick = () => {
-    isFinishingSuccessfulCreateRef.current = false;
-    shouldFocusInputRef.current = true;
+    suppressAutoFocusRef.current = true;
     setIsCreatingFolder(true);
     onFolderCreating?.(true);
+  };
+
+  const handleFolderDone = () => {
+    setIsCreatingFolder(false);
+    onFolderCreating?.(false);
   };
 
   return (
     <>
       <Flex direction="row" gap="2" mb="4">
         <form
-          style={{
-            flexGrow: '1',
-          }}
+          style={{ flexGrow: '1' }}
           onSubmit={(event: FormEvent<HTMLFormElement>) => {
             event.preventDefault();
           }}
@@ -205,9 +88,9 @@ const LibraryToolbar = ({
                 onCloseAutoFocus={(e) => {
                   // Prevent the dropdown from returning focus to the trigger
                   // when we're creating a folder, so our input can receive focus.
-                  if (shouldFocusInputRef.current) {
+                  if (suppressAutoFocusRef.current) {
                     e.preventDefault();
-                    shouldFocusInputRef.current = false;
+                    suppressAutoFocusRef.current = false;
                   }
                 }}
               >
@@ -233,58 +116,19 @@ const LibraryToolbar = ({
         )}
       </Flex>
       {isCreatingFolder && (
-        <Flex
-          align="center"
-          gap="2"
-          p="2"
-          data-testid="xb-manage-library-add-folder-content"
-          style={{
-            marginBottom: 'var(--space-2)',
-          }}
-        >
-          <FolderIcon width="16" height="16" />
-          <Flex direction="column" gap="1" style={{ flex: 1 }}>
-            <Flex align="center" gap="2" style={{ width: '100%' }}>
-              <span ref={textFieldRef} style={{ flex: 1 }}>
-                <TextField.Root
-                  autoFocus
-                  data-testid="canvas-manage-library-new-folder-name"
-                  id="folder-name"
-                  placeholder={Drupal.t('New folder')}
-                  variant="soft"
-                  onChange={(e) => handleOnChange(e.target.value)}
-                  onBlur={handleBlur}
-                  onKeyDown={handleKeyDown}
-                  value={folderName}
-                  size="1"
-                  disabled={isLoading}
-                  style={{
-                    color: 'var(--accent-9)',
-                    border: 'none',
-                    background: 'transparent',
-                    width: '100%',
-                  }}
-                />
-              </span>
-              <Flex align="center" gap="1">
-                <Text size="1" color="gray">
-                  0
-                </Text>
-                <ChevronDownIcon width="12" height="12" color="gray" />
-              </Flex>
+        <FolderNameInput
+          type={type}
+          onSuccess={handleFolderDone}
+          onCancel={handleFolderDone}
+          inputRowEnd={
+            <Flex align="center" gap="1">
+              <Text size="1" color="gray">
+                0
+              </Text>
+              <ChevronDownIcon width="12" height="12" color="gray" />
             </Flex>
-            {validationError && (
-              <Text size="1" color="red" weight="medium">
-                {validationError}
-              </Text>
-            )}
-            {isError && (
-              <Text size="1" color="red" weight="medium">
-                {parse(extractErrorMessageFromApiResponse(error))}
-              </Text>
-            )}
-          </Flex>
-        </Flex>
+          }
+        />
       )}
     </>
   );

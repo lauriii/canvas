@@ -172,6 +172,7 @@ export function createHeadlessPreviewHost(
   let probeFrame: number | null = null;
   let probeStyleSnapshot: { height: string; visibility: string } | null = null;
   let probeAppliedStyles: { height: string; visibility: string } | null = null;
+  let previewContext: Record<string, string> = {};
 
   const emit = (event: HeadlessPreviewHostEvent) => {
     if (!destroyed) {
@@ -313,6 +314,11 @@ export function createHeadlessPreviewHost(
   };
 
   const activate = async (params: Record<string, string>) => {
+    previewContext = Object.fromEntries(
+      ['view_mode']
+        .filter((name) => params[name] !== undefined)
+        .map((name) => [name, params[name]]),
+    );
     try {
       await loadApp(params);
     } catch {
@@ -329,7 +335,11 @@ export function createHeadlessPreviewHost(
       // only redeems such assertions with PKCE proof of the running app
       // session, which lives server-side in the app — a script that
       // intercepts the message cannot exchange the assertion for a token.
-      const assertion = await fetchAssertion({ path, renewal: '1' });
+      const assertion = await fetchAssertion({
+        path,
+        ...previewContext,
+        renewal: '1',
+      });
       // Same post-destroy race as in loadApp: never message an iframe a
       // newer host owns.
       if (
@@ -361,7 +371,7 @@ export function createHeadlessPreviewHost(
     recoveryAttempted = true;
     emit({ type: 'recovering' });
     try {
-      await loadApp({ path });
+      await loadApp({ path, ...previewContext });
     } catch {
       emit({ type: 'recovery-failed' });
     }

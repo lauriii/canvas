@@ -73,6 +73,8 @@ export function getGroupLabel(entityType: string): string {
         {},
         { context: 'Canvas change group' },
       );
+    case 'pattern':
+      return Drupal.t('Patterns', {}, { context: 'Canvas change group' });
     default:
       return kebabCase(entityType);
   }

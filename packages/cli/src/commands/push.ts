@@ -20,6 +20,7 @@ import {
   updateConfigFromOptions,
 } from '../utils/command-helpers';
 import { printCommandIntro } from '../utils/command-intro';
+import { detectHeadlessSdk } from '../utils/detect-headless-sdk';
 import {
   collectContentTemplateResults,
   prepareContentTemplates,
@@ -362,11 +363,15 @@ export function collectManifestArtifacts(manifest: BuildManifest): Array<{
   name: string;
   filePath: string;
   type: 'vendor' | 'local' | 'shared';
+  path?: string;
+  source?: string;
 }> {
   const files: Array<{
     name: string;
     filePath: string;
     type: 'vendor' | 'local' | 'shared';
+    path?: string;
+    source?: string;
   }> = [];
 
   for (const [specifier, filePath] of Object.entries(manifest.vendor)) {
@@ -374,7 +379,16 @@ export function collectManifestArtifacts(manifest: BuildManifest): Array<{
   }
 
   for (const [specifier, filePath] of Object.entries(manifest.local)) {
-    files.push({ name: specifier, filePath, type: 'local' as const });
+    // Carry the original disk path and (for text modules) the verbatim source
+    // so a subsequent pull can reconstruct the source file on disk.
+    const meta = manifest.localSources?.[specifier];
+    files.push({
+      name: specifier,
+      filePath,
+      type: 'local' as const,
+      ...(meta?.path !== undefined ? { path: meta.path } : {}),
+      ...(meta?.source !== undefined ? { source: meta.source } : {}),
+    });
   }
 
   // Add shared chunks - use filePath as the name since they don't have import specifiers
@@ -389,6 +403,10 @@ interface GroupedUploadedManifest {
   vendor: UploadedArtifact[];
   local: UploadedArtifact[];
   shared: UploadedArtifact[];
+  // Verbatim sources of local modules bundled into other artifacts. Not
+  // uploaded as file artifacts (there is no artifact); sent as-is so a pull can
+  // restore the editable file. Never part of the runtime import map.
+  bundledSources: Array<{ path: string; source: string }>;
 }
 
 /**
@@ -399,6 +417,8 @@ async function uploadAndBuildManifest(
     name: string;
     filePath: string;
     type: 'vendor' | 'local' | 'shared';
+    path?: string;
+    source?: string;
   }>,
   distDir: string,
   apiService: Pick<ApiService, 'uploadArtifact'>,
@@ -447,15 +467,20 @@ async function uploadAndBuildManifest(
     vendor: [],
     local: [],
     shared: [],
+    bundledSources: [],
   };
 
   if (failedResults.length === 0) {
     for (const file of files) {
       const uploadResult = uploadedByFilePath.get(file.filePath);
       if (uploadResult) {
+        // Only local entries carry path/source; vendor and shared stay
+        // {name, uri}.
         grouped[file.type].push({
           name: file.name,
           uri: uploadResult.uri,
+          ...(file.path !== undefined ? { path: file.path } : {}),
+          ...(file.source !== undefined ? { source: file.source } : {}),
         });
       }
     }
@@ -487,16 +512,24 @@ export async function uploadManifestArtifacts(
   groupedManifest: GroupedUploadedManifest;
 }> {
   const createSpinner = options.createSpinner ?? (() => p.spinner());
-  const emptyManifest = { vendor: [], local: [], shared: [] };
+  const emptyManifest: GroupedUploadedManifest = {
+    vendor: [],
+    local: [],
+    shared: [],
+    bundledSources: [],
+  };
 
   const artifactFiles: Array<{
     name: string;
     filePath: string;
     type: 'vendor' | 'local' | 'shared';
   }> = [];
+  // Sources of bundled local modules, carried verbatim (no artifact to upload).
+  let bundledSources: Array<{ path: string; source: string }> = [];
   try {
     const manifest = await readBuildManifest(outputDir);
     artifactFiles.push(...collectManifestArtifacts(manifest));
+    bundledSources = manifest.bundledSources ?? [];
   } catch {
     // Build manifest may not exist if build wasn't run. This is not fatal once
     // components have already been pushed.
@@ -507,7 +540,10 @@ export async function uploadManifestArtifacts(
 
   if (artifactFiles.length === 0) {
     options.logInfo?.('No component dependencies to upload');
-    return { artifactCount: 0, groupedManifest: emptyManifest };
+    return {
+      artifactCount: 0,
+      groupedManifest: { ...emptyManifest, bundledSources },
+    };
   }
 
   const dependencySpinner = createSpinner();
@@ -522,6 +558,7 @@ export async function uploadManifestArtifacts(
     dependencySpinner.stop('Pushed dependencies', 2);
     throw error;
   });
+  groupedManifest.bundledSources = bundledSources;
   const artifactCount =
     groupedManifest.vendor.length +
     groupedManifest.local.length +
@@ -564,7 +601,10 @@ export async function syncManifestArtifacts(
 }
 
 export async function updateGlobalAssetLibraryForPush(
-  apiService: Pick<ApiService, 'updateGlobalAssetLibrary'>,
+  apiService: Pick<
+    ApiService,
+    'getGlobalAssetLibrary' | 'updateGlobalAssetLibrary'
+  >,
   globalAssetLibraryUpdate: Partial<AssetLibrary> | undefined,
   manifestSyncResult: {
     artifactCount: number;
@@ -574,10 +614,25 @@ export async function updateGlobalAssetLibraryForPush(
   const assetLibraryPatch: Partial<AssetLibrary> = {
     ...(globalAssetLibraryUpdate ?? {}),
   };
-  if (manifestSyncResult.artifactCount > 0) {
-    assetLibraryPatch.imports = manifestSyncResult.groupedManifest.vendor;
-    assetLibraryPatch.assets = manifestSyncResult.groupedManifest.local;
-    assetLibraryPatch.shared = manifestSyncResult.groupedManifest.shared;
+  // Always send the current manifest groups, even when empty since empty
+  // arrays lets the backend clear them.
+  assetLibraryPatch.imports = manifestSyncResult.groupedManifest.vendor;
+  assetLibraryPatch.assets = manifestSyncResult.groupedManifest.local;
+  assetLibraryPatch.shared = manifestSyncResult.groupedManifest.shared;
+  assetLibraryPatch.bundledSources =
+    manifestSyncResult.groupedManifest.bundledSources;
+
+  const currentAssetLibrary = await apiService.getGlobalAssetLibrary();
+  const supportsCodebaseSync =
+    Object.hasOwn(currentAssetLibrary, 'bundledSources') &&
+    Object.hasOwn(currentAssetLibrary, 'packageJson');
+
+  if (!supportsCodebaseSync) {
+    delete assetLibraryPatch.bundledSources;
+    delete assetLibraryPatch.packageJson;
+    assetLibraryPatch.assets = assetLibraryPatch.assets?.map(
+      ({ name, uri }) => ({ name, uri }),
+    );
   }
 
   await apiService.updateGlobalAssetLibrary(assetLibraryPatch);
@@ -683,6 +738,12 @@ export function pushCommand(program: Command): void {
         const includesRegions = config.includeRegions;
         const includesBrandKit = config.includeBrandKit;
         const hasBrandKitFontsConfig = config.fonts !== undefined;
+        // When the Canvas Headless SDK is installed, components are pushed as
+        // external components (metadata only): the headless app renders them.
+        // The app's entries may be framework single-file components (.vue,
+        // .astro, .svelte) that the Canvas build pipeline cannot compile, so
+        // discovery must not require a JavaScript entry in this mode.
+        const headlessSdkDetected = await detectHeadlessSdk(process.cwd());
         // Step 1. Discover all components, pages, content templates and regions.
         const discoveryResult = await discoverCanvasProject({
           componentRoot: componentDir,
@@ -690,6 +751,7 @@ export function pushCommand(program: Command): void {
           contentTemplatesRoot: config.contentTemplatesDir,
           regionsRoot: config.regionsDir,
           projectRoot: process.cwd(),
+          requireJsEntry: !headlessSdkDetected,
         });
         const {
           components,
@@ -962,6 +1024,12 @@ export function pushCommand(program: Command): void {
           p.log.warn(formatDiscoveryWarning(warning));
         }
 
+        if (headlessSdkDetected && components.length > 0) {
+          p.log.info(
+            'Canvas Headless SDK detected: components are pushed as external (metadata only).',
+          );
+        }
+
         if (!options.yes) {
           const parts: string[] = [];
           if (components.length > 0) {
@@ -1013,6 +1081,7 @@ export function pushCommand(program: Command): void {
             discoveryResult,
             cleanOutputDir: true,
             requireJsEntries: true,
+            headlessSdkDetected,
           }).catch((error) => {
             const message = formatErrorMessage(error);
             if (message.startsWith('Missing local Tailwind CSS file')) {
@@ -1123,7 +1192,10 @@ export function pushCommand(program: Command): void {
           const assetSpinner = p.spinner();
           assetSpinner.start('Preparing assets');
           const preparedGlobalAssetLibrary =
-            await prepareGlobalAssetLibraryUpdate(config.outputDir);
+            await prepareGlobalAssetLibraryUpdate(
+              config.outputDir,
+              process.cwd(),
+            );
           globalCssResult = preparedGlobalAssetLibrary.result;
           globalAssetLibraryUpdate = preparedGlobalAssetLibrary.assetLibrary;
           assetSpinner.stop(

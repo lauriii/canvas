@@ -157,6 +157,8 @@ export const previewApi = createApi({
         } else if (type === 'template') {
           url =
             'canvas/api/v0/layout-content-template/{entity_type}.{template_bundle}.{template_view_mode}/{entity_id}';
+        } else if (type === 'pattern') {
+          url = 'canvas/api/v0/layout-pattern/{entity_id}';
         }
         return {
           url,

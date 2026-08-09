@@ -1,3 +1,4 @@
+// @canvas-ci flaky
 // cspell:ignore macbook
 describe('Operate on components + interact in global regions', () => {
   before(() => {

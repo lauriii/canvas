@@ -6,6 +6,7 @@ import SidebarNode from '@/components/sidePanel/SidebarNode';
 import UnifiedMenu from '@/components/UnifiedMenu';
 import { setDialogWithDataOpen } from '@/features/ui/dialogSlice';
 import { selectActivePanel } from '@/features/ui/primaryPanelSlice';
+import useEditorNavigation from '@/hooks/useEditorNavigation';
 
 import type React from 'react';
 import type { Pattern } from '@/types/Pattern';
@@ -26,6 +27,22 @@ const PatternItem: React.FC<{
   } = props;
   const dispatch = useAppDispatch();
   const activePanel = useAppSelector(selectActivePanel);
+  const { navigateToPatternEditor } = useEditorNavigation();
+
+  const handleEditClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    navigateToPatternEditor(pattern.id);
+  };
+
+  const handleRenameClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    dispatch(
+      setDialogWithDataOpen({
+        operation: 'renamePatternConfirm',
+        data: pattern,
+      }),
+    );
+  };
 
   const handleDeleteClick = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
@@ -49,6 +66,12 @@ const PatternItem: React.FC<{
           </UnifiedMenu.Item>
         }
       >
+        <UnifiedMenu.Item onClick={handleEditClick}>
+          {Drupal.t('Edit pattern')}
+        </UnifiedMenu.Item>
+        <UnifiedMenu.Item onClick={handleRenameClick}>
+          {Drupal.t('Rename')}
+        </UnifiedMenu.Item>
         <UnifiedMenu.Item color="red" onClick={handleDeleteClick}>
           {Drupal.t('Delete pattern')}
         </UnifiedMenu.Item>

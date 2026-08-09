@@ -103,6 +103,7 @@ export const useBrandKitFonts = () => {
               id: BRAND_KIT_ID,
               label: canonicalBrandKit?.label ?? 'Global brand kit',
               fonts: persistedFonts,
+              colors: draft.data?.colors ?? canonicalBrandKit?.colors ?? null,
             };
 
             draft.data = draft.data

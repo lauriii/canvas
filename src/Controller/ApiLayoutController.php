@@ -14,6 +14,7 @@ use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Render\PreviewEnvelope;
@@ -91,7 +92,7 @@ final class ApiLayoutController {
   /**
    * Returns JSON for the entity layout and fields that the user can edit.
    */
-  public function get(Request $request, (ContentEntityInterface&EntityPublishedInterface)|ContentTemplate $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
+  public function get(Request $request, (ContentEntityInterface&EntityPublishedInterface)|ComponentTreeConfigEntityBase $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
     \assert(!$entity instanceof ContentTemplate || !\is_null($preview_entity));
     $regions = self::shouldIncludeGlobalRegions($entity) ? PageRegion::loadForActiveTheme() : [];
 
@@ -115,7 +116,7 @@ final class ApiLayoutController {
         : $this->autoSaveManager->getAutoSaveEntity($entity);
       if (!$autoSaveData->isEmpty()) {
         $entity = $autoSaveData->entity;
-        \assert($entity instanceof ContentEntityInterface || $entity instanceof ContentTemplate);
+        \assert($entity instanceof ContentEntityInterface || $entity instanceof ComponentTreeConfigEntityBase);
       }
     }
 
@@ -375,7 +376,7 @@ final class ApiLayoutController {
   /**
    * Updates single component instance's auto-save entry and returns a preview.
    */
-  public function patch(Request $request, FieldableEntityInterface|ContentTemplate $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
+  public function patch(Request $request, FieldableEntityInterface|ComponentTreeConfigEntityBase $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
     \assert(!$entity instanceof ContentTemplate || !\is_null($preview_entity));
     $body = \json_decode($request->getContent(), TRUE, flags: JSON_THROW_ON_ERROR);
     if (!\array_key_exists('componentInstanceUuid', $body)) {
@@ -431,7 +432,7 @@ final class ApiLayoutController {
 
     // Determine which entity to PATCH.
     $entity = $this->getAutoSavedVersionIfAvailable([$entity])[$entity->id()];
-    \assert($entity instanceof FieldableEntityInterface || $entity instanceof ContentTemplate);
+    \assert($entity instanceof FieldableEntityInterface || $entity instanceof ComponentTreeConfigEntityBase);
     $regions = self::shouldIncludeGlobalRegions($entity)
       ? $this->getAutoSavedVersionIfAvailable(PageRegion::loadForActiveTheme())
       : [];
@@ -470,7 +471,7 @@ final class ApiLayoutController {
    *
    * @todo Remove this in https://drupal.org/i/3492065
    */
-  public function post(Request $request, FieldableEntityInterface|ContentTemplate $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
+  public function post(Request $request, FieldableEntityInterface|ComponentTreeConfigEntityBase $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
     \assert(!$entity instanceof ContentTemplate || !\is_null($preview_entity));
     $body = json_decode($request->getContent(), TRUE);
     if (!\array_key_exists('model', $body)) {
@@ -559,7 +560,7 @@ final class ApiLayoutController {
     );
   }
 
-  private function buildPreviewRenderable(ContentTemplate|FieldableEntityInterface $entity, ?FieldableEntityInterface $preview_entity = NULL): array {
+  private function buildPreviewRenderable(FieldableEntityInterface|ComponentTreeConfigEntityBase $entity, ?FieldableEntityInterface $preview_entity = NULL): array {
     $renderable = $entity instanceof ContentTemplate
       // @phpstan-ignore-next-line
       ? $entity->build($preview_entity, isPreview: TRUE)
@@ -581,7 +582,7 @@ final class ApiLayoutController {
     return $build;
   }
 
-  public function getLabel(Request $request, (ContentEntityInterface&EntityPublishedInterface)|ContentTemplate $entity, ?ContentEntityInterface $preview_entity = NULL): string {
+  public function getLabel(Request $request, (ContentEntityInterface&EntityPublishedInterface)|ComponentTreeConfigEntityBase $entity, ?ContentEntityInterface $preview_entity = NULL): string {
     if ($entity instanceof ContentTemplate) {
       \assert($preview_entity !== NULL);
       return (string) $preview_entity->label();
@@ -653,7 +654,7 @@ final class ApiLayoutController {
     return $node_model;
   }
 
-  private function buildLayoutAndModel(FieldableEntityInterface|ContentTemplate $entity, array $regions, ?FieldableEntityInterface $preview_entity = NULL): array {
+  private function buildLayoutAndModel(FieldableEntityInterface|ComponentTreeConfigEntityBase $entity, array $regions, ?FieldableEntityInterface $preview_entity = NULL): array {
     $data = ['layout' => [], 'model' => []];
     // Build the content region.
     $tree = $this->componentTreeLoader->load($entity);
@@ -675,7 +676,12 @@ final class ApiLayoutController {
    * For content templates with a view mode other than "full", global regions
    * are not part of the display and are excluded from the editor and preview.
    */
-  private static function shouldIncludeGlobalRegions(ContentTemplate|FieldableEntityInterface $entity): bool {
+  private static function shouldIncludeGlobalRegions(FieldableEntityInterface|ComponentTreeConfigEntityBase $entity): bool {
+    // Patterns render standalone: they never include the theme's global
+    // regions.
+    if ($entity instanceof Pattern) {
+      return FALSE;
+    }
     return !($entity instanceof ContentTemplate && $entity->getMode() !== 'full');
   }
 
@@ -684,7 +690,7 @@ final class ApiLayoutController {
    *   The editable regions for the active theme, or empty if global regions
    *   should not be included for the given entity.
    */
-  private static function getEditableRegions(ContentTemplate|FieldableEntityInterface $entity): array {
+  private static function getEditableRegions(FieldableEntityInterface|ComponentTreeConfigEntityBase $entity): array {
     if (!self::shouldIncludeGlobalRegions($entity)) {
       return [];
     }
@@ -784,7 +790,7 @@ final class ApiLayoutController {
    * @param \Drupal\Core\Entity\FieldableEntityInterface|null $preview_entity
    *   Preview entity. Required only if $entity is a ContentTemplates.
    */
-  private function updateEntity(ContentTemplate|FieldableEntityInterface $entity, array $layout, array $model, ?array $entity_form_fields, ?FieldableEntityInterface $preview_entity): void {
+  private function updateEntity(FieldableEntityInterface|ComponentTreeConfigEntityBase $entity, array $layout, array $model, ?array $entity_form_fields, ?FieldableEntityInterface $preview_entity): void {
     if ($entity instanceof FieldableEntityInterface) {
       \assert(!\is_null($entity_form_fields));
       // If we are not auto-saving there is no reason to convert the
@@ -798,7 +804,7 @@ final class ApiLayoutController {
         'entity_form_fields' => $entity_form_fields,
       ], $entity, validate: FALSE);
     }
-    else {
+    elseif ($entity instanceof ContentTemplate) {
       \assert(\is_null($entity_form_fields));
       \assert(!\is_null($preview_entity));
       // @todo Use \Drupal\canvas\ClientDataToEntityConverter here
@@ -806,6 +812,14 @@ final class ApiLayoutController {
       // @todo Remove php-stan-ignore in https://drupal.org/i/3548273.
       // @phpstan-ignore-next-line argument.type
       $entity->setComponentTree(self::convertClientToServer($layout['components'], $model, $preview_entity, FALSE));
+    }
+    else {
+      // Patterns (and other self-rendering component-tree config entities) have
+      // no preview entity. Their name is edited separately (immediately, via
+      // the config API), not through this draft/publish cycle.
+      \assert(\is_null($preview_entity));
+      // @phpstan-ignore-next-line argument.type
+      $entity->setComponentTree(self::convertClientToServer($layout['components'], $model, NULL, FALSE));
     }
   }
 

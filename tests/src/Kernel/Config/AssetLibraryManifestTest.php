@@ -43,6 +43,7 @@ class AssetLibraryManifestTest extends CanvasKernelTestBase {
     self::assertSame([], $entity->getImports());
     self::assertSame([], $entity->getAssets());
     self::assertSame([], $entity->getShared());
+    self::assertSame([], $entity->getBundledSources());
 
     // Set and save all properties with unsorted multi-item arrays.
     // This validates the config schema orderby setting sorts them.
@@ -80,6 +81,16 @@ class AssetLibraryManifestTest extends CanvasKernelTestBase {
         'uri' => AssetLibrary::ARTIFACTS_DIRECTORY . 'shared-a.js',
       ],
     ]);
+    $entity->setBundledSources([
+      [
+        'path' => 'lib/z-helper.js',
+        'source' => 'export const z = 1;',
+      ],
+      [
+        'path' => 'lib/a-helper.js',
+        'source' => 'export const a = 1;',
+      ],
+    ]);
     $entity->save();
 
     // Verify are sorted by name.
@@ -99,6 +110,11 @@ class AssetLibraryManifestTest extends CanvasKernelTestBase {
     self::assertSame('shared-a', $shared[0]['name']);
     self::assertSame('shared-z', $shared[1]['name']);
 
+    $bundledSources = $entity->getBundledSources();
+    self::assertCount(2, $bundledSources);
+    self::assertSame('lib/a-helper.js', $bundledSources[0]['path']);
+    self::assertSame('lib/z-helper.js', $bundledSources[1]['path']);
+
     // Clear only imports, verify others remain.
     $entity->setImports(NULL);
     $entity->save();
@@ -106,6 +122,7 @@ class AssetLibraryManifestTest extends CanvasKernelTestBase {
     self::assertSame([], $entity->getImports());
     self::assertCount(2, $entity->getAssets());
     self::assertCount(2, $entity->getShared());
+    self::assertCount(2, $entity->getBundledSources());
   }
 
   /**
@@ -123,7 +140,8 @@ class AssetLibraryManifestTest extends CanvasKernelTestBase {
     self::assertNull($clientSide->values['assets']);
     self::assertNull($clientSide->values['shared']);
 
-    // Set properties and verify normalization includes them.
+    // Set properties and verify normalization includes them, with a
+    // generated `url` added to each asset entry for the client side.
     $assets = [
       [
         'name' => '@/components/hero/index.js',
@@ -134,8 +152,98 @@ class AssetLibraryManifestTest extends CanvasKernelTestBase {
     $clientSide = $entity->normalizeForClientSide();
 
     self::assertNull($clientSide->values['imports']);
-    self::assertSame($assets, $clientSide->values['assets']);
     self::assertNull($clientSide->values['shared']);
+    self::assertCount(1, $clientSide->values['assets']);
+    self::assertSame('@/components/hero/index.js', $clientSide->values['assets'][0]['name']);
+    self::assertSame($assets[0]['uri'], $clientSide->values['assets'][0]['uri']);
+    // The `url` is generated at normalize time and is not empty.
+    self::assertArrayHasKey('url', $clientSide->values['assets'][0]);
+    self::assertNotSame('', $clientSide->values['assets'][0]['url']);
+  }
+
+  /**
+   * Tests round-tripping the flexible codebase `path` and `source` keys.
+   *
+   * A text module carries both `path` and `source`; a binary asset carries only
+   * `path`. Both persist through save/reload and normalization, and the
+   * normalize-time `url` is never stored.
+   */
+  public function testFlexibleCodebaseAssetKeys(): void {
+    $entity = $this->getAssetLibrary();
+
+    $text_uri = AssetLibrary::ARTIFACTS_DIRECTORY . 'lib/helper.js';
+    $binary_uri = AssetLibrary::ARTIFACTS_DIRECTORY . 'assets/poster.webp';
+    $source = 'export const greet = (n) => `hi ${n}`;' . "\n";
+    $entity->setAssets([
+      [
+        'name' => '@/lib/helper',
+        'uri' => $text_uri,
+        'path' => 'src/lib/helper.ts',
+        'source' => $source,
+      ],
+      [
+        'name' => '@/assets/poster.webp',
+        'uri' => $binary_uri,
+        'path' => 'src/assets/poster.webp',
+      ],
+    ]);
+    $entity->save();
+
+    // Reload and confirm both entries round-trip verbatim (sorted by name).
+    $reloaded = $this->getAssetLibrary();
+    $assets = $reloaded->getAssets();
+    self::assertCount(2, $assets);
+
+    $by_name = [];
+    foreach ($assets as $entry) {
+      $by_name[$entry['name']] = $entry;
+    }
+
+    self::assertSame('src/assets/poster.webp', $by_name['@/assets/poster.webp']['path'] ?? NULL);
+    self::assertArrayNotHasKey('source', $by_name['@/assets/poster.webp']);
+
+    self::assertSame('src/lib/helper.ts', $by_name['@/lib/helper']['path'] ?? NULL);
+    self::assertSame($source, $by_name['@/lib/helper']['source'] ?? NULL);
+
+    // The normalize-time `url` is exposed but never stored.
+    $stored = $reloaded->toArray()['assets'];
+    foreach ($stored as $entry) {
+      self::assertArrayNotHasKey('url', $entry);
+    }
+    foreach ($reloaded->normalizeForClientSide()->values['assets'] as $entry) {
+      self::assertArrayHasKey('url', $entry);
+    }
+  }
+
+  /**
+   * Tests storing and round-tripping the project package.json.
+   */
+  public function testPackageJson(): void {
+    $entity = $this->getAssetLibrary();
+
+    // Default is null and normalizes/persists as null.
+    self::assertNull($entity->getPackageJson());
+    $clientSide = $entity->normalizeForClientSide();
+    self::assertArrayHasKey('packageJson', $clientSide->values);
+    self::assertNull($clientSide->values['packageJson']);
+    self::assertArrayNotHasKey('packageJson', $entity->toArray());
+
+    // Set via the client-side path, save, reload, and confirm it round-trips.
+    $packageJson = "{\n  \"name\": \"my-project\"\n}\n";
+    $entity->updateFromClientSide(['packageJson' => $packageJson]);
+    $entity->save();
+
+    $reloaded = $this->getAssetLibrary();
+    self::assertSame($packageJson, $reloaded->getPackageJson());
+    self::assertSame($packageJson, $reloaded->normalizeForClientSide()->values['packageJson']);
+    self::assertSame($packageJson, $reloaded->toArray()['packageJson']);
+
+    // An empty string normalizes back to null and omits the key.
+    $reloaded->updateFromClientSide(['packageJson' => '']);
+    $reloaded->save();
+    $reloaded = $this->getAssetLibrary();
+    self::assertNull($reloaded->getPackageJson());
+    self::assertArrayNotHasKey('packageJson', $reloaded->toArray());
   }
 
   /**

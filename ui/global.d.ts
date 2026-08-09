@@ -75,10 +75,12 @@ declare global {
     jQuery: any;
     _canvasTransforms: Record<string, TransformConfig>;
   }
-
-  // Bare `Drupal.t('…')` rather than `window.Drupal.t('…')`, matching how the
-  // rest of Drupal's JavaScript is written.
-  const Drupal: Window['Drupal'];
 }
+
+// The bare `Drupal` global, used as `Drupal.t('…')` rather than
+// `window.Drupal.t('…')` to match how the rest of Drupal's JavaScript is
+// written, is declared separately so packages that type-check shared files from
+// ui/src can include it without also pulling in the imports above.
+// @see ui/src/types/drupal-translation.d.ts
 
 declare module '*.css';

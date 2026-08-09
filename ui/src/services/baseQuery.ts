@@ -71,6 +71,9 @@ export const extractEntityParams = (url: string) => {
   const matchTemplateEditor = url.match(
     /\/canvas\/template\/([^/]+)\/([^/]+)\/([^/]+)\/([^/]+)\/?/,
   );
+  // /pattern/:patternId/
+  // /canvas/api/v0/layout-pattern/{entity_id}
+  const matchPatternEditor = url.match(/\/canvas\/pattern\/([^/]+)\/?/);
   if (matchPageEditor) {
     return { entityType: matchPageEditor[2], entityId: matchPageEditor[3] };
   } else if (matchTemplateEditor) {
@@ -80,6 +83,8 @@ export const extractEntityParams = (url: string) => {
       templateViewMode: matchTemplateEditor[3],
       entityId: matchTemplateEditor[4],
     };
+  } else if (matchPatternEditor) {
+    return { entityType: 'pattern', entityId: matchPatternEditor[1] };
   }
   return { entityType: undefined, entityId: undefined };
 };
@@ -189,6 +194,9 @@ export const withAutoSavesInjection: (
           'createContentTemplate',
           'updateFolder',
           'uploadFont',
+          'createColor',
+          'updateColor',
+          'deleteColor',
         ].includes(api.endpoint)
       ) {
         const state = api.getState() as RootState;

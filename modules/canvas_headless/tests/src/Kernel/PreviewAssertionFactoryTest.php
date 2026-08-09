@@ -82,7 +82,14 @@ class PreviewAssertionFactoryTest extends CanvasKernelTestBase {
     $account->method('id')->willReturn(42);
 
     $jwt = $this->container->get(PreviewAssertionFactoryInterface::class)
-      ->issue($account, '/home', 'rel:working-copy');
+      ->issue(
+        $account,
+        '/home',
+        'rel:working-copy',
+        preview_context: [
+          'viewMode' => 'teaser',
+        ],
+      );
     $this->assertNotSame('', $jwt);
 
     $token = (new Parser(new JoseEncoder()))->parse($jwt);
@@ -100,6 +107,9 @@ class PreviewAssertionFactoryTest extends CanvasKernelTestBase {
     $this->assertSame('/home', $claims->get('path'));
     $this->assertSame('activation', $claims->get('use'));
     $this->assertSame('rel:working-copy', $claims->get('resourceVersion'));
+    $this->assertSame([
+      'viewMode' => 'teaser',
+    ], $claims->get('previewContext'));
     $this->assertStringEndsWith('/canvas-headless/renew', $claims->get('renewUrl'));
     $this->assertNotEmpty($claims->get('jti'));
 

@@ -1,5 +1,20 @@
 # @drupal-canvas/headless
 
+## 0.3.0
+
+### Minor Changes
+
+- 9c6de1e: Expose rendered-page types, redirect detection, and JSON script
+  serialization from the isomorphic root entry.
+
+## 0.2.0
+
+### Minor Changes
+
+- f16deaf: Use `/canvas/content-api` in the draft-aware page client.
+- 7f3da8f: Add content-template view mode support to live draft content
+  requests.
+
 ## 0.1.1
 
 ### Patch Changes

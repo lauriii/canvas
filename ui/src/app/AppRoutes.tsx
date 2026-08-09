@@ -187,6 +187,20 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
             ],
           },
           {
+            path: '/pattern/:patternId',
+            element: (
+              <UiShell>
+                <EditorLayout context={EditorFrameContext.PATTERN} />
+              </UiShell>
+            ),
+            children: [
+              {
+                path: '/pattern/:patternId/component/:componentId',
+                element: <ComponentInstanceForm />,
+              },
+            ],
+          },
+          {
             path: '/preview/:entityType/:entityId/',
             element: <PagePreview />,
           },

@@ -10,6 +10,7 @@ import {
   countContextArguments,
   extractStrings,
   findEscapingPlaceholders,
+  findUnusedPlaceholders,
   PLURAL_DELIMITER,
   stripComments,
   verifyBundleIsScannable,
@@ -163,6 +164,39 @@ describe('findEscapingPlaceholders', () => {
     expect(
       findEscapingPlaceholders(
         `Drupal.formatPlural(n, '1 item', '@count items');`,
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe('findUnusedPlaceholders', () => {
+  it('catches a key renamed without renaming it in the string', () => {
+    // The word-boundary case: `@size` is followed by `MB`, so a rename of the
+    // key alone leaves the string untouched and nothing is substituted.
+    const found = findUnusedPlaceholders(
+      `x = Drupal.t('Max size is @sizeMB.', { '!size': n });`,
+    );
+    expect(found.map((f) => f.key)).toEqual(['!size']);
+  });
+
+  it('accepts a key that appears as a substring of a longer word', () => {
+    expect(
+      findUnusedPlaceholders(
+        `x = Drupal.t('Max size is !sizeMB.', { '!size': n });`,
+      ),
+    ).toEqual([]);
+  });
+
+  it('accepts an ordinary matching placeholder', () => {
+    expect(
+      findUnusedPlaceholders(`x = Drupal.t('Hi !name', { '!name': n });`),
+    ).toEqual([]);
+  });
+
+  it('ignores formatPlural, whose @count needs no key', () => {
+    expect(
+      findUnusedPlaceholders(
+        `x = Drupal.formatPlural(n, '1 item', '@count items');`,
       ),
     ).toEqual([]);
   });

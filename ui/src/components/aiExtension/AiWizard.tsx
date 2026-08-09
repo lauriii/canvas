@@ -953,7 +953,7 @@ const AiWizard = () => {
             if (file instanceof File && file.size > MAX_FILE_SIZE) {
               signals.onResponse({
                 text: Drupal.t(
-                  'File is too large. Maximum allowed size is @sizeMB.',
+                  'File is too large. Maximum allowed size is !sizeMB.',
                   { '!size': MAX_FILE_SIZE / (1024 * 1024) },
                 ),
                 role: 'error',

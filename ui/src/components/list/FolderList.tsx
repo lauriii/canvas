@@ -13,7 +13,10 @@ import {
 import UnifiedMenu from '../UnifiedMenu';
 
 import type { ReactNode } from 'react';
-import type { CodeComponentSerialized } from '@/types/CodeComponent';
+import type {
+  BrandKitColor,
+  CodeComponentSerialized,
+} from '@/types/CodeComponent';
 import type {
   ComponentsList,
   FolderInList,
@@ -33,9 +36,13 @@ interface FolderData {
 const FolderList = ({
   folder,
   children,
+  extraMenuItems,
+  deleteWarning,
 }: {
   folder: FolderInList;
   children: ReactNode;
+  extraMenuItems?: ReactNode;
+  deleteWarning?: string;
 }) => {
   const [isRenaming, setIsRenaming] = useState(false);
   const [folderName, setFolderName] = useState(folder.name);
@@ -203,16 +210,22 @@ const FolderList = ({
 
   const menuItems = (
     <>
-      <UnifiedMenu.Item onClick={() => setIsRenaming(true)}>
+      {extraMenuItems}
+      <UnifiedMenu.Item
+        data-testid="canvas-rename-folder-button"
+        onClick={() => setIsRenaming(true)}
+      >
         {Drupal.t('Rename')}
       </UnifiedMenu.Item>
       <UnifiedMenu.Item
+        data-testid="canvas-delete-folder-button"
         onClick={handleDelete}
         disabled={isDeleting || hasItems}
         color="red"
         title={
           hasItems
-            ? Drupal.t('Cannot delete folder containing components')
+            ? (deleteWarning ??
+              Drupal.t('Cannot delete folder containing components'))
             : undefined
         }
       >
@@ -306,6 +319,7 @@ export const folderfyComponents = (
     | ComponentsList
     | PatternsList
     | Record<string, CodeComponentSerialized>
+    | Record<string, BrandKitColor>
     | undefined,
   folders: FolderData | undefined,
   isLoading: boolean,
@@ -336,7 +350,9 @@ export const folderfyComponents = (
     }
   });
   Object.entries(folders?.folders || []).forEach(([id, folder]) => {
-    if (folder.items.length === 0 && folder.type === type) {
+    // Add any folder of a given type that wasn't already populated by the
+    // first loop.
+    if (folder.type === type && !folderComponents[id]) {
       folderComponents[id] = {
         id,
         name: folder.name || '',

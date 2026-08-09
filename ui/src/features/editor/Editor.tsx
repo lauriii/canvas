@@ -10,6 +10,7 @@ import EditorFrame from '@/features/editorFrame/EditorFrame';
 import { selectLatestError } from '@/features/error-handling/queryErrorSlice';
 import LayoutLoader from '@/features/layout/LayoutLoader';
 import { setUpdatePreview } from '@/features/layout/layoutModelSlice';
+import PatternLayout from '@/features/layout/PatternLayout';
 import TemplateLayout from '@/features/layout/TemplateLayout';
 import {
   selectEditorFrameContext,
@@ -106,6 +107,21 @@ const Editor: React.FC<EditorProps> = ({ context, disable = false }) => {
             resetButtonText={Drupal.t('Return to templates')}
           >
             <TemplateLayout />
+          </ErrorBoundary>
+        );
+      case 'pattern':
+        return (
+          <ErrorBoundary
+            title={Drupal.t(
+              'An error has occurred while fetching the pattern.',
+            )}
+            variant="alert"
+            onReset={() => {
+              navigate('/', { replace: true });
+            }}
+            resetButtonText={Drupal.t('Return to library')}
+          >
+            <PatternLayout />
           </ErrorBoundary>
         );
       default:

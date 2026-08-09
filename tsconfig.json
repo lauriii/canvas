@@ -31,5 +31,11 @@
     "incremental": true,
     "tsBuildInfoFile": ".cache/tsc/.tsbuildinfo"
   },
+  // Every package that type-checks shared files from ui/src needs to know the
+  // Drupal translation global, because some of those files translate their own
+  // display strings. Declaring it here means a package does not have to opt in,
+  // and the file deliberately has no imports of its own.
+  // @see ui/src/types/drupal-translation.d.ts
+  "files": ["ui/src/types/drupal-translation.d.ts"],
   "exclude": ["dist", "node_modules"],
 }

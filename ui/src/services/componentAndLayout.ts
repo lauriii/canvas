@@ -276,6 +276,28 @@ export const componentAndLayoutApi = createApi({
         }
       },
     }),
+    getPatternLayout: builder.query<LayoutApiResponse, string>({
+      query: (patternId) => `canvas/api/v0/layout-pattern/${patternId}`,
+      providesTags: () => [{ type: 'Layout' }],
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          const {
+            data: { entity_form_fields, html, autoSaves },
+            meta,
+          } = await queryFulfilled;
+          dispatch(setInitialPageData(entity_form_fields));
+          // Clear any stale snapshot (e.g. from a prior language/template
+          // preview) so selectPreviewHtml returns this fresh editor html.
+          // Mirrors getTemplateLayout; without it a leftover preview snapshot
+          // masks the pattern editor frame.
+          dispatch(setSnapshotHTML(''));
+          dispatch(setHtml(html));
+          handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+        } catch (err) {
+          dispatch(setPageData({}));
+        }
+      },
+    }),
     deletePageTranslation: builder.mutation<void, string>({
       query: (url) => ({
         url,
@@ -330,6 +352,54 @@ export const componentAndLayoutApi = createApi({
       },
     }),
 
+    postPatternLayout: builder.mutation<
+      { html: string; autoSaves: AutoSavesHash },
+      { layout: any; model: any; entity_form_fields: any }
+    >({
+      query: (body) => ({
+        url: 'canvas/api/v0/layout-pattern/{entity_id}',
+        method: 'POST',
+        body,
+      }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        const { data, meta } = await queryFulfilled;
+        const { html, autoSaves } = data;
+        dispatch(
+          pendingChangesApi.util.invalidateTags([
+            { type: 'PendingChanges', id: 'LIST' },
+          ]),
+        );
+        // Update our pattern preview slice.
+        dispatch(setHtml(html));
+        handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+        dispatch(setPostPreviewCompleted(true));
+      },
+    }),
+    updateComponentInPattern: builder.mutation<
+      UpdateComponentResultType,
+      UpdateComponentQueryArg
+    >({
+      query: (body) => ({
+        url: 'canvas/api/v0/layout-pattern/{entity_id}',
+        method: 'PATCH',
+        body,
+      }),
+      async onQueryStarted(body, { dispatch, queryFulfilled }) {
+        const { data, meta } = await queryFulfilled;
+        const { html, layout, model, autoSaves } = data;
+        dispatch(
+          pendingChangesApi.util.invalidateTags([
+            { type: 'PendingChanges', id: 'LIST' },
+          ]),
+        );
+        dispatch(setHtml(html));
+        handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+        // Pass update preview false to prevent a subsequent preview update,
+        // we have the data here.
+        dispatch(setLayoutModel({ layout, model, updatePreview: false }));
+      },
+    }),
+
     getCodeComponents: builder.query<
       Record<string, CodeComponentSerialized>,
       { status?: boolean } | void
@@ -362,7 +432,11 @@ export const componentAndLayoutApi = createApi({
     }),
     updateCodeComponent: builder.mutation<
       CodeComponentSerialized,
-      { id: string; changes: Partial<CodeComponentSerialized> }
+      {
+        id: string;
+        changes: Partial<CodeComponentSerialized>;
+        isExposing?: boolean;
+      }
     >({
       query: ({ id, changes }) => ({
         url: `canvas/api/v0/config/js_component/${id}`,
@@ -376,6 +450,18 @@ export const componentAndLayoutApi = createApi({
         { type: 'Components', id: 'LIST' },
         { type: 'Layout' },
       ],
+      async onQueryStarted(isExposing, { dispatch, queryFulfilled }) {
+        // If the component is newly exposed, refetch our folder config.
+        if (isExposing) {
+          await queryFulfilled;
+          dispatch(
+            componentAndLayoutApi.endpoints.getFolders.initiate(undefined, {
+              forceRefetch: true,
+              subscribe: false,
+            }),
+          );
+        }
+      },
     }),
     deleteCodeComponent: builder.mutation<void, string>({
       query: (id) => ({
@@ -675,6 +761,9 @@ export const {
   useGetTemplateLayoutQuery,
   usePostTemplateLayoutMutation,
   useUpdateComponentInTemplateMutation,
+  useGetPatternLayoutQuery,
+  usePostPatternLayoutMutation,
+  useUpdateComponentInPatternMutation,
   useGetCodeComponentsQuery,
   useGetCodeComponentQuery,
   useCreateCodeComponentMutation,

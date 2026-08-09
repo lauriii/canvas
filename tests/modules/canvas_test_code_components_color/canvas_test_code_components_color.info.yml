@@ -1,0 +1,6 @@
+name: Canvas test code components color
+description: 'Code components with color props and brand kit colors for testing'
+package: Testing
+type: module
+dependencies:
+  - canvas:canvas

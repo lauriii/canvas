@@ -1,3 +1,11 @@
+.tabContent {
+  width: 100%;
+}
+
+.tabWrapper {
+  width: 100%;
+}
+
 .familyList {
   display: flex;
   flex-direction: column;

@@ -886,6 +886,21 @@ canvas.asset_library.*:
         NotBlank: ~
       sequence:
         type: canvas.asset_library_manifest_entry
+    bundledSources:
+      type: sequence
+      label: 'Bundled local module sources'
+      requiredKey: false
+      orderby: value
+      constraints:
+        # There must be >=1 entry; otherwise the key should be omitted.
+        NotBlank: ~
+      sequence:
+        type: canvas.asset_library_bundled_source
+    packageJson:
+      type: string
+      label: 'Project package.json'
+      requiredKey: false
+      nullable: true
 
 canvas.asset_library_manifest_entry:
   type: mapping
@@ -902,6 +917,30 @@ canvas.asset_library_manifest_entry:
       constraints:
         NotBlank: []
         UriScheme: ['public']
+    path:
+      type: string
+      label: 'Original relative disk path'
+      requiredKey: false
+    source:
+      type: string
+      label: 'Original source code of a module'
+      requiredKey: false
+      nullable: true
+
+canvas.asset_library_bundled_source:
+  type: mapping
+  label: 'Bundled local module source'
+  mapping:
+    path:
+      type: string
+      label: 'Original relative disk path'
+      constraints:
+        NotBlank: []
+    source:
+      type: string
+      label: 'Verbatim original source code'
+      constraints:
+        NotBlank: []
 
 canvas.brand_kit.*:
   type: config_entity
@@ -1254,6 +1293,75 @@ canvas.folder.*:
             configEntityTypeId: '%parent.%parent.configEntityTypeId'
       constraints:
         Unique: ~
+
+canvas.color.*:
+  type: config_entity
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    name:
+      type: required_label
+      label: 'Color name'
+      constraints:
+        UniqueNamePerFolderTypeConstraint:
+          id: '%parent.uuid'
+          configEntityTypeId: 'color'
+    cssVariable:
+      type: string
+      label: 'CSS variable name'
+      constraints:
+        Regex:
+          pattern: '/^--[a-zA-Z_-][a-zA-Z0-9_-]*$/'
+          message: "The %value is not a valid CSS custom property name."
+        UniqueColorCssVariableConstraint:
+          id: '%parent.uuid'
+    value:
+      type: mapping
+      label: 'Color value in W3C Design Token format'
+      mapping:
+        colorSpace:
+          type: string
+          label: 'Color space'
+          constraints:
+            Choice:
+              choices:
+                - srgb
+                - hsl
+        components:
+          type: sequence
+          label: 'Color components'
+          constraints:
+            # Each known color space requires a fixed number of components.
+            # Unknown color spaces are silently allowed so that future spaces can
+            # be introduced without updating this constraint simultaneously.
+            # @see \Drupal\canvas\Plugin\Validation\Constraint\ColorComponentCountConstraint::COMPONENT_COUNTS
+            ColorComponentCount: []
+          sequence:
+            type: float
+            label: 'Component value'
+            # @todo Add per-colorSpace range validation (e.g., sRGB [0,1], HSL [0-360, 0-100, 0-100])
+        alpha:
+          type: float
+          label: 'Alpha (opacity)'
+          requiredKey: false
+          nullable: true
+          constraints:
+            Range:
+              min: 0.0
+              max: 1.0
+              notInRangeMessage: "Alpha must be between 0 and 1."
+        hex:
+          type: string
+          label: 'Hex fallback'
+          requiredKey: false
+          nullable: true
+          constraints:
+            Regex:
+              pattern: '/^#[0-9a-fA-F]{6}$/'
+              message: "The %value is not a valid 6-digit hex color."
+    weight:
+      type: weight
+      label: 'Weight'
 
 # Search API processor configuration
 plugin.plugin_configuration.search_api_processor.canvas_component_tree_inputs:

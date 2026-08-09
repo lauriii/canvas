@@ -133,7 +133,7 @@ canvas.api.config.delete:
     _entity_access: 'canvas_config_entity.delete'
     _canvas_http_eligible_config_entity: 'TRUE'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
-    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|page_region)'
+    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|page_region|color)'
   options:
     parameters:
       canvas_config_entity:
@@ -152,7 +152,7 @@ canvas.api.config.get:
     _canvas_http_eligible_config_entity: 'TRUE'
     _entity_access: 'canvas_config_entity.view'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
-    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|page_region)'
+    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|page_region|color)'
     # The UI client can fetch all the components the current user has access too, regardless of which kind of Canvas-enabled
     # entity you're editing.
     _canvas_ui_access: 'TRUE'
@@ -176,7 +176,7 @@ canvas.api.config.list: &config_list_route
     # But deter users from trying to access other config entities via this route: this ensures 404 responses rather than
     # 403.
     # @see \Drupal\Tests\canvas\Functional\CanvasConfigEntityHttpApiTest::testNonCanvasConfigEntity()
-    canvas_config_entity_type_id: '(folder|content_template|component|pattern|js_component|asset_library|brand_kit|page_region)'
+    canvas_config_entity_type_id: '(folder|content_template|component|pattern|js_component|asset_library|brand_kit|page_region|color)'
     # The UI client can fetch all the components the current user has access too, regardless of which kind of Canvas-enabled
     # entity you're editing.
     _canvas_ui_access: 'TRUE'
@@ -208,7 +208,7 @@ canvas.api.config.patch:
     _canvas_http_eligible_config_entity: 'TRUE'
     _entity_access: 'canvas_config_entity.update'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
-    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|page_region)'
+    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|page_region|color)'
   options:
     parameters:
       canvas_config_entity:
@@ -228,7 +228,7 @@ canvas.api.config.post:
     # @todo: Use _entity_create_access once dynamic entity types are supported. See https://www.drupal.org/project/drupal/issues/3516775
     _canvas_entity_create_access: 'canvas_config_entity_type_id'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
-    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|page_region)'
+    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|page_region|color)'
   options:
     # Indicate that external applications may use this route. For authentication, see `modules/canvas_oauth/README.md`.
     canvas_external_api: true
@@ -429,6 +429,17 @@ canvas.api.form.component_instance.content_template:
         # @see \Drupal\canvas\Routing\ContentTemplatePreviewEntityConverter
         type: canvas_content_template_preview_entity
 
+# Specialized version of the `canvas.api.form.component_instance` route for
+# Pattern config entities. Patterns render standalone, so no preview entity.
+canvas.api.form.component_instance.pattern:
+  <<: *component_instance_form_route
+  path: '/canvas/api/v0/form/component-instance/pattern/{entity}'
+  options:
+    <<: *component_instance_form_route_options
+    parameters:
+      entity:
+        type: entity:pattern
+
 canvas.api.form.content_entity:
   path: '/canvas/api/v0/form/content-entity/{entity_type}/{entity}/{entity_form_mode}'
   defaults:
@@ -511,6 +522,19 @@ canvas.api.layout.get.content_template:
         # @see \Drupal\canvas\Routing\ContentTemplatePreviewEntityConverter
         type: canvas_content_template_preview_entity
 
+# Specialized version of the `canvas.api.layout.get` route for Pattern config
+# entities. Patterns render standalone (no preview entity), so this route locks
+# `entity` to `pattern` and takes no extra param.
+canvas.api.layout.get.pattern:
+  <<: *layout_get_route
+  path: '/canvas/api/v0/layout-pattern/{entity}'
+  options:
+    <<: *layout_get_route_options
+    parameters:
+      # Specialized, so locked to Pattern config entities.
+      entity:
+        type: entity:pattern
+
 canvas.api.layout.patch: &layout_patch_route
   path: '/canvas/api/v0/layout/{entity_type}/{entity}'
   defaults:
@@ -537,6 +561,18 @@ canvas.api.layout.patch.content_template:
     _canvas_use_template_draft: TRUE
     parameters:
       <<: *layout_get_route_content_template_parameters
+
+# Specialized version of the `canvas.api.layout.patch` route for Pattern config
+# entities. Patterns render standalone (no preview entity), so this route locks
+# `entity` to `pattern` and takes no extra param.
+canvas.api.layout.patch.pattern:
+  <<: *layout_patch_route
+  path: '/canvas/api/v0/layout-pattern/{entity}'
+  options:
+    _canvas_use_template_draft: TRUE
+    parameters:
+      entity:
+        type: entity:pattern
 
 canvas.api.layout.post: &layout_post_route
   path: '/canvas/api/v0/layout/{entity_type}/{entity}'
@@ -566,6 +602,18 @@ canvas.api.layout.post.content_template:
       _canvas_preview_entity_view_access: TRUE
     parameters:
       <<: *layout_get_route_content_template_parameters
+
+# Specialized version of the `canvas.api.layout.post` route for Pattern config
+# entities. Unlike ContentTemplates, Patterns render standalone (no preview
+# entity), so this route locks `entity` to `pattern` and takes no extra param.
+canvas.api.layout.post.pattern:
+  <<: *layout_post_route
+  path: '/canvas/api/v0/layout-pattern/{entity}'
+  options:
+    _canvas_use_template_draft: TRUE
+    parameters:
+      entity:
+        type: entity:pattern
 
 canvas.api.log_error:
   path: '/canvas/api/v0/log-error'

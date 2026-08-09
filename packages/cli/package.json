@@ -1,6 +1,6 @@
 {
   "name": "@drupal-canvas/cli",
-  "version": "0.21.2",
+  "version": "0.22.0",
   "description": "CLI tool for managing Drupal Canvas code components",
   "license": "GPL-2.0-or-later",
   "repository": {
