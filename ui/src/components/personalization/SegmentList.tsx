@@ -34,10 +34,45 @@ import {
   Text,
 } from '@radix-ui/themes';
 
+import { CONDITION_IDS, ruleSummary } from '@/features/personalization/rules';
+
 import type { DragEndEvent } from '@dnd-kit/core';
-import type { Segment } from '@/types/Personalization';
+import type { Segment, SegmentRule } from '@/types/Personalization';
 
 import styles from './SegmentList.module.css';
+
+/**
+ * One-line plain-language summary of what a segment does, shown under its
+ * label.
+ */
+const SegmentSummary = ({ segment }: { segment: Segment }) => {
+  // The default segment has no rules by design: it always matches.
+  if (segment.id === 'default') {
+    return (
+      <Text size="1" color="gray">
+        Matches all visitors
+      </Text>
+    );
+  }
+  const rules = segment.rules ?? {};
+  // Summarize rules in the editor's stable order, not object key order.
+  const summaries = CONDITION_IDS.flatMap((conditionId) => {
+    const rule = rules[conditionId];
+    return rule ? [ruleSummary(rule as SegmentRule)] : [];
+  });
+  if (summaries.length === 0) {
+    return (
+      <Text size="1" color="amber">
+        No rules yet — matches no one
+      </Text>
+    );
+  }
+  return (
+    <Text size="1" color="gray">
+      {summaries.join('; and ')}
+    </Text>
+  );
+};
 
 interface SortableTableRowProps {
   segment: Segment;
@@ -104,13 +139,17 @@ const SortableTableRow = ({
         )}
       </Table.Cell>
       <Table.Cell>
-        {isDefaultSegment ? (
-          label
-        ) : (
-          <Link asChild>
-            <RouterLink to={`/segments/${id}`}>{label}</RouterLink>
-          </Link>
-        )}
+        <Flex direction="column" gap="1">
+          {/* Disabled segments render a dimmed label. */}
+          {isDefaultSegment ? (
+            <Text color={status ? undefined : 'gray'}>{label}</Text>
+          ) : (
+            <Link asChild color={status ? undefined : 'gray'}>
+              <RouterLink to={`/segments/${id}`}>{label}</RouterLink>
+            </Link>
+          )}
+          <SegmentSummary segment={segment} />
+        </Flex>
       </Table.Cell>
       <Table.Cell>
         <Flex gap="6" align="center" justify="end">
@@ -251,6 +290,14 @@ const SegmentList = ({
           </Flex>
         )}
       </Card>
+      {/* Drag handles only exist on non-default rows, so the note appears
+          with them. */}
+      {sortedSegments.some((segment) => segment.id !== 'default') && (
+        <Text size="1" color="gray">
+          Drag to reorder this list. The order is display only — the variant a
+          visitor sees is decided by the variant priority on each page.
+        </Text>
+      )}
     </Flex>
   );
 };

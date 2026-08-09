@@ -13,6 +13,19 @@ import type {
 export const SWITCH_COMPONENT_ID = 'p13n.switch';
 export const CASE_COMPONENT_ID = 'p13n.case';
 
+// Prefix shared by the personalization component entity IDs.
+const P13N_COMPONENT_ID_PREFIX = 'p13n.';
+
+/**
+ * Whether a component entity ID belongs to the personalization switch/case
+ * pair. These components are placed exclusively through the variants menu,
+ * so listings of insertable components must exclude them while keeping the
+ * components query cache intact for metadata and version lookups.
+ */
+export function isPersonalizationComponentId(componentId: string): boolean {
+  return componentId.startsWith(P13N_COMPONENT_ID_PREFIX);
+}
+
 // The default variant always exists, always matches, and is conventionally
 // the last entry of a switch's `variants` list.
 export const DEFAULT_VARIANT_ID = 'default';

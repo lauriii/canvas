@@ -327,6 +327,25 @@ describe('SegmentDetails', () => {
     });
   });
 
+  it('warns at the top when the segment is disabled', () => {
+    mocks.segment = { ...makeSegment(fullRules()), status: false };
+    renderDetails();
+
+    expect(
+      screen.getByText(
+        'This segment is disabled. It never matches visitors until it is enabled.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('shows no disabled warning for an enabled segment', () => {
+    renderDetails();
+
+    expect(
+      screen.queryByText(/This segment is disabled/),
+    ).not.toBeInTheDocument();
+  });
+
   it('toggles the segment status', async () => {
     const user = userEvent.setup();
     renderDetails();

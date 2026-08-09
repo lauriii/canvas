@@ -103,6 +103,28 @@ const components: ComponentsList = {
     metadata: {},
     transforms: {},
   },
+  // The personalization pair stays in the query data for metadata lookups,
+  // but must never be listed as insertable components.
+  'p13n.switch': {
+    ...baseComponent,
+    id: 'p13n.switch',
+    name: 'Personalization switch',
+    library: 'elements',
+    source: 'SDC',
+    propSources: {},
+    metadata: {},
+    transforms: {},
+  },
+  'p13n.case': {
+    ...baseComponent,
+    id: 'p13n.case',
+    name: 'Personalization case',
+    library: 'elements',
+    source: 'SDC',
+    propSources: {},
+    metadata: {},
+    transforms: {},
+  },
 };
 
 describe('ComponentList', () => {
@@ -162,6 +184,32 @@ describe('ComponentList', () => {
     expect(screen.getByText('SDC component')).toBeInTheDocument();
     expect(screen.getByText('Block component')).toBeInTheDocument();
     expect(screen.getByText('Extension component')).toBeInTheDocument();
+  });
+
+  it('excludes personalization components from the listing in every mode', () => {
+    // The components query data still contains the entries; only the
+    // listing filters them out.
+    expect(components['p13n.switch']).toBeDefined();
+    expect(components['p13n.case']).toBeDefined();
+
+    const visibilities = [
+      'all',
+      'external-only',
+      'non-external-only',
+      'non-external-and-fallback-external',
+    ] as const;
+    for (const visibility of visibilities) {
+      const { unmount } = render(
+        <ComponentList searchTerm="" visibility={visibility} />,
+      );
+      expect(
+        screen.queryByText('Personalization switch'),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('Personalization case'),
+      ).not.toBeInTheDocument();
+      unmount();
+    }
   });
 
   it('shows standard and converted components in fallback mode', () => {

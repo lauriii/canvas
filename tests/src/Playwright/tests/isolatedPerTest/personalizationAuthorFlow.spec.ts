@@ -8,15 +8,51 @@ import { isolatedPerTest as test } from '../../fixtures/test.js';
  * variant's content, publish, and verify that anonymous visitors get the
  * right variant server-side (no client-side swapping).
  */
-test.use({ modules: ['canvas_test_sdc', 'canvas_personalization'] });
+// canvas_personalization is hidden (it is its own feature flag), so it has no
+// checkbox on the modules UI; the visible e2e helper test module pulls it in
+// as a dependency. It is installed inside the test rather than through the
+// fixture's `modules` option because the dependency-confirm install runs as a
+// batch that outlasts the fixture helper's fixed post-install assertions on
+// slower environments.
+test.use({ modules: ['canvas_test_sdc'], enableTestExtensions: true });
 
 test.describe('Personalization author flow', () => {
+  // The per-test site install plus two extra modules exceeds the default
+  // test timeout on slower (bind-mounted) local environments.
+  test.describe.configure({ timeout: 600_000 });
+
   test('create segment, variant, publish, and verify live', async ({
     page,
     drupal,
     canvas,
   }) => {
     await drupal.loginAsAdmin();
+    // Install the helper module (and with it, hidden canvas_personalization)
+    // through the modules UI, waiting on the install batch's status message.
+    await page.goto('/admin/modules');
+    // Package groups are collapsed; the checkbox must be visible to check it.
+    for (const packageGroup of await page
+      .locator('details.package-listing:not([open])')
+      .all()) {
+      await packageGroup.evaluate((element) =>
+        element.setAttribute('open', ''),
+      );
+    }
+    await page
+      .locator('input[name="modules[canvas_personalization_e2e][enable]"]')
+      .check();
+    await page.locator('[data-drupal-selector="edit-submit"]').click();
+    await page.waitForLoadState('domcontentloaded');
+    const confirmForm = page.locator(
+      '[data-drupal-selector="system-modules-confirm-form"]',
+    );
+    if (await confirmForm.isVisible()) {
+      await page.locator('[data-drupal-selector="edit-submit"]').click();
+    }
+    await expect(page.locator('[data-drupal-messages]')).toContainText(
+      /been installed/,
+      { timeout: 240_000 },
+    );
 
     // Create a page with a heading component: this becomes the default
     // variant's content.
@@ -45,13 +81,15 @@ test.describe('Personalization author flow', () => {
     await page.getByRole('button', { name: 'Builder' }).click();
     await canvas.waitForEditorUi();
     await page.getByRole('button', { name: 'Personalize' }).click();
-    await page.getByRole('menuitem', { name: 'Personalize this page' }).click();
+    await page
+      .getByRole('button', { name: 'Personalize page', exact: true })
+      .click();
 
     // The variants control appears, previewing the default variant.
     const variantsTrigger = page.getByRole('button', {
       name: 'Manage variants',
     });
-    await expect(variantsTrigger).toContainText('Variant: default');
+    await expect(variantsTrigger).toContainText('Variant: Default');
 
     // Create a variant targeting the segment, starting from the default.
     await variantsTrigger.click();
@@ -68,7 +106,7 @@ test.describe('Personalization author flow', () => {
     await createVariantDialog.getByRole('button', { name: 'Create' }).click();
 
     // The new variant is now previewed — never ambiguous.
-    await expect(variantsTrigger).toContainText('Variant: coupon_campaign');
+    await expect(variantsTrigger).toContainText('Variant: Coupon campaign');
 
     // Edit the heading inside the variant. Only the variant's copy is
     // visible in the preview and layers.

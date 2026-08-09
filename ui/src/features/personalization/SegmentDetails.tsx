@@ -1,9 +1,14 @@
 import { useState } from 'react';
 import { Link as RouterLink, useParams } from 'react-router-dom';
-import { ArrowLeftIcon, PlusIcon } from '@radix-ui/react-icons';
+import {
+  ArrowLeftIcon,
+  ExclamationTriangleIcon,
+  PlusIcon,
+} from '@radix-ui/react-icons';
 import {
   Badge,
   Button,
+  Callout,
   Card,
   DropdownMenu,
   Flex,
@@ -100,6 +105,17 @@ const SegmentDetailsContent = ({ segment }: { segment: Segment }) => {
     <Flex direction="column" gap="5" maxWidth="960px">
       <Flex direction="column" gap="3">
         <BackLink />
+        {!segment.status && (
+          <Callout.Root color="amber" size="1">
+            <Callout.Icon>
+              <ExclamationTriangleIcon />
+            </Callout.Icon>
+            <Callout.Text>
+              This segment is disabled. It never matches visitors until it is
+              enabled.
+            </Callout.Text>
+          </Callout.Root>
+        )}
         <Flex justify="between" align="start" gap="4" wrap="wrap">
           <Flex direction="column" gap="1">
             <Flex align="center" gap="2">
@@ -127,11 +143,6 @@ const SegmentDetailsContent = ({ segment }: { segment: Segment }) => {
             </Button>
           </Flex>
         </Flex>
-        {!segment.status && (
-          <Text size="1" color="gray">
-            Disabled segments are not applied to visitors.
-          </Text>
-        )}
       </Flex>
 
       <Flex direction="column" gap="3">

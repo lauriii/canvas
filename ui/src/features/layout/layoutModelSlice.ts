@@ -27,6 +27,7 @@ import {
   getCaseVariantId,
   getContentSlot,
   getSwitchVariants,
+  isCaseNode,
   isSwitchNode,
   P13N_SLOT_NAME,
   VARIANT_ID_PATTERN,
@@ -161,6 +162,10 @@ type PersonalizePagePayload = {
   // by the caller from the components list.
   switchComponentType: string;
   caseComponentType: string;
+};
+
+type PersonalizeComponentPayload = PersonalizePagePayload & {
+  componentUuid: string;
 };
 
 type AddVariantPayload = {
@@ -610,6 +615,75 @@ export const layoutModelSlice = createSlice({
           },
         };
         region.components = [switchNode];
+        // Flag a preview update.
+        state.updatePreview = true;
+      },
+    ),
+    personalizeComponent: create.reducer(
+      (state, action: PayloadAction<PersonalizeComponentPayload>) => {
+        const { componentUuid, switchComponentType, caseComponentType } =
+          action.payload;
+        const node = findComponentByUuid(state.layout, componentUuid);
+        if (!node || isSwitchNode(node) || isCaseNode(node)) {
+          console.error(
+            `Cannot personalize ${componentUuid}: not a personalizable component.`,
+          );
+          return;
+        }
+        const nodePath = findNodePathByUuid(state.layout, componentUuid);
+        const rootIndex = nodePath?.shift();
+        if (rootIndex === undefined || !nodePath) {
+          return;
+        }
+
+        const switchUuid = uuidv4();
+        const caseUuid = uuidv4();
+        // Deep-clone the component into the default case: the clone keeps its
+        // UUID (and every descendant's), so models stay untouched.
+        const movedNode: ComponentNode = JSON.parse(JSON.stringify(node));
+        const caseNode: ComponentNode = {
+          nodeType: NodeType.Component,
+          uuid: caseUuid,
+          type: caseComponentType,
+          slots: [
+            {
+              nodeType: NodeType.Slot,
+              id: `${caseUuid}/${P13N_SLOT_NAME}`,
+              name: P13N_SLOT_NAME,
+              components: [movedNode],
+            },
+          ],
+        };
+        const switchNode: ComponentNode = {
+          nodeType: NodeType.Component,
+          uuid: switchUuid,
+          type: switchComponentType,
+          slots: [
+            {
+              nodeType: NodeType.Slot,
+              id: `${switchUuid}/${P13N_SLOT_NAME}`,
+              name: P13N_SLOT_NAME,
+              components: [caseNode],
+            },
+          ],
+        };
+
+        state.model[switchUuid] = {
+          resolved: { variants: [DEFAULT_VARIANT_ID] },
+        };
+        state.model[caseUuid] = {
+          resolved: {
+            variant_id: DEFAULT_VARIANT_ID,
+            segments: [DEFAULT_VARIANT_ID],
+          },
+        };
+        // The switch takes the component's place in the tree.
+        const newLayout = removeComponentByUuid(state.layout, componentUuid);
+        state.layout[rootIndex] = insertNodeAtPath(
+          newLayout[rootIndex],
+          nodePath,
+          switchNode,
+        );
         // Flag a preview update.
         state.updatePreview = true;
       },
@@ -1275,6 +1349,7 @@ export const {
   setUpdatePreview,
   insertNodes,
   personalizePage,
+  personalizeComponent,
   addVariant,
   reorderVariants,
   promoteVariantToDefault,

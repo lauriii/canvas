@@ -240,21 +240,15 @@ final class Personalization extends ComponentSourceBase implements
   }
 
   public function getClientSideInfo(Component $component): array {
-    // @todo Uncomment the next line and delete everything else once a React UI exists for this: you would never drag these components onto the editor frame. Remove in https://www.drupal.org/project/canvas/issues/3525797
-    // phpcs:disable
-    // throw new \RuntimeException('This should not be called because this source implements ComponentSourceWithSwitchCasesInterface.');
-    // phpcs:enable
-    $client_side_info = [
-      'build' => match($this->getType()) {
-        self::SWITCH => ['#markup' => '<h1>Switch!</h1'],
-        self::CASE => ['#markup' => '<h1>Case!</h1'],
-      },
-      // @todo UI does not use any other metadata - should `slots` move to top level?
+    // These components are hidden from the component library (the variants
+    // menu is the authoring surface), but the client still needs their slot
+    // metadata and version strings to build switch/case instances.
+    return [
+      'build' => [],
       'metadata' => [
         'slots' => $this->getSlotDefinitions(),
       ],
     ];
-    return $client_side_info;
   }
 
   public function clientModelToInput(string $component_instance_uuid, Component $component, array $client_model, ?FieldableEntityInterface $host_entity, ?ConstraintViolationListInterface $violations = NULL): array {
@@ -374,50 +368,17 @@ final class Personalization extends ComponentSourceBase implements
     ?EntityInterface $entity = NULL,
     array $settings = [],
   ): array {
-    // @todo Uncomment one of the next 2 lines and delete everything else once a React UI exists for this.
-    // phpcs:disable
-    // throw new \RuntimeException('This should not be called because this source implements ComponentSourceWithSwitchCasesInterface.');
-    // return [];
-    // phpcs:enable
-
-    // We won't use a Drupal generated form, but something specific in the
-    // client for these components.
-    // Temporarily render something just to see what's in the inputs.
-    return match ($this->getType()) {
-      self::CASE => [
-        'type' => [
-          '#type' => 'textfield',
-          '#title' => $this->t('Personalization Component Type'),
-          '#value' => $this->getType(),
-          '#disabled' => TRUE,
-        ],
-        'variant_id' => [
-          '#type' => 'textfield',
-          '#title' => $this->t('Variant ID'),
-          '#value' => \json_encode($inputValues['variant_id'], \JSON_PRETTY_PRINT & \JSON_THROW_ON_ERROR),
-          '#disabled' => TRUE,
-        ],
-        'segments' => [
-          '#type' => 'textfield',
-          '#title' => $this->t('Segments'),
-          '#value' => \json_encode($inputValues['segments'], \JSON_PRETTY_PRINT & \JSON_THROW_ON_ERROR),
-          '#disabled' => TRUE,
-        ],
+    // These components have no author-editable settings of their own: the
+    // variants menu and the segments dashboard are the authoring surfaces.
+    // Render a short pointer instead of a form.
+    return [
+      'description' => [
+        '#markup' => '<p>' . match ($this->getType()) {
+          self::SWITCH => $this->t('This section is personalized. Use the variants menu in the toolbar to manage its variants.'),
+          self::CASE => $this->t('This is one variant of a personalized section. Use the variants menu in the toolbar to choose which variant you are editing, reorder variants, or change their audience.'),
+        } . '</p>',
       ],
-      self::SWITCH => [
-        'type' => [
-          '#type' => 'textfield',
-          '#title' => $this->t('Personalization Component Type'),
-          '#value' => $this->getType(),
-          '#disabled' => TRUE,
-        ],
-        'variants' => [
-          '#type' => 'textarea',
-          '#title' => $this->t('Variants'),
-          '#value' => \json_encode($inputValues['variants'], \JSON_PRETTY_PRINT & \JSON_THROW_ON_ERROR),
-        ],
-      ],
-    };
+    ];
   }
 
   public function getSlotDefinitions(): array {

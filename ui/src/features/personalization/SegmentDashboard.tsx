@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PlusIcon } from '@radix-ui/react-icons';
-import { Button, Flex } from '@radix-ui/themes';
+import { Button, Flex, Heading, Text } from '@radix-ui/themes';
 
 import DefaultSitePanel from '@/components/personalization/DefaultSitePanel';
 import SegmentList from '@/components/personalization/SegmentList';
@@ -90,8 +90,17 @@ export default function SegmentDashboard() {
 
   return (
     <Flex direction="column" gap="6">
-      <Flex justify="end" align="center">
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
+      <Flex justify="between" align="start" gap="3">
+        <Flex direction="column" gap="2">
+          <Heading as="h1" size="5">
+            Segments
+          </Heading>
+          <Text size="2" color="gray">
+            Reusable audiences for personalization. Variants target segments;
+            the first matching variant in a page's priority order is shown.
+          </Text>
+        </Flex>
+        <Button mt="1" onClick={() => setIsCreateDialogOpen(true)}>
           <PlusIcon />
           Create segment
         </Button>

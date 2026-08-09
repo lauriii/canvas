@@ -251,6 +251,39 @@ describe('VariantsMenu', () => {
     );
   });
 
+  it('flags a targeted segment that is disabled', async () => {
+    mocks.segments = {
+      ...mocks.baseSegments,
+      dormant: {
+        id: 'dormant',
+        label: 'Dormant visitors',
+        status: false,
+        weight: 1,
+      },
+    };
+    const user = userEvent.setup();
+    const store = buildStore();
+    const switchUuid = personalizeStore(store);
+    store.dispatch(
+      addVariant({
+        switchUuid,
+        variantId: 'dormant_offer',
+        segments: ['dormant'],
+        sourceVariantId: 'default',
+      }),
+    );
+    renderMenu(store);
+
+    await user.click(screen.getByRole('button', { name: 'Manage variants' }));
+
+    const row = screen.getByTestId('variant-row-dormant_offer');
+    const label = within(row).getByTitle(
+      'Segment is disabled and never matches',
+    );
+    expect(label).toHaveTextContent('Dormant visitors');
+    expect(label).toHaveAttribute('data-accent-color', 'amber');
+  });
+
   it('creates a variant from the dialog and previews it', async () => {
     const user = userEvent.setup();
     const store = buildStore();

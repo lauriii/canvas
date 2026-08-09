@@ -394,11 +394,11 @@ HTML,
    * {@inheritdoc}
    */
   public static function getExpectedClientSideInfo(): array {
+    // These components render no library preview: they are hidden from the
+    // component library and only their slot metadata is consumed.
     return [
       'p13n.case' => [
-        'expected_output_selectors' => [
-          'h1',
-        ],
+        'expected_output_selectors' => [],
         'metadata' => [
           'slots' => [
             'content' => [
@@ -410,9 +410,7 @@ HTML,
         ],
       ],
       'p13n.switch' => [
-        'expected_output_selectors' => [
-          'h1',
-        ],
+        'expected_output_selectors' => [],
         'metadata' => [
           'slots' => [
             'content' => [

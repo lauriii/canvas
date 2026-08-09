@@ -46,6 +46,16 @@ export const WithSegments: Story = {
         label: 'High-value customers',
         status: true,
         weight: 0,
+        rules: {
+          utm_parameters: {
+            id: 'utm_parameters',
+            negate: false,
+            all: true,
+            parameters: [
+              { key: 'utm_campaign', value: 'vip', matching: 'exact' },
+            ],
+          },
+        },
       },
       {
         id: '2',
@@ -58,12 +68,33 @@ export const WithSegments: Story = {
         label: 'Returning visitors',
         status: true,
         weight: 1,
+        rules: {
+          query_parameter: {
+            id: 'query_parameter',
+            negate: false,
+            parameter: 'returning',
+            value: '1',
+            matching: 'exact',
+          },
+          day_of_week: {
+            id: 'day_of_week',
+            negate: false,
+            days: ['saturday', 'sunday'],
+          },
+        },
       },
       {
         id: '4',
         label: 'European users',
         status: false,
         weight: 4,
+        rules: {
+          geolocation: {
+            id: 'geolocation',
+            negate: false,
+            countries: ['DE', 'FR'],
+          },
+        },
       },
       {
         id: '5',

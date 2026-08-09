@@ -40,9 +40,7 @@ const VariantAudience = ({ isDefault, segmentIds }: VariantAudienceProps) => {
         return (
           <Fragment key={segmentId}>
             {index > 0 && ', '}
-            {segment ? (
-              segment.label
-            ) : (
+            {!segment ? (
               <Text
                 size="1"
                 color="amber"
@@ -51,6 +49,19 @@ const VariantAudience = ({ isDefault, segmentIds }: VariantAudienceProps) => {
               >
                 {segmentId}
               </Text>
+            ) : !segment.status ? (
+              // A disabled segment can never match, so a variant targeting
+              // it is silently dead: flag it like a missing segment.
+              <Text
+                size="1"
+                color="amber"
+                weight="medium"
+                title="Segment is disabled and never matches"
+              >
+                {segment.label}
+              </Text>
+            ) : (
+              segment.label
             )}
           </Fragment>
         );
