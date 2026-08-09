@@ -9,6 +9,8 @@ import {
   TextField,
 } from '@radix-ui/themes';
 
+import { getCanvasSettings } from '@/utils/drupal-globals';
+
 import type { GeolocationCondition } from '@/types/Personalization';
 
 // Officially assigned ISO 3166-1 alpha-2 codes. Intl.supportedValuesOf()
@@ -80,6 +82,16 @@ const GeolocationRuleEditor = ({
   const [regionsText, setRegionsText] = useState(() =>
     (settings.regions ?? []).join(', '),
   );
+
+  // The header names are site configuration; naming them tells editors
+  // where the matched values actually come from.
+  const personalizationSettings = getCanvasSettings()?.personalizationSettings;
+  const countryHelp = personalizationSettings?.countryHeader
+    ? `Matched against the ${personalizationSettings.countryHeader} request header set by your CDN or reverse proxy.`
+    : 'Matched against a request header set by your CDN or reverse proxy.';
+  const regionHelp = personalizationSettings?.regionHeader
+    ? `Region codes are defined by whatever sets the ${personalizationSettings.regionHeader} header — for United States states this is typically the two-letter state code (CO, MA).`
+    : 'Region codes are defined by whatever sets the region header — for United States states this is typically the two-letter state code (CO, MA).';
 
   const query = countryQuery.trim().toLowerCase();
   const suggestions = query
@@ -169,7 +181,7 @@ const GeolocationRuleEditor = ({
         >
           {query && suggestions.length === 0
             ? 'No matching countries.'
-            : 'Type a country name and select it from the suggestions.'}
+            : `Type a country name and select it from the suggestions. ${countryHelp}`}
         </Text>
       </Flex>
       <Flex direction="column" gap="1">
@@ -189,7 +201,7 @@ const GeolocationRuleEditor = ({
         <Text size="1" color={invalidRegions.length > 0 ? 'red' : 'gray'}>
           {invalidRegions.length > 0
             ? `Not a valid region code: ${invalidRegions.join(', ')}`
-            : 'Region codes depend on the geolocation provider. Enter codes of 1-3 letters or digits, separated by commas, for example NY for New York.'}
+            : `${regionHelp} Enter codes of 1-3 letters or digits, separated by commas.`}
         </Text>
       </Flex>
     </Flex>

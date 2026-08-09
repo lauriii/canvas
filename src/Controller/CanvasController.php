@@ -132,6 +132,11 @@ HTML;
     $ai_extension_available = $this->moduleHandler->moduleExists('canvas_ai');
     // ⚠️ This is highly experimental and *will* be refactored.
     $personalization_extension_available = $this->moduleHandler->moduleExists('canvas_personalization');
+    // The geolocation header names surface in the UI so rule editors can
+    // explain where the matched country and region values come from.
+    $personalization_settings = $personalization_extension_available
+      ? $this->configFactory->get('canvas_personalization.settings')
+      : NULL;
     $system_site_config = $this->configFactory->get('system.site');
     $entity_types_with_keys = [];
     $entity_type_labels = [];
@@ -210,7 +215,7 @@ HTML;
     $site_url = rtrim(Url::fromRoute('<front>')->setAbsolute()->toString(), '/');
     $site_url_cacheability = (new CacheableMetadata())->setCacheContexts(['url.site']);
 
-    return (new HtmlResponse($this->buildHtml()))
+    $response = (new HtmlResponse($this->buildHtml()))
       ->addCacheableDependency($extensions)
       ->addCacheableDependency($system_site_config)
       ->addCacheableDependency($all_content_entity_create_links)
@@ -248,9 +253,15 @@ HTML;
             'pageExtensions' => $page_extensions,
             'aiExtensionAvailable' => $ai_extension_available,
             'personalizationExtensionAvailable' => $personalization_extension_available,
-          // Allow for perfect component previews, by letting the client side
-          // know what global assets to load in component preview <iframe>s.
-          // @see ui/src/components/ComponentPreview.tsx
+            ...$personalization_settings === NULL ? [] : [
+              'personalizationSettings' => [
+                'countryHeader' => $personalization_settings->get('country_header'),
+                'regionHeader' => $personalization_settings->get('region_header'),
+              ],
+            ],
+            // Allow for perfect component previews, by letting the client side
+            // know what global assets to load in component preview <iframe>s.
+            // @see ui/src/components/ComponentPreview.tsx
             'globalAssets' => [
               'css' => $this->assetRenderer->renderCssAssets($preview_assets),
               'jsHeader' => $this->assetRenderer->renderJsHeaderAssets($preview_assets),
@@ -307,6 +318,10 @@ HTML;
         ],
         'import_maps' => $this->globalImports->getImportMap(),
       ]);
+    if ($personalization_settings !== NULL) {
+      $response->addCacheableDependency($personalization_settings);
+    }
+    return $response;
   }
 
   /**

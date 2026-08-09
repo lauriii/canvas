@@ -14,6 +14,7 @@ import {
   Flex,
   Heading,
   Link,
+  Skeleton,
   Text,
 } from '@radix-ui/themes';
 
@@ -168,16 +169,12 @@ const SegmentDetailsContent = ({ segment }: { segment: Segment }) => {
                   key={conditionId}
                   // A segment holds at most one rule of each type.
                   disabled={conditionId in rules}
+                  // Single-line items keep the menu's native hover and
+                  // disabled styling; the description surfaces as a tooltip.
+                  title={CONDITION_DESCRIPTIONS[conditionId]}
                   onSelect={() => handleAddRule(conditionId)}
                 >
-                  <Flex direction="column">
-                    <Text size="1" weight="medium">
-                      {CONDITION_LABELS[conditionId]}
-                    </Text>
-                    <Text size="1" color="gray">
-                      {CONDITION_DESCRIPTIONS[conditionId]}
-                    </Text>
-                  </Flex>
+                  {CONDITION_LABELS[conditionId]}
                 </DropdownMenu.Item>
               ))}
             </DropdownMenu.Content>
@@ -252,7 +249,25 @@ export default function SegmentDetails() {
   }
 
   if (isLoading) {
-    return <div>Loading segment...</div>;
+    // Mirror the loaded layout: back link, heading row, and rule cards.
+    return (
+      <Flex
+        direction="column"
+        gap="5"
+        maxWidth="960px"
+        data-testid="segment-details-loading"
+      >
+        <Flex direction="column" gap="3">
+          <Skeleton height="1rem" width="6rem" />
+          <Skeleton height="1.75rem" width="16rem" />
+        </Flex>
+        <Flex direction="column" gap="3">
+          <Skeleton height="1.2rem" width="20rem" />
+          <Skeleton height="6rem" width="100%" />
+          <Skeleton height="6rem" width="100%" />
+        </Flex>
+      </Flex>
+    );
   }
 
   if (error || !segment) {

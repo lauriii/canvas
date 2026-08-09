@@ -80,6 +80,13 @@ export interface DrupalSettings {
     siteUrl: string;
     // ⚠️ This is highly experimental and *will* be refactored.
     personalizationExtensionAvailable: boolean;
+    // Present when the personalization extension is installed. Names of the
+    // request headers the geolocation segment condition reads the visitor
+    // country and region from.
+    personalizationSettings?: {
+      countryHeader: string;
+      regionHeader: string;
+    };
     // ⚠️ This is highly experimental and *will* be refactored.
     canvasAiMaxFileSize: number;
     // Present when the user may generate Canvas Headless previews. Also gates

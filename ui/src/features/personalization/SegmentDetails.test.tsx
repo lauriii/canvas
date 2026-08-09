@@ -10,13 +10,14 @@ import type { Segment, SegmentRules } from '@/types/Personalization';
 
 const mocks = vi.hoisted(() => ({
   segment: undefined as Segment | undefined,
+  isLoading: false,
   updateSegment: vi.fn(async (_arg: unknown) => ({ data: {} })),
 }));
 
 vi.mock('@/services/personalization', () => ({
   useGetSegmentQuery: () => ({
     data: mocks.segment,
-    isLoading: false,
+    isLoading: mocks.isLoading,
     error: undefined,
   }),
   useUpdateSegmentMutation: () => [mocks.updateSegment, { isLoading: false }],
@@ -83,6 +84,7 @@ const saveRules = async (user: ReturnType<typeof userEvent.setup>) => {
 describe('SegmentDetails', () => {
   beforeEach(() => {
     mocks.segment = makeSegment(fullRules());
+    mocks.isLoading = false;
   });
 
   it('renders the segment and the existing rule settings', () => {
@@ -291,17 +293,34 @@ describe('SegmentDetails', () => {
 
     await user.click(screen.getByRole('button', { name: 'Add rule' }));
 
+    // Exact names: the items are single-line labels; the description lives
+    // in the title attribute, not in the accessible name.
     for (const name of [
-      /Query parameter/,
-      /UTM parameters/,
-      /Location/,
-      /Day of week/,
+      'Query parameter',
+      'UTM parameters',
+      'Location',
+      'Day of week',
     ]) {
       expect(screen.getByRole('menuitem', { name })).toHaveAttribute(
         'aria-disabled',
         'true',
       );
     }
+  });
+
+  it('describes each add-rule option in a title tooltip', async () => {
+    const user = userEvent.setup();
+    renderDetails();
+
+    await user.click(screen.getByRole('button', { name: 'Add rule' }));
+
+    expect(screen.getByRole('menuitem', { name: 'Location' })).toHaveAttribute(
+      'title',
+      'Match the visitor country or region',
+    );
+    expect(
+      screen.getByRole('menuitem', { name: 'Day of week' }),
+    ).toHaveAttribute('title', 'Match the day of the visit');
   });
 
   it('adds a rule of a type that is not present yet', async () => {
@@ -313,9 +332,9 @@ describe('SegmentDetails', () => {
 
     await user.click(screen.getByRole('button', { name: 'Add rule' }));
     expect(
-      screen.getByRole('menuitem', { name: /Query parameter/ }),
+      screen.getByRole('menuitem', { name: 'Query parameter' }),
     ).toHaveAttribute('aria-disabled', 'true');
-    const dayItem = screen.getByRole('menuitem', { name: /Day of week/ });
+    const dayItem = screen.getByRole('menuitem', { name: 'Day of week' });
     expect(dayItem).not.toHaveAttribute('aria-disabled');
     await user.click(dayItem);
 
@@ -325,6 +344,14 @@ describe('SegmentDetails', () => {
       query_parameter: fullRules().query_parameter,
       day_of_week: { id: 'day_of_week', negate: false, days: ['saturday'] },
     });
+  });
+
+  it('shows a skeleton while the segment loads', () => {
+    mocks.segment = undefined;
+    mocks.isLoading = true;
+    renderDetails();
+
+    expect(screen.getByTestId('segment-details-loading')).toBeInTheDocument();
   });
 
   it('warns at the top when the segment is disabled', () => {

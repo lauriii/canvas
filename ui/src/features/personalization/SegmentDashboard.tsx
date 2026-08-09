@@ -1,9 +1,8 @@
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PlusIcon } from '@radix-ui/react-icons';
-import { Button, Flex, Heading, Text } from '@radix-ui/themes';
+import { Button, Card, Flex, Heading, Skeleton, Text } from '@radix-ui/themes';
 
-import DefaultSitePanel from '@/components/personalization/DefaultSitePanel';
 import SegmentList from '@/components/personalization/SegmentList';
 import CreateSegmentDialog from '@/features/personalization/dialogs/CreateSegmentDialog';
 import DeleteSegmentDialog from '@/features/personalization/dialogs/DeleteSegmentDialog';
@@ -81,7 +80,26 @@ export default function SegmentDashboard() {
   );
 
   if (isLoading) {
-    return <div>Loading segments...</div>;
+    // Mirror the loaded layout: heading row with its action button, then
+    // the segment table card.
+    return (
+      <Flex direction="column" gap="6" data-testid="segment-dashboard-loading">
+        <Flex justify="between" align="start" gap="3">
+          <Flex direction="column" gap="2">
+            <Skeleton height="1.75rem" width="10rem" />
+            <Skeleton height="1.2rem" width="24rem" />
+          </Flex>
+          <Skeleton height="2rem" width="9rem" mt="1" />
+        </Flex>
+        <Card>
+          <Flex direction="column" gap="3" p="2">
+            <Skeleton height="1.2rem" width="100%" />
+            <Skeleton height="1.2rem" width="100%" />
+            <Skeleton height="1.2rem" width="100%" />
+          </Flex>
+        </Card>
+      </Flex>
+    );
   }
 
   if (error) {
@@ -105,7 +123,6 @@ export default function SegmentDashboard() {
           Create segment
         </Button>
       </Flex>
-      <DefaultSitePanel />
       <SegmentList
         segments={Object.values(segments)}
         onCreateSegment={() => setIsCreateDialogOpen(true)}
