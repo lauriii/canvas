@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Drupal\Tests\canvas_personalization\Kernel\Plugin\Condition;
+namespace Drupal\Tests\canvas_personalization\Kernel\Plugin\SegmentCondition;
 
 use Drupal\canvas_personalization\Entity\Segment;
-use Drupal\canvas_personalization\Plugin\Condition\UtmParameters;
+use Drupal\canvas_personalization\Plugin\SegmentCondition\UtmParameters;
 use Drupal\Tests\canvas_personalization\Kernel\Config\SegmentValidationTest;
 use PHPUnit\Framework\Attributes\Group;
 
@@ -18,7 +18,6 @@ final class UtmParametersValidationTest extends SegmentValidationTest {
 
   protected function setUp(): void {
     parent::setUp();
-    $this->installEntitySchema('segment');
     $this->entity = Segment::create([
       'id' => 'test_utm_params_segment',
       'label' => 'Test UTM params segment',

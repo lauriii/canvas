@@ -8,16 +8,16 @@ use Drupal\canvas\ClientSideRepresentation;
 use Drupal\canvas_personalization\Access\SegmentAccessControlHandler;
 use Drupal\canvas_personalization\Form\SegmentForm;
 use Drupal\canvas_personalization\Form\SegmentRuleForm;
+use Drupal\canvas_personalization\SegmentCondition\SegmentConditionInterface;
+use Drupal\canvas_personalization\SegmentCondition\SegmentConditionManager;
 use Drupal\canvas_personalization\SegmentListBuilder;
 use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
-use Drupal\Core\Condition\ConditionPluginCollection;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\Core\Entity\EntityDeleteForm;
 use Drupal\Core\Entity\Query\QueryInterface;
-use Drupal\Core\Executable\ExecutableManagerInterface;
-use Drupal\Core\Plugin\FilteredPluginManagerInterface;
+use Drupal\Core\Plugin\DefaultLazyPluginCollection;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 
@@ -98,23 +98,23 @@ final class Segment extends ConfigEntityBase implements SegmentInterface {
   /**
    * The segmentation rules lazy collection of plugin instances.
    */
-  protected ?ConditionPluginCollection $segmentRulesPluginCollection;
+  protected ?DefaultLazyPluginCollection $segmentRulesPluginCollection;
 
   /**
-   * The condition plugin manager for instantiating the segmentation rules.
+   * The segment condition plugin manager for instantiating the rules.
    */
-  protected (ExecutableManagerInterface&FilteredPluginManagerInterface)|NULL $conditionPluginManager;
+  protected ?SegmentConditionManager $segmentConditionManager;
 
   /**
    * {@inheritdoc}
    */
   public function addSegmentRule(string $plugin_id, array $settings): self {
-    $condition_definitions = $this->conditionPluginManager()->getFilteredDefinitions('canvas_personalization');
+    $condition_definitions = $this->segmentConditionManager()->getDefinitions();
     if (!isset($condition_definitions[$plugin_id])) {
       $valid_ids = implode(', ', \array_keys($condition_definitions));
       throw new PluginNotFoundException($plugin_id, \sprintf('The "%s" plugin does not exist. Valid plugin IDs for adding as segment rules are: %s', $plugin_id, $valid_ids));
     }
-    $this->getSegmentRulesPluginCollection()->addInstanceId($plugin_id, $settings);
+    $this->getSegmentRulesPluginCollection()->addInstanceId($plugin_id, ['id' => $plugin_id] + $settings);
     return $this;
   }
 
@@ -142,21 +142,21 @@ final class Segment extends ConfigEntityBase implements SegmentInterface {
   /**
    * {@inheritdoc}
    */
-  public function getSegmentRulesPluginCollection(): ConditionPluginCollection {
+  public function getSegmentRulesPluginCollection(): DefaultLazyPluginCollection {
     if (!isset($this->segmentRulesPluginCollection)) {
-      $this->segmentRulesPluginCollection = new ConditionPluginCollection($this->conditionPluginManager(), $this->getSegmentRules());
+      $this->segmentRulesPluginCollection = new DefaultLazyPluginCollection($this->segmentConditionManager(), $this->getSegmentRules());
     }
     return $this->segmentRulesPluginCollection;
   }
 
   /**
-   * Gets the condition plugin manager.
+   * Gets the segment condition plugin manager.
    */
-  protected function conditionPluginManager(): ExecutableManagerInterface&FilteredPluginManagerInterface {
-    if (!isset($this->conditionPluginManager)) {
-      $this->conditionPluginManager = \Drupal::service(ExecutableManagerInterface::class);
+  protected function segmentConditionManager(): SegmentConditionManager {
+    if (!isset($this->segmentConditionManager)) {
+      $this->segmentConditionManager = \Drupal::service(SegmentConditionManager::class);
     }
-    return $this->conditionPluginManager;
+    return $this->segmentConditionManager;
   }
 
   /**
@@ -165,6 +165,7 @@ final class Segment extends ConfigEntityBase implements SegmentInterface {
   public function summary(): array {
     $summary = [];
     foreach ($this->getSegmentRulesPluginCollection() as $segment_rule) {
+      \assert($segment_rule instanceof SegmentConditionInterface);
       $summary[] = $segment_rule->summary();
     }
     if (empty($summary)) {

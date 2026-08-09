@@ -6,9 +6,9 @@ namespace Drupal\canvas_personalization\Form;
 
 use Drupal\canvas_personalization\Entity\Segment;
 use Drupal\canvas_personalization\Entity\SegmentInterface;
+use Drupal\canvas_personalization\SegmentCondition\SegmentConditionInterface;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Html;
-use Drupal\Core\Condition\ConditionInterface;
 use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
@@ -60,7 +60,7 @@ final class SegmentForm extends EntityForm {
       ],
     ];
     foreach ($this->entity->getSegmentRulesPluginCollection() as $rule) {
-      \assert($rule instanceof ConditionInterface);
+      \assert($rule instanceof SegmentConditionInterface);
       $rule_id = $rule->getPluginId();
       $plugin_definition = $rule->getPluginDefinition();
       \assert(\is_array($plugin_definition) && \array_key_exists('label', $plugin_definition));

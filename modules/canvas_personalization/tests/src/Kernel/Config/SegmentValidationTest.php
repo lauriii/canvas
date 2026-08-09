@@ -69,10 +69,10 @@ class SegmentValidationTest extends BetterConfigEntityValidationTestBase {
       'description' => 'Test segment description',
       'status' => TRUE,
       'rules' => [
-        'current_theme' => [
-          'id' => 'current_theme',
-          'theme' => 'stark',
+        'day_of_week' => [
+          'id' => 'day_of_week',
           'negate' => FALSE,
+          'days' => ['saturday', 'sunday'],
         ],
       ],
     ]);
@@ -108,15 +108,18 @@ class SegmentValidationTest extends BetterConfigEntityValidationTestBase {
       [],
       [],
     ];
+    // All shipped conditions are provided by canvas_personalization itself,
+    // which never becomes an explicit dependency of its own config.
     yield 'a module provided plugin' => [
       [
-        'user_role' => [
-          'id' => 'user_role',
-          'roles' => ['authenticated' => 'authenticated'],
+        'geolocation' => [
+          'id' => 'geolocation',
           'negate' => FALSE,
+          'countries' => ['BE'],
+          'regions' => [],
         ],
       ],
-      ['module' => ['user']],
+      [],
     ];
   }
 
@@ -151,7 +154,8 @@ class SegmentValidationTest extends BetterConfigEntityValidationTestBase {
       ],
       'The "non_existing_plugin" plugin does not exist.',
     ];
-    yield 'an opted-out existing plugin' => [
+    // Core Condition API plugins are not segment conditions.
+    yield 'a core condition plugin' => [
       [
         'request_path' => [
           'id' => 'request_path',

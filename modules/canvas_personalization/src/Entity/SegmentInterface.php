@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace Drupal\canvas_personalization\Entity;
 
 use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
-use Drupal\Core\Condition\ConditionPluginCollection;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\EntityWithPluginCollectionInterface;
+use Drupal\Core\Plugin\DefaultLazyPluginCollection;
 
 /**
  * Provides an interface defining a personalization segment entity type.
  *
  * We can't really shape arrays, as we don't know the plugins themselves.
  *
- * @phpstan-type ConditionPluginSettings array{id: string, negate: bool, context_mapping?: array<string, string> }
+ * @phpstan-type SegmentConditionSettings array{id: string, negate: bool}
  */
 interface SegmentInterface extends ConfigEntityInterface, EntityWithPluginCollectionInterface, CanvasHttpApiEligibleConfigEntityInterface {
 
@@ -24,7 +24,7 @@ interface SegmentInterface extends ConfigEntityInterface, EntityWithPluginCollec
 
   public function getSegmentRules(): array;
 
-  public function getSegmentRulesPluginCollection(): ConditionPluginCollection;
+  public function getSegmentRulesPluginCollection(): DefaultLazyPluginCollection;
 
   /**
    * @return array<string|\Stringable>

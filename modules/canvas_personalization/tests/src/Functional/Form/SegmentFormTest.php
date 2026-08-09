@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas_personalization\Functional\Form;
 
 use Drupal\canvas_personalization\Entity\Segment;
-use Drupal\canvas_personalization\Plugin\Condition\UtmParameters;
+use Drupal\canvas_personalization\Plugin\SegmentCondition\UtmParameters;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
@@ -42,14 +42,7 @@ final class SegmentFormTest extends BrowserTestBase {
   ];
 
   /**
-   * {@inheritdoc}
-   */
-  protected function setUp(): void {
-    parent::setUp();
-  }
-
-  /**
-   * Test callback.
+   * Tests creating a segment and managing its rules through the forms.
    */
   public function testCreatingSegment(): void {
     $admin_user = $this->drupalCreateUser([
@@ -73,8 +66,9 @@ final class SegmentFormTest extends BrowserTestBase {
     $this->assertSession()->addressEquals('admin/structure/segment/my_segment');
     $this->clickLink('New segment rule');
     $edit = [
-      'plugin_id' => 'current_theme',
-      'settings[theme]' => 'stark',
+      'plugin_id' => 'day_of_week',
+      'settings[days][saturday]' => TRUE,
+      'settings[days][sunday]' => TRUE,
       'settings[negate]' => FALSE,
     ];
     $this->submitForm($edit, 'Save');
@@ -82,30 +76,43 @@ final class SegmentFormTest extends BrowserTestBase {
 
     $this->clickLink('New segment rule');
     $edit = [
-      'plugin_id' => 'user_role',
-      'settings[roles][authenticated]' => TRUE,
+      'plugin_id' => 'geolocation',
+      'settings[countries]' => 'nl, be',
+      'settings[regions]' => '',
       'settings[negate]' => TRUE,
     ];
     $this->submitForm($edit, 'Save');
     $this->assertSession()->statusMessageContains('Updated personalization segment My segment.');
     $this->assertSession()->addressEquals('admin/structure/segment/my_segment');
-    $this->assertSession()->elementTextContains('xpath', '//table[@id="rules-id"]', "Current Theme");
-    $this->assertSession()->elementTextContains('xpath', '//table[@id="rules-id"]', "User Role");
+    $this->assertSession()->elementTextContains('xpath', '//table[@id="rules-id"]', "Day of week");
+    $this->assertSession()->elementTextContains('xpath', '//table[@id="rules-id"]', "Geolocation");
+
+    $this->clickLink('New segment rule');
+    $edit = [
+      'plugin_id' => 'query_parameter',
+      'settings[parameter]' => 'coupon',
+      'settings[value]' => 'BLACKFRIDAY',
+      'settings[matching]' => 'exact',
+      'settings[negate]' => FALSE,
+    ];
+    $this->submitForm($edit, 'Save');
+    $this->assertSession()->statusMessageContains('Updated personalization segment My segment.');
 
     $this->clickLink('New segment rule');
     $edit = [
       'plugin_id' => 'utm_parameters',
-      'settings[parameters][_new_parameter][key]' => UtmParameters::CUSTOM,
-      'settings[parameters][_new_parameter][custom_key]' => 'utm_author',
-      'settings[parameters][_new_parameter][value]' => 'Jim Morrison',
+      'settings[new_parameter][key]' => UtmParameters::CUSTOM,
+      'settings[new_parameter][custom_key]' => 'utm_author',
+      'settings[new_parameter][value]' => 'Jim Morrison',
+      'settings[new_parameter][matching]' => 'exact',
+      'settings[all]' => TRUE,
       'settings[negate]' => FALSE,
     ];
     $this->submitForm($edit, 'Save');
     $this->assertSession()->statusMessageContains('Updated personalization segment My segment.');
     $this->assertSession()->addressEquals('admin/structure/segment/my_segment');
-    $this->assertSession()->elementTextContains('xpath', '//table[@id="rules-id"]', "Current Theme");
-    $this->assertSession()->elementTextContains('xpath', '//table[@id="rules-id"]', "User Role");
-    $this->assertSession()->elementTextContains('xpath', '//table[@id="rules-id"]', "UTM Parameters");
+    $this->assertSession()->elementTextContains('xpath', '//table[@id="rules-id"]', "Query parameter");
+    $this->assertSession()->elementTextContains('xpath', '//table[@id="rules-id"]', "UTM parameters");
 
     // As we cannot have repeated rules, verify the form doesn't fail
     // when none are available.
@@ -113,38 +120,47 @@ final class SegmentFormTest extends BrowserTestBase {
     $this->assertSession()->elementTextContains('xpath', '//form[contains(@class,"segment-add-rule-form-form")]', "No applicable conditions found.");
 
     // I can't delete a rule without a valid csrf token.
-    $this->drupalGet('admin/structure/segment/my_segment/rule-delete/current_theme');
+    $this->drupalGet('admin/structure/segment/my_segment/rule-delete/day_of_week');
     $this->assertSession()->statusCodeEquals(Response::HTTP_FORBIDDEN);
 
     // If I delete a rule, I can re-add it.
     $this->drupalGet('admin/structure/segment/my_segment');
-    $this->clickLink('Delete Current Theme');
-    $this->assertSession()->elementTextNotContains('xpath', '//table[@id="rules-id"]', "Current Theme");
-    $this->assertSession()->elementTextContains('xpath', '//table[@id="rules-id"]', "User Role");
-    $this->assertSession()->elementTextContains('xpath', '//table[@id="rules-id"]', "UTM Parameters");
+    $this->clickLink('Delete Day of week');
+    $this->assertSession()->elementTextNotContains('xpath', '//table[@id="rules-id"]', "Day of week");
+    $this->assertSession()->elementTextContains('xpath', '//table[@id="rules-id"]', "Geolocation");
+    $this->assertSession()->elementTextContains('xpath', '//table[@id="rules-id"]', "UTM parameters");
 
     $this->clickLink('New segment rule');
     $edit = [
-      'plugin_id' => 'current_theme',
-      'settings[theme]' => 'stark',
+      'plugin_id' => 'day_of_week',
+      'settings[days][saturday]' => TRUE,
       'settings[negate]' => FALSE,
     ];
     $this->submitForm($edit, 'Save');
     $this->assertSession()->statusMessageContains('Updated personalization segment My segment.');
     $this->assertSession()->addressEquals('admin/structure/segment/my_segment');
-    $this->assertSession()->elementTextContains('xpath', '//table[@id="rules-id"]', "Current Theme");
-    $this->assertSession()->elementTextContains('xpath', '//table[@id="rules-id"]', "User Role");
-    $this->assertSession()->elementTextContains('xpath', '//table[@id="rules-id"]', "UTM Parameters");
+    $this->assertSession()->elementTextContains('xpath', '//table[@id="rules-id"]', "Day of week");
 
     $segment = Segment::load('my_segment');
     \assert($segment instanceof Segment);
     $this->assertEquals([
-      'user_role' => [
-        'id' => 'user_role',
+      'day_of_week' => [
+        'id' => 'day_of_week',
+        'negate' => FALSE,
+        'days' => ['saturday'],
+      ],
+      'geolocation' => [
+        'id' => 'geolocation',
         'negate' => TRUE,
-        'roles' => [
-          'authenticated' => 'authenticated',
-        ],
+        'countries' => ['BE', 'NL'],
+        'regions' => [],
+      ],
+      'query_parameter' => [
+        'id' => 'query_parameter',
+        'negate' => FALSE,
+        'parameter' => 'coupon',
+        'value' => 'BLACKFRIDAY',
+        'matching' => 'exact',
       ],
       'utm_parameters' => [
         'id' => 'utm_parameters',
@@ -158,14 +174,11 @@ final class SegmentFormTest extends BrowserTestBase {
           ],
         ],
       ],
-      'current_theme' => [
-        'id' => 'current_theme',
-        'negate' => FALSE,
-        'theme' => 'stark',
-      ],
     ], $segment->get('rules'));
 
-    $this->assertSame('current_theme', array_key_first($segment->getSegmentRules()));
+    // The `orderby: key` in the config schema stores rules sorted by plugin
+    // ID, independent of insertion order.
+    $this->assertSame('day_of_week', array_key_first($segment->getSegmentRules()));
   }
 
 }
