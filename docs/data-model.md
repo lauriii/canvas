@@ -183,8 +183,9 @@ The switch's explicit input holds the ordered list of variant IDs (the priority 
 its `variant_id`, the `Segment` config entity IDs it targets, and an optional `disabled` flag. A case whose
 `variant_id` is `default` (targeting the locked `default` `Segment`) is the fallback subtree.
 
-This allows Canvas to efficiently determine during live rendering which subtrees need not the default subtree to be
-rendered, but the one for the first matching variant: see 3.3. During editor preview, all cases are rendered.
+During live rendering, Canvas negotiates each switch once and renders exactly one case's subtree: the first variant
+in the switch's priority order whose segments all match, falling back to the default case (see 3.3). During editor
+preview, all cases are rendered.
 
 An earlier design stored override subtrees under composite top-level keys in a JSON blob
 (`<component instance UUID>/override.segment:<segment ID>`). That design predates the current relational tree storage

@@ -33,8 +33,9 @@ an existing subtree. See [Grafting on Wikipedia](https://en.wikipedia.org/wiki/G
 ## 2. Product requirements
 
 * MUST be possible for the Site Builder to define Segments for which they will provide a Personalization Variant.
-* MUST be possible for the Site Builder to select different values for each Segment Rule. Multiple values within one
-  rule are combined with OR (e.g. _"Location = Colorado OR Massachusetts"_).
+* MUST be possible for the Site Builder to select different values for each Segment Rule. How multiple values within
+  one rule combine is defined by that rule's plugin — typically OR (e.g. _"Location = Colorado OR Massachusetts"_);
+  some rules offer an all/any toggle (e.g. UTM parameters).
 * MUST be possible for the Site Builder to add multiple Segment Rules to each Segment. Rules are combined with AND
   (e.g. _"Location = Colorado OR Massachusetts AND Day = Saturday OR Sunday"_). Rules can be negated.
 * MUST be possible for the Site Builder to include a Segment Rule defined in a third-party tool like Mautic. See §6.
@@ -47,7 +48,7 @@ an existing subtree. See [Grafting on Wikipedia](https://en.wikipedia.org/wiki/G
   and to add/modify/delete `component instance`s per Variant.
 * Personalized pages MUST stay cacheable for anonymous users and MUST NOT leak a wrong variant from any cache.
 * Personalized pages MUST NOT require client-side variant swapping: the correct variant is in the first HTML response,
-  with no flicker, no layout shift, and no personalization JavaScript on the live page.
+  with no flicker, no layout shift, and no render-blocking personalization JavaScript on the live page.
 
 ## 3. Segments
 
@@ -130,7 +131,10 @@ The `p13n` component source defines two non-discoverable components. See `docs/d
   segments: ['halloween']    # Segment config entity IDs; ALL must match
   disabled: false            # optional; disabled cases are skipped in negotiation
   ```
-* A case with `variant_id: default` / `segments: ['default']` is the fallback and should always be present.
+* A case with `variant_id: default` / `segments: ['default']` is the fallback and should always be present. Because
+  negotiation is strictly first-match-wins and the `default` segment matches everyone, the default variant MUST be
+  last in `variants` — any variant listed after one that targets a match-everyone segment is unreachable. The
+  authoring UI enforces default-last; hand-written trees must preserve it.
 * The user-facing variant name lives in the component instance `label`, not in the inputs.
 * Page-level personalization is simply a root-level switch whose cases contain full page trees.
 
@@ -176,16 +180,22 @@ via the `Expires` header. Three mechanisms keep personalization correct and fast
    country header rather than URL alone. A wrong variant can never be served from cache, by construction. External
    edge caches that set the geo header themselves can additionally key on it and regain full-page edge caching.
 
-Both mechanisms only engage on requests where negotiation actually ran; caching of non-personalized pages is
-untouched.
+Both mechanisms derive their decision from the response itself: the segment cache tags identify which segments
+influenced it, and those segments' conditions *declare* their cacheability from configuration alone (see §3.2 —
+declared cache contexts must never depend on the current request's values). This matters because a personalized
+response is often served by `dynamic_page_cache` without any evaluation running on that request — the exclusion and
+expiry must hold there too. Responses without segment tags are never touched, so caching of non-personalized pages is
+unchanged.
 
 ## 6. Third-party segmentation providers
 
 A provider integration (Mautic is the open-source reference) is one `SegmentCondition` plugin in the provider's
 module, plus config schema. The contract gives an integration everything it needs:
 
-* **Credentials** live in the plugin's configuration (validated by config schema), e.g. an API key and a provider
-  segment/list identifier.
+* **Credentials**: keep the secret itself out of the plugin's configuration — segment rules are exported with site
+  configuration and readable over the segment HTTP API. Store a secret *reference* in the plugin settings (the
+  provider segment/list identifier is fine there) and resolve the actual key at evaluation time from site settings,
+  an environment variable, or a key management module.
 * **Membership lookups** map a request-derived identifier — typically the provider's first-party cookie — to segment
   membership via the provider's API. Lookups should be cached (`cache.default`, bounded TTL) so the provider is
   consulted at most once per identifier per TTL. The condition declares the matching cache context
