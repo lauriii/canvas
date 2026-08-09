@@ -43,9 +43,12 @@ something finished.
 {Drupal.t('Published', {}, { context: 'Canvas page status' })}
 ```
 
-Placeholder prefixes behave as they do in PHP: `@` escapes the value, `%` also
-wraps it in `<em>`, and `:` is for URLs. The editor UI renders the result as
-text, so use `@`.
+Placeholder prefixes are not the same as PHP's. `Drupal.formatString()` handles
+exactly two: `@` escapes the value, and `!` passes it through unescaped. Every
+other prefix, `%` and `:` included, is escaped and wrapped in
+`<em class="placeholder">`. There is no URL handling in JavaScript, so a `:url`
+placeholder renders as themed text rather than a link. Use `@` unless you
+specifically want the placeholder styling.
 
 ## Rules the extraction step imposes
 

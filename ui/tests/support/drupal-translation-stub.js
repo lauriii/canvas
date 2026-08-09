@@ -12,13 +12,70 @@
  */
 
 /**
+ * Escapes a value for insertion as text, like Drupal.checkPlain().
+ */
+function checkPlain(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * Substitutes placeholders, like Drupal.stringReplace().
+ *
+ * Longest key first, and replaced text is never searched again, so a value
+ * containing another placeholder's name cannot be substituted into.
+ */
+function stringReplace(str, args, keys) {
+  if (str.length === 0) {
+    return str;
+  }
+  if (!Array.isArray(keys)) {
+    keys = Object.keys(args || {});
+    keys.sort((a, b) => a.length - b.length);
+  }
+  if (keys.length === 0) {
+    return str;
+  }
+  const key = keys.pop();
+  const fragments = str.split(key);
+  if (keys.length) {
+    for (let i = 0; i < fragments.length; i++) {
+      fragments[i] = stringReplace(fragments[i], args, keys.slice(0));
+    }
+  }
+  return fragments.join(args[key]);
+}
+
+/**
  * Replaces placeholders in a string, like Drupal.formatString().
+ *
+ * The prefix decides the treatment: `@` escapes, `!` passes through, and
+ * anything else is escaped and wrapped by the `placeholder` theme function.
+ * There is no `:` URL handling in JavaScript, unlike PHP's t().
  */
 function formatString(str, args) {
-  return Object.keys(args).reduce(
-    (result, key) => result.replaceAll(key, String(args[key])),
-    str,
-  );
+  const processedArgs = {};
+  Object.keys(args || {}).forEach((key) => {
+    switch (key.charAt(0)) {
+      case '@':
+        processedArgs[key] = checkPlain(args[key]);
+        break;
+
+      case '!':
+        processedArgs[key] = args[key];
+        break;
+
+      default:
+        processedArgs[key] =
+          `<em class="placeholder">${checkPlain(args[key])}</em>`;
+        break;
+    }
+  });
+  return stringReplace(str, processedArgs, null);
 }
 
 /**

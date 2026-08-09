@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   countCallSites,
-  countInlineContexts,
+  countContextArguments,
   extractStrings,
   PLURAL_DELIMITER,
   verifyBundleIsScannable,
@@ -90,16 +90,27 @@ describe('extractStrings', () => {
   });
 });
 
-describe('countInlineContexts', () => {
-  it('counts only inline object literals', () => {
+describe('countContextArguments', () => {
+  it('counts a call passing an options argument, readable or not', () => {
     expect(
-      countInlineContexts(`Drupal.t('Add', {}, { context: 'Canvas' });`),
+      countContextArguments(`x = Drupal.t('Add', {}, { context: 'Canvas' });`),
     ).toBe(1);
+    expect(countContextArguments(`x = Drupal.t('Add', {}, options);`)).toBe(1);
     expect(
-      countInlineContexts(
-        `const c = { context: 'Canvas' };\nDrupal.t('Add', {}, c);`,
+      countContextArguments(
+        `x = Drupal.formatPlural(n, '1 x', '@count x', {}, opts);`,
       ),
     ).toBe(1);
+  });
+
+  it('does not count a call with no options argument', () => {
+    expect(countContextArguments(`x = Drupal.t('Add');`)).toBe(0);
+    expect(
+      countContextArguments(`x = Drupal.t('Hi @name', { '@name': n });`),
+    ).toBe(0);
+    expect(
+      countContextArguments(`x = Drupal.formatPlural(n, '1 x', '@count x');`),
+    ).toBe(0);
   });
 });
 
@@ -134,7 +145,7 @@ describe('verifyBundleIsScannable', () => {
     expect(problems[0]).toContain('only 0 extractable string(s)');
   });
 
-  it('reports a context handed over as a variable', () => {
+  it('reports a context handed over as a shared variable', () => {
     const source = scratch({
       'Bad.tsx': [
         `const options = { context: 'Canvas' };`,
@@ -150,7 +161,39 @@ describe('verifyBundleIsScannable', () => {
     ]);
 
     expect(problems).toHaveLength(1);
-    expect(problems[0]).toContain('inline { context');
+    expect(problems[0]).toContain('pass an options argument');
+  });
+
+  it('reports a context handed over as a function parameter', () => {
+    // Nothing in this file is an inline literal, so counting literals would see
+    // zero and zero and wave it through, while Drupal registers "Add" with an
+    // empty context and the UI looks it up with one.
+    const source = scratch({
+      'Bad.tsx': [
+        `export const a = (options) => Drupal.t('Add', {}, options);`,
+      ].join('\n'),
+    });
+    const bundle = scratch({
+      'index.js': `x=Drupal.t("Add");`,
+    });
+
+    const { problems } = verifyBundleIsScannable(source, [
+      path.join(bundle, 'index.js'),
+    ]);
+
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain('pass an options argument');
+  });
+
+  it('accepts an inline context literal', () => {
+    const source = scratch({
+      'Ok.tsx': `export const a = () => Drupal.t('Add', {}, { context: 'Canvas component' });`,
+    });
+    const bundle = scratch({ 'index.js': MINIFIED });
+
+    expect(
+      verifyBundleIsScannable(source, [path.join(bundle, 'index.js')]).problems,
+    ).toEqual([]);
   });
 
   it('reports a string that did not survive into the bundle', () => {

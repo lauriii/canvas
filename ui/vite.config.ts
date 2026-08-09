@@ -38,12 +38,17 @@ export default defineConfig(({ command, mode }) => {
         name: 'verify-translatable-strings',
         writeBundle(options, bundle) {
           const outDir = options.dir ?? 'dist/assets';
-          const emitted = Object.keys(bundle)
-            .filter((name) => name.endsWith('.js'))
-            .map((name) => path.join(outDir, name));
+          // Only the entry bundle, because `canvas.libraries.yml` attaches only
+          // that file and Drupal scans what is attached. A string that ended up
+          // in a lazily loaded chunk would never be offered for translation, so
+          // checking the chunks too would hide the problem rather than find it.
+          // @see canvas.libraries.yml
+          const entries = Object.values(bundle)
+            .filter((chunk) => chunk.type === 'chunk' && chunk.isEntry)
+            .map((chunk) => path.join(outDir, chunk.fileName));
           const { problems, strings, callSites } = verifyBundleIsScannable(
             path.resolve(__dirname, 'src'),
-            emitted,
+            entries,
           );
           if (problems.length) {
             throw new Error(
