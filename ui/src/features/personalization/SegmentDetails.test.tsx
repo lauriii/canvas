@@ -114,8 +114,10 @@ describe('SegmentDetails', () => {
       'All parameters must match',
     );
 
-    // Geolocation rule, negated.
-    expect(screen.getByLabelText('Countries')).toHaveValue('US, CA');
+    // Geolocation rule, negated. Countries render as name chips.
+    expect(screen.getByText('United States (US)')).toBeInTheDocument();
+    expect(screen.getByText('Canada (CA)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Countries')).toHaveValue('');
     expect(screen.getByLabelText('Regions (optional)')).toHaveValue('NY');
     expect(screen.getByTestId('rule-summary-geolocation')).toHaveTextContent(
       'Everyone except: the visitor is in US, CA (regions: NY)',
@@ -188,13 +190,13 @@ describe('SegmentDetails', () => {
     });
   });
 
-  it('saves an edited geolocation rule with normalized country codes', async () => {
+  it('saves an edited geolocation rule from the country picker', async () => {
     const user = userEvent.setup();
     renderDetails();
 
-    const countriesField = screen.getByLabelText('Countries');
-    await user.clear(countriesField);
-    await user.type(countriesField, 'us, de');
+    await user.click(screen.getByRole('button', { name: 'Remove Canada' }));
+    await user.type(screen.getByLabelText('Countries'), 'germ');
+    await user.click(screen.getByRole('option', { name: 'Germany (DE)' }));
 
     const { changes } = await saveRules(user);
     expect(changes.rules).toEqual({
@@ -206,6 +208,30 @@ describe('SegmentDetails', () => {
         regions: ['NY'],
       },
     });
+  });
+
+  it('suggests countries by name and adds removable chips', async () => {
+    const user = userEvent.setup();
+    renderDetails();
+
+    const countriesField = screen.getByLabelText('Countries');
+    await user.type(countriesField, 'belg');
+    await user.click(screen.getByRole('option', { name: 'Belgium (BE)' }));
+
+    // The chip shows the country name with its code, and the input clears
+    // for the next search.
+    expect(screen.getByText('Belgium (BE)')).toBeInTheDocument();
+    expect(countriesField).toHaveValue('');
+
+    // Already selected countries are not suggested again.
+    await user.type(countriesField, 'belg');
+    expect(
+      screen.queryByRole('option', { name: 'Belgium (BE)' }),
+    ).not.toBeInTheDocument();
+    await user.clear(countriesField);
+
+    const { changes } = await saveRules(user);
+    expect(changes.rules.geolocation?.countries).toEqual(['US', 'CA', 'BE']);
   });
 
   it('saves an edited day of week rule in week order', async () => {

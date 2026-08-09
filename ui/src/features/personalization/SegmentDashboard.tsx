@@ -96,10 +96,7 @@ export default function SegmentDashboard() {
           Create segment
         </Button>
       </Flex>
-      <DefaultSitePanel
-        onClickEdit={() => navigate('/editor')}
-        onClickPreview={() => navigate('/preview/full')}
-      />
+      <DefaultSitePanel />
       <SegmentList
         segments={Object.values(segments)}
         onCreateSegment={() => setIsCreateDialogOpen(true)}

@@ -5,7 +5,9 @@ import {
   filterSlotComponentsForPreview,
   findRootSwitch,
   findSwitchNodes,
+  getCaseSegmentIds,
   getPreviewedVariant,
+  humanizeVariantId,
 } from './personalizationUtils';
 
 import type {
@@ -66,6 +68,34 @@ const region: RegionNode = {
 };
 
 describe('personalizationUtils', () => {
+  describe('humanizeVariantId', () => {
+    it('formats machine names as sentence case', () => {
+      expect(humanizeVariantId('coupon_campaign')).toBe('Coupon campaign');
+      expect(humanizeVariantId('offer')).toBe('Offer');
+      expect(humanizeVariantId('summer_sale_2024')).toBe('Summer sale 2024');
+      expect(humanizeVariantId('__spaced__out__')).toBe('Spaced out');
+    });
+
+    it('labels the default variant', () => {
+      expect(humanizeVariantId('default')).toBe('Default');
+    });
+
+    it('passes through IDs without word characters', () => {
+      expect(humanizeVariantId('')).toBe('');
+      expect(humanizeVariantId('___')).toBe('___');
+    });
+  });
+
+  describe('getCaseSegmentIds', () => {
+    it('returns the segment IDs of a case', () => {
+      expect(getCaseSegmentIds(model, caseA)).toEqual(['seg_a']);
+    });
+
+    it('returns an empty list for cases without segments', () => {
+      expect(getCaseSegmentIds(model, makeCase('unknown'))).toEqual([]);
+    });
+  });
+
   it('returns the default variant when no preview choice was made', () => {
     expect(getPreviewedVariant({}, 'switch-1')).toBe('default');
     expect(getPreviewedVariant({ 'switch-1': 'a' }, 'switch-1')).toBe('a');

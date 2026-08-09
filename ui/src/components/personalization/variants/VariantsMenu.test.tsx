@@ -1,7 +1,8 @@
 import { Provider } from 'react-redux';
-import { describe, expect, it, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Theme } from '@radix-ui/themes';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { makeStore } from '@/app/store';
@@ -25,8 +26,8 @@ import type { AppStore } from '@/app/store';
 import type * as ComponentAndLayoutService from '@/services/componentAndLayout';
 import type * as PersonalizationService from '@/services/personalization';
 
-const mocks = vi.hoisted(() => ({
-  segments: {
+const mocks = vi.hoisted(() => {
+  const baseSegments = {
     default: {
       id: 'default',
       label: 'Everyone (default)',
@@ -39,12 +40,16 @@ const mocks = vi.hoisted(() => ({
       status: true,
       weight: 0,
     },
-  },
-  components: {
-    'p13n.switch': { id: 'p13n.switch', version: 'v1', name: 'Switch' },
-    'p13n.case': { id: 'p13n.case', version: 'v1', name: 'Case' },
-  },
-}));
+  };
+  return {
+    baseSegments,
+    segments: baseSegments as Record<string, (typeof baseSegments)['default']>,
+    components: {
+      'p13n.switch': { id: 'p13n.switch', version: 'v1', name: 'Switch' },
+      'p13n.case': { id: 'p13n.case', version: 'v1', name: 'Case' },
+    },
+  };
+});
 
 vi.mock('@/services/personalization', async (importOriginal) => {
   const actual = await importOriginal<typeof PersonalizationService>();
@@ -120,21 +125,30 @@ const renderMenu = (store: AppStore) =>
   render(
     <Provider store={store}>
       <Theme>
-        <VariantsMenu />
+        <MemoryRouter>
+          <VariantsMenu />
+        </MemoryRouter>
       </Theme>
     </Provider>,
   );
 
 describe('VariantsMenu', () => {
-  it('personalizes the page through the menu action', async () => {
+  beforeEach(() => {
+    mocks.segments = mocks.baseSegments;
+  });
+
+  it('personalizes the page after confirmation', async () => {
     const user = userEvent.setup();
     const store = buildStore();
     renderMenu(store);
 
     await user.click(screen.getByRole('button', { name: 'Personalize' }));
-    await user.click(
-      screen.getByRole('menuitem', { name: 'Personalize this page' }),
-    );
+    expect(
+      screen.getByText(
+        'This wraps the current page in a default variant. You can then add variants for specific audiences.',
+      ),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Personalize page' }));
 
     const { layout, model } = getPresent(store);
     const rootSwitch = findRootSwitch(layout[0]);
@@ -146,6 +160,17 @@ describe('VariantsMenu', () => {
     expect(
       cases[0].slots[0].components.map((component) => component.uuid),
     ).toEqual([HERO_UUID]);
+  });
+
+  it('does not personalize the page when the confirmation is cancelled', async () => {
+    const user = userEvent.setup();
+    const store = buildStore();
+    renderMenu(store);
+
+    await user.click(screen.getByRole('button', { name: 'Personalize' }));
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(findRootSwitch(getPresent(store).layout[0])).toBeNull();
   });
 
   it('lists variants in priority order and selects the previewed variant', async () => {
@@ -163,7 +188,7 @@ describe('VariantsMenu', () => {
     renderMenu(store);
 
     const trigger = screen.getByRole('button', { name: 'Manage variants' });
-    expect(trigger).toHaveTextContent('Variant: default');
+    expect(trigger).toHaveTextContent('Variant: Default');
     await user.click(trigger);
 
     const rows = screen.getAllByTestId(/^variant-row-/);
@@ -172,11 +197,58 @@ describe('VariantsMenu', () => {
       'variant-row-default',
     ]);
 
-    await user.click(screen.getByRole('radio', { name: 'offer' }));
+    await user.click(screen.getByRole('radio', { name: 'Offer' }));
     expect(store.getState().ui.previewedVariants[switchUuid]).toBe('offer');
     expect(
       screen.getByRole('button', { name: 'Manage variants' }),
-    ).toHaveTextContent('Variant: offer');
+    ).toHaveTextContent('Variant: Offer');
+  });
+
+  it('shows the audience of every variant and of the previewed variant', async () => {
+    const user = userEvent.setup();
+    const store = buildStore();
+    const switchUuid = personalizeStore(store);
+    store.dispatch(
+      addVariant({
+        switchUuid,
+        variantId: 'offer',
+        segments: ['returning'],
+        sourceVariantId: 'default',
+      }),
+    );
+    // A variant whose segment no longer exists falls back to the raw ID.
+    store.dispatch(
+      addVariant({
+        switchUuid,
+        variantId: 'ghost_offer',
+        segments: ['missing_segment'],
+        sourceVariantId: 'default',
+      }),
+    );
+    renderMenu(store);
+
+    await user.click(screen.getByRole('button', { name: 'Manage variants' }));
+
+    expect(screen.getByTestId('variant-row-offer')).toHaveTextContent(
+      'Audience: Returning visitors',
+    );
+    expect(screen.getByTestId('variant-row-default')).toHaveTextContent(
+      'Everyone (fallback)',
+    );
+    const ghostRow = screen.getByTestId('variant-row-ghost_offer');
+    expect(ghostRow).toHaveTextContent('Audience: missing_segment');
+    expect(
+      within(ghostRow).getByTitle('Missing segment: missing_segment'),
+    ).toBeInTheDocument();
+
+    // The popover header states the previewed variant's audience.
+    expect(screen.getByTestId('previewed-variant-audience')).toHaveTextContent(
+      'Previewing Default — Everyone (fallback)',
+    );
+    await user.click(screen.getByRole('radio', { name: 'Offer' }));
+    expect(screen.getByTestId('previewed-variant-audience')).toHaveTextContent(
+      'Previewing Offer — Audience: Returning visitors',
+    );
   });
 
   it('creates a variant from the dialog and previews it', async () => {
@@ -191,6 +263,10 @@ describe('VariantsMenu', () => {
     expect(
       screen.getByText('Machine name: returning_offer'),
     ).toBeInTheDocument();
+    // The default segment is the fallback and is not offered as an audience.
+    expect(
+      screen.queryByRole('checkbox', { name: 'Everyone (default)' }),
+    ).not.toBeInTheDocument();
     await user.click(
       screen.getByRole('checkbox', { name: 'Returning visitors' }),
     );
@@ -209,6 +285,26 @@ describe('VariantsMenu', () => {
     expect(store.getState().ui.previewedVariants[switchUuid]).toBe(
       'returning_offer',
     );
+  });
+
+  it('guides to segment creation when no non-default segments exist', async () => {
+    mocks.segments = { default: mocks.baseSegments.default };
+    const user = userEvent.setup();
+    const store = buildStore();
+    personalizeStore(store);
+    renderMenu(store);
+
+    await user.click(screen.getByRole('button', { name: 'Manage variants' }));
+    await user.click(screen.getByRole('button', { name: 'New variant' }));
+
+    expect(
+      screen.getByRole('link', {
+        name: 'Create a segment first to target an audience.',
+      }),
+    ).toHaveAttribute('href', '/segments');
+    // Without an audience to target, creation stays disabled.
+    await user.type(screen.getByLabelText('Name'), 'Offer');
+    expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled();
   });
 
   it('promotes a variant to default from the variant menu', async () => {
@@ -231,7 +327,7 @@ describe('VariantsMenu', () => {
 
     await user.click(screen.getByRole('button', { name: 'Manage variants' }));
     await user.click(
-      screen.getByRole('button', { name: 'Open offer variant menu' }),
+      screen.getByRole('button', { name: 'Open Offer variant menu' }),
     );
     await user.click(
       screen.getByRole('menuitem', { name: 'Promote to default' }),
@@ -261,9 +357,13 @@ describe('VariantsMenu', () => {
 
     await user.click(screen.getByRole('button', { name: 'Manage variants' }));
     await user.click(
-      screen.getByRole('button', { name: 'Open offer variant menu' }),
+      screen.getByRole('button', { name: 'Open Offer variant menu' }),
     );
     await user.click(screen.getByRole('menuitem', { name: 'Delete variant' }));
+    // The confirmation shows the humanized variant name.
+    expect(
+      screen.getByRole('heading', { name: 'Delete Offer variant' }),
+    ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Delete variant' }));
 
     const { layout, model } = getPresent(store);

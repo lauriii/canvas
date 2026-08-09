@@ -4,12 +4,20 @@ import { useDraggable } from '@dnd-kit/core';
 import { CollapsibleContent } from '@radix-ui/react-collapsible';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import { TriangleDownIcon, TriangleRightIcon } from '@radix-ui/react-icons';
-import { Box, Flex } from '@radix-ui/themes';
+import { Badge, Box, Flex } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import SidebarNode from '@/components/sidePanel/SidebarNode';
 import LayersDropZone from '@/features/layout/layers/LayersDropZone';
 import SlotLayer from '@/features/layout/layers/SlotLayer';
+import { selectModel } from '@/features/layout/layoutModelSlice';
+import {
+  DEFAULT_VARIANT_ID,
+  getCaseVariantId,
+  humanizeVariantId,
+  isCaseNode,
+  isSwitchNode,
+} from '@/features/layout/personalizationUtils';
 import ComponentContextMenu, {
   ComponentContextMenuContent,
 } from '@/features/layout/preview/ComponentContextMenu';
@@ -23,6 +31,7 @@ import {
 } from '@/features/ui/uiSlice';
 import useComponentSelection from '@/hooks/useComponentSelection';
 import useGetComponentName from '@/hooks/useGetComponentName';
+import { useGetSegmentsQuery } from '@/services/personalization';
 
 import type React from 'react';
 import type { CollapsibleTriggerProps } from '@radix-ui/react-collapsible';
@@ -57,7 +66,33 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
 
   const componentId = component.uuid;
   const isCollapsed = collapsedLayers.includes(componentId);
-  const nodeName = useGetComponentName(component);
+  const defaultName = useGetComponentName(component);
+  const isSwitch = isSwitchNode(component);
+  const isCase = isCaseNode(component);
+  const caseVariantId = useAppSelector((state) =>
+    isCase ? getCaseVariantId(selectModel(state), component) : undefined,
+  );
+  const caseSegments = useAppSelector((state) =>
+    isCase ? selectModel(state)[component.uuid]?.resolved?.segments : undefined,
+  );
+  const { data: segments } = useGetSegmentsQuery(undefined, { skip: !isCase });
+  // Case rows are titled by their variant and audience instead of the
+  // generic case component name.
+  let nodeName = defaultName;
+  if (isCase && caseVariantId) {
+    const segmentIds = Array.isArray(caseSegments)
+      ? (caseSegments as string[])
+      : [];
+    const audience =
+      caseVariantId === DEFAULT_VARIANT_ID
+        ? 'Everyone (fallback)'
+        : segmentIds
+            .map((segmentId) => segments?.[segmentId]?.label ?? segmentId)
+            .join(', ');
+    nodeName = audience
+      ? `${humanizeVariantId(caseVariantId)} — ${audience}`
+      : humanizeVariantId(caseVariantId);
+  }
   const isSelected = useAppSelector((state) =>
     selectComponentIsSelected(state, componentId),
   );
@@ -151,6 +186,13 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
             selected={isSelected}
             disabled={disableDrop || isDragging}
             open={component.slots.length ? !isCollapsed : false}
+            trailingContent={
+              isSwitch ? (
+                <Badge size="1" color="gray" aria-label="Personalized section">
+                  Personalized
+                </Badge>
+              ) : undefined
+            }
             dropdownMenuContent={
               <ComponentContextMenuContent
                 component={component}

@@ -3,6 +3,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { DotsHorizontalIcon, DragHandleDots2Icon } from '@radix-ui/react-icons';
 import {
   Badge,
+  Box,
   DropdownMenu,
   Flex,
   IconButton,
@@ -10,10 +11,15 @@ import {
   Text,
 } from '@radix-ui/themes';
 
+import VariantAudience from '@/components/personalization/variants/VariantAudience';
+import { humanizeVariantId } from '@/features/layout/personalizationUtils';
+
 import type React from 'react';
 
 interface VariantRowProps {
   variantId: string;
+  // Segment IDs of the variant's case, used to describe the audience.
+  segmentIds: string[];
   isDefault: boolean;
   isDisabled: boolean;
   onPromote: () => void;
@@ -23,6 +29,7 @@ interface VariantRowProps {
 
 const VariantRow = ({
   variantId,
+  segmentIds,
   isDefault,
   isDisabled,
   onPromote,
@@ -37,6 +44,7 @@ const VariantRow = ({
     transition,
     isDragging,
   } = useSortable({ id: variantId, disabled: isDefault });
+  const label = humanizeVariantId(variantId);
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -60,7 +68,7 @@ const VariantRow = ({
           <div
             {...attributes}
             {...listeners}
-            aria-label={`Reorder ${variantId} variant`}
+            aria-label={`Reorder ${label} variant`}
             style={{
               cursor: isDragging ? 'grabbing' : 'grab',
               display: 'flex',
@@ -70,19 +78,25 @@ const VariantRow = ({
           </div>
         )}
       </Flex>
-      <Text as="label" size="2" style={{ flexGrow: 1 }}>
-        <Flex gap="2" align="center">
-          <RadioGroup.Item value={variantId} />
-          {variantId}
-          {isDisabled && <Badge color="gray">Disabled</Badge>}
-        </Flex>
-      </Text>
+      <Flex direction="column" style={{ flexGrow: 1, minWidth: 0 }}>
+        <Text as="label" size="2">
+          <Flex gap="2" align="center">
+            <RadioGroup.Item value={variantId} />
+            {/* The machine name stays available as hover text only. */}
+            <span title={variantId}>{label}</span>
+            {isDisabled && <Badge color="gray">Disabled</Badge>}
+          </Flex>
+        </Text>
+        <Box pl="5">
+          <VariantAudience isDefault={isDefault} segmentIds={segmentIds} />
+        </Box>
+      </Flex>
       <DropdownMenu.Root>
         <DropdownMenu.Trigger>
           <IconButton
             variant="ghost"
             color="gray"
-            aria-label={`Open ${variantId} variant menu`}
+            aria-label={`Open ${label} variant menu`}
           >
             <DotsHorizontalIcon />
           </IconButton>

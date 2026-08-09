@@ -75,6 +75,35 @@ export function getCaseVariantId(
   return typeof variantId === 'string' ? variantId : undefined;
 }
 
+/**
+ * Returns the segment IDs a case targets, in stored order.
+ */
+export function getCaseSegmentIds(
+  model: ComponentModels,
+  caseNode: ComponentNode,
+): string[] {
+  const segments = model[caseNode.uuid]?.resolved?.segments;
+  return Array.isArray(segments) ? (segments as string[]) : [];
+}
+
+/**
+ * Formats a machine variant ID for display: snake_case becomes sentence
+ * case, and the default variant is labeled "Default".
+ */
+export function humanizeVariantId(variantId: string): string {
+  if (variantId === DEFAULT_VARIANT_ID) {
+    return 'Default';
+  }
+  const words = variantId
+    .split(/[_\s]+/)
+    .filter(Boolean)
+    .join(' ');
+  if (!words) {
+    return variantId;
+  }
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
 export function isCaseDisabled(
   model: ComponentModels,
   caseNode: ComponentNode,

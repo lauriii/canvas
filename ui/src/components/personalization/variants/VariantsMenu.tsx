@@ -15,8 +15,8 @@ import {
 } from '@dnd-kit/sortable';
 import { LayersIcon, PlusIcon } from '@radix-ui/react-icons';
 import {
+  AlertDialog,
   Button,
-  DropdownMenu,
   Flex,
   Popover,
   RadioGroup,
@@ -27,6 +27,7 @@ import {
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import CreateVariantDialog from '@/components/personalization/variants/CreateVariantDialog';
 import DeleteVariantDialog from '@/components/personalization/variants/DeleteVariantDialog';
+import VariantAudience from '@/components/personalization/variants/VariantAudience';
 import VariantRow from '@/components/personalization/variants/VariantRow';
 import {
   personalizePage,
@@ -41,10 +42,12 @@ import {
   CASE_COMPONENT_ID,
   DEFAULT_VARIANT_ID,
   findRootSwitch,
+  getCaseSegmentIds,
   getCaseVariantId,
   getPreviewedVariant,
   getSwitchCases,
   getSwitchVariants,
+  humanizeVariantId,
   isCaseDisabled,
   SWITCH_COMPONENT_ID,
 } from '@/features/layout/personalizationUtils';
@@ -68,6 +71,7 @@ const VariantsMenu = () => {
   const model = useAppSelector(selectModel);
   const previewedVariants = useAppSelector(selectPreviewedVariants);
   const { data: components } = useGetComponentsQuery();
+  const [isPersonalizeOpen, setPersonalizeOpen] = useState(false);
   const [isCreateOpen, setCreateOpen] = useState(false);
   const [deleteCandidate, setDeleteCandidate] = useState<string | null>(null);
   const sensors = useSensors(
@@ -102,22 +106,41 @@ const VariantsMenu = () => {
     };
 
     return (
-      <DropdownMenu.Root>
-        <DropdownMenu.Trigger>
-          <Button variant="ghost" color="gray">
-            <LayersIcon />
-            Personalize
-          </Button>
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Content align="end">
-          <DropdownMenu.Item
-            disabled={!canPersonalize}
-            onSelect={handlePersonalize}
-          >
-            Personalize this page
-          </DropdownMenu.Item>
-        </DropdownMenu.Content>
-      </DropdownMenu.Root>
+      <>
+        <Button
+          variant="ghost"
+          color="gray"
+          disabled={!canPersonalize}
+          onClick={() => setPersonalizeOpen(true)}
+        >
+          <LayersIcon />
+          Personalize
+        </Button>
+        <AlertDialog.Root
+          open={isPersonalizeOpen}
+          onOpenChange={setPersonalizeOpen}
+        >
+          <AlertDialog.Content>
+            <AlertDialog.Title>Personalize this page</AlertDialog.Title>
+            <AlertDialog.Description size="2">
+              This wraps the current page in a default variant. You can then add
+              variants for specific audiences.
+            </AlertDialog.Description>
+            <Flex gap="3" mt="4" justify="end">
+              <AlertDialog.Cancel>
+                <Button variant="soft" color="gray">
+                  Cancel
+                </Button>
+              </AlertDialog.Cancel>
+              <AlertDialog.Action>
+                <Button variant="solid" onClick={handlePersonalize}>
+                  Personalize page
+                </Button>
+              </AlertDialog.Action>
+            </Flex>
+          </AlertDialog.Content>
+        </AlertDialog.Root>
+      </>
     );
   }
 
@@ -128,6 +151,10 @@ const VariantsMenu = () => {
     cases.map((caseNode) => [getCaseVariantId(model, caseNode), caseNode]),
   );
   const activeVariantId = getPreviewedVariant(previewedVariants, switchUuid);
+  const activeCase = caseByVariantId.get(activeVariantId);
+  const activeSegmentIds = activeCase
+    ? getCaseSegmentIds(model, activeCase)
+    : [];
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -183,15 +210,31 @@ const VariantsMenu = () => {
     <>
       <Popover.Root>
         <Popover.Trigger>
-          <Button variant="surface" color="gray" aria-label="Manage variants">
+          <Button
+            variant="surface"
+            color="gray"
+            aria-label="Manage variants"
+            title={`Machine name: ${activeVariantId}`}
+          >
             <LayersIcon />
-            Variant: {activeVariantId}
+            Variant: {humanizeVariantId(activeVariantId)}
           </Button>
         </Popover.Trigger>
         <Popover.Content align="end" size="1" width="280px">
           <Flex direction="column" gap="1">
             <Text size="1" color="gray" weight="medium">
               Page variants
+            </Text>
+            <Text
+              size="1"
+              color="gray"
+              data-testid="previewed-variant-audience"
+            >
+              Previewing {humanizeVariantId(activeVariantId)} —{' '}
+              <VariantAudience
+                isDefault={activeVariantId === DEFAULT_VARIANT_ID}
+                segmentIds={activeSegmentIds}
+              />
             </Text>
             <RadioGroup.Root
               value={activeVariantId}
@@ -214,6 +257,9 @@ const VariantsMenu = () => {
                       <VariantRow
                         key={variantId}
                         variantId={variantId}
+                        segmentIds={
+                          caseNode ? getCaseSegmentIds(model, caseNode) : []
+                        }
                         isDefault={variantId === DEFAULT_VARIANT_ID}
                         isDisabled={
                           caseNode ? isCaseDisabled(model, caseNode) : false

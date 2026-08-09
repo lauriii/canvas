@@ -1,11 +1,22 @@
 import { useMemo, useState } from 'react';
 import snakeCase from 'lodash/snakeCase';
-import { CheckboxGroup, Flex, Select, Text, TextField } from '@radix-ui/themes';
+import { Link as RouterLink } from 'react-router-dom';
+import {
+  CheckboxGroup,
+  Flex,
+  Link,
+  Select,
+  Text,
+  TextField,
+} from '@radix-ui/themes';
 
 import { useAppDispatch } from '@/app/hooks';
 import Dialog, { DialogFieldLabel } from '@/components/Dialog';
 import { addVariant } from '@/features/layout/layoutModelSlice';
-import { DEFAULT_VARIANT_ID } from '@/features/layout/personalizationUtils';
+import {
+  DEFAULT_VARIANT_ID,
+  humanizeVariantId,
+} from '@/features/layout/personalizationUtils';
 import { setPreviewedVariant } from '@/features/ui/uiSlice';
 import { useGetSegmentsQuery } from '@/services/personalization';
 
@@ -29,8 +40,13 @@ const CreateVariantDialog = ({
   const [sourceVariantId, setSourceVariantId] = useState(DEFAULT_VARIANT_ID);
   const { data: segments } = useGetSegmentsQuery();
 
+  // The default segment is the always-matching fallback the default variant
+  // already covers, so it is not offered as a target audience.
   const segmentList = useMemo(
-    () => Object.values(segments ?? {}).sort((a, b) => a.weight - b.weight),
+    () =>
+      Object.values(segments ?? {})
+        .filter((segment) => segment.id !== 'default')
+        .sort((a, b) => a.weight - b.weight),
     [segments],
   );
 
@@ -112,19 +128,30 @@ const CreateVariantDialog = ({
           <DialogFieldLabel htmlFor="variantAudience">
             Audience
           </DialogFieldLabel>
-          <CheckboxGroup.Root
-            id="variantAudience"
-            size="1"
-            value={selectedSegments}
-            onValueChange={setSelectedSegments}
-            aria-label="Audience"
-          >
-            {segmentList.map((segment) => (
-              <CheckboxGroup.Item key={segment.id} value={segment.id}>
-                {segment.label}
-              </CheckboxGroup.Item>
-            ))}
-          </CheckboxGroup.Root>
+          {segmentList.length === 0 ? (
+            <Text size="1" color="gray">
+              No segments to target yet.{' '}
+              <Link asChild size="1">
+                <RouterLink to="/segments">
+                  Create a segment first to target an audience.
+                </RouterLink>
+              </Link>
+            </Text>
+          ) : (
+            <CheckboxGroup.Root
+              id="variantAudience"
+              size="1"
+              value={selectedSegments}
+              onValueChange={setSelectedSegments}
+              aria-label="Audience"
+            >
+              {segmentList.map((segment) => (
+                <CheckboxGroup.Item key={segment.id} value={segment.id}>
+                  {segment.label}
+                </CheckboxGroup.Item>
+              ))}
+            </CheckboxGroup.Root>
+          )}
           <DialogFieldLabel htmlFor="variantSource">
             Start from
           </DialogFieldLabel>
@@ -137,7 +164,7 @@ const CreateVariantDialog = ({
             <Select.Content>
               {variants.map((id) => (
                 <Select.Item key={id} value={id}>
-                  {id}
+                  {humanizeVariantId(id)}
                 </Select.Item>
               ))}
             </Select.Content>

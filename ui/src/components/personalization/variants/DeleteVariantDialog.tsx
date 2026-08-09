@@ -1,5 +1,7 @@
 import { AlertDialog, Button, Flex } from '@radix-ui/themes';
 
+import { humanizeVariantId } from '@/features/layout/personalizationUtils';
+
 interface DeleteVariantDialogProps {
   // The variant being deleted, or null when the dialog is closed.
   variantId: string | null;
@@ -21,7 +23,9 @@ const DeleteVariantDialog = ({
     }}
   >
     <AlertDialog.Content>
-      <AlertDialog.Title>Delete {variantId} variant</AlertDialog.Title>
+      <AlertDialog.Title>
+        Delete {variantId ? humanizeVariantId(variantId) : ''} variant
+      </AlertDialog.Title>
       <AlertDialog.Description size="2">
         This removes the variant and its content from the page.
       </AlertDialog.Description>
