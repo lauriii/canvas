@@ -260,9 +260,22 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
           // inevitable container (that may render nothing at all on the live
           // site) that contains the different possible `case`s. On the live
           // site, only ONE `case` will ever be rendered: the negotiated one.
-          if ($source instanceof ComponentSourceWithSwitchCasesInterface && !$isPreview) {
-            if ($source->isCase() && !$source->isNegotiatedCase($component_instance)) {
-              unset($component_instance['slots']);
+          // The switch negotiates once for all of its cases, and its render
+          // element carries the cacheability of the entire negotiation, so
+          // the response stays correct in caches no matter which case won.
+          if ($source instanceof ComponentSourceWithSwitchCasesInterface && !$isPreview && $source->isSwitch()) {
+            $negotiation = $source->negotiateCases($component_instance);
+            CacheableMetadata::createFromRenderArray($element)
+              ->merge($negotiation->cacheability)
+              ->applyTo($element);
+            // Prune every non-negotiated case before recursing into slots.
+            foreach ($component_instance['slots'] ?? [] as $slot_name => $slot_children) {
+              if (!\is_array($slot_children)) {
+                continue;
+              }
+              $component_instance['slots'][$slot_name] = $negotiation->negotiatedCaseUuid === NULL
+                ? []
+                : \array_intersect_key($slot_children, [$negotiation->negotiatedCaseUuid => TRUE]);
             }
           }
 

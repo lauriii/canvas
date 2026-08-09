@@ -7,3 +7,22 @@ services:
     class: Drupal\canvas_personalization\SegmentCondition\SegmentConditionManager
     parent: default_plugin_manager
   Drupal\canvas_personalization\SegmentCondition\SegmentConditionManager: '@plugin.manager.segment_condition'
+  logger.channel.canvas_personalization:
+    parent: logger.channel_base
+    arguments: ['canvas_personalization']
+  Drupal\canvas_personalization\SegmentEvaluator:
+    arguments:
+      - '@entity_type.manager'
+      - '@request_stack'
+      - '@logger.channel.canvas_personalization'
+  Drupal\canvas_personalization\PageCache\SegmentAwareResponsePolicy:
+    arguments:
+      - '@Drupal\canvas_personalization\SegmentEvaluator'
+    tags:
+      - { name: page_cache_response_policy }
+  Drupal\canvas_personalization\EventSubscriber\PersonalizationResponseSubscriber:
+    arguments:
+      - '@Drupal\canvas_personalization\SegmentEvaluator'
+      - '@datetime.time'
+    tags:
+      - { name: event_subscriber }

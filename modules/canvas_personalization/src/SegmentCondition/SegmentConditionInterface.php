@@ -24,6 +24,14 @@ use Drupal\Core\Plugin\PluginFormInterface;
  * context (cache contexts) and time (max-age). Tags returned by a condition
  * are discarded and logged.
  *
+ * A condition's declared cache contexts MUST be derivable from its
+ * configuration alone — never from the current request's values. The
+ * page-cache integration reads them on requests where a cache served the
+ * personalized response without evaluating anything; contexts that appear
+ * only under certain requests would silently poison the URL-keyed page
+ * cache. (The max-age may be time-dependent, e.g. "seconds until midnight",
+ * but must not depend on request context either.)
+ *
  * Third-party segmentation providers integrate by implementing this interface
  * (typically by extending SegmentConditionBase) plus a config schema. A
  * condition resolving membership from an external service must fail closed:

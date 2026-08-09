@@ -148,22 +148,19 @@ final class PersonalizationTest extends ComponentSourceTestBase {
 <div canvas_uuid="some-uuid" canvas_type="case" canvas_slot_ids="content"></div>
 
 HTML,
-        'cacheability' => (clone $default_cacheability)->setCacheContexts([
-          ...array_slice($default_render_cache_contexts, 0, 2),
-          // @todo This should depend on the segments. Fix in https://www.drupal.org/project/canvas/issues/3525797
-          'url.query_args:utm_campaign',
-          ...array_slice($default_render_cache_contexts, 2),
-        ]),
+        // Negotiation — and its cacheability — happens at the switch level in
+        // ComponentTreeItemList::renderify(); a case that gets rendered at
+        // all just renders its container.
+        // @see \Drupal\canvas_personalization\Plugin\Canvas\ComponentSource\Personalization::negotiateCases()
+        'cacheability' => $default_cacheability,
         'attachments' => [],
       ],
       'p13n.switch' => [
         'html' => '',
         // Note this has no cacheability (beyond the render system's default),
-        // because this renders to nothing (the empty string above).
-        // @see Personalization::renderComponent()
-        // Take into account that e.g. if a tree changed because of new added
-        // variants, the tree host itself would be invalidated (e.g. node:23
-        // would be invalidated).
+        // because this renders to nothing (the empty string above). The
+        // cacheability of the negotiation is attached to the switch's render
+        // element by ComponentTreeItemList::renderify(), not here.
         'cacheability' => new CacheableMetadata(),
         'attachments' => [],
       ],
@@ -274,18 +271,8 @@ HTML,
     elseif ($type === 'p13n.switch') {
       return [
         'variants' => [
-          'my_variation' => [
-            'label' => 'My variation',
-            'segments' => [
-              'andalusian_visitors',
-            ],
-          ],
-          'default' => [
-            'label' => 'Default',
-            'segments' => [
-              Segment::DEFAULT_ID,
-            ],
-          ],
+          'my_variation',
+          Segment::DEFAULT_ID,
         ],
       ];
     }
@@ -547,7 +534,7 @@ HTML,
     yield 'p13n.case' => [
       'p13n.case',
       [
-        'variant_id' => Personalization::POC_ONLY_HARDCODED_VARIANTS_HALLOWEEN,
+        'variant_id' => 'halloween',
         'segments' => [
           'halloween',
           Segment::DEFAULT_ID,
@@ -560,7 +547,7 @@ HTML,
     yield 'p13n.switch' => [
       'p13n.switch',
       [
-        'variants' => [Personalization::POC_ONLY_HARDCODED_VARIANTS_HALLOWEEN],
+        'variants' => ['halloween'],
       ],
       // Defaults to fallback, so nothing is translatable.
       // @see \Drupal\canvas\ComponentSource\FallbackComponentInstanceInputsConfigSchemaGenerator
@@ -592,34 +579,14 @@ HTML,
       'p13n.switch',
       [
         'variants' => [
-          'my_variation' => [
-            'label' => 'My variation',
-            'segments' => [
-              'andalusian_visitors',
-            ],
-          ],
-          'default' => [
-            'label' => 'Default',
-            'segments' => [
-              Segment::DEFAULT_ID,
-            ],
-          ],
+          'my_variation',
+          Segment::DEFAULT_ID,
         ],
       ],
       [
         'variants' => [
-          'my_variation' => [
-            'label' => 'My variation',
-            'segments' => [
-              'andalusian_visitors',
-            ],
-          ],
-          'default' => [
-            'label' => 'Default',
-            'segments' => [
-              Segment::DEFAULT_ID,
-            ],
-          ],
+          'my_variation',
+          Segment::DEFAULT_ID,
         ],
       ],
     ];
