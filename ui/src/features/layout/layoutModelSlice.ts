@@ -2,7 +2,10 @@
 import { v4 as uuidv4, validate as uuidValidate } from 'uuid';
 import { createSelector, createSlice } from '@reduxjs/toolkit';
 
-import { selectEditorFrameContext } from '@/features/ui/uiSlice';
+import {
+  DEFAULT_REGION,
+  selectEditorFrameContext,
+} from '@/features/ui/uiSlice';
 import { previewApi } from '@/services/preview';
 import { hasSlotDefinitions, isPropSourceComponent } from '@/types/Component';
 import {
@@ -19,6 +22,15 @@ import {
   removeComponentByUuid,
   replaceUUIDsAndUpdateModel,
 } from './layoutUtils';
+import {
+  DEFAULT_VARIANT_ID,
+  getCaseVariantId,
+  getContentSlot,
+  getSwitchVariants,
+  isSwitchNode,
+  P13N_SLOT_NAME,
+  VARIANT_ID_PATTERN,
+} from './personalizationUtils';
 
 import type { PayloadAction } from '@reduxjs/toolkit';
 import type { StateWithHistory } from 'redux-undo';
@@ -142,6 +154,41 @@ type AddNewPatternPayload = {
 type SortNodePayload = {
   uuid: string | undefined;
   to: number | undefined;
+};
+
+type PersonalizePagePayload = {
+  // Versioned component type strings (e.g. `p13n.switch@<version>`), provided
+  // by the caller from the components list.
+  switchComponentType: string;
+  caseComponentType: string;
+};
+
+type AddVariantPayload = {
+  switchUuid: string;
+  variantId: string;
+  segments: string[];
+  sourceVariantId: string;
+};
+
+type ReorderVariantsPayload = {
+  switchUuid: string;
+  order: string[];
+};
+
+type PromoteVariantPayload = {
+  switchUuid: string;
+  variantId: string;
+};
+
+type SetVariantDisabledPayload = {
+  switchUuid: string;
+  variantId: string;
+  disabled: boolean;
+};
+
+type RemoveVariantPayload = {
+  switchUuid: string;
+  variantId: string;
 };
 
 type AnyValue = string | boolean | [] | number | {} | null;
@@ -498,6 +545,327 @@ export const layoutModelSlice = createSlice({
           // Flag a preview update.
           state.updatePreview = true;
         }
+      },
+    ),
+    // Each personalization operation below is a single reducer on purpose:
+    // every `layoutModel/*` action is one undo entry, so a multi-step
+    // operation must not be split across multiple dispatches.
+    personalizePage: create.reducer(
+      (state, action: PayloadAction<PersonalizePagePayload>) => {
+        const { switchComponentType, caseComponentType } = action.payload;
+        const region = state.layout.find((r) => r.id === DEFAULT_REGION);
+        if (!region) {
+          console.error(
+            `Cannot personalize the page. The ${DEFAULT_REGION} region is missing.`,
+          );
+          return;
+        }
+        // The page is already personalized when the region has a root switch.
+        if (region.components.some(isSwitchNode)) {
+          return;
+        }
+
+        const switchUuid = uuidv4();
+        const caseUuid = uuidv4();
+        // Deep-clone the region's existing components into the default case.
+        // The clone keeps every UUID, so the nodes are moved as-is and their
+        // models stay untouched.
+        const existingComponents: ComponentNode[] = JSON.parse(
+          JSON.stringify(region.components),
+        );
+        const caseNode: ComponentNode = {
+          nodeType: NodeType.Component,
+          uuid: caseUuid,
+          type: caseComponentType,
+          slots: [
+            {
+              nodeType: NodeType.Slot,
+              id: `${caseUuid}/${P13N_SLOT_NAME}`,
+              name: P13N_SLOT_NAME,
+              components: existingComponents,
+            },
+          ],
+        };
+        const switchNode: ComponentNode = {
+          nodeType: NodeType.Component,
+          uuid: switchUuid,
+          type: switchComponentType,
+          slots: [
+            {
+              nodeType: NodeType.Slot,
+              id: `${switchUuid}/${P13N_SLOT_NAME}`,
+              name: P13N_SLOT_NAME,
+              components: [caseNode],
+            },
+          ],
+        };
+
+        state.model[switchUuid] = {
+          resolved: { variants: [DEFAULT_VARIANT_ID] },
+        };
+        state.model[caseUuid] = {
+          resolved: {
+            variant_id: DEFAULT_VARIANT_ID,
+            segments: [DEFAULT_VARIANT_ID],
+          },
+        };
+        region.components = [switchNode];
+        // Flag a preview update.
+        state.updatePreview = true;
+      },
+    ),
+    addVariant: create.reducer(
+      (state, action: PayloadAction<AddVariantPayload>) => {
+        const { switchUuid, variantId, segments, sourceVariantId } =
+          action.payload;
+        const switchNode = findComponentByUuid(state.layout, switchUuid);
+        if (!switchNode || !isSwitchNode(switchNode)) {
+          console.error(
+            `Cannot add variant. ${switchUuid} is not a switch component.`,
+          );
+          return;
+        }
+        const slot = getContentSlot(switchNode);
+        if (!slot || !state.model[switchUuid]) {
+          console.error(
+            `Cannot add variant. The switch ${switchUuid} is incomplete.`,
+          );
+          return;
+        }
+        const variants = getSwitchVariants(state.model, switchUuid);
+        if (
+          !VARIANT_ID_PATTERN.test(variantId) ||
+          variants.includes(variantId)
+        ) {
+          console.error(
+            `Cannot add variant. "${variantId}" is not a valid, unused variant ID.`,
+          );
+          return;
+        }
+        const sourceCase = slot.components.find(
+          (component) =>
+            getCaseVariantId(state.model, component) === sourceVariantId,
+        );
+        if (!sourceCase) {
+          console.error(
+            `Cannot add variant. Source variant "${sourceVariantId}" was not found.`,
+          );
+          return;
+        }
+
+        const { updatedNode, updatedModel } = replaceUUIDsAndUpdateModel(
+          sourceCase,
+          state.model,
+        );
+        // The new case targets its own audience; only the content tree is
+        // copied from the source case.
+        updatedModel[updatedNode.uuid] = {
+          resolved: { variant_id: variantId, segments: [...segments] },
+        };
+        Object.entries(updatedModel).forEach(([uuid, componentModel]) => {
+          state.model[uuid] = componentModel;
+        });
+
+        // Insert the new case before the default case so the default keeps
+        // matching last.
+        const defaultCaseIndex = slot.components.findIndex(
+          (component) =>
+            getCaseVariantId(state.model, component) === DEFAULT_VARIANT_ID,
+        );
+        const caseInsertAt =
+          defaultCaseIndex === -1 ? slot.components.length : defaultCaseIndex;
+        slot.components.splice(caseInsertAt, 0, updatedNode);
+
+        const variantsList = state.model[switchUuid].resolved
+          .variants as string[];
+        const defaultVariantIndex = variantsList.indexOf(DEFAULT_VARIANT_ID);
+        const variantInsertAt =
+          defaultVariantIndex === -1
+            ? variantsList.length
+            : defaultVariantIndex;
+        variantsList.splice(variantInsertAt, 0, variantId);
+        // Flag a preview update.
+        state.updatePreview = true;
+      },
+    ),
+    reorderVariants: create.reducer(
+      (state, action: PayloadAction<ReorderVariantsPayload>) => {
+        const { switchUuid, order } = action.payload;
+        const switchNode = findComponentByUuid(state.layout, switchUuid);
+        if (!switchNode || !isSwitchNode(switchNode)) {
+          console.error(
+            `Cannot reorder variants. ${switchUuid} is not a switch component.`,
+          );
+          return;
+        }
+        const slot = getContentSlot(switchNode);
+        const variants = getSwitchVariants(state.model, switchUuid);
+        const isSameIdSet =
+          order.length === variants.length &&
+          new Set(order).size === order.length &&
+          variants.every((id) => order.includes(id));
+        if (!slot || !isSameIdSet) {
+          console.error(
+            'Cannot reorder variants. The new order must contain exactly the existing variant IDs.',
+          );
+          return;
+        }
+        state.model[switchUuid].resolved.variants = [...order];
+        // Keep the case nodes in the same priority order as the variants
+        // list.
+        const priority = (component: ComponentNode) => {
+          const index = order.indexOf(
+            getCaseVariantId(state.model, component) ?? '',
+          );
+          return index === -1 ? order.length : index;
+        };
+        slot.components = [...slot.components].sort(
+          (a, b) => priority(a) - priority(b),
+        );
+        // Flag a preview update.
+        state.updatePreview = true;
+      },
+    ),
+    promoteVariantToDefault: create.reducer(
+      (state, action: PayloadAction<PromoteVariantPayload>) => {
+        const { switchUuid, variantId } = action.payload;
+        if (variantId === DEFAULT_VARIANT_ID) {
+          console.error('The default variant is already the default.');
+          return;
+        }
+        const switchNode = findComponentByUuid(state.layout, switchUuid);
+        if (!switchNode || !isSwitchNode(switchNode)) {
+          console.error(
+            `Cannot promote variant. ${switchUuid} is not a switch component.`,
+          );
+          return;
+        }
+        const slot = getContentSlot(switchNode);
+        if (!slot) {
+          console.error(
+            `Cannot promote variant. The switch ${switchUuid} has no content slot.`,
+          );
+          return;
+        }
+        const promotedIndex = slot.components.findIndex(
+          (component) => getCaseVariantId(state.model, component) === variantId,
+        );
+        const defaultIndex = slot.components.findIndex(
+          (component) =>
+            getCaseVariantId(state.model, component) === DEFAULT_VARIANT_ID,
+        );
+        if (promotedIndex === -1 || defaultIndex === -1) {
+          console.error(
+            `Cannot promote variant "${variantId}". Both it and the default case must exist.`,
+          );
+          return;
+        }
+
+        const promotedCase = slot.components[promotedIndex];
+        const defaultCase = slot.components[defaultIndex];
+        const promotedResolved = state.model[promotedCase.uuid].resolved;
+        const previousSegments = [...(promotedResolved.segments as string[])];
+        // The promoted case becomes the always-matching default. Replacing
+        // the whole resolved object also drops a `disabled` flag: the default
+        // variant is the guaranteed fallback and cannot be disabled.
+        state.model[promotedCase.uuid].resolved = {
+          variant_id: DEFAULT_VARIANT_ID,
+          segments: [DEFAULT_VARIANT_ID],
+        };
+        // The old default takes over the promoted variant's identity and
+        // audience.
+        const defaultResolved = state.model[defaultCase.uuid].resolved;
+        defaultResolved.variant_id = variantId;
+        defaultResolved.segments = previousSegments;
+        // Swap the two case nodes so the slot order still matches the
+        // variants list. The variants list itself is unchanged: the demoted
+        // case takes over the promoted variant's ID at its existing position
+        // and 'default' remains last.
+        slot.components[promotedIndex] = defaultCase;
+        slot.components[defaultIndex] = promotedCase;
+        // Flag a preview update.
+        state.updatePreview = true;
+      },
+    ),
+    setVariantDisabled: create.reducer(
+      (state, action: PayloadAction<SetVariantDisabledPayload>) => {
+        const { switchUuid, variantId, disabled } = action.payload;
+        // The default variant is the guaranteed fallback and cannot be
+        // disabled.
+        if (variantId === DEFAULT_VARIANT_ID && disabled) {
+          console.error('The default variant cannot be disabled.');
+          return;
+        }
+        const switchNode = findComponentByUuid(state.layout, switchUuid);
+        if (!switchNode || !isSwitchNode(switchNode)) {
+          console.error(
+            `Cannot update variant. ${switchUuid} is not a switch component.`,
+          );
+          return;
+        }
+        const caseNode = getContentSlot(switchNode)?.components.find(
+          (component) => getCaseVariantId(state.model, component) === variantId,
+        );
+        if (!caseNode) {
+          console.error(
+            `Cannot update variant. Variant "${variantId}" was not found.`,
+          );
+          return;
+        }
+        if (disabled) {
+          state.model[caseNode.uuid].resolved.disabled = true;
+        } else {
+          delete state.model[caseNode.uuid].resolved.disabled;
+        }
+        // Flag a preview update.
+        state.updatePreview = true;
+      },
+    ),
+    removeVariant: create.reducer(
+      (state, action: PayloadAction<RemoveVariantPayload>) => {
+        const { switchUuid, variantId } = action.payload;
+        if (variantId === DEFAULT_VARIANT_ID) {
+          console.error('The default variant cannot be removed.');
+          return;
+        }
+        const switchNode = findComponentByUuid(state.layout, switchUuid);
+        if (!switchNode || !isSwitchNode(switchNode)) {
+          console.error(
+            `Cannot remove variant. ${switchUuid} is not a switch component.`,
+          );
+          return;
+        }
+        const slot = getContentSlot(switchNode);
+        const caseIndex =
+          slot?.components.findIndex(
+            (component) =>
+              getCaseVariantId(state.model, component) === variantId,
+          ) ?? -1;
+        if (!slot || caseIndex === -1) {
+          console.error(
+            `Cannot remove variant. Variant "${variantId}" was not found.`,
+          );
+          return;
+        }
+
+        const caseNode = slot.components[caseIndex];
+        const removableModelsUuids = [caseNode.uuid];
+        recurseNodes(caseNode, (node: ComponentNode) => {
+          removableModelsUuids.push(node.uuid);
+        });
+        for (const uuid of removableModelsUuids) {
+          if (state.model[uuid]) delete state.model[uuid];
+        }
+        slot.components.splice(caseIndex, 1);
+
+        const variantsList = state.model[switchUuid].resolved
+          .variants as string[];
+        const variantIndex = variantsList.indexOf(variantId);
+        if (variantIndex !== -1) {
+          variantsList.splice(variantIndex, 1);
+        }
+        // Flag a preview update.
+        state.updatePreview = true;
       },
     ),
     setInitialized: create.reducer((state, action: PayloadAction<boolean>) => {
@@ -906,6 +1274,12 @@ export const {
   sortNode,
   setUpdatePreview,
   insertNodes,
+  personalizePage,
+  addVariant,
+  reorderVariants,
+  promoteVariantToDefault,
+  setVariantDisabled,
+  removeVariant,
 } = layoutModelSlice.actions;
 
 export const layoutModelReducer = layoutModelSlice.reducer;
