@@ -101,7 +101,7 @@ final class SegmentEvaluatorTest extends CanvasKernelTestBase {
   /**
    * Rules AND together; cacheability is collected from every rule regardless.
    */
-  public function testRulesAreAndedAndCacheabilityIsCollectedFromAll(): void {
+  public function testAllRulesMustMatchAndCacheabilityIsCollectedFromAll(): void {
     Segment::create([
       'id' => 'weekend_coupon',
       'label' => 'Weekend coupon',

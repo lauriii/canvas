@@ -15,6 +15,7 @@ autodocs
 balintbrews
 basepath
 biscoff
+blackfriday
 bunx
 cacheabilities
 canvascanvas
