@@ -61,6 +61,8 @@ export function getGroupLabel(entityType: string): string {
       return 'Configuration updates';
     case 'content_template':
       return 'Content templates';
+    case 'pattern':
+      return 'Patterns';
     default:
       return kebabCase(entityType);
   }

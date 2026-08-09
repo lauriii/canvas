@@ -44,7 +44,8 @@ import styles from './PagePreview.module.css';
 const HeadlessPagePreview: React.FC<{
   settings: HeadlessSettings;
   width: string;
-}> = ({ settings, width }) => {
+  viewMode?: string;
+}> = ({ settings, width, viewMode }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const { entityId, entityType } = useParams();
   const { statusText } = useHeadlessDraftSession(
@@ -52,6 +53,9 @@ const HeadlessPagePreview: React.FC<{
     settings,
     entityType,
     entityId,
+    undefined,
+    undefined,
+    { viewMode },
   );
 
   return (
@@ -123,13 +127,11 @@ const PagePreview = () => {
   const isContentTemplate = location.pathname.includes('/preview/template');
 
   const canvasHeadlessSettings = useCanvasHeadlessSettings();
-  // The same gate as useHeadlessPreviewSettings, keyed on the URL instead of
-  // the editor frame context, which is not set on this route: content
-  // templates have no public path for the app to enter at, so they keep the
-  // Drupal-rendered preview.
-  const headlessSettings = isContentTemplate
-    ? undefined
-    : canvasHeadlessSettings;
+  // Headless multilingual previews require broader API support. Until that
+  // lands, keep translated content-template previews on the existing snapshot
+  // renderer, which already receives the selected language.
+  const headlessSettings =
+    isContentTemplate && language ? undefined : canvasHeadlessSettings;
 
   // Only fetch the language preview when we are on a preview route.
   const isPreview = isContentTemplate || location.pathname.includes('/preview');
@@ -259,7 +261,13 @@ const PagePreview = () => {
   // When the canvas_headless module embeds a frontend app, the app owns
   // the rendering, exactly as in the editor frame.
   if (headlessSettings) {
-    return <HeadlessPagePreview settings={headlessSettings} width={widthVal} />;
+    return (
+      <HeadlessPagePreview
+        settings={headlessSettings}
+        width={widthVal}
+        viewMode={isContentTemplate ? viewMode : undefined}
+      />
+    );
   }
 
   return (

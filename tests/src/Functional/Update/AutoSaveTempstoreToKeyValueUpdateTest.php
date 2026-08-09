@@ -112,7 +112,11 @@ final class AutoSaveTempstoreToKeyValueUpdateTest extends CanvasUpdatePathTestBa
     $this->assertSame($auto_save_data['entity_type'], $migrated_data['entity_type']);
     $this->assertSame($auto_save_data['entity_id'], $migrated_data['entity_id']);
     $this->assertSame($auto_save_data['label'], $migrated_data['label']);
-    $this->assertSame($auto_save_data['data_hash'], $migrated_data['data_hash']);
+
+    // This hash no longer stay the same due to one of following update hooks
+    // recalculating it.
+    // @see canvas_post_update_0026_rehash_auto_save_items()
+    $this->assertNotSame($auto_save_data['data_hash'], $migrated_data['data_hash']);
 
     // Verify form violations were migrated.
     $violations_keyvalue = $keyvalue_factory->get(AutoSaveManager::FORM_VIOLATIONS_STORE);

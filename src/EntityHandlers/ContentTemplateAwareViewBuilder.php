@@ -99,6 +99,12 @@ final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
         $autoSaveData->entity->setStatus(TRUE);
         return $autoSaveData->entity;
       }
+      // A newly created template is stored disabled before it has its first
+      // auto-save, but it still needs to render while it is being edited.
+      if (!$template->status()) {
+        $template = clone $template;
+        $template->setStatus(TRUE);
+      }
     }
 
     return $template;

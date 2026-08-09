@@ -1,5 +1,22 @@
 # @drupal-canvas/headless-host
 
+## 0.1.3
+
+### Patch Changes
+
+- Updated dependencies [9c6de1e]
+  - @drupal-canvas/headless@0.3.0
+
+## 0.1.2
+
+### Patch Changes
+
+- 7f3da8f: Add content-template view mode support to live draft content
+  requests.
+- Updated dependencies [f16deaf]
+- Updated dependencies [7f3da8f]
+  - @drupal-canvas/headless@0.2.0
+
 ## 0.1.1
 
 ### Patch Changes

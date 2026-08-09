@@ -15,6 +15,7 @@ import {
   findCanvasComponent,
   formatCanvasCommentMarker,
   getCanvasComponentRenderData,
+  isCanvasComponentTreeDraft,
   isCanvasComponentTreeEmpty,
   isCanvasComponentTreeSlotEmpty,
   normalizeCanvasComponentTreeSlot,
@@ -22,8 +23,10 @@ import {
   reportMissingCanvasComponentUuid,
 } from '@drupal-canvas/headless';
 
-import type { CanvasMarker } from '@drupal-canvas/headless';
-import type { CanvasComponentTreeElement } from '@drupal-canvas/headless/server';
+import type {
+  CanvasComponentTreeElement,
+  CanvasMarker,
+} from '@drupal-canvas/headless';
 import type { Component, PropType, VNodeChild } from 'vue';
 
 export type CanvasComponentRegistry = Record<string, Component>;
@@ -33,7 +36,7 @@ export default defineComponent({
   name: 'CanvasComponentTree',
   props: {
     tree: {
-      type: [Object, String] as PropType<CanvasComponentTreeElement | string>,
+      type: [Object, null] as PropType<CanvasComponentTreeElement | null>,
       required: true,
     },
     components: {
@@ -43,18 +46,22 @@ export default defineComponent({
   },
   setup(props) {
     return () => {
-      const editor =
-        typeof props.tree !== 'string' && props.tree.canvasDraftMode === true;
+      const editor = isCanvasComponentTreeDraft(props.tree);
       const emptyRegion = editor && isCanvasComponentTreeEmpty(props.tree);
-      const content =
-        typeof props.tree === 'string'
-          ? renderMarkup(props.tree)
-          : renderElement(
-              props.tree,
-              props.components ?? canvasComponents,
-              'tree',
-              editor,
-            );
+      const content = h(
+        Fragment,
+        { key: 'tree' },
+        props.tree
+          ? [
+              renderElement(
+                props.tree,
+                props.components ?? canvasComponents,
+                'tree',
+                editor,
+              ),
+            ]
+          : [],
+      );
       return editor
         ? h(Fragment, { key: 'region:content' }, [
             marker({ type: 'region', position: 'start', id: 'content' }),

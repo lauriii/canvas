@@ -112,6 +112,21 @@ export function useEditorNavigation() {
   );
 
   /**
+   * Constructs a URL path for the pattern editor.
+   * @param patternId - The ID of the pattern to edit.
+   * @returns The URL path string, or empty string if patternId is missing.
+   */
+  const urlForPatternEditor = useCallback((patternId?: string) => {
+    if (!patternId) {
+      console.warn(
+        '[useEditorNavigation] urlForPatternEditor called with undefined patternId',
+      );
+      return '';
+    }
+    return `/pattern/${patternId}`;
+  }, []);
+
+  /**
    * Constructs a URL path for the code editor.
    * @param machineName - The machine name of the component to edit.
    * @returns The URL path string, or empty string if machineName is missing.
@@ -170,6 +185,24 @@ export function useEditorNavigation() {
   );
 
   /**
+   * Navigates to the pattern editor for a given pattern.
+   * @param patternId - The ID of the pattern to edit.
+   * @param options - Optional React Router navigation options.
+   */
+  const navigateToPatternEditor = useCallback(
+    (patternId?: string, options?: NavigateOptions) => {
+      if (!patternId) {
+        console.warn(
+          '[useEditorNavigation] navigateToPatternEditor called with undefined patternId',
+        );
+        return;
+      }
+      navigate(urlForPatternEditor(patternId), options);
+    },
+    [navigate, urlForPatternEditor],
+  );
+
+  /**
    * Navigates to the code editor for a given component.
    * @param machineName - The machine name of the component to edit.
    * @param options - Optional React Router navigation options.
@@ -196,9 +229,11 @@ export function useEditorNavigation() {
     setTemplatePreviewEntityId,
     urlForEditor,
     urlForTemplateEditor,
+    urlForPatternEditor,
     urlForCodeEditor,
     navigateToEditor,
     navigateToTemplateEditor,
+    navigateToPatternEditor,
     navigateToCodeEditor,
   };
 

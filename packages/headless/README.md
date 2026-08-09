@@ -18,6 +18,45 @@ use a framework adapter instead of this package directly:
 - `@drupal-canvas/headless-nuxt` (Nuxt)
 - `@drupal-canvas/headless-tanstack-start` (TanStack Start)
 
+## Rendered pages
+
+`fetchPage()` asks Drupal to resolve a site-relative path. Drupal returns route
+context and document-head data, plus a Canvas component tree when Canvas renders
+the route:
+
+```ts
+import { isPageRedirect } from '@drupal-canvas/headless';
+
+const result = await server.fetchPage('/articles/hello-world');
+if (result && isPageRedirect(result)) {
+  // Propagate result.redirect.url through the framework router.
+} else {
+  result?.head.title;
+  result?.content;
+  result?.route.managedByCanvas;
+  result?.route.entity;
+}
+```
+
+Pass `page.content` directly to the framework's `CanvasComponentTree` renderer.
+It contains one structured root, or `null` when Canvas does not return managed
+content. Multiple rendered roots are nested under a transparent structural root.
+Pass `page.head` to the framework bridge documented by the adapter.
+
+When Drupal resolves a configured redirect, `fetchPage()` returns `PageRedirect`
+instead of `Page`. It contains `redirect.url`, `redirect.external`, and Drupal's
+configured `redirect.statusCode`. Handle it before reading page fields using the
+framework's redirect primitive.
+
+During an authorized draft session, the same call uses available content drafts.
+Public calls use stored content.
+
+Routes that Canvas does not render still return their document-head and route
+data with `content` set to `null` and `route.managedByCanvas` set to `false`. An
+empty managed tree also has `content` set to `null`, but keeps
+`route.managedByCanvas` set to `true`. Route-not-found and access-denied
+responses make `fetchPage()` return `null`.
+
 ## Installation
 
 ```bash
@@ -32,8 +71,9 @@ dependency's type declarations (`jsona`, via the JSON:API client); the
 
 The subpaths keep browser bundles free of Node-only code and vice versa:
 
-- `@drupal-canvas/headless` — isomorphic: the protocol constants and the
-  `DraftData` session contract.
+- `@drupal-canvas/headless` — isomorphic: protocol constants, the `DraftData`
+  session contract, rendered-page types, `isPageRedirect()`, and JSON script
+  serialization.
 - `@drupal-canvas/headless/client` — browser-only: the draft session state
   machine, the `<canvas-draft-session>` element, and preview geometry helpers.
 - `@drupal-canvas/headless/server` — server-side, edge-safe: the draft server
@@ -51,8 +91,7 @@ The subpaths keep browser bundles free of Node-only code and vice versa:
 ## Writing a framework adapter
 
 Use an existing adapter if one exists for your framework. Writing a new one is
-mostly wiring, and the adapter packages listed above are worked examples of
-every step:
+mostly wiring:
 
 1. Implement `DraftServerAdapter` from `@drupal-canvas/headless/server`: how
    your framework reads and sets cookies, flips its draft or preview flag, and

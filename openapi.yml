@@ -682,6 +682,104 @@ paths:
       responses:
         '204':
           description: Deleted individual Brand Kit
+  /canvas/api/v0/config/color:
+    description: Endpoint for managing colors.
+    get:
+      summary: Retrieves all available colors.
+      responses:
+        '200':
+          description: All available colors
+          content:
+            application/json:
+              schema:
+                type: object
+                minProperties: 0
+                additionalProperties:
+                  $ref: '#/components/schemas/Color'
+              examples:
+                primary_color:
+                  summary: A primary brand color.
+                  value:
+                    a1b2c3d4-e5f6-7890-abcd-ef1234567890:
+                      id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                      name: "Primary Blue"
+                      cssVariable: "--color-primary"
+                      value:
+                        colorSpace: "srgb"
+                        components: [0.0, 0.4, 0.8]
+                        alpha: null
+                        hex: "#0066cc"
+                      weight: 0
+    post:
+      summary: Creates a new Color.
+      requestBody:
+        description: Creates a new Color.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewColor'
+            examples:
+              example of a new color:
+                value:
+                  name: "Primary Blue"
+                  cssVariable: "--color-primary"
+                  value:
+                    colorSpace: "srgb"
+                    components: [0.0, 0.4, 0.8]
+                    alpha: null
+                    hex: "#0066cc"
+                  weight: 0
+      responses:
+        '201':
+          description: Created entity successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Color'
+        '409':
+          description: Color with same ID already exists.
+          $ref: '#/components/responses/ClientErrorResponse'
+        '422':
+          description: Validation errors exist
+          $ref: '#/components/responses/ClientErrorResponse'
+  '/canvas/api/v0/config/color/{configEntityId}':
+    description: Endpoint for managing a specific color.
+    get:
+      summary: Retrieves details of a specific color.
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '200':
+          description: Individual Color
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Color'
+    patch:
+      summary: Updates a specific Color.
+      requestBody:
+        description: Update specific Color.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ColorUpdate'
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '200':
+          description: Individual Color
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Color'
+    delete:
+      summary: Deletes a Color.
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '204':
+          description: Deleted individual Color
   /canvas/api/v0/config/component:
     description: TODO
     get:
@@ -1991,6 +2089,23 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/DrupalAjaxResponse'
+  '/canvas/api/v0/form/component-instance/pattern/{configEntityId}':
+    description: Component instance form for editing a stored Pattern.
+    parameters:
+      - $ref: '#/components/parameters/configEntityId'
+    patch:
+      summary: Generates a component instance form for a pattern.
+      responses:
+        '200':
+          $ref: '#/components/responses/ComponentInstanceFormResponse'
+    post:
+      summary: AJAX updates for this form.
+      parameters:
+        - $ref: '#/components/parameters/queryAjaxForm'
+        - $ref: '#/components/parameters/queryWrapperFormat'
+      responses:
+        '200':
+          $ref: '#/components/responses/DrupalAjaxResponse'
   '/canvas/api/v0/form/component-instance/{entityTypeId}/{entityId}':
     description: TODO
     parameters:
@@ -2261,6 +2376,150 @@ paths:
       summary: >
         Updates the layout or model field values in the content template and returns a preview as well.
         The new layout is stored as an auto-save entry (until such time as it is published)
+      requestBody:
+        $ref: '#/components/requestBodies/Layout'
+      responses:
+        '200':
+          description: Stored new values and generated preview successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - html
+                  - autoSaves
+                properties:
+                  html:
+                    type: string
+                    description: The HTML preview.
+                  autoSaves:
+                    $ref: '#/components/schemas/AutoSaveConcurrencyControl'
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+        '409':
+          description: >
+            The layout could not be updated because the entity
+            was modified by another user since the last time
+            it was loaded.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message indicating the conflict.
+  '/canvas/api/v0/layout-pattern/{configEntityId}':
+    description: >
+      Layout endpoints for editing a stored Pattern config entity's component
+      tree. Unlike content templates, Patterns render standalone and need no
+      preview entity.
+    parameters:
+      - $ref: '#/components/parameters/configEntityId'
+    get:
+      summary: Gets the layout, model, name and preview for a stored Pattern.
+      responses:
+        '200':
+          description: "The Pattern's component tree, wrapped in a single content region."
+          content:
+            application/json:
+              examples:
+                emptyComponentTree:
+                  value:
+                    html: '<html>The preview would be here</html>'
+                    layout:
+                      - nodeType: region
+                        name: content
+                        components: []
+                    model: {}
+                    isNew: false
+              schema:
+                type: object
+                required:
+                  - layout
+                  - model
+                  - isNew
+                  - html
+                properties:
+                  html:
+                    type: string
+                    description: HTML preview of the layout
+                  layout:
+                    type: array
+                    description: Layout regions
+                    items:
+                      $ref: '#/components/schemas/LayoutSlot'
+                  model:
+                    $ref: '#/components/schemas/Model'
+                  isNew:
+                    type: boolean
+                    description: Whether the edited Pattern is considered new.
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+    patch:
+      summary: >
+        Updates a single component in the Pattern and returns a preview as well
+        as the updated model and layout. The new layout is stored as an auto-save
+        entry (until such time as it is published).
+      requestBody:
+        $ref: '#/components/requestBodies/PatchLayout'
+      responses:
+        '200':
+          description: Stored new values and generated preview successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - html
+                  - model
+                  - layout
+                  - autoSaves
+                properties:
+                  html:
+                    type: string
+                    description: The HTML preview.
+                  layout:
+                    type: array
+                    description: Layout regions
+                    items:
+                      $ref: '#/components/schemas/LayoutSlot'
+                  model:
+                    $ref: '#/components/schemas/Model'
+                  autoSaves:
+                    $ref: '#/components/schemas/AutoSaveConcurrencyControl'
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+        '409':
+          description: >
+            The layout could not be updated because the entity
+            was modified by another user since the last time
+            it was loaded.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message indicating the conflict.
+    post:
+      summary: >
+        Updates the layout, model or name of the Pattern and returns a preview.
+        The new layout is stored as an auto-save entry (until such time as it is
+        published).
       requestBody:
         $ref: '#/components/requestBodies/Layout'
       responses:
@@ -3874,7 +4133,6 @@ components:
         - name
         - machineName
         - status
-        - importedJsComponents
         - dataDependencies
       # @todo Sending `links` in PATCH & POST requests should be reported as invalid by OpenAPI validation, but it isn't today.
       # @see https://github.com/thephpleague/openapi-psr7-validator/issues/124#issuecomment-1483323527
@@ -4127,6 +4385,86 @@ components:
             compiled:
               type: string
               description: Compiled JS code, compiled from the original
+        imports:
+          description: File references for third party dependencies
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: object
+                required:
+                  - name
+                  - uri
+                properties:
+                  name:
+                    type: string
+                    description: Name of the manifest entry
+                  uri:
+                    type: string
+                    description: Managed file URI (a `public://` stream wrapper URI)
+        assets:
+          description: File references for local module imports
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: object
+                required:
+                  - name
+                  - uri
+                properties:
+                  name:
+                    type: string
+                    description: Name of the manifest entry
+                  uri:
+                    type: string
+                    description: Managed file URI (a `public://` stream wrapper URI)
+                  path:
+                    type: string
+                    description: Original relative disk path
+                  source:
+                    type: [string, "null"]
+                    description: Original source code
+                  url:
+                    type: string
+                    description: Generated URL for fetching the asset over HTTP (normalize-time only; never stored)
+        shared:
+          description: Shared chunk file references
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: object
+                required:
+                  - name
+                  - uri
+                properties:
+                  name:
+                    type: string
+                    description: Name of the manifest entry
+                  uri:
+                    type: string
+                    description: Managed file URI (a `public://` stream wrapper URI)
+        bundledSources:
+          description: Sources of local modules bundled into other artifacts. These entries have no `uri` and are never part of the runtime import map.
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: object
+                required:
+                  - path
+                  - source
+                properties:
+                  path:
+                    type: string
+                    description: Original relative disk path
+                  source:
+                    type: string
+                    description: Original source code
+        packageJson:
+          type: [string, "null"]
+          description: Package.json of the source repository, tracked so a project can be reconstructed with original dependencies
     NewAssetLibrary:
       type: object
       allOf:
@@ -4227,6 +4565,137 @@ components:
       required:
         - id
         - label
+    Color:
+      title: Color
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: Unique ID for the color entity (UUID)
+        name:
+          type: string
+          description: Human-readable name for the color
+        cssVariable:
+          type: string
+          description: CSS custom property name (e.g., --color-primary)
+        value:
+          type: object
+          description: Color value in W3C Design Token format
+          additionalProperties: false
+          properties:
+            colorSpace:
+              type: string
+              description: Color space (e.g., srgb, hsl)
+              enum:
+                - srgb
+                - hsl
+            components:
+              type: array
+              description: Color components [R, G, B] for sRGB or [H, S, L] for HSL
+              items:
+                type: number
+              minItems: 3
+              maxItems: 3
+            alpha:
+              type: ['number', 'null']
+              description: Alpha value between 0 and 1, or null for full opacity
+            hex:
+              type: ['string', 'null']
+              description: Optional 6-digit hex fallback (e.g., #ff0000). Must start with # followed by exactly 6 hex digits. Validated server-side.
+          required:
+            - colorSpace
+            - components
+        weight:
+          type: integer
+          description: Sort order weight for the color
+    ColorUpdate:
+      title: Color Update
+      type: object
+      description: Partial update to a Color entity. All fields are optional.
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: Unique ID for the color entity (UUID)
+        name:
+          type: string
+          description: Human-readable name for the color
+        cssVariable:
+          type: string
+          description: CSS custom property name (e.g., --color-primary)
+        value:
+          type: object
+          description: Color value in W3C Design Token format. All properties optional for partial updates.
+          properties:
+            colorSpace:
+              type: string
+              description: Color space (e.g., srgb, hsl)
+              enum:
+                - srgb
+                - hsl
+            components:
+              type: array
+              description: Color components [R, G, B] for sRGB or [H, S, L] for HSL
+              items:
+                type: number
+              minItems: 3
+              maxItems: 3
+            alpha:
+              type: ['number', 'null']
+              description: Alpha value between 0 and 1, or null for full opacity
+            hex:
+              type: ['string', 'null']
+              description: Optional 6-digit hex fallback (e.g., #ff0000). Must start with # followed by exactly 6 hex digits. Validated server-side.
+        weight:
+          type: integer
+          description: Sort order weight for the color
+    NewColor:
+      title: New Color
+      type: object
+      required:
+        - name
+        - cssVariable
+        - value
+        - weight
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          description: Human-readable name for the color
+        cssVariable:
+          type: string
+          description: CSS custom property name (e.g., --color-primary)
+        value:
+          type: object
+          description: Color value in W3C Design Token format
+          additionalProperties: false
+          properties:
+            colorSpace:
+              type: string
+              description: Color space (e.g., srgb, hsl)
+              enum:
+                - srgb
+                - hsl
+            components:
+              type: array
+              description: Color components [R, G, B] for sRGB or [H, S, L] for HSL
+              items:
+                type: number
+              minItems: 3
+              maxItems: 3
+            alpha:
+              type: ['number', 'null']
+              description: Alpha value between 0 and 1, or null for full opacity
+            hex:
+              type: ['string', 'null']
+              description: Optional 6-digit hex fallback (e.g., #ff0000). Must start with # followed by exactly 6 hex digits. Validated server-side.
+          required:
+            - colorSpace
+            - components
+        weight:
+          type: integer
+          description: Sort order weight for the color
     SegmentationRule:
       title: Segmentation Rule
       type: object
@@ -4541,6 +5010,7 @@ components:
     FolderType:
       type: string
       enum:
+        - color
         - component
         - js_component
         - pattern

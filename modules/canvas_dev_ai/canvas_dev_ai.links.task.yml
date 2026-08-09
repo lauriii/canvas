@@ -1,0 +1,5 @@
+canvas_dev_ai.agent_selection:
+  title: 'Agents & Tools'
+  route_name: canvas_dev_ai.agent_selection
+  base_route: canvas_ai.setting
+  weight: 30

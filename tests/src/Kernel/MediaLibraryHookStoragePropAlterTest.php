@@ -8,7 +8,6 @@ use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropShape\StorablePropShape;
-use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use PHPUnit\Framework\Attributes\Depends;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -24,8 +23,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('canvas_data_model')]
 #[Group('canvas_data_model__prop_expressions')]
 class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
-
-  use MediaTypeCreationTrait;
 
   /**
    * {@inheritdoc}
@@ -147,6 +144,18 @@ class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
     );
 
     return $storable_prop_shapes;
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * This test proves an `image`-typed baseline transitions to
+   * `entity_reference` once an image MediaType is created. This subclass'
+   * ::setUp() already creates image MediaTypes, so that baseline never exists
+   * here — the parent class already exercises the behavior in full.
+   */
+  public function testArrayPropShapeInheritsItemPropShapeCacheTags(): void {
+    $this->markTestSkipped('The image MediaTypes created in ::setUp() invalidate this test\'s `image`-typed baseline; the parent class covers it.');
   }
 
   /**

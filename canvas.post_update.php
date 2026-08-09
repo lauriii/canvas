@@ -6,6 +6,7 @@ use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CanvasConfigUpdater;
 use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer;
 use Drupal\canvas\Entity\BrandKit;
+use Drupal\canvas\Entity\Color;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Folder;
@@ -20,6 +21,9 @@ use Drupal\Core\Config\Entity\ConfigEntityUpdater;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityStorageInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\RevisionableStorageInterface;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\TempStore\SharedTempStoreFactory;
@@ -655,4 +659,66 @@ function _canvas_coerce_block_label_display_in_raw(array &$data): bool {
     }
   }
   return $changed;
+}
+
+/**
+ * Installs the Color config entity type.
+ *
+ * Rehash existing auto-save items with the strengthened normalization.
+ *
+ * Changes to AutoSaveManager::toStorableArray() and ::normalizeEntity() mean
+ * the data and hashes stored in existing auto-save items may be stale. This
+ * rebuilds data, data_hash, and original_hash in place — using the new
+ * normalization — without touching any other auto-save item metadata
+ * (owner, updated, label, …).
+ *
+ * @see \Drupal\canvas\AutoSave\AutoSaveManager::normalizeEntity()
+ * @see \Drupal\canvas\AutoSave\AutoSaveManager::toStorableArray()
+ */
+function canvas_post_update_0026_rehash_auto_save_items(): void {
+  $auto_save_store = \Drupal::service('keyvalue')->get(AutoSaveManager::AUTO_SAVE_STORE);
+  $entity_type_manager = \Drupal::service(EntityTypeManagerInterface::class);
+
+  // AutoSaveManager's normalization helpers are private static. Use reflection
+  // to reach the necessary helpers without converting them to public.
+  $normalize = new \ReflectionMethod(AutoSaveManager::class, 'normalizeEntity');
+  $normalize->setAccessible(TRUE);
+  $generate_hash = new \ReflectionMethod(AutoSaveManager::class, 'generateHash');
+  $generate_hash->setAccessible(TRUE);
+  $to_storable = new \ReflectionMethod(AutoSaveManager::class, 'toStorableArray');
+  $to_storable->setAccessible(TRUE);
+
+  foreach ($auto_save_store->getAll() as $key => $item) {
+    \assert(\is_array($item));
+    \assert(isset($item['entity_type'], $item['data'], $item['entity_id']));
+    $storage = $entity_type_manager->getStorage($item['entity_type']);
+    \assert($storage instanceof EntityStorageInterface);
+
+    // Reconstruct the entity from its stored snapshot and rehash with the
+    // new normalization.
+    $entity = $storage->create($item['data']);
+    $entity->enforceIsNew(FALSE);
+    $item['data'] = $to_storable->invoke(NULL, $entity);
+    $item['data_hash'] = $generate_hash->invoke(NULL, $normalize->invoke(NULL, $entity));
+
+    // Recompute original_hash against the currently stored entity so conflict
+    // detection stays correct after the normalization change.
+    $stored = $storage->loadUnchanged($item['entity_id']);
+    \assert($stored instanceof EntityInterface);
+    $item[AutoSaveManager::AUTO_SAVE_STORED_ENTITY_HASH_KEY] = $generate_hash->invoke(NULL, $normalize->invoke(NULL, $stored));
+
+    $auto_save_store->set($key, $item);
+  }
+}
+
+/**
+ * Installs the Color config entity type.
+ */
+function canvas_post_update_0027_install_color_entity_type(): void {
+  $entity_definition_update_manager = \Drupal::service(EntityDefinitionUpdateManagerInterface::class);
+  \assert($entity_definition_update_manager instanceof EntityDefinitionUpdateManagerInterface);
+  $change_list = $entity_definition_update_manager->getChangeList();
+  if (($change_list[Color::ENTITY_TYPE_ID]['entity_type'] ?? NULL) === EntityDefinitionUpdateManagerInterface::DEFINITION_CREATED) {
+    $entity_definition_update_manager->installEntityType(\Drupal::entityTypeManager()->getDefinition(Color::ENTITY_TYPE_ID));
+  }
 }

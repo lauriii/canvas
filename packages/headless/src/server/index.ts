@@ -27,13 +27,23 @@ export {
   type RedemptionResult,
 } from './flows';
 export { getDraftClient, getPublicClient } from './json-api-client';
+export { fetchPage } from './content-api';
 export {
-  fetchPage,
+  isPageRedirect,
+  serializeJsonForHtml,
   type CanvasComponentTreeElement,
   type CanvasComponentTreeSlot,
+  type DrupalRoute,
+  type DrupalRouteEntity,
   type JsonValue,
   type Page,
-} from './content-api';
+  type PageHead,
+  type PageHeadLink,
+  type PageHeadMeta,
+  type PageHeadScript,
+  type PageRedirect,
+  type PageResult,
+} from '../page';
 export {
   verifyAssertionByRedemption,
   type AssertionVerification,

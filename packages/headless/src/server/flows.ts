@@ -30,9 +30,9 @@ import { exchangeAssertion } from './token-exchange';
 
 import type { JsonApiClient } from '@drupal-api-client/json-api-client';
 import type { DraftData } from '../draft-data';
+import type { PageResult } from '../page';
 import type { DraftServerAdapter } from './adapter';
 import type { DraftConfig } from './config';
-import type { Page } from './content-api';
 
 /**
  * The result of redeeming an assertion at Drupal's token endpoint: the
@@ -92,6 +92,20 @@ export async function redeemAssertion(
   const path = typeof claims?.path === 'string' ? claims.path : null;
   const resourceVersion =
     typeof claims?.resourceVersion === 'string' ? claims.resourceVersion : null;
+  const rawPreviewContext =
+    typeof claims?.previewContext === 'object' && claims.previewContext !== null
+      ? (claims.previewContext as Record<string, unknown>)
+      : null;
+  const previewContext =
+    rawPreviewContext &&
+    (rawPreviewContext.viewMode === undefined ||
+      typeof rawPreviewContext.viewMode === 'string')
+      ? {
+          ...(typeof rawPreviewContext.viewMode === 'string' && {
+            viewMode: rawPreviewContext.viewMode,
+          }),
+        }
+      : undefined;
   const sub = typeof claims?.sub === 'string' && claims.sub ? claims.sub : null;
   const renewUrl =
     typeof claims?.renewUrl === 'string' && /^https?:\/\//.test(claims.renewUrl)
@@ -120,6 +134,7 @@ export async function redeemAssertion(
     draftData: {
       path,
       resourceVersion,
+      ...(previewContext && { previewContext }),
       sub,
       renewUrl,
       accessToken: exchange.accessToken,
@@ -195,7 +210,7 @@ export interface DraftServer {
    * Fetches a page by its Drupal path (see ./content-api), carrying the
    * live draft session's bearer token when there is one.
    */
-  fetchPage(path: string): Promise<Page | null>;
+  fetchPage(path: string): Promise<PageResult | null>;
 }
 
 /**
@@ -401,7 +416,7 @@ export function createDraftServer(options: DraftServerOptions): DraftServer {
         : getPublicClient(getConfig());
     },
 
-    async fetchPage(path: string): Promise<Page | null> {
+    async fetchPage(path: string): Promise<PageResult | null> {
       return fetchPage(path, {
         baseUrl: getConfig().baseUrl,
         draftData: await getDraftData(),

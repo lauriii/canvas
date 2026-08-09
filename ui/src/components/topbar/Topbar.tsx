@@ -15,7 +15,10 @@ import UnpublishedChanges from '@/components/review/UnpublishedChanges';
 import ContentPreviewSelector from '@/components/templates/ContentPreviewSelector';
 import UndoRedo from '@/components/UndoRedo';
 import NotificationBell from '@/features/notifications/NotificationBell';
-import { selectEditorFrameContext } from '@/features/ui/uiSlice';
+import {
+  EditorFrameContext,
+  selectEditorFrameContext,
+} from '@/features/ui/uiSlice';
 import { useCanvasHeadlessSettings } from '@/hooks/useCanvasHeadlessSettings';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { useGetPreviewContentEntitiesQuery } from '@/services/componentAndLayout';
@@ -36,8 +39,11 @@ const Topbar = () => {
   const isEditor = location.pathname.includes('/editor');
   const isSegments = location.pathname.includes('/segments');
   const isHeadlessFrontends = location.pathname.startsWith('/headless');
+  const editorFrameContext = useAppSelector(selectEditorFrameContext);
   const isTemplateEditorContext =
-    useAppSelector(selectEditorFrameContext) === 'template';
+    editorFrameContext === EditorFrameContext.TEMPLATE;
+  const isPatternEditorContext =
+    editorFrameContext === EditorFrameContext.PATTERN;
   const { setTemplatePreviewEntityId } = useEditorNavigation();
 
   let hasAiExtensionAvailable = false;
@@ -45,13 +51,16 @@ const Topbar = () => {
 
   const canvasSettings = getCanvasSettings();
   const headlessSettings = useCanvasHeadlessSettings();
-  const isEntityPreview =
-    location.pathname.startsWith('/preview/') &&
-    !location.pathname.startsWith('/preview/template/');
+  const isPagePreview = location.pathname.startsWith('/preview/');
+  const isTranslatedTemplate =
+    location.pathname.startsWith('/preview/template/') &&
+    new URLSearchParams(location.search).has('language');
   const isFrontendEmbedded =
     headlessSettings !== undefined &&
     Boolean(entityType) &&
-    (isEditor || isEntityPreview);
+    (isEditor ||
+      isTemplateEditorContext ||
+      (isPagePreview && !isTranslatedTemplate));
 
   const isTranslationEnabled =
     canvasSettings?.contentTranslationEnabled ||
@@ -161,7 +170,9 @@ const Topbar = () => {
           <Flex align="center" justify="end" gap="2">
             {isEditor && hasPersonalizeExtensionAvailable && <VariantsMenu />}
             <NotificationBell />
-            {isTranslationEnabled && <LanguageSelect />}
+            {isTranslationEnabled && !isPatternEditorContext && (
+              <LanguageSelect />
+            )}
             <PreviewControls isPreview={isPreview} />
             <UnpublishedChanges />
           </Flex>

@@ -10,9 +10,7 @@ hooks, and configuration may change without a deprecation path.
 
 - [Simple OAuth module](https://www.drupal.org/project/simple_oauth) (>=6.1.0), with its RSA keypair configured (see
   `/admin/config/people/simple_oauth`). The same keypair signs preview assertions; no additional keys are needed.
-- The [Lupus Decoupled](https://lupus-decoupled.org/) CE API stack (`custom_elements`, `lupus_ce_renderer`,
-  `lupus_decoupled_ce_api`), declared as module dependencies; it provides the rendered-routes endpoint
-  (`/ce-api/{path}`).
+- The `custom_elements` module.
 - A frontend app built on the Drupal Canvas Headless SDK. The SDK ships as the workspace package
   `@drupal-canvas/headless` (framework-agnostic core) plus one adapter per framework —
   `@drupal-canvas/headless-next` (Next.js), `@drupal-canvas/headless-astro` (Astro),
@@ -53,6 +51,93 @@ function my_module_canvas_headless_safe_permissions(): array {
 
 An undeclared permission means a preview shows too little, never too much. See `canvas_headless.api.php` for the
 hook documentation, including the site-policy `_alter` hook.
+
+## Canvas content endpoint
+
+`GET /canvas/content-api?requestUri={requestUri}` accepts a site-relative Drupal request URI. Query strings
+are supported; fragments are rejected.
+
+### Content response
+
+```text
+{
+  "content": {...},
+  "head": {
+    "title": "Example page",
+    "meta": [
+      {
+        "name": "description",
+        "content": "Example description"
+      },
+      {
+        "property": "og:title",
+        "content": "Example page"
+      }
+    ],
+    "script": [
+      {
+        "type": "application/ld+json",
+        "textContent": {
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          "name": "Example page"
+        }
+      }
+    ]
+  },
+  "route": {
+    "name": "entity.canvas_page.canonical",
+    "requestUri": "/page/1",
+    "params": {
+      "canvas_page": "1"
+    },
+    "managedByCanvas": true,
+    "entity": {
+      "entityType": "canvas_page",
+      "bundle": "canvas_page",
+      "id": "1",
+      "uuid": "773942c6-3660-4c50-9a8d-e25966a69bff",
+      "langcode": "en"
+    }
+  }
+}
+```
+
+`content` is one structured root or `null`. Multiple roots use a transparent `renderless-container` with the ordered
+roots in its `default` slot. Routes Canvas does not manage and managed routes with empty trees both use `content: null`.
+`route.managedByCanvas` distinguishes them and remains `true` for an empty managed tree.
+
+`head` is compatible with the [Unhead](https://unhead.unjs.io/) package. It always contains `title` and may also
+contain `meta`, `link`, and `script`. Canonical links are omitted because the frontend owns its public URLs.
+
+### Redirect response
+
+```json
+{
+  "redirect": {
+    "external": false,
+    "url": "/new-path",
+    "statusCode": 301
+  }
+}
+```
+
+Redirect results use HTTP 200; `statusCode` is the status the frontend should use for the browser redirect.
+
+### Error response
+
+Errors use RFC 9457 Problem Details and the `application/problem+json` media type:
+
+```json
+{
+  "type": "about:blank",
+  "title": "Bad Request",
+  "status": 400,
+  "detail": "The requestUri query parameter must be a site-relative URI without a fragment."
+}
+```
+
+`detail` is included when an additional explanation is available.
 
 ## Known limitations
 

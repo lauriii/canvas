@@ -12,7 +12,7 @@ import {
 } from '@drupal-canvas/discovery';
 
 import { ensureConfig, getConfig } from '../config.js';
-import { createApiService } from '../services/api.js';
+import { createApiService, ensureAuthConfig } from '../services/api.js';
 import {
   applySyncOptionAliasesAndWarnings,
   parseBooleanOption,
@@ -454,13 +454,8 @@ export function reconcileMediaCommand(program: Command): void {
           return;
         }
 
-        await ensureConfig([
-          'siteUrl',
-          'clientId',
-          'clientSecret',
-          'scope',
-          'componentDir',
-        ]);
+        await ensureAuthConfig();
+        await ensureConfig(['componentDir']);
 
         const nextConfig = getConfig();
         const discoveryResult = await discoverCanvasProject({

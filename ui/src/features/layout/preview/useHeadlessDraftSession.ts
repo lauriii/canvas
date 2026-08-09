@@ -22,6 +22,10 @@ export interface HeadlessDraftSession {
   geometry: CanvasGeometry[];
 }
 
+export interface HeadlessPreviewContext {
+  viewMode?: string;
+}
+
 const WAITING_TEXT = 'Waiting for the preview to report its draft session…';
 
 /**
@@ -64,6 +68,7 @@ export function useHeadlessDraftSession(
   entityId: string | undefined,
   autoSavesHash?: AutoSavesHashRecord,
   viewportHeight?: number,
+  previewContext?: HeadlessPreviewContext,
 ): HeadlessDraftSession {
   const { frontendOrigin, draftUrl, assertionUrl } = settings;
   const [statusText, setStatusText] = useState(WAITING_TEXT);
@@ -134,7 +139,13 @@ export function useHeadlessDraftSession(
     if (viewportHeightRef.current !== undefined) {
       host.setViewportHeight(viewportHeightRef.current);
     }
-    void host.activate({ entity_type: entityType, entity: entityId });
+    void host.activate({
+      entity_type: entityType,
+      entity: entityId,
+      ...(previewContext?.viewMode && {
+        view_mode: previewContext.viewMode,
+      }),
+    });
     return () => {
       if (hostRef.current === host) {
         hostRef.current = null;
@@ -148,6 +159,7 @@ export function useHeadlessDraftSession(
     fetchAssertion,
     entityType,
     entityId,
+    previewContext?.viewMode,
   ]);
 
   useEffect(() => {

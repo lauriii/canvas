@@ -539,7 +539,15 @@ final class StaticPropSource extends PropSourceBase {
     // @see \Drupal\image\Plugin\Field\FieldWidget\ImageWidget
     // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\OptionsWidgetBase::getOptions()
     if ($host_entity) {
-      $field->setContext(NULL, EntityAdapter::createFromEntity($host_entity));
+      // Name this dangling field after its field type to avoid a cache
+      // collision: TypedDataManager caches item prototypes keyed by the root
+      // plus the field path, and re-parenting gives every prop field the same
+      // root. Left unnamed they would share one prototype, so a later field
+      // gets an earlier field's item type (e.g. an image field getting an
+      // IntegerItem). Keying by field type lets same-typed fields share a
+      // prototype while different types stay apart.
+      // @see \Drupal\Core\TypedData\TypedDataManager::getPropertyInstance()
+      $field->setContext($field_definition->getType(), EntityAdapter::createFromEntity($host_entity));
     }
 
     // Initialize widget state with existing items for widgets that rely on it.
