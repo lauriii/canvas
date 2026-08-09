@@ -3,3 +3,7 @@ services:
     class: Drupal\canvas_personalization\EventSubscriber\ApiConfigRouteSubscriber
     tags:
       - { name: event_subscriber }
+  plugin.manager.segment_condition:
+    class: Drupal\canvas_personalization\SegmentCondition\SegmentConditionManager
+    parent: default_plugin_manager
+  Drupal\canvas_personalization\SegmentCondition\SegmentConditionManager: '@plugin.manager.segment_condition'
