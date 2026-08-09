@@ -436,7 +436,7 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
       <>
         <ComponentInstanceFormRenderer queryString={formQueryString} />
         {componentSource === 'Module component' && emptyProp ? (
-          <Text size="4">This component has no props.</Text>
+          <Text size="4">{Drupal.t('This component has no props.')}</Text>
         ) : (
           ''
         )}

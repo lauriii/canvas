@@ -74,7 +74,7 @@ const BundleListItem = ({ bundle }: BundleListItemProps) => {
         key="edit-fields"
         onClick={() => window.open(bundle.editFieldsUrl, '_blank')}
       >
-        Edit fields
+        {Drupal.t('Edit fields')}
         <Flex ml="auto" align="end">
           <NewTabIcon />
         </Flex>
@@ -92,7 +92,7 @@ const BundleListItem = ({ bundle }: BundleListItemProps) => {
         color="red"
         onClick={() => window.open(bundle.deleteUrl, '_blank')}
       >
-        Delete content type
+        {Drupal.t('Delete content type')}
         <Flex align="end">
           <NewTabIcon />
         </Flex>
@@ -155,23 +155,30 @@ const TemplateListItem = ({ viewMode }: { viewMode: TemplateViewMode }) => {
     <Dialog
       onOpenChange={(open) => {}}
       open={deleteDialogOpen}
-      title="Delete template"
-      description={`Are you sure you want to delete "${viewMode.label}"? This action cannot be undone.`}
+      title={Drupal.t('Delete template')}
+      description={Drupal.t(
+        'Are you sure you want to delete "!label"? This action cannot be undone.',
+        { '!label': viewMode.label },
+      )}
       error={
         isError
           ? {
-              title: 'Failed to delete template',
-              message: `An error ${
-                'status' in error ? '(HTTP ' + error.status + ')' : ''
-              } occurred while deleting the template. Please check the browser console for more details.`,
-              resetButtonText: 'Try again',
+              title: Drupal.t('Failed to delete template'),
+              message: Drupal.t(
+                'An error !status occurred while deleting the template. Please check the browser console for more details.',
+                {
+                  '!status':
+                    'status' in error ? '(HTTP ' + error.status + ')' : '',
+                },
+              ),
+              resetButtonText: Drupal.t('Try again'),
               onReset: handleDelete,
             }
           : undefined
       }
       footer={{
-        cancelText: 'Cancel',
-        confirmText: 'Delete',
+        cancelText: Drupal.t('Cancel'),
+        confirmText: Drupal.t('Delete'),
         onConfirm: handleDelete,
         isConfirmDisabled: false,
         isConfirmLoading: isLoading,
@@ -197,7 +204,7 @@ const TemplateListItem = ({ viewMode }: { viewMode: TemplateViewMode }) => {
           setDeleteDialogOpen(true);
         }}
       >
-        Delete template
+        {Drupal.t('Delete template')}
       </UnifiedMenu.Item>
     </>
   );
@@ -208,7 +215,9 @@ const TemplateListItem = ({ viewMode }: { viewMode: TemplateViewMode }) => {
         <ContextMenu.Trigger>
           <SidebarNode
             key={viewMode.id}
-            title={`${viewMode.viewModeLabel} template`}
+            title={Drupal.t('!label template', {
+              '!label': viewMode.viewModeLabel,
+            })}
             variant="template"
             dropdownMenuContent={
               <UnifiedMenu.Content menuType="dropdown">

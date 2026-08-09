@@ -43,14 +43,14 @@ export const PrimaryPanel = () => {
   }, [activePanel, dispatch]);
 
   const panelMap: Record<string, string> = {
-    library: 'Library',
-    layers: 'Layers',
-    brandKit: 'Brand kit',
-    code: 'Code',
-    extensions: 'Extensions',
-    aiWizard: 'AI',
-    templates: 'Templates',
-    pages: 'Pages',
+    library: Drupal.t('Library', {}, { context: 'Canvas panel' }),
+    layers: Drupal.t('Layers', {}, { context: 'Canvas panel' }),
+    brandKit: Drupal.t('Brand kit', {}, { context: 'Canvas panel' }),
+    code: Drupal.t('Code', {}, { context: 'Canvas panel' }),
+    extensions: Drupal.t('Extensions', {}, { context: 'Canvas panel' }),
+    aiWizard: Drupal.t('AI', {}, { context: 'Canvas panel' }),
+    templates: Drupal.t('Templates', {}, { context: 'Canvas panel' }),
+    pages: Drupal.t('Pages', {}, { context: 'Canvas panel' }),
   };
 
   return (

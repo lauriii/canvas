@@ -63,7 +63,7 @@ const HeadlessPagePreview: React.FC<{
       </p>
       <iframe
         ref={iframeRef}
-        title="Page preview"
+        title={Drupal.t('Page preview')}
         style={{ width }}
         className={styles.PagePreviewIframe}
       ></iframe>
@@ -240,7 +240,7 @@ const PagePreview = () => {
       <div className={styles.PagePreviewContainer}>
         <div className={styles.controls}></div>
         <iframe
-          title="Page preview"
+          title={Drupal.t('Page preview')}
           style={{ width: widthVal }}
           srcDoc={frameSrcDoc}
           className={styles.PagePreviewIframe}
@@ -254,20 +254,23 @@ const PagePreview = () => {
         <AlertDialog.Content maxWidth="450px">
           {linkIntercepted && (
             <>
-              <AlertDialog.Title>Link clicked</AlertDialog.Title>
+              <AlertDialog.Title>{Drupal.t('Link clicked')}</AlertDialog.Title>
               <AlertDialog.Description size="2" mb="4">
-                You attempted to open a link in the preview but it was
-                intercepted before you were navigated away from this page.
+                {Drupal.t(
+                  'You attempted to open a link in the preview but it was intercepted before you were navigated away from this page.',
+                )}
               </AlertDialog.Description>
 
               <AlertDialog.Description size="2">
-                The link goes to <strong>{linkIntercepted}</strong>
+                {Drupal.t('The link goes to !url', {
+                  '!url': linkIntercepted,
+                })}
               </AlertDialog.Description>
 
               <Flex gap="3" mt="4" justify="end">
                 <AlertDialog.Cancel>
                   <Button variant="soft" color="gray">
-                    Close
+                    {Drupal.t('Close')}
                   </Button>
                 </AlertDialog.Cancel>
                 <AlertDialog.Action>
@@ -276,7 +279,7 @@ const PagePreview = () => {
                     color="blue"
                     onClick={handleLinkOpenClick}
                   >
-                    Open in new window
+                    {Drupal.t('Open in new window')}
                   </Button>
                 </AlertDialog.Action>
               </Flex>
@@ -284,16 +287,19 @@ const PagePreview = () => {
           )}
           {submissionIntercepted && (
             <>
-              <AlertDialog.Title>Form submitted</AlertDialog.Title>
+              <AlertDialog.Title>
+                {Drupal.t('Form submitted')}
+              </AlertDialog.Title>
               <AlertDialog.Description size="2" mb="4">
-                You attempted to submit a form in the preview but it was
-                intercepted before you were navigated away from this page.
+                {Drupal.t(
+                  'You attempted to submit a form in the preview but it was intercepted before you were navigated away from this page.',
+                )}
               </AlertDialog.Description>
 
               <Flex gap="3" mt="4" justify="end">
                 <AlertDialog.Cancel>
                   <Button variant="soft" color="gray">
-                    Close
+                    {Drupal.t('Close')}
                   </Button>
                 </AlertDialog.Cancel>
               </Flex>

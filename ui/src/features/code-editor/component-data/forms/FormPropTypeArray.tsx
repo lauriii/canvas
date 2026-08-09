@@ -88,7 +88,9 @@ function NumericArrayItem({
         value={displayValue}
         size="1"
         placeholder={
-          itemType === 'integer' ? 'Enter an integer' : 'Enter a number'
+          itemType === 'integer'
+            ? Drupal.t('Enter an integer')
+            : Drupal.t('Enter a number')
         }
         onChange={(e) => {
           const raw = e.target.value;
@@ -225,7 +227,7 @@ export default function FormPropTypeArray({
           onChange={(e) => {
             handleValueChange(index, e.target.value);
           }}
-          placeholder="Enter a text value"
+          placeholder={Drupal.t('Enter a text value')}
         />
       </Box>
     );
@@ -236,7 +238,7 @@ export default function FormPropTypeArray({
       <Divider />
       <FormElement>
         <Text size="1" weight="medium" as="div">
-          Example value
+          {Drupal.t('Example value')}
         </Text>
         <PropValuesSortableList
           items={displayArray.map((_, index) => index)}

@@ -26,7 +26,7 @@ export default function FormPropTypeSlot({
     <Flex direction="column" gap="4" flexGrow="1">
       <Divider />
       <FormElement>
-        <Label>Example HTML/JSX value</Label>
+        <Label>{Drupal.t('Example HTML/JSX value')}</Label>
         <div className={styles.editorWrapper}>
           <CodeMirror
             data-testid={`slot-example-${id}`}
@@ -36,7 +36,7 @@ export default function FormPropTypeSlot({
             extensions={[
               javascript({ jsx: true }),
               EditorView.contentAttributes.of({
-                'aria-label': 'Example HTML/JSX value',
+                'aria-label': Drupal.t('Example HTML/JSX value'),
               }),
             ]}
             onChange={(value) =>

@@ -44,23 +44,35 @@ export function getAvatarInitialColor(userId: number): FallbackColor {
  * @returns The group label corresponding to the entity type.
  */
 export function getGroupLabel(entityType: string): string {
+  // Each of these names a group of pending changes by entity type. The
+  // disambiguation context keeps them apart from the same words used elsewhere
+  // in the editor, and has to be an inline literal at every call site.
+  // @see docs/react-codebase/translation.md
   switch (entityType) {
     case 'node':
-      return 'Content';
+      return Drupal.t('Content', {}, { context: 'Canvas change group' });
     case 'canvas_page':
-      return 'Pages';
+      return Drupal.t('Pages', {}, { context: 'Canvas change group' });
     case 'js_component':
-      return 'Components';
+      return Drupal.t('Components', {}, { context: 'Canvas change group' });
     case 'asset_library':
-      return 'Assets';
+      return Drupal.t('Assets', {}, { context: 'Canvas change group' });
     case 'brand_kit':
-      return 'Brand kit';
+      return Drupal.t('Brand kit', {}, { context: 'Canvas change group' });
     case 'page_region':
-      return 'Regions';
+      return Drupal.t('Regions', {}, { context: 'Canvas change group' });
     case 'staged_config_update':
-      return 'Configuration updates';
+      return Drupal.t(
+        'Configuration updates',
+        {},
+        { context: 'Canvas change group' },
+      );
     case 'content_template':
-      return 'Content templates';
+      return Drupal.t(
+        'Content templates',
+        {},
+        { context: 'Canvas change group' },
+      );
     default:
       return kebabCase(entityType);
   }
@@ -80,7 +92,9 @@ export function getChangeLabel(
 ): string {
   switch (change.entity_type) {
     case 'brand_kit':
-      return 'Brand kit';
+      // Same context as the group label above, so both read as one string to
+      // translators and stay identical in the UI.
+      return Drupal.t('Brand kit', {}, { context: 'Canvas change group' });
     default:
       return change.label;
   }

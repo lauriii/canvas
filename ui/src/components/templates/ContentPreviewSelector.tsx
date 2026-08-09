@@ -42,8 +42,8 @@ const ContentPreviewSelector: React.FC<ContentPreviewSelectorProps> = ({
       <EyeOpenIcon />
       <span>
         {itemsCount === 0
-          ? 'No content available'
-          : (selectedItem?.label ?? 'Select content to preview')}
+          ? Drupal.t('No content available')
+          : (selectedItem?.label ?? Drupal.t('Select content to preview'))}
       </span>
       {itemsCount > 0 && <ChevronDownIcon />}
     </Flex>
@@ -52,14 +52,14 @@ const ContentPreviewSelector: React.FC<ContentPreviewSelectorProps> = ({
   return (
     <Flex>
       {itemsCount === 0 ? (
-        <Tooltip content="Preview content" side="bottom">
+        <Tooltip content={Drupal.t('Preview content')} side="bottom">
           <Button variant="soft" size="1" disabled color="blue">
             {triggerContent}
           </Button>
         </Tooltip>
       ) : (
         <DropdownMenu.Root>
-          <Tooltip content="Preview content" side="bottom">
+          <Tooltip content={Drupal.t('Preview content')} side="bottom">
             <DropdownMenu.Trigger>
               <Button
                 variant="soft"

@@ -38,7 +38,10 @@ const formatPageVersionUpdated = (
   const formattedDate = versionUpdatedDateFormatter.format(date);
   const formattedTime = versionUpdatedTimeFormatter.format(date);
 
-  return `Updated ${formattedDate} at ${formattedTime}`;
+  return Drupal.t('Updated !date at !time', {
+    '!date': formattedDate,
+    '!time': formattedTime,
+  });
 };
 
 export interface PageVersionComparisonProps {
@@ -148,7 +151,9 @@ export const PageVersionComparison = ({
         data-testid="page-version-preview-error"
       >
         <Text color="red">
-          Unable to load both versions of this page for comparison.
+          {Drupal.t(
+            'Unable to load both versions of this page for comparison.',
+          )}
         </Text>
       </Flex>
     );

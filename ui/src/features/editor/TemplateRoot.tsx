@@ -71,7 +71,10 @@ const TemplateRoot = () => {
   // Get entity type and bundle names for the button
   const getEntityInfo = () => {
     if (!templatesData || !entityType || !bundle) {
-      return { entityLabel: 'content', bundleLabel: 'item' };
+      return {
+        entityLabel: Drupal.t('content'),
+        bundleLabel: Drupal.t('item'),
+      };
     }
 
     const entityTemplates = templatesData[entityType];
@@ -93,16 +96,27 @@ const TemplateRoot = () => {
     window.location.href = createUrl;
   };
 
+  // Referencing another button's label. Kept out of the sentence's argument
+  // list because Drupal's scanner reads the source as text, and a Drupal.t()
+  // call nested inside another call's arguments is not reliably extractable.
+  const addTemplateLabel = Drupal.t('Add new template');
+
   const NoTemplateMessage = () => {
     return (
       <>
         <ExclamationTriangleIcon width="16" height="16" />
         <Text size="1" weight="bold">
-          Template for {bundleLabel} not found.
+          {Drupal.t('Template for !bundle not found.', {
+            '!bundle': bundleLabel,
+          })}
         </Text>
         <Text size="1">
-          To add a template, use the <strong>Add new template</strong> button in
-          Templates menu.
+          {Drupal.t(
+            'To add a template, use the !button button in Templates menu.',
+            {
+              '!button': addTemplateLabel,
+            },
+          )}
         </Text>
       </>
     );
@@ -113,14 +127,18 @@ const TemplateRoot = () => {
       <>
         <ExclamationTriangleIcon width="16" height="16" />
         <Text size="1" weight="bold">
-          No preview content is available
+          {Drupal.t('No preview content is available')}
         </Text>
         <Text size="1">
-          To build a template, you must have at least one{' '}
-          <strong>{bundleLabel}</strong>.
+          {Drupal.t(
+            'To build a template, you must have at least one !bundle.',
+            {
+              '!bundle': bundleLabel,
+            },
+          )}
         </Text>
         <Button onClick={handleCreateContent} size="1" variant="solid" mt="2">
-          <PlusIcon /> Add new {bundleLabel}
+          <PlusIcon /> {Drupal.t('Add new !bundle', { '!bundle': bundleLabel })}
         </Button>
       </>
     );

@@ -47,10 +47,14 @@ const Templates = () => {
       <AccordionRoot value={openEntityTypes}>
         <AccordionDetails
           value="content-types"
-          title="Content types"
+          title={Drupal.t('Content types')}
           onTriggerClick={() => onClickHandler('content-types')}
         >
-          <ErrorBoundary title="An unexpected error has occurred while fetching templates.">
+          <ErrorBoundary
+            title={Drupal.t(
+              'An unexpected error has occurred while fetching templates.',
+            )}
+          >
             <TemplateList />
           </ErrorBoundary>
         </AccordionDetails>
@@ -71,7 +75,7 @@ const AddTemplateButton = () => {
         onClick={() => setIsOpen(true)}
       >
         <PlusIcon />
-        Add new template
+        {Drupal.t('Add new template')}
       </Button>
       {isOpen && <AddTemplateDialog isOpen={isOpen} setIsOpen={setIsOpen} />}
     </>
@@ -167,25 +171,25 @@ const AddTemplateDialog = ({
   return (
     <Dialog
       open={isOpen}
-      title="Add new template"
+      title={Drupal.t('Add new template')}
       headerClose={false}
       error={
         isError || isGetViewModeError
           ? {
               title: isError
-                ? 'Failed to add template'
-                : 'Failed to load view modes',
+                ? Drupal.t('Failed to add template')
+                : Drupal.t('Failed to load view modes'),
               message: parse(
                 extractErrorMessageFromApiResponse(error || getViewModeError),
               ),
-              resetButtonText: 'Try again',
+              resetButtonText: Drupal.t('Try again'),
               onReset: isError ? handleCreateTemplate : undefined,
             }
           : undefined
       }
       footer={{
-        cancelText: 'Cancel',
-        confirmText: 'Add new template',
+        cancelText: Drupal.t('Cancel'),
+        confirmText: Drupal.t('Add new template'),
         isConfirmDisabled: !(selectedContentType && selectedViewMode),
         onConfirm: handleCreateTemplate,
       }}
@@ -200,15 +204,16 @@ const AddTemplateDialog = ({
       >
         <Box>
           <Text as="p" size="1" color="gray">
-            Creates a new template for a content type using existing view modes
-            as the template name.
+            {Drupal.t(
+              'Creates a new template for a content type using existing view modes as the template name.',
+            )}
           </Text>
         </Box>
         {!contentType && (
           <Flex direction="column" gap="2">
             <Box>
               <DialogFieldLabel htmlFor="content-type">
-                Content type
+                {Drupal.t('Content type')}
               </DialogFieldLabel>
             </Box>
             <Select.Root
@@ -220,7 +225,7 @@ const AddTemplateDialog = ({
             >
               <Select.Trigger
                 id="content-type"
-                placeholder="Select content type…"
+                placeholder={Drupal.t('Select content type…')}
                 style={{ width: '100%' }}
               />
               <Select.Content>
@@ -237,7 +242,7 @@ const AddTemplateDialog = ({
         <Flex direction="column" gap="2">
           <Box>
             <DialogFieldLabel htmlFor="template-name">
-              Template
+              {Drupal.t('Template')}
             </DialogFieldLabel>
           </Box>
           <Select.Root
@@ -252,8 +257,8 @@ const AddTemplateDialog = ({
               id="template-name"
               placeholder={
                 availableTemplates === 0
-                  ? 'No more available templates'
-                  : 'Available templates…'
+                  ? Drupal.t('No more available templates')
+                  : Drupal.t('Available templates…')
               }
               style={{ width: '100%' }}
               disabled={!selectedContentType}
@@ -274,7 +279,7 @@ const AddTemplateDialog = ({
                       >
                         {typedModeData.label}{' '}
                         {typedModeData.hasTemplate &&
-                          '(template already exists)'}
+                          Drupal.t('(template already exists)')}
                       </Select.Item>
                     );
                   })}

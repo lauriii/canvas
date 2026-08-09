@@ -109,12 +109,20 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
     [dispatch, activePanel, closeExtension, isOnExtensionPage, navigate],
   );
 
+  // These labels are bare nouns naming a panel of the editor. Without the
+  // disambiguation context translators cannot tell "Code" the panel from
+  // "Code" the noun elsewhere in the UI. The same context value is used for
+  // the matching panel titles in PrimaryPanel, so both call sites resolve to
+  // one translation. The context object has to be an inline literal at every
+  // call site: Drupal's scanner reads the source text, so a shared variable
+  // would register the strings without their context.
+  // @see docs/react-codebase/translation.md
   const menuItems: SideMenuItem[] = [
     {
       type: 'button',
       id: 'library',
       icon: <PlusIcon />,
-      label: 'Library',
+      label: Drupal.t('Library', {}, { context: 'Canvas panel' }),
       enabled: true,
       hidden: false,
     },
@@ -122,7 +130,7 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       type: 'button',
       id: 'layers',
       icon: <LayersIcon />,
-      label: 'Layers',
+      label: Drupal.t('Layers', {}, { context: 'Canvas panel' }),
       enabled: hasActiveEditorFrame,
       hidden: false,
     },
@@ -132,7 +140,7 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       type: 'button',
       id: 'code',
       icon: <CodeIcon />,
-      label: 'Code',
+      label: Drupal.t('Code', {}, { context: 'Canvas panel' }),
       enabled: true,
       hidden: externalComponentsOnly || !hasPermission('codeComponents'),
     },
@@ -140,7 +148,7 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       type: 'button',
       id: 'pages',
       icon: <FileTextIcon />,
-      label: 'Pages',
+      label: Drupal.t('Pages', {}, { context: 'Canvas panel' }),
       enabled: true,
       hidden: false,
     },
@@ -148,7 +156,7 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       type: 'button',
       id: 'templates',
       icon: <TemplateIcon />,
-      label: 'Templates',
+      label: Drupal.t('Templates', {}, { context: 'Canvas panel' }),
       enabled: true,
       hidden: !hasPermission('contentTemplates'),
     },
@@ -157,7 +165,7 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       id: 'headless',
       href: '/headless/',
       icon: <GlobeIcon />,
-      label: 'Headless frontends',
+      label: Drupal.t('Headless frontends', {}, { context: 'Canvas panel' }),
       // Injected when the user may administer the Canvas Headless frontend
       // list. Unlike the preview settings, this flag is present before the
       // first frontend is configured.
@@ -171,7 +179,7 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       type: 'button',
       id: 'extensions',
       icon: <ExtensionIcon />,
-      label: 'Extensions',
+      label: Drupal.t('Extensions', {}, { context: 'Canvas panel' }),
       enabled: true,
       hidden: !hasExtensions,
     },
@@ -199,7 +207,7 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       type: 'button',
       id: 'brandKit',
       icon: <BrandKitIcon />,
-      label: 'Brand kit',
+      label: Drupal.t('Brand kit', {}, { context: 'Canvas panel' }),
       enabled: true,
       hidden: !hasPermission('brandKit') || !getCanvasSettings()?.devMode,
     },

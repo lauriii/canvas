@@ -99,25 +99,29 @@ const CodeComponentItem: React.FC<CodeComponentItemProps> = ({
       {activePanel === 'library' && insertMenuItem}
       {isExternal ? (
         activePanel !== 'library' && (
-          <UnifiedMenu.Item disabled>No actions available</UnifiedMenu.Item>
+          <UnifiedMenu.Item disabled>
+            {Drupal.t('No actions available')}
+          </UnifiedMenu.Item>
         )
       ) : (
         <PermissionCheck
           hasPermission="codeComponents"
           denied={
             activePanel !== 'library' && (
-              <UnifiedMenu.Item disabled>No actions available</UnifiedMenu.Item>
+              <UnifiedMenu.Item disabled>
+                {Drupal.t('No actions available')}
+              </UnifiedMenu.Item>
             )
           }
         >
           <UnifiedMenu.Item onClick={handleRemoveFromComponentsClick}>
-            Remove from components
+            {Drupal.t('Remove from components')}
           </UnifiedMenu.Item>
           <UnifiedMenu.Item onClick={handleEditClick}>
-            Edit code
+            {Drupal.t('Edit code')}
           </UnifiedMenu.Item>
           <UnifiedMenu.Item onClick={handleRenameClick}>
-            Rename
+            {Drupal.t('Rename')}
           </UnifiedMenu.Item>
         </PermissionCheck>
       )}
@@ -129,14 +133,20 @@ const CodeComponentItem: React.FC<CodeComponentItemProps> = ({
     <PermissionCheck
       hasPermission="codeComponents"
       denied={
-        <UnifiedMenu.Item disabled>No actions available</UnifiedMenu.Item>
+        <UnifiedMenu.Item disabled>
+          {Drupal.t('No actions available')}
+        </UnifiedMenu.Item>
       }
     >
       {!isExternal && (
-        <UnifiedMenu.Item onClick={handleEditClick}>Edit code</UnifiedMenu.Item>
+        <UnifiedMenu.Item onClick={handleEditClick}>
+          {Drupal.t('Edit code')}
+        </UnifiedMenu.Item>
       )}
       {!isExternal && (
-        <UnifiedMenu.Item onClick={handleRenameClick}>Rename</UnifiedMenu.Item>
+        <UnifiedMenu.Item onClick={handleRenameClick}>
+          {Drupal.t('Rename')}
+        </UnifiedMenu.Item>
       )}
       {/* @todo: Add this item back in https://drupal.org/i/3524274.}
       {/* <UnifiedMenu.Item*/}
@@ -151,16 +161,18 @@ const CodeComponentItem: React.FC<CodeComponentItemProps> = ({
       {/* If the delete form is present, the component is safe to delete. */}
       {'links' in component && component?.links?.['delete-form'] ? (
         <UnifiedMenu.Item color="red" onClick={handleDeleteClick}>
-          Delete
+          {Drupal.t('Delete')}
         </UnifiedMenu.Item>
       ) : (
         <UnifiedMenu.Item color="gray" disabled={true}>
           <HoverCard.Root>
             <HoverCard.Trigger onClick={(e) => e.stopPropagation()}>
-              <Text as="span">Delete</Text>
+              <Text as="span">{Drupal.t('Delete')}</Text>
             </HoverCard.Trigger>
             <HoverCard.Content>
-              <Text as="p">Cannot delete components that are being used.</Text>
+              <Text as="p">
+                {Drupal.t('Cannot delete components that are being used.')}
+              </Text>
             </HoverCard.Content>
           </HoverCard.Root>
         </UnifiedMenu.Item>

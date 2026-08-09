@@ -30,7 +30,7 @@ const FontSnippetsCard = ({
     <>
       <Flex direction="column" gap="2">
         <Text size="1" color="gray">
-          Tailwind theme (CSS)
+          {Drupal.t('Tailwind theme (CSS)')}
         </Text>
         <Box className={styles.snippetWrapper}>
           <Box className={styles.snippetBox}>
@@ -49,14 +49,16 @@ const FontSnippetsCard = ({
               disabled={isBusy}
             >
               <CopyIcon />
-              {copiedSnippetId === `${font.id}:css` ? 'Copied' : 'Copy CSS'}
+              {copiedSnippetId === `${font.id}:css`
+                ? Drupal.t('Copied')
+                : Drupal.t('Copy CSS')}
             </Button>
           </Box>
         </Box>
       </Flex>
       <Flex direction="column" gap="2">
         <Text size="1" color="gray">
-          HTML example
+          {Drupal.t('HTML example')}
         </Text>
         <Box className={styles.snippetWrapper}>
           <Box className={styles.snippetBox}>
@@ -75,7 +77,9 @@ const FontSnippetsCard = ({
               disabled={isBusy}
             >
               <CopyIcon />
-              {copiedSnippetId === `${font.id}:html` ? 'Copied' : 'Copy HTML'}
+              {copiedSnippetId === `${font.id}:html`
+                ? Drupal.t('Copied')
+                : Drupal.t('Copy HTML')}
             </Button>
           </Box>
         </Box>

@@ -73,10 +73,12 @@ const SerpPreview = () => {
   return (
     <div className={styles.wrapper}>
       <FormElementLabel className={styles.label}>
-        Search Result Preview
+        {Drupal.t('Search Result Preview')}
       </FormElementLabel>
       <InputDescription
-        description="This preview uses the typical character limits for Google search result pages on desktop. Search engines may decide to show different content."
+        description={Drupal.t(
+          'This preview uses the typical character limits for Google search result pages on desktop. Search engines may decide to show different content.',
+        )}
         descriptionDisplay="before"
       >
         <div className={styles.preview}>

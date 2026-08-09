@@ -207,7 +207,7 @@ const BrandKitFontsSection = () => {
     <Flex direction="column" gap="2">
       <Flex align="center" justify="between" gap="2">
         <Heading as="h5" size="2">
-          Fonts
+          {Drupal.t('Fonts')}
         </Heading>
         <Button
           size="1"
@@ -217,7 +217,7 @@ const BrandKitFontsSection = () => {
           data-testid="canvas-brand-kit-upload-font-button"
         >
           <DownloadIcon />
-          Upload font
+          {Drupal.t('Upload font')}
         </Button>
         <input
           ref={fileInputRef}
@@ -238,8 +238,10 @@ const BrandKitFontsSection = () => {
       {groupedFonts.length === 0 && !errorMessage && (
         <EmptyStateCallout
           my="3"
-          title="No fonts uploaded yet."
-          description="Upload one or more font files to generate reusable CSS snippets for the global asset library."
+          title={Drupal.t('No fonts uploaded yet.')}
+          description={Drupal.t(
+            'Upload one or more font files to generate reusable CSS snippets for the global asset library.',
+          )}
         />
       )}
 

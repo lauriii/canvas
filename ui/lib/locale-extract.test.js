@@ -9,7 +9,9 @@ import {
   countCallSites,
   countContextArguments,
   extractStrings,
+  findEscapingPlaceholders,
   PLURAL_DELIMITER,
+  stripComments,
   verifyBundleIsScannable,
 } from './locale-extract.js';
 
@@ -111,6 +113,89 @@ describe('countContextArguments', () => {
     expect(
       countContextArguments(`x = Drupal.formatPlural(n, '1 x', '@count x');`),
     ).toBe(0);
+  });
+
+  it("does not count Prettier's trailing comma as an argument", () => {
+    // With trailingComma: "all", breaking the arguments across lines leaves a
+    // comma after the placeholder object, which is not a third argument.
+    const code = [
+      `const a = () => Drupal.t(`,
+      `  'A string long enough that Prettier breaks the arguments up @name',`,
+      `  { '@name': name },`,
+      `);`,
+    ].join('\n');
+    expect(countContextArguments(code)).toBe(0);
+    expect(extractStrings(code)).toHaveLength(1);
+  });
+
+  it('does not run past the placeholder object to a later brace', () => {
+    // A lazy `\{.*?\}` backtracks out of the placeholder object and matches
+    // some later `}` that is followed by a comma, reporting an options
+    // argument for an ordinary two-argument call.
+    const code = [
+      `const a = () => Drupal.t('Edit @label: @value', { '@label': l, '@value': v });`,
+      `function other() { return { x: 1 }, 2; }`,
+    ].join('\n');
+    expect(countContextArguments(code)).toBe(0);
+    expect(extractStrings(code)).toEqual([
+      { source: 'Edit @label: @value', context: '' },
+    ]);
+  });
+});
+
+describe('findEscapingPlaceholders', () => {
+  it('rejects prefixes Drupal escapes or themes', () => {
+    expect(
+      findEscapingPlaceholders(`Drupal.t('Hi @name', { '@name': n });`),
+    ).toEqual(["'@name':"]);
+    expect(
+      findEscapingPlaceholders(`Drupal.t('Deleted %title', { '%title': t });`),
+    ).toEqual(["'%title':"]);
+  });
+
+  it('accepts the pass-through prefix React needs', () => {
+    expect(
+      findEscapingPlaceholders(`Drupal.t('Hi !name', { '!name': n });`),
+    ).toEqual([]);
+  });
+
+  it('leaves formatPlural alone, since core injects @count itself', () => {
+    expect(
+      findEscapingPlaceholders(
+        `Drupal.formatPlural(n, '1 item', '@count items');`,
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe('stripComments', () => {
+  it('blanks a comment that mentions the translation functions', () => {
+    const code = [
+      `// A Drupal.t() call nested in another call is not extractable.`,
+      `const a = () => Drupal.t('Real');`,
+    ].join('\n');
+    const stripped = stripComments(code);
+    expect(countCallSites(stripped)).toBe(1);
+    expect(extractStrings(stripped)).toEqual([{ source: 'Real', context: '' }]);
+  });
+
+  it('blanks a commented-out call, which the bundle would never contain', () => {
+    const code = `/* Drupal.t('Removed'); */\nx = Drupal.t('Kept');`;
+    expect(extractStrings(stripComments(code))).toEqual([
+      { source: 'Kept', context: '' },
+    ]);
+  });
+
+  it('leaves comment markers inside string literals alone', () => {
+    const code = `x = Drupal.t('See https://example.com/a');`;
+    expect(extractStrings(stripComments(code))).toEqual([
+      { source: 'See https://example.com/a', context: '' },
+    ]);
+  });
+
+  it('preserves line numbering', () => {
+    const code = `a\n/* one\ntwo */\nb`;
+    expect(stripComments(code).split('\n')).toHaveLength(4);
   });
 });
 

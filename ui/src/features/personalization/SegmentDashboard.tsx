@@ -24,7 +24,7 @@ export default function SegmentDashboard() {
 
   const handleCreateSegment = useCallback(async () => {
     // dispatch(openAddSegmentDialog());
-    const name = prompt('Enter a name for the new segment:')?.trim();
+    const name = prompt(Drupal.t('Enter a name for the new segment:'))?.trim();
     if (name) {
       try {
         const id = snakeCase(name);
@@ -65,7 +65,10 @@ export default function SegmentDashboard() {
 
       if (
         confirm(
-          `Are you sure you want to delete the segment "${segmentName}"? This action cannot be undone.`,
+          Drupal.t(
+            'Are you sure you want to delete the segment "!name"? This action cannot be undone.',
+            { '!name': segmentName },
+          ),
         )
       ) {
         try {
@@ -138,11 +141,17 @@ export default function SegmentDashboard() {
   );
 
   if (isLoading) {
-    return <div>Loading segments...</div>;
+    return <div>{Drupal.t('Loading segments...')}</div>;
   }
 
   if (error) {
-    return <div>Error loading segments: {JSON.stringify(error)}</div>;
+    return (
+      <div>
+        {Drupal.t('Error loading segments: !error', {
+          '!error': JSON.stringify(error),
+        })}
+      </div>
+    );
   }
 
   return (
@@ -150,7 +159,7 @@ export default function SegmentDashboard() {
       <Flex justify="end" align="center">
         <Button onClick={handleCreateSegment}>
           <PlusIcon />
-          Create segment
+          {Drupal.t('Create segment')}
         </Button>
       </Flex>
       <DefaultSitePanel

@@ -3,9 +3,6 @@ import { Box, Button, Callout } from '@radix-ui/themes';
 
 import type React from 'react';
 
-const DEFAULT_TITLE = 'An unexpected error has occurred.';
-const DEFAULT_RESET_BUTTON_TEXT = 'Try again';
-
 const ErrorCard: React.FC<{
   title?: string;
   error?: string | React.ReactNode;
@@ -14,10 +11,10 @@ const ErrorCard: React.FC<{
   asChild?: boolean;
   children?: React.ReactNode;
 }> = ({
-  title = DEFAULT_TITLE,
+  title = Drupal.t('An unexpected error has occurred.'),
   error,
   resetErrorBoundary,
-  resetButtonText = DEFAULT_RESET_BUTTON_TEXT,
+  resetButtonText = Drupal.t('Try again'),
   asChild = false,
   children,
 }) => (

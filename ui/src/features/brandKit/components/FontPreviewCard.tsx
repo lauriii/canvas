@@ -16,14 +16,14 @@ const FontPreviewCard = ({ font }: FontPreviewCardProps) => (
     <style>{buildFontFaceSnippet(font)}</style>
     <Flex direction="column" gap="2">
       <Text size="1" color="gray">
-        Preview
+        {Drupal.t('Preview', {}, { context: 'Canvas brand kit' })}
       </Text>
       <Text
         size="6"
         className={styles.previewSample}
         style={getFontPreviewStyle(font)}
       >
-        The quick brown fox jumps over the lazy dog.
+        {Drupal.t('The quick brown fox jumps over the lazy dog.')}
       </Text>
       <Text
         size="3"

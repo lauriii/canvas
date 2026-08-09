@@ -85,7 +85,7 @@ const NotificationCard = ({
           <button
             className={styles.readIndicator}
             onClick={() => onMarkRead(notification.id)}
-            aria-label="Mark as read"
+            aria-label={Drupal.t('Mark as read')}
           >
             <span className={styles.dot} />
           </button>

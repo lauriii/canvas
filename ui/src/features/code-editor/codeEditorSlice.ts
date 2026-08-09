@@ -68,7 +68,10 @@ export const initialState: CodeEditorState = {
   },
   globalAssetLibrary: {
     id: 'global',
-    label: 'Global',
+    // "Global" on its own reads as an adjective, a scope, or a noun depending
+    // on the language, so translators need to be told it names the asset
+    // library shared by every code component.
+    label: Drupal.t('Global', {}, { context: 'Canvas asset library' }),
     css: {
       original: '',
       compiled: '',
@@ -80,7 +83,7 @@ export const initialState: CodeEditorState = {
   },
   brandKit: {
     id: 'global',
-    label: 'Global brand kit',
+    label: Drupal.t('Global brand kit'),
     fonts: null,
   },
   previewCompiledJsForSlots: '',

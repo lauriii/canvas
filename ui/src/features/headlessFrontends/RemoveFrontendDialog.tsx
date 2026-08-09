@@ -18,16 +18,18 @@ const RemoveFrontendDialog = ({
   <Dialog
     open={frontend !== null}
     onOpenChange={onOpenChange}
-    title="Remove frontend"
+    title={Drupal.t('Remove frontend')}
     description={
       <>
-        You are about to remove <b>{frontend?.url}</b> from your headless
-        frontends. You can add it again at any time.
+        {Drupal.t('You are about to remove')} <b>{frontend?.url}</b>{' '}
+        {Drupal.t(
+          'from your headless frontends. You can add it again at any time.',
+        )}
       </>
     }
     footer={{
-      cancelText: 'Cancel',
-      confirmText: 'Remove',
+      cancelText: Drupal.t('Cancel'),
+      confirmText: Drupal.t('Remove'),
       onConfirm,
       isConfirmDisabled: isRemoving,
       isConfirmLoading: isRemoving,

@@ -23,7 +23,9 @@ export default function FormPropTypeBoolean({
     <Flex direction="column" gap="4" flexGrow="1">
       <Divider />
       <FormElement>
-        <Label htmlFor={`prop-example-${id}`}>Example value</Label>
+        <Label htmlFor={`prop-example-${id}`}>
+          {Drupal.t('Example value')}
+        </Label>
         <Switch
           id={`prop-example-${id}`}
           checked={example === true}

@@ -136,7 +136,7 @@ const SidebarNode = React.forwardRef<
           <DropdownMenu.Root onOpenChange={onMenuOpenChange}>
             <DropdownMenu.Trigger>
               <button
-                aria-label="Open contextual menu"
+                aria-label={Drupal.t('Open contextual menu')}
                 className={styles.contextualTrigger}
               >
                 <span className={styles.dots}>

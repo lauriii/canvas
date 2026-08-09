@@ -40,8 +40,11 @@ const PreviewWidthSelector: React.FC<PreviewWidthSelectorProps> = (props) => {
 
   const currentViewport = getCurrentViewport();
   const displayText = currentViewport
-    ? `${currentViewport.name} (${currentViewport.width}px)`
-    : 'Full Width';
+    ? Drupal.t('!name (!width)', {
+        '!name': currentViewport.name,
+        '!width': `${currentViewport.width}px`,
+      })
+    : Drupal.t('Full Width');
 
   return (
     <DropdownMenu.Root>
@@ -49,7 +52,7 @@ const PreviewWidthSelector: React.FC<PreviewWidthSelectorProps> = (props) => {
         <Button
           variant="surface"
           color="gray"
-          aria-label="Select preview width"
+          aria-label={Drupal.t('Select preview width')}
         >
           {currentViewport ? (
             <BreakpointIcon width={currentViewport.width} />
@@ -70,7 +73,7 @@ const PreviewWidthSelector: React.FC<PreviewWidthSelectorProps> = (props) => {
             color={currentWidth === 'full' ? 'blue' : undefined}
           >
             <WidthIcon />
-            Full Width
+            {Drupal.t('Full Width')}
           </DropdownMenu.RadioItem>
           {viewportSizes.map((vs) => (
             <DropdownMenu.RadioItem
@@ -79,7 +82,10 @@ const PreviewWidthSelector: React.FC<PreviewWidthSelectorProps> = (props) => {
               color={currentWidth === vs.id ? 'blue' : undefined}
             >
               <BreakpointIcon width={vs.width} />
-              {vs.name} ({vs.width}px)
+              {Drupal.t('!name (!width)', {
+                '!name': vs.name,
+                '!width': `${vs.width}px`,
+              })}
             </DropdownMenu.RadioItem>
           ))}
         </DropdownMenu.RadioGroup>

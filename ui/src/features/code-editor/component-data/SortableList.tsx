@@ -46,8 +46,8 @@ export default function SortableList<T>({
   renderContent,
   getItemId,
   'data-testid': dataTestId,
-  moveAriaLabel = 'Move item',
-  removeAriaLabel = 'Remove item',
+  moveAriaLabel = Drupal.t('Move item'),
+  removeAriaLabel = Drupal.t('Remove item'),
   isDisabled = false,
 }: SortableListProps<T>) {
   const sensors = useSensors(
@@ -100,7 +100,7 @@ export default function SortableList<T>({
             disabled={isDisabled}
           >
             <PlusIcon />
-            Add
+            {Drupal.t('Add', {}, { context: 'Canvas code component' })}
           </Button>
         </Flex>
       </SortableContext>

@@ -189,7 +189,7 @@ const DrupalSelectMultivalueForm = ({
   };
 
   const fieldLabel = String(attributes['data-field-label'] || '');
-  const placeholderText = `Select ${fieldLabel}`;
+  const placeholderText = Drupal.t('Select !label', { '!label': fieldLabel });
 
   return (
     <div className={styles.container}>
@@ -212,7 +212,7 @@ const DrupalSelectMultivalueForm = ({
         aria-label={placeholderText}
         classNamePrefix="canvas-select"
         closeMenuOnSelect={false}
-        noOptionsMessage={() => 'No selection'}
+        noOptionsMessage={() => Drupal.t('No selection')}
         components={{
           DropdownIndicator,
           MultiValueRemove,

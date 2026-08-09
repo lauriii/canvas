@@ -87,26 +87,35 @@ const RenameCodeComponentDialog = () => {
     }
   }, [isError, error]);
 
+  // Kept as two sentences so the second one stays a short, reusable string and
+  // the HTTP status reaches translators as a placeholder rather than as a
+  // fragment they cannot reorder.
+  const errorMessage = [
+    Drupal.t('An error !status occurred while renaming the component.', {
+      '!status':
+        error && 'status' in error ? '(HTTP ' + error.status + ')' : '',
+    }),
+    Drupal.t('Please check the browser console for more details.'),
+  ].join(' ');
+
   return (
     <Dialog
       open={isRenameDialogOpen}
       onOpenChange={handleOpenChange}
-      title="Rename component"
+      title={Drupal.t('Rename component')}
       error={
         isError
           ? {
-              title: 'Failed to rename component',
-              message: `An error ${
-                'status' in error ? '(HTTP ' + error.status + ')' : ''
-              } occurred while renaming the component. Please check the browser console for more details.`,
-              resetButtonText: 'Try again',
+              title: Drupal.t('Failed to rename component'),
+              message: errorMessage,
+              resetButtonText: Drupal.t('Try again'),
               onReset: handleSave,
             }
           : undefined
       }
       footer={{
-        cancelText: 'Cancel',
-        confirmText: 'Rename',
+        cancelText: Drupal.t('Cancel'),
+        confirmText: Drupal.t('Rename'),
         onConfirm: handleSave,
         isConfirmDisabled: isEmptyOrUnchanged,
         isConfirmLoading: isLoading,
@@ -123,14 +132,14 @@ const RenameCodeComponentDialog = () => {
       >
         <Flex direction="column" gap="2">
           <DialogFieldLabel htmlFor={'componentName'}>
-            Component name
+            {Drupal.t('Component name')}
           </DialogFieldLabel>
           <TextField.Root
             autoComplete="off"
             id={'componentName'}
             value={componentName}
             onChange={(e) => setComponentName(e.target.value)}
-            placeholder="Enter a new name"
+            placeholder={Drupal.t('Enter a new name')}
             size="1"
           />
         </Flex>

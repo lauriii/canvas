@@ -119,13 +119,13 @@ const CodeEditorUi = () => {
       >
         <Tabs.List size="1" className={styles.tabList} ml="2">
           <Tabs.Trigger value="js" className={styles.tabTrigger}>
-            JavaScript
+            {Drupal.t('JavaScript')}
           </Tabs.Trigger>
           <Tabs.Trigger value="css" className={styles.tabTrigger}>
-            CSS
+            {Drupal.t('CSS')}
           </Tabs.Trigger>
           <Tabs.Trigger value="global-css" className={styles.tabTrigger}>
-            Global CSS
+            {Drupal.t('Global CSS')}
           </Tabs.Trigger>
         </Tabs.List>
       </Tabs.Root>
@@ -141,7 +141,7 @@ const CodeEditorUi = () => {
       <div className="canvas-code-editor-toggle-layout">
         <Button
           onClick={toggleLayout}
-          aria-label="Toggle button for code editor view"
+          aria-label={Drupal.t('Toggle button for code editor view')}
           variant="ghost"
           color="gray"
           mr="4"
@@ -164,7 +164,7 @@ const CodeEditorUi = () => {
     >
       <Flex pl="4">
         <Heading as="h5" size="2" weight="medium">
-          Editor
+          {Drupal.t('Editor', {}, { context: 'Canvas code editor' })}
         </Heading>
         <Flex flexGrow="1" direction="row-reverse">
           <ToggleLayoutButton />
@@ -232,12 +232,12 @@ const CodeEditorUi = () => {
                         dispatch(openAddToComponentsDialog(selectedComponent));
                       }}
                     >
-                      Add to components
+                      {Drupal.t('Add to components')}
                     </Button>
                   </Box>
                 )}
                 <Heading as="h5" size="2" weight="medium" mb="4">
-                  Preview
+                  {Drupal.t('Preview', {}, { context: 'Canvas code editor' })}
                 </Heading>
                 <Preview isLoading={isLoading} />
               </Flex>

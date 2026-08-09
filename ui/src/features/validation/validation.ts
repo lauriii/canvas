@@ -7,11 +7,13 @@
 export const validateCodeMachineNameClientSide = (name: string) => {
   const cleanedName = name.toLowerCase().replace(/\s+/g, '_');
   if (/^\d/.test(cleanedName)) {
-    return 'Name cannot start with a number';
+    return Drupal.t('Name cannot start with a number');
   }
   // @see Regex from config/schema/canvas.schema.yml#canvas.js_component.*.
   if (!/^[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*$/.test(cleanedName)) {
-    return 'Special characters are not allowed. Name cannot start or end with a hyphen, underscore, or whitespace.';
+    return Drupal.t(
+      'Special characters are not allowed. Name cannot start or end with a hyphen, underscore, or whitespace.',
+    );
   }
   return '';
 };
@@ -22,10 +24,10 @@ export const validateFolderNameClientSide = (name: string) => {
   const trimmedName = name.trim();
   const cleanedName = trimmedName.toLowerCase().replace(/\s+/g, '_');
   if (/^[-_]|[-_]$/.test(cleanedName)) {
-    return 'Name cannot start or end with a hyphen or underscore.';
+    return Drupal.t('Name cannot start or end with a hyphen or underscore.');
   }
   if (/[^a-zA-Z0-9_-]/.test(cleanedName)) {
-    return 'Special characters are not allowed.';
+    return Drupal.t('Special characters are not allowed.');
   }
   return '';
 };

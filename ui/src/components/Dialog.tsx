@@ -87,8 +87,8 @@ const Dialog = ({
   modal = true,
   width,
   footer = {
-    cancelText: 'Cancel',
-    confirmText: 'Confirm',
+    cancelText: Drupal.t('Cancel'),
+    confirmText: Drupal.t('Confirm'),
   },
 }: DialogProps) => {
   const handleOpenChange = (isOpen: boolean) => {
@@ -110,10 +110,10 @@ const Dialog = ({
             <IconButton
               variant="ghost"
               size="1"
-              aria-label="Close"
+              aria-label={Drupal.t('Close')}
               onClick={(e) => handleOpenChange(false)}
             >
-              <span className="visually-hidden">Close</span>
+              <span className="visually-hidden">{Drupal.t('Close')}</span>
               <Cross2Icon color="black" />
             </IconButton>
           </ThemedDialog.Close>

@@ -88,13 +88,16 @@ const ConflictHeader = ({
 }: ConflictHeaderProps) => {
   return (
     <div className={styles.header}>
+      {/* The breadcrumb items and the entity type badge are single words, so
+          they carry a context separating them from the same words used as verbs
+          or nouns elsewhere. */}
       <Flex align="center" gap="1" minWidth="0">
         <button
           type="button"
           className={styles.breadcrumbLink}
           onClick={onNavigateToCanvas}
         >
-          Canvas
+          {Drupal.t('Canvas', {}, { context: 'Canvas breadcrumb' })}
         </button>
         <Text size="1" color="gray">
           /
@@ -104,7 +107,7 @@ const ConflictHeader = ({
           className={styles.breadcrumbLink}
           onClick={onNavigateToConflict}
         >
-          Conflict
+          {Drupal.t('Conflict', {}, { context: 'Canvas breadcrumb' })}
         </button>
         <Text size="1" color="gray">
           /
@@ -113,14 +116,14 @@ const ConflictHeader = ({
           {label}
         </Text>
         <Badge color="gray" variant="soft" radius="small">
-          Page
+          {Drupal.t('Page', {}, { context: 'Canvas entity type' })}
         </Badge>
       </Flex>
       <IconButton
         variant="ghost"
         color="gray"
         highContrast
-        aria-label="Close"
+        aria-label={Drupal.t('Close')}
         onClick={onClose}
       >
         <Cross2Icon />
@@ -154,7 +157,10 @@ const ConflictFooter = ({
 }: ConflictFooterProps) => (
   <div className={styles.footer}>
     <Text size="2" color="gray">
-      Review {reviewIndex + 1} of {reviewTotal}
+      {Drupal.t('Review !current of !total', {
+        '!current': reviewIndex + 1,
+        '!total': reviewTotal,
+      })}
     </Text>
     <Flex align="center" gap="5">
       <Button
@@ -164,7 +170,7 @@ const ConflictFooter = ({
         onClick={onPrevious}
       >
         <ArrowLeftIcon />
-        Previous
+        {Drupal.t('Previous')}
       </Button>
       <Button
         variant="ghost"
@@ -172,14 +178,14 @@ const ConflictFooter = ({
         disabled={currentIndex >= unresolvedTotal - 1 || isResolving}
         onClick={onNext}
       >
-        Next
+        {Drupal.t('Next')}
         <ArrowRightIcon />
       </Button>
       <Button
         onClick={onResolveConflict}
         disabled={isResolving || !canResolveConflict}
       >
-        Resolve conflict
+        {Drupal.t('Resolve conflict')}
         <Spinner loading={isResolving} />
       </Button>
     </Flex>

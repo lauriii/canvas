@@ -63,7 +63,7 @@ const DrupalMediaLibraryItem = ({
           ref={setNodeRef}
           className={styles.dragHandle}
           data-canvas-drag-handle
-          aria-label="Drag to reorder"
+          aria-label={Drupal.t('Drag to reorder')}
           {...sortableAttributes}
           {...listeners}
           tabIndex={0}

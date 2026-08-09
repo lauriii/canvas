@@ -86,8 +86,8 @@ describe('Editor UI translation', () => {
   it('interpolates placeholders into the translated string', () => {
     setTranslations({
       '': {
-        '@selected of @total changes selected':
-          '@total muutoksesta @selected valittuna',
+        '!selected of !total changes selected':
+          '!total muutoksesta !selected valittuna',
       },
     });
 

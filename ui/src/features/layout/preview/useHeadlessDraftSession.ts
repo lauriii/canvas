@@ -22,7 +22,9 @@ export interface HeadlessDraftSession {
   geometry: CanvasGeometry[];
 }
 
-const WAITING_TEXT = 'Waiting for the preview to report its draft session…';
+const WAITING_TEXT = Drupal.t(
+  'Waiting for the preview to report its draft session…',
+);
 
 /**
  * Maps host protocol events to the editor's status line text.
@@ -32,17 +34,26 @@ function statusTextFor(
 ): string {
   switch (event.type) {
     case 'active':
-      return `Draft session active — renews automatically around ${new Date(event.tokenExpiresAt).toLocaleTimeString()}.`;
+      return Drupal.t(
+        'Draft session active — renews automatically around !time.',
+        { '!time': new Date(event.tokenExpiresAt).toLocaleTimeString() },
+      );
     case 'activation-failed':
-      return 'The preview could not be started. Are you still logged into Drupal? Reload this page to retry.';
+      return Drupal.t(
+        'The preview could not be started. Are you still logged into Drupal? Reload this page to retry.',
+      );
     case 'renewing':
-      return 'Renewing the draft session…';
+      return Drupal.t('Renewing the draft session…');
     case 'renew-failed':
-      return 'The draft session could not be renewed. Are you still logged into Drupal? Reload this page to retry.';
+      return Drupal.t(
+        'The draft session could not be renewed. Are you still logged into Drupal? Reload this page to retry.',
+      );
     case 'recovering':
-      return 'Draft session expired — restarting the preview…';
+      return Drupal.t('Draft session expired — restarting the preview…');
     case 'recovery-failed':
-      return 'The draft session could not be restarted. Are you still logged into Drupal? Reload this page to retry.';
+      return Drupal.t(
+        'The draft session could not be restarted. Are you still logged into Drupal? Reload this page to retry.',
+      );
   }
 }
 

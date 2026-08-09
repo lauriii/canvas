@@ -105,7 +105,9 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({ region }) => {
       {!isPage && (
         <RegionContextMenu region={region}>
           <div
-            aria-label={`Global region ${region.name}`}
+            aria-label={Drupal.t('Global region !name', {
+              '!name': region.name,
+            })}
             className={styles.regionItem}
             data-canvas-overlay="true"
           />

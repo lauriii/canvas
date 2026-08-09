@@ -34,7 +34,7 @@ const LibraryToolbar = ({
   onFolderCreating,
 }: ManageLibraryToolbarProps) => {
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
-  const [folderName, setFolderName] = useState('New folder');
+  const [folderName, setFolderName] = useState(Drupal.t('New folder'));
   const [validationError, setValidationError] = useState('');
   const [createFolder, { reset, isSuccess, isError, error, isLoading }] =
     useCreateFolderMutation();
@@ -61,7 +61,7 @@ const LibraryToolbar = ({
 
   useEffect(() => {
     if (isSuccess) {
-      setFolderName('New folder');
+      setFolderName(Drupal.t('New folder'));
       setIsCreatingFolder(false);
       setValidationError('');
       isSubmittingRef.current = false;
@@ -79,7 +79,7 @@ const LibraryToolbar = ({
 
   const cancelFolderCreation = () => {
     setIsCreatingFolder(false);
-    setFolderName('New folder');
+    setFolderName(Drupal.t('New folder'));
     setValidationError('');
     reset();
     isSubmittingRef.current = false;
@@ -99,7 +99,11 @@ const LibraryToolbar = ({
 
     const trimmedName = folderName.trim();
 
-    if (!trimmedName || trimmedName === 'New folder' || validationError) {
+    if (
+      !trimmedName ||
+      trimmedName === Drupal.t('New folder') ||
+      validationError
+    ) {
       suppressBlurSubmitRef.current = false;
       cancelFolderCreation();
       return;
@@ -124,7 +128,7 @@ const LibraryToolbar = ({
     setFolderName(newName);
     reset();
     setValidationError(
-      newName.trim() && newName.trim() !== 'New folder'
+      newName.trim() && newName.trim() !== Drupal.t('New folder')
         ? validateFolderNameClientSide(newName)
         : '',
     );
@@ -171,9 +175,9 @@ const LibraryToolbar = ({
           <TextField.Root
             autoComplete="off"
             id="canvas-navigation-search"
-            placeholder="Search…"
+            placeholder={Drupal.t('Search…')}
             radius="medium"
-            aria-label="Search content"
+            aria-label={Drupal.t('Search content')}
             size="1"
             value={searchTerm}
             onChange={(e) => onSearch(e.target.value)}
@@ -193,7 +197,7 @@ const LibraryToolbar = ({
                   size="1"
                 >
                   <PlusIcon />
-                  New
+                  {Drupal.t('New', {}, { context: 'Canvas library toolbar' })}
                   <ChevronDownIcon />
                 </Button>
               </DropdownMenu.Trigger>
@@ -216,7 +220,11 @@ const LibraryToolbar = ({
                     data-testid="canvas-library-new-folder-button"
                   >
                     <FolderIcon />
-                    Folder
+                    {Drupal.t(
+                      'Folder',
+                      {},
+                      { context: 'Canvas library toolbar' },
+                    )}
                   </DropdownMenu.Item>
                 </PermissionCheck>
               </DropdownMenu.Content>
@@ -242,7 +250,7 @@ const LibraryToolbar = ({
                   autoFocus
                   data-testid="canvas-manage-library-new-folder-name"
                   id="folder-name"
-                  placeholder="New folder"
+                  placeholder={Drupal.t('New folder')}
                   variant="soft"
                   onChange={(e) => handleOnChange(e.target.value)}
                   onBlur={handleBlur}

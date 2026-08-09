@@ -25,7 +25,7 @@ import type { CodeComponentPropSerialized } from '@/types/CodeComponent';
 const derivedPropTypes = [
   {
     type: 'text' as const,
-    displayName: 'Text',
+    displayName: Drupal.t('Text', {}, { context: 'Canvas code component' }),
     derive: (prop: CodeComponentPropSerialized) =>
       prop.type === 'string' &&
       !prop.$ref &&
@@ -39,7 +39,11 @@ const derivedPropTypes = [
   },
   {
     type: 'formattedText' as const,
-    displayName: 'Formatted text',
+    displayName: Drupal.t(
+      'Formatted text',
+      {},
+      { context: 'Canvas code component' },
+    ),
     derive: (prop: CodeComponentPropSerialized) =>
       prop.type === 'string' &&
       prop.contentMediaType === 'text/html' &&
@@ -52,7 +56,7 @@ const derivedPropTypes = [
   },
   {
     type: 'link' as const,
-    displayName: 'Link',
+    displayName: Drupal.t('Link', {}, { context: 'Canvas code component' }),
     derive: (prop: CodeComponentPropSerialized) =>
       prop.type === 'string' &&
       ['uri', 'uri-reference'].includes(prop.format as string),
@@ -63,7 +67,7 @@ const derivedPropTypes = [
   },
   {
     type: 'image' as const,
-    displayName: 'Image',
+    displayName: Drupal.t('Image', {}, { context: 'Canvas code component' }),
     derive: (prop: CodeComponentPropSerialized) =>
       prop.type === 'object' && prop.$ref?.includes('image'),
     init: {
@@ -79,7 +83,7 @@ const derivedPropTypes = [
   },
   {
     type: 'video' as const,
-    displayName: 'Video',
+    displayName: Drupal.t('Video', {}, { context: 'Canvas code component' }),
     derive: (prop: CodeComponentPropSerialized) =>
       prop.type === 'object' && prop.$ref?.includes('video'),
     init: {
@@ -93,7 +97,11 @@ const derivedPropTypes = [
   },
   {
     type: 'date' as const,
-    displayName: 'Date and time',
+    displayName: Drupal.t(
+      'Date and time',
+      {},
+      { context: 'Canvas code component' },
+    ),
     derive: (prop: CodeComponentPropSerialized) =>
       prop.type === 'string' &&
       ['date', 'date-time'].includes(prop.format as string),
@@ -104,7 +112,7 @@ const derivedPropTypes = [
   },
   {
     type: 'boolean' as const,
-    displayName: 'Boolean',
+    displayName: Drupal.t('Boolean', {}, { context: 'Canvas code component' }),
     derive: (prop: CodeComponentPropSerialized) => prop.type === 'boolean',
     init: {
       type: 'boolean',
@@ -113,7 +121,7 @@ const derivedPropTypes = [
   },
   {
     type: 'integer' as const,
-    displayName: 'Integer',
+    displayName: Drupal.t('Integer', {}, { context: 'Canvas code component' }),
     derive: (prop: CodeComponentPropSerialized) =>
       prop.type === 'integer' && (!prop.enum || prop.enum.length === 0),
     init: {
@@ -122,7 +130,7 @@ const derivedPropTypes = [
   },
   {
     type: 'number' as const,
-    displayName: 'Number',
+    displayName: Drupal.t('Number', {}, { context: 'Canvas code component' }),
     derive: (prop: CodeComponentPropSerialized) =>
       prop.type === 'number' && (!prop.enum || prop.enum.length === 0),
     init: {
@@ -131,7 +139,11 @@ const derivedPropTypes = [
   },
   {
     type: 'listText' as const,
-    displayName: 'List: text',
+    displayName: Drupal.t(
+      'List: text',
+      {},
+      { context: 'Canvas code component' },
+    ),
     derive: (prop: CodeComponentPropSerialized) =>
       prop.type === 'string' && prop.enum && prop.enum.length > 0,
     init: {
@@ -141,7 +153,11 @@ const derivedPropTypes = [
   },
   {
     type: 'listInteger' as const,
-    displayName: 'List: integer',
+    displayName: Drupal.t(
+      'List: integer',
+      {},
+      { context: 'Canvas code component' },
+    ),
     derive: (prop: CodeComponentPropSerialized) =>
       prop.type === 'integer' && prop.enum && prop.enum.length > 0,
     init: {
@@ -151,7 +167,11 @@ const derivedPropTypes = [
   },
   {
     type: 'contentEntityReference' as const,
-    displayName: 'Content entity reference',
+    displayName: Drupal.t(
+      'Content entity reference',
+      {},
+      { context: 'Canvas code component' },
+    ),
     derive: (prop: CodeComponentPropSerialized) =>
       prop.type === 'object' &&
       prop.$ref ===

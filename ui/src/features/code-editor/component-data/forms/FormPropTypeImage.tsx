@@ -19,20 +19,45 @@ const IMAGE_SERVICE_URL = 'https://placehold.co/';
 
 const NONE_VALUE = '_none_';
 const EXAMPLE_ASPECT_RATIO_VALUES = [
-  { value: '1:1', label: '1:1 (Square)', width: 600, height: 600 },
-  { value: '4:3', label: '4:3 (Standard)', width: 800, height: 600 },
-  { value: '16:9', label: '16:9 (Widescreen)', width: 1280, height: 720 },
-  { value: '3:2', label: '3:2 (Classic Photo)', width: 900, height: 600 },
-  { value: '2:1', label: '2:1 (Panoramic)', width: 1000, height: 500 },
-  { value: '9:16', label: '9:16 (Vertical)', width: 720, height: 1280 },
-  { value: '21:9', label: '21:9 (Ultrawide)', width: 1400, height: 600 },
+  { value: '1:1', label: Drupal.t('1:1 (Square)'), width: 600, height: 600 },
+  { value: '4:3', label: Drupal.t('4:3 (Standard)'), width: 800, height: 600 },
+  {
+    value: '16:9',
+    label: Drupal.t('16:9 (Widescreen)'),
+    width: 1280,
+    height: 720,
+  },
+  {
+    value: '3:2',
+    label: Drupal.t('3:2 (Classic Photo)'),
+    width: 900,
+    height: 600,
+  },
+  {
+    value: '2:1',
+    label: Drupal.t('2:1 (Panoramic)'),
+    width: 1000,
+    height: 500,
+  },
+  {
+    value: '9:16',
+    label: Drupal.t('9:16 (Vertical)'),
+    width: 720,
+    height: 1280,
+  },
+  {
+    value: '21:9',
+    label: Drupal.t('21:9 (Ultrawide)'),
+    width: 1400,
+    height: 600,
+  },
 ];
 const DEFAULT_ASPECT_RATIO = EXAMPLE_ASPECT_RATIO_VALUES[1].value;
 
 const EXAMPLE_PIXEL_DENSITY_OPTIONS = [
-  { value: '1x', label: '1x (Standard density)' },
-  { value: '2x', label: '2x (High density)' },
-  { value: '3x', label: '3x (Ultra-high density)' },
+  { value: '1x', label: Drupal.t('1x (Standard density)') },
+  { value: '2x', label: Drupal.t('2x (High density)') },
+  { value: '3x', label: Drupal.t('3x (Ultra-high density)') },
 ];
 const DEFAULT_PIXEL_DENSITY = EXAMPLE_PIXEL_DENSITY_OPTIONS[1].value;
 
@@ -299,7 +324,9 @@ export default function FormPropTypeImage({
       <Flex gap="4" width="100%">
         <Box flexBasis="50%" flexShrink="0">
           <FormElement>
-            <Label htmlFor={`prop-example-${id}`}>Example aspect ratio</Label>
+            <Label htmlFor={`prop-example-${id}`}>
+              {Drupal.t('Example aspect ratio')}
+            </Label>
             <Select.Root
               value={aspectRatio}
               onValueChange={setAspectRatio}
@@ -308,7 +335,9 @@ export default function FormPropTypeImage({
               <Select.Trigger id={`prop-example-${id}`} />
               <Select.Content>
                 {!required && (
-                  <Select.Item value={NONE_VALUE}>- None -</Select.Item>
+                  <Select.Item value={NONE_VALUE}>
+                    {Drupal.t('- None -')}
+                  </Select.Item>
                 )}
                 {EXAMPLE_ASPECT_RATIO_VALUES.map((value) => (
                   <Select.Item key={value.value} value={value.value}>
@@ -323,7 +352,7 @@ export default function FormPropTypeImage({
           <Box flexGrow="1">
             <FormElement>
               <Label htmlFor={`prop-example-pixel-density-${id}`}>
-                Pixel density
+                {Drupal.t('Pixel density')}
               </Label>
               <Select.Root
                 value={pixelDensity}

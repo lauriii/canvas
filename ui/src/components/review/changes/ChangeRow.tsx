@@ -116,13 +116,15 @@ const ChangeRow = ({
             <Checkbox
               size="1"
               disabled={isBusy || hasConflict}
-              aria-label={`Select change ${changeLabel}`}
+              aria-label={Drupal.t('Select change !label', {
+                '!label': changeLabel,
+              })}
               onCheckedChange={handleChangeSelection}
               checked={isSelected}
             />
             <Flex height="16px" align="center">
               {hasConflict ? (
-                <Tooltip content="This change has a conflict">
+                <Tooltip content={Drupal.t('This change has a conflict')}>
                   <ExclamationTriangleIcon
                     className={styles.conflictIcon}
                     data-testid="change-conflict-icon"
@@ -149,7 +151,9 @@ const ChangeRow = ({
             <Box pt="1">
               <Tooltip
                 content={
-                  willBeUnpublished ? 'Applies on next publish' : undefined
+                  willBeUnpublished
+                    ? Drupal.t('Applies on next publish')
+                    : undefined
                 }
               >
                 <Badge
@@ -163,13 +167,24 @@ const ChangeRow = ({
                     padding: '0 4px',
                   }}
                 >
+                  {/* These badges name the state of a page, so they share the
+                      disambiguation context of the page status badges rather
+                      than the verbs used elsewhere in the editor. */}
                   {willBeUnpublished ? (
                     <Flex align="center" gap="1">
                       <ClockIcon width="11" height="11" />
-                      Unpublish
+                      {Drupal.t(
+                        'Unpublish',
+                        {},
+                        { context: 'Canvas page status' },
+                      )}
                     </Flex>
                   ) : (
-                    'Unpublished'
+                    Drupal.t(
+                      'Unpublished',
+                      {},
+                      { context: 'Canvas page status' },
+                    )
                   )}
                 </Badge>
               </Tooltip>
@@ -182,7 +197,9 @@ const ChangeRow = ({
               </Text>
             </Tooltip>
           </Box>
-          <Tooltip content={`By ${change.owner.name}`}>
+          <Tooltip
+            content={Drupal.t('By !name', { '!name': change.owner.name })}
+          >
             <Avatar
               highContrast
               size="1"
@@ -201,7 +218,10 @@ const ChangeRow = ({
           <Box pt="1">
             <DropdownMenu.Root>
               <DropdownMenu.Trigger>
-                <IconButton disabled={isBusy} aria-label="More options">
+                <IconButton
+                  disabled={isBusy}
+                  aria-label={Drupal.t('More options')}
+                >
                   <DotsVerticalIcon />
                 </IconButton>
               </DropdownMenu.Trigger>
@@ -210,16 +230,16 @@ const ChangeRow = ({
                   <DropdownMenu.Item
                     onSelect={() => onResolveConflict?.(change)}
                   >
-                    Resolve conflict
+                    {Drupal.t('Resolve conflict')}
                   </DropdownMenu.Item>
                 )}
                 {canViewChange && (
                   <DropdownMenu.Item onSelect={() => onViewClick?.(change)}>
-                    Review changes
+                    {Drupal.t('Review changes')}
                   </DropdownMenu.Item>
                 )}
                 <DropdownMenu.Item onSelect={() => onDiscardClick(change)}>
-                  Discard changes
+                  {Drupal.t('Discard changes')}
                 </DropdownMenu.Item>
               </DropdownMenu.Content>
             </DropdownMenu.Root>

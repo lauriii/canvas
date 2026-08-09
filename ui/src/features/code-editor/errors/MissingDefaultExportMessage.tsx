@@ -5,23 +5,31 @@ import styles from './error.module.css';
 const MissingDefaultExportMessage = () => {
   return (
     <Flex direction="column" gap="3">
-      <TextBlock>If your component uses function declaration syntax:</TextBlock>
+      <TextBlock>
+        {Drupal.t('If your component uses function declaration syntax:')}
+      </TextBlock>
       <CodeBlock>
         {`function MyComponent() {\n  return (\n    <div>\n      Hello world\n    </div>\n  );\n}`}
       </CodeBlock>
 
-      <TextBlock>Add "export default" in front, like so:</TextBlock>
+      <TextBlock>
+        {Drupal.t('Add "export default" in front, like so:')}
+      </TextBlock>
       <CodeBlock>
         {`export default function MyComponent() {\n  return (\n    <div>\n      Hello world\n    </div>\n  );\n}`}
       </CodeBlock>
 
-      <TextBlock>Or if it uses the arrow function syntax:</TextBlock>
+      <TextBlock>
+        {Drupal.t('Or if it uses the arrow function syntax:')}
+      </TextBlock>
       <CodeBlock>
         {`const MyComponent = () => {\n  return (\n    <div>\n      Hello world\n    </div>\n  );\n};`}
       </CodeBlock>
 
       <TextBlock>
-        Add "export default" and the name of your component at the end:
+        {Drupal.t(
+          'Add "export default" and the name of your component at the end:',
+        )}
       </TextBlock>
       <CodeBlock>
         {`const MyComponent = () => {\n  return (\n    <div>\n      Hello world\n    </div>\n  );\n};\nexport default MyComponent;`}

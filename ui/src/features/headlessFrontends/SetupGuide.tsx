@@ -35,7 +35,7 @@ const SetupGuide = ({
   <Flex direction="column" gap="7">
     <Flex direction="column" gap="3">
       <Heading as="h2" size="3">
-        Set up your codebase
+        {Drupal.t('Set up your codebase')}
       </Heading>
       <SetupSection
         packageManager={packageManager}
@@ -45,16 +45,18 @@ const SetupGuide = ({
 
     <Flex direction="column" gap="3">
       <Heading as="h2" size="3">
-        Keep using your existing components
+        {Drupal.t('Keep using your existing components')}
       </Heading>
       <Flex direction="column" gap="4" className={styles.sectionCard}>
         <Text size="1" color="gray">
-          Synchronize your existing components with your headless codebase:
+          {Drupal.t(
+            'Synchronize your existing components with your headless codebase:',
+          )}
         </Text>
         <Flex gap="3">
           <StepNumber>1</StepNumber>
           <Flex direction="column" gap="1" flexGrow="1">
-            <Text size="1">Set up the Canvas CLI:</Text>
+            <Text size="1">{Drupal.t('Set up the Canvas CLI:')}</Text>
             <Text size="1">
               <Link
                 href={CLI_DOCS_URL}
@@ -62,7 +64,7 @@ const SetupGuide = ({
                 rel="noreferrer"
                 data-testid="canvas-headless-cli-docs-link"
               >
-                Read and follow the Canvas CLI setup guide{' '}
+                {Drupal.t('Read and follow the Canvas CLI setup guide')}{' '}
                 <ExternalLinkIcon width="12" height="12" />
               </Link>
             </Text>
@@ -71,7 +73,7 @@ const SetupGuide = ({
         <Flex gap="3">
           <StepNumber>2</StepNumber>
           <Flex direction="column" gap="3" flexGrow="1">
-            <Text size="1">Pull your existing components:</Text>
+            <Text size="1">{Drupal.t('Pull your existing components:')}</Text>
             <PackageManagerSwitcher
               value={packageManager}
               onValueChange={onPackageManagerChange}

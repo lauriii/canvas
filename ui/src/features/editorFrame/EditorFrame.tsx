@@ -479,10 +479,14 @@ const EditorFrame: React.FC = () => {
               ref={scalingContainerRef}
             >
               <ErrorBoundary
-                title="An unexpected error has occurred while rendering preview."
+                title={Drupal.t(
+                  'An unexpected error has occurred while rendering preview.',
+                )}
                 variant="alert"
                 onReset={isUndoable ? dispatchUndo : undefined}
-                resetButtonText={isUndoable ? 'Undo last action' : undefined}
+                resetButtonText={
+                  isUndoable ? Drupal.t('Undo last action') : undefined
+                }
               >
                 <Preview />
               </ErrorBoundary>

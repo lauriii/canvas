@@ -21,12 +21,18 @@ const AiToggleButton = () => {
 
   const lineColor = isAiPanelOpen ? '#0090FF' : '#1C2024';
   return (
-    <Tooltip content={isAiPanelOpen ? 'Close AI Panel' : 'Open AI Panel'}>
+    <Tooltip
+      content={
+        isAiPanelOpen ? Drupal.t('Close AI Panel') : Drupal.t('Open AI Panel')
+      }
+    >
       <IconButton
         variant={isAiPanelOpen ? 'solid' : 'ghost'}
         size="1"
         onClick={handleToggle}
-        aria-label={isAiPanelOpen ? 'Close AI Panel' : 'Open AI Panel'}
+        aria-label={
+          isAiPanelOpen ? Drupal.t('Close AI Panel') : Drupal.t('Open AI Panel')
+        }
       >
         <svg
           width="25"

@@ -161,7 +161,9 @@ const DefaultImagePreview = ({ propName }: DefaultImagePreviewProps) => {
 
   const isOptional = !propData?.required;
   const imageUrl = defaultImageValue.src;
-  const imageAlt = defaultImageValue.alt || 'Default';
+  const imageAlt =
+    defaultImageValue.alt ||
+    Drupal.t('Default', {}, { context: 'Canvas field value' });
 
   return (
     <div ref={componentRefCallback} className={styles.defaultImagePreview}>
@@ -176,8 +178,8 @@ const DefaultImagePreview = ({ propName }: DefaultImagePreviewProps) => {
             type="button"
             onClick={handleRemoveDefault}
             className={styles.removeDefaultButton}
-            aria-label="Remove default"
-            title="Remove default"
+            aria-label={Drupal.t('Remove default')}
+            title={Drupal.t('Remove default')}
           />
         )}
         <span className={styles.defaultImageLabel}>{imageAlt}</span>

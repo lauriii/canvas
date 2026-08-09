@@ -81,10 +81,11 @@ const FontFamilyFlyout = ({
           {fontGroup.family}
         </Heading>
         <Text size="1" color="gray">
-          {fontGroup.fonts.length}{' '}
-          {fontGroup.fonts.length === 1
-            ? 'variant uploaded'
-            : 'variants uploaded'}
+          {Drupal.formatPlural(
+            fontGroup.fonts.length,
+            '1 variant uploaded',
+            '@count variants uploaded',
+          )}
         </Text>
       </Box>
       <Flex align="center" gap="2" className={styles.flyoutHeaderActions}>
@@ -95,9 +96,9 @@ const FontFamilyFlyout = ({
           disabled={isBusy}
         >
           <DownloadIcon />
-          Add variant
+          {Drupal.t('Add variant')}
         </Button>
-        <Popover.Close aria-label="Close font details">
+        <Popover.Close aria-label={Drupal.t('Close font details')}>
           <IconButton
             variant="ghost"
             color="gray"
@@ -114,7 +115,7 @@ const FontFamilyFlyout = ({
       <Flex direction="column" gap="4" className={styles.flyoutBody}>
         <Flex direction="column" gap="2">
           <Text size="1" color="gray">
-            Family name
+            {Drupal.t('Family name')}
           </Text>
           <TextField.Root
             value={familyDraft}
@@ -136,8 +137,8 @@ const FontFamilyFlyout = ({
               <Flex direction="column" gap="3">
                 <Text size="1" color="gray">
                   {selectedFont.variantType === 'variable'
-                    ? 'CSS settings'
-                    : 'Variant settings'}
+                    ? Drupal.t('CSS settings')
+                    : Drupal.t('Variant settings')}
                 </Text>
                 <Flex
                   align="start"
@@ -157,7 +158,11 @@ const FontFamilyFlyout = ({
                     size="1"
                     onClick={() => void onRemoveFont(selectedFont.id)}
                     disabled={isBusy}
-                    aria-label={`Remove ${selectedFont.family} ${selectedFont.weight} ${selectedFont.style}`}
+                    aria-label={Drupal.t('Remove !family !weight !style', {
+                      '!family': selectedFont.family,
+                      '!weight': selectedFont.weight,
+                      '!style': selectedFont.style,
+                    })}
                   >
                     <TrashIcon />
                   </IconButton>

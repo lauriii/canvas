@@ -61,12 +61,13 @@ const PreviewControls = ({ isPreview }: PreviewControlsProps) => {
             color="blue"
             onClick={handleChangeModeClick}
           >
-            <EyeNoneIcon /> Exit Preview
+            <EyeNoneIcon /> {Drupal.t('Exit Preview')}
           </Button>
         </>
       ) : (
         <Button variant="outline" color="blue" onClick={handleChangeModeClick}>
-          <EyeOpenIcon /> Preview
+          <EyeOpenIcon />{' '}
+          {Drupal.t('Preview', {}, { context: 'Canvas editor' })}
         </Button>
       )}
     </>

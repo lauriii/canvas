@@ -41,7 +41,7 @@ const PatternList = ({ searchTerm }: PatternListProps) => {
       isLoading={isLoading || foldersLoading}
       searchTerm={searchTerm}
       layoutType={LayoutItemType.PATTERN}
-      topLevelLabel="Patterns"
+      topLevelLabel={Drupal.t('Patterns')}
       itemType="pattern"
       renderItem={renderItem}
     />

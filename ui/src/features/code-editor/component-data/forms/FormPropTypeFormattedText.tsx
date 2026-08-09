@@ -46,10 +46,12 @@ export default function FormPropTypeFormattedText({
     <Flex direction="column" gap="4" flexGrow="1">
       <Divider />
       <FormElement>
-        <Label htmlFor={`prop-example-${id}`}>Example value</Label>
+        <Label htmlFor={`prop-example-${id}`}>
+          {Drupal.t('Example value')}
+        </Label>
         <TextArea
           id={`prop-example-${id}`}
-          placeholder="Enter a text value"
+          placeholder={Drupal.t('Enter a text value')}
           value={example as string}
           size="1"
           onChange={(e) => {

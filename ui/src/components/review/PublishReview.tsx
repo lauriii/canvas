@@ -348,9 +348,9 @@ const PublishReview: React.FC<PublishReviewProps> = ({
               <Box px="4" pt="4">
                 <Text size="1">
                   {changes.length
-                    ? Drupal.t('@selected of @total changes selected', {
-                        '@selected': selectedAvailableChanges.length,
-                        '@total': changes?.length ?? 0,
+                    ? Drupal.t('!selected of !total changes selected', {
+                        '!selected': selectedAvailableChanges.length,
+                        '!total': changes?.length ?? 0,
                       })
                     : Drupal.t('All changes published!')}
                 </Text>

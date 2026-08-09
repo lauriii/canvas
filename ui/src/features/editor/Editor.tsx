@@ -68,10 +68,14 @@ const Editor: React.FC<EditorProps> = ({ context, disable = false }) => {
       case 'entity':
         return (
           <ErrorBoundary
-            title="An unexpected error has occurred while fetching the layout."
+            title={Drupal.t(
+              'An unexpected error has occurred while fetching the layout.',
+            )}
             variant="alert"
             onReset={isUndoable ? dispatchUndo : undefined}
-            resetButtonText={isUndoable ? 'Undo last action' : undefined}
+            resetButtonText={
+              isUndoable ? Drupal.t('Undo last action') : undefined
+            }
           >
             <LayoutLoader />
           </ErrorBoundary>
@@ -79,7 +83,9 @@ const Editor: React.FC<EditorProps> = ({ context, disable = false }) => {
       case 'template':
         return (
           <ErrorBoundary
-            title="An error has occurred while fetching the template."
+            title={Drupal.t(
+              'An error has occurred while fetching the template.',
+            )}
             variant="alert"
             onReset={() => {
               if (entityType && bundle && viewMode) {
@@ -97,7 +103,7 @@ const Editor: React.FC<EditorProps> = ({ context, disable = false }) => {
                 navigate('/', { replace: true });
               }
             }}
-            resetButtonText="Return to templates"
+            resetButtonText={Drupal.t('Return to templates')}
           >
             <TemplateLayout />
           </ErrorBoundary>

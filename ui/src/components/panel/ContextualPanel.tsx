@@ -36,7 +36,9 @@ const ContextualPanel: React.FC = () => {
   const dispatch = useAppDispatch();
   const editorFrameContext = useAppSelector(selectEditorFrameContext);
   const isTemplateContext = editorFrameContext === EditorFrameContext.TEMPLATE;
-  const mainTabText = isTemplateContext ? 'Template data' : 'Page data';
+  const mainTabText = isTemplateContext
+    ? Drupal.t('Template data')
+    : Drupal.t('Page data');
 
   const [activePanel, setActivePanel] = useState('pageData');
   const offRightClasses = useHidePanelClasses('right');
@@ -103,7 +105,7 @@ const ContextualPanel: React.FC = () => {
                   value="settings"
                   data-testid="canvas-contextual-panel--settings"
                 >
-                  Settings
+                  {Drupal.t('Settings')}
                 </Tabs.Trigger>
               )}
             </Tabs.List>
@@ -114,7 +116,11 @@ const ContextualPanel: React.FC = () => {
                     <Box my="2">
                       <Flex direction="column" gap="2">
                         <Text align="center" color="gray" my="3" size="1">
-                          {selection.items.length} items selected
+                          {Drupal.formatPlural(
+                            selection.items.length,
+                            '1 item selected',
+                            '@count items selected',
+                          )}
                         </Text>
 
                         <Flex gap="1" justify="center" align="center">
@@ -123,27 +129,31 @@ const ContextualPanel: React.FC = () => {
                             disabled={!selection.consecutive}
                             onClick={() =>
                               alert(
-                                'Copy functionality will be implemented later',
+                                Drupal.t(
+                                  'Copy functionality will be implemented later',
+                                ),
                               )
                             }
                             className="canvas-button"
                           >
-                            Copy
+                            {Drupal.t('Copy', {}, { context: 'Canvas editor' })}
                           </Button>
                           <Text size="1" color="gray">
-                            or
+                            {Drupal.t('or', {}, { context: 'Canvas editor' })}
                           </Text>
                           <Button
                             size="1"
                             disabled={!selection.consecutive}
                             onClick={() =>
                               alert(
-                                'Save as Pattern functionality will be implemented later',
+                                Drupal.t(
+                                  'Save as Pattern functionality will be implemented later',
+                                ),
                               )
                             }
                             className="canvas-button"
                           >
-                            Save as Pattern
+                            {Drupal.t('Save as Pattern')}
                           </Button>
                         </Flex>
                         {!selection.consecutive && (
@@ -157,15 +167,20 @@ const ContextualPanel: React.FC = () => {
                               <InfoCircledIcon />
                             </Callout.Icon>
                             <Callout.Text>
-                              Actions are only available when selecting adjacent
-                              items in the layout
+                              {Drupal.t(
+                                'Actions are only available when selecting adjacent items in the layout',
+                              )}
                             </Callout.Text>
                           </Callout.Root>
                         )}
                       </Flex>
                     </Box>
                   )}
-                  <ErrorBoundary title="An unexpected error has occurred while rendering the component's form.">
+                  <ErrorBoundary
+                    title={Drupal.t(
+                      "An unexpected error has occurred while rendering the component's form.",
+                    )}
+                  >
                     <Outlet />
                   </ErrorBoundary>
                 </Tabs.Content>

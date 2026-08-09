@@ -14,25 +14,25 @@ import type { viewportSize } from '@/types/Preview';
 const VIEWPORTS = {
   mobile: {
     id: 'mobile',
-    name: 'Mobile',
+    name: Drupal.t('Mobile'),
     defaultWidth: 468,
     aspectRatio: 800 / 468, // ~1.71 (portrait)
   },
   tablet: {
     id: 'tablet',
-    name: 'Tablet',
+    name: Drupal.t('Tablet'),
     defaultWidth: 1024,
     aspectRatio: 768 / 1024, // 0.75 (4:3 landscape)
   },
   desktop: {
     id: 'desktop',
-    name: 'Desktop',
+    name: Drupal.t('Desktop'),
     defaultWidth: 1920,
     aspectRatio: 1080 / 1920, // 0.5625 (16:9 landscape)
   },
   large_desktop: {
     id: 'large_desktop',
-    name: 'Large Desktop',
+    name: Drupal.t('Large Desktop'),
     defaultWidth: 2560,
     aspectRatio: 1440 / 2560, // 0.5625 (16:9 landscape)
   },

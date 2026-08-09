@@ -97,36 +97,50 @@ const RemoveFromComponentsDialog = () => {
     }
   }, [isError, error]);
 
+  // Kept as two sentences so the second one stays a short, reusable string and
+  // the HTTP status reaches translators as a placeholder rather than as a
+  // fragment they cannot reorder.
+  const errorMessage = [
+    Drupal.t('An error !status occurred while removing from components.', {
+      '!status':
+        error && 'status' in error ? '(HTTP ' + error.status + ')' : '',
+    }),
+    Drupal.t('Please check the browser console for more details.'),
+  ].join(' ');
+
   return (
     <Dialog
       open={isRemoveFromComponentsDialogOpen}
       onOpenChange={handleOpenChange}
-      title="Remove from components"
+      title={Drupal.t('Remove from components')}
       description={
         <>
-          This component will be moved to the <b>Code</b> section and will no
-          longer be available to use on the page.
+          {Drupal.t('This component will be moved to the')}{' '}
+          <b>{Drupal.t('Code', {}, { context: 'Canvas panel' })}</b>{' '}
+          {Drupal.t(
+            'section and will no longer be available to use on the page.',
+          )}
           <br />
           <br />
-          You can re-add it to <b>Components</b> from the <b>Code</b> section at
-          any time.
+          {Drupal.t('You can re-add it to')} <b>{Drupal.t('Components')}</b>{' '}
+          {Drupal.t('from the')}{' '}
+          <b>{Drupal.t('Code', {}, { context: 'Canvas panel' })}</b>{' '}
+          {Drupal.t('section at any time.')}
         </>
       }
       error={
         isError
           ? {
-              title: 'Failed to remove from components',
-              message: `An error ${
-                'status' in error ? '(HTTP ' + error.status + ')' : ''
-              } occurred while removing from components. Please check the browser console for more details.`,
-              resetButtonText: 'Try again',
+              title: Drupal.t('Failed to remove from components'),
+              message: errorMessage,
+              resetButtonText: Drupal.t('Try again'),
               onReset: handleSave,
             }
           : undefined
       }
       footer={{
-        cancelText: 'Cancel',
-        confirmText: 'Remove',
+        cancelText: Drupal.t('Cancel'),
+        confirmText: Drupal.t('Remove'),
         onConfirm: handleSave,
         isConfirmDisabled: false,
         isConfirmLoading: isLoading,

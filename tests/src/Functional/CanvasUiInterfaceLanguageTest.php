@@ -181,6 +181,49 @@ class CanvasUiInterfaceLanguageTest extends FunctionalTestBase {
   }
 
   /**
+   * Tests that Drupal's default negotiation cannot set the editor's language.
+   *
+   * Out of the box the only enabled interface method is URL prefixes, and
+   * Canvas redirects a prefixed editor path back to the prefix-free one so the
+   * React router owns everything after /canvas. The editor therefore always
+   * gets the site default until a method that does not read the URL is
+   * enabled, which is why the documentation tells sites to turn on "Account
+   * administration pages".
+   *
+   * @see \Drupal\canvas\EventSubscriber\CanvasRouteOptionsEventSubscriber::redirectCanvasToDefaultLanguage()
+   * @see docs/react-codebase/translation.md
+   */
+  public function testUrlNegotiationAloneCannotTranslateTheEditor(): void {
+    // Drupal's own default: URL prefixes and nothing else.
+    $this->config('language.types')
+      ->set('negotiation.language_interface.enabled', ['language-url' => 0])
+      ->save();
+    $this->config('language.negotiation')
+      ->set('url.prefixes', ['en' => '', 'fi' => 'fi', 'de' => 'de'])
+      ->save();
+    $this->rebuildContainer();
+
+    $user = $this->drupalCreateUser([
+      'access administration pages',
+      JavaScriptComponent::ADMIN_PERMISSION,
+    ]);
+    $user->set('preferred_admin_langcode', 'fi')->save();
+    $this->drupalLogin($user);
+
+    // The prefix is stripped, so the editor is served at the unprefixed path.
+    $this->drupalGet('fi/canvas');
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertStringNotContainsString(
+      '/fi/canvas',
+      $this->getSession()->getCurrentUrl(),
+    );
+
+    // And it renders in the site default, not Finnish: the administration
+    // language preference is set but its negotiation method is not enabled.
+    $this->assertSession()->elementAttributeContains('css', 'html', 'lang', 'en');
+  }
+
+  /**
    * Tests that the routes booting the editor are administrative.
    *
    * Without this, LanguageNegotiationUserAdmin never applies and the two tests

@@ -1,19 +1,16 @@
 import { ExclamationTriangleIcon, ReloadIcon } from '@radix-ui/react-icons';
 import { AlertDialog, Box, Button, Flex } from '@radix-ui/themes';
 
-const DEFAULT_TITLE = 'An unexpected error has occurred.';
-const DEFAULT_RESET_BUTTON_TEXT = 'Try again';
-
 const ErrorAlert: React.FC<{
   title?: string;
   error?: string;
   resetErrorBoundary?: () => void;
   resetButtonText?: string;
 }> = ({
-  title = DEFAULT_TITLE,
+  title = Drupal.t('An unexpected error has occurred.'),
   error,
   resetErrorBoundary,
-  resetButtonText = DEFAULT_RESET_BUTTON_TEXT,
+  resetButtonText = Drupal.t('Try again'),
 }) => (
   <AlertDialog.Root defaultOpen>
     <AlertDialog.Content data-testid="canvas-error-alert" maxWidth="520px">

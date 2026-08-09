@@ -68,7 +68,9 @@ const HeadlessFrontendsPage = () => {
 
   const handleReorder = (oldIndex: number, newIndex: number) => {
     void saveList(arrayMove(frontends, oldIndex, newIndex)).catch(() => {
-      toast.error('The frontend order could not be saved. Please try again.');
+      toast.error(
+        Drupal.t('The frontend order could not be saved. Please try again.'),
+      );
     });
   };
 
@@ -82,7 +84,9 @@ const HeadlessFrontendsPage = () => {
       setStatuses(({ [frontendToRemove?.url ?? '']: _, ...rest }) => rest);
       setFrontendToRemove(null);
     } catch {
-      toast.error('The frontend could not be removed. Please try again.');
+      toast.error(
+        Drupal.t('The frontend could not be removed. Please try again.'),
+      );
     }
   };
 
@@ -101,11 +105,12 @@ const HeadlessFrontendsPage = () => {
           <Flex justify="between" align="start" gap="3">
             <Flex direction="column" gap="2">
               <Heading as="h1" size="5">
-                Headless frontends
+                {Drupal.t('Headless frontends')}
               </Heading>
               <Text size="2" color="gray">
-                Connect the frontend apps that render your Drupal Canvas
-                content, and get your codebase set up.
+                {Drupal.t(
+                  'Connect the frontend apps that render your Drupal Canvas content, and get your codebase set up.',
+                )}
               </Text>
             </Flex>
             {hasFrontends && (
@@ -117,14 +122,14 @@ const HeadlessFrontendsPage = () => {
                 data-testid="canvas-headless-setup-guide-button"
               >
                 <GearIcon />
-                Setup guide
+                {Drupal.t('Setup guide')}
               </Button>
             )}
           </Flex>
 
           <Flex direction="column" gap="3">
             <Heading as="h2" size="3">
-              Frontends
+              {Drupal.t('Frontends')}
             </Heading>
             {isLoading && (
               <Flex width="100%" justify="center" py="6">
@@ -133,8 +138,10 @@ const HeadlessFrontendsPage = () => {
             )}
             {!isLoading && error !== undefined && (
               <ErrorCard
-                title="Failed to load the frontends."
-                error="Please contact your site administrator if you believe this is an error."
+                title={Drupal.t('Failed to load the frontends.')}
+                error={Drupal.t(
+                  'Please contact your site administrator if you believe this is an error.',
+                )}
               />
             )}
             {!isLoading && error === undefined && (
@@ -181,7 +188,7 @@ const HeadlessFrontendsPage = () => {
       <Dialog
         open={isSetupGuideOpen}
         onOpenChange={setIsSetupGuideOpen}
-        title="Setup guide"
+        title={Drupal.t('Setup guide')}
         width="640px"
         headerClose
         footer={{ hidden: true }}

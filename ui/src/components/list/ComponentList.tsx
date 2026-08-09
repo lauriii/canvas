@@ -77,7 +77,7 @@ const ComponentList = ({ searchTerm, visibility }: ComponentListProps) => {
       isLoading={isLoading || foldersLoading}
       searchTerm={searchTerm}
       layoutType={LayoutItemType.COMPONENT}
-      topLevelLabel="Components"
+      topLevelLabel={Drupal.t('Components')}
       itemType="component"
       renderItem={renderItem}
     />

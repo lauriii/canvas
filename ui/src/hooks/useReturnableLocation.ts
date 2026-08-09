@@ -19,7 +19,10 @@ const useReturnableLocation = () => {
     }
     if (isTemplateEditor) {
       dispatch(
-        setPreviouslyEdited({ path: pathname, name: 'Template Editor' }),
+        setPreviouslyEdited({
+          path: pathname,
+          name: Drupal.t('Template Editor'),
+        }),
       );
     }
   }, [dispatch, pathname, entityTitle]);

@@ -31,7 +31,7 @@ const VariableFontAxesEditor = ({
 }: VariableFontAxesEditorProps) => (
   <Flex direction="column" gap="3">
     <Text size="1" color="gray">
-      CSS axes
+      {Drupal.t('CSS axes')}
     </Text>
     {font.axes?.map((axis) => (
       <Flex
@@ -65,13 +65,13 @@ const VariableFontAxesEditor = ({
         />
         <Flex justify="between" gap="2">
           <Text size="1" color="gray">
-            Min {axis.min}
+            {Drupal.t('Min !value', { '!value': axis.min })}
           </Text>
           <Text size="1" color="gray">
-            Default {axis.default}
+            {Drupal.t('Default !value', { '!value': axis.default })}
           </Text>
           <Text size="1" color="gray">
-            Max {axis.max}
+            {Drupal.t('Max !value', { '!value': axis.max })}
           </Text>
         </Flex>
       </Flex>

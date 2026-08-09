@@ -36,7 +36,7 @@ const PreviewProgress: React.FC<PreviewProgressProps> = ({ loading }) => {
 
   return (
     <Progress
-      aria-label="Loading Preview"
+      aria-label={Drupal.t('Loading Preview')}
       className={styles.progress}
       duration="1s"
     />

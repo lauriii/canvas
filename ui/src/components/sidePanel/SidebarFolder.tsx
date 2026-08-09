@@ -167,7 +167,7 @@ const SidebarFolder: React.FC<SidebarFolderProps> = ({
           <DropdownMenu.Root>
             <DropdownMenu.Trigger>
               <button
-                aria-label="Open contextual menu"
+                aria-label={Drupal.t('Open contextual menu')}
                 className={nodeStyles.contextualTrigger}
               >
                 <span className={nodeStyles.dots}>
@@ -200,7 +200,11 @@ const SidebarFolder: React.FC<SidebarFolderProps> = ({
           align="end"
           flexShrink="0"
           role="button"
-          aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${name} folder`}
+          aria-label={
+            isOpen
+              ? Drupal.t('Collapse !name folder', { '!name': name })
+              : Drupal.t('Expand !name folder', { '!name': name })
+          }
         >
           <ChevronRightIcon
             className={clsx(listStyles.chevron, {

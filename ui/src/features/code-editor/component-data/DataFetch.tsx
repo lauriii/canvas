@@ -43,8 +43,10 @@ const DataFetch = () => {
               <InfoCircledIcon />
             </Callout.Icon>
             <Callout.Text>
-              Results from <code>useSWR()</code> and data fetching with
-              <code>'@/lib/drupal-utils'</code> functions will be shown here.
+              {Drupal.t('Results from')} <code>useSWR()</code>{' '}
+              {Drupal.t('and data fetching with')}
+              <code>'@/lib/drupal-utils'</code>{' '}
+              {Drupal.t('functions will be shown here.')}
             </Callout.Text>
           </Callout.Root>
         </Box>
@@ -82,7 +84,7 @@ const DataFetch = () => {
                     <Callout.Text>
                       {fetchedData[id].data?.message
                         ? fetchedData[id].data.message
-                        : 'error'}
+                        : Drupal.t('error')}
                     </Callout.Text>
                     <Box p="2" className={styles.errorWrapper}>
                       <JSONTree

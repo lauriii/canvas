@@ -56,8 +56,12 @@ const CodeEditorUi = (
     denied={
       <Flex align="center" justify="center" height="100vh" width="100%">
         <ErrorCard
-          title="You do not have permission to access the code editor."
-          error="Please contact your site administrator if you believe this is an error."
+          title={Drupal.t(
+            'You do not have permission to access the code editor.',
+          )}
+          error={Drupal.t(
+            'Please contact your site administrator if you believe this is an error.',
+          )}
         />
       </Flex>
     }
@@ -80,8 +84,12 @@ const HeadlessFrontendsUi = () =>
   ) : (
     <Flex align="center" justify="center" height="100vh" width="100%">
       <ErrorCard
-        title="You do not have permission to administer headless frontends."
-        error="Please contact your site administrator if you believe this is an error."
+        title={Drupal.t(
+          'You do not have permission to administer headless frontends.',
+        )}
+        error={Drupal.t(
+          'Please contact your site administrator if you believe this is an error.',
+        )}
       />
     </Flex>
   );

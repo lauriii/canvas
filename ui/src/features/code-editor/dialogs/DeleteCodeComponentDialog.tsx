@@ -125,31 +125,53 @@ const DeleteCodeComponentDialog = () => {
     }
   }, [isComponentUsageListError, componentUsageListError]);
 
+  // Each message is kept as two sentences so the second one stays a short,
+  // reusable string and the HTTP status reaches translators as a placeholder
+  // rather than as a fragment they cannot reorder.
+  const consoleHint = Drupal.t(
+    'Please check the browser console for more details.',
+  );
+
   const deleteErrorOutput = {
-    title: 'Failed to delete component',
-    message: `An error ${
-      error && 'status' in error ? '(HTTP ' + error.status + ')' : ''
-    } occurred while deleting the component. Please check the browser console for more details.`,
-    resetButtonText: 'Try again',
+    title: Drupal.t('Failed to delete component'),
+    message: [
+      Drupal.t('An error !status occurred while deleting the component.', {
+        '!status':
+          error && 'status' in error ? '(HTTP ' + error.status + ')' : '',
+      }),
+      consoleHint,
+    ].join(' '),
+    resetButtonText: Drupal.t('Try again'),
     onReset: handleDelete,
   };
 
   const componentUsageListErrorOutput = {
-    title: 'Failed to fetch component list',
-    message: `An error ${
-      componentUsageListError && 'status' in componentUsageListError
-        ? '(HTTP ' + componentUsageListError.status + ')'
-        : ''
-    } occurred while fetching the component usage list. Please check the browser console for more details.`,
+    title: Drupal.t('Failed to fetch component list'),
+    message: [
+      Drupal.t(
+        'An error !status occurred while fetching the component usage list.',
+        {
+          '!status':
+            componentUsageListError && 'status' in componentUsageListError
+              ? '(HTTP ' + componentUsageListError.status + ')'
+              : '',
+        },
+      ),
+      consoleHint,
+    ].join(' '),
   };
 
   const usageErrorOutput = {
-    title: 'Failed to fetch component usage details',
-    message: `An error ${
-      usageError && 'status' in usageError
-        ? '(HTTP ' + usageError.status + ')'
-        : ''
-    } occurred while fetching component usage. Please check the browser console for more details.`,
+    title: Drupal.t('Failed to fetch component usage details'),
+    message: [
+      Drupal.t('An error !status occurred while fetching component usage.', {
+        '!status':
+          usageError && 'status' in usageError
+            ? '(HTTP ' + usageError.status + ')'
+            : '',
+      }),
+      consoleHint,
+    ].join(' '),
   };
 
   if (!selectedComponent) return null;
@@ -164,9 +186,14 @@ const DeleteCodeComponentDialog = () => {
       const length = statefulUsageDetails.content.length;
       pastRevisionsWarning = (
         <>
-          This will break <b>{length}</b> past version{length > 1 ? 's' : ''}.
-          Reverting to past versions that rely on this component will appear
-          broken.
+          {Drupal.formatPlural(
+            length,
+            'This will break 1 past version.',
+            'This will break @count past versions.',
+          )}{' '}
+          {Drupal.t(
+            'Reverting to past versions that rely on this component will appear broken.',
+          )}
         </>
       );
     }
@@ -188,8 +215,9 @@ const DeleteCodeComponentDialog = () => {
 
   const description = (
     <>
-      You are about to permanently delete the <b>{selectedComponent.name}</b>{' '}
-      component.
+      {Drupal.t('You are about to permanently delete the !name component.', {
+        '!name': selectedComponent.name,
+      })}
       {pastRevisionsWarning && (
         <>
           <br />
@@ -204,7 +232,7 @@ const DeleteCodeComponentDialog = () => {
       <Dialog
         open={isDeleteDialogOpen}
         onOpenChange={handleOpenChange}
-        title="Delete component"
+        title={Drupal.t('Delete component')}
         error={
           (isError && deleteErrorOutput) ||
           (isUsageError && usageErrorOutput) ||
@@ -212,8 +240,9 @@ const DeleteCodeComponentDialog = () => {
           undefined
         }
         footer={{
-          cancelText: 'Cancel',
-          confirmText: (!formImpactingErrors && 'Delete') || undefined,
+          cancelText: Drupal.t('Cancel'),
+          confirmText:
+            (!formImpactingErrors && Drupal.t('Delete')) || undefined,
           onConfirm: (!formImpactingErrors && handleDelete) || undefined,
           isConfirmDisabled: false,
           isConfirmLoading: isLoading,
