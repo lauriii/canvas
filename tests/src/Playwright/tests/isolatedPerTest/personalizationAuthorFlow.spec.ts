@@ -14,7 +14,13 @@ import { isolatedPerTest as test } from '../../fixtures/test.js';
 // fixture's `modules` option because the dependency-confirm install runs as a
 // batch that outlasts the fixture helper's fixed post-install assertions on
 // slower environments.
-test.use({ modules: ['canvas_test_sdc'], enableTestExtensions: true });
+// canvas_dev_mode loosens the ComponentSource allowlist so the p13n
+// components can be installed.
+// @see https://www.drupal.org/i/3520484
+test.use({
+  modules: ['canvas_test_sdc', 'canvas_dev_mode'],
+  enableTestExtensions: true,
+});
 
 test.describe('Personalization author flow', () => {
   // The per-test site install plus two extra modules exceeds the default
@@ -54,14 +60,8 @@ test.describe('Personalization author flow', () => {
       { timeout: 240_000 },
     );
 
-    // Create a page with a heading component: this becomes the default
-    // variant's content.
-    const pagePath = await canvas.createCanvas({ title: 'Personalized page' });
-    await canvas.openCanvas(pagePath);
-    await canvas.openLibraryPanel();
-    await canvas.addComponent({ id: 'sdc.canvas_test_sdc.heading' });
-
     // Create a segment matching ?coupon=WEEKEND via the segments dashboard.
+    await canvas.openCanvasRoot();
     await page.getByRole('button', { name: 'Segments' }).click();
     await page.getByRole('button', { name: 'Create segment' }).click();
     const createSegmentDialog = page.getByRole('dialog');
@@ -77,10 +77,17 @@ test.describe('Personalization author flow', () => {
     await page.getByRole('button', { name: 'Save rules' }).click();
     await page.getByRole('button', { name: 'Enable' }).click();
 
-    // Back to the builder; personalize the page.
-    await page.getByRole('button', { name: 'Builder' }).click();
-    await canvas.waitForEditorUi();
-    await page.getByRole('button', { name: 'Personalize' }).click();
+    // Create a page with a heading component: this becomes the default
+    // variant's content.
+    const pagePath = await canvas.createCanvas({ title: 'Personalized page' });
+    await canvas.openCanvas(pagePath);
+    await canvas.openLibraryPanel();
+    await canvas.addComponent({ id: 'sdc.canvas_test_sdc.heading' });
+
+    // Personalize the page.
+    await page
+      .getByRole('button', { name: 'Personalize', exact: true })
+      .click();
     await page
       .getByRole('button', { name: 'Personalize page', exact: true })
       .click();
@@ -99,11 +106,17 @@ test.describe('Personalization author flow', () => {
       .getByRole('textbox')
       .first()
       .fill('Coupon campaign');
+    const audienceCheckbox = createVariantDialog.getByRole('checkbox', {
+      name: 'Coupon users',
+    });
+    // The popover-anchored dialog re-renders as the preview refreshes, which
+    // trips Playwright's stability check; the assertions after each forced
+    // click are the real gates.
+    await audienceCheckbox.click({ force: true });
+    await expect(audienceCheckbox).toBeChecked();
     await createVariantDialog
-      .getByRole('group', { name: 'Audience' })
-      .getByText('Coupon users')
-      .click();
-    await createVariantDialog.getByRole('button', { name: 'Create' }).click();
+      .getByRole('button', { name: 'Create' })
+      .click({ force: true });
 
     // The new variant is now previewed — never ambiguous.
     await expect(variantsTrigger).toContainText('Variant: Coupon campaign');
