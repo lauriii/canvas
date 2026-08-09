@@ -1,6 +1,8 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import * as yaml from 'js-yaml';
+import { parse } from '@babel/parser';
+import { getImportsFromAst } from '@drupal-canvas/ui/features/code-editor/utils/ast-utils';
 
 import type { Component, DataDependencies } from '../types/Component';
 import type { Metadata } from '../types/Metadata';
@@ -157,4 +159,27 @@ export function createComponentPayload(
   }
 
   return payload;
+}
+
+/**
+ * Recovers a component's Canvas imports from its source.
+ *
+ * The HTTP API never returns `importedJsComponents`, but requires it on write
+ * whenever source is sent, so any payload read back from a site has to have it
+ * derived again before it can be written anywhere.
+ */
+export function parseImportedJsComponents(
+  sourceCodeJs: string | undefined,
+  onError: (message: string) => void = () => {},
+): string[] {
+  try {
+    const ast = parse(sourceCodeJs ?? '', {
+      sourceType: 'module',
+      plugins: ['jsx', 'typescript'],
+    });
+    return getImportsFromAst(ast, '@/components/');
+  } catch (error) {
+    onError(`Error: ${String(error)}`);
+    return [];
+  }
 }

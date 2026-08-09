@@ -337,6 +337,41 @@ export class ApiService {
   }
 
   /**
+   * Reports which Components are referenced by content on this site.
+   *
+   * Returns Component config entity IDs mapped to whether anything uses them.
+   * Returns undefined when the site does not expose this endpoint to external
+   * clients, so callers can degrade instead of failing: older sites answer 403.
+   */
+  async listComponentUsage(): Promise<Map<string, boolean> | undefined> {
+    const usage = new Map<string, boolean>();
+    let nextUrl: string | null = '/canvas/api/v0/usage/component';
+    try {
+      while (nextUrl) {
+        const response: {
+          data: {
+            data?: Record<string, boolean>;
+            links?: { next?: string | null };
+          };
+        } = await this.client.get(nextUrl);
+        for (const [id, inUse] of Object.entries(response.data.data ?? {})) {
+          usage.set(id, Boolean(inUse));
+        }
+        nextUrl = response.data.links?.next ?? null;
+      }
+      return usage;
+    } catch (error) {
+      if (
+        axios.isAxiosError(error) &&
+        [401, 403, 404].includes(error.response?.status ?? 0)
+      ) {
+        return undefined;
+      }
+      this.handleApiError(error);
+    }
+  }
+
+  /**
    * Create a new component in Canvas.
    */
   async createComponent(

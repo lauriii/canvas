@@ -1,12 +1,11 @@
 import fs from 'fs/promises';
 import path from 'path';
 import chalk from 'chalk';
-import { parse } from '@babel/parser';
 import * as p from '@clack/prompts';
-import { getImportsFromAst } from '@drupal-canvas/ui/features/code-editor/utils/ast-utils';
 
 import { getGlobalCss } from './build-tailwind.js';
 import { sortByDependencies } from './dependency-sort';
+import { parseImportedJsComponents } from './process-component-files.js';
 import { createProgressCallback, processInPool } from './request-pool';
 import { fileExists } from './utils';
 
@@ -123,16 +122,10 @@ async function buildComponentUploadTasks(
       }
 
       // Parse imports from server component's source code (no local file exists)
-      let importedJsComponents: string[] = [];
-      try {
-        const ast = parse(serverComponent.sourceCodeJs ?? '', {
-          sourceType: 'module',
-          plugins: ['jsx', 'typescript'],
-        });
-        importedJsComponents = getImportsFromAst(ast, '@/components/');
-      } catch (error) {
-        p.log.error(chalk.red(`Error: ${String(error)}`));
-      }
+      const importedJsComponents = parseImportedJsComponents(
+        serverComponent.sourceCodeJs,
+        (message) => p.log.error(chalk.red(message)),
+      );
       tasks.push({
         machineName: name,
         operation: 'delete',

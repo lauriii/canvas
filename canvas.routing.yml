@@ -831,6 +831,16 @@ canvas.api.usage.component.list:
     _canvas_ui_access: 'TRUE'
     _format: 'json'
   methods: [GET]
+  options:
+    # Indicate that external applications may use this route. For authentication, see `modules/canvas_oauth/README.md`.
+    # Only this route in the `usage` group is external: it returns whether each
+    # Component is referenced anywhere, as booleans keyed by Component ID, and no
+    # content data. The sibling `details` route returns the titles and IDs of the
+    # entities using a Component and does so with `accessCheck(FALSE)`, so
+    # exposing it would widen what a client can read beyond the Components it
+    # already has access to. That one deliberately stays internal.
+    # @see \Drupal\canvas\Audit\ComponentAudit::getContentRevisionIdsUsingComponentIds()
+    canvas_external_api: true
 
 canvas.boot.app:
   # Deep links into an extension's own client-side routes
