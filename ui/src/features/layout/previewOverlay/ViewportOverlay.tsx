@@ -5,6 +5,7 @@ import { useParams } from 'react-router-dom';
 
 import { useAppSelector } from '@/app/hooks';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
+import PersonalizedSectionOverlay from '@/features/layout/previewOverlay/PersonalizedSectionOverlay';
 import RegionOverlay from '@/features/layout/previewOverlay/RegionOverlay';
 import {
   DEFAULT_REGION,
@@ -129,6 +130,7 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
       {displayedRegions.map((region) => (
         <RegionOverlay region={region} key={region.id} />
       ))}
+      <PersonalizedSectionOverlay />
     </div>,
     portalRoot,
   );

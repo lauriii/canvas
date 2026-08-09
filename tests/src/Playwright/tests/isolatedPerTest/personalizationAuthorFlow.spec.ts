@@ -79,8 +79,11 @@ test.describe('Personalization author flow', () => {
 
     // Create a page with a heading component: this becomes the default
     // variant's content.
-    const pagePath = await canvas.createCanvas({ title: 'Personalized page' });
-    await canvas.openCanvas(pagePath);
+    const canvasPage = await canvas.createCanvas({
+      title: 'Personalized page',
+    });
+    await canvas.openCanvas(canvasPage);
+    const pagePath = `/page/${canvasPage.entity_id}`;
     await canvas.openLibraryPanel();
     await canvas.addComponent({ id: 'sdc.canvas_test_sdc.heading' });
 
@@ -130,6 +133,14 @@ test.describe('Personalization author flow', () => {
       .first()
       .click();
     await canvas.editComponentProp('Text', 'Weekend deal for you');
+
+    // The edited text appearing in the preview proves the variant's copy is
+    // the one being edited, and settles the auto-save round trip so the
+    // publish request is not racing a stale hash.
+    const previewFrame = await canvas.getActivePreviewFrame();
+    await expect(
+      previewFrame.getByText('Weekend deal for you').first(),
+    ).toBeVisible({ timeout: 60_000 });
 
     // Publish everything: the page and the segment.
     await canvas.publishAllChanges();
