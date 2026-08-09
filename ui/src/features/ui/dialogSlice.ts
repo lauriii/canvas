@@ -39,7 +39,9 @@ const initialState: DialogSliceState = {
 
 type UpdateDialogPayload = keyof Omit<
   DialogSliceState,
-  'deletePatternConfirm' | 'personalizeComponentConfirm' | 'renamePatternConfirm'
+  | 'deletePatternConfirm'
+  | 'personalizeComponentConfirm'
+  | 'renamePatternConfirm'
 >;
 
 type UpdateDialogWithDataPayload = {

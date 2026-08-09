@@ -90,6 +90,7 @@ hyperscriptifying
 ianvs
 importmap
 inlines
+insertable
 instantiator
 interactable
 interruptibility
@@ -228,6 +229,7 @@ unvalidatable
 unvalidated
 updb
 updatedb
+uppercasing
 upserting
 upserts
 upstreaming

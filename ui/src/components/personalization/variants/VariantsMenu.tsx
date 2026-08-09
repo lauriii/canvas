@@ -29,7 +29,6 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import CreateVariantDialog from '@/components/personalization/variants/CreateVariantDialog';
 import DeleteVariantDialog from '@/components/personalization/variants/DeleteVariantDialog';
 import PreviewAsVisitor from '@/components/personalization/variants/PreviewAsVisitor';
-import VariantAudience from '@/components/personalization/variants/VariantAudience';
 import VariantRow from '@/components/personalization/variants/VariantRow';
 import {
   personalizePage,
