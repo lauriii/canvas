@@ -127,10 +127,12 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
         height: `${rect.height}px`,
       }}
     >
+      {/* The variant boundary paints beneath the component overlays so hover
+          and selection outlines stay on top of it. */}
+      <PersonalizedSectionOverlay />
       {displayedRegions.map((region) => (
         <RegionOverlay region={region} key={region.id} />
       ))}
-      <PersonalizedSectionOverlay />
     </div>,
     portalRoot,
   );
