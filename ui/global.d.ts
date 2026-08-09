@@ -14,6 +14,43 @@ interface CKEditor5Types {
   [key: string]: any;
 }
 
+/**
+ * Options accepted by Drupal.t() and Drupal.formatPlural().
+ */
+interface DrupalTranslationOptions {
+  /**
+   * Disambiguates a source string that means different things in different
+   * places, so translators can translate each meaning separately.
+   */
+  context?: string;
+}
+
+/**
+ * The translation functions Drupal core provides on the `Drupal` global.
+ *
+ * Call these directly with quoted string literals. Drupal's locale module
+ * discovers translatable strings by scanning the built bundle for literal
+ * `Drupal.t()` and `Drupal.formatPlural()` calls, so wrapping them in a helper
+ * or passing a template literal makes the string untranslatable.
+ *
+ * @see docs/react-codebase/translation.md
+ * @see core/misc/drupal.js
+ */
+interface DrupalTranslation {
+  t: (
+    str: string,
+    args?: Record<string, string | number>,
+    options?: DrupalTranslationOptions,
+  ) => string;
+  formatPlural: (
+    count: number,
+    singular: string,
+    plural: string,
+    args?: Record<string, string | number>,
+    options?: DrupalTranslationOptions,
+  ) => string;
+}
+
 declare global {
   interface Window {
     drupalSettings: DrupalSettings;
@@ -22,15 +59,26 @@ declare global {
     ReactDom: typeof ReactDom;
     Redux: typeof ReactRedux;
     ReduxToolkit: typeof ReduxToolkit;
-    Drupal: {
+    Drupal: DrupalTranslation & {
       attachBehaviors: (element: HTMLElement, settings?: object) => void;
       detachBehaviors: (element: HTMLElement, settings?: object) => void;
       CKEditor5Instances: Map;
+    };
+    // Written by the JavaScript translation file Drupal generates for the
+    // negotiated interface language, and read by Drupal.t().
+    // @see _locale_rebuild_js()
+    drupalTranslations?: {
+      strings?: Record<string, Record<string, string>>;
+      pluralFormula?: Record<string, number> & { default: number };
     };
     CKEditor5: CKEditor5Types;
     jQuery: any;
     _canvasTransforms: Record<string, TransformConfig>;
   }
+
+  // Bare `Drupal.t('…')` rather than `window.Drupal.t('…')`, matching how the
+  // rest of Drupal's JavaScript is written.
+  const Drupal: Window['Drupal'];
 }
 
 declare module '*.css';

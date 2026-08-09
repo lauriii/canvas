@@ -25,11 +25,19 @@ export const PageStatusBadge: React.FC<PageStatusBadgeProps> = ({
   isPublished,
   hasUnsavedStatusChange,
 }) => {
+  // These badges are single words whose translation depends on them naming the
+  // state of a page. Without the disambiguation context, translators see them
+  // alongside the verbs and past-tense reports elsewhere in the editor and
+  // cannot tell which meaning to translate. The context object has to be an
+  // inline literal at every call site: Drupal's scanner reads the source text,
+  // so a shared variable would register the strings without their context.
+  // @see docs/react-codebase/translation.md
+
   // Show "Draft" only if the page is new (draft) AND unpublished
   if (isNew && !isPublished) {
     return (
       <Badge size="1" variant="solid" color="blue">
-        Draft
+        {Drupal.t('Draft', {}, { context: 'Canvas page status' })}
       </Badge>
     );
   }
@@ -39,11 +47,11 @@ export const PageStatusBadge: React.FC<PageStatusBadgeProps> = ({
   if (!isPublished) {
     return hasUnsavedStatusChange ? (
       <Badge size="1" variant="solid" color="amber">
-        Changed
+        {Drupal.t('Changed', {}, { context: 'Canvas page status' })}
       </Badge>
     ) : (
       <Badge size="1" variant="solid" color="gray">
-        Unpublished
+        {Drupal.t('Unpublished', {}, { context: 'Canvas page status' })}
       </Badge>
     );
   }
@@ -51,14 +59,14 @@ export const PageStatusBadge: React.FC<PageStatusBadgeProps> = ({
   if (hasAutoSave) {
     return (
       <Badge size="1" variant="solid" color="amber">
-        Changed
+        {Drupal.t('Changed', {}, { context: 'Canvas page status' })}
       </Badge>
     );
   }
 
   return (
     <Badge size="1" variant="solid" color="green">
-      Published
+      {Drupal.t('Published', {}, { context: 'Canvas page status' })}
     </Badge>
   );
 };

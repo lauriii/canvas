@@ -4,6 +4,8 @@ import { defineConfig, loadEnv } from 'vite';
 import svgr from 'vite-plugin-svgr';
 import react from '@vitejs/plugin-react';
 
+import { verifyBundleIsScannable } from './lib/locale-extract.js';
+
 // https://vitejs.dev/config/
 
 export default defineConfig(({ command, mode }) => {
@@ -25,6 +27,31 @@ export default defineConfig(({ command, mode }) => {
           fs.copyFileSync(
             'lib/code-editor-preview.js',
             'dist/assets/code-editor-preview.js',
+          );
+        },
+      },
+      {
+        // Fail the build when a translatable string in the source cannot be
+        // found in the bundle Drupal actually scans. Without this the editor
+        // ships looking translatable while offering translators nothing.
+        // @see ui/lib/locale-extract.js
+        name: 'verify-translatable-strings',
+        writeBundle(options, bundle) {
+          const outDir = options.dir ?? 'dist/assets';
+          const emitted = Object.keys(bundle)
+            .filter((name) => name.endsWith('.js'))
+            .map((name) => path.join(outDir, name));
+          const { problems, strings, callSites } = verifyBundleIsScannable(
+            path.resolve(__dirname, 'src'),
+            emitted,
+          );
+          if (problems.length) {
+            throw new Error(
+              `Translatable strings would not reach Drupal:\n- ${problems.join('\n- ')}`,
+            );
+          }
+          this.info(
+            `Verified ${strings.length} translatable string(s) from ${callSites} call site(s) are discoverable by Drupal's locale scanner.`,
           );
         },
       },
