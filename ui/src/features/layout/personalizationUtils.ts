@@ -247,3 +247,28 @@ export function filterSlotComponentsForPreview(
       getCaseVariantId(model, component) === activeVariantId,
   );
 }
+
+/**
+ * Collects the UUIDs of every case that is NOT the previewed variant of its
+ * switch. Used by preview surfaces that receive server-rendered HTML (which
+ * contains every case) to hide the inactive ones.
+ */
+export function getInactiveCaseUuids(
+  layout: RegionNode[],
+  model: ComponentModels,
+  previewedVariants: Record<string, string>,
+): string[] {
+  const inactive: string[] = [];
+  for (const switchNode of findSwitchNodes(layout)) {
+    const activeVariantId = getPreviewedVariant(
+      previewedVariants,
+      switchNode.uuid,
+    );
+    for (const caseNode of getSwitchCases(switchNode)) {
+      if (getCaseVariantId(model, caseNode) !== activeVariantId) {
+        inactive.push(caseNode.uuid);
+      }
+    }
+  }
+  return inactive;
+}

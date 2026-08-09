@@ -6,6 +6,7 @@ import {
   findRootSwitch,
   findSwitchNodes,
   getCaseSegmentIds,
+  getInactiveCaseUuids,
   getPreviewedVariant,
   humanizeVariantId,
 } from './personalizationUtils';
@@ -172,6 +173,31 @@ describe('personalizationUtils', () => {
       expect(
         filterSlotComponentsForPreview(switchSlot, switchNode, model, {}),
       ).toEqual([defaultCase]);
+    });
+  });
+
+  describe('getInactiveCaseUuids', () => {
+    it('marks every non-previewed case inactive, defaulting to default', () => {
+      expect(getInactiveCaseUuids([region], model, {})).toEqual([
+        'case-a',
+        'case-b',
+      ]);
+    });
+
+    it('follows the previewed variant per switch', () => {
+      expect(
+        getInactiveCaseUuids([region], model, { 'switch-1': 'b' }),
+      ).toEqual(['case-a', 'case-default']);
+    });
+
+    it('returns nothing without switches', () => {
+      const empty: RegionNode = {
+        nodeType: NodeType.Region,
+        id: 'content',
+        name: 'Content',
+        components: [],
+      };
+      expect(getInactiveCaseUuids([empty], {}, {})).toEqual([]);
     });
   });
 });
