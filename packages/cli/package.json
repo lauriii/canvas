@@ -17,6 +17,10 @@
     "./internals": {
       "types": "./dist/internals.d.ts",
       "import": "./dist/internals.js"
+    },
+    "./internals/build": {
+      "types": "./dist/internals/build.d.ts",
+      "import": "./dist/internals/build.js"
     }
   },
   "bin": {
@@ -76,5 +80,8 @@
     "vite": "^6.3.5",
     "vite-plugin-svgr": "^4.5.0",
     "woff2-encoder": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

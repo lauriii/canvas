@@ -1,10 +1,10 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  entry: ['src/index.ts', 'src/internals.ts'],
+  entry: ['src/index.ts', 'src/internals.ts', 'src/internals/build.ts'],
   format: ['esm'],
   dts: {
-    entry: 'src/internals.ts',
+    entry: ['src/internals.ts', 'src/internals/build.ts'],
     // tsup's declaration build does not pick up the `paths` the root tsconfig
     // declares, so workspace-internal imports are restated here.
     compilerOptions: {

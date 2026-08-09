@@ -2,8 +2,10 @@
 '@drupal-canvas/cli': minor
 ---
 
-Add a supported `@drupal-canvas/cli/internals` entry point exposing the build,
-upload and API code, so other tools can build on the CLI instead of reaching
-into `dist/` by path or duplicating it. This is what the new `canvas-fleet`
-package uses to distribute one component library to many sites. Everything
-exported there is a compatibility commitment; anything else remains private.
+Publish two supported entry points for tools that build on the CLI:
+`@drupal-canvas/cli/internals` for the API client, configuration and project
+discovery, and `@drupal-canvas/cli/internals/build` for the component build and
+upload pipeline. They are separate because the build pulls in Vite, Tailwind and
+their WebAssembly, so a tool that only talks to the Canvas API loads in
+milliseconds instead of seconds. Every name exported from them is a
+compatibility commitment, locked by a test; anything else remains private.

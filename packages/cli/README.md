@@ -786,14 +786,37 @@ canvas-fleet plan --all
 
 ### Building on this CLI
 
-`canvas-fleet` imports the build, upload and API code from this package through
-a supported entry point:
+Two entry points are published for tools that build on this package:
+
+| Entry point                          | Contains                                                          | Import cost  |
+| ------------------------------------ | ----------------------------------------------------------------- | ------------ |
+| `@drupal-canvas/cli/internals`       | API client, configuration, project discovery, stored OAuth tokens | milliseconds |
+| `@drupal-canvas/cli/internals/build` | component build, upload pipeline, asset library sync              | seconds      |
+
+They are split because the build pulls in Vite, Tailwind and their WebAssembly.
+A tool that only talks to the Canvas API should not pay for a toolchain it never
+runs, so import the second one only if you build components.
 
 ```ts
-import { ApiService, buildCanvasProject } from '@drupal-canvas/cli/internals';
+import { ApiService } from '@drupal-canvas/cli/internals';
+import { buildCanvasProject } from '@drupal-canvas/cli/internals/build';
 ```
 
-Everything exported from `@drupal-canvas/cli/internals` is a compatibility
-commitment and changes to it are treated as changes to a published API. Anything
-not exported there is private and may move without notice. If you need something
-that is not exposed, open an issue rather than importing from `dist/` by path.
+**What is covered.** Every name exported from those two entry points is a
+compatibility commitment: removing or renaming one is a breaking change and gets
+a major version. Adding one does not. A test in this package locks both lists,
+so the surface cannot change by accident. Anything not exported there is private
+and may move without notice; if you need something that is not exposed, open an
+issue rather than importing from `dist/` by path.
+
+**What is not covered.** `ApiService` is exported as a class, so all of its
+public methods are reachable, but only the Canvas HTTP API it wraps is stable;
+methods may be added as the API grows. The `Config` type describes the CLI's own
+configuration file, and `getConfig`/`setConfig` read and write a
+**process-wide** singleton rather than per-instance state, so two consumers in
+one process share it.
+
+**Import-time behavior.** Importing either entry point reads
+`canvas.config.json` and `.env` relative to `process.cwd()`, because the CLI
+resolves its configuration once at module load. Import after any
+`process.chdir()`.
