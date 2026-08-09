@@ -1,12 +1,14 @@
 <?php
 
-// cspell:ignore kaikki Valitse
-
 declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
+// cspell:ignore kaikki Valitse
+
 use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\Core\Extension\ModuleExtensionList;
+use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\locale\StringStorageInterface;
 use PHPUnit\Framework\Attributes\Group;
@@ -91,7 +93,7 @@ class CanvasUiInterfaceLanguageTest extends FunctionalTestBase {
    * Path of the built editor bundle Drupal scans for translatable strings.
    */
   private function getBundlePath(): string {
-    return \DRUPAL_ROOT . '/' . $this->container->get('extension.list.module')
+    return \DRUPAL_ROOT . '/' . $this->container->get(ModuleExtensionList::class)
       ->getPath('canvas') . '/ui/dist/assets/index.js';
   }
 
@@ -185,7 +187,7 @@ class CanvasUiInterfaceLanguageTest extends FunctionalTestBase {
    * above would pass only by accident of the negotiation order.
    */
   public function testBootRoutesAreAdministrative(): void {
-    $route_provider = $this->container->get('router.route_provider');
+    $route_provider = $this->container->get(RouteProviderInterface::class);
     foreach (['canvas.boot.app', 'canvas.boot.empty', 'canvas.boot.entity'] as $route_name) {
       $this->assertTrue(
         (bool) $route_provider->getRouteByName($route_name)->getOption('_admin_route'),
