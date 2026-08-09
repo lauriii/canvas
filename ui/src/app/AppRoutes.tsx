@@ -26,6 +26,7 @@ import HeadlessFrontendsPage from '@/features/headlessFrontends/HeadlessFrontend
 import PagePreview from '@/features/pagePreview/PagePreview';
 import PatternDialogs from '@/features/pattern/PatternDialogs';
 import SegmentDashboard from '@/features/personalization/SegmentDashboard';
+import SegmentDetails from '@/features/personalization/SegmentDetails';
 import SegmentPanel from '@/features/personalization/SegmentPanel';
 import ReviewChangesPage from '@/features/review/ReviewChangesPage';
 import { EditorFrameContext } from '@/features/ui/uiSlice';
@@ -281,7 +282,7 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
               },
               {
                 path: '/segments/:segmentId',
-                element: <h1>Segment Details</h1>,
+                element: <SegmentDetails />,
               },
             ],
           },

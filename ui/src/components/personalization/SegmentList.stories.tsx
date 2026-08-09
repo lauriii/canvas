@@ -1,3 +1,4 @@
+import { MemoryRouter } from 'react-router-dom';
 import { fn } from '@storybook/test';
 
 import SegmentList from './SegmentList';
@@ -8,14 +9,20 @@ const meta: Meta<typeof SegmentList> = {
   title: 'Personalization/SegmentList',
   component: SegmentList,
   tags: ['autodocs'],
+  decorators: [
+    (Story) => (
+      <MemoryRouter>
+        <Story />
+      </MemoryRouter>
+    ),
+  ],
   args: {
     onCreateSegment: fn(),
     onReorderSegments: fn(),
     onToggleSegment: fn(),
     onEditSegment: fn(),
-    onRenameSegment: fn(),
+    onEditSegmentDetails: fn(),
     onDeleteSegment: fn(),
-    onPreviewSegment: fn(),
   },
 };
 

@@ -22,7 +22,6 @@ import {
   setInitialPageData,
 } from '@/features/pageData/pageDataSlice';
 import { previewSlice } from '@/features/pagePreview/previewSlice';
-import { personalizationSlice } from '@/features/personalization/personalizationSlice';
 import { codeComponentDialogSlice } from '@/features/ui/codeComponentDialogSlice';
 import { dialogSlice } from '@/features/ui/dialogSlice';
 import { primaryPanelSlice } from '@/features/ui/primaryPanelSlice';
@@ -171,7 +170,6 @@ const rootReducer = combineSlices(
   codeEditorSlice,
   previewSlice,
   queryErrorSlice,
-  personalizationSlice,
 );
 // Infer the `RootState` type from the root reducer
 export type RootState = ReturnType<typeof rootReducer>;
