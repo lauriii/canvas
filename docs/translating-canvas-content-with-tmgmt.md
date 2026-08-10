@@ -2,8 +2,8 @@
 
 # Translating Canvas content with TMGMT
 
-Canvas ships a TMGMT integration that exposes each translatable component input
-in a component tree as a separate translatable string. This document records how
+Canvas ships a TMGMT integration that exposes the translatable component inputs
+in a component tree as separate translatable strings. This document records how
 to set that up against a real translation provider, and what does and does not
 round-trip.
 
@@ -24,8 +24,10 @@ TMGMT:
   deliberately excluded because they are not translatable.
 
 Both delegate to `\Drupal\canvas\Tmgmt\ComponentInputsTranslatablesExtractor`,
-which walks a component instance's `inputs` as typed config and yields one
-translatable string per translatable prop, at arbitrary nesting depth.
+which walks a component instance's `inputs` as typed config and yields a
+translatable string for every translatable leaf, at arbitrary nesting depth. A
+single-value prop yields one string; a multi-cardinality prop yields one string
+per item, for example `components|0|tags|0`, `components|0|tags|1`, and so on.
 
 The two paths differ on write-back. For content entities,
 `ComponentTreeFieldProcessor::setTranslations()` merges translated leaves back
@@ -51,9 +53,9 @@ Only static prop sources are translatable. A prop populated by a non-static
 source such as `EntityFieldPropSource` is translated at its source (the entity
 field it evaluates), so `refineForInstance()` strips its `translatable` flag.
 
-This is a shape-level rule, not a per-prop opt-in. Any string-shaped prop is
-sent, which includes strings that are machine identifiers rather than prose. See
-the "Known rough edges" section below and
+This is a shape-level rule, not a per-prop opt-in. Every value of a string-shaped
+prop is sent, which includes values that are machine identifiers rather than
+prose. See the "Known rough edges" section below and
 [#3584178](https://www.drupal.org/i/3584178).
 
 ## Setup
@@ -115,7 +117,9 @@ Verified against a real Smartling project using a `canvas_page` with 21
 component instances:
 
 - Extraction produced 48 translatable strings from one page: the entity title,
-  the path alias, and one string per translatable prop per component instance.
+  the path alias, and the translatable leaves of each component instance's
+  inputs. That page happened to use only single-value props; a multi-cardinality
+  prop would contribute one string per item.
 - Nested props are extracted and written back at the correct depth, including
   props inside a single input key such as `description.value`.
 - Rich text (`text/html`) props round-trip with their markup intact — `<p>`
