@@ -1,0 +1,9 @@
+name: 'Code components content-entity-reference fields'
+description: 'Creates the user.user_picture field and node.body storage that the canvas_test_code_components_content_entity_ref module depends on. The standard profile already provides both, so they cannot ship in the module config/install (it clashes there). strict: false leaves any pre-existing copies untouched, so the module installs cleanly on any profile. Apply this before installing the module.'
+type: 'Canvas'
+install:
+  - image
+  - node
+  - text
+config:
+  strict: false
