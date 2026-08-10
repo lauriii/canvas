@@ -3,3 +3,9 @@ canvas_personalization.segment_condition.test_unreachable_provider:
   label: 'Test unreachable provider condition'
   constraints:
     FullyValidatable: ~
+
+canvas_personalization.segment_condition.test_external_provider:
+  type: canvas_personalization.segment_condition_settings
+  label: 'Test external provider condition'
+  constraints:
+    FullyValidatable: ~

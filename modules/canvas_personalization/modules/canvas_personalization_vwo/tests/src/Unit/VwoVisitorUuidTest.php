@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_personalization_vwo\Unit;
 
-use Drupal\canvas_personalization_vwo\VwoAudienceMembership;
+use Drupal\canvas_personalization_vwo\Plugin\SegmentCondition\VwoAudience;
 use Drupal\Tests\UnitTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -23,7 +23,7 @@ final class VwoVisitorUuidTest extends UnitTestCase {
 
   #[DataProvider('providerCookieValues')]
   public function testParseVisitorUuid(string $cookie_value, ?string $expected): void {
-    $this->assertSame($expected, VwoAudienceMembership::parseVisitorUuid($cookie_value));
+    $this->assertSame($expected, VwoAudience::parseVisitorUuid($cookie_value));
   }
 
   public static function providerCookieValues(): \Generator {

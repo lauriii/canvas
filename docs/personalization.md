@@ -198,23 +198,56 @@ unchanged.
 
 ## 6. Third-party segmentation providers
 
-A provider integration (Mautic is the open-source reference) is one `SegmentCondition` plugin in the provider's
-module, plus config schema. The contract gives an integration everything it needs:
+A provider integration (Mautic is the open-source reference; `canvas_personalization_vwo` is the shipped worked
+example) is one `SegmentCondition` plugin in the provider's module, plus config schema. The contract gives an
+integration everything it needs:
 
+* **Extend `ExternalSegmentConditionBase`.** It implements the whole degradation policy below — the bounded-TTL
+  membership cache, the negative cache, and fail-closed on every error path — so an integration supplies only the two
+  halves that are actually provider-specific:
+  ```php
+  protected function getVisitorIdentity(): ?string;   // read the cookie/header; NULL = never consult the provider
+  protected function resolveMembership(string $id): bool;  // ask the provider; may throw
+  ```
+  Getting that policy wrong is how a personalized page ends up hanging on someone else's outage, which is why it is
+  not left to each integration to rewrite. Override `::getMembershipTtl()` / `::getFailureTtl()` to make the TTLs
+  site-configurable, and declare `::getCacheContexts()` — only the plugin knows what its identity varies by.
+* **Config schema** for the plugin is declared as `canvas_personalization.segment_condition.<plugin_id>`, typed off
+  `canvas_personalization.segment_condition_settings`, in the *provider module's* own schema file. The type name is
+  keyed by the host module's namespace, not the provider's, because `rules` resolves it as
+  `canvas_personalization.segment_condition.[%key]`.
+* **Services**: `SegmentConditionBase::create()` constructs `new static($configuration, $plugin_id,
+  $plugin_definition)`, so a condition cannot take its dependencies as constructor arguments. A plugin needing more
+  services overrides `::create()`, calls `parent::create()`, and assigns them as properties.
 * **Credentials**: keep the secret itself out of the plugin's configuration — segment rules are exported with site
   configuration and readable over the segment HTTP API. Store a secret *reference* in the plugin settings (the
   provider segment/list identifier is fine there) and resolve the actual key at evaluation time from site settings,
   an environment variable, or a key management module.
 * **Membership lookups** map a request-derived identifier — typically the provider's first-party cookie — to segment
-  membership via the provider's API. Lookups should be cached (`cache.default`, bounded TTL) so the provider is
-  consulted at most once per identifier per TTL. The condition declares the matching cache context
-  (`cookies:<name>` or `headers:<name>`); §5.2(3) then automatically keeps those responses out of the URL-keyed
-  internal page cache, so a wrong variant cannot leak. A provider condition is consulted only where it can still
-  change the outcome: evaluation of a segment stops at the first non-matching rule, and the segments of variants
-  after the winning one are never evaluated — their cacheability is declared, not measured.
-* **Graceful degradation**: when the provider is unreachable, return FALSE (fail closed to the default variant) and
-  negatively cache the failure with a short TTL, so an outage costs at most one timeout per TTL instead of one per
-  request. Exceptions are additionally caught by the evaluator (§5, step 2).
+  membership via the provider's API. The condition declares the matching cache context (`cookies:<name>` or
+  `headers:<name>`); §5.2(3) then automatically keeps those responses out of the URL-keyed internal page cache, so a
+  wrong variant cannot leak. A provider condition is consulted only where it can still change the outcome:
+  evaluation of a segment stops at the first non-matching rule, and the segments of variants after the winning one
+  are never evaluated — their cacheability is declared, not measured.
+* ⚠️ **Mind the cardinality of that cache context.** A provider's first-party cookie is usually a *unique
+  per-visitor* identifier, so declaring `cookies:<name>` gives every visitor their own `dynamic_page_cache` entry for
+  a personalized page. That is correct — a wrong variant can never be served — but it is not a shared cache, and on a
+  high-traffic page it is a large number of low-value entries. A provider expecting real anonymous traffic should
+  declare a *derived, low-cardinality* context instead: a calculated cache context service
+  (`Drupal\Core\Cache\Context\CalculatedCacheContextInterface`, tagged `cache.context`) that resolves to membership
+  rather than to identity, so the page has as many cache entries as it has variants. That needs no change to this
+  module, and the response policy in §5.2(3) treats it the same way.
+* **Graceful degradation**: when the provider is unreachable, `resolveMembership()` should throw; the base class
+  logs it to the `canvas_personalization` channel, fails closed to the default variant, and negatively caches the
+  failure, so an outage costs at most one timeout per identifier per TTL instead of one per request. A condition that
+  bypasses the base class and simply returns FALSE degrades *silently* — nothing is logged and nothing surfaces on
+  the status report. Exceptions are additionally caught by the evaluator (§5, step 2).
+* **Authoring**: the segments dashboard discovers condition types over
+  `/canvas/api/v0/personalization/segment-condition`, so a third-party condition appears in the "Add rule" menu and
+  its saved rules are listed on the segment. The dashboard only ships *editors* for the four conditions in §3.3;
+  every other condition is configured through its `PluginFormInterface` form at
+  `/admin/structure/segment/{segment}/rule`, which the dashboard links to. Providers that want an in-dashboard editor
+  need a UI contribution; that is not yet an extension point.
 * Conditions that depend on state only available client-side (e.g. a cookie the provider's JavaScript sets after
   first paint) cannot influence the *first* server-rendered response; from the second request on, the cookie rides
   the request normally. Canvas deliberately ships no client-side variant swapping (flash of wrong content, layout

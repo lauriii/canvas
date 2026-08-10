@@ -2,13 +2,23 @@ import { createApi } from '@reduxjs/toolkit/query/react';
 
 import { baseQuery } from './baseQuery';
 
-import type { Segment } from '@/types/Personalization';
+import type { ConditionDefinition, Segment } from '@/types/Personalization';
 
 export const personalizationApi = createApi({
   reducerPath: 'personalizationApi',
   baseQuery,
   tagTypes: ['Segment', 'SegmentAutoSave'],
   endpoints: (builder) => ({
+    // The condition types the server knows about, including ones contributed
+    // by third-party segmentation provider modules. Hardcoding this list in
+    // the client is what used to make such a condition invisible here.
+    getConditionDefinitions: builder.query<
+      Record<string, ConditionDefinition>,
+      void
+    >({
+      query: () => '/canvas/api/v0/personalization/segment-condition',
+    }),
+
     // Get all segments
     getSegments: builder.query<Record<string, Segment>, void>({
       query: () => '/canvas/api/v0/config/segment',
@@ -63,6 +73,7 @@ export const personalizationApi = createApi({
 });
 
 export const {
+  useGetConditionDefinitionsQuery,
   useGetSegmentsQuery,
   useGetSegmentQuery,
   useCreateSegmentMutation,

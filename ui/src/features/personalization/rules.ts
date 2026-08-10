@@ -1,25 +1,50 @@
 import type {
-  ConditionId,
   DayOfWeek,
+  EditableConditionId,
+  EditableSegmentRule,
   SegmentRule,
   UtmParametersCondition,
 } from '@/types/Personalization';
 
-export const CONDITION_IDS: ConditionId[] = [
+/**
+ * The condition types this client ships a dedicated editor for.
+ *
+ * Not the list of condition types that exist: the server discovers those, and
+ * a third-party segmentation provider can add more. Use it only to decide
+ * whether a rule can be edited in the dashboard.
+ */
+export const EDITABLE_CONDITION_IDS: EditableConditionId[] = [
   'query_parameter',
   'utm_parameters',
   'geolocation',
   'day_of_week',
 ];
 
-export const CONDITION_LABELS: Record<ConditionId, string> = {
+export function isEditableCondition(
+  conditionId: string,
+): conditionId is EditableConditionId {
+  return (EDITABLE_CONDITION_IDS as string[]).includes(conditionId);
+}
+
+/**
+ * Narrows a rule to one this client can render an editor for.
+ *
+ * A guard on the rule rather than on its ID: an unknown rule's settings are
+ * typed as `unknown`, and only narrowing the rule itself keeps the editors'
+ * field access type-safe.
+ */
+export function isEditableRule(rule: SegmentRule): rule is EditableSegmentRule {
+  return isEditableCondition(rule.id);
+}
+
+export const CONDITION_LABELS: Record<EditableConditionId, string> = {
   query_parameter: 'Query parameter',
   utm_parameters: 'UTM parameters',
   geolocation: 'Location',
   day_of_week: 'Day of week',
 };
 
-export const CONDITION_DESCRIPTIONS: Record<ConditionId, string> = {
+export const CONDITION_DESCRIPTIONS: Record<EditableConditionId, string> = {
   query_parameter: 'Match a parameter in the page URL',
   utm_parameters: 'Match UTM tracking parameters in the page URL',
   geolocation: 'Match the visitor country or region',
@@ -51,7 +76,9 @@ export const capitalize = (value: string): string =>
 /**
  * Creates the initial settings for a newly added rule.
  */
-export function createDefaultRule(conditionId: ConditionId): SegmentRule {
+export function createDefaultRule(
+  conditionId: EditableConditionId,
+): EditableSegmentRule {
   switch (conditionId) {
     case 'query_parameter':
       return {
@@ -99,6 +126,14 @@ const utmParametersSummary = (rule: UtmParametersCondition): string => {
  * Builds a plain-language, one-line summary of a rule.
  */
 export function ruleSummary(rule: SegmentRule): string {
+  if (!isEditableRule(rule)) {
+    // The server owns this rule's settings, so the only honest summary is the
+    // one its own plugin produces; say where it is edited rather than guess at
+    // fields this client knows nothing about.
+    return rule.negate
+      ? 'Everyone except: visitors this rule matches (edited outside the dashboard)'
+      : 'Visitors this rule matches (edited outside the dashboard)';
+  }
   let summary = '';
   switch (rule.id) {
     case 'query_parameter':

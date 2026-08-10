@@ -34,10 +34,11 @@ import {
   Text,
 } from '@radix-ui/themes';
 
-import { CONDITION_IDS, ruleSummary } from '@/features/personalization/rules';
+import { orderedRules } from '@/features/personalization/orderedRules';
+import { ruleSummary } from '@/features/personalization/rules';
 
 import type { DragEndEvent } from '@dnd-kit/core';
-import type { Segment, SegmentRule } from '@/types/Personalization';
+import type { Segment } from '@/types/Personalization';
 
 import styles from './SegmentList.module.css';
 
@@ -54,12 +55,9 @@ const SegmentSummary = ({ segment }: { segment: Segment }) => {
       </Text>
     );
   }
-  const rules = segment.rules ?? {};
-  // Summarize rules in the editor's stable order, not object key order.
-  const summaries = CONDITION_IDS.flatMap((conditionId) => {
-    const rule = rules[conditionId];
-    return rule ? [ruleSummary(rule as SegmentRule)] : [];
-  });
+  // Summarize every rule the segment carries, including condition types this
+  // client has no editor for, in a stable order.
+  const summaries = orderedRules(segment.rules).map(ruleSummary);
   if (summaries.length === 0) {
     return (
       <Text size="1" color="amber">

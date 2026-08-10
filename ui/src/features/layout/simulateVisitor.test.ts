@@ -550,6 +550,7 @@ describe('collectSimulationInputs', () => {
       queryParameters: ['coupon', 'utm_source'],
       countries: ['BE', 'FR', 'NL'],
       days: true,
+      externalConditions: [],
     });
   });
 
@@ -558,6 +559,7 @@ describe('collectSimulationInputs', () => {
       queryParameters: ['coupon'],
       countries: [],
       days: false,
+      externalConditions: [],
     });
   });
 
@@ -566,17 +568,97 @@ describe('collectSimulationInputs', () => {
       queryParameters: [],
       countries: [],
       days: false,
+      externalConditions: [],
     });
     expect(collectSimulationInputs(undefined, ['coupon'])).toEqual({
       queryParameters: [],
       countries: [],
       days: false,
+      externalConditions: [],
     });
   });
 
   it('returns nothing for zero-rule segments', () => {
     expect(
       collectSimulationInputs({ default: makeSegment('default') }, ['default']),
-    ).toEqual({ queryParameters: [], countries: [], days: false });
+    ).toEqual({
+      queryParameters: [],
+      countries: [],
+      days: false,
+      externalConditions: [],
+    });
+  });
+
+  it('reports condition types it cannot evaluate, so they can be answered', () => {
+    const provider = {
+      vwo: makeSegment('vwo', {
+        vwo_audience: { id: 'vwo_audience', negate: false, flag_key: 'x' },
+        query_parameter: queryRule(),
+      }),
+    };
+    expect(collectSimulationInputs(provider, ['vwo'])).toEqual({
+      queryParameters: ['coupon'],
+      countries: [],
+      days: false,
+      externalConditions: ['vwo_audience'],
+    });
+  });
+});
+
+describe('conditions this client cannot evaluate', () => {
+  const providerRules: SegmentRules = {
+    vwo_audience: { id: 'vwo_audience', negate: false, flag_key: 'halloween' },
+  };
+
+  it('fails closed when the simulator has no answer for them', () => {
+    expect(evaluateRules(providerRules, visitor())).toBe(false);
+  });
+
+  it('matches when the site builder says the visitor is in', () => {
+    expect(
+      evaluateRules(
+        providerRules,
+        visitor({ externalSegments: { vwo_audience: true } }),
+      ),
+    ).toBe(true);
+  });
+
+  it('does not match when the site builder says the visitor is out', () => {
+    expect(
+      evaluateRules(
+        providerRules,
+        visitor({ externalSegments: { vwo_audience: false } }),
+      ),
+    ).toBe(false);
+  });
+
+  it('applies negate to the answer', () => {
+    expect(
+      evaluateRules(
+        {
+          vwo_audience: {
+            id: 'vwo_audience',
+            negate: true,
+            flag_key: 'halloween',
+          },
+        },
+        visitor({ externalSegments: { vwo_audience: false } }),
+      ),
+    ).toBe(true);
+  });
+
+  it('still ANDs with the rules it can evaluate', () => {
+    const rules: SegmentRules = {
+      ...providerRules,
+      query_parameter: queryRule(),
+    };
+    const inTheAudience = { externalSegments: { vwo_audience: true } };
+    expect(
+      evaluateRules(
+        rules,
+        visitor({ query: { coupon: 'WEEKEND' }, ...inTheAudience }),
+      ),
+    ).toBe(true);
+    expect(evaluateRules(rules, visitor(inTheAudience))).toBe(false);
   });
 });

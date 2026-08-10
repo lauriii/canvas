@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace Drupal\canvas_personalization_vwo\Plugin\SegmentCondition;
 
 use Drupal\canvas_personalization\Attribute\SegmentCondition;
-use Drupal\canvas_personalization\SegmentCondition\SegmentConditionBase;
-use Drupal\canvas_personalization_vwo\VwoAudienceMembership;
+use Drupal\canvas_personalization\SegmentCondition\ExternalSegmentConditionBase;
+use Drupal\canvas_personalization_vwo\VwoAudienceResolverInterface;
+use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -17,38 +18,37 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * The audience is named by the VWO FME feature flag that models it; see
  * VwoFmeAudienceResolver for why an audience is a flag and not a segment.
  *
- * Cacheability: the result varies by the VWO identity cookie the visitor
- * carries, and stays valid for as long as the membership answer is cached, so
- * this declares `cookies:<name>` and a max-age of that TTL. Both are derived
- * from configuration alone, never from the request, as the condition contract
- * requires. The `cookies:` context is not a URL-derived one, so
- * SegmentAwareResponsePolicy keeps these responses out of the URL-keyed
- * internal page cache; they stay cacheable in dynamic_page_cache.
+ * The membership cache, the negative cache and the fail-closed behavior all
+ * come from ExternalSegmentConditionBase; this class only supplies the two
+ * VWO-specific halves — where the identity comes from, and how to ask VWO —
+ * plus the cacheability its identity implies.
  *
- * @see \Drupal\canvas_personalization_vwo\VwoAudienceMembership
- * @see \Drupal\canvas_personalization\PageCache\SegmentAwareResponsePolicy
+ * @see \Drupal\canvas_personalization\SegmentCondition\ExternalSegmentConditionBase
+ * @see \Drupal\canvas_personalization_vwo\VwoFmeAudienceResolver
  */
 #[SegmentCondition(
   id: self::PLUGIN_ID,
   label: new TranslatableMarkup('VWO audience'),
 )]
-final class VwoAudience extends SegmentConditionBase {
+final class VwoAudience extends ExternalSegmentConditionBase {
 
   public const string PLUGIN_ID = 'vwo_audience';
 
-  private VwoAudienceMembership $membership;
+  /**
+   * VWO's own SDKs accept exactly this shape for a browser-issued UUID.
+   *
+   * @see https://github.com/wingify/wingify-fme-php-sdk/blob/master/src/Utils/UuidUtil.php
+   */
+  private const string VISITOR_UUID_PATTERN = '/^[DJ][0-9A-Fa-f]{32}$/';
+
+  private VwoAudienceResolverInterface $resolver;
 
   /**
    * {@inheritdoc}
-   *
-   * SegmentConditionBase::create() instantiates `new static($configuration,
-   * $plugin_id, $plugin_definition)`, so a condition needing services beyond
-   * the three the base injects has to set them as properties afterwards
-   * rather than take them as constructor arguments.
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition): static {
     $instance = parent::create($container, $configuration, $plugin_id, $plugin_definition);
-    $instance->membership = $container->get(VwoAudienceMembership::class);
+    $instance->resolver = $container->get(VwoAudienceResolverInterface::class);
     return $instance;
   }
 
@@ -64,26 +64,69 @@ final class VwoAudience extends SegmentConditionBase {
   /**
    * {@inheritdoc}
    */
-  protected function doEvaluate(): bool {
-    // An unconfigured rule must not match everyone.
+  protected function getVisitorIdentity(): ?string {
+    $cookie = $this->getRequest()->cookies->get($this->getCookieName());
+    return \is_string($cookie) ? self::parseVisitorUuid($cookie) : NULL;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function resolveMembership(string $identity): bool {
+    // An unconfigured rule must not match everyone, and must not cost a call.
     if ($this->configuration['flag_key'] === '') {
       return FALSE;
     }
-    return $this->membership->isInAudience($this->configuration['flag_key']);
+    return $this->resolver->isInAudience($this->configuration['flag_key'], $identity);
+  }
+
+  /**
+   * Extracts the visitor UUID from a raw VWO identity cookie value.
+   *
+   * VWO's SmartCode writes two pipe-separated fields — the visitor UUID and a
+   * hash — and writes the pipe raw while its own read path tolerates a
+   * percent-encoded one, so both are accepted here. A value that does not
+   * carry a UUID in VWO's documented shape returns NULL rather than being
+   * forwarded: VWO's SDKs reject it anyway, and guessing is how a wrong
+   * variant gets served.
+   *
+   * Pure and static so the parsing is unit-testable without a container.
+   */
+  public static function parseVisitorUuid(string $cookie_value): ?string {
+    $candidate = \explode('|', \rawurldecode($cookie_value))[0];
+    return \preg_match(self::VISITOR_UUID_PATTERN, $candidate) === 1 ? $candidate : NULL;
   }
 
   /**
    * {@inheritdoc}
    */
   public function getCacheContexts(): array {
-    return ['cookies:' . $this->membership->getCookieName()];
+    return ['cookies:' . $this->getCookieName()];
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getCacheMaxAge(): int {
-    return $this->membership->getMembershipTtl();
+  protected function getMembershipTtl(): int {
+    return \max(1, (int) $this->settings()->get('membership_ttl'));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function getFailureTtl(): int {
+    return \max(1, (int) $this->settings()->get('failure_ttl'));
+  }
+
+  /**
+   * The cookie name VWO writes the visitor identity to.
+   *
+   * Configurable because VWO accounts created from 2026-06-14 write
+   * `_wingify_uuid_v2` instead, and an account may carry a cookie prefix.
+   */
+  public function getCookieName(): string {
+    $name = $this->settings()->get('cookie_name');
+    return \is_string($name) && $name !== '' ? $name : '_vwo_uuid_v2';
   }
 
   /**
@@ -115,6 +158,10 @@ final class VwoAudience extends SegmentConditionBase {
   public function submitConfigurationForm(array &$form, FormStateInterface $form_state): void {
     $this->configuration['flag_key'] = \trim((string) $form_state->getValue('flag_key'));
     parent::submitConfigurationForm($form, $form_state);
+  }
+
+  private function settings(): ImmutableConfig {
+    return $this->configFactory->get('canvas_personalization_vwo.settings');
   }
 
 }

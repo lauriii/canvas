@@ -11,6 +11,7 @@ import {
 import type {
   DayOfWeek,
   DayOfWeekCondition,
+  EditableSegmentRule,
   GeolocationCondition,
   QueryParameterCondition,
   Segment,
@@ -18,6 +19,13 @@ import type {
   UtmParametersCondition,
 } from '@/types/Personalization';
 import type { ComponentModels, RegionNode } from './layoutModelSlice';
+
+const KNOWN_CONDITION_IDS: string[] = [
+  'query_parameter',
+  'utm_parameters',
+  'geolocation',
+  'day_of_week',
+];
 
 // The server is authoritative for segment evaluation. Everything in this
 // module mirrors modules/canvas_personalization/src/Plugin/SegmentCondition
@@ -35,6 +43,10 @@ export interface SimulatedVisitor {
   country?: string;
   region?: string;
   day?: DayOfWeek;
+  // Answers for condition types this client cannot evaluate, keyed by plugin
+  // ID. The server is the only thing that can really answer them, so the
+  // simulator asks the site builder instead of guessing.
+  externalSegments?: Record<string, boolean>;
 }
 
 const evaluateQueryParameter = (
@@ -105,15 +117,23 @@ const evaluateRule = (
   rule: SegmentRule,
   visitor: SimulatedVisitor,
 ): boolean => {
-  switch (rule.id) {
+  if (!KNOWN_CONDITION_IDS.includes(rule.id)) {
+    // A condition type this client cannot evaluate — one resolving membership
+    // from a third-party segmentation provider, say. The simulator takes an
+    // explicit answer for it rather than pretending; absent one it fails
+    // closed, exactly like the server does when the provider says nothing.
+    return visitor.externalSegments?.[rule.id] === true;
+  }
+  const known = rule as EditableSegmentRule;
+  switch (known.id) {
     case 'query_parameter':
-      return evaluateQueryParameter(rule, visitor);
+      return evaluateQueryParameter(known, visitor);
     case 'utm_parameters':
-      return evaluateUtmParameters(rule, visitor);
+      return evaluateUtmParameters(known, visitor);
     case 'geolocation':
-      return evaluateGeolocation(rule, visitor);
+      return evaluateGeolocation(known, visitor);
     case 'day_of_week':
-      return evaluateDayOfWeek(rule, visitor);
+      return evaluateDayOfWeek(known, visitor);
   }
 };
 
@@ -129,7 +149,9 @@ export function evaluateSegmentForVisitor(
   if (!segment || !segment.status) {
     return false;
   }
-  const rules: SegmentRule[] = Object.values(segment.rules ?? {});
+  const rules: SegmentRule[] = Object.values(segment.rules ?? {}).filter(
+    (rule): rule is SegmentRule => rule !== undefined,
+  );
   return rules.every((rule) => {
     const result = evaluateRule(rule, visitor);
     return rule.negate ? !result : result;
@@ -187,6 +209,9 @@ export interface SimulationInputs {
   countries: string[];
   // Whether any day of week rule exists.
   days: boolean;
+  // Plugin IDs of conditions this client cannot evaluate, sorted. Each needs
+  // an explicit in/out answer from the site builder to be simulated at all.
+  externalConditions: string[];
 }
 
 /**
@@ -200,6 +225,7 @@ export function collectSimulationInputs(
 ): SimulationInputs {
   const queryParameters = new Set<string>();
   const countries = new Set<string>();
+  const externalConditions = new Set<string>();
   let days = false;
   for (const segmentId of new Set(referencedSegmentIds)) {
     const segment = segments?.[segmentId];
@@ -221,10 +247,16 @@ export function collectSimulationInputs(
     if (rules.day_of_week) {
       days = true;
     }
+    for (const rule of Object.values(rules)) {
+      if (rule && !KNOWN_CONDITION_IDS.includes(rule.id)) {
+        externalConditions.add(rule.id);
+      }
+    }
   }
   return {
     queryParameters: [...queryParameters].sort(),
     countries: [...countries].sort(),
     days,
+    externalConditions: [...externalConditions].sort(),
   };
 }
