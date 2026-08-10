@@ -17,6 +17,13 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  * region codes from request headers set by a CDN or reverse proxy. The header
  * names are configured in `canvas_personalization.settings`. An absent or
  * unknown header never matches — fail closed, never a wrong variant.
+ *
+ * The headers are trusted as they arrive: the edge MUST overwrite both on
+ * every request it forwards, or a visitor selects a variant by sending them.
+ * Nothing here can tell the two apart, which is why it is a deployment
+ * requirement and a status report warning rather than a runtime check.
+ *
+ * @see \Drupal\canvas_personalization\Hook\PersonalizationRequirements
  */
 #[SegmentCondition(
   id: self::PLUGIN_ID,

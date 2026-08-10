@@ -108,6 +108,14 @@ Geolocation does not resolve IPs itself: it reads request headers whose names ar
 `X-Region-Code`), set by your CDN or reverse proxy. An absent or unknown header evaluates as not matching — fail
 closed, never a wrong variant.
 
+> **Deployment requirement — the edge MUST strip or overwrite both headers on inbound requests.** Drupal cannot tell
+> a header its own edge set from one the visitor sent. An edge that only *adds* the header when it is missing leaves
+> every variant selectable by anyone: `curl -H 'X-Country-Code: BE'` is then enough to see the Belgian variant. Set
+> both headers unconditionally (overwrite, never append) on every request the edge forwards. This is the same trust
+> boundary as `X-Forwarded-For`, and like it, it is closed in the edge configuration and Drupal's `trusted_host` /
+> reverse-proxy settings — not in this module. Sites with an enabled geolocation rule get a status report warning
+> naming the two headers, because there is no way to detect the difference at runtime.
+
 ### 3.4 HTTP API
 
 Segments use the standard Canvas config HTTP API (`/canvas/api/v0/config/segment[/{id}]`) plus auto-save

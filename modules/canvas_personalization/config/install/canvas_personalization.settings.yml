@@ -1,5 +1,9 @@
 # Geolocation segment conditions read the visitor's location from request
 # headers set by a CDN or reverse proxy at the edge; Drupal never resolves IP
 # addresses itself. Point these at whatever headers your edge provides.
+#
+# Their values are trusted as they arrive: the edge MUST overwrite both headers
+# on every request it forwards, otherwise a visitor selects a personalization
+# variant by sending them. See docs/personalization.md §3.3.
 country_header: 'X-Country-Code'
 region_header: 'X-Region-Code'

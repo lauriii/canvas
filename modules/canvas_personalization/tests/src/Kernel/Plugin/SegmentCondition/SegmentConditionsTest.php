@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_personalization\Kernel\Plugin\SegmentCondition;
 
+use Drupal\canvas_personalization\Entity\Segment;
 use Drupal\canvas_personalization\Plugin\SegmentCondition\DayOfWeek;
 use Drupal\canvas_personalization\Plugin\SegmentCondition\Geolocation;
 use Drupal\canvas_personalization\Plugin\SegmentCondition\QueryParameter;
@@ -11,6 +12,8 @@ use Drupal\canvas_personalization\Plugin\SegmentCondition\UtmParameters;
 use Drupal\canvas_personalization\SegmentCondition\SegmentConditionInterface;
 use Drupal\canvas_personalization\SegmentCondition\SegmentConditionManager;
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Extension\Requirement\RequirementSeverity;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\HttpFoundation\Request;
@@ -70,6 +73,48 @@ final class SegmentConditionsTest extends CanvasKernelTestBase {
       }
       $this->assertNotSame('', (string) $condition->summary(), $label);
     }
+  }
+
+  /**
+   * The status report warns once geolocation headers decide what visitors see.
+   *
+   * Those headers are trusted as they arrive, so the edge must overwrite them
+   * on inbound requests; nothing in Drupal can detect an edge that does not.
+   *
+   * @see \Drupal\canvas_personalization\Hook\PersonalizationRequirements
+   */
+  public function testGeolocationHeaderTrustRequirement(): void {
+    $this->installConfig(['canvas_personalization']);
+    $module_handler = $this->container->get(ModuleHandlerInterface::class);
+    // The shipped `default` segment has no geolocation rule: nothing to warn
+    // about, so the status report stays quiet.
+    $without_geolocation = $module_handler->invoke('canvas_personalization', 'runtime_requirements');
+    $this->assertSame([], $without_geolocation);
+
+    $segment = Segment::create([
+      'id' => 'belgians',
+      'label' => 'Belgians',
+      'status' => FALSE,
+      'rules' => [
+        'geolocation' => [
+          'id' => Geolocation::PLUGIN_ID,
+          'negate' => FALSE,
+          'countries' => ['BE'],
+          'regions' => [],
+        ],
+      ],
+    ]);
+    $segment->save();
+    // A disabled segment cannot select a variant yet.
+    $while_disabled = $module_handler->invoke('canvas_personalization', 'runtime_requirements');
+    $this->assertSame([], $while_disabled);
+
+    $segment->setStatus(TRUE)->save();
+    $requirements = $module_handler->invoke('canvas_personalization', 'runtime_requirements');
+    $this->assertArrayHasKey('canvas_personalization_geolocation_headers', $requirements);
+    $requirement = $requirements['canvas_personalization_geolocation_headers'];
+    $this->assertSame(RequirementSeverity::Warning, $requirement['severity']);
+    $this->assertSame('Trusted: X-Country-Code, X-Region-Code', (string) $requirement['value']);
   }
 
   public static function providerConditions(): \Generator {
