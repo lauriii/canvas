@@ -25,9 +25,15 @@ final class TestUnreachableProvider extends SegmentConditionBase {
   public const string PLUGIN_ID = 'test_unreachable_provider';
 
   /**
+   * How often the provider was consulted, for short-circuit assertions.
+   */
+  public static int $evaluations = 0;
+
+  /**
    * {@inheritdoc}
    */
   protected function doEvaluate(): bool {
+    self::$evaluations++;
     throw new \RuntimeException('The external segmentation provider is unreachable.');
   }
 

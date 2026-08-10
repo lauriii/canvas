@@ -15,7 +15,6 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Validation\ConstraintPropertyPathTranslatorTrait;
 use Drupal\canvas_personalization\Entity\Segment;
 use Drupal\canvas_personalization\SegmentEvaluator;
-use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\Plugin\Validation\Constraint\ConfigExistsConstraint;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -177,12 +176,20 @@ final class Personalization extends ComponentSourceBase implements
       }
     }
 
-    $cacheability = new CacheableMetadata();
+    // The union of every referenced segment's cacheability, declared from
+    // configuration: a cached response must be correct for the request
+    // contexts in which another variant wins. Asking for it declaratively
+    // rather than by evaluating each segment matters, because the variants
+    // after the winner are never evaluated below — and one of them may be
+    // backed by a third-party segmentation provider that costs a network
+    // call to consult.
+    $segment_ids = [];
     foreach ($cases as $case) {
       foreach ($case['segments'] as $segment_id) {
-        $cacheability = $cacheability->merge($this->segmentEvaluator->evaluate($segment_id)->cacheability);
+        $segment_ids[] = (string) $segment_id;
       }
     }
+    $cacheability = $this->segmentEvaluator->getDeclaredCacheability($segment_ids);
 
     $negotiated_case_uuid = NULL;
     foreach ($switch_instance['variants'] ?? [] as $variant_id) {

@@ -145,10 +145,11 @@ This is the heart of the feature. Live rendering negotiates each switch exactly 
 
 1. Walk the switch's `variants` in priority order.
 2. A variant matches when **all** of its case's `segments` match the current request. Segment evaluation
-   (`SegmentEvaluator`, memoized per request per segment) ANDs the segment's condition plugins. The `default` segment
-   always matches. Disabled cases, unpublished segments, and missing segments never match. A condition that throws is
-   logged and treated as not matching — a broken or unreachable provider degrades to the default variant, it never
-   breaks the page.
+   (`SegmentEvaluator`, memoized per request per segment) ANDs the segment's condition plugins, stopping at the first
+   non-matching one — a condition that costs a network call is not consulted once a cheaper rule has decided the
+   segment. The `default` segment always matches. Disabled cases, unpublished segments, and missing segments never
+   match. A condition that throws is logged and treated as not matching — a broken or unreachable provider degrades to
+   the default variant, it never breaks the page.
 3. The first matching case is rendered; every other case is pruned before rendering.
 4. In the editor preview, negotiation is skipped and all cases render.
 
@@ -200,7 +201,9 @@ module, plus config schema. The contract gives an integration everything it need
   membership via the provider's API. Lookups should be cached (`cache.default`, bounded TTL) so the provider is
   consulted at most once per identifier per TTL. The condition declares the matching cache context
   (`cookies:<name>` or `headers:<name>`); §5.2(3) then automatically keeps those responses out of the URL-keyed
-  internal page cache, so a wrong variant cannot leak.
+  internal page cache, so a wrong variant cannot leak. A provider condition is consulted only where it can still
+  change the outcome: evaluation of a segment stops at the first non-matching rule, and the segments of variants
+  after the winning one are never evaluated — their cacheability is declared, not measured.
 * **Graceful degradation**: when the provider is unreachable, return FALSE (fail closed to the default variant) and
   negatively cache the failure with a short TTL, so an outage costs at most one timeout per TTL instead of one per
   request. Exceptions are additionally caught by the evaluator (§5, step 2).

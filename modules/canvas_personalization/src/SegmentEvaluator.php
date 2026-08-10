@@ -86,14 +86,20 @@ final class SegmentEvaluator {
       foreach ($segment->getSegmentRulesPluginCollection() as $condition) {
         \assert($condition instanceof SegmentConditionInterface);
         try {
-          // Keep evaluating after a non-match: every condition's result is
-          // part of the declared cacheability regardless, and evaluation may
-          // have provider-side effects such as warming a membership cache.
-          $matched = $condition->evaluate() && $matched;
+          $matched = $condition->evaluate();
         }
         catch (\Throwable $exception) {
           Error::logException($this->logger, $exception);
           $matched = FALSE;
+        }
+        if (!$matched) {
+          // Stop at the first non-match: rules AND together, so the outcome
+          // is decided, and $cacheability above is derived from configuration
+          // rather than from which conditions ran — short-circuiting cannot
+          // change it. Skipping the rest is what keeps a third-party
+          // segmentation provider from being called on every uncached render
+          // of a page whose segment a cheaper rule already ruled out.
+          break;
         }
       }
     }

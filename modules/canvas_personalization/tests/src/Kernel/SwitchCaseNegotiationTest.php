@@ -8,6 +8,7 @@ use Drupal\canvas\ComponentSource\ComponentSourceWithSwitchCasesInterface;
 use Drupal\canvas\ComponentSource\SwitchCaseNegotiation;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas_personalization\Entity\Segment;
+use Drupal\canvas_personalization_test\Plugin\SegmentCondition\TestUnreachableProvider;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\HttpFoundation\Request;
@@ -23,6 +24,7 @@ final class SwitchCaseNegotiationTest extends CanvasKernelTestBase {
 
   protected static $modules = [
     'canvas_personalization',
+    'canvas_personalization_test',
     // @see https://www.drupal.org/i/3520484
     'canvas_dev_mode',
   ];
@@ -56,6 +58,20 @@ final class SwitchCaseNegotiationTest extends CanvasKernelTestBase {
           'parameter' => 'coupon',
           'value' => '',
           'matching' => 'present',
+        ],
+      ],
+    ])->save();
+    // Stands in for a segment backed by a third-party segmentation provider:
+    // declares a cookie context and a bounded TTL, and costs something to
+    // consult.
+    Segment::create([
+      'id' => 'seg_provider',
+      'label' => 'Provider',
+      'status' => TRUE,
+      'rules' => [
+        'test_unreachable_provider' => [
+          'id' => TestUnreachableProvider::PLUGIN_ID,
+          'negate' => FALSE,
         ],
       ],
     ])->save();
@@ -190,6 +206,33 @@ final class SwitchCaseNegotiationTest extends CanvasKernelTestBase {
       'config:canvas_personalization.segment.not_created_yet',
       'config:canvas_personalization.segment.default',
     ], $negotiation->cacheability->getCacheTags());
+  }
+
+  /**
+   * A losing variant's segments shape cacheability without being consulted.
+   *
+   * Metadata is declared from configuration, so the segments of variants after
+   * the winner never have to be evaluated — which is what keeps a third-party
+   * segmentation provider out of the render path of every page that merely
+   * offers a lower-priority variant it backs.
+   */
+  public function testVariantsAfterTheWinnerAreNotEvaluated(): void {
+    $switch = self::buildSwitchInstance(
+      ['a', 'provider', 'default'],
+      [
+        'a' => ['segments' => ['seg_a']],
+        'provider' => ['segments' => ['seg_provider']],
+        'default' => ['segments' => [Segment::DEFAULT_ID]],
+      ],
+    );
+    $this->setRequest(['coupon' => 'A']);
+    TestUnreachableProvider::$evaluations = 0;
+    $negotiation = self::negotiate($switch);
+
+    $this->assertSame('uuid-case-a', $negotiation->negotiatedCaseUuid);
+    $this->assertSame(0, TestUnreachableProvider::$evaluations);
+    $this->assertEqualsCanonicalizing(['url.query_args:coupon', 'cookies:canvas_test_provider'], $negotiation->cacheability->getCacheContexts());
+    $this->assertSame(300, $negotiation->cacheability->getCacheMaxAge());
   }
 
 }

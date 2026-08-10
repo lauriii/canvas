@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas_personalization\Kernel;
 
 use Drupal\canvas_personalization\Entity\Segment;
 use Drupal\canvas_personalization\SegmentEvaluator;
+use Drupal\canvas_personalization_test\Plugin\SegmentCondition\TestUnreachableProvider;
 use Drupal\Core\Cache\Cache;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\Group;
@@ -132,6 +133,59 @@ final class SegmentEvaluatorTest extends CanvasKernelTestBase {
     $this->assertSame(['url.query_args:coupon'], $match->cacheability->getCacheContexts());
     $this->assertGreaterThan(0, $match->cacheability->getCacheMaxAge());
     $this->assertLessThanOrEqual(86400, $match->cacheability->getCacheMaxAge());
+  }
+
+  /**
+   * Evaluation stops at the first non-match, without changing cacheability.
+   *
+   * The same segment is evaluated twice: once where the first rule already
+   * decides the outcome and the provider condition is never consulted, once
+   * where it is. Cacheability is derived from configuration, so it is
+   * identical either way — which is what makes it safe to skip a third-party
+   * segmentation provider call on every render of a page whose segment a
+   * cheaper rule has already ruled out.
+   */
+  public function testEvaluationShortCircuitsWithoutChangingCacheability(): void {
+    Segment::create([
+      'id' => 'coupon_and_provider',
+      'label' => 'Coupon and provider',
+      'status' => TRUE,
+      'rules' => [
+        'query_parameter' => [
+          'id' => 'query_parameter',
+          'negate' => FALSE,
+          'parameter' => 'coupon',
+          'value' => 'BLACKFRIDAY',
+          'matching' => 'exact',
+        ],
+        'test_unreachable_provider' => [
+          'id' => 'test_unreachable_provider',
+          'negate' => FALSE,
+        ],
+      ],
+    ])->save();
+
+    // Without the coupon the first rule decides it: the provider is not
+    // consulted, saving a network call the outcome cannot depend on.
+    $this->setRequest();
+    TestUnreachableProvider::$evaluations = 0;
+    $short_circuited = $this->evaluator()->evaluate('coupon_and_provider');
+    $this->assertFalse($short_circuited->matched);
+    $this->assertSame(0, TestUnreachableProvider::$evaluations);
+
+    // With the coupon, evaluation reaches the provider — which throws, and
+    // still fails closed.
+    $this->setRequest(['coupon' => 'BLACKFRIDAY']);
+    $evaluated_everything = $this->evaluator()->evaluate('coupon_and_provider');
+    $this->assertFalse($evaluated_everything->matched);
+    $this->assertSame(1, TestUnreachableProvider::$evaluations);
+
+    // Both runs carry every rule's declared cacheability, identical to what
+    // the page-cache integration consumes on requests where nothing evaluates.
+    $this->assertEquals($short_circuited->cacheability, $evaluated_everything->cacheability);
+    $this->assertEquals($this->evaluator()->getDeclaredCacheability(['coupon_and_provider']), $short_circuited->cacheability);
+    $this->assertEqualsCanonicalizing(['url.query_args:coupon', 'cookies:canvas_test_provider'], $short_circuited->cacheability->getCacheContexts());
+    $this->assertSame(300, $short_circuited->cacheability->getCacheMaxAge());
   }
 
   /**
