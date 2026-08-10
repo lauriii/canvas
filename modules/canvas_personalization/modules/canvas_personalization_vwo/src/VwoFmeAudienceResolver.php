@@ -57,6 +57,20 @@ final class VwoFmeAudienceResolver implements VwoAudienceResolverInterface {
    */
   private const int DEFAULT_TIMEOUT_MS = 2000;
 
+  /**
+   * Retries are disabled so `timeout_ms` is the whole budget, not one attempt.
+   *
+   * The SDK retries a failed network call three times by default, sleeping 2,
+   * 4, then 8 seconds between attempts with a synchronous `sleep()`. Against
+   * an unreachable VWO that is roughly 22 seconds of blocked page render on
+   * top of the configured timeout — which would make the timeout meaningless.
+   * A visitor's variant is not worth retrying for; the failure is negatively
+   * cached instead.
+   *
+   * @see \wingify\Packages\NetworkLayer\client\NetworkClient::makeCurlRequest()
+   */
+  private const array NO_RETRIES = ['shouldRetry' => FALSE];
+
   public function __construct(
     private readonly CacheBackendInterface $cache,
     private readonly ConfigFactoryInterface $configFactory,
@@ -104,6 +118,7 @@ final class VwoFmeAudienceResolver implements VwoAudienceResolverInterface {
       'sdkKey' => $sdk_key,
       'accountId' => $account_id,
       'settingsConfig' => ['timeout' => $timeout > 0 ? $timeout : self::DEFAULT_TIMEOUT_MS],
+      'retryConfig' => self::NO_RETRIES,
       // A PHP request is shared-nothing; nothing here should phone home on its
       // own schedule.
       'isUsageStatsDisabled' => TRUE,

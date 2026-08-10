@@ -76,7 +76,7 @@ variant.
 | `membership_ttl` | `300` | How long one visitor's answer is reused. Also the max-age the condition declares, so it bounds how long a personalized page stays cached. |
 | `failure_ttl` | `60` | How long a failed lookup is remembered, so a VWO outage costs one attempt per visitor per this many seconds rather than one per render. |
 | `settings_ttl` | `300` | How long VWO's account-wide settings file is reused. Flag changes made in VWO take up to this long to reach the site. |
-| `timeout_ms` | `2000` | Hard ceiling on any call to VWO. The SDK's own default is 50000, which would hang a page render. |
+| `timeout_ms` | `2000` | Hard ceiling on any call to VWO. The SDK's own default is 50000, which would hang a page render. SDK retries are disabled so this is the whole budget: left on, the SDK would retry three times with 2, 4, and 8 second synchronous sleeps between attempts. |
 
 ## What this does to page caching
 
