@@ -27,22 +27,29 @@ Both delegate to `\Drupal\canvas\Tmgmt\ComponentInputsTranslatablesExtractor`,
 which walks a component instance's `inputs` as typed config and yields one
 translatable string per translatable prop, at arbitrary nesting depth.
 
-Write-back is handled by `ComponentTreeFieldProcessor::setTranslations()`, which
-merges translated leaves back into the raw `inputs` array at the exact nested
-position they were extracted from, preserving untranslated sibling keys and the
-prop order dictated by the component source's schema generator.
+The two paths differ on write-back. For content entities,
+`ComponentTreeFieldProcessor::setTranslations()` merges translated leaves back
+into the raw `inputs` array at the exact nested position they were extracted
+from, preserving untranslated sibling keys and the prop order dictated by the
+component source's schema generator. For config entities,
+`ComponentInputsConfigProcessor` only extracts; TMGMT saves the translation
+through the prop's `form_element_class` and its `::setConfig()` method.
 
 ## Which props are sent to the translator
 
-A prop is translatable when `isExplicitInputTranslatable()` returns TRUE, which
-requires both:
+For component sources built on JSON Schema props — SDC and JS code components,
+via `JsonSchemaPropsComponentSourceBase` — a prop is translatable when
+`isExplicitInputTranslatable()` returns TRUE, which requires both:
 
 - the prop's retained `string_shape` says the shape holds translatable text, and
 - the prop is not populated by an entity reference.
 
-Only static prop sources are translatable. A prop populated by a
-`DynamicPropSource` is translated at its source (the entity field it evaluates),
-so `refineForInstance()` strips its `translatable` flag.
+Other component sources do not use that rule. Block inputs, for example, get
+their translatability from config schema instead.
+
+Only static prop sources are translatable. A prop populated by a non-static
+source such as `EntityFieldPropSource` is translated at its source (the entity
+field it evaluates), so `refineForInstance()` strips its `translatable` flag.
 
 This is a shape-level rule, not a per-prop opt-in. Any string-shaped prop is
 sent, which includes strings that are machine identifiers rather than prose. See
@@ -58,6 +65,10 @@ composer require 'drupal/tmgmt_smartling:^9.26'
 drush en -y language content_translation tmgmt tmgmt_content \
   tmgmt_file tmgmt_extension_suit tmgmt_smartling
 ```
+
+`tmgmt_content` covers content entities such as `canvas_page`. Add `tmgmt_config`
+as well to translate the component trees in Content Templates and Page Regions —
+without it, only the content-entity half of the integration is active.
 
 Add a second language, then enable content translation for the entity type that
 holds the component tree, for example:
