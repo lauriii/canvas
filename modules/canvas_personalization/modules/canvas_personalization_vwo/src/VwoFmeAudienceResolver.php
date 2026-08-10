@@ -9,6 +9,7 @@ use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Site\Settings;
 use wingify\Wingify;
+use wingify\WingifyBuilder;
 use wingify\WingifyClient;
 
 /**
@@ -58,18 +59,29 @@ final class VwoFmeAudienceResolver implements VwoAudienceResolverInterface {
   private const int DEFAULT_TIMEOUT_MS = 2000;
 
   /**
-   * Retries are disabled so `timeout_ms` is the whole budget, not one attempt.
+   * The least retrying the SDK can be asked to do, to bound a VWO outage.
    *
-   * The SDK retries a failed network call three times by default, sleeping 2,
+   * By default the SDK retries a failed network call three times, sleeping 2,
    * 4, then 8 seconds between attempts with a synchronous `sleep()`. Against
-   * an unreachable VWO that is roughly 22 seconds of blocked page render on
-   * top of the configured timeout — which would make the timeout meaningless.
-   * A visitor's variant is not worth retrying for; the failure is negatively
-   * cached instead.
+   * an unreachable VWO that is roughly 22 seconds of blocked page render — far
+   * past anything a variant is worth.
    *
-   * @see \wingify\Packages\NetworkLayer\client\NetworkClient::makeCurlRequest()
+   * It cannot be turned off. `shouldRetry => FALSE` reads as "no retries" but
+   * gates the request loop itself, so the SDK makes no call at all and every
+   * lookup fails; and `maxRetries` is validated as `>= 1`, with an invalid
+   * value making `Wingify::init()` return NULL. One retry after a one second
+   * sleep is therefore the floor, putting the worst case at
+   * `2 × timeout_ms + 1s` rather than at the timeout alone.
+   *
+   * @see \wingify\Packages\NetworkLayer\Client\NetworkClient::makeCurlRequest()
+   * @see \wingify\Packages\NetworkLayer\Manager\NetworkManager::validateRetryConfig()
    */
-  private const array NO_RETRIES = ['shouldRetry' => FALSE];
+  private const array MINIMUM_RETRIES = [
+    'shouldRetry' => TRUE,
+    'maxRetries' => 1,
+    'initialDelay' => 1,
+    'backoffMultiplier' => 2,
+  ];
 
   public function __construct(
     private readonly CacheBackendInterface $cache,
@@ -92,6 +104,14 @@ final class VwoFmeAudienceResolver implements VwoAudienceResolverInterface {
     }
 
     $client = $this->client($sdk_key, (string) $account_id);
+    // ⚠️ `timeout_ms` bounds the settings fetch and nothing else. Every
+    // ::getFlag() also posts an impression to VWO's events host over a socket
+    // the SDK opens with no timeout of its own, and the SDK exposes no seam to
+    // bound, disable or batch that call away — `batchEvents` is accepted and
+    // then ignored, its implementation commented out upstream. Measured
+    // against an events host that blackholes packets, this adds ~10s to every
+    // membership lookup that is not already cached. See the README.
+    //
     // `useIdForWeb` makes the SDK reject a UUID it would not accept as a
     // browser-issued one instead of silently deriving a different, server-side
     // UUID — which would bucket the visitor differently from the browser and
@@ -104,6 +124,14 @@ final class VwoFmeAudienceResolver implements VwoAudienceResolverInterface {
   }
 
   /**
+   * The configured ceiling on any single call to VWO, in milliseconds.
+   */
+  private function timeoutMs(): int {
+    $timeout = (int) $this->configFactory->get('canvas_personalization_vwo.settings')->get('timeout_ms');
+    return $timeout > 0 ? $timeout : self::DEFAULT_TIMEOUT_MS;
+  }
+
+  /**
    * An initialized SDK client, reusing a cached settings file where possible.
    *
    * PHP is shared-nothing, so without this every lookup would fetch VWO's
@@ -113,12 +141,11 @@ final class VwoFmeAudienceResolver implements VwoAudienceResolverInterface {
    */
   private function client(string $sdk_key, string $account_id): WingifyClient {
     $settings = $this->configFactory->get('canvas_personalization_vwo.settings');
-    $timeout = (int) $settings->get('timeout_ms');
     $options = [
       'sdkKey' => $sdk_key,
       'accountId' => $account_id,
-      'settingsConfig' => ['timeout' => $timeout > 0 ? $timeout : self::DEFAULT_TIMEOUT_MS],
-      'retryConfig' => self::NO_RETRIES,
+      'settingsConfig' => ['timeout' => $this->timeoutMs()],
+      'retryConfig' => self::MINIMUM_RETRIES,
       // A PHP request is shared-nothing; nothing here should phone home on its
       // own schedule.
       'isUsageStatsDisabled' => TRUE,
@@ -127,22 +154,37 @@ final class VwoFmeAudienceResolver implements VwoAudienceResolverInterface {
     $cid = 'canvas_personalization_vwo:settings:' . \hash('xxh128', $sdk_key . ':' . $account_id);
     $cached = $this->cache->get($cid);
     if ($cached !== FALSE && \is_string($cached->data)) {
-      $client = Wingify::init($options + ['settings' => $cached->data]);
-      if ($client !== NULL) {
+      $builder = new WingifyBuilder($options);
+      $client = Wingify::init($options + ['settings' => $cached->data, 'wingifyBuilder' => $builder]);
+      // A rejected settings blob does not make init() fail. It logs, swaps in
+      // an empty settings object, and returns a perfectly usable client that
+      // reports every flag disabled — so the returned client says nothing
+      // about whether the settings were accepted, and that has to be asked
+      // separately or a poisoned cache entry silently un-personalizes the
+      // site for as long as it lives.
+      if ($client !== NULL && $builder->getSettingsService()->isSettingsValidOnInit) {
         return $client;
       }
       // Stale or rejected settings: fall through and re-fetch once.
     }
 
-    $client = Wingify::init($options);
+    // The client is built through an explicitly constructed builder because
+    // only the builder keeps VWO's settings file in a form that can be cached;
+    // see below.
+    $builder = new WingifyBuilder($options);
+    $client = Wingify::init($options + ['wingifyBuilder' => $builder]);
     if ($client === NULL) {
       // Wingify::init() swallows every failure and returns NULL. Turn that
       // back into a throwable so the membership layer negatively caches it
       // rather than retrying on every render.
       throw new \RuntimeException('Initializing the VWO FME SDK failed.');
     }
-    $fetched = \json_encode($client->originalSettings);
-    if (\is_string($fetched) && $fetched !== 'null') {
+    // Not $client->originalSettings: that is a SettingsModel whose properties
+    // are all private, so json_encode() returns "{}" for it — which is itself
+    // accepted as a string here and then rejected as settings on every later
+    // request. The builder holds the settings file as VWO sent it.
+    $fetched = \json_encode($builder->originalSettings);
+    if (\is_string($fetched) && $fetched !== 'null' && $fetched !== '{}') {
       $settings_ttl = (int) $settings->get('settings_ttl');
       $ttl = $settings_ttl > 0 ? $settings_ttl : 300;
       $this->cache->set($cid, $fetched, $this->time->getRequestTime() + $ttl);
