@@ -193,7 +193,7 @@ describe('VariantsMenu', () => {
     renderMenu(store);
 
     const trigger = screen.getByRole('button', { name: 'Manage variants' });
-    expect(trigger).toHaveTextContent('Variant: Default');
+    expect(trigger).toHaveTextContent('Default');
     await user.click(trigger);
 
     const rows = screen.getAllByTestId(/^variant-row-/);
@@ -206,7 +206,7 @@ describe('VariantsMenu', () => {
     expect(store.getState().ui.previewedVariants[switchUuid]).toBe('offer');
     expect(
       screen.getByRole('button', { name: 'Manage variants' }),
-    ).toHaveTextContent('Variant: Offer');
+    ).toHaveTextContent('Offer');
   });
 
   it('shows the audience of every variant and of the previewed variant', async () => {

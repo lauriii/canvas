@@ -99,7 +99,7 @@ test.describe('Personalization author flow', () => {
     const variantsTrigger = page.getByRole('button', {
       name: 'Manage variants',
     });
-    await expect(variantsTrigger).toContainText('Variant: Default');
+    await expect(variantsTrigger).toContainText('Default');
 
     // Create a variant targeting the segment, starting from the default.
     await variantsTrigger.click();
@@ -122,7 +122,7 @@ test.describe('Personalization author flow', () => {
       .click({ force: true });
 
     // The new variant is now previewed — never ambiguous.
-    await expect(variantsTrigger).toContainText('Variant: Coupon campaign');
+    await expect(variantsTrigger).toContainText('Coupon campaign');
 
     // Edit the heading inside the variant. Only the variant's copy is
     // visible in the preview and layers.

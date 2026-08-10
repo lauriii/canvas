@@ -358,17 +358,18 @@ const VariantsMenu = () => {
           <Button
             variant="surface"
             color="gray"
+            size="1"
             aria-label="Manage variants"
             title={
               isMultiSwitch && !rootSwitch
-                ? undefined
-                : `Machine name: ${triggerVariantId}`
+                ? 'Variants'
+                : `Previewing variant: ${humanizeVariantId(triggerVariantId)} (${triggerVariantId})`
             }
           >
             <LayersIcon />
             {isMultiSwitch && !rootSwitch
               ? 'Variants'
-              : `Variant: ${humanizeVariantId(triggerVariantId)}`}
+              : humanizeVariantId(triggerVariantId)}
           </Button>
         </Popover.Trigger>
         <Popover.Content align="end" size="1" width="280px">
