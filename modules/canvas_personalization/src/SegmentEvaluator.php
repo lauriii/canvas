@@ -42,25 +42,38 @@ final class SegmentEvaluator {
   public const string CACHE_TAG_PREFIX = 'config:canvas_personalization.segment.';
 
   /**
-   * Memoized evaluation results, keyed by request and segment ID.
+   * Memoized evaluation results, keyed by request object, then segment ID.
    *
-   * @var array<string, \Drupal\canvas_personalization\SegmentMatch>
+   * Keyed by the request object itself, not by anything derived from it: PHP
+   * recycles an object's ID once it is garbage collected, so a derived key
+   * would let a later request read an earlier one's result — a silently wrong
+   * variant. A weak map also bounds the store for free: a request's results
+   * are dropped when the request itself is, so a process handling many
+   * requests (tests, subrequests, a persistent-kernel runtime) accumulates
+   * nothing.
+   *
+   * @var \WeakMap<\Symfony\Component\HttpFoundation\Request, array<string, \Drupal\canvas_personalization\SegmentMatch>>
    */
-  private array $matches = [];
+  private \WeakMap $matches;
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly RequestStack $requestStack,
     private readonly LoggerChannelInterface $logger,
-  ) {}
+  ) {
+    $this->matches = new \WeakMap();
+  }
 
   /**
    * Evaluates a segment against the current request.
    */
   public function evaluate(string $segment_id): SegmentMatch {
-    $key = $this->requestKey() . ':' . $segment_id;
-    if (isset($this->matches[$key])) {
-      return $this->matches[$key];
+    // Without a request there is nothing to memoize against: evaluating twice
+    // is correct, sharing one request-less scope is not.
+    $request = $this->requestStack->getCurrentRequest();
+    $memoized = $request instanceof Request ? ($this->matches[$request] ?? []) : [];
+    if (isset($memoized[$segment_id])) {
+      return $memoized[$segment_id];
     }
 
     $cacheability = $this->getDeclaredCacheability([$segment_id]);
@@ -85,7 +98,11 @@ final class SegmentEvaluator {
       }
     }
 
-    return $this->matches[$key] = new SegmentMatch($matched, $cacheability);
+    $match = new SegmentMatch($matched, $cacheability);
+    if ($request instanceof Request) {
+      $this->matches[$request] = ($this->matches[$request] ?? []) + [$segment_id => $match];
+    }
+    return $match;
   }
 
   /**
@@ -142,11 +159,6 @@ final class SegmentEvaluator {
       }
     }
     return $ids;
-  }
-
-  private function requestKey(): string {
-    $request = $this->requestStack->getCurrentRequest();
-    return $request instanceof Request ? (string) \spl_object_id($request) : 'no-request';
   }
 
 }

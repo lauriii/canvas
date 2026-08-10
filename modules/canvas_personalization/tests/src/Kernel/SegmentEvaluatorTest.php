@@ -172,6 +172,51 @@ final class SegmentEvaluatorTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Sequential requests share no result, even when PHP recycles object IDs.
+   *
+   * Results are memoized against the request object itself. PHP hands a
+   * garbage collected object's ID to the next object it allocates, so a key
+   * derived from that ID would serve the first request's result to the
+   * second — a silently wrong variant, the one outcome fail closed exists to
+   * prevent.
+   */
+  public function testMemoizationSurvivesRecycledRequestObjectIds(): void {
+    Segment::create([
+      'id' => 'coupon',
+      'label' => 'Coupon',
+      'status' => TRUE,
+      'rules' => [
+        'query_parameter' => [
+          'id' => 'query_parameter',
+          'negate' => FALSE,
+          'parameter' => 'coupon',
+          'value' => 'BLACKFRIDAY',
+          'matching' => 'exact',
+        ],
+      ],
+    ])->save();
+    $request_stack = $this->container->get(RequestStack::class);
+    \assert($request_stack instanceof RequestStack);
+
+    $first = new Request(['coupon' => 'BLACKFRIDAY']);
+    $first->setSession(new Session());
+    $request_stack->push($first);
+    $first_object_id = \spl_object_id($first);
+    $this->assertTrue($this->evaluator()->evaluate('coupon')->matched);
+
+    // Let the first request go before the second one exists, which is what
+    // frees its object ID for reuse — the two are never alive at once.
+    $request_stack->pop();
+    unset($first);
+    $second = new Request();
+    $second->setSession(new Session());
+    $request_stack->push($second);
+    $this->assertSame($first_object_id, \spl_object_id($second), 'PHP recycled the object ID, so this test exercises the collision.');
+
+    $this->assertFalse($this->evaluator()->evaluate('coupon')->matched);
+  }
+
+  /**
    * Declared cacheability derives from configuration, without evaluation.
    *
    * This is what the page-cache integration consumes — including on requests
