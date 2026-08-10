@@ -1,0 +1,20 @@
+# Credentials do NOT belong here. Set them in settings.php:
+#   $settings['canvas_personalization_vwo'] = [
+#     'account_id' => 123456,
+#     'sdk_key' => getenv('VWO_SDK_KEY'),
+#   ];
+# The VWO identity cookie. Accounts created from 2026-06-14 write
+# `_wingify_uuid_v2` instead, and an account may configure a cookie prefix.
+cookie_name: '_vwo_uuid_v2'
+# How long one visitor's membership answer is reused. Also the max-age the
+# condition declares, so a longer TTL means a longer-lived cached page.
+membership_ttl: 300
+# How long a failed lookup is remembered, so a VWO outage costs one attempt per
+# visitor per this many seconds rather than one per render.
+failure_ttl: 60
+# How long VWO's account-wide settings file is reused. Flag changes made in VWO
+# take up to this long to affect the site.
+settings_ttl: 300
+# Hard ceiling on any call to VWO, in milliseconds. The SDK's own default is
+# 50000, which would hang a page render.
+timeout_ms: 2000

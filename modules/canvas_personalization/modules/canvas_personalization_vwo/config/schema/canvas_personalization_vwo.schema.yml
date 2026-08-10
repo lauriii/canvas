@@ -1,0 +1,54 @@
+canvas_personalization_vwo.settings:
+  type: config_object
+  label: 'Drupal Canvas Personalization VWO settings'
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    cookie_name:
+      type: string
+      label: 'The VWO cookie carrying the visitor UUID'
+      constraints:
+        NotBlank: ~
+        Regex:
+          pattern: '/^[A-Za-z0-9_\-]+$/'
+    membership_ttl:
+      type: integer
+      label: 'Seconds a membership answer is reused'
+      constraints:
+        Range:
+          min: 1
+          max: 86400
+    failure_ttl:
+      type: integer
+      label: 'Seconds a failed lookup is remembered'
+      constraints:
+        Range:
+          min: 1
+          max: 3600
+    settings_ttl:
+      type: integer
+      label: "Seconds VWO's settings file is reused"
+      constraints:
+        Range:
+          min: 1
+          max: 86400
+    timeout_ms:
+      type: integer
+      label: 'Hard timeout for any call to VWO, in milliseconds'
+      constraints:
+        Range:
+          min: 50
+          max: 10000
+
+# The segment rule itself carries only the flag key: segment rules are exported
+# with site configuration and readable over the segment HTTP API, so no secret
+# may live here.
+canvas_personalization.segment_condition.vwo_audience:
+  type: canvas_personalization.segment_condition_settings
+  label: 'VWO audience condition'
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    flag_key:
+      type: string
+      label: 'VWO FME feature flag key'

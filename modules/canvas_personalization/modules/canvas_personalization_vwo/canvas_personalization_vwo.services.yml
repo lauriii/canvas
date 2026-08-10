@@ -1,0 +1,19 @@
+services:
+  logger.channel.canvas_personalization_vwo:
+    parent: logger.channel_base
+    arguments: ['canvas_personalization_vwo']
+  # Swap this alias to integrate a different VWO product, or to stub VWO out.
+  Drupal\canvas_personalization_vwo\VwoAudienceResolverInterface: '@Drupal\canvas_personalization_vwo\VwoFmeAudienceResolver'
+  Drupal\canvas_personalization_vwo\VwoFmeAudienceResolver:
+    arguments:
+      - '@cache.default'
+      - '@config.factory'
+      - '@datetime.time'
+  Drupal\canvas_personalization_vwo\VwoAudienceMembership:
+    arguments:
+      - '@Drupal\canvas_personalization_vwo\VwoAudienceResolverInterface'
+      - '@cache.default'
+      - '@request_stack'
+      - '@config.factory'
+      - '@datetime.time'
+      - '@logger.channel.canvas_personalization_vwo'

@@ -1,0 +1,6 @@
+services:
+  Drupal\canvas_personalization_vwo_test\StubVwoAudienceResolver:
+    arguments:
+      - '@state'
+  # The integration's only VWO seam, pointed at the stub.
+  Drupal\canvas_personalization_vwo\VwoAudienceResolverInterface: '@Drupal\canvas_personalization_vwo_test\StubVwoAudienceResolver'
