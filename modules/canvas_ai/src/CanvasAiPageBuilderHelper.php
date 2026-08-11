@@ -1174,13 +1174,7 @@ class CanvasAiPageBuilderHelper {
     }
     else {
       // Target is a region name.
-      if (isset($modified_layout[$target])) {
-        // Add the component to the region.
-        $modified_layout[$target] = array_merge($component_tree, $modified_layout[$target]);
-      }
-      else {
-        throw new \Exception(\sprintf('Region "%s" not found in layout', $target));
-      }
+      $modified_layout[$target] = array_merge($component_tree, $modified_layout[$target]);
     }
 
     return $modified_layout;
@@ -1483,13 +1477,36 @@ class CanvasAiPageBuilderHelper {
 
     if (isset($layout_array['regions']) && \is_array($layout_array['regions'])) {
       foreach ($layout_array['regions'] as $region_name => $region_data) {
-        if (isset($region_data['nodePathPrefix'])) {
+        if (isset($region_data['nodePathPrefix'][0])) {
           $regions[$region_name] = $region_data['nodePathPrefix'][0];
         }
       }
     }
 
     return $regions;
+  }
+
+  /**
+   * Checks that a region exists in the current layout.
+   *
+   * @param string $region
+   *   The region name to check.
+   * @param string $current_layout
+   *   The current layout JSON string.
+   *
+   * @return string|null
+   *   An error message for the AI agent, or NULL when the region exists.
+   */
+  public function validateRegionExists(string $region, string $current_layout): ?string {
+    $layout_regions = $this->getRegionIndex($current_layout);
+    if (\array_key_exists($region, $layout_regions)) {
+      return NULL;
+    }
+    return \sprintf(
+      'Region "%s" does not exist. Available regions are: %s.',
+      $region,
+      implode(', ', \array_keys($layout_regions)),
+    );
   }
 
   /**
@@ -1545,7 +1562,7 @@ class CanvasAiPageBuilderHelper {
 
       $region_index_mapping = $this->getRegionIndex($current_layout);
 
-      $region_index = $region_index_mapping[$region] ?? 0;
+      $region_index = $region_index_mapping[$region];
       $this->processComponents($components, [$region_index, 0], $result['operations'][0]['components']);
     }
 

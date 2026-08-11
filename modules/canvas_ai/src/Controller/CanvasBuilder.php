@@ -89,6 +89,7 @@ final class CanvasBuilder extends ControllerBase {
       $prompt['derived_proptypes'] = Json::decode($prompt['derived_proptypes']);
       $prompt['selected_component_required_props'] = Json::decode($prompt['selected_component_required_props']);
       $prompt['custom_libraries'] = Json::decode($prompt['custom_libraries']);
+      $prompt['current_layout'] = Json::decode($prompt['current_layout'] ?? '');
     }
     // If $prompt['messages'] is missing or invalid, this code reconstructs it
     // by scanning for keys named 'message <number>', and
@@ -163,6 +164,15 @@ final class CanvasBuilder extends ControllerBase {
         'message' => 'No prompt provided',
       ]);
     }
+
+    // The page builder and template builder agents resolve their target
+    // against the regions the UI sends here, so at least one is required.
+    if (empty($prompt['current_layout']['regions'])) {
+      return new JsonResponse([
+        'status' => FALSE,
+        'message' => 'Unable to read the page layout. Please reload the page and try again.',
+      ]);
+    }
     $task_message = array_pop($prompt['messages']);
 
     // Generate verbose context for orchestrator.
@@ -178,10 +188,7 @@ final class CanvasBuilder extends ControllerBase {
     // Store the current layout in the temp store. This will be later used by
     // the ai agents.
     // @see \Drupal\canvas_ai\Plugin\AiFunctionCall\GetCurrentLayout.
-    $current_layout = $prompt['current_layout'] ?? '';
-    if (!empty($current_layout)) {
-      $this->canvasAiTempStore->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, Json::encode($current_layout));
-    }
+    $this->canvasAiTempStore->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, Json::encode($prompt['current_layout']));
 
     $chat_history = $this->canvasAiChatHelper->getFilteredChatHistory($prompt['messages']);
     $agent->setChatHistory($chat_history);

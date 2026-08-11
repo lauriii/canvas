@@ -10,6 +10,7 @@ use Drupal\ai_agents\PluginInterfaces\AiAgentContextInterface;
 use Drupal\canvas_ai\AiResponseValidator;
 use Drupal\canvas_ai\CanvasAiPageBuilderHelper;
 use Drupal\canvas_ai\CanvasAiPermissions;
+use Drupal\canvas_ai\CanvasAiTempStore;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Plugin\Context\ContextDefinition;
 use Drupal\Core\Session\AccountProxyInterface;
@@ -71,6 +72,13 @@ final class SetAIGeneratedComponentStructure extends FunctionCallBase implements
   protected AiResponseValidator $responseValidator;
 
   /**
+   * The Canvas AI tempstore.
+   *
+   * @var \Drupal\canvas_ai\CanvasAiTempStore
+   */
+  protected CanvasAiTempStore $tempStore;
+
+  /**
    * Load from dependency injection container.
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition): FunctionCallInterface | static {
@@ -84,6 +92,7 @@ final class SetAIGeneratedComponentStructure extends FunctionCallBase implements
     $instance->loggerFactory = $container->get(LoggerChannelFactoryInterface::class);
     $instance->currentUser = $container->get(AccountProxyInterface::class);
     $instance->responseValidator = $container->get('canvas_ai.response_validator');
+    $instance->tempStore = $container->get(CanvasAiTempStore::class);
     return $instance;
   }
 
@@ -102,9 +111,10 @@ final class SetAIGeneratedComponentStructure extends FunctionCallBase implements
         throw new \Exception('The operations key is missing in the component structure.');
       }
       $allErrors = [];
+      $current_layout = $this->tempStore->getData(CanvasAiTempStore::CURRENT_LAYOUT_KEY) ?? '';
 
       foreach ($component_structure_array['operations'] as $index => $operation) {
-        $allErrors = array_merge($allErrors, $this->validatePlacementParams($operation, $index));
+        $allErrors = array_merge($allErrors, $this->validatePlacementParams($operation, $index, $current_layout));
         $this->responseValidator->validateComponentStructure($operation['components']);
       }
 
@@ -125,13 +135,41 @@ final class SetAIGeneratedComponentStructure extends FunctionCallBase implements
     }
   }
 
-  private function validatePlacementParams(array $operation, int $index): array {
+  /**
+   * Validates the placement parameters of a single operation.
+   *
+   * @param array $operation
+   *   The operation to validate.
+   * @param int $index
+   *   The index of the operation, used for error messages.
+   * @param string $current_layout
+   *   The current layout JSON string, used to resolve the target region.
+   *
+   * @return array
+   *   Validation errors keyed by operation, or empty if valid.
+   */
+  private function validatePlacementParams(array $operation, int $index, string $current_layout): array {
     $errors = [];
     $errorKey = 'Operation ' . $index;
 
     if (!isset($operation['placement']) || !\in_array($operation['placement'], ['above', 'below', 'inside'], TRUE)) {
       $errors[$errorKey][] = 'The placement key is missing or invalid in the operation.';
       return $errors;
+    }
+
+    // A target naming a region must match a region present in the layout. A
+    // target containing a slash names a `parent_uuid/slot_name` pair instead,
+    // whose parent is resolved during nodePath calculation.
+    if (empty($operation['target']) || !\is_string($operation['target'])) {
+      $errors[$errorKey][] = 'The target key is missing or invalid in the operation.';
+      return $errors;
+    }
+    if (strpos($operation['target'], '/') === FALSE) {
+      $region_error = $this->pageBuilderHelper->validateRegionExists($operation['target'], $current_layout);
+      if ($region_error !== NULL) {
+        $errors[$errorKey][] = $region_error;
+        return $errors;
+      }
     }
 
     $placement = $operation['placement'];
