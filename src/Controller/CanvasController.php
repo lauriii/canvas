@@ -194,6 +194,12 @@ HTML;
     // the only languages with URL prefixes a user can preview content in.
     // @see \Drupal\language\ConfigurableLanguageManager::isMultilingual()
     $languages_data = [];
+    // The list tag covers adding, removing and reordering languages. Each
+    // language's name and direction are read from its own config object, which
+    // must be a cache dependency too: renaming a language without saving the
+    // entity — through a config translation of its name, a config import or
+    // `drush cset` — invalidates only `config:language.entity.<langcode>`.
+    $languages_cache_tags = ['config:configurable_language_list'];
     foreach ($this->languageManager->getLanguages(LanguageInterface::STATE_CONFIGURABLE) as $language) {
       $languages_data[] = [
         'id' => $language->getId(),
@@ -201,8 +207,9 @@ HTML;
         'direction' => $language->getDirection(),
         'isDefault' => $language->isDefault(),
       ];
+      $languages_cache_tags[] = 'config:language.entity.' . $language->getId();
     }
-    $languages_cacheability = (new CacheableMetadata())->setCacheTags(['config:configurable_language_list']);
+    $languages_cacheability = (new CacheableMetadata())->setCacheTags($languages_cache_tags);
 
     // The absolute base URL of this Drupal site, without a trailing slash. The
     // UI passes it to commands that need to reach the site from elsewhere,

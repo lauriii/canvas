@@ -138,6 +138,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
       'entity_bundles',
       'entity_types',
       'config:configurable_language_list',
+      'config:language.entity.en',
       'http_response',
     ], $response->getCacheableMetadata()->getCacheTags());
 
@@ -199,6 +200,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
       'entity_bundles',
       'entity_types',
       'config:configurable_language_list',
+      'config:language.entity.en',
       'http_response',
     ], $response->getCacheableMetadata()->getCacheTags());
   }
@@ -354,6 +356,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
       'entity_bundles',
       'entity_types',
       'config:configurable_language_list',
+      'config:language.entity.en',
       'http_response',
     ], $response->getCacheableMetadata()->getCacheTags());
   }
@@ -433,6 +436,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
       'entity_bundles',
       'entity_types',
       'config:configurable_language_list',
+      'config:language.entity.en',
       'http_response',
     ], $response->getCacheableMetadata()->getCacheTags());
 

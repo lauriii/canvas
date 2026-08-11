@@ -176,8 +176,10 @@ readonly final class CodeComponentDataProvider {
    * Returns main entity data for V0 of drupalSettings.canvasData.
    *
    * @param \Drupal\Core\Cache\RefinableCacheableDependencyInterface|null $cacheability
-   *   (optional) When given, the cacheability of the per-translation `view`
-   *   access results embedded in the returned data is added to it.
+   *   (optional) When given, the cacheability of the language-dependent data
+   *   embedded in the returned data is added to it: the config cache tag of
+   *   every listed language (whose name is embedded), and the per-translation
+   *   `view` access results.
    *
    * @return array
    */
@@ -222,6 +224,13 @@ readonly final class CodeComponentDataProvider {
           $native_names = LanguageManager::getStandardLanguageList();
           foreach ($this->languageManager->getLanguages() as $language) {
             $langcode = $language->getId();
+            // Each language's name is read from its own config object, so that
+            // config object must be a cache dependency. The enabled-language
+            // list tag added in JsComponent::renderComponent() does not cover
+            // this: renaming a language without saving the entity — through a
+            // config translation of its name, a config import or `drush cset` —
+            // invalidates only `config:language.entity.<langcode>`.
+            $cacheability?->addCacheTags(['config:language.entity.' . $langcode]);
             // A translation is reported as available only when the entity has
             // a translation the current user may view. Gating on view access
             // folds in the translation's published state: node and Canvas Page
