@@ -10,6 +10,7 @@ use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponentDiscovery;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
+use Drupal\Component\Utility\SortArray;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -308,8 +309,22 @@ final class ExternalComponentSync {
       ->setJavaScriptComponent($candidate)
       ->generateVersionHash();
 
+    $stored_metadata = [
+      'props' => $stored_code_component->getProps(),
+      'required' => $stored_code_component->getRequiredProps(),
+      'slots' => $stored_code_component->get('slots'),
+    ];
+    $candidate_metadata = [
+      'props' => $candidate->getProps(),
+      'required' => $candidate->getRequiredProps(),
+      'slots' => $candidate->get('slots'),
+    ];
+    SortArray::sortByKeyRecursive($stored_metadata);
+    SortArray::sortByKeyRecursive($candidate_metadata);
+
     return $stored_canvas_component->getActiveVersion() === $candidate_version
       && $stored_code_component->getComponentType() === $candidate->getComponentType()
+      && $stored_metadata === $candidate_metadata
       && $stored_code_component->label() === $candidate->label()
       && $stored_code_component->status() === $candidate->status()
       && $stored_canvas_component->label() === $candidate->label()
