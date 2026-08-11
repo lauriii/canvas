@@ -16,8 +16,10 @@ frameworks without native support for rendering comment nodes. Only complete
 start/end pairs are measured. Rectangles use viewport-relative CSS pixels,
 matching `getBoundingClientRect()`.
 
-Geometry uses the rendered range between each pair of boundary markers. The
-shared placeholders give empty slots and regions measurable minimum sizes.
+Geometry uses the rendered element boxes between each pair of boundary markers.
+Boundaries without measurable element output fall back to their rendered text
+range. The shared placeholders give empty slots and regions measurable minimum
+sizes.
 
 The Canvas UI uses these utilities for its standard preview. The headless SDK
 re-exports the geometry observer, types, validation, and placeholder stylesheet

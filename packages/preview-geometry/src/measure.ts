@@ -152,12 +152,13 @@ function measureRange(boundary: CanvasBoundary): CanvasRect | null {
     return null;
   }
 
-  const rects: CanvasRect[] = [];
   const elementRect = measureSiblingElements(boundary);
   if (elementRect) {
-    rects.push(elementRect);
+    return elementRect;
   }
 
+  // A text range is only needed when a boundary has no measurable element
+  // output. Descendant text may be positioned outside its containing element.
   try {
     const boundaryRange = document.createRange();
     boundaryRange.setStartAfter(boundary.start);
@@ -170,14 +171,14 @@ function measureRange(boundary: CanvasBoundary): CanvasRect | null {
     if (textRange && typeof textRange.getClientRects === 'function') {
       const rect = unionCanvasRects(textRange.getClientRects());
       if (rect) {
-        rects.push(rect);
+        return rect;
       }
     }
   } catch {
-    // Element boxes remain available when Range measurement fails.
+    // Text-only output remains unmeasurable when Range measurement fails.
   }
 
-  return unionCanvasRects(rects);
+  return null;
 }
 
 /** Creates a range containing text between markers without boundary whitespace. */
