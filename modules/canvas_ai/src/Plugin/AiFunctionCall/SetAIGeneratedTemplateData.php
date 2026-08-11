@@ -111,15 +111,10 @@ final class SetAIGeneratedTemplateData extends FunctionCallBase implements Execu
 
       // Validate if regions are correct.
       $current_layout = $this->tempStore->getData(CanvasAiTempStore::CURRENT_LAYOUT_KEY) ?? '';
-      $layout_regions = $this->pageBuilderHelper->getRegionIndex($current_layout);
       foreach (\array_keys($component_structure_array) as $region) {
-        if (!\array_key_exists($region, $layout_regions)) {
-          $available_regions = implode(', ', \array_keys($layout_regions));
-          throw new \Exception(\sprintf(
-            'Region "%s" does not exist. Available regions are: %s.',
-            $region,
-            $available_regions
-          ));
+        $region_error = $this->pageBuilderHelper->validateRegionExists((string) $region, $current_layout);
+        if ($region_error !== NULL) {
+          throw new \Exception($region_error);
         }
       }
 
