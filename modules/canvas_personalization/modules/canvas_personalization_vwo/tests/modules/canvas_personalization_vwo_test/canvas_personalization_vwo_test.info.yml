@@ -1,0 +1,7 @@
+name: 'Drupal Canvas Personalization VWO test support'
+type: module
+description: 'Replaces the VWO resolver with a scriptable stub.'
+package: Testing
+core_version_requirement: ^11.3
+dependencies:
+  - canvas:canvas_personalization_vwo

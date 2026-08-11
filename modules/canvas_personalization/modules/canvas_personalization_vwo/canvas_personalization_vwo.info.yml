@@ -1,0 +1,9 @@
+name: 'Drupal Canvas Personalization: VWO'
+type: module
+description: 'Segments Canvas personalization variants on VWO audiences.'
+package: Drupal Canvas
+hidden: true
+core_version_requirement: ^11.3
+php: 8.3
+dependencies:
+  - canvas:canvas_personalization

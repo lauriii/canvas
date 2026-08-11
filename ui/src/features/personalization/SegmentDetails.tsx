@@ -20,13 +20,15 @@ import {
 
 import RuleCard from '@/components/personalization/rules/RuleCard';
 import EditSegmentDialog from '@/features/personalization/dialogs/EditSegmentDialog';
+import { orderedRules } from '@/features/personalization/orderedRules';
 import {
   CONDITION_DESCRIPTIONS,
-  CONDITION_IDS,
   CONDITION_LABELS,
   createDefaultRule,
+  isEditableCondition,
 } from '@/features/personalization/rules';
 import {
+  useGetConditionDefinitionsQuery,
   useGetSegmentQuery,
   useUpdateSegmentMutation,
 } from '@/services/personalization';
@@ -37,6 +39,12 @@ import type {
   SegmentRule,
   SegmentRules,
 } from '@/types/Personalization';
+
+/**
+ * Where a condition without an in-dashboard editor is configured.
+ */
+const ruleFormUrl = (segmentId: string): string =>
+  `/admin/structure/segment/${segmentId}/rule`;
 
 const BackLink = () => (
   <Link asChild size="1">
@@ -51,6 +59,8 @@ const BackLink = () => (
 
 const SegmentDetailsContent = ({ segment }: { segment: Segment }) => {
   const [updateSegment, { isLoading: isSaving }] = useUpdateSegmentMutation();
+  // The server is authoritative about which condition types exist.
+  const { data: conditionDefinitions } = useGetConditionDefinitionsQuery();
   // Unsaved rule edits; null means the saved rules are shown as-is.
   const [draftRules, setDraftRules] = useState<SegmentRules | null>(null);
   // Bumped to remount rule editors so their local input state resets.
@@ -58,11 +68,11 @@ const SegmentDetailsContent = ({ segment }: { segment: Segment }) => {
   const [isEditingDetails, setIsEditingDetails] = useState(false);
 
   const rules: SegmentRules = draftRules ?? segment.rules ?? {};
-  // Render rules in a stable order regardless of the object key order.
-  const ruleList = CONDITION_IDS.flatMap((conditionId) => {
-    const rule = rules[conditionId];
-    return rule ? [rule as SegmentRule] : [];
-  });
+  // Every rule the segment carries, in a stable order — including condition
+  // types provided by other modules, which would otherwise be invisible here
+  // while still deciding what visitors see.
+  const ruleList = orderedRules(rules);
+  const availableConditions = Object.values(conditionDefinitions ?? {});
   const isDirty = draftRules !== null;
 
   const handleRuleChange = (rule: SegmentRule) => {
@@ -77,6 +87,12 @@ const SegmentDetailsContent = ({ segment }: { segment: Segment }) => {
   };
 
   const handleAddRule = (conditionId: ConditionId) => {
+    // Only a condition this client has an editor for can be given sensible
+    // starting settings; anything else is created through its own form.
+    if (!isEditableCondition(conditionId)) {
+      window.location.href = ruleFormUrl(segment.id);
+      return;
+    }
     setDraftRules({ ...rules, [conditionId]: createDefaultRule(conditionId) });
   };
 
@@ -164,17 +180,23 @@ const SegmentDetailsContent = ({ segment }: { segment: Segment }) => {
               </Button>
             </DropdownMenu.Trigger>
             <DropdownMenu.Content align="end">
-              {CONDITION_IDS.map((conditionId) => (
+              {availableConditions.map((definition) => (
                 <DropdownMenu.Item
-                  key={conditionId}
+                  key={definition.id}
                   // A segment holds at most one rule of each type.
-                  disabled={conditionId in rules}
+                  disabled={definition.id in rules}
                   // Single-line items keep the menu's native hover and
                   // disabled styling; the description surfaces as a tooltip.
-                  title={CONDITION_DESCRIPTIONS[conditionId]}
-                  onSelect={() => handleAddRule(conditionId)}
+                  title={
+                    isEditableCondition(definition.id)
+                      ? CONDITION_DESCRIPTIONS[definition.id]
+                      : 'Provided by another module — opens its configuration form'
+                  }
+                  onSelect={() => handleAddRule(definition.id)}
                 >
-                  {CONDITION_LABELS[conditionId]}
+                  {isEditableCondition(definition.id)
+                    ? CONDITION_LABELS[definition.id]
+                    : definition.label}
                 </DropdownMenu.Item>
               ))}
             </DropdownMenu.Content>
@@ -199,6 +221,9 @@ const SegmentDetailsContent = ({ segment }: { segment: Segment }) => {
               <RuleCard
                 key={rule.id}
                 rule={rule}
+                label={conditionDefinitions?.[rule.id]?.label}
+                settings={conditionDefinitions?.[rule.id]?.settings}
+                editUrl={ruleFormUrl(segment.id)}
                 onChange={handleRuleChange}
                 onRemove={() => handleRemoveRule(rule.id)}
               />

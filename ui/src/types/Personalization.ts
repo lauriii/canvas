@@ -1,13 +1,50 @@
 /**
- * Condition plugin IDs supported by segment rules.
+ * Condition plugin IDs the dashboard ships a dedicated editor for.
  *
- * A segment can hold at most one instance of each condition type.
+ * A segment can hold at most one instance of each condition type. Any other
+ * condition type — one provided by a third-party segmentation provider module,
+ * for instance — is still discovered, listed and summarised; it is just edited
+ * through its Drupal plugin form rather than in here.
  */
-export type ConditionId =
+export type EditableConditionId =
   | 'query_parameter'
   | 'utm_parameters'
   | 'geolocation'
   | 'day_of_week';
+
+/**
+ * Any condition plugin ID, including ones this client knows nothing about.
+ */
+export type ConditionId = EditableConditionId | (string & {});
+
+/**
+ * A segment condition type as the server reports it.
+ */
+/**
+ * One setting of a condition, as the server derives it from config schema.
+ *
+ * This is what lets a third-party provider have an editor in the dashboard
+ * without shipping any code into this client: it declares its settings in the
+ * config schema it already has to ship, and the server describes them here.
+ */
+export interface ConditionSetting {
+  name: string;
+  widget: 'text' | 'number' | 'checkbox' | 'select';
+  label: string;
+  required: boolean;
+  // Present when the provider enumerates the values this setting can take —
+  // audiences that live in the provider and cannot be known from schema.
+  options?: Record<string, string>;
+}
+
+export interface ConditionDefinition {
+  id: ConditionId;
+  label: string;
+  provider: string;
+  // Absent when the condition's settings are not a flat set of controls, which
+  // means the dashboard cannot render them honestly and keeps linking out.
+  settings?: ConditionSetting[];
+}
 
 export type QueryParameterMatching = 'exact' | 'starts_with' | 'present';
 
@@ -60,21 +97,39 @@ export interface DayOfWeekCondition {
   days: DayOfWeek[];
 }
 
-export type SegmentRule =
+/**
+ * A rule of a condition type this client has no editor for.
+ *
+ * Its settings are opaque here on purpose: only the server's plugin knows
+ * their shape, and inventing one would corrupt them on save.
+ */
+export interface UnknownCondition {
+  id: string;
+  negate: boolean;
+  [setting: string]: unknown;
+}
+
+export type EditableSegmentRule =
   | QueryParameterCondition
   | UtmParametersCondition
   | GeolocationCondition
   | DayOfWeekCondition;
 
+export type SegmentRule = EditableSegmentRule | UnknownCondition;
+
 /**
  * Rules keyed by condition plugin ID, at most one instance per type.
+ *
+ * Deliberately open: a segment may carry rules of types provided by other
+ * modules, and they must survive a round trip through this client untouched.
  */
 export type SegmentRules = Partial<{
   query_parameter: QueryParameterCondition;
   utm_parameters: UtmParametersCondition;
   geolocation: GeolocationCondition;
   day_of_week: DayOfWeekCondition;
-}>;
+}> &
+  Record<string, SegmentRule | undefined>;
 
 export interface Segment {
   id: string;

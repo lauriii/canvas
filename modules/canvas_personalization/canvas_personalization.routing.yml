@@ -1,6 +1,19 @@
 # ⚠️ This is highly experimental and *will* be refactored or even removed.
 # @todo Revisit in https://www.drupal.org/i/3527086
 
+# Lets the authoring UI discover which segment condition types exist, including
+# ones provided by third-party segmentation provider modules.
+canvas_personalization.api.segment_condition.list:
+  path: '/canvas/api/v0/personalization/segment-condition'
+  defaults:
+    _controller: '\Drupal\canvas_personalization\Controller\SegmentConditionDefinitionsController'
+  requirements:
+    _canvas_authentication_required: 'TRUE'
+    _permission: 'administer personalization segments'
+  options:
+    _format: 'json'
+  methods: [GET]
+
 entity.segment.collection:
   path: '/admin/structure/segment'
   defaults:

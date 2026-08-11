@@ -34,7 +34,8 @@
         "phpat/phpat": "0.12.4",
         "phpstan/phpstan": "2.2.3",
         "phpstan/phpstan-strict-rules": "2.0.11",
-        "shipmonk/dead-code-detector": "1.2.0"
+        "shipmonk/dead-code-detector": "1.2.0",
+        "wingify/wingify-fme-php-sdk": "^2.11"
     },
     "scripts": {
         "composer-root": "d=.; i=0; while [ $i -lt 10 ]; do if [ -f \"$d/composer.json\" ] && cat \"$d/composer.json\" | grep -q '\"type\"' && cat \"$d/composer.json\" | grep -q '\"project\"'; then readlink -f \"$d\"; break; fi; d=\"../$d\"; i=$((i+1)); done",
