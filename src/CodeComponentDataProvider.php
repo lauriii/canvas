@@ -176,8 +176,10 @@ readonly final class CodeComponentDataProvider {
    * Returns main entity data for V0 of drupalSettings.canvasData.
    *
    * @param \Drupal\Core\Cache\RefinableCacheableDependencyInterface|null $cacheability
-   *   (optional) When given, the cacheability of the per-translation `view`
-   *   access results embedded in the returned data is added to it.
+   *   (optional) When given, the cacheability of the language-dependent data
+   *   embedded in the returned data is added to it: the config cache tag of
+   *   every listed language (whose name is embedded), and the per-translation
+   *   `view` access results.
    *
    * @return array
    */
