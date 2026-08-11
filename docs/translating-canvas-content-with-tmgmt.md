@@ -99,6 +99,26 @@ the un-overridden entity, so both fields render empty. That is intended — it
 also means the secret never reaches the rendered HTML. Do not fill them in and
 save, or the secret will be persisted into config.
 
+### Visual context uploads
+
+The Smartling connector can also upload a rendered view of the page so
+translators see where each string appears. It does this by having Drupal fetch
+its own page over HTTP — a one-time login URL followed by the page itself, with
+assets inlined — and uploading that HTML.
+
+Two settings matter, and neither has a usable default:
+
+- `contextUsername` must name a real Drupal user with permission to view the
+  content. When it is empty the connector falls back to the current account,
+  which is anonymous under drush and cron, and the upload fails with
+  `User with username "" was not found`.
+- `context_skip_host_verifying` must be TRUE wherever the site's certificate is
+  not trusted by the container doing the fetch, which includes most local
+  development setups.
+
+Context upload is optional. Translation works without it; only the translator's
+visual reference is lost.
+
 ## Sending content
 
 1. Go to `/admin/tmgmt/sources/content/canvas_page`.
