@@ -194,11 +194,9 @@ HTML;
     // the only languages with URL prefixes a user can preview content in.
     // @see \Drupal\language\ConfigurableLanguageManager::isMultilingual()
     $languages_data = [];
-    // The list tag covers adding, removing and reordering languages. Each
-    // language's name and direction are read from its own config object, which
-    // must be a cache dependency too: renaming a language without saving the
-    // entity — through a config translation of its name, a config import or
-    // `drush cset` — invalidates only `config:language.entity.<langcode>`.
+    // The list tag covers adding, removing and reordering languages. Renaming
+    // one without saving the entity (config translation, config import)
+    // invalidates only that language's own config tag, added below.
     $languages_cache_tags = ['config:configurable_language_list'];
     foreach ($this->languageManager->getLanguages(LanguageInterface::STATE_CONFIGURABLE) as $language) {
       $languages_data[] = [

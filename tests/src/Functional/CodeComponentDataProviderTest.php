@@ -189,11 +189,7 @@ class CodeComponentDataProviderTest extends FunctionalTestBase {
     // language list and URL negotiation config the translation data depends on.
     $this->assertSession()->responseHeaderContains('X-Drupal-Cache-Tags', 'config:configurable_language_list');
     $this->assertSession()->responseHeaderContains('X-Drupal-Cache-Tags', 'config:language.negotiation');
-    // Every listed language's name is read from that language's own config
-    // object, which the list cache tag does not cover: renaming a language
-    // without saving the entity — through a config translation of its name, a
-    // config import or `drush cset` — invalidates only
-    // `config:language.entity.<langcode>`.
+    // Plus each language's own config tag, for its name.
     foreach (['en', 'fr', 'de'] as $langcode) {
       $this->assertSession()->responseHeaderContains('X-Drupal-Cache-Tags', "config:language.entity.$langcode");
     }
