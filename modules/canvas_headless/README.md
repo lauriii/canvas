@@ -55,7 +55,8 @@ hook documentation, including the site-policy `_alter` hook.
 ## Canvas content endpoint
 
 `GET /canvas/content-api?requestUri={requestUri}` accepts a site-relative Drupal request URI. Query strings
-are supported; fragments are rejected.
+are supported; fragments are rejected. File URLs in content responses are absolute so they resolve from the
+headless frontend rather than from the Drupal origin implicitly.
 
 ### Content response
 
