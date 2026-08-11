@@ -24,6 +24,7 @@ final class StubVwoAudienceResolver implements VwoAudienceResolverInterface {
 
   public const string BEHAVIOR_KEY = 'canvas_personalization_vwo_test.behavior';
   public const string CALLS_KEY = 'canvas_personalization_vwo_test.calls';
+  public const string AUDIENCES_KEY = 'canvas_personalization_vwo_test.audiences';
 
   public function __construct(
     private readonly StateInterface $state,
@@ -47,6 +48,17 @@ final class StubVwoAudienceResolver implements VwoAudienceResolverInterface {
     }
     $flags = $behavior[$visitor_uuid] ?? $behavior['*'] ?? [];
     return \in_array($flag_key, $flags, TRUE);
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * Set `canvas_personalization_vwo_test.audiences` to a flag key => label
+   * map. Absent means VWO reported nothing to choose from.
+   */
+  public function listAudiences(): array {
+    $audiences = $this->state->get(self::AUDIENCES_KEY, []);
+    return \is_array($audiences) ? $audiences : [];
   }
 
 }

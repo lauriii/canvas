@@ -72,8 +72,16 @@ Two limits follow, both VWO's and not Canvas':
    (impressions), not to `dev.visualwebsiteoptimizer.com` or `app.vwo.com`. An
    egress allowlist has to cover the first two.
 
-4. In Drupal, add a **VWO audience** rule to a segment and enter the flag key.
-   Then use that segment on a personalization variant.
+4. In Drupal, add a **VWO audience** rule to a segment and pick the flag from
+   the list. Then use that segment on a personalization variant.
+
+   The flag is always chosen from what VWO reports, never typed: a key that
+   does not exist behaves at runtime exactly like an audience nobody is in —
+   every visitor gets the default variant, with nothing logged and nothing on
+   the status report — so a typo would be undiagnosable. When VWO reports no
+   flags the control is empty and disabled, and says why; a flag already saved
+   stays selected and is marked as no longer reported, so a provider outage
+   never silently rewrites a rule.
 
 The status report reports missing credentials or a missing SDK, but only once
 an enabled segment actually uses a VWO rule. Without that report the failure is

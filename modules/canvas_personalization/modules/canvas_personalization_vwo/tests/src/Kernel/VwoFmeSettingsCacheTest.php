@@ -62,12 +62,12 @@ final class VwoFmeSettingsCacheTest extends KernelTestBase {
     $this->expectOutputRegex('//s');
   }
 
-  private function cacheId(): string {
+  private static function cacheId(): string {
     return 'canvas_personalization_vwo:settings:' . \hash('xxh128', self::SDK_KEY . ':' . self::ACCOUNT_ID);
   }
 
   private function primeSettingsCache(string $json): void {
-    $this->container->get('cache.default')->set($this->cacheId(), $json, \time() + 300);
+    $this->container->get('cache.default')->set(self::cacheId(), $json, \time() + 300);
   }
 
   /**

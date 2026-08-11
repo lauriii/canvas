@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas_personalization_test\Plugin\SegmentCondition;
 
 use Drupal\canvas_personalization\Attribute\SegmentCondition;
+use Drupal\canvas_personalization\SegmentCondition\EnumeratesAudiencesInterface;
 use Drupal\canvas_personalization\SegmentCondition\ExternalSegmentConditionBase;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -22,7 +23,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
   id: self::PLUGIN_ID,
   label: new TranslatableMarkup('Test external provider'),
 )]
-final class TestExternalProvider extends ExternalSegmentConditionBase {
+final class TestExternalProvider extends ExternalSegmentConditionBase implements EnumeratesAudiencesInterface {
 
   public const string PLUGIN_ID = 'test_external_provider';
 
@@ -35,6 +36,11 @@ final class TestExternalProvider extends ExternalSegmentConditionBase {
    * How often the provider was actually consulted.
    */
   public const string CALLS_KEY = 'canvas_personalization_test.provider_calls';
+
+  /**
+   * Audiences this provider can offer, or 'throw' to simulate an outage.
+   */
+  public const string AUDIENCES_KEY = 'canvas_personalization_test.audiences';
 
   public const string COOKIE = 'canvas_test_provider';
 
@@ -85,6 +91,17 @@ final class TestExternalProvider extends ExternalSegmentConditionBase {
    */
   public function summary(): TranslatableMarkup {
     return $this->t('Membership in an external provider segment');
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * A provider that cannot be reached offers nothing rather than throwing:
+   * the authoring UI still has to open, with the identifier typed by hand.
+   */
+  public function listAudiences(): array {
+    $audiences = $this->state->get(self::AUDIENCES_KEY, []);
+    return \is_array($audiences) ? $audiences : [];
   }
 
 }

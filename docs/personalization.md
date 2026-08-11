@@ -246,8 +246,19 @@ integration everything it needs:
   `/canvas/api/v0/personalization/segment-condition`, so a third-party condition appears in the "Add rule" menu and
   its saved rules are listed on the segment. The dashboard only ships *editors* for the four conditions in §3.3;
   every other condition is configured through its `PluginFormInterface` form at
-  `/admin/structure/segment/{segment}/rule`, which the dashboard links to. Providers that want an in-dashboard editor
-  need a UI contribution; that is not yet an extension point.
+  `/admin/structure/segment/{segment}/rule`, which the dashboard links to. Providers that want a full in-dashboard
+  editor need a UI contribution; that is not yet an extension point.
+* **Naming the provider's audience**: a condition that can list the audiences it targets implements
+  `EnumeratesAudiencesInterface::listAudiences()`, returning provider identifiers mapped to labels. Those audiences
+  ride along on the condition-type listing above, so the authoring UI can offer a choice. Implement it from data the
+  integration already caches — the listing must not wait on the provider — and never throw; a provider that cannot be
+  reached contributes an empty list, which is logged, and the listing still returns for everything else.
+
+  ⚠️ A condition that can enumerate MUST NOT also accept the identifier as free text, including when the list comes
+  back empty. An identifier the provider does not recognise is indistinguishable at runtime from an audience nobody
+  belongs to — both evaluate to "not a member", both serve the default variant, and neither is logged or reported —
+  so a text field turns a typo into an undiagnosable outage. Show an empty control that says why instead, and keep an
+  already-saved identifier selected and marked as no longer reported so an outage cannot silently rewrite a rule.
 * Conditions that depend on state only available client-side (e.g. a cookie the provider's JavaScript sets after
   first paint) cannot influence the *first* server-rendered response; from the second request on, the cookie rides
   the request normally. Canvas deliberately ships no client-side variant swapping (flash of wrong content, layout

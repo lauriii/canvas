@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas_personalization_vwo\Plugin\SegmentCondition;
 
 use Drupal\canvas_personalization\Attribute\SegmentCondition;
+use Drupal\canvas_personalization\SegmentCondition\EnumeratesAudiencesInterface;
 use Drupal\canvas_personalization\SegmentCondition\ExternalSegmentConditionBase;
 use Drupal\canvas_personalization_vwo\VwoAudienceResolverInterface;
 use Drupal\Core\Config\ImmutableConfig;
@@ -30,7 +31,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
   id: self::PLUGIN_ID,
   label: new TranslatableMarkup('VWO audience'),
 )]
-final class VwoAudience extends ExternalSegmentConditionBase {
+final class VwoAudience extends ExternalSegmentConditionBase implements EnumeratesAudiencesInterface {
 
   public const string PLUGIN_ID = 'vwo_audience';
 
@@ -141,14 +142,42 @@ final class VwoAudience extends ExternalSegmentConditionBase {
   /**
    * {@inheritdoc}
    */
+  public function listAudiences(): array {
+    return $this->resolver->listAudiences();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function buildConfigurationForm(array $form, FormStateInterface $form_state): array {
+    // Always a choice, never free text. A hand-typed flag key that does not
+    // exist in VWO is indistinguishable at runtime from an audience nobody is
+    // in: both serve the default variant to every visitor, with nothing logged
+    // and nothing on the status report. Offering only what VWO actually
+    // reports is what makes that mistake unrepresentable.
+    $audiences = $this->listAudiences();
+    $saved = $this->configuration['flag_key'];
+    // A flag saved before it was renamed, retired, or its rule stopped would
+    // otherwise disappear from the form and be silently replaced on save.
+    if ($saved !== '' && !isset($audiences[$saved])) {
+      $audiences[$saved] = $this->t('@key (not currently reported by VWO)', ['@key' => $saved]);
+    }
+
     $form['flag_key'] = [
-      '#type' => 'textfield',
-      '#title' => $this->t('VWO feature flag key'),
-      '#description' => $this->t('The key of the VWO FME feature flag whose targeting rule defines this audience. Credentials are read from site settings, never from here: segment rules are exported with site configuration and readable over the segment HTTP API.'),
-      '#default_value' => $this->configuration['flag_key'],
+      '#type' => 'select',
+      '#title' => $this->t('VWO feature flag'),
+      '#options' => $audiences,
+      '#default_value' => $saved,
       '#required' => TRUE,
+      '#empty_option' => $this->t('- Select an audience -'),
+      '#description' => $audiences === []
+        ? $this->t('VWO reports no feature flags for this site’s credentials, so there is no audience to target yet. A flag appears here once one of its rules is started in the VWO environment this site’s SDK key belongs to.')
+        : $this->t('The VWO FME feature flag whose targeting rule defines this audience. Credentials are read from site settings, never from here: segment rules are exported with site configuration and readable over the segment HTTP API.'),
     ];
+    if ($audiences === []) {
+      // Nothing can be chosen, so do not present a control that looks usable.
+      $form['flag_key']['#disabled'] = TRUE;
+    }
     return parent::buildConfigurationForm($form, $form_state);
   }
 

@@ -124,6 +124,58 @@ final class VwoFmeAudienceResolver implements VwoAudienceResolverInterface {
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function listAudiences(): array {
+    if (!\class_exists(Wingify::class)) {
+      return [];
+    }
+    $credentials = Settings::get(self::SETTINGS_KEY, []);
+    $sdk_key = $credentials['sdk_key'] ?? NULL;
+    $account_id = $credentials['account_id'] ?? NULL;
+    if (!\is_string($sdk_key) || $sdk_key === '' || $account_id === NULL) {
+      return [];
+    }
+    // The settings file is the flag catalogue, and membership resolution
+    // already caches it, so listing normally costs nothing. Only a cold cache
+    // pays for a fetch, and ::client() is what fills it.
+    $cid = self::settingsCacheId($sdk_key, (string) $account_id);
+    $cached = $this->cache->get($cid);
+    if ($cached === FALSE || !\is_string($cached->data)) {
+      try {
+        $this->client($sdk_key, (string) $account_id);
+      }
+      catch (\Throwable) {
+        // An authoring UI that cannot list audiences degrades to a text field.
+        return [];
+      }
+      $cached = $this->cache->get($cid);
+    }
+    if ($cached === FALSE || !\is_string($cached->data)) {
+      return [];
+    }
+    $settings = \json_decode($cached->data, TRUE);
+    $audiences = [];
+    foreach ((\is_array($settings) ? $settings['features'] ?? [] : []) as $feature) {
+      if (!\is_array($feature) || !\is_string($feature['key'] ?? NULL)) {
+        continue;
+      }
+      $audiences[$feature['key']] = \is_string($feature['name'] ?? NULL) && $feature['name'] !== ''
+        ? $feature['name']
+        : $feature['key'];
+    }
+    \asort($audiences);
+    return $audiences;
+  }
+
+  /**
+   * Where the settings file for one account and key is cached.
+   */
+  private static function settingsCacheId(string $sdk_key, string $account_id): string {
+    return 'canvas_personalization_vwo:settings:' . \hash('xxh128', $sdk_key . ':' . $account_id);
+  }
+
+  /**
    * The configured ceiling on any single call to VWO, in milliseconds.
    */
   private function timeoutMs(): int {
@@ -151,7 +203,7 @@ final class VwoFmeAudienceResolver implements VwoAudienceResolverInterface {
       'isUsageStatsDisabled' => TRUE,
     ];
 
-    $cid = 'canvas_personalization_vwo:settings:' . \hash('xxh128', $sdk_key . ':' . $account_id);
+    $cid = self::settingsCacheId($sdk_key, $account_id);
     $cached = $this->cache->get($cid);
     if ($cached !== FALSE && \is_string($cached->data)) {
       $builder = new WingifyBuilder($options);

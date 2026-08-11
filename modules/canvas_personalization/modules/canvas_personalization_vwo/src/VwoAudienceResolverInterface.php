@@ -33,4 +33,14 @@ interface VwoAudienceResolverInterface {
    */
   public function isInAudience(string $flag_key, string $visitor_uuid): bool;
 
+  /**
+   * The feature flags this account exposes, as flag key => flag name.
+   *
+   * Answered from the same cached settings file membership is resolved
+   * against, so listing costs nothing the site was not already paying. Returns
+   * an empty array when VWO cannot be reached: an author who cannot be shown
+   * the list must still be able to type a key.
+   */
+  public function listAudiences(): array;
+
 }
