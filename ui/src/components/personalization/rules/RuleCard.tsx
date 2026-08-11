@@ -11,6 +11,7 @@ import {
 import DayOfWeekRuleEditor from '@/components/personalization/rules/DayOfWeekRuleEditor';
 import GeolocationRuleEditor from '@/components/personalization/rules/GeolocationRuleEditor';
 import QueryParameterRuleEditor from '@/components/personalization/rules/QueryParameterRuleEditor';
+import SchemaRuleEditor from '@/components/personalization/rules/SchemaRuleEditor';
 import UtmParametersRuleEditor from '@/components/personalization/rules/UtmParametersRuleEditor';
 import {
   CONDITION_LABELS,
@@ -18,7 +19,11 @@ import {
   ruleSummary,
 } from '@/features/personalization/rules';
 
-import type { EditableSegmentRule, SegmentRule } from '@/types/Personalization';
+import type {
+  ConditionSetting,
+  EditableSegmentRule,
+  SegmentRule,
+} from '@/types/Personalization';
 
 interface RuleCardProps {
   rule: SegmentRule;
@@ -27,6 +32,9 @@ interface RuleCardProps {
   label?: string;
   // Where a condition without an in-dashboard editor is configured.
   editUrl?: string;
+  // The settings the server says this condition has, when it could describe
+  // them. Present for third-party conditions that declare config schema.
+  settings?: ConditionSetting[];
   onChange: (rule: SegmentRule) => void;
   onRemove: () => void;
 }
@@ -54,6 +62,7 @@ const RuleCard = ({
   rule,
   label,
   editUrl,
+  settings,
   onChange,
   onRemove,
 }: RuleCardProps) => {
@@ -71,11 +80,21 @@ const RuleCard = ({
             Remove rule
           </Button>
         </Flex>
-        <Text size="1" color="gray" data-testid={`rule-summary-${rule.id}`}>
-          {ruleSummary(rule)}
-        </Text>
+        {!(settings && settings.length > 0) && (
+          <Text size="1" color="gray" data-testid={`rule-summary-${rule.id}`}>
+            {ruleSummary(rule)}
+          </Text>
+        )}
         {isEditableRule(rule) ? (
           <RuleEditor rule={rule} onChange={onChange} />
+        ) : settings && settings.length > 0 ? (
+          // Declared by the providing module, rendered here: an author never
+          // has to leave Canvas to configure a third-party condition.
+          <SchemaRuleEditor
+            rule={rule}
+            settings={settings}
+            onChange={onChange}
+          />
         ) : (
           // Its settings belong to another module's plugin; this client cannot
           // render a form for them without corrupting them on save, so it

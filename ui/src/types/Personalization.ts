@@ -20,10 +20,30 @@ export type ConditionId = EditableConditionId | (string & {});
 /**
  * A segment condition type as the server reports it.
  */
+/**
+ * One setting of a condition, as the server derives it from config schema.
+ *
+ * This is what lets a third-party provider have an editor in the dashboard
+ * without shipping any code into this client: it declares its settings in the
+ * config schema it already has to ship, and the server describes them here.
+ */
+export interface ConditionSetting {
+  name: string;
+  widget: 'text' | 'number' | 'checkbox' | 'select';
+  label: string;
+  required: boolean;
+  // Present when the provider enumerates the values this setting can take —
+  // audiences that live in the provider and cannot be known from schema.
+  options?: Record<string, string>;
+}
+
 export interface ConditionDefinition {
   id: ConditionId;
   label: string;
   provider: string;
+  // Absent when the condition's settings are not a flat set of controls, which
+  // means the dashboard cannot render them honestly and keeps linking out.
+  settings?: ConditionSetting[];
 }
 
 export type QueryParameterMatching = 'exact' | 'starts_with' | 'present';

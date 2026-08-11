@@ -222,6 +222,7 @@ const SegmentDetailsContent = ({ segment }: { segment: Segment }) => {
                 key={rule.id}
                 rule={rule}
                 label={conditionDefinitions?.[rule.id]?.label}
+                settings={conditionDefinitions?.[rule.id]?.settings}
                 editUrl={ruleFormUrl(segment.id)}
                 onChange={handleRuleChange}
                 onRemove={() => handleRemoveRule(rule.id)}

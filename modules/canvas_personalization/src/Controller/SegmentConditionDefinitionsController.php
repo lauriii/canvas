@@ -8,6 +8,7 @@ use Drupal\canvas_personalization\SegmentCondition\EnumeratesAudiencesInterface;
 use Drupal\canvas_personalization\SegmentCondition\SegmentConditionManager;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Utility\Error;
@@ -26,15 +27,38 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 final class SegmentConditionDefinitionsController implements ContainerInjectionInterface {
 
+  /**
+   * Config schema types this can turn into a form control, and what to render.
+   *
+   * Anything else — a mapping, a sequence, a type with its own structure —
+   * means the condition is not describable as a flat set of controls, and the
+   * dashboard is told so rather than being shown a form that silently drops
+   * half the settings.
+   */
+  private const array WIDGETS = [
+    'string' => 'text',
+    'label' => 'text',
+    'text' => 'text',
+    'integer' => 'number',
+    'boolean' => 'checkbox',
+  ];
+
+  /**
+   * Settings every condition carries, which the dashboard chrome already owns.
+   */
+  private const array CHROME_SETTINGS = ['id', 'negate'];
+
   public function __construct(
     private readonly SegmentConditionManager $segmentConditionManager,
     private readonly LoggerChannelInterface $logger,
+    private readonly TypedConfigManagerInterface $typedConfigManager,
   ) {}
 
   public static function create(ContainerInterface $container): self {
     return new self(
       $container->get(SegmentConditionManager::class),
       $container->get('logger.channel.canvas_personalization'),
+      $container->get(TypedConfigManagerInterface::class),
     );
   }
 
@@ -62,8 +86,13 @@ final class SegmentConditionDefinitionsController implements ContainerInjectionI
       ];
       $audiences = $this->audiences($id);
       if ($audiences !== NULL) {
-        $definitions[$id]['audiences'] = $audiences;
         $has_audiences = TRUE;
+      }
+      // What the dashboard needs to render an editor without shipping code for
+      // this condition: the settings it has, and what each one accepts.
+      $settings = $this->settingsSchema($id, $audiences);
+      if ($settings !== NULL) {
+        $definitions[$id]['settings'] = $settings;
       }
     }
     \ksort($definitions);
@@ -77,6 +106,65 @@ final class SegmentConditionDefinitionsController implements ContainerInjectionI
     // plugin definition cache tracks; no per-request variation.
     $response->addCacheableDependency($cacheability);
     return $response;
+  }
+
+  /**
+   * A condition's settings, described well enough for a client to render them.
+   *
+   * Read from the config schema every condition already has to ship — §6 makes
+   * `canvas_personalization.segment_condition.<plugin_id>` mandatory — so a
+   * provider contributes an authoring UI by declaring its settings, not by
+   * shipping client code. Returns NULL when the settings cannot be described
+   * as a flat set of controls, which tells the dashboard to keep sending the
+   * author to the condition's own form rather than render a partial one.
+   *
+   * @param array<string, string>|null $audiences
+   *   Provider audiences, when the condition enumerates them. They become the
+   *   options of its first string setting — the identifier naming the audience
+   *   is the one thing config schema cannot enumerate, because the values live
+   *   in the provider.
+   */
+  private function settingsSchema(string $plugin_id, ?array $audiences): ?array {
+    try {
+      $definition = $this->typedConfigManager->getDefinition('canvas_personalization.segment_condition.' . $plugin_id, FALSE);
+    }
+    catch (\Throwable) {
+      return NULL;
+    }
+    $mapping = $definition['mapping'] ?? NULL;
+    if (!\is_array($mapping) || ($definition['type'] ?? '') === 'undefined') {
+      return NULL;
+    }
+
+    $settings = [];
+    foreach ($mapping as $name => $property) {
+      if (\in_array($name, self::CHROME_SETTINGS, TRUE)) {
+        continue;
+      }
+      $type = (string) ($property['type'] ?? '');
+      if (!isset(self::WIDGETS[$type])) {
+        // A setting this cannot describe means the whole condition cannot be
+        // rendered honestly; do not offer a form that would drop it.
+        return NULL;
+      }
+      $constraints = $property['constraints'] ?? [];
+      $setting = [
+        'name' => $name,
+        'widget' => self::WIDGETS[$type],
+        'label' => (string) ($property['label'] ?? $name),
+        'required' => \array_key_exists('NotBlank', \is_array($constraints) ? $constraints : []),
+      ];
+      if ($audiences !== NULL && $setting['widget'] === 'text') {
+        $setting['widget'] = 'select';
+        $setting['options'] = $audiences;
+        // Enumerated options are the whole point: an identifier the provider
+        // does not know is indistinguishable at runtime from an audience
+        // nobody is in, so it must not also be typeable.
+        $audiences = NULL;
+      }
+      $settings[] = $setting;
+    }
+    return $settings === [] ? NULL : $settings;
   }
 
   /**

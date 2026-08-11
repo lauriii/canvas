@@ -51,4 +51,9 @@ canvas_personalization.segment_condition.vwo_audience:
   mapping:
     flag_key:
       type: string
-      label: 'VWO FME feature flag key'
+      label: 'VWO FME feature flag'
+      # An unset flag key matches nobody, which is indistinguishable from an
+      # audience nobody is in. Declared here so the authoring UI can require it
+      # from the schema rather than each form restating it.
+      constraints:
+        NotBlank: ~
