@@ -469,7 +469,7 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
     )
       ->addCacheableDependency($preview_entity_cacheability)
       // Cacheability metadata for the suggested preview entity.
-      ->addCacheTags($content_entity_type->getListCacheContexts())
+      ->addCacheContexts($content_entity_type->getListCacheContexts())
       // @phpstan-ignore-next-line argument.type
       ->addCacheTags($content_entity_type->getBundleListCacheTags($this->content_entity_type_bundle));
   }
