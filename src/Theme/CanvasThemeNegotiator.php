@@ -40,7 +40,17 @@ final class CanvasThemeNegotiator implements ThemeNegotiatorInterface {
   public function applies(RouteMatchInterface $route_match) {
     $route_name = $route_match->getRouteName() ?? '';
     $use_admin_theme = (bool) $this->requestStack->getCurrentRequest()?->query->has('use_admin_theme');
-    $use_canvas_stark = str_starts_with($route_name, 'canvas.api.form.');
+    // `canvas.boot.*` serves the editor application shell. It is claimed here
+    // for the same reason the form routes are: without it the shell falls back
+    // to the site's default theme, and that front-end theme's
+    // `libraries-override` then governs the editor's admin UI. A theme that
+    // switches off `system/base`'s `css/components/js.module.css` — a
+    // reasonable thing for a site template to do — takes `.js-hide` with it,
+    // and every control core hides with that class renders visibly inside the
+    // component instance form. The forms are already built by `canvas_stark`;
+    // building the document around them with it too is what makes the side
+    // effect described above actually hold.
+    $use_canvas_stark = str_starts_with($route_name, 'canvas.api.form.') || str_starts_with($route_name, 'canvas.boot.');
     return $use_canvas_stark || $use_admin_theme;
   }
 
