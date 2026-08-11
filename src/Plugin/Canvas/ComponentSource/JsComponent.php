@@ -569,9 +569,10 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
     // the URL negotiation config. Rebuild it when either changes.
     if (\in_array('canvas/canvasData.v0.mainEntity', $component->getAssetLibraryDependencies(), TRUE)) {
       $bubbleable_metadata->addCacheTags(['config:configurable_language_list', 'config:language.negotiation']);
-      // The data also embeds per-translation view access results. Their
-      // cacheability (e.g. the `user.permissions` cache context) must be
-      // bubbled here: the data itself is attached in hook_js_settings_alter(),
+      // The data also embeds each language's name, and per-translation view
+      // access results. Their cacheability (the per-language config cache tags,
+      // and e.g. the `user.permissions` cache context) must be bubbled here:
+      // the data itself is attached in hook_js_settings_alter(),
       // which runs during asset rendering, outside the render pipeline. The
       // returned data is discarded; it is recomputed there.
       // @see \Drupal\canvas\Hook\ComponentSourceHooks::jsSettingsAlter()
