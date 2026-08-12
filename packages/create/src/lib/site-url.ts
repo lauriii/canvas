@@ -158,27 +158,12 @@ function updateExistingEnv(
   return { content: joinEnv(env), result: 'configured-existing' };
 }
 
-// Node.js does not trust mkcert's local certificate authority, so the app's
-// server-side requests to a DDEV site over HTTPS fail TLS verification.
-// DDEV serves plain HTTP on the same hostname, so write that instead.
-function normalizeSiteUrl(siteUrl: string): string {
-  const { protocol, hostname } = new URL(siteUrl);
-  if (
-    protocol === 'https:' &&
-    (hostname === 'ddev.site' || hostname.endsWith('.ddev.site'))
-  ) {
-    return siteUrl.replace(/^https:\/\//i, 'http://');
-  }
-  return siteUrl;
-}
-
 export async function writeSiteUrlEnv(
   projectDir: string,
   siteUrl: string,
 ): Promise<WriteSiteUrlEnvResult> {
   const validationError = validateSiteUrl(siteUrl);
   if (validationError) throw new Error(validationError);
-  siteUrl = normalizeSiteUrl(siteUrl);
 
   const envPath = join(projectDir, ENV_FILENAME);
   const existingEnv = await readOptionalFile(envPath);

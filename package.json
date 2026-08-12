@@ -1,6 +1,9 @@
 {
   "name": "@drupal-canvas/root",
   "version": "0.0.0",
+  "engines": {
+    "node": ">=22.19.0 <23 || >=24.5.0"
+  },
   "description": "The Drupal Canvas module will 1) enable site builders without Drupal experience to easily theme and build their entire website using only their browser, without the need to write code beyond basic HTML, CSS, and templating markup (e.g., Twig) AND 2) it will enable content creators to and compose content on any part of the page without relying on developers.",
   "type": "module",
   "main": "index.js",

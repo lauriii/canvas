@@ -1,6 +1,9 @@
 {
   "name": "@drupal-canvas/headless-next",
-  "version": "0.1.1",
+  "version": "0.2.0",
+  "engines": {
+    "node": ">=22.19.0 <23 || >=24.5.0"
+  },
   "description": "Next.js adapter for the Drupal Canvas Headless SDK.",
   "license": "MIT",
   "repository": {
@@ -47,8 +50,8 @@
     "type-check": "tsc --noEmit --pretty"
   },
   "dependencies": {
-    "@drupal-canvas/headless": "^0.3.0",
-    "@drupal-canvas/headless-react": "^0.2.1"
+    "@drupal-canvas/headless": "^0.4.0",
+    "@drupal-canvas/headless-react": "^0.3.0"
   },
   "peerDependencies": {
     "next": ">=15.0.0",
