@@ -45,6 +45,10 @@ final class AssetResolver extends CoreAssetResolver {
    *   Whether to apply the JavaScript asset collection optimizer.
    * @param \Drupal\Core\Language\LanguageInterface $language
    *   (optional) The interface language for the assets will be rendered with.
+   * @param bool $with_dependencies
+   *   (optional) Whether to also return the assets of the libraries'
+   *   dependencies. Forwarded to the decorated asset resolver so a
+   *   library-specific aggregate can ask for just its own assets.
    *
    * @return array
    *   A nested array containing 2 values:
@@ -53,8 +57,8 @@ final class AssetResolver extends CoreAssetResolver {
    *   - at index one: the (possibly optimized) collection of JavaScript assets
    *     for the bottom of the page
    */
-  public function getCanvasJsAssets(AttachedAssetsInterface $assets, bool $optimize, ?LanguageInterface $language = NULL): array {
-    $default_result = $this->assetResolver->getJsAssets($assets, $optimize, $language);
+  public function getCanvasJsAssets(AttachedAssetsInterface $assets, bool $optimize, ?LanguageInterface $language = NULL, bool $with_dependencies = TRUE): array {
+    $default_result = $this->assetResolver->getJsAssets($assets, $optimize, $language, $with_dependencies);
 
     // Populate a list of JS assets that have already been loaded.
     $already_loaded_js = array_reduce($assets->getAlreadyLoadedLibraries(), function ($carry, $library) {
@@ -85,15 +89,15 @@ final class AssetResolver extends CoreAssetResolver {
   /**
    * {@inheritdoc}
    */
-  public function getJsAssets(AttachedAssetsInterface $assets, $optimize, ?LanguageInterface $language = NULL): array {
+  public function getJsAssets(AttachedAssetsInterface $assets, $optimize, ?LanguageInterface $language = NULL, bool $with_dependencies = TRUE): array {
     $already_loaded = $assets->getAlreadyLoadedLibraries();
     $to_load = $assets->getLibraries();
     $already_loaded_canvas = array_filter($already_loaded, fn($item) => str_contains($item, 'canvas/canvas.drupal'));
     $to_load_canvas = array_filter($to_load, fn($item) => str_contains($item, 'canvas/canvas.drupal'));
     if (!empty($to_load_canvas) || !empty($already_loaded_canvas)) {
-      return $this->getCanvasJsAssets($assets, $optimize, $language);
+      return $this->getCanvasJsAssets($assets, $optimize, $language, $with_dependencies);
     }
-    return parent::getJsAssets($assets, $optimize, $language);
+    return parent::getJsAssets($assets, $optimize, $language, $with_dependencies);
   }
 
   /**
