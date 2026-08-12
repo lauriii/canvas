@@ -13,6 +13,7 @@ use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\CacheableResponseInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use GuzzleHttp\Psr7\Uri;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -127,7 +128,7 @@ final class CanvasContentResponseSubscriber implements EventSubscriberInterface 
       \is_string($request->attributes->get(CanvasContentApiRequest::REQUESTED_URI_ATTRIBUTE)) &&
       $original_response instanceof RedirectResponse
     ) {
-      $url = $original_response->getTargetUrl();
+      $url = self::normalizeRedirectTarget($original_response->getTargetUrl(), $request);
       $response = new CacheableJsonResponse([
         'redirect' => [
           'external' => UrlHelper::isExternal($url),
@@ -167,6 +168,10 @@ final class CanvasContentResponseSubscriber implements EventSubscriberInterface 
   /**
    * Copies headers that still describe the new response.
    *
+   * @param \Symfony\Component\HttpFoundation\Response $source
+   *   The response providing the header values.
+   * @param \Symfony\Component\HttpFoundation\Response $target
+   *   The response receiving the copied headers.
    * @param string[] $excluded_header_names
    *   The header names not to copy.
    */
@@ -194,6 +199,50 @@ final class CanvasContentResponseSubscriber implements EventSubscriberInterface 
       }
       $target->headers->set($header_name, $values);
     }
+  }
+
+  /**
+   * Rewrites same-site absolute redirect targets into relative paths.
+   */
+  private static function normalizeRedirectTarget(
+    string $url,
+    Request $request,
+  ): string {
+    if (!UrlHelper::isExternal($url)) {
+      return $url;
+    }
+
+    $base_url = $request->getSchemeAndHttpHost() . $request->getBasePath() . '/';
+    if (!UrlHelper::externalIsLocal($url, $base_url)) {
+      return $url;
+    }
+
+    $parts = parse_url($url);
+    if (!\is_array($parts)) {
+      return $url;
+    }
+
+    // Rebuild without scheme/host/port so the result is a relative reference.
+    return (string) Uri::fromParts([
+      'path' => self::stripBasePath((string) ($parts['path'] ?? '/'), $request->getBasePath()),
+      'query' => $parts['query'] ?? '',
+      'fragment' => $parts['fragment'] ?? '',
+    ]);
+  }
+
+  /**
+   * Removes the Drupal base path from a root-relative path.
+   */
+  private static function stripBasePath(string $path, string $base_path): string {
+    if ($base_path === '') {
+      return $path;
+    }
+
+    return match (TRUE) {
+      $path === $base_path => '/',
+      str_starts_with($path, $base_path . '/') => substr($path, strlen($base_path)),
+      default => $path,
+    };
   }
 
   /**
