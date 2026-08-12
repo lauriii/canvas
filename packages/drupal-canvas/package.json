@@ -1,6 +1,6 @@
 {
   "name": "drupal-canvas",
-  "version": "0.4.3",
+  "version": "0.5.0",
   "engines": {
     "node": ">=22.19.0 <23 || >=24.5.0"
   },

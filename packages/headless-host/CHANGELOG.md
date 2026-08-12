@@ -1,5 +1,16 @@
 # @drupal-canvas/headless-host
 
+## 0.2.0
+
+### Minor Changes
+
+- 761cfbb: Set minimum Node.js requirement: >=22.19.0 <23 || >=24.5.0.
+
+### Patch Changes
+
+- Updated dependencies [761cfbb]
+  - @drupal-canvas/headless@0.4.0
+
 ## 0.1.3
 
 ### Patch Changes

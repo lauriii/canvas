@@ -1,6 +1,6 @@
 {
   "name": "@drupal-canvas/headless-tanstack-start",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "engines": {
     "node": ">=22.19.0 <23 || >=24.5.0"
   },
@@ -60,8 +60,8 @@
     "type-check": "tsc --noEmit --pretty"
   },
   "dependencies": {
-    "@drupal-canvas/headless": "^0.3.0",
-    "@drupal-canvas/headless-react": "^0.2.1"
+    "@drupal-canvas/headless": "^0.4.0",
+    "@drupal-canvas/headless-react": "^0.3.0"
   },
   "peerDependencies": {
     "@tanstack/react-router": ">=1.130.0",
