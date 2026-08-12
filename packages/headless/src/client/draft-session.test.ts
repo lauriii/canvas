@@ -165,6 +165,25 @@ describe('createDraftSession', () => {
     );
   });
 
+  it('does not renew when the embedding host marks the document passive', () => {
+    const { session, events, postMessage, dispatchMessage } = makeHarness({
+      tokenExpiresAt: Date.now() + 300_000,
+    });
+    dispatchMessage({
+      data: { type: HEADLESS_STATUS_REQUEST_MESSAGE, passive: true },
+    });
+    postMessage.mockClear();
+
+    vi.advanceTimersByTime(300_000 - RENEW_MARGIN_MS);
+
+    expect(session.getState().renewState).toBe('idle');
+    expect(events).not.toContainEqual({ type: 'renew-requested' });
+    expect(postMessage).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: HEADLESS_RENEW_REQUEST_MESSAGE }),
+      ORIGIN,
+    );
+  });
+
   it('reports expiry instead of renewing when a background tab delays the timer', () => {
     const expiresAt = Date.now() + 300_000;
     const { session, events, postMessage } = makeHarness({

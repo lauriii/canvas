@@ -53,6 +53,11 @@
       "import": "./src/canvas-component-tree.tsx",
       "types": "./src/canvas-component-tree.tsx",
       "default": "./src/canvas-component-tree.tsx"
+    },
+    "./ComponentPreview": {
+      "import": "./src/component-preview.tsx",
+      "types": "./src/component-preview.tsx",
+      "default": "./src/component-preview.tsx"
     }
   },
   "scripts": {

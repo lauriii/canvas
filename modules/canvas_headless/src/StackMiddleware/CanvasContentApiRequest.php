@@ -24,8 +24,11 @@ final class CanvasContentApiRequest implements HttpKernelInterface {
 
   public const PREVIEW_VIEW_MODE_QUERY = 'viewMode';
 
+  public const COMPONENT_PREVIEW_QUERY = 'componentId';
+
   private const SUPPORTED_API_QUERY_PARAMETERS = [
     self::PREVIEW_VIEW_MODE_QUERY,
+    self::COMPONENT_PREVIEW_QUERY,
   ];
 
   public function __construct(

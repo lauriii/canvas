@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\canvas_headless\Controller;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas_headless\CanvasContentEntityRenderer;
 use Drupal\canvas_headless\CanvasContentHeadBuilder;
 use Drupal\canvas_headless\PreviewTokenInspector;
@@ -23,6 +25,7 @@ use Drupal\custom_elements\CustomElementNormalizer;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Builds a Canvas API response for a kernel-routed Drupal request.
@@ -68,6 +71,7 @@ final class CanvasContentController {
     if ($entity instanceof ContentEntityInterface) {
       $is_preview = PreviewTokenInspector::hasPreviewScope($this->currentUser->getAccount());
       $view_mode = NULL;
+      $api_query_parameters = [];
       if ($is_preview) {
         $route = $route_match->getRouteObject();
         \assert($route !== NULL);
@@ -81,11 +85,19 @@ final class CanvasContentController {
         \assert($view_mode === NULL || \is_string($view_mode));
       }
 
-      [$build, $rendered_entity, $render_cacheability] = $this->renderEntity(
-        $entity,
-        $is_preview,
-        $view_mode ?? 'full',
-      );
+      $component_preview_id = $api_query_parameters[CanvasContentApiRequest::COMPONENT_PREVIEW_QUERY] ?? NULL;
+      \assert($component_preview_id === NULL || \is_string($component_preview_id));
+      if ($is_preview && $component_preview_id !== NULL) {
+        [$build, $render_cacheability] = $this->renderComponentPreview($component_preview_id);
+        $rendered_entity = $entity;
+      }
+      else {
+        [$build, $rendered_entity, $render_cacheability] = $this->renderEntity(
+          $entity,
+          $is_preview,
+          $view_mode ?? 'full',
+        );
+      }
       $managed_by_canvas = $build !== NULL;
       $head_result = $this->headBuilder->build($rendered_entity);
       $cacheability = (new BubbleableMetadata())
@@ -135,6 +147,39 @@ final class CanvasContentController {
     ]);
     $response->addCacheableDependency($cacheability);
     return $response;
+  }
+
+  /**
+   * Builds the default-value preview for one app-owned component.
+   *
+   * @return array{array, \Drupal\Core\Render\BubbleableMetadata}
+   *   The component render array and its cacheability.
+   */
+  private function renderComponentPreview(string $component_id): array {
+    $component = $this->entityTypeManager
+      ->getStorage(Component::ENTITY_TYPE_ID)
+      ->load($component_id);
+    if (!$component instanceof Component) {
+      throw new NotFoundHttpException('The component does not exist.');
+    }
+
+    $source = $component->getComponentSource();
+    if (!$source instanceof JsComponent || !$source->getJavaScriptComponent()->isExternal()) {
+      throw new NotFoundHttpException('The component is not owned by the headless application.');
+    }
+
+    $info = $source->getClientSideInfo($component);
+    $build = $info['build'];
+    \assert(\is_array($build));
+    $cacheability = (new BubbleableMetadata())
+      ->addCacheableDependency($component)
+      ->addCacheableDependency(BubbleableMetadata::createFromRenderArray($build))
+      ->addCacheContexts([
+        'oauth2_scopes',
+        'url.query_args:' . CanvasContentApiRequest::API_QUERY_PARAMETERS_KEY,
+      ]);
+    $cacheability->applyTo($build);
+    return [$build, $cacheability];
   }
 
   /**

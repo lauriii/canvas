@@ -10,7 +10,7 @@
  * session cookie never accompanies them. This module relays for the app
  * over postMessage:
  *
- *   host → app   {type: 'canvas-headless:status-request', hostSessionId}
+ *   host → app   {type: 'canvas-headless:status-request', hostSessionId, passive?}
  *   app  → host  {type: 'canvas-headless:status', hostSessionId, status, path, tokenExpiresAt}
  *   app  → host  {type: 'canvas-headless:renew-request', hostSessionId, path}
  *   host → app   {type: 'canvas-headless:assertion', hostSessionId, assertion}
@@ -54,6 +54,8 @@
  */
 
 import {
+  CANVAS_COMPONENT_PREVIEW_PATH,
+  CANVAS_COMPONENT_PREVIEW_QUERY,
   HEADLESS_ASSERTION_MESSAGE,
   HEADLESS_GEOMETRY_MESSAGE,
   HEADLESS_GEOMETRY_REQUEST_MESSAGE,
@@ -75,6 +77,8 @@ import type { CanvasGeometry } from '@drupal-canvas/headless';
 // (whose client entry implements the app side); re-exported here so host
 // implementers need only this package.
 export {
+  CANVAS_COMPONENT_PREVIEW_PATH,
+  CANVAS_COMPONENT_PREVIEW_QUERY,
   HEADLESS_ASSERTION_MESSAGE,
   HEADLESS_GEOMETRY_MESSAGE,
   HEADLESS_GEOMETRY_REQUEST_MESSAGE,
@@ -137,6 +141,12 @@ export interface HeadlessPreviewHost {
    * 'activation-failed' instead of rejecting.
    */
   activate: (params: Record<string, string>) => Promise<void>;
+  /**
+   * Loads an app route that passively reuses the browser's existing draft
+   * session. It reports status and geometry but never renews, recovers, or
+   * resizes the iframe independently.
+   */
+  attach: (url: string) => void;
   /** Asks the embedded app to refresh now, or once its session is active. */
   refresh: () => void;
   /** Updates the base height of the preview's selected device viewport. */
@@ -170,9 +180,10 @@ export function createHeadlessPreviewHost(
   let hostSessionId: string | null = null;
   let destroyed = false;
   let probeFrame: number | null = null;
-  let probeStyleSnapshot: { height: string; visibility: string } | null = null;
-  let probeAppliedStyles: { height: string; visibility: string } | null = null;
+  let probeHeightSnapshot: string | null = null;
+  let probeAppliedHeight: string | null = null;
   let previewContext: Record<string, string> = {};
+  let passive = false;
 
   const emit = (event: HeadlessPreviewHostEvent) => {
     if (!destroyed) {
@@ -245,31 +256,27 @@ export function createHeadlessPreviewHost(
     });
   };
 
-  const preserveExternalProbeStyleChanges = () => {
-    if (!probeStyleSnapshot || !probeAppliedStyles) {
+  const preserveExternalProbeHeightChange = () => {
+    if (probeHeightSnapshot === null || probeAppliedHeight === null) {
       return;
     }
 
     // The embedding app may commit a final height while a probe is active.
     // Preserve that newer value instead of later restoring the stale height
     // captured at the start of the probe sequence.
-    if (iframe.style.height !== probeAppliedStyles.height) {
-      probeStyleSnapshot.height = iframe.style.height;
-    }
-    if (iframe.style.visibility !== probeAppliedStyles.visibility) {
-      probeStyleSnapshot.visibility = iframe.style.visibility;
+    if (iframe.style.height !== probeAppliedHeight) {
+      probeHeightSnapshot = iframe.style.height;
     }
   };
 
-  const restoreProbeStyles = () => {
-    if (!probeStyleSnapshot) {
+  const restoreProbeHeight = () => {
+    if (probeHeightSnapshot === null) {
       return;
     }
-    preserveExternalProbeStyleChanges();
-    iframe.style.height = probeStyleSnapshot.height;
-    iframe.style.visibility = probeStyleSnapshot.visibility;
-    probeStyleSnapshot = null;
-    probeAppliedStyles = null;
+    preserveExternalProbeHeightChange();
+    iframe.style.height = probeHeightSnapshot;
+    probeHeightSnapshot = null;
+    probeAppliedHeight = null;
   };
 
   const flushRefresh = () => {
@@ -296,7 +303,11 @@ export function createHeadlessPreviewHost(
       return;
     }
     iframe.contentWindow?.postMessage(
-      { type: HEADLESS_STATUS_REQUEST_MESSAGE, hostSessionId },
+      {
+        type: HEADLESS_STATUS_REQUEST_MESSAGE,
+        hostSessionId,
+        ...(passive && { passive: true }),
+      },
       frontendOrigin,
     );
   };
@@ -314,6 +325,7 @@ export function createHeadlessPreviewHost(
   };
 
   const activate = async (params: Record<string, string>) => {
+    passive = false;
     previewContext = Object.fromEntries(
       ['view_mode']
         .filter((name) => params[name] !== undefined)
@@ -324,6 +336,23 @@ export function createHeadlessPreviewHost(
     } catch {
       emit({ type: 'activation-failed' });
     }
+  };
+
+  const attach = (url: string) => {
+    const target = new URL(url, frontendOrigin);
+    if (target.origin !== frontendOrigin) {
+      emit({ type: 'activation-failed' });
+      return;
+    }
+    // Attached documents reuse a session owned by another iframe. They may
+    // observe its status, but must never renew or recover it independently.
+    passive = true;
+    loadGeneration += 1;
+    active = false;
+    canHandshakeOnLoad = true;
+    hostSessionId = null;
+    emit({ type: 'geometry', geometry: [] });
+    iframe.src = target.toString();
   };
 
   const renew = async (path: string) => {
@@ -421,7 +450,9 @@ export function createHeadlessPreviewHost(
         break;
 
       case HEADLESS_RENEW_REQUEST_MESSAGE:
-        void renew(path);
+        if (!passive) {
+          void renew(path);
+        }
         break;
 
       case HEADLESS_REFRESH_ACK_MESSAGE:
@@ -458,13 +489,15 @@ export function createHeadlessPreviewHost(
         }
         if (event.data.status === 'expired') {
           active = false;
-          void recover(path);
+          if (!passive) {
+            void recover(path);
+          }
         }
         break;
       }
 
       case HEADLESS_HEIGHT_MESSAGE: {
-        if (!active || probeStyleSnapshot) {
+        if (passive || !active || probeHeightSnapshot !== null) {
           break;
         }
         const { height } = event.data;
@@ -479,7 +512,7 @@ export function createHeadlessPreviewHost(
       }
 
       case HEADLESS_HEIGHT_PROBE_MESSAGE: {
-        if (!active) {
+        if (passive || !active) {
           break;
         }
         const { height, id } = event.data;
@@ -500,22 +533,15 @@ export function createHeadlessPreviewHost(
         }
 
         if (height === null) {
-          restoreProbeStyles();
+          restoreProbeHeight();
         } else {
-          if (probeStyleSnapshot) {
-            preserveExternalProbeStyleChanges();
+          if (probeHeightSnapshot !== null) {
+            preserveExternalProbeHeightChange();
           } else {
-            probeStyleSnapshot = {
-              height: iframe.style.height,
-              visibility: iframe.style.visibility,
-            };
+            probeHeightSnapshot = iframe.style.height;
           }
           iframe.style.height = `${height}px`;
-          iframe.style.visibility = 'hidden';
-          probeAppliedStyles = {
-            height: iframe.style.height,
-            visibility: iframe.style.visibility,
-          };
+          probeAppliedHeight = iframe.style.height;
         }
 
         postProbeReady(id, height);
@@ -529,6 +555,7 @@ export function createHeadlessPreviewHost(
 
   return {
     activate,
+    attach,
     refresh: () => {
       if (destroyed) {
         return;
@@ -551,7 +578,7 @@ export function createHeadlessPreviewHost(
       if (probeFrame !== null) {
         window.cancelAnimationFrame(probeFrame);
       }
-      restoreProbeStyles();
+      restoreProbeHeight();
       iframe.removeEventListener('load', onIframeLoad);
       window.removeEventListener('message', onMessage);
     },

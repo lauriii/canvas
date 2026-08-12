@@ -24,6 +24,10 @@ vi.mock('@/features/brandKit/BrandKitPanel', () => ({
   default: () => <div>Brand kit panel content</div>,
 }));
 
+vi.mock('@/features/layout/preview/useHeadlessDraftSession', () => ({
+  useHeadlessDraftSession: vi.fn(),
+}));
+
 vi.mock('@/components/extensions/ExtensionsList', () => ({
   default: () => <div>Extensions list</div>,
 }));

@@ -161,6 +161,7 @@ export function createDraftSession(options: DraftSessionOptions): DraftSession {
   let renewState: DraftSessionRenewState = 'idle';
   let destroyed = false;
   let hostSessionId: string | null = null;
+  let passive = false;
   const timers = new Set<ReturnType<typeof setTimeout>>();
 
   const emit = (event: DraftSessionEvent) => {
@@ -234,7 +235,7 @@ export function createDraftSession(options: DraftSessionOptions): DraftSession {
     const remaining = tokenExpiresAt - Date.now();
     const margin = Math.min(RENEW_MARGIN_MS, remaining / 2);
     schedule(() => {
-      if (expired || renewState !== 'idle') {
+      if (passive || expired || renewState !== 'idle') {
         return;
       }
       // Background tabs may delay both timers until after expiry. The renewal
@@ -278,6 +279,7 @@ export function createDraftSession(options: DraftSessionOptions): DraftSession {
             event.data.hostSessionId !== ''
           ) {
             hostSessionId = event.data.hostSessionId;
+            passive = event.data.passive === true;
             reportStatus();
           }
           return;

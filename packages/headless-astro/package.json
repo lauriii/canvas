@@ -60,7 +60,8 @@
       "default": "./src/routes/components.ts"
     },
     "./DraftSession.astro": "./src/components/DraftSession.astro",
-    "./CanvasComponentTree.astro": "./src/components/CanvasComponentTree.astro"
+    "./CanvasComponentTree.astro": "./src/components/CanvasComponentTree.astro",
+    "./ComponentPreviewPage.astro": "./src/components/ComponentPreviewPage.astro"
   },
   "scripts": {
     "test": "vitest run",

@@ -14,3 +14,5 @@ declare module 'virtual:@drupal-canvas/headless/components' {
   const components: Record<string, unknown>;
   export default components;
 }
+
+declare module 'virtual:@drupal-canvas/headless/global.css' {}

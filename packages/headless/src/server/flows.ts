@@ -211,6 +211,11 @@ export interface DraftServer {
    * live draft session's bearer token when there is one.
    */
   fetchPage(path: string): Promise<PageResult | null>;
+  /**
+   * Fetches one component preview through the current draft session without
+   * changing that session's entry path.
+   */
+  fetchComponentPreview(componentId: string): Promise<PageResult | null>;
 }
 
 /**
@@ -417,9 +422,25 @@ export function createDraftServer(options: DraftServerOptions): DraftServer {
     },
 
     async fetchPage(path: string): Promise<PageResult | null> {
+      const draftData = await getDraftData();
       return fetchPage(path, {
         baseUrl: getConfig().baseUrl,
-        draftData: await getDraftData(),
+        draftData,
+        fetchImpl,
+      });
+    },
+
+    async fetchComponentPreview(
+      componentId: string,
+    ): Promise<PageResult | null> {
+      const draftData = await getDraftData();
+      if (!draftData || componentId === '') {
+        return null;
+      }
+      return fetchPage(draftData.path, {
+        baseUrl: getConfig().baseUrl,
+        draftData,
+        componentPreviewId: componentId,
         fetchImpl,
       });
     },
