@@ -94,6 +94,8 @@ parameters:
     - { identifier: canvas.requireStaticMethods, path: modules/canvas_ai/** }
 # Canvas' custom PHPStan rules.
 rules:
+  - Canvas\PHPStan\Rules\NoUndeclaredModuleHardReferenceRule
+  - Canvas\PHPStan\Rules\NoUndeclaredModuleInheritanceRule
   - Canvas\PHPStan\Rules\DisallowDrupalFlushAllCachesRule
   - Canvas\PHPStan\Rules\DisallowHookSchemaRule
   - Canvas\PHPStan\Rules\NoDuplicateTraitUseRule
