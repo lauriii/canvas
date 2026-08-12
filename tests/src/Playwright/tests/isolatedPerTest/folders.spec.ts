@@ -387,4 +387,82 @@ test.describe('Folder Management', () => {
       'Library Location Target',
     );
   });
+
+  test('Folder assignment remains correct after deleting a code component from a shared folder', async ({
+    page,
+    drupal,
+    canvas,
+  }) => {
+    await drupal.login({ username: 'editor', password: 'editor' });
+    await canvas.createCanvas();
+
+    // Create a code component and expose it.
+    await canvas.openCodePanel();
+    const code = await readFile(
+      'tests/fixtures/code_components/page-elements/PageTitle.jsx',
+      'utf-8',
+    );
+    await canvas.createCodeComponent('test03', code);
+
+    await canvas.addFolder('Folder1');
+    await canvas.moveComponentIntoFolder('test03', 'Folder1');
+
+    // Verify the code component is in the folder before reload.
+    await canvas.expandFolder('Folder1');
+    await expect(
+      page
+        .locator('[data-canvas-folder-name="Folder1"]')
+        .locator('..')
+        .locator('[data-canvas-name="test03"]'),
+    ).toBeVisible();
+
+    await page.reload();
+
+    // Verify the code component is still in the folder after reload.
+    await canvas.expandFolder('Folder1');
+    await expect(
+      page
+        .locator('[data-canvas-folder-name="Folder1"]')
+        .locator('..')
+        .locator('[data-canvas-name="test03"]'),
+    ).toBeVisible();
+
+    // Delete the code component from within the folder.
+    const componentInFolder = page
+      .locator('[data-canvas-folder-name="Folder1"]')
+      .locator('..')
+      .locator('[data-canvas-name="test03"]');
+    await expect(componentInFolder).toBeVisible();
+    await componentInFolder.hover();
+    await componentInFolder
+      .getByRole('button', { name: 'Open contextual menu' })
+      .click();
+    await page.getByRole('menuitem', { name: 'Delete' }).click();
+    // Confirm deletion in the dialog.
+    await page.getByRole('button', { name: 'Delete' }).click();
+    // Wait for the component to disappear from the folder.
+    await expect(componentInFolder).not.toBeAttached();
+
+    // Verify the deleted code component is no longer in the folder.
+    await expect(
+      page
+        .locator('[data-canvas-folder-name="Folder1"]')
+        .locator('..')
+        .locator('[data-canvas-name="test03"]'),
+    ).not.toBeAttached();
+
+    const newCode = await readFile(
+      'tests/fixtures/code_components/page-elements/PageTitle.jsx',
+      'utf-8',
+    );
+    await canvas.createCodeComponent('test04', newCode);
+    await canvas.moveComponentIntoFolder('test04', 'Folder1');
+    // Verify the new code component is correctly placed in Folder1.
+    await expect(
+      page
+        .locator('[data-canvas-folder-name="Folder1"]')
+        .locator('..')
+        .locator('[data-canvas-name="test04"]'),
+    ).toBeVisible();
+  });
 });
