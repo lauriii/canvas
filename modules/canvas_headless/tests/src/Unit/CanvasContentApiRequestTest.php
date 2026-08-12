@@ -68,6 +68,7 @@ final class CanvasContentApiRequestTest extends UnitTestCase {
             ],
             $request->attributes->get(CanvasContentApiRequest::API_QUERY_PARAMETERS_KEY),
           );
+          self::assertTrue($request->attributes->get('_disable_route_normalizer'));
           self::assertSame('Bearer preview-token', $request->headers->get('Authorization'));
           return new Response();
         },
@@ -84,6 +85,27 @@ final class CanvasContentApiRequestTest extends UnitTestCase {
     $request->headers->set('Authorization', 'Bearer preview-token');
 
     $middleware->handle($request);
+  }
+
+  /**
+   * Tests that normal page requests retain canonical URL handling.
+   */
+  public function testPageRequestDoesNotDisableRouteNormalizer(): void {
+    $kernel = $this->createMock(HttpKernelInterface::class);
+    $kernel->expects($this->once())
+      ->method('handle')
+      ->willReturnCallback(
+        static function (Request $request): Response {
+          self::assertFalse($request->attributes->has('_disable_route_normalizer'));
+          return new Response();
+        },
+      );
+
+    $request = Request::create(
+      CanvasContentApiRequest::API_PATH . '?requestUri=/articles/example',
+    );
+
+    (new CanvasContentApiRequest($kernel))->handle($request);
   }
 
   /**
