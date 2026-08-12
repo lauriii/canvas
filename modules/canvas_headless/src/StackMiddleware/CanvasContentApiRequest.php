@@ -88,6 +88,15 @@ final class CanvasContentApiRequest implements HttpKernelInterface {
         'REQUEST_URI' => $target_request_uri,
       ],
     );
+    // Component previews render independently of the routed URI's canonical
+    // representation. Let the controller render them before Redirect can
+    // replace homepage and alias requests with a canonical redirect.
+    if (isset($api_query_parameters[self::COMPONENT_PREVIEW_QUERY])) {
+      $target_request->attributes->set(
+        '_disable_route_normalizer',
+        TRUE,
+      );
+    }
     // Dynamic Page Cache varies by request format, keeping this response
     // separate from `html` and `custom_elements` responses for the target.
     $target_request->setRequestFormat(self::REQUEST_FORMAT);
