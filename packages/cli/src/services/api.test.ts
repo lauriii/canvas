@@ -157,12 +157,12 @@ describe('api service', () => {
 
       const ddevClient = await ApiService.create({
         ...mockConfig,
-        siteUrl: 'http://ddev.site--not-working',
+        siteUrl: 'https://ddev.site--not-working',
       });
       expect(ddevClient).toBeDefined();
 
       await expect(ddevClient.listComponents()).rejects.toThrow(
-        'No response from: http://ddev.site--not-working',
+        'No response from: https://ddev.site--not-working',
       );
       await expect(ddevClient.listComponents()).rejects.toThrow(
         'Troubleshooting tips:',

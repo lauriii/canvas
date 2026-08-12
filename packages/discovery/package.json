@@ -1,6 +1,9 @@
 {
   "name": "@drupal-canvas/discovery",
   "version": "0.0.0",
+  "engines": {
+    "node": ">=22.19.0 <23 || >=24.5.0"
+  },
   "description": "Filesystem discovery for Drupal Canvas Code Components and pages",
   "private": true,
   "license": "MIT",

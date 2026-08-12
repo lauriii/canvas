@@ -1,6 +1,9 @@
 {
   "name": "@drupal-canvas/headless",
   "version": "0.3.0",
+  "engines": {
+    "node": ">=22.19.0 <23 || >=24.5.0"
+  },
   "description": "Framework-agnostic core of the Drupal Canvas Headless SDK: draft preview sessions, draft-aware content clients, and component metadata exposure for decoupled frontend apps.",
   "license": "MIT",
   "repository": {
@@ -36,6 +39,11 @@
       "types": "./dist/server/index.d.ts",
       "import": "./dist/server/index.js",
       "default": "./dist/server/index.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "import": "./dist/node.js",
+      "default": "./dist/node.js"
     },
     "./components-endpoint": {
       "types": "./dist/components-endpoint/index.d.ts",

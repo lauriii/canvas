@@ -9,6 +9,9 @@
   },
   "bugs": "https://www.drupal.org/project/issues/canvas",
   "main": "dist/index.js",
+  "engines": {
+    "node": ">=22.19.0 <23 || >=24.5.0"
+  },
   "bin": {
     "canvas": "./dist/index.js"
   },

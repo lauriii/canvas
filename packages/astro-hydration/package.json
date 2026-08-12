@@ -2,6 +2,9 @@
   "name": "@drupal-canvas/astro-hydration",
   "type": "module",
   "version": "0.0.0",
+  "engines": {
+    "node": ">=22.19.0 <23 || >=24.5.0"
+  },
   "private": true,
   "license": "GPL-2.0-or-later",
   "scripts": {

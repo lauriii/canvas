@@ -1,6 +1,9 @@
 {
   "name": "@drupal-canvas/headless-next",
   "version": "0.1.1",
+  "engines": {
+    "node": ">=22.19.0 <23 || >=24.5.0"
+  },
   "description": "Next.js adapter for the Drupal Canvas Headless SDK.",
   "license": "MIT",
   "repository": {

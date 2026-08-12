@@ -87,6 +87,20 @@ The subpaths keep browser bundles free of Node-only code and vice versa:
   plugin for adapters built on Vite.
 - `@drupal-canvas/headless/preview.css` — styles empty slot and region drop
   targets in draft previews.
+- `@drupal-canvas/headless/node` — Node-only: system certificate configuration
+  for HTTPS requests to services using certificates trusted by the operating
+  system, including local DDEV sites.
+
+## System certificates (Node.js only)
+
+To trust DDEV and other system certificates, call the `trustSystemCertificates`
+utility before making HTTPS requests:
+
+```ts
+import { trustSystemCertificates } from '@drupal-canvas/headless/node';
+
+trustSystemCertificates();
+```
 
 ## Writing a framework adapter
 

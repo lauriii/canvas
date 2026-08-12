@@ -1,6 +1,9 @@
 {
   "name": "@drupal-canvas/headless-host",
   "version": "0.1.3",
+  "engines": {
+    "node": ">=22.19.0 <23 || >=24.5.0"
+  },
   "description": "Host-side implementation of the Drupal Canvas Headless draft-preview protocol, for applications that embed a Canvas headless frontend app.",
   "license": "MIT",
   "repository": {

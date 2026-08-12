@@ -1,6 +1,9 @@
 {
   "name": "@drupal-canvas/preview-geometry",
   "version": "0.0.0",
+  "engines": {
+    "node": ">=22.19.0 <23 || >=24.5.0"
+  },
   "description": "Framework-neutral browser utilities for discovering and measuring Drupal Canvas preview boundaries.",
   "private": true,
   "type": "module",

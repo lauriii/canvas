@@ -8,6 +8,9 @@
     "directory": "packages/workbench"
   },
   "bugs": "https://www.drupal.org/project/issues/canvas",
+  "engines": {
+    "node": ">=22.19.0 <23 || >=24.5.0"
+  },
   "bin": {
     "canvas-workbench": "./bin/canvas-workbench.js"
   },
