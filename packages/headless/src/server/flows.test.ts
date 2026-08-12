@@ -571,6 +571,30 @@ describe('fetchPage', () => {
     );
   });
 
+  it('fetches a component through the existing entity draft session', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(Response.json(page));
+    const { server, seedSession } = makeServer(
+      fetchImpl as unknown as typeof fetch,
+    );
+    seedSession(
+      liveDraftData({
+        path: '/example?language=fr',
+      }),
+    );
+
+    await server.fetchComponentPreview('js.example');
+
+    expect(fetchImpl).toHaveBeenCalledWith(
+      new URL(
+        'https://drupal.example/canvas/content-api?requestUri=%2Fexample%3Flanguage%3Dfr&componentId=js.example',
+      ),
+      expect.any(Object),
+    );
+    expect(await server.getDraftData()).toMatchObject({
+      path: '/example?language=fr',
+    });
+  });
+
   it('keeps an expired draft session anonymous and marker-free', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(Response.json(page));
     const { server, seedSession } = makeServer(

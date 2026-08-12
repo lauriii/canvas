@@ -81,6 +81,14 @@ export function fetchPage(
   return getDraftServer(event).fetchPage(path);
 }
 
+/** Fetches one component preview through the current draft session. */
+export function fetchComponentPreview(
+  event: H3Event,
+  componentId: string,
+): Promise<PageResult | null> {
+  return getDraftServer(event).fetchComponentPreview(componentId);
+}
+
 export { isDraftSessionExpired, isPageRedirect, NUXT_DRAFT_FLAG_COOKIE_NAME };
 export type {
   DrupalRoute,

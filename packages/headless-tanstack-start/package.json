@@ -1,6 +1,6 @@
 {
   "name": "@drupal-canvas/headless-tanstack-start",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "engines": {
     "node": ">=22.19.0 <23 || >=24.5.0"
   },
@@ -53,6 +53,11 @@
       "import": "./src/canvas-component-tree.tsx",
       "types": "./src/canvas-component-tree.tsx",
       "default": "./src/canvas-component-tree.tsx"
+    },
+    "./ComponentPreview": {
+      "import": "./src/component-preview.tsx",
+      "types": "./src/component-preview.tsx",
+      "default": "./src/component-preview.tsx"
     }
   },
   "scripts": {
@@ -60,8 +65,8 @@
     "type-check": "tsc --noEmit --pretty"
   },
   "dependencies": {
-    "@drupal-canvas/headless": "^0.4.0",
-    "@drupal-canvas/headless-react": "^0.3.0"
+    "@drupal-canvas/headless": "^0.5.0",
+    "@drupal-canvas/headless-react": "^0.3.1"
   },
   "peerDependencies": {
     "@tanstack/react-router": ">=1.130.0",

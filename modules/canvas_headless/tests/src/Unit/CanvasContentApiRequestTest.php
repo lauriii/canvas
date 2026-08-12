@@ -36,8 +36,10 @@ final class CanvasContentApiRequestTest extends UnitTestCase {
             '/articles/example?' . http_build_query([
               'campaign' => 'test',
               CanvasContentApiRequest::PREVIEW_VIEW_MODE_QUERY => 'route-view-mode',
+              CanvasContentApiRequest::COMPONENT_PREVIEW_QUERY => 'route-component',
               CanvasContentApiRequest::API_QUERY_PARAMETERS_KEY => [
                 CanvasContentApiRequest::PREVIEW_VIEW_MODE_QUERY => 'teaser',
+                CanvasContentApiRequest::COMPONENT_PREVIEW_QUERY => 'preview-component',
               ],
             ]),
             $request->getRequestUri(),
@@ -49,16 +51,21 @@ final class CanvasContentApiRequestTest extends UnitTestCase {
           self::assertSame([
             'campaign' => 'test',
             CanvasContentApiRequest::PREVIEW_VIEW_MODE_QUERY => 'route-view-mode',
+            CanvasContentApiRequest::COMPONENT_PREVIEW_QUERY => 'route-component',
             CanvasContentApiRequest::API_QUERY_PARAMETERS_KEY => [
               CanvasContentApiRequest::PREVIEW_VIEW_MODE_QUERY => 'teaser',
+              CanvasContentApiRequest::COMPONENT_PREVIEW_QUERY => 'preview-component',
             ],
           ], $request->query->all());
           self::assertSame(
-            '/articles/example?campaign=test&viewMode=route-view-mode',
+            '/articles/example?campaign=test&viewMode=route-view-mode&componentId=route-component',
             $request->attributes->get(CanvasContentApiRequest::REQUESTED_URI_ATTRIBUTE),
           );
           self::assertSame(
-            [CanvasContentApiRequest::PREVIEW_VIEW_MODE_QUERY => 'teaser'],
+            [
+              CanvasContentApiRequest::PREVIEW_VIEW_MODE_QUERY => 'teaser',
+              CanvasContentApiRequest::COMPONENT_PREVIEW_QUERY => 'preview-component',
+            ],
             $request->attributes->get(CanvasContentApiRequest::API_QUERY_PARAMETERS_KEY),
           );
           self::assertSame('Bearer preview-token', $request->headers->get('Authorization'));
@@ -69,8 +76,9 @@ final class CanvasContentApiRequestTest extends UnitTestCase {
     $request = Request::create(
       'https://drupal.example/canvas/content-api?' .
       http_build_query([
-        'requestUri' => '/articles/example?campaign=test&viewMode=route-view-mode',
+        'requestUri' => '/articles/example?campaign=test&viewMode=route-view-mode&componentId=route-component',
         CanvasContentApiRequest::PREVIEW_VIEW_MODE_QUERY => 'teaser',
+        CanvasContentApiRequest::COMPONENT_PREVIEW_QUERY => 'preview-component',
       ]),
     );
     $request->headers->set('Authorization', 'Bearer preview-token');

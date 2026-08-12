@@ -1,6 +1,6 @@
 {
   "name": "@drupal-canvas/headless-astro",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "engines": {
     "node": ">=22.19.0 <23 || >=24.5.0"
   },
@@ -60,14 +60,15 @@
       "default": "./src/routes/components.ts"
     },
     "./DraftSession.astro": "./src/components/DraftSession.astro",
-    "./CanvasComponentTree.astro": "./src/components/CanvasComponentTree.astro"
+    "./CanvasComponentTree.astro": "./src/components/CanvasComponentTree.astro",
+    "./ComponentPreviewPage.astro": "./src/components/ComponentPreviewPage.astro"
   },
   "scripts": {
     "test": "vitest run",
     "type-check": "astro check --tsconfig ./tsconfig.json && tsc --noEmit --pretty"
   },
   "dependencies": {
-    "@drupal-canvas/headless": "^0.4.0"
+    "@drupal-canvas/headless": "^0.5.0"
   },
   "peerDependencies": {
     "astro": ">=5.17.0",

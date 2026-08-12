@@ -29,6 +29,8 @@ vi.mock('@/features/layout/previewOverlay/ViewportOverlay', () => ({
 }));
 
 vi.mock('@drupal-canvas/headless-host', () => ({
+  CANVAS_COMPONENT_PREVIEW_PATH: '/api/canvas/component-preview',
+  CANVAS_COMPONENT_PREVIEW_QUERY: 'componentId',
   createHeadlessPreviewHost: vi.fn(
     ({
       onEvent,
@@ -40,6 +42,7 @@ vi.mock('@drupal-canvas/headless-host', () => ({
       latestOnHeight = onHeight;
       return {
         activate,
+        attach: vi.fn(),
         destroy: vi.fn(),
         refresh: vi.fn(),
         setViewportHeight,

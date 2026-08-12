@@ -8,6 +8,7 @@
  * describes what the caller gets rather than how Drupal serves it.
  */
 
+import { CANVAS_COMPONENT_PREVIEW_QUERY } from '../constants';
 import { isPageRedirect } from '../page';
 import { getSessionToken } from '../token';
 
@@ -32,10 +33,11 @@ export async function fetchPage(
   options: {
     baseUrl: string;
     draftData?: DraftData | null;
+    componentPreviewId?: string;
     fetchImpl?: typeof fetch;
   },
 ): Promise<PageResult | null> {
-  const { baseUrl, draftData, fetchImpl = fetch } = options;
+  const { baseUrl, draftData, componentPreviewId, fetchImpl = fetch } = options;
 
   const headers: Record<string, string> = { Accept: 'application/json' };
   let liveDraft = false;
@@ -50,6 +52,9 @@ export async function fetchPage(
 
   const url = new URL(`${baseUrl.replace(/\/$/, '')}/canvas/content-api`);
   url.searchParams.set('requestUri', requestUri);
+  if (componentPreviewId) {
+    url.searchParams.set(CANVAS_COMPONENT_PREVIEW_QUERY, componentPreviewId);
+  }
   if (liveDraft && draftData?.previewContext?.viewMode) {
     url.searchParams.set('viewMode', draftData.previewContext.viewMode);
   }

@@ -177,7 +177,7 @@ describe('headless height probing', () => {
     });
 
     expect(iframe.style.height).toBe('1500px');
-    expect(iframe.style.visibility).toBe('hidden');
+    expect(iframe.style.visibility).toBe('visible');
     expect(postMessage).toHaveBeenLastCalledWith(
       {
         type: HEADLESS_HEIGHT_PROBE_READY_MESSAGE,
@@ -306,6 +306,120 @@ describe('createHeadlessPreviewHost', () => {
   afterEach(() => {
     document.body.replaceChildren();
     vi.restoreAllMocks();
+  });
+
+  it('attaches an iframe to an existing session without minting an assertion', async () => {
+    const iframe = document.createElement('iframe');
+    iframe.style.height = '500px';
+    iframe.style.visibility = 'visible';
+    document.body.append(iframe);
+    const fetchAssertion = vi.fn().mockResolvedValue('renewal assertion');
+    const events = vi.fn();
+    const onHeight = vi.fn();
+    const host = createHeadlessPreviewHost({
+      iframe,
+      frontendOrigin: FRONTEND_ORIGIN,
+      draftUrl: `${FRONTEND_ORIGIN}/api/draft`,
+      fetchAssertion,
+      onEvent: events,
+      onHeight,
+    });
+
+    host.attach(
+      `${FRONTEND_ORIGIN}/api/canvas/component-preview?componentId=js.example`,
+    );
+
+    expect(iframe.src).toBe(
+      `${FRONTEND_ORIGIN}/api/canvas/component-preview?componentId=js.example`,
+    );
+    expect(fetchAssertion).not.toHaveBeenCalled();
+
+    const postMessage = vi.spyOn(iframe.contentWindow!, 'postMessage');
+    iframe.dispatchEvent(new Event('load'));
+    const statusRequest = postMessage.mock.calls.find(
+      ([message]) =>
+        (message as { type?: string }).type === HEADLESS_STATUS_REQUEST_MESSAGE,
+    )?.[0] as { hostSessionId: string };
+    expect(statusRequest).toMatchObject({ passive: true });
+
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        origin: FRONTEND_ORIGIN,
+        source: iframe.contentWindow,
+        data: {
+          type: HEADLESS_STATUS_MESSAGE,
+          status: 'active',
+          path: '/api/canvas/component-preview',
+          tokenExpiresAt: Date.now() + 60_000,
+          hostSessionId: statusRequest.hostSessionId,
+        },
+      }),
+    );
+    postMessage.mockClear();
+
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        origin: FRONTEND_ORIGIN,
+        source: iframe.contentWindow,
+        data: {
+          type: HEADLESS_HEIGHT_PROBE_MESSAGE,
+          id: 'passive-probe',
+          height: 1500,
+          hostSessionId: statusRequest.hostSessionId,
+        },
+      }),
+    );
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        origin: FRONTEND_ORIGIN,
+        source: iframe.contentWindow,
+        data: {
+          type: HEADLESS_HEIGHT_MESSAGE,
+          height: 1500,
+          hostSessionId: statusRequest.hostSessionId,
+        },
+      }),
+    );
+
+    expect(iframe.style.height).toBe('500px');
+    expect(iframe.style.visibility).toBe('visible');
+    expect(postMessage).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: HEADLESS_HEIGHT_PROBE_READY_MESSAGE,
+      }),
+      FRONTEND_ORIGIN,
+    );
+    expect(onHeight).not.toHaveBeenCalled();
+
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        origin: FRONTEND_ORIGIN,
+        source: iframe.contentWindow,
+        data: {
+          type: HEADLESS_RENEW_REQUEST_MESSAGE,
+          path: '/api/canvas/component-preview',
+          hostSessionId: statusRequest.hostSessionId,
+        },
+      }),
+    );
+
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        origin: FRONTEND_ORIGIN,
+        source: iframe.contentWindow,
+        data: {
+          type: HEADLESS_STATUS_MESSAGE,
+          status: 'expired',
+          path: '/api/canvas/component-preview',
+          hostSessionId: statusRequest.hostSessionId,
+        },
+      }),
+    );
+
+    await Promise.resolve();
+    expect(fetchAssertion).not.toHaveBeenCalled();
+    expect(events).not.toHaveBeenCalledWith({ type: 'recovering' });
+    host.destroy();
   });
 
   it('accepts geometry only from its active iframe', async () => {

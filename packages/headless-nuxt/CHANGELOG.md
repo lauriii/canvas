@@ -1,5 +1,16 @@
 # @drupal-canvas/headless-nuxt
 
+## 0.4.0
+
+### Minor Changes
+
+- 71542ec: Add component preview thumbnail support to the Nuxt adapter.
+
+### Patch Changes
+
+- Updated dependencies [71542ec]
+  - @drupal-canvas/headless@0.5.0
+
 ## 0.3.0
 
 ### Minor Changes

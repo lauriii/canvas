@@ -7,6 +7,7 @@ import { Theme } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ComponentPreview from '@/components/ComponentPreview';
+import HeadlessComponentPreview from '@/components/HeadlessComponentPreview';
 import CodeComponentItem from '@/components/list/CodeComponentItem';
 import ComponentItem from '@/components/list/ComponentItem';
 import PatternItem from '@/components/list/PatternItem';
@@ -19,6 +20,7 @@ import {
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import { selectActivePanel } from '@/features/ui/primaryPanelSlice';
 import { DEFAULT_REGION } from '@/features/ui/uiSlice';
+import { useCanvasHeadlessSettings } from '@/hooks/useCanvasHeadlessSettings';
 import useComponentSelection from '@/hooks/useComponentSelection';
 
 import type React from 'react';
@@ -34,6 +36,15 @@ export type LibraryItem = CanvasComponent | Pattern | CodeComponentSerialized;
 // Does this item support preview thumbnail rendering? (requires default_markup)
 function supportsPreview(item: LibraryItem): item is CanvasComponent | Pattern {
   return 'default_markup' in item && !!item.default_markup;
+}
+
+function supportsHeadlessPreview(item: LibraryItem): item is JSComponent {
+  return (
+    'source' in item &&
+    item.source === 'Code component' &&
+    'type' in item &&
+    item.type === 'external'
+  );
 }
 
 // Checks the source to see if this component is a JS (code) component.
@@ -63,6 +74,10 @@ const ListItem: React.FC<{
   } = useParams();
   const { setSelectedComponent } = useComponentSelection();
   const activePanel = useAppSelector(selectActivePanel);
+  const headlessSettings = useCanvasHeadlessSettings();
+  const canPreview =
+    supportsPreview(item) ||
+    (headlessSettings !== undefined && supportsHeadlessPreview(item));
 
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: itemId,
@@ -114,7 +129,12 @@ const ListItem: React.FC<{
   };
 
   const handleMouseEnter = (maybePreviewItem: LibraryItem) => {
-    if (!isMenuOpen && supportsPreview(maybePreviewItem)) {
+    if (
+      !isMenuOpen &&
+      (supportsPreview(maybePreviewItem) ||
+        (headlessSettings !== undefined &&
+          supportsHeadlessPreview(maybePreviewItem)))
+    ) {
       setPreviewingComponent(maybePreviewItem);
     }
   };
@@ -223,7 +243,7 @@ const ListItem: React.FC<{
           <Tooltip.Trigger asChild={true} style={{ width: '100%' }}>
             <div>{renderItem()}</div>
           </Tooltip.Trigger>
-          {supportsPreview(item) && (
+          {canPreview && (
             <Tooltip.Portal>
               <Tooltip.Content
                 side="right"
@@ -235,9 +255,19 @@ const ListItem: React.FC<{
                 aria-label={`${item.name} preview thumbnail`}
               >
                 <Theme>
-                  {previewingComponent && !isMenuOpen && (
-                    <ComponentPreview componentListItem={previewingComponent} />
-                  )}
+                  {previewingComponent &&
+                    !isMenuOpen &&
+                    (headlessSettings &&
+                    supportsHeadlessPreview(previewingComponent) ? (
+                      <HeadlessComponentPreview
+                        component={previewingComponent}
+                        settings={headlessSettings}
+                      />
+                    ) : supportsPreview(previewingComponent) ? (
+                      <ComponentPreview
+                        componentListItem={previewingComponent}
+                      />
+                    ) : null)}
                 </Theme>
               </Tooltip.Content>
             </Tooltip.Portal>

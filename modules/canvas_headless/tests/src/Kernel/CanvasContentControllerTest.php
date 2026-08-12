@@ -227,6 +227,54 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Tests rendering one external component with its resolved defaults.
+   */
+  public function testExternalComponentPreview(): void {
+    $page = $this->createPage();
+    $page_uri = '/page/' . $page->id() . '?' . http_build_query([
+      CanvasContentApiRequest::COMPONENT_PREVIEW_QUERY => 'route-owned-value',
+    ]);
+    $component_preview_context = [
+      CanvasContentApiRequest::COMPONENT_PREVIEW_QUERY => self::COMPONENT_ID,
+    ];
+
+    // The API selector is inert outside an authenticated headless preview.
+    $this->setCurrentAccount($this->editor);
+    $stored_content = \json_encode(
+      self::responseData($this->renderContentPath($page_uri, $component_preview_context))['content'],
+      JSON_THROW_ON_ERROR,
+    );
+    self::assertStringContainsString('Stored component heading', $stored_content);
+
+    $this->setCurrentAccount($this->createTokenAccount(with_preview_scope: TRUE));
+    // A route-owned componentId query parameter must not select a preview.
+    $route_content = \json_encode(
+      self::responseData($this->renderContentPath($page_uri))['content'],
+      JSON_THROW_ON_ERROR,
+    );
+    self::assertStringContainsString('Stored component heading', $route_content);
+
+    $response = $this->renderContentPath($page_uri, $component_preview_context);
+    $data = self::responseData($response);
+    $component = Component::load(self::COMPONENT_ID);
+    self::assertInstanceOf(Component::class, $component);
+
+    self::assertSame('js-canvas-headless-test', $data['content']['element']);
+    self::assertSame('Example heading', $data['content']['props']['heading']);
+    self::assertSame($component->uuid(), $data['content']['props']['canvasUuid']);
+    self::assertTrue($data['route']['managedByCanvas']);
+    self::assertSame($page_uri, $data['route']['requestUri']);
+    self::assertContains(
+      'config:canvas.component.' . self::COMPONENT_ID,
+      $response->getCacheableMetadata()->getCacheTags(),
+    );
+    self::assertContains(
+      'url.query_args:' . CanvasContentApiRequest::API_QUERY_PARAMETERS_KEY,
+      $response->getCacheableMetadata()->getCacheContexts(),
+    );
+  }
+
+  /**
    * Tests SDC, block, and local JavaScript component rendering.
    */
   public function testCanvasContentResponseForOtherComponentTypes(): void {
@@ -701,8 +749,8 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
   /**
    * Renders a routed entity through the public kernel boundary.
    *
-   * @param array{viewMode?: string} $preview_context
-   *   Optional content-template preview context.
+   * @param array{viewMode?: string, componentId?: string} $preview_context
+   *   Optional content-template or component preview context.
    */
   private function renderContentPath(string $request_uri, array $preview_context = []): CacheableJsonResponse {
     $request = Request::create(

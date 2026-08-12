@@ -58,6 +58,11 @@ export const dynamic = 'force-dynamic';
 export const { GET, OPTIONS } = createComponentMetadataHandler();
 ```
 
+```tsx
+// app/api/canvas/component-preview/page.tsx
+export { default } from '@drupal-canvas/headless-next/ComponentPreviewPage';
+```
+
 **3. Session banner** — a server component gathers the session state
 (`getDraftData()`, `getDraftEditorOrigin()`, `isDraftSessionExpired()`) and
 renders `<DraftSession>` from `@drupal-canvas/headless-next/client` with a

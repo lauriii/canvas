@@ -92,4 +92,12 @@ export function fetchPage(
   return getDraftServer(context).fetchPage(path);
 }
 
+/** Fetches one component preview through the current draft session. */
+export function fetchComponentPreview(
+  context: AstroDraftContext,
+  componentId: string,
+): Promise<PageResult | null> {
+  return getDraftServer(context).fetchComponentPreview(componentId);
+}
+
 export { isDraftSessionExpired };
