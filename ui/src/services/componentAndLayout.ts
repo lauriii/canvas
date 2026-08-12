@@ -256,7 +256,7 @@ export const componentAndLayoutApi = createApi({
         return `canvas/api/v0/layout-content-template/${entityType}.${bundle}.${viewMode}/${previewEntityId}`;
       },
       providesTags: () => [{ type: 'Layout' }],
-      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
         try {
           const {
             data: { entity_form_fields, html, autoSaves },
@@ -494,6 +494,7 @@ export const componentAndLayoutApi = createApi({
         { type: 'CodeComponentAutoSave', id },
         { type: 'CodeComponents', id: 'LIST' },
         { type: 'Components', id: 'LIST' },
+        { type: 'Folders', id: 'LIST' },
       ],
     }),
     createFolder: builder.mutation<any, any>({
