@@ -1,5 +1,17 @@
 # @drupal-canvas/headless-next
 
+## 0.3.0
+
+### Minor Changes
+
+- 71542ec: Add component preview thumbnail support to the Next.js adapter.
+
+### Patch Changes
+
+- Updated dependencies [71542ec]
+  - @drupal-canvas/headless@0.5.0
+  - @drupal-canvas/headless-react@0.3.1
+
 ## 0.2.0
 
 ### Minor Changes

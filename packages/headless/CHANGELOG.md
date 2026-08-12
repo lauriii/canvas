@@ -1,5 +1,11 @@
 # @drupal-canvas/headless
 
+## 0.5.0
+
+### Minor Changes
+
+- 71542ec: Add component preview support to the core Headless SDK.
+
 ## 0.4.0
 
 ### Minor Changes

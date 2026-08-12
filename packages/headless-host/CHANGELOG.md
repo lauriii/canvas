@@ -1,5 +1,16 @@
 # @drupal-canvas/headless-host
 
+## 0.3.0
+
+### Minor Changes
+
+- 71542ec: Add passive route attachment to headless preview hosts.
+
+### Patch Changes
+
+- Updated dependencies [71542ec]
+  - @drupal-canvas/headless@0.5.0
+
 ## 0.2.0
 
 ### Minor Changes
