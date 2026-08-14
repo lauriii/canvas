@@ -51,7 +51,7 @@ final class ParametrizedImageStyle extends ImageStyle {
     return str_replace(\urlencode('{width}'), '{width}', $url_template);
   }
 
-  public function buildUrl($path, $clean_urls = NULL) {
+  public function buildUrl($path, $clean_urls = NULL): never {
     throw new \LogicException();
   }
 

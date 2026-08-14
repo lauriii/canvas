@@ -29,10 +29,12 @@ use Drupal\Core\File\FileExists;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\GeneratedUrl;
 use Drupal\Core\Plugin\Component as SdcPlugin;
+use Drupal\Core\Render\AttachmentsInterface;
 use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\file\Entity\File;
+use Drupal\filter\Entity\FilterFormat;
 use Drupal\link\LinkItemInterface;
 use Drupal\media\Entity\Media;
 use Drupal\media\Entity\MediaType;
@@ -41,6 +43,7 @@ use Drupal\node\Entity\NodeType;
 use Drupal\Tests\canvas\Kernel\BrokenComponentManager;
 use Drupal\Tests\canvas\Kernel\BrokenPluginManagerInterface;
 use Drupal\Tests\canvas\Traits\SingleDirectoryComponentTreeTestTrait;
+use Drupal\text\TextProcessed;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Depends;
@@ -353,6 +356,51 @@ final class SingleDirectoryComponentTest extends JsonSchemaPropsComponentSourceB
       array_fill_keys($component_ids, SdcPlugin::class),
       $this->getReferencedPluginClasses($component_ids)
     );
+  }
+
+  /**
+   * A prop's `#attached` assets reach the rendered component.
+   *
+   * @see \Drupal\filter_test\Plugin\Filter\FilterTestAssets
+   * @legacy-covers ::renderComponent
+   */
+  public function testRenderComponentKeepsPropAttachments(): void {
+    // A text format whose filter attaches an asset library but leaves the text
+    // unchanged; it stands in for a filter that needs assets to render.
+    $this->enableModules(['filter_test']);
+    FilterFormat::create([
+      'format' => 'assets',
+      'name' => 'Assets',
+      'filters' => ['filter_test_assets' => ['status' => TRUE]],
+    ])->save();
+    $this->generateComponentConfig();
+
+    $component = Component::load('sdc.canvas_test_sdc.required-formatted-body');
+    self::assertInstanceOf(ComponentInterface::class, $component);
+    $source = $component->getComponentSource();
+    \assert($source instanceof SingleDirectoryComponent);
+
+    // The formatted-text `body` prop runs through the assets format, so its
+    // evaluated value carries the filter's library.
+    $body = StaticPropSource::parse([
+      'sourceType' => 'static:field_item:text_long',
+      'expression' => 'ℹ︎text_long␟processed',
+      'value' => ['value' => '<p>Hello, world</p>', 'format' => 'assets'],
+      'sourceTypeSettings' => ['instance' => ['allowed_formats' => ['assets']]],
+    ])->evaluate(NULL, is_required: TRUE);
+    $inputs = [JsonSchemaPropsComponentSourceBase::EXPLICIT_INPUT_NAME => ['body' => $body]];
+
+    $build = $source->renderComponent($inputs, $source->getSlotDefinitions(), 'test-uuid');
+    // Core >= 11.4.4 exposes a processed-text property's assets, so the filter's
+    // library reaches the component; older core cannot, so it is absent.
+    // @see \Drupal\text\TextProcessed::getAttachments()
+    // @todo Unconditionally execute the if branch and delete the else branch once Canvas depends on Drupal 11.4.4
+    if (is_a(TextProcessed::class, AttachmentsInterface::class, TRUE)) {
+      self::assertContains('filter/caption', $build['#attached']['library']);
+    }
+    else {
+      self::assertNotContains('filter/caption', $build['#attached']['library'] ?? []);
+    }
   }
 
   /**

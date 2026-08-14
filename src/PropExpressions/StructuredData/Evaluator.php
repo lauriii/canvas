@@ -18,6 +18,8 @@ use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
+use Drupal\Core\Render\AttachmentsInterface;
+use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\TypedData\DataReferenceInterface;
 use Drupal\Core\TypedData\PrimitiveInterface;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeFieldItemList;
@@ -216,7 +218,9 @@ final class Evaluator {
             // Use the cacheability carried by the field property (common for
             // computed field properties), otherwise assume permanent
             // cacheability.
-            self::permanentCacheabilityUnlessSpecified($prop->getValue())
+            self::permanentCacheabilityUnlessSpecified($prop->getValue()),
+            // Keep the assets the property needs to render.
+            $prop instanceof AttachmentsInterface ? $prop->getAttachments() : [],
           );
         })(),
         FieldTypeObjectPropsExpression::class => \array_map(
@@ -305,11 +309,16 @@ final class Evaluator {
           $result = [];
           $raw_result = [];
           $result_cacheability = new CacheableMetadata();
+          $result_attachments = [];
           foreach ($field_item_list as $delta => $field_item) {
             if ($expr->delta === NULL || $expr->delta === $delta) {
               $prop = $field_item->get($expr->getFieldPropertyName());
               if ($prop instanceof CacheableDependencyInterface) {
                 $result_cacheability->addCacheableDependency($prop);
+              }
+              // Keep the assets the property needs to render.
+              if ($prop instanceof AttachmentsInterface) {
+                $result_attachments = BubbleableMetadata::mergeAttachments($result_attachments, $prop->getAttachments());
               }
               $raw_result[$delta] = $prop->getValue();
               if ($raw_result[$delta] === NULL && $prop instanceof EntityReference) {
@@ -345,7 +354,7 @@ final class Evaluator {
             $raw_result = $raw_result[$expr->delta ?? 0] ?? NULL;
           }
           if (!$is_required) {
-            return new EvaluationResult($result, $result_cacheability);
+            return new EvaluationResult($result, $result_cacheability, $result_attachments);
           }
 
           // If the evaluation is for a required component prop, then the shape
@@ -366,7 +375,7 @@ final class Evaluator {
 
           // Required and populated: evaluation successful.
           if (!$required_yet_empty) {
-            return new EvaluationResult($result, $result_cacheability);
+            return new EvaluationResult($result, $result_cacheability, $result_attachments);
           }
 
           // Required and empty: evaluation failed; infer access was forbidden.

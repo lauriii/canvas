@@ -45,6 +45,7 @@ use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Plugin\Component as ComponentPlugin;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
 use Drupal\Core\Render\Component\Exception\InvalidComponentException;
 use Drupal\Core\Render\Element;
@@ -565,17 +566,22 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
   /**
    * @param array<string, EvaluationResult> $props_evaluation_results
    *
-   * @return array{0: array<string, mixed>, 1: \Drupal\Core\Cache\CacheableMetadata}
+   * @return array{0: array<string, mixed>, 1: \Drupal\Core\Render\BubbleableMetadata}
+   *   The resolved prop values and their combined bubbleable metadata: the
+   *   cacheability plus the `#attached` assets a value needs to render.
    */
-  protected static function getResolvedPropsAndCacheability(array $props_evaluation_results): array {
+  protected static function getResolvedPropsAndBubbleableMetadata(array $props_evaluation_results): array {
     \assert(Inspector::assertAllObjects($props_evaluation_results, EvaluationResult::class));
-    $props_cacheability = new CacheableMetadata();
+    $props_bubbleable_metadata = new BubbleableMetadata();
     $props = [];
     foreach ($props_evaluation_results as $prop_name => $evaluation_result) {
-      $props_cacheability->addCacheableDependency($evaluation_result);
+      // BubbleableMetadata::createFromObject() reads both cacheability and, via
+      // AttachmentsInterface, the assets the value needs. merge() returns a new
+      // object, so reassign to accumulate across props.
+      $props_bubbleable_metadata = $props_bubbleable_metadata->merge(BubbleableMetadata::createFromObject($evaluation_result));
       $props[$prop_name] = $evaluation_result->value;
     }
-    return [$props, $props_cacheability];
+    return [$props, $props_bubbleable_metadata];
   }
 
   /**

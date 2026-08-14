@@ -36,6 +36,7 @@ use Drupal\Core\Extension\ExtensionPathResolver;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\GeneratedUrl;
 use Drupal\Core\Plugin\Component as ComponentPlugin;
+use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
@@ -432,7 +433,7 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
         // renders them as nothing — in previews and on live pages alike.
         // Expose their identity and resolved props as render-array metadata so
         // serializers can represent the app-owned component.
-        [$props, $props_cacheability] = self::getResolvedPropsAndCacheability(
+        [$props, $props_bubbleable_metadata] = self::getResolvedPropsAndBubbleableMetadata(
           \array_intersect_key(
             $inputs[self::EXPLICIT_INPUT_NAME] ?? [],
             $component->getProps() ?? [],
@@ -448,7 +449,7 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
         ];
         CacheableMetadata::createFromObject($component)
           ->addCacheableDependency($headless_settings)
-          ->addCacheableDependency($props_cacheability)
+          ->addCacheableDependency($props_bubbleable_metadata)
           ->applyTo($build);
         return $build;
       }
@@ -464,7 +465,7 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
       $published_required_props = $this->getDefaultExplicitInput(only_required: TRUE);
       \assert(Inspector::assertAllHaveKey($published_required_props, 'value'));
       $published_required_props = \array_map(fn(array $prop_source) => new EvaluationResult($prop_source['value']), $published_required_props);
-      [$published_required_props, $published_required_props_cacheability] = self::getResolvedPropsAndCacheability(\array_intersect_key($inputs[self::EXPLICIT_INPUT_NAME] ?? [], $published_required_props));
+      [$published_required_props, $published_required_props_bubbleable_metadata] = self::getResolvedPropsAndBubbleableMetadata(\array_intersect_key($inputs[self::EXPLICIT_INPUT_NAME] ?? [], $published_required_props));
     }
 
     $autoSave = $this->loadAutoSaveEntity($component, $isPreview);
@@ -531,13 +532,13 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
 
     $valid_props = $component->getProps() ?? [];
 
-    [$props, $props_cacheability] = self::getResolvedPropsAndCacheability(\array_intersect_key($inputs[self::EXPLICIT_INPUT_NAME] ?? [], $valid_props));
+    [$props, $props_bubbleable_metadata] = self::getResolvedPropsAndBubbleableMetadata(\array_intersect_key($inputs[self::EXPLICIT_INPUT_NAME] ?? [], $valid_props));
 
     // Explicit inputs for required props for both the auto-saved version and
-    // the live versions, including cacheability.
+    // the live versions, including cacheability and attachments.
     if ($isPreview) {
       $props += $published_required_props;
-      $props_cacheability->merge($published_required_props_cacheability);
+      $props_bubbleable_metadata = $props_bubbleable_metadata->merge($published_required_props_bubbleable_metadata);
     }
 
     // Match SDC's developer-only validation of props.
@@ -548,26 +549,26 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
     // @see \Drupal\canvas\Element\RenderSafeComponentContainer::handleComponentException()
     // @see https://www.drupal.org/project/canvas/issues/3583639
     \assert($this->componentValidator->validateProps($props, $this->getComponentPlugin()));
-    $cacheability = CacheableMetadata::createFromRenderArray($build)
+    $bubbleable_metadata = BubbleableMetadata::createFromRenderArray($build)
       ->addCacheableDependency($component)
-      ->addCacheableDependency($props_cacheability);
+      ->merge($props_bubbleable_metadata);
     if ($headless_settings !== NULL) {
-      $cacheability->addCacheableDependency($headless_settings);
+      $bubbleable_metadata->addCacheableDependency($headless_settings);
     }
     // When this component reads `canvasData.v0.mainEntity`, its data embeds the
     // per-language translation list, derived from the enabled-language list and
     // the URL negotiation config. Rebuild it when either changes.
     if (\in_array('canvas/canvasData.v0.mainEntity', $component->getAssetLibraryDependencies(), TRUE)) {
-      $cacheability->addCacheTags(['config:configurable_language_list', 'config:language.negotiation']);
+      $bubbleable_metadata->addCacheTags(['config:configurable_language_list', 'config:language.negotiation']);
       // The data also embeds per-translation view access results. Their
       // cacheability (e.g. the `user.permissions` cache context) must be
       // bubbled here: the data itself is attached in hook_js_settings_alter(),
       // which runs during asset rendering, outside the render pipeline. The
       // returned data is discarded; it is recomputed there.
       // @see \Drupal\canvas\Hook\ComponentSourceHooks::jsSettingsAlter()
-      $this->codeComponentDataProvider->getCanvasDataMainEntityV0($cacheability);
+      $this->codeComponentDataProvider->getCanvasDataMainEntityV0($bubbleable_metadata);
     }
-    $cacheability->applyTo($build);
+    $bubbleable_metadata->applyTo($build);
 
     return $build + [
       '#type' => 'astro_island',
