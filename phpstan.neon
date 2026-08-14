@@ -109,6 +109,7 @@ rules:
   - Canvas\PHPStan\Rules\ComponentConfigUpdaterMustDeclarePreSaveIntentRule
   - Canvas\PHPStan\Rules\RequireTypedDataHelperForInternalCheckRule
   - Canvas\PHPStan\Rules\NeedsDetectorMustNotMutateEntityRule
+  - Canvas\PHPStan\Rules\RequireNeverReturnTypeRule
   - mglaman\PHPStanDrupal\Rules\Drupal\TodoCommentWithIssueUrlRule
 # Run `composer run phpstan-regenerate-ignores-for-non-min-core-version-features` to update this list of ignores.
 includes:

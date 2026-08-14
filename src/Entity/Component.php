@@ -136,7 +136,11 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
 
   /**
    * {@inheritdoc}
+   *
+   * This always throws, but PHPStan reads __sleep()'s return type from its
+   * magic-method signature (array), so it cannot see a `never` declaration.
    */
+  // @phpstan-ignore canvas.requireNeverReturnType
   public function __sleep(): array {
     // @see \Drupal\Core\Database\Connection::__sleep()
     // @see \Drupal\Core\Site\Settings::__sleep()
@@ -429,7 +433,7 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
    *
    * @see docs/config-management.md#3.1
    */
-  public static function createFromClientSide(array $data): static {
+  public static function createFromClientSide(array $data): never {
     throw new \LogicException('Not supported: read-only for the client side, mutable only on the server side.');
   }
 
@@ -438,7 +442,7 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
    *
    * @see docs/config-management.md#3.1
    */
-  public function updateFromClientSide(array $data): void {
+  public function updateFromClientSide(array $data): never {
     throw new \LogicException('Not supported: read-only for the client side, mutable only on the server side.');
   }
 
