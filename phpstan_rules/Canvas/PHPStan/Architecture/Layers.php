@@ -54,6 +54,8 @@ use Drupal\Core\File\MimeType\ExtensionMimeTypeGuesser;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\GeneratedUrl;
 use Drupal\Core\ProxyClass\File\MimeType\ExtensionMimeTypeGuesser as LazyExtensionMimeTypeGuesser;
+use Drupal\Core\Render\AttachmentsInterface;
+use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
 use Drupal\Core\Render\Component\Exception\InvalidComponentException;
 use Drupal\Core\Theme\Component\ComponentMetadata;
@@ -110,6 +112,9 @@ final class Layers {
         // With one exception: a Canvas-provided fix for broken core infra.
         // @see https://www.drupal.org/project/drupal/issues/2169813
         Selector::classname(BetterEntityDataDefinition::class),
+        // The attachments counterpart to cacheability that we need to bubble.
+        Selector::classname(AttachmentsInterface::class),
+        Selector::classname(BubbleableMetadata::class),
       )
       ->because('The entire PropExpressions infrastructure should remain stand-alone because it may be relevant to eventually move to Drupal core. See https://www.drupal.org/project/drupal/issues/2002254#comment-16459017.');
   }
@@ -303,6 +308,9 @@ final class Layers {
         Selector::classname(JsonSchemaPropsComponentInstanceInputsConfigSchemaGenerator::class),
         // The SDC subsystem.
         Selector::inNamespace('Drupal\Core\Render\Component'),
+        // The attachments counterpart to cacheability that we need to bubble.
+        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent::renderComponent()
+        Selector::classname(BubbleableMetadata::class),
         // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent::rewriteExampleUrl()
         Selector::classname(GeneratedUrl::class),
         Selector::classname(Url::class),
@@ -364,6 +372,9 @@ final class Layers {
         // Drupal core namespaces.
         Selector::inNamespace('Drupal\Component\Assertion'),
         Selector::inNamespace('Drupal\Core\Cache'),
+        // The attachments counterpart to cacheability that we need to bubble.
+        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::renderComponent()
+        Selector::classname(BubbleableMetadata::class),
         Selector::inNamespace('Drupal\Core\Extension'),
         Selector::inNamespace('Drupal\Core\File'),
         Selector::inNamespace('Drupal\Core\StringTranslation'),

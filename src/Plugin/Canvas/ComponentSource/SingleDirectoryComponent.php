@@ -11,6 +11,7 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\GeneratedUrl;
 use Drupal\Core\Plugin\Component as ComponentPlugin;
+use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Theme\ComponentPluginManager;
@@ -147,7 +148,7 @@ final class SingleDirectoryComponent extends JsonSchemaPropsComponentSourceBase 
    * {@inheritdoc}
    */
   public function renderComponent(array $inputs, array $slot_definitions, string $componentUuid, bool $isPreview = FALSE): array {
-    [$props, $props_cacheability] = self::getResolvedPropsAndCacheability($inputs[self::EXPLICIT_INPUT_NAME] ?? []);
+    [$props, $props_bubbleable_metadata] = self::getResolvedPropsAndBubbleableMetadata($inputs[self::EXPLICIT_INPUT_NAME] ?? []);
     $build = [
       '#type' => 'component',
       '#component' => $this->getSourceSpecificComponentId(),
@@ -162,7 +163,11 @@ final class SingleDirectoryComponent extends JsonSchemaPropsComponentSourceBase 
         ],
       ],
     ];
-    $props_cacheability->applyTo($build);
+    // Apply the props' cacheability and the assets they need to render,
+    // alongside the component's own library already in the build.
+    BubbleableMetadata::createFromRenderArray($build)
+      ->merge($props_bubbleable_metadata)
+      ->applyTo($build);
     return $build;
   }
 

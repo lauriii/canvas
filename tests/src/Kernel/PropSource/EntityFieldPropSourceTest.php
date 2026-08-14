@@ -21,9 +21,12 @@ use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Language\LanguageInterface;
+use Drupal\Core\Render\AttachmentsInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\filter\Entity\FilterFormat;
 use Drupal\node\Entity\NodeType;
+use Drupal\text\TextProcessed;
 use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -1155,6 +1158,71 @@ class EntityFieldPropSourceTest extends PropSourceTestBase {
     // The deleted entity's cache tag must be present so that if the entity is
     // recreated (or otherwise written at that ID), the cached NULL invalidates.
     self::assertContains('user:' . $target_uid, $result->getCacheTags());
+  }
+
+  /**
+   * A processed-text prop keeps the assets its text-format filters attach.
+   *
+   * @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::doEvaluate()
+   * @see \Drupal\text\TextProcessed::getAttachments()
+   * @see \Drupal\filter_test\Plugin\Filter\FilterTestAssets
+   */
+  public function testProcessedTextKeepsFilterAttachments(): void {
+    // The test filter attaches the `filter/caption` library but leaves the text
+    // unchanged; it stands in for a filter that needs assets to render.
+    $this->enableModules(['filter_test']);
+    $this->installEntitySchema('node');
+
+    FilterFormat::create([
+      'format' => 'assets',
+      'name' => 'Assets',
+      'filters' => [
+        'filter_test_assets' => ['status' => TRUE],
+      ],
+    ])->save();
+
+    NodeType::create(['type' => 'page', 'name' => 'Page'])->save();
+    FieldStorageConfig::create([
+      'field_name' => 'field_formatted',
+      'entity_type' => 'node',
+      'type' => 'text_long',
+      'cardinality' => 1,
+    ])->save();
+    FieldConfig::create([
+      'field_name' => 'field_formatted',
+      'entity_type' => 'node',
+      'bundle' => 'page',
+      'label' => 'Formatted',
+    ])->save();
+
+    $node = $this->createNode([
+      'type' => 'page',
+      'field_formatted' => [
+        'value' => '<p>Hello, world</p>',
+        'format' => 'assets',
+      ],
+    ]);
+
+    $this->setUpCurrentUser(permissions: ['access content']);
+
+    $prop_source = EntityFieldPropSource::parse([
+      'sourceType' => PropSource::EntityField->value,
+      'expression' => 'ℹ︎␜entity:node:page␝field_formatted␞␟processed',
+    ]);
+    $result = $prop_source->evaluate($node, is_required: TRUE);
+
+    // Core >= 11.4.4 exposes a processed-text property's assets via
+    // AttachmentsInterface, so the filter's library survives evaluation. Older
+    // core does not expose them, so there is nothing for Canvas to carry.
+    // @see \Drupal\text\TextProcessed::getAttachments()
+    // @todo Unconditionally execute the if branch and delete the else branch once Canvas depends on Drupal 11.4.4
+    if (is_a(TextProcessed::class, AttachmentsInterface::class, TRUE)) {
+      self::assertArrayHasKey('library', $result->getAttachments());
+      self::assertContains('filter/caption', $result->getAttachments()['library']);
+    }
+    else {
+      self::assertSame([], $result->getAttachments());
+    }
   }
 
   /**
