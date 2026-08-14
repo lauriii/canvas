@@ -1,0 +1,24 @@
+{
+  "status": true,
+  "should_continue": false,
+  "component_structure": {
+    "name": "Red Button",
+    "machineName": "red_button",
+    "status": false,
+    "sourceCodeJs": "export default function RedButton({ buttonText = 'Click here' }) {\n  return <button className=\"bg-red-600\">{buttonText}</button>;\n}\n",
+    "sourceCodeCss": "",
+    "compiledJs": "",
+    "compiledCss": "",
+    "importedJsComponents": [],
+    "props": {
+      "buttonText": {
+        "title": "Button Text",
+        "type": "string",
+        "examples": ["Click here"]
+      }
+    },
+    "dataDependencies": []
+  },
+  "message": "The red button component is ready.",
+  "progress": "Creating the red button component."
+}
