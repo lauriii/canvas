@@ -51,7 +51,7 @@ final class ComponentMetadataRequirementsChecker {
     // Check fundamentals.
     $validator = new Validator();
     foreach ($metadata->schema['properties'] ?? [] as $prop_name => $prop) {
-      if (\in_array(Attribute::class, $prop['type'], TRUE)) {
+      if (\in_array(Attribute::class, (array) $prop['type'], TRUE)) {
         continue;
       }
 
@@ -62,7 +62,7 @@ final class ComponentMetadataRequirementsChecker {
       }
 
       // For array types, also check enum in items.
-      $is_array_prop_type = \in_array('array', $prop['type'], TRUE);
+      $is_array_prop_type = \in_array('array', (array) $prop['type'], TRUE);
       if ($is_array_prop_type && isset($prop['items']['enum']) && \in_array('', $prop['items']['enum'], TRUE)) {
         $messages[] = \sprintf('Prop "%s" has an empty enum value in items.', $prop_name);
       }
