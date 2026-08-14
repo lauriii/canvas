@@ -143,9 +143,12 @@ final class PropShape {
     // @see https://json-schema.org/draft/2020-12/draft-bhutton-json-schema-validation-00#rfc.section.9.2
     unset($normalized_prop_schema['default']);
 
-    // TRICKY: SDC appends `'object'` to every prop's declared `type` (and then
-    // dedupes) so Twig can defer rendering to the render pipeline.
-    // The originally declared type is therefore always the first element.
+    // TRICKY: In Drupal 11.4 and earlier, SDC appends `'object'` to every
+    // prop's declared `type` (and then dedupes) so Twig can defer rendering
+    // to the render pipeline. The originally declared type is therefore
+    // always the first element.
+    // @todo Simplify this logic when Canvas depends on Drupal 11.5 and later.
+    // @see https://www.drupal.org/node/3589343
     // @see \Drupal\sdc\Component\ComponentMetadata::parseSchemaInfo()
     //
     // Prop definitions might not have been validated yet. Their `type` may
