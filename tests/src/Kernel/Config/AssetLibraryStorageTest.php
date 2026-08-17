@@ -5,9 +5,13 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\Config;
 
 use Drupal\canvas\Entity\AssetLibrary;
+use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\CanvasAssetInterface;
+use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\GeneratedAssetCleanup;
 use Drupal\Core\File\FileSystemInterface;
+use Drupal\file\Entity\File;
+use Drupal\file\FileInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -22,6 +26,18 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[RunTestsInSeparateProcesses]
 #[Group('canvas')]
 class AssetLibraryStorageTest extends CanvasKernelTestBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp(): void {
+    parent::setUp();
+    $this->installEntitySchema('user');
+    // The brand kit generates its CSS from managed font files.
+    // @see ::createManagedFontFile()
+    $this->installEntitySchema('file');
+    $this->installSchema('file', 'file_usage');
+  }
 
   /**
    * Tests generated files.
@@ -90,49 +106,138 @@ class AssetLibraryStorageTest extends CanvasKernelTestBase {
     $cleanup = $this->container->get(GeneratedAssetCleanup::class);
     \assert($cleanup instanceof GeneratedAssetCleanup);
 
+    // All three entity types that generate files, so that both directories and
+    // both extensions are covered, and so that removing any of them from the
+    // sweep's list of entity types deletes a file that is still in use.
     $asset_library = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
     self::assertNotNull($asset_library);
-    $asset_library->set('css', [
-      'original' => '.first { display: none; }',
-      'compiled' => '.first{display:none}',
-    ])->save();
-    $orphaned_css_path = $asset_library->getCssPath();
-    self::assertFileExists($orphaned_css_path);
+    $brand_kit = BrandKit::load(BrandKit::GLOBAL_ID);
+    self::assertNotNull($brand_kit);
+    $code_component = JavaScriptComponent::create([
+      'machineName' => 'gc_test_component',
+      'name' => 'GC test component',
+      'status' => FALSE,
+      'props' => [
+        'title' => [
+          'type' => 'string',
+          'title' => 'Title',
+          'examples' => ['Title'],
+        ],
+      ],
+      'required' => ['title'],
+      'slots' => [],
+      'dataDependencies' => [],
+    ]);
 
-    // Editing the entity writes a new file and orphans the previous one.
-    $asset_library->set('css', [
-      'original' => '.second { display: none; }',
-      'compiled' => '.second{display:none}',
-    ])->save();
-    $current_css_path = $asset_library->getCssPath();
-    self::assertNotSame($orphaned_css_path, $current_css_path);
-    self::assertFileExists($orphaned_css_path);
-    self::assertFileExists($current_css_path);
+    $orphaned = [];
+    $current = [];
+    foreach ([1 => 'first', 2 => 'second'] as $round => $marker) {
+      $asset_library->set('css', [
+        'original' => ".$marker { display: none; }",
+        'compiled' => ".$marker{display:none}",
+      ])->set('js', [
+        'original' => "console.log('$marker');",
+        'compiled' => "console.log('$marker');",
+      ])->save();
+      // The brand kit generates its CSS from its fonts; a different font file
+      // means different CSS, hence a different content hash.
+      $brand_kit->setFonts([
+        [
+          'id' => '00000000-0000-4000-8000-00000000000' . $round,
+          'family' => 'GC Test',
+          'uri' => $this->createManagedFontFile("gc-test-$marker.woff2")->getFileUri(),
+          'format' => 'woff2',
+          'weight' => '400',
+          'style' => 'normal',
+        ],
+      ]);
+      $brand_kit->save();
+      $code_component->set('css', [
+        'original' => ".$marker { color: red; }",
+        'compiled' => ".$marker{color:red}",
+      ])->set('js', [
+        'original' => "export default () => '$marker';",
+        'compiled' => "export default () => '$marker';",
+      ])->save();
 
-    // Both files were written during this request, so neither is old enough to
-    // be removed yet: a response that is still being served can point at the
+      $paths = [
+        $asset_library->getCssPath(),
+        $asset_library->getJsPath(),
+        $brand_kit->getCssPath(),
+        $code_component->getCssPath(),
+        $code_component->getJsPath(),
+      ];
+      foreach ($paths as $path) {
+        self::assertFileExists($path);
+      }
+      // The second round orphans everything the first round wrote.
+      if ($round === 1) {
+        $orphaned = $paths;
+      }
+      else {
+        $current = $paths;
+      }
+    }
+
+    self::assertSame([], \array_intersect($orphaned, $current), 'Every path is content-addressed, so a second save orphans the first file');
+    // Both directories, both extensions.
+    self::assertNotEmpty(\array_filter($orphaned, static fn (string $p): bool => \str_starts_with($p, AssetLibrary::ASSETS_DIRECTORY)));
+    self::assertNotEmpty(\array_filter($orphaned, static fn (string $p): bool => \str_starts_with($p, JavaScriptComponent::ASSETS_DIRECTORY)));
+    self::assertNotEmpty(\array_filter($orphaned, static fn (string $p): bool => \str_ends_with($p, '.js')));
+
+    // Everything was written during this request, so nothing is old enough to
+    // be removed yet: a response that is still being served can point at an
     // orphan.
     self::assertSame([], $cleanup->deleteStaleFiles());
-    self::assertFileExists($orphaned_css_path);
 
-    // Age the orphan past the grace period. The file still in use is aged too,
-    // to prove age alone is not what makes a file collectable.
+    // Age everything past the grace period, the files still in use included, to
+    // prove age alone is not what makes a file collectable.
     $file_system = $this->container->get(FileSystemInterface::class);
     \assert($file_system instanceof FileSystemInterface);
     $long_ago = \time() - (7 * 24 * 60 * 60);
-    foreach ([$orphaned_css_path, $current_css_path] as $path) {
+    foreach ([...$orphaned, ...$current] as $path) {
       $real_path = $file_system->realpath($path);
       self::assertIsString($real_path);
       self::assertTrue(\touch($real_path, $long_ago));
     }
     \clearstatcache();
 
-    self::assertSame([$orphaned_css_path], $cleanup->deleteStaleFiles());
-    self::assertFileDoesNotExist($orphaned_css_path);
-    self::assertFileExists($current_css_path);
+    $deleted = $cleanup->deleteStaleFiles();
+    \sort($deleted);
+    $expected = $orphaned;
+    \sort($expected);
+    self::assertSame($expected, $deleted);
+    foreach ($orphaned as $path) {
+      self::assertFileDoesNotExist($path);
+    }
+    foreach ($current as $path) {
+      self::assertFileExists($path, 'A file a config entity still points at is never deleted, whatever its age');
+    }
 
     // And it is idempotent.
     self::assertSame([], $cleanup->deleteStaleFiles());
+  }
+
+  /**
+   * Creates a managed font file for the brand kit to generate CSS from.
+   */
+  private function createManagedFontFile(string $filename): FileInterface {
+    $file_system = $this->container->get(FileSystemInterface::class);
+    \assert($file_system instanceof FileSystemInterface);
+    $directory = BrandKit::ARTIFACTS_DIRECTORY;
+    self::assertTrue($file_system->prepareDirectory(
+      $directory,
+      FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS,
+    ));
+    $uri = $directory . $filename;
+    $real_path = $file_system->realpath($uri);
+    self::assertIsString($real_path);
+    self::assertNotFalse(\file_put_contents($real_path, 'font-data'));
+
+    $file = File::create(['uri' => $uri]);
+    $file->save();
+
+    return $file;
   }
 
 }
