@@ -271,7 +271,13 @@ export default function Props() {
               <Label htmlFor={`prop-required-${prop.id}`}>Required</Label>
               <Switch
                 id={`prop-required-${prop.id}`}
-                checked={required.includes(propName)}
+                // A prop with no name has no unique machine name, so it cannot
+                // be represented in the `required` list (which is keyed by
+                // machine name). Disable the toggle until the prop is named to
+                // avoid marking unrelated unnamed props required.
+                // @see https://www.drupal.org/i/3589193
+                checked={!!propName && required.includes(propName)}
+                disabled={!propName}
                 size="1"
                 mb="1"
                 onCheckedChange={() =>
