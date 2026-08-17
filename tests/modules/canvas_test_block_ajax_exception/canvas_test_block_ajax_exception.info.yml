@@ -1,0 +1,5 @@
+name: 'Canvas test block that throws an Ajax control-flow exception'
+type: module
+dependencies:
+  - canvas:canvas
+package: Testing

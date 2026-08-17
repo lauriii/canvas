@@ -70,6 +70,18 @@ final class RenderSafeComponentContainer extends RenderElementBase implements Co
         throw $e;
       }
       catch (\Throwable $e) {
+        // When a form (for example a Webform block) inside this component's
+        // slot is submitted via Ajax, core throws a FormAjaxException (or an
+        // EnforcedResponseException) to hand off to its response subscribers.
+        // Because that happens while Twig renders the slot, Twig wraps it in a
+        // RuntimeError, so it is caught here rather than by the catch above.
+        // Unwrap and rethrow it so the Ajax/enforced response is built instead
+        // of a fallback being rendered.
+        // @todo Remove when https://www.drupal.org/i/2367555 is fixed.
+        $previous = $e->getPrevious();
+        if ($previous instanceof EnforcedResponseException || $previous instanceof FormAjaxException) {
+          throw $previous;
+        }
         // In this scenario because rendering fails the context isn't updated or
         // bubbled.
         // TRICKY: depending on where an exception is thrown, it is possible
