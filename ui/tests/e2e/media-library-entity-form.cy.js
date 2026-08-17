@@ -33,6 +33,15 @@ const testMediaLibraryInEntityForm = (cy, loadOptions = {}, title) => {
   cy.findByTestId('canvas-page-data-form').as('entityForm');
   // Log all ajax form requests to help with debugging.
   cy.intercept('POST', '**/canvas/api/v0/form/content-entity/**');
+  // Alias every preview/layout update request (POST and PATCH) so we can assert
+  // none of them returned a server error. Without this the test could pass even
+  // when the layout request returned a 500, because nothing asserted on the
+  // response status.
+  // @see https://www.drupal.org/project/canvas/issues/3584433
+  cy.intercept({
+    method: /^(POST|PATCH)$/,
+    url: '**/canvas/api/v0/layout/**',
+  }).as('updatePreview');
 
   // Perform media operations.
   iterations.forEach((step, ix) => {
@@ -124,6 +133,21 @@ const testMediaLibraryInEntityForm = (cy, loadOptions = {}, title) => {
   cy.get('@entityForm')
     .findByRole('button', { name: lastStep.removeAriaLabel })
     .should('exist');
+
+  // Every media operation above triggers a preview/layout update. Assert none
+  // of them returned a server error. A 422 is a legitimate response (constraint
+  // violations), so only 5xx responses are treated as failures.
+  // @see https://www.drupal.org/project/canvas/issues/3584433
+  cy.get('@updatePreview.all').then((interceptions) => {
+    interceptions.forEach((interception) => {
+      if (interception.response) {
+        expect(
+          interception.response.statusCode,
+          `Preview request to ${interception.request.url} must not fail`,
+        ).to.be.lessThan(500);
+      }
+    });
+  });
 };
 
 describe('Media Library In Entity (page data) Form', () => {
