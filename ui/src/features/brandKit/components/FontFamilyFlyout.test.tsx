@@ -141,7 +141,7 @@ const FlyoutHarness = ({
 };
 
 describe('FontFamilyFlyout', () => {
-  it('retypesets the preview and the example code as an axis moves', () => {
+  it('redraws the preview and the example code as an axis moves', () => {
     render(<FlyoutHarness fonts={[variableFont]} />);
 
     const preview = screen.getByTestId(
@@ -271,7 +271,7 @@ describe('FontFamilyFlyout', () => {
     );
   });
 
-  it('announces a copy rather than only recolouring the button', () => {
+  it('announces a copy rather than only restyling the button', () => {
     render(
       <FlyoutContext>
         <FontFamilyFlyout

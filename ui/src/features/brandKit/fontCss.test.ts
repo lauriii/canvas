@@ -296,7 +296,7 @@ describe('fontCss helpers', () => {
     expect(buildFontFaceSnippet(dualItalicFont)).not.toContain('normal italic');
 
     // The usage snippet must not ask for an italic that face does not have:
-    // the browser would synthesise a slant on top of the one 'ital' applies.
+    // the browser would fake a slant on top of the one 'ital' applies.
     expect(buildTailwindHtmlSnippet(dualItalicFont)).toContain(
       "font-style: normal; font-variation-settings: 'wght' 400, 'ital' 1;",
     );
@@ -305,7 +305,9 @@ describe('fontCss helpers', () => {
   it('escapes a typed weight before putting it in an attribute', () => {
     expect(
       buildTailwindHtmlSnippet({ ...font, weight: '400" onload="x' }),
-    ).toContain('style="font-weight: 400&quot; onload=&quot;x; font-style: normal;"');
+    ).toContain(
+      'style="font-weight: 400&quot; onload=&quot;x; font-style: normal;"',
+    );
   });
 
   it('treats slnt variable fonts as italic', () => {

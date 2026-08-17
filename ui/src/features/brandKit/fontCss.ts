@@ -135,8 +135,8 @@ const getWeightDeclaration = (font: AssetLibraryFont): string => {
  * valid descriptor, so a font whose `ital` axis spans both is declared as the
  * upright face it defaults to. Its italic is reached through
  * `font-variation-settings`, not by asking the browser for `font-style:
- * italic` — which, against an upright face, would synthesise a slant on top of
- * the one the axis already applies.
+ * italic` — which, against an upright face, would have the browser fake a slant
+ * on top of the one the axis already applies.
  */
 const getStyleDeclaration = (font: AssetLibraryFont): string => {
   const italicAxis = font.axes?.find((axis) => axis.tag === 'ital');
@@ -226,8 +226,7 @@ export const getFontPreloadDefinitions = (
  *
  * `font-style` is whatever the accompanying `@font-face` declares, never what
  * the slant axis currently reads: asking for an italic the face does not have
- * makes the browser synthesise one on top of the slant the axis already
- * applies.
+ * makes the browser fake one on top of the slant the axis already applies.
  */
 const buildUsageDeclarations = (font: AssetLibraryFont): string[] => {
   const declarations: string[] = [];
