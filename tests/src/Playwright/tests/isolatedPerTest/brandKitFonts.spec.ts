@@ -158,9 +158,11 @@ test.describe('brand kit fonts', () => {
     await expect(familyRow).toContainText('Renamed Sans');
     await autoSaved;
 
-    // Switching to Colors and back keeps the fonts section working.
-    await page.keyboard.press('Escape');
-    await expect(page.locator(SEL.flyout)).toBeHidden();
+    // Whether the flyout is still open at this point is not deterministic:
+    // `handleFamilyCommit` re-opens it on the renamed family only after its
+    // save resolves, and the effect that closes a flyout whose family no
+    // longer exists may run either side of that. So do not assert on it here —
+    // just switch tabs, which dismisses it either way.
     await page.locator(SEL.colorsTab).click();
     await expect(page.locator(SEL.uploadButton)).toBeHidden();
     await page.locator(SEL.tab).click();
