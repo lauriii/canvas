@@ -113,10 +113,10 @@
 .flyoutScrollArea {
   overflow-x: hidden;
   overflow-y: auto;
-  flex: 1 1 auto;
-  min-height: 0;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .flyoutBody {
@@ -148,12 +148,12 @@
   all: unset;
   display: flex;
   align-items: center;
+  gap: var(--space-3);
   box-sizing: border-box;
   width: 100%;
   padding: var(--space-3) var(--space-4);
   cursor: pointer;
   border-bottom: 1px solid var(--gray-4);
-  gap: var(--space-3);
 }
 
 .variantRow:last-child {
@@ -178,8 +178,8 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  min-width: 0;
   gap: 2px;
+  min-width: 0;
 }
 
 .variantFilename {

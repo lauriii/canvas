@@ -117,9 +117,9 @@
 .comparisonGrid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 22px;
   height: 100%;
   min-height: 0;
-  gap: 22px;
 }
 
 .card,
@@ -203,6 +203,8 @@
 .previewScrollArea {
   display: flex;
   overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable both-edges;
   align-items: flex-start;
   justify-content: flex-start;
   width: 100%;
@@ -210,8 +212,6 @@
   min-height: 360px;
   cursor: grab;
   user-select: none;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable both-edges;
 }
 
 .previewScrollArea[data-dragging="true"] {

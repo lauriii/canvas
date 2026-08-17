@@ -1,11 +1,11 @@
 .topBar {
   position: fixed;
+  inset: var(--topbar-space-above) 0 var(--topbar-space-below) 0;
   height: var(--topbar-height);
   transition: opacity 2s ease-out;
   transition-delay: 0.1s;
   border-bottom: 1px solid var(--gray-4);
   background: #fff;
-  inset: var(--topbar-space-above) 0 var(--topbar-space-below) 0;
 
   &.inPreview {
     top: 0;

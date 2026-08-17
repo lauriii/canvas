@@ -64,9 +64,9 @@
   display: flex;
   overflow-y: auto;
   flex-direction: column;
+  gap: var(--space-1);
   max-height: min(400px, 60vh);
   padding: var(--space-4);
-  gap: var(--space-1);
 }
 
 .empty {

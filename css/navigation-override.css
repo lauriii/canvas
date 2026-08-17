@@ -6,14 +6,14 @@
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
+  inline-size: var(--admin-toolbar-space-16);
+  block-size: var(--admin-toolbar-space-16);
   margin-top: 1px;
   content: "";
   color: currentColor;
   background-color: currentColor;
-  inline-size: var(--admin-toolbar-space-16);
-  block-size: var(--admin-toolbar-space-16);
+  mask-image: url(../assets/icons/page.svg);
   mask-repeat: no-repeat;
   mask-position: center center;
   mask-size: 100% auto;
-  mask-image: url(../assets/icons/page.svg);
 }

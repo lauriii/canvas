@@ -34,9 +34,9 @@
 
 .description {
   min-height: 3.08em; /* Two lines to avoid layout shift when content is filled. */
+  overflow-wrap: break-word;
   color: #545454;
   font-family: arial, sans-serif;
   font-size: 12px;
   line-height: 1.54;
-  overflow-wrap: break-word;
 }

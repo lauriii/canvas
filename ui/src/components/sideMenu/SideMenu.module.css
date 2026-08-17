@@ -1,5 +1,6 @@
 .sideMenu {
   z-index: 1; /* must be higher than primary panel so that it can slide underneath */
+  inset: 0;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -10,7 +11,6 @@
   padding: 8px 0;
   border-right: 1px solid var(--gray-5);
   background-color: #fff;
-  inset: 0;
 }
 
 .menuItem.menuItem {
@@ -44,9 +44,9 @@
   width: 16px;
   height: 16px;
   background-color: currentColor;
-  mask-size: contain;
   mask-repeat: no-repeat;
   mask-position: center;
+  mask-size: contain;
 }
 
 .menuItem.disabled {
