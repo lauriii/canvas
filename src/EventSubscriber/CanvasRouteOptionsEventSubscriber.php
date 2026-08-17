@@ -97,7 +97,7 @@ final class CanvasRouteOptionsEventSubscriber implements EventSubscriberInterfac
    * the site's configured negotiators, would need a site builder to enable and
    * order it in the `language.types` configuration (which Canvas must not
    * modify on install), and would apply to every request on the site. This
-   * subscriber instead applies to exactly two internal routes and lets the
+   * subscriber instead applies to exactly three internal routes and lets the
    * active negotiation chain build the URL that resolves to the requested
    * language, redirecting there.
    */
@@ -108,10 +108,15 @@ final class CanvasRouteOptionsEventSubscriber implements EventSubscriberInterfac
     if (!$request->isMethodSafe()) {
       return;
     }
-    // Only the layout GET routes — the ones the Canvas UI previews through —
-    // accept a preview language hint.
+    // Only the GET routes the Canvas UI and Workbench preview through accept
+    // a preview language hint.
     $route_name = $this->routeMatch->getRouteName();
-    if (!\in_array($route_name, ['canvas.api.layout.get', 'canvas.api.layout.get.content_template'], TRUE)) {
+    $preview_language_routes = [
+      'canvas.api.layout.get',
+      'canvas.api.layout.get.content_template',
+      'canvas.api.page_data',
+    ];
+    if (!\in_array($route_name, $preview_language_routes, TRUE)) {
       return;
     }
     $langcode = $request->query->get('canvas_preview_langcode');

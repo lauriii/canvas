@@ -35,9 +35,38 @@ import type {
   PreviewFrameReady,
   PreviewFrameRendered,
   PreviewManifest,
+  PreviewRenderCanvasData,
   PreviewRenderRequest,
   PreviewShellSync,
 } from '@wb/lib/preview-contract';
+
+type PreviewRuntimeWindow = Window & {
+  drupalSettings?: {
+    canvasData?: {
+      v0?: Record<string, unknown>;
+    };
+  };
+};
+
+/**
+ * Replaces the page-level `canvasData.v0` fields for the upcoming render.
+ *
+ * Applied unconditionally on every render request: a request without
+ * `canvasData` resets the fields to their empty fallbacks, so a previous
+ * render's `mainEntity`/`breadcrumbs`/`pageTitle` can never leak into the
+ * next render. Site-level fields (branding, baseUrl, themeAssets,
+ * jsonapiSettings) are left untouched.
+ */
+function applyPageCanvasData(canvasData?: PreviewRenderCanvasData): void {
+  const runtimeWindow = window as PreviewRuntimeWindow;
+  runtimeWindow.drupalSettings ??= {};
+  runtimeWindow.drupalSettings.canvasData ??= {};
+  runtimeWindow.drupalSettings.canvasData.v0 ??= {};
+  const v0 = runtimeWindow.drupalSettings.canvasData.v0;
+  v0.pageTitle = canvasData?.pageTitle ?? '';
+  v0.breadcrumbs = canvasData?.breadcrumbs ?? [];
+  v0.mainEntity = canvasData?.mainEntity ?? null;
+}
 
 function postFrameMessage(
   message:
@@ -209,6 +238,8 @@ export function PreviewFrameApp() {
             jsEntryPath: source.jsEntryUrl,
           })),
         );
+
+        applyPageCanvasData(request.payload.canvasData);
 
         let node = renderSpec(request.payload.spec, registry);
 

@@ -37,6 +37,7 @@ import {
 } from '@wb/lib/preview-content-entity-reference';
 import { fetchDraftContentTemplatePreview } from '@wb/lib/preview-content-template-draft';
 import { isPreviewFrameEvent } from '@wb/lib/preview-contract';
+import { fetchPreviewPageData } from '@wb/lib/preview-page-data';
 import { toViteFsUrl } from '@wb/lib/preview-runtime';
 import {
   applyResolved,
@@ -66,6 +67,7 @@ import type {
   PreviewManifest,
   PreviewManifestComponent,
   PreviewManifestComponentMock,
+  PreviewRenderCanvasData,
   PreviewRenderRequest,
   PreviewWarning,
   WorkbenchDiscoveryRefresh,
@@ -1058,6 +1060,22 @@ export function App() {
           // plain literal props only.
           let resolvedSpec: Spec = templateResponse.spec;
           const siteUrl = workbenchConfig?.siteUrl ?? null;
+          // Fetch page data (pageTitle, breadcrumbs, mainEntity) for the
+          // selected preview entity concurrently with the draft-preview
+          // resolution below; it is awaited only after that chain so the
+          // round-trips overlap. Wrapped so a failure surfaces as a value
+          // instead of an unhandled rejection when the render aborts early.
+          const pageDataPromise =
+            siteUrl && selectedEntityId
+              ? fetchPreviewPageData(
+                  templateResponse.metadata.entityTypeId,
+                  selectedEntityId,
+                  pageSpecAbortController.signal,
+                ).then(
+                  (data) => ({ data }),
+                  (error: unknown) => ({ error }),
+                )
+              : null;
           if (siteUrl && selectedEntityId) {
             try {
               // Detect components referenced by the template that are not
@@ -1203,6 +1221,32 @@ export function App() {
 
           const specWithState: Spec = resolvedSpec;
 
+          // Page data is best-effort preview enrichment: a failure warns but
+          // does not block the render, which then falls back to the same
+          // empty page data as when no entity is selected.
+          let canvasData: PreviewRenderCanvasData | undefined;
+          if (pageDataPromise) {
+            const pageDataResult = await pageDataPromise;
+            if (pageSpecAbortController.signal.aborted) {
+              return;
+            }
+            if ('data' in pageDataResult) {
+              canvasData = pageDataResult.data;
+            } else if (
+              !(
+                pageDataResult.error instanceof DOMException &&
+                pageDataResult.error.name === 'AbortError'
+              )
+            ) {
+              toast.warning('Failed to load page data for preview', {
+                description:
+                  pageDataResult.error instanceof Error
+                    ? pageDataResult.error.message
+                    : 'Failed to load page data.',
+              });
+            }
+          }
+
           const renderId = `${selectedContentTemplate.slug}:${selectedEntityId ?? 'no-entity'}`;
           const templateMessage: PreviewRenderRequest = {
             source: 'canvas-workbench-parent',
@@ -1212,6 +1256,7 @@ export function App() {
               renderType: 'page',
               spec: specWithState,
               shellPath,
+              ...(canvasData ? { canvasData } : {}),
               ...(layoutPayload ? { layout: layoutPayload } : {}),
               registrySources: discoveryResult.components
                 .filter(

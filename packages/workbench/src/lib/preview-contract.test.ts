@@ -252,6 +252,89 @@ describe('preview-contract', () => {
     ).toBe(false);
   });
 
+  it('validates the optional canvasData render payload field', () => {
+    const validSpec = {
+      root: 'root',
+      elements: {
+        root: {
+          type: 'js.hero',
+          props: {},
+        },
+      },
+    };
+    const makeMessage = (canvasData: unknown) => ({
+      source: 'canvas-workbench-parent',
+      type: 'preview:render',
+      payload: {
+        renderId: 'id-1',
+        renderType: 'page',
+        spec: validSpec,
+        registrySources: [],
+        cssUrls: [],
+        canvasData,
+      },
+    });
+
+    expect(
+      isPreviewRenderRequest(
+        makeMessage({
+          pageTitle: 'Test page',
+          breadcrumbs: [{ key: '<front>', text: 'Home', url: '/' }],
+          mainEntity: {
+            bundle: 'article',
+            entityTypeId: 'node',
+            uuid: 'a5715314-9b06-42a4-8be4-8c555b12b869',
+            requestedLanguage: 'en',
+            renderedLanguage: 'en',
+            translations: [],
+          },
+        }),
+      ),
+    ).toBe(true);
+
+    expect(
+      isPreviewRenderRequest(
+        makeMessage({
+          pageTitle: '',
+          breadcrumbs: [],
+          mainEntity: null,
+        }),
+      ),
+    ).toBe(true);
+
+    expect(
+      isPreviewRenderRequest(
+        makeMessage({
+          pageTitle: 123,
+          breadcrumbs: [],
+          mainEntity: null,
+        }),
+      ),
+    ).toBe(false);
+
+    expect(
+      isPreviewRenderRequest(
+        makeMessage({
+          pageTitle: '',
+          breadcrumbs: [{ key: '<front>', text: 'Home' }],
+          mainEntity: null,
+        }),
+      ),
+    ).toBe(false);
+
+    expect(
+      isPreviewRenderRequest(
+        makeMessage({
+          pageTitle: '',
+          breadcrumbs: [],
+          mainEntity: { bundle: 'article', entityTypeId: 'node' },
+        }),
+      ),
+    ).toBe(false);
+
+    expect(isPreviewRenderRequest(makeMessage(null))).toBe(false);
+  });
+
   it('validates frame-to-parent event payloads', () => {
     expect(
       isPreviewFrameEvent({

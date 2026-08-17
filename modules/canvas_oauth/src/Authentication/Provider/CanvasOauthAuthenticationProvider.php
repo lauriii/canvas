@@ -67,6 +67,7 @@ class CanvasOauthAuthenticationProvider implements AuthenticationProviderInterfa
       'canvas.api.push.fail',
       'canvas.api.push.start',
       'canvas.api.layout.content_template_draft',
+      'canvas.api.page_data',
       'canvas.api.site_data',
       'canvas.api.ui.content_entity_reference.preview',
     ];
