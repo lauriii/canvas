@@ -9,6 +9,7 @@ use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\CanvasAssetInterface;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileSystemInterface;
 
@@ -48,31 +49,33 @@ final class GeneratedAssetCleanup {
   ];
 
   /**
-   * How long an unreferenced generated file is kept, in seconds.
+   * The shortest time an unreferenced generated file is kept, in seconds.
    *
    * A response that has already been sent still points at the previous file
    * name, so a file cannot be deleted the moment it stops being referenced:
    * that would strip the styling from every page still holding the old markup.
-   * Six hours is longer than any page cache or CDN lifetime a Drupal site sets
-   * by default, and the files are small.
+   * Six hours is the floor; ::getMaxAge() raises it to the page cache lifetime
+   * the site advertises when that is longer. The files are small, so keeping
+   * them longer than strictly necessary is cheap.
    */
-  private const int MAX_AGE = 21600;
+  private const int MINIMUM_MAX_AGE = 21600;
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly FileSystemInterface $fileSystem,
     private readonly TimeInterface $time,
+    private readonly ConfigFactoryInterface $configFactory,
   ) {}
 
   /**
-   * Deletes unreferenced generated files older than ::MAX_AGE.
+   * Deletes unreferenced generated files older than ::getMaxAge().
    *
    * @return list<string>
    *   The URIs that were deleted.
    */
   public function deleteStaleFiles(): array {
     $in_use = $this->getReferencedUris();
-    $cutoff = $this->time->getRequestTime() - self::MAX_AGE;
+    $cutoff = $this->time->getRequestTime() - $this->getMaxAge();
     $deleted = [];
 
     foreach (self::DIRECTORIES as $directory) {
@@ -97,6 +100,21 @@ final class GeneratedAssetCleanup {
     }
 
     return $deleted;
+  }
+
+  /**
+   * How long an unreferenced generated file is kept, in seconds.
+   *
+   * An unreferenced file has to outlive every response that still names it. For
+   * anonymous traffic that is bounded by the page cache lifetime the site
+   * advertises to proxies and CDNs, so honour it whenever it is longer than the
+   * floor rather than assuming six hours is enough everywhere.
+   *
+   * @see \Drupal\Core\EventSubscriber\FinishResponseSubscriber::setResponseCacheable()
+   */
+  private function getMaxAge(): int {
+    $page_max_age = (int) ($this->configFactory->get('system.performance')->get('cache.page.max_age') ?? 0);
+    return \max(self::MINIMUM_MAX_AGE, $page_max_age);
   }
 
   /**
