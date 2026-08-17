@@ -65,6 +65,50 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     $this->setUpCurrentUser(permissions: ['edit any article content', 'administer themes', Page::EDIT_PERMISSION]);
   }
 
+  /**
+   * Tests emptying a required formatted prop does not crash the instance form.
+   *
+   * When a Content Author clears the value of a required prop whose field type
+   * cannot supply a fallback value (e.g. a link/uri prop, or a datetime/date
+   * prop), ::clientModelToInput() omits the emptied prop — only integer/float
+   * props are retained with a fallback of 0. ::buildComponentInstanceForm()
+   * must still build the form (with an empty widget) so the validation system
+   * can surface the "required" error, instead of returning a 500.
+   *
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::buildComponentInstanceForm()
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::clientModelToInput()
+   * @see https://www.drupal.org/project/canvas/issues/3586183
+   */
+  public function testEmptiedRequiredUriPropBuildsFormWithoutError(): void {
+    $node = $this->createNode(['type' => 'article', 'title' => 'Test node']);
+    $node->save();
+
+    $component_id = 'sdc.canvas_test_sdc.my-cta';
+    $component_entity = Component::load($component_id);
+    \assert($component_entity instanceof ComponentInterface);
+
+    // The `my-cta` component has a required `href` prop with `format: uri`,
+    // backed by a `link` field.
+    $form_canvas_props = $this->getFormCanvasPropsForComponent($component_id);
+    self::assertArrayHasKey('href', $form_canvas_props['source']);
+
+    // Simulate the Content Author clearing the required URL field: the resolved
+    // value becomes NULL and the source value is emptied.
+    $form_canvas_props['resolved']['href'] = NULL;
+    $form_canvas_props['source']['href']['value'] = [];
+
+    // Building the instance form must not throw. Previously this triggered an
+    // AssertionError in ::buildComponentInstanceForm() and returned a 500.
+    $crawler = $this->getCrawlerForFormRequest('/canvas/api/v0/form/component-instance/node/1', $component_entity, $form_canvas_props);
+
+    // The required URL widget is still rendered (with an empty value) so the
+    // author can re-enter a value, and it is still marked required so normal
+    // validation applies.
+    $href_inputs = $crawler->filter('input[name*="[href]"][required]');
+    self::assertCount(1, $href_inputs);
+    self::assertSame('', $href_inputs->attr('value') ?? '');
+  }
+
   public function testDescription(): void {
     $node = $this->createNode(['type' => 'article', 'title' => 'Test node']);
     self::assertCount(0, $node->validate());
