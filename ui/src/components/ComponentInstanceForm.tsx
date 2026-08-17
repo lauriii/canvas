@@ -6,7 +6,7 @@ import React, {
   useState,
 } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
-import { Spinner, Text } from '@radix-ui/themes';
+import { Spinner } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { getPropsValues } from '@/components/form/react-hook-form/fields/componentFormData';
@@ -47,7 +47,7 @@ import type {
   RegionNode,
 } from '@/features/layout/layoutModelSlice';
 import type { AjaxUpdateFormStateEvent } from '@/types/Ajax';
-import type { CanvasComponent, FieldData } from '@/types/Component';
+import type { CanvasComponent } from '@/types/Component';
 import type { InputUIData } from '@/types/Form';
 import type { TransformConfig } from '@/utils/transforms';
 
@@ -287,8 +287,6 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
   const latestUndoRedoActionId = useAppSelector(selectLatestUndoRedoActionId);
 
   const [formQueryString, setFormQueryString] = useState('');
-  const [emptyProp, setEmptyProp] = useState(false);
-  const [componentSource, setComponentSource] = useState('');
   const [renderComponentId, setRenderComponentId] = useState<string | null>(
     null,
   );
@@ -339,7 +337,11 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
     ) {
       return;
     }
-    const selectedModel = model[selectedComponent];
+    // A component instance whose ComponentSource reports no explicit inputs
+    // gets no entry in the model, so treat a missing entry as an empty one
+    // rather than dereferencing it and crashing the contextual panel.
+    // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::getClientSideRepresentation()
+    const selectedModel = model[selectedComponent] ?? { resolved: {} };
     const node = findComponentByUuid(layout, selectedComponent);
     if (!node) {
       return;
@@ -349,22 +351,6 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
     // This is metadata about the props of the SDC being edited. This is specific
     // to the SDC *type* but unconcerned with this SDC *instance*.
     const component = components[selectedComponentType];
-    const selectedComponentFieldData: FieldData = isPropSourceComponent(
-      component,
-    )
-      ? component.propSources
-      : {};
-
-    // Check if this component has any props or not.
-    if (
-      isPropSourceComponent(component) &&
-      Object.keys(selectedComponentFieldData).length === 0
-    ) {
-      setFormQueryString('');
-      setEmptyProp(true);
-    } else {
-      setEmptyProp(false);
-    }
 
     const builtPreparedModel = buildPreparedModel(selectedModel, component);
     const prevModel = previousModelRef.current;
@@ -419,8 +405,6 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
     previousModelRef.current = builtPreparedModel;
     previousSelectedComponentRef.current = selectedComponent;
     previousLatestUndoRedoActionIdRef.current = latestUndoRedoActionId;
-
-    setComponentSource(components?.[selectedComponentType]?.source || '');
   }, [
     components,
     error,
@@ -433,14 +417,10 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
   return (
     formQueryString &&
     renderComponentId === selectedComponent && (
-      <>
-        <ComponentInstanceFormRenderer queryString={formQueryString} />
-        {componentSource === 'Module component' && emptyProp ? (
-          <Text size="4">This component has no props.</Text>
-        ) : (
-          ''
-        )}
-      </>
+      // A component instance with nothing to configure gets an empty state
+      // rendered by the server-side form.
+      // @see \Drupal\canvas\Form\ComponentInstanceForm::buildForm()
+      <ComponentInstanceFormRenderer queryString={formQueryString} />
     )
   );
 };
