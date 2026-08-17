@@ -101,7 +101,8 @@ const PageInfo = () => {
   const { data: patterns } = useGetPatternsQuery(undefined, {
     skip: !isPatternContext,
   });
-  const patternName = (patternId && patterns?.[patternId]?.name) || 'Pattern';
+  const patternName =
+    (patternId && patterns?.[patternId]?.name) || Drupal.t('Pattern');
   const layout = useAppSelector(selectLayout);
   const previouslyEdited = useAppSelector(selectPreviouslyEdited);
   const dispatch = useAppDispatch();
@@ -302,7 +303,7 @@ const PageInfo = () => {
           to={{
             pathname: previouslyEdited.path,
           }}
-          aria-label={`Back`}
+          aria-label={Drupal.t('Back')}
           title={`${previouslyEdited.name}`}
           onClick={() => {
             // Fetch a new version of the page data form as it has been
@@ -317,7 +318,7 @@ const PageInfo = () => {
         >
           <Button color="sky" variant="soft" size="1">
             <ChevronLeftIcon />
-            Back
+            {Drupal.t('Back')}
           </Button>
         </NavLink>
       ) : null}
@@ -334,7 +335,7 @@ const PageInfo = () => {
                 {isHeadlessFrontends ? (
                   <>
                     <GlobeIcon />
-                    Headless frontends
+                    {Drupal.t('Headless frontends')}
                   </>
                 ) : isCodeEditor ? (
                   <>
@@ -349,7 +350,7 @@ const PageInfo = () => {
                 ) : isTemplateRoute ? (
                   <>
                     {iconMap['Template']}
-                    {templateCaption || 'Template'}
+                    {templateCaption || Drupal.t('Template')}
                   </>
                 ) : (
                   <>
@@ -359,8 +360,8 @@ const PageInfo = () => {
                     {title !== undefined
                       ? title
                         ? title
-                        : 'Untitled page'
-                      : 'No page selected'}
+                        : Drupal.t('Untitled page')
+                      : Drupal.t('No page selected')}
                   </>
                 )}
                 <ChevronDownIcon />
@@ -394,7 +395,9 @@ const PageInfo = () => {
               )}
               {pageItemsError && (
                 <ErrorCard
-                  title="An unexpected error has occurred while loading pages."
+                  title={Drupal.t(
+                    'An unexpected error has occurred while loading pages.',
+                  )}
                   error={getQueryErrorMessage(pageItemsError)}
                 />
               )}
@@ -408,7 +411,7 @@ const PageInfo = () => {
               removeRegionFromPathname(location.pathname),
             ),
           }}
-          aria-label="Back to Content region"
+          aria-label={Drupal.t('Back to Content region')}
           onClick={() => {
             // Fetch a new version of the page data form as it has been
             // unmounted and the cached versions won't reflect any AJAX updates

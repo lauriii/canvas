@@ -215,7 +215,7 @@ const FolderList = ({
         data-testid="canvas-rename-folder-button"
         onClick={() => setIsRenaming(true)}
       >
-        Rename
+        {Drupal.t('Rename')}
       </UnifiedMenu.Item>
       <UnifiedMenu.Item
         data-testid="canvas-delete-folder-button"
@@ -224,11 +224,12 @@ const FolderList = ({
         color="red"
         title={
           hasItems
-            ? (deleteWarning ?? 'Cannot delete folder containing components')
+            ? (deleteWarning ??
+              Drupal.t('Cannot delete folder containing components'))
             : undefined
         }
       >
-        Delete folder
+        {Drupal.t('Delete folder')}
       </UnifiedMenu.Item>
     </>
   );
@@ -338,7 +339,7 @@ export const folderfyComponents = (
       if (!folderComponents[folderId]) {
         folderComponents[folderId] = {
           id: folderId,
-          name: folders.folders[folderId]?.name || 'Unknown folder',
+          name: folders.folders[folderId]?.name || Drupal.t('Unknown folder'),
           items: {},
           weight: folders.folders[folderId]?.weight || 0,
         };

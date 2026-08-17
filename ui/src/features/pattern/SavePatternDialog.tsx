@@ -29,17 +29,24 @@ function getErrorMessage(error: FetchBaseQueryError | SerializedError): string {
   if ('status' in error) {
     // TODO: I think any calls to /api/ should respond in JSON, not an HTML document?
     if (error.status === 'PARSING_ERROR') {
-      return 'The server returned an unexpected response format.';
+      return Drupal.t('The server returned an unexpected response format.');
     }
     if (error.status === 404) {
-      return 'Resource not found.';
+      return Drupal.t('Resource not found.');
     }
     // Handle other HTTP status errors generically
     const errorData = error.data as ErrorData;
-    return `Error ${error.status}: ${errorData?.message || 'No additional information'}`;
+    // Kept out of the argument list because Drupal's scanner reads the source
+    // as text, and a Drupal.t() call nested inside another call's arguments is
+    // not reliably extractable.
+    const noDetail = Drupal.t('No additional information');
+    return Drupal.t('Error !status: !message', {
+      '!status': error.status,
+      '!message': errorData?.message || noDetail,
+    });
   } else {
     // Handle SerializedError
-    return error.message || 'Unknown error occurred';
+    return error.message || Drupal.t('Unknown error occurred');
   }
 }
 
@@ -51,7 +58,7 @@ const SavePatternDialog: React.FC = () => {
   const layout = useAppSelector(selectLayout);
   const selectedNode = findComponentByUuid(layout, selectedComponent || '');
   const selectedComponentName = useGetComponentName(selectedNode);
-  const [patternName, setPatternName] = useState('My pattern');
+  const [patternName, setPatternName] = useState(Drupal.t('My pattern'));
   const [
     savePattern,
     { isLoading: isSaving, isSuccess, isError, error, reset },
@@ -71,7 +78,9 @@ const SavePatternDialog: React.FC = () => {
 
   useEffect(() => {
     if (selectedComponent) {
-      setPatternName(`${selectedComponentName} pattern`);
+      setPatternName(
+        Drupal.t('!name pattern', { '!name': selectedComponentName }),
+      );
     }
   }, [model, selectedComponent, selectedComponentName]);
 
@@ -122,21 +131,24 @@ const SavePatternDialog: React.FC = () => {
     <Dialog
       open={saveAsPattern}
       onOpenChange={handleOpenChange}
-      title="Add new pattern"
-      description={`Saving this configuration of "${selectedComponentName}" as a pattern allows it to be used again later and customized there without affecting other copies.`}
+      title={Drupal.t('Add new pattern')}
+      description={Drupal.t(
+        'Saving this configuration of "!name" as a pattern allows it to be used again later and customized there without affecting other copies.',
+        { '!name': selectedComponentName },
+      )}
       error={
         isError
           ? {
-              title: 'Failed to save pattern',
+              title: Drupal.t('Failed to save pattern'),
               message: getErrorMessage(error),
-              resetButtonText: 'Try again',
+              resetButtonText: Drupal.t('Try again'),
               onReset: handleSaveClick,
             }
           : undefined
       }
       footer={{
-        cancelText: 'Cancel',
-        confirmText: 'Add to library',
+        cancelText: Drupal.t('Cancel'),
+        confirmText: Drupal.t('Add to library'),
         onConfirm: handleSaveClick,
         isConfirmDisabled: !patternName.trim(),
         isConfirmLoading: isSaving,
@@ -145,13 +157,13 @@ const SavePatternDialog: React.FC = () => {
       <Flex direction="column" gap="2">
         <label>
           <DialogFieldLabel htmlFor={'patternName'}>
-            Pattern name
+            {Drupal.t('Pattern name')}
           </DialogFieldLabel>
           <TextField.Root
             autoComplete="off"
             value={patternName}
             onChange={handleInputChange}
-            placeholder="Enter a name"
+            placeholder={Drupal.t('Enter a name')}
             id="patternName"
             name="patternName"
             size="1"

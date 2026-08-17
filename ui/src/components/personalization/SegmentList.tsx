@@ -86,7 +86,9 @@ const SortableTableRow = ({
       </Table.Cell>
       <Table.Cell>
         <Badge color={status ? 'green' : 'gray'}>
-          {status ? 'Enabled' : 'Disabled'}
+          {status
+            ? Drupal.t('Enabled', {}, { context: 'Canvas segment state' })
+            : Drupal.t('Disabled', {}, { context: 'Canvas segment state' })}
         </Badge>
       </Table.Cell>
       <Table.Cell>{label}</Table.Cell>
@@ -105,31 +107,36 @@ const SortableTableRow = ({
                     onToggleSegment?.(id, !status);
                   }}
                 >
-                  {status ? 'Disable segment' : 'Enable segment'}
+                  {status
+                    ? Drupal.t('Disable segment')
+                    : Drupal.t('Enable segment')}
                 </DropdownMenu.Item>
                 <DropdownMenu.Item onSelect={() => onEditSegment?.(id)}>
-                  Edit segment rules
+                  {Drupal.t('Edit segment rules')}
                 </DropdownMenu.Item>
                 <DropdownMenu.Item
                   onSelect={() =>
-                    onRenameSegment?.(id, prompt('New segment name') || label)
+                    onRenameSegment?.(
+                      id,
+                      prompt(Drupal.t('New segment name')) || label,
+                    )
                   }
                 >
-                  Rename segment
+                  {Drupal.t('Rename segment')}
                 </DropdownMenu.Item>
                 <DropdownMenu.Separator />
                 <DropdownMenu.Item
                   color="red"
                   onSelect={() => onDeleteSegment?.(id)}
                 >
-                  Delete segment
+                  {Drupal.t('Delete segment')}
                 </DropdownMenu.Item>
               </DropdownMenu.Content>
             </DropdownMenu.Root>
           )}
           <Button variant="outline" onClick={() => onPreviewSegment?.(id)}>
             <EyeOpenIcon />
-            <span className={styles.previewLabel}>Preview</span>
+            <span className={styles.previewLabel}>{Drupal.t('Preview')}</span>
           </Button>
         </Flex>
       </Table.Cell>
@@ -187,7 +194,7 @@ const SegmentList = ({
     <Flex direction="column" gap="4">
       {sortedSegments.length > 0 && (
         <Text size="3" weight="bold">
-          Personalization segments
+          {Drupal.t('Personalization segments')}
         </Text>
       )}
       <Card className={styles.segmentListCard}>
@@ -202,9 +209,11 @@ const SegmentList = ({
                 <Table.Row>
                   <Table.ColumnHeaderCell width="2rem"></Table.ColumnHeaderCell>
                   <Table.ColumnHeaderCell width="6rem">
-                    Status
+                    {Drupal.t('Status')}
                   </Table.ColumnHeaderCell>
-                  <Table.ColumnHeaderCell>Segment title</Table.ColumnHeaderCell>
+                  <Table.ColumnHeaderCell>
+                    {Drupal.t('Segment title')}
+                  </Table.ColumnHeaderCell>
                   <Table.ColumnHeaderCell width="12rem"></Table.ColumnHeaderCell>
                 </Table.Row>
               </Table.Header>
@@ -234,15 +243,16 @@ const SegmentList = ({
             <Flex align="center" gap="0" direction="column">
               <Crosshair2Icon />
               <Text size="1" weight="medium">
-                Create a new segment
+                {Drupal.t('Create a new segment')}
               </Text>
               <Text size="1" align="center">
-                A segment is a group of visitors with shared interests or
-                behaviors.
+                {Drupal.t(
+                  'A segment is a group of visitors with shared interests or behaviors.',
+                )}
               </Text>
             </Flex>
             <Button onClick={onCreateSegment}>
-              <PlusIcon /> Create Segment
+              <PlusIcon /> {Drupal.t('Create Segment')}
             </Button>
           </Flex>
         )}

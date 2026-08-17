@@ -79,19 +79,24 @@ const CodeComponentImports = () => {
             <InfoCircledIcon />
           </Callout.Icon>
           <Callout.Text>
-            Insert an import statement into your code editor.
+            {Drupal.t('Insert an import statement into your code editor.')}
           </Callout.Text>
         </Callout.Root>
       </Box>
       <Flex direction="column" gap="4" py="4" mx="auto" maxWidth="500px">
         <FormElement>
-          <Label htmlFor="imports-list">Available code components</Label>
+          <Label htmlFor="imports-list">
+            {Drupal.t('Available code components')}
+          </Label>
           <Select.Root
             size="1"
             value={importSource}
             onValueChange={generateImportStatement}
           >
-            <Select.Trigger id="imports-list" placeholder="Select component" />
+            <Select.Trigger
+              id="imports-list"
+              placeholder={Drupal.t('Select component')}
+            />
             <Select.Content>
               {filteredComponents &&
                 Object.entries(filteredComponents).map(([id, component]) => {
@@ -170,10 +175,12 @@ const InsertableCodeBlock = ({ children }: { children: React.ReactNode }) => {
       <Code variant="outline" className={styles.code}>
         <Flex align="center" justify="between">
           {children}
-          <Tooltip content="Insert">
+          <Tooltip
+            content={Drupal.t('Insert', {}, { context: 'Canvas code editor' })}
+          >
             <IconButton
               onClick={handleInsert}
-              aria-label="Insert code"
+              aria-label={Drupal.t('Insert code')}
               variant="soft"
               data-testid="canvas-insert-import-button"
               size="1"

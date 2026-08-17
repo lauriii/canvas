@@ -110,13 +110,14 @@ function LibraryItemList<T extends { id: string; name: string }>({
     return (
       <EmptyStateCallout
         title={
-          searchTerm ? (
-            <>
-              No results for "<strong>{searchTerm}</strong>" in {topLevelLabel}
-            </>
-          ) : (
-            <>No items to show in {topLevelLabel}</>
-          )
+          searchTerm
+            ? Drupal.t('No results for "!term" in !label', {
+                '!term': searchTerm,
+                '!label': topLevelLabel,
+              })
+            : Drupal.t('No items to show in !label', {
+                '!label': topLevelLabel,
+              })
         }
       />
     );

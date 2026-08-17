@@ -255,12 +255,15 @@ const DrupalDatetimeMultivalueForm = ({
   // Build the combined display value.
   const combinedDisplayValue = (() => {
     if (!hasTime) {
-      return formatDateForDisplay(displayDate) || 'Empty';
+      return (
+        formatDateForDisplay(displayDate) ||
+        Drupal.t('Empty', {}, { context: 'Canvas field value' })
+      );
     }
     if (displayDate || displayTime) {
       return `${formatDateForDisplay(displayDate)}${displayDate && displayTime ? ', ' : ''}${formatTimeForDisplay(displayTime)}`;
     }
-    return 'Empty';
+    return Drupal.t('Empty', {}, { context: 'Canvas field value' });
   })();
 
   return (
@@ -279,7 +282,10 @@ const DrupalDatetimeMultivalueForm = ({
               ref={triggerButtonRef}
               className={styles.listItem}
               type="button"
-              aria-label={`Edit ${fieldLabel}: ${combinedDisplayValue}`}
+              aria-label={Drupal.t('Edit !label: !value', {
+                '!label': fieldLabel,
+                '!value': combinedDisplayValue,
+              })}
             >
               <Text
                 size="2"
@@ -314,7 +320,7 @@ const DrupalDatetimeMultivalueForm = ({
             <Text size="1" weight="medium" className={styles.popoverLabel}>
               {fieldLabel}
             </Text>
-            <Popover.Close aria-label="Close">
+            <Popover.Close aria-label={Drupal.t('Close')}>
               <Cross2Icon />
             </Popover.Close>
           </Flex>
@@ -333,7 +339,7 @@ const DrupalDatetimeMultivalueForm = ({
               disabled={!isRemoveButtonEnabled(triggerRowRef.current)}
             >
               <TrashIcon />
-              Remove
+              {Drupal.t('Remove')}
             </Button>
           </Flex>
         </Popover.Content>

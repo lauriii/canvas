@@ -79,9 +79,13 @@ const EmptyRegionDropZone: React.FC<EmptyRegionDropZoneProps> = (props) => {
           <>
             {isTemplateRoute ? <TemplateIcon /> : <FileTextIcon />}
             <Text weight={'medium'} mt="2" trim="start">
-              {isTemplateRoute ? templateCaption || 'Template' : 'Page content'}
+              {isTemplateRoute
+                ? templateCaption || Drupal.t('Template')
+                : Drupal.t('Page content')}
             </Text>
-            <div className={styles.regionMessage}>Place items here</div>
+            <div className={styles.regionMessage}>
+              {Drupal.t('Place items here')}
+            </div>
           </>
         )}
       </div>

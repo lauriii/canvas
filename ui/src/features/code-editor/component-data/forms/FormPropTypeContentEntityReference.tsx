@@ -86,7 +86,9 @@ export default function FormPropTypeContentEntityReference({
       <Divider />
       {error && (
         <Callout.Root color="red" size="1">
-          <Callout.Text>Failed to load entity types.</Callout.Text>
+          <Callout.Text>
+            {Drupal.t('Failed to load entity types.')}
+          </Callout.Text>
         </Callout.Root>
       )}
 
@@ -122,19 +124,21 @@ function NoTargetSelected({ onPick }: { onPick: () => void }) {
   return (
     <Flex direction="column" align="center" gap="2" py="4">
       <Text size="2" weight="bold">
-        No type selected
+        {Drupal.t('No type selected')}
       </Text>
       <Flex direction="column" align="center">
         <Text size="1" color="gray" align="center">
-          Select the type editors can link to.
+          {Drupal.t('Select the type editors can link to.')}
         </Text>
         <Text size="1" color="gray" align="center">
-          Then, choose which fields to return in the component props.
+          {Drupal.t(
+            'Then, choose which fields to return in the component props.',
+          )}
         </Text>
       </Flex>
       <Button size="1" variant="outline" onClick={onPick} mt="2">
         <PlusIcon />
-        Add type
+        {Drupal.t('Add type')}
       </Button>
     </Flex>
   );
@@ -158,13 +162,14 @@ function TargetSummary({
     >
       <Flex align="center" gap="2">
         <Text size="1">
-          Entity Type: <Text weight="medium">{entityTypeLabel}</Text>
+          {Drupal.t('Entity Type:')}{' '}
+          <Text weight="medium">{entityTypeLabel}</Text>
         </Text>
         <Text size="1" color="gray">
           |
         </Text>
         <Text size="1">
-          Bundle: <Text weight="medium">{bundleLabel}</Text>
+          {Drupal.t('Bundle:')} <Text weight="medium">{bundleLabel}</Text>
         </Text>
       </Flex>
     </Box>
@@ -200,7 +205,7 @@ function FieldList({
           }}
         >
           <Text size="1" weight="medium">
-            Entity fields ({fields.length})
+            {Drupal.t('Entity fields (!number)', { '!number': fields.length })}
           </Text>
         </button>
         <Flex align="center" gap="2">
@@ -212,13 +217,15 @@ function FieldList({
             style={{ color: 'var(--blue-9)', fontWeight: 500 }}
           >
             <Pencil1Icon />
-            Edit
+            {Drupal.t('Edit', {}, { context: 'Canvas code component' })}
           </Button>
           <IconButton
             size="1"
             variant="ghost"
             color="gray"
-            aria-label={expanded ? 'Collapse fields' : 'Expand fields'}
+            aria-label={
+              expanded ? Drupal.t('Collapse fields') : Drupal.t('Expand fields')
+            }
             aria-controls={summaryId}
             onClick={toggleExpanded}
           >

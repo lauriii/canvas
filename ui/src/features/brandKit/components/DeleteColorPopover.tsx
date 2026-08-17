@@ -75,11 +75,15 @@ const DeleteColorPopover = ({
             <Flex gap="2" align="center">
               <TrashIcon className={styles.titleIcon} />
               <Text size="2" weight="bold">
-                Delete color
+                {Drupal.t('Delete color')}
               </Text>
             </Flex>
             <Popover.Close asChild>
-              <IconButton variant="ghost" size="1" aria-label="Close">
+              <IconButton
+                variant="ghost"
+                size="1"
+                aria-label={Drupal.t('Close')}
+              >
                 <Cross2Icon />
               </IconButton>
             </Popover.Close>
@@ -87,13 +91,21 @@ const DeleteColorPopover = ({
 
           <Box px="3" py="4">
             <Text size="2">
-              You are about to permanently delete the <b>{color.name}</b> color.
+              {Drupal.t(
+                'You are about to permanently delete the !name color.',
+                {
+                  '!name': color.name,
+                },
+              )}
             </Text>
           </Box>
 
           {errorMessage && (
             <Box px="3" pb="3">
-              <ErrorCard title="Failed to delete color" error={errorMessage} />
+              <ErrorCard
+                title={Drupal.t('Failed to delete color')}
+                error={errorMessage}
+              />
             </Box>
           )}
 
@@ -108,7 +120,7 @@ const DeleteColorPopover = ({
           >
             <Popover.Close asChild>
               <Button variant="outline" size="1">
-                Cancel
+                {Drupal.t('Cancel')}
               </Button>
             </Popover.Close>
             <Button
@@ -117,7 +129,7 @@ const DeleteColorPopover = ({
               size="1"
               color="red"
             >
-              Delete
+              {Drupal.t('Delete')}
             </Button>
           </Flex>
         </Popover.Content>

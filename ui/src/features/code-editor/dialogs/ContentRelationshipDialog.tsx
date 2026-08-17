@@ -132,7 +132,11 @@ function ExpandButton({
       size="1"
       variant="ghost"
       color="blue"
-      aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${label}`}
+      aria-label={
+        isExpanded
+          ? Drupal.t('Collapse !label', { '!label': label })
+          : Drupal.t('Expand !label', { '!label': label })
+      }
       onClick={onClick}
     >
       {isExpanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
@@ -140,22 +144,31 @@ function ExpandButton({
   );
 }
 
+// The count and the noun it governs are translated as one sentence rather than
+// assembled from parts, because the plural form and the word order both depend
+// on the language.
 function SelectedCountText({
   count,
-  singular = 'referenced entity property',
-  plural = 'referenced entity properties',
-  suffix = 'selected',
+  variant = 'referenced',
 }: {
   count: number;
-  singular?: string;
-  plural?: string;
-  suffix?: string;
+  variant?: 'referenced' | 'api';
 }) {
   if (count === 0) return null;
 
   return (
     <Text size="1" color="gray" style={{ fontStyle: 'italic' }}>
-      ({count} {count === 1 ? singular : plural} {suffix})
+      {variant === 'api'
+        ? Drupal.formatPlural(
+            count,
+            '(1 property returned in the API)',
+            '(@count properties returned in the API)',
+          )
+        : Drupal.formatPlural(
+            count,
+            '(1 referenced entity property selected)',
+            '(@count referenced entity properties selected)',
+          )}
     </Text>
   );
 }
@@ -179,7 +192,7 @@ function RelationshipBadge({
     label =
       bundleIds.length === 1 && bundleIds[0] === entityType
         ? capitalized
-        : `${capitalized} type`;
+        : Drupal.t('!type type', { '!type': capitalized });
   }
 
   return (
@@ -295,7 +308,7 @@ function FieldsTree({
       <Flex py="2" align="center" gap="2">
         <Spinner size="1" />
         <Text size="1" color="gray">
-          Loading fields…
+          {Drupal.t('Loading fields…')}
         </Text>
       </Flex>
     );
@@ -305,7 +318,7 @@ function FieldsTree({
     return (
       <Box py="1">
         <Callout.Root color="red" size="1">
-          <Callout.Text>Failed to load fields.</Callout.Text>
+          <Callout.Text>{Drupal.t('Failed to load fields.')}</Callout.Text>
         </Callout.Root>
       </Box>
     );
@@ -315,7 +328,7 @@ function FieldsTree({
     return (
       <Box py="1">
         <Text size="1" color="gray">
-          No fields available.
+          {Drupal.t('No fields available.')}
         </Text>
       </Box>
     );
@@ -678,7 +691,7 @@ function ContentRelationshipTitle() {
         <CubeIcon />
       </Flex>
       <Text size="2" weight="bold">
-        Content Relationship
+        {Drupal.t('Content Relationship')}
       </Text>
     </Flex>
   );
@@ -801,8 +814,8 @@ export default function ContentRelationshipDialog({
       title={<ContentRelationshipTitle />}
       headerClose
       footer={{
-        cancelText: 'Cancel',
-        confirmText: showFields ? 'Save' : 'Continue',
+        cancelText: Drupal.t('Cancel'),
+        confirmText: showFields ? Drupal.t('Save') : Drupal.t('Continue'),
         onCancel: () => onOpenChange(false),
         onConfirm: handleConfirm,
         isConfirmDisabled,
@@ -818,20 +831,23 @@ export default function ContentRelationshipDialog({
         <Flex direction="column" gap="3">
           <Flex direction="column" gap="1">
             <Text size="2" weight="bold">
-              Allowed type
+              {Drupal.t('Allowed type')}
             </Text>
             <Text size="1" color="gray">
-              Select a single type that editors can link to.
+              {Drupal.t('Select a single type that editors can link to.')}
             </Text>
             <Text size="1" color="gray">
-              For the selected type, choose which fields to include in the API
-              response.
+              {Drupal.t(
+                'For the selected type, choose which fields to include in the API response.',
+              )}
             </Text>
           </Flex>
 
           {typesError && (
             <Callout.Root color="red" size="1">
-              <Callout.Text>Failed to load entity types.</Callout.Text>
+              <Callout.Text>
+                {Drupal.t('Failed to load entity types.')}
+              </Callout.Text>
             </Callout.Root>
           )}
 
@@ -839,7 +855,7 @@ export default function ContentRelationshipDialog({
             <Flex gap="3" wrap="wrap">
               <Flex direction="column" gap="1" flexBasis="200px" flexGrow="1">
                 <Text size="1" weight="bold">
-                  Entity type
+                  {Drupal.t('Entity type')}
                 </Text>
                 <Select.Root
                   value={entityType ?? ''}
@@ -847,7 +863,9 @@ export default function ContentRelationshipDialog({
                   size="1"
                   disabled={typesLoading || !entityTypes}
                 >
-                  <Select.Trigger placeholder="Select entity type" />
+                  <Select.Trigger
+                    placeholder={Drupal.t('Select entity type')}
+                  />
                   <Select.Content>
                     {entityTypes &&
                       Object.entries(entityTypes).map(([typeId, { label }]) => (
@@ -860,7 +878,7 @@ export default function ContentRelationshipDialog({
               </Flex>
               <Flex direction="column" gap="1" flexBasis="200px" flexGrow="1">
                 <Text size="1" weight="bold">
-                  Bundle
+                  {Drupal.t('Bundle')}
                 </Text>
                 <Select.Root
                   value={bundle ?? ''}
@@ -868,7 +886,7 @@ export default function ContentRelationshipDialog({
                   size="1"
                   disabled={!entityType || bundleOptions.length === 0}
                 >
-                  <Select.Trigger placeholder="Select bundle" />
+                  <Select.Trigger placeholder={Drupal.t('Select bundle')} />
                   <Select.Content>
                     {bundleOptions.map((option) => (
                       <Select.Item key={option.id} value={option.id}>
@@ -891,19 +909,14 @@ export default function ContentRelationshipDialog({
                 <ChevronCell>
                   <ExpandButton
                     isExpanded={bundleExpanded}
-                    label="fields"
+                    label={Drupal.t('fields')}
                     onClick={() => setBundleExpanded((v) => !v)}
                   />
                 </ChevronCell>
                 <Text size="2" weight="bold">
                   {bundleLabel}
                 </Text>
-                <SelectedCountText
-                  count={pickedCount}
-                  singular="property"
-                  plural="properties"
-                  suffix="returned in the API"
-                />
+                <SelectedCountText count={pickedCount} variant="api" />
                 <Box flexGrow="1" />
                 {entityType && (
                   <RelationshipBadge
@@ -916,7 +929,7 @@ export default function ContentRelationshipDialog({
                     size="1"
                     variant="ghost"
                     color="gray"
-                    aria-label="Reset type and bundle"
+                    aria-label={Drupal.t('Reset type and bundle')}
                     onClick={handleReset}
                   >
                     <Cross2Icon />

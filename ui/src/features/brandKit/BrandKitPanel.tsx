@@ -12,13 +12,13 @@ const BrandKitPanel = () => (
         value="colors"
         data-testid="canvas-brand-kit-colors-tab-select"
       >
-        Colors
+        {Drupal.t('Colors', {}, { context: 'Canvas brand kit' })}
       </Tabs.Trigger>
       <Tabs.Trigger
         value="fonts"
         data-testid="canvas-brand-kit-fonts-tab-select"
       >
-        Fonts
+        {Drupal.t('Fonts', {}, { context: 'Canvas brand kit' })}
       </Tabs.Trigger>
     </Tabs.List>
     <Flex py="2" className={styles.tabWrapper}>

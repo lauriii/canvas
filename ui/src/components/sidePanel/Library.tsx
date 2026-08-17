@@ -35,14 +35,14 @@ const Library = () => {
             value="components"
             data-testid="canvas-library-components-tab-select"
           >
-            Components
+            {Drupal.t('Components')}
           </Tabs.Trigger>
           {!externalComponentsOnly && (
             <Tabs.Trigger
               value="patterns"
               data-testid="canvas-library-patterns-tab-select"
             >
-              Patterns
+              {Drupal.t('Patterns')}
             </Tabs.Trigger>
           )}
         </Tabs.List>
@@ -52,7 +52,11 @@ const Library = () => {
             className={styles.tabContent}
             data-testid="canvas-library-components-tab-content"
           >
-            <ErrorBoundary title="An unexpected error has occurred while fetching components.">
+            <ErrorBoundary
+              title={Drupal.t(
+                'An unexpected error has occurred while fetching components.',
+              )}
+            >
               <LibraryToolbar
                 type={'component'}
                 searchTerm={searchTerm}
@@ -71,7 +75,11 @@ const Library = () => {
               className={styles.tabContent}
               data-testid="canvas-library-patterns-tab-content"
             >
-              <ErrorBoundary title="An unexpected error has occurred while fetching patterns.">
+              <ErrorBoundary
+                title={Drupal.t(
+                  'An unexpected error has occurred while fetching patterns.',
+                )}
+              >
                 <LibraryToolbar
                   type={'pattern'}
                   searchTerm={searchTerm}

@@ -166,12 +166,12 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
       style={style}
     >
       <button className="visually-hidden" onClick={handleComponentClick}>
-        Select component
+        {Drupal.t('Select component')}
       </button>
 
       <ComponentContextMenu component={component}>
         <div
-          aria-label={`Draggable component ${name}`}
+          aria-label={Drupal.t('Draggable component !name', { '!name': name })}
           ref={setNodeRef}
           {...listeners}
           {...attributes}

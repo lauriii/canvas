@@ -201,8 +201,8 @@ const ColorPicker = ({
           <Tooltip
             content={
               hasEyeDropper
-                ? 'Pick a color from the screen'
-                : 'Not available in this browser'
+                ? Drupal.t('Pick a color from the screen')
+                : Drupal.t('Not available in this browser')
             }
           >
             <IconButton
@@ -212,7 +212,7 @@ const ColorPicker = ({
               onClick={handleEyeDropper}
               disabled={!hasEyeDropper}
               className={styles.eyeDropperButton}
-              aria-label="Pick color from screen"
+              aria-label={Drupal.t('Pick color from screen')}
             >
               {/* Eyedropper/pipette SVG icon.  */}
               <svg
@@ -232,7 +232,7 @@ const ColorPicker = ({
           <div
             className={styles.colorSwatch}
             style={{ backgroundColor: currentColorStyle }}
-            aria-label="Current color"
+            aria-label={Drupal.t('Current color')}
           />
         </div>
 

@@ -10,6 +10,12 @@ import { useCreateFolderMutation } from '@/services/componentAndLayout';
 import type { ReactNode } from 'react';
 import type { FolderType } from '@/types/Component';
 
+// The prefilled name doubles as the sentinel for "the user did not name it",
+// so the displayed value and the comparisons have to be the same translated
+// string. Translating them separately would leave the comparisons matching
+// English while the field shows a translation.
+const DEFAULT_FOLDER_NAME = Drupal.t('New folder');
+
 interface FolderNameInputProps {
   type: FolderType;
   onSuccess: () => void;
@@ -24,7 +30,7 @@ const FolderNameInput = ({
   onCancel,
   inputRowEnd,
 }: FolderNameInputProps) => {
-  const [folderName, setFolderName] = useState('New folder');
+  const [folderName, setFolderName] = useState(DEFAULT_FOLDER_NAME);
   const [validationError, setValidationError] = useState('');
   const [
     createFolder,
@@ -54,7 +60,11 @@ const FolderNameInput = ({
     if (isCreating || isSuccess) return;
 
     const trimmedName = folderName.trim();
-    if (!trimmedName || trimmedName === 'New folder' || validationError) {
+    if (
+      !trimmedName ||
+      trimmedName === DEFAULT_FOLDER_NAME ||
+      validationError
+    ) {
       cancel();
       return;
     }
@@ -70,7 +80,7 @@ const FolderNameInput = ({
     setFolderName(newName);
     reset();
     setValidationError(
-      newName.trim() && newName.trim() !== 'New folder'
+      newName.trim() && newName.trim() !== DEFAULT_FOLDER_NAME
         ? validateFolderNameClientSide(newName)
         : '',
     );
@@ -107,7 +117,7 @@ const FolderNameInput = ({
             autoFocus
             data-testid="canvas-manage-library-new-folder-name"
             id="folder-name"
-            placeholder="New folder"
+            placeholder={DEFAULT_FOLDER_NAME}
             variant="soft"
             onChange={(e) => handleOnChange(e.target.value)}
             onBlur={handleBlur}

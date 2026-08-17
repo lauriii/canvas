@@ -214,10 +214,10 @@ const ColorInputs = ({
                 value={rgba.r}
                 onChange={(e) => handleRChange(e.target.value)}
                 className={styles.rgbaNativeInput}
-                aria-label="Red value"
+                aria-label={Drupal.t('Red value')}
               />
               <label htmlFor="color-r" className={styles.rgbaLabel}>
-                R
+                {Drupal.t('R', {}, { context: 'Canvas color channel' })}
               </label>
             </div>
 
@@ -231,10 +231,10 @@ const ColorInputs = ({
                 value={rgba.g}
                 onChange={(e) => handleGChange(e.target.value)}
                 className={styles.rgbaNativeInput}
-                aria-label="Green value"
+                aria-label={Drupal.t('Green value')}
               />
               <label htmlFor="color-g" className={styles.rgbaLabel}>
-                G
+                {Drupal.t('G', {}, { context: 'Canvas color channel' })}
               </label>
             </div>
 
@@ -248,10 +248,10 @@ const ColorInputs = ({
                 value={rgba.b}
                 onChange={(e) => handleBChange(e.target.value)}
                 className={styles.rgbaNativeInput}
-                aria-label="Blue value"
+                aria-label={Drupal.t('Blue value')}
               />
               <label htmlFor="color-b" className={styles.rgbaLabel}>
-                B
+                {Drupal.t('B', {}, { context: 'Canvas color channel' })}
               </label>
             </div>
 
@@ -265,10 +265,10 @@ const ColorInputs = ({
                 value={rgba.a}
                 onChange={(e) => handleAChange(e.target.value)}
                 className={styles.rgbaNativeInput}
-                aria-label="Alpha value"
+                aria-label={Drupal.t('Alpha value')}
               />
               <label htmlFor="color-a-rgba" className={styles.rgbaLabel}>
-                A
+                {Drupal.t('A', {}, { context: 'Canvas color channel' })}
               </label>
             </div>
           </>
@@ -287,10 +287,10 @@ const ColorInputs = ({
                 value={Math.round(hsla.h)}
                 onChange={(e) => handleHChange(e.target.value)}
                 className={styles.rgbaNativeInput}
-                aria-label="Hue value"
+                aria-label={Drupal.t('Hue value')}
               />
               <label htmlFor="color-h" className={styles.rgbaLabel}>
-                H
+                {Drupal.t('H', {}, { context: 'Canvas color channel' })}
               </label>
             </div>
 
@@ -304,10 +304,10 @@ const ColorInputs = ({
                 value={Math.round(hsla.s)}
                 onChange={(e) => handleSChange(e.target.value)}
                 className={styles.rgbaNativeInput}
-                aria-label="Saturation value"
+                aria-label={Drupal.t('Saturation value')}
               />
               <label htmlFor="color-s" className={styles.rgbaLabel}>
-                S
+                {Drupal.t('S', {}, { context: 'Canvas color channel' })}
               </label>
             </div>
 
@@ -321,10 +321,10 @@ const ColorInputs = ({
                 value={Math.round(hsla.l)}
                 onChange={(e) => handleLChange(e.target.value)}
                 className={styles.rgbaNativeInput}
-                aria-label="Lightness value"
+                aria-label={Drupal.t('Lightness value')}
               />
               <label htmlFor="color-l" className={styles.rgbaLabel}>
-                L
+                {Drupal.t('L', {}, { context: 'Canvas color channel' })}
               </label>
             </div>
 
@@ -338,10 +338,10 @@ const ColorInputs = ({
                 value={hsla.a}
                 onChange={(e) => handleHslaAChange(e.target.value)}
                 className={styles.rgbaNativeInput}
-                aria-label="Alpha value"
+                aria-label={Drupal.t('Alpha value')}
               />
               <label htmlFor="color-a-hsla" className={styles.rgbaLabel}>
-                A
+                {Drupal.t('A', {}, { context: 'Canvas color channel' })}
               </label>
             </div>
           </>
@@ -360,12 +360,12 @@ const ColorInputs = ({
                 onFocus={handleHexFocus}
                 onBlur={handleHexBlur}
                 className={getHexInputClassName()}
-                aria-label="Hex color value"
+                aria-label={Drupal.t('Hex color value')}
                 aria-invalid={isHexInvalid}
               />
             </div>
             <label htmlFor="color-hex" className={styles.rgbaLabel}>
-              HEX
+              {Drupal.t('HEX', {}, { context: 'Canvas color channel' })}
             </label>
           </div>
         );
@@ -382,8 +382,8 @@ const ColorInputs = ({
         type="button"
         onClick={handleModeSwitch}
         className={styles.modeSwitch}
-        aria-label="Switch color format"
-        title="Switch color format"
+        aria-label={Drupal.t('Switch color format')}
+        title={Drupal.t('Switch color format')}
       >
         <CaretSortIcon />
       </button>

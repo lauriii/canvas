@@ -44,7 +44,11 @@ import type { BrandKit } from '@/types/CodeComponent';
 
 import styles from './Preview.module.css';
 
-const Drupal = getDrupal();
+// The Drupal global is deliberately not aliased to a module-level constant
+// here. Drupal's locale scanner looks for literal calls on the name `Drupal`
+// in the built bundle, and a local binding is renamed by the minifier, which
+// would make every translatable string in this file undiscoverable.
+// @see docs/react-codebase/translation.md
 const CANVAS_MODULE_PATH =
   `${getBaseUrl()}${getCanvasSettings().canvasModulePath}` as const;
 const CANVAS_MODULE_UI_PATH = `${CANVAS_MODULE_PATH}/ui` as const;
@@ -91,7 +95,9 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
   const importMapTags = useMemo(() => {
     const importMapEls = document.querySelectorAll('script[type="importmap"]');
     const previewImportMapAdditions = {
-      '@/components/': Drupal.url('canvas/api/v0/auto-saves/js/js_component/'),
+      '@/components/': getDrupal().url(
+        'canvas/api/v0/auto-saves/js/js_component/',
+      ),
     };
     return Array.from(importMapEls)
       .map((el) => {
@@ -146,7 +152,7 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
                 )
                 .map(
                   (componentName) =>
-                    `<link rel="stylesheet" href="${Drupal.url(`canvas/api/v0/auto-saves/css/js_component/${componentName}`)}" />`,
+                    `<link rel="stylesheet" href="${getDrupal().url(`canvas/api/v0/auto-saves/css/js_component/${componentName}`)}" />`,
                 )
                 .join('\n')
             : ''
@@ -299,14 +305,16 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
 
   const renderCompileError = () => (
     <ErrorCard
-      title="Error: There was an error compiling your code."
-      error="Check your browser's developer console for more details."
+      title={Drupal.t('Error: There was an error compiling your code.')}
+      error={Drupal.t(
+        "Check your browser's developer console for more details.",
+      )}
     />
   );
 
   const renderExportMissingError = () => (
     <ErrorCard
-      title="Error: Component is missing a default export."
+      title={Drupal.t('Error: Component is missing a default export.')}
       asChild={true}
     >
       <MissingDefaultExportMessage />
@@ -314,19 +322,22 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
   );
 
   const renderImportError = () => {
-    const title = `Error: Could not import JS component of id: ${jsImportNameWithError}`;
+    const title = Drupal.t('Error: Could not import JS component of id: !id', {
+      '!id': jsImportNameWithError,
+    });
     return (
       <ErrorCard title={title} asChild={true}>
         <Flex direction="column" gap="3">
           <TextBlock>
-            An auto-saved version of this component doesn't exist yet or your
-            import statement is using the wrong component id.
+            {Drupal.t(
+              "An auto-saved version of this component doesn't exist yet or your import statement is using the wrong component id.",
+            )}
           </TextBlock>
           <CodeBlock>import Heading from '@/components/component_id'</CodeBlock>
           <TextBlock>
-            To find the correct id for the component you are trying to import,
-            open the code editor for that component, and it will be in your
-            browser's URL.
+            {Drupal.t(
+              "To find the correct id for the component you are trying to import, open the code editor for that component, and it will be in your browser's URL.",
+            )}
           </TextBlock>
         </Flex>
       </ErrorCard>
@@ -362,7 +373,7 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
         {activeErrors.length === 0 && (
           <iframe
             className={styles.iframe}
-            title="Canvas Code Editor Preview"
+            title={Drupal.t('Canvas Code Editor Preview')}
             ref={iframeRef}
             height="100%"
             width="100%"

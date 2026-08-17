@@ -214,7 +214,7 @@ export default function FormPropTypeDate({
   return (
     <Flex direction="column" gap="4" flexGrow="1">
       <FormElement>
-        <Label htmlFor={`prop-date-type-${id}`}>Date type</Label>
+        <Label htmlFor={`prop-date-type-${id}`}>{Drupal.t('Date type')}</Label>
         <Select.Root
           value={dateType}
           onValueChange={(value: 'date' | 'date-time') => {
@@ -255,14 +255,24 @@ export default function FormPropTypeDate({
         >
           <Select.Trigger id={`prop-date-type-${id}`} />
           <Select.Content>
-            <Select.Item value="date">Date only</Select.Item>
-            <Select.Item value="date-time">Date and time</Select.Item>
+            <Select.Item value="date">
+              {Drupal.t('Date only', {}, { context: 'Canvas code component' })}
+            </Select.Item>
+            <Select.Item value="date-time">
+              {Drupal.t(
+                'Date and time',
+                {},
+                { context: 'Canvas code component' },
+              )}
+            </Select.Item>
           </Select.Content>
         </Select.Root>
       </FormElement>
       <Divider />
       <FormElement>
-        <Label htmlFor={`prop-example-${id}`}>Example value</Label>
+        <Label htmlFor={`prop-example-${id}`}>
+          {Drupal.t('Example value')}
+        </Label>
         {/* Single value mode */}
         {!allowMultiple && (
           <TextField.Root

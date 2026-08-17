@@ -56,22 +56,28 @@ const RenamePatternDialog = () => {
     <Dialog
       open={open}
       onOpenChange={handleOpenChange}
-      title="Rename pattern"
+      title={Drupal.t('Rename pattern')}
       error={
         isError
           ? {
-              title: 'Failed to rename pattern',
-              message: `An error ${
-                'status' in error ? '(HTTP ' + error.status + ')' : ''
-              } occurred while renaming the pattern. Please check the browser console for more details.`,
-              resetButtonText: 'Try again',
+              title: Drupal.t('Failed to rename pattern'),
+              message:
+                'status' in error
+                  ? Drupal.t(
+                      'An error (HTTP !status) occurred while renaming the pattern. Please check the browser console for more details.',
+                      { '!status': error.status },
+                    )
+                  : Drupal.t(
+                      'An error occurred while renaming the pattern. Please check the browser console for more details.',
+                    ),
+              resetButtonText: Drupal.t('Try again'),
               onReset: handleRename,
             }
           : undefined
       }
       footer={{
-        cancelText: 'Cancel',
-        confirmText: 'Rename',
+        cancelText: Drupal.t('Cancel'),
+        confirmText: Drupal.t('Rename'),
         onConfirm: handleRename,
         isConfirmDisabled: isEmptyOrUnchanged,
         isConfirmLoading: isLoading,
@@ -85,14 +91,14 @@ const RenamePatternDialog = () => {
       >
         <Flex direction="column" gap="2">
           <DialogFieldLabel htmlFor="patternRenameInput">
-            Pattern name
+            {Drupal.t('Pattern name')}
           </DialogFieldLabel>
           <TextField.Root
             autoComplete="off"
             id="patternRenameInput"
             value={patternName}
             onChange={(e) => setPatternName(e.target.value)}
-            placeholder="Enter a new name"
+            placeholder={Drupal.t('Enter a new name')}
             size="1"
           />
         </Flex>

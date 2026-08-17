@@ -22,7 +22,7 @@ const StaticFontVariantEditor = ({
   <Flex gap="3">
     <Flex direction="column" gap="2" flexGrow="1">
       <Text size="1" color="gray">
-        Weight
+        {Drupal.t('Weight', {}, { context: 'Canvas brand kit' })}
       </Text>
       <TextField.Root
         value={font.weight}
@@ -33,7 +33,7 @@ const StaticFontVariantEditor = ({
     </Flex>
     <Flex direction="column" gap="2" flexGrow="1">
       <Text size="1" color="gray">
-        Style
+        {Drupal.t('Style', {}, { context: 'Canvas brand kit' })}
       </Text>
       <Select.Root
         value={font.style}
@@ -43,8 +43,12 @@ const StaticFontVariantEditor = ({
       >
         <Select.Trigger />
         <Select.Content position="popper" className={styles.styleSelectContent}>
-          <Select.Item value="normal">Normal</Select.Item>
-          <Select.Item value="italic">Italic</Select.Item>
+          <Select.Item value="normal">
+            {Drupal.t('Normal', {}, { context: 'Canvas brand kit' })}
+          </Select.Item>
+          <Select.Item value="italic">
+            {Drupal.t('Italic', {}, { context: 'Canvas brand kit' })}
+          </Select.Item>
         </Select.Content>
       </Select.Root>
     </Flex>

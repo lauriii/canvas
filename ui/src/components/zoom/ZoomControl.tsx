@@ -38,7 +38,7 @@ const ZoomControl = (props: { buttonClass: string }) => {
       <Select.Trigger
         variant="surface"
         color="gray"
-        aria-label="Select zoom level"
+        aria-label={Drupal.t('Select zoom level')}
         className={buttonClass}
       >
         <Flex

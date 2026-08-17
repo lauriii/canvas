@@ -206,7 +206,9 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
           className={clsx(styles.linker, {
             [styles.linkerOpen]: linkerOpen,
           })}
-          aria-label={`Link ${propName} to an other field`}
+          aria-label={Drupal.t('Link !prop to an other field', {
+            '!prop': propName,
+          })}
           data-canvas-link-suggestions={JSON.stringify(flatSuggestions)}
         >
           {linked && <Link1Icon className={styles.default} />}

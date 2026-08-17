@@ -74,9 +74,12 @@ const FontFamiliesList = ({
             className={styles.familyRow}
             data-state={openFamily === fontGroup.family ? 'active' : 'inactive'}
             aria-expanded={openFamily === fontGroup.family}
-            aria-label={`Open ${fontGroup.family} font details, ${fontGroup.fonts.length} ${
-              fontGroup.fonts.length === 1 ? 'variant' : 'variants'
-            } uploaded`}
+            aria-label={Drupal.formatPlural(
+              fontGroup.fonts.length,
+              'Open !family font details, 1 variant uploaded',
+              'Open !family font details, @count variants uploaded',
+              { '!family': fontGroup.family },
+            )}
           >
             <Box className={styles.familyMeta}>
               <Text size="1" weight="medium" className={styles.familyName}>

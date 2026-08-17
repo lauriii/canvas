@@ -25,7 +25,7 @@ export const RegionContextMenuContent: React.FC<
 
   return (
     <UnifiedMenu.Content
-      aria-label="Context menu for region"
+      aria-label={Drupal.t('Context menu for region')}
       menuType={menuType}
       align="start"
       side="right"
@@ -33,7 +33,7 @@ export const RegionContextMenuContent: React.FC<
       <UnifiedMenu.Label>{region.name}</UnifiedMenu.Label>
       <UnifiedMenu.Separator />
       <UnifiedMenu.Item onClick={handleEditGlobalRegion}>
-        Edit global region
+        {Drupal.t('Edit global region')}
       </UnifiedMenu.Item>
     </UnifiedMenu.Content>
   );

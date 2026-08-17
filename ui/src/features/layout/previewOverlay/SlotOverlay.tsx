@@ -79,7 +79,10 @@ const SlotOverlay: React.FC<SlotOverlayProps> = ({
 
   return (
     <div
-      aria-label={`${slotName} (${parentComponentName})`}
+      aria-label={Drupal.t('!slot (!component)', {
+        '!slot': slotName,
+        '!component': parentComponentName,
+      })}
       className={clsx('slotOverlay', styles.slotOverlay, {
         [styles.selected]: slotId === selectedComponent,
         [styles.hovered]: isHovered,
@@ -91,7 +94,10 @@ const SlotOverlay: React.FC<SlotOverlayProps> = ({
       {(targetSlot === slotId || isHovered) && (
         <div className={clsx(styles.canvasNameTag, styles.canvasNameTagSlot)}>
           <SlotNameTag
-            name={`${slotName} (${parentComponentName})`}
+            name={Drupal.t('!slot (!component)', {
+              '!slot': slotName,
+              '!component': parentComponentName,
+            })}
             id={slotId}
             nodeType={slot.nodeType}
           />

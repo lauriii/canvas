@@ -49,8 +49,9 @@ const VersionPreview = () => {
     return (
       <div className={styles.container}>
         <p className={styles.error}>
-          Unable to load the {isPublished ? 'published' : 'auto-save'} version
-          preview.
+          {isPublished
+            ? Drupal.t('Unable to load the published version preview.')
+            : Drupal.t('Unable to load the auto-save version preview.')}
         </p>
       </div>
     );
@@ -67,7 +68,11 @@ const VersionPreview = () => {
   return (
     <div className={styles.container}>
       <iframe
-        title={`${isPublished ? 'Published' : 'New'} version preview`}
+        title={
+          isPublished
+            ? Drupal.t('Published version preview')
+            : Drupal.t('New version preview')
+        }
         style={{ width: widthVal }}
         srcDoc={data.html}
         className={styles.iframe}

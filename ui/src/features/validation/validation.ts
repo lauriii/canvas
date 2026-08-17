@@ -7,11 +7,13 @@
 export const validateCodeMachineNameClientSide = (name: string) => {
   const cleanedName = name.toLowerCase().replace(/\s+/g, '_');
   if (/^\d/.test(cleanedName)) {
-    return 'Name cannot start with a number';
+    return Drupal.t('Name cannot start with a number');
   }
   // @see Regex from config/schema/canvas.schema.yml#canvas.js_component.*.
   if (!/^[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*$/.test(cleanedName)) {
-    return 'Special characters are not allowed. Name cannot start or end with a hyphen, underscore, or whitespace.';
+    return Drupal.t(
+      'Special characters are not allowed. Name cannot start or end with a hyphen, underscore, or whitespace.',
+    );
   }
   return '';
 };
@@ -22,10 +24,10 @@ export const validateFolderNameClientSide = (name: string) => {
   const trimmedName = name.trim();
   const cleanedName = trimmedName.toLowerCase().replace(/\s+/g, '_');
   if (/^[-_]|[-_]$/.test(cleanedName)) {
-    return 'Name cannot start or end with a hyphen or underscore.';
+    return Drupal.t('Name cannot start or end with a hyphen or underscore.');
   }
   if (/[^a-zA-Z0-9_-]/.test(cleanedName)) {
-    return 'Special characters are not allowed.';
+    return Drupal.t('Special characters are not allowed.');
   }
   return '';
 };
@@ -40,11 +42,13 @@ export const validateCssVariableClientSide = (value: string): string => {
   // Strip leading '--' if present — we accept input with or without it.
   const stripped = value.startsWith('--') ? value.slice(2) : value;
   if (!stripped) {
-    return 'Variable name cannot be empty.';
+    return Drupal.t('Variable name cannot be empty.');
   }
   // Must start with a letter, hyphen, or underscore; rest alphanumeric/hyphen/underscore.
   if (!/^[a-zA-Z_-][a-zA-Z0-9_-]*$/.test(stripped)) {
-    return 'Must be a valid CSS custom property name (letters, numbers, hyphens, underscores only).';
+    return Drupal.t(
+      'Must be a valid CSS custom property name (letters, numbers, hyphens, underscores only).',
+    );
   }
   return '';
 };

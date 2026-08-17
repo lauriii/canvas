@@ -100,7 +100,9 @@ export default function FormPropTypeTextField({
     <Flex direction="column" gap="4" flexGrow="1">
       <Divider />
       <FormElement>
-        <Label htmlFor={`prop-example-${id}`}>Example value</Label>
+        <Label htmlFor={`prop-example-${id}`}>
+          {Drupal.t('Example value')}
+        </Label>
         <TextField.Root
           autoComplete="off"
           id={`prop-example-${id}`}
@@ -108,9 +110,9 @@ export default function FormPropTypeTextField({
           step={type === 'integer' ? 1 : 'any'}
           placeholder={
             {
-              string: 'Enter a text value',
-              integer: 'Enter an integer',
-              number: 'Enter a number',
+              string: Drupal.t('Enter a text value'),
+              integer: Drupal.t('Enter an integer'),
+              number: Drupal.t('Enter a number'),
             }[type]
           }
           value={displayValue}

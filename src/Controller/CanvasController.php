@@ -110,10 +110,16 @@ HTML;
   public function __invoke(?string $entity_type, ?EntityInterface $entity) : HtmlResponse {
     // @phpstan-ignore-next-line function.alreadyNarrowedType
     \assert($this->validateTransformAssetLibraries());
-    // List of libraries to load in the preview iframe.
+    // List of libraries to load in the preview iframe. Previews show what the
+    // site's visitors will see, so they use the default theme's libraries. The
+    // active theme is the admin theme here, because the Canvas editor is an
+    // administrative route.
+    // @see canvas.boot.entity
     $preview_libraries = [
       'system/base',
-      ...$this->themeManager->getActiveTheme()->getLibraries(),
+      ...$this->themeInitialization
+        ->getActiveThemeByName($this->configFactory->get('system.theme')->get('default'))
+        ->getLibraries(),
     ];
 
     // Assets for the preview <iframe>s. They will be rendered by

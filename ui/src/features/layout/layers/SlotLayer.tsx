@@ -102,7 +102,9 @@ const SlotLayer: React.FC<SlotLayerProps> = ({
                     >
                       <button
                         aria-label={
-                          isCollapsed ? `Expand slot` : `Collapse slot`
+                          isCollapsed
+                            ? Drupal.t('Expand slot')
+                            : Drupal.t('Collapse slot')
                         }
                       >
                         {isCollapsed ? (

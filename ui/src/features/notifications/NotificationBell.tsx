@@ -102,7 +102,10 @@ const NotificationBell = () => {
   return (
     <Popover.Root open={isOpen} onOpenChange={handleOpenChange}>
       <Popover.Trigger>
-        <button className={styles.bellButton} aria-label="Notifications">
+        <button
+          className={styles.bellButton}
+          aria-label={Drupal.t('Notifications')}
+        >
           <BellIcon width="16" height="16" />
           {badgeCount > 0 && (
             <span className={styles.badge}>

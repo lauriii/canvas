@@ -72,7 +72,7 @@ function SortableItem({
           {...attributes}
           {...listeners}
           className={`sortable-drag-handle ${isDisabled ? 'disabled' : ''}`}
-          aria-label="Drag to reorder"
+          aria-label={Drupal.t('Drag to reorder')}
           role="button"
           tabIndex={isDisabled ? -1 : 0}
         >
@@ -147,7 +147,7 @@ export function PropValuesSortableList({
                   size="1"
                   onClick={() => onRemove(index)}
                   disabled={isItemDisabled}
-                  aria-label="Remove value"
+                  aria-label={Drupal.t('Remove value')}
                   className={`trash-icon-button ${isItemDisabled ? 'disabled' : ''}`}
                 >
                   <TrashIcon />
@@ -164,10 +164,10 @@ export function PropValuesSortableList({
           variant="soft"
           onClick={onAdd}
           disabled={isDisabled}
-          aria-label="Add value"
+          aria-label={Drupal.t('Add value')}
         >
           <PlusIcon />
-          Add value
+          {Drupal.t('Add value')}
         </Button>
       )}
     </Flex>

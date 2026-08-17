@@ -33,13 +33,14 @@ import type { PageVersionSelection } from '@/features/versionComparison/PageVers
 import styles from '@/features/versionComparison/VersionComparisonPage.module.css';
 
 const REVIEW_CHANGES_QUERY = 'reviewChanges=1';
-const RESOLUTION_ERROR_MESSAGE =
-  'Unable to resolve this conflict. Please try again.';
+const RESOLUTION_ERROR_MESSAGE = Drupal.t(
+  'Unable to resolve this conflict. Please try again.',
+);
 const showResolutionError = () => {
   const toastId = toast.error(RESOLUTION_ERROR_MESSAGE, {
     icon: <CrossCircledIcon style={{ color: 'var(--red-9)' }} />,
     action: {
-      label: <Cross2Icon aria-label="Dismiss notification" />,
+      label: <Cross2Icon aria-label={Drupal.t('Dismiss notification')} />,
       onClick: () => toast.dismiss(toastId),
     },
     style: {
@@ -268,12 +269,8 @@ const EnabledConflictResolutionPage = () => {
   );
 };
 
-const getReviewChangesButtonText = (count: number): string => {
-  if (count === 1) {
-    return 'Review 1 change';
-  }
-  return `Review ${count} changes`;
-};
+const getReviewChangesButtonText = (count: number): string =>
+  Drupal.formatPlural(count, 'Review 1 change', 'Review @count changes');
 
 const ConflictResolutionLoadingState = ({
   onNavigateToCanvas,
@@ -284,13 +281,16 @@ const ConflictResolutionLoadingState = ({
 }) => (
   <div className={styles.page} data-testid="conflict-resolution-loading-state">
     <div className={styles.header}>
+      {/* The breadcrumb items are single words that name a place in the editor,
+          so they carry a context separating them from the same words used as
+          verbs or nouns elsewhere. */}
       <Flex align="center" gap="1">
         <button
           type="button"
           className={styles.breadcrumbLink}
           onClick={onNavigateToCanvas}
         >
-          Canvas
+          {Drupal.t('Canvas', {}, { context: 'Canvas breadcrumb' })}
         </button>
         <Text size="1" color="gray">
           /
@@ -300,7 +300,7 @@ const ConflictResolutionLoadingState = ({
           className={styles.breadcrumbLink}
           onClick={onNavigateToConflict}
         >
-          Conflict
+          {Drupal.t('Conflict', {}, { context: 'Canvas breadcrumb' })}
         </button>
       </Flex>
     </div>
@@ -312,7 +312,7 @@ const ConflictResolutionLoadingState = ({
       gap="3"
     >
       <Spinner />
-      <Text size="2">Loading pending changes</Text>
+      <Text size="2">{Drupal.t('Loading pending changes')}</Text>
     </Flex>
   </div>
 );
@@ -338,7 +338,7 @@ const ResolvedConflictState = ({
           className={styles.breadcrumbLink}
           onClick={onNavigateToCanvas}
         >
-          Canvas
+          {Drupal.t('Canvas', {}, { context: 'Canvas breadcrumb' })}
         </button>
         <Text size="1" color="gray">
           /
@@ -348,18 +348,18 @@ const ResolvedConflictState = ({
           className={styles.breadcrumbLink}
           onClick={onNavigateToConflict}
         >
-          Conflict
+          {Drupal.t('Conflict', {}, { context: 'Canvas breadcrumb' })}
         </button>
         <Text size="1" color="gray">
           /
         </Text>
-        <Text size="1">All files resolved</Text>
+        <Text size="1">{Drupal.t('All files resolved')}</Text>
       </Flex>
       <IconButton
         variant="ghost"
         color="gray"
         highContrast
-        aria-label="Close"
+        aria-label={Drupal.t('Close')}
         onClick={onClose}
       >
         <Cross2Icon />
@@ -374,18 +374,19 @@ const ResolvedConflictState = ({
     >
       <CheckCircledIcon className={styles.emptyIcon} />
       <Text size="4" weight="medium">
-        Everything is up to date
+        {Drupal.t('Everything is up to date')}
       </Text>
       <Text size="2">
-        All conflicts have been resolved. Your changes are ready to be
-        published.
+        {Drupal.t(
+          'All conflicts have been resolved. Your changes are ready to be published.',
+        )}
       </Text>
       <Flex align="center" gap="2">
         <Button onClick={onReviewChanges} disabled={pendingChangesCount === 0}>
           {getReviewChangesButtonText(pendingChangesCount)}
         </Button>
         <Button variant="outline" onClick={onClose}>
-          Close
+          {Drupal.t('Close')}
         </Button>
       </Flex>
     </Flex>

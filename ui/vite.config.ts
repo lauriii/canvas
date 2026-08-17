@@ -4,6 +4,8 @@ import { defineConfig, loadEnv } from 'vite';
 import svgr from 'vite-plugin-svgr';
 import react from '@vitejs/plugin-react';
 
+import { verifyBundleIsScannable } from './lib/locale-extract.js';
+
 // https://vitejs.dev/config/
 
 export default defineConfig(({ command, mode }) => {
@@ -25,6 +27,36 @@ export default defineConfig(({ command, mode }) => {
           fs.copyFileSync(
             'lib/code-editor-preview.js',
             'dist/assets/code-editor-preview.js',
+          );
+        },
+      },
+      {
+        // Fail the build when a translatable string in the source cannot be
+        // found in the bundle Drupal actually scans. Without this the editor
+        // ships looking translatable while offering translators nothing.
+        // @see ui/lib/locale-extract.js
+        name: 'verify-translatable-strings',
+        writeBundle(options, bundle) {
+          const outDir = options.dir ?? 'dist/assets';
+          // Only the entry bundle, because `canvas.libraries.yml` attaches only
+          // that file and Drupal scans what is attached. A string that ended up
+          // in a lazily loaded chunk would never be offered for translation, so
+          // checking the chunks too would hide the problem rather than find it.
+          // @see canvas.libraries.yml
+          const entries = Object.values(bundle)
+            .filter((chunk) => chunk.type === 'chunk' && chunk.isEntry)
+            .map((chunk) => path.join(outDir, chunk.fileName));
+          const { problems, strings, callSites } = verifyBundleIsScannable(
+            path.resolve(__dirname, 'src'),
+            entries,
+          );
+          if (problems.length) {
+            throw new Error(
+              `Translatable strings would not reach Drupal:\n- ${problems.join('\n- ')}`,
+            );
+          }
+          this.info(
+            `Verified ${strings.length} translatable string(s) from ${callSites} call site(s) are discoverable by Drupal's locale scanner.`,
           );
         },
       },

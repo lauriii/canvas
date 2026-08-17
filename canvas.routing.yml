@@ -851,6 +851,12 @@ canvas.boot.app:
     extension_id: '[a-z][a-z0-9_]*'
   options:
     _format: 'json'
+    # The Canvas editor is an administrative UI, so its interface language must
+    # be negotiated the same way as the rest of the admin UI. In particular the
+    # "Account administration pages" negotiation method only applies to admin
+    # routes.
+    # @see \Drupal\user\Plugin\LanguageNegotiation\LanguageNegotiationUserAdmin
+    _admin_route: TRUE
 
 canvas.boot.empty:
   path: '/canvas'
@@ -863,6 +869,8 @@ canvas.boot.empty:
     _canvas_ui_access: 'TRUE'
   options:
     _format: 'json'
+    # @see canvas.boot.app
+    _admin_route: TRUE
 
 canvas.boot.entity:
   path: '/canvas/editor/{entity_type}/{entity}'
@@ -878,6 +886,8 @@ canvas.boot.entity:
       entity:
         type: entity:{entity_type}
     _format: 'json'
+    # @see canvas.boot.app
+    _admin_route: TRUE
 
 canvas.component.status:
   path: '/admin/appearance/component/status'

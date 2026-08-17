@@ -31,9 +31,9 @@ const ActivityCenter = ({
   return (
     <div className={styles.panel}>
       <div className={styles.headerTop}>
-        <h2 className={styles.heading}>Activity Center</h2>
+        <h2 className={styles.heading}>{Drupal.t('Activity Center')}</h2>
         <button
-          aria-label="Close"
+          aria-label={Drupal.t('Close')}
           className={styles.closeButton}
           onClick={onClose}
           type="button"
@@ -48,15 +48,17 @@ const ActivityCenter = ({
             onClick={onMarkAllRead}
             type="button"
           >
-            Mark all as read
+            {Drupal.t('Mark all as read')}
           </button>
         </div>
       )}
       {sorted.length === 0 ? (
         <div className={styles.empty}>
-          <p className={styles.emptyTitle}>No notifications yet</p>
+          <p className={styles.emptyTitle}>
+            {Drupal.t('No notifications yet')}
+          </p>
           <p className={styles.emptySubtitle}>
-            New notifications will appear here
+            {Drupal.t('New notifications will appear here')}
           </p>
         </div>
       ) : (

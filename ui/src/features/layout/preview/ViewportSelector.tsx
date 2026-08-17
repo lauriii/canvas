@@ -76,7 +76,7 @@ const ViewportSelector: React.FC<ViewportSelectorProps> = ({
           <BreakpointIcon width={currentWidth} />
           {currentWidth
             ? getViewportByWidth(currentWidth).name
-            : 'Select viewport'}
+            : Drupal.t('Select viewport')}
           <DropdownMenu.TriggerIcon />
         </Button>
       </DropdownMenu.Trigger>
@@ -88,7 +88,10 @@ const ViewportSelector: React.FC<ViewportSelectorProps> = ({
             color={viewportSize.width === currentWidth ? 'blue' : undefined}
           >
             <BreakpointIcon width={viewportSize.width} />
-            {viewportSize.name} ({viewportSize.width}px)
+            {Drupal.t('!name (!width)', {
+              '!name': viewportSize.name,
+              '!width': `${viewportSize.width}px`,
+            })}
           </DropdownMenu.Item>
         ))}
       </DropdownMenu.Content>

@@ -68,7 +68,7 @@ const NotificationToast = ({
       <button
         className={styles.dismissButton}
         onClick={() => onDismiss(notification.id)}
-        aria-label="Dismiss notification"
+        aria-label={Drupal.t('Dismiss notification')}
         type="button"
       >
         <Cross2Icon />

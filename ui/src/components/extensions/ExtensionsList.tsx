@@ -71,7 +71,7 @@ const ExtensionsList: React.FC<ExtensionsPopoverProps> = () => {
   if (isLoading) {
     return (
       <Flex justify="center">
-        <p>Loading extensions...</p>
+        <p>{Drupal.t('Loading extensions...')}</p>
       </Flex>
     );
   }
@@ -88,7 +88,7 @@ const ExtensionsList: React.FC<ExtensionsPopoverProps> = () => {
 
     return (
       <Flex justify="center">
-        <p>Error loading extensions</p>
+        <p>{Drupal.t('Error loading extensions')}</p>
       </Flex>
     );
   }
@@ -114,7 +114,7 @@ const ExtensionsListDisplay: React.FC<ExtensionsListDisplayProps> = ({
       )}
       {extensions?.length === 0 && (
         <Flex justify="center">
-          <p>No extensions found</p>
+          <p>{Drupal.t('No extensions found')}</p>
         </Flex>
       )}
     </>

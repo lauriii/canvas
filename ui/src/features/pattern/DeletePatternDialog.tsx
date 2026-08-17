@@ -42,23 +42,32 @@ const DeletePatternDialog = () => {
     <Dialog
       open={open}
       onOpenChange={handleOpenChange}
-      title="Delete pattern"
-      description={`Are you sure you want to delete "${name}"? This action cannot be undone.`}
+      title={Drupal.t('Delete pattern')}
+      description={Drupal.t(
+        'Are you sure you want to delete "!name"? This action cannot be undone.',
+        { '!name': name },
+      )}
       error={
         isError
           ? {
-              title: 'Failed to delete pattern',
-              message: `An error ${
-                'status' in error ? '(HTTP ' + error.status + ')' : ''
-              } occurred while deleting the pattern. Please check the browser console for more details.`,
-              resetButtonText: 'Try again',
+              title: Drupal.t('Failed to delete pattern'),
+              message:
+                'status' in error
+                  ? Drupal.t(
+                      'An error (HTTP !status) occurred while deleting the pattern. Please check the browser console for more details.',
+                      { '!status': error.status },
+                    )
+                  : Drupal.t(
+                      'An error occurred while deleting the pattern. Please check the browser console for more details.',
+                    ),
+              resetButtonText: Drupal.t('Try again'),
               onReset: handleDelete,
             }
           : undefined
       }
       footer={{
-        cancelText: 'Cancel',
-        confirmText: 'Delete',
+        cancelText: Drupal.t('Cancel'),
+        confirmText: Drupal.t('Delete'),
         onConfirm: handleDelete,
         isConfirmDisabled: false,
         isConfirmLoading: isLoading,

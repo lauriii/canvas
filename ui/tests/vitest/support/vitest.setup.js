@@ -2,6 +2,12 @@ import { vi } from 'vitest';
 
 import '@testing-library/jest-dom/vitest';
 
+import { installDrupalTranslationStub } from '@tests/support/drupal-translation-stub';
+
+// Components call Drupal.t() directly, which core/misc/drupal.js provides in
+// the browser but nothing provides here.
+installDrupalTranslationStub();
+
 const mockDrupalSettings = {
   path: {
     baseUrl: '/',

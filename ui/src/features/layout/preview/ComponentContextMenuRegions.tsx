@@ -65,7 +65,9 @@ const ComponentUnifiedMenuRegions: React.FC<CCMRProps> = (props) => {
 
   return (
     <UnifiedMenu.Sub>
-      <UnifiedMenu.SubTrigger>Move to global region</UnifiedMenu.SubTrigger>
+      <UnifiedMenu.SubTrigger>
+        {Drupal.t('Move to global region')}
+      </UnifiedMenu.SubTrigger>
       <UnifiedMenu.SubContent>
         {layout.map((region, ix) => (
           <UnifiedMenu.Item

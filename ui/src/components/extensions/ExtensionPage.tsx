@@ -71,7 +71,11 @@ const ExtensionPage: React.FC = () => {
 
   if (!ext) {
     return (
-      <div className={styles.notFound}>Extension not found: {extensionId}</div>
+      <div className={styles.notFound}>
+        {Drupal.t('Extension not found: !extension_id', {
+          '!extension_id': extensionId ?? '',
+        })}
+      </div>
     );
   }
 
@@ -81,7 +85,7 @@ const ExtensionPage: React.FC = () => {
         <IconButton
           variant="ghost"
           color="gray"
-          aria-label="Go back"
+          aria-label={Drupal.t('Go back')}
           onClick={handleBack}
         >
           <ArrowLeftIcon />

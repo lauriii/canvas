@@ -15,12 +15,12 @@ const ConflictWarning: React.FC<{ children?: React.ReactNode }> = () => {
             <InfoCircledIcon />
           </Callout.Icon>
           <Callout.Text>
-            Your latest change was not saved because the content was modified
-            elsewhere since you loaded the page. Please refresh your browser to
-            receive the latest changes and continue.
+            {Drupal.t(
+              'Your latest change was not saved because the content was modified elsewhere since you loaded the page. Please refresh your browser to receive the latest changes and continue.',
+            )}
           </Callout.Text>
           <Button mt="2" onClick={handleRefreshClick}>
-            Refresh
+            {Drupal.t('Refresh')}
           </Button>
         </Callout.Root>
       </Flex>

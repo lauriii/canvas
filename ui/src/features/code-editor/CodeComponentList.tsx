@@ -59,7 +59,7 @@ const CodeComponentList = ({ searchTerm }: { searchTerm: string }) => {
       isLoading={isLoading || foldersLoading}
       searchTerm={searchTerm}
       layoutType={LayoutItemType.CODE}
-      topLevelLabel="Code"
+      topLevelLabel={Drupal.t('Code', {}, { context: 'Canvas panel' })}
       itemType="js_component"
       renderItem={renderItem}
     />

@@ -89,7 +89,7 @@ const ViewportToolbar: React.FC<ViewportToolbarProps> = (props) => {
       <ViewportSelector
         buttonClassName={clsx(styles.toolbarButton, styles.viewportSelect)}
       />
-      <Tooltip side="bottom" content={'Scale to fit'}>
+      <Tooltip side="bottom" content={Drupal.t('Scale to fit')}>
         <Button
           size="1"
           onClick={handleScaleToFit}

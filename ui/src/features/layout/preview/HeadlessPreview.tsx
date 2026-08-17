@@ -164,7 +164,11 @@ const HeadlessPreviewFrame: React.FC<HeadlessPreviewFrameProps> = ({
       >
         <iframe
           ref={iframeRef}
-          title={active ? 'Headless preview' : 'Pending headless preview'}
+          title={
+            active
+              ? Drupal.t('Headless preview')
+              : Drupal.t('Pending headless preview')
+          }
           data-testid={
             active ? 'canvas-headless-iframe' : 'canvas-headless-pending-iframe'
           }

@@ -18,7 +18,7 @@ const AddCodeComponentButton = () => {
       data-testid="canvas-library-new-code-component-button"
     >
       <CodeIcon />
-      Code component
+      {Drupal.t('Code component')}
     </DropdownMenu.Item>
   );
 };

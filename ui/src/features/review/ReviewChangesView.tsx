@@ -19,7 +19,7 @@ import type { PageVersionSelection } from '@/features/versionComparison/PageVers
 
 import styles from '@/features/versionComparison/VersionComparisonPage.module.css';
 
-const REVIEW_COMPLETE_LABEL = 'All changes reviewed';
+const REVIEW_COMPLETE_LABEL = Drupal.t('All changes reviewed');
 
 export interface ReviewChangesViewProps {
   label: string;
@@ -93,7 +93,7 @@ export const ReviewLoadingState = ({
 }) => (
   <div className={styles.page} data-testid="review-changes-page">
     <ReviewHeader
-      label="Loading"
+      label={Drupal.t('Loading')}
       onClose={onClose}
       onNavigateToCanvas={onNavigateToCanvas}
       onNavigateToReview={onNavigateToReview}
@@ -116,13 +116,16 @@ const ReviewHeader = ({
   onNavigateToReview: () => void;
 }) => (
   <div className={styles.header}>
+    {/* The breadcrumb items and the entity type badge are single words, so they
+        carry a context separating them from the same words used as verbs or
+        nouns elsewhere. */}
     <Flex align="center" gap="1" minWidth="0">
       <button
         type="button"
         className={styles.breadcrumbLink}
         onClick={onNavigateToCanvas}
       >
-        Canvas
+        {Drupal.t('Canvas', {}, { context: 'Canvas breadcrumb' })}
       </button>
       <Text size="1" color="gray">
         /
@@ -132,7 +135,7 @@ const ReviewHeader = ({
         className={styles.breadcrumbLink}
         onClick={onNavigateToReview}
       >
-        Review
+        {Drupal.t('Review', {}, { context: 'Canvas breadcrumb' })}
       </button>
       <Text size="1" color="gray">
         /
@@ -142,7 +145,7 @@ const ReviewHeader = ({
       </Text>
       {label !== REVIEW_COMPLETE_LABEL && (
         <Badge color="gray" variant="soft" radius="small">
-          Page
+          {Drupal.t('Page', {}, { context: 'Canvas entity type' })}
         </Badge>
       )}
     </Flex>
@@ -150,7 +153,7 @@ const ReviewHeader = ({
       variant="ghost"
       color="gray"
       highContrast
-      aria-label="Close"
+      aria-label={Drupal.t('Close')}
       onClick={onClose}
     >
       <Cross2Icon />
@@ -185,8 +188,8 @@ const ReviewFooter = ({
 }) => {
   const actionText =
     selectedVersion === 'published'
-      ? 'Discard changes'
-      : 'Publish selected changes';
+      ? Drupal.t('Discard changes')
+      : Drupal.t('Publish selected changes');
   const isActionDisabled =
     isApplyingSelection ||
     !selectedVersion ||
@@ -196,7 +199,10 @@ const ReviewFooter = ({
     <div className={styles.footer}>
       <Flex direction="column" gap="1">
         <Text size="2" color="gray">
-          Review {reviewIndex + 1} of {reviewTotal}
+          {Drupal.t('Review !current of !total', {
+            '!current': reviewIndex + 1,
+            '!total': reviewTotal,
+          })}
         </Text>
         <Text as="label" size="2">
           <Flex align="center" gap="2">
@@ -205,7 +211,7 @@ const ReviewFooter = ({
               checked={isSelectedForPublishing}
               onCheckedChange={onSelectedForPublishingChange}
             />
-            Selected for publishing
+            {Drupal.t('Selected for publishing')}
           </Flex>
         </Text>
       </Flex>
@@ -217,7 +223,7 @@ const ReviewFooter = ({
           onClick={onPrevious}
         >
           <ArrowLeftIcon />
-          Previous
+          {Drupal.t('Previous')}
         </Button>
         <Button
           variant="ghost"
@@ -225,7 +231,7 @@ const ReviewFooter = ({
           disabled={isApplyingSelection}
           onClick={onNext}
         >
-          Next
+          {Drupal.t('Next')}
           <ArrowRightIcon />
         </Button>
         <Button
@@ -233,7 +239,7 @@ const ReviewFooter = ({
           disabled={isActionDisabled}
           color={selectedVersion === 'published' ? 'red' : undefined}
         >
-          {selectedVersion ? actionText : 'Action'}
+          {selectedVersion ? actionText : Drupal.t('Action')}
           <Spinner loading={isApplyingSelection} />
         </Button>
       </Flex>
@@ -279,7 +285,9 @@ export const ReviewCompleteState = ({
         {REVIEW_COMPLETE_LABEL}
       </Text>
       <Text size="2">
-        You've reviewed all selected changes. You're now ready to publish.
+        {Drupal.t(
+          "You've reviewed all selected changes. You're now ready to publish.",
+        )}
       </Text>
       <Flex align="center" gap="3">
         {onPrevious && (
@@ -290,18 +298,18 @@ export const ReviewCompleteState = ({
             disabled={!canPrevious || isPublishing}
           >
             <ArrowLeftIcon />
-            Previous
+            {Drupal.t('Previous')}
           </Button>
         )}
         <Button
           onClick={onPublish}
           disabled={isPublishing || selectedCount === 0}
         >
-          Publish selected changes
+          {Drupal.t('Publish selected changes')}
           <Spinner loading={isPublishing} />
         </Button>
         <Button variant="outline" onClick={onClose}>
-          Close
+          {Drupal.t('Close')}
         </Button>
       </Flex>
     </Flex>

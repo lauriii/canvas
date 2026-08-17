@@ -122,7 +122,7 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
       {...attributes}
       ref={setNodeRef}
       role="treeitem"
-      aria-roledescription="Draggable component"
+      aria-roledescription={Drupal.t('Draggable component')}
       data-canvas-uuid={componentId}
       data-canvas-type={component.nodeType}
       data-canvas-selected={isSelected}
@@ -171,8 +171,8 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
                       <button
                         aria-label={
                           isCollapsed
-                            ? `Expand component tree`
-                            : `Collapse component tree`
+                            ? Drupal.t('Expand component tree')
+                            : Drupal.t('Collapse component tree')
                         }
                       >
                         {isCollapsed ? (

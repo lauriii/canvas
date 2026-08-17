@@ -149,9 +149,9 @@ const BrandKitColorsSection = () => {
         >
           <TextField.Root
             autoComplete="off"
-            placeholder="Search…"
+            placeholder={Drupal.t('Search…')}
             radius="medium"
-            aria-label="Search colors"
+            aria-label={Drupal.t('Search colors')}
             size="1"
             value={searchTerm}
             onChange={(e) => {
@@ -173,7 +173,7 @@ const BrandKitColorsSection = () => {
               data-testid="canvas-brand-kit-colors-new-button"
             >
               <PlusIcon />
-              New
+              {Drupal.t('New', {}, { context: 'Canvas library toolbar' })}
               <ChevronDownIcon />
             </Button>
           </DropdownMenu.Trigger>
@@ -197,14 +197,14 @@ const BrandKitColorsSection = () => {
               data-testid="canvas-brand-kit-colors-new-color-button"
             >
               <ColorWheelIcon />
-              Color
+              {Drupal.t('Color', {}, { context: 'Canvas library toolbar' })}
             </DropdownMenu.Item>
             <DropdownMenu.Item
               onClick={handleAddFolderClick}
               data-testid="canvas-brand-kit-colors-new-folder-button"
             >
               <FolderIcon />
-              Folder
+              {Drupal.t('Folder', {}, { context: 'Canvas library toolbar' })}
             </DropdownMenu.Item>
           </DropdownMenu.Content>
         </DropdownMenu.Root>
@@ -231,13 +231,15 @@ const BrandKitColorsSection = () => {
           my="3"
           title={
             searchTerm
-              ? 'No results match your search.'
-              : 'No colors added yet.'
+              ? Drupal.t('No results match your search.')
+              : Drupal.t('No colors added yet.')
           }
           description={
             searchTerm
               ? ''
-              : 'Add colors to generate reusable CSS custom properties for the global brand kit.'
+              : Drupal.t(
+                  'Add colors to generate reusable CSS custom properties for the global brand kit.',
+                )
           }
         />
       )}
@@ -248,7 +250,7 @@ const BrandKitColorsSection = () => {
           <FolderList
             key={folder.id}
             folder={folder}
-            deleteWarning="Cannot delete folder containing colors"
+            deleteWarning={Drupal.t('Cannot delete folder containing colors')}
             extraMenuItems={
               <UnifiedMenu.Item
                 onClick={() => {
@@ -257,7 +259,7 @@ const BrandKitColorsSection = () => {
                 }}
                 data-testid="canvas-brand-kit-colors-folder-add-color-button"
               >
-                Add color
+                {Drupal.t('Add color')}
               </UnifiedMenu.Item>
             }
           >

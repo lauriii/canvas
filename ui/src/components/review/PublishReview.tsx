@@ -30,7 +30,7 @@ import type {
 
 import styles from './PublishReview.module.css';
 
-export const DEFAULT_TITLE = 'Unpublished changes';
+export const DEFAULT_TITLE = Drupal.t('Unpublished changes');
 
 interface PublishReviewProps {
   title?: string;
@@ -194,19 +194,30 @@ const PublishReview: React.FC<PublishReviewProps> = ({
 
   // The trigger button text changes based on the pending changes
   const triggerButtonText = useMemo(() => {
-    if (!changes?.length) return 'No changes';
-    if (changes.length === 1) return 'Review 1 change';
-    return `Review ${changes.length} changes`;
+    if (!changes?.length) return Drupal.t('No changes');
+    return Drupal.formatPlural(
+      changes.length,
+      'Review 1 change',
+      'Review @count changes',
+    );
   }, [changes]);
 
   // The button caption changes based on the state of the review
   const buttonText = useMemo(() => {
-    if (isPublishing) return 'Publishing';
-    if (isBusy) return 'Please wait';
-    if (hasPublished) return 'Published';
-    if (!changes?.length) return 'No changes available';
-    if (!selectedAvailableChanges?.length) return 'No items selected';
-    return `Publish ${selectedAvailableChanges.length} selected`;
+    if (isPublishing) return Drupal.t('Publishing');
+    if (isBusy) return Drupal.t('Please wait');
+    // "Published" here reports that publishing just finished, unlike the page
+    // status badge where it names the state a page is in.
+    if (hasPublished) {
+      return Drupal.t('Published', {}, { context: 'Canvas publishing result' });
+    }
+    if (!changes?.length) return Drupal.t('No changes available');
+    if (!selectedAvailableChanges?.length) return Drupal.t('No items selected');
+    return Drupal.formatPlural(
+      selectedAvailableChanges.length,
+      'Publish 1 selected',
+      'Publish @count selected',
+    );
   }, [isPublishing, isBusy, hasPublished, changes, selectedAvailableChanges]);
 
   const groups: UnpublishedChangeGroups = useMemo(() => {
@@ -299,7 +310,10 @@ const PublishReview: React.FC<PublishReviewProps> = ({
               </Heading>
             </Box>
             <Box>
-              <Popover.Close className={styles.close} aria-label="Close">
+              <Popover.Close
+                className={styles.close}
+                aria-label={Drupal.t('Close')}
+              >
                 <Cross2Icon />
               </Popover.Close>
             </Box>
@@ -317,10 +331,10 @@ const PublishReview: React.FC<PublishReviewProps> = ({
                   checked={allSelected === true}
                   onCheckedChange={handleSelectAll}
                   size="1"
-                  aria-label="Select all changes"
+                  aria-label={Drupal.t('Select all changes')}
                   data-testid="canvas-publish-review-select-all"
                 />
-                Select All
+                {Drupal.t('Select All')}
               </Flex>
             </Text>
           </Box>
@@ -334,8 +348,11 @@ const PublishReview: React.FC<PublishReviewProps> = ({
               <Box px="4" pt="4">
                 <Text size="1">
                   {changes.length
-                    ? `${selectedAvailableChanges.length} of ${changes?.length ?? 0} changes selected`
-                    : 'All changes published!'}
+                    ? Drupal.t('!selected of !total changes selected', {
+                        '!selected': selectedAvailableChanges.length,
+                        '!total': changes?.length ?? 0,
+                      })
+                    : Drupal.t('All changes published!')}
                 </Text>
               </Box>
               {conflictUxEnabled && conflictCount > 0 && (
@@ -393,7 +410,7 @@ const PublishReview: React.FC<PublishReviewProps> = ({
                   onClick={handleReviewSelectedChanges}
                   className={styles.reviewSelectedButton}
                 >
-                  Review selected changes
+                  {Drupal.t('Review selected changes')}
                 </Button>
               )}
             </Flex>

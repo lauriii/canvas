@@ -751,7 +751,7 @@ export function getDisplayNameForNode(
   if ('type' in node) {
     // ComponentNode
     const [nodeType] = node.type.split('@');
-    return componentsData?.[nodeType]?.name || 'Component';
+    return componentsData?.[nodeType]?.name || Drupal.t('Component');
   } else {
     // SlotNode
     if (parentComponentNode && parentComponentNode.type && node.name) {
@@ -764,7 +764,7 @@ export function getDisplayNameForNode(
         return parentComponent.metadata.slots[node.name].title || node.name;
       }
     }
-    return node.name || 'Slot';
+    return node.name || Drupal.t('Slot');
   }
 }
 

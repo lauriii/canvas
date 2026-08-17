@@ -51,7 +51,9 @@ const ErrorBoundary: React.FC<{
                       (window.location.href = drupalSettings.canvas.loginUrl)
                   : resetErrorBoundary
               }
-              resetButtonText={status === 401 ? 'Go to login' : resetButtonText}
+              resetButtonText={
+                status === 401 ? Drupal.t('Go to login') : resetButtonText
+              }
             />
           );
         }
@@ -86,7 +88,7 @@ const getRouteErrorMessage = (error: unknown): string => {
     return error;
   } else {
     console.error(error);
-    return 'Unknown error';
+    return Drupal.t('Unknown error');
   }
 };
 
@@ -105,7 +107,7 @@ export const RouteErrorBoundary: React.FC = () => {
   return (
     <ErrorPage>
       <ErrorCard
-        title="An unexpected error has occurred in a route."
+        title={Drupal.t('An unexpected error has occurred in a route.')}
         error={getRouteErrorMessage(error)}
       />
     </ErrorPage>
@@ -127,6 +129,9 @@ export const RouteAsyncErrorBoundary: React.FC = () => {
 
   return (
     <ErrorCard
+      // Deliberately not wrapped in Drupal.t(). Nothing in the app renders this
+      // component, only a Cypress test does, so the bundler drops it and Drupal
+      // never sees the string. Wrap it when the component is actually routed to.
       title="An unexpected async error has occurred in a route."
       error={getRouteErrorMessage(error)}
     />

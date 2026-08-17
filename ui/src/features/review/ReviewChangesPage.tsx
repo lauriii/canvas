@@ -334,8 +334,8 @@ const EnabledReviewChangesPage = () => {
           entityType={activeChange.entity_type}
           autoSaveUpdated={activeChange.updated}
           draftVersionKey={activeDraftVersionKey}
-          publishedVersionTitle="Old version"
-          newVersionTitle="New version"
+          publishedVersionTitle={Drupal.t('Old version')}
+          newVersionTitle={Drupal.t('New version')}
           selectedVersion={selectedVersion}
           onSelectVersion={setActiveVersionSelection}
           onNewEditClick={() =>

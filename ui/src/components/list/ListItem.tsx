@@ -140,7 +140,9 @@ const ListItem: React.FC<{
   };
 
   const insertMenuItem = () => (
-    <UnifiedMenu.Item onClick={handleInsertClick}>Insert</UnifiedMenu.Item>
+    <UnifiedMenu.Item onClick={handleInsertClick}>
+      {Drupal.t('Insert', {}, { context: 'Canvas component action' })}
+    </UnifiedMenu.Item>
   );
 
   const menuTitleItems = () => (
@@ -252,7 +254,9 @@ const ListItem: React.FC<{
                 className={styles.componentPreviewTooltipContent}
                 onClick={(e) => e.stopPropagation()}
                 style={{ pointerEvents: 'none' }}
-                aria-label={`${item.name} preview thumbnail`}
+                aria-label={Drupal.t('!name preview thumbnail', {
+                  '!name': item.name,
+                })}
               >
                 <Theme>
                   {previewingComponent &&

@@ -112,7 +112,7 @@ const FrontendsList = ({
             data-testid="canvas-headless-add-frontend"
           >
             <PlusIcon />
-            Add frontend
+            {Drupal.t('Add frontend')}
           </Button>
         </Flex>
       </SortableContext>
@@ -208,7 +208,7 @@ const FrontendRow = ({
       <Button
         {...attributes}
         {...listeners}
-        aria-label="Reorder frontend"
+        aria-label={Drupal.t('Reorder frontend')}
         disabled={disabled}
         variant="ghost"
         color="gray"
@@ -226,7 +226,7 @@ const FrontendRow = ({
         />
         <Button
           onClick={onRemove}
-          aria-label="Remove frontend"
+          aria-label={Drupal.t('Remove frontend')}
           disabled={disabled}
           variant="ghost"
           color="red"
@@ -251,17 +251,21 @@ const ConnectionStatusIndicator = ({
       <Flex gap="1" align="center">
         <Spinner size="1" />
         <Text size="1" color="gray">
-          Checking…
+          {Drupal.t('Checking…')}
         </Text>
       </Flex>
     );
   }
   if (status === 'unreachable') {
     return (
-      <Tooltip content="The URL did not respond. Check that the site is deployed and the URL is correct.">
+      <Tooltip
+        content={Drupal.t(
+          'The URL did not respond. Check that the site is deployed and the URL is correct.',
+        )}
+      >
         <Badge size="1" color="red" variant="soft">
           <CrossCircledIcon width="12" height="12" />
-          Unreachable
+          {Drupal.t('Unreachable')}
         </Badge>
       </Tooltip>
     );
@@ -269,11 +273,14 @@ const ConnectionStatusIndicator = ({
   if (status === 'setup-needed') {
     return (
       <Tooltip
-        aria-label="The site responded, but no Canvas adapter was found. Install the adapter for your framework — see the setup guide."
+        aria-label={Drupal.t(
+          'The site responded, but no Canvas adapter was found. Install the adapter for your framework — see the setup guide.',
+        )}
         content={
           <>
-            The site responded, but no Canvas adapter was found. Install the
-            adapter for your framework — see the{' '}
+            {Drupal.t(
+              'The site responded, but no Canvas adapter was found. Install the adapter for your framework — see the',
+            )}{' '}
             <Link
               href="#canvas-headless-setup-guide"
               className={styles.setupGuideTooltipLink}
@@ -282,7 +289,7 @@ const ConnectionStatusIndicator = ({
                 onOpenSetupGuide();
               }}
             >
-              setup guide
+              {Drupal.t('setup guide')}
             </Link>
             .
           </>
@@ -290,7 +297,7 @@ const ConnectionStatusIndicator = ({
       >
         <Badge size="1" color="amber" variant="soft">
           <ExclamationTriangleIcon width="12" height="12" />
-          Setup needed
+          {Drupal.t('Setup needed')}
         </Badge>
       </Tooltip>
     );
@@ -298,7 +305,7 @@ const ConnectionStatusIndicator = ({
   return (
     <Badge size="1" color="green" variant="soft">
       <CheckCircledIcon width="12" height="12" />
-      Ready
+      {Drupal.t('Ready')}
     </Badge>
   );
 };

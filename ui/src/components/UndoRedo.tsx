@@ -63,7 +63,7 @@ const UndoRedo = () => {
         className={styles.topBarButton}
         onClick={() => dispatchUndo()}
         disabled={!isUndoable}
-        aria-label="Undo"
+        aria-label={Drupal.t('Undo')}
       >
         <ResetIcon height="16" width="auto" />
       </Button>
@@ -74,7 +74,7 @@ const UndoRedo = () => {
         className={styles.topBarButton}
         onClick={() => dispatchRedo()}
         disabled={!isRedoable}
-        aria-label="Redo"
+        aria-label={Drupal.t('Redo')}
       >
         <ResetIcon
           height="16"

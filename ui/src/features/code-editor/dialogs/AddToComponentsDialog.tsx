@@ -68,35 +68,46 @@ const AddToComponentsDialog = () => {
     }
   }, [isError, error]);
 
+  // Kept as two sentences so the second one stays a short, reusable string and
+  // the HTTP status reaches translators as a placeholder rather than as a
+  // fragment they cannot reorder.
+  const errorMessage = [
+    Drupal.t('An error !status occurred while adding to components.', {
+      '!status':
+        error && 'status' in error ? '(HTTP ' + error.status + ')' : '',
+    }),
+    Drupal.t('Please check the browser console for more details.'),
+  ].join(' ');
+
   return (
     <Dialog
       open={isAddToComponentsDialogOpen}
       onOpenChange={handleOpenChange}
-      title="Add to components"
+      title={Drupal.t('Add to components')}
       description={
         <>
-          This component will be moved to the <b>Components</b> section and will
-          be available to use on the page.
+          {Drupal.t('This component will be moved to the')}{' '}
+          <b>{Drupal.t('Components')}</b>{' '}
+          {Drupal.t('section and will be available to use on the page.')}
           <br />
           <br />
-          You can remove it from <b>Components</b> at any time.
+          {Drupal.t('You can remove it from')} <b>{Drupal.t('Components')}</b>{' '}
+          {Drupal.t('at any time.')}
         </>
       }
       error={
         isError
           ? {
-              title: 'Failed to add to components',
-              message: `An error ${
-                'status' in error ? '(HTTP ' + error.status + ')' : ''
-              } occurred while adding to components. Please check the browser console for more details.`,
-              resetButtonText: 'Try again',
+              title: Drupal.t('Failed to add to components'),
+              message: errorMessage,
+              resetButtonText: Drupal.t('Try again'),
               onReset: handleSave,
             }
           : undefined
       }
       footer={{
-        cancelText: 'Cancel',
-        confirmText: 'Add',
+        cancelText: Drupal.t('Cancel'),
+        confirmText: Drupal.t('Add'),
         onConfirm: handleSave,
         isConfirmDisabled: false,
         isConfirmLoading: isLoading,

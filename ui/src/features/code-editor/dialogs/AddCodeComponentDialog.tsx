@@ -96,20 +96,20 @@ const AddCodeComponentDialog = () => {
     <Dialog
       open={isAddDialogOpen}
       onOpenChange={handleOpenChange}
-      title="Create new code component"
+      title={Drupal.t('Create new code component')}
       error={
         isError
           ? {
-              title: 'Failed to create code component',
+              title: Drupal.t('Failed to create code component'),
               message: parse(extractErrorMessageFromApiResponse(error)),
-              resetButtonText: 'Try again',
+              resetButtonText: Drupal.t('Try again'),
               onReset: handleSave,
             }
           : undefined
       }
       footer={{
-        cancelText: 'Cancel',
-        confirmText: 'Create',
+        cancelText: Drupal.t('Cancel'),
+        confirmText: Drupal.t('Create'),
         onConfirm: handleSave,
         isConfirmDisabled: !componentName.trim() || !!validationError,
         isConfirmLoading: isLoading,
@@ -125,14 +125,14 @@ const AddCodeComponentDialog = () => {
       >
         <Flex direction="column" gap="2">
           <DialogFieldLabel htmlFor={'componentName'}>
-            Component name
+            {Drupal.t('Component name')}
           </DialogFieldLabel>
           <TextField.Root
             autoComplete="off"
             id={'componentName'}
             value={componentName}
             onChange={(e) => handleOnChange(e.target.value)}
-            placeholder="Enter a name"
+            placeholder={Drupal.t('Enter a name')}
             size="1"
           />
           {validationError && (

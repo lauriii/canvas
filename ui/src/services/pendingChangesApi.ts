@@ -244,7 +244,7 @@ export const pendingChangesApi = createApi({
                   code: 0,
                   detail:
                     error?.error?.data?.message ??
-                    'Failed to discard pending change',
+                    Drupal.t('Failed to discard pending change'),
                   source: { pointer: '' },
                   meta: {
                     entity_type: change.entity_type,

@@ -165,13 +165,13 @@ const ColorRow = ({ color }: ColorRowProps) => {
         }}
         data-testid="canvas-color-row-edit"
       >
-        Edit color
+        {Drupal.t('Edit color')}
       </UnifiedMenu.Item>
       <UnifiedMenu.Item
         onClick={() => setIsRenaming(true)}
         data-testid="canvas-color-row-rename"
       >
-        Rename
+        {Drupal.t('Rename')}
       </UnifiedMenu.Item>
       <UnifiedMenu.Item
         onClick={() => {
@@ -180,7 +180,7 @@ const ColorRow = ({ color }: ColorRowProps) => {
         }}
         data-testid="canvas-color-row-find-instances"
       >
-        Find instances
+        {Drupal.t('Find instances')}
       </UnifiedMenu.Item>
       <UnifiedMenu.Separator />
       <UnifiedMenu.Item
@@ -191,7 +191,7 @@ const ColorRow = ({ color }: ColorRowProps) => {
         color="red"
         data-testid="canvas-color-row-delete"
       >
-        Delete
+        {Drupal.t('Delete')}
       </UnifiedMenu.Item>
     </>
   );
@@ -277,7 +277,7 @@ const ColorRow = ({ color }: ColorRowProps) => {
                 <DropdownMenu.Trigger>
                   <button
                     ref={dotsButtonRef as React.RefObject<HTMLButtonElement>}
-                    aria-label="Open contextual menu"
+                    aria-label={Drupal.t('Open contextual menu')}
                     className={styles.colorRowDots}
                   >
                     <DotsHorizontalIcon />

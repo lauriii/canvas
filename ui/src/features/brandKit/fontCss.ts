@@ -69,10 +69,27 @@ export const groupFontsByFamily = (
     .sort((left, right) => left.family.localeCompare(right.family));
 };
 
-export const buildFontVariantLabel = (font: AssetLibraryFont): string =>
-  isVariableFont(font)
-    ? `Variable · ${font.format.toUpperCase()}`
-    : `${font.weight} ${font.style === 'italic' ? 'Italic' : 'Normal'} · ${font.format.toUpperCase()}`;
+export const buildFontVariantLabel = (font: AssetLibraryFont): string => {
+  if (isVariableFont(font)) {
+    return Drupal.t(
+      'Variable · !format',
+      { '!format': font.format.toUpperCase() },
+      { context: 'Canvas brand kit' },
+    );
+  }
+
+  return font.style === 'italic'
+    ? Drupal.t(
+        '!weight Italic · !format',
+        { '!weight': font.weight, '!format': font.format.toUpperCase() },
+        { context: 'Canvas brand kit' },
+      )
+    : Drupal.t(
+        '!weight Normal · !format',
+        { '!weight': font.weight, '!format': font.format.toUpperCase() },
+        { context: 'Canvas brand kit' },
+      );
+};
 
 const formatAxisValue = (value: number): string =>
   Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)));

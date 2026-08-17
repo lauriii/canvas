@@ -10,10 +10,10 @@ import styles from '@/features/code-editor/Import.module.css';
 const ImportButton = () => {
   return (
     <Popover.Root>
-      <Tooltip content="Import components">
+      <Tooltip content={Drupal.t('Import components')}>
         <Popover.Trigger>
           <IconButton
-            aria-label="Import components"
+            aria-label={Drupal.t('Import components')}
             radius="full"
             data-testid="canvas-import-button"
             className={styles.importButton}
@@ -25,7 +25,9 @@ const ImportButton = () => {
       <Popover.Content width="100vw" maxWidth="550px" asChild align="center">
         <Panel className="canvas-app">
           <ErrorBoundary
-            title={`An unexpected error has occurred while fetching code components.`}
+            title={Drupal.t(
+              'An unexpected error has occurred while fetching code components.',
+            )}
           >
             <CodeComponentImports />
           </ErrorBoundary>

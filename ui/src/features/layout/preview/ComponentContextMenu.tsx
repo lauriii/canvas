@@ -177,7 +177,9 @@ export const ComponentContextMenuContent: React.FC<
 
   return (
     <UnifiedMenu.Content
-      aria-label={`Context menu for ${componentName}`}
+      aria-label={Drupal.t('Context menu for !component', {
+        '!component': componentName,
+      })}
       menuType={menuType}
       align="start"
       side="right"
@@ -186,37 +188,39 @@ export const ComponentContextMenuContent: React.FC<
       {isCodeComponent && !isExternal && (
         <PermissionCheck hasPermission="codeComponents">
           <UnifiedMenu.Item onClick={handleEditCodeClick}>
-            Edit code
+            {Drupal.t('Edit code')}
           </UnifiedMenu.Item>
         </PermissionCheck>
       )}
       <UnifiedMenu.Separator />
 
       <UnifiedMenu.Item onClick={handleDuplicateClick} shortcut="⌘ D">
-        Duplicate
+        {Drupal.t('Duplicate', {}, { context: 'Canvas component action' })}
       </UnifiedMenu.Item>
       <UnifiedMenu.Item onClick={handleCopyClick} shortcut="⌘ C">
-        Copy
+        {Drupal.t('Copy', {}, { context: 'Canvas component action' })}
       </UnifiedMenu.Item>
       <UnifiedMenu.Item onClick={handlePasteClick} shortcut="⌘ V">
-        Paste
+        {Drupal.t('Paste', {}, { context: 'Canvas component action' })}
       </UnifiedMenu.Item>
       <PermissionCheck hasPermission="patterns">
         <UnifiedMenu.Separator />
         <UnifiedMenu.Item onClick={handleCreatePatternClick}>
-          Create pattern
+          {Drupal.t('Create pattern')}
         </UnifiedMenu.Item>
       </PermissionCheck>
       <UnifiedMenu.Separator />
 
       <UnifiedMenu.Sub>
-        <UnifiedMenu.SubTrigger>Move</UnifiedMenu.SubTrigger>
+        <UnifiedMenu.SubTrigger>
+          {Drupal.t('Move', {}, { context: 'Canvas component action' })}
+        </UnifiedMenu.SubTrigger>
         <UnifiedMenu.SubContent>
           <UnifiedMenu.Item onClick={handleMoveUpClick}>
-            Move up
+            {Drupal.t('Move up')}
           </UnifiedMenu.Item>
           <UnifiedMenu.Item onClick={handleMoveDownClick}>
-            Move down
+            {Drupal.t('Move down')}
           </UnifiedMenu.Item>
 
           <UnifiedMenu.Separator />
@@ -235,7 +239,7 @@ export const ComponentContextMenuContent: React.FC<
       )}
       <UnifiedMenu.Separator />
       <UnifiedMenu.Item shortcut="⌫" color="red" onClick={handleDeleteClick}>
-        Delete
+        {Drupal.t('Delete', {}, { context: 'Canvas component action' })}
       </UnifiedMenu.Item>
     </UnifiedMenu.Content>
   );

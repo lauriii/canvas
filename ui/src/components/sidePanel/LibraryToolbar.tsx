@@ -58,9 +58,9 @@ const LibraryToolbar = ({
           <TextField.Root
             autoComplete="off"
             id="canvas-navigation-search"
-            placeholder="Search…"
+            placeholder={Drupal.t('Search…')}
             radius="medium"
-            aria-label="Search content"
+            aria-label={Drupal.t('Search content')}
             size="1"
             value={searchTerm}
             onChange={(e) => onSearch(e.target.value)}
@@ -80,7 +80,7 @@ const LibraryToolbar = ({
                   size="1"
                 >
                   <PlusIcon />
-                  New
+                  {Drupal.t('New', {}, { context: 'Canvas library toolbar' })}
                   <ChevronDownIcon />
                 </Button>
               </DropdownMenu.Trigger>
@@ -103,7 +103,11 @@ const LibraryToolbar = ({
                     data-testid="canvas-library-new-folder-button"
                   >
                     <FolderIcon />
-                    Folder
+                    {Drupal.t(
+                      'Folder',
+                      {},
+                      { context: 'Canvas library toolbar' },
+                    )}
                   </DropdownMenu.Item>
                 </PermissionCheck>
               </DropdownMenu.Content>

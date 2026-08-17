@@ -286,7 +286,9 @@ export default function FormPropTypeVideo({
     <Flex direction="column" gap="4" flexGrow="1">
       <Divider />
       <FormElement>
-        <Label htmlFor={`prop-example-${id}`}>Example aspect ratio</Label>
+        <Label htmlFor={`prop-example-${id}`}>
+          {Drupal.t('Example aspect ratio')}
+        </Label>
         <Select.Root
           value={aspectRatio}
           onValueChange={setAspectRatio}
@@ -295,7 +297,9 @@ export default function FormPropTypeVideo({
           <Select.Trigger id={`prop-example-${id}`} />
           <Select.Content>
             {!required && (
-              <Select.Item value={NONE_VALUE}>- None -</Select.Item>
+              <Select.Item value={NONE_VALUE}>
+                {Drupal.t('- None -')}
+              </Select.Item>
             )}
             {EXAMPLE_ASPECT_RATIO_VALUES.map((value) => (
               <Select.Item key={value.value} value={value.value}>

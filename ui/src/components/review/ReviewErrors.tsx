@@ -184,8 +184,11 @@ const ReviewErrors: React.FC<ReviewErrorsProps> = ({ errorState }) => {
               <Flex gap="2" mb="1" align="center">
                 <ExclamationTriangleIcon color="red" />
                 <Heading as="h3" size="1" mb="0">
-                  {errorState.errors.length} Error
-                  {errorState.errors.length > 1 ? 's' : ''}
+                  {Drupal.formatPlural(
+                    errorState.errors.length,
+                    '1 Error',
+                    '@count Errors',
+                  )}
                 </Heading>
                 <ChevronDownIcon
                   className={clsx(style.chevron, !isOpen && style.closed)}

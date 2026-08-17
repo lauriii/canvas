@@ -161,8 +161,8 @@ export const PageVersionComparisonView = ({
   entityType,
   publishedVersion,
   newVersion,
-  publishedVersionTitle = 'Published version',
-  newVersionTitle = 'New version',
+  publishedVersionTitle = Drupal.t('Published version'),
+  newVersionTitle = Drupal.t('New version'),
   selectedVersion,
   onSelectVersion,
   onPublishedPreviewClick,
@@ -258,7 +258,7 @@ export const PageVersionComparisonView = ({
       <Flex justify="between" align="center" className={styles.toolbar}>
         <Tabs.List size="1" className={styles.tabList}>
           <Tabs.Trigger className={styles.tabTrigger} value="visual">
-            Visual
+            {Drupal.t('Visual')}
           </Tabs.Trigger>
         </Tabs.List>
         {tab === 'visual' && <ViewportSelector />}
@@ -415,16 +415,16 @@ const PreviewCard = ({
               className={styles.cardEditButton}
             >
               <Pencil1Icon />
-              Edit
+              {Drupal.t('Edit')}
             </Button>
           )}
           {showPreviewAction && (
-            <Tooltip content="Open preview in new tab">
+            <Tooltip content={Drupal.t('Open preview in new tab')}>
               <IconButton
                 variant="ghost"
                 color="gray"
                 size="1"
-                aria-label="Open preview in new tab"
+                aria-label={Drupal.t('Open preview in new tab')}
                 onClick={handlePreviewButtonClick}
                 style={{ cursor: 'pointer' }}
               >
@@ -434,7 +434,7 @@ const PreviewCard = ({
           )}
           {changed && (
             <Badge color="yellow" radius="small">
-              Changed
+              {Drupal.t('Changed')}
             </Badge>
           )}
         </Flex>
@@ -442,7 +442,7 @@ const PreviewCard = ({
           <button
             type="button"
             aria-pressed={selected}
-            aria-label={`Select ${title}`}
+            aria-label={Drupal.t('Select !title', { '!title': title })}
             className={styles.cardSelectButton}
             onClick={handleSelectButtonClick}
           />
@@ -746,7 +746,7 @@ const VisualFrame = ({
             >
               <iframe
                 ref={previewFrameRef}
-                title="Page version preview"
+                title={Drupal.t('Page version preview')}
                 className={styles.previewFrame}
                 scrolling="no"
                 srcDoc={html}
@@ -822,7 +822,7 @@ const PageVersionPreviewControls = ({
       onClick={(event) => event.stopPropagation()}
       onKeyDown={(event) => event.stopPropagation()}
     >
-      <Tooltip side="bottom" content="Scale to fit">
+      <Tooltip side="bottom" content={Drupal.t('Scale to fit')}>
         <Button
           size="1"
           onClick={handleScaleToFit}
@@ -830,7 +830,7 @@ const PageVersionPreviewControls = ({
           variant="surface"
           highContrast
           className={styles.previewControlButton}
-          aria-label="Scale to fit"
+          aria-label={Drupal.t('Scale to fit')}
           data-testid="page-version-scale-to-fit"
         >
           <ScaleToFitIcon />

@@ -193,7 +193,11 @@ export default function FormPropTypeLink({
           data-testid={`array-prop-value-${id}-${index}`}
           id={`array-prop-value-${id}-${index}`}
           type="text"
-          placeholder={linkType === 'relative' ? 'Enter a path' : 'Enter a URL'}
+          placeholder={
+            linkType === 'relative'
+              ? Drupal.t('Enter a path')
+              : Drupal.t('Enter a URL')
+          }
           value={String(displayArray[index] ?? '')}
           size="1"
           onChange={(e) => handleMultiValueChange(index, e.target.value)}
@@ -212,7 +216,7 @@ export default function FormPropTypeLink({
   return (
     <Flex direction="column" gap="4" flexGrow="1">
       <FormElement>
-        <Label htmlFor={`prop-link-type-${id}`}>Link type</Label>
+        <Label htmlFor={`prop-link-type-${id}`}>{Drupal.t('Link type')}</Label>
         <Select.Root
           value={linkType}
           onValueChange={(value: 'relative' | 'full') => {
@@ -246,14 +250,18 @@ export default function FormPropTypeLink({
         >
           <Select.Trigger id={`prop-link-type-${id}`} />
           <Select.Content>
-            <Select.Item value="relative">Relative path</Select.Item>
-            <Select.Item value="full">Full URL</Select.Item>
+            <Select.Item value="relative">
+              {Drupal.t('Relative path')}
+            </Select.Item>
+            <Select.Item value="full">{Drupal.t('Full URL')}</Select.Item>
           </Select.Content>
         </Select.Root>
       </FormElement>
       <Divider />
       <FormElement>
-        <Label htmlFor={`prop-example-${id}`}>Example value</Label>
+        <Label htmlFor={`prop-example-${id}`}>
+          {Drupal.t('Example value')}
+        </Label>
         {/* Single value mode */}
         {!allowMultiple && (
           <Flex align="center" gap="1" width="100%">
@@ -270,7 +278,9 @@ export default function FormPropTypeLink({
                 id={`prop-example-${id}`}
                 type="text"
                 placeholder={
-                  linkType === 'relative' ? 'Enter a path' : 'Enter a URL'
+                  linkType === 'relative'
+                    ? Drupal.t('Enter a path')
+                    : Drupal.t('Enter a URL')
                 }
                 value={typeof example === 'string' ? example : ''}
                 size="1"

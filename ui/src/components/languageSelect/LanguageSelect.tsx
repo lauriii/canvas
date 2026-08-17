@@ -66,7 +66,9 @@ const DeleteTranslationDialog = ({
         onSuccess(languageId);
       } catch (error) {
         console.error('Failed to delete translation:', error);
-        setDeleteError('Failed to delete the translation. Please try again.');
+        setDeleteError(
+          Drupal.t('Failed to delete the translation. Please try again.'),
+        );
       }
     } else {
       onClose();
@@ -79,19 +81,21 @@ const DeleteTranslationDialog = ({
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
-      title="Delete translation"
-      description="You are about to delete this translation. This will permanently delete the translation from this page. This action cannot be undone."
+      title={Drupal.t('Delete translation')}
+      description={Drupal.t(
+        'You are about to delete this translation. This will permanently delete the translation from this page. This action cannot be undone.',
+      )}
       error={
         deleteError
           ? {
-              title: 'Failed to delete translation',
+              title: Drupal.t('Failed to delete translation'),
               message: deleteError,
             }
           : undefined
       }
       footer={{
-        cancelText: 'Cancel',
-        confirmText: 'Delete Translation',
+        cancelText: Drupal.t('Cancel'),
+        confirmText: Drupal.t('Delete Translation'),
         onConfirm: handleConfirmDelete,
         onCancel: onClose,
         isConfirmDisabled: confirmText !== 'DELETE',
@@ -100,7 +104,13 @@ const DeleteTranslationDialog = ({
     >
       <Flex direction="column" gap="2">
         <Text size="2">
-          To confirm this, type '<Text weight="bold">DELETE</Text>'
+          {/* DELETE is the exact word the input is compared against, so it
+              stays out of the translatable string along with the quotes and
+              the emphasis around it. */}
+          {Drupal.t('To confirm this, type')}
+          {" '"}
+          <Text weight="bold">DELETE</Text>
+          {"' "}
           <Text color="red">*</Text>
         </Text>
         <TextField.Root
@@ -237,7 +247,7 @@ const LanguageSelect = () => {
         <DropdownMenu.Trigger>
           <Button size="2" variant="soft" data-testid="language-select-trigger">
             <GlobeIcon />
-            <Text>{currentLangObj?.name || 'Select Language'}</Text>
+            <Text>{currentLangObj?.name || Drupal.t('Select Language')}</Text>
             <ChevronDownIcon width="16" height="16" />
           </Button>
         </DropdownMenu.Trigger>
@@ -267,7 +277,7 @@ const LanguageSelect = () => {
                     }
                   >
                     {language.name}
-                    {language.isDefault && ' (Default)'}
+                    {language.isDefault && ` ${Drupal.t('(Default)')}`}
                   </Text>
                 </Flex>
               </DropdownMenu.Item>
@@ -289,7 +299,9 @@ const LanguageSelect = () => {
                         <button
                           data-testid="language-options-popover-trigger"
                           className={styles.dotsButton}
-                          aria-label={`More options for ${language.name}`}
+                          aria-label={Drupal.t('More options for !language', {
+                            '!language': language.name,
+                          })}
                           onClick={(e) => {
                             e.stopPropagation();
                             handlePopoverOpenChange(language.id, true);
@@ -320,7 +332,7 @@ const LanguageSelect = () => {
                           className={styles.popoverTitle}
                           data-testid="language-options-popover-title"
                         >
-                          {pageTitle || 'Untitled'} ({language.name})
+                          {pageTitle || Drupal.t('Untitled')} ({language.name})
                         </Text>
                         <Separator size="4" my="1" />
                         {(translations?.links?.[language.id]?.['edit-form'] ||
@@ -332,8 +344,8 @@ const LanguageSelect = () => {
                             <ExternalLinkIcon width="14" height="14" />
                             <Text size="2">
                               {translations?.links?.[language.id]?.['edit-form']
-                                ? 'Edit translation'
-                                : 'Add translation'}
+                                ? Drupal.t('Edit translation')
+                                : Drupal.t('Add translation')}
                             </Text>
                           </button>
                         )}
@@ -349,7 +361,9 @@ const LanguageSelect = () => {
                             onClick={() => handleDeleteTranslation(language.id)}
                           >
                             <TrashIcon width="14" height="14" />
-                            <Text size="2">Delete translation</Text>
+                            <Text size="2">
+                              {Drupal.t('Delete translation')}
+                            </Text>
                           </button>
                         )}
                       </Flex>
@@ -367,7 +381,7 @@ const LanguageSelect = () => {
               >
                 <Flex align="center" gap="2">
                   <ExternalLinkIcon width="14" height="14" />
-                  <Text size="2">Configure languages</Text>
+                  <Text size="2">{Drupal.t('Configure languages')}</Text>
                 </Flex>
               </button>
             </DropdownMenu.Item>

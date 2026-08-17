@@ -83,7 +83,7 @@ const renderDuplicateButton = (
       onClick={(event) => event.stopPropagation()}
       onSelect={onDuplicate ? () => onDuplicate(item) : undefined}
     >
-      Duplicate page
+      {Drupal.t('Duplicate page')}
     </DropdownMenu.Item>
   ) : null;
 
@@ -99,7 +99,7 @@ const renderSetAsHomepageButton = (
         onClick={(event) => event.stopPropagation()}
         onSelect={onSetHomepage ? () => onSetHomepage(item) : undefined}
       >
-        Set as homepage
+        {Drupal.t('Set as homepage')}
       </DropdownMenu.Item>
     </>
   ) : null;
@@ -117,7 +117,7 @@ const renderUnpublishButton = (
         onClick={(event) => event.stopPropagation()}
         onSelect={onUnpublish ? () => onUnpublish(item) : undefined}
       >
-        Unpublish page
+        {Drupal.t('Unpublish page')}
       </DropdownMenu.Item>
     </>
   ) : null;
@@ -138,7 +138,7 @@ const renderPublishButton = (
         onClick={(event) => event.stopPropagation()}
         onSelect={onPublish ? () => onPublish(item) : undefined}
       >
-        Publish page
+        {Drupal.t('Publish page')}
       </DropdownMenu.Item>
     </>
   ) : null;
@@ -162,19 +162,22 @@ const renderDeleteButton = (
             onSelect={(event) => event.preventDefault()}
             color="red"
           >
-            Delete page
+            {Drupal.t('Delete page')}
           </DropdownMenu.Item>
         </AlertDialog.Trigger>
         <AlertDialog.Content>
-          <AlertDialog.Title>Delete {item.title} page</AlertDialog.Title>
+          <AlertDialog.Title>
+            {Drupal.t('Delete !title page', { '!title': item.title })}
+          </AlertDialog.Title>
           <AlertDialog.Description size="2">
-            This action will permanently delete the page and all of its
-            contents. This action cannot be undone.
+            {Drupal.t(
+              'This action will permanently delete the page and all of its contents. This action cannot be undone.',
+            )}
           </AlertDialog.Description>
           <Flex gap="3" mt="4" justify="end">
             <AlertDialog.Cancel>
               <Button variant="soft" color="gray">
-                Cancel
+                {Drupal.t('Cancel')}
               </Button>
             </AlertDialog.Cancel>
             <AlertDialog.Action>
@@ -183,7 +186,7 @@ const renderDeleteButton = (
                 onSelect={() => (onDelete ? onDelete(item) : undefined)}
               >
                 <Button variant="solid" color="red">
-                  Delete page
+                  {Drupal.t('Delete page')}
                 </Button>
               </DropdownMenu.Item>
             </AlertDialog.Action>
@@ -256,18 +259,21 @@ const NavigationItem = ({
       </Link>
       {!isMenuOpen && (isUnpublished || willBeUnpublished) && (
         <Flex align="center" mr="2">
+          {/* These badges name the state of a page, so they share the
+              disambiguation context the page status badges use, and not the
+              one the "Unpublish page" action would need. */}
           {willBeUnpublished ? (
-            <Tooltip content="Applies on next publish">
+            <Tooltip content={Drupal.t('Applies on next publish')}>
               <Badge size="1" variant="solid" color="gray">
                 <Flex align="center" gap="1">
                   <ClockIcon width="11" height="11" />
-                  Unpublish
+                  {Drupal.t('Unpublish', {}, { context: 'Canvas page status' })}
                 </Flex>
               </Badge>
             </Tooltip>
           ) : (
             <Badge size="1" variant="solid" color="gray">
-              Unpublished
+              {Drupal.t('Unpublished', {}, { context: 'Canvas page status' })}
             </Badge>
           )}
         </Flex>
@@ -279,7 +285,9 @@ const NavigationItem = ({
               variant="ghost"
               color="gray"
               className={styles.optionsButton}
-              aria-label={`Page options for ${item.title}`}
+              aria-label={Drupal.t('Page options for !title', {
+                '!title': item.title,
+              })}
             >
               <DotsVerticalIcon />
             </IconButton>
@@ -321,7 +329,7 @@ const ContentGroup = ({
     return (
       <EmptyStateCallout
         data-testid="canvas-navigation-results"
-        title="No pages found"
+        title={Drupal.t('No pages found')}
         variant="surface"
       />
     );
@@ -414,9 +422,9 @@ const Navigation = ({
           <TextField.Root
             autoComplete="off"
             id="canvas-navigation-search"
-            placeholder="Search…"
+            placeholder={Drupal.t('Search…')}
             radius="medium"
-            aria-label="Search content"
+            aria-label={Drupal.t('Search content')}
             size="1"
           >
             <TextField.Slot>
@@ -433,7 +441,7 @@ const Navigation = ({
                 size="1"
               >
                 <PlusIcon />
-                New
+                {Drupal.t('New')}
                 <ChevronDownIcon />
               </Button>
             </DropdownMenu.Trigger>
@@ -443,18 +451,18 @@ const Navigation = ({
                 data-testid="canvas-navigation-new-page-button"
               >
                 <FileTextIcon />
-                New page
+                {Drupal.t('New page')}
               </DropdownMenu.Item>
             </DropdownMenu.Content>
           </DropdownMenu.Root>
         )}
       </Flex>
       <ScrollArea scrollbars="vertical" style={{ height: 175 }}>
-        {loading && <p>Loading...</p>}
+        {loading && <p>{Drupal.t('Loading...')}</p>}
         {!loading && (
           <>
             <ContentGroup
-              title="Pages"
+              title={Drupal.t('Pages')}
               items={items}
               onSelect={onSelect}
               onDuplicate={onDuplicate}

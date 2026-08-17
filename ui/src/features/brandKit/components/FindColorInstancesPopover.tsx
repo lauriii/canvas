@@ -55,13 +55,13 @@ const FindColorInstancesPopover = ({
               weight="bold"
               data-testid="find-color-instances-title"
             >
-              Find instances
+              {Drupal.t('Find instances')}
             </Text>
             <Popover.Close asChild>
               <IconButton
                 variant="ghost"
                 size="1"
-                aria-label="Close"
+                aria-label={Drupal.t('Close')}
                 data-testid="find-color-instances-close-button"
               >
                 <Cross2Icon />
@@ -75,7 +75,9 @@ const FindColorInstancesPopover = ({
               color="gray"
               data-testid="find-color-instances-description"
             >
-              Color usage listing for <b>{color.name}</b> will go here.
+              {Drupal.t('Color usage listing for !name will go here.', {
+                '!name': color.name,
+              })}
             </Text>
           </Box>
 
@@ -94,7 +96,7 @@ const FindColorInstancesPopover = ({
                 size="1"
                 data-testid="find-color-instances-footer-close-button"
               >
-                Close
+                {Drupal.t('Close')}
               </Button>
             </Popover.Close>
           </Flex>

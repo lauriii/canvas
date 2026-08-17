@@ -20,7 +20,7 @@ const FontVariantList = ({
 }: FontVariantListProps) => (
   <Flex direction="column" gap="2">
     <Text size="1" color="gray">
-      Variants
+      {Drupal.t('Variants')}
     </Text>
     <Box className={styles.variantList}>
       {fonts.map((font) => (

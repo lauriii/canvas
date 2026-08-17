@@ -35,12 +35,14 @@ const CommandSnippet = ({
           {command}
         </pre>
       </div>
-      <Tooltip content={isCopied ? 'Copied' : 'Copy command'}>
+      <Tooltip
+        content={isCopied ? Drupal.t('Copied') : Drupal.t('Copy command')}
+      >
         <IconButton
           size="1"
           variant="ghost"
           color={isCopied ? 'green' : 'gray'}
-          aria-label={isCopied ? 'Copied' : 'Copy command'}
+          aria-label={isCopied ? Drupal.t('Copied') : Drupal.t('Copy command')}
           onClick={() => void handleCopy()}
         >
           {isCopied ? <CheckIcon /> : <CopyIcon />}

@@ -21,14 +21,16 @@ const ComponentInLayoutDialog = () => {
       onOpenChange={handleOpenChange}
       title={
         <>
-          Unable to perform action:
+          {Drupal.t('Unable to perform action:')}
           <br />
-          Component in use
+          {Drupal.t('Component in use')}
         </>
       }
-      description="Please remove all instances of the component on the page before removing or deleting."
+      description={Drupal.t(
+        'Please remove all instances of the component on the page before removing or deleting.',
+      )}
       footer={{
-        cancelText: 'Cancel',
+        cancelText: Drupal.t('Cancel'),
       }}
     />
   );

@@ -96,7 +96,7 @@ const createPageMenuContent = (
           onClick={(event) => event.stopPropagation()}
           onSelect={onDuplicate ? () => onDuplicate(item) : undefined}
         >
-          Duplicate page
+          {Drupal.t('Duplicate page')}
         </UnifiedMenu.Item>
       )}
       {hasHomepage && (
@@ -106,7 +106,7 @@ const createPageMenuContent = (
             onClick={(event) => event.stopPropagation()}
             onSelect={onSetHomepage ? () => onSetHomepage(item) : undefined}
           >
-            Set as homepage
+            {Drupal.t('Set as homepage')}
           </UnifiedMenu.Item>
         </>
       )}
@@ -117,7 +117,7 @@ const createPageMenuContent = (
             onClick={(event) => event.stopPropagation()}
             onSelect={onUnpublish ? () => onUnpublish(item) : undefined}
           >
-            Unpublish page
+            {Drupal.t('Unpublish page')}
           </UnifiedMenu.Item>
         </>
       )}
@@ -130,7 +130,7 @@ const createPageMenuContent = (
             onClick={(event) => event.stopPropagation()}
             onSelect={onPublish ? () => onPublish(item) : undefined}
           >
-            Publish page
+            {Drupal.t('Publish page')}
           </UnifiedMenu.Item>
         </>
       )}
@@ -146,19 +146,22 @@ const createPageMenuContent = (
                 onSelect={(event) => event.preventDefault()}
                 color="red"
               >
-                Delete page
+                {Drupal.t('Delete page')}
               </UnifiedMenu.Item>
             </AlertDialog.Trigger>
             <AlertDialog.Content>
-              <AlertDialog.Title>Delete {item.title} page</AlertDialog.Title>
+              <AlertDialog.Title>
+                {Drupal.t('Delete !title page', { '!title': item.title })}
+              </AlertDialog.Title>
               <AlertDialog.Description size="2">
-                This action will permanently delete the page and all of its
-                contents. This action cannot be undone.
+                {Drupal.t(
+                  'This action will permanently delete the page and all of its contents. This action cannot be undone.',
+                )}
               </AlertDialog.Description>
               <Flex gap="3" mt="4" justify="end">
                 <AlertDialog.Cancel>
                   <Button variant="soft" color="gray">
-                    Cancel
+                    {Drupal.t('Cancel')}
                   </Button>
                 </AlertDialog.Cancel>
                 <AlertDialog.Action>
@@ -167,7 +170,7 @@ const createPageMenuContent = (
                     color="red"
                     onClick={() => onDelete?.(item)}
                   >
-                    Delete page
+                    {Drupal.t('Delete page')}
                   </Button>
                 </AlertDialog.Action>
               </Flex>
@@ -233,9 +236,12 @@ const PageListItem = ({
             variant={isHomepage ? 'homepage' : 'page'}
             selected={isSelected}
             trailingContent={
+              // These badges name the state of a page, so they share the
+              // disambiguation context the page status badges use, and not
+              // the one the "Unpublish page" action would need.
               !isMenuOpen && (isUnpublished || willBeUnpublished) ? (
                 willBeUnpublished ? (
-                  <Tooltip content="Applies on next publish">
+                  <Tooltip content={Drupal.t('Applies on next publish')}>
                     <Badge
                       size="1"
                       variant="solid"
@@ -243,7 +249,11 @@ const PageListItem = ({
                     >
                       <Flex align="center" gap="1">
                         <ClockIcon width="11" height="11" />
-                        Unpublish
+                        {Drupal.t(
+                          'Unpublish',
+                          {},
+                          { context: 'Canvas page status' },
+                        )}
                       </Flex>
                     </Badge>
                   </Tooltip>
@@ -253,7 +263,11 @@ const PageListItem = ({
                     variant="solid"
                     color={isSelected ? 'blue' : 'gray'}
                   >
-                    Unpublished
+                    {Drupal.t(
+                      'Unpublished',
+                      {},
+                      { context: 'Canvas page status' },
+                    )}
                   </Badge>
                 )
               ) : undefined
@@ -303,7 +317,7 @@ const ContentGroup = ({
     return (
       <EmptyStateCallout
         data-testid="canvas-page-list"
-        title="No pages found"
+        title={Drupal.t('No pages found')}
         variant="surface"
       />
     );
@@ -407,9 +421,9 @@ const PageList = ({
           <TextField.Root
             autoComplete="off"
             id="canvas-navigation-search"
-            placeholder="Search…"
+            placeholder={Drupal.t('Search…')}
             radius="medium"
-            aria-label="Search content"
+            aria-label={Drupal.t('Search content')}
             size="1"
           >
             <TextField.Slot>
@@ -426,7 +440,7 @@ const PageList = ({
                 size="1"
               >
                 <PlusIcon />
-                New
+                {Drupal.t('New')}
                 <ChevronDownIcon />
               </Button>
             </DropdownMenu.Trigger>
@@ -436,7 +450,7 @@ const PageList = ({
                 data-testid="canvas-page-list-new-page-button"
               >
                 <FileTextIcon />
-                New page
+                {Drupal.t('New page')}
               </DropdownMenu.Item>
             </DropdownMenu.Content>
           </DropdownMenu.Root>
@@ -464,7 +478,9 @@ const PageList = ({
           )}
           {pageItemsError && (
             <ErrorCard
-              title="An unexpected error has occurred while loading pages."
+              title={Drupal.t(
+                'An unexpected error has occurred while loading pages.',
+              )}
               error={pageItemsError}
             />
           )}

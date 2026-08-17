@@ -61,15 +61,19 @@ const PatternItem: React.FC<{
       <PermissionCheck
         hasPermission="patterns"
         denied={
-          <UnifiedMenu.Item disabled>No actions available</UnifiedMenu.Item>
+          <UnifiedMenu.Item disabled>
+            {Drupal.t('No actions available')}
+          </UnifiedMenu.Item>
         }
       >
         <UnifiedMenu.Item onClick={handleEditClick}>
-          Edit pattern
+          {Drupal.t('Edit pattern')}
         </UnifiedMenu.Item>
-        <UnifiedMenu.Item onClick={handleRenameClick}>Rename</UnifiedMenu.Item>
+        <UnifiedMenu.Item onClick={handleRenameClick}>
+          {Drupal.t('Rename')}
+        </UnifiedMenu.Item>
         <UnifiedMenu.Item color="red" onClick={handleDeleteClick}>
-          Delete pattern
+          {Drupal.t('Delete pattern')}
         </UnifiedMenu.Item>
       </PermissionCheck>
     </>

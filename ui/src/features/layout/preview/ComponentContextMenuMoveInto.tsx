@@ -60,14 +60,21 @@ const SiblingSlotsSubMenu: React.FC<{
 
   return (
     <UnifiedMenu.Sub>
-      <UnifiedMenu.SubTrigger>Move into</UnifiedMenu.SubTrigger>
+      <UnifiedMenu.SubTrigger>
+        {Drupal.t('Move into', {}, { context: 'Canvas component action' })}
+      </UnifiedMenu.SubTrigger>
       <UnifiedMenu.SubContent>
         {siblingSlots.length === 0 && (
-          <UnifiedMenu.Item disabled>No sibling slots</UnifiedMenu.Item>
+          <UnifiedMenu.Item disabled>
+            {Drupal.t('No sibling slots')}
+          </UnifiedMenu.Item>
         )}
         {siblingSlots.map(({ slot, parentComponentName, slotDisplayName }) => (
           <UnifiedMenu.Item key={slot.id} onClick={handleMoveIntoSlot(slot.id)}>
-            {slotDisplayName} ({parentComponentName})
+            {Drupal.t('!slot (!component)', {
+              '!slot': slotDisplayName,
+              '!component': parentComponentName,
+            })}
           </UnifiedMenu.Item>
         ))}
       </UnifiedMenu.SubContent>

@@ -34,17 +34,21 @@ const validateFrontendUrl = (value: string, existingUrls: string[]): string => {
   try {
     new URL(value);
   } catch {
-    return 'Enter a valid URL, including the protocol (for example, https://example.com).';
+    return Drupal.t(
+      'Enter a valid URL, including the protocol (for example, https://example.com).',
+    );
   }
   if (!FRONTEND_URL_PATTERN.test(value) || hasDotPathSegment(value)) {
-    return 'Enter an http:// or https:// URL without credentials, a query, a fragment, dot path segments, or a trailing slash.';
+    return Drupal.t(
+      'Enter an http:// or https:// URL without credentials, a query, a fragment, dot path segments, or a trailing slash.',
+    );
   }
   const canonical = canonicalFrontendUrl(value);
   if (
     canonical !== null &&
     existingUrls.some((url) => canonicalFrontendUrl(url) === canonical)
   ) {
-    return 'This frontend is already in the list.';
+    return Drupal.t('This frontend is already in the list.');
   }
   return '';
 };
@@ -61,7 +65,7 @@ const getSaveErrorMessage = (error: unknown): string => {
       return data.error;
     }
   }
-  return 'The frontend could not be saved. Please try again.';
+  return Drupal.t('The frontend could not be saved. Please try again.');
 };
 
 const AddFrontendDialog = ({
@@ -114,19 +118,21 @@ const AddFrontendDialog = ({
     <Dialog
       open={open}
       onOpenChange={handleOpenChange}
-      title="Add frontend"
+      title={Drupal.t('Add frontend')}
       width="440px"
-      description="Enter the URL where your frontend app runs. This can be a local development server or a deployed environment."
+      description={Drupal.t(
+        'Enter the URL where your frontend app runs. This can be a local development server or a deployed environment.',
+      )}
       footer={{
-        cancelText: 'Cancel',
-        confirmText: 'Add frontend',
+        cancelText: Drupal.t('Cancel'),
+        confirmText: Drupal.t('Add frontend'),
         onConfirm: () => void handleAdd(),
         isConfirmDisabled: isSubmitDisabled,
         isConfirmLoading: isSubmitting,
       }}
       error={
         submitError
-          ? { title: 'Failed to add frontend', message: submitError }
+          ? { title: Drupal.t('Failed to add frontend'), message: submitError }
           : undefined
       }
     >
@@ -138,7 +144,7 @@ const AddFrontendDialog = ({
       >
         <Flex direction="column" gap="2">
           <DialogFieldLabel htmlFor="frontendUrl">
-            Frontend URL
+            {Drupal.t('Frontend URL')}
           </DialogFieldLabel>
           <TextField.Root
             autoComplete="off"

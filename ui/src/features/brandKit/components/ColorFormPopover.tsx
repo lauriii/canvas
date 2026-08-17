@@ -110,7 +110,9 @@ function formReducer(state: FormState, action: FormAction): FormState {
 
     case 'SET_COLOR_NAME': {
       const colorName = action.value;
-      const colorNameError = colorName.trim() ? '' : 'Color name is required.';
+      const colorNameError = colorName.trim()
+        ? ''
+        : Drupal.t('Color name is required.');
       // If the user has manually edited the variable name, leave it alone.
       if (state.variableNameTouched) {
         return { ...state, colorName, colorNameError };
@@ -142,7 +144,9 @@ function formReducer(state: FormState, action: FormAction): FormState {
       return {
         ...state,
         isColorValueValid: action.isValid,
-        colorValueError: action.isValid ? '' : 'Must be a valid color.',
+        colorValueError: action.isValid
+          ? ''
+          : Drupal.t('Must be a valid color.'),
       };
 
     case 'SET_FOLDER_ERROR':
@@ -151,11 +155,13 @@ function formReducer(state: FormState, action: FormAction): FormState {
     case 'SHOW_VALIDATION_ERRORS':
       return {
         ...state,
-        colorNameError: state.colorName.trim() ? '' : 'Color name is required.',
+        colorNameError: state.colorName.trim()
+          ? ''
+          : Drupal.t('Color name is required.'),
         variableNameError: validateCssVariableClientSide(state.variableName),
         colorValueError: state.isColorValueValid
           ? ''
-          : 'Must be a valid color.',
+          : Drupal.t('Must be a valid color.'),
       };
 
     default:
@@ -282,8 +288,9 @@ const ColorFormPopover = ({
               console.error('Failed to add color to folder:', folderErr);
               updateForm({
                 type: 'SET_FOLDER_ERROR',
-                error:
+                error: Drupal.t(
                   'The color was created but could not be added to the folder. You can move it manually.',
+                ),
               });
               // Keep the popover open so the user sees the error.
               return;
@@ -306,8 +313,10 @@ const ColorFormPopover = ({
   };
 
   const title =
-    operation === 'add' ? 'Add color' : (color?.name ?? 'Edit color');
-  const confirmText = operation === 'add' ? 'Add' : 'Save';
+    operation === 'add'
+      ? Drupal.t('Add color')
+      : (color?.name ?? Drupal.t('Edit color'));
+  const confirmText = operation === 'add' ? Drupal.t('Add') : Drupal.t('Save');
 
   const isConfirmDisabled = useMemo(() => {
     // Block save if color value is invalid (for both add and edit operations).
@@ -333,15 +342,15 @@ const ColorFormPopover = ({
   ]);
 
   const error = folderError
-    ? { title: 'Color created with an issue', message: folderError }
+    ? { title: Drupal.t('Color created with an issue'), message: folderError }
     : isCreateError && createError
       ? {
-          title: 'Failed to create color',
+          title: Drupal.t('Failed to create color'),
           message: normalizeError(createError).message,
         }
       : isUpdateError && updateError
         ? {
-            title: 'Failed to update color',
+            title: Drupal.t('Failed to update color'),
             message: normalizeError(updateError).message,
           }
         : null;
@@ -392,7 +401,7 @@ const ColorFormPopover = ({
               <IconButton
                 variant="ghost"
                 size="1"
-                aria-label="Close"
+                aria-label={Drupal.t('Close')}
                 data-testid="color-form-close-button"
               >
                 <Cross2Icon />
@@ -413,13 +422,13 @@ const ColorFormPopover = ({
                 <>
                   <Flex direction="column" gap="1" px="3">
                     <label htmlFor="colorName" className={styles.fieldLabel}>
-                      Color name
+                      {Drupal.t('Color name')}
                     </label>
                     <TextField.Root
                       id="colorName"
                       value={colorName}
                       onChange={(e) => handleColorNameChange(e.target.value)}
-                      placeholder="Enter a name"
+                      placeholder={Drupal.t('Enter a name')}
                       size="1"
                       data-testid="canvas-color-name-input"
                     />
@@ -432,13 +441,13 @@ const ColorFormPopover = ({
 
                   <Flex direction="column" gap="1" px="3">
                     <label htmlFor="variableName" className={styles.fieldLabel}>
-                      Variable name
+                      {Drupal.t('Variable name')}
                     </label>
                     <TextField.Root
                       id="variableName"
                       value={variableName}
                       onChange={(e) => handleVariableNameChange(e.target.value)}
-                      placeholder="e.g., color-primary"
+                      placeholder={Drupal.t('e.g., color-primary')}
                       size="1"
                       data-testid="canvas-color-variable-input"
                     >
@@ -456,7 +465,7 @@ const ColorFormPopover = ({
                   </Flex>
 
                   <ErrorBoundary
-                    title="Color picker unavailable"
+                    title={Drupal.t('Color picker unavailable')}
                     variant="card"
                   >
                     <ColorPicker
@@ -500,7 +509,11 @@ const ColorFormPopover = ({
                       data-testid="color-current-preview"
                     >
                       <Text size="1" className={styles.previewLabel}>
-                        Current
+                        {Drupal.t(
+                          'Current',
+                          {},
+                          { context: 'Canvas brand kit' },
+                        )}
                       </Text>
                       <div
                         className={styles.previewSwatch}
@@ -513,7 +526,7 @@ const ColorFormPopover = ({
                                 .padStart(2, '0')}`
                             : 'transparent',
                         }}
-                        aria-label="Current color"
+                        aria-label={Drupal.t('Current color')}
                         data-testid="canvas-color-current-swatch"
                       />
                       <Text
@@ -534,7 +547,11 @@ const ColorFormPopover = ({
                       data-testid="color-new-preview"
                     >
                       <Text size="1" className={styles.previewLabel}>
-                        Preview
+                        {Drupal.t(
+                          'Preview',
+                          {},
+                          { context: 'Canvas brand kit' },
+                        )}
                       </Text>
                       <div
                         className={styles.previewSwatch}
@@ -545,7 +562,7 @@ const ColorFormPopover = ({
                             .toString(16)
                             .padStart(2, '0')}`,
                         }}
-                        aria-label="Preview color"
+                        aria-label={Drupal.t('Preview color')}
                         data-testid="canvas-color-preview-swatch"
                       />
                       <Text
@@ -559,7 +576,7 @@ const ColorFormPopover = ({
                   </Flex>
 
                   <ErrorBoundary
-                    title="Color picker unavailable"
+                    title={Drupal.t('Color picker unavailable')}
                     variant="card"
                   >
                     <ColorPicker
@@ -600,8 +617,9 @@ const ColorFormPopover = ({
                         />
                       </svg>
                       <Text size="1" className={styles.infoText}>
-                        Changing this color will affect 0 components across your
-                        design.
+                        {Drupal.t(
+                          'Changing this color will affect 0 components across your design.',
+                        )}
                       </Text>
                     </div>
                   </Box>
@@ -630,7 +648,7 @@ const ColorFormPopover = ({
                   size="1"
                   data-testid="canvas-color-cancel-button"
                 >
-                  Cancel
+                  {Drupal.t('Cancel')}
                 </Button>
               </Popover.Close>
               <Button

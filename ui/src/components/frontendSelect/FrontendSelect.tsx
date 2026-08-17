@@ -161,7 +161,7 @@ const FrontendSelect = ({ settings }: FrontendSelectProps) => {
           className={`${styles.syncIndicator} ${
             syncIndicatorState === 'fading' ? styles.syncIndicatorFading : ''
           }`}
-          aria-label="Synchronizing components"
+          aria-label={Drupal.t('Synchronizing components')}
           data-testid="frontend-sync-indicator"
         >
           <Spinner size="1" />

@@ -96,7 +96,9 @@ const ChangeGroup = ({
             disabled={isBusy || selectableChanges.length === 0}
             checked={isGroupSelected}
             onCheckedChange={handleGroupSelection}
-            aria-label={`Select all changes in ${groupLabel}`}
+            aria-label={Drupal.t('Select all changes in !group', {
+              '!group': groupLabel,
+            })}
           />
           {groupLabel}
         </Flex>

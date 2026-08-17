@@ -83,7 +83,10 @@ const DrupalInputMultivalueForm = ({
   // Controlled popover state so we can close it programmatically on remove.
   const [popoverOpen, setPopoverOpen] = useState(false);
   const fieldLabel = attributes['data-field-label'] || '';
-  const displayText = displayValue === '' ? 'Empty' : String(displayValue);
+  const displayText =
+    displayValue === ''
+      ? Drupal.t('Empty', {}, { context: 'Canvas field value' })
+      : String(displayValue);
 
   const setPopoverOpenAndRefocus = (open: boolean) => {
     setPopoverOpen(open);
@@ -227,7 +230,10 @@ const DrupalInputMultivalueForm = ({
             }}
             className={styles.listItem}
             type="button"
-            aria-label={`Edit ${fieldLabel}: ${displayText}`}
+            aria-label={Drupal.t('Edit !label: !value', {
+              '!label': fieldLabel,
+              '!value': displayText,
+            })}
           >
             <Text
               size="2"
@@ -271,7 +277,7 @@ const DrupalInputMultivalueForm = ({
           <Text size="1" weight="medium" className={styles.popoverLabel}>
             {fieldLabel}
           </Text>
-          <Popover.Close aria-label="Close">
+          <Popover.Close aria-label={Drupal.t('Close')}>
             <Cross2Icon />
           </Popover.Close>
         </Flex>
@@ -302,7 +308,7 @@ const DrupalInputMultivalueForm = ({
             disabled={!isRemoveButtonEnabled(refs.current.triggerRow)}
           >
             <TrashIcon />
-            Remove
+            {Drupal.t('Remove')}
           </Button>
         </Flex>
       </Popover.Content>

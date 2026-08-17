@@ -175,8 +175,8 @@ export const createConflictNotification = (
     id: `${CONFLICT_NOTIFICATION_KEY}:${hashFingerprint(fingerprint)}`,
     type: 'warning',
     key: CONFLICT_NOTIFICATION_KEY,
-    title: 'Conflict detected',
-    message: 'One or more Canvas auto-save items have conflicts.',
+    title: Drupal.t('Conflict detected'),
+    message: Drupal.t('One or more Canvas auto-save items have conflicts.'),
     timestamp: latestUpdated * 1000,
     hasRead:
       storageState.readFingerprint === fingerprint ||
@@ -186,7 +186,7 @@ export const createConflictNotification = (
       ),
     actions: [
       {
-        label: 'Resolve conflicts',
+        label: Drupal.t('Resolve conflicts'),
         href: getConflictRouteForChange(firstConflictedChange),
       },
     ],

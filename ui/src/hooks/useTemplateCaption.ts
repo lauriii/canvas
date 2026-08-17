@@ -23,14 +23,16 @@ function getViewModeName(
   viewMode: string,
 ): string {
   if (!templatesData || !entityType || !bundle || !viewMode) {
-    return `${viewMode} template`;
+    return Drupal.t('!view_mode template', { '!view_mode': viewMode });
   }
   const entityTemplates = templatesData[entityType];
   const bundleData = entityTemplates?.bundles?.[bundle];
   const viewModeData = bundleData?.viewModes?.[viewMode];
   return viewModeData?.viewModeLabel
-    ? `${viewModeData.viewModeLabel} template`
-    : `${viewMode} template`;
+    ? Drupal.t('!view_mode template', {
+        '!view_mode': viewModeData.viewModeLabel,
+      })
+    : Drupal.t('!view_mode template', { '!view_mode': viewMode });
 }
 
 export function useTemplateCaption(): string | undefined {
