@@ -174,6 +174,15 @@ export default defineConfig([
   {
     files: ['tests/src/Playwright/**/*.ts'],
     extends: [playwright.configs['flat/recommended']],
+    rules: {
+      // Arbitrary time waits cause flaky, slow, and misleading e2e failures.
+      // The plugin only warns by default, which lets them slip through CI.
+      // Enforce as an error to match the Cypress suite, which already errors on
+      // `cypress/no-unnecessary-waiting`. Wait on implementation details (a DOM
+      // change, a response, etc.) instead; if a fixed wait is truly
+      // unavoidable, disable this rule inline with an explanation.
+      'playwright/no-wait-for-timeout': 'error',
+    },
   },
   {
     files: ['**/tests/isolatedPerTest/**/*.spec.ts'],

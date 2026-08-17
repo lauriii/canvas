@@ -257,14 +257,11 @@ test.describe('Multivalue Prop Types', () => {
       await expect(textList.nth(2)).toHaveText('Marshmallow Coast');
     });
 
-    // Reload the page and verify the order is still the same.
-
-    // Provide a fixed wait to ensure changes are saved.
-    // It's highly preferable to use something non-arbitrary that confirms a
-    // save has occurred. This should be considered a temporary hack to ensure
-    // the tests run reliably.
-    // eslint-disable-next-line playwright/no-wait-for-timeout
-    await page.waitForTimeout(10000);
+    // Reload the page and verify the order is still the same. The final
+    // reorder above already awaited the auto-save PATCH response (see
+    // `reorderMultiValueProp`), which persists the change to the server-side
+    // auto-save store that the reload reads back, so no arbitrary wait is
+    // needed before reloading.
     await page.reload();
     await canvas.waitForEditorUi();
     textField = page.locator('.field--type-string').filter({
