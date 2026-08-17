@@ -40,6 +40,7 @@ final class SingleDirectoryComponent extends JsonSchemaPropsComponentSourceBase 
   protected ComponentPluginManager $componentPluginManager;
   protected ModuleHandlerInterface $moduleHandler;
   protected ThemeHandlerInterface $themeHandler;
+  protected string $appRoot;
 
   /**
    * {@inheritdoc}
@@ -49,6 +50,7 @@ final class SingleDirectoryComponent extends JsonSchemaPropsComponentSourceBase 
     $instance->componentPluginManager = $container->get(ComponentPluginManager::class);
     $instance->moduleHandler = $container->get(ModuleHandlerInterface::class);
     $instance->themeHandler = $container->get(ThemeHandlerInterface::class);
+    $instance->appRoot = (string) $container->getParameter('app.root');
     return $instance;
   }
 
@@ -218,6 +220,24 @@ final class SingleDirectoryComponent extends JsonSchemaPropsComponentSourceBase 
     \assert(\is_string($template_path));
     $referenced_asset_path = Path::canonicalize(dirname($template_path) . '/' . $path);
     if (is_file($referenced_asset_path)) {
+      // On some environments (for example, a local Windows stack) Drupal core
+      // fails to make the component's path relative to the app root — because
+      // of a path-separator or drive-letter mismatch — leaving the template
+      // path absolute. Make the referenced asset path relative to the app root
+      // so an absolute filesystem path does not leak into the generated URL.
+      // @see \Drupal\Core\Theme\Component\ComponentMetadata::__construct()
+      // @see https://www.drupal.org/project/canvas/issues/3584619
+      if (Path::isAbsolute($referenced_asset_path)) {
+        try {
+          $referenced_asset_path = Path::makeRelative($referenced_asset_path, $this->appRoot);
+        }
+        catch (\InvalidArgumentException) {
+          // The asset and the app root are on different filesystem roots (for
+          // example, a Windows drive or UNC share other than the one Drupal
+          // runs from). It cannot be expressed relative to the app root, so
+          // leave it unchanged rather than fail — no worse than before.
+        }
+      }
       // SDC example values pointing to assets included in the SDC.
       // For example, an "avatar" SDC that shows an image, and:
       // - the example value is `avatar.png`
