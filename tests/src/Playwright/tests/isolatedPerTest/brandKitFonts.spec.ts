@@ -89,9 +89,10 @@ test.describe('brand kit fonts', () => {
     await expect(familyRow).toContainText('Mona Sans');
 
     // Regression guard: the family row is a <button> that resets its user agent
-    // styles with `all: unset` before declaring its own layout. If `all` is not
-    // the first declaration it wipes every declaration after it, and the row
-    // computes to `display: inline` with no height, padding, or width.
+    // styles with `all: unset` before declaring its own layout. `all` is a
+    // shorthand for every property, so if it is not the first declaration it
+    // overrides the declarations preceding it, and the row computes to
+    // `display: inline` with no height, padding, or width.
     // @see https://www.drupal.org/i/3577631
     await expect(familyRow).toHaveCSS('display', 'flex');
     const rowBox = await familyRow.boundingBox();
@@ -112,12 +113,21 @@ test.describe('brand kit fonts', () => {
     expect(variantBox).not.toBeNull();
     expect(variantBox!.height).toBeGreaterThan(20);
 
-    // Rename the family. The name field commits on blur.
+    // Rename the family. The name field commits on blur, and the commit applies
+    // to local state before its auto-save PATCH resolves. Wait for the request
+    // so the reload below cannot abort a still-in-flight save.
     const nameInput = page.locator(SEL.familyNameInput).first();
     await expect(nameInput).toHaveValue('Mona Sans');
+    const autoSaved = page.waitForResponse(
+      (response) =>
+        response.url().includes('config/auto-save/brand_kit/global') &&
+        response.request().method() === 'PATCH' &&
+        response.ok(),
+    );
     await nameInput.fill('Renamed Sans');
     await nameInput.blur();
     await expect(familyRow).toContainText('Renamed Sans');
+    await autoSaved;
 
     // Switching to Colors and back keeps the fonts section working.
     await page.keyboard.press('Escape');
