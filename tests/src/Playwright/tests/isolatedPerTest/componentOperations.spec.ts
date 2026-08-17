@@ -333,6 +333,37 @@ test.describe('Perform CRUD operations on components', () => {
     await canvas.deleteComponent('sdc.canvas_test_sdc.card');
   });
 
+  test('Can duplicate a component with the duplicate hotkey', async ({
+    page,
+    drupal,
+    canvas,
+  }) => {
+    await drupal.login({ username: 'editor', password: 'editor' });
+    await canvas.openCanvas(await canvas.createCanvas());
+    await canvas.openLibraryPanel();
+    await canvas.addComponent({ id: 'sdc.canvas_test_sdc.heading' });
+
+    const headingInstances = page.locator(
+      '#canvasPreviewOverlay [data-canvas-component-id="sdc.canvas_test_sdc.heading"]',
+    );
+    await expect(headingInstances).toHaveCount(1);
+
+    // Select the component in the Layers panel, matching the reported scenario.
+    await canvas.openLayersPanel();
+    const headingLayer = page
+      .getByTestId('canvas-primary-panel')
+      .getByRole('treeitem', { name: 'Heading' });
+    await headingLayer.click();
+    await expect(headingLayer).toHaveAttribute('data-canvas-selected', 'true');
+
+    // The context menu advertises ⌘ D / Ctrl+D as the duplicate shortcut, so
+    // pressing it must duplicate the selected component instead of falling
+    // through to the browser's default "add bookmark" action.
+    await page.keyboard.press('ControlOrMeta+d');
+
+    await expect(headingInstances).toHaveCount(2);
+  });
+
   test('Can add a component with slots', async ({ page, drupal, canvas }) => {
     await drupal.login({ username: 'editor', password: 'editor' });
     await canvas.openCanvas(await canvas.createCanvas());

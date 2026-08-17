@@ -38,7 +38,7 @@ import useSyncParamsToState from '@/hooks/useSyncParamsToState';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { getHalfwayScrollPosition } from '@/utils/function-utils';
 
-import { deleteNode } from '../layout/layoutModelSlice';
+import { deleteNode, duplicateNode } from '../layout/layoutModelSlice';
 
 import type React from 'react';
 
@@ -159,6 +159,15 @@ const EditorFrame: React.FC = () => {
     if (selectedComponent) {
       dispatch(deleteNode(selectedComponent));
       unsetSelectedComponent();
+    }
+  });
+  useHotkeys('mod+d', (event) => {
+    // Prevent the browser's default "add bookmark" action from firing. The
+    // context menu advertises this shortcut, so it needs to duplicate the
+    // selected component instead.
+    event.preventDefault();
+    if (selectedComponent) {
+      dispatch(duplicateNode({ uuid: selectedComponent }));
     }
   });
   useHotkeys('mod+c', () => {
