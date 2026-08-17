@@ -197,7 +197,7 @@ describe('Prop types editing', () => {
     cy.get('@select').select(0, { force: true });
     cy.get('@select').should('have.value', '_none');
     cy.get('@select').within(() => {
-      cy.get('option:selected').should('have.text', '- None -');
+      cy.get('option:selected').should('have.text', 'No value');
     });
     cy.waitForElementContentNotInIframe('#test-string-enum', 'foo');
     cy.testInIframe('#test-string-enum code', (enumPreview) => {
@@ -246,7 +246,7 @@ describe('Prop types editing', () => {
       cy.get('@select').select(0, { force: true });
       cy.get('@select').should('have.value', '_none');
       cy.get('@select').within(() => {
-        cy.get('option:selected').should('have.text', '- None -');
+        cy.get('option:selected').should('have.text', 'No value');
       });
       cy.waitForElementContentNotInIframe('#test-integer-enum', '1');
       cy.testInIframe('#test-integer-enum code', (enumPreview) => {
@@ -928,7 +928,7 @@ describe('Prop types editing', () => {
     cy.findByLabelText('Style').select('_none');
     cy.findByLabelText('Style').should('have.value', '_none');
     cy.findByLabelText('Style').within(() => {
-      cy.get('option:selected').should('have.text', '- None -');
+      cy.get('option:selected').should('have.text', 'No value');
     });
     cy.findByLabelText('Style').should(
       'not.have.attr',

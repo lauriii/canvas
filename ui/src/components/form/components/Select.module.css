@@ -20,10 +20,40 @@
     background-position: center;
     background-size: 120%;
   }
+  /* An empty select reads as a placeholder, not as a picked value. */
+  &[data-canvas-value-state='unset'] {
+    color: var(--slate-a9);
+  }
   option {
+    /* The muted color above applies to the control's own text. Engines whose
+       native dropdown inherits the select's color would otherwise mute the
+       real choices too while the field is empty. */
+    color: var(--slate-12);
     border-radius: 4px;
     font-size: 14px;
     line-height: 20px;
+
+    /* Sets the "no value" option apart from the real choices: muted, and
+       fenced off by a rule. The option box is left alone (options here are a
+       flat 24px with no padding), so it keeps its siblings' height and
+       highlight. The hover rule below is intentionally last so it still wins. */
+    &[data-canvas-empty-option] {
+      position: relative;
+      margin-bottom: 13px;
+      color: var(--slate-a9);
+    }
+
+    /* The rule is drawn in the margin rather than on the option's border, which
+       would leave it hugging the label with all the space below it, and would
+       put it inside the highlight on hover. Centering it in the margin gives
+       the same breathing room above and below. */
+    &[data-canvas-empty-option]::after {
+      position: absolute;
+      bottom: -7px;
+      content: '';
+      border-top: 1px solid var(--slate-a5);
+      inset-inline: 0;
+    }
 
     &:hover, &:focus-visible {
       color: #FFF;
