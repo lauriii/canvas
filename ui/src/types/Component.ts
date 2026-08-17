@@ -33,6 +33,25 @@ export interface FieldDataItem {
   [x: string | number | symbol]: unknown;
 }
 
+/**
+ * The restrictions a slot declares, per https://www.drupal.org/i/3514072.
+ *
+ * `expected` entries containing a colon or a dot reference a specific
+ * component; all others are tags matched against components' `tags`.
+ */
+export interface SlotRestrictions {
+  expected?: string[];
+  minItems?: number;
+  maxItems?: number;
+}
+
+export interface SlotDefinition extends SlotRestrictions {
+  title: string;
+  description?: string;
+  examples?: string[];
+  [key: string]: any;
+}
+
 interface BaseComponent {
   id: string;
   name: string;
@@ -44,6 +63,8 @@ interface BaseComponent {
   js_footer: string;
   version: string;
   broken: boolean;
+  /** Matched against slots' `expected` entries. Absent for sources without tags. */
+  tags?: string[];
   metadata?: { [key: string]: any };
 }
 

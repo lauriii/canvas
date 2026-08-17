@@ -1,0 +1,22 @@
+/* The add affordance on a governed slot's row. Always visible rather than
+   revealed on hover: like the counter next to it, its presence is what tells
+   an author the slot has rules at all.
+   @see \Drupal\canvas\SlotRestrictions */
+.slotAddButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  color: var(--gray-10);
+  border: none;
+  border-radius: var(--radius-1);
+  background: none;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--gray-12);
+    background: var(--gray-4);
+  }
+}

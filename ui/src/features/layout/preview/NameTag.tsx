@@ -30,10 +30,12 @@ interface NameTagProps {
   name: string;
   id: string;
   nodeType: string;
+  /** Controls that belong to the thing being named, inside the same tag. */
+  trailing?: React.ReactNode;
 }
 
 const NameTag: React.FC<NameTagProps> = (props) => {
-  const { name, nodeType, id } = props;
+  const { name, nodeType, id, trailing } = props;
 
   return (
     <div
@@ -46,12 +48,18 @@ const NameTag: React.FC<NameTagProps> = (props) => {
     >
       {VARIANTS[nodeType as keyof typeof VARIANTS]}
       <span id={`${id}-name`}>{name}</span>
+      {trailing}
     </div>
   );
 };
 
-export const SlotNameTag: React.FC<NameTagProps> = (props) => {
-  const { name, id } = props;
+export const SlotNameTag: React.FC<
+  NameTagProps & {
+    /** Keeps the tag up while something it owns has the author's attention. */
+    forceVisible?: boolean;
+  }
+> = (props) => {
+  const { name, id, trailing, forceVisible } = props;
   const { isDragging } = useAppSelector(selectDragging);
   const isHovered = useAppSelector((state) => {
     return selectIsComponentHovered(state, id);
@@ -62,12 +70,13 @@ export const SlotNameTag: React.FC<NameTagProps> = (props) => {
   // Show the name of the slot when either the slot is hovered in the layers or when it's the target of drag and drop.
   // Desired result is that only one NameTag is shown at a time:
   // either the selected or the hovered component or, when dragging, the target slot or region.
-  const showName = isTarget || (!targetSlot && isHovered && !isDragging);
+  const showName =
+    isTarget || forceVisible || (!targetSlot && isHovered && !isDragging);
 
   if (!showName) {
     return null;
   }
-  return <NameTag name={name} id={id} nodeType="slot" />;
+  return <NameTag name={name} id={id} nodeType="slot" trailing={trailing} />;
 };
 
 export const RegionNameTag: React.FC<NameTagProps> = (props) => {
@@ -97,8 +106,13 @@ export const RegionNameTag: React.FC<NameTagProps> = (props) => {
   return <NameTag name={name} id={id} nodeType={props.nodeType} />;
 };
 
-export const ComponentNameTag: React.FC<NameTagProps> = (props) => {
-  const { name, id } = props;
+export const ComponentNameTag: React.FC<
+  NameTagProps & {
+    /** Keeps the tag up while something it owns has the author's attention. */
+    forceVisible?: boolean;
+  }
+> = (props) => {
+  const { name, id, trailing, forceVisible } = props;
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const { isDragging } = useAppSelector(selectDragging);
   const isSelected = id === selectedComponent;
@@ -111,10 +125,13 @@ export const ComponentNameTag: React.FC<NameTagProps> = (props) => {
   // Desired result is that only one NameTag is shown at a time:
   // either the selected or the hovered component or, when dragging, the target slot or region.
   const showName =
-    !isDragging && ((isSelected && noComponentIsHovered) || isHovered);
+    forceVisible ||
+    (!isDragging && ((isSelected && noComponentIsHovered) || isHovered));
 
   if (!showName) {
     return null;
   }
-  return <NameTag name={name} id={id} nodeType="component" />;
+  return (
+    <NameTag name={name} id={id} nodeType="component" trailing={trailing} />
+  );
 };

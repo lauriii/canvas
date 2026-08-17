@@ -8,7 +8,9 @@ import {
   findSiblings,
   getDisplayNameForNode,
 } from '@/features/layout/layoutUtils';
+import { componentIdFromNodeType } from '@/features/layout/slot-utils';
 import { unsetHoveredComponent } from '@/features/ui/uiSlice';
+import { useCanPlaceInSlot } from '@/hooks/useSlotRestrictions';
 
 import type React from 'react';
 import type {
@@ -23,6 +25,7 @@ const SiblingSlotsSubMenu: React.FC<{
 }> = ({ component, components }) => {
   const dispatch = useAppDispatch();
   const layout = useAppSelector(selectLayout);
+  const canPlaceInSlot = useCanPlaceInSlot();
   const siblingSlots = useMemo(() => {
     const siblings = findSiblings(layout, component.uuid);
     const slots: {
@@ -36,6 +39,14 @@ const SiblingSlotsSubMenu: React.FC<{
       .forEach((sib) => {
         const name = getDisplayNameForNode(sib, null, components);
         sib.slots.forEach((slot) => {
+          // Only offer slots that accept this component: a menu entry that
+          // cannot work is worse than no entry at all.
+          // @see \Drupal\canvas\SlotRestrictions
+          if (
+            !canPlaceInSlot(slot, [componentIdFromNodeType(component.type)])
+          ) {
+            return;
+          }
           slots.push({
             slot,
             parentComponent: sib,
@@ -45,7 +56,7 @@ const SiblingSlotsSubMenu: React.FC<{
         });
       });
     return slots;
-  }, [layout, component.uuid, components]);
+  }, [layout, component.uuid, component.type, components, canPlaceInSlot]);
 
   const handleMoveIntoSlot =
     (slotId: string) => (ev: React.MouseEvent<HTMLElement>) => {

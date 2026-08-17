@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import clsx from 'clsx';
-import { DragOverlay, useDndMonitor } from '@dnd-kit/core';
+import { DragOverlay, useDndContext, useDndMonitor } from '@dnd-kit/core';
 import {
   restrictToFirstScrollableAncestor,
   restrictToWindowEdges,
@@ -33,6 +33,7 @@ import type {
   DragOverEvent,
   DragStartEvent,
 } from '@dnd-kit/core';
+import type { Rejection } from '@/features/layout/slot-utils';
 
 import styles from './DragOverlay.module.css';
 
@@ -45,6 +46,12 @@ const DragEventsHandler: React.FC = () => {
   const { handleFolderDrop } = useDropOnFolderHandler();
   const { handleNewDrop } = useDropFromLibraryHandler();
   const { handleExistingDrop } = useDropFromLayoutHandler();
+  // Why the zone under the pointer will not take this component, if it will
+  // not. The pill carries the message rather than the slot, so it is always
+  // where the author is already looking.
+  // @see \Drupal\canvas\SlotRestrictions
+  const { over } = useDndContext();
+  const rejection: Rejection | null = over?.data?.current?.rejection ?? null;
 
   // Apply/remove folderAtBoundary class when state changes.
   useEffect(() => {
@@ -163,6 +170,13 @@ const DragEventsHandler: React.FC = () => {
       }
     }
 
+    // A slot that refuses the drag is inert: it does not become the target,
+    // so nothing about it lights up.
+    if (over?.data?.current?.rejection) {
+      dispatch(unsetTargetSlot());
+      return;
+    }
+
     if (parentRegion) {
       dispatch(setTargetSlot(parentRegion.id));
     } else if (parentSlot) {
@@ -191,6 +205,13 @@ const DragEventsHandler: React.FC = () => {
       active.data?.current?.elementsInsideIframe || [];
     if (!over) {
       // If the dragged item wasn't dropped into a valid dropZone, do nothing.
+      afterDrag(elementsInsideIframe, false);
+      return;
+    }
+    if (over.data?.current?.rejection) {
+      // The zone announced the reason throughout the drag; releasing over it
+      // changes nothing.
+      // @see \Drupal\canvas\SlotRestrictions
       afterDrag(elementsInsideIframe, false);
       return;
     }
@@ -236,7 +257,14 @@ const DragEventsHandler: React.FC = () => {
       className={clsx(styles.dragOverlay)}
       dropAnimation={null}
     >
-      {!isDraggingFolder && <div>{componentName}</div>}
+      {!isDraggingFolder && (
+        <>
+          <div>{componentName}</div>
+          {rejection && (
+            <div className={styles.dragRejection}>{rejection.reason}</div>
+          )}
+        </>
+      )}
     </DragOverlay>
   );
 };

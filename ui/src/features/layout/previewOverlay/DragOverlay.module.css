@@ -1,4 +1,8 @@
 .dragOverlay {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
   pointer-events: none;
 }
 
@@ -16,6 +20,20 @@
   font-family: var(--default-font-family);
   font-size: 12px;
   line-height: 12px;
+}
+
+/* Why the zone under the pointer will not take this component. It rides with
+   the pill rather than with the slot, so the message is where the eye already
+   is, and it names what fits rather than what was refused.
+   @see \Drupal\canvas\SlotRestrictions */
+.dragOverlay .dragRejection {
+  max-width: 220px;
+  height: auto;
+  padding: 2px 6px;
+  white-space: normal;
+  background-color: var(--gray-12);
+  font-size: 11px;
+  line-height: 14px;
 }
 
 .dragging, .dragging * {

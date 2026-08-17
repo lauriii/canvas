@@ -258,6 +258,25 @@ export function findComponentByUuid(
 }
 
 /**
+ * Find the slot an insertion path points into.
+ * @param roots - The root region nodes to search in.
+ * @param path - An insertion path, whose last element is the position to insert
+ * at and whose preceding elements identify the node to insert into.
+ * @returns The slot being inserted into, or null when the insertion targets a
+ * region rather than a slot.
+ */
+export function slotAtPath(
+  roots: Array<RegionNode>,
+  path: number[],
+): SlotNode | null {
+  let node: LayoutNode | undefined = roots[path[0]];
+  for (let i = 1; i < path.length - 1 && node; i++) {
+    node = getChildrenFromNode(node)[path[i]];
+  }
+  return node?.nodeType === NodeType.Slot ? node : null;
+}
+
+/**
  * Find a Slot by its ID.
  * @param roots - The starting node to search from.
  * @param id - The id of the slot to find.

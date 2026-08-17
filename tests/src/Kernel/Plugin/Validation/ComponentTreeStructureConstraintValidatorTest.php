@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Validation;
 
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraint;
 use Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator;
+use Drupal\canvas\SlotRestrictions;
+use Drupal\Core\Config\Entity\ConfigEntityStorageInterface;
 use Drupal\Core\Validation\BasicRecursiveValidatorFactory;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
@@ -27,6 +31,34 @@ final class ComponentTreeStructureConstraintValidatorTest extends CanvasKernelTe
   use ConstraintViolationsTestTrait;
   use GenerateComponentConfigTrait;
   use ComponentTreeItemListInstantiatorTrait;
+
+  /**
+   * {@inheritdoc}
+   */
+  protected static $modules = [
+    // Provides the SDCs whose slots declare restrictions.
+    // @see \Drupal\canvas\SlotRestrictions
+    'canvas_test_slot_restrictions',
+  ];
+
+  /**
+   * {@inheritdoc}
+   *
+   * Grandfathering only means anything for a tree that is already stored in
+   * violation, which is what happens on a real site when a restriction is
+   * tightened after the fact. The config schema checker validates constraints
+   * on save, so without this exclusion that fixture could not be set up at all.
+   *
+   * @see self::testStoredConfigTreeIsGrandfathered()
+   */
+  protected static $configSchemaCheckerExclusions = [
+    'canvas.pattern.grandfathered',
+  ];
+
+  private const CONTAINER = 'sdc.canvas_test_slot_restrictions.restricted-container';
+  private const TAGGED_CHILD = 'sdc.canvas_test_slot_restrictions.restricted-child';
+  private const NAMED_CHILD = 'sdc.canvas_test_sdc.props-no-slots';
+  private const OTHER_CHILD = 'sdc.canvas_test_sdc.props-slots';
 
   /**
  * Tests validation.
@@ -400,6 +432,222 @@ final class ComponentTreeStructureConstraintValidatorTest extends CanvasKernelTe
         ],
       ],
     ];
+  }
+
+  /**
+   * Tests the slot restrictions declared by component metadata.
+   *
+   * @see \Drupal\canvas\SlotRestrictions
+   * @see https://www.drupal.org/i/3514072
+   */
+  #[DataProvider('providerSlotRestrictions')]
+  public function testSlotRestrictions(string $slot, array $children, array $expected_violations): void {
+    $this->generateComponentConfig();
+    $items = [self::treeItem('11111111-1111-4111-8111-111111111111', self::CONTAINER)];
+    foreach ($children as $index => $child_component_id) {
+      $items[] = self::treeItem(
+        \sprintf('2222222%d-2222-4222-8222-222222222222', $index),
+        $child_component_id,
+        '11111111-1111-4111-8111-111111111111',
+        $slot,
+      );
+    }
+    $validator = \Drupal::service(BasicRecursiveValidatorFactory::class)->createValidator();
+    $violations = $validator->validate($items, new ComponentTreeStructureConstraint(['basePropertyPath' => 'layout']));
+    $this->assertSame($expected_violations, self::violationsToArray($violations));
+  }
+
+  public static function providerSlotRestrictions(): \Generator {
+    yield 'VALID: `expected` entry naming an SDC plugin ID' => [
+      'items',
+      [self::NAMED_CHILD],
+      [],
+    ];
+    yield 'VALID: `expected` entry matching a component tag' => [
+      'items',
+      [self::TAGGED_CHILD],
+      [],
+    ];
+    yield 'VALID: exactly `maxItems` children' => [
+      'items',
+      [self::NAMED_CHILD, self::TAGGED_CHILD],
+      [],
+    ];
+    yield 'VALID: a slot declaring no restrictions accepts anything' => [
+      'anything',
+      [self::OTHER_CHILD, self::OTHER_CHILD, self::OTHER_CHILD],
+      [],
+    ];
+    yield 'VALID: `expected` that resolves to nothing fails open' => [
+      'typo',
+      [self::OTHER_CHILD],
+      [],
+    ];
+    yield 'INVALID: a component the slot does not expect' => [
+      'items',
+      [self::OTHER_CHILD],
+      [
+        // A reference renders as the component's label; a tag renders as
+        // itself, because a tag names a group rather than a component.
+        'layout.1.slot' => 'Component <em class="placeholder">Canvas test SDC with props and slots</em> is not expected in the <em class="placeholder">Items</em> slot of <em class="placeholder">Canvas test SDC with a restricted slot</em>. Expected: <em class="placeholder">Canvas test SDC with props but no slots, canvas-test-tag</em>.',
+      ],
+    ];
+    yield 'INVALID: more children than `maxItems`, reported on the surplus only' => [
+      'items',
+      [self::NAMED_CHILD, self::NAMED_CHILD, self::NAMED_CHILD],
+      [
+        'layout.3.slot' => 'Too many components in the <em class="placeholder">Items</em> slot of <em class="placeholder">Canvas test SDC with a restricted slot</em>: 3 provided, at most 2 allowed.',
+      ],
+    ];
+  }
+
+  /**
+   * Tests that a violation the stored tree already contains is not reported.
+   *
+   * Adding or narrowing a restriction on a component that is already in use may
+   * not make existing content unpublishable, so only the violations a write
+   * introduces are reported. Moving an instance re-evaluates it.
+   *
+   * @see \Drupal\canvas\SlotRestrictions::violations()
+   */
+  public function testPreExistingViolationsAreGrandfathered(): void {
+    $this->generateComponentConfig();
+    $component_storage = \Drupal::entityTypeManager()->getStorage('component');
+    \assert($component_storage instanceof ConfigEntityStorageInterface);
+    $stored = [
+      self::treeItem('11111111-1111-4111-8111-111111111111', self::CONTAINER),
+      self::treeItem('22222222-2222-4222-8222-222222222222', self::OTHER_CHILD, '11111111-1111-4111-8111-111111111111', 'items'),
+    ];
+    $stored_violations = SlotRestrictions::violations($stored, $component_storage);
+    $this->assertCount(1, $stored_violations);
+
+    // Saving the same tree again introduces nothing: the violation is already
+    // there, so the diff against the stored tree is empty.
+    $this->assertSame([], \array_diff_key(
+      SlotRestrictions::violations($stored, $component_storage),
+      $stored_violations,
+    ));
+
+    // Moving the offending instance to another slot re-evaluates it, because
+    // the violation is keyed by the placement and not just by the component.
+    $moved = $stored;
+    $moved[1]['slot'] = 'items';
+    $moved[1]['parent_uuid'] = '33333333-3333-4333-8333-333333333333';
+    $moved[] = self::treeItem('33333333-3333-4333-8333-333333333333', self::CONTAINER);
+    $this->assertCount(1, SlotRestrictions::introducedViolations(
+      SlotRestrictions::violations($moved, $component_storage),
+      $stored_violations,
+    ));
+  }
+
+  /**
+   * Tests grandfathering against a component tree that is genuinely stored.
+   *
+   * Config entities validate as typed config rather than as a field item list,
+   * so they reach the stored tree by a different route than content entities
+   * do. Exercising the real route also covers what a hand-built pair of trees
+   * cannot: that reordering an over-full slot, which adds and removes nothing,
+   * stays grandfathered.
+   *
+   * @see \Drupal\canvas\SlotRestrictions::introducedViolations()
+   */
+  public function testStoredConfigTreeIsGrandfathered(): void {
+    $this->generateComponentConfig();
+    $container = '11111111-1111-4111-8111-111111111111';
+    $children = [
+      '22222222-2222-4222-8222-222222222222',
+      '33333333-3333-4333-8333-333333333333',
+      '44444444-4444-4444-8444-444444444444',
+    ];
+    // The `items` slot accepts at most 2, so this tree is stored in violation:
+    // exactly what happens when a restriction is tightened after the fact.
+    $tree = [self::treeItem($container, self::CONTAINER)];
+    foreach ($children as $uuid) {
+      $tree[] = self::treeItem($uuid, self::TAGGED_CHILD, $container, 'items');
+    }
+    $pattern = Pattern::create([
+      'id' => 'grandfathered',
+      'label' => 'Grandfathered',
+      'component_tree' => $tree,
+    ]);
+    $pattern->save();
+
+    // Re-validating what is stored reports nothing, however often it is saved.
+    $stored = Pattern::load('grandfathered');
+    \assert($stored instanceof Pattern);
+    $this->assertSame([], self::violationsToArray($stored->getTypedData()->validate()));
+
+    // Reordering the over-full slot adds and removes nothing, so it introduces
+    // nothing either — the author can still rearrange the page.
+    $reordered = $tree;
+    [$reordered[1], $reordered[2]] = [$reordered[2], $reordered[1]];
+    $stored->setComponentTree($reordered);
+    $this->assertSame([], self::violationsToArray($stored->getTypedData()->validate()));
+
+    // Removing one of them leaves the slot at its limit, which is clean.
+    $stored->setComponentTree(\array_slice($tree, 0, 3));
+    $this->assertSame([], self::violationsToArray($stored->getTypedData()->validate()));
+
+    // Making it worse is still refused: grandfathering tolerates what is
+    // already stored, it does not lift the limit.
+    $grown = $tree;
+    $grown[] = self::treeItem('55555555-5555-4555-8555-555555555555', self::TAGGED_CHILD, $container, 'items');
+    $stored->setComponentTree($grown);
+    $this->assertSame([
+      'component_tree.3.slot' => 'Too many components in the <em class="placeholder">Items</em> slot of <em class="placeholder">Canvas test SDC with a restricted slot</em>: 4 provided, at most 2 allowed.',
+    ], self::violationsToArray($stored->getTypedData()->validate()));
+  }
+
+  /**
+   * Tests that a disabled component cannot resolve an `expected` entry.
+   *
+   * The Canvas UI is served only enabled components, so it resolves neither
+   * entry of a slot whose `expected` names only disabled ones, and treats that
+   * slot as unrestricted. The server has to agree: resolving them here anyway
+   * would refuse everything the author can actually reach.
+   *
+   * @see \Drupal\canvas\Controller\ApiConfigControllers::list()
+   */
+  public function testDisabledComponentsAreNotResolvable(): void {
+    $this->generateComponentConfig();
+    $tree = [
+      self::treeItem('11111111-1111-4111-8111-111111111111', self::CONTAINER),
+      self::treeItem('22222222-2222-4222-8222-222222222222', self::OTHER_CHILD, '11111111-1111-4111-8111-111111111111', 'items'),
+    ];
+    $validator = \Drupal::service(BasicRecursiveValidatorFactory::class)->createValidator();
+    $constraint = new ComponentTreeStructureConstraint(['basePropertyPath' => 'layout']);
+    $this->assertCount(1, $validator->validate($tree, $constraint));
+
+    // `items` expects one component by ID and one by tag. Disable both the
+    // named component and the only component carrying the tag, and nothing the
+    // slot expects is reachable any more, so it falls back to accepting
+    // anything.
+    foreach ([self::NAMED_CHILD, self::TAGGED_CHILD] as $component_id) {
+      $component = Component::load($component_id);
+      \assert($component instanceof Component);
+      $component->disable()->save();
+    }
+    SlotRestrictions::reset();
+    $this->assertSame([], self::violationsToArray($validator->validate($tree, $constraint)));
+  }
+
+  /**
+   * Builds one component tree item, resolving the component's active version.
+   */
+  private static function treeItem(string $uuid, string $component_id, ?string $parent_uuid = NULL, ?string $slot = NULL): array {
+    $component = Component::load($component_id);
+    \assert($component instanceof Component);
+    $item = [
+      'uuid' => $uuid,
+      'component_id' => $component_id,
+      'component_version' => $component->getActiveVersion(),
+      'inputs' => [],
+    ];
+    if ($parent_uuid !== NULL) {
+      $item['parent_uuid'] = $parent_uuid;
+      $item['slot'] = (string) $slot;
+    }
+    return $item;
   }
 
 }

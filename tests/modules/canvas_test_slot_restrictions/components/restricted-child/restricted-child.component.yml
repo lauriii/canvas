@@ -1,0 +1,8 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Canvas test SDC matched by tag
+# @see https://www.drupal.org/i/3514072
+tags:
+  - canvas-test-tag
+props:
+  type: object
+  properties: {}

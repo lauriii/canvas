@@ -7,6 +7,7 @@ import { useAppSelector } from '@/app/hooks';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import useGetComponentName from '@/hooks/useGetComponentName';
+import { useDropRejection } from '@/hooks/useSlotRestrictions';
 
 import type React from 'react';
 import type {
@@ -47,14 +48,22 @@ const ComponentDropZone: React.FC<ComponentDropZoneProps> = (props) => {
     }
   }
 
+  // Dropping next to a component inside a slot places the dragged component in
+  // that slot, so the slot's restrictions apply here too.
+  // @see \Drupal\canvas\SlotRestrictions
+  const rejection = useDropRejection(parentSlot);
+
   const {
     setNodeRef: setDropRef,
     isOver,
     active,
   } = useDroppable({
     id: `${component.uuid}_${position}`,
+    // Registered even when it refuses, so the drag pill can say why.
+    // @see \Drupal\canvas\SlotRestrictions
     disabled: draggedItem === component.uuid || !accepts.includes(activeOrigin),
     data: {
+      rejection,
       component: component,
       parentSlot: parentSlot,
       parentRegion: parentRegion,
@@ -81,7 +90,7 @@ const ComponentDropZone: React.FC<ComponentDropZoneProps> = (props) => {
   return (
     <div
       className={clsx(styles.componentDropZone, dropzoneStyle, {
-        [styles.isOver]: isOver,
+        [styles.isOver]: isOver && rejection === null,
       })}
       ref={setDropRef}
       data-testid={`canvas-component-drop-zone-${getPositionRelation(position)}-${kebabCase(componentName)}`}

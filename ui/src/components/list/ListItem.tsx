@@ -15,15 +15,19 @@ import UnifiedMenu from '@/components/UnifiedMenu';
 import {
   _addNewComponentToLayout,
   addNewPatternToLayout,
+  NodeType,
   selectLayout,
 } from '@/features/layout/layoutModelSlice';
-import { findNodePathByUuid } from '@/features/layout/layoutUtils';
+import { findNodePathByUuid, findParent } from '@/features/layout/layoutUtils';
+import { componentIdFromNodeType } from '@/features/layout/slot-utils';
 import { selectActivePanel } from '@/features/ui/primaryPanelSlice';
 import { DEFAULT_REGION } from '@/features/ui/uiSlice';
 import { useCanvasHeadlessSettings } from '@/hooks/useCanvasHeadlessSettings';
 import useComponentSelection from '@/hooks/useComponentSelection';
+import { useCanPlaceInSlot } from '@/hooks/useSlotRestrictions';
 
 import type React from 'react';
+import type { SlotNode } from '@/features/layout/layoutModelSlice';
 import type { LayoutItemType } from '@/features/ui/primaryPanelSlice';
 import type { CodeComponentSerialized } from '@/types/CodeComponent';
 import type { CanvasComponent, JSComponent } from '@/types/Component';
@@ -92,8 +96,30 @@ const ListItem: React.FC<{
   // Disable drag for broken components
   const isDraggable = () => ('broken' in item ? !item.broken : true);
 
+  // Inserting places the item next to the current selection, so it lands in
+  // whichever slot the selection sits in, and that slot's restrictions apply.
+  // @see \Drupal\canvas\SlotRestrictions
+  const canPlaceInSlot = useCanPlaceInSlot();
+  const insertionParent = selectedComponent
+    ? findParent(layout, selectedComponent)
+    : null;
+  const insertionSlot =
+    insertionParent?.nodeType === NodeType.Slot
+      ? (insertionParent as SlotNode)
+      : undefined;
+  const insertedComponentIds =
+    type === 'pattern'
+      ? ((item as Pattern).layoutModel?.layout ?? []).map((node) =>
+          componentIdFromNodeType(node.type),
+        )
+      : [itemId];
+  const canInsert = canPlaceInSlot(insertionSlot, insertedComponentIds);
+
   const handleInsertClick = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
+    if (!canInsert) {
+      return;
+    }
     let path: number[] | null = [0];
     if (selectedComponent) {
       path = findNodePathByUuid(layout, selectedComponent);
@@ -140,7 +166,9 @@ const ListItem: React.FC<{
   };
 
   const insertMenuItem = () => (
-    <UnifiedMenu.Item onClick={handleInsertClick}>Insert</UnifiedMenu.Item>
+    <UnifiedMenu.Item onClick={handleInsertClick} disabled={!canInsert}>
+      Insert
+    </UnifiedMenu.Item>
   );
 
   const menuTitleItems = () => (

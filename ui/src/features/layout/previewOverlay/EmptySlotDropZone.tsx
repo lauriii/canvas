@@ -7,7 +7,10 @@ import { BoxModelIcon } from '@radix-ui/react-icons';
 import { useAppSelector } from '@/app/hooks';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
+import { describeAllowed } from '@/features/layout/slot-utils';
 import useGetComponentName from '@/hooks/useGetComponentName';
+import { useDropRejection, useSlotRule } from '@/hooks/useSlotRestrictions';
+import { useGetComponentsQuery } from '@/services/componentAndLayout';
 
 import type React from 'react';
 import type {
@@ -37,6 +40,12 @@ const EmptySlotDropZone: React.FC<EmptySlotDropZoneProps> = (props) => {
   slotPath.push(0);
 
   const accepts = ['overlay', 'library'];
+  // The slot's own metadata decides what it accepts, on top of where the drag
+  // came from.
+  // @see \Drupal\canvas\SlotRestrictions
+  const rejection = useDropRejection(slot);
+  const rule = useSlotRule(slot);
+  const { data: components } = useGetComponentsQuery();
 
   const {
     setNodeRef: setDropRef,
@@ -44,8 +53,11 @@ const EmptySlotDropZone: React.FC<EmptySlotDropZoneProps> = (props) => {
     active,
   } = useDroppable({
     id: `${slot.id}`,
+    // Registered even when it refuses, so the drag pill can say why.
+    // @see \Drupal\canvas\SlotRestrictions
     disabled: !accepts.includes(activeOrigin),
     data: {
+      rejection,
       component: parentComponent,
       parentSlot: slot,
       path: slotPath,
@@ -54,12 +66,14 @@ const EmptySlotDropZone: React.FC<EmptySlotDropZoneProps> = (props) => {
   });
 
   useEffect(() => {
-    if (isOver && active) {
+    // A refusing slot keeps advertising what it accepts rather than previewing
+    // a component it will not take.
+    if (isOver && active && rejection === null) {
       setActiveName(active.data?.current?.name);
     } else {
       setActiveName('');
     }
-  }, [active, isOver]);
+  }, [active, isOver, rejection]);
 
   useEffect(() => {
     if (active) {
@@ -73,7 +87,7 @@ const EmptySlotDropZone: React.FC<EmptySlotDropZoneProps> = (props) => {
     <div className={styles.emptySlotContainer} data-testid="canvas-empty-slot">
       <div
         className={clsx(styles.emptySlotDropZone, {
-          [styles.isOver]: isOver,
+          [styles.isOver]: isOver && rejection === null,
         })}
         data-testid={`canvas-empty-slot-drop-zone-${kebabCase(parentComponentName)}:${kebabCase(slotName)}`}
         ref={setDropRef}
@@ -84,6 +98,13 @@ const EmptySlotDropZone: React.FC<EmptySlotDropZoneProps> = (props) => {
           <>
             <BoxModelIcon />
             <div>{slotName}</div>
+            {/* An empty restricted slot says what belongs in it, so that an
+                author learns the rule before it is enforced. */}
+            {rule.allowed !== null && (
+              <div className={styles.emptySlotAccepts}>
+                Accepts {describeAllowed(rule, components)}
+              </div>
+            )}
           </>
         )}
       </div>

@@ -5,6 +5,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { useAppSelector } from '@/app/hooks';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
+import { useDropRejection } from '@/hooks/useSlotRestrictions';
 
 import type {
   ComponentNode,
@@ -51,14 +52,23 @@ const LayersDropZone: React.FC<LayersDropZoneProps> = (props) => {
     throw new Error(`Unable to ascertain 'path' to component ${id}`);
   }
 
+  // Dropping onto a slot row targets that slot; dropping next to a component
+  // row targets the slot that component sits in.
+  // @see \Drupal\canvas\SlotRestrictions
+  const targetSlot = type === 'slot' ? (layer as SlotNode) : parentSlot;
+  const rejection = useDropRejection(targetSlot);
+
   const {
     setNodeRef: setDropRef,
     isOver,
     active,
   } = useDroppable({
     id: `${id}_${position}_layers`,
+    // Registered even when it refuses, so the drag pill can say why.
+    // @see \Drupal\canvas\SlotRestrictions
     disabled: draggedItem === `${id}`,
     data: {
+      rejection,
       component: layer,
       parentSlot: parentSlot,
       parentRegion: parentRegion,
@@ -78,7 +88,7 @@ const LayersDropZone: React.FC<LayersDropZoneProps> = (props) => {
   return (
     <div
       className={clsx(styles.layersDropZone, dropzoneStyle, {
-        [styles.isOver]: isOver,
+        [styles.isOver]: isOver && rejection === null,
       })}
       // @ts-ignore
       style={{ '--indent-depth': `${indent}` }}

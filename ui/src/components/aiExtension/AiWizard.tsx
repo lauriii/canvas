@@ -5,6 +5,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DeepChat } from 'deep-chat-react';
 import { useParams } from 'react-router';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import AiWelcome from '@assets/icons/ai-welcome.svg?react';
 import { Box, Flex, Text } from '@radix-ui/themes';
 
@@ -27,6 +28,7 @@ import {
   selectPageData,
   updatePageDataExternally,
 } from '@/features/pageData/pageDataSlice';
+import { rejectPlacementAtPath } from '@/hooks/useSlotRestrictions';
 import {
   useCreateCodeComponentMutation,
   useGetComponentsQuery,
@@ -39,6 +41,7 @@ import fixtureProps from '../../../../modules/canvas_ai/src/PropsSchema.json';
 import type {
   ComponentNode,
   LayoutModelSliceState,
+  RegionNode,
 } from '@/features/layout/layoutModelSlice';
 import type { CodeComponent } from '@/types/CodeComponent';
 import type { CanvasComponent, PropSourceComponent } from '@/types/Component';
@@ -248,6 +251,7 @@ const operationsHandler = {
     componentSelectionUtils,
     navigate,
     params,
+    getLayout,
   }: {
     message: any;
     dispatch: any;
@@ -256,6 +260,7 @@ const operationsHandler = {
     componentSelectionUtils: any;
     navigate: any;
     params: any;
+    getLayout: () => RegionNode[];
   }) => {
     // Logic for placing components (SDCs/Blocks/Code components) to the editor frame.
     for (const op of message.operations) {
@@ -268,6 +273,20 @@ const operationsHandler = {
       ) {
         for (const component of op.components) {
           if (component.id && availableComponents[component.id]) {
+            // The slot the AI picked decides whether it may have this
+            // component. Re-read the layout every time: the previous placement
+            // already changed how full the target slot is.
+            // @see \Drupal\canvas\SlotRestrictions
+            const rejection = rejectPlacementAtPath(
+              getLayout(),
+              component.nodePath ?? [],
+              [component.id],
+              availableComponents,
+            );
+            if (rejection) {
+              toast.error(rejection.reason);
+              continue;
+            }
             const componentToUse: CanvasComponent =
               availableComponents[component.id];
             const componentAfterFilteringImageProps = removeMediaFields(
@@ -878,6 +897,8 @@ const AiWizard = () => {
                 componentSelectionUtils,
                 navigate,
                 params,
+                getLayout: () =>
+                  currentValuesRef.current.theLayoutModel?.layout ?? [],
               });
             }, 0);
           } else {
@@ -890,6 +911,8 @@ const AiWizard = () => {
               layoutUtils,
               componentSelectionUtils,
               params,
+              getLayout: () =>
+                currentValuesRef.current.theLayoutModel?.layout ?? [],
             });
           }
         }

@@ -718,7 +718,7 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
    *
    * @param array $definition
    *
-   * @return array{title: string, description?: string, examples: string[]}
+   * @return array{title: string, description?: string, examples: string[], expected?: string[], minItems?: int, maxItems?: int}
    *   Clean definitions.
    */
   private static function cleanSlotDefinition(array $definition): array {
@@ -726,11 +726,18 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
     // that aren't specified in the SDC metadata schema and in our config
     // schema.
     // @todo Remove when core enforces this - https://www.drupal.org/i/3522623
-    /** @var array{title: string, description?: string, examples: string[]} */
+    // TRICKY: the slot restrictions are retained, so that a Component whose
+    // source has degraded to `fallback` keeps enforcing the restrictions that
+    // were in effect for its last active version.
+    // @see \Drupal\canvas\SlotRestrictions
+    /** @var array{title: string, description?: string, examples: string[], expected?: string[], minItems?: int, maxItems?: int} */
     return \array_intersect_key($definition, array_flip([
       'title',
       'description',
       'examples',
+      'expected',
+      'minItems',
+      'maxItems',
     ]));
   }
 
