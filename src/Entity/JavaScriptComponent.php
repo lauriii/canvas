@@ -84,7 +84,9 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
 
   public const string ENTITY_TYPE_ID = 'js_component';
   public const string ADMIN_PERMISSION = 'administer code components';
-  private const string ASSETS_DIRECTORY = 'assets://astro-island/';
+  // Public because the generated files in here must be garbage collected.
+  // @see \Drupal\canvas\GeneratedAssetCleanup
+  public const string ASSETS_DIRECTORY = 'assets://astro-island/';
 
   /**
    * The component machine name.

@@ -59,6 +59,7 @@ services:
 
   # Utilities.
   Drupal\canvas\CanvasNotificationHandler: {}
+  Drupal\canvas\GeneratedAssetCleanup: {}
   Drupal\canvas\AssetRenderer: {}
   Drupal\canvas\Utility\HomePageHelper: {}
   Drupal\canvas\Component\Schema\PropChoiceOptionsResolver:
