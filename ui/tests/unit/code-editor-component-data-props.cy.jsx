@@ -536,7 +536,7 @@ describe('Component data / props in code editor', () => {
 
     // Switch to the full URL type.
     cy.findByLabelText('Link type').click();
-    cy.findByText('Full URL').click();
+    cy.findByText('External and internal links (absolute URLs)').click();
     // The invalid state should be cleared by switching the link type.
     cy.findByLabelText('Example value').should(
       'not.have.attr',
