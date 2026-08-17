@@ -232,9 +232,11 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
       \Fiber::suspend($block);
     }
 
-    // In the Canvas editor preview iframe, do not render the messages block;
-    // messages are exposed on the layout API JSON for toast display in the
-    // shell.
+    // When previewing ($isPreview), status messages must not be rendered. The
+    // component is rendered behind a #pre_render, so CanvasPreviewRenderer
+    // cannot strip this one from the page it prepares.
+    // @see \Drupal\canvas\Element\RenderSafeComponentContainer
+    // @see \Drupal\canvas\Render\MainContent\CanvasPreviewRenderer::prepare()
     if ($isPreview && $block instanceof MessagesBlockPluginInterface) {
       return ['#markup' => ''];
     }

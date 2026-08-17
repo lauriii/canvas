@@ -4,15 +4,20 @@ declare(strict_types=1);
 
 namespace Drupal\canvas;
 
-use Drupal\Component\Utility\Xss;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 
 /**
- * Decorates messenger to suppress messages on most Canvas API routes.
+ * Decorator to avoid displaying messages on Canvas API routes.
  *
- * Layout preview routes are an exception: messages are kept and normalized to
- * admin-safe HTML so the layout preview response can include them in JSON.
+ * No messages should ever be visible in the previews rendered by Canvas API
+ * routes. Preview routes are the exception: they keep their messages, because
+ * CanvasPreviewRenderer moves them out of the preview and into the response.
+ *
+ * (The only messages relevant in the Canvas UI are validation errors, and
+ * those are displayed when reviewing/publishing all auto-saved changes.)
+ *
+ * @see \Drupal\canvas\Render\MainContent\CanvasPreviewRenderer::renderResponse()
  */
 readonly class Messenger implements MessengerInterface {
 
@@ -26,20 +31,21 @@ readonly class Messenger implements MessengerInterface {
    */
   public function addMessage($message, $type = MessengerInterface::TYPE_STATUS, $repeat = FALSE): MessengerInterface {
     $routeName = $this->currentRouteMatch->getRouteName();
-    if (!\is_string($routeName)
-      || !str_starts_with($routeName, 'canvas.api.')
-      || $this->isCurrentRouteLayoutPreview()) {
+    if (!\is_string($routeName) || !str_starts_with($routeName, 'canvas.api.') || $this->isCurrentRoutePreview()) {
       $this->messenger->addMessage($message, $type, $repeat);
     }
     return $this;
   }
 
   /**
-   * Whether the current route should expose normalized preview message HTML.
+   * Whether the current route renders a preview.
+   *
+   * Only these Canvas API routes return a preview envelope, and therefore only
+   * these drain the messages again.
    */
-  private function isCurrentRouteLayoutPreview(): bool {
+  private function isCurrentRoutePreview(): bool {
     $routeName = $this->currentRouteMatch->getRouteName();
-    return \is_string($routeName) && str_starts_with($routeName, 'canvas.api.layout');
+    return \is_string($routeName) && \preg_match('/^canvas\.api\.layout\.(get|patch|post)(\.|$)/', $routeName) === 1;
   }
 
   /**
@@ -67,75 +73,28 @@ readonly class Messenger implements MessengerInterface {
    * {@inheritdoc}
    */
   public function all(): array {
-    $all = $this->messenger->all();
-    if (!$this->isCurrentRouteLayoutPreview()) {
-      return $all;
-    }
-    return $this->normalizePreviewGrouped($all);
+    return $this->messenger->all();
   }
 
   /**
    * {@inheritdoc}
    */
   public function messagesByType($type): array {
-    $messages = $this->messenger->messagesByType($type);
-    if (!$this->isCurrentRouteLayoutPreview()) {
-      return $messages;
-    }
-    return $this->normalizePreviewMessageList($messages);
+    return $this->messenger->messagesByType($type);
   }
 
   /**
    * {@inheritdoc}
    */
   public function deleteAll(): array {
-    $all = $this->messenger->deleteAll();
-    if (!$this->isCurrentRouteLayoutPreview()) {
-      return $all;
-    }
-    return $this->normalizePreviewGrouped($all);
+    return $this->messenger->deleteAll();
   }
 
   /**
    * {@inheritdoc}
    */
   public function deleteByType($type): array {
-    $messages = $this->messenger->deleteByType($type);
-    if (!$this->isCurrentRouteLayoutPreview()) {
-      return $messages;
-    }
-    return $this->normalizePreviewMessageList($messages);
-  }
-
-  /**
-   * @param array $all
-   *   Keys are message types; values are lists of messages.
-   */
-  private function normalizePreviewGrouped(array $all): array {
-    $out = [];
-    foreach ($all as $type => $messages) {
-      $out[$type] = $this->normalizePreviewMessageList($messages);
-    }
-    return $out;
-  }
-
-  /**
-   * @param array $messages
-   *   Messages for a single type.
-   */
-  private function normalizePreviewMessageList(array $messages): array {
-    $normalized = [];
-    foreach ($messages as $message) {
-      $normalized[] = $this->messageToPreviewHtml($message);
-    }
-    return \array_values(\array_filter($normalized));
-  }
-
-  /**
-   * Normalizes a messenger item to admin-safe HTML.
-   */
-  private function messageToPreviewHtml(mixed $message): string {
-    return trim(Xss::filterAdmin((string) $message));
+    return $this->messenger->deleteByType($type);
   }
 
 }

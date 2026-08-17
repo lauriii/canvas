@@ -1,5 +1,6 @@
 import { fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
+import { addPreviewMessages } from '@/features/notifications/previewMessagesSlice';
 import { fetchCsrfToken } from '@/utils/csrf';
 import { getCanvasSettings } from '@/utils/drupal-globals';
 
@@ -11,6 +12,7 @@ import type {
 } from '@reduxjs/toolkit/query/react';
 import type { RootState } from '@/app/store';
 import type { AppConfiguration } from '@/features/configuration/configurationSlice';
+import type { PreviewMessage } from '@/features/notifications/previewMessagesSlice';
 
 export const baseQuery: BaseQueryFn<
   string | FetchArgs,
@@ -233,9 +235,30 @@ export const withAutoSavesInjection: (
   };
 };
 
+// Higher-order base query to show the status messages that layout preview
+// responses return. They are returned rather than rendered, because they must
+// not appear in the preview.
+// @see \Drupal\canvas\Render\MainContent\CanvasPreviewRenderer::renderResponse()
+export const withPreviewMessages: (
+  baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError>,
+) => BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = (
+  baseQuery,
+) => {
+  return async (args, api, extraOptions) => {
+    const result = await baseQuery(args, api, extraOptions);
+    const { messages } = (result.data ?? {}) as {
+      messages?: PreviewMessage[];
+    };
+    if (messages?.length) {
+      api.dispatch(addPreviewMessages(messages));
+    }
+    return result;
+  };
+};
+
 // Export a baseQuery with autoSaves injection by default
 export const baseQueryWithAutoSaves: BaseQueryFn<
   string | FetchArgs,
   unknown,
   FetchBaseQueryError
-> = withAutoSavesInjection(baseQuery);
+> = withPreviewMessages(withAutoSavesInjection(baseQuery));

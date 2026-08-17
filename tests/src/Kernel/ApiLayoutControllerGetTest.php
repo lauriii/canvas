@@ -13,6 +13,7 @@ use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\canvas\PropSource\PropSource;
+use Drupal\canvas_test_render_message\Hook\CanvasTestRenderMessageHooks;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\Entity\EntityViewMode;
@@ -101,30 +102,55 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
   }
 
   /**
+   * Status messages must not be previewed, but must be returned instead.
+   *
+   * @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant::build()
    * @see \Drupal\canvas\Render\MainContent\CanvasPreviewRenderer::renderResponse()
    */
-  public function testPreviewDrupalMessengerInJsonNotInHtml(): void {
+  public function testStatusMessagesAreNotPreviewed(): void {
     $entity = $this->getTestEntity('node');
     $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);
-    $regions = $this->enableGlobalRegions();
-    foreach ($regions as $region) {
-      $region->setComponentTree([])->save();
-    }
+    // Without page regions, PageVariantSelectorSubscriber does not select
+    // CanvasPageVariant, and core's variant renders the messages.
+    $this->enableGlobalRegions();
 
     $session = $this->container->get('session');
     $session->start();
-    $session->getFlashBag()->add(MessengerInterface::TYPE_STATUS, 'Canvas kernel preview messenger probe.');
+    $session->getFlashBag()->add(MessengerInterface::TYPE_WARNING, '<em>Not</em> in the preview.');
     $request = Request::create($this->getLayoutUrl($entity)->toString());
     $request->setSession($session);
-    $response = $this->request($request);
-    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
-    $json = static::decodeResponse($response);
-    self::assertArrayHasKey('messages', $json);
-    self::assertIsArray($json['messages']);
-    self::assertNotEmpty($json['messages']);
-    self::assertSame(MessengerInterface::TYPE_STATUS, $json['messages'][0]['type']);
-    self::assertStringContainsString('Canvas kernel preview messenger probe', $json['messages'][0]['message']);
-    self::assertStringNotContainsString('data-drupal-messages', $json['html']);
+    $json = static::decodeResponse($this->request($request));
+
+    self::assertStringNotContainsString('in the preview', $json['html']);
+    self::assertSame([
+      [
+        'type' => MessengerInterface::TYPE_WARNING,
+        'message' => 'Not in the preview.',
+      ],
+    ], $json['messages']);
+  }
+
+  /**
+   * Messages added while rendering must be returned, not left behind.
+   *
+   * @see \Drupal\canvas\Render\MainContent\CanvasPreviewRenderer::collectMessages()
+   */
+  public function testStatusMessagesAddedWhileRendering(): void {
+    $this->enableModules(['canvas_test_render_message']);
+    $entity = $this->getTestEntity('node');
+    $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);
+    // @see ::testStatusMessagesAreNotPreviewed()
+    $this->enableGlobalRegions();
+
+    $json = static::decodeResponse($this->request(Request::create($this->getLayoutUrl($entity)->toString())));
+
+    self::assertStringNotContainsString(CanvasTestRenderMessageHooks::MESSAGE, $json['html']);
+    self::assertSame([
+      [
+        'type' => MessengerInterface::TYPE_STATUS,
+        'message' => CanvasTestRenderMessageHooks::MESSAGE,
+      ],
+    ], $json['messages']);
   }
 
   /**

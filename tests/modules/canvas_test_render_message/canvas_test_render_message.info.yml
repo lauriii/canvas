@@ -1,0 +1,6 @@
+name: 'Canvas render-time message test'
+type: module
+description: 'Adds a status message while a page renders.'
+dependencies:
+  - canvas:canvas
+package: Testing

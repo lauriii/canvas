@@ -597,6 +597,12 @@ canvas.api.layout.post.content_template:
   <<: *layout_post_route
   path: '/canvas/api/v0/layout-content-template/{entity}/{preview_entity}'
   options:
+    # This mapping replaces the one merged in from `layout_post_route`, so it
+    # has to repeat this. Without it the response is not built as a preview,
+    # and status messages are rendered into it.
+    # @todo `requirements` below does not belong in `options`, so this route is
+    #   missing them. Needs its own issue.
+    _canvas_use_template_draft: TRUE
     requirements:
       <<: *layout_get_route_requirements
       _canvas_preview_entity_view_access: TRUE

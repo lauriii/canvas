@@ -318,20 +318,6 @@ Cypress.Commands.add('drupalRelativeURL', (pathname, callback) => {
   }
 });
 
-/**
- * Close Drupal layout preview messenger toasts (no-op when none are shown).
- */
-Cypress.Commands.add('drupalDismissPreviewToasts', () => {
-  cy.get('body').then(($body) => {
-    const $btns = $body
-      .find('[data-testid="drupal-preview-messages"]')
-      .find('button[aria-label="Dismiss notification"]');
-    if ($btns.length) {
-      cy.wrap($btns).click({ multiple: true, force: true });
-    }
-  });
-});
-
 Cypress.Commands.add('drupalUninstall', (callback) => {
   // immediately leave Canvas - otherwise when running headed the auto-save poll can fire during/after the db wipe and leave
   // the env in a weird state.

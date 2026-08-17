@@ -4,22 +4,20 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 import type { Notification } from '@/services/notificationsApi';
 
 /**
- * Drupal Messenger payload returned by the Canvas layout preview JSON.
+ * A status message returned by a layout preview response.
  *
- * @see src/Render/MainContent/CanvasPreviewRenderer.php
+ * @see \Drupal\canvas\Render\MainContent\CanvasPreviewRenderer::collectMessages()
  */
-export interface DrupalPreviewMessage {
+export interface PreviewMessage {
   type: string;
   message: string;
 }
 
+/**
+ * Preview messages are shown as a toast and then forgotten. They are kept out
+ * of notificationsApi on purpose, so they do not reach the activity center.
+ */
 interface PreviewMessagesState {
-  /**
-   * Transient, client-only preview-message notifications rendered as toasts.
-   *
-   * Persisted only in memory; these are intentionally not sent to the
-   * notifications REST API so they do not appear in the notification panel.
-   */
   notifications: Notification[];
 }
 
@@ -27,8 +25,7 @@ const initialState: PreviewMessagesState = {
   notifications: [],
 };
 
-/** Map Drupal Messenger types to the Notification shape used by toasts. */
-const TYPE_BY_MESSENGER: Record<string, Notification['type']> = {
+const TYPE_BY_MESSENGER_TYPE: Record<string, Notification['type']> = {
   status: 'info',
   warning: 'warning',
   error: 'error',
@@ -42,34 +39,13 @@ const TITLE_BY_TYPE: Record<Notification['type'], string> = {
   error: 'Error',
 };
 
-/**
- * Converts the admin-safe HTML produced by the server into plain text for the
- * toast. The server already strips dangerous markup via Xss::filterAdmin, so
- * this only strips the remaining inline tags for display purposes.
- */
-function htmlToPlainText(html: string): string {
-  if (typeof DOMParser === 'undefined') {
-    // Fallback: crude tag stripping.
-    return html
-      .replace(/<[^>]*>/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  return (doc.body.textContent || '').replace(/\s+/g, ' ').trim();
-}
-
-function toNotification(entry: DrupalPreviewMessage): Notification | null {
-  const type = TYPE_BY_MESSENGER[entry.type] ?? 'info';
-  const message = htmlToPlainText(entry.message);
-  if (!message) {
-    return null;
-  }
+function toNotification({ type, message }: PreviewMessage): Notification {
+  const notificationType = TYPE_BY_MESSENGER_TYPE[type] ?? 'info';
   return {
-    id: `drupal-preview-${nanoid()}`,
-    type,
+    id: `preview-message-${nanoid()}`,
+    type: notificationType,
     key: null,
-    title: TITLE_BY_TYPE[type],
+    title: TITLE_BY_TYPE[notificationType],
     message,
     timestamp: Date.now(),
     hasRead: false,
@@ -81,34 +57,41 @@ export const previewMessagesSlice = createSlice({
   name: 'previewMessages',
   initialState,
   reducers: {
-    addDrupalPreviewMessages: {
+    addPreviewMessages: {
       reducer(state, action: PayloadAction<Notification[]>) {
-        state.notifications.unshift(...action.payload);
+        // A preview is requested on every edit, and Drupal only deduplicates
+        // messages within one request, and only when they are not repeated on
+        // purpose. Do not stack a message that is already shown, or one the
+        // same response returned twice.
+        const shown = new Set(
+          state.notifications.map(({ type, message }) => `${type}:${message}`),
+        );
+        state.notifications.unshift(
+          ...action.payload.filter(({ type, message }) => {
+            const key = `${type}:${message}`;
+            if (shown.has(key)) {
+              return false;
+            }
+            shown.add(key);
+            return true;
+          }),
+        );
       },
-      prepare(messages: DrupalPreviewMessage[] | undefined) {
-        const notifications = (messages ?? [])
-          .map(toNotification)
-          .filter((n): n is Notification => n !== null);
-        return { payload: notifications };
-      },
+      prepare: (messages: PreviewMessage[] = []) => ({
+        payload: messages.filter(({ message }) => message).map(toNotification),
+      }),
     },
-    removeDrupalPreviewMessage(state, action: PayloadAction<string>) {
+    removePreviewMessage(state, action: PayloadAction<string>) {
       state.notifications = state.notifications.filter(
-        (n) => n.id !== action.payload,
+        (notification) => notification.id !== action.payload,
       );
-    },
-    clearDrupalPreviewMessages(state) {
-      state.notifications = [];
     },
   },
   selectors: {
-    selectDrupalPreviewMessages: (state) => state.notifications,
+    selectPreviewMessages: (state) => state.notifications,
   },
 });
 
-export const {
-  addDrupalPreviewMessages,
-  removeDrupalPreviewMessage,
-  clearDrupalPreviewMessages,
-} = previewMessagesSlice.actions;
-export const { selectDrupalPreviewMessages } = previewMessagesSlice.selectors;
+export const { addPreviewMessages, removePreviewMessage } =
+  previewMessagesSlice.actions;
+export const { selectPreviewMessages } = previewMessagesSlice.selectors;

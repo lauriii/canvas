@@ -2300,7 +2300,7 @@ paths:
                     type: string
                     description: HTML preview of the layout
                   messages:
-                    $ref: '#/components/schemas/LayoutPreviewDrupalMessages'
+                    $ref: '#/components/schemas/LayoutPreviewMessages'
                   layout:
                     type: array
                     description: Layout regions
@@ -2345,7 +2345,7 @@ paths:
                     type: string
                     description: The HTML preview.
                   messages:
-                    $ref: '#/components/schemas/LayoutPreviewDrupalMessages'
+                    $ref: '#/components/schemas/LayoutPreviewMessages'
                   layout:
                     type: array
                     description: Layout regions
@@ -2397,7 +2397,7 @@ paths:
                     type: string
                     description: The HTML preview.
                   messages:
-                    $ref: '#/components/schemas/LayoutPreviewDrupalMessages'
+                    $ref: '#/components/schemas/LayoutPreviewMessages'
                   autoSaves:
                     $ref: '#/components/schemas/AutoSaveConcurrencyControl'
         '401':
@@ -2454,6 +2454,8 @@ paths:
                   html:
                     type: string
                     description: HTML preview of the layout
+                  messages:
+                    $ref: '#/components/schemas/LayoutPreviewMessages'
                   layout:
                     type: array
                     description: Layout regions
@@ -2493,6 +2495,8 @@ paths:
                   html:
                     type: string
                     description: The HTML preview.
+                  messages:
+                    $ref: '#/components/schemas/LayoutPreviewMessages'
                   layout:
                     type: array
                     description: Layout regions
@@ -2542,6 +2546,8 @@ paths:
                   html:
                     type: string
                     description: The HTML preview.
+                  messages:
+                    $ref: '#/components/schemas/LayoutPreviewMessages'
                   autoSaves:
                     $ref: '#/components/schemas/AutoSaveConcurrencyControl'
         '401':
@@ -2680,7 +2686,7 @@ paths:
                     type: string
                     description: HTML preview of the layout
                   messages:
-                    $ref: '#/components/schemas/LayoutPreviewDrupalMessages'
+                    $ref: '#/components/schemas/LayoutPreviewMessages'
                   layout:
                     type: array
                     description: Layout regions
@@ -2759,7 +2765,7 @@ paths:
                     type: string
                     description: The HTML preview.
                   messages:
-                    $ref: '#/components/schemas/LayoutPreviewDrupalMessages'
+                    $ref: '#/components/schemas/LayoutPreviewMessages'
                   layout:
                     type: array
                     description: Layout regions
@@ -2819,7 +2825,7 @@ paths:
                     type: string
                     description: The HTML preview.
                   messages:
-                    $ref: '#/components/schemas/LayoutPreviewDrupalMessages'
+                    $ref: '#/components/schemas/LayoutPreviewMessages'
                   autoSaves:
                     $ref: '#/components/schemas/AutoSaveConcurrencyControl'
         '401':
@@ -4250,10 +4256,10 @@ components:
           type: boolean
         isPublished:
           type: boolean
-    LayoutPreviewDrupalMessages:
-      title: Layout preview Drupal messages
+    LayoutPreviewMessages:
+      title: Layout preview messages
       type: array
-      description: Drupal status messages for the editor shell (omitted from preview HTML).
+      description: Status messages, which are not rendered in the preview HTML.
       items:
         type: object
         additionalProperties: false
@@ -4266,9 +4272,7 @@ components:
             description: Messenger type (for example status, warning, or error).
           message:
             type: string
-            description: >
-              Admin-safe HTML for toast display (links and typical inline markup
-              preserved; filtered with Xss::filterAdmin server-side).
+            description: The message, as plain text.
     AutoSaveConcurrencyControl:
       title: Auto Save Concurrency Control
       type: object

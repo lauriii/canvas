@@ -263,7 +263,3 @@ services:
     public: false
     decorates: plugin.manager.block
     arguments: ['@.inner']
-  Drupal\canvas\EventSubscriber\CanvasMaintenanceModeSubscriber:
-    public: false
-    decorates: maintenance_mode_subscriber
-    arguments: ['@.inner']
