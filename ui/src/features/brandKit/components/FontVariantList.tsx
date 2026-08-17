@@ -46,6 +46,10 @@ const FontVariantList = ({
       {fonts.map((font) => {
         const variantLabel = buildFontVariantLabel(font);
         const isSelected = selectedFontId === font.id;
+        // Two files of one family can carry the same weight, style and format —
+        // two variable files always do — so the filename is what tells them
+        // apart in the accessibility tree.
+        const filename = font.uri.split('/').pop() ?? font.id;
 
         return (
           <Box key={font.id} className={styles.variantRowWrapper}>
@@ -59,6 +63,7 @@ const FontVariantList = ({
                 className={styles.variantRadio}
                 name={`canvas-brand-kit-font-variant-${family}`}
                 value={font.id}
+                aria-label={`${variantLabel} ${filename}`}
                 checked={isSelected}
                 onChange={() => onSelectFont(font)}
               />
@@ -82,7 +87,7 @@ const FontVariantList = ({
                   color="gray"
                   size="1"
                   disabled={isBusy}
-                  aria-label={`Delete ${font.family} ${variantLabel} variant`}
+                  aria-label={`Delete ${font.family} ${variantLabel} ${filename}`}
                   data-testid={`canvas-brand-kit-font-variant-delete-${font.id}`}
                   onClick={() => void onRemoveFont(font.id)}
                 >

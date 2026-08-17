@@ -238,12 +238,36 @@ describe('FontFamilyFlyout', () => {
     expect(screen.getByLabelText('Weight')).toBeInTheDocument();
   });
 
-  it('names the variant group for assistive technology', () => {
+  it('names the variant group and each card for assistive technology', () => {
     render(<FlyoutHarness fonts={staticFonts} />);
 
     expect(
       screen.getByRole('radiogroup', { name: 'Inter variants' }),
     ).toBeInTheDocument();
+    // Two files of a family can carry the same weight, style and format, so the
+    // filename is what keeps the radios' names distinct.
+    expect(
+      screen.getByRole('radio', { name: '100 Normal [TTF] inter-100.ttf' }),
+    ).toBeInTheDocument();
+  });
+
+  it('previews an italic axis without asking for a face that does not exist', () => {
+    // The family's @font-face declares the upright face this file defaults to,
+    // so the preview must not request `italic` on top of `'ital' 1` — the
+    // browser would fake a second slant.
+    const dualItalicFont = {
+      ...variableFont,
+      axes: [{ tag: 'ital', name: 'Italic', min: 0, max: 1, default: 0 }],
+      axisSettings: [{ tag: 'ital', value: 1 }],
+      style: 'italic' as const,
+    };
+    render(<FlyoutHarness fonts={[dualItalicFont]} />);
+
+    const preview = screen.getByTestId(
+      `canvas-brand-kit-font-preview-${dualItalicFont.id}`,
+    );
+    expect(preview).toHaveStyle({ fontStyle: 'normal' });
+    expect(preview.style.fontVariationSettings).toBe('"ital" 1');
   });
 
   it('copies each code block verbatim', async () => {

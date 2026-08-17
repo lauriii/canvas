@@ -35,7 +35,7 @@ export const stripFontClientFields = (
     uri: font.uri,
     format: font.format,
     weight: getWeightDeclaration(font),
-    style: getStyleDeclaration(font),
+    style: getFontFaceStyleDeclaration(font),
   };
 
   if (font.axes?.length) {
@@ -138,7 +138,7 @@ const getWeightDeclaration = (font: AssetLibraryFont): string => {
  * italic` — which, against an upright face, would have the browser fake a slant
  * on top of the one the axis already applies.
  */
-const getStyleDeclaration = (font: AssetLibraryFont): string => {
+export const getFontFaceStyleDeclaration = (font: AssetLibraryFont): string => {
   const italicAxis = font.axes?.find((axis) => axis.tag === 'ital');
   if (isVariableFont(font) && italicAxis) {
     return italicAxis.default > 0 ? 'italic' : 'normal';
@@ -173,7 +173,7 @@ export const buildFontFaceSnippet = (font: AssetLibraryFont): string => {
     `  font-family: '${fontFamily}';`,
     `  src: url('${fontUrl}') format('${fontFormatLabels[font.format]}');`,
     `  font-weight: ${getWeightDeclaration(font)};`,
-    `  font-style: ${getStyleDeclaration(font)};`,
+    `  font-style: ${getFontFaceStyleDeclaration(font)};`,
     '  font-display: swap;',
     '}',
   ];
@@ -238,7 +238,7 @@ const buildUsageDeclarations = (font: AssetLibraryFont): string[] => {
     }
 
     declarations.push(
-      `font-style: ${getStyleDeclaration(font)}`,
+      `font-style: ${getFontFaceStyleDeclaration(font)}`,
       `font-variation-settings: ${font.axes
         .map(
           (axis) =>
