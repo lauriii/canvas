@@ -9,6 +9,32 @@ currently covering endpoints for working with JavaScript/code components, brand 
 
 ## 2. Setup
 
+### 2.0. Quick setup with Drush
+
+Everything in section 2 is automated by one command in the Canvas module:
+
+```
+$ composer require drupal/simple_oauth:^6
+$ drush canvas:setup-code-components
+```
+
+It installs this module, generates the signing keys outside the docroot and
+points Simple OAuth at them, creates the consumer `canvas login` authenticates
+against, grants the account that will log in the permissions the requested
+scopes resolve to, and finishes by printing the exact CLI commands to run,
+filled in with this site's URL and the client ID it just created.
+
+It prompts only for what it cannot default, so pressing Enter through it works.
+Add `--no-interaction` to accept every default unattended, and `--ci` to also
+create a confidential `client_credentials` client and print its secret once.
+Every step no-ops when its outcome already exists, so re-running it after a
+failure resumes where it stopped.
+
+Run `drush canvas:setup-code-components --help` for the full list of options.
+
+The rest of this section describes the same setup by hand, for sites that need
+to deviate from it.
+
 ### 2.1. Installation
 
 Install the module; make sure [Simple OAuth (>=6.0.0)](https://www.drupal.org/project/simple_oauth) is already
@@ -27,7 +53,13 @@ $ openssl genrsa -out private.key 2048
 $ openssl rsa -in private.key -pubout > public.key
 ```
 
-1. Store the keys at a secure location on your server, outside of your document root.
+1. Store the keys at a secure location on your server, outside of your document root. This matters: the example above
+   writes them into the current directory, and a key pair that ends up somewhere like `sites/default/files` is
+   downloadable. Simple OAuth writes a deny-all `.htaccess` beside the keys, which nginx never reads.
+1. Check that nothing under the document root leads back to that location. Being outside the document root is not the
+   same as being unreachable from it: a symlink under the document root pointing at the key directory serves the
+   private key just as well. `drush canvas:setup-code-components` checks this for you and names the URL that would
+   serve the key.
 1. Configure the path to your keys at `/admin/config/people/simple_oauth`.
 
 #### 2.2.2. Client
