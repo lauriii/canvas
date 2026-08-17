@@ -26,7 +26,6 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
@@ -289,16 +288,6 @@ final class CanvasBuilder extends ControllerBase {
       'status' => $status,
       'message' => $message,
     ]);
-  }
-
-  /**
-   * Function to get the x-csrf-token.
-   *
-   * @return \Symfony\Component\HttpFoundation\Response
-   *   The response object.
-   */
-  public function getCsrfToken(Request $request): Response {
-    return new Response($this->csrfTokenGenerator->get('canvas_ai.canvas_builder'));
   }
 
   /**

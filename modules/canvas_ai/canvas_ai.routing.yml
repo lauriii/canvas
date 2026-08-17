@@ -8,7 +8,7 @@ canvas_ai.canvas_builder:
 canvas_ai.csrf_token:
   path: '/admin/api/canvas/token'
   defaults:
-    _controller: '\Drupal\canvas_ai\Controller\CanvasBuilder::getCsrfToken'
+    _controller: '\Drupal\canvas_ai\Controller\CsrfTokenController::getCsrfToken'
   requirements:
     _permission: 'use Drupal Canvas AI'
     _method: 'POST'
