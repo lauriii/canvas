@@ -1552,31 +1552,26 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
    * @see ::uncollapse()
    */
   private function collapse(PropSourceBase $source, string $prop_name): mixed {
-    // @todo Simplify this to just `if ($source instanceof StaticPropSource && $source->hasSameShapeAs($this->getDefaultStaticPropSource($prop_name))) { return $source->getValue(); }` in https://www.drupal.org/project/canvas/issues/3532414
     if ($source instanceof StaticPropSource) {
-      try {
-        $default_source = $this->getDefaultStaticPropSource($prop_name, FALSE);
-        if (!$source->hasSameShapeAs($default_source)) {
-          throw new \LogicException(\sprintf(
-            "The prop %s of component %s has the following static prop source: '%s', but must match the default, which is '%s'. This prop source should be just: '%s'.",
-            $prop_name,
-            $this->getPluginId() . '.' . $this->getSourceSpecificComponentId(),
-            json_encode(array_diff_key($source->toArray(), array_flip(['value']))),
-            json_encode(array_diff_key($default_source->toArray(), array_flip(['value']))),
-            json_encode($source->getValue()),
-          ));
-        }
-        return $source->getValue();
+      // A StaticPropSource can only be collapsed against the default static
+      // prop source dictated by the referenced Component version. If $prop_name
+      // is not a prop on that version, ::getDefaultStaticPropSource() throws an
+      // \OutOfRangeException, which is intentionally allowed to propagate: a
+      // prop with no `prop_field_definitions` entry can never have a widget, so
+      // storing a value for it could only ever record a garbage value.
+      // @see https://www.drupal.org/project/canvas/issues/3532414
+      $default_source = $this->getDefaultStaticPropSource($prop_name, FALSE);
+      if (!$source->hasSameShapeAs($default_source)) {
+        throw new \LogicException(\sprintf(
+          "The prop %s of component %s has the following static prop source: '%s', but must match the default, which is '%s'. This prop source should be just: '%s'.",
+          $prop_name,
+          $this->getPluginId() . '.' . $this->getSourceSpecificComponentId(),
+          json_encode(array_diff_key($source->toArray(), array_flip(['value']))),
+          json_encode(array_diff_key($default_source->toArray(), array_flip(['value']))),
+          json_encode($source->getValue()),
+        ));
       }
-      catch (\OutOfRangeException) {
-        // TRICKY: https://www.drupal.org/node/3500386 and its test coverage
-        // assume that even auto-saves of code components can have their props
-        // appear. This never really made sense, but especially no longer since
-        // we introduced component versions. It never made sense though, because
-        // no entry would exist in `prop_field_definitions` for the code
-        // component, meaning no widget would ever have appeared.
-        return $source->toArray();
-      }
+      return $source->getValue();
     }
     return $source->toArray();
   }

@@ -227,6 +227,55 @@ abstract class JsonSchemaPropsComponentSourceBaseTestBase extends ComponentSourc
   }
 
   /**
+   * Tests that clientModelToInput() rejects props absent from the version.
+   *
+   * A prop that has no `prop_field_definitions` entry for the referenced
+   * Component version cannot have a widget, so a StaticPropSource for it can
+   * only ever record a garbage value. Rather than silently storing that
+   * garbage (which later fails at hydration/render time), ::collapse() must
+   * reject it at write time by letting ::getDefaultStaticPropSource() throw.
+   *
+   * @legacy-covers ::clientModelToInput
+   * @see https://www.drupal.org/project/canvas/issues/3532414
+   */
+  #[DataProvider('providerComponentForValidateInputRejectsUnexpectedProps')]
+  public function testClientModelToInputRejectsUndefinedProp(string $source_id, string $source_specific_id, string $valid_prop_name, array $valid_prop_input): void {
+    $this->generateComponentConfig();
+
+    $component_source_manager = $this->container->get(ComponentSourceManager::class);
+    \assert($component_source_manager instanceof ComponentSourceManager);
+    $component_source_definition = $component_source_manager->getDefinition($source_id);
+    \assert(\array_key_exists('discovery', $component_source_definition));
+    $discovery = $this->container->get('class_resolver')->getInstanceFromDefinition($component_source_definition['discovery']);
+    \assert($discovery instanceof ComponentCandidatesDiscoveryInterface);
+    $component_id = $discovery::getComponentConfigEntityId($source_specific_id);
+
+    $component = Component::load($component_id);
+    $this->assertInstanceOf(Component::class, $component);
+    $source = $component->getComponentSource();
+    $this->assertInstanceOf(JsonSchemaPropsComponentSourceBase::class, $source);
+
+    // A client model with a static prop source for `textUnwanted`, which is not
+    // a prop on this Component version (no `prop_field_definitions` entry).
+    $client_model = [
+      'source' => [
+        'textUnwanted' => [
+          'sourceType' => 'static:field_item:string',
+          'expression' => 'ℹ︎string␟value',
+          'value' => 'Unwanted value',
+        ],
+      ],
+      'resolved' => [
+        'textUnwanted' => 'Unwanted value',
+      ],
+    ];
+
+    $this->expectException(\OutOfRangeException::class);
+    $this->expectExceptionMessage("'textUnwanted' is not a prop on this version of the Component");
+    $source->clientModelToInput('07875b1b-b68c-4b90-955c-d6136ff8af93', $component, $client_model, NULL);
+  }
+
+  /**
    * Tests that explicitly removing an optional image prop value is preserved.
    *
    * When a user removes an optional image prop that has a default example
