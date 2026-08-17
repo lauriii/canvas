@@ -2,7 +2,7 @@ import { expect } from '@playwright/test';
 
 import { isolatedPerTest as test } from '../../fixtures/test.js';
 
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 // @cspell:ignore fontmaster
 
@@ -17,12 +17,27 @@ const SEL = {
   // brandKitColors.spec.ts does for folder counts.
   familyList: '[class*="_familyList"]',
   familyRow: 'button[class*="_familyRow"]',
+  familyName: '[class*="_familyName"]',
+  familyCount: '[class*="_familyCount"]',
   flyout: '[class*="_flyoutContent"]',
   variantRow: 'button[class*="_variantRow"]',
+  variantRowMeta: '[class*="_variantRowMeta"]',
+  variantRowChevron: '[class*="_variantRowChevron"]',
   // The family name field is the first input inside the flyout; the variant
   // editor below it contributes the others.
   familyNameInput: '[class*="_flyoutContent"] input',
 };
+
+/**
+ * Returns an element's on-screen box, failing the test if it has none.
+ */
+const boxOf = async (locator: Locator) => {
+  const box = await locator.boundingBox();
+  expect(box, `expected ${locator} to be laid out on screen`).not.toBeNull();
+  return box!;
+};
+
+const centerY = (box: { y: number; height: number }) => box.y + box.height / 2;
 
 /**
  * Uploads a font file through the fonts section's hidden file input.
@@ -88,30 +103,44 @@ test.describe('brand kit fonts', () => {
     await expect(familyRow).toBeVisible();
     await expect(familyRow).toContainText('Mona Sans');
 
-    // Regression guard: the family row is a <button> that resets its user agent
-    // styles with `all: unset` before declaring its own layout. `all` is a
-    // shorthand for every property, so if it is not the first declaration it
-    // overrides the declarations preceding it, and the row computes to
-    // `display: inline` with no height, padding, or width.
+    // Regression guard: the family row must read as a row. Its name sits on the
+    // left and its variant count on the right of the same line, and the row
+    // spans the list rather than shrinking to its text. When the row's
+    // `all: unset` reset stopped being its first declaration, the row lost its
+    // layout and the count dropped onto a second line under the name.
     // @see https://www.drupal.org/i/3577631
-    await expect(familyRow).toHaveCSS('display', 'flex');
-    const rowBox = await familyRow.boundingBox();
-    const listBox = await page.locator(SEL.familyList).boundingBox();
-    expect(rowBox).not.toBeNull();
-    expect(listBox).not.toBeNull();
-    // The row fills its list rather than shrinking to its text.
-    expect(rowBox!.width).toBeGreaterThanOrEqual(listBox!.width - 1);
-    expect(rowBox!.height).toBeGreaterThan(20);
+    const rowBox = await boxOf(familyRow);
+    const listBox = await boxOf(page.locator(SEL.familyList));
+    const nameBox = await boxOf(familyRow.locator(SEL.familyName));
+    const countBox = await boxOf(familyRow.locator(SEL.familyCount));
+
+    expect(rowBox.width).toBeGreaterThanOrEqual(listBox.width - 1);
+    expect(rowBox.height).toBeGreaterThan(20);
+    // The count is beside the name, not stacked under it.
+    expect(countBox.x).toBeGreaterThanOrEqual(nameBox.x + nameBox.width - 1);
+    expect(Math.abs(centerY(countBox) - centerY(nameBox))).toBeLessThan(6);
+    // Both sit inside the row's own height.
+    expect(countBox.y + countBox.height).toBeLessThanOrEqual(
+      rowBox.y + rowBox.height + 1,
+    );
 
     // Uploading selects the new font, which opens its family flyout. The
-    // variant rows there carry the same `all: unset` reset.
+    // variant rows there carry the same reset, and read as rows the same way:
+    // label on the left, chevron on the right of the same line.
     // @see useFontUpload's onFontUploaded / useBrandKitFontSelection.selectFont
     const variantRow = page.locator(SEL.variantRow).first();
     await expect(variantRow).toBeVisible();
-    await expect(variantRow).toHaveCSS('display', 'flex');
-    const variantBox = await variantRow.boundingBox();
-    expect(variantBox).not.toBeNull();
-    expect(variantBox!.height).toBeGreaterThan(20);
+    const variantBox = await boxOf(variantRow);
+    const variantMetaBox = await boxOf(variantRow.locator(SEL.variantRowMeta));
+    const chevronBox = await boxOf(variantRow.locator(SEL.variantRowChevron));
+
+    expect(variantBox.height).toBeGreaterThan(20);
+    expect(chevronBox.x).toBeGreaterThanOrEqual(
+      variantMetaBox.x + variantMetaBox.width - 1,
+    );
+    expect(
+      Math.abs(centerY(chevronBox) - centerY(variantMetaBox)),
+    ).toBeLessThan(6);
 
     // Rename the family. The name field commits on blur, and the commit applies
     // to local state before its auto-save PATCH resolves. Wait for the request
@@ -142,6 +171,11 @@ test.describe('brand kit fonts', () => {
     await canvas.openBrandKitPanel();
     await page.locator(SEL.tab).click();
     await expect(familyRow).toContainText('Renamed Sans');
-    await expect(familyRow).toHaveCSS('display', 'flex');
+    const reloadedRowBox = await boxOf(familyRow);
+    const reloadedCountBox = await boxOf(familyRow.locator(SEL.familyCount));
+    expect(reloadedRowBox.width).toBeGreaterThanOrEqual(listBox.width - 1);
+    expect(reloadedCountBox.y + reloadedCountBox.height).toBeLessThanOrEqual(
+      reloadedRowBox.y + reloadedRowBox.height + 1,
+    );
   });
 });
