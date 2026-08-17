@@ -178,7 +178,7 @@ jobs:
           # compiled dist.
           npm run build -w @drupal-canvas/headless
           npm run build -w ui
-      - name: Playwright (one spec, headless chromium)
+      - name: Playwright (canary + brand kit specs, headless chromium)
         if: matrix.tool == 'playwright'
         run: |
           # @drupal/playwright installs its test site with test-site.php, which
@@ -189,6 +189,13 @@ jobs:
           # cypress and functional suites (chromium also dislikes running
           # headless as root). @drupal/playwright ignores
           # DRUPAL_TEST_WEBSERVER_USER, so wrap the command in sudo.
+          #
+          # The positional argument is a regular expression matched against the
+          # spec's path, so every current and future `brandKit*.spec.ts` runs
+          # without this job having to name each one. The Brand Kit panel is
+          # styled entirely in `ui/` and has no PHPUnit coverage, so these specs
+          # are the only thing standing between a UI regression there and a
+          # release.
           export PW_HOME=/tmp/pw-home
           mkdir -p "$PW_HOME" && chown www-data:www-data "$PW_HOME"
           sudo -u www-data env \
@@ -196,7 +203,7 @@ jobs:
             PLAYWRIGHT_BROWSERS_PATH="$PW_HOME/ms-playwright" \
             DRUPAL_TEST_BASE_URL=http://localhost \
             DRUPAL_TEST_DB_URL=sqlite://localhost/sites/default/files/.ht.sqlite \
-            bash -c 'cd "$MODULE_DIR" && npx playwright install chromium && npx playwright test --project=chromium tests/src/Playwright/tests/isolatedPerTest/canaryMinimal.spec.ts'
+            bash -c 'cd "$MODULE_DIR" && npx playwright install chromium && npx playwright test --project=chromium "isolatedPerTest/(canaryMinimal|brandKit.*)\.spec\.ts$"'
       - name: Cypress (one spec, headless electron)
         if: matrix.tool == 'cypress'
         env:
