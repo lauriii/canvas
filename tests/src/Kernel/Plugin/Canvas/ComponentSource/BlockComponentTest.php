@@ -593,8 +593,11 @@ HTML,
       // @see \Drupal\canvas_test_block_form\Plugin\Block\CanvasTestBlockForm::blockSubmit
       'multiplier' => 3,
     ], $input);
-    // @todo This is wrong (it does not conform to `type: block.settings.canvas_test_block_form`) and will be fixed in https://www.drupal.org/project/canvas/issues/3541125
-    self::assertFalse(\is_int($input['canvas_page']));
+    // Integer inputs conform to `type: block.settings.canvas_test_block_form`:
+    // they are stored as integers, not strings.
+    // @see https://www.drupal.org/project/canvas/issues/3541125
+    self::assertSame((int) $page1->id(), $input['canvas_page']);
+    self::assertIsInt($input['multiplier']);
 
     // Confirm that validation errors from submitting the block plugin are
     // stored in the auto-save manager for a subsequent validation step.
@@ -648,6 +651,68 @@ HTML,
       "components.0.inputs.canvas_page:This value should be of the correct primitive type.",
       'components.0.inputs.canvas_page:There are no pages matching "There is no such place".',
     ], $violationMap);
+  }
+
+  /**
+   * Integer block settings must be stored as integers, not strings.
+   *
+   * The client sends the settings form's raw values, which for integer inputs
+   * (e.g. a menu block's `level` and `depth`, submitted through `select`
+   * elements) are strings. These must be cast to the config-schema type before
+   * being stored, matching a saved Block config entity.
+   *
+   * @legacy-covers ::clientModelToInput
+   * @see https://www.drupal.org/project/canvas/issues/3541125
+   */
+  public function testIntegerInputsAreStoredAsIntegers(): void {
+    $this->generateComponentConfig();
+    $component = Component::load('block.system_menu_block.admin');
+    \assert($component instanceof ComponentInterface);
+    $source = $component->getComponentSource();
+    \assert($source instanceof BlockComponent);
+    $uuid = '0ad04f78-0cb9-4634-9419-6091d1fb4376';
+    // @phpstan-ignore-next-line
+    $input = $source->clientModelToInput($uuid, $component, [
+      'resolved' => [
+        // Strings, as sent by the client from the settings form.
+        'level' => '1',
+        'depth' => '3',
+        'expand_all_items' => TRUE,
+        'label' => 'Administration',
+        'label_display' => '0',
+      ],
+    ], NULL);
+    self::assertSame([
+      'label' => 'Administration',
+      'label_display' => '0',
+      'level' => 1,
+      'depth' => 3,
+      'expand_all_items' => TRUE,
+    ], $input);
+    self::assertCount(0, $source->validateComponentInput($input, $uuid, NULL));
+
+    // A NULL value (a menu block's "Unlimited" depth, its default) must be
+    // preserved as NULL, not coerced to 0: casting to 0 would violate the
+    // block's `MenuLinkDepth` (min 1) constraint and make a previously valid,
+    // saveable menu block fail validation.
+    // @phpstan-ignore-next-line
+    $input = $source->clientModelToInput($uuid, $component, [
+      'resolved' => [
+        'level' => '2',
+        'depth' => NULL,
+        'expand_all_items' => FALSE,
+        'label' => 'Administration',
+        'label_display' => '0',
+      ],
+    ], NULL);
+    self::assertSame([
+      'label' => 'Administration',
+      'label_display' => '0',
+      'level' => 2,
+      'depth' => NULL,
+      'expand_all_items' => FALSE,
+    ], $input);
+    self::assertCount(0, $source->validateComponentInput($input, $uuid, NULL));
   }
 
   protected function triggerBrokenComponent(ComponentInterface $component): BrokenPluginManagerInterface {
