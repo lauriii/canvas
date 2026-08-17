@@ -1,0 +1,16 @@
+name: 'Test Theme — front-end theme overriding a core asset library'
+type: theme
+# A front-end theme that switches off one of core's `system/base` component
+# stylesheets. This is what a site template does when it wants none of Drupal's
+# own CSS on its public pages, and it is legitimate for the front end.
+#
+# `css/components/js.module.css` carries the `.js-hide` / `.js-show` utilities
+# that core relies on to hide functional markup, so a theme that drops it must
+# never be the theme the Canvas editor is built with.
+base theme: false
+core_version_requirement: ^11.3
+libraries-override:
+  system/base:
+    css:
+      component:
+        css/components/js.module.css: false
