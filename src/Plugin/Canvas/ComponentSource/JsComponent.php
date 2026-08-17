@@ -549,7 +549,20 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
     // @see \Drupal\canvas\Element\RenderSafeComponentContainer::handleComponentException()
     // @see https://www.drupal.org/project/canvas/issues/3583639
     \assert($this->componentValidator->validateProps($props, $this->getComponentPlugin()));
-    $bubbleable_metadata = BubbleableMetadata::createFromRenderArray($build)
+    $bubbleable_metadata = BubbleableMetadata::createFromRenderArray($build);
+    // The global asset library and brand kit libraries attached above have
+    // content-hashed file names, and the brand kit also contributes the font
+    // preload links added above. Attaching a library does not express that
+    // dependency on its own, so declare it: otherwise a cached response keeps
+    // pointing at the old file names, and keeps the old preloads.
+    // @see \Drupal\canvas\Entity\CanvasAssetLibraryTrait::getCssPath()
+    // @see ::getFontPreloadLinks()
+    foreach ([AssetLibrary::load(AssetLibrary::GLOBAL_ID), $global_brand_kit] as $global_asset) {
+      if ($global_asset !== NULL) {
+        $bubbleable_metadata->addCacheableDependency($global_asset);
+      }
+    }
+    $bubbleable_metadata
       ->addCacheableDependency($component)
       ->merge($props_bubbleable_metadata);
     if ($headless_settings !== NULL) {

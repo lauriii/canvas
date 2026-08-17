@@ -156,27 +156,38 @@ final class BrandKit extends ConfigEntityBase implements CanvasAssetInterface {
       )));
     }
 
-    $representation = ClientSideRepresentation::create(
+    // ::getCacheTags() covers this BrandKit and, through the Color list cache
+    // tag, every Color its CSS embeds.
+    return ClientSideRepresentation::create(
       values: $values,
       preview: NULL,
     )->addCacheableDependency($this);
+  }
 
-    // Add the Color entity-type list cache tag so that creating or deleting
-    // any Color invalidates this BrandKit response.
-    //
-    // If multi-BrandKit support is added this will need to be a more specific
-    // list tag.
-    $representation->addCacheTags(
-      \Drupal::entityTypeManager()->getDefinition(Color::ENTITY_TYPE_ID)->getListCacheTags()
+  /**
+   * {@inheritdoc}
+   *
+   * A BrandKit's generated CSS embeds the value of every Color, but Colors are
+   * stored as separate config entities: saving one does not invalidate this
+   * BrandKit's own cache tag. Anything depending on this BrandKit must
+   * therefore also depend on the Colors, which the Color entity-type list cache
+   * tag expresses. That tag covers updates as well as creates and deletes,
+   * because ConfigEntityBase invalidates list cache tags on every save.
+   *
+   * TRICKY: this deliberately does not affect ::getCacheTagsToInvalidate().
+   * Saving a BrandKit must not invalidate the Colors.
+   *
+   * If multi-BrandKit support is added this will need to be a more specific
+   * list tag.
+   *
+   * @see ::getCss()
+   * @see \Drupal\Core\Config\Entity\ConfigEntityBase::invalidateTagsOnSave()
+   */
+  public function getCacheTags(): array {
+    return Cache::mergeTags(
+      parent::getCacheTags(),
+      \Drupal::entityTypeManager()->getDefinition(Color::ENTITY_TYPE_ID)->getListCacheTags(),
     );
-
-    // Add each Color entity as a cacheable dependency so that updating a Color
-    // invalidates this BrandKit response cache.
-    foreach ($color_entities as $color_entity) {
-      $representation->addCacheableDependency($color_entity);
-    }
-
-    return $representation;
   }
 
   /**
