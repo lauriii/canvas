@@ -70,6 +70,9 @@ export interface uiSliceState {
   updatingComponent: string | undefined; //uuid of component
   selection: Selection;
   collapsedLayers: string[];
+  // Variant previewed per personalization switch, keyed by switch UUID.
+  // Switches without an entry preview the default variant.
+  previewedVariants: Record<string, string>;
   targetSlot: string | undefined; //uuid of slot being hovered when dragging
   viewportWidth: number;
   viewportMinHeight: number;
@@ -134,6 +137,7 @@ export const initialState: uiSliceState = {
     items: [],
   },
   collapsedLayers: [],
+  previewedVariants: {},
   PreviouslyEdited: { name: '', path: '' },
 };
 
@@ -397,6 +401,13 @@ export const uiSlice = createAppSlice({
         (uuid) => !uuidsToRemove.has(uuid),
       );
     },
+    setPreviewedVariant: (
+      state,
+      action: PayloadAction<{ switchUuid: string; variantId: string }>,
+    ) => {
+      state.previewedVariants[action.payload.switchUuid] =
+        action.payload.variantId;
+    },
     setCurrentRoute: create.reducer(
       (state, action: PayloadAction<RouteSnapshot>) => {
         state.currentRoute = action.payload;
@@ -482,6 +493,9 @@ export const uiSlice = createAppSlice({
     selectCollapsedLayers: (ui): string[] => {
       return ui.collapsedLayers;
     },
+    selectPreviewedVariants: (ui): Record<string, string> => {
+      return ui.previewedVariants;
+    },
     selectPreviouslyEdited: (ui): PreviouslyEdited => {
       return ui.PreviouslyEdited;
     },
@@ -528,6 +542,7 @@ export const {
   setCollapsedLayers,
   toggleCollapsedLayer,
   removeCollapsedLayers,
+  setPreviewedVariant,
   setCurrentRoute,
 } = uiSlice.actions;
 
@@ -553,6 +568,7 @@ export const {
   selectSelection,
   selectIsMultiSelect,
   selectCollapsedLayers,
+  selectPreviewedVariants,
   selectPreviouslyEdited,
   selectCurrentRoute,
 } = uiSlice.selectors;

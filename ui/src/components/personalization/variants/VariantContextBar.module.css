@@ -1,0 +1,6 @@
+.bar {
+  flex-shrink: 0;
+  color: var(--accent-11);
+  border-bottom: 1px solid var(--accent-6);
+  background: var(--accent-3);
+}

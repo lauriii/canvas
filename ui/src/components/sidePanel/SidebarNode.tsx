@@ -14,6 +14,7 @@ import {
   FileTextIcon,
   HomeIcon,
   SectionIcon,
+  TargetIcon,
 } from '@radix-ui/react-icons';
 import { DropdownMenu, Flex, Text } from '@radix-ui/themes';
 
@@ -30,6 +31,7 @@ const VARIANTS = {
   page: { icon: <FileTextIcon /> },
   region: { icon: <CubeIcon /> },
   pattern: { icon: <SectionIcon /> },
+  personalized: { icon: <TargetIcon /> },
   slot: { icon: <BoxModelIcon /> },
   template: { icon: <TemplateIcon /> },
   broken: { icon: <ExclamationTriangleIcon /> },

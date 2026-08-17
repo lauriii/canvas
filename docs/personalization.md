@@ -2,14 +2,15 @@
 
 In the rest of this document, `Drupal Canvas` will be written as `Canvas`.
 
+Personalization is provided by the hidden, experimental `canvas_personalization` module. The module itself is the
+feature flag: it is `hidden: true` and only installable via drush, recipes, or tests. It may be folded into the main
+module when that's more pragmatic.
+
 ## 1. Terminology
 
-`Personalization Segmentation Rule`: A condition that allows categorizing people into a group, or a context condition.
-E.g. _“People who bought a bike last month”_, _“Visitors from the State of Colorado”_, _“Today is Sunday”_.
-
-This powers market segmentation.
-
-It might or not be deterministic (e.g. “_5% of visitors to this landing page_”)
+`Personalization Segmentation Rule` (aka `segment condition`): A condition that allows categorizing people into a
+group, or a context condition. E.g. _“People who bought a bike last month”_, _“Visitors from the State of Colorado”_,
+_“Today is Sunday”_. This powers market segmentation. It might or might not be deterministic.
 
 `Personalization Segments (aka Segments)`: Group of segmentation rules that determine the target audience for doing
 market segmentation. Sometimes might be referred to as `Audience` colloquially speaking, but we feel Segments is more
@@ -17,306 +18,221 @@ neutral e.g. when talking about temporary campaigns.
 
 `Audience`: See above. The group of people who fit some characteristics defined by a group of segmentation rules.
 
-`Campaign`: A personalization segment which is defined by a Segment Rule which might not  be based on market
-segmentation, but on a temporary basis. E.g. “Christmas campaign”
+`Campaign`: A personalization segment which is defined by a Segment Rule which might not be based on market
+segmentation, but on a temporary basis. E.g. “Christmas campaign”.
 
 `Personalization Variant` (term might change to `Variation`): A particular customization for a given Personalization
-Segment.  Not to be confused with [SDC Variant](https://www.drupal.org/node/3517062).
-When we talk about Personalization Variants, we talk about _both_:
-- the explicit inputs for `component instance`s being different per variant. At the `component level`, this is what
-Figma defines as Variant, Storybook might define it as Story, and at the SDC component level we
-[might define it as Example](https://www.drupal.org/project/drupal/issues/3522644).
-- the `component`s: it is possible not only to keep the same `component`s and just assign different
-`explicit component input`s per variant, but also to completely change _which_ `component`s are present in a variant
+Segment. Not to be confused with [SDC Variant](https://www.drupal.org/node/3517062). A variant can change both the
+explicit inputs of `component instance`s and *which* `component instance`s are present.
 
-`Default Personalization Variant`: The variant that will be displayed to the user when they don’t fit any of the
-previous Segments. Colloquially speaking can be referred to as the `Default Site`.
-
-`SDC Variant`: A glorified prop in SDC components called Variant. Not to be confused with Personalization Variant.
-E.g. a SDC component named teaser with an image and some text might define “Image-Left” and “Image-Right” variants
-that performs a visual change, but it’s semantically tied together enough for not having two different SDC components,
-e.g. each of them differs on having a CSS class applied or not.
-
-`A/B testing`: An experiment where two or more `Personalization Variants` are compared to see which one performs better
-based on specific goals.
-
-`Metrics`: Quantifiable measurements used to evaluate the success of different variations in an A/B test.
-
-`Personalizable Component Tree`: At a very high level (excuse the simplification), we model the Canvas as a tree of
-components. We might refer in this document to a Page from now on for simplicity, but we expect that Page Regions,
-Content Templates or other trees might be personalizable.
+`Default Personalization Variant`: The variant displayed when the visitor doesn't match any other variant's segments.
 
 `Grafting`: personalization variants of a subtree are grafts because they are _grafted_ onto (on top/over, really)
-an existing subtree. See [Grafting on Wikipedia](https://en.wikipedia.org/wiki/Grafting)
+an existing subtree. See [Grafting on Wikipedia](https://en.wikipedia.org/wiki/Grafting).
 
 ## 2. Product requirements
 
-This uses the terms defined above.
-
-(There are more, and more will emerge, but these are the high level goals)
-
 * MUST be possible for the Site Builder to define Segments for which they will provide a Personalization Variant.
-* MUST be possible for the Site Builder to select different values for each Segment Rule. This will apply initially an OR
-condition (e.g “_Location = Colorado OR Massachusetts_”, “_Hour = 9-12 OR 16-19_”), but might be customizable in the future.
-* MUST be possible for the Site Builder to add multiple Segment Rules to each Segment. These are combined with an AND condition.
-  (e.g. _“Location = Colorado OR Massachusetts AND Hour = 9-12 OR 16-19”_)
-⚠️Should we consider this might be different in the future for allowing more complex rules?⚠️
-* MUST be possible for the Site Builder to include a Segment rule defined in a third-party tool like Mautic.
-* MUST NOT be possible for the Site Builder to add a Segment Rule to a Segment where an instance already exists.
-E.g. If I added a Geographic rule, I cannot add another Geographic rule and should show disabled (grayed out).
-* MUST be possible for the Site Builder to disable a Segment site-wide.
-* MUST be possible for the Site Builder to disable a Personalization Variant for a given Personalization Component Tree.
-* MUST be possible for the Site Builder to sort the Segments. They will be evaluated using this order, and the user
-should see the Personalization Variant mapped to the matching segment. See 3.3. for details.
-* MUST be possible for the Site Builder to preview a given Personalization Variant
-* MUST be possible for the Site Builder to name a Personalization Variant on creation
-* MUST be possible for the Site Builder to select a set of Segments after naming a Personalization Variant.
-* MUST be possible for the Site Builder to add/modify/delete a `component instance` for a given Personalization Variant.
-* We MIGHT rename/prefix the SDC Variant on the UI for avoiding confusions on terminology for Site Builders.
-* We MIGHT want to reuse this infrastructure for a generalist “override” system, so when possible do not
-be too specific.
+* MUST be possible for the Site Builder to select different values for each Segment Rule. How multiple values within
+  one rule combine is defined by that rule's plugin — typically OR (e.g. _"Location = Colorado OR Massachusetts"_);
+  some rules offer an all/any toggle (e.g. UTM parameters).
+* MUST be possible for the Site Builder to add multiple Segment Rules to each Segment. Rules are combined with AND
+  (e.g. _"Location = Colorado OR Massachusetts AND Day = Saturday OR Sunday"_). Rules can be negated.
+* MUST be possible for the Site Builder to include a Segment Rule defined in a third-party tool like Mautic. See §6.
+* MUST NOT be possible to add a Segment Rule of a type the Segment already has an instance of.
+* MUST be possible to disable a Segment site-wide.
+* MUST be possible to disable a Personalization Variant for a given component tree.
+* MUST be possible to sort the Variants of a personalized subtree. They are evaluated in that priority order; the
+  first Variant whose Segments all match is shown.
+* MUST be possible to preview a given Personalization Variant, to name a Variant on creation, to select its Segments,
+  and to add/modify/delete `component instance`s per Variant.
+* Personalized pages MUST stay cacheable for anonymous users and MUST NOT leak a wrong variant from any cache.
+* Personalized pages MUST NOT require client-side variant swapping: the correct variant is in the first HTML response,
+  with no flicker, no layout shift, and no render-blocking personalization JavaScript on the live page.
 
-## 3. Implementation / Architecture
+## 3. Segments
 
-We would like to have a feature flag for personalization. For simplicity, we will use a _canvas_personalization_ module for
-that.
+### 3.1 Server data model
 
-Currently, it's not that easy to generate extensions for the client UI. We will work directly on the React UI application.
-For the backend, we will use the _canvas_personalization_ module as far (or as long) as possible.
+Segments are config entities (`canvas_personalization.segment.*`) with `id`, `label`, `description`, `rules`,
+`weight`, and `status`.
 
-### 3.1. Personalization Segments
+* `status` is used for publishing: segments created over the HTTP API are born disabled, and segments in auto-save
+  have `status: false`. Unpublished segments are treated as non-matching during negotiation (but still contribute
+  their cache tag, so publishing one invalidates affected pages).
+* `weight` orders the segments dashboard. Variant selection order is per-switch (see §5), not weight-driven.
+* Segments are site-wide and reusable across variants and pages.
+* A locked `default` segment is provided; it matches every visitor, acts as the negotiation fallback, and cannot be
+  edited or deleted (enforced by `SegmentAccessControlHandler`).
 
-#### 3.1.1. Server data-model
+`rules` is a mapping keyed by `SegmentCondition` plugin ID — one instance per condition type per segment, which
+structurally enforces the "no duplicate rule type" requirement. Rules are combined with AND.
 
-Segments will be a config entity.
+### 3.2 The `SegmentCondition` plugin type
 
-Segments will use status for “publishing”. Any segment in auto-save will have ```status:false```.
-If I edit a segment that is active, those modifications won't take effect until I manually publish them.
+Segment conditions are a dedicated plugin type — **not** core Condition API plugins. The deciding factor is what
+third-party providers must implement: cacheability is part of the interface contract, so a condition cannot exist
+without declaring what its result varies by.
 
-Segments that are not published are not used for negotiation.
+* Attribute: `#[SegmentCondition(id: ..., label: ...)]`; manager service: `plugin.manager.segment_condition`;
+  alter hook: `segment_condition_info`.
+* `SegmentConditionInterface` requires `evaluate(): bool` and extends `CacheableDependencyInterface`,
+  `ConfigurableInterface`, and `PluginFormInterface`.
+* `SegmentConditionBase` provides `negate` support (final `evaluate()` delegating to `doEvaluate()`), and declares
+  `getCacheTags()` final, returning `[]`:
+  **segment conditions MUST NOT set cache tags.** Cache tags express dependencies on *stored data*; a condition's
+  result depends only on request context (contexts) and time (max-age). Tags returned by a misbehaving condition are
+  discarded and logged by the evaluator.
+* Each plugin declares config schema as `canvas_personalization.segment_condition.<plugin_id>`, which validates its
+  settings within the segment's `rules`.
 
-Segments can be ordered, so they have a weight. The (site-wide) segment ordering determines which Variant
-will be selected in a Personalization Variant: the first matching Segment is intersected with each Variant
-in a personalized component subtree, then the second, etc., until a match is found. That Variant will be displayed.
-Unless none match, then the Default Personalization Variant will be displayed.
+Cacheability examples:
+* a query-parameter condition on `coupon` declares the `url.query_args:coupon` cache context and permanent max-age;
+* a day-of-week condition declares no contexts and a max-age of the seconds remaining until the next midnight in the
+  site's timezone (its result cannot change sooner);
+* a geolocation condition declares `headers:<configured country header>`.
 
-Segments are site-wide.
+### 3.3 Shipped conditions
 
-A `default` `Segment` is provided, which acts as the fallback of the negotiation. This `default` `Segment` is protected
-against edits or deletion.
+| Plugin ID | Matches on | Settings |
+|---|---|---|
+| `query_parameter` | An arbitrary URL query parameter | `parameter`, `value`, `matching` (`exact` / `starts_with` / `present`) |
+| `utm_parameters` | UTM query parameters | `parameters` (list of `key`/`value`/`matching`), `all` (AND/OR across entries) |
+| `geolocation` | Country/region provided by the edge | `countries` (ISO 3166-1 alpha-2), `regions` (optional) |
+| `day_of_week` | Day of week in the site timezone | `days` (OR within) |
 
-###### Properties
+All conditions support `negate`.
 
-id, label, description, rules (array), weight(int), status (bool)
+Geolocation does not resolve IPs itself: it reads request headers whose names are configured in
+`canvas_personalization.settings` (`country_header`, default `X-Country-Code`; `region_header`, default
+`X-Region-Code`), set by your CDN or reverse proxy. An absent or unknown header evaluates as not matching — fail
+closed, never a wrong variant.
 
-The personalization rules will re-use the existing Condition API from Drupal core.
+> **Deployment requirement — the edge MUST strip or overwrite both headers on inbound requests.** Drupal cannot tell
+> a header its own edge set from one the visitor sent. An edge that only *adds* the header when it is missing leaves
+> every variant selectable by anyone: `curl -H 'X-Country-Code: BE'` is then enough to see the Belgian variant. Set
+> both headers unconditionally (overwrite, never append) on every request the edge forwards. This is the same trust
+> boundary as `X-Forwarded-For`, and like it, it is closed in the edge configuration and Drupal's `trusted_host` /
+> reverse-proxy settings — not in this module. Sites with an enabled geolocation rule get a status report warning
+> naming the two headers, because there is no way to detect the difference at runtime.
 
-We need to take into consideration third-party integrations defining segment rules.
-We might need in the future ensuring the last step for negotiation is done client-side. This means, more than one
-grafting could be served for a given variation, and which one is actually active to the user could happen client-side.
+### 3.4 HTTP API
 
-###### Cacheability
+Segments use the standard Canvas config HTTP API (`/canvas/api/v0/config/segment[/{id}]`) plus auto-save
+(`/canvas/api/v0/config/auto-save/segment/{id}`), enabled by `ApiConfigRouteSubscriber`. Publishing goes through the
+shared auto-save publish endpoint. Access is controlled by the `administer personalization segments` permission.
 
-Cacheability is composed by merging personalization rules cacheability.
-Each rule has to provide their cacheability metadata. E.g. a **weather condition** might have a ```1h max-age```
-while a **UTM condition** varies per cache context ```url.query_args:utm_source```.
+## 4. Variants: switch/case storage
 
+The `p13n` component source defines two non-discoverable components. See `docs/data-model.md` §3.2.1.1.
 
-#### 3.1.2. Client data-model
-
-We will use the standardized auto-save + ```ApiConfigControllers``` end-points.
-The UI should only need to deal with auto-save, as the ```ApiConfigController``` for publishing should be the same we
-already have and publish all the changes at once.
-
-The segment object looks like:
-
-```json
-{
-  "id": "test",
-  "label": "Test",
-  "description": "Extended description",
-  "status": true,
-  "rules": {
-    "utm_parameters": {
-      "id": "utm_parameters",
-      "negate": false,
-      "all": true,
-      "parameters": [
-        {
-          "key": "utm_source",
-          "value": "my-source-id",
-          "matching": "exact"
-        },
-        {
-          "key": "utm_campaign",
-          "value": "HALLOWEEN",
-          "matching": "starts_with"
-        }
-      ]
-    }
-  }
-}
-```
-
-The flow would be like:
-
-```mermaid
-sequenceDiagram
-        actor Client
-        participant Auto-Save Storage
-        participant Live Storage
-        Client->>Live Storage: Create Segment entity (unpublished)
-        activate Live Storage
-        Live Storage->>Client: HTTP OK
-        deactivate Live Storage
-        loop UI Changes
-        Client-->>Auto-Save Storage: Make changes to auto-saved data
-        activate Auto-Save Storage
-        Auto-Save Storage-->>Client: HTTP OK
-        deactivate Auto-Save Storage
-        end
-        Client->>Auto-Save Storage: Publish changes
-        activate Auto-Save Storage
-        Auto-Save Storage->>Live Storage: Submit changes to Segment entity (published)
-        activate Live Storage
-        Live Storage->>Client: HTTP OK
-        deactivate Auto-Save Storage
-        deactivate Live Storage
-```
-
-So the flow will start with a POST to create the original entity.
-This new segment will be disabled by default.
-
-`POST /canvas/api/v0/config/segment`
-```json
-{
-  "id": "my_first_segment",
-  "label": "My first segment",
-  "description": "Extended description"
-}
-```
-
-We will do the changes on auto-save as needed. Here we can set the published flag as, this won't take effect until the user publishes the changes.
-
-`PATCH /canvas/api/v0/config/auto-save/segment/my_first_segment`
-```json
-{
-  "id": "my_first_segment",
-  "label": "My first segment",
-  "description": "Extended description",
-  "status": true,
-  "rules": {
-    "utm_parameters": {
-      "id": "utm_parameters",
-      "negate": false,
-      "all": true,
-      "parameters": [
-        {
-          "key": "utm_source",
-          "value": "my-source-id",
-          "matching": "exact"
-        }
-      ]
-    }
-  }
-}
-```
-
-When we are ready, the user will publish the changes.
-We don't need to make this call, as the user will in the UI, but for reference:
-
-`POST /canvas/api/v0/auto-saves/publish`
-
-
-#### 3.1.3. Getting available segmentation rules
-
-WIP
-
-The segmentation rules are dynamic based on the installed modules. Those are defined by plugins (`condition`).
-
-For the moment we can hard-code the expected segmentation rules, but these will be dynamic. See https://www.drupal.org/i/3525610.
-
-
-
-### 3.2. Personalization Variations
-
-Variants are local per grafting, on the contrary of segments that are global.
-
-The provided `Personalization` component source defines two components: `switch` and `case`.
-
-#### 3.2.1. Server data-model
-
-Our `switch` component instance will define a grafting.
-In its inputs, we store the different `cases` identifiers, in the `variants` input.
-
-So the inputs for the `switch` component would look like
-
-```yaml
-switch inputs:
+* `p13n.switch` wraps a personalized subtree. Its inputs hold the ordered variant-ID priority list:
+  ```yaml
   variants:
-    - variation-1
-    - variation-2
-    - variation-3
+    - halloween
     - default
-```
+  ```
+  Variant IDs are arbitrary machine names local to the switch; they are not Segment IDs.
+* Each `p13n.case` lives in the switch's `content` slot and holds the subtree for one variant:
+  ```yaml
+  variant_id: halloween      # must appear in the parent switch's `variants`
+  segments: ['halloween']    # Segment config entity IDs; ALL must match
+  disabled: false            # optional; disabled cases are skipped in negotiation
+  ```
+* A case with `variant_id: default` / `segments: ['default']` is the fallback and should always be present. Because
+  negotiation is strictly first-match-wins and the `default` segment matches everyone, the default variant MUST be
+  last in `variants` — any variant listed after one that targets a match-everyone segment is unreachable. The
+  authoring UI enforces default-last; hand-written trees must preserve it.
+* The user-facing variant name lives in the component instance `label`, not in the inputs.
+* Page-level personalization is simply a root-level switch whose cases contain full page trees.
 
-Those ids are arbitrary. They _don't_ relate to `Segment` IDs at all. We might actually use uuids when we build the client
-for this.
+## 5. Negotiation and cacheability
 
-The `switch` component instance slot contain the different `case` component instances that will define each grafting.
-A `case` mapped to the `default` `Segment` is mandatory.
+This is the heart of the feature. Live rendering negotiates each switch exactly once
+(`Personalization::negotiateCases()`, called from `ComponentTreeItemList::renderify()`):
 
-The mapping of `Segment` <=> Variants resides in the inputs of each grafting.
-This mapping is 1-to-1 initially, but must include the option of having multiple `Segment`s per Variant in the future.
+1. Walk the switch's `variants` in priority order.
+2. A variant matches when **all** of its case's `segments` match the current request. Segment evaluation
+   (`SegmentEvaluator`, memoized per request per segment) ANDs the segment's condition plugins, stopping at the first
+   non-matching one — a condition that costs a network call is not consulted once a cheaper rule has decided the
+   segment. The `default` segment always matches. Disabled cases, unpublished segments, and missing segments never
+   match. A condition that throws is logged and treated as not matching — a broken or unreachable provider degrades to
+   the default variant, it never breaks the page.
+3. The first matching case is rendered; every other case is pruned before rendering.
+4. In the editor preview, negotiation is skipped and all cases render.
 
-Then the inputs for the `case` component instance would look like
+### 5.1 Cacheability rules
 
-```yaml
-case inputs:
-  variant_id: 'variation-3' # This matches one of the `switch` `variants` above.
-  segments: ['my-segment-id'] # This is the actual mapping variant <=> `Segment`s
-```
+The negotiation attaches to the switch's render element — regardless of which case won — the union of the
+cacheability of **every** segment referenced by **any** case of the switch:
 
-Each `switch` or `case` could have a user-friendly label. This isn't in the `inputs` itself, but on the top-level
-component instance label.
+* **cache contexts**: union of all conditions' contexts. The match decision short-circuits; metadata collection never
+  does, because a cached response must be correct for request contexts in which an earlier-priority variant matches.
+* **max-age**: the minimum across all conditions.
+* **cache tags**: `config:canvas_personalization.segment.<id>` for each referenced segment ID — added as literal
+  strings so that deleted or not-yet-created segments still invalidate affected pages when they (re)appear.
 
-#### 3.2.2. Client data-model
+### 5.2 Internal page cache compatibility
 
-TBD
+Drupal's internal `page_cache` keys entries on the URL only; it ignores cache contexts, and its entries expire only
+via the `Expires` header. Three mechanisms keep personalization correct and fast for anonymous users:
 
-See https://www.drupal.org/project/canvas/issues/3525746#comment-16121437
-(this will define the -hopefully- generic switch-case `nodeType`s, or point to docs in `data-model.md 3.4.x` itself.)
+1. **URL-derived contexts** (`url.query_args:*` — query parameter and UTM conditions) need nothing: different query
+   strings are different page_cache entries. These pages get full page_cache hits per variant URL.
+2. **Finite max-age** (day-of-week): a response subscriber sets `Expires: now + max-age` on responses whose
+   negotiation contributed a finite max-age, so the page_cache entry expires exactly when the condition's result can
+   change. HTTP clients ignore `Expires` when `Cache-Control: max-age` is present, so only the internal cache is
+   affected.
+3. **Non-URL contexts** (geolocation headers, provider cookies): invisible to a URL-only cache key, so a
+   `page_cache_response_policy` service denies internal page caching for these responses. They remain fully cacheable
+   in `dynamic_page_cache`, which keys on cache contexts — anonymous visitors still get cached responses, keyed by
+   country header rather than URL alone. A wrong variant can never be served from cache, by construction. External
+   edge caches that set the geo header themselves can additionally key on it and regain full-page edge caching.
 
-### 3.3. Personalization Negotiation
+Both mechanisms derive their decision from the response itself: the segment cache tags identify which segments
+influenced it, and those segments' conditions *declare* their cacheability from configuration alone (see §3.2 —
+declared cache contexts must never depend on the current request's values). This matters because a personalized
+response is often served by `dynamic_page_cache` without any evaluation running on that request — the exclusion and
+expiry must hold there too. Responses without segment tags are never touched, so caching of non-personalized pages is
+unchanged.
 
-Segments that are not published are not used for negotiation.
+## 6. Third-party segmentation providers
 
-Segments sorting determine the priority on the negotiation.
+A provider integration (Mautic is the open-source reference) is one `SegmentCondition` plugin in the provider's
+module, plus config schema. The contract gives an integration everything it needs:
 
-A service should be able to load all the segments, and negotiate which one applies if any.
+* **Credentials**: keep the secret itself out of the plugin's configuration — segment rules are exported with site
+  configuration and readable over the segment HTTP API. Store a secret *reference* in the plugin settings (the
+  provider segment/list identifier is fine there) and resolve the actual key at evaluation time from site settings,
+  an environment variable, or a key management module.
+* **Membership lookups** map a request-derived identifier — typically the provider's first-party cookie — to segment
+  membership via the provider's API. Lookups should be cached (`cache.default`, bounded TTL) so the provider is
+  consulted at most once per identifier per TTL. The condition declares the matching cache context
+  (`cookies:<name>` or `headers:<name>`); §5.2(3) then automatically keeps those responses out of the URL-keyed
+  internal page cache, so a wrong variant cannot leak. A provider condition is consulted only where it can still
+  change the outcome: evaluation of a segment stops at the first non-matching rule, and the segments of variants
+  after the winning one are never evaluated — their cacheability is declared, not measured.
+* **Graceful degradation**: when the provider is unreachable, return FALSE (fail closed to the default variant) and
+  negatively cache the failure with a short TTL, so an outage costs at most one timeout per TTL instead of one per
+  request. Exceptions are additionally caught by the evaluator (§5, step 2).
+* Conditions that depend on state only available client-side (e.g. a cookie the provider's JavaScript sets after
+  first paint) cannot influence the *first* server-rendered response; from the second request on, the cookie rides
+  the request normally. Canvas deliberately ships no client-side variant swapping (flash of wrong content, layout
+  shift, cache complexity); if a provider requires it, that is a separate design.
 
-The logic would be:
+## 7. Authoring UI
 
-1. Load all segments that are enabled and active sorted by weight ASC
-2. For each of them, instantiate it and evaluate if there’s a match with current context.
+* `/segments`: the segments dashboard — create, rename, describe, enable/disable, delete, and reorder segments, and
+  edit their rules with a dedicated editor per condition type.
+* In the editor, variant management on a personalized page: create a variant (choosing an existing variant as the
+  starting point — a deep client-side copy with fresh UUIDs), switch which variant is previewed and edited (the
+  active variant is always indicated; only its subtree is shown in preview and layers), reorder variants by drag and
+  drop (rewrites the switch's `variants` order), promote a variant to default (swaps the `variant_id`/`segments`
+  mapping with the current default case), and disable or delete a variant.
 
->  ⚠️ We might have conditions that require client-side negotiation. If that's the case, we should ensure more than one
-  segment can be active server-side, so the resolution terminates on the client. Otherwise, we would need to force
-  a reload if cannot be determined in the first page-load.
+## 8. Demo recipe
 
-3. Once we find one that matches, that’s our negotiated segment.
-
- >  ⚠️ Unless we have conditions that require client-side negotiation.
-
-4. We can serve the personalization variant based on that segment, or the default if no matches were found.
-
-If possible we should use the Context API.
-
-# 4. Personalization recipe
-
-We provide a recipe for seeing this in action that is used for tests, but can also be used for seeing a demo.
-
-You can install it with something like
+A recipe used for tests doubles as a demo:
 
 ```
 ddev drush site:install minimal --yes && ddev drush user:password admin admin && \

@@ -8,12 +8,13 @@ use Drupal\canvas\Attribute\ComponentSource;
 use Drupal\canvas\ComponentSource\ComponentSourceBase;
 use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\canvas\ComponentSource\ComponentSourceWithSwitchCasesInterface;
+use Drupal\canvas\ComponentSource\SwitchCaseNegotiation;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\MissingComponentInputsException;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Validation\ConstraintPropertyPathTranslatorTrait;
 use Drupal\canvas_personalization\Entity\Segment;
-use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\canvas_personalization\SegmentEvaluator;
 use Drupal\Core\Config\Plugin\Validation\Constraint\ConfigExistsConstraint;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -23,9 +24,9 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Validation\BasicRecursiveValidatorFactory;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\Constraints\All;
-use Symfony\Component\Validator\Constraints\Choice;
 use Symfony\Component\Validator\Constraints\Collection;
 use Symfony\Component\Validator\Constraints\NotBlank;
+use Symfony\Component\Validator\Constraints\Optional;
 use Symfony\Component\Validator\Constraints\Regex;
 use Symfony\Component\Validator\Constraints\Required;
 use Symfony\Component\Validator\Constraints\Sequentially;
@@ -38,7 +39,7 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  * ⚠️ This is highly experimental and *will* be refactored or even removed.
  *
  * @phpstan-type PersonalizationSwitchInputArray array{variants: array<int, string>}
- * @phpstan-type PersonalizationCaseInputArray array{variant_id: string, segments: array<int, string>}
+ * @phpstan-type PersonalizationCaseInputArray array{variant_id: string, segments: array<int, string>, disabled?: bool}
  * @phpstan-type PersonalizationInputArray PersonalizationSwitchInputArray|PersonalizationCaseInputArray
  *
  * @phpstan-ignore classExtendsInternalClass.classExtendsInternalClass
@@ -58,14 +59,12 @@ final class Personalization extends ComponentSourceBase implements
 
   public const string SOURCE_PLUGIN_ID = 'p13n';
 
-  public const string POC_ONLY_HARDCODED_VARIANTS_DEFAULT = 'default';
-  public const string POC_ONLY_HARDCODED_VARIANTS_HALLOWEEN = 'halloween';
-
   public function __construct(
     array $configuration,
     string $plugin_id,
     array $plugin_definition,
     private readonly BasicRecursiveValidatorFactory $validatorFactory,
+    private readonly SegmentEvaluator $segmentEvaluator,
   ) {
     \assert(\array_key_exists('local_source_id', $configuration));
     parent::__construct($configuration, $plugin_id, $plugin_definition);
@@ -77,6 +76,7 @@ final class Personalization extends ComponentSourceBase implements
       $plugin_id,
       $plugin_definition,
       $container->get(BasicRecursiveValidatorFactory::class),
+      $container->get(SegmentEvaluator::class),
     );
   }
 
@@ -117,27 +117,14 @@ final class Personalization extends ComponentSourceBase implements
   public function renderComponent(array $inputs, array $slot_definitions, string $componentUuid, bool $isPreview): array {
     $build = [];
 
-    // When live rendering:
-    if (!$isPreview) {
-      // 1. a switch: never visible to the end user, zero markup
-      // Note this has no cacheability (beyond the render system's default),
-      // because this renders to nothing (the empty string above).
-      // Take into account that e.g. if a tree changed because of new added
-      // variants, the tree host itself would be invalidated (e.g. node:23
-      // would be invalidated).
-      if ($this->isSwitch()) {
-        return $build;
-      }
-      // 2. a case: only rendered if it is the negotiated one
-      else {
-        // @todo We need to render the negotiated `case` cache metadata in both the wrapper and the case. Remove this hardcoded logic in https://www.drupal.org/project/canvas/issues/3525797
-        $cache = CacheableMetadata::createFromRenderArray($build);
-        $cache->addCacheContexts(['url.query_args:utm_campaign']);
-        $cache->applyTo($build);
-        if (!$this->isNegotiatedCase($inputs)) {
-          return $build;
-        }
-      }
+    // When live rendering, a switch is never visible to the end user: zero
+    // markup. Note this has no cacheability (beyond the render system's
+    // default), because this renders to nothing. The cacheability of the
+    // negotiation is attached to the switch's render element by
+    // ComponentTreeItemList::renderify(), which also prunes non-negotiated
+    // cases — so a case that is rendered at all just renders its container.
+    if (!$isPreview && $this->isSwitch()) {
+      return $build;
     }
 
     // We do render container markup for:
@@ -154,16 +141,76 @@ final class Personalization extends ComponentSourceBase implements
     return $build;
   }
 
-  public function isNegotiatedCase(array $inputs): bool {
-    if ($this->isSwitch()) {
-      throw new \LogicException();
+  /**
+   * {@inheritdoc}
+   *
+   * Walks the switch's `variants` input in priority order; a variant matches
+   * when ALL segments referenced by its case match the current request; the
+   * first match wins, disabled cases are skipped. The returned cacheability
+   * covers every segment referenced by any case — the match decision
+   * short-circuits, the metadata collection never does, because a cached
+   * response must be correct for request contexts in which an
+   * earlier-priority variant matches.
+   */
+  public function negotiateCases(array $switch_instance): SwitchCaseNegotiation {
+    if (!$this->isSwitch()) {
+      throw new \LogicException('Only switches negotiate cases.');
     }
-    // @todo Evaluate this `case` component instance's `segments` explicit input against the given contexts (aka from the Drupal context system), and remove this hardcoded logic in https://www.drupal.org/project/canvas/issues/3525797
-    // @phpstan-ignore-next-line globalDrupalDependencyInjection.useDependencyInjection
-    if (str_contains(\Drupal::request()->getRequestUri(), 'HALLOWEEN')) {
-      return \in_array('halloween', $inputs['segments'], TRUE);
+
+    // Index the hydrated cases by variant ID.
+    $cases = [];
+    foreach ($switch_instance['slots'] ?? [] as $slot_children) {
+      if (!\is_array($slot_children)) {
+        continue;
+      }
+      foreach ($slot_children as $case_uuid => $case) {
+        // A case whose hydration failed has no inputs; treat it as absent.
+        if (!\is_array($case) || !\is_string($case['variant_id'] ?? NULL)) {
+          continue;
+        }
+        $cases[$case['variant_id']] = [
+          'uuid' => (string) $case_uuid,
+          'segments' => $case['segments'] ?? [],
+          'disabled' => (bool) ($case['disabled'] ?? FALSE),
+        ];
+      }
     }
-    return \in_array(Segment::DEFAULT_ID, $inputs['segments'], TRUE);
+
+    // The union of every referenced segment's cacheability, declared from
+    // configuration: a cached response must be correct for the request
+    // contexts in which another variant wins. Asking for it declaratively
+    // rather than by evaluating each segment matters, because the variants
+    // after the winner are never evaluated below — and one of them may be
+    // backed by a third-party segmentation provider that costs a network
+    // call to consult.
+    $segment_ids = [];
+    foreach ($cases as $case) {
+      foreach ($case['segments'] as $segment_id) {
+        $segment_ids[] = (string) $segment_id;
+      }
+    }
+    $cacheability = $this->segmentEvaluator->getDeclaredCacheability($segment_ids);
+
+    $negotiated_case_uuid = NULL;
+    foreach ($switch_instance['variants'] ?? [] as $variant_id) {
+      $case = $cases[$variant_id] ?? NULL;
+      if ($case === NULL || $case['disabled'] || $case['segments'] === []) {
+        continue;
+      }
+      $all_match = TRUE;
+      foreach ($case['segments'] as $segment_id) {
+        if (!$this->segmentEvaluator->evaluate($segment_id)->matched) {
+          $all_match = FALSE;
+          break;
+        }
+      }
+      if ($all_match) {
+        $negotiated_case_uuid = $case['uuid'];
+        break;
+      }
+    }
+
+    return new SwitchCaseNegotiation($negotiated_case_uuid, $cacheability);
   }
 
   public function requiresExplicitInput(): bool {
@@ -200,21 +247,15 @@ final class Personalization extends ComponentSourceBase implements
   }
 
   public function getClientSideInfo(Component $component): array {
-    // @todo Uncomment the next line and delete everything else once a React UI exists for this: you would never drag these components onto the editor frame. Remove in https://www.drupal.org/project/canvas/issues/3525797
-    // phpcs:disable
-    // throw new \RuntimeException('This should not be called because this source implements ComponentSourceWithSwitchCasesInterface.');
-    // phpcs:enable
-    $client_side_info = [
-      'build' => match($this->getType()) {
-        self::SWITCH => ['#markup' => '<h1>Switch!</h1'],
-        self::CASE => ['#markup' => '<h1>Case!</h1'],
-      },
-      // @todo UI does not use any other metadata - should `slots` move to top level?
+    // These components are hidden from the component library (the variants
+    // menu is the authoring surface), but the client still needs their slot
+    // metadata and version strings to build switch/case instances.
+    return [
+      'build' => [],
       'metadata' => [
         'slots' => $this->getSlotDefinitions(),
       ],
     ];
-    return $client_side_info;
   }
 
   public function clientModelToInput(string $component_instance_uuid, Component $component, array $client_model, ?FieldableEntityInterface $host_entity, ?ConstraintViolationListInterface $violations = NULL): array {
@@ -227,8 +268,6 @@ final class Personalization extends ComponentSourceBase implements
       new NotBlank(),
       // @see `type: machine_name`
       new Regex(pattern: '/^[a-z0-9_]+$/'),
-      // @todo Remove.
-      new Choice([static::POC_ONLY_HARDCODED_VARIANTS_HALLOWEEN, static::POC_ONLY_HARDCODED_VARIANTS_DEFAULT]),
     ]);
     $segment_id_constraints = new Sequentially([
       new Type('string'),
@@ -255,6 +294,7 @@ final class Personalization extends ComponentSourceBase implements
             new NotBlank(),
             new All([$segment_id_constraints]),
           ]),
+          'disabled' => new Optional([new Type('boolean')]),
         ],
         allowExtraFields: FALSE,
       ),
@@ -321,6 +361,7 @@ final class Personalization extends ComponentSourceBase implements
           'minItems' => 1,
           'items' => ['type' => 'string'],
         ],
+        'disabled' => ['type' => 'boolean'],
       ],
     };
   }
@@ -334,50 +375,17 @@ final class Personalization extends ComponentSourceBase implements
     ?EntityInterface $entity = NULL,
     array $settings = [],
   ): array {
-    // @todo Uncomment one of the next 2 lines and delete everything else once a React UI exists for this.
-    // phpcs:disable
-    // throw new \RuntimeException('This should not be called because this source implements ComponentSourceWithSwitchCasesInterface.');
-    // return [];
-    // phpcs:enable
-
-    // We won't use a Drupal generated form, but something specific in the
-    // client for these components.
-    // Temporarily render something just to see what's in the inputs.
-    return match ($this->getType()) {
-      self::CASE => [
-        'type' => [
-          '#type' => 'textfield',
-          '#title' => $this->t('Personalization Component Type'),
-          '#value' => $this->getType(),
-          '#disabled' => TRUE,
-        ],
-        'variant_id' => [
-          '#type' => 'textfield',
-          '#title' => $this->t('Variant ID'),
-          '#value' => \json_encode($inputValues['variant_id'], \JSON_PRETTY_PRINT & \JSON_THROW_ON_ERROR),
-          '#disabled' => TRUE,
-        ],
-        'segments' => [
-          '#type' => 'textfield',
-          '#title' => $this->t('Segments'),
-          '#value' => \json_encode($inputValues['segments'], \JSON_PRETTY_PRINT & \JSON_THROW_ON_ERROR),
-          '#disabled' => TRUE,
-        ],
+    // These components have no author-editable settings of their own: the
+    // variants menu and the segments dashboard are the authoring surfaces.
+    // Render a short pointer instead of a form.
+    return [
+      'description' => [
+        '#markup' => '<p>' . match ($this->getType()) {
+          self::SWITCH => $this->t('This section is personalized. Use the variants menu in the toolbar to manage its variants.'),
+          self::CASE => $this->t('This is one variant of a personalized section. Use the variants menu in the toolbar to choose which variant you are editing, reorder variants, or change their audience.'),
+        } . '</p>',
       ],
-      self::SWITCH => [
-        'type' => [
-          '#type' => 'textfield',
-          '#title' => $this->t('Personalization Component Type'),
-          '#value' => $this->getType(),
-          '#disabled' => TRUE,
-        ],
-        'variants' => [
-          '#type' => 'textarea',
-          '#title' => $this->t('Variants'),
-          '#value' => \json_encode($inputValues['variants'], \JSON_PRETTY_PRINT & \JSON_THROW_ON_ERROR),
-        ],
-      ],
-    };
+    ];
   }
 
   public function getSlotDefinitions(): array {
@@ -397,7 +405,9 @@ final class Personalization extends ComponentSourceBase implements
 
   public function setSlots(array &$build, array $slots): void {
     // @see ::getSlotDefinitions()
-    \assert(\array_keys($slots) === ['content']);
+    // A live-rendered switch whose negotiation matched no case has had every
+    // case pruned, leaving nothing to set.
+    \assert($slots === [] || \array_keys($slots) === ['content']);
     $build += $slots;
   }
 

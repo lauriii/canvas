@@ -9,6 +9,7 @@ import { useAppSelector } from '@/app/hooks';
 import AIToggleButton from '@/components/aiExtension/AiToggleButton';
 import FrontendSelect from '@/components/frontendSelect/FrontendSelect';
 import LanguageSelect from '@/components/languageSelect/LanguageSelect';
+import VariantsMenu from '@/components/personalization/variants/VariantsMenu';
 import PreviewControls from '@/components/PreviewControls';
 import UnpublishedChanges from '@/components/review/UnpublishedChanges';
 import ContentPreviewSelector from '@/components/templates/ContentPreviewSelector';
@@ -167,6 +168,7 @@ const Topbar = () => {
             )}
           </Flex>
           <Flex align="center" justify="end" gap="2">
+            {isEditor && hasPersonalizeExtensionAvailable && <VariantsMenu />}
             <NotificationBell />
             {isTranslationEnabled && !isPatternEditorContext && (
               <LanguageSelect />

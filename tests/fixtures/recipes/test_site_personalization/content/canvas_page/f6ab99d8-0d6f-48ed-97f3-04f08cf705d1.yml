@@ -39,7 +39,7 @@ default:
       slot: content
       uuid: 5e9d5b61-595c-4785-8af6-b78317e52c64
       component_id: p13n.case
-      component_version: 76bede8677d946cd
+      component_version: c725551b3572d173
       inputs:
         variant_id: halloween
         segments:
@@ -76,7 +76,7 @@ default:
       slot: content
       uuid: 1c29b6e6-02c5-4bfc-99e0-88894609390e
       component_id: p13n.case
-      component_version: 76bede8677d946cd
+      component_version: c725551b3572d173
       inputs:
         variant_id: default
         segments:

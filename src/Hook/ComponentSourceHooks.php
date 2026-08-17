@@ -63,6 +63,24 @@ readonly final class ComponentSourceHooks {
   }
 
   /**
+   * Implements hook_module_preinstall().
+   */
+  #[Hook('module_preinstall')]
+  public function modulePreinstall(string $module, bool $is_syncing): void {
+    // A module may provide a ComponentSource plugin AND ship default Component
+    // config entities backed by it (canvas_personalization does). Its default
+    // config imports during install, before any post-install cache flush, so
+    // on a running site a warm cached definition list from before the install
+    // would make the new source plugin undiscoverable at the exact moment its
+    // components are created — failing the whole install. Resolve the manager
+    // from the live container: the kernel may have been rebooted since this
+    // service was instantiated (see ::modulesInstalled()).
+    $component_source_manager = $this->kernel->getContainer()->get(ComponentSourceManager::class);
+    \assert($component_source_manager instanceof ComponentSourceManager);
+    $component_source_manager->clearCachedDefinitions();
+  }
+
+  /**
    * Implements hook_modules_installed().
    */
   #[Hook('modules_installed')]

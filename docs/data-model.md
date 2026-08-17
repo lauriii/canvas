@@ -170,6 +170,27 @@ These columns always meet the following requirements
 4. Each `uuid` must be unique in the list of items
 5. The `delta` of each field item represents the order that components in the same level of the tree appear in.
 
+##### 3.2.1.1 Overridden (personalized) subtrees
+
+The `p13n` `Component Source Plugin` (provided by the `canvas_personalization` module) offers a way to *override* a
+component subtree: its `p13n.switch` `component` wraps a subtree, and each alternative for that subtree — including the
+default one — lives in a `p13n.case` `component instance` placed in the switch's single `content` slot. No new storage
+concepts are involved: a switch and its cases are ordinary `component instance`s using the same
+`uuid`/`parent_uuid`/`slot` columns as everything else, and each case's subtree is a regular `component tree` nested in
+the case's own `content` slot.
+
+The switch's explicit input holds the ordered list of variant IDs (the priority order). Each case's explicit input holds
+its `variant_id`, the `Segment` config entity IDs it targets, and an optional `disabled` flag. A case whose
+`variant_id` is `default` (targeting the locked `default` `Segment`) is the fallback subtree.
+
+During live rendering, Canvas negotiates each switch once and renders exactly one case's subtree: the first variant
+in the switch's priority order whose segments all match, falling back to the default case (see 3.3). During editor
+preview, all cases are rendered.
+
+An earlier design stored override subtrees under composite top-level keys in a JSON blob
+(`<component instance UUID>/override.segment:<segment ID>`). That design predates the current relational tree storage
+(3.2.1) — which has no notion of top-level keys — and was superseded by the switch/case mechanism above.
+
 #### 3.2.2 The column (`field prop`) storing the `component input` values
 
 See
@@ -343,6 +364,17 @@ To hydrate the stored `component tree`:
 
 To render the stored `component tree`, it must first be hydrated it (see above), after which it can be
 converted to a render array.
+
+When live rendering (not previewing) a hydrated tree that contains `p13n.switch` `component instance`s (see 3.2.1.1),
+each switch is negotiated exactly once before its slot is descended into:
+1. the switch's ordered `variants` input is walked in priority order; a variant matches when *all* of the `Segment`
+   config entities referenced by its case match the current request (the `default` segment always matches, and disabled
+   cases are skipped)
+2. the first matching case's subtree replaces the switch's slot content; all other cases are pruned and never rendered
+3. the cacheability of the *entire* negotiation — the union of cache contexts and minimum max-age of every condition in
+   every referenced `Segment`, plus one cache tag per referenced `Segment` — is attached to the switch's render element,
+   regardless of which case won. This is what keeps personalized output correct and cacheable for anonymous users; see
+   `docs/personalization.md` for the full cacheability rules.
 
 ### 3.4 UI Data Model: communicating a `component tree` to the front end
 

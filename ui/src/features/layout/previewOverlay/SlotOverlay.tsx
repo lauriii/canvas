@@ -3,6 +3,8 @@ import clsx from 'clsx';
 import { useParams } from 'react-router';
 
 import { useAppSelector } from '@/app/hooks';
+import { selectModel } from '@/features/layout/layoutModelSlice';
+import { filterSlotComponentsForPreview } from '@/features/layout/personalizationUtils';
 import { SlotNameTag } from '@/features/layout/preview/NameTag';
 import { usePreviewGeometry } from '@/features/layout/preview/PreviewGeometryContext';
 import ComponentOverlay from '@/features/layout/previewOverlay/ComponentOverlay';
@@ -10,6 +12,7 @@ import EmptySlotDropZone from '@/features/layout/previewOverlay/EmptySlotDropZon
 import {
   selectEditorViewPortScale,
   selectIsComponentHovered,
+  selectPreviewedVariants,
   selectTargetSlot,
 } from '@/features/ui/uiSlice';
 import useGetComponentName from '@/hooks/useGetComponentName';
@@ -55,6 +58,16 @@ const SlotOverlay: React.FC<SlotOverlayProps> = ({
   const editorViewPortScale = useAppSelector(selectEditorViewPortScale);
   const slotName = useGetComponentName(slot, parentComponent);
   const parentComponentName = useGetComponentName(parentComponent);
+  const model = useAppSelector(selectModel);
+  const previewedVariants = useAppSelector(selectPreviewedVariants);
+  // Inside a personalization switch, only the previewed variant's case gets
+  // an overlay, matching the elements left visible in the preview.
+  const visibleComponents = filterSlotComponentsForPreview(
+    slot,
+    parentComponent,
+    model,
+    previewedVariants,
+  );
 
   const style: React.CSSProperties = useMemo(
     () => ({
@@ -97,7 +110,7 @@ const SlotOverlay: React.FC<SlotOverlayProps> = ({
           />
         </div>
       )}
-      {!slot.components.length && !disableDrop && (
+      {!visibleComponents.length && !disableDrop && (
         <EmptySlotDropZone
           slot={slot}
           slotName={slotName}
@@ -105,15 +118,19 @@ const SlotOverlay: React.FC<SlotOverlayProps> = ({
         />
       )}
 
-      {slot.components.map((childComponent: ComponentNode, index) => (
-        <ComponentOverlay
-          key={childComponent.uuid}
-          parentSlot={slot}
-          component={childComponent}
-          index={index}
-          disableDrop={disableDrop}
-        />
-      ))}
+      {/* Map over all components so hidden variants keep the original indices
+          used to build drop paths. */}
+      {slot.components.map((childComponent: ComponentNode, index) =>
+        visibleComponents.includes(childComponent) ? (
+          <ComponentOverlay
+            key={childComponent.uuid}
+            parentSlot={slot}
+            component={childComponent}
+            index={index}
+            disableDrop={disableDrop}
+          />
+        ) : null,
+      )}
 
       {/* @todo - these SlotDropZones might become useful in future for handling more complex nested "container" components */}
       {/*{!disableDrop && (*/}

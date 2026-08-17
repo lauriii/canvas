@@ -2,12 +2,6 @@
   padding: 0 !important;
 }
 
-.previewLabel {
-  @media (max-width: 520px) {
-    display: none;
-  }
-}
-
 .segmentTable {
   td {
     vertical-align: middle;

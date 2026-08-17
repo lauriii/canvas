@@ -15,6 +15,7 @@ import {
   unsetUpdatingComponent,
 } from '@/features/ui/uiSlice';
 import { useComponentHtmlMap } from '@/hooks/useComponentHtmlMap';
+import { useHideInactiveVariants } from '@/hooks/useHideInactiveVariants';
 import useSyncIframeHeightToContent from '@/hooks/useSyncIframeHeightToContent';
 
 import styles from './Preview.module.css';
@@ -46,6 +47,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
       ? NON_FULL_VIEW_MODE_MIN_HEIGHT
       : viewportMinHeight;
   useComponentHtmlMap(iframeRef.current);
+  useHideInactiveVariants();
 
   useSyncIframeHeightToContent(
     iframeRef.current,

@@ -15,6 +15,7 @@ import ErrorCard from '@/components/error/ErrorCard';
 import ExtensionDialog from '@/components/extensions/ExtensionDialog';
 import ExtensionPage from '@/components/extensions/ExtensionPage';
 import PermissionCheck from '@/components/PermissionCheck';
+import PersonalizeComponentDialog from '@/components/personalization/PersonalizeComponentDialog';
 import SideMenu from '@/components/sideMenu/SideMenu';
 import PrimaryPanel from '@/components/sidePanel/PrimaryPanel';
 import CodeEditorContainer from '@/features/code-editor/CodeEditorContainer';
@@ -26,6 +27,7 @@ import HeadlessFrontendsPage from '@/features/headlessFrontends/HeadlessFrontend
 import PagePreview from '@/features/pagePreview/PagePreview';
 import PatternDialogs from '@/features/pattern/PatternDialogs';
 import SegmentDashboard from '@/features/personalization/SegmentDashboard';
+import SegmentDetails from '@/features/personalization/SegmentDetails';
 import SegmentPanel from '@/features/personalization/SegmentPanel';
 import ReviewChangesPage from '@/features/review/ReviewChangesPage';
 import { EditorFrameContext } from '@/features/ui/uiSlice';
@@ -91,6 +93,7 @@ const Dialogs = () => (
     <PatternDialogs />
     <CodeComponentDialogs />
     <ExtensionDialog />
+    <PersonalizeComponentDialog />
   </div>
 );
 
@@ -295,7 +298,7 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
               },
               {
                 path: '/segments/:segmentId',
-                element: <h1>Segment Details</h1>,
+                element: <SegmentDetails />,
               },
             ],
           },

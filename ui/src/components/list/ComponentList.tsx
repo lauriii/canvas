@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 
 import ListItem from '@/components/list/ListItem';
+import { isPersonalizationComponentId } from '@/features/layout/personalizationUtils';
 import { LayoutItemType } from '@/features/ui/primaryPanelSlice';
 import {
   useGetComponentsQuery,
@@ -33,12 +34,22 @@ const ComponentList = ({ searchTerm, visibility }: ComponentListProps) => {
   } = useGetFoldersQuery();
   const { showBoundary } = useErrorBoundary();
   const visibleComponents = useMemo(() => {
+    // The personalization switch/case pair is placed exclusively through the
+    // variants menu, so it is filtered out of the library listing only.
+    // Other code still reads these entries from the query cache for
+    // metadata and version strings.
+    const listableComponents = Object.fromEntries(
+      Object.entries(components ?? {}).filter(
+        ([, component]) => !isPersonalizationComponentId(component.id),
+      ),
+    );
+
     if (visibility === 'all') {
-      return components;
+      return listableComponents;
     }
 
     return Object.fromEntries(
-      Object.entries(components ?? {}).filter(([, component]) => {
+      Object.entries(listableComponents).filter(([, component]) => {
         if (visibility === 'external-only') {
           return (
             component.library === 'primary_components' &&

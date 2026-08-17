@@ -1,0 +1,5 @@
+canvas_personalization.segment_condition.test_unreachable_provider:
+  type: canvas_personalization.segment_condition_settings
+  label: 'Test unreachable provider condition'
+  constraints:
+    FullyValidatable: ~

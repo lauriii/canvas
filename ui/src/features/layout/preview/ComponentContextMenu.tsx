@@ -10,9 +10,17 @@ import {
   selectLayout,
   shiftNode,
 } from '@/features/layout/layoutModelSlice';
+import {
+  getP13nComponentTypes,
+  isInSwitchSubtree,
+  isPersonalizationComponentId,
+} from '@/features/layout/personalizationUtils';
 import ComponentContextMenuMoveInto from '@/features/layout/preview/ComponentContextMenuMoveInto';
 import ComponentContextMenuRegions from '@/features/layout/preview/ComponentContextMenuRegions';
-import { setDialogOpen } from '@/features/ui/dialogSlice';
+import {
+  setDialogOpen,
+  setDialogWithDataOpen,
+} from '@/features/ui/dialogSlice';
 import {
   DEFAULT_REGION,
   selectEditorViewPortScale,
@@ -66,6 +74,15 @@ export const ComponentContextMenuContent: React.FC<
     'type' in components[componentType] &&
     components[componentType].type === 'external',
   );
+
+  // Personalizing is offered for regular components only: the switch/case
+  // components themselves and anything already inside a switch's subtree are
+  // excluded, as is everything when the switch/case pair is unavailable.
+  const canPersonalize =
+    Boolean(componentType) &&
+    !isPersonalizationComponentId(componentType) &&
+    getP13nComponentTypes(components) !== null &&
+    !isInSwitchSubtree(layout, componentUuid);
 
   const handleDeleteClick = useCallback(
     (ev: React.MouseEvent<HTMLElement>) => {
@@ -146,6 +163,22 @@ export const ComponentContextMenuContent: React.FC<
     [componentUuid, dispatch, selectedComponent, setSelectedComponent],
   );
 
+  const handlePersonalizeClick = useCallback(
+    (ev: React.MouseEvent<HTMLElement>) => {
+      ev.stopPropagation();
+      dispatch(unsetHoveredComponent());
+      // The confirmation dialog is mounted globally because this menu
+      // unmounts as soon as it closes.
+      dispatch(
+        setDialogWithDataOpen({
+          operation: 'personalizeComponentConfirm',
+          data: { componentUuid },
+        }),
+      );
+    },
+    [componentUuid, dispatch],
+  );
+
   const handleEditCodeClick = useCallback(
     (ev: React.MouseEvent<HTMLElement>) => {
       ev.stopPropagation();
@@ -207,6 +240,11 @@ export const ComponentContextMenuContent: React.FC<
           Create pattern
         </UnifiedMenu.Item>
       </PermissionCheck>
+      {canPersonalize && (
+        <UnifiedMenu.Item onClick={handlePersonalizeClick}>
+          Personalize component
+        </UnifiedMenu.Item>
+      )}
       <UnifiedMenu.Separator />
 
       <UnifiedMenu.Sub>

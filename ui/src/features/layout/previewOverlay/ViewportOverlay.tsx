@@ -5,6 +5,7 @@ import { useParams } from 'react-router-dom';
 
 import { useAppSelector } from '@/app/hooks';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
+import PersonalizedSectionOverlay from '@/features/layout/previewOverlay/PersonalizedSectionOverlay';
 import RegionOverlay from '@/features/layout/previewOverlay/RegionOverlay';
 import {
   DEFAULT_REGION,
@@ -126,6 +127,9 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
         height: `${rect.height}px`,
       }}
     >
+      {/* The variant boundary paints beneath the component overlays so hover
+          and selection outlines stay on top of it. */}
+      <PersonalizedSectionOverlay />
       {displayedRegions.map((region) => (
         <RegionOverlay region={region} key={region.id} />
       ))}

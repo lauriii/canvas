@@ -93,6 +93,9 @@ final class PersonalizationTest extends KernelTestBase {
       'config:canvas.component.sdc.canvas_test_sdc.heading',
       'config:canvas.component.sdc.canvas_test_sdc.my-hero',
       'config:canvas.component.sdc.canvas_test_sdc.two_column',
+      // Editing any referenced segment invalidates the personalized page.
+      'config:canvas_personalization.segment.default',
+      'config:canvas_personalization.segment.halloween',
       'http_response',
       'rendered',
     ], $cache_tags);

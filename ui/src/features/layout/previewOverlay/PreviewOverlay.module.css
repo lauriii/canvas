@@ -119,6 +119,31 @@
   }
 }
 
+.personalizedSection {
+  position: absolute;
+  box-sizing: border-box;
+  pointer-events: none;
+  border: 2px solid var(--accent-9);
+  border-radius: 2px;
+}
+
+/* Mirrors the name tag metrics so the variant tab reads as part of the same
+   overlay language. */
+.personalizedSectionLabel {
+  position: absolute;
+  bottom: 100%;
+  left: -2px;
+  display: flex;
+  align-items: center;
+  height: 20px;
+  padding: 1px 4px;
+  white-space: nowrap;
+  color: #fff;
+  border-radius: 2px 2px 0 0;
+  background-color: var(--accent-9);
+  font-size: 12px;
+}
+
 /* .emptySlotDropZone { */
 /*  position: absolute; */
 /*  display: flex; */

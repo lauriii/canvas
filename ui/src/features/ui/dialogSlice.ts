@@ -10,6 +10,10 @@ export interface DialogSliceState {
     open: boolean;
     data: Pattern | {};
   };
+  personalizeComponentConfirm: {
+    open: boolean;
+    data: { componentUuid: string } | {};
+  };
   renamePatternConfirm: {
     open: boolean;
     data: Pattern | {};
@@ -23,6 +27,10 @@ const initialState: DialogSliceState = {
     open: false,
     data: {},
   },
+  personalizeComponentConfirm: {
+    open: false,
+    data: {},
+  },
   renamePatternConfirm: {
     open: false,
     data: {},
@@ -31,7 +39,9 @@ const initialState: DialogSliceState = {
 
 type UpdateDialogPayload = keyof Omit<
   DialogSliceState,
-  'deletePatternConfirm' | 'renamePatternConfirm'
+  | 'deletePatternConfirm'
+  | 'personalizeComponentConfirm'
+  | 'renamePatternConfirm'
 >;
 
 type UpdateDialogWithDataPayload = {

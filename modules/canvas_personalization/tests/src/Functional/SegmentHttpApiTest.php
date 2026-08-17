@@ -116,12 +116,13 @@ class SegmentHttpApiTest extends HttpApiTestBase {
     // `rules`: 422 (i.e. validation constraint violation).
     $segment_to_send['label'] = 'My segment';
     $segment_to_send['rules'] = [
-      'user_role' => [
-        'id' => 'user_role',
-        'roles' => [
+      'geolocation' => [
+        'id' => 'geolocation',
+        'countries' => [
           'fake',
           'role',
         ],
+        'regions' => [],
         'negate' => FALSE,
       ],
     ];
@@ -130,12 +131,12 @@ class SegmentHttpApiTest extends HttpApiTestBase {
     $this->assertSame([
       'errors' => [
         [
-          'detail' => "The 'user.role.fake' config does not exist.",
-          'source' => ['pointer' => 'rules.user_role.roles.0'],
+          'detail' => 'This value is not valid.',
+          'source' => ['pointer' => 'rules.geolocation.countries.0'],
         ],
         [
-          'detail' => "The 'user.role.role' config does not exist.",
-          'source' => ['pointer' => 'rules.user_role.roles.1'],
+          'detail' => 'This value is not valid.',
+          'source' => ['pointer' => 'rules.geolocation.countries.1'],
         ],
       ],
     ], $body);
@@ -241,12 +242,10 @@ class SegmentHttpApiTest extends HttpApiTestBase {
         'negate' => FALSE,
         'all' => TRUE,
       ],
-      'user_role' => [
-        'id' => 'user_role',
-        'roles' => [
-          'authenticated' => 'authenticated',
-          'anonymous' => 'anonymous',
-        ],
+      'geolocation' => [
+        'id' => 'geolocation',
+        'countries' => ['BE', 'NL'],
+        'regions' => [],
         'negate' => TRUE,
       ],
     ];

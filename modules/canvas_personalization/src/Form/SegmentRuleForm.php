@@ -5,10 +5,9 @@ declare(strict_types=1);
 namespace Drupal\canvas_personalization\Form;
 
 use Drupal\canvas_personalization\Entity\SegmentInterface;
-use Drupal\Core\Condition\ConditionInterface;
-use Drupal\Core\Condition\ConditionManager;
+use Drupal\canvas_personalization\SegmentCondition\SegmentConditionInterface;
+use Drupal\canvas_personalization\SegmentCondition\SegmentConditionManager;
 use Drupal\Core\Entity\EntityForm;
-use Drupal\Core\Executable\ExecutableManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Form\SubformState;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -22,13 +21,11 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 final class SegmentRuleForm extends EntityForm {
 
-  public function __construct(protected ConditionManager $conditionManager) {}
+  public function __construct(protected SegmentConditionManager $segmentConditionManager) {}
 
   public static function create(ContainerInterface $container): self {
-    $condition_manager = $container->get(ExecutableManagerInterface::class);
-    \assert($condition_manager instanceof ConditionManager);
     return new static(
-      $condition_manager,
+      $container->get(SegmentConditionManager::class),
     );
   }
 
@@ -37,10 +34,13 @@ final class SegmentRuleForm extends EntityForm {
     \assert($this->entity instanceof SegmentInterface);
     $segment_rules = $this->entity->getSegmentRules();
 
-    // Filter those conditions that we want to allow in personalization only.
-    $condition_definitions = $this->conditionManager->getFilteredDefinitions('canvas_personalization');
-    $condition_definitions = \array_filter($condition_definitions, fn($condition_definition) => \is_array($condition_definition) && !\array_key_exists($condition_definition['id'], $segment_rules));
-    $condition_options = \array_map(fn($condition_definition) => $condition_definition['label'], $condition_definitions);
+    // A segment can hold at most one instance of each condition type.
+    $condition_definitions = \array_filter(
+      $this->segmentConditionManager->getDefinitions(),
+      fn ($condition_definition) => \is_array($condition_definition) && !\array_key_exists($condition_definition['id'], $segment_rules),
+    );
+    \ksort($condition_definitions);
+    $condition_options = \array_map(fn ($condition_definition) => $condition_definition['label'], $condition_definitions);
 
     if (!empty($condition_options)) {
       $form['plugin_id'] = [
@@ -60,9 +60,8 @@ final class SegmentRuleForm extends EntityForm {
       ];
 
       $condition_id = $form_state->getValue('plugin_id') ?? \array_key_first($condition_options);
-      $condition = $this->conditionManager->createInstance($condition_id, $segment_rules[$condition_id]['settings'] ?? []);
-      \assert($condition instanceof ConditionInterface);
-      $form_state->set($condition_id, $condition);
+      $condition = $this->segmentConditionManager->createInstance($condition_id);
+      \assert($condition instanceof SegmentConditionInterface);
       $condition_form = $condition->buildConfigurationForm([], $form_state);
       $condition_form['#title'] = $this->t('Settings');
       $form['settings'] = [
@@ -89,11 +88,11 @@ final class SegmentRuleForm extends EntityForm {
     $condition_id = $form_state->getValue('plugin_id');
 
     // The Segment form puts all plugin form elements in the
-    // settings form element, so just pass that to the block for submission.
+    // settings form element, so just pass that to the plugin for submission.
     $sub_form_state = SubformState::createForSubform($form['settings'], $form, $form_state);
     // Call the plugin submit handler.
-    $condition = $this->conditionManager->createInstance($condition_id);
-    \assert($condition instanceof ConditionInterface);
+    $condition = $this->segmentConditionManager->createInstance($condition_id);
+    \assert($condition instanceof SegmentConditionInterface);
     $condition->submitConfigurationForm($form, $sub_form_state);
 
     \assert($this->entity instanceof SegmentInterface);

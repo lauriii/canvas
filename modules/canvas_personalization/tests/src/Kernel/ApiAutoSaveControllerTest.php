@@ -246,7 +246,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $json = json_decode((string) $response->getContent(), TRUE);
     self::assertEquals(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
     $errors[] = [
-      'detail' => "'negate' is a required key because rules.%key is utm_parameters (see config schema type condition.plugin.utm_parameters).",
+      'detail' => "'negate' is a required key because rules.%key is utm_parameters (see config schema type canvas_personalization.segment_condition.utm_parameters).",
       'source' => [
         'pointer' => 'rules.utm_parameters',
       ],
@@ -259,7 +259,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       ],
     ];
     $errors[] = [
-      'detail' => "'all' is a required key because rules.%key is utm_parameters (see config schema type condition.plugin.utm_parameters).",
+      'detail' => "'all' is a required key because rules.%key is utm_parameters (see config schema type canvas_personalization.segment_condition.utm_parameters).",
       'source' => [
         'pointer' => 'rules.utm_parameters',
       ],

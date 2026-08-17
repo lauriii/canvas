@@ -1,0 +1,8 @@
+name: 'Drupal Canvas Personalization test support'
+type: module
+description: 'Test-only segment conditions.'
+package: Testing
+hidden: true
+core_version_requirement: ^11.3
+dependencies:
+  - canvas:canvas_personalization

@@ -11,6 +11,7 @@ import {
   selectModel,
   selectUpdatePreview,
 } from '@/features/layout/layoutModelSlice';
+import { getInactiveCaseUuids } from '@/features/layout/personalizationUtils';
 import { useHeadlessDraftSession } from '@/features/layout/preview/useHeadlessDraftSession';
 import { selectPageData } from '@/features/pageData/pageDataSlice';
 import {
@@ -18,6 +19,7 @@ import {
   setSnapshotHTML,
   setSnapshotTitle,
 } from '@/features/pagePreview/previewSlice';
+import { selectPreviewedVariants } from '@/features/ui/uiSlice';
 import { useCanvasHeadlessSettings } from '@/hooks/useCanvasHeadlessSettings';
 import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
 import {
@@ -83,6 +85,31 @@ const PagePreview = () => {
   const model = useAppSelector(selectModel);
   const entity_form_fields = useAppSelector(selectPageData);
   const frameSrcDoc = useAppSelector(selectPreviewHtml);
+  const previewedVariants = useAppSelector(selectPreviewedVariants);
+  // Server-side preview rendering skips personalization negotiation, so the
+  // HTML contains every variant. Hide the cases that are not the previewed
+  // variant of their switch; the case containers carry canvas_uuid
+  // attributes, so a style block suffices.
+  const personalizedSrcDoc = useMemo(() => {
+    if (!frameSrcDoc) {
+      return frameSrcDoc;
+    }
+    const inactiveCaseUuids = getInactiveCaseUuids(
+      layout,
+      model,
+      previewedVariants,
+    );
+    if (inactiveCaseUuids.length === 0) {
+      return frameSrcDoc;
+    }
+    const selectors = inactiveCaseUuids
+      .map((uuid) => `[canvas_uuid="${uuid}"]`)
+      .join(',');
+    return frameSrcDoc.replace(
+      '</head>',
+      `<style>${selectors}{display:none !important}</style></head>`,
+    );
+  }, [frameSrcDoc, layout, model, previewedVariants]);
   const [postPreview] = useQueuedPostPreviewMutation();
   const { entityId, entityType, bundle, viewMode, width } = useParams();
   const [searchParams] = useSearchParams();
@@ -250,7 +277,7 @@ const PagePreview = () => {
         <iframe
           title="Page preview"
           style={{ width: widthVal }}
-          srcDoc={frameSrcDoc}
+          srcDoc={personalizedSrcDoc}
           className={styles.PagePreviewIframe}
         ></iframe>
       </div>

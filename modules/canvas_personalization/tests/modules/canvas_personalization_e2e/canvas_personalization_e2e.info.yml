@@ -1,0 +1,11 @@
+name: 'Drupal Canvas Personalization end-to-end helper'
+type: module
+# Deliberately NOT hidden: canvas_personalization itself is hidden (it is its
+# own feature flag), so browser-driven tests cannot enable it through the
+# modules UI. Enabling this visible test-only module pulls the hidden module
+# in as a dependency via the standard confirm flow.
+description: 'Enables Drupal Canvas Personalization for browser-driven tests.'
+package: Testing
+core_version_requirement: ^11.3
+dependencies:
+  - canvas:canvas_personalization
