@@ -4,26 +4,37 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Block;
 
-use Drupal\canvas\ComponentSource\ComponentSourceManager;
-use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\Component\Plugin\Discovery\CachedDiscoveryInterface;
 use Drupal\Component\Plugin\FallbackPluginManagerInterface;
 use Drupal\Core\Block\BlockManagerInterface;
 
 /**
- * Decorates the block plugin manager to re-generate block Canvas components.
+ * Decorates the block plugin manager.
  *
- * When block plugin definitions are re-discovered (triggered by
- * clearCachedDefinitions()), Canvas needs to regenerate its Component config
- * entities for the "block" component source. Without this, newly added block
- * plugins (e.g. Views blocks) do not appear in Canvas until a full cache clear.
+ * This used to eagerly regenerate the "block" component source on every
+ * `clearCachedDefinitions()`, so newly added block plugins (e.g. Views blocks)
+ * surfaced in Canvas immediately. That eager call was removed: it also fired
+ * mid-module-install, where regenerating ran block plugin discovery — and
+ * block_content's derivative deriver queries the block_content entity storage
+ * before its table exists — wedging the whole site.
+ *
+ * Component regeneration now happens outside the install transaction, in
+ * CanvasModuleInstallerDecorator (after install) and hook_rebuild (drush cr).
+ * Trade-off: block components no longer track block plugin cache clears
+ * synchronously, so a newly created block plugin (e.g. a Views block) does not
+ * surface, and a removed one's Component entity is not cleaned up, until the
+ * next cache rebuild — matching the lazy-generation direction of MR !860. A
+ * Component whose block plugin has gone away degrades to a broken component, so
+ * this is not data loss.
  *
  * @todo Refactor this after https://www.drupal.org/project/drupal/issues/3001284 lands.
  *
+ * @see \Drupal\canvas\Service\CanvasModuleInstallerDecorator
  * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent
  * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponentDiscovery
  * @see \Drupal\canvas\ComponentSource\ComponentSourceManager::generateComponents()
  * @see https://www.drupal.org/project/canvas/issues/3578142
+ * @see https://www.drupal.org/project/canvas/issues/3582851
  * @internal
  */
 final readonly class BlockManagerDecorator implements BlockManagerInterface, FallbackPluginManagerInterface, CachedDiscoveryInterface {
@@ -35,15 +46,23 @@ final readonly class BlockManagerDecorator implements BlockManagerInterface, Fal
    */
   public function __construct(
     private BlockManagerInterface&FallbackPluginManagerInterface&CachedDiscoveryInterface $decorated,
-    private ComponentSourceManager $componentSourceManager,
   ) {}
 
   /**
    * {@inheritdoc}
+   *
+   * Intentionally does NOT regenerate Canvas components here. This is called
+   * mid-module-install (core clears the block plugin cache before the new
+   * module's entity schemas are created); regenerating then runs block plugin
+   * discovery, whose block_content derivative deriver queries the block_content
+   * entity storage before its table exists — aborting the install with
+   * core.extension already half-written. Regeneration is deferred to
+   * CanvasModuleInstallerDecorator (post-install) and hook_rebuild (drush cr).
+   *
+   * @see https://www.drupal.org/project/canvas/issues/3582851
    */
   public function clearCachedDefinitions(): void {
     $this->decorated->clearCachedDefinitions();
-    $this->componentSourceManager->generateComponents(BlockComponent::SOURCE_PLUGIN_ID);
   }
 
   /**

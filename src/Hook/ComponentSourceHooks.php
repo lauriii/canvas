@@ -67,27 +67,41 @@ readonly final class ComponentSourceHooks {
    */
   #[Hook('modules_installed')]
   public function modulesInstalled(array $modules, bool $is_syncing): void {
+    $installing_canvas = \in_array('canvas', $modules, TRUE);
     // Canvas needs canvas_stark in order to work, so *always* install it
     // regardless of whether config is syncing. The theme installer is smart
     // enough to return early if canvas_stark is already installed.
     // @see \Drupal\canvas\Theme\CanvasThemeNegotiator
     // @see \Drupal\Core\Theme\ThemeNegotiator::determineActiveTheme()
-    if (\in_array('canvas', $modules, TRUE)) {
+    if ($installing_canvas) {
       $this->themeInstaller->install(['canvas_stark']);
     }
     if ($is_syncing) {
       return;
     }
-    // Generate via the container's *current* ComponentSourceManager rather
-    // than the injected one. Since Drupal 11.3, installing canvas_stark above
-    // reboots the kernel and rebuilds the service container: ThemeInstaller
-    // now resets the container in install/uninstall (via
-    // DrupalKernel::updateThemes()). That leaves $this — and its injected
-    // $this->componentSourceManager — pointing at now-orphaned pre-rebuild
-    // services. Resolving the manager (and through it the
-    // PersistentPropShapeRepository) from the live container makes the prop
-    // shapes get written to the cache that outlives the install (the other one
-    // will never have its ::destruct() called).
+    // Component regeneration for *other* modules' installs now runs in
+    // CanvasModuleInstallerDecorator::install(), after the install transaction
+    // returns and every newly-installed schema exists — which also avoids the
+    // mid-install crash the removed BlockManagerDecorator eager regeneration
+    // caused. But a service decorating `module_installer` cannot intercept the
+    // installation of the module that provides it: while Canvas installs, its
+    // services (including that decorator) are not in the container yet, and
+    // neither `drush en` nor the /admin/modules form runs a cache rebuild
+    // afterwards. So when Canvas itself is being installed, regenerate here.
+    // This hook fires at the very end of the install operation, after all
+    // schemas exist, so it is not a crash site.
+    // @see \Drupal\canvas\Service\CanvasModuleInstallerDecorator
+    // @see https://www.drupal.org/project/canvas/issues/3582851
+    if (!$installing_canvas) {
+      return;
+    }
+    // Generate via the container's *current* ComponentSourceManager rather than
+    // the injected one. Installing canvas_stark above reboots the kernel and
+    // rebuilds the service container (DrupalKernel::updateThemes()), leaving
+    // $this — and its injected $this->componentSourceManager — pointing at
+    // now-orphaned pre-rebuild services. Resolving the manager (and through it
+    // the PersistentPropShapeRepository) from the live container makes the prop
+    // shapes get written to the cache that outlives the install.
     // @see \Drupal\canvas\PropShape\PersistentPropShapeRepository
     $component_source_manager = $this->kernel->getContainer()->get(ComponentSourceManager::class);
     \assert($component_source_manager instanceof ComponentSourceManager);

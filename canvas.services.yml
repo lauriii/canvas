@@ -263,3 +263,15 @@ services:
     public: false
     decorates: plugin.manager.block
     arguments: ['@.inner']
+  # Regenerate Canvas components after module_installer::install() returns, so
+  # newly-installed entity schemas exist before Canvas enumerates components.
+  # Both `drush en` and the /admin/modules UI form go through module_installer.
+  # @see https://www.drupal.org/project/canvas/issues/3582851
+  Drupal\canvas\Service\CanvasModuleInstallerDecorator:
+    decorates: module_installer
+    # module_installer is fetched by id (drush, /admin/modules); the decorator
+    # replacing it must stay public.
+    public: true
+    arguments:
+      - '@.inner'
+      - '@kernel'
