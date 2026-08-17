@@ -196,9 +196,17 @@ jobs:
           # styled entirely in `ui/` and has no PHPUnit coverage, so these specs
           # are the only thing standing between a UI regression there and a
           # release.
+          #
+          # `sudo` resets the environment, so `CI` does not survive into the
+          # test run unless it is passed explicitly. Without it playwright.config
+          # falls back to its local settings — `workers: '50%'` — and the specs
+          # install their own test site into the same SQLite file concurrently,
+          # which fails with "database is locked". Passing CI restores
+          # `workers: 1` and the retries the config already intends on CI.
           export PW_HOME=/tmp/pw-home
           mkdir -p "$PW_HOME" && chown www-data:www-data "$PW_HOME"
           sudo -u www-data env \
+            CI=true \
             HOME="$PW_HOME" PATH="$PATH" MODULE_DIR="$MODULE_DIR" \
             PLAYWRIGHT_BROWSERS_PATH="$PW_HOME/ms-playwright" \
             DRUPAL_TEST_BASE_URL=http://localhost \
