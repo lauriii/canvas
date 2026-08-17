@@ -26,6 +26,8 @@ use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\Entity\Routing\AdminHtmlRouteProvider;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
+use Drupal\Core\Form\EnforcedResponseException;
+use Drupal\Core\Form\FormAjaxException;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -306,39 +308,66 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
 
     $source = $this->getComponentSource();
     if (!$source->isBroken()) {
-      $info = $this->getComponentSource()->getClientSideInfo($this);
-      $build = $info['build'];
-      unset($info['build']);
-      // Inform the UI this is safe to instantiate.
-      $info['broken'] = FALSE;
+      try {
+        $info = $this->getComponentSource()->getClientSideInfo($this);
+        $build = $info['build'];
+        unset($info['build']);
+        // Inform the UI this is safe to instantiate.
+        $info['broken'] = FALSE;
 
-      // Wrap in a render-safe container.
-      // @todo Remove all the wrapping-in-RenderSafeComponentContainer complexity and make ComponentSourceInterface::renderComponent() for that instead in https://www.drupal.org/i/3521041
-      $build = [
-        '#type' => RenderSafeComponentContainer::PLUGIN_ID,
-        '#component' => $build + [
-          // Wrap each rendered component instance in HTML comments that allow
-          // the client side to identify it.
-          // @see \Drupal\canvas\Plugin\DataType\ComponentTreeHydrated::renderify()
-          '#prefix' => Markup::create("<!-- canvas-start-$component_config_entity_uuid -->"),
-          '#suffix' => Markup::create("<!-- canvas-end-$component_config_entity_uuid -->"),
-        ],
-        '#component_context' => \sprintf('Preview rendering component %s.', $this->label()),
-        '#component_uuid' => $component_config_entity_uuid,
-        '#is_preview' => TRUE,
-      ];
+        // Wrap in a render-safe container.
+        // @todo Remove all the wrapping-in-RenderSafeComponentContainer complexity and make ComponentSourceInterface::renderComponent() for that instead in https://www.drupal.org/i/3521041
+        $build = [
+          '#type' => RenderSafeComponentContainer::PLUGIN_ID,
+          '#component' => $build + [
+            // Wrap each rendered component instance in HTML comments that allow
+            // the client side to identify it.
+            // @see \Drupal\canvas\Plugin\DataType\ComponentTreeHydrated::renderify()
+            '#prefix' => Markup::create("<!-- canvas-start-$component_config_entity_uuid -->"),
+            '#suffix' => Markup::create("<!-- canvas-end-$component_config_entity_uuid -->"),
+          ],
+          '#component_context' => \sprintf('Preview rendering component %s.', $this->label()),
+          '#component_uuid' => $component_config_entity_uuid,
+          '#is_preview' => TRUE,
+        ];
 
-      // Despite the Component being available in its ComponentSource, it may
-      // crash during rendering. The preview of a Component config entity should
-      // be as rich and precise as possible, so rather than letting
-      // \Drupal\canvas\ClientSideRepresentation::renderPreviewIfAny() do the
-      // rendering, already render it early here.
-      \Drupal::service(RendererInterface::class)->renderInIsolation($build);
+        // Despite the Component being available in its ComponentSource, it may
+        // crash during rendering. The preview of a Component config entity
+        // should be as rich and precise as possible, so rather than letting
+        // \Drupal\canvas\ClientSideRepresentation::renderPreviewIfAny() do the
+        // rendering, already render it early here.
+        \Drupal::service(RendererInterface::class)->renderInIsolation($build);
 
-      // It is possible that despite ComponentSourceInterface::isBroken() saying
-      // the Component is not broken, it still crashes during rendering.
-      // Consider this another form of brokenness.
-      $info['broken'] = \array_key_exists('#render_crashed', $build);
+        // It is possible that despite ComponentSourceInterface::isBroken()
+        // saying the Component is not broken, it still crashes during
+        // rendering. Consider this another form of brokenness.
+        $info['broken'] = \array_key_exists('#render_crashed', $build);
+      }
+      // These two exceptions are the early render's way of returning a response
+      // (e.g. a redirect) or handling a form AJAX request; they must reach the
+      // kernel, never be contained as a "broken" component.
+      // @see \Drupal\canvas\Element\RenderSafeComponentContainer::renderComponent()
+      catch (EnforcedResponseException | FormAjaxException $e) {
+        throw $e;
+      }
+      catch (\Throwable $e) {
+        // Computing the client-side info (e.g. resolving default/example
+        // values) can throw for a Component whose stored configuration is
+        // invalid, such as a code component whose image example uses a relative
+        // URL instead of a fully-qualified one. A single such Component must
+        // not break the entire Canvas config HTTP API and thereby render the
+        // editor unusable. Treat it as broken — like the isBroken() branch
+        // below — so the editor still loads and the owner can fix or remove it.
+        // @see https://www.drupal.org/project/canvas/issues/3560889
+        $build = RenderSafeComponentContainer::handleComponentException(
+          $e,
+          componentContext: 'API',
+          isPreview: TRUE,
+          componentUuid: $component_config_entity_uuid,
+          component_exception_cacheability: CacheableMetadata::createFromObject($this),
+        );
+        $info = ['broken' => TRUE];
+      }
     }
     // Ensure a broken Component cannot break the Canvas HTTP API.
     else {

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 
-// cspell:ignore Bwidth Fitok Synx Tilly anzut nhsy sxnz Umso Dzyawdvr Mafgg Royu Cmsy Pmsg Lgfkq ergmkgy Ptgi Ltxk
+// cspell:ignore Bwidth Fitok Synx Tilly anzut nhsy sxnz Umso Dzyawdvr Mafgg Royu Cmsy Pmsg Lgfkq ergmkgy Ptgi Ltxk foobarbaz
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\ComponentSource\ComponentSourceBase;
@@ -4157,6 +4157,54 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       'component_id' => $component_id,
       'source' => $source,
     ];
+  }
+
+  /**
+   * A relative image example URL must not crash the Canvas config HTTP API.
+   *
+   * A code component's image example `src` must be a fully-qualified URL. When
+   * an invalid (relative) URL slips into stored configuration — for example via
+   * config import or an AI agent that bypasses the client-side check — resolving
+   * the example throws. Normalizing such a Component for the client must not let
+   * that exception escape and break the entire component list (and hence the
+   * editor). The Component must instead be reported as broken.
+   *
+   * @see \Drupal\canvas\Entity\Component::normalizeForClientSide()
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::rewriteExampleUrl()
+   * @see https://www.drupal.org/project/canvas/issues/3560889
+   */
+  public function testRelativeImageExampleUrlDoesNotCrashNormalization(): void {
+    $this->generateComponentConfig();
+    $component_id = 'js.canvas_test_code_components_vanilla_image';
+
+    // The derived Component is healthy and instantiable to begin with.
+    $component = Component::load($component_id);
+    self::assertInstanceOf(Component::class, $component);
+    self::assertFalse($component->normalizeForClientSide()->values['broken']);
+
+    // Corrupt the code component's image example `src` to a relative URL, writing
+    // the raw config directly so the JavaScriptComponent storage handler (which
+    // would re-run discovery and disable the Component) is bypassed — mirroring
+    // config import or a direct config edit. The Component stays enabled, so the
+    // editor would still try to normalize it.
+    $config = $this->config('canvas.js_component.canvas_test_code_components_vanilla_image');
+    $props = $config->get('props');
+    $props['image']['examples'][0]['src'] = '/images/foobarbaz.png';
+    $config->set('props', $props)->save();
+    // Drop the cached code component entity so the corrupted metadata is read
+    // back when the Component is normalized.
+    $this->container->get('entity_type.manager')->getStorage('js_component')->resetCache();
+    $this->container->get('entity_type.manager')->getStorage('component')->resetCache();
+
+    $component = Component::load($component_id);
+    self::assertInstanceOf(Component::class, $component);
+    // The Component is still enabled, so ::list() would include and normalize it.
+    self::assertTrue($component->status());
+
+    // Before the fix this threw an uncaught InvalidArgumentException, which the
+    // ::list() controller propagated as a 500 that broke the whole editor.
+    $representation = $component->normalizeForClientSide();
+    self::assertTrue($representation->values['broken']);
   }
 
 }
