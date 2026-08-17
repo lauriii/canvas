@@ -286,6 +286,15 @@ final class ComponentAuditControllerTest extends CanvasKernelTestBase {
       'test_create_access_cache_tag',
       // @see \Drupal\block\Plugin\DisplayVariant\BlockPageVariant
       'config:block_list',
+      // Canvas attaches the global asset library and brand kit to every page in
+      // the default theme. Both are addressed by a content hash, so both are
+      // declared as cacheable dependencies; the brand kit's CSS embeds every
+      // Color, which is a separate config entity.
+      // @see \Drupal\canvas\Hook\ComponentSourceHooks::pageAttachments()
+      // @see \Drupal\canvas\Entity\BrandKit::getCacheTags()
+      'config:canvas.asset_library.global',
+      'config:canvas.brand_kit.global',
+      'config:color_list',
     ], $response->getCacheableMetadata()->getCacheTags());
 
     $this->assertTitle('Audit of Canvas test SDC with props and slots usages | ');
@@ -328,6 +337,15 @@ final class ComponentAuditControllerTest extends CanvasKernelTestBase {
       'test_create_access_cache_tag',
       // @see \Drupal\block\Plugin\DisplayVariant\BlockPageVariant
       'config:block_list',
+      // Canvas attaches the global asset library and brand kit to every page in
+      // the default theme. Both are addressed by a content hash, so both are
+      // declared as cacheable dependencies; the brand kit's CSS embeds every
+      // Color, which is a separate config entity.
+      // @see \Drupal\canvas\Hook\ComponentSourceHooks::pageAttachments()
+      // @see \Drupal\canvas\Entity\BrandKit::getCacheTags()
+      'config:canvas.asset_library.global',
+      'config:canvas.brand_kit.global',
+      'config:color_list',
     ], $response->getCacheableMetadata()->getCacheTags());
 
     $this->assertTitle('Audit of Druplicon usages | ');

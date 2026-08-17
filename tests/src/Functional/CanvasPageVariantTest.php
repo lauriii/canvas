@@ -561,6 +561,19 @@ class CanvasPageVariantTest extends FunctionalTestBase {
       // These 2 are generically added by Drupal's Render API.
       'http_response',
       'rendered',
+      // Once Canvas is installed it attaches the global asset library and brand
+      // kit to every page in the default theme. Both are addressed by a content
+      // hash, so both are declared as cacheable dependencies; the brand kit's
+      // CSS embeds every Color, which is a separate config entity. The first
+      // assertions in ::test() run before Canvas is installed, hence the
+      // condition rather than an unconditional entry.
+      // @see \Drupal\canvas\Hook\ComponentSourceHooks::pageAttachments()
+      // @see \Drupal\canvas\Entity\BrandKit::getCacheTags()
+      ...(\Drupal::moduleHandler()->moduleExists('canvas') ? [
+        'config:canvas.asset_library.global',
+        'config:canvas.brand_kit.global',
+        'config:color_list',
+      ] : []),
     ];
     $expected_dependency_cacheability = new CacheableMetadata();
     array_walk(
