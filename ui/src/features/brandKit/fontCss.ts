@@ -69,10 +69,44 @@ export const groupFontsByFamily = (
     .sort((left, right) => left.family.localeCompare(right.family));
 };
 
-export const buildFontVariantLabel = (font: AssetLibraryFont): string =>
+const getFontFormatLabel = (font: AssetLibraryFont): string =>
+  font.format.toUpperCase();
+
+export const buildFontVariantName = (font: AssetLibraryFont): string =>
   isVariableFont(font)
-    ? `Variable · ${font.format.toUpperCase()}`
-    : `${font.weight} ${font.style === 'italic' ? 'Italic' : 'Normal'} · ${font.format.toUpperCase()}`;
+    ? 'Variable'
+    : `${font.weight} ${font.style === 'italic' ? 'Italic' : 'Normal'}`;
+
+export const buildFontVariantLabel = (font: AssetLibraryFont): string =>
+  `${buildFontVariantName(font)} [${getFontFormatLabel(font)}]`;
+
+/**
+ * A family is variable when every file uploaded under it is a variable font.
+ */
+export const isVariableFontFamily = (fonts: AssetLibraryFont[]): boolean =>
+  fonts.length > 0 && fonts.every((font) => isVariableFont(font));
+
+/**
+ * Lists the distinct file formats a family was uploaded in, in upload order.
+ */
+export const buildFontFamilyFormatsLabel = (
+  fonts: AssetLibraryFont[],
+): string =>
+  Array.from(new Set(fonts.map((font) => getFontFormatLabel(font)))).join(
+    ' / ',
+  );
+
+/**
+ * Counts a family's files the way the family is meant to be read: variable
+ * families ship whole ranges rather than individual weights.
+ */
+export const buildFontFamilySummary = (fonts: AssetLibraryFont[]): string => {
+  if (isVariableFontFamily(fonts)) {
+    return `${fonts.length} variable ${fonts.length === 1 ? 'font' : 'fonts'}`;
+  }
+
+  return `${fonts.length} ${fonts.length === 1 ? 'variant' : 'variants'}`;
+};
 
 const formatAxisValue = (value: number): string =>
   Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)));
@@ -85,22 +119,6 @@ const getAxisSettingValue = (
   font.axes?.find((axis) => axis.tag === tag)?.default ??
   null;
 
-const getVariableItalicState = (
-  font: AssetLibraryFont,
-): 'italic' | 'normal' | null => {
-  const italicValue = getAxisSettingValue(font, 'ital');
-  if (italicValue !== null) {
-    return italicValue > 0 ? 'italic' : 'normal';
-  }
-
-  const slantValue = getAxisSettingValue(font, 'slnt');
-  if (slantValue !== null) {
-    return slantValue !== 0 ? 'italic' : 'normal';
-  }
-
-  return null;
-};
-
 const getWeightDeclaration = (font: AssetLibraryFont): string => {
   const weightAxis = font.axes?.find((axis) => axis.tag === 'wght');
   if (isVariableFont(font) && weightAxis) {
@@ -110,13 +128,19 @@ const getWeightDeclaration = (font: AssetLibraryFont): string => {
   return font.weight;
 };
 
+/**
+ * The `font-style` a single `@font-face` can honestly declare for this file.
+ *
+ * A range is only spellable for `oblique <angle>`: `normal italic` is not a
+ * valid descriptor, so a font whose `ital` axis spans both is declared as the
+ * upright face it defaults to. Its italic is reached through
+ * `font-variation-settings`, not by asking the browser for `font-style:
+ * italic` — which, against an upright face, would synthesise a slant on top of
+ * the one the axis already applies.
+ */
 const getStyleDeclaration = (font: AssetLibraryFont): string => {
   const italicAxis = font.axes?.find((axis) => axis.tag === 'ital');
   if (isVariableFont(font) && italicAxis) {
-    if (italicAxis.min <= 0 && italicAxis.max >= 1) {
-      return 'normal italic';
-    }
-
     return italicAxis.default > 0 ? 'italic' : 'normal';
   }
 
@@ -150,6 +174,7 @@ export const buildFontFaceSnippet = (font: AssetLibraryFont): string => {
     `  src: url('${fontUrl}') format('${fontFormatLabels[font.format]}');`,
     `  font-weight: ${getWeightDeclaration(font)};`,
     `  font-style: ${getStyleDeclaration(font)};`,
+    '  font-display: swap;',
     '}',
   ];
 
@@ -191,42 +216,57 @@ export const getFontPreloadDefinitions = (
   return Array.from(definitions.values());
 };
 
-export const buildTailwindHtmlSnippet = (font: AssetLibraryFont): string => {
-  const tokenName = buildFontTokenName(font.family);
-  const styleClassParts = [`font-${tokenName}`];
+/**
+ * The inline declarations that reproduce the font as it is currently previewed.
+ *
+ * The family itself comes from the Tailwind theme token, so only the settings
+ * an author can change here are emitted. Variable fonts always carry their full
+ * `font-variation-settings`: `font-weight` alone drives `wght`, but leaves every
+ * other axis — optical size, width, slant — at its default.
+ *
+ * `font-style` is whatever the accompanying `@font-face` declares, never what
+ * the slant axis currently reads: asking for an italic the face does not have
+ * makes the browser synthesise one on top of the slant the axis already
+ * applies.
+ */
+const buildUsageDeclarations = (font: AssetLibraryFont): string[] => {
+  const declarations: string[] = [];
 
   if (isVariableFont(font) && font.axes?.length) {
-    const axisSettings = font.axes.map((axis) => ({
-      tag: axis.tag,
-      value: getAxisSettingValue(font, axis.tag) ?? axis.default,
-    }));
-
     const weightValue = getAxisSettingValue(font, 'wght');
     if (weightValue !== null) {
-      styleClassParts.push(`font-[${formatAxisValue(weightValue)}]`);
+      declarations.push(`font-weight: ${formatAxisValue(weightValue)}`);
     }
 
-    const italicState = getVariableItalicState(font);
-    if (italicState !== null) {
-      styleClassParts.push(italicState === 'italic' ? 'italic' : 'not-italic');
-    } else {
-      styleClassParts.push(font.style === 'italic' ? 'italic' : 'not-italic');
-    }
+    declarations.push(
+      `font-style: ${getStyleDeclaration(font)}`,
+      `font-variation-settings: ${font.axes
+        .map(
+          (axis) =>
+            `'${axis.tag}' ${formatAxisValue(
+              getAxisSettingValue(font, axis.tag) ?? axis.default,
+            )}`,
+        )
+        .join(', ')}`,
+    );
 
-    styleClassParts.push(
-      `[font-variation-settings:${axisSettings
-        .map((axis) => `'${axis.tag}'_${formatAxisValue(axis.value)}`)
-        .join(',')}]`,
-    );
-  } else {
-    styleClassParts.push(
-      `font-[${font.weight}]`,
-      font.style === 'italic' ? 'italic' : 'not-italic',
-    );
+    return declarations;
   }
 
+  return [`font-weight: ${font.weight}`, `font-style: ${font.style}`];
+};
+
+export const buildTailwindHtmlSnippet = (font: AssetLibraryFont): string => {
+  const tokenName = buildFontTokenName(font.family);
+  // The weight of a static font is free text an author typed, and this goes
+  // into a double-quoted attribute they will paste into their own markup.
+  const inlineStyle = buildUsageDeclarations(font)
+    .map((declaration) => `${declaration};`)
+    .join(' ')
+    .replaceAll('"', '&quot;');
+
   return [
-    `<p class="${styleClassParts.join(' ')}">`,
+    `<p class="font-${tokenName}" style="${inlineStyle}">`,
     '  The quick brown fox jumps over the lazy dog.',
     '</p>',
   ].join('\n');

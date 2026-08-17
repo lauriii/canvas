@@ -1,6 +1,13 @@
 import { useEffect, useMemo } from 'react';
 import { DownloadIcon } from '@radix-ui/react-icons';
-import { Button, Callout, Flex, Heading, Spinner } from '@radix-ui/themes';
+import {
+  Button,
+  Callout,
+  Flex,
+  Heading,
+  Spinner,
+  Text,
+} from '@radix-ui/themes';
 
 import EmptyStateCallout from '@/components/EmptyStateCallout';
 import FontFamiliesList from '@/features/brandKit/components/FontFamiliesList';
@@ -36,7 +43,6 @@ const BrandKitFontsSection = () => {
     familyDraft,
     openFamily,
     selectedFont,
-    selectedFontId,
     selectFont,
     setFamilyDraft,
     setOpenFamily,
@@ -182,6 +188,16 @@ const BrandKitFontsSection = () => {
     await saveFonts(nextFonts);
   };
 
+  const handleRemoveFamily = async (family: string) => {
+    const nextFonts = fonts.filter(
+      (font) => (font.family.trim() || 'New font') !== family,
+    );
+    if (openFamily === family) {
+      setOpenFamily(null);
+    }
+    await saveFonts(nextFonts);
+  };
+
   const handleRemoveFont = async (fontId: string) => {
     const nextFonts = fonts.filter((font) => font.id !== fontId);
     if (
@@ -206,9 +222,14 @@ const BrandKitFontsSection = () => {
   return (
     <Flex direction="column" gap="2">
       <Flex align="center" justify="between" gap="2">
-        <Heading as="h5" size="2">
-          Fonts
-        </Heading>
+        <Flex direction="column">
+          <Heading as="h5" size="2">
+            Font library
+          </Heading>
+          <Text size="1" color="gray">
+            {groupedFonts.length} {groupedFonts.length === 1 ? 'font' : 'fonts'}
+          </Text>
+        </Flex>
         <Button
           size="1"
           variant="soft"
@@ -255,6 +276,7 @@ const BrandKitFontsSection = () => {
           onCopySnippet={copySnippet}
           onFamilyCommit={handleFamilyCommit}
           onOpenFamilyChange={setOpenFamily}
+          onRemoveFamily={handleRemoveFamily}
           onRemoveFont={handleRemoveFont}
           onSelectFont={selectFont}
           onSetFamilyDraft={setFamilyDraft}
@@ -263,7 +285,6 @@ const BrandKitFontsSection = () => {
           onWeightCommit={handleWeightCommit}
           openFamily={openFamily}
           selectedFont={selectedFont}
-          selectedFontId={selectedFontId}
         />
       )}
     </Flex>

@@ -3,12 +3,15 @@ import { describe, expect, it } from 'vitest';
 import {
   buildFontFaceSnippet,
   buildFontFaceStyles,
+  buildFontFamilyFormatsLabel,
+  buildFontFamilySummary,
   buildFontSnippet,
   buildFontVariantLabel,
   buildTailwindHtmlSnippet,
   buildTailwindThemeSnippet,
   getFontPreloadDefinitions,
   groupFontsByFamily,
+  isVariableFontFamily,
   stripFontClientFields,
   stripFontListClientFields,
 } from '@/features/brandKit/fontCss';
@@ -107,6 +110,7 @@ describe('fontCss helpers', () => {
   src: url('${FONT_ASSET_BASE_URL}inter.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
+  font-display: swap;
 }`);
   });
 
@@ -188,7 +192,27 @@ describe('fontCss helpers', () => {
   });
 
   it('builds a readable variant label', () => {
-    expect(buildFontVariantLabel(font)).toBe('400 Normal · WOFF2');
+    expect(buildFontVariantLabel(font)).toBe('400 Normal [WOFF2]');
+    expect(
+      buildFontVariantLabel({ ...font, style: 'italic', weight: '700' }),
+    ).toBe('700 Italic [WOFF2]');
+  });
+
+  it('describes a family by what it ships', () => {
+    expect(isVariableFontFamily([variableFont])).toBe(true);
+    expect(isVariableFontFamily([variableFont, font])).toBe(false);
+    expect(isVariableFontFamily([])).toBe(false);
+
+    expect(buildFontFamilySummary([variableFont])).toBe('1 variable font');
+    expect(buildFontFamilySummary([font])).toBe('1 variant');
+    expect(buildFontFamilySummary([font, { ...font, id: 'inter-700' }])).toBe(
+      '2 variants',
+    );
+
+    expect(buildFontFamilyFormatsLabel([font, variableFont])).toBe('WOFF2');
+    expect(
+      buildFontFamilyFormatsLabel([font, { ...font, format: 'ttf' }]),
+    ).toBe('WOFF2 / TTF');
   });
 
   it('escapes unsafe characters in generated CSS snippets', () => {
@@ -203,6 +227,7 @@ describe('fontCss helpers', () => {
   src: url('${FONT_ASSET_BASE_URL}mona\\'s-font.woff2<\\/style>') format('woff2');
   font-weight: 400;
   font-style: normal;
+  font-display: swap;
 }`);
 
     expect(
@@ -221,13 +246,14 @@ describe('fontCss helpers', () => {
   src: url('${FONT_ASSET_BASE_URL}inter-variable.woff2') format('woff2');
   font-weight: 100 900;
   font-style: normal;
+  font-display: swap;
 }`);
 
     expect(buildTailwindThemeSnippet(font)).toBe(`@theme {
   --font-inter: "Inter", sans-serif;
 }`);
     expect(buildTailwindHtmlSnippet(variableFont))
-      .toBe(`<p class="font-inter font-[450] not-italic [font-variation-settings:'wght'_450,'wdth'_100]">
+      .toBe(`<p class="font-inter" style="font-weight: 450; font-style: normal; font-variation-settings: 'wght' 450, 'wdth' 100;">
   The quick brown fox jumps over the lazy dog.
 </p>`);
 
@@ -235,17 +261,51 @@ describe('fontCss helpers', () => {
   --font-inter: "Inter", sans-serif;
 }
 
-<p class="font-inter font-[400] not-italic">
+<p class="font-inter" style="font-weight: 400; font-style: normal;">
   The quick brown fox jumps over the lazy dog.
 </p>`);
     expect(buildFontSnippet(variableFont)).toBe(`@theme {
   --font-inter: "Inter", sans-serif;
 }
 
-<p class="font-inter font-[450] not-italic [font-variation-settings:'wght'_450,'wdth'_100]">
+<p class="font-inter" style="font-weight: 450; font-style: normal; font-variation-settings: 'wght' 450, 'wdth' 100;">
   The quick brown fox jumps over the lazy dog.
 </p>`);
-    expect(buildFontVariantLabel(variableFont)).toBe('Variable · WOFF2');
+    expect(buildFontVariantLabel(variableFont)).toBe('Variable [WOFF2]');
+  });
+
+  it('never declares a font-style range on an @font-face', () => {
+    // `normal italic` is not a valid `font-style` descriptor — a range is only
+    // spellable for `oblique <angle>` — so a font whose ital axis covers both
+    // is declared as the upright face it defaults to.
+    const dualItalicFont = {
+      ...variableFont,
+      axes: [
+        { tag: 'wght', name: 'Weight', min: 100, max: 900, default: 400 },
+        { tag: 'ital', name: 'Italic', min: 0, max: 1, default: 0 },
+      ],
+      axisSettings: [
+        { tag: 'wght', value: 400 },
+        { tag: 'ital', value: 1 },
+      ],
+    };
+
+    expect(buildFontFaceSnippet(dualItalicFont)).toContain(
+      'font-style: normal;',
+    );
+    expect(buildFontFaceSnippet(dualItalicFont)).not.toContain('normal italic');
+
+    // The usage snippet must not ask for an italic that face does not have:
+    // the browser would synthesise a slant on top of the one 'ital' applies.
+    expect(buildTailwindHtmlSnippet(dualItalicFont)).toContain(
+      "font-style: normal; font-variation-settings: 'wght' 400, 'ital' 1;",
+    );
+  });
+
+  it('escapes a typed weight before putting it in an attribute', () => {
+    expect(
+      buildTailwindHtmlSnippet({ ...font, weight: '400" onload="x' }),
+    ).toContain('style="font-weight: 400&quot; onload=&quot;x; font-style: normal;"');
   });
 
   it('treats slnt variable fonts as italic', () => {
@@ -254,10 +314,11 @@ describe('fontCss helpers', () => {
   src: url('${FONT_ASSET_BASE_URL}inter-variable.woff2') format('woff2');
   font-weight: 300 1000;
   font-style: italic;
+  font-display: swap;
 }`);
 
     expect(buildTailwindHtmlSnippet(slantedVariableFont))
-      .toBe(`<p class="font-recursive font-[450] italic [font-variation-settings:'wght'_450,'slnt'_-15]">
+      .toBe(`<p class="font-recursive" style="font-weight: 450; font-style: italic; font-variation-settings: 'wght' 450, 'slnt' -15;">
   The quick brown fox jumps over the lazy dog.
 </p>`);
   });
