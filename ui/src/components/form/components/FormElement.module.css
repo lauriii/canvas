@@ -1,8 +1,8 @@
 .root {
   display: flex;
   flex-direction: column;
-  margin-bottom: var(--space-4);
   gap: var(--space-1);
+  margin-bottom: var(--space-4);
   & > :first-child {
     position: relative;
   }

@@ -138,6 +138,7 @@
 .popoverItem {
   display: flex;
   align-items: center;
+  gap: 8px;
   padding: 8px 10px;
   cursor: pointer;
   text-align: left;
@@ -145,7 +146,6 @@
   border: none;
   border-radius: 4px;
   background: none;
-  gap: 8px;
 }
 
 .popoverItem:hover {

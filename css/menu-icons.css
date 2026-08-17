@@ -6,9 +6,9 @@
   margin-bottom: 2px;
   content: "";
   background-color: currentColor;
-  mask-size: contain;
   mask-repeat: no-repeat;
   mask-position: center;
+  mask-size: contain;
 }
 
 /* Flex container for icons with inline text */

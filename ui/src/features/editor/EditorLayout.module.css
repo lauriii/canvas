@@ -20,8 +20,8 @@
   flex-shrink: 0;
   width: 1px;
   cursor: col-resize;
-  background: var(--slate-6);
   touch-action: none;
+  background: var(--slate-6);
 }
 
 .resizeHandle::after {

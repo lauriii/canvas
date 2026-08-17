@@ -1,10 +1,10 @@
 .nameTag {
   display: flex;
   align-items: center;
+  gap: 5px;
   height: 20px;
   padding: 1px 4px;
   white-space: nowrap;
-  gap: 5px;
   color: #fff;
   border-radius: 2px;
   background-color: var(--color-outline-component);

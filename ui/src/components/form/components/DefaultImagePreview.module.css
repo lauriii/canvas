@@ -11,8 +11,8 @@
 .defaultImagePreview {
   display: flex;
   flex-direction: column;
-  width: 100%;
   gap: 9px;
+  width: 100%;
 }
 
 .defaultImageContainer {
@@ -20,8 +20,8 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  width: 100%;
   gap: var(--space-2);
+  width: 100%;
 }
 
 .defaultImageThumbnail {

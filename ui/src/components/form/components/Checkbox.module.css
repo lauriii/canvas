@@ -2,13 +2,13 @@
   width: var(--space-4);
   height: var(--space-4);
   margin: 3px 0 0;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
   border-width: 1px;
   border-style: solid;
   border-color: #00000031;
   border-radius: 3px;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
 }
 
 .checked {
@@ -17,6 +17,8 @@
   background-color: var(--accent-indicator);
   &::after {
     position: relative;
+    inset-block-start: .5px;
+    inset-inline-start: .5px;
     display: block;
     width: 93%;
     height: 93%;
@@ -25,7 +27,5 @@
     background-repeat: no-repeat;
     background-position: center;
     background-size: 70%;
-    inset-block-start: .5px;
-    inset-inline-start: .5px;
   }
 }
