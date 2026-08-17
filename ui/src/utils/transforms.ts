@@ -349,18 +349,22 @@ const dateTime: Transformer<
     if ('time' in record && record.time) {
       timeString = record.time;
     }
-    if (!dateString && !timeString) {
+    // An empty date produces an Invalid Date whose toISOString() throws, so
+    // treat a missing date as "no value" rather than building a date from it.
+    // This is the failure reported in issue #3573426.
+    if (!dateString) {
       return null;
     }
 
+    // The date and time inputs normally only yield valid or empty values, but
+    // keep the guard so any unexpected unparseable value degrades to null
+    // instead of throwing a RangeError.
     try {
+      // @todo Update this in https://www.drupal.org/project/canvas/issues/3501281, which will allow removing the FE-special casing in \Drupal\canvas\PropExpressions\StructuredData\Evaluator::evaluate()
       return new Date(`${dateString} ${timeString}+0000`).toISOString();
-    } catch (e) {
+    } catch {
       return null;
     }
-
-    // @todo Update this in https://www.drupal.org/project/canvas/issues/3501281, which will allow removing the FE-special casing in \Drupal\canvas\PropExpressions\StructuredData\Evaluator::evaluate()
-    return new Date(`${dateString} ${timeString}+0000`).toISOString();
   });
   if (options.multiple) {
     return returnValue.filter(Boolean);
