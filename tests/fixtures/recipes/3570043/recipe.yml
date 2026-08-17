@@ -1,0 +1,6 @@
+name: '3570043'
+description: 'Installs canvas and navigation'
+type: 'Canvas'
+install:
+  - canvas
+  - navigation

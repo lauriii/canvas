@@ -35,16 +35,60 @@ class JsonSchemaDefinitionsStreamwrapper extends LocalReadOnlyStream {
    */
   // phpcs:disable Drupal.NamingConventions.ValidFunctionName.ScopeNotCamelCaps
   public function stream_open($uri, $mode, $options, &$opened_path) {
+    $definition = self::getDefinition($uri);
+    if ($definition === NULL) {
+      // @todo Logging/exception for better DX.
+      return FALSE;
+    }
+
+    $stream = fopen('php://memory', 'r+');
+    if (!\is_resource($stream)) {
+      return FALSE;
+    }
+
+    $json = json_encode($definition);
+    \assert(\is_string($json));
+    fwrite($stream, $json);
+    rewind($stream);
+    $this->handle = $stream;
+
+    return TRUE;
+  }
+
+  /**
+   * Reads the JSON schema definition addressed by a stream wrapper URI.
+   *
+   * This resolves the definition directly from the extension's `schema.json`
+   * file, without depending on this stream wrapper being registered in PHP's
+   * global stream wrapper registry. That registration is not guaranteed during
+   * every code path (for example, `hook_rebuild()` while a recipe installs
+   * Canvas), so callers that must resolve `$ref`s during those paths use this
+   * method instead of `file_get_contents()` on the URI.
+   *
+   * @param string $uri
+   *   A `json-schema-definitions://<extension>.<extension type>/<definition>`
+   *   URI.
+   *
+   * @return array|null
+   *   The JSON schema definition as a decoded array, or NULL when the extension
+   *   or its `schema.json` cannot be found.
+   *
+   * @throws \InvalidArgumentException
+   *   When the `schema.json` exists but does not contain the requested
+   *   definition.
+   *
+   * @see \Drupal\canvas\Plugin\ComponentPluginManager::resolveJsonSchemaReferences()
+   */
+  public static function getDefinition(string $uri): ?array {
     try {
       [$extension_path, $definition_name] = self::parseUri($uri);
     }
     catch (UnknownExtensionException | UnknownExtensionTypeException) {
       // @todo Re-throw with more precise exception message for better DX.
-      return FALSE;
+      return NULL;
     }
     if (!file_exists($extension_path . DIRECTORY_SEPARATOR . 'schema.json')) {
-      // @todo Logging/exception for better DX.
-      return FALSE;
+      return NULL;
     }
 
     $contents = file_get_contents($extension_path . DIRECTORY_SEPARATOR . 'schema.json');
@@ -58,18 +102,9 @@ class JsonSchemaDefinitionsStreamwrapper extends LocalReadOnlyStream {
       throw new \InvalidArgumentException(\sprintf("%s does not contain a `%s` definition.", $extension_path, $definition_name));
     }
 
-    $stream = fopen('php://memory', 'r+');
-    if (!\is_resource($stream)) {
-      return FALSE;
-    }
-
-    $json = json_encode($json_schema['$defs'][$definition_name]);
-    \assert(\is_string($json));
-    fwrite($stream, $json);
-    rewind($stream);
-    $this->handle = $stream;
-
-    return TRUE;
+    $definition = $json_schema['$defs'][$definition_name];
+    \assert(\is_array($definition));
+    return $definition;
   }
 
   /**
