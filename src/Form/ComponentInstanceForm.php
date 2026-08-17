@@ -139,6 +139,17 @@ final class ComponentInstanceForm extends FormBase {
     if (!$component->getComponentSource()->isBroken()) {
       $inputs = $component->getComponentSource()->clientModelToInput($component_instance_uuid, $component, $client_model, $host_entity);
       $instance_form = $component->getComponentSource()->buildComponentInstanceForm($sub_form, $form_state, $component, $component_instance_uuid, $inputs, $entity, $component->get('settings'));
+      // A ComponentSource that reports no explicit inputs — a block plugin
+      // without settings, or a code component without props, for example —
+      // builds an empty form. Say so explicitly, instead of rendering a blank
+      // panel. The broken-component branch below never needs this: its Fallback
+      // form always has something to show.
+      if (!$component->getComponentSource()->requiresExplicitInput()) {
+        $instance_form['canvas_no_inputs'] = [
+          '#type' => 'item',
+          '#markup' => $this->t('This component has no settings.'),
+        ];
+      }
     }
     else {
       // The component is broken, so we must assist the Canvas content author

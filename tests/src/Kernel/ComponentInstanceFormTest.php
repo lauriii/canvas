@@ -428,7 +428,10 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
    */
   #[TestWith([
     'canvas_test_block_input_none',
-    '',
+    // A block plugin without settings builds an empty form, so the form says
+    // so. Note that the broken case below does not: it renders the Fallback
+    // form, which always has something to show.
+    'This component has no settings.',
     'Previously stored input {"id":"canvas_test_block_input_none","label":"Test block with no settings.","label_display":"0","provider":"canvas_test_block"}',
   ])]
   #[TestWith([
@@ -506,7 +509,8 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     $component = Component::load(JsComponent::componentIdFromJavascriptComponentId($code_component->id()));
     self::assertInstanceOf(Component::class, $component);
     $response = $this->getCrawlerForFormRequest('/canvas/api/v0/form/component-instance/canvas_page/' . $page->id(), $component, []);
-    self::assertSame('', $response->text());
+    // A code component without props builds an empty form, so the form says so.
+    self::assertSame('This component has no settings.', $response->text());
 
     // Create an instance of the no-props code component.
     $page->setComponentTree([
