@@ -230,4 +230,45 @@ final class GetComponentContextTest extends CanvasKernelTestBase {
     $this->assertTrue($stored[$card_id]['props']['loading']['required'] ?? FALSE, 'Required flag must be persisted to config.');
   }
 
+  /**
+   * Tests the catalog_only flag returns only id, name and description.
+   */
+  public function testCatalogOnlyReturnsLeanListing(): void {
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
+    $this->generateComponentConfig();
+
+    $tool = $this->functionCallManager->createInstance('canvas_ai:get_component_context');
+    $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);
+    $tool->setContextValue('catalog_only', TRUE);
+    $tool->execute();
+
+    $catalog = Yaml::parse($tool->getReadableOutput()) ?? [];
+    $this->assertNotEmpty($catalog);
+    foreach ($catalog as $component_id => $entry) {
+      $this->assertSame(['name', 'description'], \array_keys($entry), "Catalog entry for $component_id must hold only name and description.");
+    }
+
+    // The lean listing covers the same components as the full context.
+    $full = Yaml::parse($this->container->get('canvas_ai.page_builder_helper')
+      ->getComponentContextForAi()) ?? [];
+    $this->assertSame(\array_keys($full), \array_keys($catalog));
+  }
+
+  /**
+   * Tests the output stays unchanged when catalog_only is not set.
+   */
+  public function testWithoutCatalogOnlyOutputIsUnchanged(): void {
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
+    $this->generateComponentConfig();
+
+    $expected = $this->container->get('canvas_ai.page_builder_helper')
+      ->getComponentContextForAi();
+
+    $tool = $this->functionCallManager->createInstance('canvas_ai:get_component_context');
+    $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);
+    $tool->execute();
+
+    $this->assertSame($expected, $tool->getReadableOutput());
+  }
+
 }
