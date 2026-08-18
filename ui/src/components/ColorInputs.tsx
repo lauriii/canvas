@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { CaretSortIcon } from '@radix-ui/react-icons';
 import {
   hexToHsva,
@@ -66,6 +66,96 @@ const hexInputToHsva = (value: string): HsvaColor | null => {
   return hsva;
 };
 
+type NumericInputOptions = {
+  isInteger?: boolean;
+  precision?: number;
+};
+
+const roundToPrecision = (value: number, precision: number): number => {
+  const factor = 10 ** precision;
+  return Math.round(value * factor) / factor;
+};
+
+const useNumericInput = (
+  value: number,
+  onChange: (value: number) => void,
+  isValid: (value: number) => boolean,
+  { isInteger = false, precision }: NumericInputOptions = {},
+) => {
+  const format = useCallback(
+    (v: number) => {
+      if (isInteger) {
+        return String(Math.round(v));
+      }
+      if (precision !== undefined) {
+        return String(roundToPrecision(v, precision));
+      }
+      return String(v);
+    },
+    [isInteger, precision],
+  );
+  const [inputValue, setInputValue] = useState(format(value));
+  const [isFocused, setIsFocused] = useState(false);
+
+  useEffect(() => {
+    if (!isFocused) {
+      setInputValue(format(value));
+    }
+  }, [value, isFocused, format]);
+
+  const parse = (v: string): number | null => {
+    if (v === '') {
+      return null;
+    }
+    const parsed = isInteger ? parseInt(v, 10) : parseFloat(v);
+    return isNaN(parsed) ? null : parsed;
+  };
+
+  const isInvalid = (() => {
+    const parsed = parse(inputValue);
+    return parsed === null || !isValid(parsed);
+  })();
+
+  const className = (() => {
+    const baseClass = styles.rgbaNativeInput;
+    if (isInvalid) {
+      if (isFocused) {
+        return `${baseClass} ${styles.rgbaNativeInputInvalidSubtle}`;
+      }
+      return `${baseClass} ${styles.rgbaNativeInputInvalid}`;
+    }
+    return baseClass;
+  })();
+
+  const handleChange = (newValue: string) => {
+    setInputValue(newValue);
+    const parsed = parse(newValue);
+    if (parsed !== null && isValid(parsed)) {
+      onChange(
+        precision !== undefined ? roundToPrecision(parsed, precision) : parsed,
+      );
+    }
+  };
+
+  const handleFocus = () => {
+    setIsFocused(true);
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    setInputValue(format(value));
+  };
+
+  return {
+    value: inputValue,
+    isInvalid,
+    className,
+    onChange: handleChange,
+    onFocus: handleFocus,
+    onBlur: handleBlur,
+  };
+};
+
 const ColorInputs = ({
   hsva,
   onChange,
@@ -75,6 +165,56 @@ const ColorInputs = ({
 }: ColorInputsProps) => {
   const rgba = hsvaToRgba(hsva);
   const hsla = hsvaToHsla(hsva);
+
+  const rInput = useNumericInput(
+    rgba.r,
+    (r) => onChange(rgbaToHsva({ ...rgba, r })),
+    (v) => v >= 0 && v <= 255,
+    { isInteger: true },
+  );
+  const gInput = useNumericInput(
+    rgba.g,
+    (g) => onChange(rgbaToHsva({ ...rgba, g })),
+    (v) => v >= 0 && v <= 255,
+    { isInteger: true },
+  );
+  const bInput = useNumericInput(
+    rgba.b,
+    (b) => onChange(rgbaToHsva({ ...rgba, b })),
+    (v) => v >= 0 && v <= 255,
+    { isInteger: true },
+  );
+  const aInput = useNumericInput(
+    rgba.a,
+    (a) => onChange(rgbaToHsva({ ...rgba, a })),
+    (v) => v >= 0 && v <= 1,
+    { precision: 2 },
+  );
+
+  const hInput = useNumericInput(
+    Math.round(hsla.h),
+    (h) => onChange(hslaToHsva({ ...hsla, h })),
+    (v) => v >= 0 && v <= 360,
+    { isInteger: true },
+  );
+  const sInput = useNumericInput(
+    Math.round(hsla.s),
+    (s) => onChange(hslaToHsva({ ...hsla, s })),
+    (v) => v >= 0 && v <= 100,
+    { isInteger: true },
+  );
+  const lInput = useNumericInput(
+    Math.round(hsla.l),
+    (l) => onChange(hslaToHsva({ ...hsla, l })),
+    (v) => v >= 0 && v <= 100,
+    { isInteger: true },
+  );
+  const hslaAInput = useNumericInput(
+    hsla.a,
+    (a) => onChange(hslaToHsva({ ...hsla, a })),
+    (v) => v >= 0 && v <= 1,
+    { precision: 2 },
+  );
 
   // HEX input state
   const [hexInputValue, setHexInputValue] = useState(() =>
@@ -99,74 +239,37 @@ const ColorInputs = ({
     }
   }, [mode, hsva]);
 
-  const handleRChange = (value: string) => {
-    const r = parseInt(value, 10);
-    if (!isNaN(r) && r >= 0 && r <= 255) {
-      onChange(rgbaToHsva({ ...rgba, r }));
-    }
-  };
+  const isNumericInputValid =
+    !rInput.isInvalid &&
+    !gInput.isInvalid &&
+    !bInput.isInvalid &&
+    !aInput.isInvalid &&
+    !hInput.isInvalid &&
+    !sInput.isInvalid &&
+    !lInput.isInvalid &&
+    !hslaAInput.isInvalid;
+  const isHexInputValid = mode !== 'hex' || !isHexInvalid;
+  const isValid = isNumericInputValid && isHexInputValid;
 
-  const handleGChange = (value: string) => {
-    const g = parseInt(value, 10);
-    if (!isNaN(g) && g >= 0 && g <= 255) {
-      onChange(rgbaToHsva({ ...rgba, g }));
-    }
-  };
+  const prevIsValidRef = useRef(true);
 
-  const handleBChange = (value: string) => {
-    const b = parseInt(value, 10);
-    if (!isNaN(b) && b >= 0 && b <= 255) {
-      onChange(rgbaToHsva({ ...rgba, b }));
+  useEffect(() => {
+    if (isValid !== prevIsValidRef.current) {
+      prevIsValidRef.current = isValid;
+      onValidityChange?.(isValid);
     }
-  };
-
-  const handleAChange = (value: string) => {
-    const a = parseFloat(value);
-    if (!isNaN(a) && a >= 0 && a <= 1) {
-      onChange(rgbaToHsva({ ...rgba, a }));
-    }
-  };
-
-  const handleHChange = (value: string) => {
-    const h = parseInt(value, 10);
-    if (!isNaN(h) && h >= 0 && h <= 360) {
-      onChange(hslaToHsva({ ...hsla, h }));
-    }
-  };
-
-  const handleSChange = (value: string) => {
-    const s = parseInt(value, 10);
-    if (!isNaN(s) && s >= 0 && s <= 100) {
-      onChange(hslaToHsva({ ...hsla, s }));
-    }
-  };
-
-  const handleLChange = (value: string) => {
-    const l = parseInt(value, 10);
-    if (!isNaN(l) && l >= 0 && l <= 100) {
-      onChange(hslaToHsva({ ...hsla, l }));
-    }
-  };
-
-  const handleHslaAChange = (value: string) => {
-    const a = parseFloat(value);
-    if (!isNaN(a) && a >= 0 && a <= 1) {
-      onChange(hslaToHsva({ ...hsla, a }));
-    }
-  };
+  }, [isValid, onValidityChange]);
 
   const handleHexChange = (value: string) => {
     setHexInputValue(value.toUpperCase());
     if (isValidHex(value)) {
       const newHsva = hexInputToHsva(value);
       if (newHsva !== null) {
-        onChange(newHsva);
+        onChange({ ...newHsva, a: roundToPrecision(newHsva.a, 2) });
         setIsHexInvalid(false);
-        onValidityChange?.(true);
       }
     } else {
       setIsHexInvalid(true);
-      onValidityChange?.(false);
     }
   };
 
@@ -180,7 +283,6 @@ const ColorInputs = ({
     if (isHexInvalid) {
       setHexInputValue(hsvaToHexInput(hsva));
       setIsHexInvalid(false);
-      onValidityChange?.(true);
     }
   };
 
@@ -211,9 +313,11 @@ const ColorInputs = ({
                 min={0}
                 max={255}
                 step={1}
-                value={rgba.r}
-                onChange={(e) => handleRChange(e.target.value)}
-                className={styles.rgbaNativeInput}
+                value={rInput.value}
+                onChange={(e) => rInput.onChange(e.target.value)}
+                onFocus={rInput.onFocus}
+                onBlur={rInput.onBlur}
+                className={rInput.className}
                 aria-label="Red value"
               />
               <label htmlFor="color-r" className={styles.rgbaLabel}>
@@ -228,9 +332,11 @@ const ColorInputs = ({
                 min={0}
                 max={255}
                 step={1}
-                value={rgba.g}
-                onChange={(e) => handleGChange(e.target.value)}
-                className={styles.rgbaNativeInput}
+                value={gInput.value}
+                onChange={(e) => gInput.onChange(e.target.value)}
+                onFocus={gInput.onFocus}
+                onBlur={gInput.onBlur}
+                className={gInput.className}
                 aria-label="Green value"
               />
               <label htmlFor="color-g" className={styles.rgbaLabel}>
@@ -245,9 +351,11 @@ const ColorInputs = ({
                 min={0}
                 max={255}
                 step={1}
-                value={rgba.b}
-                onChange={(e) => handleBChange(e.target.value)}
-                className={styles.rgbaNativeInput}
+                value={bInput.value}
+                onChange={(e) => bInput.onChange(e.target.value)}
+                onFocus={bInput.onFocus}
+                onBlur={bInput.onBlur}
+                className={bInput.className}
                 aria-label="Blue value"
               />
               <label htmlFor="color-b" className={styles.rgbaLabel}>
@@ -262,9 +370,11 @@ const ColorInputs = ({
                 min={0}
                 max={1}
                 step={0.01}
-                value={rgba.a}
-                onChange={(e) => handleAChange(e.target.value)}
-                className={styles.rgbaNativeInput}
+                value={aInput.value}
+                onChange={(e) => aInput.onChange(e.target.value)}
+                onFocus={aInput.onFocus}
+                onBlur={aInput.onBlur}
+                className={aInput.className}
                 aria-label="Alpha value"
               />
               <label htmlFor="color-a-rgba" className={styles.rgbaLabel}>
@@ -284,9 +394,11 @@ const ColorInputs = ({
                 min={0}
                 max={360}
                 step={1}
-                value={Math.round(hsla.h)}
-                onChange={(e) => handleHChange(e.target.value)}
-                className={styles.rgbaNativeInput}
+                value={hInput.value}
+                onChange={(e) => hInput.onChange(e.target.value)}
+                onFocus={hInput.onFocus}
+                onBlur={hInput.onBlur}
+                className={hInput.className}
                 aria-label="Hue value"
               />
               <label htmlFor="color-h" className={styles.rgbaLabel}>
@@ -301,9 +413,11 @@ const ColorInputs = ({
                 min={0}
                 max={100}
                 step={1}
-                value={Math.round(hsla.s)}
-                onChange={(e) => handleSChange(e.target.value)}
-                className={styles.rgbaNativeInput}
+                value={sInput.value}
+                onChange={(e) => sInput.onChange(e.target.value)}
+                onFocus={sInput.onFocus}
+                onBlur={sInput.onBlur}
+                className={sInput.className}
                 aria-label="Saturation value"
               />
               <label htmlFor="color-s" className={styles.rgbaLabel}>
@@ -318,9 +432,11 @@ const ColorInputs = ({
                 min={0}
                 max={100}
                 step={1}
-                value={Math.round(hsla.l)}
-                onChange={(e) => handleLChange(e.target.value)}
-                className={styles.rgbaNativeInput}
+                value={lInput.value}
+                onChange={(e) => lInput.onChange(e.target.value)}
+                onFocus={lInput.onFocus}
+                onBlur={lInput.onBlur}
+                className={lInput.className}
                 aria-label="Lightness value"
               />
               <label htmlFor="color-l" className={styles.rgbaLabel}>
@@ -335,9 +451,11 @@ const ColorInputs = ({
                 min={0}
                 max={1}
                 step={0.01}
-                value={hsla.a}
-                onChange={(e) => handleHslaAChange(e.target.value)}
-                className={styles.rgbaNativeInput}
+                value={hslaAInput.value}
+                onChange={(e) => hslaAInput.onChange(e.target.value)}
+                onFocus={hslaAInput.onFocus}
+                onBlur={hslaAInput.onBlur}
+                className={hslaAInput.className}
                 aria-label="Alpha value"
               />
               <label htmlFor="color-a-hsla" className={styles.rgbaLabel}>

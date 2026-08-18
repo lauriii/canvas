@@ -143,8 +143,15 @@ test.describe('brand kit colors', () => {
 
     // - Edit "Brand Blue" so the color is now yellow (255, 255, 0)
     // Color picker is already open from format verification above
-    // Set RGBA values for yellow (switching from RGBA mode)
+
+    // Test validation: enter out-of-range RGB value should disable save
+    await page.locator(SEL.form.rgba.r).fill('999');
+    await expect(page.locator(SEL.form.save)).toBeDisabled();
+
+    // Fix to valid value and continue
     await page.locator(SEL.form.rgba.r).fill('255');
+    await expect(page.locator(SEL.form.save)).toBeEnabled();
+
     await page.locator(SEL.form.rgba.g).fill('255');
     await page.locator(SEL.form.rgba.b).fill('0');
     // Assert preview swatch updates to yellow before saving
@@ -215,6 +222,15 @@ test.describe('brand kit colors', () => {
     await page.locator(SEL.folderMenuOpen('Color Pocket')).click();
     await page.locator(SEL.folderMenu.addColor).click();
     await page.locator(SEL.form.name).fill('New Blue');
+
+    // Test validation: negative alpha value should disable save
+    await page.locator(SEL.form.rgba.a).fill('-0.5');
+    await expect(page.locator(SEL.form.save)).toBeDisabled();
+
+    // Fix alpha and continue with blue color
+    await page.locator(SEL.form.rgba.a).fill('1');
+    await expect(page.locator(SEL.form.save)).toBeEnabled();
+
     // Enter blue in RGBA (starting mode assumed to be RGBA)
     await page.locator(SEL.form.rgba.r).fill('0');
     await page.locator(SEL.form.rgba.g).fill('0');
@@ -227,9 +243,29 @@ test.describe('brand kit colors', () => {
     await expect(page.locator(SEL.form.hsla.s)).toHaveValue('100');
     await expect(page.locator(SEL.form.hsla.l)).toHaveValue('50');
 
+    // Test HSLA validation: out-of-range hue should disable save
+    await page.locator(SEL.form.hsla.h).fill('500');
+    await expect(page.locator(SEL.form.save)).toBeDisabled();
+
+    // Fix back to valid hue
+    await page.locator(SEL.form.hsla.h).fill('240');
+    await expect(page.locator(SEL.form.save)).toBeEnabled();
+
     // Switch HSLA → HEX.
     await page.locator(SEL.form.switchModeFrom('hsla')).click();
     await expect(page.locator(SEL.form.hex)).toHaveValue('0000FF');
+
+    // Test HEX validation: invalid characters should disable save
+    await page.locator(SEL.form.hex).fill('GGGGGG');
+    await expect(page.locator(SEL.form.save)).toBeDisabled();
+
+    // Test HEX validation: too short should disable save
+    await page.locator(SEL.form.hex).fill('FFF');
+    await expect(page.locator(SEL.form.save)).toBeDisabled();
+
+    // Fix to valid hex
+    await page.locator(SEL.form.hex).fill('0000FF');
+    await expect(page.locator(SEL.form.save)).toBeEnabled();
 
     await page.locator(SEL.form.switchModeFrom('hex')).click();
     await page.locator(SEL.form.rgba.a).fill('0.9');
@@ -257,9 +293,30 @@ test.describe('brand kit colors', () => {
     await page.locator(SEL.newBtn).click();
     await page.locator(SEL.newColorBtn).click();
     await page.locator(SEL.form.name).fill('Groovy Gray');
+
+    // Test additional validation scenarios on this new color
+    // Start in RGBA, set initial values
     await page.locator(SEL.form.rgba.r).fill('128');
     await page.locator(SEL.form.rgba.g).fill('128');
     await page.locator(SEL.form.rgba.b).fill('128');
+
+    // Switch to HSLA and test validation (RGBA → HSLA)
+    await page.locator(SEL.form.switchFmt).click();
+    await expect(page.locator(SEL.form.hsla.h)).toBeVisible();
+
+    // Test saturation > 100 disables save
+    await page.locator(SEL.form.hsla.s).fill('150');
+    await expect(page.locator(SEL.form.save)).toBeDisabled();
+
+    // Test lightness > 100 disables save
+    // Fix saturation first
+    await page.locator(SEL.form.hsla.s).fill('0');
+    await page.locator(SEL.form.hsla.l).fill('200');
+    await expect(page.locator(SEL.form.save)).toBeDisabled();
+
+    // Fix lightness to valid value and save
+    await page.locator(SEL.form.hsla.l).fill('50');
+    await expect(page.locator(SEL.form.save)).toBeEnabled();
     await page.locator(SEL.form.save).click();
     // Confirm it appears in the top-level list (not inside any folder)
     await expect(page.locator(SEL.row('Groovy Gray'))).toBeVisible();

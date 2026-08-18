@@ -52,6 +52,18 @@ const valueToHsva = (val: BrandKitColorValue): HsvaColor => {
   }
 };
 
+const ALPHA_PRECISION = 2;
+
+const roundAlpha = (a: number): number => {
+  const factor = 10 ** ALPHA_PRECISION;
+  return Math.round(a * factor) / factor;
+};
+
+const withRoundedAlpha = (hsva: HsvaColor): HsvaColor => ({
+  ...hsva,
+  a: roundAlpha(hsva.a),
+});
+
 // Convert HsvaColor back to BrandKitColorValue
 const hsvaToValue = (
   hsva: HsvaColor,
@@ -98,7 +110,9 @@ const ColorPicker = ({
   onChange,
   onValidityChange,
 }: ColorPickerProps) => {
-  const [hsva, setHsva] = useState<HsvaColor>(() => valueToHsva(value));
+  const [hsva, setHsva] = useState<HsvaColor>(() =>
+    withRoundedAlpha(valueToHsva(value)),
+  );
   const [colorMode, setColorMode] = useState<'rgba' | 'hsla' | 'hex'>(() =>
     getInitialColorMode(value.colorSpace),
   );
@@ -112,7 +126,7 @@ const ColorPicker = ({
 
   // Sync external value changes back into internal HSVA state
   useEffect(() => {
-    setHsva(valueToHsva(value));
+    setHsva(withRoundedAlpha(valueToHsva(value)));
     // Only update colorMode when colorSpace changes externally
     // (not when user switches modes internally)
     if (value.colorSpace !== prevColorSpaceRef.current) {
@@ -143,13 +157,15 @@ const ColorPicker = ({
   };
 
   const handleHsvaChange = (newHsva: HsvaColor) => {
-    setHsva(newHsva);
-    onChange(hsvaToValue(newHsva, value.colorSpace));
+    const roundedHsva = withRoundedAlpha(newHsva);
+    setHsva(roundedHsva);
+    onChange(hsvaToValue(roundedHsva, value.colorSpace));
   };
 
   const handleColorInputsChange = (newHsva: HsvaColor) => {
-    setHsva(newHsva);
-    onChange(hsvaToValue(newHsva, value.colorSpace));
+    const roundedHsva = withRoundedAlpha(newHsva);
+    setHsva(roundedHsva);
+    onChange(hsvaToValue(roundedHsva, value.colorSpace));
   };
 
   const hasEyeDropper = typeof window !== 'undefined' && 'EyeDropper' in window;
@@ -164,7 +180,10 @@ const ColorPicker = ({
       if (result && result.sRGBHex) {
         const newHsva = hexToHsva(result.sRGBHex);
         // Keep existing alpha when using eyedropper
-        const mergedHsva: HsvaColor = { ...newHsva, a: hsva.a };
+        const mergedHsva: HsvaColor = withRoundedAlpha({
+          ...newHsva,
+          a: hsva.a,
+        });
         setHsva(mergedHsva);
         // Eyedropper always produces sRGB
         const rgba = hsvaToRgba(mergedHsva);
