@@ -1,0 +1,7 @@
+name: 'Canvas deferred slots test'
+type: module
+description: 'Provides a component source with a deferred slot for kernel tests.'
+package: Testing
+core_version_requirement: ^11
+dependencies:
+  - canvas:canvas
