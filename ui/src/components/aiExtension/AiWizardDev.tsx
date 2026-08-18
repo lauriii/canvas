@@ -43,6 +43,8 @@ import { isPropSourceComponent } from '@/types/Component';
 import { getBaseUrl, getDrupalSettings } from '@/utils/drupal-globals';
 
 import fixtureProps from '../../../../modules/canvas_ai/src/PropsSchema.json';
+import ActiveToolPill from './ActiveToolPill';
+import AiToolSelector from './AiToolSelector';
 import { buildCurrentLayout } from './currentLayout';
 
 import type { LayoutModelSliceState } from '@/features/layout/layoutModelSlice';
@@ -548,7 +550,38 @@ const DEEP_CHAT_AUXILIARY_STYLE = `
   .text-message h5 {
     font-size: var(--font-size-1);
   }
+  .custom-button {
+    margin-left: 40px;
+  }
+  /* Clears deep-chat's default gray filter on custom button icons. */
+  .custom-button-container-default > svg {
+    filter: none;
+  }
+
 ` as const;
+
+// Tool popup menu trigger icon: Radix's MixerHorizontalIcon
+// (@radix-ui/react-icons), white on a blue-9 background. Static regardless of
+// hover or whether a tool is selected.
+const DEEP_CHAT_TOOL_BUTTON_STYLES = {
+  container: {
+    default: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: '8px',
+      marginBottom: '12px',
+      backgroundColor: 'var(--blue-9)',
+    },
+  },
+  svg: {
+    content: `
+    <svg width="16" height="16" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M5.5 3C4.67157 3 4 3.67157 4 4.5C4 5.32843 4.67157 6 5.5 6C6.32843 6 7 5.32843 7 4.5C7 3.67157 6.32843 3 5.5 3ZM3 5C3.01671 5 3.03323 4.99918 3.04952 4.99758C3.28022 6.1399 4.28967 7 5.5 7C6.71033 7 7.71978 6.1399 7.95048 4.99758C7.96677 4.99918 7.98329 5 8 5H13.5C13.7761 5 14 4.77614 14 4.5C14 4.22386 13.7761 4 13.5 4H8C7.98329 4 7.96677 4.00082 7.95048 4.00242C7.71978 2.86009 6.71033 2 5.5 2C4.28967 2 3.28022 2.86009 3.04952 4.00242C3.03323 4.00082 3.01671 4 3 4H1.5C1.22386 4 1 4.22386 1 4.5C1 4.77614 1.22386 5 1.5 5H3ZM11.9505 10.9976C11.7198 12.1399 10.7103 13 9.5 13C8.28967 13 7.28022 12.1399 7.04952 10.9976C7.03323 10.9992 7.01671 11 7 11H1.5C1.22386 11 1 10.7761 1 10.5C1 10.2239 1.22386 10 1.5 10H7C7.01671 10 7.03323 10.0008 7.04952 10.0024C7.28022 8.8601 8.28967 8 9.5 8C10.7103 8 11.7198 8.8601 11.9505 10.0024C11.9668 10.0008 11.9833 10 12 10H13.5C13.7761 10 14 10.2239 14 10.5C14 10.7761 13.7761 11 13.5 11H12C11.9833 11 11.9668 10.9992 11.9505 10.9976ZM8 10.5C8 9.67157 8.67157 9 9.5 9C10.3284 9 11 9.67157 11 10.5C11 11.3284 10.3284 12 9.5 12C8.67157 12 8 11.3284 8 10.5Z" fill="white"/>
+    </svg>
+  `,
+  },
+} as const;
 
 // Memoized DeepChat so it only re-renders when its props change identity.
 const MemoDeepChat = memo(DeepChat);
@@ -556,8 +589,18 @@ const MemoDeepChat = memo(DeepChat);
 const AiWizardDev = () => {
   const dispatch = useAppDispatch();
   const drupalSettings = getDrupalSettings();
+  const tools = useMemo(
+    () => drupalSettings.canvas.ai?.tools ?? [],
+    [drupalSettings.canvas.ai],
+  );
   const chatElementRef = useRef<any>(null);
   const [csrfToken, setCsrfToken] = useState<string | null>(null);
+  // Selected Tool ID, sent as the `selected_tool` request parameter. Mirrored
+  // into a ref that connectHandler reads at request time, keeping it out of
+  // that handler's dependencies.
+  const [selectedTool, setSelectedTool] = useState<string | null>(null);
+  const selectedToolRef = useRef(selectedTool);
+  const [isToolSelectorOpen, setIsToolSelectorOpen] = useState(false);
   const [createCodeComponent] = useCreateCodeComponentMutation();
   const navigate = useNavigate();
   const params = useParams();
@@ -733,7 +776,37 @@ const AiWizardDev = () => {
   useEffect(() => {
     receiveMessageRef.current = receiveMessage;
     csrfTokenRef.current = csrfToken;
-  }, [receiveMessage, csrfToken]);
+    selectedToolRef.current = selectedTool;
+  }, [receiveMessage, csrfToken, selectedTool]);
+
+  // Stable handler identities for the customButtons array below.
+  const toggleToolSelector = useCallback(
+    () => setIsToolSelectorOpen((open) => !open),
+    [],
+  );
+  const dismissSelectedTool = useCallback(() => setSelectedTool(null), []);
+
+  const activeTool = useMemo(
+    () => tools.find((tool) => tool.id === selectedTool),
+    [tools, selectedTool],
+  );
+
+  // The Tools menu trigger, built only while tools are configured. Both
+  // dependencies are fixed for the life of the chat, so the array keeps a
+  // stable identity and never re-renders MemoDeepChat.
+  const customButtons = useMemo(
+    () =>
+      tools.length > 0
+        ? [
+            {
+              position: 'inside-start' as const,
+              styles: { button: { default: DEEP_CHAT_TOOL_BUTTON_STYLES } },
+              onClick: toggleToolSelector,
+            },
+          ]
+        : undefined,
+    [tools.length, toggleToolSelector],
+  );
 
   // Stable handler for DeepChat's connect prop. It reads up-to-date data via
   // refs (currentValuesRef, receiveMessageRef, csrfTokenRef, chatElementRef,
@@ -832,6 +905,10 @@ const AiWizardDev = () => {
             derived_proptypes: fixtureProps,
             page_title: pageData['title[0][value]'],
             page_description: pageData['description[0][value]'],
+            // Omitted while no Tool is selected.
+            ...(selectedToolRef.current
+              ? { selected_tool: selectedToolRef.current }
+              : {}),
           };
         };
 
@@ -1018,6 +1095,9 @@ const AiWizardDev = () => {
             Hello, how can I help you today?
           </Text>
         </Flex>
+        {activeTool && (
+          <ActiveToolPill tool={activeTool} onDismiss={dismissSelectedTool} />
+        )}
         <MemoDeepChat
           ref={chatElementRef}
           history={
@@ -1035,7 +1115,17 @@ const AiWizardDev = () => {
           messageStyles={DEEP_CHAT_MESSAGE_STYLES}
           submitButtonStyles={DEEP_CHAT_SUBMIT_BUTTON_STYLES}
           auxiliaryStyle={DEEP_CHAT_AUXILIARY_STYLE}
+          customButtons={customButtons}
         />
+        {tools.length > 0 && (
+          <AiToolSelector
+            tools={tools}
+            open={isToolSelectorOpen}
+            onOpenChange={setIsToolSelectorOpen}
+            selectedTool={selectedTool}
+            onSelect={setSelectedTool}
+          />
+        )}
         <Box className={styles.aiWizardLegalContainer}>
           <Text>
             These responses are generated by AI, which can make mistakes.

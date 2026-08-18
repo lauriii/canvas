@@ -1,0 +1,56 @@
+.pill {
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  height: 48px;
+  padding: 0 8px;
+  cursor: default;
+  border: 1px solid var(--blue-9);
+  border-radius: var(--radius-2);
+  background-color: var(--blue-3);
+}
+
+.pill:hover {
+  background-color: var(--blue-9);
+}
+
+.toolIcon {
+  flex-shrink: 0;
+  color: var(--gray-11);
+}
+
+.pill:hover .toolIcon {
+  color: white;
+}
+
+.toolLabel {
+  overflow: hidden;
+  flex: 1;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--gray-12);
+  font-size: var(--font-size-2);
+}
+
+.pill:hover .toolLabel {
+  color: white;
+}
+
+.dismissButton {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+}
+
+.dismissIcon {
+  color: var(--gray-11);
+}
+
+.pill:hover .dismissIcon {
+  color: white;
+}
