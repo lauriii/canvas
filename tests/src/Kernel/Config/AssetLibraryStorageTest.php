@@ -410,9 +410,15 @@ class AssetLibraryStorageTest extends CanvasKernelTestBase {
       ->get('canvas.generated_asset_cleanup')
       ->get('orphaned_since', []);
     \assert(\is_array($record));
-    \assert(\Drupal\Component\Assertion\Inspector::assertAllIntegers($record));
 
-    return $record;
+    $timestamps = [];
+    foreach ($record as $uri => $since) {
+      \assert(\is_string($uri));
+      \assert(\is_int($since));
+      $timestamps[$uri] = $since;
+    }
+
+    return $timestamps;
   }
 
   /**
