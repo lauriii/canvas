@@ -149,6 +149,16 @@ final class GeneratedAssetCleanup {
         // period now; one seen before keeps the moment it was first seen.
         $since = $orphaned_since[$uri] ?? $now;
         \assert(\is_int($since));
+        // Unless it has been written since that moment, which means it was
+        // referenced again in between and has been orphaned afresh: a file
+        // cannot have been unreferenced for longer than it has held its
+        // current contents. Without this the delete pass below would read it as
+        // written-after-recorded on every run from here on, and a file that was
+        // reverted and then edited again would never be collected at all.
+        $modified = \filemtime($uri);
+        if ($modified !== FALSE && $modified > $since) {
+          $since = $modified;
+        }
         $observed[$uri] = $since;
         if ($now - $since >= $max_age) {
           $candidates[] = $uri;

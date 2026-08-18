@@ -223,12 +223,16 @@ class AssetLibraryStorageTest extends CanvasKernelTestBase {
   }
 
   /**
-   * Tests that reverting an entity makes its orphaned file protected again.
+   * Tests that a resurrected file is kept, and collectable again after that.
    *
    * The paths are content hashes, so reverting to earlier content resurrects an
    * orphaned file under its old name rather than writing a new one. What keeps
    * such a file is the reference set, not its age, and the reference set has to
    * be read from storage rather than from a stale static cache.
+   *
+   * Orphaning it a second time then has to restart the retention period from
+   * that write, or the file reads as written-after-recorded on every later run
+   * and is never collected.
    *
    * Note this covers the *precondition* of the sweep's race, not the race
    * itself: reproducing an entity save interleaved between the sweep's scan and
@@ -263,6 +267,29 @@ class AssetLibraryStorageTest extends CanvasKernelTestBase {
 
     self::assertSame([], $cleanup->deleteStaleFiles());
     self::assertFileExists($orphaned_css_path, 'A file that is current again is never deleted');
+
+    // Orphan it a second time. Its file has been written since the sweep last
+    // recorded it, so the period restarts from that write: keeping the earlier
+    // moment would leave the file reading as written-after-recorded on every
+    // run from here on, and it would never be collected at all.
+    $asset_library->set('css', $second)->save();
+    self::assertSame([], $cleanup->deleteStaleFiles());
+    $this->backdateOrphanRecord(7 * 24 * 60 * 60, age_files: FALSE);
+    $stale_record = $this->orphanRecord()[$orphaned_css_path];
+
+    self::assertSame([], $cleanup->deleteStaleFiles());
+    self::assertFileExists($orphaned_css_path);
+    self::assertGreaterThan(
+      $stale_record,
+      $this->orphanRecord()[$orphaned_css_path],
+      'A file written since it was recorded starts its retention period again',
+    );
+
+    // And once that restarted period has elapsed it is collected, rather than
+    // being passed over for ever.
+    $this->backdateOrphanRecord(7 * 24 * 60 * 60);
+    self::assertContains($orphaned_css_path, $cleanup->deleteStaleFiles());
+    self::assertFileDoesNotExist($orphaned_css_path);
   }
 
   /**
@@ -351,27 +378,41 @@ class AssetLibraryStorageTest extends CanvasKernelTestBase {
    *
    * @see \Drupal\canvas\GeneratedAssetCleanup::deleteStaleFiles()
    */
-  private function backdateOrphanRecord(int $seconds): void {
+  private function backdateOrphanRecord(int $seconds, bool $age_files = TRUE): void {
     $file_system = $this->container->get(FileSystemInterface::class);
     \assert($file_system instanceof FileSystemInterface);
     $store = $this->container->get('keyvalue')->get('canvas.generated_asset_cleanup');
-    $orphaned_since = $store->get('orphaned_since', []);
+    $orphaned_since = $this->orphanRecord();
     self::assertNotEmpty($orphaned_since, 'The sweep records every file it sees unreferenced');
 
     $backdated = [];
     foreach ($orphaned_since as $uri => $since) {
-      \assert(\is_int($since));
       $backdated[$uri] = $since - $seconds;
-      // The file has to look at least as old as its record, or the sweep reads
-      // it as having been written since, which is what it does to spot a file
-      // that came back.
+      // Time passing ages the file along with its record. Leaving the file
+      // alone instead models a file written after it was recorded, which is
+      // how a resurrected one is spotted.
       $real_path = $file_system->realpath($uri);
-      if (\is_string($real_path) && \file_exists($real_path)) {
+      if ($age_files && \is_string($real_path) && \file_exists($real_path)) {
         self::assertTrue(\touch($real_path, $backdated[$uri] - 1));
       }
     }
     $store->set('orphaned_since', $backdated);
     \clearstatcache();
+  }
+
+  /**
+   * When the sweep last saw each unreferenced file, keyed by URI.
+   *
+   * @return array<string, int>
+   */
+  private function orphanRecord(): array {
+    $record = $this->container->get('keyvalue')
+      ->get('canvas.generated_asset_cleanup')
+      ->get('orphaned_since', []);
+    \assert(\is_array($record));
+    \assert(\Drupal\Component\Assertion\Inspector::assertAllIntegers($record));
+
+    return $record;
   }
 
   /**
