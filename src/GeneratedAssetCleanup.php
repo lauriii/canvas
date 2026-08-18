@@ -182,12 +182,16 @@ final class GeneratedAssetCleanup {
    */
   private function getReferencedUris(): array {
     $uris = [];
+    // Read through both static caches. Cron is a long-running request in which
+    // another hook, or this method's own earlier call, may already have loaded
+    // these entities, and a stale path here is a file deleted while it is still
+    // in use. The entity storage's cache is not enough on its own: its loads go
+    // through ConfigFactory::loadMultiple(), which answers from its own
+    // per-request cache before reaching storage, so a save made by another
+    // process would stay invisible for the rest of this request.
+    $this->configFactory->reset();
     foreach (self::ENTITY_TYPE_IDS as $entity_type_id) {
       $storage = $this->entityTypeManager->getStorage($entity_type_id);
-      // Read through the storage's static cache. Cron is a long-running
-      // request in which another hook, or this method's own earlier call, may
-      // already have loaded these entities; a stale path here is a file
-      // deleted while it is still in use.
       $storage->resetCache();
       foreach ($storage->loadMultiple() as $entity) {
         \assert($entity instanceof CanvasAssetInterface);
