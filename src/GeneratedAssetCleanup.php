@@ -60,6 +60,17 @@ final class GeneratedAssetCleanup {
    */
   private const int MINIMUM_MAX_AGE = 21600;
 
+  /**
+   * The most files one sweep deletes.
+   *
+   * The first sweep on a site that has never had one is the largest, and it is
+   * the only sweep that site has ever needed. Bounding it keeps a long backlog
+   * from costing more memory than cron has: exceeding that would abort the run
+   * before anything is deleted, and every later run the same way, so the
+   * backlog could never be worked off. Whatever is left waits for the next run.
+   */
+  private const int MAX_DELETIONS_PER_RUN = 1000;
+
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly FileSystemInterface $fileSystem,
@@ -82,15 +93,21 @@ final class GeneratedAssetCleanup {
       if (!\is_dir($directory)) {
         continue;
       }
-      // Only ever consider the file extensions Canvas generates, so that
-      // anything else a site put in these directories is left alone.
-      //
-      // This materializes one entry per file. The directories are flat and hold
-      // at most two files per save of the three entity types above, so the
-      // first sweep on a site that has never had one is the largest: process
-      // the entries in batches if that ever becomes too big to hold at once.
-      $files = $this->fileSystem->scanDirectory($directory, '/\.(css|js)$/', ['recurse' => FALSE]);
-      foreach (\array_keys($files) as $uri) {
+      // Iterated rather than collected as a whole: a listing of every file in
+      // the directory is the one part of this that grows with the backlog.
+      foreach (new \FilesystemIterator($directory, \FilesystemIterator::SKIP_DOTS) as $file_info) {
+        \assert($file_info instanceof \SplFileInfo);
+        $filename = $file_info->getFilename();
+        // Only ever consider the file extensions Canvas generates, so that
+        // anything else a site put in these directories is left alone.
+        if (!\str_ends_with($filename, '.css') && !\str_ends_with($filename, '.js')) {
+          continue;
+        }
+        // These directories are flat and every generated path is the directory
+        // plus a content hash and an extension, so this is the same URI the
+        // config entities report.
+        // @see \Drupal\canvas\Entity\CanvasAssetLibraryTrait::getCssPath()
+        $uri = $directory . $filename;
         if (isset($in_use[$uri])) {
           continue;
         }
@@ -99,6 +116,9 @@ final class GeneratedAssetCleanup {
           continue;
         }
         $candidates[] = $uri;
+        if (\count($candidates) === self::MAX_DELETIONS_PER_RUN) {
+          break 2;
+        }
       }
     }
 

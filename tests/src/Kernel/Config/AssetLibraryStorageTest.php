@@ -279,6 +279,53 @@ class AssetLibraryStorageTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Tests that a single sweep deletes a bounded number of files.
+   *
+   * A site that has never been swept can hold a backlog bigger than cron has
+   * memory for. Collecting it all at once would abort the run before anything
+   * was deleted, and every later run the same way, so the backlog could never
+   * be worked off. A bounded run works it off over several crons instead.
+   *
+   * @legacy-covers \Drupal\canvas\GeneratedAssetCleanup::deleteStaleFiles
+   */
+  public function testSweepIsBoundedPerRun(): void {
+    $cleanup = $this->container->get(GeneratedAssetCleanup::class);
+    \assert($cleanup instanceof GeneratedAssetCleanup);
+    $file_system = $this->container->get(FileSystemInterface::class);
+    \assert($file_system instanceof FileSystemInterface);
+
+    $directory = AssetLibrary::ASSETS_DIRECTORY;
+    self::assertTrue($file_system->prepareDirectory(
+      $directory,
+      FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS,
+    ));
+    $directory_path = $file_system->realpath($directory);
+    self::assertIsString($directory_path);
+
+    // Matches GeneratedAssetCleanup::MAX_DELETIONS_PER_RUN, which is private.
+    $limit = 1000;
+    $overflow = 5;
+    $long_ago = \time() - (7 * 24 * 60 * 60);
+    for ($i = 0; $i < $limit + $overflow; $i++) {
+      $real_path = $directory_path . '/gc-backlog-' . $i . '.css';
+      self::assertNotFalse(\file_put_contents($real_path, '.gc-backlog{display:none}'));
+      self::assertTrue(\touch($real_path, $long_ago));
+    }
+    \clearstatcache();
+
+    // The backlog is worked off over consecutive runs, and the files the global
+    // entities still point at are never in it, however many runs it takes.
+    self::assertCount($limit, $cleanup->deleteStaleFiles());
+    self::assertCount($overflow, $cleanup->deleteStaleFiles());
+    self::assertSame([], $cleanup->deleteStaleFiles());
+
+    $asset_library = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
+    self::assertNotNull($asset_library);
+    self::assertFileExists($asset_library->getCssPath());
+    self::assertFileExists($asset_library->getJsPath());
+  }
+
+  /**
    * Creates a managed font file for the brand kit to generate CSS from.
    */
   private function createManagedFontFile(string $filename): FileInterface {
