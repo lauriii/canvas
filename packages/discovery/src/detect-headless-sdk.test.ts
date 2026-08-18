@@ -27,34 +27,34 @@ describe('detectHeadlessSdk', () => {
     await writePackageJson({
       dependencies: { '@drupal-canvas/headless': '^0.1.0' },
     });
-    expect(await detectHeadlessSdk(tmpDir)).toBe(true);
+    expect(detectHeadlessSdk(tmpDir)).toBe(true);
   });
 
   it('detects the SDK in devDependencies', async () => {
     await writePackageJson({
       devDependencies: { '@drupal-canvas/headless': '^0.1.0' },
     });
-    expect(await detectHeadlessSdk(tmpDir)).toBe(true);
+    expect(detectHeadlessSdk(tmpDir)).toBe(true);
   });
 
   it('detects a framework SDK package', async () => {
     await writePackageJson({
       dependencies: { '@drupal-canvas/headless-next': '^0.1.0' },
     });
-    expect(await detectHeadlessSdk(tmpDir)).toBe(true);
+    expect(detectHeadlessSdk(tmpDir)).toBe(true);
   });
 
   it('returns false when the SDK is absent', async () => {
     await writePackageJson({ dependencies: { react: '^18.0.0' } });
-    expect(await detectHeadlessSdk(tmpDir)).toBe(false);
+    expect(detectHeadlessSdk(tmpDir)).toBe(false);
   });
 
-  it('returns false when there is no package.json', async () => {
-    expect(await detectHeadlessSdk(tmpDir)).toBe(false);
+  it('returns false when there is no package.json', () => {
+    expect(detectHeadlessSdk(tmpDir)).toBe(false);
   });
 
   it('returns false when package.json is invalid JSON', async () => {
     await fs.writeFile(path.join(tmpDir, 'package.json'), '{ not json');
-    expect(await detectHeadlessSdk(tmpDir)).toBe(false);
+    expect(detectHeadlessSdk(tmpDir)).toBe(false);
   });
 });

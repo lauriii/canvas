@@ -1,5 +1,12 @@
 # @drupal-canvas/cli
 
+## 0.23.1
+
+### Patch Changes
+
+- Updated dependencies [a51630b]
+  - @drupal-canvas/eslint-config@0.9.0
+
 ## 0.23.0
 
 ### Minor Changes

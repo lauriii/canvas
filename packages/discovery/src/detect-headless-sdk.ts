@@ -1,5 +1,5 @@
-import { promises as fs } from 'node:fs';
-import path from 'node:path';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 // The core Canvas Headless SDK package and prefix for its framework adapters.
 const HEADLESS_SDK_PACKAGE = '@drupal-canvas/headless';
@@ -22,10 +22,10 @@ function isHeadlessSdkPackage(packageName: string): boolean {
  * @param projectRoot - Absolute path to the project root.
  * @returns True when the core SDK package is declared, false otherwise.
  */
-export async function detectHeadlessSdk(projectRoot: string): Promise<boolean> {
+export function detectHeadlessSdk(projectRoot: string): boolean {
   try {
-    const packageJsonPath = path.join(projectRoot, 'package.json');
-    const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf-8'));
+    const packageJsonPath = resolve(projectRoot, 'package.json');
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
     const dependencyNames = [
       ...Object.keys(packageJson?.dependencies ?? {}),
       ...Object.keys(packageJson?.devDependencies ?? {}),

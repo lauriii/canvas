@@ -3,7 +3,10 @@ import path from 'path';
 import chalk from 'chalk';
 import { Option } from 'commander';
 import * as p from '@clack/prompts';
-import { discoverCanvasProject } from '@drupal-canvas/discovery';
+import {
+  detectHeadlessSdk,
+  discoverCanvasProject,
+} from '@drupal-canvas/discovery';
 
 import { ensureConfig, getConfig, parseBooleanSetting } from '../config.js';
 import {
@@ -20,7 +23,6 @@ import {
   updateConfigFromOptions,
 } from '../utils/command-helpers';
 import { printCommandIntro } from '../utils/command-intro';
-import { detectHeadlessSdk } from '../utils/detect-headless-sdk';
 import {
   collectContentTemplateResults,
   prepareContentTemplates,
@@ -743,7 +745,7 @@ export function pushCommand(program: Command): void {
         // The app's entries may be framework single-file components (.vue,
         // .astro, .svelte) that the Canvas build pipeline cannot compile, so
         // discovery must not require a JavaScript entry in this mode.
-        const headlessSdkDetected = await detectHeadlessSdk(process.cwd());
+        const headlessSdkDetected = detectHeadlessSdk(process.cwd());
         // Step 1. Discover all components, pages, content templates and regions.
         const discoveryResult = await discoverCanvasProject({
           componentRoot: componentDir,
