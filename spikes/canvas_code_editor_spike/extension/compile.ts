@@ -42,10 +42,9 @@ export async function initCompiler(): Promise<void> {
   if (swcReady) {
     return;
   }
-  // `import.meta` is empty in an IIFE bundle, so resolve against the
-  // extension document instead. Core hits the same problem and passes
-  // `{canvasModulePath}/ui/dist/assets/wasm_bg.wasm` explicitly.
-  await initSwc(new URL('dist/wasm_bg.wasm', document.baseURI).href);
+  // Works because the bundle is ESM (see tsup.config.ts). In an IIFE build
+  // `import.meta` is empty and this must fall back to `document.baseURI`.
+  await initSwc(new URL('./wasm_bg.wasm', import.meta.url).href);
   swcReady = true;
 }
 

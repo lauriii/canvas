@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsup && cp node_modules/@swc/wasm-web/wasm_bg.wasm dist/wasm_bg.wasm",
+    "build": "vite build && cp node_modules/@swc/wasm-web/wasm_bg.wasm dist/wasm_bg.wasm && cp node_modules/tailwindcss-in-browser/dist/lightningcss_node-1.30.1.wasm dist/lightningcss_node.wasm",
     "type-check": "tsc --noEmit --pretty",
     "verify": "npm run type-check && npm run build"
   },
@@ -17,6 +17,7 @@
   },
   "devDependencies": {
     "tsup": "^8.5.1",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vite": "^6.4.3"
   }
 }
