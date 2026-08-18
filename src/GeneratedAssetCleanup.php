@@ -76,7 +76,7 @@ final class GeneratedAssetCleanup {
   public function deleteStaleFiles(): array {
     $in_use = $this->getReferencedUris();
     $cutoff = $this->time->getRequestTime() - $this->getMaxAge();
-    $deleted = [];
+    $candidates = [];
 
     foreach (self::DIRECTORIES as $directory) {
       if (!\is_dir($directory)) {
@@ -93,9 +93,35 @@ final class GeneratedAssetCleanup {
         if ($modified === FALSE || $modified > $cutoff) {
           continue;
         }
-        if ($this->fileSystem->delete($uri)) {
-          $deleted[] = $uri;
-        }
+        $candidates[] = $uri;
+      }
+    }
+
+    if ($candidates === []) {
+      return [];
+    }
+
+    // Deciding and deleting are separate passes because the scan above is not
+    // instantaneous: an editor saving during it can make one of these files
+    // current again, and CanvasAssetStorage rewrites the file under its old
+    // name rather than creating a new one. Reading the reference set a second
+    // time, after the scan, keeps anything that reappeared meanwhile.
+    //
+    // A file that becomes current between this second read and its unlink is
+    // still deleted. Closing that too would mean holding a lock across every
+    // entity save, which is a permanent cost on the save path to protect
+    // against a window of microseconds whose only consequence is a missing
+    // stylesheet until the entity is saved again.
+    // @see \Drupal\canvas\EntityHandlers\CanvasAssetStorage::doSave()
+    $in_use = $this->getReferencedUris();
+
+    $deleted = [];
+    foreach ($candidates as $uri) {
+      if (isset($in_use[$uri])) {
+        continue;
+      }
+      if ($this->fileSystem->delete($uri)) {
+        $deleted[] = $uri;
       }
     }
 
@@ -126,7 +152,13 @@ final class GeneratedAssetCleanup {
   private function getReferencedUris(): array {
     $uris = [];
     foreach (self::ENTITY_TYPE_IDS as $entity_type_id) {
-      foreach ($this->entityTypeManager->getStorage($entity_type_id)->loadMultiple() as $entity) {
+      $storage = $this->entityTypeManager->getStorage($entity_type_id);
+      // Read through the storage's static cache. Cron is a long-running
+      // request in which another hook, or this method's own earlier call, may
+      // already have loaded these entities; a stale path here is a file
+      // deleted while it is still in use.
+      $storage->resetCache();
+      foreach ($storage->loadMultiple() as $entity) {
         \assert($entity instanceof CanvasAssetInterface);
         $uris[$entity->getCssPath()] = TRUE;
         $uris[$entity->getJsPath()] = TRUE;

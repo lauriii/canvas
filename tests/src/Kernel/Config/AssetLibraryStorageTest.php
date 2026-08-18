@@ -219,6 +219,57 @@ class AssetLibraryStorageTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Tests that reverting an entity makes its orphaned file protected again.
+   *
+   * The paths are content hashes, so reverting to earlier content resurrects an
+   * orphaned file under its old name rather than writing a new one. What keeps
+   * such a file is the reference set, not its age, and the reference set has to
+   * be read from storage rather than from a stale static cache.
+   *
+   * Note this covers the *precondition* of the sweep's race, not the race
+   * itself: reproducing an entity save interleaved between the sweep's scan and
+   * its unlink is not practical in a single-threaded kernel test.
+   *
+   * @see \Drupal\canvas\GeneratedAssetCleanup::deleteStaleFiles()
+   * @legacy-covers \Drupal\canvas\GeneratedAssetCleanup::deleteStaleFiles
+   */
+  public function testRevertedEntityKeepsItsResurrectedFile(): void {
+    $cleanup = $this->container->get(GeneratedAssetCleanup::class);
+    \assert($cleanup instanceof GeneratedAssetCleanup);
+
+    $asset_library = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
+    self::assertNotNull($asset_library);
+    $first = ['original' => '.first { display: none; }', 'compiled' => '.first{display:none}'];
+    $second = ['original' => '.second { display: none; }', 'compiled' => '.second{display:none}'];
+
+    $asset_library->set('css', $first)->save();
+    $orphaned_css_path = $asset_library->getCssPath();
+    $asset_library->set('css', $second)->save();
+    self::assertNotSame($orphaned_css_path, $asset_library->getCssPath());
+
+    // Age the orphan so that, on the reference set as it stands now, the sweep
+    // would collect it.
+    $file_system = $this->container->get(FileSystemInterface::class);
+    \assert($file_system instanceof FileSystemInterface);
+    $real_path = $file_system->realpath($orphaned_css_path);
+    self::assertIsString($real_path);
+    self::assertTrue(\touch($real_path, \time() - (7 * 24 * 60 * 60)));
+    \clearstatcache();
+
+    // Now revert, which makes that same path current again: the path is a
+    // content hash, so identical content means the identical file name.
+    $asset_library->set('css', $first)->save();
+    self::assertSame($orphaned_css_path, $asset_library->getCssPath());
+    // Saving rewrote the file, so age it again: this test is about the
+    // reference set, not about the retention period.
+    self::assertTrue(\touch($real_path, \time() - (7 * 24 * 60 * 60)));
+    \clearstatcache();
+
+    self::assertSame([], $cleanup->deleteStaleFiles());
+    self::assertFileExists($orphaned_css_path, 'A file that is current again is never deleted');
+  }
+
+  /**
    * Creates a managed font file for the brand kit to generate CSS from.
    */
   private function createManagedFontFile(string $filename): FileInterface {
