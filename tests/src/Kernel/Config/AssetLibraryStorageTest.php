@@ -311,8 +311,19 @@ class AssetLibraryStorageTest extends CanvasKernelTestBase {
     self::assertStringStartsWith($directory, $in_use_path);
 
     // Installing Canvas leaves orphans of its own, so count what this test made
-    // rather than everything the sweep is entitled to collect.
-    $remaining = static fn (): int => \count(\glob($directory_path . '/gc-backlog-*.css') ?: []);
+    // rather than everything the sweep is entitled to collect. Iterated rather
+    // than globbed because glob() cannot see through a stream wrapper, and the
+    // test site's files live on one.
+    $remaining = static function () use ($directory): int {
+      $count = 0;
+      foreach (new \FilesystemIterator($directory, \FilesystemIterator::SKIP_DOTS) as $file_info) {
+        \assert($file_info instanceof \SplFileInfo);
+        if (\str_starts_with($file_info->getFilename(), 'gc-backlog-')) {
+          $count++;
+        }
+      }
+      return $count;
+    };
     self::assertSame($limit + $overflow, $remaining());
 
     // One run records at most the limit, so the backlog is recorded, and then
