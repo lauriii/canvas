@@ -1,4 +1,4 @@
-import { Cross2Icon, DownloadIcon, TrashIcon } from '@radix-ui/react-icons';
+import { Cross2Icon, PlusIcon } from '@radix-ui/react-icons';
 import {
   Box,
   Button,
@@ -15,7 +15,12 @@ import FontSnippetsCard from '@/features/brandKit/components/FontSnippetsCard';
 import FontVariantList from '@/features/brandKit/components/FontVariantList';
 import StaticFontVariantEditor from '@/features/brandKit/components/StaticFontVariantEditor';
 import VariableFontAxesEditor from '@/features/brandKit/components/VariableFontAxesEditor';
-import { buildFontVariantLabel } from '@/features/brandKit/fontCss';
+import {
+  buildFontFaceStyles,
+  buildFontFamilySummary,
+  isVariableFont,
+  isVariableFontFamily,
+} from '@/features/brandKit/fontCss';
 
 import type {
   AssetLibraryFont,
@@ -47,7 +52,6 @@ type FontFamilyFlyoutProps = {
   onWeightChange: (fontId: string, value: string) => void;
   onWeightCommit: (fontId: string) => Promise<void>;
   selectedFont: AssetLibraryFont | null;
-  selectedFontId: string | null;
 };
 
 const FontFamilyFlyout = ({
@@ -67,134 +71,129 @@ const FontFamilyFlyout = ({
   onWeightChange,
   onWeightCommit,
   selectedFont,
-  selectedFontId,
-}: FontFamilyFlyoutProps) => (
-  <Box className={styles.flyoutPanel}>
-    <Flex
-      align="center"
-      justify="between"
-      gap="3"
-      className={styles.flyoutHeader}
-    >
-      <Box className={styles.flyoutHeaderMeta}>
-        <Heading as="h5" size="3">
-          {fontGroup.family}
-        </Heading>
-        <Text size="1" color="gray">
-          {fontGroup.fonts.length}{' '}
-          {fontGroup.fonts.length === 1
-            ? 'variant uploaded'
-            : 'variants uploaded'}
-        </Text>
-      </Box>
-      <Flex align="center" gap="2" className={styles.flyoutHeaderActions}>
-        <Button
-          size="1"
-          variant="soft"
-          onClick={() => onAddVariantClick(fontGroup.family)}
-          disabled={isBusy}
-        >
-          <DownloadIcon />
-          Add variant
-        </Button>
-        <Popover.Close aria-label="Close font details">
-          <IconButton
-            variant="ghost"
-            color="gray"
-            size="1"
-            className={styles.flyoutCloseButton}
-          >
-            <Cross2Icon />
-          </IconButton>
-        </Popover.Close>
-      </Flex>
-    </Flex>
+}: FontFamilyFlyoutProps) => {
+  // A family is only offered "Add variant" when it is not variable, but the
+  // list of files is shown whenever there is more than one — including the
+  // several files a variable family can still hold, such as an upright and an
+  // italic. Otherwise every file but the first would be unreachable.
+  const isVariableFamily = isVariableFontFamily(fontGroup.fonts);
+  const hasVariantList = fontGroup.fonts.length > 1;
+  const isVariableSelection = selectedFont
+    ? isVariableFont(selectedFont)
+    : false;
 
-    <Box className={styles.flyoutScrollArea}>
-      <Flex direction="column" gap="4" className={styles.flyoutBody}>
-        <Flex direction="column" gap="2">
+  return (
+    <Box className={styles.flyoutPanel}>
+      {/*
+       * Every file in the family gets its @font-face rule, so each variant card
+       * can be typeset in its own weight and style.
+       */}
+      <style>{buildFontFaceStyles(fontGroup.fonts)}</style>
+      <Flex
+        align="center"
+        justify="between"
+        gap="3"
+        className={styles.flyoutHeader}
+      >
+        <Box className={styles.flyoutHeaderMeta}>
+          <Heading as="h5" size="3">
+            {fontGroup.family}
+          </Heading>
           <Text size="1" color="gray">
-            Family name
+            {buildFontFamilySummary(fontGroup.fonts)}
           </Text>
-          <TextField.Root
-            value={familyDraft}
-            onChange={(event) => onSetFamilyDraft(event.target.value)}
-            onBlur={() => void onFamilyCommit(fontGroup.family)}
-            disabled={isBusy}
-          />
+        </Box>
+        <Flex align="center" gap="2" className={styles.flyoutHeaderActions}>
+          {!isVariableFamily && (
+            <Button
+              size="1"
+              variant="soft"
+              onClick={() => onAddVariantClick(fontGroup.family)}
+              disabled={isBusy}
+              data-testid="canvas-brand-kit-font-add-variant-button"
+            >
+              <PlusIcon />
+              Add variant
+            </Button>
+          )}
+          <Popover.Close aria-label="Close font details">
+            <IconButton
+              variant="ghost"
+              color="gray"
+              size="1"
+              className={styles.flyoutCloseButton}
+            >
+              <Cross2Icon />
+            </IconButton>
+          </Popover.Close>
         </Flex>
+      </Flex>
 
-        {selectedFont && (
-          <>
-            <FontVariantList
-              fonts={fontGroup.fonts}
-              onSelectFont={onSelectFont}
-              selectedFontId={selectedFontId}
+      <Flex className={styles.flyoutBody}>
+        <Flex direction="column" className={styles.centerConsole}>
+          <Flex direction="column" gap="2" flexShrink="0">
+            <Text size="1" color="gray">
+              Family name
+            </Text>
+            <TextField.Root
+              value={familyDraft}
+              aria-label="Font family name"
+              onChange={(event) => onSetFamilyDraft(event.target.value)}
+              onBlur={() => void onFamilyCommit(fontGroup.family)}
+              disabled={isBusy}
             />
-            <FontPreviewCard font={selectedFont} />
-            <Box className={styles.settingsSection}>
-              <Flex direction="column" gap="3">
-                <Text size="1" color="gray">
-                  {selectedFont.variantType === 'variable'
-                    ? 'CSS settings'
-                    : 'Variant settings'}
-                </Text>
-                <Flex
-                  align="start"
-                  justify="between"
-                  gap="2"
-                  className={styles.variantHeader}
-                >
-                  <Box className={styles.variantMeta}>
-                    <Text weight="medium">
-                      {buildFontVariantLabel(selectedFont)}
-                    </Text>
-                  </Box>
-                  <IconButton
-                    className={styles.deleteButton}
-                    variant="ghost"
-                    color="gray"
-                    size="1"
-                    onClick={() => void onRemoveFont(selectedFont.id)}
-                    disabled={isBusy}
-                    aria-label={`Remove ${selectedFont.family} ${selectedFont.weight} ${selectedFont.style}`}
-                  >
-                    <TrashIcon />
-                  </IconButton>
-                </Flex>
+          </Flex>
 
-                {selectedFont.variantType === 'variable' &&
-                selectedFont.axes ? (
-                  <VariableFontAxesEditor
-                    font={selectedFont}
-                    isBusy={isBusy}
-                    onAxisSettingChange={onAxisSettingChange}
-                    onAxisSettingCommit={onAxisSettingCommit}
-                  />
-                ) : (
-                  <StaticFontVariantEditor
-                    font={selectedFont}
-                    isBusy={isBusy}
-                    onWeightChange={onWeightChange}
-                    onWeightCommit={onWeightCommit}
-                    onStyleChange={onStyleChange}
-                  />
-                )}
+          {selectedFont && (
+            <>
+              {/* With several files the cards are the preview, each typeset in
+                  its own variant; with one there is nothing to choose between. */}
+              {hasVariantList ? (
+                <FontVariantList
+                  family={fontGroup.family}
+                  fonts={fontGroup.fonts}
+                  isBusy={isBusy}
+                  onRemoveFont={onRemoveFont}
+                  onSelectFont={onSelectFont}
+                  selectedFontId={selectedFont.id}
+                />
+              ) : (
+                <FontPreviewCard font={selectedFont} />
+              )}
 
-                <FontSnippetsCard
-                  copiedSnippetId={copiedSnippetId}
+              {isVariableSelection ? (
+                <VariableFontAxesEditor
                   font={selectedFont}
                   isBusy={isBusy}
-                  onCopySnippet={onCopySnippet}
+                  onAxisSettingChange={onAxisSettingChange}
+                  onAxisSettingCommit={onAxisSettingCommit}
                 />
-              </Flex>
-            </Box>
-            <Box aria-hidden="true" className={styles.flyoutBottomSpacer} />
-          </>
-        )}
+              ) : (
+                <StaticFontVariantEditor
+                  font={selectedFont}
+                  isBusy={isBusy}
+                  onWeightChange={onWeightChange}
+                  onWeightCommit={onWeightCommit}
+                  onStyleChange={onStyleChange}
+                />
+              )}
+            </>
+          )}
+        </Flex>
+
+        <Flex direction="column" className={styles.rightConsole}>
+          {selectedFont && (
+            <FontSnippetsCard
+              copiedSnippetId={copiedSnippetId}
+              font={selectedFont}
+              isBusy={isBusy}
+              onCopySnippet={onCopySnippet}
+            />
+          )}
+        </Flex>
       </Flex>
     </Box>
-  </Box>
-);
+  );
+};
 
 export default FontFamilyFlyout;

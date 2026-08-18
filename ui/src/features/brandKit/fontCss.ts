@@ -35,7 +35,7 @@ export const stripFontClientFields = (
     uri: font.uri,
     format: font.format,
     weight: getWeightDeclaration(font),
-    style: getStyleDeclaration(font),
+    style: getFontFaceStyleDeclaration(font),
   };
 
   if (font.axes?.length) {
@@ -69,10 +69,44 @@ export const groupFontsByFamily = (
     .sort((left, right) => left.family.localeCompare(right.family));
 };
 
-export const buildFontVariantLabel = (font: AssetLibraryFont): string =>
+const getFontFormatLabel = (font: AssetLibraryFont): string =>
+  font.format.toUpperCase();
+
+export const buildFontVariantName = (font: AssetLibraryFont): string =>
   isVariableFont(font)
-    ? `Variable · ${font.format.toUpperCase()}`
-    : `${font.weight} ${font.style === 'italic' ? 'Italic' : 'Normal'} · ${font.format.toUpperCase()}`;
+    ? 'Variable'
+    : `${font.weight} ${font.style === 'italic' ? 'Italic' : 'Normal'}`;
+
+export const buildFontVariantLabel = (font: AssetLibraryFont): string =>
+  `${buildFontVariantName(font)} [${getFontFormatLabel(font)}]`;
+
+/**
+ * A family is variable when every file uploaded under it is a variable font.
+ */
+export const isVariableFontFamily = (fonts: AssetLibraryFont[]): boolean =>
+  fonts.length > 0 && fonts.every((font) => isVariableFont(font));
+
+/**
+ * Lists the distinct file formats a family was uploaded in, in upload order.
+ */
+export const buildFontFamilyFormatsLabel = (
+  fonts: AssetLibraryFont[],
+): string =>
+  Array.from(new Set(fonts.map((font) => getFontFormatLabel(font)))).join(
+    ' / ',
+  );
+
+/**
+ * Counts a family's files the way the family is meant to be read: variable
+ * families ship whole ranges rather than individual weights.
+ */
+export const buildFontFamilySummary = (fonts: AssetLibraryFont[]): string => {
+  if (isVariableFontFamily(fonts)) {
+    return `${fonts.length} variable ${fonts.length === 1 ? 'font' : 'fonts'}`;
+  }
+
+  return `${fonts.length} ${fonts.length === 1 ? 'variant' : 'variants'}`;
+};
 
 const formatAxisValue = (value: number): string =>
   Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)));
@@ -85,22 +119,6 @@ const getAxisSettingValue = (
   font.axes?.find((axis) => axis.tag === tag)?.default ??
   null;
 
-const getVariableItalicState = (
-  font: AssetLibraryFont,
-): 'italic' | 'normal' | null => {
-  const italicValue = getAxisSettingValue(font, 'ital');
-  if (italicValue !== null) {
-    return italicValue > 0 ? 'italic' : 'normal';
-  }
-
-  const slantValue = getAxisSettingValue(font, 'slnt');
-  if (slantValue !== null) {
-    return slantValue !== 0 ? 'italic' : 'normal';
-  }
-
-  return null;
-};
-
 const getWeightDeclaration = (font: AssetLibraryFont): string => {
   const weightAxis = font.axes?.find((axis) => axis.tag === 'wght');
   if (isVariableFont(font) && weightAxis) {
@@ -110,13 +128,19 @@ const getWeightDeclaration = (font: AssetLibraryFont): string => {
   return font.weight;
 };
 
-const getStyleDeclaration = (font: AssetLibraryFont): string => {
+/**
+ * The `font-style` a single `@font-face` can honestly declare for this file.
+ *
+ * A range is only spellable for `oblique <angle>`: `normal italic` is not a
+ * valid descriptor, so a font whose `ital` axis spans both is declared as the
+ * upright face it defaults to. Its italic is reached through
+ * `font-variation-settings`, not by asking the browser for `font-style:
+ * italic` — which, against an upright face, would have the browser fake a slant
+ * on top of the one the axis already applies.
+ */
+export const getFontFaceStyleDeclaration = (font: AssetLibraryFont): string => {
   const italicAxis = font.axes?.find((axis) => axis.tag === 'ital');
   if (isVariableFont(font) && italicAxis) {
-    if (italicAxis.min <= 0 && italicAxis.max >= 1) {
-      return 'normal italic';
-    }
-
     return italicAxis.default > 0 ? 'italic' : 'normal';
   }
 
@@ -149,7 +173,8 @@ export const buildFontFaceSnippet = (font: AssetLibraryFont): string => {
     `  font-family: '${fontFamily}';`,
     `  src: url('${fontUrl}') format('${fontFormatLabels[font.format]}');`,
     `  font-weight: ${getWeightDeclaration(font)};`,
-    `  font-style: ${getStyleDeclaration(font)};`,
+    `  font-style: ${getFontFaceStyleDeclaration(font)};`,
+    '  font-display: swap;',
     '}',
   ];
 
@@ -191,42 +216,95 @@ export const getFontPreloadDefinitions = (
   return Array.from(definitions.values());
 };
 
-export const buildTailwindHtmlSnippet = (font: AssetLibraryFont): string => {
-  const tokenName = buildFontTokenName(font.family);
-  const styleClassParts = [`font-${tokenName}`];
+/**
+ * The Tailwind utilities an author actually has to write to reproduce what the
+ * panel is previewing.
+ *
+ * The family comes from the theme token, and anything already sitting at its
+ * initial value is left out: weight 400, upright, and any axis resting on its
+ * own default all render that way with no utility at all. A snippet that spells
+ * them out reads as though they were doing something.
+ *
+ * `font-*` is the utility for `wght`, so that axis is not repeated in the
+ * arbitrary `font-variation-settings` property; the axes with no utility of
+ * their own — optical size, width, slant — are what that is for.
+ *
+ * Italics follow whatever the accompanying `@font-face` declares, never what
+ * the slant axis currently reads: asking for an italic the face does not have
+ * makes the browser fake one on top of the slant the axis already applies.
+ */
+const fontWeightUtilities: Record<string, string> = {
+  '100': 'font-thin',
+  '200': 'font-extralight',
+  '300': 'font-light',
+  '400': 'font-normal',
+  '500': 'font-medium',
+  '600': 'font-semibold',
+  '700': 'font-bold',
+  '800': 'font-extrabold',
+  '900': 'font-black',
+};
 
-  if (isVariableFont(font) && font.axes?.length) {
-    const axisSettings = font.axes.map((axis) => ({
-      tag: axis.tag,
-      value: getAxisSettingValue(font, axis.tag) ?? axis.default,
-    }));
+/**
+ * Tailwind reads a space in an arbitrary value as an underscore.
+ */
+const toArbitraryValue = (value: string): string =>
+  value.trim().replaceAll(' ', '_');
 
-    const weightValue = getAxisSettingValue(font, 'wght');
-    if (weightValue !== null) {
-      styleClassParts.push(`font-[${formatAxisValue(weightValue)}]`);
-    }
+const buildUsageUtilities = (font: AssetLibraryFont): string[] => {
+  const utilities: string[] = [];
+  const isVariable = isVariableFont(font) && !!font.axes?.length;
 
-    const italicState = getVariableItalicState(font);
-    if (italicState !== null) {
-      styleClassParts.push(italicState === 'italic' ? 'italic' : 'not-italic');
-    } else {
-      styleClassParts.push(font.style === 'italic' ? 'italic' : 'not-italic');
-    }
-
-    styleClassParts.push(
-      `[font-variation-settings:${axisSettings
-        .map((axis) => `'${axis.tag}'_${formatAxisValue(axis.value)}`)
-        .join(',')}]`,
-    );
-  } else {
-    styleClassParts.push(
-      `font-[${font.weight}]`,
-      font.style === 'italic' ? 'italic' : 'not-italic',
+  const weightAxisValue = isVariable ? getAxisSettingValue(font, 'wght') : null;
+  const weight =
+    weightAxisValue !== null
+      ? formatAxisValue(weightAxisValue)
+      : isVariable
+        ? null
+        : font.weight.trim();
+  if (weight && weight !== '400' && weight !== 'normal') {
+    utilities.push(
+      fontWeightUtilities[weight] ?? `font-[${toArbitraryValue(weight)}]`,
     );
   }
 
+  if (
+    (isVariable ? getFontFaceStyleDeclaration(font) : font.style) !== 'normal'
+  ) {
+    utilities.push('italic');
+  }
+
+  if (isVariable) {
+    const variations = (font.axes ?? [])
+      .filter((axis) => axis.tag !== 'wght')
+      .map((axis) => ({
+        tag: axis.tag,
+        value: getAxisSettingValue(font, axis.tag) ?? axis.default,
+        fallback: axis.default,
+      }))
+      .filter((axis) => axis.value !== axis.fallback)
+      .map((axis) => `'${axis.tag}'_${formatAxisValue(axis.value)}`);
+
+    if (variations.length > 0) {
+      utilities.push(`[font-variation-settings:${variations.join(',')}]`);
+    }
+  }
+
+  return utilities;
+};
+
+export const buildTailwindHtmlSnippet = (font: AssetLibraryFont): string => {
+  // A static font's weight is free text an author typed, and this goes into a
+  // double-quoted attribute they will paste into their own markup.
+  const classNames = [
+    `font-${buildFontTokenName(font.family)}`,
+    ...buildUsageUtilities(font),
+  ]
+    .join(' ')
+    .replaceAll('"', '&quot;');
+
   return [
-    `<p class="${styleClassParts.join(' ')}">`,
+    `<p class="${classNames}">`,
     '  The quick brown fox jumps over the lazy dog.',
     '</p>',
   ].join('\n');

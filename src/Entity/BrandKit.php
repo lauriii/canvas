@@ -515,6 +515,10 @@ final class BrandKit extends ConfigEntityBase implements CanvasAssetInterface {
       ),
       \sprintf('  font-weight: %s;', $font['weight']),
       \sprintf('  font-style: %s;', $font['style']),
+      // Render fallback text while the file downloads rather than blocking
+      // first paint on it. Must match the rule the Brand Kit panel shows the
+      // author to copy.
+      '  font-display: swap;',
       '}',
     ];
 

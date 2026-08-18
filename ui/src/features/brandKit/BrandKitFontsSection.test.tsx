@@ -175,6 +175,40 @@ describe('BrandKitFontsSection', () => {
     });
   });
 
+  it('deletes every file uploaded under a family', async () => {
+    const saveFonts = vi.fn().mockResolvedValue(undefined);
+    const buildFont = (id: string, family: string) => ({
+      id,
+      family,
+      uri: `${FONT_ASSET_BASE_URI}${id}.woff2`,
+      url: `${FONT_ASSET_BASE_URL}${id}.woff2`,
+      format: 'woff2',
+      variantType: 'static',
+      weight: '400',
+      style: 'normal',
+    });
+    useBrandKitFontsMock.mockReturnValue({
+      errorMessage: null,
+      fonts: [
+        buildFont('mona-400', 'Mona Sans'),
+        buildFont('mona-700', 'Mona Sans'),
+        buildFont('inter-400', 'Inter'),
+      ],
+      isLoading: false,
+      isSaving: false,
+      saveFonts,
+      setFonts: vi.fn(),
+    });
+
+    render(<BrandKitFontsSection />);
+
+    await fontFamiliesListProps?.onRemoveFamily('Mona Sans');
+
+    expect(saveFonts).toHaveBeenCalledWith([
+      expect.objectContaining({ id: 'inter-400' }),
+    ]);
+  });
+
   it('does not show the empty state when the fonts section has an error', () => {
     useBrandKitFontsMock.mockReturnValue({
       errorMessage: 'Failed to load fonts.',
