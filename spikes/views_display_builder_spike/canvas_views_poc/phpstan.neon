@@ -17,3 +17,7 @@ parameters:
     # Cannot be narrowed: ContainerFactoryPluginInterface::create() types it as
     # a bare array, and narrowing the override violates contravariance.
     - '#create\(\) has parameter \$configuration with no value type#'
+    # POC: the interface phpdoc types iterables narrowly for prop-source-based
+    # sources; this source's inputs are a plain bindings map.
+    - identifier: missingType.iterableValue
+    - '#getDefaultExplicitInput\(\) should return#'

@@ -131,3 +131,52 @@ The gap to the full requirement is a per-placement row template and the
 display chrome; the `canvas-list-builder` change's deferred-slot interface
 (`ComponentSourceWithDeferredSlotsInterface`, its design D6 Phase B) is the
 committed API for exactly that, and the plan's phase 2 now targets it.
+
+## Fourth iteration: `views_list` — the display designed in Canvas per placement
+
+Built on the new core `ComponentSourceWithDeferredSlotsInterface` (branch
+`feat/deferred-slot-rendering`, the implemented subset of canvas-list-builder's
+D6 Phase B design). `canvas_views_poc` now also provides a `views_list`
+component source: one Canvas component per eligible views display, each with an
+`item_template` deferred slot the user designs in the Canvas editor, per
+placement, plus per-prop bindings to the display's Views fields in the
+component's own Settings panel.
+
+Verified end to end in the Canvas editor on the live site:
+
+1. Insert "POC: fields rows: Page" from the Library (auto-discovered, one
+   component per views display).
+2. The Item template slot appears in Layers and as a drop target in the
+   preview; a Heading component placed inside it renders once per result row
+   (3 rows in preview, editing annotations on the first repetition only).
+3. Selecting the views_list instance shows the bindings form in the editor's
+   Settings panel: "Heading: text" with the display's field handlers as
+   options. Choosing "Content: Title" re-renders the preview with each row's
+   own title (`evidence/views-list-editor-bound.png`).
+4. Publish; the anonymous live page renders all rows (no preview cap), each
+   with its row's value (`evidence/views-list-live.png`).
+
+Client-side integration facts learned the hard way, recorded for the real
+module:
+
+- An instance only appears in the client model when its source
+  `requiresExplicitInput()`; without a model entry, selecting the instance
+  crashes the editor (`ComponentTreeItemList::buildLayoutAndModel()` gates on
+  it).
+- Do not return `propSources` from `getClientSideInfo()` for a source whose
+  props are not prop-source-backed: the client then routes it through the
+  evaluated-model path and reads `model.source`, which does not exist.
+- Static props arrive collapsed (bare scalar) or expanded (array with `value`);
+  per-row substitution must handle both.
+- The editor's preview slot drop-zones come from
+  `<!-- canvas-slot-start-{uuid}/{slot} -->` comment markers; emitting them
+  around the first repetition (or the empty-slot placeholder div) is all a
+  source must do for slot DnD and the layers tree to work.
+- The instance form must read the auto-save draft, not the saved entity, to see
+  children the user just dragged in.
+
+One automation caveat: moving an already-placed component into the slot was
+done by editing the auto-save draft server-side, because dnd-kit did not accept
+this harness's synthetic pointer sequences. Inserting, selecting, binding,
+previewing, and publishing all happened through the real editor UI; component
+drag-and-drop works for human pointers.

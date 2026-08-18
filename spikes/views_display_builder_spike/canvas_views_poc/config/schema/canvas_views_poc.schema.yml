@@ -1,0 +1,23 @@
+canvas.component_source_local_id.views_list:
+  type: canvas.component_source_local_id.*
+  label: 'View and display ID'
+  constraints:
+    FullyValidatable: ~
+    Regex:
+      pattern: '/^[a-z0-9_]+\.[a-z0-9_]+$/'
+canvas.component_source_settings.views_list:
+  type: canvas.component_source_settings.*
+  label: 'Views list component settings'
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    view_id:
+      type: string
+      label: 'View ID'
+      constraints:
+        NotBlank: ~
+    display_id:
+      type: string
+      label: 'Display ID'
+      constraints:
+        NotBlank: ~
