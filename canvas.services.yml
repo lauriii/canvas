@@ -61,6 +61,7 @@ services:
   Drupal\canvas\CanvasNotificationHandler: {}
   Drupal\canvas\AssetRenderer: {}
   Drupal\canvas\Utility\HomePageHelper: {}
+  Drupal\canvas\Utility\ColorResolver: {}
   Drupal\canvas\Component\Schema\PropChoiceOptionsResolver:
     arguments:
       $stringTranslation: '@string_translation'
@@ -263,3 +264,4 @@ services:
     public: false
     decorates: plugin.manager.block
     arguments: ['@.inner']
+

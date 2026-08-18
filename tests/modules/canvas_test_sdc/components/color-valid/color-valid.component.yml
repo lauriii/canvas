@@ -1,0 +1,24 @@
+'$schema': 'https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json'
+name: Color Valid
+status: stable
+description: A test component with a valid color prop using canvas.module/color $ref.
+group: Other
+props:
+  type: object
+  required:
+    - heading
+  properties:
+    heading:
+      type: string
+      title: Heading
+      description: The heading text.
+      examples:
+        - 'Color Test Heading'
+    background_color:
+      type: string
+      title: Background Color
+      description: The background color for the component.
+      $ref: 'json-schema-definitions://canvas.module/color'
+      'x-canvas-color-picker': 'kit-and-free'
+      examples:
+        - '#ff0000ff'

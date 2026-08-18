@@ -1,0 +1,17 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - canvas_test_code_components_color
+uuid: 55555555-5555-4555-9555-555555555555
+name: 'Baguette Legs'
+cssVariable: '--baguette-legs'
+value:
+  colorSpace: srgb
+  components:
+    - 1.0
+    - 0.678
+    - 1.0
+  hex: '#ffadff'
+weight: 4

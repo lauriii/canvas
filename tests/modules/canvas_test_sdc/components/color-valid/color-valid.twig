@@ -1,0 +1,7 @@
+<div class="color-valid"{% if background_color is defined %} style="background-color: {{ background_color.cssColorValue }};"{% endif %}>
+  <h2>{{ heading }}</h2>
+  {% if background_color is defined %}
+    <span data-css-color-value="{{ background_color.cssColorValue }}"></span>
+    <span data-css-variable="{{ background_color.cssVariable ?? '' }}"></span>
+  {% endif %}
+</div>

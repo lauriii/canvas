@@ -215,6 +215,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
         'sdc.canvas_test_sdc.image-gallery',
         'sdc.canvas_test_sdc.druplicon',
         'sdc.canvas_test_sdc.image-without-ref',
+        'sdc.canvas_test_sdc.color-valid',
       ],
     ],
     'd0ba87b2-79b4-4622-98e1-cf82dc3655a0' => [

@@ -2,10 +2,91 @@ import { expect } from '@playwright/test';
 
 import { isolatedPerTest as test } from '../../fixtures/test.js';
 
+import type { Locator, Page } from '@playwright/test';
+
 // @cspell:ignore colormaster
 
 // Shared selector prefixes
 const POP_SEL = '[data-state="open"][data-testid="canvas-color-form-popover"]';
+const FORM_SEL = 'form[data-form-id="component_instance_form"]';
+
+interface ColorSectionExpectation {
+  cssColorValue: string;
+  displayedCssColorValue?: string;
+  cssVar: string | null;
+  colorName: string | null;
+  colorSpace: string;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+async function assertColorSection(
+  component: Locator,
+  name: string,
+  expected: ColorSectionExpectation,
+): Promise<void> {
+  await expect(component.locator(PROP.preview.section(name))).toBeVisible();
+  await expect(component.locator(PROP.preview.swatch(name))).toHaveAttribute(
+    'style',
+    new RegExp(`background-color: ${escapeRegExp(expected.cssColorValue)}`),
+  );
+  await expect(component.locator(PROP.preview.cssColorValue(name))).toHaveText(
+    expected.displayedCssColorValue ?? expected.cssColorValue,
+  );
+  await expect(component.locator(PROP.preview.cssVar(name))).toHaveText(
+    expected.cssVar ?? '',
+  );
+  await expect(component.locator(PROP.preview.colorName(name))).toHaveText(
+    expected.colorName ?? '',
+  );
+  await expect(component.locator(PROP.preview.colorSpace(name))).toHaveText(
+    expected.colorSpace,
+  );
+}
+
+async function openColorPropPopover(
+  page: Page,
+  propName: string,
+): Promise<void> {
+  await page.locator(PROP.form.trigger(propName)).click();
+  await expect(page.locator(PROP.popover.open)).toBeVisible();
+}
+
+async function setFreeformColor(
+  page: Page,
+  rgba: { r: number; g: number; b: number; a: number },
+): Promise<void> {
+  await page.locator(PROP.popover.rgba.r).fill(String(rgba.r));
+  await page.locator(PROP.popover.rgba.g).fill(String(rgba.g));
+  await page.locator(PROP.popover.rgba.b).fill(String(rgba.b));
+  await page.locator(PROP.popover.rgba.a).fill(String(rgba.a));
+  await page.keyboard.press('Escape');
+}
+
+async function selectKitColor(page: Page, colorName: string): Promise<void> {
+  await page.locator(PROP.popover.colorRow(colorName)).click();
+}
+
+async function assertPropTrigger(
+  page: Page,
+  propName: string,
+  expected: { label: string; swatchPattern: RegExp; triggerLabel?: string },
+): Promise<void> {
+  await expect(page.locator(PROP.form.label(propName))).toHaveText(
+    expected.label,
+  );
+  if (expected.triggerLabel) {
+    await expect(page.locator(PROP.form.triggerLabel(propName))).toHaveText(
+      expected.triggerLabel,
+    );
+  }
+  await expect(page.locator(PROP.form.triggerSwatch(propName))).toHaveAttribute(
+    'style',
+    expected.swatchPattern,
+  );
+}
 
 const SEL = {
   newBtn: '[data-testid="canvas-brand-kit-colors-new-button"]',
@@ -71,6 +152,46 @@ const SEL = {
   },
   renameInput: '[data-testid="canvas-color-row-rename-input"]',
   instancesPop: '[data-testid="canvas-find-color-instances-popover"]',
+};
+
+const PROP = {
+  preview: {
+    section: (name: string) => `[data-color-${name}]`,
+    swatch: (name: string) => `[data-color-${name}] > div:first-child`,
+    cssColorValue: (name: string) =>
+      `[data-color-${name}] [data-css-color-value]`,
+    cssVar: (name: string) => `[data-color-${name}] [data-css-var]`,
+    colorName: (name: string) => `[data-color-${name}] [data-color-name]`,
+    colorSpace: (name: string) => `[data-color-${name}] [data-color-space]`,
+    cssVarPastel: '[data-var-pastel]',
+    cssVarNeon: '[data-var-neon]',
+  },
+  form: (() => {
+    const field = (name: string) =>
+      `${FORM_SEL} .field--name-${name.toLowerCase()}`;
+    return {
+      field,
+      trigger: (name: string) => `${field(name)} button`,
+      triggerLabel: (name: string) =>
+        `${field(name)} [class*="_triggerLabel_"]`,
+      triggerSwatch: (name: string) =>
+        `${field(name)} [class*="_swatchTrigger_"]`,
+      label: (name: string) => `${field(name)} label`,
+    };
+  })(),
+  popover: {
+    open: '[role="dialog"][data-state="open"]',
+    kitFolders: '[data-state="open"] [data-color-folder]',
+    colorRow: (name: string) =>
+      `[data-state="open"] [data-color-row="${name}"]`,
+    colorRows: '[data-state="open"] [data-color-row]',
+    rgba: {
+      r: '[data-state="open"] #color-r',
+      g: '[data-state="open"] #color-g',
+      b: '[data-state="open"] #color-b',
+      a: '[data-state="open"] #color-a-rgba',
+    },
+  },
 };
 
 test.use({
@@ -182,13 +303,11 @@ test.describe('brand kit colors', () => {
     await page.locator(SEL.newFolderBtn).click();
     await expect(page.locator(SEL.folderNew.content)).toBeVisible();
     await expect(page.locator(SEL.newFolderBtn)).toBeHidden();
-
     await page.locator(SEL.folderNew.nameInput).fill('Color Pocket');
     await page.locator(SEL.folderNew.nameInput).press('Enter');
     await expect(page.locator(SEL.folder('Color Pocket'))).toBeVisible();
 
     // Drag "Brand Yellow" into "Color Pocket"
-    // dnd-kit requires a manual pointer sequence to exceed the PointerSensor activation distance
     const sourceBox = (await page
       .locator(SEL.row('Brand Yellow'))
       .boundingBox())!;
@@ -323,5 +442,232 @@ test.describe('brand kit colors', () => {
     await expect(
       page.locator(SEL.folderRow('Color Pocket', 'Groovy Gray')),
     ).toBeHidden();
+  });
+
+  test('code component color prop', async ({ page, drupal, canvas }) => {
+    await drupal.login({ username: 'colormaster', password: 'colormaster' });
+    const canvasPage = await canvas.createCanvas();
+    await canvas.openCanvas(canvasPage);
+    await canvas.openLibraryPanel();
+    await canvas.addComponent({
+      id: 'js.canvas_test_code_components_color_three_colors',
+    });
+
+    // Verify initial render in the preview frame.
+    await canvas.testInPreviewFrame('canvas-island', async (component) => {
+      await assertColorSection(component, 'free', {
+        cssColorValue: 'rgba(104, 125, 247, 0.89)',
+        cssVar: null,
+        colorName: null,
+        colorSpace: 'srgb',
+      });
+      await assertColorSection(component, 'pastel', {
+        cssColorValue: 'rgb(255, 173, 255)',
+        cssVar: '--baguette-legs',
+        colorName: 'Baguette Legs',
+        colorSpace: 'srgb',
+      });
+      await assertColorSection(component, 'neon', {
+        cssColorValue: 'rgb(255, 108, 108)',
+        cssVar: '--santa-face',
+        colorName: 'Father Christmas',
+        colorSpace: 'srgb',
+      });
+      await assertColorSection(component, 'two', {
+        cssColorValue: 'rgb(255, 173, 255)',
+        cssVar: '--baguette-legs',
+        colorName: 'Baguette Legs',
+        colorSpace: 'srgb',
+      });
+      await assertColorSection(component, 'all', {
+        cssColorValue: 'rgb(255, 0, 0)',
+        displayedCssColorValue: 'rgba(255, 0, 0, 1.00)',
+        cssVar: null,
+        colorName: null,
+        colorSpace: 'srgb',
+      });
+
+      const pastelVar = component.locator(PROP.preview.cssVarPastel);
+      const neonVar = component.locator(PROP.preview.cssVarNeon);
+      await expect(pastelVar).toHaveAttribute(
+        'style',
+        /background-color: var\(--baguette-legs\)/,
+      );
+      await expect(neonVar).toHaveAttribute(
+        'style',
+        /background-color: var\(--santa-face\)/,
+      );
+      expect(
+        await pastelVar.evaluate(
+          (el) => window.getComputedStyle(el).backgroundColor,
+        ),
+      ).toBe('rgb(255, 173, 255)');
+      expect(
+        await neonVar.evaluate(
+          (el) => window.getComputedStyle(el).backgroundColor,
+        ),
+      ).toBe('rgb(255, 108, 108)');
+    });
+
+    // Verify initial prop form state.
+    await assertPropTrigger(page, 'free', {
+      label: 'free',
+      triggerLabel: '#687DF7',
+      swatchPattern: /background-color: rgba\(104, 125, 247, 0\.89\)/,
+    });
+    await assertPropTrigger(page, 'brandPastel', {
+      label: 'Brand Pastel',
+      triggerLabel: 'Baguette Legs',
+      swatchPattern: /background-color: rgb\(255, 173, 255\)/,
+    });
+    await assertPropTrigger(page, 'brandNeon', {
+      label: 'Brand Neon',
+      triggerLabel: 'Father Christmas',
+      swatchPattern: /background-color: rgb\(255, 108, 108\)/,
+    });
+    await assertPropTrigger(page, 'brandAll', {
+      label: 'brand - all',
+      triggerLabel: '#FF0000',
+      swatchPattern: /background-color: rgb\(255, 0, 0\)/,
+    });
+    await assertPropTrigger(page, 'brandTwoFolders', {
+      label: 'brand - two folders',
+      triggerLabel: 'Baguette Legs',
+      swatchPattern: /background-color: rgb\(255, 173, 255\)/,
+    });
+
+    // Change `free` to semi-transparent green via freeform RGBA.
+    // free has no folder restriction — both folders and all 7 colors must be present.
+    await openColorPropPopover(page, 'free');
+    await expect(page.locator(PROP.popover.kitFolders)).toHaveCount(2);
+    await expect(page.locator(PROP.popover.colorRows)).toHaveCount(7);
+    await setFreeformColor(page, { r: 0, g: 255, b: 0, a: 0.5 });
+    await expect(page.locator(PROP.popover.open)).toBeHidden();
+    await assertPropTrigger(page, 'free', {
+      label: 'free',
+      swatchPattern: /background-color: rgba\(0, 255, 0, 0\.5\)/,
+    });
+    await canvas.testInPreviewFrame('canvas-island', async (component) => {
+      await assertColorSection(component, 'free', {
+        displayedCssColorValue: 'rgba(0, 255, 0, 0.50)',
+        cssColorValue: 'rgba(0, 255, 0, 0.5)',
+        cssVar: null,
+        colorName: null,
+        colorSpace: 'srgb',
+      });
+    });
+
+    // Change `brandPastel` → "Wow Monster".
+    // brandPastel is restricted to Pastel Lab Revelation only — 1 folder, 2 colors.
+    await openColorPropPopover(page, 'brandPastel');
+    await expect(page.locator(PROP.popover.kitFolders)).toHaveCount(1);
+    await expect(page.locator(PROP.popover.colorRows)).toHaveCount(2);
+    await selectKitColor(page, 'Wow Monster');
+    await expect(page.locator(PROP.popover.open)).toBeHidden();
+    await assertPropTrigger(page, 'brandPastel', {
+      label: 'Brand Pastel',
+      swatchPattern: /background-color: rgb\(116, 211, 217\)/,
+    });
+    await canvas.testInPreviewFrame('canvas-island', async (component) => {
+      await assertColorSection(component, 'pastel', {
+        cssColorValue: 'rgb(116, 211, 217)',
+        cssVar: '--wow-monster',
+        colorName: 'Wow Monster',
+        colorSpace: 'srgb',
+      });
+    });
+
+    // Change `brandNeon` → "Doctor Cigarettes".
+    // brandNeon is restricted to Absolute Neon Casserole only — 1 folder, 2 colors.
+    await openColorPropPopover(page, 'brandNeon');
+    await expect(page.locator(PROP.popover.kitFolders)).toHaveCount(1);
+    await expect(page.locator(PROP.popover.colorRows)).toHaveCount(2);
+    await selectKitColor(page, 'Doctor Cigarettes');
+    await expect(page.locator(PROP.popover.open)).toBeHidden();
+    await assertPropTrigger(page, 'brandNeon', {
+      label: 'Brand Neon',
+      swatchPattern: /background-color: rgb\(125, 117, 94\)/,
+    });
+    await canvas.testInPreviewFrame('canvas-island', async (component) => {
+      await assertColorSection(component, 'neon', {
+        cssColorValue: 'rgb(125, 117, 94)',
+        cssVar: '--doctor-cigarettes',
+        colorName: 'Doctor Cigarettes',
+        colorSpace: 'srgb',
+      });
+    });
+
+    // Change `brandAll` → "Brand Green".
+    // brandAll has no folder restriction — both folders and all 7 colors must be present.
+    await openColorPropPopover(page, 'brandAll');
+    await expect(page.locator(PROP.popover.kitFolders)).toHaveCount(2);
+    await expect(page.locator(PROP.popover.colorRows)).toHaveCount(7);
+    await selectKitColor(page, 'Brand Green');
+    await expect(page.locator(PROP.popover.open)).toBeHidden();
+    await assertPropTrigger(page, 'brandAll', {
+      label: 'brand - all',
+      swatchPattern: /background-color: rgb\(0, 168, 62\)/,
+    });
+    await canvas.testInPreviewFrame('canvas-island', async (component) => {
+      await assertColorSection(component, 'all', {
+        cssColorValue: 'rgb(0, 168, 62)',
+        displayedCssColorValue: 'hsl(142, 100%, 33%)',
+
+        cssVar: '--brand-green',
+        colorName: 'Brand Green',
+        colorSpace: 'hsl',
+      });
+    });
+
+    // Change `brandTwoFolders` → "Father Christmas" — both Pastel + Neon folders, 4 colors, no top-level.
+    await openColorPropPopover(page, 'brandTwoFolders');
+    await expect(page.locator(PROP.popover.kitFolders)).toHaveCount(2);
+    await expect(page.locator(PROP.popover.colorRows)).toHaveCount(4);
+    await selectKitColor(page, 'Father Christmas');
+    await expect(page.locator(PROP.popover.open)).toBeHidden();
+    await assertPropTrigger(page, 'brandTwoFolders', {
+      label: 'brand - two folders',
+      swatchPattern: /background-color: rgb\(255, 108, 108\)/,
+    });
+    await canvas.testInPreviewFrame('canvas-island', async (component) => {
+      await assertColorSection(component, 'two', {
+        cssColorValue: 'rgb(255, 108, 108)',
+        cssVar: '--santa-face',
+        colorName: 'Father Christmas',
+        colorSpace: 'srgb',
+      });
+    });
+
+    // Edit "Father Christmas" in the brand kit — change it to a new color (0, 0, 128).
+    // `brandTwoFolders` is currently bound to this color, so both the form trigger
+    // swatch and the preview should update in real time without a page refresh.
+    await canvas.openBrandKitPanel();
+    await page.locator(SEL.row('Father Christmas')).hover();
+    await page.locator(SEL.rowMenu('Father Christmas')).click();
+    await page.locator(SEL.menu.edit).click();
+    await page.locator(SEL.form.rgba.r).fill('0');
+    await page.locator(SEL.form.rgba.g).fill('0');
+    await page.locator(SEL.form.rgba.b).fill('128');
+    await page.locator(SEL.form.rgba.a).fill('1');
+    await page.locator(SEL.form.save).click();
+    await expect(
+      page.locator(SEL.rowSwatch('Father Christmas')),
+    ).toHaveAttribute('style', /background-color: rgb\(0, 0, 128\)/);
+
+    // The form trigger swatch for `brandTwoFolders` should reflect the new color.
+    await assertPropTrigger(page, 'brandTwoFolders', {
+      label: 'brand - two folders',
+      swatchPattern: /background-color: rgb\(0, 0, 128\)/,
+    });
+
+    // The preview should also update in real time to show the new color.
+    await canvas.testInPreviewFrame('canvas-island', async (component) => {
+      await assertColorSection(component, 'two', {
+        cssColorValue: 'rgb(0, 0, 128)',
+        cssVar: '--santa-face',
+        colorName: 'Father Christmas',
+        colorSpace: 'srgb',
+      });
+    });
   });
 });

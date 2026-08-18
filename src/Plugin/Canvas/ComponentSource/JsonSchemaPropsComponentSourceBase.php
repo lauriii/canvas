@@ -29,6 +29,7 @@ use Drupal\canvas\PropSource\PropSourceBase;
 use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher;
 use Drupal\canvas\ShapeMatcher\PropSourceSuggester;
+use Drupal\canvas\Utility\ColorResolver;
 use Drupal\canvas\Utility\ComponentMetadataHelper;
 use Drupal\canvas\Utility\TypedDataHelper;
 use Drupal\Component\Assertion\Inspector;
@@ -114,6 +115,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
     private readonly PropSourceSuggester $propSourceSuggester,
     private readonly LoggerChannelInterface $logger,
     protected readonly PropShapeRepositoryInterface $propShapeRepository,
+    private readonly ColorResolver $colorResolver,
   ) {
     \assert(\array_key_exists('local_source_id', $configuration));
     parent::__construct($configuration, $plugin_id, $plugin_definition);
@@ -133,6 +135,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       $container->get(PropSourceSuggester::class),
       $container->get('logger.channel.canvas'),
       $container->get(PropShapeRepositoryInterface::class),
+      $container->get(ColorResolver::class),
     );
   }
 
@@ -565,23 +568,77 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
 
   /**
    * @param array<string, EvaluationResult> $props_evaluation_results
+   * @param array<string, mixed>|null $prop_schemas
    *
    * @return array{0: array<string, mixed>, 1: \Drupal\Core\Render\BubbleableMetadata}
    *   The resolved prop values and their combined bubbleable metadata: the
    *   cacheability plus the `#attached` assets a value needs to render.
    */
-  protected static function getResolvedPropsAndBubbleableMetadata(array $props_evaluation_results): array {
+  protected function getResolvedPropsAndBubbleableMetadata(array $props_evaluation_results, ?array $prop_schemas = NULL): array {
     \assert(Inspector::assertAllObjects($props_evaluation_results, EvaluationResult::class));
     $props_bubbleable_metadata = new BubbleableMetadata();
     $props = [];
     foreach ($props_evaluation_results as $prop_name => $evaluation_result) {
+      $value = $evaluation_result->value;
+
+      // @todo Consider introducing a hook_canvas_prop_value_alter() to allow
+      // modules to transform resolved prop values by schema shape at render
+      // time, rather than handling well-known $ref shapes inline here.
+      // Color is stored and validated as a string, but made available to
+      // templates as a rich object.
+      if (\is_string($value)
+        && ($prop_schemas[$prop_name]['$ref'] ?? NULL) === 'json-schema-definitions://canvas.module/color') {
+        [$value, $evaluation_result] = $this->colorResolver->resolve($value);
+      }
+
       // BubbleableMetadata::createFromObject() reads both cacheability and, via
       // AttachmentsInterface, the assets the value needs. merge() returns a new
       // object, so reassign to accumulate across props.
       $props_bubbleable_metadata = $props_bubbleable_metadata->merge(BubbleableMetadata::createFromObject($evaluation_result));
-      $props[$prop_name] = $evaluation_result->value;
+
+      $props[$prop_name] = $value;
     }
     return [$props, $props_bubbleable_metadata];
+  }
+
+  /**
+   * Returns props safe for validateProps() converting to string.
+   *
+   * Color props are stored as strings and resolved to rich objects by
+   * getResolvedPropsAndBubbleableMetadata(). The component schema declares them
+   * as type: string, so substitute back before asserting validation. Optional
+   * color props that resolved to NULL are omitted.
+   *
+   * @param array<string, mixed> $props
+   *   The resolved props array.
+   * @param array<string, mixed> $prop_schemas
+   *   The component's prop schemas from metadata (schema['properties']).
+   *
+   * @return array<string, mixed>
+   *   Props with color arrays replaced by their cssColorValue strings.
+   *
+   * @see \Drupal\Core\Theme\Component\ComponentValidator::validateProps()
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::renderComponent()
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent::renderComponent()
+   */
+  protected function substituteColorPropsForValidation(array $props, array $prop_schemas): array {
+    $props_for_validation = $props;
+    foreach ($props_for_validation as $prop_name => $value) {
+      if (($prop_schemas[$prop_name]['$ref'] ?? NULL) !== 'json-schema-definitions://canvas.module/color') {
+        continue;
+      }
+      // Unresolved optional color props (deleted Color entity or unpopulated)
+      // are omitted, mirroring the base-class pattern before validateProps().
+      if ($value === NULL) {
+        unset($props_for_validation[$prop_name]);
+        continue;
+      }
+      // ColorResolver::resolve() always populates cssColorValue on success.
+      // Assert the invariant to fail loudly if violated.
+      \assert(\is_array($value) && \array_key_exists('cssColorValue', $value));
+      $props_for_validation[$prop_name] = $value['cssColorValue'];
+    }
+    return $props_for_validation;
   }
 
   /**
@@ -938,7 +995,20 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       $field_widget_plugin_id = $static_prop_source_field_definition['field_widget'];
       $label = $component_schema['properties'][$sdc_prop_name]['title'] ?? Unicode::ucfirst($sdc_prop_name);
       $description = $component_schema['properties'][$sdc_prop_name]['description'] ?? NULL;
-      $widget = $source->getWidget($component->id(), $component->getLoadedVersion(), $sdc_prop_name, $label, $field_widget_plugin_id, $description);
+      // Read x-canvas-color-picker directly from the raw component schema,
+      // since PropShape::standardize() strips it before it's stored.
+      $field_widget_settings = [];
+      if ($field_widget_plugin_id === 'canvas_color_picker') {
+        $mode = $component_schema['properties'][$sdc_prop_name]['x-canvas-color-picker'] ?? NULL;
+        if ($mode !== NULL) {
+          $field_widget_settings = ['mode' => $mode];
+        }
+        $folders = $component_schema['properties'][$sdc_prop_name]['x-canvas-color-folders'] ?? NULL;
+        if (!empty($folders) && \is_array($folders)) {
+          $field_widget_settings['folders'] = $folders;
+        }
+      }
+      $widget = $source->getWidget($component->id(), $component->getLoadedVersion(), $sdc_prop_name, $label, $field_widget_plugin_id, $description, $field_widget_settings);
       $is_required = $static_prop_source_field_definition['required'];
       // For array props: JSON Schema `required: [prop]` means "the key must be
       // present" — it does NOT enforce ≥1 items. Only `minItems: 1` does that.

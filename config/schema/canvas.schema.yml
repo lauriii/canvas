@@ -589,8 +589,6 @@ canvas.json_schema_props:
             type: field.field_settings.[%parent.field_type]
             # Optional *if* the default instance settings should be used.
             requiredKey: false
-          # After a field type is selected, a field widget must be picked.
-          # @todo MUCH later: widget settings.
           field_widget:
             type: string
             label: 'Default field widget'
@@ -1362,6 +1360,23 @@ canvas.color.*:
     weight:
       type: weight
       label: 'Weight'
+
+field.widget_settings.canvas_color_picker:
+  type: mapping
+  label: 'Canvas Color Picker widget settings'
+  mapping:
+    mode:
+      type: string
+      label: 'Picker mode'
+    folders:
+      type: sequence
+      label: 'Allowed folder UUIDs'
+      requiredKey: false
+      # Populated transiently at form-build time from the x-canvas-color-folders
+      # annotation on the component prop schema. Never stored in config.
+      sequence:
+        type: string
+        label: 'Folder UUID'
 
 # Search API processor configuration
 plugin.plugin_configuration.search_api_processor.canvas_component_tree_inputs:

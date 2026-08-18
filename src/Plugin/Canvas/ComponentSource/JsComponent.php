@@ -422,6 +422,12 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
     $component = $this->getJavaScriptComponent();
     $headless_settings = NULL;
 
+    // Fetch the prop schemas early so color props can be resolved to rich
+    // objects by getResolvedPropsAndBubbleableMetadata().
+    // @todo Address in
+    //   https://git.drupalcode.org/project/canvas/-/work_items/3591956.
+    $prop_schemas = $this->getMetadata()->schema['properties'] ?? [];
+
     if ($component->isExternal()) {
       $headless_settings = $this->configFactory->get('canvas_headless.settings');
       $frontends = $headless_settings->get('frontends');
@@ -438,6 +444,7 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
             $inputs[self::EXPLICIT_INPUT_NAME] ?? [],
             $component->getProps() ?? [],
           ),
+          $prop_schemas,
         );
         $build = [
           '#markup' => '',
@@ -465,7 +472,7 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
       $published_required_props = $this->getDefaultExplicitInput(only_required: TRUE);
       \assert(Inspector::assertAllHaveKey($published_required_props, 'value'));
       $published_required_props = \array_map(fn(array $prop_source) => new EvaluationResult($prop_source['value']), $published_required_props);
-      [$published_required_props, $published_required_props_bubbleable_metadata] = self::getResolvedPropsAndBubbleableMetadata(\array_intersect_key($inputs[self::EXPLICIT_INPUT_NAME] ?? [], $published_required_props));
+      [$published_required_props, $published_required_props_bubbleable_metadata] = self::getResolvedPropsAndBubbleableMetadata(\array_intersect_key($inputs[self::EXPLICIT_INPUT_NAME] ?? [], $published_required_props), $prop_schemas);
     }
 
     $autoSave = $this->loadAutoSaveEntity($component, $isPreview);
@@ -532,7 +539,7 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
 
     $valid_props = $component->getProps() ?? [];
 
-    [$props, $props_bubbleable_metadata] = self::getResolvedPropsAndBubbleableMetadata(\array_intersect_key($inputs[self::EXPLICIT_INPUT_NAME] ?? [], $valid_props));
+    [$props, $props_bubbleable_metadata] = self::getResolvedPropsAndBubbleableMetadata(\array_intersect_key($inputs[self::EXPLICIT_INPUT_NAME] ?? [], $valid_props), $prop_schemas);
 
     // Explicit inputs for required props for both the auto-saved version and
     // the live versions, including cacheability and attachments.
@@ -548,7 +555,9 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
     // canvas-island stays visible while the user corrects the value.
     // @see \Drupal\canvas\Element\RenderSafeComponentContainer::handleComponentException()
     // @see https://www.drupal.org/project/canvas/issues/3583639
-    \assert($this->componentValidator->validateProps($props, $this->getComponentPlugin()));
+    $props_for_validation = $this->substituteColorPropsForValidation($props, $prop_schemas);
+    \assert($this->componentValidator->validateProps($props_for_validation, $this->getComponentPlugin()));
+
     $bubbleable_metadata = BubbleableMetadata::createFromRenderArray($build)
       ->addCacheableDependency($component)
       ->merge($props_bubbleable_metadata);

@@ -160,6 +160,9 @@ final class SingleDirectoryComponentTest extends JsonSchemaPropsComponentSourceB
     $this->generateComponentConfig();
 
     self::assertSame([
+      'sdc.canvas_test_sdc.color-invalid-folders' => [
+        '"x-canvas-color-folders" on prop "color" requires $ref: json-schema-definitions://canvas.module/color.',
+      ],
       'sdc.canvas_test_sdc.empty-enum' => [
         'Prop "pets" has an empty enum value.',
       ],
@@ -248,6 +251,7 @@ final class SingleDirectoryComponentTest extends JsonSchemaPropsComponentSourceB
       'sdc.canvas_test_sdc.card-with-remote-image',
       'sdc.canvas_test_sdc.card-with-stream-wrapper-image',
       'sdc.canvas_test_sdc.code-example',
+      'sdc.canvas_test_sdc.color-valid',
       'sdc.canvas_test_sdc.columns',
       'sdc.canvas_test_sdc.component-mismatch-meta-enum',
       'sdc.canvas_test_sdc.component-mismatch-meta-enum-array-items',
@@ -630,6 +634,23 @@ HTML,
           'library' => [
             'core/components.canvas_test_sdc--code-example',
             'core/components.canvas_test_sdc--code-example',
+          ],
+        ],
+      ],
+      'sdc.canvas_test_sdc.color-valid' => [
+        'html' => <<<HTML
+<div class="color-valid" style="background-color: rgba(255, 0, 0, 1.00);">
+  <h2>Color Test Heading</h2>
+      <span data-css-color-value="rgba(255, 0, 0, 1.00)"></span>
+    <span data-css-variable=""></span>
+  </div>
+
+HTML,
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.canvas_test_sdc--color-valid',
+            'core/components.canvas_test_sdc--color-valid',
           ],
         ],
       ],
@@ -2219,7 +2240,31 @@ HTML
               0 => ['value' => "<?php\necho 'Hello, world!';\n"],
             ],
             'expression' => 'ℹ︎string_long␟value',
-            'derived_schema_metadata' => ['string_shape' => ['pattern' => '(.|\\r?\\n)*']],
+            'derived_schema_metadata' => ['string_shape' => ['pattern' => '(.|\\r?\n)*']],
+          ],
+        ],
+      ],
+      'sdc.canvas_test_sdc.color-valid' => [
+        'prop_field_definitions' => [
+          'heading' => [
+            'required' => TRUE,
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [0 => ['value' => 'Color Test Heading']],
+            'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
+          ],
+          'background_color' => [
+            'required' => FALSE,
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'canvas_color_picker',
+            'default_value' => [0 => ['value' => '#ff0000ff']],
+            'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -3636,6 +3681,13 @@ HTML
           'canvas_test_sdc',
         ],
       ],
+      'sdc.canvas_test_sdc.color-valid' => [
+        'module' => [
+          'canvas',
+          'core',
+          'canvas_test_sdc',
+        ],
+      ],
       'sdc.canvas_test_sdc.columns' => [
         'module' => [
           'core',
@@ -4638,6 +4690,47 @@ HTML
                 0 => ['value' => "<?php\necho 'Hello, world!';\n"],
               ],
               'resolved' => "<?php\necho 'Hello, world!';\n",
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.canvas_test_sdc.color-valid' => [
+        'expected_output_selectors' => [
+          'div.color-valid',
+        ],
+        'source' => 'Module component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'heading' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => ['value' => 'Color Test Heading'],
+              ],
+              'resolved' => 'Color Test Heading',
+            ],
+          ],
+          'background_color' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+              'title' => 'color',
+              '$ref' => 'json-schema-definitions://canvas.module/color',
+              '$comment' => 'The $ref is intentionally self-referential. It acts as a named-type sentinel: downstream PHP and TypeScript code detects the URI string by equality to route to color-picker behavior. A strict resolver will see the justinrainbow/json-schema library append \'#\' to the URI; ComponentPluginManager::resolveJsonSchemaReferences() detects that mutation and restores the original clean URI. Do not remove the $ref. See PropShape::getWellKnownPropShapes() and JsonSchemaType::computeStorablePropShape().',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => ['value' => '#ff0000ff'],
+              ],
+              'resolved' => '#ff0000ff',
             ],
           ],
         ],

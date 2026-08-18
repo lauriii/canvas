@@ -1,0 +1,251 @@
+uuid: ef24a8f9-0283-4b8d-a423-337efc48ecca
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - canvas_test_code_components_color
+_core:
+  default_config_hash: 3Typls_MEqPp3TXhCUyDmXgcNHg-3oShch9SYvVVtuQ
+machineName: canvas_test_code_components_color_three_colors
+name: 'Three Colors'
+required: {  }
+props:
+  free:
+    type: string
+    $ref: 'json-schema-definitions://canvas.module/color'
+    x-canvas-color-picker: kit-and-free
+    title: free
+    examples:
+      - '#687df7e3'
+  brandPastel:
+    type: string
+    $ref: 'json-schema-definitions://canvas.module/color'
+    x-canvas-color-picker: kit-only
+    x-canvas-color-folders:
+      - 88888888-8888-4888-8888-888888888888
+    title: Brand Pastel
+    examples:
+      - 'canvas-color:55555555-5555-4555-9555-555555555555'
+  brandNeon:
+    type: string
+    $ref: 'json-schema-definitions://canvas.module/color'
+    x-canvas-color-picker: kit-only
+    x-canvas-color-folders:
+      - 99999999-9999-4999-9999-999999999999
+    title: Brand Neon
+    examples:
+      - 'canvas-color:44444444-4444-4444-8444-444444444444'
+  brandAll:
+    type: string
+    $ref: 'json-schema-definitions://canvas.module/color'
+    title: 'brand - all'
+    examples:
+      - '#ff0000ff'
+  brandTwoFolders:
+    type: string
+    $ref: 'json-schema-definitions://canvas.module/color'
+    x-canvas-color-folders:
+      - 88888888-8888-4888-8888-888888888888
+      - 99999999-9999-4999-9999-999999999999
+    title: 'brand - two folders'
+    examples:
+      - 'canvas-color:55555555-5555-4555-9555-555555555555'
+slots: {  }
+js:
+  original: |
+    // See https://project.pages.drupalcode.org/canvas/ for documentation on how to build a code component
+
+    const Component = ({
+      text = "Three Colors",
+      free,
+      brandPastel,
+      brandNeon,
+      brandAll,
+      brandTwoFolders,
+    }) => {
+        const colorData = (color) => {return <div><span data-css-color-value>{color.cssColorValue}</span> | <span data-css-var>{color.cssVariable}</span> | <span data-color-name>{color.colorName}</span> | <span data-color-space>{color?.value?.colorSpace}</span></div>}
+
+      return (
+        <>
+        <div data-color-free className="text-1xl flex">
+          Free: <div style={{margin: '4px',backgroundColor: free.cssColorValue, height: '16px', width: '16px'}}></div>
+          {colorData(free)}
+        </div>
+          <div data-color-pastel className="text-1xl flex">
+          Brand Pastel <div style={{margin: '4px',backgroundColor: brandPastel.cssColorValue, height: '16px', width: '16px'}}></div>
+                  {colorData(brandPastel)}
+
+        </div>
+           <div data-color-neon className="text-1xl flex">
+          Brand Neon: <div style={{margin: '4px',backgroundColor: brandNeon.cssColorValue, height: '16px', width: '16px'}}></div>
+                   {colorData(brandNeon)}
+
+        </div>
+         <div data-color-two className="text-1xl flex">
+          Brand Two Folders: <div style={{margin: '4px',backgroundColor: brandTwoFolders.cssColorValue, height: '16px', width: '16px'}}></div>
+                 {colorData(brandTwoFolders)}
+
+        </div>
+          <div data-color-all className="text-1xl flex">
+          Brand All Colors: <div style={{margin: '4px',backgroundColor: brandAll.cssColorValue, height: '16px', width: '16px'}}></div>
+                  {colorData(brandAll)}
+
+        </div>
+          <div data-css-vars>
+                <h2>CSS VARS EXAMPLE</h2>
+                <div data-var-pastel style={{margin: '4px',backgroundColor: `var(${brandPastel.cssVariable})`, border: '1px solid black'}}>PASTEL</div>
+                <div data-var-neon style={{margin: '4px',backgroundColor: `var(${brandNeon.cssVariable})`, border: '1px solid black'}}>NEON</div>
+
+          </div>
+        </>
+      );
+    };
+
+    export default Component;
+  compiled: |
+    import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
+    // See https://project.pages.drupalcode.org/canvas/ for documentation on how to build a code component
+    const Component = ({ text = "Three Colors", free, brandPastel, brandNeon, brandAll, brandTwoFolders })=>{
+        const colorData = (color)=>{
+            return /*#__PURE__*/ _jsxs("div", {
+                children: [
+                    /*#__PURE__*/ _jsx("span", {
+                        "data-css-color-value": true,
+                        children: color.cssColorValue
+                    }),
+                    " | ",
+                    /*#__PURE__*/ _jsx("span", {
+                        "data-css-var": true,
+                        children: color.cssVariable
+                    }),
+                    " | ",
+                    /*#__PURE__*/ _jsx("span", {
+                        "data-color-name": true,
+                        children: color.colorName
+                    }),
+                    " | ",
+                    /*#__PURE__*/ _jsx("span", {
+                        "data-color-space": true,
+                        children: color?.value?.colorSpace
+                    })
+                ]
+            });
+        };
+        return /*#__PURE__*/ _jsxs(_Fragment, {
+            children: [
+                /*#__PURE__*/ _jsxs("div", {
+                    "data-color-free": true,
+                    className: "text-1xl flex",
+                    children: [
+                        "Free: ",
+                        /*#__PURE__*/ _jsx("div", {
+                            style: {
+                                margin: '4px',
+                                backgroundColor: free.cssColorValue,
+                                height: '16px',
+                                width: '16px'
+                            }
+                        }),
+                        colorData(free)
+                    ]
+                }),
+                /*#__PURE__*/ _jsxs("div", {
+                    "data-color-pastel": true,
+                    className: "text-1xl flex",
+                    children: [
+                        "Brand Pastel ",
+                        /*#__PURE__*/ _jsx("div", {
+                            style: {
+                                margin: '4px',
+                                backgroundColor: brandPastel.cssColorValue,
+                                height: '16px',
+                                width: '16px'
+                            }
+                        }),
+                        colorData(brandPastel)
+                    ]
+                }),
+                /*#__PURE__*/ _jsxs("div", {
+                    "data-color-neon": true,
+                    className: "text-1xl flex",
+                    children: [
+                        "Brand Neon: ",
+                        /*#__PURE__*/ _jsx("div", {
+                            style: {
+                                margin: '4px',
+                                backgroundColor: brandNeon.cssColorValue,
+                                height: '16px',
+                                width: '16px'
+                            }
+                        }),
+                        colorData(brandNeon)
+                    ]
+                }),
+                /*#__PURE__*/ _jsxs("div", {
+                    "data-color-two": true,
+                    className: "text-1xl flex",
+                    children: [
+                        "Brand Two Folders: ",
+                        /*#__PURE__*/ _jsx("div", {
+                            style: {
+                                margin: '4px',
+                                backgroundColor: brandTwoFolders.cssColorValue,
+                                height: '16px',
+                                width: '16px'
+                            }
+                        }),
+                        colorData(brandTwoFolders)
+                    ]
+                }),
+                /*#__PURE__*/ _jsxs("div", {
+                    "data-color-all": true,
+                    className: "text-1xl flex",
+                    children: [
+                        "Brand All Colors: ",
+                        /*#__PURE__*/ _jsx("div", {
+                            style: {
+                                margin: '4px',
+                                backgroundColor: brandAll.cssColorValue,
+                                height: '16px',
+                                width: '16px'
+                            }
+                        }),
+                        colorData(brandAll)
+                    ]
+                }),
+                /*#__PURE__*/ _jsxs("div", {
+                    "data-css-vars": true,
+                    children: [
+                        /*#__PURE__*/ _jsx("h2", {
+                            children: "CSS VARS EXAMPLE"
+                        }),
+                        /*#__PURE__*/ _jsx("div", {
+                            "data-var-pastel": true,
+                            style: {
+                                margin: '4px',
+                                backgroundColor: `var(${brandPastel.cssVariable})`,
+                                border: '1px solid black'
+                            },
+                            children: "PASTEL"
+                        }),
+                        /*#__PURE__*/ _jsx("div", {
+                            "data-var-neon": true,
+                            style: {
+                                margin: '4px',
+                                backgroundColor: `var(${brandNeon.cssVariable})`,
+                                border: '1px solid black'
+                            },
+                            children: "NEON"
+                        })
+                    ]
+                })
+            ]
+        });
+    };
+    export default Component;
+css:
+  original: ''
+  compiled: |
+    /*! tailwindcss v4.1.13 | MIT License | https://tailwindcss.com */
+dataDependencies: {  }

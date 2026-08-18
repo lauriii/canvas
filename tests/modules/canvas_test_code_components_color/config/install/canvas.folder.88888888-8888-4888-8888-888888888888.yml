@@ -1,0 +1,16 @@
+uuid: 88888888-8888-4888-8888-888888888888
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - canvas_test_code_components_color
+  config:
+    - canvas.color.55555555-5555-4555-9555-555555555555
+    - canvas.color.66666666-6666-4666-a666-666666666666
+name: 'Pastel Lab Revelation'
+configEntityTypeId: color
+weight: -3
+items:
+  - 55555555-5555-4555-9555-555555555555
+  - 66666666-6666-4666-a666-666666666666

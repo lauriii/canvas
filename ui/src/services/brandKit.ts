@@ -1,5 +1,6 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 
+import { setUpdatePreview } from '@/features/layout/layoutModelSlice';
 import { baseQueryWithAutoSaves } from '@/services/baseQuery';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
@@ -102,6 +103,14 @@ export const brandKitApi = createApi({
         method: 'PATCH',
         body: changes,
       }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          dispatch(setUpdatePreview(true));
+        } catch (err) {
+          console.error(err);
+        }
+      },
       invalidatesTags: [
         { type: 'BrandKits', id: 'LIST' },
         { type: 'BrandKits', id: 'global' },

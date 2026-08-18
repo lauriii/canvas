@@ -12,6 +12,7 @@ use Drupal\canvas\CoreBugFix\ConfigEntityQueryFactory;
 use Drupal\canvas\CoreBugFix\TypedConfigManagerWithCachePollutionFix;
 use Drupal\canvas\Plugin\ComponentPluginManager;
 use Drupal\canvas\Validation\JitSafeRegexValidator;
+use Drupal\canvas\Validation\JsonSchema\CanvasColorStringConstraint;
 use Drupal\canvas\Validation\JsonSchema\ContentEntityReferenceObjectConstraint;
 use Drupal\canvas\Validation\JsonSchema\UriSchemeAwareFormatConstraint;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
@@ -74,6 +75,7 @@ class CanvasServiceProvider extends ServiceProviderBase {
     $factory->addMethodCall('setDefaultDialect', [DraftIdentifiers::DRAFT_7]);
     $factory->addMethodCall('setConstraintClass', ['format', UriSchemeAwareFormatConstraint::class]);
     $factory->addMethodCall('setConstraintClass', ['object', ContentEntityReferenceObjectConstraint::class]);
+    $factory->addMethodCall('setConstraintClass', ['string', CanvasColorStringConstraint::class]);
     $container->setDefinition(Validator::class, new Definition(Validator::class, [
       new Reference(Factory::class),
     ]));

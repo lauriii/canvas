@@ -1,0 +1,16 @@
+uuid: 99999999-9999-4999-9999-999999999999
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - canvas_test_code_components_color
+  config:
+    - canvas.color.44444444-4444-4444-8444-444444444444
+    - canvas.color.77777777-7777-4777-b777-777777777777
+name: 'Absolute Neon Casserole'
+configEntityTypeId: color
+weight: -1
+items:
+  - 44444444-4444-4444-8444-444444444444
+  - 77777777-7777-4777-b777-777777777777
