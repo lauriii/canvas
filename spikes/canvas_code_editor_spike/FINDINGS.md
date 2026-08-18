@@ -96,9 +96,20 @@ own document with `document.querySelectorAll('script[type="importmap"]')`. That
 map is produced by `src/GlobalImports.php::getImportMap()` and emitted as a
 **response attachment** on the Canvas boot route
 (`src/Controller/CanvasController.php:308` →
-`src/Render/ImportMapResponseAttachmentsProcessor.php`). It exists only as a
-`<script>` tag in the host HTML. **There is no endpoint that returns it as
-data.**
+`src/Render/ImportMapResponseAttachmentsProcessor.php`).
+
+**CORRECTION.** This wall was overstated, and the correction changed the
+proposal. It is *not* true that no endpoint returns the import map as data:
+`ClientSideRepresentation::renderPreviewIfAny()` (`src/ClientSideRepresentation.php:46-74`)
+already returns a rendered component preview as JSON, and its `js_header` field
+is `renderInIsolation($import_map) . renderJsHeaderAssets($assets)` (`:58,68`) —
+so every component preview payload already carries the map, and
+`ui/src/components/ComponentPreview.tsx:67-100` already builds an iframe from it.
+What is actually true is narrower: no endpoint returns the map **standalone**,
+and the one component the editor is editing is the one whose *draft* preview
+Canvas does not render — `ApiConfigAutoSaveControllers::get()` skips
+`renderPreviewIfAny()`. The fix is therefore to have Canvas serve the draft
+preview, not to export the map. See the proposal's R2.
 
 Without it the preview document cannot resolve `preact`, `react/jsx-runtime`,
 `@/components/*`, or any site-provided import — i.e. every non-trivial code
