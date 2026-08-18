@@ -1,0 +1,113 @@
+/**
+ * @file
+ * Client-side compilation, from the extension's own bundle.
+ *
+ * No wall here either: SWC and the Tailwind compiler are public npm packages
+ * (`@swc/wasm-web`, `tailwindcss-in-browser`), so a module can ship its own
+ * copies. Canvas does not compile anything server-side — the browser uploads
+ * `compiledJs`/`compiledCss` — so the compiler has to live in the client, and
+ * the client can be an extension.
+ *
+ * What is NOT reproduced here (and does not need core API, just porting):
+ * - `rewriteAssetImportsForCanvas()` (asset manifest imports)
+ * - the Tailwind class-name index stored as a comment in the global asset
+ *   library's JS
+ * - the separate compile pass for slot example markup
+ *
+ * @see ui/src/features/code-editor/hooks/useCompileJavaScript.ts
+ * @see ui/src/features/code-editor/hooks/useCompileCss.ts
+ */
+
+import initSwc, { transformSync } from '@swc/wasm-web';
+import {
+  compileCss,
+  compilePartialCss,
+  extractClassNameCandidates,
+  transformCss,
+} from 'tailwindcss-in-browser';
+
+// Copied from ui/src/features/code-editor/utils/tailwindCss.ts. Utilities that
+// must not land inside `@layer utilities`.
+const UNLAYERED_DISPLAY_UTILITIES = ['block', 'inline-block', 'inline', 'flex'];
+
+let swcReady = false;
+
+/**
+ * Boots SWC from the wasm the extension ships itself.
+ *
+ * Core points this at `{canvasModulePath}/ui/dist/assets/wasm_bg.wasm`. An
+ * extension does not need that: tsup copies the wasm next to the bundle.
+ */
+export async function initCompiler(): Promise<void> {
+  if (swcReady) {
+    return;
+  }
+  // `import.meta` is empty in an IIFE bundle, so resolve against the
+  // extension document instead. Core hits the same problem and passes
+  // `{canvasModulePath}/ui/dist/assets/wasm_bg.wasm` explicitly.
+  await initSwc(new URL('dist/wasm_bg.wasm', document.baseURI).href);
+  swcReady = true;
+}
+
+export function compileJs(source: string): { code: string; error?: string } {
+  if (!swcReady) {
+    return { code: '', error: 'compiler not ready' };
+  }
+  try {
+    const { code } = transformSync(source, {
+      jsc: {
+        parser: { syntax: 'typescript', tsx: true },
+        target: 'es2015',
+        transform: {
+          react: {
+            pragmaFrag: 'Fragment',
+            throwIfNamespace: true,
+            development: false,
+            runtime: 'automatic',
+          },
+        },
+      },
+      module: { type: 'es6' },
+    });
+    return { code };
+  } catch (error) {
+    return { code: '// @error', error: String(error) };
+  }
+}
+
+export async function compileComponentCss(
+  componentCss: string,
+  globalCss: string,
+): Promise<string> {
+  return transformCss(await compilePartialCss(componentCss, globalCss));
+}
+
+export async function compileGlobalCss(
+  sourceJs: string,
+  globalCss: string,
+): Promise<string> {
+  const candidates = extractClassNameCandidates(sourceJs);
+  const css = await compileCss(candidates, globalCss, {
+    unlayeredUtilities: UNLAYERED_DISPLAY_UTILITIES,
+  });
+  return transformCss(css);
+}
+
+/**
+ * The imports a code component declares, which the PATCH is required to carry.
+ *
+ * Core does this with `@babel/parser` over the full AST. A regex is enough to
+ * prove the extension can compute it; the real module should port the AST
+ * walker, since that also feeds `dataDependencies`.
+ *
+ * @see ui/src/features/code-editor/utils/ast-utils.ts
+ * @see src/Entity/JavaScriptComponent.php ::updateFromClientSide()
+ */
+export function importedJsComponents(source: string): string[] {
+  const found = new Set<string>();
+  const pattern = /from\s+['"]@\/components\/([a-z0-9_-]+)['"]/g;
+  for (const match of source.matchAll(pattern)) {
+    found.add(match[1]);
+  }
+  return [...found];
+}

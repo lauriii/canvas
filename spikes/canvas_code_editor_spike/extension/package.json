@@ -1,0 +1,22 @@
+{
+  "name": "@drupal-canvas/code-editor-spike",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsup && cp node_modules/@swc/wasm-web/wasm_bg.wasm dist/wasm_bg.wasm",
+    "type-check": "tsc --noEmit --pretty",
+    "verify": "npm run type-check && npm run build"
+  },
+  "dependencies": {
+    "@codemirror/lang-css": "^6.3.1",
+    "@codemirror/lang-javascript": "^6.2.4",
+    "@swc/wasm-web": "^1.16.0",
+    "codemirror": "^6.0.2",
+    "tailwindcss-in-browser": "^0.6.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "typescript": "^5.8.3"
+  }
+}
