@@ -116,6 +116,22 @@ export async function loadCodeComponent(id: string): Promise<{
   };
 }
 
+/**
+ * The site's code components, for the extension's own navigation.
+ *
+ * Needed because the component list lives in Canvas's left panel today
+ * (`ui/src/components/sidePanel/Code.tsx`) and an extension cannot render there
+ * — ADR 0009 excludes extension UI in Canvas's panels. So an extension-hosted
+ * editor has to carry its own navigation.
+ */
+export async function listCodeComponents(): Promise<
+  Record<string, { name: string; type?: string }>
+> {
+  return get<Record<string, { name: string; type?: string }>>(
+    'canvas/api/v0/config/js_component',
+  );
+}
+
 export async function loadGlobalAssetLibrary(): Promise<{
   library: AssetLibrary;
   autoSaves: AutoSaveHashes;
@@ -146,7 +162,11 @@ async function patchAutoSave(
       'Content-Type': 'application/json',
       'X-CSRF-Token': await csrfToken(),
     },
-    body: JSON.stringify({ data, autoSaves, clientInstanceId: clientInstanceId() }),
+    body: JSON.stringify({
+      data,
+      autoSaves,
+      clientInstanceId: clientInstanceId(),
+    }),
   });
   if (response.status === 409) {
     // Someone else edited the same draft. Core's UI renders ConflictWarning.

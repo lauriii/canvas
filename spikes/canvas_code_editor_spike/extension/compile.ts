@@ -18,13 +18,13 @@
  * @see ui/src/features/code-editor/hooks/useCompileCss.ts
  */
 
-import initSwc, { transformSync } from '@swc/wasm-web';
 import {
   compileCss,
   compilePartialCss,
   extractClassNameCandidates,
   transformCss,
 } from 'tailwindcss-in-browser';
+import initSwc, { transformSync } from '@swc/wasm-web';
 
 // Copied from ui/src/features/code-editor/utils/tailwindCss.ts. Utilities that
 // must not land inside `@layer utilities`.

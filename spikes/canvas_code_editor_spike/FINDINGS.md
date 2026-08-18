@@ -4,8 +4,10 @@
 the preview without new core API. And a remotely hosted extension cannot host
 it at all.**
 
-Narrower than it first read: the *transport* is proven, the *payload* is not.
-See "What the spike gets wrong".
+**Now verified at runtime on a real Drupal site**, not just reasoned from code.
+See "Verified on a live site" below. Two claims in the first version were
+falsified by that verification: WALL(5) was never a wall, and CSS compilation
+does *not* work with the build recipe this spike started with.
 
 Status: throwaway. Nothing here ships. Delete once the API design is agreed.
 
@@ -37,10 +39,78 @@ dist/lightningcss_node-1.30.1-…​.wasm         13.61 MB
 dist/wasm_bg.wasm                            19.00 MB
 ```
 
-**Not verified: anything at runtime.** There is no Drupal site, no database and
-no browser in this environment. Every HTTP call, the nested-iframe sandbox
-behavior and the wasm boot are reasoned from the code and the platform specs,
-not observed. The runtime half needs a site-equipped follow-up.
+## Verified on a live site
+
+A DDEV site was created (golden clone, Canvas installed, this module enabled) and
+the extension was driven in a real browser. Screenshot: `verified.png`.
+
+**The spike works end to end.** In the real page-extension iframe at
+`/canvas/app/canvas_code_editor_spike/component/card`:
+
+| Observed | Result |
+|---|---|
+| Extension discovered and served | `type=page`, url resolved to the module path |
+| Extension document boots | status `Editing Card` |
+| CodeMirror surfaces | **2** mounted (JS + CSS) |
+| SWC compile | works, from the extension's own wasm |
+| Tailwind / Lightning CSS compile | works, after the build fix below |
+| Preview document assembled | 10,390 chars, contains the import map and a `blob:` module URL |
+| Preview renders | the preview root has rendered content |
+| Component navigation | 12 components listed; switching updates the parent URL via `canvas:navigate` to `/component/footer` and re-opens the editor |
+| Auto-save PATCH | `{data, autoSaves, clientInstanceId}` → 200, new hash returned |
+| Conflict detection | same `clientInstanceId` → 200 (hash check skipped by design); different one + stale hash → **409** |
+| Sandbox nesting | the extension document can read `window.parent.document` — `allow-same-origin` holds through the nesting, as reasoned |
+
+Also confirmed on the same site, about Canvas rather than the spike:
+
+- **The import map already ships to clients as rendered markup.** `GET /canvas/api/v0/config/js_component/card` returns `js_header` (3,485 chars) containing `<script type="importmap">` with `preact` mapped to a cache-busted module URL. See the WALL(3) correction.
+- **The draft response lacks it.** The same component's auto-save GET returns source and compiled fields but **no** `default_markup`, `css`, `js_header` or `js_footer`.
+- **WALL(5) confirmed withdrawn, and better than described**: a user with `edit canvas_page` but not `administer code components` gets **403 on `/canvas/app/canvas_code_editor_spike` before the iframe is created**, while core's own `/canvas/code-editor/component/card` returns **200** and refuses client-side. The extension is *better* gated than core's editor.
+- **A route outside `/canvas/` escapes the path processor**: `/canvas-code-editor/component/card` → 404, while `/canvas/code-editor/component/card` → 200. That is what makes the proposal's redirect route possible.
+- **Publishing a code component alone fails with 424** `GlobalAssetNotPublished`, pointing at `asset_library:global`.
+- **Denied links contribute cacheability only**: `card`'s `links` is `[]` because it is in use, so delete access is denied and the link is omitted rather than shown.
+- **`globalAssets.jsHeader` and `jsFooter` are empty** on this site; only `css` is populated. So the import map and `globalAssets` are two separate sources, and an implementation must not assume the map arrives via `jsHeader`.
+
+**Still not verified:** performance under real editing load, behavior with a remote extension (impossible by construction), and anything about the migration itself.
+
+## The build recipe: Vite, not tsup
+
+The most expensive thing this verification found. The spike began with the
+`tsup` + IIFE recipe the `canvas-extension` skill prescribes and which
+`canvas_translate` ships. **That cannot build this extension at all**, because
+`tailwindcss-in-browser` imports its Lightning CSS wasm with a Vite-style `?url`
+suffix:
+
+- `format: 'iife'` → `Error: Dynamic require of "./lightningcss_node-1.30.1-<hash>.wasm?url" is not supported`, thrown at module scope, so nothing boots. The bundle built cleanly and `tsc` passed; only a browser revealed it.
+- `format: 'esm'` → the `?url` import survives as a static import of a non-JS asset, and the browser refuses the whole module: *"Failed to fetch dynamically imported module"*.
+
+Fixed by building with **Vite**, which is what Canvas's own `ui/` uses and which
+resolves `?url` natively. Two further details, both found only at runtime:
+
+- Vite **lib mode** does not emit the `?url` asset, so the build must copy
+  `lightningcss_node-1.30.1.wasm` itself — under **exactly** that versioned name,
+  because that is the URL left in the bundle. Canvas's `ui/dist/assets/` contains
+  the same filename.
+- The package *also* resolves `new URL("lightningcss_node.wasm", import.meta.url)`
+  at runtime, so the un-versioned name has to be shipped too. Get either wrong and
+  the browser fetches Drupal's 404 HTML and `WebAssembly.instantiate()` fails with
+  `expected magic word 00 61 73 6d, found 3c 21 44 4f` — `<!DO`.
+
+**Consequence for the proposal:** an extension that reuses Canvas's CSS compiler
+has to reproduce Canvas's Vite asset handling and ship 33 MB of wasm under two
+names dictated by a third-party package's internals. That is the strongest
+argument for Canvas exposing its compiler asset URLs, so the module ships neither
+file.
+
+## Navigation
+
+The screenshot shows the other thing a live site makes obvious: **the extension
+page has only a back arrow.** Canvas's code component list lives in the left
+panel (`ui/src/components/sidePanel/Code.tsx`) and ADR 0009 excludes extension UI
+there, so an extension-hosted editor has to carry its own navigation. The spike
+now does — a component picker that lists the site's code components, excludes
+`external` ones, and reports each move to Canvas with `canvas:navigate`. This is
+Q5 loss 1 in the proposal, seen rather than predicted.
 
 ## What is NOT a wall
 

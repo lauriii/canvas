@@ -11,17 +11,16 @@
  * Route: /canvas/app/canvas_code_editor_spike#/{machineName}
  */
 
-import { EditorState } from '@codemirror/state';
+import { basicSetup, EditorView } from 'codemirror';
 import { css as cssLang } from '@codemirror/lang-css';
 import { javascript } from '@codemirror/lang-javascript';
-import { basicSetup, EditorView } from 'codemirror';
+import { EditorState } from '@codemirror/state';
 
 import {
+  listCodeComponents,
   loadCodeComponent,
   loadGlobalAssetLibrary,
   saveCodeComponent,
-  type AssetLibrary,
-  type CodeComponent,
 } from './api.ts';
 import {
   compileComponentCss,
@@ -32,6 +31,8 @@ import {
 } from './compile.ts';
 import { unreachable } from './host.ts';
 import { buildPreview } from './preview.ts';
+
+import type { AssetLibrary, CodeComponent } from './api.ts';
 
 const SAVE_DEBOUNCE_MS = 1000;
 
@@ -53,10 +54,67 @@ function status(message: string): void {
   el('status').textContent = message;
 }
 
-/** The machine name comes from the hash route Canvas forwards to the iframe. */
+/**
+ * The machine name comes from the hash route Canvas forwards to the iframe.
+ *
+ * Canvas takes the sub-path from its OWN url path and hands it to the iframe as a
+ * fragment: `/canvas/app/{id}/component/card` becomes `#/component/card`.
+ * @see ui/src/components/extensions/ExtensionPage.tsx
+ *
+ * Both shapes are accepted, because the two callers disagree: a human opening the
+ * extension uses `#/card`, while the component edit link the proposal specifies
+ * points at `/component/{machineName}`.
+ */
 function requestedComponentId(): string | null {
-  const id = window.location.hash.replace(/^#\/?/, '').trim();
+  const id = window.location.hash
+    .replace(/^#\/?/, '')
+    .replace(/^component\//, '')
+    .trim();
   return id === '' ? null : id;
+}
+
+/**
+ * Populates the component picker, and navigates on change.
+ *
+ * Tells Canvas about the navigation with `canvas:navigate`, the one documented
+ * outbound message a page extension has, so the parent address bar tracks the
+ * extension's own route.
+ * @see packages/extensions/README.md
+ */
+async function initNavigation(currentId: string | null): Promise<void> {
+  const select = el('component-nav') as HTMLSelectElement;
+  let components: Record<string, { name: string; type?: string }>;
+  try {
+    components = await listCodeComponents();
+  } catch {
+    select.innerHTML = '<option value="">(could not load list)</option>';
+    return;
+  }
+  const entries = Object.entries(components)
+    // External components have no editable source, so do not offer them.
+    .filter(([, c]) => c.type !== 'external')
+    .sort((a, b) => a[1].name.localeCompare(b[1].name));
+  select.innerHTML = '';
+  for (const [machineName, component] of entries) {
+    const option = document.createElement('option');
+    option.value = machineName;
+    option.textContent = component.name;
+    option.selected = machineName === currentId;
+    select.append(option);
+  }
+  select.addEventListener('change', () => {
+    const next = select.value;
+    if (!next) {
+      return;
+    }
+    window.parent.postMessage(
+      { type: 'canvas:navigate', subPath: `component/${next}` },
+      window.location.origin,
+    );
+    window.location.hash = `#/${next}`;
+    // The editor is built once per component; reload rather than tear down.
+    window.location.reload();
+  });
 }
 
 function debounce<A extends unknown[]>(
@@ -87,8 +145,11 @@ async function boot(): Promise<void> {
   }
 
   const id = requestedComponentId();
+  // Navigation is drawn regardless, so an editor opened with no component is
+  // still usable — there is no component list in Canvas's panel to fall back to.
+  void initNavigation(id);
   if (!id) {
-    status('Open this with a component id: #/{machineName}');
+    status('Choose a component.');
     return;
   }
 
