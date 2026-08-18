@@ -12,6 +12,9 @@ use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileSystemInterface;
+use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
+use Drupal\Core\KeyValueStore\KeyValueStoreInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * Deletes generated CSS and JS files that no config entity refers to anymore.
@@ -29,6 +32,16 @@ use Drupal\Core\File\FileSystemInterface;
  * @internal
  */
 final class GeneratedAssetCleanup {
+
+  /**
+   * The key-value collection recording when a file stopped being referenced.
+   */
+  private const string COLLECTION = 'canvas.generated_asset_cleanup';
+
+  /**
+   * The key holding `[uri => timestamp first seen unreferenced]`.
+   */
+  private const string ORPHANED_SINCE_KEY = 'orphaned_since';
 
   /**
    * The directories Canvas generates asset files into.
@@ -61,34 +74,55 @@ final class GeneratedAssetCleanup {
   private const int MINIMUM_MAX_AGE = 21600;
 
   /**
-   * The most files one sweep deletes.
+   * The most files one sweep tracks, and so the most it deletes.
    *
    * The first sweep on a site that has never had one is the largest, and it is
    * the only sweep that site has ever needed. Bounding it keeps a long backlog
    * from costing more memory than cron has: exceeding that would abort the run
    * before anything is deleted, and every later run the same way, so the
-   * backlog could never be worked off. Whatever is left waits for the next run.
+   * backlog could never be worked off. Whatever is left waits for a later run.
    */
-  private const int MAX_DELETIONS_PER_RUN = 1000;
+  private const int MAX_FILES_PER_RUN = 1000;
+
+  private readonly KeyValueStoreInterface $keyValue;
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly FileSystemInterface $fileSystem,
     private readonly TimeInterface $time,
     private readonly ConfigFactoryInterface $configFactory,
-  ) {}
+    #[Autowire('@keyvalue')]
+    KeyValueFactoryInterface $keyValueFactory,
+  ) {
+    $this->keyValue = $keyValueFactory->get(self::COLLECTION);
+  }
 
   /**
-   * Deletes unreferenced generated files older than ::getMaxAge().
+   * Deletes files unreferenced for longer than ::getMaxAge().
+   *
+   * The retention period runs from the moment a file stopped being referenced,
+   * which is not the moment it was written: an asset that was current for a
+   * year has a year-old modification time, and deleting it the instant an edit
+   * orphans it would strip the styling from every response already served that
+   * still names it. Nothing reports that moment — a file is orphaned by an
+   * entity save, by an entity deletion, and by a Color save regenerating the
+   * brand kit's CSS behind its back — so this records when it first saw each
+   * file unreferenced and measures from there.
    *
    * @return list<string>
    *   The URIs that were deleted.
+   *
+   * @see \Drupal\canvas\Entity\Color::regenerateBrandKitAssets()
    */
   public function deleteStaleFiles(): array {
     $in_use = $this->getReferencedUris();
-    $cutoff = $this->time->getRequestTime() - $this->getMaxAge();
-    $candidates = [];
+    $now = $this->time->getRequestTime();
+    $max_age = $this->getMaxAge();
+    $orphaned_since = $this->keyValue->get(self::ORPHANED_SINCE_KEY, []);
+    \assert(\is_array($orphaned_since));
 
+    $observed = [];
+    $candidates = [];
     foreach (self::DIRECTORIES as $directory) {
       if (!\is_dir($directory)) {
         continue;
@@ -111,50 +145,55 @@ final class GeneratedAssetCleanup {
         if (isset($in_use[$uri])) {
           continue;
         }
-        $modified = \filemtime($uri);
-        if ($modified === FALSE || $modified > $cutoff) {
-          continue;
+        // A file seen unreferenced for the first time starts its retention
+        // period now; one seen before keeps the moment it was first seen.
+        $since = $orphaned_since[$uri] ?? $now;
+        \assert(\is_int($since));
+        $observed[$uri] = $since;
+        if ($now - $since >= $max_age) {
+          $candidates[] = $uri;
         }
-        $candidates[] = $uri;
-        if (\count($candidates) === self::MAX_DELETIONS_PER_RUN) {
+        if (\count($observed) === self::MAX_FILES_PER_RUN) {
           break 2;
         }
       }
     }
 
-    if ($candidates === []) {
-      return [];
-    }
-
-    // Deciding and deleting are separate passes because the scan above is not
-    // instantaneous: an editor saving during it can make one of these files
-    // current again, and CanvasAssetStorage rewrites the file under its old
-    // name rather than creating a new one. Reading the reference set a second
-    // time, after the scan, keeps anything that reappeared meanwhile.
-    // @see \Drupal\canvas\EntityHandlers\CanvasAssetStorage::doSave()
-    $in_use = $this->getReferencedUris();
-
     $deleted = [];
-    foreach ($candidates as $uri) {
-      if (isset($in_use[$uri])) {
-        continue;
-      }
-      // That second read is a snapshot too: it loads the entity types one after
-      // another, and this loop outlives it. Re-reading the modification time
-      // here is what actually protects a file written meanwhile, whether it
-      // came back under its old name or was orphaned again — either way saving
-      // it makes it too young to collect. Only the gap between this check and
-      // the unlink below is left, and losing that race costs a stylesheet until
-      // the entity is saved again, not data.
-      \clearstatcache();
-      $modified = \filemtime($uri);
-      if ($modified === FALSE || $modified > $cutoff) {
-        continue;
-      }
-      if ($this->fileSystem->delete($uri)) {
-        $deleted[] = $uri;
+    if ($candidates !== []) {
+      // Deciding and deleting are separate passes because the scan above is not
+      // instantaneous: an editor saving during it can make one of these files
+      // current again, and CanvasAssetStorage rewrites the file under its old
+      // name rather than creating a new one. Reading the reference set a second
+      // time, after the scan, keeps anything that reappeared meanwhile.
+      // @see \Drupal\canvas\EntityHandlers\CanvasAssetStorage::doSave()
+      $in_use = $this->getReferencedUris();
+      foreach ($candidates as $uri) {
+        if (isset($in_use[$uri])) {
+          continue;
+        }
+        // That second read is a snapshot too: it loads the entity types one
+        // after another, and this loop outlives it. A file written since it was
+        // first seen unreferenced has been resurrected, whatever the reference
+        // set says, and the check is process-independent because the write
+        // lands on disk. Only the gap between this check and the unlink below
+        // is left, and losing that race costs a stylesheet until the entity is
+        // saved again, not data.
+        \clearstatcache();
+        $modified = \filemtime($uri);
+        if ($modified === FALSE || $modified > $observed[$uri]) {
+          continue;
+        }
+        if ($this->fileSystem->delete($uri)) {
+          $deleted[] = $uri;
+          unset($observed[$uri]);
+        }
       }
     }
+
+    // Only what was observed unreferenced this run is worth remembering: a file
+    // that has been deleted, or that is referenced again, drops out.
+    $this->keyValue->set(self::ORPHANED_SINCE_KEY, $observed);
 
     return $deleted;
   }

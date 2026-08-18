@@ -185,22 +185,15 @@ class AssetLibraryStorageTest extends CanvasKernelTestBase {
     self::assertNotEmpty(\array_filter($orphaned, static fn (string $p): bool => \str_starts_with($p, JavaScriptComponent::ASSETS_DIRECTORY)));
     self::assertNotEmpty(\array_filter($orphaned, static fn (string $p): bool => \str_ends_with($p, '.js')));
 
-    // Everything was written during this request, so nothing is old enough to
-    // be removed yet: a response that is still being served can point at an
-    // orphan.
+    // The first sweep only records that the orphans are unreferenced: their
+    // retention period starts now, however old the files themselves are, since
+    // a response served a moment ago can still name them.
     self::assertSame([], $cleanup->deleteStaleFiles());
 
-    // Age everything past the grace period, the files still in use included, to
-    // prove age alone is not what makes a file collectable.
-    $file_system = $this->container->get(FileSystemInterface::class);
-    \assert($file_system instanceof FileSystemInterface);
-    $long_ago = \time() - (7 * 24 * 60 * 60);
-    foreach ([...$orphaned, ...$current] as $path) {
-      $real_path = $file_system->realpath($path);
-      self::assertIsString($real_path);
-      self::assertTrue(\touch($real_path, $long_ago));
-    }
-    \clearstatcache();
+    // Backdate that record by a week. The files still in use are never recorded
+    // at all, which is what keeps them: being unreferenced is what starts the
+    // clock, not age.
+    $this->backdateOrphanRecord(7 * 24 * 60 * 60);
 
     // A site that advertises a page cache lifetime longer than the six-hour
     // floor keeps its files for that lifetime instead: a response cached for
@@ -210,17 +203,19 @@ class AssetLibraryStorageTest extends CanvasKernelTestBase {
     $this->config('system.performance')->set('cache.page.max_age', 14 * 24 * 60 * 60)->save();
     self::assertSame([], $cleanup->deleteStaleFiles());
     $this->config('system.performance')->set('cache.page.max_age', 0)->save();
+    $this->backdateOrphanRecord(7 * 24 * 60 * 60);
 
     $deleted = $cleanup->deleteStaleFiles();
-    \sort($deleted);
-    $expected = $orphaned;
-    \sort($expected);
-    self::assertSame($expected, $deleted);
+    // Installing Canvas writes files of its own, and the first round orphaned
+    // those too, so the sweep legitimately collects more than this test made.
+    // What matters is that it took every orphan and no file still in use.
+    self::assertSame($orphaned, \array_values(\array_intersect($orphaned, $deleted)));
+    self::assertSame([], \array_intersect($current, $deleted));
     foreach ($orphaned as $path) {
       self::assertFileDoesNotExist($path);
     }
     foreach ($current as $path) {
-      self::assertFileExists($path, 'A file a config entity still points at is never deleted, whatever its age');
+      self::assertFileExists($path, 'A file a config entity still points at is never deleted, however long it has been unreferenced');
     }
 
     // And it is idempotent.
@@ -256,23 +251,15 @@ class AssetLibraryStorageTest extends CanvasKernelTestBase {
     $asset_library->set('css', $second)->save();
     self::assertNotSame($orphaned_css_path, $asset_library->getCssPath());
 
-    // Age the orphan so that, on the reference set as it stands now, the sweep
-    // would collect it.
-    $file_system = $this->container->get(FileSystemInterface::class);
-    \assert($file_system instanceof FileSystemInterface);
-    $real_path = $file_system->realpath($orphaned_css_path);
-    self::assertIsString($real_path);
-    self::assertTrue(\touch($real_path, \time() - (7 * 24 * 60 * 60)));
-    \clearstatcache();
+    // Record the orphan and backdate that record, so that on the reference set
+    // as it stands now the sweep would collect it.
+    self::assertSame([], $cleanup->deleteStaleFiles());
+    $this->backdateOrphanRecord(7 * 24 * 60 * 60);
 
     // Now revert, which makes that same path current again: the path is a
     // content hash, so identical content means the identical file name.
     $asset_library->set('css', $first)->save();
     self::assertSame($orphaned_css_path, $asset_library->getCssPath());
-    // Saving rewrote the file, so age it again: this test is about the
-    // reference set, not about the retention period.
-    self::assertTrue(\touch($real_path, \time() - (7 * 24 * 60 * 60)));
-    \clearstatcache();
 
     self::assertSame([], $cleanup->deleteStaleFiles());
     self::assertFileExists($orphaned_css_path, 'A file that is current again is never deleted');
@@ -302,7 +289,7 @@ class AssetLibraryStorageTest extends CanvasKernelTestBase {
     $directory_path = $file_system->realpath($directory);
     self::assertIsString($directory_path);
 
-    // Matches GeneratedAssetCleanup::MAX_DELETIONS_PER_RUN, which is private.
+    // Matches GeneratedAssetCleanup::MAX_FILES_PER_RUN, which is private.
     $limit = 1000;
     $overflow = 5;
     $long_ago = \time() - (7 * 24 * 60 * 60);
@@ -312,9 +299,8 @@ class AssetLibraryStorageTest extends CanvasKernelTestBase {
       self::assertTrue(\touch($real_path, $long_ago));
     }
 
-    // A file the global asset library points at, aged past the retention period
-    // so that only the reference set can save it, and living in the same
-    // directory as the backlog.
+    // A file the global asset library points at, living in the same directory
+    // as the backlog, so that only the reference set can save it.
     $asset_library = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
     self::assertNotNull($asset_library);
     $asset_library->set('css', [
@@ -323,17 +309,58 @@ class AssetLibraryStorageTest extends CanvasKernelTestBase {
     ])->save();
     $in_use_path = $asset_library->getCssPath();
     self::assertStringStartsWith($directory, $in_use_path);
-    $in_use_real_path = $file_system->realpath($in_use_path);
-    self::assertIsString($in_use_real_path);
-    self::assertTrue(\touch($in_use_real_path, $long_ago));
-    \clearstatcache();
 
-    // The backlog is worked off over consecutive runs, and the file still in
-    // use is passed over by every one of them.
-    self::assertCount($limit, $cleanup->deleteStaleFiles());
-    self::assertCount($overflow, $cleanup->deleteStaleFiles());
+    // Installing Canvas leaves orphans of its own, so count what this test made
+    // rather than everything the sweep is entitled to collect.
+    $remaining = static fn (): int => \count(\glob($directory_path . '/gc-backlog-*.css') ?: []);
+    self::assertSame($limit + $overflow, $remaining());
+
+    // One run records at most the limit, so the backlog is recorded, and then
+    // deleted, over consecutive runs. The file still in use is passed over by
+    // every one of them.
     self::assertSame([], $cleanup->deleteStaleFiles());
+    $this->backdateOrphanRecord(7 * 24 * 60 * 60);
+    self::assertCount($limit, $cleanup->deleteStaleFiles(), 'One run never deletes more than the limit');
+    self::assertGreaterThan(0, $remaining(), 'The backlog outlasts the run that hit the limit');
+
+    self::assertSame([], $cleanup->deleteStaleFiles());
+    $this->backdateOrphanRecord(7 * 24 * 60 * 60);
+    self::assertNotEmpty($cleanup->deleteStaleFiles());
+    self::assertSame(0, $remaining(), 'What the limit left behind is worked off by a later run');
+
     self::assertFileExists($in_use_path);
+  }
+
+  /**
+   * Backdates the record of when each orphan was first seen unreferenced.
+   *
+   * The retention period runs from that moment rather than from the file's own
+   * modification time, and the request time is fixed for the whole test, so
+   * this is how the period is made to elapse.
+   *
+   * @see \Drupal\canvas\GeneratedAssetCleanup::deleteStaleFiles()
+   */
+  private function backdateOrphanRecord(int $seconds): void {
+    $file_system = $this->container->get(FileSystemInterface::class);
+    \assert($file_system instanceof FileSystemInterface);
+    $store = $this->container->get('keyvalue')->get('canvas.generated_asset_cleanup');
+    $orphaned_since = $store->get('orphaned_since', []);
+    self::assertNotEmpty($orphaned_since, 'The sweep records every file it sees unreferenced');
+
+    $backdated = [];
+    foreach ($orphaned_since as $uri => $since) {
+      \assert(\is_int($since));
+      $backdated[$uri] = $since - $seconds;
+      // The file has to look at least as old as its record, or the sweep reads
+      // it as having been written since, which is what it does to spot a file
+      // that came back.
+      $real_path = $file_system->realpath($uri);
+      if (\is_string($real_path) && \file_exists($real_path)) {
+        self::assertTrue(\touch($real_path, $backdated[$uri] - 1));
+      }
+    }
+    $store->set('orphaned_since', $backdated);
+    \clearstatcache();
   }
 
   /**
