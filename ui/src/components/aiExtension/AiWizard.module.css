@@ -1,4 +1,5 @@
 .aiWizard {
+  position: relative;
   width: fit-content;
   height: 100%;
   padding: 16px;
@@ -11,7 +12,7 @@
   }
 
   .blue-text {
-    color: #007BFF;
+    color: #007bff;
   }
 }
 
