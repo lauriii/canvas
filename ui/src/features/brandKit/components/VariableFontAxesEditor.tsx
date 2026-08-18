@@ -5,6 +5,7 @@ import {
   getAxisStep,
 } from '@/features/brandKit/variableFontState';
 
+import type { CSSProperties } from 'react';
 import type {
   AssetLibraryFont,
   AssetLibraryFontAxis,
@@ -39,6 +40,11 @@ const VariableFontAxesEditor = ({
         const sliderId = `canvas-brand-kit-axis-${font.id}-${axis.tag}`;
         const rangeId = `${sliderId}-range`;
         const value = getAxisSettingValue(font, axis);
+        // How far along its range the value sits, for the track's fill.
+        const progress =
+          axis.max === axis.min
+            ? 0
+            : ((value - axis.min) / (axis.max - axis.min)) * 100;
 
         return (
           <Flex
@@ -61,6 +67,7 @@ const VariableFontAxesEditor = ({
               value={value}
               disabled={isBusy}
               className={styles.axisSlider}
+              style={{ '--axis-progress': `${progress}%` } as CSSProperties}
               aria-describedby={rangeId}
               data-testid={`canvas-brand-kit-font-axis-${axis.tag}`}
               onChange={(event) =>

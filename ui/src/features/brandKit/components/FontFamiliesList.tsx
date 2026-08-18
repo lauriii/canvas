@@ -83,12 +83,17 @@ const FontFamiliesList = ({
             onOpenFamilyChange(nextIsOpen ? fontGroup.family : null);
           }}
         >
-          <Flex
-            align="center"
+          <Box
             className={styles.familyRowWrapper}
             data-state={isOpen ? 'active' : 'inactive'}
             data-testid={`canvas-brand-kit-font-family-row-${fontGroup.family}`}
           >
+            {/*
+              The trigger spans the whole row, badge included: the flyout is
+              positioned from the trigger's right edge, and a trigger that
+              stopped short of the row would open the flyout over the panel.
+              The overflow menu cannot nest inside it, so it sits on top.
+            */}
             <Popover.Trigger>
               <button
                 type="button"
@@ -107,11 +112,11 @@ const FontFamiliesList = ({
                     {buildFontFamilyFormatsLabel(fontGroup.fonts)}
                   </Text>
                 </Flex>
+                <Text size="1" weight="medium" className={styles.familyBadge}>
+                  {isVariable ? 'Variable' : 'Static'}
+                </Text>
               </button>
             </Popover.Trigger>
-            <Text size="1" weight="medium" className={styles.familyBadge}>
-              {isVariable ? 'Variable' : 'Static'}
-            </Text>
             <DropdownMenu.Root>
               <DropdownMenu.Trigger>
                 <button
@@ -145,10 +150,10 @@ const FontFamiliesList = ({
                 </UnifiedMenu.Item>
               </UnifiedMenu.Content>
             </DropdownMenu.Root>
-          </Flex>
+          </Box>
           <Popover.Content
             side="right"
-            sideOffset={20}
+            sideOffset={32}
             align="start"
             className={styles.flyoutContent}
             width={FLYOUT_WIDTH}

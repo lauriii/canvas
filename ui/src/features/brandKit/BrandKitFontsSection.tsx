@@ -1,13 +1,6 @@
-import { useEffect, useMemo } from 'react';
-import { DownloadIcon } from '@radix-ui/react-icons';
-import {
-  Button,
-  Callout,
-  Flex,
-  Heading,
-  Spinner,
-  Text,
-} from '@radix-ui/themes';
+import { useEffect, useMemo, useState } from 'react';
+import { MagnifyingGlassIcon, PlusIcon } from '@radix-ui/react-icons';
+import { Button, Callout, Flex, Spinner, TextField } from '@radix-ui/themes';
 
 import EmptyStateCallout from '@/components/EmptyStateCallout';
 import FontFamiliesList from '@/features/brandKit/components/FontFamiliesList';
@@ -22,12 +15,14 @@ import {
   writeStoredAxisSelections,
 } from '@/features/brandKit/variableFontState';
 
+import type { FormEvent } from 'react';
 import type {
   AssetLibraryFont,
   AssetLibraryFontAxis,
 } from '@/types/CodeComponent';
 
 const BrandKitFontsSection = () => {
+  const [searchTerm, setSearchTerm] = useState('');
   const {
     errorMessage: fontsErrorMessage,
     fonts,
@@ -36,7 +31,16 @@ const BrandKitFontsSection = () => {
     saveFonts,
     setFonts,
   } = useBrandKitFonts();
-  const groupedFonts = useMemo(() => groupFontsByFamily(fonts), [fonts]);
+  const allGroupedFonts = useMemo(() => groupFontsByFamily(fonts), [fonts]);
+  const groupedFonts = useMemo(
+    () =>
+      searchTerm
+        ? allGroupedFonts.filter((fontGroup) =>
+            fontGroup.family.toLowerCase().includes(searchTerm.toLowerCase()),
+          )
+        : allGroupedFonts,
+    [allGroupedFonts, searchTerm],
+  );
   const {
     copiedSnippetId,
     copySnippet,
@@ -221,15 +225,28 @@ const BrandKitFontsSection = () => {
 
   return (
     <Flex direction="column" gap="2">
-      <Flex align="center" justify="between" gap="2">
-        <Flex direction="column">
-          <Heading as="h5" size="2">
-            Font library
-          </Heading>
-          <Text size="1" color="gray">
-            {groupedFonts.length} {groupedFonts.length === 1 ? 'font' : 'fonts'}
-          </Text>
-        </Flex>
+      {/* Same shape as the colors tab's header: search, then the one action. */}
+      <Flex direction="row" gap="2" mb="2">
+        <form
+          style={{ flexGrow: '1' }}
+          onSubmit={(event: FormEvent<HTMLFormElement>) => {
+            event.preventDefault();
+          }}
+        >
+          <TextField.Root
+            autoComplete="off"
+            placeholder="Search…"
+            radius="medium"
+            aria-label="Search fonts"
+            size="1"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+          >
+            <TextField.Slot>
+              <MagnifyingGlassIcon height="16" width="16" />
+            </TextField.Slot>
+          </TextField.Root>
+        </form>
         <Button
           size="1"
           variant="soft"
@@ -237,8 +254,8 @@ const BrandKitFontsSection = () => {
           disabled={isBusy}
           data-testid="canvas-brand-kit-upload-font-button"
         >
-          <DownloadIcon />
-          Upload font
+          <PlusIcon />
+          Upload
         </Button>
         <input
           ref={fileInputRef}
@@ -259,8 +276,16 @@ const BrandKitFontsSection = () => {
       {groupedFonts.length === 0 && !errorMessage && (
         <EmptyStateCallout
           my="3"
-          title="No fonts uploaded yet."
-          description="Upload one or more font files to generate reusable CSS snippets for the global asset library."
+          title={
+            searchTerm
+              ? 'No results match your search.'
+              : 'No fonts uploaded yet.'
+          }
+          description={
+            searchTerm
+              ? ''
+              : 'Upload one or more font files to generate reusable CSS snippets for the global asset library.'
+          }
         />
       )}
 

@@ -17,14 +17,11 @@
  * family's details.
  */
 .familyRowWrapper {
-  display: flex;
-  align-items: center;
+  position: relative;
   box-sizing: border-box;
   width: 100%;
-  padding-right: var(--space-1);
   color: var(--slate-12);
   border-radius: var(--radius-2);
-  gap: var(--space-1);
 }
 
 .familyRowWrapper:hover {
@@ -46,12 +43,13 @@
 .familyRow {
   all: unset;
   display: flex;
-  flex: 1;
   align-items: center;
   box-sizing: border-box;
-  min-width: 0;
-  padding: var(--space-1) var(--space-2);
+  width: 100%;
+  /* Room on the right for the overflow menu, which overlays the row. */
+  padding: var(--space-1) var(--space-5) var(--space-1) var(--space-2);
   cursor: pointer;
+  gap: var(--space-1);
 }
 
 .familyRow:focus-visible {
@@ -105,12 +103,15 @@
  * way, so nothing shifts when it appears.
  */
 .familyMenuButton {
+  position: absolute;
+  top: 50%;
+  right: var(--space-1);
   display: flex;
-  flex-shrink: 0;
   align-items: center;
   justify-content: center;
   padding: 2px;
   cursor: pointer;
+  transform: translateY(-50%);
   opacity: 0;
   color: inherit;
   border: 0;
@@ -363,25 +364,77 @@
   gap: var(--space-1);
 }
 
+/*
+ * The design's slider: a 6px rounded track filled to the current value, with a
+ * small round thumb centred on it. Any author style on the track turns off the
+ * fill the browser paints from `accent-color`, so the fill is a gradient
+ * stopped at `--axis-progress`, which the component sets from the value.
+ */
 .axisSlider {
   width: 100%;
   height: 12px;
   cursor: pointer;
-  accent-color: var(--accent-9);
+  appearance: none;
+  background: transparent;
 }
 
 .axisSlider::-webkit-slider-runnable-track {
+  box-sizing: border-box;
   height: 6px;
-  border: 1px solid var(--gray-4);
-  border-radius: var(--radius-full, 9999px);
-  background: var(--gray-3);
+  border: 1px solid var(--gray-5);
+  border-radius: 9999px;
+  background:
+    linear-gradient(
+        to right,
+        var(--accent-9) 0 var(--axis-progress, 0%),
+        transparent var(--axis-progress, 0%) 100%
+      )
+      no-repeat,
+    var(--gray-3);
 }
 
 .axisSlider::-moz-range-track {
+  box-sizing: border-box;
   height: 6px;
-  border: 1px solid var(--gray-4);
-  border-radius: var(--radius-full, 9999px);
-  background: var(--gray-3);
+  border: 1px solid var(--gray-5);
+  border-radius: 9999px;
+  background:
+    linear-gradient(
+        to right,
+        var(--accent-9) 0 var(--axis-progress, 0%),
+        transparent var(--axis-progress, 0%) 100%
+      )
+      no-repeat,
+    var(--gray-3);
+}
+
+.axisSlider::-webkit-slider-thumb {
+  width: 12px;
+  height: 12px;
+  /* Re-centre on the track: the thumb is laid out from the track's top edge. */
+  margin-top: -3px;
+  appearance: none;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--accent-9);
+}
+
+.axisSlider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--accent-9);
+}
+
+.axisSlider:focus-visible {
+  outline: 2px solid var(--blue-8);
+  outline-offset: 2px;
+}
+
+.axisSlider:disabled {
+  cursor: default;
+  opacity: 0.5;
 }
 
 .axisRange {
