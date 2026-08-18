@@ -1,0 +1,19 @@
+# POC-local PHPStan config: canvas's level 8 plus the Drupal extension
+# (auto-loaded via phpstan/extension-installer), without the canvas-only
+# dead-code rules, which cannot see Views invoking plugin methods and
+# false-positive on every Views plugin override.
+parameters:
+  level: 8
+  treatPhpDocTypesAsCertain: false
+  paths:
+    - src
+  ignoreErrors:
+    # The canvas dead-code rules load globally via phpstan/extension-installer
+    # and cannot see that Views instantiates this plugin and calls these
+    # overrides through RowPluginBase; canvas's own config path-ignores the
+    # same pattern for its submodules.
+    - '#^Unused Drupal\\canvas_views_poc\\#'
+    - '#^Property Drupal\\canvas_views_poc\\.+ is never read#'
+    # Cannot be narrowed: ContainerFactoryPluginInterface::create() types it as
+    # a bare array, and narrowing the override violates contravariance.
+    - '#create\(\) has parameter \$configuration with no value type#'

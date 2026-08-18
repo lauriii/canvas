@@ -1,0 +1,8 @@
+name: 'Canvas Views POC'
+type: module
+description: 'Proof of concept: build a Views display row out of Canvas components, with props bound to Views field values.'
+core_version_requirement: ^11
+package: Canvas
+dependencies:
+  - drupal:views
+  - canvas:canvas

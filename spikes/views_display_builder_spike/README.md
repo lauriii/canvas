@@ -51,3 +51,58 @@ Same result. `ContentTemplate::build()` is public, so no Canvas change is needed
 
 Install `canvas_views_spike`, import the content template yml, create a view
 over articles, and set its row plugin.
+
+## POC module: `canvas_views_poc` (second iteration, E2E verified)
+
+The push-back on the first spike was correct: not all views are displayed
+through content templates. `canvas_views_poc` covers the rest. It is a Views
+row plugin (`canvas_component`) that renders each row as one Canvas component
+and binds the component's props to the display's Views fields through an
+options form: pick a component, then map each prop to a field. Values are taken
+from `StylePluginBase::getField()` (the pre-rendered, render-context-safe field
+output) and written over the component's default static prop sources, so the
+tree stays valid with no new prop source type and no Canvas change.
+
+Verified end to end in a real browser on the live site:
+
+- `/poc-fields-rows`: a Fields-row view over articles, `js.heading` with
+  `text` bound to `Content: Title`. 5 rows, 5 hydrated `<h2>` headings, each
+  with that row's own title (`evidence/poc-fields-rows.png`).
+- `/poc-no-entity`: a view over `watchdog`, a base table with **no entity
+  type**, `text` bound to the log type field. 4 rows, 4 hydrated components.
+  Nothing about this view could be expressed by a content template.
+- The full site-builder flow through Views UI: row style chooser, the plugin's
+  options form (component select plus per-prop binding selects), Apply, live
+  preview, Save, front end (`evidence/views-ui-preview.png`).
+- `ddev phpcs` and PHPStan level 8 clean (see `canvas_views_poc/phpstan.neon`
+  for which globally loaded canvas dead-code rules are ignored and why).
+
+Bugs found and fixed during E2E:
+
+- Calling the field handler's `advancedRender()` directly crashes the Views UI
+  live preview with `LogicException: Render context is empty` — the preview
+  renders outside a render context. Core's own guard lives in
+  `StylePluginBase::renderFields()` (core `StylePluginBase.php:703-707`);
+  consuming `getField()` instead inherits it.
+
+Limitations found (POC-level findings, not bugs):
+
+- Views UI's live preview shows unhydrated islands: Canvas code components are
+  `client="only"`, and module scripts inside AJAX-injected preview markup do
+  not execute. The saved page hydrates fine.
+- Binding delivers `strip_tags`-flattened rendered field output, so it only
+  fits string-shaped props. Structured shapes (image, link) would need typed
+  values per prop — that is precisely the gap the `pluggable-prop-sources`
+  change addresses, and this POC sharpens its justification: pluggability is
+  not needed to get *a* value into a prop, it is needed to get a *typed,
+  shape-matched, cacheable* value in.
+- An unsaved `Pattern` config entity is used as the render vehicle because
+  rendering a module-assembled tree requires an entity carrying one
+  (`ComponentTreeItemList::toRenderable()`); that is finding A4 (a supported
+  render entry point) in the design doc.
+- A view over a non-entity base table gets no cache-tag invalidation when its
+  underlying table changes (nothing fires tags for `watchdog` inserts). Views
+  behavior, not Canvas's, but it shapes expectations for phase 3.
+
+Repro: enable `canvas_views_poc`, run `mkview.php` and `mkview2.php` with
+`drush scr`.
