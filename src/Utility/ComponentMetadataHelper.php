@@ -38,7 +38,7 @@ final class ComponentMetadataHelper {
       // @see https://www.drupal.org/project/drupal/issues/3352063#comment-15277820
       // @see `canvas_test_sdc:attributes` component template as an example for
       // how to initialize the `Attribute`-typed prop.
-      if (\in_array(Attribute::class, $prop_schema['type'], TRUE)) {
+      if (\in_array(Attribute::class, (array) $prop_schema['type'], TRUE)) {
         continue;
       }
       $component_properties[$prop_name] = $prop_schema;
