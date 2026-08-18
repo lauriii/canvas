@@ -304,3 +304,10 @@
 .rgbaNativeInputInvalidSubtle {
   border-color: var(--red-7);
 }
+
+.rgbaNativeInput.rgbaNativeInputInvalidSubtle:focus,
+.rgbaNativeInput.rgbaNativeInputInvalid:focus {
+  border-color: var(--red-9);
+  outline: 2px solid var(--red-9);
+  outline-offset: -2px;
+}
