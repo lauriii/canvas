@@ -7,6 +7,7 @@ namespace Drupal\Tests\canvas\Kernel\Config;
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\Color;
+use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\Group;
@@ -658,6 +659,97 @@ final class ColorTest extends CanvasKernelTestBase {
     $this->assertStringContainsString('--color-update-test', $css_content);
     $this->assertStringContainsString('#00ff00', $css_content);
     $this->assertStringNotContainsString('#ff0000', $css_content);
+  }
+
+  /**
+   * Tests that Color changes invalidate responses depending on the BrandKit.
+   *
+   * The BrandKit's CSS file name is a content hash of its generated CSS, which
+   * embeds every Color. A response that attached `canvas/brand_kit.global`
+   * embeds that file name, so it must be invalidated whenever a Color is
+   * created, updated or deleted. Otherwise Internal Page Cache or a CDN keeps
+   * serving an old palette to anonymous visitors, and the Dynamic Page Cache
+   * keeps serving stale font preload links.
+   *
+   * Colors are separate config entities, so saving one does not invalidate the
+   * BrandKit's own cache tag. BrandKit::getCacheTags() therefore also returns
+   * the Color list cache tag, which config entities invalidate on every save
+   * and delete.
+   *
+   * @see \Drupal\canvas\Entity\BrandKit::getCacheTags()
+   * @see \Drupal\canvas\Hook\ComponentSourceHooks::pageAttachments()
+   * @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant::build()
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::renderComponent()
+   */
+  public function testColorChangesInvalidateBrandKitDependents(): void {
+    $cache = \Drupal::cache('render');
+    $cid = 'canvas_test_response_attaching_the_brand_kit';
+
+    // Stands in for a response that attached `canvas/brand_kit.global`: it
+    // stores the content-addressed CSS file name that ends up in the markup,
+    // under exactly the cacheability the three attach sites declare for it.
+    $cache_response = function () use ($cache, $cid): string {
+      \Drupal::entityTypeManager()->getStorage(BrandKit::ENTITY_TYPE_ID)->resetCache();
+      $brand_kit = BrandKit::load(BrandKit::GLOBAL_ID);
+      self::assertNotNull($brand_kit);
+      $css_path = $brand_kit->getCssPath();
+      $cache->set($cid, $css_path, CacheBackendInterface::CACHE_PERMANENT, $brand_kit->getCacheTags());
+      return $css_path;
+    };
+
+    $before_any_color = $cache_response();
+    self::assertNotFalse($cache->get($cid));
+
+    // Creating a Color changes the generated CSS, hence the file name in the
+    // markup, hence the cached response must be gone.
+    $color = Color::create([
+      'name' => 'Cacheability Test Color',
+      'cssVariable' => '--color-cacheability-test',
+      'value' => [
+        'colorSpace' => 'srgb',
+        'components' => [1.0, 0.0, 0.0],
+        'hex' => '#ff0000',
+      ],
+      'weight' => 0,
+    ]);
+    $color->save();
+    self::assertFalse($cache->get($cid), 'Creating a Color invalidates a response depending on the BrandKit');
+    $after_create = $cache_response();
+    self::assertNotSame($before_any_color, $after_create);
+
+    // Same for updating a Color: this is the stale palette case.
+    $color->set('value', [
+      'colorSpace' => 'srgb',
+      'components' => [0.0, 1.0, 0.0],
+      'hex' => '#00ff00',
+    ]);
+    $color->save();
+    self::assertFalse($cache->get($cid), 'Updating a Color invalidates a response depending on the BrandKit');
+    $after_update = $cache_response();
+    self::assertNotSame($after_create, $after_update);
+
+    // And for deleting one.
+    $color->delete();
+    self::assertFalse($cache->get($cid), 'Deleting a Color invalidates a response depending on the BrandKit');
+  }
+
+  /**
+   * Tests that changing the BrandKit itself invalidates its dependents.
+   *
+   * @see \Drupal\canvas\Entity\BrandKit::getCacheTags()
+   */
+  public function testBrandKitChangesInvalidateItsDependents(): void {
+    $cache = \Drupal::cache('render');
+    $cid = 'canvas_test_response_attaching_the_brand_kit';
+
+    $brand_kit = BrandKit::load(BrandKit::GLOBAL_ID);
+    self::assertNotNull($brand_kit);
+    $cache->set($cid, $brand_kit->getCssPath(), CacheBackendInterface::CACHE_PERMANENT, $brand_kit->getCacheTags());
+    self::assertNotFalse($cache->get($cid));
+
+    $brand_kit->set('label', 'Renamed brand kit');
+    $brand_kit->save();
+    self::assertFalse($cache->get($cid), 'Saving the BrandKit invalidates a response depending on it');
   }
 
   /**

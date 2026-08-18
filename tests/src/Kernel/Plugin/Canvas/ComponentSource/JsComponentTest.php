@@ -99,6 +99,23 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
   const string PSEUDO_RANDOM_CODE_COMPONENT_ID = 'pseudo_random_id';
 
   /**
+   * The cacheability of the global asset library and brand kit.
+   *
+   * Every rendered code component attaches both, and both are addressed by a
+   * content hash of their generated CSS/JS, so both are declared as cacheable
+   * dependencies. The brand kit's CSS embeds every Color, which is a separate
+   * config entity, hence the Color list cache tag.
+   *
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::renderComponent()
+   * @see \Drupal\canvas\Entity\BrandKit::getCacheTags()
+   */
+  private const array GLOBAL_ASSET_CACHE_TAGS = [
+    'config:canvas.asset_library.global',
+    'config:canvas.brand_kit.global',
+    'config:color_list',
+  ];
+
+  /**
    * {@inheritdoc}
    */
   protected static $modules = [
@@ -549,7 +566,20 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     ];
 
     $default_cacheability = (new CacheableMetadata())
-      ->setCacheContexts($default_render_cache_contexts);
+      ->setCacheContexts($default_render_cache_contexts)
+      // Every code component attaches the global asset library and brand kit,
+      // whose file names are content hashes, so both are declared as cacheable
+      // dependencies.
+      //
+      // ::renderComponentsLive() sorts the tags, so only these two are shared:
+      // they sort ahead of every per-component tag, while the brand kit's third
+      // tag, `config:color_list`, sorts after them and is listed per case.
+      // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::renderComponent()
+      // @see \Drupal\canvas\Entity\BrandKit::getCacheTags()
+      ->setCacheTags([
+        'config:canvas.asset_library.global',
+        'config:canvas.brand_kit.global',
+      ]);
     $module_path = self::getCiModulePath();
     $site_path = $this->siteDirectory;
     $default_libraries = [
@@ -601,8 +631,9 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     $this->assertEquals([
       'js.canvas_test_code_components_captioned_video' => [
         'cacheability' => (clone $default_cacheability)
-          ->setCacheTags([
+          ->addCacheTags([
             'config:canvas.js_component.canvas_test_code_components_captioned_video',
+            'config:color_list',
           ]),
         'attachments' => [
           'library' => [
@@ -624,8 +655,9 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       ],
       'js.canvas_test_code_components_interactive' => [
         'cacheability' => (clone $default_cacheability)
-          ->setCacheTags([
+          ->addCacheTags([
             'config:canvas.js_component.canvas_test_code_components_interactive',
+            'config:color_list',
           ]),
         'attachments' => [
           'library' => [
@@ -647,10 +679,11 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       ],
       'js.canvas_test_code_components_using_imports' => [
         'cacheability' => (clone $default_cacheability)
-          ->setCacheTags([
+          ->addCacheTags([
             'config:canvas.js_component.canvas_test_code_components_using_imports',
             'config:canvas.js_component.canvas_test_code_components_with_no_props',
             'config:canvas.js_component.canvas_test_code_components_with_props',
+            'config:color_list',
           ]),
         'attachments' => [
           'library' => [
@@ -681,8 +714,9 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       ],
       'js.canvas_test_code_components_vanilla_image' => [
         'cacheability' => (clone $default_cacheability)
-          ->setCacheTags([
+          ->addCacheTags([
             'config:canvas.js_component.canvas_test_code_components_vanilla_image',
+            'config:color_list',
           ]),
         'attachments' => [
           'library' => [
@@ -704,8 +738,9 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       ],
       'js.canvas_test_code_components_with_array_enums' => [
         'cacheability' => (clone $default_cacheability)
-          ->setCacheTags([
+          ->addCacheTags([
             'config:canvas.js_component.canvas_test_code_components_with_array_enums',
+            'config:color_list',
           ]),
         'attachments' => [
           'library' => [
@@ -727,8 +762,9 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       ],
       'js.canvas_test_code_components_with_array_props' => [
         'cacheability' => (clone $default_cacheability)
-          ->setCacheTags([
+          ->addCacheTags([
             'config:canvas.js_component.canvas_test_code_components_with_array_props',
+            'config:color_list',
           ]),
         'attachments' => [
           'library' => [
@@ -750,8 +786,9 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       ],
       'js.canvas_test_code_components_with_enums' => [
         'cacheability' => (clone $default_cacheability)
-          ->setCacheTags([
+          ->addCacheTags([
             'config:canvas.js_component.canvas_test_code_components_with_enums',
+            'config:color_list',
           ]),
         'attachments' => [
           'library' => [
@@ -773,8 +810,9 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       ],
       'js.canvas_test_code_components_with_link_prop' => [
         'cacheability' => (clone $default_cacheability)
-          ->setCacheTags([
+          ->addCacheTags([
             'config:canvas.js_component.canvas_test_code_components_with_link_prop',
+            'config:color_list',
           ]),
         'attachments' => [
           'library' => [
@@ -796,8 +834,9 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       ],
       'js.canvas_test_code_components_with_no_props' => [
         'cacheability' => (clone $default_cacheability)
-          ->setCacheTags([
+          ->addCacheTags([
             'config:canvas.js_component.canvas_test_code_components_with_no_props',
+            'config:color_list',
           ]),
         'attachments' => [
           'library' => [
@@ -819,8 +858,9 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       ],
       'js.canvas_test_code_components_with_props' => [
         'cacheability' => (clone $default_cacheability)
-          ->setCacheTags([
+          ->addCacheTags([
             'config:canvas.js_component.canvas_test_code_components_with_props',
+            'config:color_list',
           ]),
         'attachments' => [
           'library' => [
@@ -842,8 +882,9 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       ],
       'js.canvas_test_code_components_with_slots' => [
         'cacheability' => (clone $default_cacheability)
-          ->setCacheTags([
+          ->addCacheTags([
             'config:canvas.js_component.canvas_test_code_components_with_slots',
+            'config:color_list',
           ]),
         'attachments' => [
           'library' => [
@@ -868,8 +909,9 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
         // also depends on the enabled-language list and URL negotiation config.
         // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::renderComponent()
         'cacheability' => (clone $default_cacheability)
-          ->setCacheTags([
+          ->addCacheTags([
             'config:canvas.js_component.canvas_test_code_components_using_get_page_data',
+            'config:color_list',
             'config:configurable_language_list',
             'config:language.negotiation',
           ]),
@@ -893,8 +935,9 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       ],
       'js.canvas_test_code_components_using_drupalsettings_get_site_data' => [
         'cacheability' => (clone $default_cacheability)
-          ->setCacheTags([
+          ->addCacheTags([
             'config:canvas.js_component.canvas_test_code_components_using_drupalsettings_get_site_data',
+            'config:color_list',
           ]),
         'attachments' => [
           'library' => [
@@ -916,8 +959,9 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       ],
       'js.canvas_test_code_components_using_drupalsettings_get_theme_assets' => [
         'cacheability' => (clone $default_cacheability)
-          ->setCacheTags([
+          ->addCacheTags([
             'config:canvas.js_component.canvas_test_code_components_using_drupalsettings_get_theme_assets',
+            'config:color_list',
           ]),
         'attachments' => [
           'library' => [
@@ -959,7 +1003,10 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       \assert($source instanceof JsComponent);
       $js_component = $source->getJavaScriptComponent();
       $expected_cacheability = (new CacheableMetadata())
+        // Tags already on the render array (the auto-save tag in preview) come
+        // first, then the globals, then the component itself.
         ->addCacheTags($additional_expected_cache_tags)
+        ->addCacheTags(self::GLOBAL_ASSET_CACHE_TAGS)
         ->addCacheableDependency($js_component);
       // Components reading `canvasData.v0.mainEntity` also depend on the
       // enabled-language list and URL negotiation config.
@@ -3594,6 +3641,20 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     $actual_tags = $cacheability->getCacheTags();
     sort($actual_tags);
     self::assertSame(['node:1', 'node:2', 'node:3'], $actual_tags);
+
+    // Resolving the props is only half of it: that cacheability must survive
+    // into the render array, or editing any of the three nodes leaves a cached
+    // response showing their old titles.
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::renderComponent()
+    $island = $fixtures['source']->renderComponent(
+      [JsComponent::EXPLICIT_INPUT_NAME => $result['resolved']],
+      $fixtures['source']->getSlotDefinitions(),
+      'test-uuid',
+    );
+    self::assertEqualsCanonicalizing(
+      ['node:1', 'node:2', 'node:3'],
+      array_values(array_intersect($island['#cache']['tags'], ['node:1', 'node:2', 'node:3'])),
+    );
   }
 
   /**

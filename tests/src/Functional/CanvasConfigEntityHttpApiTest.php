@@ -2012,8 +2012,10 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertArrayHasKey('label', $body);
     $this->assertSame($updated_label, $body['label']);
 
-    // Auto-save endpoint: 200.
-    $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 200, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response', 'config:canvas.brand_kit.global'], 'UNCACHEABLE (request policy)', 'MISS');
+    // Auto-save endpoint: 200. The auto-saved brand kit embeds the palette too,
+    // so it also depends on the Color list cache tag.
+    // @see \Drupal\canvas\Entity\BrandKit::getCacheTags()
+    $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 200, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response', 'config:canvas.brand_kit.global', 'config:color_list'], 'UNCACHEABLE (request policy)', 'MISS');
 
     // Cannot delete the global brand kit: 403.
     $this->assertExpectedResponse('DELETE', $canonical_url, [], 403, NULL, NULL, NULL, NULL);

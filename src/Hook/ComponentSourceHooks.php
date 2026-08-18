@@ -11,6 +11,7 @@ use Drupal\canvas\Entity\BrandKit;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Asset\AttachedAssetsInterface;
 use Drupal\Core\Asset\LibraryDependencyResolverInterface;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\DrupalKernelInterface;
 use Drupal\Core\Extension\ThemeInstallerInterface;
@@ -128,15 +129,22 @@ readonly final class ComponentSourceHooks {
     // TRICKY: the `route` cache context varies also by route parameters, that
     // is unnecessary here, because this only varies by route definition.
     $page['#cache']['contexts'][] = 'route.name';
-    $asset_library = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
-    // The `global `asset library is guaranteed to exist, but protect even
-    // against the most obscure edge cases. (Also: tests do simulate that!)
-    if ($asset_library) {
-      $page['#attached']['library'][] = $asset_library->getAssetLibrary($is_preview);
-    }
-    $brand_kit = BrandKit::load(BrandKit::GLOBAL_ID);
-    if ($brand_kit) {
-      $page['#attached']['library'][] = $brand_kit->getAssetLibrary($is_preview);
+    // The `global` asset library and brand kit are guaranteed to exist, but
+    // protect even against the most obscure edge cases. (Also: tests do
+    // simulate that!)
+    //
+    // Both libraries' file names are content hashes, so attaching them makes
+    // this page's markup depend on the config entities that generate them.
+    // Attaching a library does not express that on its own, and without it a
+    // page cached by Internal Page Cache or a CDN keeps pointing at the old
+    // file name.
+    // @see \Drupal\canvas\Entity\CanvasAssetLibraryTrait::getCssPath()
+    foreach ([AssetLibrary::load(AssetLibrary::GLOBAL_ID), BrandKit::load(BrandKit::GLOBAL_ID)] as $global_asset) {
+      if ($global_asset === NULL) {
+        continue;
+      }
+      $page['#attached']['library'][] = $global_asset->getAssetLibrary($is_preview);
+      $page['#cache']['tags'] = Cache::mergeTags($page['#cache']['tags'] ?? [], $global_asset->getCacheTags());
     }
   }
 

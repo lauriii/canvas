@@ -68,6 +68,23 @@ class ComponentTreeItemListTest extends CanvasKernelTestBase {
   use DataProviderWithComponentTreeTrait;
 
   /**
+   * The cacheability of the global asset library and brand kit.
+   *
+   * Every rendered code component attaches both, and both are addressed by a
+   * content hash of their generated CSS/JS, so both are declared as cacheable
+   * dependencies. The brand kit's CSS embeds every Color, which is a separate
+   * config entity, hence the Color list cache tag.
+   *
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::renderComponent()
+   * @see \Drupal\canvas\Entity\BrandKit::getCacheTags()
+   */
+  private const array GLOBAL_ASSET_CACHE_TAGS = [
+    'config:canvas.asset_library.global',
+    'config:canvas.brand_kit.global',
+    'config:color_list',
+  ];
+
+  /**
    * {@inheritdoc}
    */
   protected static $modules = [
@@ -1241,6 +1258,7 @@ HTML,
                                       '#type' => 'astro_island',
                                       '#cache' => [
                                         'tags' => [
+                                          ...self::GLOBAL_ASSET_CACHE_TAGS,
                                           'config:canvas.js_component.my-cta',
                                           'config:canvas.component.js.my-cta',
                                         ],
@@ -1318,6 +1336,7 @@ HTML,
                                       '#type' => 'astro_island',
                                       '#cache' => [
                                         'tags' => [
+                                          ...self::GLOBAL_ASSET_CACHE_TAGS,
                                           'config:canvas.js_component.my-cta-with-auto-save',
                                           'config:canvas.component.js.my-cta-with-auto-save',
                                         ],
@@ -1532,6 +1551,7 @@ HTML,
         'config:canvas.component.sdc.canvas_test_sdc.props-slots',
         'user:1103448',
         'config:canvas.component.sdc.canvas_test_entity_reference_shape_alter.props-no-slots',
+        ...self::GLOBAL_ASSET_CACHE_TAGS,
         'config:canvas.js_component.my-cta-with-auto-save',
         'config:canvas.component.js.my-cta-with-auto-save',
         'config:canvas.js_component.my-cta',
@@ -1589,6 +1609,7 @@ HTML,
             'value' => [
               'tags' => [
                 AutoSaveManager::CACHE_TAG,
+                ...self::GLOBAL_ASSET_CACHE_TAGS,
                 'config:canvas.js_component.my-cta-with-auto-save',
                 'config:canvas.component.js.my-cta-with-auto-save',
               ],
@@ -1608,6 +1629,7 @@ HTML,
             'value' => [
               'tags' => [
                 AutoSaveManager::CACHE_TAG,
+                ...self::GLOBAL_ASSET_CACHE_TAGS,
                 'config:canvas.js_component.my-cta',
                 'config:canvas.component.js.my-cta',
               ],
@@ -1676,6 +1698,7 @@ HTML,
         'user:1103448',
         'config:canvas.component.sdc.canvas_test_entity_reference_shape_alter.props-no-slots',
         AutoSaveManager::CACHE_TAG,
+        ...self::GLOBAL_ASSET_CACHE_TAGS,
         'config:canvas.js_component.my-cta-with-auto-save',
         'config:canvas.component.js.my-cta-with-auto-save',
         'config:canvas.js_component.my-cta',

@@ -56,6 +56,15 @@ class CanvasPageVariantEnableTest extends BrowserTestBase {
       'rendered',
       'user:1',
       'user_view',
+      // Canvas attaches the global asset library and brand kit to every page
+      // in the default theme. Both are addressed by a content hash, so both
+      // are declared as cacheable dependencies; the brand kit's CSS embeds
+      // every Color, which is a separate config entity.
+      // @see \Drupal\canvas\Hook\ComponentSourceHooks::pageAttachments()
+      // @see \Drupal\canvas\Entity\BrandKit::getCacheTags()
+      'config:canvas.asset_library.global',
+      'config:canvas.brand_kit.global',
+      'config:color_list',
     ];
     $this->assertCacheTags([
       ...$content_cache_tags,

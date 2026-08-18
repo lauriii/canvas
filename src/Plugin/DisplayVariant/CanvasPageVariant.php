@@ -10,6 +10,7 @@ use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\Core\Block\MessagesBlockPluginInterface;
 use Drupal\Core\Block\TitleBlockPluginInterface;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Display\Attribute\PageDisplayVariant;
 use Drupal\Core\Display\PageVariantInterface;
 use Drupal\Core\Display\VariantBase;
@@ -138,6 +139,18 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
       ($is_preview ? '.draft' : '');
     $build['#attached']['library'][] = 'canvas/brand_kit.' . BrandKit::GLOBAL_ID .
       ($is_preview ? '.draft' : '');
+    // Both libraries' file names are content hashes, so attaching them makes
+    // this page's markup depend on the config entities that generate them.
+    // Attaching a library does not express that on its own, and without it a
+    // page cached by Internal Page Cache or a CDN keeps pointing at the old
+    // file name.
+    // @see \Drupal\canvas\Entity\CanvasAssetLibraryTrait::getCssPath()
+    foreach ([AssetLibrary::load(AssetLibrary::GLOBAL_ID), BrandKit::load(BrandKit::GLOBAL_ID)] as $global_asset) {
+      if ($global_asset === NULL) {
+        continue;
+      }
+      $build['#cache']['tags'] = Cache::mergeTags($build['#cache']['tags'] ?? [], $global_asset->getCacheTags());
+    }
 
     $regions = PageRegion::loadForActiveTheme();
     if (empty($regions)) {
