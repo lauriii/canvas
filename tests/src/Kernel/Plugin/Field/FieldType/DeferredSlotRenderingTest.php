@@ -6,7 +6,6 @@ namespace Drupal\Tests\canvas\Kernel\Plugin\Field\FieldType;
 
 use Drupal\canvas\ComponentSource\ComponentSourceBase;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
-use Drupal\canvas\ComponentSource\ComponentSourceWithDeferredSlotsInterface;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
