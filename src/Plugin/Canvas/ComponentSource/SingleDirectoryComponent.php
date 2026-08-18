@@ -148,7 +148,39 @@ final class SingleDirectoryComponent extends JsonSchemaPropsComponentSourceBase 
    * {@inheritdoc}
    */
   public function renderComponent(array $inputs, array $slot_definitions, string $componentUuid, bool $isPreview = FALSE): array {
-    [$props, $props_bubbleable_metadata] = self::getResolvedPropsAndBubbleableMetadata($inputs[self::EXPLICIT_INPUT_NAME] ?? []);
+    // Fetch the prop schemas before resolving props so that color props can be
+    // transformed to rich objects. If the underlying SDC plugin is unavailable
+    // (broken component), pass an empty schema array: color resolution is
+    // skipped and the component will fail later during Twig's {% embed %}
+    // execution with a LoaderError, preserving the original error context.
+    try {
+      $prop_schemas = $this->getMetadata()->schema['properties'] ?? [];
+    }
+    catch (ComponentNotFoundException) {
+      $prop_schemas = [];
+    }
+
+    [$props, $props_bubbleable_metadata] = $this->getResolvedPropsAndBubbleableMetadata($inputs[self::EXPLICIT_INPUT_NAME] ?? [], $prop_schemas);
+
+    // Color props are resolved from strings to rich objects by
+    // getResolvedPropsAndBubbleableMetadata(), but the schema declares them as
+    // `type: string`. Call validateProps() only when the component has color
+    // props, so the substituted CSS string values pass the type check.
+    // Validation is skipped when any prop resolved to NULL (e.g. entity access
+    // denied) to avoid losing the access-check cacheability accumulated in
+    // $props_cacheability.
+    // @see \Drupal\Core\Template\ComponentsTwigExtension::validateProps()
+    // @see \Drupal\canvas\Element\RenderSafeComponentContainer
+    $has_color_prop = !empty(\array_filter(
+      $prop_schemas,
+      fn(array $schema) => ($schema['$ref'] ?? NULL) === 'json-schema-definitions://canvas.module/color',
+    ));
+    $has_null_prop = \in_array(NULL, $props, TRUE);
+    if ($has_color_prop && !$has_null_prop) {
+      $props_for_validation = $this->substituteColorPropsForValidation($props, $prop_schemas);
+      \assert($this->componentValidator->validateProps($props_for_validation, $this->getComponentPlugin()));
+    }
+
     $build = [
       '#type' => 'component',
       '#component' => $this->getSourceSpecificComponentId(),

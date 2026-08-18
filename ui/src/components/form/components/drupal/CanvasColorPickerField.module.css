@@ -1,0 +1,311 @@
+/* Trigger button - matches TextField.Root size="1" dimensions */
+.trigger {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: var(--space-5);
+  padding: 0 0 0 var(--space-2) ;
+  cursor: pointer;
+  text-align: left;
+  border: none;
+  border-radius: var(--radius-2);
+  background-color: var(--color-surface);
+  box-shadow: inset 0 0 0 1px var(--gray-a7);
+  gap: var(--space-2);
+}
+
+.trigger:hover {
+  box-shadow: inset 0 0 0 1px var(--gray-a8);
+}
+
+.trigger:focus {
+  outline: 2px solid var(--focus-8);
+  outline-offset: -1px;
+}
+
+.triggerEmpty {
+  color: var(--gray-a10);
+}
+
+/* Color swatch - 16x16 in both trigger and list */
+.swatch {
+  flex-shrink: 0;
+  border-radius: 2px;
+}
+
+.swatchTrigger {
+  width: 16px;
+  height: 16px;
+}
+
+.swatchList {
+  width: 16px;
+  height: 16px;
+}
+
+/* Trigger label */
+.triggerLabel {
+  overflow: hidden;
+  flex: 1;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--gray-12);
+  font-family: var(--default-font-family);
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
+}
+
+/* Popover content */
+.popoverContent {
+  z-index: 6;
+  display: flex;
+  overflow-x: hidden;
+  flex-direction: column;
+  width: 287px;
+  max-height: 500px;
+  padding: 0;
+  border: 1px solid var(--gray-6);
+  border-radius: 8px;
+  background-color: white;
+  box-shadow: var(--shadow-4);
+}
+
+/* Main popover header */
+.popoverHeader {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px 8px 12px;
+  border-bottom: 1px solid var(--gray-5);
+}
+
+.popoverHeaderTitle {
+  color: var(--slate-12);
+  font-family: var(--default-font-family);
+  font-size: var(--font-size-2);
+  font-weight: 500;
+}
+
+.popoverCloseButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  cursor: pointer;
+  color: var(--gray-10);
+  border: none;
+  border-radius: var(--radius-2);
+  background: transparent;
+}
+
+.popoverCloseButton:hover {
+  color: var(--gray-12);
+  background-color: var(--gray-3);
+}
+
+/* Brand kit sub-header */
+.brandKitSubheader {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  height: 28px;
+  padding: 0 12px 0 16px;
+}
+
+.brandKitLabel {
+  color: var(--gray-11);
+  font-family: var(--default-font-family);
+  font-size: var(--font-size-1);
+  font-weight: 600;
+}
+
+.editButton {
+  padding: 0;
+  cursor: pointer;
+  color: var(--blue-9);
+  border: none;
+  background: transparent;
+  font-family: var(--default-font-family);
+  font-size: var(--font-size-1);
+}
+
+.editButton:hover {
+  text-decoration: underline;
+  color: var(--blue-10);
+}
+
+/* Search form */
+.searchForm {
+  position: relative;
+  margin: 4px 8px;
+}
+
+.searchInput {
+  box-sizing: border-box;
+  width: 100%;
+  height: 2rem;
+  padding: 0 8px 0 28px;
+  color: var(--slate-12);
+  border: 1px solid var(--gray-6);
+  border-radius: 4px;
+  background-color: transparent;
+  font-family: var(--default-font-family);
+  font-size: var(--font-size-2);
+}
+
+.searchInput:focus {
+  outline: 2px solid var(--blue-8);
+  outline-offset: -2px;
+}
+
+.searchIcon {
+  position: absolute;
+  top: 50%;
+  left: 8px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--gray-9);
+}
+
+/* Scrollable container for color list */
+.colorList {
+  display: flex;
+  overflow-x: hidden;
+  overflow-y: auto;
+  flex-direction: column;
+  gap: 0;
+  padding: 0 0 8px;
+}
+
+/* Color row in list */
+.colorRow {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  height: 28px;
+  padding: 0 14px;
+  cursor: pointer;
+  text-align: left;
+  border: none;
+  border-radius: var(--radius-2);
+  background: transparent;
+  gap: 8px;
+}
+
+.colorRow:hover {
+  background-color: var(--blue-3);
+}
+
+.colorRowLabel {
+  overflow: hidden;
+  flex: 1;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: #1c2024;
+  font-family: var(--default-font-family);
+  font-size: var(--font-size-1);
+}
+
+/* Folder header */
+.folderHeader {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  height: 28px;
+  padding: 0 8px 0 6px;
+  cursor: pointer;
+  user-select: none;
+  border: none;
+  background: transparent;
+  gap: 4px;
+}
+
+.folderHeader:hover {
+  background-color: var(--gray-3);
+}
+
+.folderName {
+  overflow: hidden;
+  flex: 1;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: #1c2024;
+  font-family: var(--default-font-family);
+  font-size: var(--font-size-1);
+  font-weight: bold;
+}
+
+.folderChevron {
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+  color: var(--gray-11);
+}
+
+.folderHeader[data-state='open'] .folderChevron {
+  transform: rotate(90deg);
+}
+
+/* Count badge on folder rows */
+.countBadge {
+  flex-shrink: 0;
+  height: 18px;
+  margin-left: auto;
+  padding: 0 6px;
+  color: var(--gray-11);
+  border-radius: 9px;
+  background-color: var(--gray-3);
+  font-family: var(--default-font-family);
+  font-size: var(--font-size-1);
+  font-weight: 500;
+  line-height: 18px;
+}
+
+/* Folder content container */
+.folderContent {
+  display: flex;
+  flex-direction: column;
+  padding-left: 8px;
+}
+
+/* Divider between picker and brand kit list */
+.divider {
+  height: 8px;
+  margin: 0;
+}
+
+/* Section label (optional, for "Brand Kit Colors") */
+.sectionLabel {
+  padding: 4px 6px;
+  color: var(--gray-11);
+  font-family: var(--default-font-family);
+  font-size: var(--font-size-1);
+  font-weight: bold;
+}
+
+/* Visually hidden – accessible to screen readers, invisible on screen */
+.visuallyHidden {
+  position: absolute;
+  overflow: hidden;
+  clip-path: inset(50%);
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Empty state */
+.emptyState {
+  padding: 12px;
+  text-align: center;
+  color: var(--gray-9);
+  font-family: var(--default-font-family);
+  font-size: var(--font-size-1);
+}

@@ -1,6 +1,7 @@
 import clsx from 'clsx';
 
 import Checkbox from '@/components/form/components/Checkbox';
+import DrupalColorPicker from '@/components/form/components/drupal/DrupalColorPicker';
 import { DrupalRadioItem } from '@/components/form/components/drupal/DrupalRadio';
 import Hidden from '@/components/form/components/Hidden';
 import TextField from '@/components/form/components/TextField';
@@ -52,6 +53,17 @@ const DrupalInput = ({
       );
     case 'radio':
       return <DrupalRadioItem attributes={attributes} />;
+    case 'color':
+      // Canvas color picker: enhanced color picker with Brand Kit integration.
+      return (
+        <DrupalColorPicker
+          attributes={{
+            ...a2p(attributes, {}, { skipAttributes: ['value'] }),
+            value: attributes.value || '',
+            'data-canvas-color-picker': attributes['data-canvas-color-picker'],
+          }}
+        />
+      );
     case 'hidden':
     case 'submit':
       if (attributes['data-track-hidden-value']) {

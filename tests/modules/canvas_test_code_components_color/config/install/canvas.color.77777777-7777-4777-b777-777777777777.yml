@@ -1,0 +1,17 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - canvas_test_code_components_color
+uuid: 77777777-7777-4777-b777-777777777777
+name: 'Doctor Cigarettes'
+cssVariable: '--doctor-cigarettes'
+value:
+  colorSpace: srgb
+  components:
+    - 0.490
+    - 0.459
+    - 0.369
+  hex: '#7d755e'
+weight: 6

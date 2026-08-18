@@ -208,6 +208,7 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
       new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/shoe-icon']),
       JsonSchemaObjectRef::Video->asPropShape(),
       new PropShape(['type' => 'string']),
+      new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/color']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/heading-element']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/image-uri']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/stream-wrapper-image-uri']),
@@ -321,6 +322,11 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
         shape: new PropShape(['type' => 'string']),
         fieldTypeProp: new FieldTypePropExpression('string', 'value'),
         fieldWidget: 'string_textfield',
+      ),
+      'type=string&$ref=json-schema-definitions://canvas.module/color' => new StorablePropShape(
+        shape: new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/color']),
+        fieldTypeProp: new FieldTypePropExpression('string', 'value'),
+        fieldWidget: 'canvas_color_picker',
       ),
       'type=string&$ref=json-schema-definitions://canvas.module/image-uri' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', 'contentMediaType' => 'image/*', 'format' => 'uri-reference', 'x-allowed-schemes' => ['http', 'https']]),

@@ -106,6 +106,7 @@ vi.mock('@/utils/drupal-globals', () => ({
     }
   },
   getCanvasModuleBaseUrl: () => '/modules/contrib/canvas',
+  getCanvasPermissions: () => ({}),
 }));
 
 vi.mock('@swc/wasm-web', () => ({

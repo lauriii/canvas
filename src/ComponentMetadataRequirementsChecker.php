@@ -143,6 +143,33 @@ final class ComponentMetadataRequirementsChecker {
         }
       }
 
+      // Validation for x-canvas-color-picker.
+      if (isset($prop['x-canvas-color-picker'])) {
+        if (!\in_array($prop['x-canvas-color-picker'], ['kit-only', 'kit-and-free'], TRUE)) {
+          $messages[] = \sprintf('Invalid value "%s" for "x-canvas-color-picker". Valid values are "kit-only" and "kit-and-free".', $prop['x-canvas-color-picker']);
+          continue;
+        }
+      }
+
+      // Validation for x-canvas-color-folders.
+      if (\array_key_exists('x-canvas-color-folders', $prop)) {
+        $folders = $prop['x-canvas-color-folders'];
+        if (($prop['$ref'] ?? NULL) !== 'json-schema-definitions://canvas.module/color') {
+          $messages[] = \sprintf('"x-canvas-color-folders" on prop "%s" requires $ref: json-schema-definitions://canvas.module/color.', $prop_name);
+          continue;
+        }
+        if (!\is_array($folders) || empty($folders)) {
+          $messages[] = \sprintf('"x-canvas-color-folders" on prop "%s" must be a non-empty array of folder UUIDs.', $prop_name);
+          continue;
+        }
+        foreach ($folders as $folder_id) {
+          if (!\is_string($folder_id) || $folder_id === '') {
+            $messages[] = \sprintf('"x-canvas-color-folders" on prop "%s" must contain only non-empty strings.', $prop_name);
+            break;
+          }
+        }
+      }
+
       // Validation for content-entity-reference props.
       // ContentEntityReferenceObjectConstraint is registered as the JSON Schema
       // "object" constraint, but it only fires when validating prop *values*

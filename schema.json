@@ -297,6 +297,12 @@
       "type": "object",
       "x-allowed-entity-type-id": null
     },
+    "color": {
+      "title": "color",
+      "type": "string",
+      "$ref": "json-schema-definitions://canvas.module/color",
+      "$comment": "The $ref is intentionally self-referential. It acts as a named-type sentinel: downstream PHP and TypeScript code detects the URI string by equality to route to color-picker behavior. A strict resolver will see the justinrainbow/json-schema library append '#' to the URI; ComponentPluginManager::resolveJsonSchemaReferences() detects that mutation and restores the original clean URI. Do not remove the $ref. See PropShape::getWellKnownPropShapes() and JsonSchemaType::computeStorablePropShape()."
+    },
     "config-entity-id": {
       "title": "config entity id",
       "type": "string",

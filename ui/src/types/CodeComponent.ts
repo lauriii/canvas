@@ -94,6 +94,8 @@ export interface CodeComponentProp {
   derivedType: (typeof derivedPropTypes)[number]['type'] | null;
   contentMediaType?: string;
   'x-formatting-context'?: string;
+  'x-canvas-color-picker'?: 'kit-only' | 'kit-and-free';
+  'x-canvas-color-folders'?: string[];
   'x-allowed-entity-type-id'?: string;
   'x-allowed-bundle'?: string;
   allowMultiple?: boolean;
@@ -145,6 +147,8 @@ export interface CodeComponentPropSerialized {
   $ref?: string;
   format?: string;
   contentMediaType?: string;
+  'x-canvas-color-picker'?: 'kit-only' | 'kit-and-free';
+  'x-canvas-color-folders'?: string[];
   'x-formatting-context'?: string;
   'x-allowed-entity-type-id'?: string;
   'x-allowed-bundle'?: string;
@@ -176,6 +180,20 @@ export interface CodeComponentSlotSerialized {
   examples?: string[];
 }
 
+/**
+ * Resolved color prop value for preview.
+ *
+ * Mirrors the PHP resolveColorPropValue() output exactly.
+ *
+ * @see src/Plugin/Canvas/ComponentSource/JsonSchemaPropsComponentSourceBase.php
+ */
+export interface ResolvedColorProp {
+  value: BrandKitColorValue;
+  cssColorValue: string;
+  cssVariable: string | null;
+  colorName: string | null;
+}
+
 export type CodeComponentPropPreviewValue =
   | string
   | number
@@ -183,7 +201,9 @@ export type CodeComponentPropPreviewValue =
   | string[]
   | number[]
   | CodeComponentPropImageExample[]
-  | CodeComponentPropVideoExample[];
+  | CodeComponentPropVideoExample[]
+  | ResolvedColorProp
+  | null;
 
 export interface AssetLibrary {
   id: string;

@@ -248,7 +248,7 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
     // being added to the iframe inline because of Content Security Policy (CSP)
     // restrictions.
     // @see ui/lib/code-editor-preview.js
-    const propValues = getPropValuesForPreview(props);
+    const propValues = getPropValuesForPreview(props, brandKitColors);
     const slotNames = getSlotNamesForPreview(slots);
     const previewGlobalColorCss = buildColorStyles(brandKitColors ?? []);
     const previewGlobalFontCss = buildFontFaceStyles(brandKitFonts ?? []);

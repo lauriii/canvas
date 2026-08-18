@@ -479,13 +479,16 @@ final class StaticPropSource extends PropSourceBase {
     };
   }
 
-  public function getWidget(string $component_config_entity_id, ?string $component_config_entity_version, string $prop_name, string $sdc_prop_label, ?string $field_widget_plugin_id, ?string $sdc_prop_description = NULL): WidgetInterface {
+  public function getWidget(string $component_config_entity_id, ?string $component_config_entity_version, string $prop_name, string $sdc_prop_label, ?string $field_widget_plugin_id, ?string $sdc_prop_description = NULL, ?array $field_widget_settings = NULL): WidgetInterface {
     // @phpstan-ignore-next-line
     $field_widget_plugin_manager = \Drupal::service('plugin.manager.field.widget');
     \assert($field_widget_plugin_manager instanceof WidgetPluginManager);
     $configuration = [];
     if ($field_widget_plugin_id) {
       $configuration['type'] = $field_widget_plugin_id;
+    }
+    if (!empty($field_widget_settings)) {
+      $configuration['settings'] = $field_widget_settings;
     }
     $field_storage_definition = $this->fieldItemList->getFieldDefinition();
     \assert($field_storage_definition instanceof FieldStorageDefinition);

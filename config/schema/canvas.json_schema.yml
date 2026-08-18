@@ -158,6 +158,35 @@ canvas.json_schema.prop_shape.string:
             - 'block'
             # @todo Uncomment this in https://www.drupal.org/i/3517735
             # - 'inline'
+    '$ref':
+      requiredKey: false
+      type: string
+      label: '$ref'
+      constraints:
+        # The literal URI below MUST be kept in sync with
+        # \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape().
+        Choice:
+          choices:
+            - 'json-schema-definitions://canvas.module/color'
+    'x-canvas-color-picker':
+      requiredKey: false
+      type: string
+      label: 'Color picker mode'
+      constraints:
+        # The literal values below MUST be kept in sync with:
+        # - \Drupal\canvas\ComponentMetadataRequirementsChecker (SDC validation)
+        # - \Drupal\canvas\Plugin\Field\FieldWidget\CanvasColorPickerWidget (mode labels)
+        Choice:
+          choices:
+            - 'kit-only'
+            - 'kit-and-free'
+    'x-canvas-color-folders':
+      requiredKey: false
+      type: sequence
+      label: 'Color folder IDs'
+      sequence:
+        type: string
+        label: 'Folder ID'
 
 # @see https://json-schema.org/understanding-json-schema/reference/numeric#integer
 canvas.json_schema.prop_shape.integer:

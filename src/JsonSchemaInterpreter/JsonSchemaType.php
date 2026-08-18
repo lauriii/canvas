@@ -311,6 +311,13 @@ enum JsonSchemaType: string {
           // Other `x-formatting-context` values do not make sense.
           default => NULL,
         },
+        // Color: type: string with $ref pointing to canvas.module/color.
+        // Stores as a plain string, and render pipeline resolves to an object.
+        \array_key_exists('$ref', $schema) && $schema['$ref'] === 'json-schema-definitions://canvas.module/color' => new StorablePropShape(
+          shape: $shape,
+          fieldTypeProp: new FieldTypePropExpression('string', 'value'),
+          fieldWidget: 'canvas_color_picker',
+        ),
         // Require $ref to be resolved, because that might add some of the other
         // keywords.
         \array_key_exists('$ref', $schema) => NULL,
