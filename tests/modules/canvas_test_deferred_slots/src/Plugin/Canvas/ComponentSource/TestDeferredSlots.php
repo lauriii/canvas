@@ -114,7 +114,12 @@ final class TestDeferredSlots extends ComponentSourceBase implements ComponentSo
    * {@inheritdoc}
    */
   public function hydrateComponent(array $explicit_input, array $slot_definitions, array $active_required_explicit_inputs): array {
-    return $explicit_input;
+    // Return default slot values on purpose, like a normal slot source would:
+    // the tree must discard them for a deferred source, or renderify() would
+    // call setSlots() and let defaults overwrite the source's own rendering.
+    return $explicit_input + [
+      'slots' => [self::SLOT_NAME => 'DEFAULT SLOT VALUE MUST BE DISCARDED'],
+    ];
   }
 
   /**
@@ -175,9 +180,9 @@ final class TestDeferredSlots extends ComponentSourceBase implements ComponentSo
    * {@inheritdoc}
    */
   public function setSlots(array &$build, array $slots): void {
-    // Never reached for deferred descendants; a test asserts this by checking
-    // the rendered output contains no regular slot content.
-    $build['#slots'] = $slots;
+    // The tree must never call this for a deferred source; hydrated slots are
+    // discarded before renderify().
+    throw new \LogicException('setSlots() must not be called for a deferred-slots source.');
   }
 
   /**

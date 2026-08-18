@@ -132,6 +132,34 @@ class DeferredSlotRenderingTest extends CanvasKernelTestBase {
     $this->assertSame(TestDeferredSlots::SLOT_NAME, $received[0]['slot']);
     $this->assertSame(self::GRANDCHILD_UUID, $received[1]['uuid']);
     $this->assertSame(self::CHILD_UUID, $received[1]['parent_uuid']);
+
+    // The default slot value the source hydrates is discarded, and the tree
+    // never calls setSlots() (the test source throws if it does).
+    $this->assertStringNotContainsString('DEFAULT SLOT VALUE MUST BE DISCARDED', $html);
+  }
+
+  /**
+   * A childless deferred root still receives the (empty) deferred items key.
+   */
+  public function testChildlessDeferredRoot(): void {
+    TestDeferredSlots::$lastReceivedDeferredItems = NULL;
+    $vehicle = Pattern::create([
+      'id' => 'childless_test',
+      'label' => 'Childless test',
+      'component_tree' => [
+        [
+          'uuid' => self::DEFERRED_UUID,
+          'component_id' => 'test_deferred.the_component',
+          'component_version' => $this->loadComponent('test_deferred.the_component')->getActiveVersion(),
+          'inputs' => [],
+        ],
+      ],
+    ]);
+    $build = $vehicle->getComponentTree()->toRenderable($vehicle, FALSE);
+    $html = (string) $this->container->get(RendererInterface::class)->renderInIsolation($build);
+    $this->assertStringContainsString('data-deferred-count="0"', $html);
+    $this->assertSame([], TestDeferredSlots::$lastReceivedDeferredItems);
+    $this->assertStringNotContainsString('DEFAULT SLOT VALUE MUST BE DISCARDED', $html);
   }
 
   /**

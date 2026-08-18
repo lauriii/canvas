@@ -495,10 +495,13 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
     $map = [];
     foreach (\array_keys($parents) as $uuid) {
       // Walk up the ancestor chain; the last deferred ancestor found is the
-      // outermost one.
+      // outermost one. Guard against parent cycles: structure validation
+      // rejects them, but hydration must not hang on invalid data either.
       $outermost = NULL;
+      $visited = [$uuid => TRUE];
       $ancestor = $parents[$uuid] ?? NULL;
-      while ($ancestor !== NULL) {
+      while ($ancestor !== NULL && !isset($visited[$ancestor])) {
+        $visited[$ancestor] = TRUE;
         if (isset($deferred_roots[$ancestor])) {
           $outermost = $ancestor;
         }
@@ -578,11 +581,21 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
         $required_props_with_default_values_in_current_implementation,
       );
       \assert(!\array_key_exists('slots', $hydrated[$uuid]) || \is_array($hydrated[$uuid]['slots']));
+      if ($source instanceof ComponentSourceWithDeferredSlotsInterface) {
+        // A deferred root renders its slots itself: any hydrated `slots` (for
+        // example default slot values) must not reach renderify(), which would
+        // call setSlots() and let default content overwrite the source's own
+        // rendering. Initialize the deferred key so the source can rely on it
+        // even when the slot is empty.
+        unset($hydrated[$uuid]['slots']);
+        $hydrated[$uuid][ComponentSourceWithDeferredSlotsInterface::DEFERRED_ITEMS_KEY] = [];
+      }
     }
 
     // Attach the raw deferred subtrees to their deferred root, for that root's
-    // source to render. A root whose own hydration failed keeps only its
-    // exception: it will not render anyway.
+    // source to render, replacing the empty default set above. A root whose
+    // own hydration failed keeps only its exception: it will not render
+    // anyway.
     foreach ($deferred_items_by_root as $root_uuid => $raw_items) {
       if (isset($hydrated[$root_uuid]) && !\array_key_exists(self::HYDRATION_EXCEPTION_KEY, $hydrated[$root_uuid])) {
         $hydrated[$root_uuid][ComponentSourceWithDeferredSlotsInterface::DEFERRED_ITEMS_KEY] = $raw_items;
