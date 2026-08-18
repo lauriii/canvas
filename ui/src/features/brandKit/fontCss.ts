@@ -217,24 +217,42 @@ export const getFontPreloadDefinitions = (
 };
 
 /**
- * The declarations an author actually has to write to reproduce what the panel
- * is previewing.
+ * The Tailwind utilities an author actually has to write to reproduce what the
+ * panel is previewing.
  *
- * The family comes from the Tailwind theme token, and anything already sitting
- * at its initial value is left out: weight 400, upright, and any axis resting
- * on its own default all render that way with nothing declared. A snippet that
- * spells them out reads as though they were doing something.
+ * The family comes from the theme token, and anything already sitting at its
+ * initial value is left out: weight 400, upright, and any axis resting on its
+ * own default all render that way with no utility at all. A snippet that spells
+ * them out reads as though they were doing something.
  *
- * `font-weight` is the high-level property for `wght`, so that axis is not
- * repeated in `font-variation-settings`; the axes with no high-level property —
- * optical size, width, slant — are what that declaration is for.
+ * `font-*` is the utility for `wght`, so that axis is not repeated in the
+ * arbitrary `font-variation-settings` property; the axes with no utility of
+ * their own — optical size, width, slant — are what that is for.
  *
- * `font-style` is whatever the accompanying `@font-face` declares, never what
+ * Italics follow whatever the accompanying `@font-face` declares, never what
  * the slant axis currently reads: asking for an italic the face does not have
  * makes the browser fake one on top of the slant the axis already applies.
  */
-const buildUsageDeclarations = (font: AssetLibraryFont): string[] => {
-  const declarations: string[] = [];
+const fontWeightUtilities: Record<string, string> = {
+  '100': 'font-thin',
+  '200': 'font-extralight',
+  '300': 'font-light',
+  '400': 'font-normal',
+  '500': 'font-medium',
+  '600': 'font-semibold',
+  '700': 'font-bold',
+  '800': 'font-extrabold',
+  '900': 'font-black',
+};
+
+/**
+ * Tailwind reads a space in an arbitrary value as an underscore.
+ */
+const toArbitraryValue = (value: string): string =>
+  value.trim().replaceAll(' ', '_');
+
+const buildUsageUtilities = (font: AssetLibraryFont): string[] => {
+  const utilities: string[] = [];
   const isVariable = isVariableFont(font) && !!font.axes?.length;
 
   const weightAxisValue = isVariable ? getAxisSettingValue(font, 'wght') : null;
@@ -245,12 +263,15 @@ const buildUsageDeclarations = (font: AssetLibraryFont): string[] => {
         ? null
         : font.weight.trim();
   if (weight && weight !== '400' && weight !== 'normal') {
-    declarations.push(`font-weight: ${weight}`);
+    utilities.push(
+      fontWeightUtilities[weight] ?? `font-[${toArbitraryValue(weight)}]`,
+    );
   }
 
-  const style = isVariable ? getFontFaceStyleDeclaration(font) : font.style;
-  if (style !== 'normal') {
-    declarations.push(`font-style: ${style}`);
+  if (
+    (isVariable ? getFontFaceStyleDeclaration(font) : font.style) !== 'normal'
+  ) {
+    utilities.push('italic');
   }
 
   if (isVariable) {
@@ -262,29 +283,28 @@ const buildUsageDeclarations = (font: AssetLibraryFont): string[] => {
         fallback: axis.default,
       }))
       .filter((axis) => axis.value !== axis.fallback)
-      .map((axis) => `'${axis.tag}' ${formatAxisValue(axis.value)}`);
+      .map((axis) => `'${axis.tag}'_${formatAxisValue(axis.value)}`);
 
     if (variations.length > 0) {
-      declarations.push(`font-variation-settings: ${variations.join(', ')}`);
+      utilities.push(`[font-variation-settings:${variations.join(',')}]`);
     }
   }
 
-  return declarations;
+  return utilities;
 };
 
 export const buildTailwindHtmlSnippet = (font: AssetLibraryFont): string => {
-  const tokenName = buildFontTokenName(font.family);
-  // The weight of a static font is free text an author typed, and this goes
-  // into a double-quoted attribute they will paste into their own markup.
-  const inlineStyle = buildUsageDeclarations(font)
-    .map((declaration) => `${declaration};`)
+  // A static font's weight is free text an author typed, and this goes into a
+  // double-quoted attribute they will paste into their own markup.
+  const classNames = [
+    `font-${buildFontTokenName(font.family)}`,
+    ...buildUsageUtilities(font),
+  ]
     .join(' ')
     .replaceAll('"', '&quot;');
-  // A font already at its defaults needs the class and nothing else.
-  const styleAttribute = inlineStyle ? ` style="${inlineStyle}"` : '';
 
   return [
-    `<p class="font-${tokenName}"${styleAttribute}>`,
+    `<p class="${classNames}">`,
     '  The quick brown fox jumps over the lazy dog.',
     '</p>',
   ].join('\n');

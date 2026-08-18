@@ -162,7 +162,7 @@ describe('FontFamilyFlyout', () => {
     expect(preview.style.fontVariationSettings).toBe('"wght" 450, "opsz" 16');
     expect(
       screen.getByTestId(`canvas-brand-kit-font-snippet-${variableFont.id}`),
-    ).toHaveTextContent('<p class="font-noto-sans" style="font-weight: 450;">');
+    ).toHaveTextContent('<p class="font-noto-sans font-[450]">');
   });
 
   it('tells the reader the example code follows the sliders', () => {
@@ -210,7 +210,7 @@ describe('FontFamilyFlyout', () => {
     expect(fontFace).toHaveTextContent('font-style: italic;');
     expect(
       screen.getByTestId('canvas-brand-kit-font-snippet-inter-700-italic'),
-    ).toHaveTextContent('style="font-weight: 700; font-style: italic;"');
+    ).toHaveTextContent('<p class="font-inter font-bold italic">');
   });
 
   it('lists every file of a variable family, not just the first', () => {
