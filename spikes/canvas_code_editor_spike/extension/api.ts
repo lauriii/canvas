@@ -170,13 +170,9 @@ export function saveCodeComponent(
   );
 }
 
-export function saveGlobalAssetLibrary(
-  library: AssetLibrary,
-  autoSaves: AutoSaveHashes,
-): Promise<AutoSaveHashes> {
-  return patchAutoSave(
-    'canvas/api/v0/config/auto-save/asset_library/global',
-    { css: library.css, js: library.js },
-    autoSaves,
-  );
-}
+// There is deliberately no saveGlobalAssetLibrary() here. Core PATCHes the
+// global asset library on every compile, but it can only do so correctly because
+// it owns the Tailwind class-name index that merges every component's utilities.
+// That index is unpublished, so saving a globally-compiled stylesheet from an
+// extension would drop other components' CSS.
+// @see compile.ts::compileGlobalCssForPreview()

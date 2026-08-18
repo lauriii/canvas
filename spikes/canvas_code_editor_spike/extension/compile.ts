@@ -82,7 +82,27 @@ export async function compileComponentCss(
   return transformCss(await compilePartialCss(componentCss, globalCss));
 }
 
-export async function compileGlobalCss(
+/**
+ * Compiles global Tailwind CSS **for this preview only. Never save the result.**
+ *
+ * This is a wall the spike could not get past, and the reason is packaging.
+ * Core does not compile the active component's class names in isolation: it
+ * merges them into a per-component index stored as a comment in the global
+ * asset library's JS (`upsertClassNameCandidatesInComment`), then compiles the
+ * *merged* candidate set of every code component on the site
+ * (`useSourceCode.ts:164-183`, `utils/classNameCandidates.ts`).
+ *
+ * That function is not published anywhere an extension can reach — it lives in
+ * `ui/src/features/code-editor/utils/classNameCandidates.ts` inside a
+ * `private: true` package. Reimplementing the index by hand and saving the
+ * result would silently drop every other component's utilities from the site's
+ * global stylesheet, so this spike compiles global CSS for the preview and
+ * deliberately never PATCHes it.
+ *
+ * A module can only do this correctly once the index function is published.
+ * @see the proposal's R1.
+ */
+export async function compileGlobalCssForPreview(
   sourceJs: string,
   globalCss: string,
 ): Promise<string> {

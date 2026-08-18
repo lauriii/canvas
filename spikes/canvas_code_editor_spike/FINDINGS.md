@@ -49,13 +49,16 @@ not observed. The runtime half needs a site-equipped follow-up.
    packages, and Canvas compiles **nothing** server-side — the client uploads
    `compiledJs`/`compiledCss`. So the compiler belongs to whoever owns the
    client, and that can be a module.
-3. **The save path.** `/canvas/api/v0/config/auto-save/js_component/{id}` and
-   `.../asset_library/global` are ordinary same-origin session-authenticated
-   routes. `fetch(credentials: 'same-origin')` + `X-CSRF-Token` is enough, the
-   same way `canvas_translate` talks to its own routes. Canvas's optimistic
+3. **The save path, for the component itself.**
+   `/canvas/api/v0/config/auto-save/js_component/{id}` is an ordinary
+   same-origin session-authenticated route. `fetch(credentials: 'same-origin')` +
+   `X-CSRF-Token` is enough, the same way `canvas_translate` talks to its own
+   routes, and the request shape matches
+   `ApiConfigAutoSaveControllers::patch()` exactly. Canvas's optimistic
    concurrency (`autoSaves` hashes + `clientInstanceId`, 409 on conflict) is
-   already expressed in the wire format, so an extension participates in it for
-   free.
+   already expressed in the wire format, so an extension participates for free.
+   The *global asset library* half of the save path is a different story — see
+   WALL(6).
 4. **Sandbox nesting.** The page-extension iframe carries `allow-scripts
    allow-same-origin allow-downloads`; a nested iframe can never exceed its
    parent's sandbox, and `allow-scripts allow-same-origin` (what core's preview
@@ -112,6 +115,30 @@ a second, divergent map would give two Preact instances.
 `ui/lib/code-editor-preview.js:69-73` hard-fails without a `drupalSettings`
 object, because components may read `drupalSettings.canvasData.v0`.
 
+### WALL(6) — the Tailwind class-name index is unpublished, and a naive substitute is destructive
+
+Found by a second review, of the spike's code rather than this document.
+
+Core does not compile the active component's Tailwind class names in isolation.
+It merges them into a per-component index stored as a comment in the global asset
+library's JS (`upsertClassNameCandidatesInComment`), then compiles the **merged**
+candidate set of every code component on the site
+(`ui/src/features/code-editor/hooks/useSourceCode.ts:164-183`,
+`ui/src/features/code-editor/utils/classNameCandidates.ts`), and PATCHes the
+result over `asset_library.global`.
+
+That index function lives inside a `private: true` package with no `exports`, so
+an extension cannot reach it. The spike's first version compiled only the active
+component's candidates and saved the result — which on a real site would have
+silently dropped every other component's utilities from the global stylesheet.
+
+The spike now compiles global CSS **for the preview only** and never writes it
+back (`compile.ts::compileGlobalCssForPreview()`, and there is deliberately no
+`saveGlobalAssetLibrary()` in `api.ts`). That is honest but incomplete: a real
+module cannot ship without writing global CSS, so it cannot ship until the index
+function is published. This is the strongest single argument for the proposal's
+shared authoring package.
+
 ### WALL(5) — WITHDRAWN. Not a wall.
 
 The first version of this document claimed the extension could not know whether
@@ -160,6 +187,18 @@ None overturns the verdict, but the verdict is now narrower than it was: the
   carry no source and the server rejects any code field on them
   (`src/Entity/JavaScriptComponent.php:409-437`), so the spike would have sent a
   PATCH that 422s. Now refused up front, as core's `CodeEditorContainer` does.
+- **Global CSS was compiled from one component and saved.** See WALL(6). This was
+  the worst defect in the spike: on a real site it would have destroyed other
+  components' utility CSS. Now preview-only, with no write path at all.
+- **Compilation raced the save.** Each keystroke started an un-awaited
+  `recompileAndPreview()` that mutated shared state across two awaits, while an
+  independent debounce persisted whatever was there — so a slow older compile
+  could publish stale artifacts over a newer source. Now guarded by a revision
+  counter, and the save is skipped until the newest source has compiled. CSS
+  compiler rejections were also unhandled; they are now reported.
+- **The boot status overwrote real errors.** A "preview blocked" or "compile
+  error" message was immediately replaced by the neutral editing status. The
+  neutral status is now set first.
 - **Both preview sandboxes carry live `@todo`s to drop `allow-same-origin`** —
   `ui/src/features/code-editor/Preview.tsx:371` (tracked as
   <https://www.drupal.org/i/3527515>) and
@@ -171,13 +210,14 @@ None overturns the verdict, but the verdict is now narrower than it was: the
 
 ## What this means for the proposal
 
-The preview is the whole problem, and it is four walls, not five. Two of them
+The preview is most of the problem, and it is five walls: four host values plus the unpublished class-name index. Two of them
 (2, 3) exist only because the preview runtime and its import map are private to
 the Canvas UI build. One core addition — **an endpoint that returns the
 code-component authoring environment (import map, preview runtime URL,
 `drupalSettings` subset, compiler asset URLs) as JSON** — collapses walls 1
 through 4 into one documented API call. Wall 5 needs nothing: the extension
-system already enforces permissions on the route.
+system already enforces permissions on the route. Wall 6 is not an endpoint at
+all — it is a packaging problem, and the shared authoring package fixes it.
 
 Wall 0 is not solvable and should be stated as a constraint, not a bug: the
 code editor extension is a local extension.

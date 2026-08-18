@@ -20,13 +20,12 @@ import {
   loadCodeComponent,
   loadGlobalAssetLibrary,
   saveCodeComponent,
-  saveGlobalAssetLibrary,
   type AssetLibrary,
   type CodeComponent,
 } from './api.ts';
 import {
   compileComponentCss,
-  compileGlobalCss,
+  compileGlobalCssForPreview,
   compileJs,
   importedJsComponents,
   initCompiler,
@@ -40,7 +39,6 @@ interface Editing {
   component: CodeComponent;
   library: AssetLibrary;
   componentAutoSaves: Record<string, unknown>;
-  libraryAutoSaves: Record<string, unknown>;
 }
 
 const el = (id: string): HTMLElement => {
@@ -99,6 +97,8 @@ async function boot(): Promise<void> {
 
   const [componentResult, libraryResult] = await Promise.all([
     loadCodeComponent(id),
+    // Read only: the global asset library's CSS is the Tailwind configuration
+    // the preview compiles against. The spike never writes it back.
     loadGlobalAssetLibrary(),
   ]);
 
@@ -115,10 +115,22 @@ async function boot(): Promise<void> {
     component: componentResult.component,
     library: libraryResult.library,
     componentAutoSaves: componentResult.autoSaves,
-    libraryAutoSaves: libraryResult.autoSaves,
   };
 
+  // Monotonic revision of the source. A compile captures it on entry and only
+  // commits its artifacts if it is still the newest when it finishes; otherwise
+  // an older, slower compile could publish stale compiled output over a newer
+  // one, and the debounced save would persist it.
+  let revision = 0;
+  let compiledRevision = -1;
+
   const save = debounce(async () => {
+    if (compiledRevision !== revision) {
+      // The newest source has not compiled yet. The compile that settles it
+      // schedules the next save, so drop this one rather than persist stale
+      // artifacts.
+      return;
+    }
     status('Saving…');
     try {
       editing.componentAutoSaves = await saveCodeComponent(
@@ -130,10 +142,6 @@ async function boot(): Promise<void> {
         },
         editing.componentAutoSaves,
       );
-      editing.libraryAutoSaves = await saveGlobalAssetLibrary(
-        editing.library,
-        editing.libraryAutoSaves,
-      );
       status('Saved');
     } catch (error) {
       status(`Save failed: ${String(error)}`);
@@ -143,21 +151,34 @@ async function boot(): Promise<void> {
   let revokePrevious: (() => void) | null = null;
 
   async function recompileAndPreview(): Promise<void> {
-    const js = compileJs(editing.component.sourceCodeJs);
+    const mine = ++revision;
+    const sourceJs = editing.component.sourceCodeJs;
+    const sourceCss = editing.component.sourceCodeCss;
+    const configurationCss = editing.library.css.original;
+
+    const js = compileJs(sourceJs);
+    let componentCss: string;
+    let globalCss: string;
+    try {
+      componentCss = await compileComponentCss(sourceCss, configurationCss);
+      globalCss = await compileGlobalCssForPreview(sourceJs, configurationCss);
+    } catch (error) {
+      status(`CSS compile error: ${String(error)}`);
+      return;
+    }
+
+    if (mine !== revision) {
+      // Superseded while awaiting: a newer compile owns the artifacts now.
+      return;
+    }
     editing.component.compiledJs = js.code;
-    editing.component.compiledCss = await compileComponentCss(
-      editing.component.sourceCodeCss,
-      editing.library.css.original,
-    );
-    editing.library.css.compiled = await compileGlobalCss(
-      editing.component.sourceCodeJs,
-      editing.library.css.original,
-    );
+    editing.component.compiledCss = componentCss;
+    compiledRevision = mine;
 
     const preview = buildPreview({
-      compiledJs: editing.component.compiledJs,
-      compiledCss: editing.component.compiledCss,
-      compiledGlobalCss: editing.library.css.compiled,
+      compiledJs: js.code,
+      compiledCss: componentCss,
+      compiledGlobalCss: globalCss,
       // The spike does not port the props/slots editor; example values off the
       // stored prop schema are enough to render something.
       propValues: {},
@@ -216,8 +237,10 @@ async function boot(): Promise<void> {
     parent: el('editor-css'),
   });
 
-  await recompileAndPreview();
+  // Neutral status first: recompileAndPreview() may report a blocked preview or
+  // a compile error, and that message must not be overwritten straight after.
   status(`Editing ${editing.component.name}`);
+  await recompileAndPreview();
 }
 
 void boot().catch((error: unknown) => {
