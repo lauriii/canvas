@@ -217,12 +217,17 @@ export const getFontPreloadDefinitions = (
 };
 
 /**
- * The inline declarations that reproduce the font as it is currently previewed.
+ * The declarations an author actually has to write to reproduce what the panel
+ * is previewing.
  *
- * The family itself comes from the Tailwind theme token, so only the settings
- * an author can change here are emitted. Variable fonts always carry their full
- * `font-variation-settings`: `font-weight` alone drives `wght`, but leaves every
- * other axis — optical size, width, slant — at its default.
+ * The family comes from the Tailwind theme token, and anything already sitting
+ * at its initial value is left out: weight 400, upright, and any axis resting
+ * on its own default all render that way with nothing declared. A snippet that
+ * spells them out reads as though they were doing something.
+ *
+ * `font-weight` is the high-level property for `wght`, so that axis is not
+ * repeated in `font-variation-settings`; the axes with no high-level property —
+ * optical size, width, slant — are what that declaration is for.
  *
  * `font-style` is whatever the accompanying `@font-face` declares, never what
  * the slant axis currently reads: asking for an italic the face does not have
@@ -230,29 +235,41 @@ export const getFontPreloadDefinitions = (
  */
 const buildUsageDeclarations = (font: AssetLibraryFont): string[] => {
   const declarations: string[] = [];
+  const isVariable = isVariableFont(font) && !!font.axes?.length;
 
-  if (isVariableFont(font) && font.axes?.length) {
-    const weightValue = getAxisSettingValue(font, 'wght');
-    if (weightValue !== null) {
-      declarations.push(`font-weight: ${formatAxisValue(weightValue)}`);
-    }
-
-    declarations.push(
-      `font-style: ${getFontFaceStyleDeclaration(font)}`,
-      `font-variation-settings: ${font.axes
-        .map(
-          (axis) =>
-            `'${axis.tag}' ${formatAxisValue(
-              getAxisSettingValue(font, axis.tag) ?? axis.default,
-            )}`,
-        )
-        .join(', ')}`,
-    );
-
-    return declarations;
+  const weightAxisValue = isVariable ? getAxisSettingValue(font, 'wght') : null;
+  const weight =
+    weightAxisValue !== null
+      ? formatAxisValue(weightAxisValue)
+      : isVariable
+        ? null
+        : font.weight.trim();
+  if (weight && weight !== '400' && weight !== 'normal') {
+    declarations.push(`font-weight: ${weight}`);
   }
 
-  return [`font-weight: ${font.weight}`, `font-style: ${font.style}`];
+  const style = isVariable ? getFontFaceStyleDeclaration(font) : font.style;
+  if (style !== 'normal') {
+    declarations.push(`font-style: ${style}`);
+  }
+
+  if (isVariable) {
+    const variations = (font.axes ?? [])
+      .filter((axis) => axis.tag !== 'wght')
+      .map((axis) => ({
+        tag: axis.tag,
+        value: getAxisSettingValue(font, axis.tag) ?? axis.default,
+        fallback: axis.default,
+      }))
+      .filter((axis) => axis.value !== axis.fallback)
+      .map((axis) => `'${axis.tag}' ${formatAxisValue(axis.value)}`);
+
+    if (variations.length > 0) {
+      declarations.push(`font-variation-settings: ${variations.join(', ')}`);
+    }
+  }
+
+  return declarations;
 };
 
 export const buildTailwindHtmlSnippet = (font: AssetLibraryFont): string => {
@@ -263,9 +280,11 @@ export const buildTailwindHtmlSnippet = (font: AssetLibraryFont): string => {
     .map((declaration) => `${declaration};`)
     .join(' ')
     .replaceAll('"', '&quot;');
+  // A font already at its defaults needs the class and nothing else.
+  const styleAttribute = inlineStyle ? ` style="${inlineStyle}"` : '';
 
   return [
-    `<p class="font-${tokenName}" style="${inlineStyle}">`,
+    `<p class="font-${tokenName}"${styleAttribute}>`,
     '  The quick brown fox jumps over the lazy dog.',
     '</p>',
   ].join('\n');

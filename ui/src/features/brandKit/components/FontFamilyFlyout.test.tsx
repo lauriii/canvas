@@ -148,9 +148,10 @@ describe('FontFamilyFlyout', () => {
       `canvas-brand-kit-font-preview-${variableFont.id}`,
     );
     expect(preview).toHaveStyle({ fontWeight: '400' });
+    // Every axis is on its own default, so the class is the whole example.
     expect(
       screen.getByTestId(`canvas-brand-kit-font-snippet-${variableFont.id}`),
-    ).toHaveTextContent('font-weight: 400; font-style: normal;');
+    ).toHaveTextContent('<p class="font-noto-sans">');
 
     // A pointer drag on a range input surfaces as a change event.
     fireEvent.change(screen.getByLabelText('Weight'), {
@@ -161,9 +162,7 @@ describe('FontFamilyFlyout', () => {
     expect(preview.style.fontVariationSettings).toBe('"wght" 450, "opsz" 16');
     expect(
       screen.getByTestId(`canvas-brand-kit-font-snippet-${variableFont.id}`),
-    ).toHaveTextContent(
-      "font-weight: 450; font-style: normal; font-variation-settings: 'wght' 450, 'opsz' 16;",
-    );
+    ).toHaveTextContent('<p class="font-noto-sans" style="font-weight: 450;">');
   });
 
   it('tells the reader the example code follows the sliders', () => {
@@ -211,7 +210,7 @@ describe('FontFamilyFlyout', () => {
     expect(fontFace).toHaveTextContent('font-style: italic;');
     expect(
       screen.getByTestId('canvas-brand-kit-font-snippet-inter-700-italic'),
-    ).toHaveTextContent('font-weight: 700; font-style: italic;');
+    ).toHaveTextContent('style="font-weight: 700; font-style: italic;"');
   });
 
   it('lists every file of a variable family, not just the first', () => {

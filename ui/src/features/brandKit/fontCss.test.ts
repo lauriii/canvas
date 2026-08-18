@@ -240,6 +240,21 @@ describe('fontCss helpers', () => {
 }`);
   });
 
+  it('leaves out declarations that are already the default', () => {
+    // Nothing to say: the class carries the family, and 400 upright is what a
+    // paragraph renders as anyway.
+    expect(buildTailwindHtmlSnippet(font)).toContain('<p class="font-inter">');
+
+    expect(buildTailwindHtmlSnippet({ ...font, weight: '250' })).toContain(
+      '<p class="font-inter" style="font-weight: 250;">',
+    );
+    expect(
+      buildTailwindHtmlSnippet({ ...font, weight: '700', style: 'italic' }),
+    ).toContain(
+      '<p class="font-inter" style="font-weight: 700; font-style: italic;">',
+    );
+  });
+
   it('builds variable font activation and usage snippets', () => {
     expect(buildFontFaceSnippet(variableFont)).toBe(`@font-face {
   font-family: 'Inter';
@@ -252,23 +267,26 @@ describe('fontCss helpers', () => {
     expect(buildTailwindThemeSnippet(font)).toBe(`@theme {
   --font-inter: "Inter", sans-serif;
 }`);
+    // `wdth` sits on its own default and upright is the initial style, so
+    // neither needs declaring; only the weight is doing anything.
     expect(buildTailwindHtmlSnippet(variableFont))
-      .toBe(`<p class="font-inter" style="font-weight: 450; font-style: normal; font-variation-settings: 'wght' 450, 'wdth' 100;">
+      .toBe(`<p class="font-inter" style="font-weight: 450;">
   The quick brown fox jumps over the lazy dog.
 </p>`);
 
+    // A 400 upright font renders that way with nothing declared at all.
     expect(buildFontSnippet(font)).toBe(`@theme {
   --font-inter: "Inter", sans-serif;
 }
 
-<p class="font-inter" style="font-weight: 400; font-style: normal;">
+<p class="font-inter">
   The quick brown fox jumps over the lazy dog.
 </p>`);
     expect(buildFontSnippet(variableFont)).toBe(`@theme {
   --font-inter: "Inter", sans-serif;
 }
 
-<p class="font-inter" style="font-weight: 450; font-style: normal; font-variation-settings: 'wght' 450, 'wdth' 100;">
+<p class="font-inter" style="font-weight: 450;">
   The quick brown fox jumps over the lazy dog.
 </p>`);
     expect(buildFontVariantLabel(variableFont)).toBe('Variable [WOFF2]');
@@ -298,16 +316,17 @@ describe('fontCss helpers', () => {
     // The usage snippet must not ask for an italic that face does not have:
     // the browser would fake a slant on top of the one 'ital' applies.
     expect(buildTailwindHtmlSnippet(dualItalicFont)).toContain(
-      "font-style: normal; font-variation-settings: 'wght' 400, 'ital' 1;",
+      'style="font-variation-settings: \'ital\' 1;"',
+    );
+    expect(buildTailwindHtmlSnippet(dualItalicFont)).not.toContain(
+      'font-style',
     );
   });
 
   it('escapes a typed weight before putting it in an attribute', () => {
     expect(
       buildTailwindHtmlSnippet({ ...font, weight: '400" onload="x' }),
-    ).toContain(
-      'style="font-weight: 400&quot; onload=&quot;x; font-style: normal;"',
-    );
+    ).toContain('style="font-weight: 400&quot; onload=&quot;x;"');
   });
 
   it('treats slnt variable fonts as italic', () => {
@@ -319,8 +338,9 @@ describe('fontCss helpers', () => {
   font-display: swap;
 }`);
 
+    // The slant axis is at its own default, so the face's `italic` says it all.
     expect(buildTailwindHtmlSnippet(slantedVariableFont))
-      .toBe(`<p class="font-recursive" style="font-weight: 450; font-style: italic; font-variation-settings: 'wght' 450, 'slnt' -15;">
+      .toBe(`<p class="font-recursive" style="font-weight: 450; font-style: italic;">
   The quick brown fox jumps over the lazy dog.
 </p>`);
   });
