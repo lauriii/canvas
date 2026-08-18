@@ -202,6 +202,15 @@ class AssetLibraryStorageTest extends CanvasKernelTestBase {
     }
     \clearstatcache();
 
+    // A site that advertises a page cache lifetime longer than the six-hour
+    // floor keeps its files for that lifetime instead: a response cached for
+    // two weeks still names them. Seven days is inside that window, so the
+    // orphans survive.
+    // @see \Drupal\canvas\GeneratedAssetCleanup::getMaxAge()
+    $this->config('system.performance')->set('cache.page.max_age', 14 * 24 * 60 * 60)->save();
+    self::assertSame([], $cleanup->deleteStaleFiles());
+    $this->config('system.performance')->set('cache.page.max_age', 0)->save();
+
     $deleted = $cleanup->deleteStaleFiles();
     \sort($deleted);
     $expected = $orphaned;

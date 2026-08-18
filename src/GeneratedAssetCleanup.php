@@ -84,6 +84,11 @@ final class GeneratedAssetCleanup {
       }
       // Only ever consider the file extensions Canvas generates, so that
       // anything else a site put in these directories is left alone.
+      //
+      // This materializes one entry per file. The directories are flat and hold
+      // at most two files per save of the three entity types above, so the
+      // first sweep on a site that has never had one is the largest: process
+      // the entries in batches if that ever becomes too big to hold at once.
       $files = $this->fileSystem->scanDirectory($directory, '/\.(css|js)$/', ['recurse' => FALSE]);
       foreach (\array_keys($files) as $uri) {
         if (isset($in_use[$uri])) {
