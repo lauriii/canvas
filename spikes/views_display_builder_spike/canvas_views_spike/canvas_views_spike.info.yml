@@ -1,0 +1,8 @@
+name: 'Canvas Views spike'
+type: module
+description: 'Throwaway spike: renders Views rows through a Canvas component tree. Not a deliverable.'
+core_version_requirement: ^11
+package: Testing
+dependencies:
+  - drupal:views
+  - canvas:canvas

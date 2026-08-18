@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - canvas.component.js.heading
+    - core.entity_view_mode.node.teaser
+    - node.type.article
+  module:
+    - node
+id: node.article.teaser
+content_entity_type_id: node
+content_entity_type_bundle: article
+content_entity_type_view_mode: teaser
+component_tree:
+  -
+    uuid: 9a5c1e10-3f4b-4c2a-8b7d-1e2f3a4b5c6d
+    component_id: js.heading
+    component_version: 9df836114750c940
+    inputs: '{"text":{"sourceType":"entity-field","expression":"ℹ︎␜entity:node:article␝title␞␟value"}}'
+exposed_slots: {  }
