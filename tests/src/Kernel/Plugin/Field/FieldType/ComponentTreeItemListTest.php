@@ -39,6 +39,7 @@ use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\CacheBustingTrait;
 use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
+use Drupal\Tests\canvas\Traits\CrawlerTrait;
 use Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait;
 use Drupal\Tests\canvas\Traits\DataProviderWithComponentTreeTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
@@ -59,6 +60,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 class ComponentTreeItemListTest extends CanvasKernelTestBase {
 
   use ConstraintViolationsTestTrait;
+  use CrawlerTrait;
   use CreateTestJsComponentTrait;
   use GenerateComponentConfigTrait;
   use CiModulePathTrait;
@@ -2015,6 +2017,213 @@ HTML,
     // Prop validation fails because optional_text is now required but missing.
     // The error is caught by renderify and handled gracefully.
     $this->assertNoText('[canvas:evolution-test/optional_text] The property optional_text is required.');
+  }
+
+  /**
+   * Tests rendering component trees whose children cannot be placed in a slot.
+   *
+   * Regression test for https://www.drupal.org/i/3590730. `::getHydratedValue()`
+   * places each child in its parent's slot, which assumes the parent offers that
+   * slot. Four scenarios break that assumption:
+   * 1. The parent does not exist.
+   * 2. The parent failed to hydrate, so it has no slots at all.
+   * 3. The parent has no slots.
+   * 4. The parent does not have the claimed slot.
+   *
+   * Scenarios 1, 3 and 4 violate the requirements for the columns storing the
+   * tree structure, so they can only reach rendering if validation was
+   * bypassed, such as by a custom update path or direct database manipulation.
+   * Scenario 2 can also occur for a valid component tree, because hydration
+   * depends on state outside it. Every tree below is rejected by validation.
+   * Rendering must survive them anyway: the rest of the tree must still render,
+   * and the unreachable child must never render.
+   *
+   * @legacy-covers ::getHydratedValue
+   * @see docs/data-model.md#3.2.1
+   */
+  #[DataProvider('providerUnreachableChildren')]
+  public function testToRenderableSurvivesUnreachableChildren(array $code_components, array $tree, ?string $expected_error_wrapper_uuid, array $expected_absent_uuids): void {
+    foreach ($code_components as $machine_name => $slots) {
+      JavaScriptComponent::create([
+        'machineName' => $machine_name,
+        'name' => $machine_name,
+        'status' => TRUE,
+        'props' => [
+          'name' => [
+            'title' => 'Name',
+            'type' => 'string',
+            'examples' => ['Example name'],
+          ],
+        ],
+        'required' => ['name'],
+        'slots' => $slots,
+        'js' => ['original' => 'export default function() { return null; }', 'compiled' => 'export default function() { return null; }'],
+        'css' => ['original' => '', 'compiled' => ''],
+      ])->save();
+    }
+
+    $item_list = self::staticallyCreateDanglingComponentTreeItemList(\Drupal::typedDataManager());
+    $item_list->setValue($tree);
+
+    // Every one of these trees is invalid: validation is what normally prevents
+    // them from being saved. Rendering must nonetheless not crash.
+    self::assertNotEmpty($item_list->validate());
+
+    $build = $item_list->toRenderable(Page::create(['title' => 'A page'])->enforceIsNew(FALSE), FALSE);
+    $crawler = $this->crawlerForRenderArray($build);
+
+    if ($expected_error_wrapper_uuid !== NULL) {
+      self::assertCount(1, $crawler->filter(\sprintf('[data-component-uuid="%s"]:contains("Oops, something went wrong! Site admins have been notified.")', $expected_error_wrapper_uuid)));
+    }
+    foreach ($expected_absent_uuids as $absent_uuid) {
+      self::assertCount(0, $crawler->filter(\sprintf('[data-component-uuid="%s"]', $absent_uuid)));
+    }
+    // Every unreachable child in these trees carries this text.
+    self::assertCount(0, $crawler->filter(':contains("Unreachable")'));
+  }
+
+  /**
+   * Data provider for ::testToRenderableSurvivesUnreachableChildren().
+   */
+  public static function providerUnreachableChildren(): \Generator {
+    $parent_uuid = '2df42d3e-9b91-4b0f-9d1b-e1e6ecd5a001';
+    $child_uuid = '2df42d3e-9b91-4b0f-9d1b-e1e6ecd5a002';
+    $grandchild_uuid = '2df42d3e-9b91-4b0f-9d1b-e1e6ecd5a003';
+    $slotted = ['description' => ['title' => 'Description', 'examples' => ['<p>Example description</p>']]];
+
+    $unreachable_child = [
+      'uuid' => $child_uuid,
+      'component_id' => 'sdc.canvas_test_sdc.my-cta',
+      'inputs' => ['text' => 'Unreachable', 'href' => 'https://example.com'],
+      'parent_uuid' => $parent_uuid,
+      'slot' => 'description',
+    ];
+    // Triggers \OutOfRangeException in ::getExplicitInput() because the prop
+    // does not exist on this component's version.
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\GeneratedFieldExplicitInputUxComponentSourceBase::getDefaultStaticPropSource()
+    $inputs_that_fail_to_hydrate = [
+      'name' => 'Parent',
+      'hydration_should_fail_on_this_non_existent_value' => TRUE,
+    ];
+
+    yield 'parent failed to hydrate' => [
+      ['parent_that_fails_to_hydrate' => $slotted],
+      [
+        [
+          'uuid' => $parent_uuid,
+          'component_id' => JsComponent::componentIdFromJavascriptComponentId('parent_that_fails_to_hydrate'),
+          'inputs' => $inputs_that_fail_to_hydrate,
+        ],
+        $unreachable_child,
+      ],
+      $parent_uuid,
+      [$child_uuid],
+    ];
+
+    // The grandchild is nested inside the child before the child is discarded,
+    // so discarding the child must take the grandchild with it.
+    yield 'ancestor failed to hydrate, grandchild nested below' => [
+      ['ancestor_that_fails_to_hydrate' => $slotted, 'intermediate_parent' => $slotted],
+      [
+        [
+          'uuid' => $parent_uuid,
+          'component_id' => JsComponent::componentIdFromJavascriptComponentId('ancestor_that_fails_to_hydrate'),
+          'inputs' => $inputs_that_fail_to_hydrate,
+        ],
+        [
+          'uuid' => $child_uuid,
+          'component_id' => JsComponent::componentIdFromJavascriptComponentId('intermediate_parent'),
+          'inputs' => ['name' => 'Intermediate'],
+          'parent_uuid' => $parent_uuid,
+          'slot' => 'description',
+        ],
+        [
+          'uuid' => $grandchild_uuid,
+          'component_id' => 'sdc.canvas_test_sdc.my-cta',
+          'inputs' => ['text' => 'Unreachable', 'href' => 'https://example.com'],
+          'parent_uuid' => $child_uuid,
+          'slot' => 'description',
+        ],
+      ],
+      $parent_uuid,
+      [$child_uuid, $grandchild_uuid],
+    ];
+
+    yield 'parent does not exist' => [
+      [],
+      [$unreachable_child],
+      NULL,
+      [$child_uuid],
+    ];
+
+    // Every ComponentSource in Canvas that can omit the `slots` key is covered
+    // by the next three cases. `BlockComponent` never has slots: it does not
+    // implement `ComponentSourceWithSlotsInterface`. `JsComponent` and
+    // `SingleDirectoryComponent` may have none. `Fallback` always sets a
+    // `slots` key, so it cannot reach this.
+    yield 'parent is a block component, which can never have slots' => [
+      [],
+      [
+        [
+          'uuid' => $parent_uuid,
+          'component_id' => 'block.system_branding_block',
+          'inputs' => [],
+        ],
+        $unreachable_child,
+      ],
+      NULL,
+      [$child_uuid],
+    ];
+
+    yield 'parent is a code component without slots' => [
+      ['parent_without_slots' => []],
+      [
+        [
+          'uuid' => $parent_uuid,
+          'component_id' => JsComponent::componentIdFromJavascriptComponentId('parent_without_slots'),
+          'inputs' => ['name' => 'Parent'],
+        ],
+        $unreachable_child,
+      ],
+      NULL,
+      [$child_uuid],
+    ];
+
+    yield 'parent is an SDC without slots' => [
+      [],
+      [
+        [
+          'uuid' => $parent_uuid,
+          'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+          'inputs' => ['heading' => 'Parent'],
+        ],
+        $unreachable_child,
+      ],
+      NULL,
+      [$child_uuid],
+    ];
+
+    // Two mechanisms normally prevent this:
+    // 1. The instance pins the component version it was saved with, so a slot
+    //    removed afterwards still exists for that version.
+    // 2. When the instance is updated to a version without that slot, the
+    //    slot's children are removed along with it.
+    // So reaching this requires a modification that bypassed validation, such
+    // as a custom update path or direct database manipulation.
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentInstanceUpdater::update()
+    yield 'parent does not have the claimed slot anymore' => [
+      ['parent_with_other_slot' => $slotted],
+      [
+        [
+          'uuid' => $parent_uuid,
+          'component_id' => JsComponent::componentIdFromJavascriptComponentId('parent_with_other_slot'),
+          'inputs' => ['name' => 'Parent'],
+        ],
+        ['slot' => 'no_longer_existing_slot'] + $unreachable_child,
+      ],
+      NULL,
+      [$child_uuid],
+    ];
   }
 
 }

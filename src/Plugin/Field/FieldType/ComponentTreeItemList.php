@@ -526,16 +526,43 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       if ($parent_uuid === self::ROOT_UUID) {
         continue;
       }
-      \assert(\array_key_exists('slots', $hydrated[$parent_uuid]) && \is_array($hydrated[$parent_uuid]['slots']));
+
+      // A child component instance can only be placed if its parent offers the
+      // slot it claims to live in. A valid component tree guarantees this, but
+      // even an invalid one must still render to the maximum possible extent.
+      // Best-effort rendering means that some component subtrees (i.e. a child
+      // that cannot be rendered, and all its descendants) are omitted during
+      // rendering.
+      // 4 scenarios can result in a child that cannot be placed. Scenarios 1, 3
+      // and 4 require bypassing validation (e.g. through a custom update path,
+      // or saving modified entities with component trees without validating
+      // them). Scenario 2 can also occur for a valid component tree, because
+      // hydration depends on state outside it.
+      // @see \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator::validateComponentInstance()
+      if (
+        // 1. The parent does not exist at all (dangling `parent_uuid`).
+        !\array_key_exists($parent_uuid, $hydrated)
+        // 2. The parent failed to hydrate, so it has no `slots` key. And
+        //    ::renderify() re-throws its exception before reaching slots
+        //    anyway.
+        || \array_key_exists(self::HYDRATION_EXCEPTION_KEY, $hydrated[$parent_uuid])
+        // 3. The parent's ComponentSource has no slots whatsoever (for example
+        //    `BlockComponent`), so it never sets a `slots` key.
+        || !\array_key_exists('slots', $hydrated[$parent_uuid])
+        // 4. The parent has slots, but not the one claimed by this child.
+        || !\array_key_exists($slot, $hydrated[$parent_uuid]['slots'])
+      ) {
+        unset($hydrated[$uuid]);
+        continue;
+      }
 
       // Remove default slot value: this slot is populated.
-      if (\array_key_exists($slot, $hydrated[$parent_uuid]['slots']) && \is_string($hydrated[$parent_uuid]['slots'][$slot])) {
+      if (\is_string($hydrated[$parent_uuid]['slots'][$slot])) {
         $hydrated[$parent_uuid]['slots'][$slot] = [];
       }
 
-      // @phpstan-ignore-next-line
+      \assert(\is_array($hydrated[$parent_uuid]['slots'][$slot]));
       \assert(!\array_key_exists($uuid, $hydrated[$parent_uuid]['slots'][$slot]));
-      // @phpstan-ignore-next-line
       $hydrated[$parent_uuid]['slots'][$slot][$uuid] = $hydrated[$uuid];
       unset($hydrated[$uuid]);
     }
