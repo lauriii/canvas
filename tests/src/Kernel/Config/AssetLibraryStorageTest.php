@@ -311,18 +311,29 @@ class AssetLibraryStorageTest extends CanvasKernelTestBase {
       self::assertNotFalse(\file_put_contents($real_path, '.gc-backlog{display:none}'));
       self::assertTrue(\touch($real_path, $long_ago));
     }
+
+    // A file the global asset library points at, aged past the retention period
+    // so that only the reference set can save it, and living in the same
+    // directory as the backlog.
+    $asset_library = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
+    self::assertNotNull($asset_library);
+    $asset_library->set('css', [
+      'original' => '.in-use { display: none; }',
+      'compiled' => '.in-use{display:none}',
+    ])->save();
+    $in_use_path = $asset_library->getCssPath();
+    self::assertStringStartsWith($directory, $in_use_path);
+    $in_use_real_path = $file_system->realpath($in_use_path);
+    self::assertIsString($in_use_real_path);
+    self::assertTrue(\touch($in_use_real_path, $long_ago));
     \clearstatcache();
 
-    // The backlog is worked off over consecutive runs, and the files the global
-    // entities still point at are never in it, however many runs it takes.
+    // The backlog is worked off over consecutive runs, and the file still in
+    // use is passed over by every one of them.
     self::assertCount($limit, $cleanup->deleteStaleFiles());
     self::assertCount($overflow, $cleanup->deleteStaleFiles());
     self::assertSame([], $cleanup->deleteStaleFiles());
-
-    $asset_library = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
-    self::assertNotNull($asset_library);
-    self::assertFileExists($asset_library->getCssPath());
-    self::assertFileExists($asset_library->getJsPath());
+    self::assertFileExists($in_use_path);
   }
 
   /**
