@@ -562,7 +562,10 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
         $bubbleable_metadata->addCacheableDependency($global_asset);
       }
     }
-    $bubbleable_metadata
+    // ::merge() returns a new object rather than mutating, so its result has to
+    // be assigned: dropping it would discard everything the prop values
+    // contribute, including their #attached.
+    $bubbleable_metadata = $bubbleable_metadata
       ->addCacheableDependency($component)
       ->merge($props_bubbleable_metadata);
     if ($headless_settings !== NULL) {

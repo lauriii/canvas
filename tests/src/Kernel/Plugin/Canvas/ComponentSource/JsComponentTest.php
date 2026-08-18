@@ -3641,6 +3641,20 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     $actual_tags = $cacheability->getCacheTags();
     sort($actual_tags);
     self::assertSame(['node:1', 'node:2', 'node:3'], $actual_tags);
+
+    // Resolving the props is only half of it: that cacheability must survive
+    // into the render array, or editing any of the three nodes leaves a cached
+    // response showing their old titles.
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::renderComponent()
+    $island = $fixtures['source']->renderComponent(
+      [JsComponent::EXPLICIT_INPUT_NAME => $result['resolved']],
+      $fixtures['source']->getSlotDefinitions(),
+      'test-uuid',
+    );
+    self::assertEqualsCanonicalizing(
+      ['node:1', 'node:2', 'node:3'],
+      array_values(array_intersect($island['#cache']['tags'], ['node:1', 'node:2', 'node:3'])),
+    );
   }
 
   /**
