@@ -67,7 +67,7 @@ not observed. The runtime half needs a site-equipped follow-up.
 
 ## The walls
 
-All five are recorded as `WALL(n)` in `extension/host.ts`.
+Walls 1 to 5 are recorded as `WALL(n)` in `extension/host.ts`; wall 6 is recorded in `extension/compile.ts`, because it is a packaging problem rather than a missing host value.
 
 ### WALL(0) — a remote extension is impossible, not merely degraded
 
