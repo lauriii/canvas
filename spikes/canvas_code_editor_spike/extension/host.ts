@@ -125,13 +125,19 @@ export function previewDrupalSettings(): DrupalSettings | null {
 }
 
 /**
- * WALL(5): whether the user may edit code components.
+ * WALL(5): WITHDRAWN. Not a wall — the extension system already solves this.
  *
- * Only ever exposed as `drupalSettings.canvas.permissions.codeComponents`. The
- * API routes do enforce it, so an extension can discover it by getting a 403 —
- * but not before rendering an editor it must then take away.
+ * A page extension declares `permissions:` in its `*.canvas_extension.yml`, and
+ * `ExtensionPageAccessCheck` requires every one of them on
+ * `/canvas/app/{extension_id}` before the iframe is ever created. This spike's
+ * own YAML declares `administer code components`, so a user without it gets a
+ * 403 on the route and this function is never reached.
  *
- * @see src/Controller/CanvasController.php
+ * Kept, not renumbered, so FINDINGS.md's numbering stays stable. It reads the
+ * host window only as a belt-and-braces check; nothing depends on it.
+ *
+ * @see src/Access/ExtensionPageAccessCheck.php
+ * @see canvas_code_editor_spike.canvas_extension.yml
  */
 export function canEditCodeComponents(): boolean | null {
   const permissions = canvasWindow()?.drupalSettings?.canvas?.permissions;
@@ -148,6 +154,6 @@ export function unreachable(): string[] {
   if (!previewRuntimeUrl()) missing.push('canvasModulePath');
   if (!importMapTags()) missing.push('importMap');
   if (!previewDrupalSettings()) missing.push('drupalSettings');
-  if (canEditCodeComponents() === null) missing.push('permissions');
+  // Deliberately not checking permissions: see WALL(5), withdrawn.
   return missing;
 }

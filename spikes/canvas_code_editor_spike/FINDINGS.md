@@ -4,6 +4,9 @@
 the preview without new core API. And a remotely hosted extension cannot host
 it at all.**
 
+Narrower than it first read: the *transport* is proven, the *payload* is not.
+See "What the spike gets wrong".
+
 Status: throwaway. Nothing here ships. Delete once the API design is agreed.
 
 ## What was built
@@ -109,11 +112,21 @@ a second, divergent map would give two Preact instances.
 `ui/lib/code-editor-preview.js:69-73` hard-fails without a `drupalSettings`
 object, because components may read `drupalSettings.canvasData.v0`.
 
-### WALL(5) — `drupalSettings.canvas.permissions.codeComponents`
+### WALL(5) — WITHDRAWN. Not a wall.
 
-Only reachable from the host window. The API routes do enforce the permission,
-so an extension can discover it from a 403 — but only after rendering an editor
-it then has to take away.
+The first version of this document claimed the extension could not know whether
+the user may edit code components, because it is only exposed as
+`drupalSettings.canvas.permissions.codeComponents`. That is wrong, and the spike
+had already solved it without noticing: a page extension declares
+`permissions:` in its `*.canvas_extension.yml`, and
+`src/Access/ExtensionPageAccessCheck.php:33-48` requires every one of them on
+`/canvas/app/{extension_id}` before the iframe is created.
+`canvas_code_editor_spike.canvas_extension.yml` declares `administer code
+components`, so an unauthorized user gets a 403 on the route and the editor is
+never drawn. `src/Controller/CanvasController.php:158-166` additionally filters
+`pageExtensions` by the same permissions.
+
+Kept in place, not renumbered, so the numbering in `host.ts` stays stable.
 
 ## Two costs the spike quantified
 
@@ -127,15 +140,44 @@ it then has to take away.
   URL must be resolved off `document.baseURI`. Core hits the same thing and
   passes an explicit URL. Minor, but it bites every extension that ships wasm.
 
+## What the spike gets wrong
+
+Found by an adversarial review of this document against the spike's own code.
+None overturns the verdict, but the verdict is now narrower than it was: the
+*transport* is proven, the *payload* is not.
+
+- **WALL(5) was never a wall.** See above. The spike declared the permission in
+  its own YAML and then wrote code to work around not having it.
+- **`importedJsComponents` derivation is knowingly wrong** (`compile.ts:106`).
+  The regex requires `from`, so side-effect imports are missed; it does not
+  exclude `@/lib/drupal-utils` the way core's AST walker does; and it computes no
+  `dataDependencies`. The server only writes keys it receives, so this is silent
+  data loss, not a rejected request. The real module must port the AST walker.
+- **`crypto.randomUUID()` was called at module scope** (`api.ts`), which is
+  undefined outside a secure context and would have taken the whole IIFE bundle
+  down on a plain-HTTP dev site. Now lazy, with a fallback.
+- **External code components were not handled.** `type: 'external'` components
+  carry no source and the server rejects any code field on them
+  (`src/Entity/JavaScriptComponent.php:409-437`), so the spike would have sent a
+  PATCH that 422s. Now refused up front, as core's `CodeEditorContainer` does.
+- **Both preview sandboxes carry live `@todo`s to drop `allow-same-origin`** —
+  `ui/src/features/code-editor/Preview.tsx:371` (tracked as
+  <https://www.drupal.org/i/3527515>) and
+  `ui/src/components/extensions/ExtensionPage.tsx:94`. Every conclusion in the
+  "not a wall" list above depends on `allow-same-origin` surviving: without it
+  the preview document gets an opaque origin and `import(blobUrl)` fails,
+  because blob URL fetches are same-origin only. The authoring-environment
+  endpoint does not fix that case.
+
 ## What this means for the proposal
 
-The preview is the whole problem. Two of the five walls (2, 3) exist only
-because the preview runtime and its import map are private to the Canvas UI
-build. One core addition — **an endpoint that returns the code-component
-preview environment (import map, preview runtime URL, `drupalSettings` subset,
-compiler asset URLs) as JSON** — collapses walls 1 through 4 into one
-documented API call. Wall 5 is solved by the same payload carrying the
-permission flag.
+The preview is the whole problem, and it is four walls, not five. Two of them
+(2, 3) exist only because the preview runtime and its import map are private to
+the Canvas UI build. One core addition — **an endpoint that returns the
+code-component authoring environment (import map, preview runtime URL,
+`drupalSettings` subset, compiler asset URLs) as JSON** — collapses walls 1
+through 4 into one documented API call. Wall 5 needs nothing: the extension
+system already enforces permissions on the route.
 
 Wall 0 is not solvable and should be stated as a constraint, not a bug: the
 code editor extension is a local extension.

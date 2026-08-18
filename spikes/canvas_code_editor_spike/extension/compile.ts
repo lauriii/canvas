@@ -97,8 +97,12 @@ export async function compileGlobalCss(
  * The imports a code component declares, which the PATCH is required to carry.
  *
  * Core does this with `@babel/parser` over the full AST. A regex is enough to
- * prove the extension can compute it; the real module should port the AST
- * walker, since that also feeds `dataDependencies`.
+ * prove the extension can compute it; the real module MUST port the AST walker,
+ * because this regex is knowingly wrong in three ways the server cannot detect:
+ * it misses side-effect imports (`import '@/components/x'`), it does not
+ * exclude `@/lib/drupal-utils` the way core's walker does, and it produces no
+ * `dataDependencies`. The server only sets keys it receives, so the result is
+ * silent data loss rather than a rejected request.
  *
  * @see ui/src/features/code-editor/utils/ast-utils.ts
  * @see src/Entity/JavaScriptComponent.php ::updateFromClientSide()

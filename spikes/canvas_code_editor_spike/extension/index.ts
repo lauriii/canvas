@@ -31,7 +31,7 @@ import {
   importedJsComponents,
   initCompiler,
 } from './compile.ts';
-import { canEditCodeComponents, unreachable } from './host.ts';
+import { unreachable } from './host.ts';
 import { buildPreview } from './preview.ts';
 
 const SAVE_DEBOUNCE_MS = 1000;
@@ -88,11 +88,6 @@ async function boot(): Promise<void> {
     status(`Reached the host window, but missing: ${walls.join(', ')}`);
   }
 
-  if (canEditCodeComponents() === false) {
-    status('You do not have permission to edit code components.');
-    return;
-  }
-
   const id = requestedComponentId();
   if (!id) {
     status('Open this with a component id: #/{machineName}');
@@ -106,6 +101,15 @@ async function boot(): Promise<void> {
     loadCodeComponent(id),
     loadGlobalAssetLibrary(),
   ]);
+
+  if (componentResult.component.type === 'external') {
+    // The server rejects any source or compiled field on an external code
+    // component, so there is nothing to edit here. Core's UI reaches the same
+    // conclusion in CodeEditorContainer and redirects away.
+    // @see src/Entity/JavaScriptComponent.php ::updateFromClientSide()
+    status(`${id} is an external component and has no editable source.`);
+    return;
+  }
 
   const editing: Editing = {
     component: componentResult.component,

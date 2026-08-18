@@ -48,8 +48,22 @@ export interface AssetLibrary {
 
 type AutoSaveHashes = Record<string, unknown>;
 
-/** Stable per-session id, for Canvas's optimistic-concurrency check. */
-export const clientInstanceId = crypto.randomUUID();
+/**
+ * Stable per-session id, for Canvas's optimistic-concurrency check.
+ *
+ * Lazy, and with a fallback: `crypto.randomUUID` is undefined outside a secure
+ * context, so calling it at module scope would throw on a plain-HTTP dev site
+ * and take the whole bundle down. Core uses the `uuid` package.
+ */
+let cachedClientInstanceId: string | null = null;
+
+export function clientInstanceId(): string {
+  cachedClientInstanceId ??=
+    typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `spike-${Math.random().toString(36).slice(2)}`;
+  return cachedClientInstanceId;
+}
 
 function url(path: string): string {
   return `${basePath()}${path}`;
@@ -132,7 +146,7 @@ async function patchAutoSave(
       'Content-Type': 'application/json',
       'X-CSRF-Token': await csrfToken(),
     },
-    body: JSON.stringify({ data, autoSaves, clientInstanceId }),
+    body: JSON.stringify({ data, autoSaves, clientInstanceId: clientInstanceId() }),
   });
   if (response.status === 409) {
     // Someone else edited the same draft. Core's UI renders ConflictWarning.
