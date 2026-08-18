@@ -106,3 +106,28 @@ Limitations found (POC-level findings, not bugs):
 
 Repro: enable `canvas_views_poc`, run `mkview.php` and `mkview2.php` with
 `drush scr`.
+
+## Third iteration: the display created in the Canvas editor (E2E)
+
+The module owner's requirement: the user must be able to create the display in
+Canvas, the way the commercial prior art authors displays in its own builder
+rather than in Views UI. Verified that the today-state already satisfies this
+for entity-row views, end to end through the real editor UI:
+
+1. The spike view gained a block display; Canvas auto-discovered it as
+   `block.views_block.spike_entity_rows-block_1` and auto-foldered it under
+   "Lists (Views)" in the Library.
+2. In the Canvas editor on the Blog page: Library > Lists (Views) > Spike
+   entity rows > contextual menu > Insert. The editor preview immediately
+   showed the view's rows rendered through the content template
+   (`evidence/canvas-editor-insert.png`).
+3. Review 1 change > select > Publish.
+4. The live page, fetched anonymously, renders the view's rows as hydrated
+   Canvas components (`evidence/live-blog-published.png`).
+
+So: query authored in Views UI, display placed in Canvas, rows designed in
+Canvas (the content template, editable under Templates in the same editor).
+The gap to the full requirement is a per-placement row template and the
+display chrome; the `canvas-list-builder` change's deferred-slot interface
+(`ComponentSourceWithDeferredSlotsInterface`, its design D6 Phase B) is the
+committed API for exactly that, and the plan's phase 2 now targets it.
