@@ -111,18 +111,24 @@ final class GeneratedAssetCleanup {
     // current again, and CanvasAssetStorage rewrites the file under its old
     // name rather than creating a new one. Reading the reference set a second
     // time, after the scan, keeps anything that reappeared meanwhile.
-    //
-    // A file that becomes current between this second read and its unlink is
-    // still deleted. Closing that too would mean holding a lock across every
-    // entity save, which is a permanent cost on the save path to protect
-    // against a window of microseconds whose only consequence is a missing
-    // stylesheet until the entity is saved again.
     // @see \Drupal\canvas\EntityHandlers\CanvasAssetStorage::doSave()
     $in_use = $this->getReferencedUris();
 
     $deleted = [];
     foreach ($candidates as $uri) {
       if (isset($in_use[$uri])) {
+        continue;
+      }
+      // That second read is a snapshot too: it loads the entity types one after
+      // another, and this loop outlives it. Re-reading the modification time
+      // here is what actually protects a file written meanwhile, whether it
+      // came back under its old name or was orphaned again — either way saving
+      // it makes it too young to collect. Only the gap between this check and
+      // the unlink below is left, and losing that race costs a stylesheet until
+      // the entity is saved again, not data.
+      \clearstatcache();
+      $modified = \filemtime($uri);
+      if ($modified === FALSE || $modified > $cutoff) {
         continue;
       }
       if ($this->fileSystem->delete($uri)) {
@@ -138,7 +144,7 @@ final class GeneratedAssetCleanup {
    *
    * An unreferenced file has to outlive every response that still names it. For
    * anonymous traffic that is bounded by the page cache lifetime the site
-   * advertises to proxies and CDNs, so honour it whenever it is longer than the
+   * advertises to proxies and CDNs, so honor it whenever it is longer than the
    * floor rather than assuming six hours is enough everywhere.
    *
    * @see \Drupal\Core\EventSubscriber\FinishResponseSubscriber::setResponseCacheable()
