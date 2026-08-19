@@ -1,0 +1,31 @@
+<?php
+
+/**
+ * @file
+ * A view is a query; its displays are designed in Canvas.
+ */
+
+declare(strict_types=1);
+
+use Drupal\canvas\ComponentSource\ComponentSourceManager;
+use Drupal\canvas_views\Entity\CanvasViewsDisplay;
+use Drupal\canvas_views\Plugin\Canvas\ComponentSource\ViewsDisplayComponent;
+use Drupal\Core\Entity\EntityInterface;
+
+/**
+ * Implements hook_ENTITY_TYPE_insert() for canvas_views_display.
+ */
+function canvas_views_canvas_views_display_insert(EntityInterface $entity): void {
+  \assert($entity instanceof CanvasViewsDisplay);
+  \Drupal::service(ComponentSourceManager::class)
+    ->generateComponents(ViewsDisplayComponent::SOURCE_PLUGIN_ID, [$entity->id()]);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_update() for canvas_views_display.
+ */
+function canvas_views_canvas_views_display_update(EntityInterface $entity): void {
+  \assert($entity instanceof CanvasViewsDisplay);
+  \Drupal::service(ComponentSourceManager::class)
+    ->generateComponents(ViewsDisplayComponent::SOURCE_PLUGIN_ID, [$entity->id()]);
+}

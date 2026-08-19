@@ -180,3 +180,33 @@ done by editing the auto-save draft server-side, because dnd-kit did not accept
 this harness's synthetic pointer sequences. Inserting, selecting, binding,
 previewing, and publishing all happened through the real editor UI; component
 drag-and-drop works for human pointers.
+
+## Fifth iteration: the MVP of the final model (canvas_views)
+
+The converged architecture, built and validated end to end:
+
+- **A view is a query.** `canvas_views` adds the query-only `canvas` display
+  type (extends core's Embed); the MVP view has no page and no block display.
+  Its field handlers declare the fields.
+- **The display is a config entity** (`canvas_views_display`): view reference,
+  component tree, explicit `mappings` (component uuid -> prop -> views field).
+- **Designed in the Canvas editor** through the *generic* editor route with
+  **zero client changes**, enabled by the core `PreviewRenderableInterface`
+  (lauriii/canvas#102): the entity builds its own preview - the tree rendered
+  once per result row, editing annotations on the first repetition. Insert
+  from the Library updates all repetitions live; publish goes through the
+  standard review panel, where the entity appears grouped under its type.
+- **Each display is a component** (`views_display` source, one per entity),
+  placed on a page from the Library and published; the anonymous page renders
+  all rows with per-row mapped values (`evidence/careers-live.png`,
+  `evidence/display-editor.png`, `evidence/display-admin-form.png`).
+
+Core changes needed for all of this (PR #102): one interface, two
+`instanceof` branch replacements, an OpenAPI parameter widening, and a
+graceful empty content-entity form for non-fieldable entities. Everything
+else is the contrib module.
+
+MVP stand-ins, stated: mappings are edited on the entity form (the real
+gesture is the props panel, list-builder Phase B); string props only; no
+pager; per-row output not render cached; the Templates panel does not yet
+list views (navigate via the admin form's "Design in Canvas" link).

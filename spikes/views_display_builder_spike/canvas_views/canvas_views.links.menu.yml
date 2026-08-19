@@ -1,0 +1,5 @@
+entity.canvas_views_display.collection:
+  title: 'Canvas views displays'
+  parent: system.admin_structure
+  description: 'Designed displays for views, placed as components.'
+  route_name: entity.canvas_views_display.collection

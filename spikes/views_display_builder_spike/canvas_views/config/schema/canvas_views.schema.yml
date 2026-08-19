@@ -1,0 +1,31 @@
+canvas_views.canvas_views_display.*:
+  type: config_entity
+  label: 'Canvas views display'
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    id:
+      type: machine_name
+      label: 'ID'
+    label:
+      type: required_label
+      label: 'Label'
+    view_id:
+      type: string
+      label: 'View'
+      constraints:
+        NotBlank: ~
+    component_tree:
+      type: canvas.component_tree
+      label: 'The designed display, rendered once per result row'
+    mappings:
+      type: sequence
+      label: 'Prop mappings, keyed by component instance UUID'
+      orderby: key
+      sequence:
+        type: sequence
+        label: 'Field mappings for one component instance, keyed by prop'
+        orderby: key
+        sequence:
+          type: string
+          label: 'Views field ID'

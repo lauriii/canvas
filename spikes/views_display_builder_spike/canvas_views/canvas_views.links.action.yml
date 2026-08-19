@@ -1,0 +1,5 @@
+entity.canvas_views_display.add_form:
+  route_name: entity.canvas_views_display.add_form
+  title: 'Add Canvas views display'
+  appears_on:
+    - entity.canvas_views_display.collection

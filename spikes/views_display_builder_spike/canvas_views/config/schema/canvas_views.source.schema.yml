@@ -1,0 +1,16 @@
+canvas.component_source_local_id.views_display:
+  type: canvas.component_source_local_id.*
+  label: 'Canvas views display ID'
+  constraints:
+    FullyValidatable: ~
+canvas.component_source_settings.views_display:
+  type: canvas.component_source_settings.*
+  label: 'Views display component settings'
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    display_id:
+      type: string
+      label: 'Canvas views display config entity ID'
+      constraints:
+        NotBlank: ~

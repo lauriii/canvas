@@ -1,0 +1,8 @@
+name: 'Canvas Views'
+type: module
+description: 'MVP: a view is a query; its displays are designed in Canvas and placed as components.'
+core_version_requirement: ^11
+package: Canvas
+dependencies:
+  - drupal:views
+  - canvas:canvas

@@ -1,0 +1,15 @@
+# Module-local PHPStan config: level 8 with the Drupal extension
+# (auto-loaded via phpstan/extension-installer); the canvas-only dead-code
+# rules false-positive on plugin methods invoked by Views/Canvas.
+parameters:
+  level: 8
+  treatPhpDocTypesAsCertain: false
+  paths:
+    - src
+  ignoreErrors:
+    - '#^Unused Drupal\\canvas_views\\#'
+    - '#^Property Drupal\\canvas_views\\.+ is never read#'
+    - identifier: missingType.iterableValue
+    - '#getDefaultExplicitInput\(\) should return#'
+    - '#extends @?internal class#'
+    - '#^Property Drupal\\canvas_views\\.+ is never written#'
