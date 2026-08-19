@@ -10,6 +10,7 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\EmptyTargetEntityProviderInterface;
 use Drupal\canvas\Entity\Pattern;
+use Drupal\canvas\Entity\PreviewRenderableInterface;
 use Drupal\canvas\InvalidComponentInputsPropSourceException;
 use Drupal\canvas\MissingHostEntityException;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
@@ -926,7 +927,10 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       // Config entities hosting component trees (content templates, page
       // variants) provide an empty stand-in entity.
       $entity instanceof EmptyTargetEntityProviderInterface => $entity->createEmptyTargetEntity(),
-      $entity instanceof Pattern => Pattern::createEmptyHostEntity(),
+      // Any other self-rendering template (a Pattern, a module-provided
+      // template) has no host entity of its own; an empty page serves the
+      // widgets.
+      $entity instanceof PreviewRenderableInterface => Pattern::createEmptyHostEntity(),
       default => throw new \LogicException(),
     };
 
