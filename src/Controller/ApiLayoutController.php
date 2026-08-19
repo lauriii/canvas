@@ -15,6 +15,7 @@ use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Entity\Pattern;
+use Drupal\canvas\Entity\PreviewRenderableInterface;
 use Drupal\canvas\PageVariantResolver;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
@@ -533,10 +534,16 @@ final class ApiLayoutController {
   }
 
   private function buildPreviewRenderable(FieldableEntityInterface|ComponentTreeConfigEntityBase $entity, ?FieldableEntityInterface $preview_entity = NULL): array {
-    $renderable = $entity instanceof ContentTemplate
-      // @phpstan-ignore-next-line
-      ? $entity->build($preview_entity, isPreview: TRUE)
-      : $this->componentTreeLoader->load($entity)->toRenderable($entity, isPreview: TRUE);
+    $renderable = match (TRUE) {
+      $entity instanceof ContentTemplate =>
+        // @phpstan-ignore-next-line
+        $entity->build($preview_entity, isPreview: TRUE),
+      // Self-rendering component tree config entities decide what their own
+      // editing preview looks like: a pattern shows its tree as-is, a
+      // query-results template repeats it per result row.
+      $entity instanceof PreviewRenderableInterface => $entity->buildPreviewRenderable(),
+      default => $this->componentTreeLoader->load($entity)->toRenderable($entity, isPreview: TRUE),
+    };
 
     $build = [];
     if (isset($renderable[ComponentTreeItemList::ROOT_UUID])) {
@@ -626,8 +633,9 @@ final class ApiLayoutController {
   private static function shouldIncludePageChrome(FieldableEntityInterface|ComponentTreeConfigEntityBase $entity): bool {
     // A page variant is itself the chrome around the content: its preview must
     // show only its own tree, not nest it inside the route's resolved variant.
-    // Patterns likewise render standalone.
-    if ($entity instanceof PageVariant || $entity instanceof Pattern) {
+    // Self-rendering component tree config entities (patterns, query-results
+    // templates) likewise render standalone.
+    if ($entity instanceof PageVariant || $entity instanceof PreviewRenderableInterface) {
       return FALSE;
     }
     return !($entity instanceof ContentTemplate && $entity->getMode() !== 'full');

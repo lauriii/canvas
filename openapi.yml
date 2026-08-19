@@ -2194,7 +2194,7 @@ paths:
       summary: Gets the entity form with the "default" form mode
       parameters:
         - $ref: '#/components/parameters/entityTypeId'
-        - $ref: '#/components/parameters/entityId'
+        - $ref: '#/components/parameters/layoutEntityId'
       responses:
         '200':
           $ref: '#/components/responses/FormResponse'
@@ -2217,7 +2217,7 @@ paths:
       summary: Gets the entity form with the specified form mode
       parameters:
         - $ref: '#/components/parameters/entityTypeId'
-        - $ref: '#/components/parameters/entityId'
+        - $ref: '#/components/parameters/layoutEntityId'
         - name: entityFormMode
           in: path
           required: true
@@ -2728,9 +2728,7 @@ paths:
                 required:
                   - layout
                   - model
-                  - entity_form_fields
                   - isNew
-                  - isPublished
                   - html
                   - translations
                 properties:
@@ -5879,7 +5877,7 @@ components:
       name: entityId
       in: path
       required: true
-      description: "The edited entity's ID: a content entity ID, or a page variant machine name."
+      description: "The edited entity's ID: a content entity ID, or the machine name of a page variant or another self-rendering component tree config entity."
       schema:
         type: string
       examples:
@@ -5887,6 +5885,8 @@ components:
           value: '42'
         pageVariantId:
           value: marketing
+        selfRenderingTemplateId:
+          value: article_cards
     entityUuid:
       name: entityUuid
       in: path

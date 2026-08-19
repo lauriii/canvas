@@ -6,6 +6,7 @@ namespace Drupal\canvas\Controller;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -21,7 +22,12 @@ final class EntityFormController extends ControllerBase {
   ) {
   }
 
-  public function form(string $entity_type, FieldableEntityInterface $entity, string $entity_form_mode): array {
+  public function form(string $entity_type, EntityInterface $entity, string $entity_form_mode): array {
+    // Self-rendering component tree config entities have no content entity
+    // form; their metadata is edited outside the Canvas editor.
+    if (!$entity instanceof FieldableEntityInterface) {
+      return ['#markup' => ''];
+    }
     // @phpstan-ignore-next-line property.notFound
     if (!$this->themeHandler->themeExists('canvas_stark') || !$this->themeHandler->listInfo()['canvas_stark']->status) {
       return [
