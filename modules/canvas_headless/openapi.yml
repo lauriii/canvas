@@ -1,0 +1,652 @@
+openapi: 3.1.0
+
+info:
+  title: Drupal Canvas Headless
+  description: API Spec for the Canvas Headless submodule
+  version: 0.x
+
+# All routes except the public content endpoint require Drupal session
+# authentication. The session cookie name is site-specific, so represent the
+# complete Cookie header rather than declaring a fixed cookie name.
+security:
+  - DrupalSessionCookie: []
+
+# @see https://spec.openapis.org/oas/v3.1.0.html#paths-object
+# @see https://spec.openapis.org/oas/v3.1.0.html#path-item-object
+paths:
+  /canvas/content-api:
+    get:
+      summary: Resolve and render routed Canvas content
+      description: |
+        Accepts a site-relative Drupal request URI and returns either rendered
+        Canvas content metadata or redirect metadata.
+      parameters:
+        - name: requestUri
+          in: query
+          required: true
+          description: Site-relative request URI without a fragment.
+          schema:
+            type: string
+            examples:
+              - /page/1
+              - /node/12?language=fr
+        - name: viewMode
+          in: query
+          required: false
+          description: Optional preview view mode context.
+          schema:
+            type: string
+            pattern: '^[a-z0-9_]+$'
+        - name: componentId
+          in: query
+          required: false
+          description: Optional external component preview selector.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Content result or redirect result.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/CanvasContentResult'
+                  - $ref: '#/components/schemas/CanvasRedirectResult'
+              examples:
+                content:
+                  value:
+                    content:
+                      element: js-example-card
+                      props:
+                        heading: Example heading
+                    head:
+                      title: Example page
+                    route:
+                      name: entity.canvas_page.canonical
+                      requestUri: /page/1
+                      params:
+                        canvas_page: '1'
+                      managedByCanvas: true
+                      entity:
+                        entityType: canvas_page
+                        bundle: canvas_page
+                        id: '1'
+                        uuid: 773942c6-3660-4c50-9a8d-e25966a69bff
+                        langcode: en
+                redirect:
+                  value:
+                    redirect:
+                      external: false
+                      url: /new-path
+                      statusCode: 301
+        '400':
+          $ref: '#/components/responses/ProblemDetailsResponse'
+        '401':
+          $ref: '#/components/responses/ProblemDetailsResponse'
+        '403':
+          $ref: '#/components/responses/ProblemDetailsResponse'
+        '404':
+          $ref: '#/components/responses/ProblemDetailsResponse'
+        '500':
+          $ref: '#/components/responses/ProblemDetailsResponse'
+      security: []
+
+  /canvas-headless/assertion:
+    post:
+      summary: Mint a preview assertion
+      description: |
+        Returns a signed assertion token for headless preview activation or
+        renewal. The request can identify the preview entry point with either:
+        - `path`
+        - `entity_type` + `entity`
+
+        Cookie authentication and an X-CSRF-Token request header are required.
+      parameters:
+        - name: path
+          in: query
+          required: false
+          description: Relative path beginning with '/'.
+          schema:
+            type: string
+            examples:
+              - /
+              - /node/7
+        - name: entity_type
+          in: query
+          required: false
+          description: Entity type ID for activation flow.
+          schema:
+            type: string
+            examples:
+              - node
+        - name: entity
+          in: query
+          required: false
+          description: Entity ID for activation flow.
+          schema:
+            oneOf:
+              - type: string
+              - type: integer
+        - name: renewal
+          in: query
+          required: false
+          description: Marks the assertion for in-place renewal flow.
+          schema:
+            type: boolean
+        - name: view_mode
+          in: query
+          required: false
+          description: Optional content-template preview context view mode.
+          schema:
+            type: string
+            pattern: '^[a-z0-9_]+$'
+        - $ref: '#/components/parameters/CsrfToken'
+      responses:
+        '200':
+          description: Preview assertion minted.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [assertion]
+                properties:
+                  assertion:
+                    type: string
+                    description: Serialized signed JWT assertion.
+        '400':
+          $ref: '#/components/responses/DrupalErrorResponse'
+        '403':
+          $ref: '#/components/responses/DrupalErrorResponse'
+        '404':
+          $ref: '#/components/responses/DrupalErrorResponse'
+
+  /canvas-headless/renew:
+    get:
+      summary: Renew preview session via redirect
+      description: |
+        Mints a fresh preview URL for a relative path and redirects the user
+        back into the configured headless frontend.
+      parameters:
+        - name: path
+          in: query
+          required: true
+          description: Relative path beginning with '/'.
+          schema:
+            type: string
+            examples:
+              - /node/7
+      responses:
+        '302':
+          description: Redirect to frontend draft URL with fresh assertion.
+          headers:
+            Location:
+              description: Absolute frontend URL.
+              schema:
+                type: string
+                format: uri
+        '400':
+          $ref: '#/components/responses/DrupalErrorResponse'
+        '403':
+          $ref: '#/components/responses/DrupalErrorResponse'
+
+  /canvas/api/v0/headless/frontends:
+    get:
+      summary: Get configured headless frontends
+      responses:
+        '200':
+          description: Ordered frontend list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontendsPayload'
+        '403':
+          $ref: '#/components/responses/DrupalErrorResponse'
+    patch:
+      summary: Replace configured headless frontends
+      description: |
+        Replaces the entire ordered list of configured frontend URLs.
+        Cookie authentication and an X-CSRF-Token request header are required.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FrontendsPayload'
+      responses:
+        '200':
+          description: Updated frontend list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontendsPayload'
+        '400':
+          description: Invalid payload shape.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '403':
+          $ref: '#/components/responses/DrupalErrorResponse'
+        '422':
+          description: Invalid or duplicate frontend URL.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+
+  /canvas/api/v0/headless/components/sync/start:
+    post:
+      summary: Start external component synchronization
+      description: |
+        Validates the selected frontend and returns a preview assertion plus the
+        metadata path the browser should fetch from that frontend.
+        Cookie authentication and an X-CSRF-Token request header are required.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncFrontendRequest'
+      responses:
+        '200':
+          description: Sync start accepted.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [assertion, metadataPath]
+                properties:
+                  assertion:
+                    type: string
+                  metadataPath:
+                    type: string
+                    examples: [/api/canvas/components]
+        '400':
+          $ref: '#/components/responses/DrupalErrorResponse'
+        '403':
+          description: Access denied or assertion could not be issued.
+          content:
+            text/html:
+              schema:
+                type: string
+            text/plain:
+              schema:
+                type: string
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ErrorMessage'
+                  - $ref: '#/components/schemas/DrupalErrorMessage'
+
+  /canvas/api/v0/headless/components/sync/complete:
+    post:
+      summary: Complete external component synchronization
+      description: |
+        Applies browser-fetched component metadata for the selected frontend.
+        Cookie authentication and an X-CSRF-Token request header are required.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncCompleteRequest'
+      responses:
+        '200':
+          description: Sync result.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [result]
+                properties:
+                  result:
+                    $ref: '#/components/schemas/SyncResult'
+        '400':
+          $ref: '#/components/responses/DrupalErrorResponse'
+        '422':
+          description: Invalid metadata payload.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+
+  /canvas/api/v0/headless/components/sync/fail:
+    post:
+      summary: Report frontend metadata fetch failure
+      description: |
+        Records a synchronization failure reported by the browser.
+        Cookie authentication and an X-CSRF-Token request header are required.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncFailRequest'
+      responses:
+        # 200 is deliberate: the failure being reported is the browser's, and
+        # recording it as a notification is the successful outcome of this
+        # request. The echoed message describes the reported failure, not an
+        # error in this request.
+        '200':
+          description: Failure acknowledged and recorded as a notification.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '400':
+          $ref: '#/components/responses/DrupalErrorResponse'
+
+components:
+  schemas:
+    CanvasContentResult:
+      type: object
+      additionalProperties: false
+      required: [content, head, route]
+      properties:
+        content:
+          oneOf:
+            - type: object
+              additionalProperties: true
+            - type: 'null'
+        head:
+          $ref: '#/components/schemas/UnheadDocument'
+        route:
+          $ref: '#/components/schemas/CanvasRouteContext'
+
+    CanvasRedirectResult:
+      type: object
+      additionalProperties: false
+      required: [redirect]
+      properties:
+        redirect:
+          type: object
+          additionalProperties: false
+          required: [external, url, statusCode]
+          properties:
+            external:
+              type: boolean
+            url:
+              type: string
+            statusCode:
+              type: integer
+
+    UnheadDocument:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title:
+          type: string
+        meta:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        link:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        script:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+
+    CanvasRouteContext:
+      type: object
+      additionalProperties: false
+      required: [name, requestUri, params, managedByCanvas, entity]
+      properties:
+        name:
+          type: string
+        requestUri:
+          type: string
+        params:
+          type: object
+          additionalProperties:
+            type: string
+        managedByCanvas:
+          type: boolean
+        entity:
+          oneOf:
+            - $ref: '#/components/schemas/RoutedEntityRef'
+            - type: 'null'
+
+    RoutedEntityRef:
+      type: object
+      additionalProperties: false
+      required: [entityType, bundle, id, uuid, langcode]
+      properties:
+        entityType:
+          type: string
+        bundle:
+          type: string
+        id:
+          type: string
+        uuid:
+          type: string
+          format: uuid
+        langcode:
+          type: string
+
+    FrontendEntry:
+      type: object
+      additionalProperties: false
+      required: [url]
+      properties:
+        url:
+          type: string
+          format: uri
+          description: Absolute http(s) URL without trailing slash.
+
+    FrontendsPayload:
+      type: object
+      additionalProperties: false
+      required: [frontends]
+      properties:
+        frontends:
+          type: array
+          items:
+            $ref: '#/components/schemas/FrontendEntry'
+
+    SyncFrontendRequest:
+      type: object
+      additionalProperties: false
+      required: [frontendUrl]
+      properties:
+        frontendUrl:
+          type: string
+          format: uri
+
+    ComponentMetadataPayload:
+      type: object
+      additionalProperties: false
+      required: [version, components, warnings]
+      properties:
+        version:
+          type: integer
+          enum: [1]
+        components:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComponentMetadataEntry'
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComponentMetadataWarning'
+
+    ComponentMetadataEntry:
+      allOf:
+        - $ref: '../../openapi.yml#/components/schemas/CodeComponent'
+        - type: object
+          required:
+            - machineName
+            - name
+            - status
+            - required
+            - props
+            - slots
+            - relativeDirectory
+          properties:
+            relativeDirectory:
+              type: string
+              description: Directory relative to the configured component root.
+
+    ComponentMetadataWarning:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+          description: Project-root-relative path associated with the warning.
+
+    SyncCompleteRequest:
+      type: object
+      additionalProperties: false
+      required: [frontendUrl, payload]
+      properties:
+        frontendUrl:
+          type: string
+          format: uri
+        payload:
+          $ref: '#/components/schemas/ComponentMetadataPayload'
+
+    SyncFailRequest:
+      type: object
+      additionalProperties: false
+      required: [frontendUrl]
+      properties:
+        frontendUrl:
+          type: string
+          format: uri
+        message:
+          type: string
+
+    SyncResult:
+      type: object
+      additionalProperties: false
+      required: [created, updated, unchanged, warnings, errors]
+      properties:
+        created:
+          type: integer
+          minimum: 0
+        updated:
+          type: integer
+          minimum: 0
+        unchanged:
+          type: integer
+          minimum: 0
+        warnings:
+          type: array
+          items:
+            type: string
+        errors:
+          type: array
+          items:
+            type: string
+
+    ErrorMessage:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    DrupalErrorMessage:
+      type: object
+      additionalProperties: true
+      required: [message]
+      properties:
+        message:
+          type: string
+
+    ProblemDetails:
+      type: object
+      # RFC 9457 section 3.2 permits extension members, so additional
+      # properties must not be forbidden here.
+      additionalProperties: true
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri-reference
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri-reference
+
+  responses:
+    # Only the content API converts errors to Problem Details.
+    # @see \Drupal\canvas_headless\EventSubscriber\CanvasContentResponseSubscriber::convertError()
+    ProblemDetailsResponse:
+      description: RFC 9457 Problem Details error response.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    # The remaining routes are handled by Drupal's generic exception handling,
+    # which negotiates the response format from the request. Unlike the rest of
+    # the Canvas API, these route names are not prefixed with `canvas.api.`, so
+    # ApiExceptionSubscriber does not shape them into JSON:API-style errors
+    # either.
+    # @see \Drupal\canvas\EventSubscriber\ApiExceptionSubscriber::onException()
+    # @see \Drupal\Core\EventSubscriber\ExceptionJsonSubscriber::on4xx()
+    DrupalErrorResponse:
+      description: |
+        Error response produced by Drupal's generic exception handling. The body
+        format follows request format negotiation: an HTML error page by
+        default, or a JSON object with a `message` when the request negotiates
+        JSON (for example with `?_format=json`). Access denied responses raised
+        before the controller runs, such as failed permission or CSRF token
+        checks, are always HTML.
+      content:
+        text/html:
+          schema:
+            type: string
+        text/plain:
+          schema:
+            type: string
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DrupalErrorMessage'
+
+  parameters:
+    CsrfToken:
+      name: X-CSRF-Token
+      in: header
+      required: true
+      description: CSRF token obtained from Drupal's `/session/token` endpoint.
+      schema:
+        type: string
+
+  securitySchemes:
+    DrupalSessionCookie:
+      type: apiKey
+      in: header
+      name: Cookie
+      description: |
+        Drupal session cookie header. The cookie name is site-specific and the
+        browser normally sends it automatically for same-origin requests.
