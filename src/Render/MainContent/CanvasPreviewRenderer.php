@@ -7,9 +7,11 @@ namespace Drupal\canvas\Render\MainContent;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\Component\Plugin\PluginManagerInterface;
+use Drupal\Component\Render\PlainTextOutput;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Controller\TitleResolverInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Render\AttachmentsInterface;
 use Drupal\Core\Render\AttachmentsResponseProcessorInterface;
 use Drupal\Core\Render\Element;
@@ -39,6 +41,9 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
  * displayed in an iframe, so assets are included in the HTML instead of being
  * handled separately.
  *
+ * Status messages are not rendered in the preview. They are returned under
+ * `messages` instead, for the Canvas UI to display.
+ *
  * @see \Drupal\canvas\EventSubscriber\PreviewEnvelopeViewSubscriber::onViewPreviewEnvelope
  */
 final class CanvasPreviewRenderer extends HtmlRenderer {
@@ -56,6 +61,7 @@ final class CanvasPreviewRenderer extends HtmlRenderer {
     ThemeManagerInterface $theme_manager,
     #[Autowire(service: 'html_response.attachments_processor')]
     private readonly AttachmentsResponseProcessorInterface $attachmentsResponseProcessor,
+    private readonly MessengerInterface $messenger,
   ) {
     parent::__construct($title_resolver, $display_variant_manager, $event_dispatcher, $module_handler, $renderer, $render_cache, $renderer_config, $theme_manager);
   }
@@ -74,10 +80,40 @@ final class CanvasPreviewRenderer extends HtmlRenderer {
     $response = $this->attachmentsResponseProcessor->processAttachments($response);
     \assert($response instanceof Response);
 
-    // @todo Expose warnings and errors to the Canvas UI: https://www.drupal.org/project/canvas/issues/3489302#comment-15877293
     return new JsonResponse([
       'html' => $response->getContent(),
+      // Collected after rendering, so that messages added while rendering a
+      // component are included too.
+      'messages' => $this->collectMessages(),
     ] + $additionalData);
+  }
+
+  /**
+   * Takes all messages, as plain text, for the Canvas UI to display.
+   *
+   * @return array
+   *   A list of ['type' => string, 'message' => string] arrays.
+   *
+   * @see \Drupal\Core\Render\Element\StatusMessages::renderMessages()
+   */
+  private function collectMessages(): array {
+    $messages = [];
+    foreach ($this->messenger->deleteAll() as $type => $messages_of_type) {
+      \assert(\is_array($messages_of_type));
+      foreach ($messages_of_type as $message) {
+        // A message is documented to be a string or Markup, but a render array
+        // is accepted too, and Canvas itself adds one.
+        // @see \Drupal\canvas\Hook\FieldUiHooks::formEntityViewDisplayEditFormAlter()
+        if (\is_array($message)) {
+          $message = $this->renderer->renderInIsolation($message);
+        }
+        $messages[] = [
+          'type' => $type,
+          'message' => PlainTextOutput::renderFromHtml((string) $message),
+        ];
+      }
+    }
+    return $messages;
   }
 
   /**

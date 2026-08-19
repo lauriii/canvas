@@ -232,6 +232,15 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
       \Fiber::suspend($block);
     }
 
+    // When previewing ($isPreview), status messages must not be rendered. The
+    // component is rendered behind a #pre_render, so CanvasPreviewRenderer
+    // cannot strip this one from the page it prepares.
+    // @see \Drupal\canvas\Element\RenderSafeComponentContainer
+    // @see \Drupal\canvas\Render\MainContent\CanvasPreviewRenderer::prepare()
+    if ($isPreview && $block instanceof MessagesBlockPluginInterface) {
+      return ['#markup' => ''];
+    }
+
     // @todo preview fallback handling (in case of no access or emptiness) in https://drupal.org/i/3497990
     // @see \Drupal\layout_builder\EventSubscriber\BlockComponentRenderArray::onBuildRender()
     $build = [

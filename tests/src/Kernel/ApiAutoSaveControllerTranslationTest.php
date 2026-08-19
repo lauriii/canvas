@@ -795,7 +795,7 @@ final class ApiAutoSaveControllerTranslationTest extends CanvasKernelTestBase {
     // The layout GET returns response-only keys that the POST request schema
     // (OpenAPI) rejects as additional properties; strip them before echoing the
     // client model back, mirroring ApiLayoutControllerPostTest.
-    unset($client_data['isNew'], $client_data['isPublished'], $client_data['hasUnsavedStatusChange'], $client_data['html']);
+    unset($client_data['isNew'], $client_data['isPublished'], $client_data['hasUnsavedStatusChange'], $client_data['html'], $client_data['messages']);
     $post = Request::create($layout_url, method: 'POST', content: \json_encode($client_data, \JSON_THROW_ON_ERROR));
     $post->headers->set('Content-Type', 'application/json');
     $post_response = $this->request($post);
@@ -917,7 +917,7 @@ final class ApiAutoSaveControllerTranslationTest extends CanvasKernelTestBase {
     $client_data['clientInstanceId'] = 'test-es-edit-path';
     // The layout GET returns response-only keys the POST request schema
     // rejects as additional properties.
-    unset($client_data['isNew'], $client_data['isPublished'], $client_data['hasUnsavedStatusChange'], $client_data['html']);
+    unset($client_data['isNew'], $client_data['isPublished'], $client_data['hasUnsavedStatusChange'], $client_data['html'], $client_data['messages']);
     $post = Request::create($layout_url, method: 'POST', content: \json_encode($client_data, \JSON_THROW_ON_ERROR));
     $post->headers->set('Content-Type', 'application/json');
     $post_response = $this->request($post);

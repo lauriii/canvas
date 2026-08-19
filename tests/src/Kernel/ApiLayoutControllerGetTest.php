@@ -13,6 +13,7 @@ use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\canvas\PropSource\PropSource;
+use Drupal\canvas_test_render_message\Hook\CanvasTestRenderMessageHooks;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\Entity\EntityViewMode;
@@ -22,6 +23,7 @@ use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Language\LanguageManagerInterface;
+use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\ParamConverter\ParamNotConvertedException;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\Core\Url;
@@ -97,6 +99,58 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $response = $this->request(Request::create($url->toString()));
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
     $this->assertResponseAutoSaves($response, [$entity]);
+  }
+
+  /**
+   * Status messages must not be previewed, but must be returned instead.
+   *
+   * @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant::build()
+   * @see \Drupal\canvas\Render\MainContent\CanvasPreviewRenderer::renderResponse()
+   */
+  public function testStatusMessagesAreNotPreviewed(): void {
+    $entity = $this->getTestEntity('node');
+    $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);
+    // Without page regions, PageVariantSelectorSubscriber does not select
+    // CanvasPageVariant, and core's variant renders the messages.
+    $this->enableGlobalRegions();
+
+    $session = $this->container->get('session');
+    $session->start();
+    $session->getFlashBag()->add(MessengerInterface::TYPE_WARNING, '<em>Not</em> in the preview.');
+    $request = Request::create($this->getLayoutUrl($entity)->toString());
+    $request->setSession($session);
+    $json = static::decodeResponse($this->request($request));
+
+    self::assertStringNotContainsString('in the preview', $json['html']);
+    self::assertSame([
+      [
+        'type' => MessengerInterface::TYPE_WARNING,
+        'message' => 'Not in the preview.',
+      ],
+    ], $json['messages']);
+  }
+
+  /**
+   * Messages added while rendering must be returned, not left behind.
+   *
+   * @see \Drupal\canvas\Render\MainContent\CanvasPreviewRenderer::collectMessages()
+   */
+  public function testStatusMessagesAddedWhileRendering(): void {
+    $this->enableModules(['canvas_test_render_message']);
+    $entity = $this->getTestEntity('node');
+    $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);
+    // @see ::testStatusMessagesAreNotPreviewed()
+    $this->enableGlobalRegions();
+
+    $json = static::decodeResponse($this->request(Request::create($this->getLayoutUrl($entity)->toString())));
+
+    self::assertStringNotContainsString(CanvasTestRenderMessageHooks::MESSAGE, $json['html']);
+    self::assertSame([
+      [
+        'type' => MessengerInterface::TYPE_STATUS,
+        'message' => CanvasTestRenderMessageHooks::MESSAGE,
+      ],
+    ], $json['messages']);
   }
 
   /**

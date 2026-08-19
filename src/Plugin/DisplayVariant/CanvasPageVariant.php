@@ -199,8 +199,9 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
     // Now render the special "content" region.
     // @see ::MAIN_CONTENT_REGION
     $build[self::MAIN_CONTENT_REGION]['system_main'] = $this->mainContent;
-    // If no block displays status messages, still render them.
-    if (!$messages_block_displayed) {
+    // If no block displays status messages, still render them on the live site.
+    // When previewing ($is_preview), status messages must not be rendered.
+    if (!$messages_block_displayed && !$is_preview) {
       $build[self::MAIN_CONTENT_REGION]['messages'] = [
         '#weight' => -1000,
         '#type' => 'status_messages',

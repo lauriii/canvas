@@ -17,6 +17,7 @@ import {
   setUpdatePreview,
 } from '@/features/layout/layoutModelSlice';
 import { notificationsSlice } from '@/features/notifications/notificationsSlice';
+import { previewMessagesSlice } from '@/features/notifications/previewMessagesSlice';
 import {
   pageDataReducer,
   setInitialPageData,
@@ -164,6 +165,7 @@ const rootReducer = combineSlices(
   extensionsSlice,
   notificationsApi,
   notificationsSlice,
+  previewMessagesSlice,
   pendingChangesApi,
   publishReviewSlice,
   contentApi,
