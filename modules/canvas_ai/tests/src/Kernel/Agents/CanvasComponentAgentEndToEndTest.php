@@ -13,6 +13,7 @@ use Drupal\Tests\canvas_ai\Kernel\Traits\CanvasAiDevHopTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests canvas_component_agent turns driven through the dev AI controller.
@@ -26,6 +27,7 @@ use PHPUnit\Framework\Attributes\Group;
  */
 #[Group('canvas_ai')]
 #[CoversClass(CanvasDevAiBuilder::class)]
+#[RunTestsInSeparateProcesses]
 final class CanvasComponentAgentEndToEndTest extends CanvasKernelTestBase {
 
   use CanvasAiDevHopTrait;
@@ -55,7 +57,7 @@ final class CanvasComponentAgentEndToEndTest extends CanvasKernelTestBase {
   protected function setUp(): void {
     parent::setUp();
 
-    $this->installConfig(['canvas_ai', 'ai', 'ai_agents', 'ai_test']);
+    $this->installConfig(['canvas_ai', 'canvas_dev_ai', 'ai', 'ai_agents', 'ai_test']);
     // The echoai provider reads the ai_mock_provider_result table before the
     // file fixtures this test drives it from.
     $this->installEntitySchema('ai_mock_provider_result');
@@ -254,6 +256,51 @@ final class CanvasComponentAgentEndToEndTest extends CanvasKernelTestBase {
         'examples' => ['Ready to get started?'],
       ],
     ], $component['props']);
+  }
+
+  /**
+   * A component agent sent as 'selected_tool' runs instead of the main agent.
+   */
+  public function testSelectedToolAgentRunsEveryHop(): void {
+    // Set another agent as the main agent.
+    $this->config('canvas_dev_ai.settings')
+      ->set('main_agent', 'canvas_ai_orchestrator')
+      ->set('tools', ['canvas_component_agent'])
+      ->save();
+    JavaScriptComponent::create([
+      'machineName' => 'red_button',
+      'name' => 'Red Button',
+      'status' => FALSE,
+      'props' => [
+        'buttonText' => [
+          'title' => 'Button Text',
+          'type' => 'string',
+          'examples' => ['Click me'],
+        ],
+      ],
+      'required' => [],
+      'slots' => [],
+      'js' => ['original' => "export default function RedButton({ buttonText }) {\n  return <button className=\"bg-red-600 text-white\">{buttonText}</button>;\n}\n", 'compiled' => ''],
+      'css' => ['original' => '', 'compiled' => ''],
+    ])->save();
+
+    // fixtures: tests/resources/ai_test/requests/chat/component-agent-edit-button-hop-{1,2,3}.yml.
+    // Send a request with canvas_component_agent as the selected tool.
+    $hops = $this->driveTurn([
+      'messages' => [['role' => 'user', 'text' => 'Change button text to uppercase']],
+      'selected_component' => 'red_button',
+      'selected_component_required_props' => [],
+      'selected_tool' => 'canvas_component_agent',
+    ]);
+
+    // Ensure the component agent ran: its progress narration names the load
+    // and edit tools it used, one per hop.
+    $this->assertCount(3, $hops);
+    $this->assertSame('I am loading the Red Button component to make its text uppercase.', $hops[0]['progress']);
+    $this->assertSame(
+      "I am loading the Red Button component to make its text uppercase.\n\nI am updating the Red Button component to render its text in uppercase.",
+      $hops[1]['progress'],
+    );
   }
 
 }

@@ -121,6 +121,9 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
     $agent->method('determineSolvability')
       ->willThrowException(new \Exception('The provider exploded.'));
     $agent_manager = $this->createMock(AiAgentManager::class);
+    $agent_manager->method('hasDefinition')
+      ->with('canvas_component_agent')
+      ->willReturn(TRUE);
     $agent_manager->method('createInstance')
       ->with('canvas_component_agent')
       ->willReturn($agent);
