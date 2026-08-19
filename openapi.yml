@@ -2808,7 +2808,6 @@ paths:
                 type: object
                 required:
                   - html
-                  - entity_form_fields
                   - model
                   - layout
                   - autoSaves

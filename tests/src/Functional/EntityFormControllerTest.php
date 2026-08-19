@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Functional;
 
 use Drupal\canvas\Controller\EntityFormController;
+use Drupal\canvas\Entity\Pattern;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 use Drupal\user\Entity\User;
@@ -56,6 +57,25 @@ class EntityFormControllerTest extends FunctionalTestBase {
    * @legacy-covers ::form
    * @legacy-covers \Drupal\canvas\Hook\ContentTemplateHooks::entityFormDisplayAlter
    */
+
+  /**
+   * Non-fieldable entities have no content entity form: empty, not an error.
+   */
+  public function testFormForNonFieldableEntity(): void {
+    $this->drupalLogin($this->rootUser);
+    Pattern::create([
+      'id' => 'test_pattern',
+      'label' => 'Test pattern',
+      'component_tree' => [],
+    ])->save();
+    $response = $this->drupalGet('canvas/api/v0/form/content-entity/pattern/test_pattern/default');
+    $this->assertSession()->statusCodeEquals(200);
+    $parsed_response = json_decode($response, TRUE);
+    // Only the hyperscriptify wrapper: no form, no fields.
+    $crawler = new Crawler($parsed_response['html'] ?? '');
+    self::assertCount(0, $crawler->filter('form, drupal-canvas-form, input, select'));
+  }
+
   public function testForm(): void {
     $assert = $this->assertSession();
     $this->createTestNode();
