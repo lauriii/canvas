@@ -111,7 +111,11 @@ final class ApiContentControllers extends ApiControllerBase {
       $body['path'] = ['alias' => $body['path'], 'pid' => $existing_pid];
     }
 
-    foreach (['title', 'status', 'path', 'components', 'description'] as $field_name) {
+    if (\array_key_exists('pageVariant', $body)) {
+      $body['page_variant'] = $body['pageVariant'] !== '' ? $body['pageVariant'] : NULL;
+    }
+
+    foreach (['title', 'status', 'path', 'components', 'description', 'page_variant'] as $field_name) {
       if (!\array_key_exists($field_name, $body)) {
         continue;
       }
@@ -169,12 +173,14 @@ final class ApiContentControllers extends ApiControllerBase {
       //   creating duplicated aliases.
       $requestPath = $body['path'] ?? NULL;
       $requestDescription = $body['description'] ?? NULL;
+      $requestPageVariant = $body['pageVariant'] ?? NULL;
       $values = [
         'title' => $requestBodyTitle,
         'status' => $requestStatus,
         'components' => $requestComponents,
         'path' => $requestPath,
         'description' => $requestDescription,
+        'page_variant' => $requestPageVariant,
       ];
       if (isset($body['uuid'])) {
         $values['uuid'] = $body['uuid'];
@@ -450,6 +456,15 @@ final class ApiContentControllers extends ApiControllerBase {
       $field_access = $content_entity->get('description')->access('view', return_as_object: TRUE);
       if (!$field_access->isForbidden()) {
         $data['description'] = $content_entity->get('description')->getString();
+      }
+      $url_cacheability->addCacheableDependency($field_access);
+    }
+
+    if ($content_entity->hasField('page_variant')) {
+      $field_access = $content_entity->get('page_variant')->access('view', return_as_object: TRUE);
+      if (!$field_access->isForbidden()) {
+        $page_variant = $content_entity->get('page_variant')->getString();
+        $data['pageVariant'] = $page_variant !== '' ? $page_variant : NULL;
       }
       $url_cacheability->addCacheableDependency($field_access);
     }

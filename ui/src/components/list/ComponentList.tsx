@@ -7,6 +7,7 @@ import {
   useGetComponentsQuery,
   useGetFoldersQuery,
 } from '@/services/componentAndLayout';
+import { isMarkerComponentType } from '@/services/pageVariants';
 
 import LibraryItemList from './LibraryItemList';
 
@@ -25,7 +26,22 @@ export type ComponentVisibility =
   | 'non-external-and-fallback-external';
 
 const ComponentList = ({ searchTerm, visibility }: ComponentListProps) => {
-  const { data: components, error, isLoading } = useGetComponentsQuery();
+  const { data: allComponents, error, isLoading } = useGetComponentsQuery();
+  // Markers (e.g. the page variant "Page content" marker) are intrinsic
+  // placeholders managed by Canvas: they are never offered in the library.
+  // Memoized: a fresh object on every render would remount the whole list on
+  // unrelated re-renders, dropping in-flight clicks on its menu items.
+  const components = useMemo(
+    () =>
+      allComponents
+        ? Object.fromEntries(
+            Object.entries(allComponents).filter(
+              ([id]) => !isMarkerComponentType(id),
+            ),
+          )
+        : allComponents,
+    [allComponents],
+  );
   const {
     data: folders,
     error: foldersError,

@@ -387,6 +387,11 @@
 
 .canvasNameTag {
   position: absolute;
+
+  /* Paint above sibling overlays: a slot's frosted drop-zone label otherwise
+  blurs a name tag that pokes into its area (e.g. the "Page content" marker's
+  tag sitting under the empty slot above it). */
+  z-index: 1;
   top: var(--name-tag-vertical-offset);
 }
 

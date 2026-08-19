@@ -13,6 +13,7 @@ use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Entity\StagedConfigUpdate;
 use Drupal\canvas\Entity\StagedLanguageConfigOverride;
 use Drupal\canvas\Health\HealthCheck;
@@ -1030,8 +1031,9 @@ class AutoSaveManager implements EventSubscriberInterface {
     $autoSaveEntity = $autoSaveData->entity;
     \assert($autoSaveEntity instanceof CanvasHttpApiEligibleConfigEntityInterface);
 
-    // Update the `label` and `status` keys of the config entity, if they've
-    // changed.
+    // Update the properties of the config entity that can be changed without
+    // invalidating the draft (`label`, `status`, and the exceptions below), if
+    // they've changed.
     // @todo Consider auto-updating the auto-save entries for other config entity properties, but that will need very careful evaluation.
     $auto_save_update_needed = FALSE;
     \assert($entity->getEntityType() instanceof ConfigEntityTypeInterface);
@@ -1041,9 +1043,25 @@ class AutoSaveManager implements EventSubscriberInterface {
       $entity->getEntityType()->getKeys(),
       \array_flip(['status', 'label']),
     );
+    // Calculated dependencies are recalculated from the other exported
+    // properties on every save, so they can never on their own be a reason to
+    // discard a draft: whatever they were derived from is assessed below
+    // anyway. (Enforced dependencies are authored rather than derived, but they
+    // are not worth losing an editor's work over either.)
+    // @see \Drupal\Core\Config\Entity\ConfigEntityBase::preSave()
+    $auto_save_updatable_properties['dependencies'] = 'dependencies';
+    // A content template's page variant selection is edited on its own, through
+    // the config API rather than the layout auto-save flow, so changing it must
+    // update the pending draft instead of discarding the editor's unpublished
+    // component changes. It is a plain exported property rather than an entity
+    // key, hence it cannot come from ::getKeys() above.
+    // @see \Drupal\canvas\Entity\ContentTemplate::updateFromClientSide()
+    if ($entity instanceof ContentTemplate) {
+      $auto_save_updatable_properties['page_variant'] = 'page_variant';
+    }
 
-    // Ensure that no properties other than `status` and `label` were modified;
-    // otherwise the auto-save entry must be deleted.
+    // Ensure that no other properties were modified; otherwise the auto-save
+    // entry must be deleted.
     $auto_save_not_updatable_properties = \array_diff_key($properties_to_assess, array_flip($auto_save_updatable_properties));
     foreach ($auto_save_not_updatable_properties as $property) {
       if ($event->isChanged($property)) {
@@ -1096,7 +1114,7 @@ class AutoSaveManager implements EventSubscriberInterface {
   }
 
   public static function entityIsConsideredNew(ContentEntityInterface|ComponentTreeConfigEntityBase $entity): bool {
-    if ($entity instanceof ContentTemplate) {
+    if ($entity instanceof ContentTemplate || $entity instanceof PageVariant) {
       return !$entity->status();
     }
     // Other component-tree config entities (e.g. Pattern) are only ever edited

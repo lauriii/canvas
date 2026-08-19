@@ -15,6 +15,8 @@ use Drupal\Component\Serialization\Yaml;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\FileStorage;
+use Drupal\Core\Config\StorageCacheInterface;
+use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Routing\RouteBuilderInterface;
 
@@ -228,5 +230,44 @@ function canvas_ai_post_update_0008_reimport_component_agent(): void {
 
     $message = 'The Canvas component agent system prompt has been updated. If you had customized it directly, those changes have been overwritten. The recommended way to extend or alter agent behavior is through the Context Control Center or custom event subscribers.';
     \Drupal::logger('canvas_ai')->warning($message);
+  }
+}
+
+/**
+ * Remove the obsolete theme-region-keyed AI descriptions.
+ *
+ * Page variants replaced theme regions, so the settings form now stores
+ * page-variant descriptions under `variant_descriptions`. The old
+ * `region_descriptions` key is no longer read or written; drop it so active
+ * configuration matches the schema. The old region descriptions described theme
+ * regions that no longer drive rendering, so they are discarded rather than
+ * migrated.
+ */
+function canvas_ai_post_update_0009_remove_region_descriptions(): void {
+  $config = \Drupal::configFactory()->getEditable('canvas_ai.theme_region.settings');
+  if (!$config->isNew() && $config->get('region_descriptions') !== NULL) {
+    $config->clear('region_descriptions')->save(TRUE);
+  }
+}
+
+/**
+ * Rename the AI page-variant settings object off its theme-region-era name.
+ *
+ * The settings stored under `canvas_ai.theme_region.settings` have described
+ * page variants (not theme regions) since page variants replaced regions;
+ * only the config name lagged behind. Move the object (and its translation
+ * overrides in every language collection) to `canvas_ai.page_variant.settings`
+ * so the name matches what it holds.
+ */
+function canvas_ai_post_update_0010_rename_page_variant_settings(): void {
+  $storage = \Drupal::service(StorageCacheInterface::class);
+  \assert($storage instanceof StorageInterface);
+  foreach (['', ...$storage->getAllCollectionNames()] as $collection) {
+    $collection_storage = $collection === '' ? $storage : $storage->createCollection($collection);
+    $data = $collection_storage->read('canvas_ai.theme_region.settings');
+    if (\is_array($data)) {
+      $collection_storage->write('canvas_ai.page_variant.settings', $data);
+      $collection_storage->delete('canvas_ai.theme_region.settings');
+    }
   }
 }

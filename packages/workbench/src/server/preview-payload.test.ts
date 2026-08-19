@@ -9,6 +9,8 @@ import {
   bundleInteractivePreview,
 } from './preview-payload';
 
+import type { Spec } from '@json-render/core';
+
 const temporaryDirectories: string[] = [];
 
 async function makeTemporaryDirectory(): Promise<string> {
@@ -282,10 +284,21 @@ describe('preview-payload', () => {
         2,
       ),
     );
+    await writeFile(
+      path.join(root, 'page-templates/default.json'),
+      JSON.stringify({
+        label: 'Default',
+        default: true,
+        elements: {
+          content: { type: 'marker.page_content', props: {} },
+        },
+      }),
+    );
 
     await writeFile(path.join(root, 'src/global.css'), 'body { margin: 0; }');
 
     let capturedRegistryNames: string[] = [];
+    let capturedPageTemplateSpec: Spec | null = null;
 
     const payload = await buildPreviewPayload(
       {
@@ -298,6 +311,7 @@ describe('preview-payload', () => {
           capturedRegistryNames = options.componentSources
             .map((source) => source.name)
             .sort();
+          capturedPageTemplateSpec = options.pageTemplateSpec ?? null;
           return {
             js: 'console.log("interactive-page");',
             css: '.page{display:block;}',
@@ -313,6 +327,9 @@ describe('preview-payload', () => {
     expect(payload.css).toBe('.page{display:block;}');
     expect(payload.iframeHtml).toContain('.page{display:block;}');
     expect(capturedRegistryNames).toEqual(['card', 'hero']);
+    expect(
+      (capturedPageTemplateSpec as Spec | null)?.elements.content.type,
+    ).toBe('marker.page_content');
   });
 
   it('keeps interactive render mode and fails when interactive bundle throws', async () => {
@@ -435,6 +452,12 @@ describe('preview-payload', () => {
         root: 'canvas-workbench-preview-root',
         elements: {},
       },
+      pageTemplateSpec: {
+        root: 'content',
+        elements: {
+          content: { type: 'marker.page_content', props: {} },
+        },
+      },
       componentSources: [
         {
           name: 'card',
@@ -466,6 +489,12 @@ describe('preview-payload', () => {
     );
     expect(source).toContain(
       '"hero": typeof Component1 === \'function\' ? Component1 : () => null',
+    );
+    expect(source).toContain(
+      'registry["marker.page_content"] = () => pageContent;',
+    );
+    expect(source).toContain(
+      'pageTemplateSpec ? renderSpec(pageTemplateSpec, registry) : pageContent',
     );
   });
 

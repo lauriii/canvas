@@ -4,17 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Render\MainContent;
 
-use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\Component\Plugin\PluginManagerInterface;
-use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Controller\TitleResolverInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Render\AttachmentsInterface;
 use Drupal\Core\Render\AttachmentsResponseProcessorInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Render\MainContent\HtmlRenderer;
-use Drupal\Core\Render\Markup;
 use Drupal\Core\Render\RenderCacheInterface;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
@@ -86,41 +83,14 @@ final class CanvasPreviewRenderer extends HtmlRenderer {
   protected function prepare(array $main_content, Request $request, RouteMatchInterface $route_match) {
     [$page, $title] = parent::prepare($main_content, $request, $route_match);
 
-    // When editing a content template for a non-full view mode, global regions
-    // are not part of the display. Strip them so they are not rendered or
-    // annotated for the editor.
-    if ($main_content['#canvas_hide_global_regions'] ?? FALSE) {
+    // Page variants, patterns, and non-full content templates render without
+    // the surrounding page chrome.
+    if ($main_content['#canvas_hide_page_chrome'] ?? FALSE) {
       foreach (Element::children($page) as $region) {
         if ($region !== CanvasPageVariant::MAIN_CONTENT_REGION) {
           $page[$region] = [];
         }
       }
-      return [$page, $title];
-    }
-
-    foreach (Element::children($page) as $region) {
-      if ($region === CanvasPageVariant::MAIN_CONTENT_REGION) {
-        continue;
-      }
-      // Empty regions don't need HTML comments to inform the Canvas UI; empty
-      // regions are not visible. They can only be reached by right-clicking in
-      // the UI and moving it to such a not yet visible region.
-      if ($page[$region] === []) {
-        continue;
-      }
-      $page_regions = PageRegion::loadForActiveThemeByClientSideId();
-      if (!empty($page_regions)) {
-        $access = $page_regions[$region]->access('edit', return_as_object: TRUE);
-        if ($access->isAllowed()) {
-          $page[$region]['#prefix'] = Markup::create("<!-- canvas-region-start-$region -->");
-          $page[$region]['#suffix'] = Markup::create("<!-- canvas-region-end-$region -->");
-        }
-        $cacheableMetadata = CacheableMetadata::createFromRenderArray($page[$region]);
-        $cacheableMetadata->addCacheableDependency($access);
-        $cacheableMetadata->applyTo($page[$region]);
-      }
-      // @see canvas_preprocess_region()
-      $page[$region]['#canvas_region_preview'] = TRUE;
     }
     return [$page, $title];
   }

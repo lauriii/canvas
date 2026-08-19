@@ -8,6 +8,7 @@ export function pageToAuthoredSpec(page: Page): Record<string, unknown> {
     title: page.title,
     path: page.path,
     description: page.description,
+    ...(page.pageVariant ? { pageVariant: page.pageVariant } : {}),
   };
 
   if (page.components.length === 0) {

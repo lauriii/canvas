@@ -97,7 +97,7 @@ function makeDiscoveryResult(projectRoot: string): DiscoveryResult {
       },
     ],
     contentTemplates: [],
-    regions: [],
+    pageTemplates: [],
     warnings: [],
     stats: {
       scannedFiles: 0,
@@ -113,13 +113,12 @@ function makeCanvasConfig(): CanvasConfig {
     componentDir: 'components',
     pagesDir: 'pages',
     contentTemplatesDir: 'content-templates',
-    regionsDir: 'regions',
+    pageTemplatesDir: 'page-templates',
     globalCssPath: 'src/global.css',
-    layoutPath: 'src/layout.jsx',
     sync: {
       pages: true,
       contentTemplates: true,
-      regions: true,
+      pageTemplates: true,
     },
   };
 }

@@ -19,7 +19,6 @@ import {
 } from '@/features/layout/layoutModelSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import { selectActivePanel } from '@/features/ui/primaryPanelSlice';
-import { DEFAULT_REGION } from '@/features/ui/uiSlice';
 import { useCanvasHeadlessSettings } from '@/hooks/useCanvasHeadlessSettings';
 import useComponentSelection from '@/hooks/useComponentSelection';
 
@@ -68,10 +67,7 @@ const ListItem: React.FC<{
   const [previewingComponent, setPreviewingComponent] = useState<
     CanvasComponent | Pattern
   >();
-  const {
-    componentId: selectedComponent,
-    regionId: focusedRegion = DEFAULT_REGION,
-  } = useParams();
+  const { componentId: selectedComponent } = useParams();
   const { setSelectedComponent } = useComponentSelection();
   const activePanel = useAppSelector(selectActivePanel);
   const headlessSettings = useCanvasHeadlessSettings();
@@ -94,12 +90,10 @@ const ListItem: React.FC<{
 
   const handleInsertClick = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
-    let path: number[] | null = [0];
-    if (selectedComponent) {
-      path = findNodePathByUuid(layout, selectedComponent);
-    } else if (focusedRegion) {
-      path = [layout.findIndex((region) => region.id === focusedRegion), 0];
-    }
+    // Insert relative to the current selection, or into the content region.
+    const path: number[] | null = selectedComponent
+      ? findNodePathByUuid(layout, selectedComponent)
+      : [0, 0];
     if (path) {
       const newPath = [...path];
       newPath[newPath.length - 1] += 1;
@@ -140,7 +134,14 @@ const ListItem: React.FC<{
   };
 
   const insertMenuItem = () => (
-    <UnifiedMenu.Item onClick={handleInsertClick}>Insert</UnifiedMenu.Item>
+    // While the layout (re)loads the model has no regions to insert into; a
+    // click then would be silently dropped, so offer Insert only when ready.
+    <UnifiedMenu.Item
+      onClick={handleInsertClick}
+      disabled={layout.length === 0}
+    >
+      Insert
+    </UnifiedMenu.Item>
   );
 
   const menuTitleItems = () => (

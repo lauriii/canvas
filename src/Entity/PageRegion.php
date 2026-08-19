@@ -12,15 +12,30 @@ use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponentDiscovery;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
-use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Theme\ThemeManagerInterface;
 
+/**
+ * Defines one theme region's component tree.
+ *
+ * Page variants replaced theme-global regions (see ADR 0019): regions no
+ * longer render pages, have no HTTP API, and are not editable. This entity
+ * type remains only so the region-to-variant upgrade path can read stored
+ * region config and so the theme settings form can track which themes opted
+ * into Canvas. Do not build new functionality on it.
+ *
+ * @deprecated in canvas:1.11.0 and is removed from canvas:2.0.0. Use
+ *   \Drupal\canvas\Entity\PageVariant instead.
+ *
+ * @phpcs:ignore Drupal.Commenting.Deprecated.DeprecatedWrongSeeUrlFormat
+ * @see https://git.drupalcode.org/project/canvas/-/work_items/3591806
+ * @see \Drupal\canvas\Entity\PageVariant
+ * @see docs/adr/0019-page-variants-replace-theme-global-regions.md
+ */
 #[ConfigEntityType(
   id: self::ENTITY_TYPE_ID,
   label: new TranslatableMarkup("Page region"),
@@ -50,7 +65,7 @@ use Drupal\Core\Theme\ThemeManagerInterface;
     ],
   ],
 )]
-final class PageRegion extends ComponentTreeConfigEntityBase implements CanvasHttpApiEligibleConfigEntityInterface {
+final class PageRegion extends ComponentTreeConfigEntityBase {
 
   public const string ENTITY_TYPE_ID = 'page_region';
   public const string ADMIN_PERMISSION = 'administer page template';
@@ -176,49 +191,6 @@ final class PageRegion extends ComponentTreeConfigEntityBase implements CanvasHt
   /**
    * {@inheritdoc}
    */
-  public static function createFromClientSide(array $data): static {
-    // Default `theme` to the active theme when the client omits it,
-    // so single-theme consumers (Canvas CLI) don't have to
-    // discover and send the theme name themselves.
-    if (!\array_key_exists('theme', $data)) {
-      $data['theme'] = \Drupal::service(ThemeManagerInterface::class)->getActiveTheme()->getName();
-    }
-    $values = [];
-    foreach (['theme', 'region'] as $key) {
-      if (\array_key_exists($key, $data)) {
-        $values[$key] = $data[$key];
-      }
-    }
-    $entity = static::create($values);
-    $entity->updateFromClientSide($data);
-    return $entity;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function updateFromClientSide(array $data): void {
-    if (\array_key_exists('component_tree', $data)) {
-      $this->setComponentTree($data['component_tree'] ?? []);
-    }
-    if (\array_key_exists('status', $data)) {
-      $this->setStatus($data['status']);
-    }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function refineListQuery(QueryInterface &$query, RefinableCacheableDependencyInterface $cacheability): void {
-    // Only the active theme regions render on the site.
-    $active_theme = \Drupal::service(ThemeManagerInterface::class)->getActiveTheme()->getName();
-    $query->condition('theme', $active_theme);
-    $cacheability->addCacheContexts(['theme']);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function calculateDependencies() {
     parent::calculateDependencies();
     $this->addDependency('theme', $this->theme);
@@ -247,17 +219,6 @@ final class PageRegion extends ComponentTreeConfigEntityBase implements CanvasHt
     $regions = \Drupal::service(EntityTypeManagerInterface::class)->getStorage(self::ENTITY_TYPE_ID)->loadByProperties($properties);
 
     return $regions;
-  }
-
-  /**
-   * @return array<string, \Drupal\canvas\Entity\PageRegion>
-   */
-  public static function loadForActiveThemeByClientSideId(): array {
-    $regions = self::loadForActiveTheme();
-    return array_combine(
-      \array_map(fn(PageRegion $r) => $r->get('region'), $regions),
-      $regions,
-    );
   }
 
   /**

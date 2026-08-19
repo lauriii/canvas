@@ -33,6 +33,7 @@ const ChangeIcon: React.FC<ChangeIconProps> = ({ entityType, entityId }) => {
     case 'page_region':
       return <CubeIcon className={iconClass} />;
     case 'content_template':
+    case 'page_variant':
       return <TemplateIcon className={iconClass} />;
     case 'staged_config_update':
       // Currently the only staged config update supported is setting

@@ -10,7 +10,7 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
  * Placeholder controller for config entities without traditional edit forms.
  *
  * @todo Remove this once linking to the Canvas Content Template editor UI is possible in https://www.drupal.org/i/3551708
- * @todo Remove this once linking to the Canvas Page Region "focus" editor UI is possible in https://www.drupal.org/i/3502765
+ * @todo Remove this once linking to the Canvas Page Variant editor UI is possible.
  *
  * @internal
  */

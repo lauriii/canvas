@@ -44,16 +44,15 @@ describe('pushFonts', () => {
       userAgent: '',
       includePages: false,
       includeContentTemplates: false,
-      includeRegions: false,
+      includePageTemplates: false,
       includeBrandKit: true,
       aliasBaseDir: 'src',
       outputDir: 'dist',
       componentDir: tmpDir,
       pagesDir: 'pages',
       contentTemplatesDir: 'content-templates',
-      regionsDir: 'regions',
+      pageTemplatesDir: 'page-templates',
       globalCssPath: 'src/global.css',
-      layoutPath: 'src/layout.jsx',
     };
     api = {
       getBrandKit: vi.fn().mockResolvedValue({ id: 'global', fonts: [] }),

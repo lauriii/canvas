@@ -24,10 +24,10 @@ describe('command-helpers', () => {
       clientId: '',
       clientSecret: '',
       scope:
-        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_region',
+        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant',
       includePages: true,
       includeContentTemplates: true,
-      includeRegions: true,
+      includePageTemplates: true,
       componentDir: 'components',
       userAgent: '',
       aliasBaseDir: '',
@@ -113,7 +113,11 @@ describe('command-helpers', () => {
     });
 
     it('should map friendly no options to include exclusions', () => {
-      const options = { pages: false, contentTemplates: false, regions: false };
+      const options = {
+        pages: false,
+        contentTemplates: false,
+        pageTemplates: false,
+      };
 
       applySyncOptionAliasesAndWarnings(options);
 
@@ -121,7 +125,7 @@ describe('command-helpers', () => {
         sync: {
           pages: false,
           contentTemplates: false,
-          regions: false,
+          pageTemplates: false,
         },
       });
     });
@@ -131,12 +135,12 @@ describe('command-helpers', () => {
 
       const config = getConfig();
       expect(config.scope).toBe(
-        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:content_template canvas:page_region',
+        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:content_template canvas:page_variant',
       );
     });
 
-    it('should update the default scope when includeRegions changes', () => {
-      updateConfigFromOptions({ sync: { regions: false } });
+    it('should update the default scope when includePageTemplates changes', () => {
+      updateConfigFromOptions({ sync: { pageTemplates: false } });
 
       const config = getConfig();
       expect(config.scope).toBe(

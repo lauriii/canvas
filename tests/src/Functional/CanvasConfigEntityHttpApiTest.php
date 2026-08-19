@@ -8,6 +8,7 @@ use Drupal\canvas\Audit\ComponentAudit;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\BrandKit;
+use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
 use Drupal\canvas\Entity\Color;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
@@ -16,6 +17,7 @@ use Drupal\canvas\Entity\Folder;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\NestedArray;
@@ -181,6 +183,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'type' => 'component',
       'weight' => 0,
       'items' => [
+        'marker.page_content',
         'sdc.canvas_broken_sdcs.invalid-filter',
         'sdc.canvas_broken_sdcs.malformed-image',
         'sdc.canvas_test_sdc.mixed-images-with-example',
@@ -264,7 +267,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       BrandKit::ADMIN_PERMISSION,
       JavaScriptComponent::ADMIN_PERMISSION,
       Pattern::ADMIN_PERMISSION,
-      PageRegion::ADMIN_PERMISSION,
+      PageVariant::ADMIN_PERMISSION,
       Folder::ADMIN_PERMISSION,
       ContentTemplate::ADMIN_PERMISSION,
       Color::ADMIN_PERMISSION,
@@ -678,17 +681,58 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
   }
 
   /**
-   * @see \Drupal\canvas\Entity\PageRegion
+   * @see \Drupal\canvas\Controller\ApiConfigControllers::pageRegionGone()
    */
-  public function testPageRegion(): void {
+  public function testPageRegionApiIsGone(): void {
+    $region = PageRegion::create([
+      'theme' => 'stark',
+      'region' => 'sidebar_first',
+      'status' => TRUE,
+      'component_tree' => [],
+    ]);
+    $region->save();
+    self::assertNotInstanceOf(CanvasHttpApiEligibleConfigEntityInterface::class, $region);
 
     $this->drupalLogin($this->limitedPermissionsUser);
-    // PageRegion::refineListQuery adds the `theme` cache context to the list
-    // response (it filters to the active theme).
-    $this->assertAuthenticationAndAuthorization('page_region', initial_cache_tags: ['http_response'], initial_cache_contexts: ['theme', 'user.permissions']);
+    $collection_url = Url::fromUri('base:/canvas/api/v0/config/page_region');
+    $item_url = Url::fromUri('base:/canvas/api/v0/config/page_region/stark.sidebar_first');
+    $expected = [
+      'message' => 'Global regions were replaced by page templates.',
+    ];
+    $write_options = [
+      RequestOptions::JSON => [],
+    ];
+
+    foreach ([
+      ['GET', $collection_url, []],
+      ['POST', $collection_url, $write_options],
+      ['GET', $item_url, []],
+      ['PATCH', $item_url, $write_options],
+      ['DELETE', $item_url, []],
+    ] as [$method, $url, $options]) {
+      $page_cache = $method === 'GET' ? 'UNCACHEABLE (request policy)' : NULL;
+      $dynamic_page_cache = $method === 'GET' ? 'UNCACHEABLE (no cacheability)' : NULL;
+      $body = $this->assertExpectedResponse($method, $url, $options, Response::HTTP_GONE, NULL, NULL, $page_cache, $dynamic_page_cache);
+      self::assertSame($expected, $body);
+    }
+
+    self::assertInstanceOf(PageRegion::class, PageRegion::load('stark.sidebar_first'));
+    $this->drupalGet('/canvas/editor/page_region/stark.sidebar_first');
+    $this->assertSession()->statusCodeEquals(Response::HTTP_FORBIDDEN);
+  }
+
+  /**
+   * @see \Drupal\canvas\Entity\PageVariant
+   * @see \Drupal\canvas\Controller\ApiSettingsController
+   */
+  public function testPageVariant(): void {
+    $this->drupalLogin($this->limitedPermissionsUser);
+    $this->assertAuthenticationAndAuthorization('page_variant');
 
     $base = rtrim(base_path(), '/');
-    $list_url = Url::fromUri("base:/canvas/api/v0/config/page_region");
+    $list_url = Url::fromUri('base:/canvas/api/v0/config/page_variant');
+    $individual_url = Url::fromUri('base:/canvas/api/v0/config/page_variant/homepage');
+    $settings_url = Url::fromUri('base:/canvas/api/v0/settings/default-page-variant');
 
     $request_options = [
       RequestOptions::HEADERS => [
@@ -696,25 +740,21 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       ],
     ];
 
-    // POST omitting `theme`: the server must fill it from the active default
-    // theme and compose the id accordingly. Then DELETE via HTTP to restore a
-    // clean slate for later assertions.
-    $request_options[RequestOptions::JSON] = [
-      'region' => 'highlighted',
-      'status' => TRUE,
-      'component_tree' => [],
+    // The "Page content" marker ships in the module's default config.
+    // @see config/install/canvas.component.marker.page_content.yml
+    $marker_component = Component::load('marker.page_content');
+    self::assertInstanceOf(ComponentInterface::class, $marker_component);
+    $marker = [
+      'uuid' => '14b2e2b7-5e05-42e2-9f6e-2ffdbb37df35',
+      'component_id' => 'marker.page_content',
+      'component_version' => $marker_component->getActiveVersion(),
+      'inputs' => [],
     ];
-    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 201, NULL, NULL, NULL, NULL);
-    self::assertIsArray($body);
-    self::assertSame('stark.highlighted', $body['id']);
-    self::assertSame('stark', $body['theme']);
-    $this->assertExpectedResponse('DELETE', Url::fromUri('base:/canvas/api/v0/config/page_region/stark.highlighted'), [], 204, NULL, NULL, NULL, NULL);
 
-    // The `content` region is reserved for the main page content and may
-    // never have a PageRegion. Even with `theme` defaulted server-side, this
-    // must still 422 — proving validation runs against the filled-in theme.
+    // POST without a "Page content" marker: 422.
     $request_options[RequestOptions::JSON] = [
-      'region' => 'content',
+      'id' => 'homepage',
+      'label' => 'Homepage',
       'status' => TRUE,
       'component_tree' => [],
     ];
@@ -722,177 +762,203 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     self::assertSame([
       'errors' => [
         [
-          'detail' => 'The "content" region must always render the main content (returned by the controller of the matched route) and hence cannot contain a component tree.',
-          'source' => ['pointer' => 'region'],
+          'detail' => 'A page variant must contain a "Page content" placement.',
+          'source' => ['pointer' => 'layout'],
         ],
       ],
     ], $body);
 
-    // Load the block.page_title_block Component so we can compose a valid
-    // component_tree referencing it.
-    $component = Component::load('block.page_title_block');
-    self::assertInstanceOf(ComponentInterface::class, $component);
-    $component_version = $component->getActiveVersion();
-
-    $component_tree = [
-      [
-        'uuid' => '429f135f-aed3-43a4-ab04-148cf20b93d9',
-        'component_id' => 'block.page_title_block',
-        'component_version' => $component_version,
-        'inputs' => [
-          'label' => '',
-          'label_display' => '0',
+    // POST with more than one marker: 422.
+    $request_options[RequestOptions::JSON] = [
+      'id' => 'homepage',
+      'label' => 'Homepage',
+      'status' => TRUE,
+      'component_tree' => [
+        $marker,
+        ['uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1'] + $marker,
+      ],
+    ];
+    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 422, NULL, NULL, NULL, NULL);
+    self::assertSame([
+      'errors' => [
+        [
+          'detail' => 'A page variant must contain only one "Page content" placement, but found 2.',
+          'source' => ['pointer' => 'layout'],
         ],
       ],
-    ];
-    $normalized_component_tree = [
-      [
-        'parent_uuid' => NULL,
-        'slot' => NULL,
-        ...$component_tree[0],
-        'label' => NULL,
-        'inputs_resolved' => $component_tree[0]['inputs'],
-      ],
-    ];
+    ], $body);
 
-    // POST creates a region.
-    $region_id = 'stark.sidebar_first';
-    $region_to_send = [
-      'theme' => 'stark',
-      'region' => 'sidebar_first',
+    // POST a valid variant: 201.
+    $variant_to_send = [
+      'id' => 'homepage',
+      'label' => 'Homepage',
+      'description' => 'The default full-page layout.',
       'status' => TRUE,
-      'component_tree' => $component_tree,
+      'component_tree' => [$marker],
     ];
-    $request_options[RequestOptions::JSON] = $region_to_send;
+    $request_options[RequestOptions::JSON] = $variant_to_send;
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 201, NULL, NULL, NULL, NULL, [
       'Location' => [
-        "$base/canvas/api/v0/config/page_region/$region_id",
+        "$base/canvas/api/v0/config/page_variant/homepage",
       ],
     ]);
     $expected_normalization = [
-      'id' => $region_id,
-      'theme' => 'stark',
-      'region' => 'sidebar_first',
+      'id' => 'homepage',
+      'label' => 'Homepage',
+      'description' => 'The default full-page layout.',
       'status' => TRUE,
-      'component_tree' => $normalized_component_tree,
+      'component_tree' => [$marker],
     ];
     $this->assertSame($expected_normalization, $body);
-
-    $individual_url = Url::fromUri("base:/canvas/api/v0/config/page_region/$region_id");
 
     // GET individual returns the same normalization.
     $body = $this->assertExpectedResponse('GET', $individual_url, [], 200, ['user.permissions'], [
-      "config:canvas.page_region.$region_id",
+      'config:canvas.page_variant.homepage',
       'http_response',
     ], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertSame($expected_normalization, $body);
 
-    // GET list returns the stark region.
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['theme', 'user.permissions'], [
-      'config:page_region_list',
+    // GET list returns the variant; page variants are theme-independent so
+    // there is no `theme` cache context.
+    // @see \Drupal\canvas\Entity\PageVariant::refineListQuery()
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], [
+      'config:page_variant_list',
       'http_response',
     ], 'UNCACHEABLE (request policy)', 'MISS');
-    $this->assertSame([$region_id => $expected_normalization], $body);
+    $this->assertSame(['homepage' => $expected_normalization], $body);
 
-    // POST with empty component_tree: another stark region.
-    $second_region_id = 'stark.sidebar_second';
-    $second_region_to_send = [
-      'theme' => 'stark',
-      'region' => 'sidebar_second',
-      'status' => TRUE,
-      'component_tree' => [],
-    ];
-    $request_options[RequestOptions::JSON] = $second_region_to_send;
-    $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 201, NULL, NULL, NULL, NULL, [
-      'Location' => [
-        "$base/canvas/api/v0/config/page_region/$second_region_id",
-      ],
-    ]);
-    self::assertIsArray($body);
-    self::assertSame([], $body['component_tree']);
-
-    // PATCH updates component_tree (empty -> full) and status (true -> false).
-    $patch_payload = [
-      'component_tree' => $component_tree,
-      'status' => FALSE,
-    ];
-    $request_options[RequestOptions::JSON] = $patch_payload;
-    $body = $this->assertExpectedResponse('PATCH', Url::fromUri("base:/canvas/api/v0/config/page_region/$second_region_id"), $request_options, 200, NULL, NULL, NULL, NULL);
-    self::assertIsArray($body);
-    self::assertFalse($body['status']);
-    self::assertSame($normalized_component_tree, $body['component_tree']);
-
-    // PATCH with empty component_tree clears the tree.
-    $request_options[RequestOptions::JSON] = ['component_tree' => []];
-    $body = $this->assertExpectedResponse('PATCH', Url::fromUri("base:/canvas/api/v0/config/page_region/$second_region_id"), $request_options, 200, NULL, NULL, NULL, NULL);
-    self::assertIsArray($body);
-    self::assertSame([], $body['component_tree']);
-
-    // POSTing the same theme+region again must 409 (id is composed from
-    // theme + region, so duplicates collide on the id constraint).
-    $request_options[RequestOptions::JSON] = $second_region_to_send;
+    // POSTing the same ID again: 409.
+    $request_options[RequestOptions::JSON] = $variant_to_send;
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 409, NULL, NULL, NULL, NULL);
     self::assertSame([
       'errors' => [
-        "'page_region' entity with ID '$second_region_id' already exists.",
+        "'page_variant' entity with ID 'homepage' already exists.",
       ],
     ], $body);
 
-    // PATCHing immutable fields (theme/region/id) is silently ignored —
-    // updateFromClientSide only applies `component_tree` and `status`. The
-    // request must still succeed and the stored values must be unchanged.
+    // PATCH updates label and description.
     $request_options[RequestOptions::JSON] = [
-      'theme' => 'olivero',
-      'region' => 'header',
-      'id' => 'olivero.header',
+      'label' => 'Homepage (updated)',
+      'description' => NULL,
     ];
-    $body = $this->assertExpectedResponse('PATCH', Url::fromUri("base:/canvas/api/v0/config/page_region/$second_region_id"), $request_options, 200, NULL, NULL, NULL, NULL);
+    $body = $this->assertExpectedResponse('PATCH', $individual_url, $request_options, 200, NULL, NULL, NULL, NULL);
     self::assertIsArray($body);
-    self::assertSame($second_region_id, $body['id']);
-    self::assertSame('stark', $body['theme']);
-    self::assertSame('sidebar_second', $body['region']);
+    self::assertSame('Homepage (updated)', $body['label']);
+    self::assertNull($body['description']);
+    self::assertSame([$marker], $body['component_tree']);
 
-    // refineListQuery filters to default theme. Install olivero and POST an
-    // olivero region; list should still return only stark regions.
-    \Drupal::service(ThemeInstallerInterface::class)->install(['olivero']);
-    $olivero_region_id = 'olivero.sidebar';
-    $olivero_region_to_send = [
-      'theme' => 'olivero',
-      'region' => 'sidebar',
-      'status' => TRUE,
-      'component_tree' => [],
-    ];
-    $request_options[RequestOptions::JSON] = $olivero_region_to_send;
-    $this->assertExpectedResponse('POST', $list_url, $request_options, 201, NULL, NULL, NULL, NULL, [
-      'Location' => [
-        "$base/canvas/api/v0/config/page_region/$olivero_region_id",
+    // PATCHing a tree without the marker: 422, the stored variant unchanged.
+    $request_options[RequestOptions::JSON] = ['component_tree' => []];
+    $body = $this->assertExpectedResponse('PATCH', $individual_url, $request_options, 422, NULL, NULL, NULL, NULL);
+    self::assertSame([
+      'errors' => [
+        [
+          'detail' => 'A page variant must contain a "Page content" placement.',
+          'source' => ['pointer' => 'layout'],
+        ],
+      ],
+    ], $body);
+
+    // PATCHing the immutable `id` is silently ignored — updateFromClientSide
+    // only applies label, description, component_tree and status.
+    $request_options[RequestOptions::JSON] = ['id' => 'renamed'];
+    $body = $this->assertExpectedResponse('PATCH', $individual_url, $request_options, 200, NULL, NULL, NULL, NULL);
+    self::assertIsArray($body);
+    self::assertSame('homepage', $body['id']);
+
+    // The site default page variant starts unset.
+    $body = $this->assertExpectedResponse('GET', $settings_url, [], 200, ['user.permissions'], [
+      'config:canvas.settings',
+      'http_response',
+    ], 'UNCACHEABLE (request policy)', 'MISS');
+    self::assertSame(['default_page_variant' => NULL], $body);
+
+    // PATCHing the default to a variant that does not exist: 422.
+    $request_options[RequestOptions::JSON] = ['default_page_variant' => 'ghost'];
+    $body = $this->assertExpectedResponse('PATCH', $settings_url, $request_options, 422, NULL, NULL, NULL, NULL);
+    self::assertSame([
+      'errors' => ['The page variant "ghost" does not exist.'],
+    ], $body);
+
+    // PATCHing without the `default_page_variant` key: 400. The OpenAPI
+    // request validator would reject this before the controller, so bypass it
+    // to prove the controller validates on its own.
+    $request_options[RequestOptions::JSON] = ['unrelated' => 'key'];
+    $request_options[RequestOptions::HEADERS]['X-NO-OPENAPI-VALIDATION'] = 'TRUE';
+    $body = $this->assertExpectedResponse('PATCH', $settings_url, $request_options, 400, NULL, NULL, NULL, NULL);
+    self::assertSame([
+      'errors' => ['Missing default_page_variant.'],
+    ], $body);
+    unset($request_options[RequestOptions::HEADERS]['X-NO-OPENAPI-VALIDATION']);
+
+    // PATCHing the default to the created variant persists it.
+    $request_options[RequestOptions::JSON] = ['default_page_variant' => 'homepage'];
+    $body = $this->assertExpectedResponse('PATCH', $settings_url, $request_options, 200, NULL, NULL, NULL, NULL);
+    self::assertSame(['default_page_variant' => 'homepage'], $body);
+
+    // The site default variant cannot be deleted.
+    // @see \Drupal\canvas\EntityHandlers\PageVariantAccessControlHandler
+    $response = $this->makeApiRequest('DELETE', $individual_url, [
+      RequestOptions::HEADERS => [
+        'Content-Type' => 'application/json',
+        'X-CSRF-Token' => $this->drupalGet('session/token'),
       ],
     ]);
+    $this->assertSame(403, $response->getStatusCode());
 
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['theme', 'user.permissions'], [
-      'config:page_region_list',
+    // The site default variant cannot be disabled either.
+    // @see \Drupal\canvas\Plugin\Validation\Constraint\SiteDefaultPageVariantEnabledConstraint
+    $request_options[RequestOptions::JSON] = ['status' => FALSE];
+    $body = $this->assertExpectedResponse('PATCH', $individual_url, $request_options, 422, NULL, NULL, NULL, NULL);
+    self::assertSame([
+      'errors' => [
+        [
+          'detail' => 'The site default page variant cannot be disabled. Set another variant as the default first.',
+          'source' => ['pointer' => 'status'],
+        ],
+      ],
+    ], $body);
+
+    // After clearing the default, the variant can be disabled. Disabled
+    // variants remain visible to the management UI.
+    $request_options[RequestOptions::JSON] = ['default_page_variant' => NULL];
+    $body = $this->assertExpectedResponse('PATCH', $settings_url, $request_options, 200, NULL, NULL, NULL, NULL);
+    self::assertSame(['default_page_variant' => NULL], $body);
+    $request_options[RequestOptions::JSON] = ['status' => FALSE];
+    $body = $this->assertExpectedResponse('PATCH', $individual_url, $request_options, 200, NULL, NULL, NULL, NULL);
+    self::assertIsArray($body);
+    self::assertFalse($body['status']);
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], [
+      'config:page_variant_list',
       'http_response',
     ], 'UNCACHEABLE (request policy)', 'MISS');
     self::assertIsArray($body);
-    self::assertSame([$region_id, $second_region_id], \array_keys($body));
+    self::assertArrayHasKey('homepage', $body);
 
-    // Switch default theme to olivero; list should now only return olivero.
-    $this->config('system.theme')->set('default', 'olivero')->save();
+    // A disabled variant cannot become the site default: 422.
+    $request_options[RequestOptions::JSON] = ['default_page_variant' => 'homepage'];
+    $body = $this->assertExpectedResponse('PATCH', $settings_url, $request_options, 422, NULL, NULL, NULL, NULL);
+    self::assertSame([
+      'errors' => ['The page variant "homepage" is disabled and cannot be the site default.'],
+    ], $body);
 
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['theme', 'user.permissions'], [
-      'config:page_region_list',
-      'http_response',
-    ], 'UNCACHEABLE (request policy)', 'MISS');
-    self::assertIsArray($body);
-    self::assertSame([$olivero_region_id], \array_keys($body));
+    // A disabled non-default variant can be deleted.
+    $this->assertExpectedResponse('DELETE', $individual_url, [], 204, NULL, NULL, NULL, NULL);
 
-    // Clean up via HTTP DELETE and verify the list reflects the change.
-    $this->assertExpectedResponse('DELETE', Url::fromUri("base:/canvas/api/v0/config/page_region/$olivero_region_id"), [], 204, NULL, NULL, NULL, NULL);
-    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['theme', 'user.permissions'], [
-      'config:page_region_list',
+    $body = $this->assertExpectedResponse('GET', $list_url, [], 200, ['user.permissions'], [
+      'config:page_variant_list',
       'http_response',
     ], 'UNCACHEABLE (request policy)', 'MISS');
     self::assertSame([], $body);
+
+    // The settings endpoints require authentication and the `administer page
+    // variants` permission.
+    $this->drupalLogout();
+    $response = $this->makeApiRequest('GET', $settings_url, []);
+    $this->assertSame(401, $response->getStatusCode());
+    $this->drupalLogin($this->limitedPermissionsUser);
+    $response = $this->makeApiRequest('GET', $settings_url, []);
+    $this->assertSame(403, $response->getStatusCode());
   }
 
   /**
@@ -2580,6 +2646,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'status' => FALSE,
       'id' => 'node.bunny.full',
       'suggestedPreviewEntityId' => NULL,
+      'pageVariant' => NULL,
       'component_tree' => [],
     ];
 
@@ -2663,6 +2730,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'status' => FALSE,
       'id' => 'node.llama.full',
       'suggestedPreviewEntityId' => NULL,
+      'pageVariant' => NULL,
       'component_tree' => [],
     ];
     $this->assertSame($expected_full_llama_normalization, $body);

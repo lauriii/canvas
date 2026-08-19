@@ -7,6 +7,7 @@ namespace Drupal\canvas\Access;
 use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
@@ -55,6 +56,10 @@ class CanvasUiAccessCheck implements AccessInterface {
     $brand_kit_access = AccessResult::allowedIfHasPermission($account, BrandKit::ADMIN_PERMISSION);
     if ($brand_kit_access->isAllowed()) {
       return $brand_kit_access;
+    }
+    $page_variants_access = AccessResult::allowedIfHasPermission($account, PageVariant::ADMIN_PERMISSION);
+    if ($page_variants_access->isAllowed()) {
+      return $page_variants_access;
     }
     $patterns_access = AccessResult::allowedIfHasPermission($account, Pattern::ADMIN_PERMISSION);
     if ($patterns_access->isAllowed()) {

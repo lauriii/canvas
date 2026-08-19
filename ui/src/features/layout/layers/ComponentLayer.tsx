@@ -23,6 +23,7 @@ import {
 } from '@/features/ui/uiSlice';
 import useComponentSelection from '@/hooks/useComponentSelection';
 import useGetComponentName from '@/hooks/useGetComponentName';
+import { isMarkerComponentType } from '@/services/pageVariants';
 
 import type React from 'react';
 import type { CollapsibleTriggerProps } from '@radix-ui/react-collapsible';
@@ -146,7 +147,9 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
             className="canvas-drag-handle"
             title={nodeName}
             draggable={true}
-            variant="component"
+            variant={
+              isMarkerComponentType(component.type) ? 'marker' : 'component'
+            }
             hovered={isHovered}
             selected={isSelected}
             disabled={disableDrop || isDragging}

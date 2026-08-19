@@ -40,7 +40,6 @@ const EmptyRegionDropZone: React.FC<EmptyRegionDropZoneProps> = (props) => {
     disabled: !accepts.includes(activeOrigin),
     data: {
       region: region,
-      parentRegion: region,
       path: regionPath,
       accepts,
     },

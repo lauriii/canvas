@@ -235,7 +235,11 @@ final class CanvasBuilder extends ControllerBase {
       'page_description' => $prompt['page_description'] ?? NULL,
       'active_component_uuid' => $prompt['active_component_uuid'] ?? 'None',
       'component_agent_dynamic_state' => $component_agent_dynamic_state,
-      'available_regions' => Json::encode($this->canvasAiPageBuilderHelper->getAvailableRegions(Json::encode($prompt['current_layout']))) ?? NULL,
+      'available_regions' => Json::encode($this->canvasAiPageBuilderHelper->getAvailableRegions(
+        Json::encode($prompt['current_layout']),
+        $prompt['entity_type'] ?? NULL,
+        $prompt['entity_id'] ?? NULL,
+      )) ?? NULL,
       // JSON-encode so the libraries render as readable data in the system
       // prompt token rather than the string "Array".
       'custom_libraries' => Json::encode($this->getSupportedLibraries()),

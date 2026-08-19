@@ -14,8 +14,10 @@ use Drupal\canvas\Entity\AutoSavePublishAwareInterface;
 use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Entity\EmptyTargetEntityProviderInterface;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Entity\StagedLanguageConfigOverride;
 use Drupal\canvas\EntityHandlers\StagedLanguageConfigOverrideAccessControlHandler;
@@ -261,6 +263,7 @@ final class Layers {
         Selector::classname(FormStateInterface::class),
         Selector::classname(WidgetPluginManager::class),
         Selector::classname(ContentTemplate::class),
+        Selector::classname(EmptyTargetEntityProviderInterface::class),
         Selector::classname(Pattern::class),
         // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::validateComponentInput()
         self::usesConstraintViolationValueObjects(),
@@ -411,11 +414,12 @@ final class Layers {
         Selector::inNamespace('Drupal\Core\StringTranslation'),
         // e.g. \OutOfRangeException
         Selector::isStandardClass(),
-        // @todo Remove these two temporary exceptions once StagedLanguageConfigOverride::__construct() no longer restricts staging to Canvas ContentTemplates and PageRegions.
+        // @todo Remove these three temporary exceptions once StagedLanguageConfigOverride::__construct() no longer restricts staging to Canvas ContentTemplates, PageRegions, and PageVariants.
         Selector::classname(ContentTemplate::class),
         Selector::classname(PageRegion::class),
+        Selector::classname(PageVariant::class),
       )
-      ->because('StagedLanguageConfigOverride is designed to stage language config overrides for any config entity type, so it must not depend on specific config entity types (such as Component or Pattern); the ContentTemplate and PageRegion dependencies are a temporary restriction in its constructor.');
+      ->because('StagedLanguageConfigOverride is designed to stage language config overrides for any config entity type, so it must not depend on specific config entity types (such as Component or Pattern); the ContentTemplate, PageRegion, and PageVariant dependencies are a temporary restriction in its constructor.');
   }
 
   /**

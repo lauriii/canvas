@@ -128,11 +128,11 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
     $persistent_prop_shape_repository = $this->container->get(PropShapeRepositoryInterface::class);
     self::assertInstanceOf(PersistentPropShapeRepository::class, $persistent_prop_shape_repository);
 
-    // Empty prop shape repositories at the start. And only Block Components,
-    // which do not use prop shapes.
+    // Empty prop shape repositories at the start. And only Block and Marker
+    // Components, which do not use prop shapes.
     self::assertEmpty($ephemeral_prop_shape_repository->getUniquePropShapes());
     self::assertEmpty($persistent_prop_shape_repository->getUniquePropShapes());
-    self::assertSame(['block'], \array_values(\array_unique(\array_map(
+    self::assertSame(['block', 'marker'], \array_values(\array_unique(\array_map(
       fn (ComponentEntity $component): string => $component->get('source'),
       ComponentEntity::loadMultiple()
     ))));

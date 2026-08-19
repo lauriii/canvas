@@ -192,6 +192,7 @@ export const withAutoSavesInjection: (
         ![
           'createFolder',
           'createContentTemplate',
+          'updateContentTemplate',
           'updateFolder',
           'uploadFont',
           'createColor',

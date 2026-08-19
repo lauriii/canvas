@@ -153,7 +153,6 @@ const DragEventsHandler: React.FC = () => {
   function handleDragOver(event: DragOverEvent) {
     const { over, active } = event;
     const parentSlot = over?.data?.current?.parentSlot;
-    const parentRegion = over?.data?.current?.parentRegion;
 
     // If dragging a folder and hovering over non-folder destination, prevent visual feedback.
     if (active.data?.current?.type === 'folder') {
@@ -163,10 +162,10 @@ const DragEventsHandler: React.FC = () => {
       }
     }
 
-    if (parentRegion) {
-      dispatch(setTargetSlot(parentRegion.id));
-    } else if (parentSlot) {
+    if (parentSlot) {
       dispatch(setTargetSlot(parentSlot.id));
+    } else {
+      dispatch(unsetTargetSlot());
     }
   }
 

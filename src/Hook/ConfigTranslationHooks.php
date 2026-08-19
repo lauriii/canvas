@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Hook;
 
 use Drupal\canvas\Entity\ContentTemplate;
-use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Plugin\Validation\Constraint\CanvasConfigEntityTranslationsAreValidConstraint;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
@@ -25,7 +25,7 @@ final readonly class ConfigTranslationHooks {
    */
   public const array TRANSLATABLE_ENTITY_TYPE_IDS = [
     ContentTemplate::ENTITY_TYPE_ID,
-    PageRegion::ENTITY_TYPE_ID,
+    PageVariant::ENTITY_TYPE_ID,
   ];
 
   public function __construct(
@@ -49,7 +49,7 @@ final readonly class ConfigTranslationHooks {
 
     $edit_links = [
       ContentTemplate::ENTITY_TYPE_ID => '/admin/structure/content-template/{content_template}',
-      PageRegion::ENTITY_TYPE_ID => '/admin/appearance/page-region/{page_region}',
+      PageVariant::ENTITY_TYPE_ID => '/admin/structure/page-variant/{page_variant}',
     ];
     foreach ($edit_links as $entity_type => $edit_link) {
       if (isset($definitions[$entity_type])) {

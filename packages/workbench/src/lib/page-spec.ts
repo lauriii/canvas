@@ -13,11 +13,13 @@ import type { AuthoredSpecElementMap } from './authored-spec-utils';
 export interface AuthoredPageSpec {
   uuid?: string;
   title: string;
+  pageVariant?: string;
   elements: AuthoredSpecElementMap;
 }
 
 export interface NormalizedPageSpec {
   title: string;
+  pageVariant: string | null;
   spec: Spec;
 }
 
@@ -57,6 +59,7 @@ export function normalizePageSpec(page: AuthoredPageSpec): NormalizedPageSpec {
 
   return {
     title: page.title,
+    pageVariant: page.pageVariant ?? null,
     spec: {
       root: 'canvas:component-tree',
       elements: {
@@ -140,6 +143,7 @@ export function parsePageSpec(
     'title',
     'path',
     'description',
+    'pageVariant',
     'elements',
   ]);
   const unexpectedTopLevelKeys = Object.keys(value).filter(
@@ -166,6 +170,14 @@ export function parsePageSpec(
       code: 'invalid_page_spec',
       message: `Page file must include a non-empty $schema string when provided: ${sourcePath}`,
       path: `${sourcePath}#$schema`,
+    });
+  }
+
+  if ('pageVariant' in value && !isNonEmptyString(value.pageVariant)) {
+    issues.push({
+      code: 'invalid_page_spec',
+      message: `Page "pageVariant" must be a non-empty string in ${sourcePath}.`,
+      path: `${sourcePath}#pageVariant`,
     });
   }
 
@@ -218,6 +230,9 @@ export function parsePageSpec(
 
   const page = normalizePageSpec({
     title: value.title,
+    pageVariant: isNonEmptyString(value.pageVariant)
+      ? value.pageVariant
+      : undefined,
     elements: parsedElements.elements,
   });
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Access;
 
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
+use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
@@ -36,6 +37,9 @@ final class ComponentTreeEditAccessCheck implements AccessInterface {
    *   The access result.
    */
   public function access(EntityInterface $entity, AccountInterface $account): AccessResultInterface {
+    if ($entity instanceof PageRegion) {
+      return AccessResult::forbidden('Page regions were replaced by page variants and are no longer editable.');
+    }
     if ($entity instanceof FieldableEntityInterface || $entity instanceof ComponentTreeEntityInterface) {
       $tree = $this->componentTreeLoader->load($entity);
       // TRICKY: field access hooks must return AccessResult::forbidden() to

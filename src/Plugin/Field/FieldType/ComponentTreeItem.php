@@ -8,6 +8,7 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\MissingComponentInputsException;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Plugin\DataType\ConfigEntityVersionAdapter;
 use Drupal\canvas\Plugin\DataType\ResolvedComponentInputs;
 use Drupal\canvas\PropExpressions\StructuredData\ContentAwareDependentInterface;
@@ -83,6 +84,9 @@ use Symfony\Component\Validator\ConstraintViolationList;
           // @see `type: canvas.page_region.*`
           TitleBlockPluginInterface::class,
           MessagesBlockPluginInterface::class,
+          // The page content marker is only allowed in page_variant trees.
+          // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
+          Marker::PAGE_CONTENT_COMPONENT_ID,
         ],
         'presence' => NULL,
       ],

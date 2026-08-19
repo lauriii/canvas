@@ -25,7 +25,7 @@ use PHPUnit\Framework\Attributes\TestWith;
  * - Patterns are not translatable.
  * - ContentTemplates are translatable, but allow more prop sources than any
  *   other component tree (EntityFieldPropSource etc).
- * - PageRegions are translatable, but do not allow additional prop sources.
+ * - PageVariants are translatable, but do not allow additional prop sources.
  *
  * Hence this focuses on testing the foundations; translation-specifics must be
  * tested in each config entity's test coverage.

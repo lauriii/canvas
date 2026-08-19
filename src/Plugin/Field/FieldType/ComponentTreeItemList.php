@@ -43,6 +43,11 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
   private const string HYDRATION_EXCEPTION_KEY = 'hydration_exception';
 
   /**
+   * The markup a slot with no components renders in the editor, as its target.
+   */
+  public const string EMPTY_SLOT_PLACEHOLDER = '<div class="canvas--slot-empty-placeholder"></div>';
+
+  /**
    * @var null|array<string, array{'edges': array<string, TRUE>}>
    */
   protected ?array $graph = NULL;
@@ -304,7 +309,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
               // When previewing and the slot value is a default: omit the
               // default in favor of a placeholder div.
               elseif ($isPreview && \is_string($slot_value)) {
-                $slots[$slot] = ['#markup' => Markup::create('<div class="canvas--slot-empty-placeholder"></div>')];
+                $slots[$slot] = ['#markup' => Markup::create(self::EMPTY_SLOT_PLACEHOLDER)];
               }
               // Explicit slot value: renderify, just like the rest of the
               // component tree.

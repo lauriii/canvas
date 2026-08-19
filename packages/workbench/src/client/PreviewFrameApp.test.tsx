@@ -1,5 +1,8 @@
 import { act } from 'react';
-import { renderSpec } from 'drupal-canvas/json-render-utils';
+import {
+  defineComponentRegistry,
+  renderSpec,
+} from 'drupal-canvas/json-render-utils';
 import { createRoot } from 'react-dom/client';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -71,7 +74,7 @@ const validSpec = {
 
 function makeRequest(
   renderId: string,
-  renderType: 'page' | 'component',
+  renderType: 'page' | 'component' | 'page-template',
 ): PreviewRenderRequest {
   return {
     source: 'canvas-workbench-parent',
@@ -89,6 +92,7 @@ function makeRequest(
 async function dispatchRenderRequest(
   request: PreviewRenderRequest,
   renderSpecMock: ReturnType<typeof vi.mocked<typeof renderSpec>>,
+  expectedRenderCalls = 1,
 ) {
   const renderCallsBefore = renderSpecMock.mock.calls.length;
   await act(async () => {
@@ -100,12 +104,16 @@ async function dispatchRenderRequest(
     );
     for (
       let i = 0;
-      i < 50 && renderSpecMock.mock.calls.length === renderCallsBefore;
+      i < 50 &&
+      renderSpecMock.mock.calls.length <
+        renderCallsBefore + expectedRenderCalls;
       i++
     ) {
       await Promise.resolve();
     }
-    expect(renderSpecMock.mock.calls.length).toBe(renderCallsBefore + 1);
+    expect(renderSpecMock.mock.calls.length).toBe(
+      renderCallsBefore + expectedRenderCalls,
+    );
   });
 }
 
@@ -187,6 +195,34 @@ describe('PreviewFrameApp', () => {
 
     expect(simulatedScrollY).toBe(180);
     expect(scrollToSpy.mock.calls.length).toBe(scrollToCallsAfterUserScroll);
+  });
+
+  it('renders page content at the selected page template marker', async () => {
+    const registry = {};
+    vi.mocked(defineComponentRegistry).mockResolvedValueOnce(registry);
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <MemoryRouter>
+          <PreviewFrameApp />
+        </MemoryRouter>,
+      );
+    });
+
+    const request = makeRequest('page-a', 'page');
+    const pageTemplateSpec = {
+      root: 'content-marker',
+      elements: {
+        'content-marker': { type: 'marker.page_content', props: {} },
+      },
+    };
+    request.payload.pageTemplate = { spec: pageTemplateSpec };
+
+    await dispatchRenderRequest(request, renderSpecMock, 2);
+
+    expect(renderSpecMock.mock.calls.at(-2)?.[0]).toBe(validSpec);
+    expect(renderSpecMock.mock.calls.at(-1)?.[0]).toBe(pageTemplateSpec);
+    expect(registry).toHaveProperty('marker.page_content');
   });
 
   it('posts shell-sync when an internal page link is clicked', async () => {

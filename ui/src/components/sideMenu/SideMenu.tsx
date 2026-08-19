@@ -150,7 +150,10 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       icon: <TemplateIcon />,
       label: 'Templates',
       enabled: true,
-      hidden: !hasPermission('contentTemplates'),
+      // The panel holds content templates and page templates; show it when
+      // the user may manage either.
+      hidden:
+        !hasPermission('contentTemplates') && !hasPermission('pageVariants'),
     },
     {
       type: 'link',

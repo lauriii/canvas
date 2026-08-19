@@ -93,6 +93,9 @@ final class PersonalizationTest extends KernelTestBase {
       'config:canvas.component.sdc.canvas_test_sdc.heading',
       'config:canvas.component.sdc.canvas_test_sdc.my-hero',
       'config:canvas.component.sdc.canvas_test_sdc.two_column',
+      // The page variant resolver checks the site default selection.
+      // @see \Drupal\canvas\PageVariantResolver
+      'config:canvas.settings',
       'http_response',
       'rendered',
     ], $cache_tags);

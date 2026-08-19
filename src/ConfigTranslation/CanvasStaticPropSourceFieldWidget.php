@@ -6,7 +6,8 @@ namespace Drupal\canvas\ConfigTranslation;
 
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
-use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\EmptyTargetEntityProviderInterface;
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\config_translation\FormElement\FormElementBase;
@@ -233,11 +234,11 @@ final class CanvasStaticPropSourceFieldWidget extends FormElementBase {
     }
     $config_entity = match ($config_entity_type_id) {
       ContentTemplate::ENTITY_TYPE_ID => ContentTemplate::load($id),
-      PageRegion::ENTITY_TYPE_ID => PageRegion::load($id),
+      PageVariant::ENTITY_TYPE_ID => PageVariant::load($id),
       default => throw new \LogicException(),
     };
     $entity_object_for_field_widget = match (TRUE) {
-      $config_entity instanceof ContentTemplate => $config_entity->createEmptyTargetEntity(),
+      $config_entity instanceof EmptyTargetEntityProviderInterface => $config_entity->createEmptyTargetEntity(),
       default => NULL,
     };
 

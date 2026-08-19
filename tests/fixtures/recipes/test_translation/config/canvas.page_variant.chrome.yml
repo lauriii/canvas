@@ -1,0 +1,19 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - canvas.component.marker.page_content
+    - canvas.component.sdc.canvas_test_sdc.heading
+id: chrome
+label: Chrome
+description: null
+component_tree:
+  - uuid: 44444444-4444-4444-8444-444444444444
+    component_id: marker.page_content
+    component_version: 3b12c0b99a6caecc
+    inputs: '{}'
+  - uuid: 33333333-3333-4333-8333-333333333333
+    component_id: sdc.canvas_test_sdc.heading
+    component_version: 8c01a2bdb897a810
+    inputs: '{"text":"Hello from region","element":"h3"}'
+    label: 'English region heading'

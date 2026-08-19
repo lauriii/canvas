@@ -1,0 +1,8 @@
+services:
+  _defaults:
+    autoconfigure: true
+    autowire: true
+  Drupal\canvas_page_template_component\PageTemplateComponentUninstallValidator:
+    public: true
+    tags:
+      - { name: module_install.uninstall_validator }
