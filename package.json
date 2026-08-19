@@ -27,7 +27,7 @@
     "test:playwright": "playwright install && playwright test",
     "build": "npm run build --workspace=@drupal-canvas/ui",
     "lint:eslint": "eslint",
-    "lint:openapi": "redocly lint openapi.yml",
+    "lint:openapi": "redocly lint openapi.yml modules/canvas_headless/openapi.yml",
     "lint:prettier": "prettier tests/src/Playwright playwright.config.ts packages ui eslint.config.mjs --check",
     "lint:stylelint": "stylelint \"**/*.css\"",
     "lint:tsc": "turbo run type-check",
