@@ -14,7 +14,6 @@ use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageVariant;
-use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Entity\PreviewRenderableInterface;
 use Drupal\canvas\PageVariantResolver;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
