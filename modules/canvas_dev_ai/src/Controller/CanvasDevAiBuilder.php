@@ -108,7 +108,13 @@ final class CanvasDevAiBuilder extends ControllerBase {
     }
     $job_id = $prompt['request_id'];
 
-    $agent = $this->agentManager->createInstance('canvas_component_agent');
+    try {
+      $agent_to_call = $this->resolveAgentId($prompt);
+    }
+    catch (\RuntimeException $e) {
+      return $this->buildErrorResponse($e->getMessage(), $job_id);
+    }
+    $agent = $this->agentManager->createInstance($agent_to_call);
     \assert($agent instanceof AiAgentEntityWrapper);
     $this->prepareAgent($agent, $prompt, $image_files);
 
@@ -324,6 +330,48 @@ final class CanvasDevAiBuilder extends ControllerBase {
   }
 
   /**
+   * Resolves the ID of the agent to run, from the request's Tool or settings.
+   *
+   * @param array $prompt
+   *   The decoded prompt.
+   *
+   * @return string
+   *   The agent ID, which the plugin manager has a definition for.
+   *
+   * @throws \RuntimeException
+   *   Carrying the message shown to the user.
+   *
+   * @todo Reject a main agent the selection form could not have offered, once the page builder and Drupal Canvas agents exist, in https://git.drupalcode.org/project/canvas/-/work_items/3591777
+   *
+   * @see \Drupal\canvas_dev_ai\Form\CanvasDevAiAgentSelectionForm
+   */
+  private function resolveAgentId(array $prompt): string {
+    $settings = $this->config('canvas_dev_ai.settings');
+    // Only one Tool is active at a time, and the chat sends its agent ID as
+    // `selected_tool` on every request of a turn; the key is absent while no
+    // Tool is active.
+    $selected_tool = $prompt['selected_tool'] ?? '';
+    if ($selected_tool !== '') {
+      if (!\in_array($selected_tool, $settings->get('tools') ?? [], TRUE)) {
+        throw new \RuntimeException('This tool is not allowed.');
+      }
+      $agent_to_call = $selected_tool;
+    }
+    else {
+      $agent_to_call = $settings->get('main_agent') ?? '';
+      if ($agent_to_call === '') {
+        throw new \RuntimeException('Unable to resolve the agent to run.');
+      }
+    }
+
+    // Check that the configured AI agent exists.
+    if (!$this->agentManager->hasDefinition($agent_to_call)) {
+      throw new \RuntimeException('The agent to run does not exist.');
+    }
+    return $agent_to_call;
+  }
+
+  /**
    * Resumes a paused chat turn, or seeds the agent for a new one.
    *
    * @param \Drupal\ai_agents\PluginBase\AiAgentEntityWrapper $agent
@@ -334,6 +382,9 @@ final class CanvasDevAiBuilder extends ControllerBase {
    *   The images the user attached to the message.
    */
   private function prepareAgent(AiAgentEntityWrapper $agent, array $prompt, array $image_files): void {
+    // The state carries no agent ID, so a hop selecting a different agent
+    // mid-turn restores the previous agent's chat history into it.
+    // @todo Store the agent ID with the state and error when a later hop of the same turn resolves a different one, in https://git.drupalcode.org/project/canvas/-/work_items/3591952
     $state = $this->canvasAiTempStore->getStoredAgentState($prompt['request_id']);
     if ($state !== NULL) {
       // ::fromArray() restores the chat history, which already holds the user
