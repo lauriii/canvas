@@ -30,7 +30,7 @@ export function isValidUuid(value: string): boolean {
 /**
  * Builds a stable map from authored element keys to valid UUIDs. Keys that
  * already pass `isValidUuid` are kept; everything else is replaced with a
- * fresh v4 UUID. Used by the pages, regions and content-templates push
+ * fresh v4 UUID. Used by the pages, page-templates and content-templates push
  * paths so authored specs (e.g. ones produced by an AI agent) with
  * placeholder keys still push successfully.
  */
@@ -66,7 +66,7 @@ export function buildChildToParentMap(
 
 /**
  * Converts a json-render spec to an authored element map suitable for page
- * and region spec files.
+ * and page template spec files.
  *
  * The authored format differs from the json-render spec in two ways:
  * 1. The synthetic `canvas:component-tree` wrapper is stripped.
@@ -213,7 +213,7 @@ export function resolvedComponentTreeToAuthoredElementMap(
  *
  * `transformInputs` is an optional per-node hook for callers that need to
  * normalize prop values on the way out — e.g. content templates unwrap
- * `{sourceType:'static:...', value:X}` to bare literals. Pages and regions
+ * `{sourceType:'static:...', value:X}` to bare literals. Pages and page templates
  * don't use prop expressions and skip it.
  */
 export function componentTreeToAuthoredElementMap(

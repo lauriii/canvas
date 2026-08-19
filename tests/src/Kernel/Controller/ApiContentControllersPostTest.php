@@ -7,7 +7,11 @@ namespace Drupal\Tests\canvas\Kernel\Controller;
 use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Controller\ApiContentControllers;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Entity\PageVariant;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
@@ -112,6 +116,43 @@ class ApiContentControllersPostTest extends CanvasKernelTestBase {
     );
   }
 
+  /**
+   * Tests creating a page with an explicit page variant selection.
+   */
+  public function testPostWithPageVariant(): void {
+    $marker = Component::load(Marker::PAGE_CONTENT_COMPONENT_ID);
+    self::assertInstanceOf(ComponentInterface::class, $marker);
+    PageVariant::create([
+      'id' => 'marketing',
+      'label' => 'Marketing',
+      'status' => TRUE,
+      'component_tree' => [[
+        'uuid' => '14b2e2b7-5e05-42e2-9f6e-2ffdbb37df35',
+        'component_id' => Marker::PAGE_CONTENT_COMPONENT_ID,
+        'component_version' => $marker->getActiveVersion(),
+        'inputs' => [],
+      ],
+      ],
+    ])->save();
+
+    $response = $this->request(Request::create(
+      self::URL,
+      'POST',
+      server: ['CONTENT_TYPE' => 'application/json'],
+      content: \json_encode([
+        'title' => 'Marketing page',
+        'status' => FALSE,
+        'path' => '/marketing',
+        'pageVariant' => 'marketing',
+        'components' => [],
+      ], JSON_THROW_ON_ERROR),
+    ));
+
+    self::assertSame(Response::HTTP_CREATED, $response->getStatusCode());
+    self::assertSame('marketing', $this->decodeResponse($response)['pageVariant']);
+    self::assertSame('marketing', Page::load(2)?->get('page_variant')->getString());
+  }
+
   public static function providerPost(): \Generator {
     yield "Create a new blank page" => [
       [
@@ -128,6 +169,7 @@ class ApiContentControllersPostTest extends CanvasKernelTestBase {
         'autoSavePath' => NULL,
         'components' => [],
         'description' => '',
+        'pageVariant' => NULL,
         'links' => [
           CanvasUriDefinitions::LINK_REL_EDIT => '/canvas/editor/canvas_page/2',
           CanvasUriDefinitions::LINK_REL_DUPLICATE => '/canvas/api/v0/content/canvas_page',
@@ -152,6 +194,7 @@ class ApiContentControllersPostTest extends CanvasKernelTestBase {
         'autoSavePath' => NULL,
         'components' => [],
         'description' => '',
+        'pageVariant' => NULL,
         'links' => [
           CanvasUriDefinitions::LINK_REL_EDIT => '/canvas/editor/canvas_page/2',
           CanvasUriDefinitions::LINK_REL_DUPLICATE => '/canvas/api/v0/content/canvas_page',
@@ -178,6 +221,7 @@ class ApiContentControllersPostTest extends CanvasKernelTestBase {
         'autoSavePath' => NULL,
         'components' => [],
         'description' => '',
+        'pageVariant' => NULL,
         'links' => [
           CanvasUriDefinitions::LINK_REL_UNPUBLISH => '/canvas/api/v0/content/auto-save/canvas_page/2',
           CanvasUriDefinitions::LINK_REL_EDIT => '/canvas/editor/canvas_page/2',
@@ -245,6 +289,7 @@ class ApiContentControllersPostTest extends CanvasKernelTestBase {
           ],
         ],
         'description' => '',
+        'pageVariant' => NULL,
         'links' => [
           CanvasUriDefinitions::LINK_REL_UNPUBLISH => '/canvas/api/v0/content/auto-save/canvas_page/2',
           CanvasUriDefinitions::LINK_REL_EDIT => '/canvas/editor/canvas_page/2',

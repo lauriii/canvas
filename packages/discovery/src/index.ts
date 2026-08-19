@@ -13,12 +13,13 @@ export { detectHeadlessSdk } from './detect-headless-sdk';
 export { findDuplicateMachineNames, loadComponentsMetadata } from './metadata';
 export type {
   CanvasConfig,
+  CanvasLegacyRegionConfig,
   CanvasSyncConfig,
   ComponentMetadata,
   DiscoveredComponent,
   DiscoveredContentTemplate,
   DiscoveredPage,
-  DiscoveredRegion,
+  DiscoveredPageTemplate,
   DiscoveryOptions,
   DiscoveryResult,
   DiscoveryWarning,

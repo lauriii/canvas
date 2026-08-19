@@ -42,6 +42,9 @@ export type LayoutApiResponse = RootLayoutModel & {
   html: string;
   autoSaves: AutoSavesHash;
   translations?: Record<string, any>;
+  // For content entities: the page variant rendering this entity, null when
+  // core block layout renders the page. Absent for config entities.
+  resolvedPageVariant?: string | null;
 };
 
 export type TemplateViewMode = {
@@ -53,6 +56,7 @@ export type TemplateViewMode = {
   status: boolean;
   id: string;
   suggestedPreviewEntityId?: number;
+  pageVariant?: string | null;
 };
 
 export type TemplateInBundle = {
@@ -255,7 +259,14 @@ export const componentAndLayoutApi = createApi({
       query: ({ bundle, viewMode, entityType, previewEntityId }) => {
         return `canvas/api/v0/layout-content-template/${entityType}.${bundle}.${viewMode}/${previewEntityId}`;
       },
-      providesTags: () => [{ type: 'Layout' }],
+      // The extra template-scoped tag lets a mutation on one content template
+      // refetch only that template's frame. Invalidating the untagged `Layout`
+      // still reaches this query, because an invalidation without an id
+      // matches every provider of the type.
+      providesTags: (result, error, { entityType, bundle, viewMode }) => [
+        { type: 'Layout' },
+        { type: 'Layout', id: `${entityType}.${bundle}.${viewMode}` },
+      ],
       async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
         try {
           const {
@@ -732,6 +743,25 @@ export const componentAndLayoutApi = createApi({
         { type: 'ViewModes', id: 'LIST' },
       ],
     }),
+    updateContentTemplate: builder.mutation<
+      TemplateViewMode,
+      { id: string; pageVariant?: string | null; status?: boolean }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `canvas/api/v0/config/content_template/${id}`,
+        method: 'PATCH',
+        body,
+      }),
+      // The page template selection changes what the editor frame renders
+      // around the template, so that template's layout has to be refetched
+      // too. Scoped to the mutated template on purpose: this mutation is also
+      // reachable while a page is open, and invalidating `Layout` outright
+      // would refetch that page's layout and discard its unsaved page data.
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'ContentTemplates', id: 'LIST' },
+        { type: 'Layout', id },
+      ],
+    }),
     getContentTemplates: builder.query<TemplateList, void>({
       query: () => `canvas/api/v0/config/content_template`,
       providesTags: () => [{ type: 'ContentTemplates', id: 'LIST' }],
@@ -778,6 +808,7 @@ export const {
   useUpdateAutoSaveMutation,
   useCreateContentTemplateMutation,
   useDeleteContentTemplateMutation,
+  useUpdateContentTemplateMutation,
   useGetContentTemplatesQuery,
   useGetViewModesQuery,
   useGetPreviewContentEntitiesQuery,

@@ -12,6 +12,7 @@ export interface Page {
   links: Record<string, string>;
   components: CanvasComponentTree;
   description: string;
+  pageVariant: string | null;
 }
 
-export type PageListItem = Omit<Page, 'components'>;
+export type PageListItem = Omit<Page, 'components' | 'pageVariant'>;

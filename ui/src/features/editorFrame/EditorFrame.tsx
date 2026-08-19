@@ -32,13 +32,17 @@ import {
 } from '@/features/ui/uiSlice';
 import useComponentSelection from '@/hooks/useComponentSelection';
 import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
-import useLayoutWatcher from '@/hooks/useLayoutWatcher';
 import useResizeObserver from '@/hooks/useResizeObserver';
 import useSyncParamsToState from '@/hooks/useSyncParamsToState';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
+import { isMarkerComponentType } from '@/services/pageVariants';
 import { getHalfwayScrollPosition } from '@/utils/function-utils';
 
-import { deleteNode } from '../layout/layoutModelSlice';
+import { deleteNode, selectLayout } from '../layout/layoutModelSlice';
+import {
+  componentSubtreeMatchesType,
+  findComponentByUuid,
+} from '../layout/layoutUtils';
 
 import type React from 'react';
 
@@ -70,7 +74,6 @@ const DRAG_AUTOSCROLL_MAX_SPEED_PX = 8;
 const EditorFrame: React.FC = () => {
   const dispatch = useAppDispatch();
   useSyncParamsToState();
-  useLayoutWatcher();
   const editorFrameRef = useRef<HTMLDivElement | null>(null);
   const editorPaneRef = useRef<HTMLDivElement | null>(null);
   const animFrameScrollRef = useRef<number | null>(null);
@@ -93,6 +96,16 @@ const EditorFrame: React.FC = () => {
   const spaceKeyPressedRef = useRef(false);
   const { componentId: selectedComponent } = useParams();
   const { unsetSelectedComponent } = useComponentSelection();
+  const layout = useAppSelector(selectLayout);
+  // Markers can be repositioned but never deleted or copied. The same applies
+  // to any ancestor whose slots contain a marker: deleting or copying it would
+  // take the marker with it.
+  const selectedNode = selectedComponent
+    ? findComponentByUuid(layout, selectedComponent)
+    : null;
+  const selectedComponentIsMarker =
+    !!selectedNode &&
+    componentSubtreeMatchesType(selectedNode, isMarkerComponentType);
   const panningModeRef = useRef(panningMode);
   const { copySelectedComponent, pasteAfterSelectedComponent } =
     useCopyPasteComponents();
@@ -156,13 +169,15 @@ const EditorFrame: React.FC = () => {
     keyup: true,
   });
   useHotkeys(['Backspace', 'Delete'], () => {
-    if (selectedComponent) {
+    if (selectedComponent && !selectedComponentIsMarker) {
       dispatch(deleteNode(selectedComponent));
       unsetSelectedComponent();
     }
   });
   useHotkeys('mod+c', () => {
-    copySelectedComponent();
+    if (!selectedComponentIsMarker) {
+      copySelectedComponent();
+    }
   });
   useHotkeys('mod+v', () => {
     pasteAfterSelectedComponent();

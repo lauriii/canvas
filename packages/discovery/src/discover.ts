@@ -11,7 +11,7 @@ import type {
   DiscoveredComponent,
   DiscoveredContentTemplate,
   DiscoveredPage,
-  DiscoveredRegion,
+  DiscoveredPageTemplate,
   DiscoveryOptions,
   DiscoveryResult,
   DiscoveryWarning,
@@ -131,9 +131,11 @@ async function getCandidateContentTemplateFiles(
   });
 }
 
-async function getCandidateRegionFiles(regionsRoot: string): Promise<string[]> {
+async function getCandidatePageTemplateFiles(
+  pageTemplatesRoot: string,
+): Promise<string[]> {
   return glob('*.json', {
-    cwd: regionsRoot,
+    cwd: pageTemplatesRoot,
     nodir: true,
     dot: true,
     posix: true,
@@ -141,12 +143,12 @@ async function getCandidateRegionFiles(regionsRoot: string): Promise<string[]> {
   });
 }
 
-function parseRegionFilename(filename: string): { region: string } | null {
+function parsePageTemplateFilename(filename: string): { id: string } | null {
   const base = filename.replace(/\.json$/, '');
   if (!/^[a-z0-9_]+$/.test(base) || base.length === 0) {
     return null;
   }
-  return { region: base };
+  return { id: base };
 }
 
 /**
@@ -181,8 +183,8 @@ export async function discoverCanvasProject(
     options.contentTemplatesRoot ??
       path.join(componentRoot, 'content-templates'),
   );
-  const regionsRoot = path.resolve(
-    options.regionsRoot ?? path.join(componentRoot, 'regions'),
+  const pageTemplatesRoot = path.resolve(
+    options.pageTemplatesRoot ?? path.join(componentRoot, 'page-templates'),
   );
   const entryExtensions = options.entryExtensions ?? JS_EXTENSIONS;
   const requireJsEntry = options.requireJsEntry ?? true;
@@ -192,12 +194,13 @@ export async function discoverCanvasProject(
   const pageCandidates = await getCandidatePageFiles(pagesRoot);
   const contentTemplateCandidates =
     await getCandidateContentTemplateFiles(contentTemplatesRoot);
-  const regionCandidates = await getCandidateRegionFiles(regionsRoot);
+  const pageTemplateCandidates =
+    await getCandidatePageTemplateFiles(pageTemplatesRoot);
   const warnings: DiscoveryWarning[] = [];
   const components: DiscoveredComponent[] = [];
   const pages: DiscoveredPage[] = [];
   const contentTemplates: DiscoveredContentTemplate[] = [];
-  const regions: DiscoveredRegion[] = [];
+  const pageTemplates: DiscoveredPageTemplate[] = [];
 
   let ignoredFiles = 0;
 
@@ -321,14 +324,14 @@ export async function discoverCanvasProject(
     });
   }
 
-  for (const regionRelativePath of regionCandidates) {
-    const normalizedRelativePath = toPosixPath(regionRelativePath);
-    const absoluteRegionPath = path.resolve(
-      regionsRoot,
+  for (const pageTemplateRelativePath of pageTemplateCandidates) {
+    const normalizedRelativePath = toPosixPath(pageTemplateRelativePath);
+    const absolutePageTemplatePath = path.resolve(
+      pageTemplatesRoot,
       normalizedRelativePath,
     );
     const projectRelativePath = toPosixPath(
-      path.relative(projectRoot, absoluteRegionPath),
+      path.relative(projectRoot, absolutePageTemplatePath),
     );
 
     if (
@@ -340,13 +343,47 @@ export async function discoverCanvasProject(
     }
 
     const filename = path.posix.basename(normalizedRelativePath);
-    const parsed = parseRegionFilename(filename);
+    const parsed = parsePageTemplateFilename(filename);
     if (!parsed) {
+      // A silently skipped file would look like a sync that "lost" the
+      // template; the filename is the page variant's machine name.
+      warnings.push({
+        code: 'invalid_page_template_filename',
+        message: `Ignoring page template file "${filename}": its name (minus .json) must be a machine name (lowercase letters, digits, underscores).`,
+        path: absolutePageTemplatePath,
+      });
       continue;
     }
-    regions.push({
-      region: parsed.region,
-      path: absoluteRegionPath,
+
+    let label: string | null = null;
+    let status: boolean | null = null;
+    let isDefault = false;
+    try {
+      const authored = JSON.parse(
+        await fs.readFile(absolutePageTemplatePath, 'utf-8'),
+      ) as unknown;
+      if (
+        authored &&
+        typeof authored === 'object' &&
+        !Array.isArray(authored)
+      ) {
+        const values = authored as Record<string, unknown>;
+        label =
+          typeof values.label === 'string' && values.label.trim().length > 0
+            ? values.label
+            : null;
+        status = typeof values.status === 'boolean' ? values.status : null;
+        isDefault = values.default === true;
+      }
+    } catch {
+      // Validation reports unreadable or malformed page template files.
+    }
+    pageTemplates.push({
+      id: parsed.id,
+      label,
+      status,
+      isDefault,
+      path: absolutePageTemplatePath,
       relativePath: projectRelativePath.startsWith('..')
         ? normalizedRelativePath
         : projectRelativePath,
@@ -468,7 +505,7 @@ export async function discoverCanvasProject(
   components.sort((a, b) => a.metadataPath.localeCompare(b.metadataPath));
   pages.sort((a, b) => a.path.localeCompare(b.path));
   contentTemplates.sort((a, b) => a.path.localeCompare(b.path));
-  regions.sort((a, b) => a.region.localeCompare(b.region));
+  pageTemplates.sort((a, b) => a.id.localeCompare(b.id));
 
   const result: DiscoveryResult = {
     componentRoot,
@@ -476,14 +513,14 @@ export async function discoverCanvasProject(
     components,
     pages,
     contentTemplates,
-    regions,
+    pageTemplates,
     warnings,
     stats: {
       scannedFiles:
         allCandidates.length +
         pageCandidates.length +
         contentTemplateCandidates.length +
-        regionCandidates.length,
+        pageTemplateCandidates.length,
       ignoredFiles,
     },
   };

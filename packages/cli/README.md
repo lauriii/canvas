@@ -59,7 +59,7 @@ properties:
   "sync": {
     "pages": true,
     "contentTemplates": true,
-    "regions": true
+    "pageTemplates": true
   }
 }
 ```
@@ -76,7 +76,8 @@ properties:
 | `globalCssPath`         | `"src/global.css"`    | Path to the global CSS file.                                                                                                |
 | `sync.pages`            | `true`                | Include pages in `pull`, `push`, and `reconcile-media`. Set to `false` to exclude pages by default.                         |
 | `sync.contentTemplates` | `true`                | Include content templates in `pull`, `push`, and `reconcile-media`. Set to `false` to exclude content templates by default. |
-| `sync.regions`          | `true`                | Include global regions in `pull`, `push`, and `reconcile-media`. Set to `false` to exclude global regions by default.       |
+| `pageTemplatesDir`      | `"page-templates"`    | Directory where page templates (page variants) are stored in the filesystem.                                                |
+| `sync.pageTemplates`    | `true`                | Include page templates in `pull`, `push`, and `reconcile-media`. Set to `false` to exclude page templates by default.       |
 
 If `canvas.config.json` is not present, the CLI will use the default values
 shown above. For existing projects, if `globalCssPath` is not set and
@@ -194,14 +195,14 @@ to get started.
 | `--no-pages`             | `CANVAS_INCLUDE_PAGES`             | (Optional) Exclude pages from `pull`, `push`, and `reconcile-media`. `CANVAS_INCLUDE_PAGES` is deprecated; use `sync.pages` in `canvas.config.json` instead.                                          |
 | `--no-content-templates` | `CANVAS_INCLUDE_CONTENT_TEMPLATES` | (Optional) Exclude content templates from `pull`, `push`, and `reconcile-media`. `CANVAS_INCLUDE_CONTENT_TEMPLATES` is deprecated; use `sync.contentTemplates` in `canvas.config.json` instead.       |
 | `--include-brand-kit`    | `CANVAS_INCLUDE_BRAND_KIT`         | (Optional) Include brand kit (fonts) in `pull` and `push`. Defaults to `false`. Accepts `true`/`false`, `1`/`0`, or `yes`/`no`.                                                                       |
-| `--no-regions`           | `CANVAS_INCLUDE_REGIONS`           | (Optional) Exclude global regions from `pull`, `push`, and `reconcile-media`. `CANVAS_INCLUDE_REGIONS` is deprecated; use `sync.regions` in `canvas.config.json` instead.                             |
+| `--no-page-templates`    | _(none)_                           | (Optional) Exclude page templates from `pull`, `push`, and `reconcile-media`. Use `sync.pageTemplates` in `canvas.config.json` for a project default.                                                 |
 
 **Note:** When `CANVAS_SCOPE` is unset, the CLI uses the `canvas_oauth`
 defaults. With `--include-brand-kit` or `CANVAS_INCLUDE_BRAND_KIT`, it adds the
-`canvas:brand_kit` scope. When pages, content templates, or global regions are
+`canvas:brand_kit` scope. When pages, content templates, or page templates are
 enabled through `sync` config, defaults, or deprecated env vars, it adds the
 corresponding `canvas:page:*`, `canvas:content_template`, and
-`canvas:page_region` scopes.
+`canvas:page_variant` scopes.
 
 #### Configuration Precedence
 
@@ -219,15 +220,15 @@ Configuration sources are applied in order of precedence from highest to lowest:
 3. **Default values** - Built-in defaults if nothing else is specified
 
 **For canvas.config.json sync properties** (`sync.pages`,
-`sync.contentTemplates`, and `sync.regions`):
+`sync.contentTemplates`, and `sync.pageTemplates`):
 
 Configuration sources are applied in order of precedence from highest to lowest:
 
 1. **Command-line arguments** (`--no-pages`, `--no-content-templates`, and
-   `--no-regions`) - Highest priority
+   `--no-page-templates`) - Highest priority
 2. **canvas.config.json** - Values defined in your project's config file
-3. **Deprecated sync environment variables** (`CANVAS_INCLUDE_PAGES`,
-   `CANVAS_INCLUDE_CONTENT_TEMPLATES`, and `CANVAS_INCLUDE_REGIONS`) - Used only
+3. **Sync environment variables** (the deprecated `CANVAS_INCLUDE_PAGES` and
+   `CANVAS_INCLUDE_CONTENT_TEMPLATES`; page templates have none) - Used only
    when the matching `sync.*` key is omitted from `canvas.config.json`
 4. **Default values** - Built-in defaults if nothing else is specified
 
@@ -297,13 +298,38 @@ import Button from '@/components/button';
 
 ---
 
+## Upgrading from global regions
+
+Page templates (page variants) replaced theme global regions (Canvas ADR 0019):
+the `regions/` directory, the `regionsDir`, `sync.regions`, and `layoutPath`
+config keys, the `--no-regions` flags, and the `CANVAS_INCLUDE_REGIONS`
+environment variable are no longer supported, and region files are no longer
+pushed, pulled, or validated. To upgrade an existing codebase:
+
+1. Run `canvas pull`. Page templates are written into
+   `page-templates/<id>.json`.
+2. Delete the `regions/` directory, remove `regionsDir`, `sync.regions`, and
+   `layoutPath` from `canvas.config.json`, and unset `CANVAS_INCLUDE_REGIONS`.
+
+The CLI warns when it detects any of the leftover region state above. The site
+itself must be on a Canvas release with page variants: its module update
+converts the default theme's regions into one `theme_<theme>` page variant that
+renders identical markup and becomes the site default. That is a Drupal-side
+action; when the connected site does not serve page templates yet, sync commands
+say so and suggest asking a site administrator. Note that a variant converted
+from theme regions contains the theme page template component, which is not a
+code component: such variants are reported and skipped by `canvas pull`, and
+stay managed in the Canvas editor instead of the authored codebase.
+
+---
+
 ## Commands
 
 ### `pull`
 
 Pull code components, global CSS, package.json, local modules imported by
-components, pages, content templates, global regions from Drupal to your local
-filesystem. Brand Kit fonts are only included when explicitly enabled.
+components, pages, content templates, and page templates from Drupal to your
+local filesystem. Brand Kit fonts are only included when explicitly enabled.
 
 If the project's `package.json` was captured on a previous `push`, it is written
 back to the project root during pull. It is overwritten by default, or skipped
@@ -322,7 +348,7 @@ npx canvas pull [options]
 - `--no-pages`: Exclude pages from the pull operation
 - `--no-content-templates`: Exclude content templates from the pull operation
 - `--include-brand-kit [enabled]`: Include Brand Kit fonts in the pull operation
-- `--no-regions`: Exclude global regions from the pull operation
+- `--no-page-templates`: Exclude page templates from the pull operation
 - `-y, --yes`: Skip all confirmation prompts (non-interactive mode)
 - `--skip-overwrite`: Skip items that already exist locally
 
@@ -366,12 +392,12 @@ Fully non-interactive, only pull new items:
 npx canvas pull --yes --skip-overwrite
 ```
 
-Pulls Code Components, global CSS, pages, content templates, and global regions
+Pulls Code Components, global CSS, pages, content templates, and page templates
 from your site by default. Use `--no-pages`, `--no-content-templates`, or
-`--no-regions` to exclude those resources for a single run, or set `sync.*` in
-`canvas.config.json` to change project defaults. Use `--include-brand-kit` or
-`CANVAS_INCLUDE_BRAND_KIT=true` to include Brand Kit fonts. Use
-`--skip-overwrite` to skip items that already exist locally.
+`--no-page-templates` to exclude those resources for a single run, or set
+`sync.*` in `canvas.config.json` to change project defaults. Use
+`--include-brand-kit` or `CANVAS_INCLUDE_BRAND_KIT=true` to include Brand Kit
+fonts. Use `--skip-overwrite` to skip items that already exist locally.
 
 **Fonts:** The pull command fetches fonts from the global Brand Kit, downloads
 font files into a `fonts/` directory, and adds local `src` entries to
@@ -484,7 +510,7 @@ tree-shaking, and dependency management.
 ### `push`
 
 Build and push local components, global CSS, build artifacts, pages, content
-templates, and global regions to Drupal. Brand Kit fonts are only included when
+templates, and page templates to Drupal. Brand Kit fonts are only included when
 explicitly enabled.
 
 **Usage:**
@@ -500,7 +526,7 @@ npx canvas push [options]
 - `--no-pages`: Exclude pages from the push operation
 - `--no-content-templates`: Exclude content templates from the push operation
 - `--include-brand-kit [enabled]`: Include Brand Kit fonts in the push operation
-- `--no-regions`: Exclude global regions from the push operation
+- `--no-page-templates`: Exclude page templates from the push operation
 - `-y, --yes`: Skip confirmation prompts (non-interactive mode)
 
 **Examples:**
@@ -559,18 +585,23 @@ component assets. Push can include:
 8. **Content Templates** - Content templates that define component layouts for
    entity view modes, unless excluded with `--no-content-templates` or
    `sync.contentTemplates: false`.
-9. **Global regions** - Theme global regions, unless excluded with
-   `--no-regions` or `sync.regions: false`.
+9. **Page templates** - Page variants that render the full page around the
+   content, unless excluded with `--no-page-templates` or
+   `sync.pageTemplates: false`. A page template file can set `"default": true`
+   to become the site default page variant (written through
+   `/canvas/api/v0/settings/default-page-variant` with the `canvas:page_variant`
+   scope); at most one file may claim it. The current site default is never
+   deleted by a push.
 
 ---
 
 ### `reconcile-media`
 
 Upload external media referenced in local page specs, content templates, and
-global regions to Drupal and store provenance metadata so that those resources
+page templates to Drupal and store provenance metadata so that those resources
 can be pushed.
 
-When page specs, content templates, or global regions contain image props with
+When page specs, content templates, or page templates contain image props with
 external URLs (e.g. `https://example.com/photo.jpg`), they cannot be pushed
 directly because Drupal expects a media entity reference. This command downloads
 each external image, uploads it to Drupal as a media entity, and updates the
@@ -586,13 +617,13 @@ npx canvas reconcile-media [options]
 
 - `--no-pages`: Exclude pages from media reconciliation
 - `--no-content-templates`: Exclude content templates from media reconciliation
-- `--no-regions`: Exclude global regions from media reconciliation
+- `--no-page-templates`: Exclude page templates from media reconciliation
 - `-y, --yes`: Skip confirmation prompts (non-interactive mode)
 
 **Examples:**
 
-Reconcile all external media in enabled local pages, content templates, and
-global regions:
+Reconcile all external media in enabled local pages, content templates, and page
+templates:
 
 ```bash
 npx canvas reconcile-media
@@ -729,7 +760,7 @@ npx canvas logout --site-url https://example.com
 
 ### `validate`
 
-Validate local components, pages, content templates, and global regions.
+Validate local components, pages, content templates, and page templates.
 
 **Usage:**
 
@@ -766,6 +797,6 @@ npx canvas validate --fix
 Validates discovered local components using ESLint with `required` configuration
 from
 [@drupal-canvas/eslint-config](https://www.npmjs.com/package/@drupal-canvas/eslint-config),
-and validates authored pages, content templates, and global regions. With
+and validates authored pages, content templates, and page templates. With
 `--fix` option specified, also applies automatic fixes available for some
 validation rules.

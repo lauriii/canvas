@@ -133,7 +133,7 @@ canvas.api.config.delete:
     _entity_access: 'canvas_config_entity.delete'
     _canvas_http_eligible_config_entity: 'TRUE'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
-    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|page_region|color)'
+    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|page_variant|color)'
   options:
     parameters:
       canvas_config_entity:
@@ -152,7 +152,7 @@ canvas.api.config.get:
     _canvas_http_eligible_config_entity: 'TRUE'
     _entity_access: 'canvas_config_entity.view'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
-    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|page_region|color)'
+    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|page_variant|color)'
     # The UI client can fetch all the components the current user has access too, regardless of which kind of Canvas-enabled
     # entity you're editing.
     _canvas_ui_access: 'TRUE'
@@ -176,7 +176,7 @@ canvas.api.config.list: &config_list_route
     # But deter users from trying to access other config entities via this route: this ensures 404 responses rather than
     # 403.
     # @see \Drupal\Tests\canvas\Functional\CanvasConfigEntityHttpApiTest::testNonCanvasConfigEntity()
-    canvas_config_entity_type_id: '(folder|content_template|component|pattern|js_component|asset_library|brand_kit|page_region|color)'
+    canvas_config_entity_type_id: '(folder|content_template|component|pattern|js_component|asset_library|brand_kit|page_variant|color)'
     # The UI client can fetch all the components the current user has access too, regardless of which kind of Canvas-enabled
     # entity you're editing.
     _canvas_ui_access: 'TRUE'
@@ -199,6 +199,30 @@ canvas.api.config.list.content_template:
     <<: *config_list_route_options
   methods: [GET]
 
+# Return an actionable 410 response to clients that still use Page Regions.
+# @todo Remove the Page Region 410 routes and related compatibility handling in Canvas 2.0.0.
+canvas.api.config.page_region.gone.collection:
+  path: '/canvas/api/v0/config/page_region'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiConfigControllers::pageRegionGone'
+  requirements:
+    _canvas_authentication_required: TRUE
+  options:
+    _format: 'json'
+    canvas_external_api: true
+  methods: [GET, POST]
+
+canvas.api.config.page_region.gone.item:
+  path: '/canvas/api/v0/config/page_region/{config_entity_id}'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiConfigControllers::pageRegionGone'
+  requirements:
+    _canvas_authentication_required: TRUE
+  options:
+    _format: 'json'
+    canvas_external_api: true
+  methods: [DELETE, GET, PATCH]
+
 canvas.api.config.patch:
   path: '/canvas/api/v0/config/{canvas_config_entity_type_id}/{canvas_config_entity}'
   defaults:
@@ -208,7 +232,7 @@ canvas.api.config.patch:
     _canvas_http_eligible_config_entity: 'TRUE'
     _entity_access: 'canvas_config_entity.update'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
-    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|page_region|color)'
+    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|page_variant|color)'
   options:
     parameters:
       canvas_config_entity:
@@ -228,7 +252,7 @@ canvas.api.config.post:
     # @todo: Use _entity_create_access once dynamic entity types are supported. See https://www.drupal.org/project/drupal/issues/3516775
     _canvas_entity_create_access: 'canvas_config_entity_type_id'
     # Allow a subset: `Component` config entities are read-only via the internal HTTP API.
-    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|page_region|color)'
+    canvas_config_entity_type_id: '(content_template|folder|pattern|js_component|asset_library|brand_kit|page_variant|color)'
   options:
     # Indicate that external applications may use this route. For authentication, see `modules/canvas_oauth/README.md`.
     canvas_external_api: true
@@ -240,8 +264,9 @@ canvas.api.config.translation.delete:
     _controller: 'Drupal\canvas\Controller\ApiTranslationControllers::deleteConfigTranslation'
   requirements:
     _canvas_authentication_required: TRUE
-    # Symmetrical translations are only supported for Content Templates and Page Regions.
-    canvas_config_entity_type_id: '(content_template|page_region)'
+    # Symmetrical translations are only supported for Content Templates and
+    # Page Variants.
+    canvas_config_entity_type_id: '(content_template|page_variant)'
     _permission: 'translate configuration'
   options:
     parameters:
@@ -250,6 +275,8 @@ canvas.api.config.translation.delete:
     _format: 'json'
   methods: [DELETE]
 
+# The default page variant lives in simple config, so it has its own endpoint
+# (the generic config entity API only handles config entities).
 # @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
 canvas.api.content.auto-save.patch:
   path: '/canvas/api/v0/content/auto-save/canvas_page/{canvas_page}'
@@ -699,6 +726,31 @@ canvas.api.push.start:
     _format: 'json'
     canvas_external_api: true
 
+canvas.api.settings.default_page_variant.get:
+  path: '/canvas/api/v0/settings/default-page-variant'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiSettingsController::getDefaultPageVariant'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _permission: 'administer page template'
+    _canvas_ui_access: 'TRUE'
+  options:
+    _format: 'json'
+    canvas_external_api: true
+  methods: [GET]
+canvas.api.settings.default_page_variant.set:
+  path: '/canvas/api/v0/settings/default-page-variant'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiSettingsController::setDefaultPageVariant'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _permission: 'administer page template'
+    _canvas_ui_access: 'TRUE'
+  options:
+    _format: 'json'
+    canvas_external_api: true
+  methods: [PATCH]
+
 canvas.api.site_data:
   path: '/canvas/api/v0/site-data'
   defaults:
@@ -942,9 +994,9 @@ entity.content_template.edit_form:
       content_template:
         type: entity:content_template
     _admin_route: TRUE
-# @todo Remove this once linking to the Canvas Page Region "focus" editor UI is possible in https://www.drupal.org/i/3502765
-entity.page_region.edit_form:
-  path: '/admin/appearance/page-region/{page_region}'
+# @todo Remove this once linking to the Canvas Page Variant editor UI is possible
+entity.page_variant.edit_form:
+  path: '/admin/structure/page-variant/{page_variant}'
   defaults:
     _controller: '\Drupal\canvas\Controller\NoUiConfigController::placeholder'
     _title_callback: '\Drupal\Core\Entity\Controller\EntityController::editTitle'
@@ -952,6 +1004,6 @@ entity.page_region.edit_form:
     _permission: 'administer page template'
   options:
     parameters:
-      page_region:
-        type: entity:page_region
+      page_variant:
+        type: entity:page_variant
     _admin_route: TRUE

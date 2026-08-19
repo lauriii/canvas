@@ -934,6 +934,7 @@ describe('Pull Command', () => {
       components: Page['components'] = [],
     ): Page => ({
       ...mockPageListItem(id, uuid, title, pagePath),
+      pageVariant: null,
       components,
     });
 

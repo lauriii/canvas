@@ -31,7 +31,11 @@ export const PrimaryPanel = () => {
   const offLeftClasses = useHidePanelClasses('left');
 
   useEffect(() => {
-    if (activePanel === 'templates' && !hasPermission('contentTemplates')) {
+    if (
+      activePanel === 'templates' &&
+      !hasPermission('contentTemplates') &&
+      !hasPermission('pageVariants')
+    ) {
       dispatch(unsetActivePanel());
     }
     if (
@@ -123,7 +127,8 @@ export const PrimaryPanel = () => {
                   </ErrorBoundary>
                 )}
                 {activePanel === 'templates' &&
-                  hasPermission('contentTemplates') && (
+                  (hasPermission('contentTemplates') ||
+                    hasPermission('pageVariants')) && (
                     <ErrorBoundary>
                       <Templates />
                     </ErrorBoundary>

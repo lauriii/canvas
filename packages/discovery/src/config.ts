@@ -11,13 +11,12 @@ export const DEFAULT_CANVAS_CONFIG: CanvasConfig = {
   componentDir: 'src/components',
   pagesDir: 'pages',
   contentTemplatesDir: 'content-templates',
-  regionsDir: 'regions',
+  pageTemplatesDir: 'page-templates',
   globalCssPath: 'src/global.css',
-  layoutPath: 'src/layout.jsx',
   sync: {
     pages: true,
     contentTemplates: true,
-    regions: true,
+    pageTemplates: true,
   },
 };
 
@@ -70,7 +69,23 @@ export function resolveCanvasConfig(
 
   try {
     const raw = readFileSync(configPath, 'utf-8');
-    const parsed = JSON.parse(raw) as Partial<CanvasConfig>;
+    const parsed = JSON.parse(raw) as Partial<CanvasConfig> & {
+      // Region-era keys, parsed only so consumers can warn about the
+      // regions-to-page-variants upgrade path.
+      regionsDir?: unknown;
+      layoutPath?: unknown;
+      sync?: Partial<CanvasConfig['sync']> & { regions?: unknown };
+    };
+    const legacy: CanvasConfig['legacy'] = {};
+    if (typeof parsed.regionsDir === 'string') {
+      legacy.regionsDir = parsed.regionsDir;
+    }
+    if (typeof parsed.sync?.regions === 'boolean') {
+      legacy.syncRegions = parsed.sync.regions;
+    }
+    if (typeof parsed.layoutPath === 'string') {
+      legacy.layoutPath = parsed.layoutPath;
+    }
     return {
       aliasBaseDir: parsed.aliasBaseDir ?? DEFAULT_CANVAS_CONFIG.aliasBaseDir,
       outputDir: parsed.outputDir ?? DEFAULT_CANVAS_CONFIG.outputDir,
@@ -78,17 +93,20 @@ export function resolveCanvasConfig(
       pagesDir: parsed.pagesDir ?? DEFAULT_CANVAS_CONFIG.pagesDir,
       contentTemplatesDir:
         parsed.contentTemplatesDir ?? DEFAULT_CANVAS_CONFIG.contentTemplatesDir,
-      regionsDir: parsed.regionsDir ?? DEFAULT_CANVAS_CONFIG.regionsDir,
+      pageTemplatesDir:
+        parsed.pageTemplatesDir ?? DEFAULT_CANVAS_CONFIG.pageTemplatesDir,
       globalCssPath:
         parsed.globalCssPath ?? resolveDefaultGlobalCssPath(options),
-      layoutPath: parsed.layoutPath ?? DEFAULT_CANVAS_CONFIG.layoutPath,
       sync: {
         pages: parsed.sync?.pages ?? DEFAULT_CANVAS_CONFIG.sync.pages,
         contentTemplates:
           parsed.sync?.contentTemplates ??
           DEFAULT_CANVAS_CONFIG.sync.contentTemplates,
-        regions: parsed.sync?.regions ?? DEFAULT_CANVAS_CONFIG.sync.regions,
+        pageTemplates:
+          parsed.sync?.pageTemplates ??
+          DEFAULT_CANVAS_CONFIG.sync.pageTemplates,
       },
+      ...(Object.keys(legacy).length > 0 ? { legacy } : {}),
     };
   } catch {
     return {

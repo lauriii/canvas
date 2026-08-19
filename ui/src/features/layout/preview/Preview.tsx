@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import { useParams } from 'react-router';
+import { skipToken } from '@reduxjs/toolkit/query';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { selectAutoSavesHash } from '@/components/review/PublishReview.slice';
 import {
+  selectIsInitialized,
   selectLayout,
   selectModel,
   selectUpdatePreview,
@@ -28,6 +30,7 @@ import { useCanvasHeadlessSettings } from '@/hooks/useCanvasHeadlessSettings';
 import { useStableCallback } from '@/hooks/useStableCallback';
 import useSyncTitle from '@/hooks/useSyncTitle';
 import {
+  useGetPageLayoutQuery,
   usePostPatternLayoutMutation,
   usePostTemplateLayoutMutation,
 } from '@/services/componentAndLayout';
@@ -58,6 +61,14 @@ const Preview: React.FC = () => {
   const { showBoundary } = useErrorBoundary();
   useSyncTitle();
 
+  // Whether the model in the store belongs to the currently routed entity.
+  // The loaders set this false the moment the route changes and true only once
+  // the new entity's layout has loaded. A ref keeps it readable at request-send
+  // time, including inside a parked poll whose closure was captured earlier.
+  const isInitialized = useAppSelector(selectIsInitialized);
+  const isInitializedRef = useRef(isInitialized);
+  isInitializedRef.current = isInitialized;
+
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
     null,
   );
@@ -78,12 +89,29 @@ const Preview: React.FC = () => {
     usePostPatternLayoutMutation({
       fixedCacheKey: 'editorFramePatternPreview',
     });
+
+  // While the layout of another entity loads (e.g. switching between a page
+  // and a page variant), the previous preview stays visible with the loading
+  // bar on top. Shares LayoutLoader's cache entry, so this adds no request.
+  const { isFetching: isLayoutFetching } = useGetPageLayoutQuery(
+    entityId && entityType ? { entityId, entityType } : skipToken,
+  );
   const isPatching = useAppSelector((state) =>
     selectUpdateComponentLoadingState(state, selectedComponent),
   );
 
   const sendPreviewRequest = useCallback(
     async (context: 'entity' | 'template' | 'pattern') => {
+      // The layout/model come from a store shared across entities and are not
+      // cleared on navigation, while the request target is derived from the
+      // current route. If the routed entity's own layout has not loaded yet,
+      // the store still holds the previously edited entity's model; persisting
+      // it now would write that entity's content onto the one just navigated
+      // to. Skip until the current entity is initialized. This also cancels any
+      // request that was parked (behind an in-flight AJAX) before navigation.
+      if (!isInitializedRef.current) {
+        return;
+      }
       try {
         // Execute Request
         if (context === 'entity' && entityId && entityType) {
@@ -210,7 +238,8 @@ const Preview: React.FC = () => {
               (isFetching ||
                 isPatching ||
                 isTemplateFetching ||
-                isPatternFetching) &&
+                isPatternFetching ||
+                isLayoutFetching) &&
               !backgroundUpdate
             }
           />

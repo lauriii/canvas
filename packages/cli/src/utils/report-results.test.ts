@@ -54,7 +54,7 @@ describe('reportResults', () => {
         },
         {
           itemName: 'header',
-          itemType: 'Global region',
+          itemType: 'Page template',
           success: true,
           details: [{ content: 'delete' }],
         },
@@ -70,7 +70,7 @@ describe('reportResults', () => {
         'Components: 1 create',
         'Pages: 1 update',
         'Content templates: 1 create',
-        'Global regions: 1 delete',
+        'Page templates: 1 delete',
         'brand kit: 1 font variant create',
       ].join('\n'),
     );
@@ -109,7 +109,7 @@ describe('reportResults', () => {
       [
         {
           itemName: 'header',
-          itemType: 'Global region',
+          itemType: 'Page template',
           success: true,
         },
         {
@@ -135,7 +135,7 @@ describe('reportResults', () => {
       'Pages',
       'Succeeded: Home',
       '',
-      'Global regions',
+      'Page templates',
       'Succeeded: header',
     ]);
   });
@@ -377,7 +377,7 @@ describe('reportResults', () => {
   it('does not split failed results with dotted schema path headings', () => {
     const result = {
       itemName: 'header',
-      itemType: 'Global region',
+      itemType: 'Page template',
       success: false,
       details: [
         {

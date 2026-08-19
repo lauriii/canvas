@@ -1,13 +1,8 @@
 import { useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { DEFAULT_REGION } from '@/features/ui/uiSlice';
 import { getCanvasSettings } from '@/utils/drupal-globals';
-import {
-  removeComponentFromPathname,
-  setPreviewEntityIdInPathname,
-  setRegionInPathname,
-} from '@/utils/route-utils';
+import { setPreviewEntityIdInPathname } from '@/utils/route-utils';
 
 import type { NavigateOptions } from 'react-router-dom';
 import type { TemplateViewMode } from '@/services/componentAndLayout';
@@ -33,27 +28,11 @@ export type TemplateViewModeNavigation = Pick<
  * - Template editor (for view modes)
  * - Code editor (for custom components)
  *
- * Also handles region selection within the current route and exposes
- * navigation utilities globally via `canvasSettings.navUtils`.
+ * Exposes navigation utilities globally via `canvasSettings.navUtils`.
  */
 export function useEditorNavigation() {
   const navigate = useNavigate();
   const location = useLocation();
-
-  /**
-   * Updates the current route to select a specific region.
-   * Removes any component selection from the path and sets the region segment.
-   */
-  const setSelectedRegion = useCallback(
-    (regionId?: string) => {
-      // Remove any /component/:componentId from the path first
-      const basePath = removeComponentFromPathname(location.pathname);
-      // Use the utility to robustly set /region/:regionId
-      const newPath = setRegionInPathname(basePath, regionId, DEFAULT_REGION);
-      navigate(newPath);
-    },
-    [navigate, location.pathname],
-  );
 
   /**
    * Updates the preview entity ID in the current template editor route.
@@ -225,7 +204,6 @@ export function useEditorNavigation() {
    * Also exposed globally via canvasSettings.navUtils for external access.
    */
   const editorNavUtils = {
-    setSelectedRegion,
     setTemplatePreviewEntityId,
     urlForEditor,
     urlForTemplateEditor,

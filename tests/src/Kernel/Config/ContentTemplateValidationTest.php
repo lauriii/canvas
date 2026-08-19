@@ -34,6 +34,14 @@ use PHPUnit\Framework\Attributes\TestWith;
 #[Group('slow')]
 final class ContentTemplateValidationTest extends BetterConfigEntityValidationTestBase {
 
+  /**
+   * {@inheritdoc}
+   */
+  protected static array $propertiesWithOptionalValues = [
+    // An empty selection follows the site default page variant.
+    'page_variant',
+  ];
+
   use BetterConfigDependencyManagerTrait;
   use DataProviderWithComponentTreeTrait;
   use ContentTypeCreationTrait;
@@ -598,6 +606,16 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
     $this->assertValidationErrors([
       '' => "The 'content_entity_type_bundle' property cannot be changed.",
       'content_entity_type_bundle' => "The 'nope' bundle does not exist on the 'node' entity type.",
+    ]);
+  }
+
+  /**
+   * The `page_variant` selection must reference an existing page variant.
+   */
+  public function testInvalidPageVariant(): void {
+    $this->entity->set('page_variant', 'nope');
+    $this->assertValidationErrors([
+      'page_variant' => "The 'canvas.page_variant.nope' config does not exist.",
     ]);
   }
 

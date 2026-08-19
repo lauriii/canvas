@@ -1,0 +1,21 @@
+# The page content marker: an intrinsic placeholder marking where a page
+# variant injects the route's main content. Provided (not discovered) by the
+# marker ComponentSource, so it ships as enforced-dependency config.
+# @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - canvas
+active_version: 3b12c0b99a6caecc
+versioned_properties:
+  active:
+    settings: {  }
+    fallback_metadata:
+      slot_definitions: {  }
+label: 'Page content'
+id: marker.page_content
+provider: canvas
+source: marker
+source_local_id: page_content

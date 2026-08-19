@@ -75,7 +75,7 @@ async function makeDiscovery(
         relativePath: `content-templates/${slug}.json`,
       },
     ],
-    regions: [],
+    pageTemplates: [],
     warnings: [],
     stats: { scannedFiles: 1, ignoredFiles: 0 },
   };
@@ -164,6 +164,45 @@ describe('validateContentTemplates', () => {
       async (discovery) => {
         const { results } = await validateContentTemplates(discovery);
         expect(results).toEqual([{ itemName: 'article', success: true }]);
+      },
+    );
+  });
+
+  it('rejects an unknown page template selection', async () => {
+    await withTempTemplate(
+      {
+        label: 'Article — Full',
+        entityType: 'node',
+        bundle: 'article',
+        viewMode: 'full',
+        pageVariant: 'missing',
+        elements: {
+          hero: {
+            type: 'js.hero',
+            props: {
+              title: { sourceType: 'entity-field', expression: 'X' },
+            },
+          },
+        },
+      },
+      [heroMetadata],
+      async (discovery) => {
+        const { results } = await validateContentTemplates(discovery, {
+          availablePageVariantIds: new Set(['default']),
+        });
+        expect(results).toEqual([
+          {
+            itemName: 'Article — Full (article.json)',
+            success: false,
+            details: [
+              {
+                heading: 'pageVariant',
+                content:
+                  'Unknown page template "missing". Pull it from the site or add its file under page-templates.',
+              },
+            ],
+          },
+        ]);
       },
     );
   });

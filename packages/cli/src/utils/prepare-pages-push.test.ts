@@ -19,7 +19,7 @@ const emptyDiscoveryResult: DiscoveryResult = {
   components: [],
   pages: [],
   contentTemplates: [],
-  regions: [],
+  pageTemplates: [],
   warnings: [],
   stats: { scannedFiles: 0, ignoredFiles: 0 },
 };
@@ -77,6 +77,7 @@ describe('preparePages', () => {
       JSON.stringify({
         uuid: 'page-uuid-1',
         title: 'Home',
+        pageVariant: 'marketing',
         elements: {
           'comp-1': { type: 'js.hero', props: { heading: 'Welcome' } },
         },
@@ -97,6 +98,7 @@ describe('preparePages', () => {
     expect(valid).toHaveLength(1);
     expect(valid[0].result.title).toBe('Home');
     expect(valid[0].result.uuid).toBe('page-uuid-1');
+    expect(valid[0].result.pageVariant).toBe('marketing');
     expect(valid[0].result.components).toHaveLength(1);
     expect(valid[0].result.components[0].component_id).toBe('js.hero');
     expect(valid[0].result.components[0].component_version).toBe('v1');
@@ -164,6 +166,7 @@ describe('pushPages', () => {
           uuid: 'page-uuid-1',
           title: 'Home',
           description: '',
+          pageVariant: 'marketing',
           path: '/home',
           components: [],
           filePath,
@@ -186,6 +189,14 @@ describe('pushPages', () => {
     expect(results[0].success).toBe(true);
     expect(results[0].result?.operation).toBe('Updated');
     expect(api.updatePage).toHaveBeenCalledTimes(1);
+    expect(api.updatePage).toHaveBeenCalledWith(1, {
+      title: 'Home',
+      description: '',
+      pageVariant: 'marketing',
+      status: true,
+      path: '/home',
+      components: [],
+    });
     expect(api.createPage).not.toHaveBeenCalled();
   });
 
@@ -204,6 +215,7 @@ describe('pushPages', () => {
           uuid: 'page-uuid-1',
           title: 'Home',
           description: '',
+          pageVariant: null,
           path: '/new-home',
           components: [],
           filePath,
@@ -247,6 +259,7 @@ describe('pushPages', () => {
           uuid: 'page-uuid-1',
           title: 'Home',
           description: '',
+          pageVariant: null,
           path: '',
           components: [],
           filePath,
@@ -290,6 +303,7 @@ describe('pushPages', () => {
           uuid: null as string | null,
           title: 'New Page',
           description: '',
+          pageVariant: null,
           path: '',
           components: [],
           filePath,
@@ -313,6 +327,14 @@ describe('pushPages', () => {
     expect(results[0].success).toBe(true);
     expect(results[0].result?.operation).toBe('Created');
     expect(api.createPage).toHaveBeenCalledTimes(1);
+    expect(api.createPage).toHaveBeenCalledWith({
+      title: 'New Page',
+      description: '',
+      pageVariant: null,
+      status: false,
+      path: '',
+      components: [],
+    });
     expect(api.updatePage).not.toHaveBeenCalled();
 
     // Verify UUID was written back to the file.
@@ -330,6 +352,7 @@ describe('pushPages', () => {
           uuid: 'page-uuid-2',
           title: 'Second',
           description: '',
+          pageVariant: null,
           path: '/changed-second',
           components: [],
           filePath: secondFilePath,

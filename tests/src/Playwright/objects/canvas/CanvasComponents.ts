@@ -131,7 +131,12 @@ export function CanvasComponentsMixin<
         : undefined;
       await componentLocator.hover();
       await componentLocator.getByLabel('Open contextual menu').click();
-      await this.page.getByText('Insert').click();
+      const insertItem = this.page.getByRole('menuitem', { name: 'Insert' });
+      await expect(insertItem).toBeVisible();
+      await insertItem.click();
+      // The modal menu closing confirms the item's click handler ran (a click
+      // landing during a re-render can be swallowed, leaving the menu open).
+      await expect(insertItem).toBeHidden();
 
       if (waitForVisible && initialCount !== undefined) {
         await expect(this.page.locator(previewSelector)).toHaveCount(

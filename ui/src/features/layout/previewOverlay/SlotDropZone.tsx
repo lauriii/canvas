@@ -9,7 +9,6 @@ import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import type React from 'react';
 import type {
   ComponentNode,
-  RegionNode,
   SlotNode,
 } from '@/features/layout/layoutModelSlice';
 
@@ -19,10 +18,9 @@ export interface SlotDropZoneProps {
   slot: SlotNode;
   position: 'before' | 'after';
   parentComponent?: ComponentNode;
-  parentRegion?: RegionNode;
 }
 const SlotDropZone: React.FC<SlotDropZoneProps> = (props) => {
-  const { slot, position, parentRegion, parentComponent } = props;
+  const { slot, position, parentComponent } = props;
   const layout = useAppSelector(selectLayout);
   const [activeOrigin, setActiveOrigin] = useState('');
   const accepts = ['overlay', 'library'];
@@ -45,7 +43,6 @@ const SlotDropZone: React.FC<SlotDropZoneProps> = (props) => {
       slot: slot,
       component: parentComponent,
       position: position,
-      parentRegion: parentRegion,
       path: slotPath,
       accepts,
     },

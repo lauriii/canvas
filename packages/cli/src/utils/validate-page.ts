@@ -23,6 +23,7 @@ import type { Result } from '../types/Result';
 
 export interface PageValidationOptions {
   remotePageByUuid?: Map<string, PageListItem>;
+  availablePageVariantIds?: ReadonlySet<string>;
 }
 
 /**
@@ -54,6 +55,17 @@ export async function validatePages(
       const pageTitle = typeof spec.title === 'string' ? spec.title : undefined;
 
       const details: { heading?: string; content: string }[] = [];
+
+      if (
+        typeof spec.pageVariant === 'string' &&
+        options.availablePageVariantIds &&
+        !options.availablePageVariantIds.has(spec.pageVariant)
+      ) {
+        details.push({
+          heading: 'pageVariant',
+          content: `Unknown page template "${spec.pageVariant}". Pull it from the site or add its file under page-templates.`,
+        });
+      }
 
       // Validate the page file structure against the page spec schema.
       if (!validatePageSpec(spec)) {

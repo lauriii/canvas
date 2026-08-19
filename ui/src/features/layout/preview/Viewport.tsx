@@ -4,7 +4,6 @@ import { useParams } from 'react-router';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import IframeSwapper from '@/features/layout/preview/IframeSwapper';
 import PreviewProgress from '@/features/layout/preview/PreviewProgress';
-import { RegionSpotlight } from '@/features/layout/preview/RegionSpotlight/RegionSpotlight';
 import ViewportOverlay from '@/features/layout/previewOverlay/ViewportOverlay';
 import {
   EditorFrameMode,
@@ -88,10 +87,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
         interactive={editorFrameMode === EditorFrameMode.INTERACTIVE}
       />
       {editorFrameMode === EditorFrameMode.EDIT && (
-        <>
-          <ViewportOverlay previewContainerRef={previewContainerRef} />
-          <RegionSpotlight />
-        </>
+        <ViewportOverlay previewContainerRef={previewContainerRef} />
       )}
     </div>
   );
