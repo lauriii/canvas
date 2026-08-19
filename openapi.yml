@@ -3037,6 +3037,42 @@ paths:
           $ref: '#/components/responses/AuthenticationErrorResponse'
         '422':
           $ref: '#/components/responses/ClientErrorResponse'
+  /canvas/api/v0/self-rendering-templates:
+    get:
+      summary: Lists self-rendering template config entities the user may edit, grouped by entity type.
+      responses:
+        '200':
+          description: Groups of editable self-rendering templates.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  required:
+                    - label
+                    - templates
+                  properties:
+                    label:
+                      type: string
+                    templates:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - id
+                          - label
+                        properties:
+                          id:
+                            type: string
+                          label:
+                            type: string
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
   /canvas/api/v0/notifications:
     description: Fetch recent notifications for the authenticated user.
     get:

@@ -97,6 +97,20 @@ export type PreviewContentEntity = {
   label: string;
 };
 
+export type SelfRenderingTemplate = {
+  id: string;
+  label: string;
+};
+
+export type SelfRenderingTemplateGroup = {
+  label: string;
+  templates: SelfRenderingTemplate[];
+};
+
+export type SelfRenderingTemplatesList = {
+  [entityTypeId: string]: SelfRenderingTemplateGroup;
+};
+
 export type PreviewContentEntitiesResponse = {
   [key: string]: PreviewContentEntity;
 };
@@ -161,6 +175,7 @@ export const componentAndLayoutApi = createApi({
     'ContentTemplates',
     'ViewModes',
     'PreviewContentEntities',
+    'SelfRenderingTemplates',
   ],
   endpoints: (builder) => ({
     getComponents: builder.query<
@@ -770,6 +785,10 @@ export const componentAndLayoutApi = createApi({
       query: () => `canvas/api/v0/ui/content_template/view_modes/node`,
       providesTags: () => [{ type: 'ViewModes', id: 'LIST' }],
     }),
+    getSelfRenderingTemplates: builder.query<SelfRenderingTemplatesList, void>({
+      query: () => `canvas/api/v0/self-rendering-templates`,
+      providesTags: () => [{ type: 'SelfRenderingTemplates', id: 'LIST' }],
+    }),
     getPreviewContentEntities: builder.query<
       PreviewContentEntitiesResponse,
       { entityTypeId: string; bundle: string }
@@ -811,6 +830,7 @@ export const {
   useUpdateContentTemplateMutation,
   useGetContentTemplatesQuery,
   useGetViewModesQuery,
+  useGetSelfRenderingTemplatesQuery,
   useGetPreviewContentEntitiesQuery,
   useDeletePageTranslationMutation,
 } = componentAndLayoutApi;

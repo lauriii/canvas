@@ -35,6 +35,17 @@ canvas.api.auto-save.get:
   options:
     _format: 'json'
 
+canvas.api.self_rendering_templates:
+  path: '/canvas/api/v0/self-rendering-templates'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiSelfRenderingTemplatesController::list'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _canvas_ui_access: 'TRUE'
+  methods: ['GET']
+  options:
+    _format: 'json'
+
 canvas.api.auto-save.post:
   path: '/canvas/api/v0/auto-saves/publish'
   defaults:

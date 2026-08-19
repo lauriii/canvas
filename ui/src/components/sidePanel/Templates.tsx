@@ -12,10 +12,12 @@ import {
 import TemplateList from '@/components/list/TemplateList';
 import PermissionCheck from '@/components/PermissionCheck';
 import PageVariants from '@/components/sidePanel/PageVariants';
+import SidebarNode from '@/components/sidePanel/SidebarNode';
 import { extractErrorMessageFromApiResponse } from '@/features/error-handling/error-handling';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import {
   useCreateContentTemplateMutation,
+  useGetSelfRenderingTemplatesQuery,
   useGetViewModesQuery,
 } from '@/services/componentAndLayout';
 import { getCanvasSettings } from '@/utils/drupal-globals';
@@ -67,8 +69,47 @@ const Templates = () => {
             </ErrorBoundary>
           </AccordionDetails>
         </PermissionCheck>
+        <SelfRenderingTemplateSections
+          openEntityTypes={openEntityTypes}
+          onToggle={onClickHandler}
+        />
       </AccordionRoot>
     </>
+  );
+};
+
+const SelfRenderingTemplateSections = ({
+  openEntityTypes,
+  onToggle,
+}: {
+  openEntityTypes: string[];
+  onToggle: (categoryName: string) => void;
+}) => {
+  const { data } = useGetSelfRenderingTemplatesQuery();
+  if (!data) {
+    return null;
+  }
+  return (
+    Object.entries(data)
+      // Patterns already have a surface of their own.
+      .filter(([entityTypeId]) => entityTypeId !== 'pattern')
+      .map(([entityTypeId, group]) => (
+        <AccordionDetails
+          key={entityTypeId}
+          value={entityTypeId}
+          title={group.label}
+          onTriggerClick={() => onToggle(entityTypeId)}
+        >
+          {group.templates.map((template) => (
+            <SidebarNode
+              key={template.id}
+              title={template.label}
+              variant="template"
+              to={`/editor/${entityTypeId}/${template.id}`}
+            />
+          ))}
+        </AccordionDetails>
+      ))
   );
 };
 
