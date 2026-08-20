@@ -210,3 +210,26 @@ MVP stand-ins, stated: mappings are edited on the entity form (the real
 gesture is the props panel, list-builder Phase B); string props only; no
 pager; per-row output not render cached; the Templates panel does not yet
 list views (navigate via the admin form's "Design in Canvas" link).
+
+## Sixth iteration: field mappings become real prop sources
+
+The owner's correction: mappings must use prop sources. The `mappings`
+side-table on the display entity is gone; a mapped prop now stores
+
+    {"sourceType": "list-field", "field": "title"}
+
+in the component's inputs, like every other binding. Core (on the
+feat/template-host-mvp branch) adds `ListFieldPropSource` plus the
+`ListFieldContext` service: the display pushes each row's declared field
+values (its view's rendered field handlers) around each row's render, and
+the source resolves through the normal PropSource evaluation pipeline with
+the frame's cacheability. Validation treats a list-field prop as carrying
+the component's default value, since the per-row value is the renderer's
+guarantee.
+
+Verified end to end: stored representation in config, per-row live and
+preview resolution, the admin form reading and writing the tree sources
+(unmapping restores the component's static default), the client model
+carrying {source: {sourceType: list-field}, resolved: null} without errors,
+and an editor edit + publish round-trip preserving the source untouched —
+the same passthrough entity field sources rely on.

@@ -96,7 +96,6 @@ final class CanvasViewsDisplayForm extends EntityForm {
     foreach ($view->field as $field_id => $handler) {
       $field_options[$field_id] = (string) $handler->adminLabel();
     }
-    $mappings = $entity->getMappings();
     $rows = [];
     foreach ($entity->get('component_tree') ?? [] as $item) {
       $component = Component::load($item['component_id']);
@@ -107,8 +106,12 @@ final class CanvasViewsDisplayForm extends EntityForm {
       if (\is_string($inputs)) {
         $inputs = Json::decode($inputs) ?? [];
       }
-      foreach (\array_keys($inputs) as $prop_name) {
-        $rows[$item['uuid']][$prop_name] = [
+      foreach ($inputs as $prop_name => $input) {
+        // The current mapping is the prop's stored list-field source, if any.
+        $current = \is_array($input) && ($input['sourceType'] ?? NULL) === 'list-field'
+          ? ($input['field'] ?? '')
+          : '';
+        $rows[$item['uuid']][(string) $prop_name] = [
           '#type' => 'select',
           '#title' => $this->t('@component: @prop', [
             '@component' => (string) $component->label(),
@@ -116,7 +119,7 @@ final class CanvasViewsDisplayForm extends EntityForm {
           ]),
           '#options' => $field_options,
           '#empty_option' => $this->t('- Keep the static value -'),
-          '#default_value' => $mappings[$item['uuid']][$prop_name] ?? '',
+          '#default_value' => $current,
         ];
       }
     }
@@ -142,17 +145,40 @@ final class CanvasViewsDisplayForm extends EntityForm {
     $entity = $this->entity;
     \assert($entity instanceof CanvasViewsDisplay);
     $raw = $form_state->getValue('mappings') ?? [];
-    $mappings = [];
-    foreach ($raw as $uuid => $props) {
-      if (!\is_array($props)) {
+    // Mappings are stored in the tree itself, as list-field prop sources on
+    // the mapped props. Unmapping restores the component's static default.
+    $tree = $entity->get('component_tree') ?? [];
+    foreach ($tree as &$item) {
+      $selections = $raw[$item['uuid']] ?? NULL;
+      if (!\is_array($selections)) {
         continue;
       }
-      $kept = \array_filter($props, static fn (mixed $v): bool => \is_string($v) && $v !== '');
-      if ($kept !== []) {
-        $mappings[$uuid] = $kept;
+      $inputs = $item['inputs'] ?? [];
+      $was_json = \is_string($inputs);
+      if ($was_json) {
+        $inputs = Json::decode($inputs) ?? [];
+      }
+      $component = Component::load($item['component_id']);
+      $defaults = $component?->getComponentSource()->getDefaultExplicitInput() ?? [];
+      $changed = FALSE;
+      foreach ($selections as $prop_name => $field_id) {
+        $is_mapped = \is_array($inputs[$prop_name] ?? NULL) && (($inputs[$prop_name]['sourceType'] ?? NULL) === 'list-field');
+        if (\is_string($field_id) && $field_id !== '') {
+          $inputs[$prop_name] = ['sourceType' => 'list-field', 'field' => $field_id];
+          $changed = TRUE;
+        }
+        elseif ($is_mapped) {
+          // Unmapped: fall back to the component's default static input.
+          $inputs[$prop_name] = $defaults[$prop_name] ?? '';
+          $changed = TRUE;
+        }
+      }
+      if ($changed) {
+        $item['inputs'] = $was_json ? Json::encode($inputs) : $inputs;
       }
     }
-    $entity->set('mappings', $mappings);
+    unset($item);
+    $entity->set('component_tree', $tree);
     $result = $entity->save();
     $this->messenger()->addStatus($this->t('Saved the %label Canvas views display.', ['%label' => $entity->label()]));
     $form_state->setRedirectUrl($entity->toUrl('collection'));

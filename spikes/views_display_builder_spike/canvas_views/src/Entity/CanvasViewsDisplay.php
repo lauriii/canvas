@@ -7,8 +7,8 @@ namespace Drupal\canvas_views\Entity;
 use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
 use Drupal\canvas\Entity\PreviewRenderableInterface;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\canvas\PropSource\ListFieldContext;
 use Drupal\canvas_views\Form\CanvasViewsDisplayForm;
-use Drupal\Component\Serialization\Json;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
 use Drupal\Core\Entity\EntityListBuilder;
@@ -24,9 +24,11 @@ use Drupal\views\Views;
  * The view is the query; this entity is the experience. Its tree is designed
  * in the Canvas editor (the entity is a self-rendering template there:
  * repetition per result row, editing annotations on the first repetition
- * only), and its `mappings` bind template component props to the view's
- * declared fields (the display's field handlers). Each entity of this type is
- * exposed as a placeable component by the `views_display` component source.
+ * only). Template component props map to the view's declared fields (the
+ * display's field handlers) through `list-field` prop sources stored in the
+ * tree, resolved per row via ListFieldContext during hydration. Each entity
+ * of this type is exposed as a placeable component by the `views_display`
+ * component source.
  *
  * MVP quality: string-shaped mapped values, no pager, per-row output not
  * render cached.
@@ -63,7 +65,6 @@ use Drupal\views\Views;
     'label',
     'view_id',
     'component_tree',
-    'mappings',
   ],
 )]
 final class CanvasViewsDisplay extends ComponentTreeConfigEntityBase implements PreviewRenderableInterface {
@@ -82,13 +83,6 @@ final class CanvasViewsDisplay extends ComponentTreeConfigEntityBase implements 
   protected ?string $label;
 
   protected ?string $view_id = NULL;
-
-  /**
-   * Prop mappings: component instance UUID => prop name => views field ID.
-   *
-   * @var array<string, array<string, string>>
-   */
-  protected array $mappings = [];
 
   /**
    * {@inheritdoc}
@@ -114,14 +108,6 @@ final class CanvasViewsDisplay extends ComponentTreeConfigEntityBase implements 
 
   public function getViewId(): string {
     return $this->view_id ?? '';
-  }
-
-  /**
-   * @return array<string, array<string, string>>
-   *   The prop mappings.
-   */
-  public function getMappings(): array {
-    return $this->mappings;
   }
 
   /**
@@ -191,18 +177,30 @@ final class CanvasViewsDisplay extends ComponentTreeConfigEntityBase implements 
     }
 
     $raw_items = \array_values($this->component_tree ?? []);
+    // @phpstan-ignore globalDrupalDependencyInjection.useDependencyInjection
+    $list_field_context = \Drupal::service(ListFieldContext::class);
+    \assert($list_field_context instanceof ListFieldContext);
     foreach ($view->result as $index => $row) {
       $row_entity = $row->_entity;
-      $items = $this->prepareRowItems($raw_items, $view, $index);
       $item_list = $this->createDanglingComponentTreeItemList(
         $row_entity instanceof FieldableEntityInterface ? $row_entity : $this
       );
-      $item_list->setValue($items);
+      $item_list->setValue($raw_items);
       $row_is_preview = $is_preview && $index === 0;
+      // The tree's list-field prop sources resolve against this row's
+      // declared field values during hydration, through the normal prop
+      // source evaluation pipeline.
+      $list_field_context->push($this->buildRowFieldValues($view, $index), $cacheability);
+      try {
+        $row_build = $item_list->toRenderable($row_entity instanceof FieldableEntityInterface ? $row_entity : $this, $row_is_preview);
+      }
+      finally {
+        $list_field_context->pop();
+      }
       $build['rows'][$index] = [
         '#type' => 'container',
         '#attributes' => ['class' => ['canvas-views-display__row']],
-        'content' => $item_list->toRenderable($row_entity instanceof FieldableEntityInterface ? $row_entity : $this, $row_is_preview),
+        'content' => $row_build,
       ];
     }
 
@@ -211,40 +209,20 @@ final class CanvasViewsDisplay extends ComponentTreeConfigEntityBase implements 
   }
 
   /**
-   * Applies this row's mapped field values over the stored static inputs.
+   * One row's declared field values: the display's rendered field handlers.
    *
-   * @return array<int, array<string, mixed>>
-   *   Item values ready for ComponentTreeItemList::setValue().
+   * Render-context-safe via StylePluginBase::getField(); string-shaped values
+   * only for now.
+   *
+   * @return array<string, string>
+   *   Values keyed by views field ID.
    */
-  private function prepareRowItems(array $raw_items, ViewExecutable $view, int $row_index): array {
-    $items = [];
-    foreach ($raw_items as $item_value) {
-      $item_mappings = $this->mappings[$item_value['uuid']] ?? [];
-      if ($item_mappings !== []) {
-        $inputs = $item_value['inputs'] ?? [];
-        $was_json = \is_string($inputs);
-        if ($was_json) {
-          $inputs = Json::decode($inputs) ?? [];
-        }
-        foreach ($item_mappings as $prop_name => $field_id) {
-          if (!isset($inputs[$prop_name]) || !isset($view->field[$field_id])) {
-            continue;
-          }
-          // Render-context-safe rendered field output; string props only.
-          // @see \Drupal\views\Plugin\views\style\StylePluginBase::renderFields()
-          $rendered = \trim(\strip_tags((string) $view->style_plugin?->getField($row_index, $field_id)));
-          if (\is_array($inputs[$prop_name])) {
-            $inputs[$prop_name]['value'] = $rendered;
-          }
-          else {
-            $inputs[$prop_name] = $rendered;
-          }
-        }
-        $item_value['inputs'] = $was_json ? Json::encode($inputs) : $inputs;
-      }
-      $items[] = $item_value;
+  private function buildRowFieldValues(ViewExecutable $view, int $row_index): array {
+    $values = [];
+    foreach (\array_keys($view->field) as $field_id) {
+      $values[(string) $field_id] = \trim(\strip_tags((string) $view->style_plugin?->getField($row_index, (string) $field_id)));
     }
-    return $items;
+    return $values;
   }
 
 }
