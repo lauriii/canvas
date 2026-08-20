@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas_views\Entity;
 
 use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
+use Drupal\canvas\Entity\ListFieldsProviderInterface;
 use Drupal\canvas\Entity\PreviewRenderableInterface;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\PropSource\ListFieldContext;
@@ -67,7 +68,7 @@ use Drupal\views\Views;
     'component_tree',
   ],
 )]
-final class CanvasViewsDisplay extends ComponentTreeConfigEntityBase implements PreviewRenderableInterface {
+final class CanvasViewsDisplay extends ComponentTreeConfigEntityBase implements PreviewRenderableInterface, ListFieldsProviderInterface {
 
   public const string ENTITY_TYPE_ID = 'canvas_views_display';
 
@@ -129,6 +130,24 @@ final class CanvasViewsDisplay extends ComponentTreeConfigEntityBase implements 
     }
     $view->setDisplay('default');
     return $view;
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * The view's field handlers are the declared fields.
+   */
+  public function getDeclaredListFields(): array {
+    $view = $this->getViewExecutable();
+    if ($view === NULL) {
+      return [];
+    }
+    $view->initHandlers();
+    $fields = [];
+    foreach ($view->field as $field_id => $handler) {
+      $fields[(string) $field_id] = (string) $handler->adminLabel();
+    }
+    return $fields;
   }
 
   /**

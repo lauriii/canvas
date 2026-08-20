@@ -233,3 +233,25 @@ preview resolution, the admin form reading and writing the tree sources
 carrying {source: {sourceType: list-field}, resolved: null} without errors,
 and an editor edit + publish round-trip preserving the source untouched —
 the same passthrough entity field sources rely on.
+
+## Seventh iteration: mapping happens in the editor UI
+
+The owner's correction: "I should be able to map using the UI." The admin
+form's mappings section is now the secondary surface; the primary gesture
+is the props panel's link control, the same one content templates use.
+
+The display entity implements core's new `ListFieldsProviderInterface`,
+declaring one field per views field handler (`getDeclaredListFields()`).
+Core's component instance form offers those as link suggestions on every
+string-shaped prop; picking one writes the list-field source into the
+model, unlinking restores the static widget with the component default.
+Two content-template assumptions in core had to generalize: the linked/
+linkable form machinery keyed off `ContentTemplate` (now keyed off
+suggestions being present, with a nullable host data definition), and the
+client's `_linkPropToEntityValue` hardcoded the content-template PATCH URL
+(now uses the live editor frame context).
+
+Verified in the editor: link, unlink, and relink from the dropdown; the
+badge reads "title (per item)"; the preview swaps static defaults for
+per-row titles on link; the published tree stores the list-field source;
+anonymous render shows per-row values.
