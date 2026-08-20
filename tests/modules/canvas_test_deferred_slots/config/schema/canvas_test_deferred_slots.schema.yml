@@ -1,0 +1,10 @@
+canvas.component_source_local_id.test_deferred:
+  type: canvas.component_source_local_id.*
+  label: 'Test deferred component ID'
+  constraints:
+    FullyValidatable: ~
+canvas.component_source_settings.test_deferred:
+  type: canvas.component_source_settings.*
+  label: 'Test deferred component settings'
+  constraints:
+    FullyValidatable: ~

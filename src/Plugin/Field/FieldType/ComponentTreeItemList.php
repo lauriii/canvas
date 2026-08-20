@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Plugin\Field\FieldType;
 
 use Drupal\canvas\ComponentSource\ComponentSourceInterface;
+use Drupal\canvas\ComponentSource\ComponentSourceWithDeferredSlotsInterface;
 use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\canvas\ComponentSource\ComponentSourceWithSwitchCasesInterface;
 use Drupal\canvas\Element\RenderSafeComponentContainer;
@@ -465,12 +466,72 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
     }
   }
 
+  /**
+   * Maps every descendant of a deferred component to its outermost such root.
+   *
+   * A "deferred root" is a component instance whose source implements
+   * ComponentSourceWithDeferredSlotsInterface. Its descendants must not be
+   * hydrated against this tree's host; the raw stored item values are handed
+   * to the root's source instead, which renders them itself — possibly many
+   * times, against hosts of its own choosing. When deferred roots nest, the
+   * outermost one receives the whole subtree: rendering it through a dangling
+   * tree re-enters this mechanism for the inner root.
+   *
+   * @param array<string, \Drupal\canvas\Entity\Component> $components
+   *   The Component config entities used in this tree, keyed by ID.
+   *
+   * @return array<string, string>
+   *   Descendant component instance UUIDs mapped to the UUID of their
+   *   outermost deferred root. Empty when no source in this tree defers.
+   */
+  private function getDeferredSlotDescendants(array $components): array {
+    $parents = [];
+    $deferred_roots = [];
+    foreach ($this->getValue() as $item_value) {
+      $parents[$item_value['uuid']] = $item_value['parent_uuid'] ?? NULL;
+      $component = $components[$item_value['component_id']] ?? NULL;
+      if ($component !== NULL && $component->getComponentSource() instanceof ComponentSourceWithDeferredSlotsInterface) {
+        $deferred_roots[$item_value['uuid']] = TRUE;
+      }
+    }
+    if ($deferred_roots === []) {
+      return [];
+    }
+    $map = [];
+    foreach (\array_keys($parents) as $uuid) {
+      // Walk up the ancestor chain; the last deferred ancestor found is the
+      // outermost one. Guard against parent cycles: structure validation
+      // rejects them, but hydration must not hang on invalid data either.
+      $outermost = NULL;
+      $visited = [$uuid => TRUE];
+      $ancestor = $parents[$uuid] ?? NULL;
+      while ($ancestor !== NULL && !isset($visited[$ancestor])) {
+        $visited[$ancestor] = TRUE;
+        if (isset($deferred_roots[$ancestor])) {
+          $outermost = $ancestor;
+        }
+        $ancestor = $parents[$ancestor] ?? NULL;
+      }
+      if ($outermost !== NULL) {
+        $map[$uuid] = $outermost;
+      }
+    }
+    return $map;
+  }
+
   private function getHydratedValue(): array {
     $hydrated = [];
 
     // Load and bulk set all unique Components used in this tree in a single
     // ::loadMultiple call.
     $components = Component::loadMultiple($this->getComponentIdList());
+
+    // Descendants of a deferred-slots source are not hydrated here: their raw
+    // stored values are attached to the deferred root below, and the root's
+    // source renders them itself.
+    // @see \Drupal\canvas\ComponentSource\ComponentSourceWithDeferredSlotsInterface
+    $deferred_descendants = $this->getDeferredSlotDescendants($components);
+    $deferred_items_by_root = [];
 
     // Hydrate all component instances, but only considering props. This
     // essentially means getting the values for each component instance, while
@@ -480,6 +541,10 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       \assert($item instanceof ComponentTreeItem);
       $component_id = $item->getComponentId();
       $uuid = $item->getUuid();
+      if (isset($deferred_descendants[$uuid])) {
+        $deferred_items_by_root[$deferred_descendants[$uuid]][] = $item->getValue();
+        continue;
+      }
       $component = $components[$component_id];
       \assert($component instanceof Component);
       $component->loadVersion($item->getComponentVersion());
@@ -521,6 +586,25 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
         $required_props_with_default_values_in_current_implementation,
       );
       \assert(!\array_key_exists('slots', $hydrated[$uuid]) || \is_array($hydrated[$uuid]['slots']));
+      if ($source instanceof ComponentSourceWithDeferredSlotsInterface) {
+        // A deferred root renders its slots itself: any hydrated `slots` (for
+        // example default slot values) must not reach renderify(), which would
+        // call setSlots() and let default content overwrite the source's own
+        // rendering. Initialize the deferred key so the source can rely on it
+        // even when the slot is empty.
+        unset($hydrated[$uuid]['slots']);
+        $hydrated[$uuid][ComponentSourceWithDeferredSlotsInterface::DEFERRED_ITEMS_KEY] = [];
+      }
+    }
+
+    // Attach the raw deferred subtrees to their deferred root, for that root's
+    // source to render, replacing the empty default set above. A root whose
+    // own hydration failed keeps only its exception: it will not render
+    // anyway.
+    foreach ($deferred_items_by_root as $root_uuid => $raw_items) {
+      if (isset($hydrated[$root_uuid]) && !\array_key_exists(self::HYDRATION_EXCEPTION_KEY, $hydrated[$root_uuid])) {
+        $hydrated[$root_uuid][ComponentSourceWithDeferredSlotsInterface::DEFERRED_ITEMS_KEY] = $raw_items;
+      }
     }
 
     // Transform the flat list of hydrated components into a hydrated component
@@ -529,6 +613,13 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
     // last iteration assigning the last component to the component tree's root.
     foreach ($this->getSlotChildrenDepthFirst() as $parent_uuid => ['slot' => $slot, 'uuid' => $uuid]) {
       if ($parent_uuid === self::ROOT_UUID) {
+        continue;
+      }
+
+      // Deferred descendants were not hydrated and are not grafted: their raw
+      // values already sit on their deferred root.
+      // @see \Drupal\canvas\ComponentSource\ComponentSourceWithDeferredSlotsInterface
+      if (isset($deferred_descendants[$uuid])) {
         continue;
       }
 
