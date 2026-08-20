@@ -842,13 +842,33 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       }
     }
 
+    // A list-field prop source resolves per iteration of a repeating
+    // renderer; at validation time there is no iteration. Validate such props
+    // as the component's default value — the same design-time state an
+    // unmapped prop has — because the per-iteration value is the renderer's
+    // guarantee, not this component instance's.
+    // @see \Drupal\canvas\PropSource\ListFieldPropSource
+    $list_field_props = \array_keys(\array_filter(
+      $inputValues,
+      static fn (array $prop_source): bool => ($prop_source['sourceType'] ?? NULL) === PropSource::ListField->value,
+    ));
+    if ($list_field_props !== []) {
+      $default_inputs = $this->getDefaultExplicitInput();
+      foreach ($list_field_props as $prop) {
+        if ($resolvedInputValues[$prop] === NULL && isset($default_inputs[$prop])) {
+          $resolvedInputValues[$prop] = PropSource::parse($default_inputs[$prop])
+            ->evaluate($entity, is_required: FALSE)->value;
+        }
+      }
+    }
+
     try {
       // Omit optional props whose value evaluated to NULL before validation.
       // Otherwise, ComponentValidator will throw an error like "NULL value
       // found, but an object is required" for optional object props.
       // @see \Drupal\Core\Theme\Component\ComponentValidator::validateProps()
       foreach ($resolvedInputValues as $prop => $resolved_value) {
-        if ($resolved_value === NULL && !\in_array($prop, $required_props, TRUE)) {
+        if ($resolved_value === NULL && (!\in_array($prop, $required_props, TRUE) || \in_array($prop, $list_field_props, TRUE))) {
           unset($resolvedInputValues[$prop]);
         }
       }

@@ -19,6 +19,7 @@ use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Entity\Pattern;
+use Drupal\canvas\Entity\PreviewRenderableInterface;
 use Drupal\canvas\Entity\StagedLanguageConfigOverride;
 use Drupal\canvas\EntityHandlers\StagedLanguageConfigOverrideAccessControlHandler;
 use Drupal\canvas\EntityHandlers\StagedLanguageConfigOverrideStorage;
@@ -265,6 +266,7 @@ final class Layers {
         Selector::classname(ContentTemplate::class),
         Selector::classname(EmptyTargetEntityProviderInterface::class),
         Selector::classname(Pattern::class),
+        Selector::classname(PreviewRenderableInterface::class),
         // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::validateComponentInput()
         self::usesConstraintViolationValueObjects(),
         // For the translatability of inputs.
