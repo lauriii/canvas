@@ -26,7 +26,6 @@ import {
 import type { PayloadAction } from '@reduxjs/toolkit';
 import type { StateWithHistory } from 'redux-undo';
 import type { AppThunk } from '@/app/store';
-import type { EditorFrameContext } from '@/features/ui/uiSlice';
 import type {
   CanvasComponent,
   ComponentsList,
@@ -852,7 +851,9 @@ export const _linkPropToEntityValue =
       delete resolved[propName];
 
       const valuePayload = {
-        type: 'template' as EditorFrameContext,
+        // Linking is available wherever the form offers suggestions: content
+        // templates and self-rendering templates with declared list fields.
+        type: selectEditorFrameContext(state),
         componentInstanceUuid: componentToUpdateId,
         componentType: `${selectedComponentType}@${version}`,
         model: {

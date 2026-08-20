@@ -157,7 +157,8 @@ final class EntityFieldPropSource extends PropSourceBase implements LinkableProp
     return $deps;
   }
 
-  public function label(EntityDataDefinitionInterface $host_entity_data_definition): TranslatableMarkup {
+  public function label(?EntityDataDefinitionInterface $host_entity_data_definition): TranslatableMarkup {
+    \assert($host_entity_data_definition !== NULL);
     return Labeler::flatten(Labeler::label($this->expression, $host_entity_data_definition));
   }
 

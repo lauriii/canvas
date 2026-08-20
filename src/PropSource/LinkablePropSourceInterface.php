@@ -29,12 +29,15 @@ interface LinkablePropSourceInterface {
   /**
    * Returns the human-readable label for this prop source when linked.
    *
-   * @param \Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface $host_entity_data_definition
+   * @param \Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface|null $host_entity_data_definition
    *   The host entity type+bundle data definition. Used by implementors whose
    *   label is contextualized by the host (e.g. EntityFieldPropSource,
    *   HostEntityPropSource); ignored by implementors whose label is
-   *   host-independent (e.g. HostEntityUrlPropSource).
+   *   host-independent (e.g. HostEntityUrlPropSource, ListFieldPropSource).
+   *   NULL when the tree's host is not a content entity, e.g. a
+   *   self-rendering template; host-contextualized implementors cannot occur
+   *   there.
    */
-  public function label(EntityDataDefinitionInterface $host_entity_data_definition): TranslatableMarkup;
+  public function label(?EntityDataDefinitionInterface $host_entity_data_definition): TranslatableMarkup;
 
 }

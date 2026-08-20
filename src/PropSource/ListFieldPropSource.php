@@ -7,7 +7,9 @@ namespace Drupal\canvas\PropSource;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
  * Prop source powered by the iterated item's declared fields.
@@ -27,7 +29,7 @@ use Drupal\Core\Field\FieldItemListInterface;
  *
  * @internal
  */
-final class ListFieldPropSource extends PropSourceBase {
+final class ListFieldPropSource extends PropSourceBase implements LinkablePropSourceInterface {
 
   public function __construct(
     public readonly string $fieldName,
@@ -80,6 +82,13 @@ final class ListFieldPropSource extends PropSourceBase {
 
   public function asChoice(): string {
     return $this->getSourceType() . self::SOURCE_TYPE_PREFIX_SEPARATOR . $this->fieldName;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function label(?EntityDataDefinitionInterface $host_entity_data_definition): TranslatableMarkup {
+    return new TranslatableMarkup('@field (per item)', ['@field' => $this->fieldName]);
   }
 
   /**

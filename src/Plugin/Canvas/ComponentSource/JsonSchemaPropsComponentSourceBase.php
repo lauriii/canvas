@@ -9,6 +9,7 @@ use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\EmptyTargetEntityProviderInterface;
+use Drupal\canvas\Entity\ListFieldsProviderInterface;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Entity\PreviewRenderableInterface;
 use Drupal\canvas\InvalidComponentInputsPropSourceException;
@@ -981,6 +982,32 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
         $entity->getTargetEntityDataDefinition(),
       ));
     }
+    // On a template whose repetitions declare named fields, every
+    // string-shaped prop may bind to one of those fields, stored as a
+    // list-field prop source and resolved per iteration.
+    // @see \Drupal\canvas\PropSource\ListFieldPropSource
+    elseif ($entity instanceof ListFieldsProviderInterface) {
+      $declared_fields = $entity->getDeclaredListFields();
+      if ($declared_fields !== []) {
+        $suggestions = [];
+        $field_suggestions = [];
+        foreach ($declared_fields as $field_name => $field_label) {
+          $field_suggestions[] = [
+            'id' => 'list-field:' . $field_name,
+            'label' => $field_label,
+            'source' => ['sourceType' => 'list-field', 'field' => $field_name],
+          ];
+        }
+        $component_schema_properties = $this->getMetadata()->schema['properties'] ?? [];
+        foreach (\array_keys($prop_field_definitions) as $sdc_prop_name) {
+          // JSON Schema allows `type` as a string or a list of types.
+          $prop_types = (array) ($component_schema_properties[$sdc_prop_name]['type'] ?? []);
+          if (\in_array('string', $prop_types, TRUE)) {
+            $suggestions[$sdc_prop_name] = $field_suggestions;
+          }
+        }
+      }
+    }
 
     foreach ($prop_field_definitions as $sdc_prop_name => $static_prop_source_field_definition) {
       // Uncollapse if set; otherwise fall back to the default static prop
@@ -1053,7 +1080,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($widget, $sdc_prop_name, $is_required, $entity_object_for_field_widget, $form, $form_state);
       $form[$sdc_prop_name]['#disabled'] = $disabled;
 
-      if ($entity instanceof ContentTemplate) {
+      if ($suggestions !== NULL) {
         $could_use_dynamic_prop_source = !empty($suggestions[$sdc_prop_name]);
 
         // If the prop is already linked, replace the widget entirely. The
@@ -1067,8 +1094,8 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
             '#sdc_prop_name' => $sdc_prop_name,
             '#sdc_prop_label' => $label,
             '#prop_source' => $linkable_prop_source,
-            '#entity_data_definition' => $entity->getTargetEntityDataDefinition(),
-            '#field_link_suggestions' => $suggestions[$sdc_prop_name],
+            '#entity_data_definition' => $entity instanceof ContentTemplate ? $entity->getTargetEntityDataDefinition() : NULL,
+            '#field_link_suggestions' => $suggestions[$sdc_prop_name] ?? [],
             '#description' => $component_schema['properties'][$sdc_prop_name]['description'] ?? NULL,
             '#is_required' => $is_required,
           ];
@@ -1106,7 +1133,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       }
     }
     $form['#attached']['canvas-transforms'] = $transforms;
-    if ($entity instanceof ContentTemplate) {
+    if ($suggestions !== NULL) {
       $form['#after_build'][] = [static::class, 'moveSuggestionsToLabel'];
     }
     return $form;
