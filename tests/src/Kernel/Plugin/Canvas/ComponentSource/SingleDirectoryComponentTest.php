@@ -259,6 +259,7 @@ final class SingleDirectoryComponentTest extends JsonSchemaPropsComponentSourceB
       'sdc.canvas_test_sdc.crash',
       'sdc.canvas_test_sdc.date',
       'sdc.canvas_test_sdc.deprecated',
+      'sdc.canvas_test_sdc.document',
       'sdc.canvas_test_sdc.druplicon',
       'sdc.canvas_test_sdc.experimental',
       'sdc.canvas_test_sdc.grid-container',
@@ -961,6 +962,22 @@ It\'s me, and I\'m small!
           'library' => [
             'core/components.canvas_test_sdc--component-no-meta-enum',
             'core/components.canvas_test_sdc--component-no-meta-enum',
+          ],
+        ],
+      ],
+      'sdc.canvas_test_sdc.document' => [
+        'html' => <<<HTML
+<p class="document">
+  <a href="https://example.com/file.pdf" type="application/pdf" download="file.pdf" title="An example document description.">Example document</a>
+      <span class="document__filesize">(25600 bytes)</span>
+  </p>
+
+HTML,
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.canvas_test_sdc--document',
+            'core/components.canvas_test_sdc--document',
           ],
         ],
       ],
@@ -2402,6 +2419,22 @@ HTML
           ],
         ],
       ],
+      'sdc.canvas_test_sdc.document' => [
+        'prop_field_definitions' => [
+          'document' => [
+            'required' => TRUE,
+            'field_type' => 'file',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [
+              'file_extensions' => 'rtf doc docx ppt pptx xls xlsx pdf odf odg odp ods odt fodt fods fodp fodg key numbers pages',
+            ],
+            'field_widget' => 'file_generic',
+            'default_value' => [],
+            'expression' => 'ℹ︎file␟{src↝entity␜␜entity:file␝uri␞␟url,filename↝entity␜␜entity:file␝filename␞␟value,filesize↝entity␜␜entity:file␝filesize␞␟value,mimetype↝entity␜␜entity:file␝filemime␞␟value}',
+            'derived_schema_metadata' => [],
+          ],
+        ],
+      ],
       'sdc.canvas_test_sdc.druplicon' => [
         'prop_field_definitions' => [],
       ],
@@ -3735,6 +3768,13 @@ HTML
           'canvas_test_sdc',
         ],
       ],
+      'sdc.canvas_test_sdc.document' => [
+        'content' => [],
+        'module' => [
+          'file',
+          'canvas_test_sdc',
+        ],
+      ],
       'sdc.canvas_test_sdc.druplicon' => [
         'module' => [
           'canvas_test_sdc',
@@ -5015,6 +5055,76 @@ HTML
                 0 => ['value' => 'A text field'],
               ],
               'resolved' => 'A text field',
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.canvas_test_sdc.document' => [
+        'expected_output_selectors' => [
+          'p.document > a[href="https://example.com/file.pdf"]',
+          'p.document > span.document__filesize',
+        ],
+        'source' => 'Module component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'document' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'object',
+              'title' => 'document',
+              'required' => [
+                0 => 'src',
+              ],
+              'properties' => [
+                'src' => [
+                  'title' => 'Document URL',
+                  'type' => 'string',
+                  'format' => 'uri-reference',
+                  'contentMediaType' => 'application/*',
+                  'x-allowed-schemes' => ['http', 'https'],
+                  'x-allowed-file-extensions' => ['rtf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'pdf', 'odf', 'odg', 'odp', 'ods', 'odt', 'fodt', 'fods', 'fodp', 'fodg', 'key', 'numbers', 'pages'],
+                ],
+                'title' => [
+                  'title' => 'Document title',
+                  'type' => 'string',
+                ],
+                'description' => [
+                  'title' => 'Document description',
+                  'type' => 'string',
+                ],
+                'filename' => [
+                  'title' => 'Filename',
+                  'type' => 'string',
+                ],
+                'filesize' => [
+                  'title' => 'File size',
+                  'type' => 'integer',
+                  'description' => 'File size in bytes',
+                ],
+                'mimetype' => [
+                  'title' => 'MIME type',
+                  'type' => 'string',
+                ],
+              ],
+            ],
+            'sourceType' => 'static:field_item:file',
+            'expression' => 'ℹ︎file␟{src↝entity␜␜entity:file␝uri␞␟url,filename↝entity␜␜entity:file␝filename␞␟value,filesize↝entity␜␜entity:file␝filesize␞␟value,mimetype↝entity␜␜entity:file␝filemime␞␟value}',
+            'sourceTypeSettings' => [
+              'instance' => [
+                'file_extensions' => 'rtf doc docx ppt pptx xls xlsx pdf odf odg odp ods odt fodt fods fodp fodg key numbers pages',
+              ],
+            ],
+            'default_values' => [
+              'source' => [],
+              'resolved' => [
+                'src' => 'https://example.com/file.pdf',
+                'title' => 'Example document',
+                'description' => 'An example document description.',
+                'filename' => 'file.pdf',
+                'filesize' => 25600,
+                'mimetype' => 'application/pdf',
+              ],
             ],
           ],
         ],

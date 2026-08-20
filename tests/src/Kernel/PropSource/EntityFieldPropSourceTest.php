@@ -19,12 +19,15 @@ use Drupal\Component\Utility\UrlHelper;
 use Drupal\content_translation\BundleTranslationSettingsInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Render\AttachmentsInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\file\Entity\File;
 use Drupal\filter\Entity\FilterFormat;
+use Drupal\media\Entity\Media;
 use Drupal\node\Entity\NodeType;
 use Drupal\text\TextProcessed;
 use Drupal\user\Entity\Role;
@@ -1158,6 +1161,74 @@ class EntityFieldPropSourceTest extends PropSourceTestBase {
     // The deleted entity's cache tag must be present so that if the entity is
     // recreated (or otherwise written at that ID), the cached NULL invalidates.
     self::assertContains('user:' . $target_uid, $result->getCacheTags());
+  }
+
+  /**
+   * The document `src` prop resolves a private:// file to its managed URL.
+   *
+   * The document shape's `src` maps to the File entity's computed `url`
+   * property, not the raw `uri`. A media type whose source field stores files
+   * in the private file system therefore resolves to the absolute
+   * `/system/files/` route, which satisfies the shape's `http`/`https`
+   * scheme requirement.
+   *
+   * @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef::Document
+   * @see \Drupal\file\Plugin\Field\FieldType\FileUriItem
+   */
+  public function testDocumentObjectResolvesPrivateFileUrl(): void {
+    $media_type = $this->createMediaType('file', ['id' => 'private_documents']);
+    $source_field_definition = $media_type->getSource()->getSourceFieldDefinition($media_type);
+    self::assertNotNull($source_field_definition);
+    $source_field_storage = $source_field_definition->getFieldStorageDefinition();
+    \assert($source_field_storage instanceof FieldStorageConfig);
+    $source_field_storage->setSetting('uri_scheme', 'private');
+    $source_field_storage->save();
+
+    $user = $this->setUpCurrentUser(permissions: ['access content', 'view media']);
+
+    // Kernel boots reset Settings; restore the private file path registered
+    // by VfsPublicStreamUrlTrait::setUpFilesystem() so the `private://`
+    // stream wrapper resolves.
+    $this->setSetting('file_private_path', $this->siteDirectory . '/private');
+
+    $file_system = \Drupal::service(FileSystemInterface::class);
+    \assert($file_system instanceof FileSystemInterface);
+    $directory = 'private://docs';
+    self::assertTrue($file_system->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS));
+    $file_contents = 'Not really a PDF.';
+    \file_put_contents('private://docs/press-kit.pdf', $file_contents);
+    $file = File::create([
+      'uid' => $user->id(),
+      'filename' => 'press-kit.pdf',
+      'uri' => 'private://docs/press-kit.pdf',
+      'filesize' => \strlen($file_contents),
+      'filemime' => 'application/pdf',
+    ]);
+    $file->setPermanent();
+    $file->save();
+
+    $media = Media::create([
+      'bundle' => 'private_documents',
+      'name' => 'Press kit',
+      $source_field_definition->getName() => ['target_id' => $file->id()],
+    ]);
+    $media->save();
+
+    $prop_source = EntityFieldPropSource::parse([
+      'sourceType' => PropSource::EntityField->value,
+      'expression' => \sprintf('ℹ︎␜entity:media:private_documents␝%s␞␟{src↝entity␜␜entity:file␝uri␞␟url,filename↝entity␜␜entity:file␝filename␞␟value,filesize↝entity␜␜entity:file␝filesize␞␟value,mimetype↝entity␜␜entity:file␝filemime␞␟value}', $source_field_definition->getName()),
+    ]);
+
+    $result = $prop_source->evaluate($media, is_required: TRUE);
+
+    self::assertIsArray($result->value);
+    self::assertIsString($result->value['src']);
+    // The raw `private://` URI resolves to the managed-files route, served
+    // over the site's HTTP(S) base URL — not to the raw stream URI.
+    self::assertStringEndsWith('/system/files/docs/press-kit.pdf', $result->value['src']);
+    self::assertSame('press-kit.pdf', $result->value['filename']);
+    self::assertEquals(\strlen($file_contents), $result->value['filesize']);
+    self::assertSame('application/pdf', $result->value['mimetype']);
   }
 
   /**

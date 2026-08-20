@@ -20,6 +20,7 @@ enum JsonSchemaObjectRef: string {
 
   case Image = 'json-schema-definitions://canvas.module/image';
   case Video = 'json-schema-definitions://canvas.module/video';
+  case Document = 'json-schema-definitions://canvas.module/document';
   case ContentEntityReference = 'json-schema-definitions://canvas.module/content-entity-reference';
 
   /**
@@ -58,6 +59,20 @@ enum JsonSchemaObjectRef: string {
    */
   public function asPropShape(): PropShape {
     return new PropShape($this->asPropShapeArray());
+  }
+
+  /**
+   * Returns the file extensions the shape's `src` property allows.
+   *
+   * @return list<string>
+   *   The `x-allowed-file-extensions` annotation on the shape's `src`
+   *   property, or an empty list when the shape declares none.
+   */
+  public function allowedFileExtensions(): array {
+    $extensions = $this->asPropShape()->resolvedSchema['properties']['src']['x-allowed-file-extensions'] ?? [];
+    \assert(\is_array($extensions) && \array_is_list($extensions));
+    /** @var list<string> $extensions */
+    return $extensions;
   }
 
 }

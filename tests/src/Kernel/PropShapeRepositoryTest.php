@@ -204,6 +204,7 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
       new PropShape(['type' => 'number']),
       new PropShape(['type' => 'object']),
       new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/date-range']),
+      JsonSchemaObjectRef::Document->asPropShape(),
       JsonSchemaObjectRef::Image->asPropShape(),
       new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/shoe-icon']),
       JsonSchemaObjectRef::Video->asPropShape(),
@@ -389,6 +390,29 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
           ),
         ]),
         fieldInstanceSettings: ['file_extensions' => 'mp4'],
+        fieldWidget: 'file_generic',
+      ),
+      'type=object&$ref=' . JsonSchemaObjectRef::Document->value => new StorablePropShape(
+        shape: JsonSchemaObjectRef::Document->asPropShape(),
+        fieldTypeProp: new FieldTypeObjectPropsExpression('file', [
+          'src' => new ReferenceFieldTypePropExpression(
+            new FieldTypePropExpression('file', 'entity'),
+            new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'url'),
+          ),
+          'filename' => new ReferenceFieldTypePropExpression(
+            new FieldTypePropExpression('file', 'entity'),
+            new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'filename', NULL, 'value'),
+          ),
+          'filesize' => new ReferenceFieldTypePropExpression(
+            new FieldTypePropExpression('file', 'entity'),
+            new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'filesize', NULL, 'value'),
+          ),
+          'mimetype' => new ReferenceFieldTypePropExpression(
+            new FieldTypePropExpression('file', 'entity'),
+            new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'filemime', NULL, 'value'),
+          ),
+        ]),
+        fieldInstanceSettings: ['file_extensions' => 'rtf doc docx ppt pptx xls xlsx pdf odf odg odp ods odt fodt fods fodp fodg key numbers pages'],
         fieldWidget: 'file_generic',
       ),
       'type=string&$ref=json-schema-definitions://canvas.module/heading-element' => new StorablePropShape(

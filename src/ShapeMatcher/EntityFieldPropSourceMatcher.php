@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\ShapeMatcher;
 
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType;
 use Drupal\canvas\Plugin\ComponentPluginManager;
 use Drupal\canvas\Plugin\Validation\Constraint\UriConstraint;
+use Drupal\canvas\Plugin\Validation\Constraint\UriTargetFileExtensionsConstraint;
 use Drupal\canvas\Plugin\Validation\Constraint\UriTargetMediaTypeConstraint;
 use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\FieldItemAnalyzer;
@@ -426,12 +428,135 @@ final class EntityFieldPropSourceMatcher {
     \assert(Inspector::assertAll(fn ($expr) => $expr instanceof ObjectPropExpressionInterface, $matches));
     \assert(Inspector::assertAll(fn ($expr) => $expr instanceof ReferencePropExpressionInterface, $matches_references));
     // Append host-entity reference field matches for content-entity-reference
-    // shapes; for any other object shape the helper produces no matches.
+    // shapes; for any other object shape the helper produces no matches. Ditto
+    // for media-source-based matches for the document shape.
     return [
       ...$matches_references,
       ...$matches,
       ...self::matchContentEntityReferenceShape($entity_data_definition, $schema),
+      ...$this->matchDocumentShapeToMediaTypes($entity_data_definition, $levels_to_recurse, $is_required_in_json_schema, $schema, $cardinality_in_json_schema),
     ];
+  }
+
+  /**
+   * Matches media types and media reference fields to the document shape.
+   *
+   * Media types match by their media source plugin class plus a non-empty
+   * intersection between their source field's allowed file extensions and the
+   * document shape's `x-allowed-file-extensions` list. Scalar-driven matching
+   * cannot express extension lists spanning multiple MIME media types (core's
+   * `media.type.document` allows `txt` alongside `pdf`), so it finds nothing
+   * for such media types. Matching them here gives both prop source types the
+   * same behavior: a media entity that can be selected directly in the media
+   * library can also be linked from a host entity's media reference field.
+   *
+   * @param \Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface $entity_data_definition
+   *   The host entity type + bundle data definition.
+   * @param int $levels_to_recurse
+   *   How many levels of entity references may still be followed.
+   * @param bool $is_required_in_json_schema
+   *   Whether the prop shape to match is required.
+   * @param JsonSchema $schema
+   *   The resolved JSON schema for the prop.
+   * @param \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED|int<1, max> $cardinality_in_json_schema
+   *
+   * @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter()
+   * @see \Drupal\canvas\ShapeMatcher\MediaSourceObjectShapes::getMediaTypesForSchemaObject()
+   * @todo Match the image and video object shapes by media source class too in https://git.drupalcode.org/project/canvas/-/work_items/3591890
+   *
+   * @return ObjectMatches
+   */
+  private function matchDocumentShapeToMediaTypes(EntityDataDefinitionInterface $entity_data_definition, int $levels_to_recurse, bool $is_required_in_json_schema, array $schema, int $cardinality_in_json_schema): array {
+    // Media reference fields hold a single media entity per delta; the object
+    // shape must be single-cardinality too.
+    if ($cardinality_in_json_schema !== 1 || !$this->entityTypeManager->hasDefinition('media')) {
+      return [];
+    }
+    // TRICKY: `$schema` is resolved, so the `$ref` key is gone. Compare
+    // against the resolved canonical shape instead — loosely, because key
+    // order may differ.
+    // @see \Drupal\canvas\Plugin\ComponentPluginManager::resolveJsonSchemaReferences()
+    if ($schema != JsonSchemaObjectRef::Document->asPropShape()->resolvedSchema) {
+      return [];
+    }
+    $media_source_class = MediaSourceObjectShapes::SCHEMA_TO_MEDIA_SOURCE[JsonSchemaObjectRef::Document->value];
+    $media_types = MediaSourceObjectShapes::getMediaTypesForSchemaObject(JsonSchemaObjectRef::Document);
+    if ($media_types === []) {
+      return [];
+    }
+
+    // When the host entity is a media entity of a matched media type, its
+    // source field provides the object props directly.
+    $bundles = $entity_data_definition->getBundles();
+    if ($entity_data_definition->getEntityTypeId() === 'media') {
+      if (!\is_array($bundles) || count($bundles) !== 1) {
+        return [];
+      }
+      $media_type_id = reset($bundles);
+      if (!\array_key_exists($media_type_id, $media_types)) {
+        return [];
+      }
+      $media_type = $media_types[$media_type_id];
+      $source_field_definition = $media_type->getSource()->getSourceFieldDefinition($media_type);
+      if ($source_field_definition === NULL || ($is_required_in_json_schema && !$source_field_definition->isRequired())) {
+        return [];
+      }
+      $source_field_name = $source_field_definition->getName();
+      $media_entity_type_and_bundle = BetterEntityDataDefinition::create('media', $media_type_id);
+      return [
+        new FieldObjectPropsExpression(
+          entityType: $media_entity_type_and_bundle,
+          fieldName: $source_field_name,
+          delta: NULL,
+          objectPropsToFieldProps: MediaSourceObjectShapes::getObjectProps($media_source_class, $media_entity_type_and_bundle, $source_field_name),
+        ),
+      ];
+    }
+
+    // For any other host entity, follow its media reference fields — one
+    // reference level deep.
+    if ($levels_to_recurse < 1) {
+      return [];
+    }
+    $matches = [];
+    foreach ($this->recurseDataDefinitionInterface($entity_data_definition) as $field_definition) {
+      \assert($field_definition instanceof FieldDefinitionInterface);
+      if ($field_definition->getType() !== 'entity_reference'
+        || $field_definition->getFieldStorageDefinition()->getSetting('target_type') !== 'media'
+      ) {
+        continue;
+      }
+      if ($is_required_in_json_schema && !$field_definition->isRequired()) {
+        continue;
+      }
+      if ($field_definition->getFieldStorageDefinition()->getCardinality() !== 1) {
+        continue;
+      }
+      // Mirror the reference-following logic for scalar matches: without
+      // explicitly configured target bundles, the source field of the
+      // referenced media entity cannot be known.
+      $target_bundles = $field_definition->getItemDefinition()->getSettings()['handler_settings']['target_bundles'] ?? [];
+      $referencer = new FieldPropExpression($entity_data_definition, $field_definition->getName(), NULL, 'entity');
+      foreach (\array_intersect(\array_values($target_bundles), \array_keys($media_types)) as $media_type_id) {
+        $media_type = $media_types[$media_type_id];
+        $source_field_definition = $media_type->getSource()->getSourceFieldDefinition($media_type);
+        if ($source_field_definition === NULL) {
+          continue;
+        }
+        $source_field_name = $source_field_definition->getName();
+        $media_entity_type_and_bundle = BetterEntityDataDefinition::create('media', $media_type_id);
+        $matches[] = new ReferenceFieldPropExpression(
+          $referencer,
+          new FieldObjectPropsExpression(
+            entityType: $media_entity_type_and_bundle,
+            fieldName: $source_field_name,
+            delta: NULL,
+            objectPropsToFieldProps: MediaSourceObjectShapes::getObjectProps($media_source_class, $media_entity_type_and_bundle, $source_field_name),
+          ),
+        );
+      }
+    }
+    return $matches;
   }
 
   /**
@@ -715,6 +840,13 @@ final class EntityFieldPropSourceMatcher {
               $transformed_property_data_definition = clone $property_definition;
               $transformed_property_data_definition->addConstraint(UriTargetMediaTypeConstraint::PLUGIN_ID, [
                 'mimeType' => $mime_type,
+              ]);
+              // Also reflect the extension list itself: shapes annotated with
+              // `x-allowed-file-extensions` match on extension intersection,
+              // which narrows matching below the wildcard MIME media type.
+              // @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat::toDataTypeShapeRequirements()
+              $transformed_property_data_definition->addConstraint(UriTargetFileExtensionsConstraint::PLUGIN_ID, [
+                'allowedExtensions' => \array_values(\array_filter(explode(' ', $file_entity_constraints['FileExtension']['extensions']))),
               ]);
               $property_definition = $transformed_property_data_definition;
             }
@@ -1140,6 +1272,16 @@ final class EntityFieldPropSourceMatcher {
         fn ($c) => $c instanceof UriConstraint
       );
       $constraint_found = !empty($property_constraint) && $required_constraint->isSupersetOf(reset($property_constraint));
+    }
+    // 1.c File extension lists match by intersection: the shape's allowed
+    // extensions and the field's allowed extensions rarely coincide exactly,
+    // but any overlap means the field can hold a fitting file.
+    if (!$constraint_found && $required_constraint instanceof UriTargetFileExtensionsConstraint) {
+      $property_constraint = array_filter(
+        (array) $constraints,
+        fn ($c) => $c instanceof UriTargetFileExtensionsConstraint
+      );
+      $constraint_found = !empty($property_constraint) && $required_constraint->intersectsWith(reset($property_constraint));
     }
     // 2. Optionally: the interface.
     $interface_found = $required_shape->interface === NULL

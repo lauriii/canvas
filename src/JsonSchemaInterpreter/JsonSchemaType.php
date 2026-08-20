@@ -463,6 +463,36 @@ enum JsonSchemaType: string {
             ]),
             fieldInstanceSettings: ['file_extensions' => 'mp4'],
           ),
+          // @see \Drupal\file\Plugin\Field\FieldType\FileItem
+          // @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter()
+          JsonSchemaObjectRef::Document => new StorablePropShape(
+            shape: $shape,
+            fieldWidget: 'file_generic',
+            fieldTypeProp: new FieldTypeObjectPropsExpression('file', [
+              'src' => new ReferenceFieldTypePropExpression(
+                new FieldTypePropExpression('file', 'entity'),
+                new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'url'),
+              ),
+              'filename' => new ReferenceFieldTypePropExpression(
+                new FieldTypePropExpression('file', 'entity'),
+                new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'filename', NULL, 'value'),
+              ),
+              'filesize' => new ReferenceFieldTypePropExpression(
+                new FieldTypePropExpression('file', 'entity'),
+                new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'filesize', NULL, 'value'),
+              ),
+              'mimetype' => new ReferenceFieldTypePropExpression(
+                new FieldTypePropExpression('file', 'entity'),
+                new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'filemime', NULL, 'value'),
+              ),
+            ]),
+            // The `document` shape's `src` property declares the allowed file
+            // extensions; the upload widget and shape matching both read that
+            // single list. Modules can widen the widget's list via
+            // hook_canvas_storable_prop_shape_alter().
+            // @see https://git.drupalcode.org/project/canvas/-/work_items/3524130#note_1678367
+            fieldInstanceSettings: ['file_extensions' => implode(' ', JsonSchemaObjectRef::Document->allowedFileExtensions())],
+          ),
           default => NULL,
         },
         default => NULL,

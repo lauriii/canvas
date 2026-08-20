@@ -270,6 +270,7 @@ canvas.json_schema.prop_shape.object:
           choices:
             - 'json-schema-definitions://canvas.module/image'
             - 'json-schema-definitions://canvas.module/video'
+            - 'json-schema-definitions://canvas.module/document'
             # @see \Drupal\canvas\Entity\JavaScriptComponent::getContentEntityReferenceProps()
             - 'json-schema-definitions://canvas.module/content-entity-reference'
 

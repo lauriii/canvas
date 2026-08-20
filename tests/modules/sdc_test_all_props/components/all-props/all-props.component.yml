@@ -335,6 +335,18 @@ props:
       examples:
         - src: https://example.com/file.mp4
           poster: /sites/default/files/600x400.png
+    # The "document" predefined object format.
+    test_object_drupal_document:
+      title: 'Object, $ref=json-schema-definitions://canvas.module/document'
+      description: 'This is the description of Object, $ref=json-schema-definitions://canvas.module/document'
+      $ref: json-schema-definitions://canvas.module/document
+      type: object
+      examples:
+        - src: https://example.com/file.pdf
+          title: Example document
+          filename: file.pdf
+          filesize: 25600
+          mimetype: application/pdf
     # The "date-range" object format for this module.
     test_object_drupal_date_range:
       title: 'Object, $ref=json-schema-definitions://sdc_test_all_props.module/date-range'
