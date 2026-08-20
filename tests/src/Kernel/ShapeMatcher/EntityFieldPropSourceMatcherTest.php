@@ -76,6 +76,9 @@ class EntityFieldPropSourceMatcherTest extends PropSourceMatcherTestBase {
     'entity:file' => FALSE,
     // This would be 99% identical to `entity:media:baby_videos`.
     'entity:media:vacation_videos' => FALSE,
+    // Covered by ::testDocumentShapeFileExtensionFiltering().
+    'entity:media:archives' => FALSE,
+    'entity:media:plain_text_notes' => FALSE,
     // An entity type with typically zero configurable fields.
     'entity:user' => [
       'type=boolean!optional' => [
@@ -163,6 +166,13 @@ class EntityFieldPropSourceMatcherTest extends PropSourceMatcherTestBase {
         ['sourceType' => PropSource::EntityField->value, 'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟width'],
       ],
       'type=object&$ref=json-schema-definitions://canvas.module/date-range' => ['sourceType' => PropSource::EntityField->value, 'expression' => 'ℹ︎␜entity:node:foo␝field_event_duration␞␟{from↠value,to↠end_value}'],
+      // Matched by media source class plus a non-empty intersection between
+      // the source field's extensions and the document shape's
+      // `x-allowed-file-extensions` list: press_releases allows `txt` next to
+      // `doc docx pdf`, so it matches despite `txt` mapping to `text/plain`.
+      // @see \Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher::matchDocumentShapeToMediaTypes()
+      // @see \Drupal\canvas\ShapeMatcher\MediaSourceObjectShapes::getMediaTypesForSchemaObject()
+      'type=object&$ref=' . JsonSchemaObjectRef::Document->value => ['sourceType' => PropSource::EntityField->value, 'expression' => 'ℹ︎␜entity:node:foo␝marketing_docs␞␟entity␜␜entity:media:press_releases␝field_media_file␞␟{src↝entity␜␜entity:file␝uri␞␟url,filename↝entity␜␜entity:file␝filename␞␟value,filesize↝entity␜␜entity:file␝filesize␞␟value,mimetype↝entity␜␜entity:file␝filemime␞␟value}'],
       'type=object&$ref=' . JsonSchemaObjectRef::Image->value => ['sourceType' => PropSource::EntityField->value, 'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}'],
       'type=object&$ref=' . JsonSchemaObjectRef::Image->value . '!optional' => [
         ['sourceType' => PropSource::EntityField->value, 'expression' => 'ℹ︎␜entity:node:foo␝marketing_docs␞␟entity␜␜entity:media␝thumbnail␞␟{src↠src_with_alternate_widths,width↝entity␜␜entity:file␝filesize␞␟value}'],
@@ -462,6 +472,10 @@ class EntityFieldPropSourceMatcherTest extends PropSourceMatcherTestBase {
         ['sourceType' => PropSource::EntityField->value, 'expression' => 'ℹ︎␜entity:media:press_releases␝field_media_file␞␟entity␜␜entity:file␝filesize␞␟value'],
         ['sourceType' => PropSource::EntityField->value, 'expression' => 'ℹ︎␜entity:media:press_releases␝thumbnail␞␟entity␜␜entity:file␝filesize␞␟value'],
       ],
+      // The host media entity's own source field provides the document object
+      // props directly.
+      // @see \Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher::matchDocumentShapeToMediaTypes()
+      'type=object&$ref=' . JsonSchemaObjectRef::Document->value => ['sourceType' => PropSource::EntityField->value, 'expression' => 'ℹ︎␜entity:media:press_releases␝field_media_file␞␟{src↝entity␜␜entity:file␝uri␞␟url,filename↝entity␜␜entity:file␝filename␞␟value,filesize↝entity␜␜entity:file␝filesize␞␟value,mimetype↝entity␜␜entity:file␝filemime␞␟value}'],
       'type=object&$ref=' . JsonSchemaObjectRef::Image->value . '!optional' => [
         'sourceType' => PropSource::EntityField->value,
         'expression' => 'ℹ︎␜entity:media:press_releases␝thumbnail␞␟{src↠src_with_alternate_widths,alt↝entity␜␜entity:file␝uid␞␟entity␜␜entity:user␝name␞␟value,width↝entity␜␜entity:file␝filesize␞␟value}',
@@ -754,6 +768,12 @@ class EntityFieldPropSourceMatcherTest extends PropSourceMatcherTestBase {
       ],
     ])->save();
     $this->createMediaType('file', ['id' => 'press_releases']);
+    // File media types whose source field extensions do not intersect the
+    // document shape's `x-allowed-file-extensions` list. These must not match
+    // the document shape.
+    // @see \Drupal\canvas\ShapeMatcher\MediaSourceObjectShapes::getMediaTypesForSchemaObject()
+    $this->createFileMediaTypeWithExtensions('archives', 'zip tar gz');
+    $this->createFileMediaTypeWithExtensions('plain_text_notes', 'txt');
     FieldStorageConfig::create([
       'field_name' => 'marketing_docs',
       'entity_type' => 'node',
@@ -929,6 +949,70 @@ class EntityFieldPropSourceMatcherTest extends PropSourceMatcherTestBase {
     foreach ($expected_absent as $field_name) {
       self::assertNotContains($field_name, $matched_field_names, \sprintf('Expected "%s" NOT to be matched.', $field_name));
     }
+  }
+
+  /**
+   * Tests that document shape matching filters by allowed file extensions.
+   *
+   * The document shape's `x-allowed-file-extensions` annotation must narrow
+   * both matching paths: media types matched by source class, and plain file
+   * fields matched property by property. A field matches when its extensions
+   * intersect the shape's list; a field whose extensions all fall outside the
+   * list must not match, even when they map to the `application` MIME media
+   * type (`zip`).
+   *
+   * @see \Drupal\canvas\ShapeMatcher\MediaSourceObjectShapes::getMediaTypesForSchemaObject()
+   * @see \Drupal\canvas\Plugin\Validation\Constraint\UriTargetFileExtensionsConstraint
+   */
+  public function testDocumentShapeFileExtensionFiltering(): void {
+    // Plain file fields on the "foo" node type, for the scalar matching path.
+    foreach (['field_pdf_download' => 'pdf', 'field_zip_download' => 'zip'] as $field_name => $file_extensions) {
+      FieldStorageConfig::create([
+        'entity_type' => 'node',
+        'field_name' => $field_name,
+        'type' => 'file',
+      ])->save();
+      FieldConfig::create([
+        'entity_type' => 'node',
+        'field_name' => $field_name,
+        'bundle' => 'foo',
+        'settings' => [
+          'file_extensions' => $file_extensions,
+        ],
+      ])->save();
+    }
+
+    $prop_shape = JsonSchemaObjectRef::Document->asPropShape();
+    $matcher = \Drupal::service(EntityFieldPropSourceMatcher::class);
+    \assert($matcher instanceof EntityFieldPropSourceMatcher);
+
+    // Host media types: press_releases allows `txt doc docx pdf`, which
+    // intersects the document shape's list, so its source field matches. The
+    // zip-only and txt-only File media types must not match.
+    self::assertNotSame([], $matcher->match(FALSE, $prop_shape, 'media', 'press_releases'));
+    self::assertSame([], $matcher->match(FALSE, $prop_shape, 'media', 'archives'));
+    self::assertSame([], $matcher->match(FALSE, $prop_shape, 'media', 'plain_text_notes'));
+
+    // Host node type: the pdf-only file field and the press_releases media
+    // reference match; the zip-only file field must not.
+    $expressions = \array_map(
+      fn (EntityFieldPropSource $s): string => (string) $s->expression,
+      $matcher->match(FALSE, $prop_shape, 'node', 'foo'),
+    );
+    self::assertNotEmpty(\array_filter($expressions, fn (string $e): bool => \str_contains($e, 'field_pdf_download')));
+    self::assertNotEmpty(\array_filter($expressions, fn (string $e): bool => \str_contains($e, 'marketing_docs')));
+    self::assertSame([], \array_filter($expressions, fn (string $e): bool => \str_contains($e, 'field_zip_download')));
+  }
+
+  /**
+   * Creates a File media type whose source field allows the given extensions.
+   */
+  private function createFileMediaTypeWithExtensions(string $id, string $file_extensions): void {
+    $media_type = $this->createMediaType('file', ['id' => $id]);
+    $source_field_definition = $media_type->getSource()->getSourceFieldDefinition($media_type);
+    \assert($source_field_definition instanceof FieldConfig);
+    $source_field_definition->setSetting('file_extensions', $file_extensions);
+    $source_field_definition->save();
   }
 
   public static function provideContentEntityReferencePropMatches(): \Generator {

@@ -89,6 +89,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'type' => 'component',
       'weight' => 0,
       'items' => [
+        'sdc.canvas_test_sdc.document',
         'sdc.canvas_test_sdc.video',
       ],
     ],

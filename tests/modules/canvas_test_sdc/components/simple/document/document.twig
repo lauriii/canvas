@@ -1,0 +1,6 @@
+<p class="document">
+  <a href="{{ document.src }}" type="{{ document.mimetype }}" download="{{ document.filename }}" title="{{ document.description }}">{{ document.title|default(document.filename) }}</a>
+  {% if document.filesize %}
+    <span class="document__filesize">({{ document.filesize }} bytes)</span>
+  {% endif %}
+</p>

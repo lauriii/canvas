@@ -8,6 +8,7 @@ use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropShape\StorablePropShape;
+use Drupal\field\Entity\FieldConfig;
 use PHPUnit\Framework\Attributes\Depends;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -54,12 +55,52 @@ class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
     // @see \Drupal\media\Plugin\media\Source\VideoFile
     $this->createMediaType('video_file', ['id' => 'baby_videos']);
     $this->createMediaType('video_file', ['id' => 'vacation_videos']);
+    // The `file` media source creates its source field with the default
+    // `file_extensions` setting of 'txt doc docx pdf'. Three of those (doc,
+    // docx, pdf) intersect the document shape's `x-allowed-file-extensions`
+    // list, so this media type matches the document shape with no explicit
+    // configuration — even though `txt` falls outside that list, because
+    // matching requires intersection, not a subset.
+    // @see \Drupal\media\Plugin\media\Source\File::createSourceField()
+    // @see \Drupal\canvas\ShapeMatcher\MediaSourceObjectShapes::getMediaTypesForSchemaObject()
+    $this->createMediaType('file', ['id' => 'baby_documents']);
+    // Unlike `baby_documents`, this media type does not rely on the source
+    // field defaults: its single allowed extension appears in the document
+    // shape's `x-allowed-file-extensions` list, proving a one-element
+    // intersection is enough to match. Contrast with `archives` and
+    // `plain_text_notes` below, whose extensions never intersect the list
+    // and therefore never match.
+    $this->createFileMediaTypeWithExtensions('vacation_documents', 'pdf');
+    // AudioFile extends File, but audio media types must not match the
+    // document shape: audio file extensions do not intersect the document
+    // shape's `x-allowed-file-extensions` list, so this media type must not
+    // appear in any expectation.
+    // @see \Drupal\media\Plugin\media\Source\AudioFile
+    // @see \Drupal\canvas\ShapeMatcher\MediaSourceObjectShapes::getMediaTypesForSchemaObject()
+    $this->createMediaType('audio_file', ['id' => 'podcasts']);
+    // File media types whose source field extensions do not intersect the
+    // document shape's `x-allowed-file-extensions` list must not match the
+    // document shape: these media types must not appear in any expectation.
+    // @see \Drupal\canvas\ShapeMatcher\MediaSourceObjectShapes::getMediaTypesForSchemaObject()
+    $this->createFileMediaTypeWithExtensions('archives', 'zip tar gz');
+    $this->createFileMediaTypeWithExtensions('plain_text_notes', 'txt');
 
     // A sample value is generated during the test, which needs this table.
     $this->installSchema('file', ['file_usage']);
 
     // @see \Drupal\media_library\MediaLibraryEditorOpener::__construct()
     $this->installEntitySchema('filter_format');
+  }
+
+  /**
+   * Creates a File media type whose source field allows the given extensions.
+   */
+  private function createFileMediaTypeWithExtensions(string $id, string $file_extensions): void {
+    $media_type = $this->createMediaType('file', ['id' => $id]);
+    $source_field_definition = $media_type->getSource()->getSourceFieldDefinition($media_type);
+    \assert($source_field_definition instanceof FieldConfig);
+    $source_field_definition->setSetting('file_extensions', $file_extensions);
+    $source_field_definition->save();
   }
 
   public static function getExpectedUnstorablePropShapes(): array {
@@ -119,6 +160,25 @@ class MediaLibraryHookStoragePropAlterTest extends PropShapeRepositoryTest {
           'target_bundles' => [
             'baby_videos' => 'baby_videos',
             'vacation_videos' => 'vacation_videos',
+          ],
+        ],
+      ],
+    );
+
+    $storable_prop_shapes['type=object&$ref=' . JsonSchemaObjectRef::Document->value] = new StorablePropShape(
+      shape: JsonSchemaObjectRef::Document->asPropShape(),
+      // @phpstan-ignore-next-line
+      fieldTypeProp: StructuredDataPropExpression::fromString('ℹ︎entity_reference␟entity␜[␜entity:media:baby_documents␝field_media_file␞␟{src↝entity␜␜entity:file␝uri␞␟url,filename↝entity␜␜entity:file␝filename␞␟value,filesize↝entity␜␜entity:file␝filesize␞␟value,mimetype↝entity␜␜entity:file␝filemime␞␟value}][␜entity:media:vacation_documents␝field_media_file_1␞␟{src↝entity␜␜entity:file␝uri␞␟url,filename↝entity␜␜entity:file␝filename␞␟value,filesize↝entity␜␜entity:file␝filesize␞␟value,mimetype↝entity␜␜entity:file␝filemime␞␟value}]'),
+      fieldWidget: 'media_library_widget',
+      fieldStorageSettings: [
+        'target_type' => 'media',
+      ],
+      fieldInstanceSettings: [
+        'handler' => 'default:media',
+        'handler_settings' => [
+          'target_bundles' => [
+            'baby_documents' => 'baby_documents',
+            'vacation_documents' => 'vacation_documents',
           ],
         ],
       ],

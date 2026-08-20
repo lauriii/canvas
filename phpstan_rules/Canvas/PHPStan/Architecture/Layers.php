@@ -23,6 +23,7 @@ use Drupal\canvas\Entity\StagedLanguageConfigOverride;
 use Drupal\canvas\EntityHandlers\StagedLanguageConfigOverrideAccessControlHandler;
 use Drupal\canvas\EntityHandlers\StagedLanguageConfigOverrideStorage;
 use Drupal\canvas\GlobalImports;
+use Drupal\canvas\Hook\ShapeMatchingHooks;
 use Drupal\canvas\InvalidComponentInputsPropSourceException;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType;
@@ -43,6 +44,7 @@ use Drupal\canvas\PropExpressions\PropExpressionInterface;
 use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\canvas\Utility\TypedDataHelper;
+use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\Entity\ConfigEntityStorageInterface;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
@@ -55,16 +57,27 @@ use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\File\MimeType\ExtensionMimeTypeGuesser;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\GeneratedUrl;
+use Drupal\Core\Hook\Attribute\Hook as HookAttribute;
 use Drupal\Core\ProxyClass\File\MimeType\ExtensionMimeTypeGuesser as LazyExtensionMimeTypeGuesser;
 use Drupal\Core\Render\AttachmentsInterface;
 use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
 use Drupal\Core\Render\Component\Exception\InvalidComponentException;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Theme\Component\ComponentMetadata;
 use Drupal\Core\Url;
+use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
+use Drupal\editor\EditorInterface;
 use Drupal\file\Plugin\Field\FieldType\FileItem;
 use Drupal\file\Plugin\Field\FieldType\FileUriItem;
+use Drupal\filter\FilterFormatInterface;
 use Drupal\language\Config\LanguageConfigOverride;
+use Drupal\media\Entity\MediaType;
+use Drupal\media\MediaTypeInterface;
+use Drupal\media\Plugin\media\Source\AudioFile;
+use Drupal\media\Plugin\media\Source\File;
+use Drupal\media\Plugin\media\Source\Image;
+use Drupal\media\Plugin\media\Source\VideoFile;
 use Drupal\options\Plugin\Field\FieldType\ListFloatItem;
 use Drupal\options\Plugin\Field\FieldType\ListIntegerItem;
 use Drupal\telephone\Plugin\Field\FieldType\TelephoneItem;
@@ -76,6 +89,8 @@ use PHPat\Test\Builder\Rule;
 use PHPat\Test\PHPat;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\Constraint;
+use Symfony\Component\Validator\Constraints\Hostname;
+use Symfony\Component\Validator\Constraints\Ip;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
@@ -215,6 +230,15 @@ final class Layers {
         // Plus specific classes for the most complex case: files.
         Selector::classname(ExtensionMimeTypeGuesser::class),
         Selector::classname(LazyExtensionMimeTypeGuesser::class),
+        // Plus specific classes for matching object shapes to media types by
+        // their MediaSource plugin class.
+        // @see \Drupal\canvas\ShapeMatcher\MediaSourceObjectShapes
+        Selector::classname(MediaType::class),
+        Selector::classname(MediaTypeInterface::class),
+        Selector::classname(AudioFile::class),
+        Selector::classname(File::class),
+        Selector::classname(Image::class),
+        Selector::classname(VideoFile::class),
         // For resolving schema references, a service is needed from the
         // container.
         Selector::inNamespace('Symfony\Component\DependencyInjection'),
@@ -229,6 +253,45 @@ final class Layers {
         Selector::classname(ComponentPluginManager::class)
       )
       ->because("The entire ShapeMatcher infrastructure should depend only on core + Canvas' PropExpressions + PropShape + PropSource + JSON schema interpreter + adapters + select classes.");
+  }
+
+  #[TestRule]
+  public function shapeMatchingHooks(): Rule {
+    return PHPat::rule()
+      ->classes(Selector::classname(ShapeMatchingHooks::class))
+      ->canOnlyDependOn()
+      ->classes(
+        // Builds on the same Canvas infrastructure as ShapeMatcher.
+        // @see ::shapeMatcher()
+        Selector::inNamespace('Drupal\canvas\ShapeMatcher'),
+        Selector::inNamespace('Drupal\canvas\PropExpressions'),
+        Selector::inNamespace('Drupal\canvas\PropShape'),
+        Selector::inNamespace('Drupal\canvas\JsonSchemaInterpreter'),
+        Selector::classname(BetterEntityDataDefinition::class),
+        // Alters the field type plugins and validation constraints that power
+        // shape matching.
+        Selector::inNamespace('Drupal\canvas\Plugin\Field\FieldTypeOverride'),
+        Selector::inNamespace('Drupal\canvas\Plugin\Validation'),
+        Selector::classname(Hostname::class),
+        Selector::classname(Ip::class),
+        // Hook implementations need core hook plumbing.
+        Selector::classname(HookAttribute::class),
+        Selector::classname(AccessResult::class),
+        Selector::classname(AccountInterface::class),
+        Selector::inNamespace('Drupal\Core\Entity'),
+        // Plus specific classes for core field types needing special care.
+        Selector::classname(DateTimeItem::class),
+        // Text format access determines matching text fields.
+        Selector::classname(EditorInterface::class),
+        Selector::classname(FilterFormatInterface::class),
+        // Media Library integration for object shapes.
+        // @see \Drupal\canvas\ShapeMatcher\MediaSourceObjectShapes
+        Selector::classname(MediaTypeInterface::class),
+        Selector::classname(Image::class),
+        // e.g. \InvalidArgumentException
+        Selector::isStandardClass(),
+      )
+      ->because('Shape-matching hook implementations are glue: they bridge core hook plumbing to the same infrastructure ShapeMatcher builds on, and nothing else.');
   }
 
   #[TestRule]
