@@ -4594,6 +4594,7 @@ components:
             Read-only: computed from the site's extensions and ignored if sent
             back. A CLI `pull` adds them to the project's package.json so the
             project builds against the versions the site's extensions expect.
+          readOnly: true
           additionalProperties:
             type: string
     NewAssetLibrary:

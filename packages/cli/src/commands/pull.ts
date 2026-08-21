@@ -848,11 +848,13 @@ export function createAssetsPullTask(
           .catch(() => false);
         assetParts.push('global CSS');
       }
+      // Checked before anything is written, so --skip-overwrite can tell a
+      // file that existed from one this pull is about to restore.
+      packageJsonExists = await fs
+        .access(packageJsonPath)
+        .then(() => true)
+        .catch(() => false);
       if (packageJson) {
-        packageJsonExists = await fs
-          .access(packageJsonPath)
-          .then(() => true)
-          .catch(() => false);
         assetParts.push('package.json');
       }
       if (npmDependencies && Object.keys(npmDependencies).length > 0) {
@@ -935,12 +937,18 @@ export function createAssetsPullTask(
       // Merge the packages the site's extensions declare into package.json.
       // This runs after the stored package.json (if any) is restored, so that
       // restore, not the merge, is what decides the file's baseline. The merge
-      // only adds: see mergeNpmDependencies().
-      if (npmDependencies && Object.keys(npmDependencies).length > 0) {
-        if (skipOverwrite) {
-          notes.push(
-            `Not added to package.json (--skip-overwrite): ${formatNpmDependencies(npmDependencies)}.`,
-          );
+      // only adds: see mergeNpmDependencies(). An empty object is merged too,
+      // so the record forgets packages the site no longer declares; only an
+      // absent key (an older Canvas) means nothing is known.
+      if (npmDependencies !== undefined) {
+        if (skipOverwrite && packageJsonExists) {
+          // The file existed before this pull, so it is the developer's to
+          // keep as is. A package.json this pull just restored is still merged.
+          if (Object.keys(npmDependencies).length > 0) {
+            notes.push(
+              `Not added to package.json (--skip-overwrite): ${formatNpmDependencies(npmDependencies)}.`,
+            );
+          }
         } else {
           try {
             const current = await fs

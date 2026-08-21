@@ -9,6 +9,7 @@ use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\CanvasAssetInterface;
 use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
 use Drupal\Core\Cache\CacheableJsonResponse;
+use Drupal\Core\Cache\CacheableMetadata;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,7 +27,8 @@ final class ApiConfigAutoSaveControllers extends ApiControllerBase {
     $auto_save = $this->autoSaveManager->getAutoSaveEntity($canvas_config_entity);
     \assert($auto_save->entity === NULL || $auto_save->entity instanceof CanvasHttpApiEligibleConfigEntityInterface);
 
-    $auto_save_normalization = $auto_save->entity?->normalizeForClientSide()->values;
+    $representation = $auto_save->entity?->normalizeForClientSide();
+    $auto_save_normalization = $representation?->values;
     // When normalizing for auto-save, don't provide links to entity
     // operations. Those should only provided on this config entity's
     // canonical API route.
@@ -43,7 +45,10 @@ final class ApiConfigAutoSaveControllers extends ApiControllerBase {
     ))->addCacheableDependency($auto_save)
       // The `autoSaveStartingPoint` value in `autoSaves` is computed using the
       // config entity.
-      ->addCacheableDependency($canvas_config_entity);
+      ->addCacheableDependency($canvas_config_entity)
+      // A normalization can carry cacheability of its own, for example a
+      // computed property that depends on installed extensions.
+      ->addCacheableDependency($representation ?? new CacheableMetadata());
 
   }
 

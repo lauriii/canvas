@@ -62,21 +62,47 @@ describe('mergeNpmDependencies', () => {
     ]);
   });
 
-  it('does not report a range built on the declared version', () => {
-    const before = JSON.stringify({
-      dependencies: { '@acme/canvas-forms': '^1.2.0' },
-    });
-    const result = mergeNpmDependencies(before, {
-      '@acme/canvas-forms': '1.2.0',
-    });
-    expect(result.text).toBeNull();
-    expect(result.conflicts).toEqual([]);
+  it('does not report a range the declared version satisfies', () => {
+    for (const range of [
+      '^1.2.0',
+      '~1.2.0',
+      '>=1.2.0',
+      '1.x',
+      '1.2.0 - 1.4.0',
+    ]) {
+      const before = JSON.stringify({
+        dependencies: { '@acme/canvas-forms': range },
+      });
+      const result = mergeNpmDependencies(before, {
+        '@acme/canvas-forms': '1.2.0',
+      });
+      expect(result.text, range).toBeNull();
+      expect(result.conflicts, range).toEqual([]);
+    }
+  });
+
+  it('reports a range that excludes the declared version, and non-ranges', () => {
+    for (const spec of [
+      '>1.2.0',
+      '^2.0.0',
+      'file:../1.2.0',
+      'latest',
+      'git+https://x/y#1.2.0',
+    ]) {
+      const result = mergeNpmDependencies(
+        JSON.stringify({ dependencies: { '@acme/canvas-forms': spec } }),
+        { '@acme/canvas-forms': '1.2.0' },
+      );
+      expect(result.conflicts, spec).toEqual([
+        { name: '@acme/canvas-forms', declared: '1.2.0', current: spec },
+      ]);
+    }
   });
 
   it('sees a package in any dependency section and never duplicates it', () => {
     const before = JSON.stringify({
       devDependencies: { '@acme/canvas-forms': '1.2.0' },
-      peerDependencies: { react: '>=18' },
+      peerDependencies: { react: '^18.0.0' },
     });
     const result = mergeNpmDependencies(before, {
       '@acme/canvas-forms': '1.2.0',
@@ -85,9 +111,11 @@ describe('mergeNpmDependencies', () => {
     const next = JSON.parse(result.text as string);
     expect(next.dependencies).toBeUndefined();
     expect(next.devDependencies).toEqual({ '@acme/canvas-forms': '1.2.0' });
-    // `>=18` is a range on nothing declared, but it is the developer's: conflict.
+    // A peer range that excludes the declared version is the developer's
+    // choice: reported, never rewritten, never duplicated under dependencies.
+    expect(next.peerDependencies).toEqual({ react: '^18.0.0' });
     expect(result.conflicts).toEqual([
-      { name: 'react', declared: '19.0.0', current: '>=18' },
+      { name: 'react', declared: '19.0.0', current: '^18.0.0' },
     ]);
     expect(next.canvas.npmDependencies).toEqual({
       '@acme/canvas-forms': '1.2.0',
@@ -255,6 +283,33 @@ describe('checkInstalledNpmDependencies', () => {
       missing: [],
       mismatched: [{ name: 'sealed', declared: '2.0.0', installed: '2.1.0' }],
     });
+  });
+
+  it('finds an ESM-only package whose exports expose only an import condition', async () => {
+    const root = await project(
+      {
+        dependencies: { 'esm-only': '3.0.0' },
+        canvas: { npmDependencies: { 'esm-only': '3.0.0' } },
+      },
+      {},
+    );
+    const dir = path.join(root, 'node_modules', 'esm-only');
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(
+      path.join(dir, 'package.json'),
+      JSON.stringify({
+        name: 'esm-only',
+        version: '3.0.0',
+        type: 'module',
+        exports: { '.': { import: './index.js' } },
+      }),
+    );
+    await fs.writeFile(path.join(dir, 'index.js'), 'export const a = 1;');
+    // CommonJS resolution sees neither `./package.json` nor the entry point,
+    // but Vite bundles it fine, so it must not be reported missing.
+    await expect(
+      checkInstalledNpmDependencies(root, ['esm-only']),
+    ).resolves.toEqual({ missing: [], mismatched: [] });
   });
 
   it('is silent for a project that never pulled any', async () => {

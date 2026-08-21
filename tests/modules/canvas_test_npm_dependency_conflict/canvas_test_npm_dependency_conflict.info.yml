@@ -1,0 +1,9 @@
+name: 'Test Canvas npm dependency conflict'
+type: module
+description: 'Declares the same npm package as canvas_test_npm_dependency at a different version.'
+package: Testing
+dependencies:
+  - canvas:canvas
+canvas:
+  npm:
+    '@canvas-test/declared-package': 1.3.0

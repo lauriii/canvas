@@ -44,6 +44,18 @@ final class AssetLibraryNpmDependenciesTest extends CanvasKernelTestBase {
     self::assertContains('config:core.extension', $representation->getCacheTags());
   }
 
+  public function testHigherVersionWinsWhenExtensionsDisagree(): void {
+    $this->enableModules(['canvas_test_npm_dependency', 'canvas_test_npm_dependency_conflict']);
+
+    $normalized = self::getGlobalAssetLibrary()->normalizeForClientSide()->values;
+    // A project can install only one version; the higher wins and the
+    // disagreement is logged. The lower declaration does not leak through.
+    self::assertSame(
+      ['@canvas-test/declared-package' => '1.3.0'],
+      (array) $normalized['npmDependencies'],
+    );
+  }
+
   public function testValidatesDeclarations(): void {
     self::assertTrue(ExtensionNpmDependencies::isValidDeclaration('@acme/canvas-forms', '1.2.0'));
     self::assertTrue(ExtensionNpmDependencies::isValidDeclaration('lodash', '4.17.21'));
@@ -56,6 +68,10 @@ final class AssetLibraryNpmDependenciesTest extends CanvasKernelTestBase {
     self::assertFalse(ExtensionNpmDependencies::isValidDeclaration('../escape', '1.0.0'));
     self::assertFalse(ExtensionNpmDependencies::isValidDeclaration('', '1.0.0'));
     self::assertFalse(ExtensionNpmDependencies::isValidDeclaration('lodash', ''));
+    // Not SemVer: leading zeros and empty identifiers.
+    self::assertFalse(ExtensionNpmDependencies::isValidDeclaration('lodash', '01.2.3'));
+    self::assertFalse(ExtensionNpmDependencies::isValidDeclaration('lodash', '1.2.3-alpha..1'));
+    self::assertFalse(ExtensionNpmDependencies::isValidDeclaration('lodash', '1.2'));
   }
 
   public function testIsReadOnly(): void {

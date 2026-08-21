@@ -607,6 +607,56 @@ describe('Pull Command', () => {
       });
     });
 
+    it('refreshes the record when the site declares nothing any more', async () => {
+      await fs.writeFile(
+        path.join(tmpDir, 'package.json'),
+        JSON.stringify({
+          dependencies: { a: '1.0.0' },
+          canvas: { npmDependencies: { a: '1.0.0' } },
+        }),
+      );
+      // An empty object is a statement, not an absence: the record forgets
+      // `a`, the dependency itself stays.
+      const api = mockApiService(
+        'body {}',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {},
+      );
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
+      await task.prepare();
+      const result = await task.execute();
+      const written = JSON.parse(
+        await fs.readFile(path.join(tmpDir, 'package.json'), 'utf-8'),
+      );
+      expect(written.dependencies).toEqual({ a: '1.0.0' });
+      expect(written.canvas).toBeUndefined();
+      expect(result.notes?.join('\n')).toContain(
+        'No longer declared by the site, left in package.json: a.',
+      );
+    });
+
+    it('still adds declared packages under --skip-overwrite when package.json was just restored', async () => {
+      // No package.json on disk; the site stores one and declares a package.
+      const api = mockApiService(
+        'body {}',
+        JSON.stringify({ name: 'restored', dependencies: {} }),
+        undefined,
+        undefined,
+        undefined,
+        { '@acme/canvas-forms': '1.2.0' },
+      );
+      const task = createAssetsPullTask(api, globalCssPath, true, tmpDir);
+      await task.prepare();
+      await task.execute();
+      const written = JSON.parse(
+        await fs.readFile(path.join(tmpDir, 'package.json'), 'utf-8'),
+      );
+      expect(written.dependencies).toEqual({ '@acme/canvas-forms': '1.2.0' });
+    });
+
     it('merges nothing when the site does not report declared packages', async () => {
       const original = JSON.stringify({
         dependencies: { a: '1.0.0' },

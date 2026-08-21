@@ -6,6 +6,8 @@ namespace Drupal\canvas;
 
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Extension\ThemeExtensionList;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * Collects the npm packages that installed modules and themes declare.
@@ -43,13 +45,19 @@ final class ExtensionNpmDependencies {
    * Only an exact version is accepted: it is what the extension was built
    * against, and it is what a build can compare an installed copy to without a
    * range resolver. Anything else (a range, a tag, a URL, a path) is rejected
-   * so an info file cannot make a project install arbitrary sources.
+   * so an info file cannot make a project install arbitrary sources. This is
+   * the official SemVer 2.0.0 pattern, so leading zeros and empty identifiers
+   * are rejected too.
+   *
+   * @see https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
    */
-  private const string VERSION_PATTERN = '/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/';
+  private const string VERSION_PATTERN = '/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/';
 
   public function __construct(
     private readonly ModuleExtensionList $moduleExtensionList,
     private readonly ThemeExtensionList $themeExtensionList,
+    #[Autowire(service: 'logger.channel.canvas')]
+    private readonly LoggerInterface $logger,
   ) {}
 
   /**
@@ -59,16 +67,38 @@ final class ExtensionNpmDependencies {
    */
   public function getDependencies(): array {
     $dependencies = [];
+    // Which extension declared each package, to name both sides of a conflict.
+    $declared_by = [];
     foreach ([$this->moduleExtensionList, $this->themeExtensionList] as $extension_list) {
-      foreach ($extension_list->getAllInstalledInfo() as $info) {
+      foreach ($extension_list->getAllInstalledInfo() as $extension => $info) {
         $declared = $info['canvas'][self::INFO_KEY] ?? [];
         if (!\is_array($declared)) {
           continue;
         }
         foreach ($declared as $package => $version) {
-          if (self::isValidDeclaration($package, $version)) {
-            $dependencies[$package] = $version;
+          if (!self::isValidDeclaration($package, $version)) {
+            continue;
           }
+          if (isset($dependencies[$package]) && $dependencies[$package] !== $version) {
+            // Two extensions want different versions of one package. A project
+            // can only install one, so the higher wins, deterministically, and
+            // the disagreement is logged for the site owner to settle: the
+            // extension that wanted the lower version gets a newer copy than it
+            // declared, exactly as when two modules disagree on any library.
+            $this->logger->warning('Extensions @a and @b declare different versions of the npm package @package (@va and @vb). Using @chosen.', [
+              '@a' => $declared_by[$package],
+              '@b' => $extension,
+              '@package' => $package,
+              '@va' => $dependencies[$package],
+              '@vb' => $version,
+              '@chosen' => \version_compare($version, $dependencies[$package], '>') ? $version : $dependencies[$package],
+            ]);
+            if (\version_compare($version, $dependencies[$package], '<=')) {
+              continue;
+            }
+          }
+          $dependencies[$package] = $version;
+          $declared_by[$package] = $extension;
         }
       }
     }

@@ -1,6 +1,7 @@
-import { promises as fs } from 'node:fs';
+import { existsSync, promises as fs } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
+import semver from 'semver';
 
 /**
  * npm packages the site's modules and themes declare.
@@ -91,13 +92,18 @@ function findSection(
 }
 
 /**
- * Whether a developer's version spec is a range built on the declared version
- * (`^1.2.0`, `~1.2.0`, `>=1.2.0`). Not reported as a disagreement: the
- * developer chose a range on purpose, and the build compares the installed
- * version anyway.
+ * Whether a developer's version spec is a semver range that the declared
+ * version satisfies (`^1.2.0`, `~1.2.0`, `>=1.2.0`, `1.x`).
+ *
+ * Such a spec is not reported as a disagreement: the developer chose a range
+ * on purpose, the declared version is inside it, and the build compares the
+ * installed version anyway. A spec that is not a range (`file:`, `git+`, a
+ * tag, a URL) or that excludes the declared version is a disagreement.
  */
-function isRangeOn(current: string, declared: string): boolean {
-  return current !== declared && current.includes(declared);
+function rangeAllowsDeclared(current: string, declared: string): boolean {
+  return (
+    semver.validRange(current) !== null && semver.satisfies(declared, current)
+  );
 }
 
 /**
@@ -143,7 +149,7 @@ export function mergeNpmDependencies(
       entries[name] = version;
       result.added.push(name);
       record[name] = version;
-    } else if (!isRangeOn(current, version)) {
+    } else if (!rangeAllowsDeclared(current, version)) {
       result.conflicts.push({ name, declared: version, current });
     }
   }
@@ -246,7 +252,10 @@ export async function checkInstalledNpmDependencies(
  * Uses Node's own resolution from the project root, so a package hoisted to a
  * parent `node_modules` (workspaces) or linked by a package manager is found
  * the same way the bundler will find it. A package whose `exports` map hides
- * `./package.json` is located through its entry point instead.
+ * `./package.json`, or exposes only an `import` condition that CommonJS
+ * resolution cannot see, is installed all the same: for those the manifest is
+ * located by walking the `node_modules` directories from the project root up,
+ * which is where Node's own algorithm would have looked.
  */
 async function readInstalledVersion(
   name: string,
@@ -260,33 +269,9 @@ async function readInstalledVersion(
     if ((error as NodeJS.ErrnoException).code === 'MODULE_NOT_FOUND') {
       return null;
     }
-    // `exports` does not expose `./package.json`: resolve the entry point and
-    // walk up to the nearest manifest that carries this package's name.
-    let entry: string;
-    try {
-      entry = requireFromProject.resolve(name);
-    } catch {
+    manifestPath = findManifestInNodeModules(name, projectRoot);
+    if (manifestPath === undefined) {
       return null;
-    }
-    let dir = path.dirname(entry);
-    while (manifestPath === undefined) {
-      const candidate = path.join(dir, 'package.json');
-      try {
-        const manifest = JSON.parse(await fs.readFile(candidate, 'utf-8')) as {
-          name?: string;
-        };
-        if (manifest.name === name) {
-          manifestPath = candidate;
-          break;
-        }
-      } catch {
-        // Keep walking.
-      }
-      const parent = path.dirname(dir);
-      if (parent === dir) {
-        return null;
-      }
-      dir = parent;
     }
   }
   try {
@@ -296,5 +281,28 @@ async function readInstalledVersion(
     return manifest.version ?? null;
   } catch {
     return null;
+  }
+}
+
+function findManifestInNodeModules(
+  name: string,
+  projectRoot: string,
+): string | undefined {
+  let dir = path.resolve(projectRoot);
+  for (;;) {
+    const candidate = path.join(
+      dir,
+      'node_modules',
+      ...name.split('/'),
+      'package.json',
+    );
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) {
+      return undefined;
+    }
+    dir = parent;
   }
 }
