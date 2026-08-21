@@ -51,6 +51,14 @@ class EphemeralPropShapeRepository implements PropShapeRepositoryInterface {
   /**
    * {@inheritdoc}
    */
+  public function resolveInvalidatedPropShapes(): void {
+    // Nothing to do: this repository does not cache resolved prop shapes, so
+    // every ::getStorablePropShape() call already resolves from current state.
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getStorablePropShape(PropShape $shape): ?StorablePropShape {
     $candidate = $this->getCandidateStorablePropShape($shape);
     // When this resolution is nested inside another, the outer prop shape

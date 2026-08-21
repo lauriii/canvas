@@ -24,7 +24,6 @@ use Drupal\canvas\Validation\JsonSchema\CustomConstraintError;
 use Drupal\canvas_test_storable_prop_shape_alter\Hook\CanvasTestStorablePropShapeAlterHooks;
 use Drupal\canvas_test_storable_prop_shape_alter\Plugin\Field\FieldType\MultipleOfItem;
 use Drupal\Core\Cache\CacheCollectorInterface;
-use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
@@ -44,7 +43,6 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Depends;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
-use Symfony\Component\DependencyInjection\Reference;
 
 /**
  * Tests Drupal\canvas\PropShape\PersistentPropShapeRepository.
@@ -97,21 +95,6 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
     ]);
     // @see \Drupal\file\Plugin\Field\FieldType\FileItem::generateSampleValue()
     $this->installEntitySchema('file');
-  }
-
-  public function register(ContainerBuilder $container): void {
-    parent::register($container);
-    $container->register(PropShapeRepositoryInterface::class, PersistentPropShapeRepositoryTestHelper::class)
-      ->addArgument(new Reference(EphemeralPropShapeRepository::class))
-      ->addArgument(new Reference('cache.discovery'))
-      ->addArgument(new Reference('lock'))
-      ->addArgument(new Reference(ComponentSourceManager::class))
-      ->addArgument(new Reference('kernel'))
-      // Registering the service anew drops the tags it is defined with, but
-      // reacting to cache tag invalidations is essential to its behavior.
-      // @see canvas.services.yml
-      ->addTag('cache_tags_invalidator')
-      ->addTag('needs_destruction');
   }
 
   /**
@@ -1272,17 +1255,9 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
     \Drupal::state()->set(CanvasTestStorablePropShapeAlterHooks::STATE_KEY_AND_CACHE_TAG, TRUE);
     $prop_shape_repository = \Drupal::service(PropShapeRepositoryInterface::class);
     \assert($prop_shape_repository instanceof CacheCollectorInterface);
-    \assert($prop_shape_repository instanceof PersistentPropShapeRepositoryTestHelper);
     $prop_shape_repository->invalidateTags([CanvasTestStorablePropShapeAlterHooks::STATE_KEY_AND_CACHE_TAG]);
-    // The invalidation would happen immediately, but we are preventing any
-    // unneeded calls to regenerate Components in the same request.
-    // So we need a helper class that can simulate that, and call destruct()
-    // manually.
-    // Sadly, even without the fix for supporting disappearing prop shapes, this
-    // test would still pass, as that flag work-around is actually forcing some
-    // extra updates.
-    // Being honest, the asserts below are here mostly for documenting purposes.
-    $prop_shape_repository->setCacheCreated(\time());
+    // Invalidated prop shapes are re-resolved when the repository is
+    // destructed, which in production is the end of the request.
     $prop_shape_repository->destruct();
 
     $component = \Drupal::entityTypeManager()->getStorage(ComponentEntity::ENTITY_TYPE_ID)->loadUnchanged($component_id);
@@ -1345,12 +1320,10 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
     $this->createMediaType('image', ['id' => 'gracie_photos']);
 
     $prop_shape_repository = \Drupal::service(PropShapeRepositoryInterface::class);
-    \assert($prop_shape_repository instanceof PersistentPropShapeRepositoryTestHelper);
+    \assert($prop_shape_repository instanceof CacheCollectorInterface);
     // The invalidated prop shapes are re-resolved when the prop shape
-    // repository is destructed, and only when its cache entry was created in an
-    // earlier request. Neither is true in a kernel test, so simulate both.
+    // repository is destructed, which in production is the end of the request.
     // @see \Drupal\canvas\PropShape\PersistentPropShapeRepository::updateCache()
-    $prop_shape_repository->setCacheCreated(\time());
     $prop_shape_repository->destruct();
 
     // Both Components must now use the `entity_reference` field type, pointing
@@ -1367,6 +1340,48 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
         $component_id,
       );
     }
+  }
+
+  /**
+   * Tests re-resolving a warm cache that contains a non-storable prop shape.
+   *
+   * A prop shape without a storable equivalent is cached as NULL. When a later
+   * request loads that cache, ::lazyLoadCache() cannot rebuild the PropShape
+   * object for it, so ::resolveInvalidatedPropShapes() cannot re-resolve it
+   * and must remove the cache entry instead of throwing.
+   *
+   * @legacy-covers \Drupal\canvas\PropShape\PersistentPropShapeRepository::resolveInvalidatedPropShapes
+   * @legacy-covers \Drupal\canvas\PropShape\PersistentPropShapeRepository::lazyLoadCache
+   */
+  public function testResolveInvalidatedPropShapesOnWarmCacheWithNonStorableShape(): void {
+    $repository = \Drupal::service(PropShapeRepositoryInterface::class);
+    \assert($repository instanceof CacheCollectorInterface);
+    \assert($repository instanceof PropShapeRepositoryInterface);
+    // A prop shape no field type can store: cached as NULL.
+    $non_storable_shape = PropShape::normalize([
+      'type' => 'object',
+      'properties' => ['x' => ['type' => 'string']],
+    ]);
+    self::assertNull($repository->getStorablePropShape($non_storable_shape));
+    // End of the request: the cache is written, including the NULL.
+    $repository->destruct();
+
+    // The next request loads that warm cache with a fresh repository instance.
+    $fresh_repository = new PersistentPropShapeRepository(
+      \Drupal::service(EphemeralPropShapeRepository::class),
+      \Drupal::service('cache.discovery'),
+      \Drupal::service('lock'),
+      \Drupal::service(ComponentSourceManager::class),
+      \Drupal::service('kernel'),
+    );
+    // Installing a module invalidates `config:core.extension`, which queues
+    // every cached prop shape — including the NULL one — for re-resolution.
+    $fresh_repository->invalidateTags(['config:core.extension']);
+    // This must not throw, even though the NULL entry cannot be re-resolved.
+    // @see \Drupal\canvas\Hook\ComponentSourceHooks::modulesInstalled()
+    $fresh_repository->resolveInvalidatedPropShapes();
+    // The shape remains non-storable when asked again.
+    self::assertNull($fresh_repository->getStorablePropShape($non_storable_shape));
   }
 
 }

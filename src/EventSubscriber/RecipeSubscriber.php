@@ -36,6 +36,11 @@ final class RecipeSubscriber implements EventSubscriberInterface {
    * Generates Component config entities, during and after recipe application.
    */
   public function ensureComponentsExist(): void {
+    // A recipe routinely changes config that storable prop shapes depend on:
+    // creating the first image MediaType changes the storable prop shape of
+    // every image prop. Generation re-resolves those queued prop shapes, to
+    // compute version hashes from the prop shapes this recipe leaves behind.
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentDiscoveryBase::getPropsForComponentPlugin()
     $this->componentSourceManager->generateComponents();
   }
 

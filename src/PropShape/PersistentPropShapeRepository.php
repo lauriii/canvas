@@ -8,7 +8,7 @@ use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Cache\CacheCollector;
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
-use Drupal\Core\DrupalKernel;
+use Drupal\Core\DrupalKernelInterface;
 use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\Core\Update\UpdateKernel;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -104,7 +104,7 @@ class PersistentPropShapeRepository extends CacheCollector implements PropShapeR
     LockBackendInterface $lock,
     private readonly ComponentSourceManager $componentSourceManager,
     #[Autowire(service: 'kernel')]
-    DrupalKernel $kernel,
+    DrupalKernelInterface $kernel,
   ) {
     // Basic cacheability: the set of installed modules, which determines both:
     // 1. which `hook_canvas_storable_prop_shape_alter()` implementations exist
@@ -203,19 +203,61 @@ class PersistentPropShapeRepository extends CacheCollector implements PropShapeR
     return $this->get($key);
   }
 
+  /**
+   * {@inheritdoc}
+   *
+   * Component version hashes are computed from storable prop shapes, so
+   * component generation calls this before reading them. Otherwise it computes
+   * the hashes from prop shapes already known to be out of date, and the queue
+   * would only be re-resolved when the request ends, with no regeneration left
+   * to run — leaving the hashes out of date until something unrelated
+   * regenerates the Components.
+   *
+   * @see ::invalidateTags()
+   * @see ::updateCache()
+   */
+  public function resolveInvalidatedPropShapes(): void {
+    foreach ($this->resolveBeforeWrite as $key) {
+      if (\array_key_exists($key, $this->lookup)) {
+        $this->resolveCacheMiss($key);
+      }
+      else {
+        // ::lazyLoadCache() rebuilds $this->lookup only for cached prop shapes
+        // that were storable: a cached NULL contains no PropShape object to
+        // re-resolve from, and ::resolveCacheMiss() throws for keys missing
+        // from $this->lookup. Remove the cache entry instead; the next
+        // ::getStorablePropShape() call for this shape re-resolves it — and
+        // can then also pick up a shape that has become storable.
+        $this->delete($key);
+        unset($this->tagLookup[$key]);
+      }
+    }
+    $this->resolveBeforeWrite = [];
+  }
+
   protected function updateCache($lock = TRUE): void {
     if ($this->isUpdateKernel) {
       parent::updateCache($lock);
       return;
     }
-    // Re-resolve any items that were invalidated by cache tag invalidation.
-    foreach ($this->resolveBeforeWrite as $key) {
-      $this->resolveCacheMiss($key);
-    }
-    if (!isset($this->cacheCreated)) {
-      // On a cold cache we don't want to trigger new component updates as that
-      // could invalidate additional cache tags and lead to invalidation of our
-      // cache entries as soon as they are written.
+    // Whether a cache tag invalidation changed how props are stored in this
+    // process, rather than prop shapes simply being resolved for the first
+    // time. This must be checked before the queued prop shapes are re-resolved.
+    $has_invalidated_prop_shapes = $this->resolveBeforeWrite !== [];
+    $this->resolveInvalidatedPropShapes();
+    if (!$has_invalidated_prop_shapes && !isset($this->cacheCreated)) {
+      // Nothing in this process changed how props are stored: the prop shapes
+      // were only resolved for the first time. So whatever regenerated
+      // Components to populate this cache entry already saw their final
+      // storable prop shapes. Regenerating now would repeat that work for no
+      // gain, and a cold cache is the most expensive time to do it.
+      //
+      // When prop shapes *were* invalidated this does not apply: their storable
+      // prop shapes changed during this process, so the version hashes computed
+      // from them must be recomputed, however cold the cache is. Not doing
+      // so is what left a freshly installed site with Component version hashes
+      // that disagree with the prop shapes cached next to them — a state
+      // nothing later detects as stale.
       parent::updateCache($lock);
       return;
     }

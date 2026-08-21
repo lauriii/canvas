@@ -1,0 +1,5 @@
+name: 'Component version: image media type'
+description: 'Applies core''s image_media_type recipe. Stands in for a sibling recipe whose config changes storable prop shapes, and hence component version hashes.'
+type: 'Test'
+recipes:
+  - ./core/recipes/image_media_type
