@@ -43,6 +43,7 @@ use Drupal\Core\Template\Attribute;
 use Drupal\Core\Theme\ThemeInitializationInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\Core\Url;
+use Drupal\language\ConfigurableLanguageManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 final class CanvasController {
@@ -194,10 +195,17 @@ HTML;
     // the only languages with URL prefixes a user can preview content in.
     // @see \Drupal\language\ConfigurableLanguageManager::isMultilingual()
     $languages_data = [];
-    // The list tag covers adding, removing and reordering languages. Renaming
-    // one without saving the entity (config translation, config import)
-    // invalidates only that language's own config tag, added below.
-    $languages_cache_tags = ['config:configurable_language_list'];
+    $languages_cache_tags = [];
+    // Languages are backed by `language.entity.*` config entities only when the
+    // Language module is installed (which is when the language manager is
+    // configurable); without it, there is nothing these cache tags could track.
+    $language_module_installed = $this->languageManager instanceof ConfigurableLanguageManagerInterface;
+    if ($language_module_installed) {
+      // The list tag covers adding, removing and reordering languages. Renaming
+      // one without saving the entity (config translation, config import)
+      // invalidates only that language's own config tag, added below.
+      $languages_cache_tags[] = 'config:configurable_language_list';
+    }
     foreach ($this->languageManager->getLanguages(LanguageInterface::STATE_CONFIGURABLE) as $language) {
       $languages_data[] = [
         'id' => $language->getId(),
@@ -205,7 +213,14 @@ HTML;
         'direction' => $language->getDirection(),
         'isDefault' => $language->isDefault(),
       ];
-      $languages_cache_tags[] = 'config:language.entity.' . $language->getId();
+      if ($language_module_installed) {
+        // Even then, getLanguages() yields runtime Language objects rather than
+        // ConfigurableLanguage entities, so the entity's own cache tag (what
+        // ConfigurableLanguage::getCacheTagsToInvalidate() returns) must be
+        // built by hand.
+        // @see \Drupal\language\ConfigurableLanguageManager::getLanguages()
+        $languages_cache_tags[] = 'config:language.entity.' . $language->getId();
+      }
     }
     $languages_cacheability = (new CacheableMetadata())->setCacheTags($languages_cache_tags);
 
