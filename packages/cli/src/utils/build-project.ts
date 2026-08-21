@@ -17,6 +17,7 @@ import {
 import { transformCss } from '../lib/transform-css';
 import { buildTailwindForComponents, getGlobalCss } from './build-tailwind';
 import { generateManifest } from './generate-manifest';
+import { checkInstalledNpmDependencies } from './module-npm-dependencies';
 import {
   createComponentPayload,
   readComponentMetadata,
@@ -34,6 +35,7 @@ import type {
 import type { Component, DataDependencies } from '../types/Component';
 import type { Result } from '../types/Result';
 import type { Manifest } from './generate-manifest';
+import type { InstalledNpmDependenciesCheck } from './module-npm-dependencies';
 
 export interface BuiltComponent {
   machineName: string;
@@ -52,6 +54,13 @@ export interface CanvasProjectBuildResult {
   vendorImportCount: number;
   localImportCount: number;
   tailwindResult: Result;
+  /**
+   * Packages the site's extensions declare that are installed at another
+   * version. The build still succeeds; the caller names them.
+   *
+   * @see checkInstalledNpmDependencies()
+   */
+  npmDependencyMismatches: InstalledNpmDependenciesCheck['mismatched'];
 }
 
 export interface CanvasProjectBuildOptions {
@@ -329,6 +338,7 @@ export async function buildCanvasProject(
         itemType: 'Asset',
         success: true,
       },
+      npmDependencyMismatches: [],
     };
   }
 
@@ -463,6 +473,24 @@ export async function buildCanvasProject(
     ...dependencyMetadata.thirdPartyPackages,
     ...localResult.thirdPartyPackages,
   ]);
+
+  // Packages the site's modules and themes declare were recorded in
+  // package.json by `canvas pull`. Among the ones components import, one that
+  // is not installed would fail the vendor build with an opaque resolution
+  // error, so fail first and say what to do. A version mismatch builds, but is
+  // reported by the caller.
+  const npmDependencies = await checkInstalledNpmDependencies(
+    options.projectRoot,
+    vendorPackages,
+  );
+  if (npmDependencies.missing.length > 0) {
+    throw new Error(
+      `Not installed (${npmDependencies.missing.length}): ${npmDependencies.missing
+        .map(({ name, declared }) => `${name}@${declared}`)
+        .join(', ')}. ` +
+        "Components import these and the site's modules declare them. Run `npm install`.",
+    );
+  }
   const vendorResult =
     vendorPackages.size > 0
       ? await buildCanvasVendorArtifacts({
@@ -504,5 +532,6 @@ export async function buildCanvasProject(
     vendorImportCount: vendorResult.bundledPackages.length,
     localImportCount: Object.keys(localResult.localImportMap).length,
     tailwindResult,
+    npmDependencyMismatches: npmDependencies.mismatched,
   };
 }

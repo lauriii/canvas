@@ -221,6 +221,13 @@ export interface AssetLibrary {
   shared?: AssetLibraryManifestEntry[] | null;
   bundledSources?: AssetLibraryBundledSource[] | null;
   packageJson?: string | null;
+  /**
+   * npm packages that installed modules and themes declare, as package name to
+   * version. Read-only: the server computes it and ignores it on write.
+   *
+   * @see \Drupal\canvas\ExtensionNpmDependencies
+   */
+  npmDependencies?: Record<string, string>;
 }
 
 export interface AssetLibraryManifestEntry {

@@ -4,7 +4,11 @@ import { discoverCanvasProject } from '@drupal-canvas/discovery';
 
 import { getConfig } from '../config';
 import { buildCanvasProject } from '../utils/build-project';
-import { pluralize, updateConfigFromOptions } from '../utils/command-helpers';
+import {
+  pluralize,
+  updateConfigFromOptions,
+  warnAboutNpmDependencyMismatches,
+} from '../utils/command-helpers';
 import { printCommandIntro } from '../utils/command-intro';
 import {
   COMMAND_RESULT_REPORT_OPTIONS,
@@ -93,6 +97,7 @@ export function buildCommand(program: Command): void {
           hasComponentBuildFailures ? 'Build failed' : 'Built components',
           hasComponentBuildFailures ? 2 : 0,
         );
+        warnAboutNpmDependencyMismatches(buildResult.npmDependencyMismatches);
 
         // Associate discovery warnings with component results
         const resultsWithWarnings = buildResult.componentResults.map(

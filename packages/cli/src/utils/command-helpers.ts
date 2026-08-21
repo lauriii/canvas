@@ -132,3 +132,31 @@ export function pluralize(
 ): string {
   return count === 1 ? singular : (plural ?? `${singular}s`);
 }
+
+/**
+ * Names packages installed at another version than the site's extension
+ * declares.
+ *
+ * The component is bundled with the installed copy, but the site's module was
+ * written for the declared one, so the component may behave differently on
+ * the site than in a local preview. This does not fail the build: a deliberate
+ * upgrade ahead of the module is legitimate, and `canvas pull` reports the
+ * same disagreement.
+ */
+export function warnAboutNpmDependencyMismatches(
+  mismatches: { name: string; declared: string; installed: string }[],
+): void {
+  if (mismatches.length === 0) {
+    return;
+  }
+  p.log.warn(
+    "Installed at a different version than the site's modules declare: " +
+      mismatches
+        .map(
+          ({ name, declared, installed }) =>
+            `${name} (installed ${installed}, site declares ${declared})`,
+        )
+        .join(', ') +
+      '. Run `npm install` after `canvas pull`, or align package.json by hand.',
+  );
+}

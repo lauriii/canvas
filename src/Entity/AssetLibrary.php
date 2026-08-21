@@ -7,6 +7,7 @@ namespace Drupal\canvas\Entity;
 use Drupal\canvas\ClientSideRepresentation;
 use Drupal\canvas\EntityHandlers\AssetLibraryAccessControlHandler;
 use Drupal\canvas\EntityHandlers\CanvasAssetStorage;
+use Drupal\canvas\ExtensionNpmDependencies;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
@@ -128,9 +129,27 @@ final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterfac
         'shared' => $this->shared,
         'bundledSources' => $this->bundledSources,
         'packageJson' => $this->packageJson,
+        'npmDependencies' => self::getNpmDependencies(),
       ],
       preview: NULL
-    );
+    )
+      // The computed `npmDependencies` changes when extensions are installed
+      // or uninstalled, not when this entity is saved.
+      ->addCacheTags(['config:core.extension']);
+  }
+
+  /**
+   * Returns the npm packages installed modules and themes declare.
+   *
+   * Computed for clients and never stored: it describes the site's extensions,
+   * not this entity. A CLI `pull` adds them to the project's package.json so
+   * the project builds against the same package versions the site's extensions
+   * were written for. Exposed as an object so an empty set is `{}` in JSON.
+   *
+   * @see \Drupal\canvas\ExtensionNpmDependencies
+   */
+  private static function getNpmDependencies(): object {
+    return (object) \Drupal::service(ExtensionNpmDependencies::class)->getDependencies();
   }
 
   /**
@@ -188,6 +207,10 @@ final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterfac
         'shared' => $this->setShared(\is_array($value) ? array_values($value) : NULL),
         'bundledSources' => $this->setBundledSources(\is_array($value) ? array_values($value) : NULL),
         'packageJson' => $this->setPackageJson(\is_string($value) ? $value : NULL),
+        // Computed for clients, never stored: a client that sends back the
+        // object it received must not be able to write it.
+        // @see self::getNpmDependencies()
+        'npmDependencies' => NULL,
         default => $this->set($key, $value),
       };
     }

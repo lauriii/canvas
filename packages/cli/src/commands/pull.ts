@@ -26,6 +26,7 @@ import { printCommandIntro } from '../utils/command-intro';
 import { appendCommandSummarySection } from '../utils/command-summary';
 import { contentTemplateToAuthored } from '../utils/content-templates';
 import { ensureTailwindImportAtTop } from '../utils/ensure-global-css-tailwind-import';
+import { mergeNpmDependencies } from '../utils/module-npm-dependencies';
 import { pageVariantToAuthoredSpec } from '../utils/page-variants';
 import { pageToAuthoredSpec } from '../utils/pages';
 import {
@@ -52,6 +53,7 @@ import type { PageListItem } from '../types/Page';
 import type { PageVariant } from '../types/PageVariant';
 import type { Result } from '../types/Result';
 import type { CommandSummaryResource } from '../utils/command-summary';
+import type { NpmDependencies } from '../utils/module-npm-dependencies';
 
 interface PullOptions {
   clientId?: string;
@@ -789,6 +791,12 @@ export function createPageTemplatesPullTask(
   };
 }
 
+function formatNpmDependencies(dependencies: NpmDependencies): string {
+  return Object.entries(dependencies)
+    .map(([name, version]) => `${name}@${version}`)
+    .join(', ');
+}
+
 export function createAssetsPullTask(
   apiService: ApiService,
   globalCssPath: string,
@@ -800,6 +808,11 @@ export function createAssetsPullTask(
   let packageJson: string | null = null;
   let packageJsonExists = false;
   const packageJsonPath = path.join(projectRoot, 'package.json');
+  // npm packages the site's modules and themes declare, merged into the
+  // project's package.json after the stored copy (if any) is restored.
+  // Undefined means the site did not say (an older Canvas), which is not the
+  // same as declaring nothing: nothing is merged then.
+  let npmDependencies: NpmDependencies | undefined;
   let codebaseAssets: AssetLibraryManifestEntry[] = [];
   let bundledSources: AssetLibraryBundledSource[] = [];
 
@@ -811,6 +824,7 @@ export function createAssetsPullTask(
       const globalAssetLibrary = await apiService.getGlobalAssetLibrary();
       globalCss = globalAssetLibrary?.css?.original || '';
       packageJson = globalAssetLibrary?.packageJson || null;
+      npmDependencies = globalAssetLibrary?.npmDependencies;
       codebaseAssets = (globalAssetLibrary?.assets ?? []).filter(
         (entry): entry is AssetLibraryManifestEntry =>
           typeof entry.path === 'string' && entry.path.length > 0,
@@ -840,6 +854,13 @@ export function createAssetsPullTask(
           .then(() => true)
           .catch(() => false);
         assetParts.push('package.json');
+      }
+      if (npmDependencies && Object.keys(npmDependencies).length > 0) {
+        // Name them before anything is written: these come from the site's
+        // modules, and the developer is about to `npm install` them.
+        assetParts.push(
+          `module npm dependencies (${formatNpmDependencies(npmDependencies)})`,
+        );
       }
       const localCount = codebaseAssets.length + bundledSources.length;
       if (localCount > 0) {
@@ -909,6 +930,72 @@ export function createAssetsPullTask(
             success: false,
             details: [{ content: errorMessage }],
           });
+        }
+      }
+      // Merge the packages the site's extensions declare into package.json.
+      // This runs after the stored package.json (if any) is restored, so that
+      // restore, not the merge, is what decides the file's baseline. The merge
+      // only adds: see mergeNpmDependencies().
+      if (npmDependencies && Object.keys(npmDependencies).length > 0) {
+        if (skipOverwrite) {
+          notes.push(
+            `Not added to package.json (--skip-overwrite): ${formatNpmDependencies(npmDependencies)}.`,
+          );
+        } else {
+          try {
+            const current = await fs
+              .readFile(packageJsonPath, 'utf-8')
+              .catch(() => null);
+            if (current === null) {
+              notes.push(
+                `No package.json to add the site's module dependencies to: ${formatNpmDependencies(npmDependencies)}.`,
+              );
+            } else {
+              const merged = mergeNpmDependencies(current, npmDependencies);
+              if (merged.text !== null) {
+                await fs.writeFile(packageJsonPath, merged.text, 'utf-8');
+              }
+              if (merged.added.length > 0) {
+                packageJsonChanged = true;
+              }
+              for (const name of merged.added) {
+                results.push({
+                  itemName: name,
+                  success: true,
+                  details: [
+                    {
+                      content: `Module npm dependency ${npmDependencies[name]}`,
+                    },
+                  ],
+                });
+              }
+              for (const conflict of merged.conflicts) {
+                notes.push(
+                  `package.json has ${conflict.name}@${conflict.current}, but the site's extension declares ${conflict.declared}. Left unchanged; align it by hand if the component should match the site.`,
+                );
+              }
+              if (merged.removedByDeveloper.length > 0) {
+                notes.push(
+                  `Not re-added (removed from package.json by hand): ${merged.removedByDeveloper.join(', ')}.`,
+                );
+              }
+              if (merged.noLongerDeclared.length > 0) {
+                notes.push(
+                  `No longer declared by the site, left in package.json: ${merged.noLongerDeclared.join(', ')}. Remove them if nothing imports them.`,
+                );
+              }
+            }
+          } catch (error) {
+            results.push({
+              itemName: 'package.json',
+              success: false,
+              details: [
+                {
+                  content: `Could not merge module npm dependencies: ${error instanceof Error ? error.message : String(error)}`,
+                },
+              ],
+            });
+          }
         }
       }
       const resolvedProjectRoot = await fs.realpath(projectRoot);

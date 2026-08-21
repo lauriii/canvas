@@ -97,6 +97,7 @@ services:
   Drupal\canvas\CanvasConfigUpdater: ~
   Drupal\canvas\ComponentTreeInputExtractor: {}
   Drupal\canvas\GlobalImports: {}
+  Drupal\canvas\ExtensionNpmDependencies: {}
   Drupal\canvas\Tmgmt\ComponentInputsTranslatablesExtractor: ~
 
   # Health.

@@ -50,6 +50,7 @@ vi.mock('../utils/command-helpers', () => ({
     count === 1 ? singular : (plural ?? `${singular}s`),
   ),
   updateConfigFromOptions: vi.fn(),
+  warnAboutNpmDependencyMismatches: vi.fn(),
 }));
 
 vi.mock('../utils/build-project', () => ({
@@ -167,6 +168,7 @@ describe('buildCommand', () => {
         itemType: 'Asset',
         success: true,
       },
+      npmDependencyMismatches: [],
     } satisfies CanvasProjectBuildResult);
 
     await makeProgram().parseAsync(['node', 'canvas', 'build']);
