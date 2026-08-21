@@ -7,6 +7,7 @@ import { resolveCanvasConfig } from '@drupal-canvas/discovery';
 import {
   buildCanvasComponentEntry,
   buildCanvasLocalArtifacts,
+  buildCanvasVendorArtifacts,
   createCanvasViteBuildConfig,
   drupalCanvasCompat,
   drupalCanvasCompatServer,
@@ -743,6 +744,66 @@ describe('vite-compat', () => {
         'https://canvas.ddev.site',
       );
       expect(transformed?.tags?.[0]?.children).toContain('"api"');
+    });
+  });
+
+  describe('buildCanvasVendorArtifacts', () => {
+    it('bundles installed packages and leaves unresolvable specifiers to the site import map', async () => {
+      const root = await makeTempDir();
+      const packageDir = path.join(root, 'node_modules', 'fake-installed-pkg');
+      await fs.mkdir(packageDir, { recursive: true });
+      await fs.writeFile(
+        path.join(packageDir, 'package.json'),
+        JSON.stringify({
+          name: 'fake-installed-pkg',
+          version: '1.0.0',
+          main: 'index.js',
+        }),
+      );
+      await fs.writeFile(
+        path.join(packageDir, 'index.js'),
+        'export const answer = 42;\n',
+      );
+
+      const result = await buildCanvasVendorArtifacts({
+        projectRoot: root,
+        aliasBaseDir: 'src',
+        outputDir: path.join(root, 'dist'),
+        packages: new Set([
+          'fake-installed-pkg',
+          // Contributed to the site's import map by a Drupal module.
+          'canvas_forms/useCanvasForm',
+          // A typo. It cannot be told apart from a module-contributed
+          // specifier, so it is reported rather than failing the build.
+          'misspelled-pkg',
+          // Provided by Canvas itself, so never bundled or reported.
+          'react',
+        ]),
+      });
+
+      expect(result.bundledPackages).toEqual(['fake-installed-pkg']);
+      expect(result.siteProvidedPackages).toEqual([
+        'canvas_forms/useCanvasForm',
+        'misspelled-pkg',
+      ]);
+    });
+
+    it('does not run a bundle when every specifier comes from the site import map', async () => {
+      const root = await makeTempDir();
+
+      const result = await buildCanvasVendorArtifacts({
+        projectRoot: root,
+        aliasBaseDir: 'src',
+        outputDir: path.join(root, 'dist'),
+        packages: new Set(['canvas_forms/useCanvasForm']),
+      });
+
+      expect(result.bundledPackages).toEqual([]);
+      expect(result.importMap.imports).toEqual({});
+      expect(result.siteProvidedPackages).toEqual([
+        'canvas_forms/useCanvasForm',
+      ]);
+      await expect(fs.access(path.join(root, 'dist'))).rejects.toThrow();
     });
   });
 

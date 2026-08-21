@@ -4586,6 +4586,28 @@ components:
         packageJson:
           type: [string, "null"]
           description: Package.json of the source repository, tracked so a project can be reconstructed with original dependencies
+        importMap:
+          type: object
+          description: >-
+            The site's effective import map, in import map spec shape.
+            Read-only: computed from what Canvas ships plus what modules and
+            themes contribute through hook_canvas_importmap_alter(), and
+            ignored if sent back. Tools outside Drupal use it to know which
+            bare specifiers this site resolves in the browser.
+          required:
+            - imports
+            - scopes
+          properties:
+            imports:
+              type: object
+              additionalProperties:
+                type: string
+            scopes:
+              type: object
+              additionalProperties:
+                type: object
+                additionalProperties:
+                  type: string
     NewAssetLibrary:
       type: object
       allOf:

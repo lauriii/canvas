@@ -519,6 +519,7 @@ describe('Pull Command', () => {
       assets?: unknown[],
       downloadFile?: ReturnType<typeof vi.fn>,
       bundledSources?: unknown[],
+      importMap?: { imports: Record<string, string> },
     ): ApiService {
       return {
         getGlobalAssetLibrary: vi.fn().mockResolvedValue({
@@ -526,12 +527,75 @@ describe('Pull Command', () => {
           packageJson,
           assets,
           bundledSources,
+          importMap,
         }),
         downloadFile:
           downloadFile ??
           vi.fn().mockResolvedValue(Buffer.from([0x00, 0x01, 0x02])),
       } as unknown as ApiService;
     }
+
+    it('records the site import map so builds can resolve imports offline', async () => {
+      const importMap = {
+        imports: {
+          react: '/modules/contrib/canvas/react.js',
+          'canvas_forms/useCanvasForm':
+            '/modules/custom/canvas_forms/js/form.js',
+        },
+        scopes: {},
+      };
+      const api = mockApiService(
+        'body {}',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        importMap,
+      );
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
+
+      const { summaryLines } = await task.prepare();
+      // The import map joins the compact asset summary line.
+      expect(summaryLines).toEqual([
+        'Assets: global CSS, canvas-importmap.json pull',
+      ]);
+
+      await task.execute();
+      const written = JSON.parse(
+        await fs.readFile(path.join(tmpDir, 'canvas-importmap.json'), 'utf-8'),
+      );
+      // A plain import map document, so a browser can consume it as-is.
+      expect(written).toEqual(importMap);
+    });
+
+    it('writes the site import map even when there is no global CSS', async () => {
+      const api = mockApiService(
+        '',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { imports: { react: '/modules/contrib/canvas/react.js' } },
+      );
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
+
+      await task.prepare();
+      await task.execute();
+      await expect(
+        fs.readFile(path.join(tmpDir, 'canvas-importmap.json'), 'utf-8'),
+      ).resolves.toContain('react');
+    });
+
+    it('writes nothing when the site does not report an import map', async () => {
+      const api = mockApiService('body {}');
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
+
+      await task.prepare();
+      await task.execute();
+      await expect(
+        fs.access(path.join(tmpDir, 'canvas-importmap.json')),
+      ).rejects.toThrow();
+    });
 
     it('should include global CSS in summary', async () => {
       const api = mockApiService('body {}');

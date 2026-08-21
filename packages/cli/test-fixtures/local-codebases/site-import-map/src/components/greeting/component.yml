@@ -1,0 +1,6 @@
+name: Greeting
+machineName: greeting
+status: true
+props:
+  properties: {}
+slots: {}

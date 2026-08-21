@@ -4,7 +4,11 @@ import { discoverCanvasProject } from '@drupal-canvas/discovery';
 
 import { getConfig } from '../config';
 import { buildCanvasProject } from '../utils/build-project';
-import { pluralize, updateConfigFromOptions } from '../utils/command-helpers';
+import {
+  pluralize,
+  updateConfigFromOptions,
+  warnAboutSiteProvidedPackages,
+} from '../utils/command-helpers';
 import { printCommandIntro } from '../utils/command-intro';
 import {
   COMMAND_RESULT_REPORT_OPTIONS,
@@ -142,6 +146,11 @@ export function buildCommand(program: Command): void {
           process.exitCode = 1;
           return;
         }
+
+        warnAboutSiteProvidedPackages(
+          buildResult.siteProvidedPackages,
+          buildResult.siteImportsVerified,
+        );
 
         p.log.info(
           chalk.green(

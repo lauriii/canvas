@@ -7,6 +7,7 @@ namespace Drupal\canvas\Entity;
 use Drupal\canvas\ClientSideRepresentation;
 use Drupal\canvas\EntityHandlers\AssetLibraryAccessControlHandler;
 use Drupal\canvas\EntityHandlers\CanvasAssetStorage;
+use Drupal\canvas\GlobalImports;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
@@ -128,9 +129,33 @@ final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterfac
         'shared' => $this->shared,
         'bundledSources' => $this->bundledSources,
         'packageJson' => $this->packageJson,
+        'importMap' => self::getSiteImportMap(),
       ],
       preview: NULL
     );
+  }
+
+  /**
+   * Returns the site's effective import map, as an import map document.
+   *
+   * Code components are compiled, not bundled: their bare import specifiers are
+   * resolved in the browser against this map. It is wider than this entity's
+   * own `imports`, because Canvas ships specifiers of its own and modules and
+   * themes contribute more through hook_canvas_importmap_alter(). A build tool
+   * outside Drupal cannot know which specifiers a site resolves without being
+   * told, so this is exposed to clients but never stored.
+   *
+   * Returned in the shape of the import map spec, so a client can hand it
+   * straight to a `<script type="importmap">` tag instead of translating it.
+   *
+   * @return array{imports: array<string, string>, scopes: array<string, array<string, string>>}
+   *
+   * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script/type/importmap
+   * @see hook_canvas_importmap_alter()
+   * @see \Drupal\canvas\GlobalImports::getImportMap()
+   */
+  private static function getSiteImportMap(): array {
+    return \Drupal::service(GlobalImports::class)->getImportMap();
   }
 
   /**
@@ -188,6 +213,10 @@ final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterfac
         'shared' => $this->setShared(\is_array($value) ? array_values($value) : NULL),
         'bundledSources' => $this->setBundledSources(\is_array($value) ? array_values($value) : NULL),
         'packageJson' => $this->setPackageJson(\is_string($value) ? $value : NULL),
+        // Computed for clients, never stored: a client that sends back the
+        // object it received must not be able to write it.
+        // @see self::getSiteImportMap()
+        'importMap' => NULL,
         default => $this->set($key, $value),
       };
     }

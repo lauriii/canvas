@@ -221,6 +221,16 @@ export interface AssetLibrary {
   shared?: AssetLibraryManifestEntry[] | null;
   bundledSources?: AssetLibraryBundledSource[] | null;
   packageJson?: string | null;
+  /**
+   * The site's effective import map, in import map spec shape. Read-only: the
+   * server computes it and ignores it on write.
+   *
+   * @see \Drupal\canvas\Entity\AssetLibrary::getSiteImportMap()
+   */
+  importMap?: {
+    imports: Record<string, string>;
+    scopes?: Record<string, Record<string, string>>;
+  };
 }
 
 export interface AssetLibraryManifestEntry {

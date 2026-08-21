@@ -1,4 +1,5 @@
 import { existsSync, promises as fs, realpathSync, statSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import * as yaml from 'js-yaml';
 import { build as viteBuild } from 'vite';
@@ -998,10 +999,43 @@ export interface CanvasVendorArtifactBuildResult {
   importMap: { imports: Record<string, string> };
   bundledPackages: string[];
   sharedChunks: string[];
+  /**
+   * Bare specifiers that are not installed locally and were left unbundled.
+   *
+   * @see isInstalledPackage()
+   */
+  siteProvidedPackages: string[];
 }
 
 function packageNameToFileName(packageName: string): string {
   return packageName.replace(/\//g, '--');
+}
+
+/**
+ * Determines whether a bare specifier resolves to a package installed locally.
+ *
+ * Specifiers that do not are not npm packages the CLI can bundle. Drupal
+ * modules and themes add their own entries to the Canvas import map, so the
+ * site resolves those specifiers in the browser at runtime, exactly like the
+ * in-browser code editor does.
+ *
+ * @see hook_canvas_importmap_alter()
+ */
+export function isInstalledPackage(
+  specifier: string,
+  projectRoot: string,
+): boolean {
+  const requireFromProject = createRequire(path.join(projectRoot, 'noop.cjs'));
+  try {
+    requireFromProject.resolve(specifier);
+    return true;
+  } catch (error) {
+    // Only a missing module means the package is not installed. Other errors
+    // (for example an ESM-only package that declares no "require" export
+    // condition) mean the package is installed but this specifier is not
+    // require-resolvable, so it must still be bundled.
+    return (error as NodeJS.ErrnoException).code !== 'MODULE_NOT_FOUND';
+  }
 }
 
 export async function buildCanvasVendorArtifacts(options: {
@@ -1012,12 +1046,23 @@ export async function buildCanvasVendorArtifacts(options: {
 }): Promise<CanvasVendorArtifactBuildResult> {
   const importMap = { imports: {} as Record<string, string> };
   const bundledPackages: string[] = [];
-  const packagesToBundle = [...options.packages].filter(
+  const candidatePackages = [...options.packages].filter(
     (packageName) => !isCanvasProvidedExternal(packageName),
   );
+  const packagesToBundle = candidatePackages.filter((packageName) =>
+    isInstalledPackage(packageName, options.projectRoot),
+  );
+  const siteProvidedPackages = candidatePackages
+    .filter((packageName) => !packagesToBundle.includes(packageName))
+    .sort();
 
   if (packagesToBundle.length === 0) {
-    return { importMap, bundledPackages, sharedChunks: [] };
+    return {
+      importMap,
+      bundledPackages,
+      sharedChunks: [],
+      siteProvidedPackages,
+    };
   }
 
   const vendorDir = path.join(path.resolve(options.outputDir), 'vendor');
@@ -1083,7 +1128,7 @@ export async function buildCanvasVendorArtifacts(options: {
     bundledPackages.push(packageName);
   }
 
-  return { importMap, bundledPackages, sharedChunks };
+  return { importMap, bundledPackages, sharedChunks, siteProvidedPackages };
 }
 
 export function drupalCanvasCompat(options: CanvasViteCompatOptions): Plugin[] {
@@ -1140,3 +1185,5 @@ export function drupalCanvasCompat(options: CanvasViteCompatOptions): Plugin[] {
 
   return plugins;
 }
+
+export * from './site-imports';

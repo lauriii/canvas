@@ -5,7 +5,11 @@ import yaml from 'js-yaml';
 import { parse } from '@babel/parser';
 import * as p from '@clack/prompts';
 import { discoverCanvasProject } from '@drupal-canvas/discovery';
-import { resolveHostGlobalCssPath } from '@drupal-canvas/vite-compat';
+import {
+  resolveHostGlobalCssPath,
+  SITE_IMPORT_MAP_FILE,
+  writeSiteImportMap,
+} from '@drupal-canvas/vite-compat';
 
 import { ensureConfig, getConfig } from '../config';
 import {
@@ -43,6 +47,7 @@ import type {
   AssetLibraryBundledSource,
   AssetLibraryManifestEntry,
 } from '@drupal-canvas/ui/types/CodeComponent';
+import type { ImportMap } from '@drupal-canvas/vite-compat';
 import type { Command } from 'commander';
 import type { ApiService } from '../services/api';
 import type { Component } from '../types/Component';
@@ -797,6 +802,7 @@ export function createAssetsPullTask(
 ): PullTask {
   let globalCss = '';
   let localExists = false;
+  let siteImportMap: ImportMap | undefined;
   let packageJson: string | null = null;
   let packageJsonExists = false;
   const packageJsonPath = path.join(projectRoot, 'package.json');
@@ -809,6 +815,7 @@ export function createAssetsPullTask(
 
     async prepare(): Promise<PullTaskPrepareResult> {
       const globalAssetLibrary = await apiService.getGlobalAssetLibrary();
+      siteImportMap = globalAssetLibrary?.importMap;
       globalCss = globalAssetLibrary?.css?.original || '';
       packageJson = globalAssetLibrary?.packageJson || null;
       codebaseAssets = (globalAssetLibrary?.assets ?? []).filter(
@@ -847,6 +854,9 @@ export function createAssetsPullTask(
           `${localCount} local ${pluralizeLabel(localCount, 'import')}`,
         );
       }
+      if (siteImportMap) {
+        assetParts.push(SITE_IMPORT_MAP_FILE);
+      }
       const summaryLines: string[] =
         assetParts.length > 0 ? [`Assets: ${assetParts.join(', ')} pull`] : [];
       return { summaryLines, localOnlyCount: 0 };
@@ -854,6 +864,24 @@ export function createAssetsPullTask(
 
     async execute(): Promise<PullTaskResult> {
       const results: Result[] = [];
+      // Record which bare specifiers this site resolves, so builds can tell a
+      // module-contributed import from a typo without reaching the site.
+      if (siteImportMap) {
+        try {
+          await writeSiteImportMap(projectRoot, siteImportMap);
+          results.push({ itemName: SITE_IMPORT_MAP_FILE, success: true });
+        } catch (error) {
+          results.push({
+            itemName: SITE_IMPORT_MAP_FILE,
+            success: false,
+            details: [
+              {
+                content: error instanceof Error ? error.message : String(error),
+              },
+            ],
+          });
+        }
+      }
       const notes: string[] = [];
       // Set when the pulled `package.json` is newly created or its content
       // differs from what was on disk, so the user is reminded to reinstall

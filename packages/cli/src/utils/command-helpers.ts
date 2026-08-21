@@ -132,3 +132,27 @@ export function pluralize(
 ): string {
   return count === 1 ? singular : (plural ?? `${singular}s`);
 }
+
+/**
+ * Warns about bare imports taken on trust because the site's map is unknown.
+ *
+ * These are not installed npm packages, so the CLI leaves them unbundled for
+ * the browser to resolve against the site's import map. That is how Drupal
+ * modules and themes contribute imports, but it is also what a mistyped package
+ * name looks like. Without a pulled import map the two cannot be told apart, so
+ * name them; once the project has pulled one, the build fails on the ones the
+ * site does not resolve and there is nothing left to warn about.
+ */
+export function warnAboutSiteProvidedPackages(
+  packages: string[],
+  siteImportsVerified: boolean,
+): void {
+  if (packages.length === 0 || siteImportsVerified) {
+    return;
+  }
+  p.log.warn(
+    `Not bundled, expected in the site's import map: ${packages.join(', ')}. ` +
+      'Run `canvas pull` to record the map so this can be checked, install the package if it should be bundled, ' +
+      'or check for a typo.',
+  );
+}

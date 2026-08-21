@@ -11,6 +11,9 @@ import {
   buildCanvasLocalArtifacts,
   buildCanvasVendorArtifacts,
   createCanvasDependencyMetadata,
+  isResolvedByImportMap,
+  readSiteImportMap,
+  SITE_IMPORT_MAP_FILE,
   validateCanvasImportRoots,
 } from '@drupal-canvas/vite-compat';
 
@@ -52,6 +55,17 @@ export interface CanvasProjectBuildResult {
   vendorImportCount: number;
   localImportCount: number;
   tailwindResult: Result;
+  /**
+   * Bare specifiers left for the site's import map to resolve at runtime.
+   */
+  siteProvidedPackages: string[];
+  /**
+   * Whether those specifiers were checked against the pulled site import map.
+   *
+   * False means the project has never run `canvas pull`, so the build had to
+   * take them on trust.
+   */
+  siteImportsVerified: boolean;
 }
 
 export interface CanvasProjectBuildOptions {
@@ -278,6 +292,7 @@ function emptyVendorResult(): CanvasVendorArtifactBuildResult {
     importMap: { imports: {} },
     bundledPackages: [],
     sharedChunks: [],
+    siteProvidedPackages: [],
   };
 }
 
@@ -329,6 +344,8 @@ export async function buildCanvasProject(
         itemType: 'Asset',
         success: true,
       },
+      siteProvidedPackages: [],
+      siteImportsVerified: false,
     };
   }
 
@@ -473,6 +490,24 @@ export async function buildCanvasProject(
         })
       : emptyVendorResult();
 
+  // Bare specifiers the project cannot resolve are left for the site's import
+  // map. If the project pulled that map, hold them to it: anything the site
+  // does not resolve either is a typo or needs the module that provides it
+  // installed, and would fail in the browser.
+  const siteImportMap = await readSiteImportMap(options.projectRoot);
+  if (siteImportMap && vendorResult.siteProvidedPackages.length > 0) {
+    const unresolvable = vendorResult.siteProvidedPackages.filter(
+      (specifier) => !isResolvedByImportMap(specifier, siteImportMap),
+    );
+    if (unresolvable.length > 0) {
+      throw new Error(
+        `Imports that nothing can resolve (${unresolvable.length}): ${unresolvable.join(', ')}. ` +
+          `They are not installed locally, and ${SITE_IMPORT_MAP_FILE} says the site does not resolve them. ` +
+          `Install the package, check for a typo, or run \`canvas pull\` if the site gained them since.`,
+      );
+    }
+  }
+
   const manifestResult = await generateManifest({
     outputDir,
     vendorImportMap: vendorResult.importMap,
@@ -504,5 +539,7 @@ export async function buildCanvasProject(
     vendorImportCount: vendorResult.bundledPackages.length,
     localImportCount: Object.keys(localResult.localImportMap).length,
     tailwindResult,
+    siteProvidedPackages: vendorResult.siteProvidedPackages,
+    siteImportsVerified: siteImportMap !== null,
   };
 }
