@@ -23,6 +23,10 @@ interface ListFieldsProviderInterface extends ComponentTreeEntityInterface {
   /**
    * The fields each iteration of this template declares.
    *
+   * Declared fields are string-valued: the renderer must push a string (or
+   * NULL) per declared field onto ListFieldContext, which is why the editor
+   * offers them only on string-shaped props.
+   *
    * @return array<string, string>
    *   Field labels keyed by field name; the names are what list-field prop
    *   sources store and what the renderer pushes onto ListFieldContext.

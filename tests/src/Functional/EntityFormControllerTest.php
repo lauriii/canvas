@@ -52,13 +52,6 @@ class EntityFormControllerTest extends FunctionalTestBase {
   }
 
   /**
-   * Tests form.
-   *
-   * @legacy-covers ::form
-   * @legacy-covers \Drupal\canvas\Hook\ContentTemplateHooks::entityFormDisplayAlter
-   */
-
-  /**
    * Non-fieldable entities have no content entity form: empty, not an error.
    */
   public function testFormForNonFieldableEntity(): void {
@@ -76,6 +69,12 @@ class EntityFormControllerTest extends FunctionalTestBase {
     self::assertCount(0, $crawler->filter('form, drupal-canvas-form, input, select'));
   }
 
+  /**
+   * Tests form.
+   *
+   * @legacy-covers ::form
+   * @legacy-covers \Drupal\canvas\Hook\ContentTemplateHooks::entityFormDisplayAlter
+   */
   public function testForm(): void {
     $assert = $this->assertSession();
     $this->createTestNode();

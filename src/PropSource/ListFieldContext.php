@@ -26,15 +26,17 @@ use Drupal\Core\Cache\CacheableMetadata;
 final class ListFieldContext {
 
   /**
-   * @var list<array{values: array<string, mixed>, cacheability: \Drupal\Core\Cache\CacheableDependencyInterface}>
+   * @var list<array{values: array<string, string|null>, cacheability: \Drupal\Core\Cache\CacheableDependencyInterface}>
    */
   private array $stack = [];
 
   /**
    * Pushes one iteration's declared field values.
    *
-   * @param array<string, mixed> $values
+   * @param array<string, string|null> $values
    *   The declared field values for this iteration, keyed by field name.
+   *   String-valued per the provider contract; NULL for a field with no
+   *   value this iteration.
    * @param \Drupal\Core\Cache\CacheableDependencyInterface|null $cacheability
    *   Cacheability of the values (e.g. the query and the row's entity).
    */
@@ -59,7 +61,7 @@ final class ListFieldContext {
   /**
    * Gets the named field's value from the innermost iteration.
    */
-  public function getValue(string $field_name): mixed {
+  public function getValue(string $field_name): ?string {
     if ($this->stack === []) {
       return NULL;
     }

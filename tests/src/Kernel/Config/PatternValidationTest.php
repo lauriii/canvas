@@ -292,6 +292,26 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
       ],
     ];
 
+    yield "using a disallowed list-field prop source" => [
+      'component_tree' => [
+        [
+          'uuid' => '15616c29-72c6-417a-a7d9-aff329467cc4',
+          'component_id' => 'sdc.canvas_test_sdc.my-cta',
+          'component_version' => '89881c04a0fde367',
+          'inputs' => [
+            'text' => [
+              'sourceType' => PropSource::ListField->value,
+              'field' => 'title',
+            ],
+            'href' => 'https://example.com',
+          ],
+        ],
+      ],
+      'expected_messages' => [
+        'component_tree' => "The 'list-field' prop source type must be absent.",
+      ],
+    ];
+
     yield "using a disallowed Block-sourced Component" => [
       'component_tree' => [
         [
