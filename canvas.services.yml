@@ -4,6 +4,8 @@ services:
     autowire: true
   Drupal\canvas\Audit\ComponentAudit:
     public: true
+  Drupal\canvas\PropSource\ListFieldContext:
+    public: true
   Drupal\canvas\PropExpressions\StructuredData\Labeler:
     public: true
   Drupal\canvas\PropShape\PropShapeRepositoryInterface:

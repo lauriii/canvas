@@ -43,6 +43,7 @@ enum PropSource: string {
   case Static = 'static';
   case HostEntityUrl = 'host-entity-url';
   case HostEntity = 'host-entity';
+  case ListField = 'list-field';
 
   /**
    * Returns the proper type prefix for a prop source.
@@ -63,6 +64,7 @@ enum PropSource: string {
       DefaultRelativeUrlPropSource::class => self::DefaultRelativeUrl->value,
       HostEntityUrlPropSource::class => self::HostEntityUrl->value,
       HostEntityPropSource::class => self::HostEntity->value,
+      ListFieldPropSource::class => self::ListField->value,
       StaticPropSource::class => self::Static->value,
       EntityFieldPropSource::class => self::EntityField->value,
       default => throw new \LogicException('Unknown prop source class.'),
@@ -110,6 +112,9 @@ enum PropSource: string {
       // sources, and those are listed under `adapterInputs`.
       // @phpstan-ignore-next-line argument.type
       self::Adapter => AdaptedPropSource::parse($prop_source),
+      // The ListFieldPropSource resolves a field the surrounding repeating
+      // renderer declares, per iteration.
+      self::ListField => ListFieldPropSource::parse($prop_source),
       self::Static => StaticPropSource::parse($prop_source),
       self::EntityField, self::Dynamic => EntityFieldPropSource::parse($prop_source),
       default => throw new \LogicException('Unknown source type.'),

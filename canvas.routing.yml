@@ -726,6 +726,17 @@ canvas.api.push.start:
     _format: 'json'
     canvas_external_api: true
 
+canvas.api.self_rendering_templates:
+  path: '/canvas/api/v0/self-rendering-templates'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiSelfRenderingTemplatesController::list'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _canvas_ui_access: 'TRUE'
+  methods: ['GET']
+  options:
+    _format: 'json'
+
 canvas.api.settings.default_page_variant.get:
   path: '/canvas/api/v0/settings/default-page-variant'
   defaults:

@@ -11,7 +11,7 @@ use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\EmptyTargetEntityProviderInterface;
 use Drupal\canvas\Entity\PageVariant;
-use Drupal\canvas\Entity\Pattern;
+use Drupal\canvas\Entity\PreviewRenderableInterface;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Fallback;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\canvas\Storage\ComponentTreeLoader;
@@ -75,7 +75,7 @@ final class ComponentInstanceForm extends FormBase {
     if (\is_null($entity)) {
       throw new \UnexpectedValueException('The $entity parameter should never be NULL.');
     }
-    \assert($entity instanceof FieldableEntityInterface || $entity instanceof Pattern || $entity instanceof PageVariant || ($entity instanceof ContentTemplate && $preview_entity instanceof FieldableEntityInterface));
+    \assert($entity instanceof FieldableEntityInterface || $entity instanceof PreviewRenderableInterface || $entity instanceof PageVariant || ($entity instanceof ContentTemplate && $preview_entity instanceof FieldableEntityInterface));
     // @phpstan-ignore-next-line property.notFound
     if (!$this->themeHandler->themeExists('canvas_stark') || !$this->themeHandler->listInfo()['canvas_stark']->status) {
       return [
@@ -84,8 +84,9 @@ final class ComponentInstanceForm extends FormBase {
       ];
     }
     // Content templates resolve component inputs against the preview entity.
-    // Page variants have no host entity; an empty stand-in keeps input
-    // conversion working even for pasted components with entity-bound props.
+    // Page variants and self-rendering templates have no host entity; an
+    // empty stand-in keeps input conversion working even for pasted
+    // components with entity-bound props.
     $host_entity = match (TRUE) {
       $entity instanceof FieldableEntityInterface => $entity,
       $preview_entity instanceof FieldableEntityInterface => $preview_entity,

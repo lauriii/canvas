@@ -86,7 +86,7 @@ final class HostEntityUrlPropSource extends PropSourceBase implements LinkablePr
     return [];
   }
 
-  public function label(EntityDataDefinitionInterface $host_entity_data_definition): TranslatableMarkup {
+  public function label(?EntityDataDefinitionInterface $host_entity_data_definition): TranslatableMarkup {
     return $this->absolute
       ? new TranslatableMarkup('Absolute URL')
       : new TranslatableMarkup('Relative URL');

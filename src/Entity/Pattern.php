@@ -38,7 +38,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
   ],
 )]
 
-final class Pattern extends ComponentTreeConfigEntityBase implements CanvasHttpApiEligibleConfigEntityInterface, FolderItemInterface {
+final class Pattern extends ComponentTreeConfigEntityBase implements CanvasHttpApiEligibleConfigEntityInterface, FolderItemInterface, PreviewRenderableInterface {
 
   public const string ENTITY_TYPE_ID = 'pattern';
   public const string ADMIN_PERMISSION = 'administer patterns';
@@ -62,6 +62,13 @@ final class Pattern extends ComponentTreeConfigEntityBase implements CanvasHttpA
     $component_tree = $this->createDanglingComponentTreeItemList($this);
     $component_tree->setValue(\array_values($this->component_tree ?? []));
     return $component_tree;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function buildPreviewRenderable(): array {
+    return $this->getComponentTree()->toRenderable($this, isPreview: TRUE);
   }
 
   /**

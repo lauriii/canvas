@@ -64,7 +64,7 @@ class LinkedProp extends RenderElementBase {
     \assert(\is_array($field_link_suggestions));
     $is_required = $element['#is_required'] ?? FALSE;
 
-    \assert($entity_data_definition instanceof EntityDataDefinitionInterface);
+    \assert($entity_data_definition === NULL || $entity_data_definition instanceof EntityDataDefinitionInterface);
     $title = (string) $prop_source->label($entity_data_definition);
 
     $element['label_wrap'] = [

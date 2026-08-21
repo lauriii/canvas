@@ -69,6 +69,10 @@ use Symfony\Component\Validator\ConstraintViolationList;
         'absence' => [
           PropSource::EntityField->value,
           PropSource::HostEntityUrl->value,
+          // Resolves only inside a repeating render; a content entity's own
+          // tree has no iteration to resolve against.
+          // @see \Drupal\canvas\Entity\ListFieldsProviderInterface
+          PropSource::ListField->value,
           // @todo Allow adapters that consume a single shape and output that same single shape in https://www.drupal.org/project/canvas/issues/3536115
           PropSource::Adapter->value,
           // @todo Remove before Canvas 2.0, see https://www.drupal.org/node/3566701

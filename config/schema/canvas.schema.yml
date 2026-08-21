@@ -435,6 +435,11 @@ canvas.component_tree:
           - entity-field
           - dynamic
           - host-entity-url
+          # Resolves only inside a repeating render that pushes ListFieldContext;
+          # anywhere else it evaluates to NULL. Only entities that declare list
+          # fields may allow it, by overriding this constraint.
+          # @see \Drupal\canvas\Entity\ListFieldsProviderInterface
+          - list-field
           # Not yet supported by the Canvas UI.
           - adapter
         presence: ~
@@ -863,6 +868,9 @@ field.value.component_tree:
           - entity-field
           - host-entity-url
           - adapter
+          # Resolves only inside a repeating render that pushes ListFieldContext.
+          # @see \Drupal\canvas\Entity\ListFieldsProviderInterface
+          - list-field
         presence: ~
       tree:
         absence:
@@ -904,6 +912,9 @@ canvas.pattern.*:
               - entity-field
               - host-entity-url
               - adapter
+              # Resolves only inside a repeating render that pushes ListFieldContext.
+              # @see \Drupal\canvas\Entity\ListFieldsProviderInterface
+              - list-field
             presence: ~
           tree:
             absence:
@@ -1191,6 +1202,9 @@ canvas.content_template.*.*.*:
           inputs:
             absence:
               - adapter
+              # Resolves only inside a repeating render that pushes ListFieldContext.
+              # @see \Drupal\canvas\Entity\ListFieldsProviderInterface
+              - list-field
             # The only Canvas component tree that allows `entity-field` and `host-entity-url`!
             # @see \Drupal\canvas\PropSource\EntityFieldPropSource
             # @see \Drupal\canvas\PropSource\HostEntityUrlPropSource

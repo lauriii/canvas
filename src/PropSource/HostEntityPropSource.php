@@ -68,7 +68,8 @@ final class HostEntityPropSource extends PropSourceBase implements LinkablePropS
    * - bundleless entity types use only the singular type label (e.g. "This
    *   user", "This page")
    */
-  public function label(EntityDataDefinitionInterface $host_entity_data_definition): TranslatableMarkup {
+  public function label(?EntityDataDefinitionInterface $host_entity_data_definition): TranslatableMarkup {
+    \assert($host_entity_data_definition !== NULL);
     $entity_type_id = $host_entity_data_definition->getEntityTypeId();
     \assert(\is_string($entity_type_id));
     // The host entity context is always a single, concrete entity type +
