@@ -7,3 +7,5 @@ dependencies:
 canvas:
   npm:
     '@canvas-test/declared-package': 1.3.0
+    # Higher, but not forced: the other module's forced 2.0.0 wins.
+    '@canvas-test/required-client': 2.1.0

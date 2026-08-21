@@ -519,7 +519,7 @@ describe('Pull Command', () => {
       assets?: unknown[],
       downloadFile?: ReturnType<typeof vi.fn>,
       bundledSources?: unknown[],
-      npmDependencies?: Record<string, string>,
+      npmDependencies?: Record<string, { version: string; force: boolean }>,
     ): ApiService {
       return {
         getGlobalAssetLibrary: vi.fn().mockResolvedValue({
@@ -546,7 +546,7 @@ describe('Pull Command', () => {
         undefined,
         undefined,
         undefined,
-        { '@acme/canvas-forms': '1.2.0' },
+        { '@acme/canvas-forms': { version: '1.2.0', force: false } },
       );
       const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
 
@@ -588,7 +588,7 @@ describe('Pull Command', () => {
         undefined,
         undefined,
         undefined,
-        { '@acme/canvas-forms': '1.2.0' },
+        { '@acme/canvas-forms': { version: '1.2.0', force: false } },
       );
       const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
       await task.prepare();
@@ -627,7 +627,7 @@ describe('Pull Command', () => {
           undefined,
           undefined,
           undefined,
-          { '@acme/canvas-forms': '1.2.0' },
+          { '@acme/canvas-forms': { version: '1.2.0', force: false } },
         );
         const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
         await task.prepare();
@@ -639,6 +639,41 @@ describe('Pull Command', () => {
           '@acme/canvas-forms',
         );
       }
+    });
+
+    it('applies a forced declaration and says what it changed', async () => {
+      await fs.writeFile(
+        path.join(tmpDir, 'package.json'),
+        JSON.stringify({ dependencies: { '@acme/canvas-forms': '1.2.0' } }),
+      );
+      const api = mockApiService(
+        'body {}',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { '@acme/canvas-forms': { version: '1.3.0', force: true } },
+      );
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
+      const { summaryLines } = await task.prepare();
+      expect(summaryLines).toEqual([
+        'Assets: global CSS, module npm dependencies (@acme/canvas-forms@1.3.0 (forced)) pull',
+      ]);
+      const result = await task.execute();
+      expect(result.results).toContainEqual({
+        itemName: '@acme/canvas-forms',
+        success: true,
+        details: [
+          { content: 'Module npm dependency 1.3.0 (forced: was 1.2.0)' },
+        ],
+      });
+      expect(result.notes).toContain(
+        'package.json changed. Run `npm install` to install dependencies.',
+      );
+      const written = JSON.parse(
+        await fs.readFile(path.join(tmpDir, 'package.json'), 'utf-8'),
+      );
+      expect(written.dependencies).toEqual({ '@acme/canvas-forms': '1.3.0' });
     });
 
     it('refreshes the record when the site declares nothing any more', async () => {
@@ -680,7 +715,7 @@ describe('Pull Command', () => {
         undefined,
         undefined,
         undefined,
-        { '@acme/canvas-forms': '1.2.0' },
+        { '@acme/canvas-forms': { version: '1.2.0', force: false } },
       );
       const task = createAssetsPullTask(api, globalCssPath, true, tmpDir);
       await task.prepare();

@@ -12,19 +12,26 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 /**
  * Collects the npm packages that installed modules and themes declare.
  *
- * A module that ships JavaScript for code components can publish it on npm
- * and declare the package in its info file, so that a CLI project paired with
- * the site depends on the same package at the same version:
+ * A module that ships JavaScript for code components publishes it on npm and
+ * declares the package in its info file, so that a CLI project paired with the
+ * site depends on the same package at the same version:
  *
  * @code
  * canvas:
  *   npm:
  *     '@acme/canvas-forms': 1.2.0
+ *     '@acme/canvas-forms-client':
+ *       version: 2.0.0
+ *       force: true
  * @endcode
  *
- * The version is the one the extension was built and tested against. It is
- * written into the project's package.json by `canvas pull`, so the copy the
- * CLI bundles and Workbench previews is the copy the extension expects.
+ * The version is the one the extension was built and tested against. A
+ * `canvas pull` adds a missing declared package to the project's package.json
+ * once and otherwise leaves the developer's values alone, reporting
+ * disagreements. A declaration marked `force: true` is one the extension
+ * requires: pull sets that version even where the developer has another, and
+ * re-adds the package if it was removed. Use it when a module update needs its
+ * client package updated with it.
  *
  * @internal
  */
@@ -61,9 +68,9 @@ final class ExtensionNpmDependencies {
   ) {}
 
   /**
-   * @return array<string, string>
-   *   Package name => version, sorted by package name. Empty when no installed
-   *   extension declares any.
+   * @return array<string, array{version: string, force: bool}>
+   *   Package name => declaration, sorted by package name. Empty when no
+   *   installed extension declares any.
    */
   public function getDependencies(): array {
     $dependencies = [];
@@ -75,35 +82,62 @@ final class ExtensionNpmDependencies {
         if (!\is_array($declared)) {
           continue;
         }
-        foreach ($declared as $package => $version) {
-          if (!self::isValidDeclaration($package, $version)) {
+        foreach ($declared as $package => $declaration) {
+          $normalized = self::normalizeDeclaration($package, $declaration);
+          if ($normalized === NULL) {
             continue;
           }
-          if (isset($dependencies[$package]) && $dependencies[$package] !== $version) {
-            // Two extensions want different versions of one package. A project
-            // can only install one, so the higher wins, deterministically, and
-            // the disagreement is logged for the site owner to settle: the
-            // extension that wanted the lower version gets a newer copy than it
-            // declared, exactly as when two modules disagree on any library.
+          if (isset($dependencies[$package]) && $dependencies[$package] !== $normalized) {
+            // Two extensions want different things for one package. A project
+            // can only install one version, so the choice is deterministic: a
+            // forced declaration beats an unforced one, then the higher
+            // version wins. The disagreement is logged for the site owner to
+            // settle, because the extension that lost gets a copy it did not
+            // declare, exactly as when two modules disagree on any library.
+            $chosen = self::chooseDeclaration($dependencies[$package], $normalized);
             $this->logger->warning('Extensions @a and @b declare different versions of the npm package @package (@va and @vb). Using @chosen.', [
               '@a' => $declared_by[$package],
               '@b' => $extension,
               '@package' => $package,
-              '@va' => $dependencies[$package],
-              '@vb' => $version,
-              '@chosen' => \version_compare($version, $dependencies[$package], '>') ? $version : $dependencies[$package],
+              '@va' => self::describe($dependencies[$package]),
+              '@vb' => self::describe($normalized),
+              '@chosen' => self::describe($chosen),
             ]);
-            if (\version_compare($version, $dependencies[$package], '<=')) {
+            if ($chosen === $dependencies[$package]) {
               continue;
             }
           }
-          $dependencies[$package] = $version;
+          $dependencies[$package] = $normalized;
           $declared_by[$package] = $extension;
         }
       }
     }
     \ksort($dependencies);
     return $dependencies;
+  }
+
+  /**
+   * Normalizes a declaration to its canonical shape, or NULL if it is invalid.
+   *
+   * A declaration is either the version string, or a mapping with `version`
+   * and an optional boolean `force`.
+   *
+   * @return array{version: string, force: bool}|null
+   */
+  public static function normalizeDeclaration(mixed $package, mixed $declaration): ?array {
+    if (\is_string($declaration)) {
+      $declaration = ['version' => $declaration];
+    }
+    if (!\is_array($declaration)) {
+      return NULL;
+    }
+    $version = $declaration['version'] ?? NULL;
+    $force = $declaration['force'] ?? FALSE;
+    if (!self::isValidDeclaration($package, $version) || !\is_bool($force)) {
+      return NULL;
+    }
+    \assert(\is_string($version));
+    return ['version' => $version, 'force' => $force];
   }
 
   /**
@@ -115,6 +149,28 @@ final class ExtensionNpmDependencies {
       && \strlen($package) <= 214
       && \preg_match(self::PACKAGE_NAME_PATTERN, $package) === 1
       && \preg_match(self::VERSION_PATTERN, $version) === 1;
+  }
+
+  /**
+   * Picks between two declarations of one package: forced, then higher.
+   *
+   * @param array{version: string, force: bool} $a
+   * @param array{version: string, force: bool} $b
+   *
+   * @return array{version: string, force: bool}
+   */
+  private static function chooseDeclaration(array $a, array $b): array {
+    if ($a['force'] !== $b['force']) {
+      return $a['force'] ? $a : $b;
+    }
+    return \version_compare($b['version'], $a['version'], '>') ? $b : $a;
+  }
+
+  /**
+   * @param array{version: string, force: bool} $declaration
+   */
+  private static function describe(array $declaration): string {
+    return $declaration['version'] . ($declaration['force'] ? ' (forced)' : '');
   }
 
 }

@@ -222,12 +222,13 @@ export interface AssetLibrary {
   bundledSources?: AssetLibraryBundledSource[] | null;
   packageJson?: string | null;
   /**
-   * npm packages that installed modules and themes declare, as package name to
-   * version. Read-only: the server computes it and ignores it on write.
+   * npm packages that installed modules and themes declare, by package name:
+   * the exact version, and whether the extension requires it (`force`).
+   * Read-only: the server computes it and ignores it on write.
    *
    * @see \Drupal\canvas\ExtensionNpmDependencies
    */
-  npmDependencies?: Record<string, string>;
+  npmDependencies?: Record<string, { version: string; force: boolean }>;
 }
 
 export interface AssetLibraryManifestEntry {

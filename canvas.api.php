@@ -124,9 +124,11 @@ function hook_canvas_storable_prop_shape_alter(CandidateStorablePropShape $stora
  *
  * JavaScript that code components import (a hook, a client for a module's
  * endpoints, a component library) ships as an npm package declared under
- * `canvas.npm` in the module's info file, not through this hook: a CLI
- * project, Workbench, and a headless frontend install it from npm, and a
- * headless frontend has no import map at all. Do not also serve a copy of such
+ * `canvas.npm` in the module's info file, as `'@acme/pkg': 1.2.0` or, when
+ * the module requires that version, as `{version: 1.2.0, force: true}`. It
+ * does not ship through this hook: a CLI project, Workbench, and a headless
+ * frontend install it from npm, and a headless frontend has no import map at
+ * all. Do not also serve a copy of such
  * a package here; it would override the pushed bundle on the site while the
  * project uses the npm copy. Use this hook for what only a Drupal-rendered
  * page needs, such as a Tailwind CSS plugin for global CSS or replacing a

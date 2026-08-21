@@ -793,7 +793,10 @@ export function createPageTemplatesPullTask(
 
 function formatNpmDependencies(dependencies: NpmDependencies): string {
   return Object.entries(dependencies)
-    .map(([name, version]) => `${name}@${version}`)
+    .map(
+      ([name, { version, force }]) =>
+        `${name}@${version}${force ? ' (forced)' : ''}`,
+    )
     .join(', ');
 }
 
@@ -963,7 +966,7 @@ export function createAssetsPullTask(
               if (merged.text !== null) {
                 await fs.writeFile(packageJsonPath, merged.text, 'utf-8');
               }
-              if (merged.added.length > 0) {
+              if (merged.added.length > 0 || merged.forced.length > 0) {
                 packageJsonChanged = true;
               }
               for (const name of merged.added) {
@@ -972,7 +975,21 @@ export function createAssetsPullTask(
                   success: true,
                   details: [
                     {
-                      content: `Module npm dependency ${npmDependencies[name]}`,
+                      content: `Module npm dependency ${npmDependencies[name].version}`,
+                    },
+                  ],
+                });
+              }
+              for (const { name, from, to } of merged.forced) {
+                results.push({
+                  itemName: name,
+                  success: true,
+                  details: [
+                    {
+                      content:
+                        from === null
+                          ? `Module npm dependency ${to} (forced: re-added)`
+                          : `Module npm dependency ${to} (forced: was ${from})`,
                     },
                   ],
                 });

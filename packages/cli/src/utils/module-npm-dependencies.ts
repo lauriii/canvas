@@ -23,7 +23,21 @@ import semver from 'semver';
  * the developer's, and `npm` is the tool for them. A pull of what was pushed
  * gives the pushed file back, byte for byte.
  */
-export type NpmDependencies = Record<string, string>;
+export interface NpmDependencyDeclaration {
+  /** The exact version the extension was built against. */
+  version: string;
+  /**
+   * Whether the extension requires this version: pull sets it even where the
+   * project has another value, and re-adds the package if it was removed.
+   */
+  force: boolean;
+}
+
+/** What the site declares, by package name. */
+export type NpmDependencies = Record<string, NpmDependencyDeclaration>;
+
+/** What pull recorded in package.json, by package name: the declared version. */
+export type NpmDependencyRecord = Record<string, string>;
 
 export const PACKAGE_JSON_RECORD_KEY = 'npmDependencies';
 
@@ -54,6 +68,12 @@ export interface MergeNpmDependenciesResult {
    * in `package.json`; only the record forgets them.
    */
   noLongerDeclared: string[];
+  /**
+   * Forced declarations pull applied: set to the declared version, or re-added
+   * after a developer removed them. `from` is the previous value, or null when
+   * the package was absent.
+   */
+  forced: { name: string; from: string | null; to: string }[];
 }
 
 interface PackageJsonShape {
@@ -61,7 +81,7 @@ interface PackageJsonShape {
   devDependencies?: Record<string, string>;
   peerDependencies?: Record<string, string>;
   optionalDependencies?: Record<string, string>;
-  canvas?: { [PACKAGE_JSON_RECORD_KEY]?: NpmDependencies } & Record<
+  canvas?: { [PACKAGE_JSON_RECORD_KEY]?: NpmDependencyRecord } & Record<
     string,
     unknown
   >;
@@ -118,6 +138,11 @@ function rangeAllowsDeclared(current: string, declared: string): boolean {
  * developer who later removes that package is not overruled on the next pull.
  * A declaration that moved on from what the file has is reported, with the
  * `npm install` that would follow it, and left to the developer.
+ *
+ * The exception is a forced declaration, which the extension requires: pull
+ * sets that version where the file has another value (a range that allows it
+ * is left alone), and re-adds the package if it was removed. That is the one
+ * upstream-driven change a pull can make, and the next push converges it.
  */
 export function mergeNpmDependencies(
   packageJsonText: string,
@@ -133,31 +158,51 @@ export function mergeNpmDependencies(
     conflicts: [],
     removedByDeveloper: [],
     noLongerDeclared: [],
+    forced: [],
   };
   // Packages this or an earlier pull added, with the version the site declares
   // now. An entry outlives the dependency: once pull has added a package, a
-  // developer's decision to remove it again is final.
-  const record: NpmDependencies = {};
+  // developer's decision to remove it again is final, unless the declaration
+  // is forced.
+  const record: NpmDependencyRecord = {};
+  let wrote = false;
 
-  for (const [name, version] of Object.entries(declared)) {
+  for (const [name, { version, force }] of Object.entries(declared)) {
     const section = findSection(parsed, name);
     const addedByPull = Object.hasOwn(previousRecord, name);
     if (section === null) {
-      if (addedByPull) {
+      if (addedByPull && !force) {
         result.removedByDeveloper.push(name);
         record[name] = version;
         continue;
       }
       parsed.dependencies = { ...(parsed.dependencies ?? {}), [name]: version };
-      result.added.push(name);
+      wrote = true;
+      if (force && addedByPull) {
+        result.forced.push({ name, from: null, to: version });
+      } else {
+        result.added.push(name);
+      }
       record[name] = version;
       continue;
     }
     if (addedByPull) {
       record[name] = version;
     }
-    const current = (parsed[section] as Record<string, string>)[name];
-    if (current !== version && !rangeAllowsDeclared(current, version)) {
+    const entries = parsed[section] as Record<string, string>;
+    const current = entries[name];
+    if (current === version || rangeAllowsDeclared(current, version)) {
+      continue;
+    }
+    if (force) {
+      // The one value pull rewrites. Recorded, so the build can compare the
+      // installed copy to it; a forced declaration the file already satisfies
+      // is left alone and unrecorded, like any other agreement.
+      entries[name] = version;
+      wrote = true;
+      record[name] = version;
+      result.forced.push({ name, from: current, to: version });
+    } else {
       result.conflicts.push({ name, declared: version, current });
     }
   }
@@ -171,7 +216,7 @@ export function mergeNpmDependencies(
   const recordChanged =
     JSON.stringify(sortKeys(record)) !==
     JSON.stringify(sortKeys(previousRecord));
-  if (result.added.length === 0 && !recordChanged) {
+  if (!wrote && !recordChanged) {
     return result;
   }
 

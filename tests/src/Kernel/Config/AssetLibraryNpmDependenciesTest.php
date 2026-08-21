@@ -34,10 +34,15 @@ final class AssetLibraryNpmDependenciesTest extends CanvasKernelTestBase {
     $this->enableModules(['canvas_test_npm_dependency']);
 
     $representation = self::getGlobalAssetLibrary()->normalizeForClientSide();
-    // Only the well-formed declaration survives: the test module also declares
-    // a range, a URL, and an invalid name, none of which may reach a project.
+    // Only well-formed declarations survive: the test module also declares a
+    // range, a URL, an invalid name, and a non-boolean `force`, none of which
+    // may reach a project. The shorthand and the mapping form normalize to
+    // the same shape.
     self::assertSame(
-      ['@canvas-test/declared-package' => '1.2.3'],
+      [
+        '@canvas-test/declared-package' => ['version' => '1.2.3', 'force' => FALSE],
+        '@canvas-test/required-client' => ['version' => '2.0.0', 'force' => TRUE],
+      ],
       (array) $representation->values['npmDependencies'],
     );
     // Installing or uninstalling an extension must invalidate the response.
@@ -48,12 +53,25 @@ final class AssetLibraryNpmDependenciesTest extends CanvasKernelTestBase {
     $this->enableModules(['canvas_test_npm_dependency', 'canvas_test_npm_dependency_conflict']);
 
     $normalized = self::getGlobalAssetLibrary()->normalizeForClientSide()->values;
-    // A project can install only one version; the higher wins and the
-    // disagreement is logged. The lower declaration does not leak through.
+    // A project can install only one version: a forced declaration beats an
+    // unforced one, otherwise the higher wins, and the disagreement is logged.
     self::assertSame(
-      ['@canvas-test/declared-package' => '1.3.0'],
+      [
+        '@canvas-test/declared-package' => ['version' => '1.3.0', 'force' => FALSE],
+        '@canvas-test/required-client' => ['version' => '2.0.0', 'force' => TRUE],
+      ],
       (array) $normalized['npmDependencies'],
     );
+  }
+
+  public function testNormalizesDeclarations(): void {
+    self::assertSame(['version' => '1.2.0', 'force' => FALSE], ExtensionNpmDependencies::normalizeDeclaration('a', '1.2.0'));
+    self::assertSame(['version' => '1.2.0', 'force' => FALSE], ExtensionNpmDependencies::normalizeDeclaration('a', ['version' => '1.2.0']));
+    self::assertSame(['version' => '1.2.0', 'force' => TRUE], ExtensionNpmDependencies::normalizeDeclaration('a', ['version' => '1.2.0', 'force' => TRUE]));
+    self::assertNull(ExtensionNpmDependencies::normalizeDeclaration('a', ['version' => '^1.2.0', 'force' => TRUE]));
+    self::assertNull(ExtensionNpmDependencies::normalizeDeclaration('a', ['force' => TRUE]));
+    self::assertNull(ExtensionNpmDependencies::normalizeDeclaration('a', ['version' => '1.2.0', 'force' => 'yes']));
+    self::assertNull(ExtensionNpmDependencies::normalizeDeclaration('a', 42));
   }
 
   public function testValidatesDeclarations(): void {

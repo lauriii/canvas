@@ -282,6 +282,9 @@ info file:
 canvas:
   npm:
     '@acme/canvas-forms': 1.2.0
+    '@acme/canvas-forms-client':
+      version: 2.0.0
+      force: true
 ```
 
 [`npx canvas pull`](#pull) adds a declared package that is missing from your
@@ -291,10 +294,16 @@ no pull puts it back. It never changes a value, never removes a dependency, and
 never reorders the file: if your `package.json` disagrees with what the site
 declares, pull says so and names the `npm install` that would follow the site.
 Push stores `package.json` verbatim and pull restores it verbatim, so a pull of
-what you pushed gives the same file back. `build` and `push` fail before
-bundling when a component imports a declared package that is not installed, and
-warn when it is installed at a version other than the one the site's extension
-declares.
+what you pushed gives the same file back.
+
+A declaration marked `force: true` is one the extension requires, for example a
+client package that must move with the module. For those, pull sets the declared
+version even where `package.json` has another value (a range that allows the
+declared version is left alone), re-adds the package if it was removed, and
+reports what it changed; push the result and later pulls give it back unchanged.
+`build` and `push` fail before bundling when a component imports a declared
+package that is not installed, and warn when it is installed at a version other
+than the one the site's extension declares.
 
 > **Important:** a module's code component JavaScript ships on npm, not through
 > the Canvas import map. A module that also serves a copy through
