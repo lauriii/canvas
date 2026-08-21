@@ -122,6 +122,16 @@ function hook_canvas_storable_prop_shape_alter(CandidateStorablePropShape $stora
  * For global imports cache-busting query strings are appended after this hook
  * fires.
  *
+ * JavaScript that code components import (a hook, a client for a module's
+ * endpoints, a component library) ships as an npm package declared under
+ * `canvas.npm` in the module's info file, not through this hook: a CLI
+ * project, Workbench, and a headless frontend install it from npm, and a
+ * headless frontend has no import map at all. Do not also serve a copy of such
+ * a package here; it would override the pushed bundle on the site while the
+ * project uses the npm copy. Use this hook for what only a Drupal-rendered
+ * page needs, such as a Tailwind CSS plugin for global CSS or replacing a
+ * built-in with a custom build.
+ *
  * @param array $import_maps
  *   The import map array following the import map spec structure:
  *   - 'imports': Global import entries (specifier => URL).
@@ -134,8 +144,8 @@ function hook_canvas_storable_prop_shape_alter(CandidateStorablePropShape $stora
 function hook_canvas_importmap_alter(array &$import_maps): void {
   $module_path = \Drupal::service(ExtensionPathResolver::class)->getPath('module', 'my_module');
 
-  // Add a new globally available package for code components.
-  $import_maps[ImportMapResponseAttachmentsProcessor::GLOBAL_IMPORTS]['my-library'] = \base_path() . $module_path . '/js/my-library.js';
+  // Register a Tailwind CSS plugin for use with `@plugin` in global CSS.
+  $import_maps[ImportMapResponseAttachmentsProcessor::GLOBAL_IMPORTS]['@tailwindcss/forms'] = \base_path() . $module_path . '/js/tailwindcss-forms.js';
 
   // Replace an existing global import with a custom build.
   $import_maps[ImportMapResponseAttachmentsProcessor::GLOBAL_IMPORTS]['clsx'] = \base_path() . $module_path . '/js/custom-clsx.js';

@@ -272,6 +272,31 @@ import * as Accordion from '@radix-ui/react-accordion';
 > **Important:** Third-party packages are bundled and uploaded as vendor
 > artifacts. Use [`npx canvas push`](#push) to include them.
 
+### Packages a Drupal module declares
+
+A Drupal module or theme whose code component JavaScript is published on npm
+declares the package and the exact version it ships under `canvas.npm` in its
+info file:
+
+```yaml
+canvas:
+  npm:
+    '@acme/canvas-forms': 1.2.0
+```
+
+[`npx canvas pull`](#pull) adds the packages the site's extensions declare to
+your `package.json` (only packages that are missing; it never changes a version
+you set, never removes a dependency, and records what it wrote under
+`canvas.npmDependencies`), and tells you to run `npm install`. `build` and
+`push` fail before bundling when a component imports a declared package that is
+not installed, and warn when it is installed at a version other than the one the
+site's extension declares.
+
+> **Important:** a module's code component JavaScript ships on npm, not through
+> the Canvas import map. A module that also serves a copy through
+> `hook_canvas_importmap_alter()` overrides the pushed bundle on the site and in
+> the editor, while this project and Workbench use the npm copy.
+
 ### Shared Local Modules via `@/` Alias
 
 Utilities and helpers can be imported from shared locations **outside** of any
@@ -333,7 +358,15 @@ local filesystem. Brand Kit fonts are only included when explicitly enabled.
 
 If the project's `package.json` was captured on a previous `push`, it is written
 back to the project root during pull. It is overwritten by default, or skipped
-with `--skip-overwrite`, the same as global CSS.
+with `--skip-overwrite`, the same as global CSS. Un-pushed hand edits to
+`package.json` are overwritten by that restore; push them first.
+
+After that restore, packages the site's modules and themes declare under
+`canvas.npm` are added to `package.json` if missing (see
+[Packages a Drupal module declares](#packages-a-drupal-module-declares)). The
+plan names them before anything is written. With `--skip-overwrite`, a
+`package.json` that existed before the pull is left alone and the skipped
+packages are named.
 
 **Usage:**
 
