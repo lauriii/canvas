@@ -607,6 +607,40 @@ describe('Pull Command', () => {
       });
     });
 
+    it('gives back what was pushed, byte for byte, when it already has the declared package', async () => {
+      // The site stores what the last push sent; pull restores it, then the
+      // merge must find nothing to do. Several shapes a developer might push.
+      const pushedFiles = [
+        `{\n  "name": "p",\n  "dependencies": {\n    "@acme/canvas-forms": "1.2.0",\n    "react": "^19.0.0"\n  }\n}\n`,
+        `{\n\t"dependencies": {\n\t\t"@acme/canvas-forms": "^1.2.0"\n\t}\n}`,
+        JSON.stringify({ devDependencies: { '@acme/canvas-forms': '1.2.0' } }),
+        JSON.stringify({
+          dependencies: { react: '^19.0.0' },
+          canvas: { npmDependencies: { '@acme/canvas-forms': '1.2.0' } },
+        }),
+      ];
+      for (const pushed of pushedFiles) {
+        await fs.rm(path.join(tmpDir, 'package.json'), { force: true });
+        const api = mockApiService(
+          'body {}',
+          pushed,
+          undefined,
+          undefined,
+          undefined,
+          { '@acme/canvas-forms': '1.2.0' },
+        );
+        const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
+        await task.prepare();
+        const result = await task.execute();
+        await expect(
+          fs.readFile(path.join(tmpDir, 'package.json'), 'utf-8'),
+        ).resolves.toBe(pushed);
+        expect(result.results.map((r) => r.itemName)).not.toContain(
+          '@acme/canvas-forms',
+        );
+      }
+    });
+
     it('refreshes the record when the site declares nothing any more', async () => {
       await fs.writeFile(
         path.join(tmpDir, 'package.json'),

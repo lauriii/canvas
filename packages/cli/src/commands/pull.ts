@@ -979,7 +979,7 @@ export function createAssetsPullTask(
               }
               for (const conflict of merged.conflicts) {
                 notes.push(
-                  `package.json has ${conflict.name}@${conflict.current}, but the site's extension declares ${conflict.declared}. Left unchanged; align it by hand if the component should match the site.`,
+                  `package.json has ${conflict.name}@${conflict.current}, but the site's extension declares ${conflict.declared}. Left unchanged; run \`npm install ${conflict.name}@${conflict.declared}\` to follow the site.`,
                 );
               }
               if (merged.removedByDeveloper.length > 0) {

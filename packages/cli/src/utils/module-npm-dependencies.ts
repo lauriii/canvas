@@ -18,9 +18,10 @@ import semver from 'semver';
  * developer's, and what lets a build compare installed versions against what
  * the site declared without reaching the site.
  *
- * The merge only ever adds. It never removes a dependency, never reorders the
- * file, and never changes a value it did not write itself: those are the
- * developer's, and `npm` is the tool for them.
+ * The merge only ever adds a missing declared package, once. It never removes
+ * a dependency, never reorders the file, and never changes a value: those are
+ * the developer's, and `npm` is the tool for them. A pull of what was pushed
+ * gives the pushed file back, byte for byte.
  */
 export type NpmDependencies = Record<string, string>;
 
@@ -36,16 +37,16 @@ const DEPENDENCY_SECTIONS = [
 export interface MergeNpmDependenciesResult {
   /** The new file contents, or `null` when nothing changed. */
   text: string | null;
-  /** Packages added to `dependencies`, or updated from a version pull wrote. */
+  /** Packages added to `dependencies` because they were missing. */
   added: string[];
   /**
-   * Packages whose `package.json` value differs from what the site declares
-   * and was not written by an earlier pull, so it was left alone.
+   * Packages whose `package.json` value is not the declared version and not a
+   * range that allows it. Left alone and reported, whoever wrote the value.
    */
   conflicts: { name: string; declared: string; current: string }[];
   /**
    * Packages an earlier pull added that the developer has since removed. They
-   * are not re-added, and no longer recorded.
+   * are not re-added, now or on any later pull.
    */
   removedByDeveloper: string[];
   /**
@@ -108,6 +109,15 @@ function rangeAllowsDeclared(current: string, declared: string): boolean {
 
 /**
  * Merges the site's declared packages into a `package.json` document.
+ *
+ * Push and pull are a mirror: what a developer pushed is what a pull gives
+ * back. So this never rewrites a value, never removes a dependency, never
+ * reorders the file, and writes nothing at all when the file already has
+ * every declared package. The one write it makes is to add a declared
+ * package that is missing, once: the record remembers that it did, so a
+ * developer who later removes that package is not overruled on the next pull.
+ * A declaration that moved on from what the file has is reported, with the
+ * `npm install` that would follow it, and left to the developer.
  */
 export function mergeNpmDependencies(
   packageJsonText: string,
@@ -124,14 +134,18 @@ export function mergeNpmDependencies(
     removedByDeveloper: [],
     noLongerDeclared: [],
   };
+  // Packages this or an earlier pull added, with the version the site declares
+  // now. An entry outlives the dependency: once pull has added a package, a
+  // developer's decision to remove it again is final.
   const record: NpmDependencies = {};
 
   for (const [name, version] of Object.entries(declared)) {
     const section = findSection(parsed, name);
+    const addedByPull = Object.hasOwn(previousRecord, name);
     if (section === null) {
-      if (Object.hasOwn(previousRecord, name)) {
-        // Pull added it once and the developer took it out again. Their call.
+      if (addedByPull) {
         result.removedByDeveloper.push(name);
+        record[name] = version;
         continue;
       }
       parsed.dependencies = { ...(parsed.dependencies ?? {}), [name]: version };
@@ -139,17 +153,11 @@ export function mergeNpmDependencies(
       record[name] = version;
       continue;
     }
-    const entries = parsed[section] as Record<string, string>;
-    const current = entries[name];
-    if (current === version) {
+    if (addedByPull) {
       record[name] = version;
-    } else if (previousRecord[name] === current) {
-      // Pull wrote this value and nobody changed it: follow the site's new
-      // declaration, in whichever section the developer keeps it.
-      entries[name] = version;
-      result.added.push(name);
-      record[name] = version;
-    } else if (!rangeAllowsDeclared(current, version)) {
+    }
+    const current = (parsed[section] as Record<string, string>)[name];
+    if (current !== version && !rangeAllowsDeclared(current, version)) {
       result.conflicts.push({ name, declared: version, current });
     }
   }

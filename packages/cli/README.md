@@ -284,13 +284,17 @@ canvas:
     '@acme/canvas-forms': 1.2.0
 ```
 
-[`npx canvas pull`](#pull) adds the packages the site's extensions declare to
-your `package.json` (only packages that are missing; it never changes a version
-you set, never removes a dependency, and records what it wrote under
-`canvas.npmDependencies`), and tells you to run `npm install`. `build` and
-`push` fail before bundling when a component imports a declared package that is
-not installed, and warn when it is installed at a version other than the one the
-site's extension declares.
+[`npx canvas pull`](#pull) adds a declared package that is missing from your
+`package.json`, once, and tells you to run `npm install`. It records what it
+added under `canvas.npmDependencies` so that, if you later remove that package,
+no pull puts it back. It never changes a value, never removes a dependency, and
+never reorders the file: if your `package.json` disagrees with what the site
+declares, pull says so and names the `npm install` that would follow the site.
+Push stores `package.json` verbatim and pull restores it verbatim, so a pull of
+what you pushed gives the same file back. `build` and `push` fail before
+bundling when a component imports a declared package that is not installed, and
+warn when it is installed at a version other than the one the site's extension
+declares.
 
 > **Important:** a module's code component JavaScript ships on npm, not through
 > the Canvas import map. A module that also serves a copy through
@@ -361,12 +365,13 @@ back to the project root during pull. It is overwritten by default, or skipped
 with `--skip-overwrite`, the same as global CSS. Un-pushed hand edits to
 `package.json` are overwritten by that restore; push them first.
 
-After that restore, packages the site's modules and themes declare under
-`canvas.npm` are added to `package.json` if missing (see
-[Packages a Drupal module declares](#packages-a-drupal-module-declares)). The
-plan names them before anything is written. With `--skip-overwrite`, a
-`package.json` that existed before the pull is left alone and the skipped
-packages are named.
+After that restore, a package the site's modules and themes declare under
+`canvas.npm` that is missing from `package.json` is added, once (see
+[Packages a Drupal module declares](#packages-a-drupal-module-declares)); a file
+that already has every declared package is left byte for byte as pushed. The
+plan names the declared packages before anything is written. With
+`--skip-overwrite`, a `package.json` that existed before the pull is left alone
+and the skipped packages are named.
 
 **Usage:**
 

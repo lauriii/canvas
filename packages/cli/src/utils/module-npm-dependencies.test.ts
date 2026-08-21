@@ -45,7 +45,48 @@ describe('mergeNpmDependencies', () => {
     expect(result.text?.endsWith('\n')).toBe(false);
   });
 
-  it('leaves a developer-set version alone and reports the disagreement', () => {
+  describe('round trip: a file that already has the declared packages is untouched', () => {
+    const declared = { '@acme/canvas-forms': '1.2.0' };
+    it.each([
+      [
+        'exact version, no record',
+        { dependencies: { '@acme/canvas-forms': '1.2.0', react: '^19' } },
+      ],
+      [
+        'range that allows the declared version',
+        { dependencies: { '@acme/canvas-forms': '^1.2.0' } },
+      ],
+      [
+        'in devDependencies',
+        { devDependencies: { '@acme/canvas-forms': '1.2.0' } },
+      ],
+      [
+        'in peerDependencies, as a range',
+        { peerDependencies: { '@acme/canvas-forms': '>=1.0.0' } },
+      ],
+      [
+        'added by an earlier pull, record in place',
+        {
+          dependencies: { '@acme/canvas-forms': '1.2.0' },
+          canvas: { npmDependencies: { '@acme/canvas-forms': '1.2.0' } },
+        },
+      ],
+      [
+        'removed by the developer after an earlier pull added it',
+        {
+          dependencies: { react: '^19' },
+          canvas: { npmDependencies: { '@acme/canvas-forms': '1.2.0' } },
+        },
+      ],
+    ])('%s', (_label, json) => {
+      const pushed = `${JSON.stringify(json, null, 2)}\n`;
+      // text === null means no write at all: what was pushed is what a pull
+      // gives back, byte for byte.
+      expect(mergeNpmDependencies(pushed, declared).text).toBeNull();
+    });
+  });
+
+  it('leaves a developer-set value alone and reports the disagreement', () => {
     const before = JSON.stringify({
       dependencies: { '@acme/canvas-forms': 'file:../module/js' },
     });
@@ -108,47 +149,55 @@ describe('mergeNpmDependencies', () => {
       '@acme/canvas-forms': '1.2.0',
       react: '19.0.0',
     });
-    const next = JSON.parse(result.text as string);
-    expect(next.dependencies).toBeUndefined();
-    expect(next.devDependencies).toEqual({ '@acme/canvas-forms': '1.2.0' });
-    // A peer range that excludes the declared version is the developer's
-    // choice: reported, never rewritten, never duplicated under dependencies.
-    expect(next.peerDependencies).toEqual({ react: '^18.0.0' });
+    // Nothing to add, nothing written; the excluding peer range is reported.
+    expect(result.text).toBeNull();
+    expect(result.added).toEqual([]);
     expect(result.conflicts).toEqual([
       { name: 'react', declared: '19.0.0', current: '^18.0.0' },
     ]);
-    expect(next.canvas.npmDependencies).toEqual({
-      '@acme/canvas-forms': '1.2.0',
-    });
   });
 
-  it('follows a new declaration for a version it wrote itself, where it lives', () => {
+  it('does not rewrite a version it wrote when the declaration moves on; it reports it', () => {
     const before = JSON.stringify({
-      devDependencies: { '@acme/canvas-forms': '1.2.0' },
+      dependencies: { '@acme/canvas-forms': '1.2.0' },
       canvas: { npmDependencies: { '@acme/canvas-forms': '1.2.0' } },
     });
     const result = mergeNpmDependencies(before, {
       '@acme/canvas-forms': '1.3.0',
     });
     const next = JSON.parse(result.text as string);
-    expect(next.devDependencies).toEqual({ '@acme/canvas-forms': '1.3.0' });
-    expect(next.dependencies).toBeUndefined();
-    expect(result.conflicts).toEqual([]);
+    // The dependency is the developer's to move; the record tracks the site.
+    expect(next.dependencies).toEqual({ '@acme/canvas-forms': '1.2.0' });
+    expect(next.canvas.npmDependencies).toEqual({
+      '@acme/canvas-forms': '1.3.0',
+    });
+    expect(result.conflicts).toEqual([
+      { name: '@acme/canvas-forms', declared: '1.3.0', current: '1.2.0' },
+    ]);
   });
 
-  it('does not re-add a package the developer removed', () => {
+  it('does not re-add a package the developer removed, on this pull or the next', () => {
     const before = JSON.stringify({
       dependencies: { react: '^19.0.0' },
       canvas: { npmDependencies: { '@acme/canvas-forms': '1.2.0' } },
     });
-    const result = mergeNpmDependencies(before, {
+    const first = mergeNpmDependencies(before, {
       '@acme/canvas-forms': '1.2.0',
     });
-    const next = JSON.parse(result.text as string);
-    expect(result.removedByDeveloper).toEqual(['@acme/canvas-forms']);
-    expect(next.dependencies).toEqual({ react: '^19.0.0' });
-    // And stops claiming it.
-    expect(next.canvas).toBeUndefined();
+    expect(first.removedByDeveloper).toEqual(['@acme/canvas-forms']);
+    // Nothing changed, so nothing written, and the record still remembers.
+    expect(first.text).toBeNull();
+    // Even once the declaration moves on, the package stays out.
+    const second = mergeNpmDependencies(before, {
+      '@acme/canvas-forms': '1.3.0',
+    });
+    expect(second.added).toEqual([]);
+    expect(JSON.parse(second.text as string).dependencies).toEqual({
+      react: '^19.0.0',
+    });
+    expect(JSON.parse(second.text as string).canvas.npmDependencies).toEqual({
+      '@acme/canvas-forms': '1.3.0',
+    });
   });
 
   it('never removes a dependency when the site stops declaring it', () => {
@@ -165,14 +214,6 @@ describe('mergeNpmDependencies', () => {
       react: '^19.0.0',
     });
     expect(next.canvas).toBeUndefined();
-  });
-
-  it('changes nothing when already in sync', () => {
-    const before = JSON.stringify({
-      dependencies: { a: '1.0.0' },
-      canvas: { npmDependencies: { a: '1.0.0' } },
-    });
-    expect(mergeNpmDependencies(before, { a: '1.0.0' }).text).toBeNull();
   });
 
   it('keeps unrelated keys under canvas', () => {
