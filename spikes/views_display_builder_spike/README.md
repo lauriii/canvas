@@ -255,3 +255,11 @@ Verified in the editor: link, unlink, and relink from the dropdown; the
 badge reads "title (per item)"; the preview swaps static defaults for
 per-row titles on link; the published tree stores the list-field source;
 anonymous render shows per-row values.
+
+Follow-up hardening from review: `list-field` is forbidden by default in
+every Canvas tree (content entities, patterns, content templates) and the
+display's schema opts in by overriding `ComponentTreeMeetRequirements` —
+the same idiom content templates use for `entity-field`. Verified: a
+pattern or page storing a list-field source is rejected with "The
+'list-field' prop source type must be absent"; the display validates
+clean.
