@@ -14,6 +14,17 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 class CanvasTestBlockInputValidatableCrash extends CanvasTestBlockInputUnvalidatable {
 
   /**
+   * When TRUE, this block crashes regardless of its 'crash' setting.
+   *
+   * This lets a test crash this block using its *default* settings (where
+   * 'crash' is FALSE), mirroring a block — such as a views block whose display
+   * needs a URL argument — that crashes while building its preview.
+   *
+   * @see \Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource\BlockComponentTest::testCrashingPreviewDoesNotBreakComponentList()
+   */
+  public static bool $forceCrash = FALSE;
+
+  /**
    * {@inheritdoc}
    */
   public function defaultConfiguration(): array {
@@ -29,7 +40,7 @@ class CanvasTestBlockInputValidatableCrash extends CanvasTestBlockInputUnvalidat
    * {@inheritdoc}
    */
   public function build(): array {
-    if ($this->configuration['crash']) {
+    if ($this->configuration['crash'] || self::$forceCrash) {
       throw new \Exception('Intentional test exception.');
     }
     return [
