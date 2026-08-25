@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Validation\JsonSchema;
 
+use Drupal\canvas\Entity\Color;
+use Drupal\canvas\Utility\ColorResolver;
 use JsonSchema\ConstraintError;
 use JsonSchema\Constraints\StringConstraint;
 use JsonSchema\Entity\JsonPointer;
@@ -54,10 +56,10 @@ final class CanvasColorStringConstraint extends StringConstraint {
     }
 
     // Brand Kit reference.
-    if (\str_starts_with($element, 'canvas-color:')) {
-      $uuid = \substr($element, \strlen('canvas-color:'));
-      if (empty($uuid)) {
-        $this->addError(ConstraintError::get(ConstraintError::PATTERN), $path, ['pattern' => 'canvas-color:<uuid>']);
+    if (\str_starts_with($element, Color::REFERENCE_PREFIX)) {
+      $uuid = ColorResolver::parseColorEntityId($element);
+      if ($uuid === NULL) {
+        $this->addError(ConstraintError::get(ConstraintError::PATTERN), $path, ['pattern' => Color::REFERENCE_PREFIX . '<uuid>']);
         return;
       }
       if (!self::colorEntityExists($uuid)) {

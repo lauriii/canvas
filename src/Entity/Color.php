@@ -6,7 +6,7 @@ namespace Drupal\canvas\Entity;
 
 use Drupal\canvas\ClientSideRepresentation;
 use Drupal\canvas\EntityHandlers\CanvasAssetStorage;
-use Drupal\canvas\EntityHandlers\ContentCreatorVisibleCanvasConfigEntityAccessControlHandler;
+use Drupal\canvas\EntityHandlers\ColorAccessControlHandler;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
@@ -49,7 +49,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
   label_collection: new TranslatableMarkup('Colors'),
   admin_permission: self::ADMIN_PERMISSION,
   handlers: [
-    'access' => ContentCreatorVisibleCanvasConfigEntityAccessControlHandler::class,
+    'access' => ColorAccessControlHandler::class,
   ],
   entity_keys: [
     'id' => 'uuid',
@@ -79,6 +79,16 @@ final class Color extends ConfigEntityBase implements CanvasHttpApiEligibleConfi
 
   public const string ENTITY_TYPE_ID = 'color';
   public const string ADMIN_PERMISSION = 'administer brand kit';
+
+  /**
+   * Prefix marking a stored color prop value as a reference to a Color.
+   *
+   * A color prop stores either a literal CSS value (`#rrggbbaa`, `hsl(…)`) or
+   * this prefix followed by a Color config entity ID (which is its UUID).
+   *
+   * @see \Drupal\canvas\Utility\ColorResolver::parseColorEntityId()
+   */
+  public const string REFERENCE_PREFIX = 'canvas-color:';
 
   protected string $name;
   protected string $cssVariable;

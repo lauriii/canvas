@@ -59,7 +59,7 @@ final class PageTemplateComponentUninstallValidator implements ModuleUninstallVa
     $reasons = [];
     foreach ($components as $component) {
       \assert($component instanceof ComponentInterface);
-      $usage = $this->componentAudit->getConfigEntityDependenciesUsingComponent($component, PageVariant::ENTITY_TYPE_ID);
+      $usage = $this->componentAudit->getConfigEntityDependenciesUsingAuditTarget($component, PageVariant::ENTITY_TYPE_ID);
       $count = \count($usage);
       if ($count === 0) {
         continue;

@@ -3867,6 +3867,61 @@ paths:
                     teaser:
                       label: Teaser
                       hasTemplate: true
+  /canvas/api/v0/usage/color/{color}/details:
+    get:
+      summary: Get detailed usage information for a specific color.
+      description: >
+        Returns structured data with 'deletable' (whether the color may be
+        deleted right now), plus 'current' (revisions that block deletion),
+        'prior' (superseded revisions only) and 'config' (config entities)
+        keys, each omitted when empty.
+      parameters:
+        - name: color
+          in: path
+          required: true
+          description: The UUID of the Color config entity.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: >
+            Detailed usage information.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - deletable
+                properties:
+                  deletable:
+                    description: >
+                      Whether the color may be deleted right now. This is the
+                      same access check the delete route enforces, and is not
+                      derivable from the usage lists below: those report no
+                      auto-saves, which block deletion too.
+                    type: boolean
+                  current:
+                    description: >
+                      Entities using the color in a revision that blocks
+                      deletion: the default revision or the latest one.
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ContentEntityUsage'
+                  prior:
+                    description: >
+                      Entities that used the color only in superseded
+                      revisions.
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ContentEntityUsage'
+                  config:
+                    description: Config entities whose component tree uses the color.
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ConfigEntityUsage'
+        '404':
+          description: Color not found.
   /canvas/api/v0/usage/component:
     get:
       summary: Get all components to see if they are in use.
@@ -3955,6 +4010,87 @@ paths:
 components:
   # @see https://spec.openapis.org/oas/v3.1.0.html#schema-object
   schemas:
+    ColorComponentUsage:
+      type: object
+      description: Detailed information about a specific component instance using the color.
+      required:
+        - component_uuid
+        - component_id
+        - label
+        - prop_name
+        - ancestor_labels
+      properties:
+        component_uuid:
+          type: string
+          description: The unique UUID of the component instance.
+        component_id:
+          type: string
+          description: The component type ID (e.g., sdc.module.button).
+        label:
+          type: [string, 'null']
+          description: User-assigned label for this component instance (null if not set).
+        prop_name:
+          type: string
+          description: The name of the prop that contains the color reference.
+        ancestor_labels:
+          type: array
+          items:
+            type: string
+          description: Array of ancestor component labels from root to immediate parent, for building the section hierarchy.
+    ContentEntityUsage:
+      type: object
+      description: A content entity (or revision) that references a color.
+      required:
+        - title
+        - type
+        - bundle
+        - id
+        - revision_id
+        - usages
+      properties:
+        title:
+          type: string
+          description: Label of the entity.
+        type:
+          type: string
+          description: Entity type ID.
+        bundle:
+          type: string
+          description: Bundle of the entity.
+        id:
+          type: string
+          description: Entity ID.
+        revision_id:
+          type: string
+          description: Revision ID.
+        usages:
+          type: array
+          items:
+            $ref: '#/components/schemas/ColorComponentUsage'
+          description: Array of component instances within this entity that use the color.
+    ConfigEntityUsage:
+      type: object
+      description: A config entity whose component tree references a color.
+      required:
+        - title
+        - type
+        - id
+        - usages
+      properties:
+        title:
+          type: string
+          description: Label of the config entity.
+        type:
+          type: string
+          description: Entity type ID.
+        id:
+          type: string
+          description: Config entity ID.
+        usages:
+          type: array
+          items:
+            $ref: '#/components/schemas/ColorComponentUsage'
+          description: Array of component instances within this entity that use the color.
     PaginationLink:
       type: object
       description: A JSON:API-style link object.

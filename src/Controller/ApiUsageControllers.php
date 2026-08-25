@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Controller;
 
+use Drupal\canvas\Audit\ColorAudit;
 use Drupal\canvas\Audit\ComponentAudit;
+use Drupal\canvas\Entity\Color;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
@@ -26,6 +28,7 @@ final class ApiUsageControllers extends ApiControllerBase {
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly ComponentAudit $componentAudit,
+    private readonly ColorAudit $colorAudit,
     private readonly PagerManagerInterface $pagerManager,
   ) {}
 
@@ -49,7 +52,7 @@ final class ApiUsageControllers extends ApiControllerBase {
   public function componentDetails(Component $component): JsonResponse {
     if ($this->componentAudit->hasUsages($component)) {
       $dependents = [];
-      if ($content_dependents = $this->componentAudit->getContentRevisionsUsingComponent($component, [$component->getLoadedVersion()])) {
+      if ($content_dependents = $this->componentAudit->getContentRevisionsUsingAuditTarget($component, [$component->getLoadedVersion()])) {
         foreach ($content_dependents as $content_dependent) {
           $dependents['content'][] = [
             'title' => $content_dependent->label(),
@@ -66,7 +69,7 @@ final class ApiUsageControllers extends ApiControllerBase {
         static fn (EntityTypeInterface $type): bool => $type instanceof ConfigEntityTypeInterface && $type->entityClassImplements(ComponentTreeEntityInterface::class)
       ));
       foreach ($config_entity_types as $config_entity_type) {
-        $config_dependents = $this->componentAudit->getConfigEntityDependenciesUsingComponent($component, $config_entity_type);
+        $config_dependents = $this->componentAudit->getConfigEntityDependenciesUsingAuditTarget($component, $config_entity_type);
         if ($config_dependents) {
           foreach ($config_dependents as $config_dependent) {
             $dependents[$config_entity_type][] = [
@@ -119,6 +122,89 @@ final class ApiUsageControllers extends ApiControllerBase {
             : $base_url->setRouteParameters($this->pagerManager->getUpdatedParameters([], 0, $current_page + 1))->toString(),
         ],
       ],
+      status: Response::HTTP_OK
+    );
+  }
+
+  /**
+   * Checks if a color is in use and returns details of where it is used.
+   *
+   * Returns structured data distinguishing between:
+   * - deletable: whether this color may be deleted right now
+   * - current: entities where the color is used in a revision that blocks
+   *   deletion, i.e. the default revision or the latest one
+   * - prior: entities where the color is only used in superseded revisions
+   * - config: config entities using the color
+   *
+   * Each entry includes a 'usages' array with component-level detail:
+   * - component_uuid: The component instance UUID
+   * - component_id: The component type ID
+   * - label: The user-assigned label (or null)
+   * - prop_name: The prop containing the color
+   * - ancestor_labels: Array of ancestor component labels (for hierarchy)
+   *
+   * `deletable` is the authoritative answer for a delete affordance: it is the
+   * same access check the delete route enforces, so the client cannot offer a
+   * delete that the server would refuse. It still cannot be derived from the
+   * lists above: those report no auto-saves, which block deletion too.
+   *
+   * @see \Drupal\canvas\EntityHandlers\ColorAccessControlHandler::checkAccess()
+   */
+  public function colorDetails(Color $color): JsonResponse {
+    $dependents = ['deletable' => $color->access('delete')];
+
+    // Get content entities with detail, split by revision status.
+    $content_split = $this->colorAudit->getContentColorUsagesWithDetailSplit($color);
+
+    // Current revisions (these block deletion).
+    if (!empty($content_split['current'])) {
+      $dependents['current'] = [];
+      foreach ($content_split['current'] as $entry) {
+        $entity = $entry['entity'];
+        $dependents['current'][] = [
+          'title' => (string) $entity->label(),
+          'type' => $entity->getEntityTypeId(),
+          'bundle' => $entity->bundle(),
+          'id' => $entity->id(),
+          'revision_id' => $entity->getRevisionId(),
+          'usages' => $entry['usages'],
+        ];
+      }
+    }
+
+    // Prior revisions (these trigger a warning but don't block).
+    if (!empty($content_split['prior'])) {
+      $dependents['prior'] = [];
+      foreach ($content_split['prior'] as $entry) {
+        $entity = $entry['entity'];
+        $dependents['prior'][] = [
+          'title' => (string) $entity->label(),
+          'type' => $entity->getEntityTypeId(),
+          'bundle' => $entity->bundle(),
+          'id' => $entity->id(),
+          'revision_id' => $entity->getRevisionId(),
+          'usages' => $entry['usages'],
+        ];
+      }
+    }
+
+    // Config entities.
+    $config_dependents = $this->colorAudit->getConfigColorUsagesWithDetail($color);
+    if (!empty($config_dependents)) {
+      $dependents['config'] = [];
+      foreach ($config_dependents as $entry) {
+        $entity = $entry['entity'];
+        $dependents['config'][] = [
+          'title' => (string) $entity->label(),
+          'type' => $entity->getEntityTypeId(),
+          'id' => $entity->id(),
+          'usages' => $entry['usages'],
+        ];
+      }
+    }
+
+    return new JsonResponse(
+      data: $dependents,
       status: Response::HTTP_OK
     );
   }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Functional;
 
 use Drupal\canvas\Controller\ApiUsageControllers;
+use Drupal\canvas\Entity\Color;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
@@ -50,6 +51,9 @@ class ApiUsageControllersTest extends HttpApiTestBase {
       Page::EDIT_PERMISSION,
       Component::ADMIN_PERMISSION,
       JavaScriptComponent::ADMIN_PERMISSION,
+      // Needed for `deletable` to reflect a color's usage rather than a
+      // missing permission.
+      Color::ADMIN_PERMISSION,
     ]);
     \assert($user instanceof UserInterface);
     $this->httpApiUser = $user;
@@ -185,6 +189,83 @@ class ApiUsageControllersTest extends HttpApiTestBase {
       \array_slice($expected_last_page, ApiUsageControllers::MAX_PER_PAGE, NULL, TRUE),
       $body['data']
     );
+  }
+
+  /**
+   * Builds a component tree storing a color reference in the given prop.
+   *
+   * @param \Drupal\canvas\Entity\Color $color
+   *   The color to reference.
+   * @param string $prop_name
+   *   Either `background_color`, the component's color prop, or `heading`, a
+   *   plain string prop that merely holds the same characters.
+   *
+   * @return array<string, mixed>
+   *   A single component instance.
+   */
+  private static function treeUsingColorInProp(Color $color, string $prop_name): array {
+    $component = Component::load('sdc.canvas_test_sdc.color-valid');
+    \assert($component instanceof Component);
+    return [
+      'uuid' => \Drupal::service('uuid')->generate(),
+      'component_id' => $component->id(),
+      'component_version' => $component->getActiveVersion(),
+      'inputs' => [
+        'heading' => 'Heading',
+        'background_color' => '#ff0000ff',
+        $prop_name => Color::REFERENCE_PREFIX . $color->id(),
+      ],
+    ];
+  }
+
+  /**
+   * Tests color details endpoint.
+   *
+   * @legacy-covers \Drupal\canvas\Controller\ApiUsageControllers::colorDetails
+   */
+  public function testColorDetailsUsage(): void {
+    $color = Color::create([
+      'name' => 'Test Red',
+      'cssVariable' => '--color-test-red',
+      'value' => [
+        'colorSpace' => 'srgb',
+        'components' => [1.0, 0.0, 0.0],
+        'hex' => '#ff0000',
+      ],
+    ]);
+    $color->save();
+
+    // Unused: no usage keys, and deletion is allowed.
+    $json = $this->assertExpectedResponse('GET', Url::fromUri('base:/canvas/api/v0/usage/color/' . $color->id() . '/details'), [], 200, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');
+    $this->assertSame(['deletable' => TRUE], $json);
+
+    // A page storing the same characters in `heading`, a plain string prop, is
+    // not a usage: only a prop whose JSON schema says it is a color counts.
+    Page::create([
+      'title' => 'Page with a color-like heading',
+      'components' => self::treeUsingColorInProp($color, 'heading'),
+    ])->save();
+
+    $json = $this->assertExpectedResponse('GET', Url::fromUri('base:/canvas/api/v0/usage/color/' . $color->id() . '/details'), [], 200, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');
+    $this->assertSame(['deletable' => TRUE], $json);
+
+    // Save a page referencing the color from its color prop.
+    Page::create([
+      'title' => 'Page using color in details test',
+      'components' => self::treeUsingColorInProp($color, 'background_color'),
+    ])->save();
+
+    $json = $this->assertExpectedResponse('GET', Url::fromUri('base:/canvas/api/v0/usage/color/' . $color->id() . '/details'), [], 200, NULL, NULL, 'UNCACHEABLE (request policy)', 'UNCACHEABLE (no cacheability)');
+    $this->assertIsArray($json);
+    $this->assertArrayHasKey('current', $json);
+    $this->assertCount(1, $json['current']);
+    $this->assertSame('Page using color in details test', $json['current'][0]['title']);
+    $this->assertSame('canvas_page', $json['current'][0]['type']);
+    $this->assertSame('background_color', $json['current'][0]['usages'][0]['prop_name']);
+    $this->assertArrayNotHasKey('prior', $json);
+    $this->assertArrayNotHasKey('config', $json);
+    // In use in the latest revision, so it can no longer be deleted.
+    $this->assertFalse($json['deletable']);
   }
 
 }
