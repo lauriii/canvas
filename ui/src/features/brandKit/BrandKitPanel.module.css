@@ -12,6 +12,7 @@
 }
 
 .familyRow {
+  all: unset;
   display: flex;
   align-items: center;
   box-sizing: border-box;
@@ -21,7 +22,6 @@
   cursor: pointer;
   color: var(--slate-12);
   border-radius: var(--radius-2);
-  all: unset;
 }
 
 .familyRow:hover {
@@ -145,6 +145,7 @@
 }
 
 .variantRow {
+  all: unset;
   display: flex;
   align-items: center;
   box-sizing: border-box;
@@ -152,7 +153,6 @@
   padding: var(--space-3) var(--space-4);
   cursor: pointer;
   border-bottom: 1px solid var(--gray-4);
-  all: unset;
   gap: var(--space-3);
 }
 
