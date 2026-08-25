@@ -223,21 +223,13 @@ const ColorInputs = ({
   const [isHexFocused, setIsHexFocused] = useState(false);
   const [isHexInvalid, setIsHexInvalid] = useState(false);
 
-  // Sync hex input when hsva changes externally (and not focused)
   useEffect(() => {
-    if (!isHexFocused) {
-      setHexInputValue(hsvaToHexInput(hsva));
-      setIsHexInvalid(false);
+    if (mode !== 'hex' || isHexFocused) {
+      return;
     }
-  }, [hsva, isHexFocused]);
-
-  // Sync hex input when switching to hex mode
-  useEffect(() => {
-    if (mode === 'hex') {
-      setHexInputValue(hsvaToHexInput(hsva));
-      setIsHexInvalid(false);
-    }
-  }, [mode, hsva]);
+    setHexInputValue(hsvaToHexInput(hsva));
+    setIsHexInvalid(false);
+  }, [mode, hsva, isHexFocused]);
 
   const isNumericInputValid =
     !rInput.isInvalid &&
@@ -261,16 +253,17 @@ const ColorInputs = ({
   }, [isValid, onValidityChange]);
 
   const handleHexChange = (value: string) => {
-    setHexInputValue(value.toUpperCase());
-    if (isValidHex(value)) {
-      const newHsva = hexInputToHsva(value);
-      if (newHsva !== null) {
-        onChange({ ...newHsva, a: roundToPrecision(newHsva.a, 2) });
-        setIsHexInvalid(false);
-      }
-    } else {
+    const normalized = value.toUpperCase();
+    setHexInputValue(normalized);
+
+    const newHsva = hexInputToHsva(normalized);
+    if (newHsva === null) {
       setIsHexInvalid(true);
+      return;
     }
+
+    onChange({ ...newHsva, a: roundToPrecision(newHsva.a, 2) });
+    setIsHexInvalid(false);
   };
 
   const handleHexFocus = () => {

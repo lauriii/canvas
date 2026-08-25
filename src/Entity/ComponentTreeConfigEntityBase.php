@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Entity;
 
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
+use Drupal\canvas\Utility\ColorPropReferences;
+use Drupal\canvas\Utility\ColorResolver;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
+use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\language\Config\LanguageConfigOverride;
 use Drupal\language\ConfigurableLanguageManagerInterface;
@@ -154,6 +158,107 @@ abstract class ComponentTreeConfigEntityBase extends ConfigEntityBase implements
     }
     $this->set('component_tree', $values);
     return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * Rewrites references to removed Brand Kit Colors to that Color's literal
+   * value, so the component tree keeps rendering the same design.
+   *
+   * Returning TRUE is essential: config entities whose ::onDependencyRemoval()
+   * returns FALSE are *deleted* by the config system when something they
+   * depend on is removed. Deleting an entire Pattern because one color it uses
+   * was deleted would be catastrophic.
+   *
+   * @see \Drupal\Core\Config\Entity\ConfigEntityBase::preDelete()
+   * @see \Drupal\canvas\Plugin\DataType\ComponentInputs::calculateDependencies()
+   */
+  public function onDependencyRemoval(array $dependencies): bool {
+    $changed = FALSE;
+
+    foreach ($dependencies['config'] ?? [] as $dependency) {
+      $color = $dependency instanceof Color ? $dependency : NULL;
+      $config_name = $dependency instanceof ConfigEntityInterface
+        ? $dependency->getConfigDependencyName()
+        : $dependency;
+      if (!\is_string($config_name)) {
+        continue;
+      }
+      $color_prefix = 'canvas.' . Color::ENTITY_TYPE_ID . '.';
+      if (!\str_starts_with($config_name, $color_prefix)) {
+        continue;
+      }
+      $color_id = \substr($config_name, \strlen($color_prefix));
+      // ::preDelete() runs before the Color leaves storage, so its value is
+      // still readable when only the config name was passed.
+      $color ??= $this->entityTypeManager()->getStorage(Color::ENTITY_TYPE_ID)->load($color_id);
+      if (!$color instanceof Color) {
+        // Nothing left to inline; leave the reference for the config health
+        // check to report rather than silently substituting a wrong color.
+        continue;
+      }
+
+      $tree = $this->getComponentTree();
+      if ($tree->replacePropValue(
+        JsonSchemaType::COLOR_SCHEMA_REF,
+        ColorPropReferences::reference($color_id),
+        self::literalColorValue($color),
+      )) {
+        // TRICKY: ::getComponentTree() hands back a list, but an
+        // already-translated component tree is stored keyed by component
+        // instance UUID — those keys are what a config translation targets.
+        // Restore them here rather than letting ::setComponentTree() do it,
+        // which it only does while raising a deprecation.
+        $values = $tree->getValue();
+        if (\count($this->getTranslationLanguages(include_default: FALSE)) > 0) {
+          $values = self::asDeterministicallyAndTranslatableKeyedComponentTreeSequence($values);
+        }
+        $this->setComponentTree($values);
+        $changed = TRUE;
+      }
+    }
+
+    return parent::onDependencyRemoval($dependencies) || $changed;
+  }
+
+  /**
+   * Returns the literal value to inline in place of a Color reference.
+   *
+   * TRICKY: a color prop stores only `#rrggbb`, `#rrggbbaa`, `hsl(…)`,
+   * `hsla(…)` or a Brand Kit reference — never `rgb()`/`rgba()`. So a
+   * translucent sRGB color must be inlined as 8-digit hex: the `rgba()` that
+   * ::computeCssColorValue() returns for it would fail validation on this
+   * entity's next save and resolve to nothing at render time. `Color::
+   * getCssValue()` answers the neighboring question — a CSS value for
+   * rendering, where `rgba()` is fine — and cannot be reused here.
+   *
+   * @see \Drupal\canvas\Validation\JsonSchema\CanvasColorStringConstraint::check()
+   * @see \Drupal\canvas\Utility\ColorResolver::resolve()
+   * @see \Drupal\canvas\Entity\Color::getCssValue()
+   */
+  private static function literalColorValue(Color $color): string {
+    $value = $color->getValue();
+    $alpha = $value['alpha'] ?? NULL;
+
+    if ($value['colorSpace'] === 'srgb') {
+      // The stored hex is always 6-digit, so alpha is appended rather than
+      // assumed to be part of it.
+      // @see config/schema/canvas.schema.yml
+      $hex = $value['hex'] ?? \sprintf(
+        '#%02x%02x%02x',
+        (int) \round($value['components'][0] * 255),
+        (int) \round($value['components'][1] * 255),
+        (int) \round($value['components'][2] * 255),
+      );
+      // Alpha quantizes to 1/255 here, which is what 8-digit hex can express.
+      return ($alpha === NULL || $alpha === 1.0)
+        ? $hex
+        : $hex . \sprintf('%02x', (int) \round($alpha * 255));
+    }
+
+    // `hsl()`/`hsla()` are themselves literal values a color prop accepts.
+    return ColorResolver::computeCssColorValue($value);
   }
 
   /**

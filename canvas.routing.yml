@@ -843,6 +843,21 @@ canvas.api.ui.content_template.view_modes.list:
   options:
     _format: 'json'
 
+canvas.api.usage.color.individual.details:
+  path: '/canvas/api/v0/usage/color/{color}/details'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiUsageControllers::colorDetails'
+    _title: 'Usage details of a single Color'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _canvas_ui_access: 'TRUE'
+    _format: 'json'
+  methods: [GET]
+  options:
+    parameters:
+      color:
+        type: entity:color
+
 canvas.api.usage.component.individual:
   path: '/canvas/api/v0/usage/component/{component}'
   defaults:

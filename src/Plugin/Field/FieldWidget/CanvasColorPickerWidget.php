@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\Field\FieldWidget;
 
+use Drupal\canvas\Entity\Color;
 use Drupal\Core\Field\Attribute\FieldWidget;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\WidgetBase;
@@ -86,7 +87,7 @@ final class CanvasColorPickerWidget extends WidgetBase {
 
     // Brand Kit reference (canvas-color:uuid) → we can't load it in the form,
     // just show black and let the React UI handle it.
-    if (\str_starts_with($value, 'canvas-color:')) {
+    if (\str_starts_with($value, Color::REFERENCE_PREFIX)) {
       return '#000000';
     }
 

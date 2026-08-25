@@ -4,11 +4,27 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\Color;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Entity\Pattern;
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Access\AccessResultInterface;
+use Drupal\Core\Cache\CacheableDependencyInterface;
+use Drupal\Core\Cache\CacheTagsChecksumInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileSystemInterface;
+use Drupal\Core\Language\LanguageManagerInterface;
+use Drupal\language\ConfigurableLanguageManagerInterface;
+use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
+use Drupal\Tests\user\Traits\UserCreationTrait;
+use Drupal\user\UserInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
@@ -22,10 +38,41 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[RunTestsInSeparateProcesses]
 final class ColorTest extends CanvasKernelTestBase {
 
+  /**
+   * The cache tags every usage-derived Color access result carries.
+   *
+   * Content *and* config entity types that carry a component tree: a Pattern
+   * that starts using the color changes the delete gate's answer just as a
+   * Page does.
+   *
+   * @see \Drupal\canvas\Audit\ConfigAuditBase::getUsageCacheTags()
+   */
+  private const array USAGE_CACHE_TAGS = [
+    'canvas__auto_save',
+    'canvas_page_list',
+    'config:content_template_list',
+    'config:page_region_list',
+    'config:page_variant_list',
+    'config:pattern_list',
+  ];
+
+  use UserCreationTrait;
+
+  /**
+   * {@inheritdoc}
+   */
+  protected static $modules = ['language'];
+
   protected function setUp(): void {
     parent::setUp();
     // Install Canvas config to get the global BrandKit.
     $this->installConfig('canvas');
+    // Component config entities are needed by the component tree tests.
+    $this->container->get(ComponentSourceManager::class)->generateComponents();
+    // Content entity usages are what the delete gate tests exercise.
+    $this->installEntitySchema('user');
+    $this->installEntitySchema('path_alias');
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
 
     // Set up the assets directory for BrandKit CSS/JS file generation.
     // The BrandKit entity uses AssetLibrary::ASSETS_DIRECTORY ('assets://canvas/')
@@ -570,6 +617,501 @@ final class ColorTest extends CanvasKernelTestBase {
     // BrandKit does not store Color config dependencies — Colors are independent.
     $dependencies = $brand_kit->getDependencies();
     $this->assertNotContains('canvas.color.' . $color->id(), $dependencies['config'] ?? []);
+  }
+
+  /**
+   * Tests that a component tree using a Color depends on it, by prop schema.
+   */
+  public function testComponentTreeDeclaresColorDependency(): void {
+    $color = self::createTestColor();
+    $component = Component::load('sdc.canvas_test_sdc.color-valid');
+    \assert($component instanceof Component);
+
+    $pattern = Pattern::create([
+      'id' => 'color_dependency_pattern',
+      'label' => 'Color Dependency Pattern',
+      'component_tree' => [
+        [
+          'uuid' => $this->container->get('uuid')->generate(),
+          'component_id' => $component->id(),
+          'component_version' => $component->getActiveVersion(),
+          'inputs' => [
+            'heading' => 'Heading',
+            'background_color' => Color::REFERENCE_PREFIX . $color->id(),
+          ],
+        ],
+      ],
+    ]);
+    $pattern->save();
+
+    self::assertContains('canvas.color.' . $color->id(), $pattern->getDependencies()['config']);
+  }
+
+  /**
+   * Tests that a color reference in a non-color prop creates no dependency.
+   *
+   * Color props are identified by their JSON schema `$ref`, so a string prop
+   * whose value merely looks like a reference must not be treated as one.
+   */
+  public function testColorLikeValueInNonColorPropIsNotADependency(): void {
+    $color = self::createTestColor();
+    $component = Component::load('sdc.canvas_test_sdc.color-valid');
+    \assert($component instanceof Component);
+
+    $pattern = Pattern::create([
+      'id' => 'color_lookalike_pattern',
+      'label' => 'Color Lookalike Pattern',
+      'component_tree' => [
+        [
+          'uuid' => $this->container->get('uuid')->generate(),
+          'component_id' => $component->id(),
+          'component_version' => $component->getActiveVersion(),
+          'inputs' => [
+            // `heading` is a plain string prop, not a color prop.
+            'heading' => Color::REFERENCE_PREFIX . $color->id(),
+            'background_color' => '#ff0000ff',
+          ],
+        ],
+      ],
+    ]);
+    $pattern->save();
+
+    self::assertNotContains('canvas.color.' . $color->id(), $pattern->getDependencies()['config'] ?? []);
+  }
+
+  /**
+   * Tests that deleting a Color inlines its value instead of breaking config.
+   *
+   * Config entities whose ::onDependencyRemoval() returns FALSE are deleted by
+   * the config system, so the Pattern surviving is the point of the test.
+   *
+   * @param array<string, mixed> $color_value
+   *   The deleted Color's stored value.
+   * @param string $expected_literal
+   *   The value the color prop must hold once the Color is gone.
+   *
+   * @see \Drupal\canvas\Entity\ComponentTreeConfigEntityBase::onDependencyRemoval()
+   */
+  #[DataProvider('providerInlinedColorLiterals')]
+  public function testDeletingColorInlinesItsValueInComponentTrees(array $color_value, string $expected_literal): void {
+    $color = self::createTestColor($color_value);
+    $component = Component::load('sdc.canvas_test_sdc.color-valid');
+    \assert($component instanceof Component);
+    $instance_uuid = $this->container->get('uuid')->generate();
+
+    $pattern = Pattern::create([
+      'id' => 'color_inlining_pattern',
+      'label' => 'Color Inlining Pattern',
+      'component_tree' => [
+        [
+          'uuid' => $instance_uuid,
+          'component_id' => $component->id(),
+          'component_version' => $component->getActiveVersion(),
+          'inputs' => [
+            'heading' => 'Heading',
+            'background_color' => Color::REFERENCE_PREFIX . $color->id(),
+          ],
+        ],
+      ],
+    ]);
+    $pattern->save();
+
+    $color->delete();
+
+    // The Pattern must survive: it is not collateral damage of the deletion.
+    $reloaded = Pattern::load('color_inlining_pattern');
+    self::assertInstanceOf(Pattern::class, $reloaded);
+
+    // The design is preserved: the reference became the color's literal value.
+    $inputs = $reloaded->getComponentTree()->getComponentTreeItemByUuid($instance_uuid)?->getInputs();
+    self::assertIsArray($inputs);
+    self::assertSame($expected_literal, $inputs['background_color']);
+    self::assertNotContains('canvas.color.' . $color->id(), $reloaded->getDependencies()['config'] ?? []);
+
+    // A color prop accepts only hex, `hsl()`/`hsla()` or a Brand Kit
+    // reference. Validating the survivor is what catches an inlined value —
+    // `rgb()`/`rgba()`, most of all — that the prop cannot hold.
+    // @see \Drupal\canvas\Validation\JsonSchema\CanvasColorStringConstraint::check()
+    self::assertEntityIsValid($reloaded);
+  }
+
+  /**
+   * Data provider for ::testDeletingColorInlinesItsValueInComponentTrees().
+   *
+   * @return \Generator<string, array{array<string, mixed>, string}>
+   *   Each case is a stored Color value and the literal it must inline to.
+   */
+  public static function providerInlinedColorLiterals(): \Generator {
+    yield 'sRGB, no alpha' => [
+      ['colorSpace' => 'srgb', 'components' => [0.67, 0.74, 0.93], 'hex' => '#abcdef'],
+      '#abcdef',
+    ];
+    yield 'sRGB, fully opaque' => [
+      ['colorSpace' => 'srgb', 'components' => [0.67, 0.74, 0.93], 'alpha' => 1.0, 'hex' => '#abcdef'],
+      '#abcdef',
+    ];
+    // The stored hex is 6-digit, so alpha becomes a 7th and 8th digit rather
+    // than being dropped: 0.5 * 255 rounds to 128, i.e. `80`.
+    yield 'sRGB, translucent' => [
+      ['colorSpace' => 'srgb', 'components' => [0.67, 0.74, 0.93], 'alpha' => 0.5, 'hex' => '#abcdef'],
+      '#abcdef80',
+    ];
+    yield 'sRGB, fully transparent' => [
+      ['colorSpace' => 'srgb', 'components' => [0.67, 0.74, 0.93], 'alpha' => 0.0, 'hex' => '#abcdef'],
+      '#abcdef00',
+    ];
+    // Without a stored hex the components are what the literal is built from.
+    yield 'sRGB, translucent, no hex' => [
+      ['colorSpace' => 'srgb', 'components' => [0.67, 0.74, 0.93], 'alpha' => 0.5],
+      '#abbded80',
+    ];
+    yield 'HSL, no alpha' => [
+      ['colorSpace' => 'hsl', 'components' => [120.0, 100.0, 50.0]],
+      'hsl(120, 100%, 50%)',
+    ];
+    yield 'HSL, translucent' => [
+      ['colorSpace' => 'hsl', 'components' => [240.0, 100.0, 50.0], 'alpha' => 0.5],
+      'hsla(240, 100%, 50%, 0.50)',
+    ];
+  }
+
+  /**
+   * Tests that inlining a deleted Color keeps a translated tree's keys.
+   *
+   * ::getComponentTree() returns the tree as a list, but a config entity with
+   * an already-translated component tree stores it keyed by component instance
+   * UUID — those keys are what a config translation targets.
+   *
+   * @see \Drupal\canvas\Entity\ComponentTreeConfigEntityBase::setComponentTree()
+   */
+  public function testDeletingColorInlinesItsValueInTranslatedComponentTrees(): void {
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+    $color = self::createTestColor();
+    $instance_uuid = '2c6e91ae-23ac-433d-9bb8-687144464b34';
+
+    $pattern = Pattern::create([
+      'id' => 'color_translated_pattern',
+      'label' => 'Color Translated Pattern',
+      'component_tree' => self::treeUsingColor($color),
+    ]);
+    $pattern->save();
+
+    $language_manager = $this->container->get(LanguageManagerInterface::class);
+    \assert($language_manager instanceof ConfigurableLanguageManagerInterface);
+    $override = $language_manager->getLanguageConfigOverride('fr', $pattern->getConfigDependencyName());
+    $override->setData(['component_tree' => [$instance_uuid => ['inputs' => ['heading' => 'Titre']]]])->save();
+    self::assertCount(1, Pattern::load('color_translated_pattern')?->getTranslationLanguages(include_default: FALSE) ?? []);
+
+    // Capture deprecations explicitly: ::setComponentTree() auto-fixes a list
+    // it is handed, but only by triggering one, and this suite runs with
+    // SYMFONY_DEPRECATIONS_HELPER=disabled.
+    $deprecations = [];
+    \set_error_handler(static function (int $severity, string $message) use (&$deprecations): bool {
+      // Ignore the unrelated deprecations Drupal and Symfony raise meanwhile.
+      if (\str_contains($message, 'component tree')) {
+        $deprecations[] = $message;
+      }
+      return TRUE;
+    }, E_USER_DEPRECATED);
+    try {
+      $color->delete();
+    }
+    finally {
+      \restore_error_handler();
+    }
+    self::assertSame([], $deprecations);
+
+    // The reference became the color's literal value, as for any other tree.
+    $reloaded = Pattern::load('color_translated_pattern');
+    self::assertInstanceOf(Pattern::class, $reloaded);
+    $inputs = $reloaded->getComponentTree()->getComponentTreeItemByUuid($instance_uuid)?->getInputs();
+    self::assertIsArray($inputs);
+    self::assertSame('#abcdef', $inputs['background_color']);
+
+    // The stored sequence is still keyed by instance UUID, so the French
+    // override still targets the component instance it was written against.
+    self::assertSame(
+      [$instance_uuid],
+      \array_keys($this->config($reloaded->getConfigDependencyName())->get('component_tree')),
+    );
+    self::assertSame(
+      'Titre',
+      $language_manager->getLanguageConfigOverride('fr', $reloaded->getConfigDependencyName())
+        ->get('component_tree.' . $instance_uuid . '.inputs.heading'),
+    );
+  }
+
+  /**
+   * Tests that a Color in use cannot be deleted, matching code components.
+   *
+   * @see \Drupal\canvas\EntityHandlers\ColorAccessControlHandler::checkAccess()
+   * @see \Drupal\Tests\canvas\Kernel\Entity\JavascriptComponentAccessTest
+   */
+  public function testDeleteAccessIsGatedByUsage(): void {
+    $color = self::createTestColor();
+    $brand_kit_maintainer = $this->createUser([Color::ADMIN_PERMISSION]);
+    \assert($brand_kit_maintainer instanceof UserInterface);
+    $entity_type_manager = $this->container->get(EntityTypeManagerInterface::class);
+    $auto_save_manager = $this->container->get(AutoSaveManager::class);
+
+    // An unused color can be deleted. Every usage-derived answer carries the
+    // audit's cache tags: the content revisions and auto-saves it is derived
+    // from are not cacheable dependencies of the Color itself, so without them
+    // the answer would outlive the usage it reports.
+    // @see \Drupal\canvas\Audit\ConfigAuditBase::getUsageCacheTags()
+    self::assertEquals(
+      AccessResult::allowed()->addCacheContexts(['user.permissions'])->addCacheTags(self::USAGE_CACHE_TAGS),
+      $color->access('delete', $brand_kit_maintainer, TRUE),
+    );
+
+    // A color-like value in a *non-color* prop is not a usage, so it must not
+    // gate deletion either: it creates no config dependency.
+    // @see ::testColorLikeValueInNonColorPropIsNotADependency()
+    $lookalike = Page::create([
+      'title' => 'Lookalike page',
+      'components' => self::treeUsingColorLookalike($color),
+    ]);
+    self::assertEntityIsValid($lookalike);
+    $lookalike->save();
+    $entity_type_manager->getAccessControlHandler(Color::ENTITY_TYPE_ID)->resetCache();
+    self::assertEquals(
+      AccessResult::allowed()->addCacheContexts(['user.permissions'])->addCacheTags(self::USAGE_CACHE_TAGS),
+      $color->access('delete', $brand_kit_maintainer, TRUE),
+    );
+    $lookalike->delete();
+
+    // A usage in a content entity's default revision forbids deletion.
+    $page = Page::create([
+      'title' => 'Test page',
+      'components' => self::treeUsingColor($color),
+    ]);
+    self::assertEntityIsValid($page);
+    $page->save();
+    $entity_type_manager->getAccessControlHandler(Color::ENTITY_TYPE_ID)->resetCache();
+    self::assertEquals(
+      AccessResult::forbidden('This color is in use in a default revision and cannot be deleted.')->addCacheContexts(['user.permissions'])->addCacheTags(self::USAGE_CACHE_TAGS),
+      $color->access('delete', $brand_kit_maintainer, TRUE),
+    );
+
+    // A usage in only a *prior* revision does not, matching code components.
+    $page->setNewRevision(TRUE);
+    $page->set('components', [])->save();
+    $entity_type_manager->getAccessControlHandler(Color::ENTITY_TYPE_ID)->resetCache();
+    self::assertEquals(
+      AccessResult::allowed()->addCacheContexts(['user.permissions'])->addCacheTags(self::USAGE_CACHE_TAGS),
+      $color->access('delete', $brand_kit_maintainer, TRUE),
+    );
+
+    // A usage in an auto-save draft forbids deletion: it is unsaved work that
+    // would otherwise be published against a color that no longer exists.
+    $page->setComponentTree(self::treeUsingColor($color));
+    $auto_save_manager->saveEntity($page);
+    $entity_type_manager->getAccessControlHandler(Color::ENTITY_TYPE_ID)->resetCache();
+    self::assertEquals(
+      AccessResult::forbidden('This color is in use in a Canvas auto-save and cannot be deleted.')->addCacheContexts(['user.permissions'])->addCacheTags(self::USAGE_CACHE_TAGS),
+      $color->access('delete', $brand_kit_maintainer, TRUE),
+    );
+
+    // A usage in a forward (pending, non-default) revision forbids deletion:
+    // publishing it must not render a color that no longer exists.
+    $auto_save_manager->delete($page);
+    $page->setNewRevision(TRUE);
+    $page->isDefaultRevision(FALSE);
+    $page->set('components', self::treeUsingColor($color))->save();
+    self::assertFalse($page->isDefaultRevision());
+    $entity_type_manager->getAccessControlHandler(Color::ENTITY_TYPE_ID)->resetCache();
+    self::assertEquals(
+      AccessResult::forbidden('This color is in use in the latest revision and cannot be deleted.')->addCacheContexts(['user.permissions'])->addCacheTags(self::USAGE_CACHE_TAGS),
+      $color->access('delete', $brand_kit_maintainer, TRUE),
+    );
+
+    // A newer forward revision without the color supersedes that one.
+    $page->setNewRevision(TRUE);
+    $page->isDefaultRevision(FALSE);
+    $page->set('components', [])->save();
+    $entity_type_manager->getAccessControlHandler(Color::ENTITY_TYPE_ID)->resetCache();
+    self::assertEquals(
+      AccessResult::allowed()->addCacheContexts(['user.permissions'])->addCacheTags(self::USAGE_CACHE_TAGS),
+      $color->access('delete', $brand_kit_maintainer, TRUE),
+    );
+
+    // A usage in a *config* entity forbids deletion through the generic config
+    // dependency check, because the color is a real config dependency now.
+    // @see \Drupal\canvas\Plugin\DataType\ComponentInputs::calculateDependencies()
+    $pattern = Pattern::create([
+      'id' => 'color_gate_pattern',
+      'label' => 'Color Gate Pattern',
+      'component_tree' => self::treeUsingColor($color),
+    ]);
+    $pattern->save();
+    self::assertContains($color->getConfigDependencyName(), $pattern->getDependencies()['config']);
+    $entity_type_manager->getAccessControlHandler(Color::ENTITY_TYPE_ID)->resetCache();
+    self::assertEquals(
+      AccessResult::forbidden('There is other configuration depending on this color.')->addCacheTags(self::USAGE_CACHE_TAGS),
+      $color->access('delete', $brand_kit_maintainer, TRUE),
+    );
+
+    // Removing the config usage restores the ability to delete.
+    $pattern->setComponentTree([])->save();
+    $entity_type_manager->getAccessControlHandler(Color::ENTITY_TYPE_ID)->resetCache();
+    self::assertEquals(
+      AccessResult::allowed()->addCacheContexts(['user.permissions'])->addCacheTags(self::USAGE_CACHE_TAGS),
+      $color->access('delete', $brand_kit_maintainer, TRUE),
+    );
+
+    // A usage in the auto-save of a config entity forbids deletion too: that
+    // draft never reached the config dependency graph.
+    $pattern->setComponentTree(self::treeUsingColor($color));
+    $auto_save_manager->saveEntity($pattern);
+    $entity_type_manager->getAccessControlHandler(Color::ENTITY_TYPE_ID)->resetCache();
+    self::assertEquals(
+      AccessResult::forbidden('This color is in use in a Canvas auto-save and cannot be deleted.')->addCacheContexts(['user.permissions'])->addCacheTags(self::USAGE_CACHE_TAGS),
+      $color->access('delete', $brand_kit_maintainer, TRUE),
+    );
+  }
+
+  /**
+   * Tests that a delete access answer lapses whenever the gate's answer changes.
+   *
+   * ::testDeleteAccessIsGatedByUsage() asserts which cache tags each answer
+   * carries. That only checks the tags against an expectation written by hand,
+   * so it cannot tell whether those are the tags that actually change: an
+   * answer declaring the wrong tags, or none at all, passes it just as well.
+   *
+   * This asserts the property that matters instead. Cache an answer against
+   * its own declared cacheability, change the world so the gate flips, and the
+   * cached answer must no longer be valid.
+   *
+   * @see \Drupal\canvas\Audit\ConfigAuditBase::getUsageCacheTags()
+   * @see \Drupal\canvas\EntityHandlers\ColorAccessControlHandler::checkAccess()
+   */
+  public function testDeleteAccessCacheabilityLapsesWhenTheGateFlips(): void {
+    $color = self::createTestColor();
+    $brand_kit_maintainer = $this->createUser([Color::ADMIN_PERMISSION]);
+    \assert($brand_kit_maintainer instanceof UserInterface);
+    $checksum_provider = $this->container->get(CacheTagsChecksumInterface::class);
+    $access_control_handler = $this->container->get(EntityTypeManagerInterface::class)
+      ->getAccessControlHandler(Color::ENTITY_TYPE_ID);
+
+    // Snapshots the current answer the way a cache backend would store it.
+    $snapshot = function () use ($color, $brand_kit_maintainer, $checksum_provider, $access_control_handler): array {
+      $access_control_handler->resetCache();
+      $result = $color->access('delete', $brand_kit_maintainer, TRUE);
+      \assert($result instanceof AccessResultInterface && $result instanceof CacheableDependencyInterface);
+      $tags = $result->getCacheTags();
+      return [$result->isAllowed(), $tags, $checksum_provider->getCurrentChecksum($tags)];
+    };
+
+    // Asserts a snapshot is stale, and that the gate really did flip.
+    $assert_lapsed = function (array $before, bool $now_allowed, string $message) use ($snapshot, $checksum_provider): void {
+      [$was_allowed, $tags, $checksum] = $before;
+      self::assertNotSame($was_allowed, $now_allowed, $message . ': the gate did not flip, so this proves nothing.');
+      self::assertSame($now_allowed, $snapshot()[0], $message . ': unexpected new answer.');
+      self::assertFalse($checksum_provider->isValid($checksum, $tags), $message);
+    };
+
+    // A Pattern that starts using the color forbids deletion. The previous
+    // 'allowed' was derived from the config dependency graph, which is not a
+    // cacheable dependency of the Color, so it must declare what it read.
+    $before = $snapshot();
+    self::assertTrue($before[0]);
+    $pattern = Pattern::create([
+      'id' => 'color_cacheability_pattern',
+      'label' => 'Color Cacheability Pattern',
+      'component_tree' => self::treeUsingColor($color),
+    ]);
+    $pattern->save();
+    $assert_lapsed($before, FALSE, 'An allowed answer outlived the Pattern that started using the color');
+
+    // And the forbid must lapse once that Pattern stops using it.
+    $before = $snapshot();
+    self::assertFalse($before[0]);
+    $pattern->setComponentTree([])->save();
+    $assert_lapsed($before, TRUE, 'A forbidden answer outlived the last config usage');
+
+    // The same must hold for a content entity usage.
+    $before = $snapshot();
+    self::assertTrue($before[0]);
+    $page = Page::create([
+      'title' => 'Cacheability page',
+      'components' => self::treeUsingColor($color),
+    ]);
+    self::assertEntityIsValid($page);
+    $page->save();
+    $assert_lapsed($before, FALSE, 'An allowed answer outlived the Page that started using the color');
+  }
+
+  /**
+   * Builds a single-item component tree referencing the given color.
+   *
+   * @param \Drupal\canvas\Entity\Color $color
+   *   The color to reference from the component instance's color prop.
+   *
+   * @return array<int, array{uuid: string, component_id: string, component_version: string, inputs: array<string, string>}>
+   *   A component tree value.
+   */
+  private static function treeUsingColor(Color $color): array {
+    $component = Component::load('sdc.canvas_test_sdc.color-valid');
+    \assert($component instanceof Component);
+    return [
+      [
+        'uuid' => '2c6e91ae-23ac-433d-9bb8-687144464b34',
+        'component_id' => $component->id(),
+        'component_version' => $component->getActiveVersion(),
+        'inputs' => [
+          'heading' => 'Heading',
+          'background_color' => Color::REFERENCE_PREFIX . $color->id(),
+        ],
+      ],
+    ];
+  }
+
+  /**
+   * Builds a tree whose *non-color* prop merely looks like a color reference.
+   *
+   * @param \Drupal\canvas\Entity\Color $color
+   *   The color to build a lookalike value from.
+   *
+   * @return array<int, array<string, mixed>>
+   *   A single-item component tree.
+   */
+  private static function treeUsingColorLookalike(Color $color): array {
+    $component = Component::load('sdc.canvas_test_sdc.color-valid');
+    \assert($component instanceof Component);
+    return [
+      [
+        'uuid' => 'd07d5d0a-2c25-4a67-9d7e-2d1a9b1cf3a4',
+        'component_id' => $component->id(),
+        'component_version' => $component->getActiveVersion(),
+        'inputs' => [
+          // `heading` is a plain string prop, not a color prop.
+          'heading' => Color::REFERENCE_PREFIX . $color->id(),
+          'background_color' => '#ff0000ff',
+        ],
+      ],
+    ];
+  }
+
+  /**
+   * Creates a Color for component tree dependency tests.
+   *
+   * @param array<string, mixed>|null $value
+   *   The stored value, for tests that care what the color resolves to.
+   *   Defaults to an opaque sRGB color.
+   */
+  private static function createTestColor(?array $value = NULL): Color {
+    $color = Color::create([
+      'name' => 'Dependency Color',
+      'cssVariable' => '--color-dependency',
+      'value' => $value ?? [
+        'colorSpace' => 'srgb',
+        'components' => [0.67, 0.74, 0.93],
+        'hex' => '#abcdef',
+      ],
+      'weight' => 0,
+    ]);
+    $color->save();
+    return $color;
   }
 
   /**

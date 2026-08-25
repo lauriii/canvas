@@ -35,15 +35,15 @@ class ComponentAuditTest extends ComponentAuditTestBase {
   /**
    * Tests get content revisions using component.
    *
-   * @legacy-covers ::getContentRevisionsUsingComponent
+   * @legacy-covers ::getContentRevisionsUsingAuditTarget
    */
-  public function testGetContentRevisionsUsingComponent(): void {
+  public function testGetContentRevisionsUsingAuditTarget(): void {
     $audit = $this->container->get(ComponentAudit::class);
     $component = Component::load('sdc.canvas_test_sdc.my-cta');
     \assert($component instanceof ComponentInterface);
     self::assertCount(1, $component->getVersions());
     $old_version = $component->getActiveVersion();
-    $content = $audit->getContentRevisionsUsingComponent($component);
+    $content = $audit->getContentRevisionsUsingAuditTarget($component);
     self::assertCount(0, $content);
 
     $page = Page::create([
@@ -68,17 +68,17 @@ class ComponentAuditTest extends ComponentAuditTestBase {
     $new_version = $component->getActiveVersion();
 
     // 1. All versions.
-    $content = $audit->getContentRevisionsUsingComponent($component);
+    $content = $audit->getContentRevisionsUsingAuditTarget($component);
     self::assertEquals([$page->uuid()], \array_map(static fn(ContentEntityInterface $page): string|null => $page->uuid(), $content));
     self::assertEquals([$revisionId1], \array_map(static fn(ContentEntityInterface $page): int|null|string => $page->getRevisionId(), $content));
 
     // 2. Active (i.e. new) version: no uses yet.
-    $content = $audit->getContentRevisionsUsingComponent($component, [$new_version]);
+    $content = $audit->getContentRevisionsUsingAuditTarget($component, [$new_version]);
     self::assertEquals([], \array_map(static fn(ContentEntityInterface $page): string|null => $page->uuid(), $content));
     self::assertEquals([], \array_map(static fn(ContentEntityInterface $page): int|null|string => $page->getRevisionId(), $content));
 
     // 3. Old version.
-    $content = $audit->getContentRevisionsUsingComponent($component, [$old_version]);
+    $content = $audit->getContentRevisionsUsingAuditTarget($component, [$old_version]);
     self::assertEquals([$page->uuid()], \array_map(static fn(ContentEntityInterface $page): string|null => $page->uuid(), $content));
     self::assertEquals([$revisionId1], \array_map(static fn(ContentEntityInterface $page): int|null|string => $page->getRevisionId(), $content));
   }
@@ -131,16 +131,16 @@ class ComponentAuditTest extends ComponentAuditTestBase {
   /**
    * Tests get config entity dependencies using component.
    *
-   * @legacy-covers ::getConfigEntityDependenciesUsingComponent
+   * @legacy-covers ::getConfigEntityDependenciesUsingAuditTarget
    */
   #[DataProvider('configProvider')]
-  public function testGetConfigEntityDependenciesUsingComponent(string $config_entity_type_id): void {
+  public function testGetConfigEntityDependenciesUsingAuditTarget(string $config_entity_type_id): void {
     $audit = $this->container->get(ComponentAudit::class);
     $component = Component::load('sdc.canvas_test_sdc.my-cta');
     \assert($component instanceof ComponentInterface);
     self::assertCount(1, $component->getVersions());
     $old_version = $component->getActiveVersion();
-    $config = $audit->getConfigEntityDependenciesUsingComponent($component, $config_entity_type_id);
+    $config = $audit->getConfigEntityDependenciesUsingAuditTarget($component, $config_entity_type_id);
     self::assertCount(0, $config);
     $entity = match ($config_entity_type_id) {
       PageRegion::ENTITY_TYPE_ID => $this->createTestPageRegion($this->tree),
@@ -160,7 +160,7 @@ class ComponentAuditTest extends ComponentAuditTestBase {
     $new_version = $component->getActiveVersion();
 
     // 1. All versions.
-    $config = $audit->getConfigEntityDependenciesUsingComponent($component, $config_entity_type_id);
+    $config = $audit->getConfigEntityDependenciesUsingAuditTarget($component, $config_entity_type_id);
     self::assertCount(1, $config);
     self::assertEquals([$entity->id()], \array_values(\array_map(static fn(ConfigEntityInterface $entity): string|int|null => $entity->id(), $config)));
 
@@ -168,11 +168,11 @@ class ComponentAuditTest extends ComponentAuditTestBase {
     \assert($new_version != $old_version);
     /*
     // 2. Active (i.e. new) version: no uses yet.
-    $config = $audit->getConfigEntityDependenciesUsingComponent($component, $config_entity_type_id, [$new_version]);
+    $config = $audit->getConfigEntityDependenciesUsingAuditTarget($component, $config_entity_type_id, [$new_version]);
     self::assertEquals([], \array_values(\array_map(static fn(ConfigEntityInterface $entity): string|int|null => $entity->id(), $config)));
 
     // 3. Old version.
-    $config = $audit->getConfigEntityDependenciesUsingComponent($component, $config_entity_type_id, [$old_version]);
+    $config = $audit->getConfigEntityDependenciesUsingAuditTarget($component, $config_entity_type_id, [$old_version]);
     self::assertEquals([$entity->id()], \array_values(\array_map(static fn(ConfigEntityInterface $entity): string|int|null => $entity->id(), $config)));
      */
   }

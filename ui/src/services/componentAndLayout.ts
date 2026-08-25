@@ -15,6 +15,7 @@ import {
   setSnapshotTitle,
 } from '@/features/pagePreview/previewSlice';
 import { baseQueryWithAutoSaves } from '@/services/baseQuery';
+import { brandKitApi } from '@/services/brandKit';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
 
@@ -332,6 +333,7 @@ export const componentAndLayoutApi = createApi({
             { type: 'PendingChanges', id: 'LIST' },
           ]),
         );
+        dispatch(brandKitApi.util.invalidateTags(['ColorUsageDetails']));
         // Update our template preview slice.
         dispatch(setHtml(html));
         handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
@@ -355,6 +357,7 @@ export const componentAndLayoutApi = createApi({
             { type: 'PendingChanges', id: 'LIST' },
           ]),
         );
+        dispatch(brandKitApi.util.invalidateTags(['ColorUsageDetails']));
         dispatch(setHtml(html));
         handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         // Pass update preview false to prevent a subsequent preview update,
@@ -380,6 +383,7 @@ export const componentAndLayoutApi = createApi({
             { type: 'PendingChanges', id: 'LIST' },
           ]),
         );
+        dispatch(brandKitApi.util.invalidateTags(['ColorUsageDetails']));
         // Update our pattern preview slice.
         dispatch(setHtml(html));
         handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
@@ -403,6 +407,7 @@ export const componentAndLayoutApi = createApi({
             { type: 'PendingChanges', id: 'LIST' },
           ]),
         );
+        dispatch(brandKitApi.util.invalidateTags(['ColorUsageDetails']));
         dispatch(setHtml(html));
         handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         // Pass update preview false to prevent a subsequent preview update,

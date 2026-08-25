@@ -81,6 +81,32 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
   }
 
   /**
+   * Rewrites one stored value across every instance in this tree.
+   *
+   * @param string $ref
+   *   The JSON schema `$ref` identifying which props to consider.
+   * @param string $old_value
+   *   The stored value to replace. Matched exactly.
+   * @param string $new_value
+   *   The value to store instead.
+   *
+   * @return bool
+   *   TRUE if any component instance in this tree was rewritten.
+   *
+   * @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem::replacePropValue()
+   */
+  public function replacePropValue(string $ref, string $old_value, string $new_value): bool {
+    $changed = FALSE;
+    foreach ($this as $item) {
+      \assert($item instanceof ComponentTreeItem);
+      // Not short-circuiting: every instance must be rewritten, not just the
+      // first one found.
+      $changed = $item->replacePropValue($ref, $old_value, $new_value) || $changed;
+    }
+    return $changed;
+  }
+
+  /**
    * @todo Move this into a normalizer at https://www.drupal.org/i/3499632
    */
   public function getClientSideRepresentation(?FieldableEntityInterface $host_entity = NULL): array {

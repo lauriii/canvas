@@ -20,6 +20,24 @@ final class ColorResolver {
   ) {}
 
   /**
+   * Extracts the referenced Color config entity ID from a stored value.
+   *
+   * @param string $stored_value
+   *   The stored color prop value.
+   *
+   * @return string|null
+   *   The referenced Color's ID, or NULL if this is not a Brand Kit reference
+   *   (i.e. it is a literal CSS value, or an empty reference).
+   */
+  public static function parseColorEntityId(string $stored_value): ?string {
+    if (!\str_starts_with($stored_value, Color::REFERENCE_PREFIX)) {
+      return NULL;
+    }
+    $id = \substr($stored_value, \strlen(Color::REFERENCE_PREFIX));
+    return $id === '' ? NULL : $id;
+  }
+
+  /**
    * Resolves a stored canvas color value to a rich object for templates.
    *
    * - 'canvas-color:<uuid>' → loads Color config entity, returns object
@@ -39,9 +57,9 @@ final class ColorResolver {
     }
 
     // Brand Kit reference.
-    if (\str_starts_with($stored_value, 'canvas-color:')) {
-      $uuid = \substr($stored_value, \strlen('canvas-color:'));
-      $color = $this->entityTypeManager->getStorage('color')->load($uuid);
+    if (\str_starts_with($stored_value, Color::REFERENCE_PREFIX)) {
+      $uuid = self::parseColorEntityId($stored_value);
+      $color = $uuid === NULL ? NULL : $this->entityTypeManager->getStorage('color')->load($uuid);
       if ($color instanceof Color) {
         $cacheability->addCacheableDependency($color);
         $value = $color->getValue();
@@ -116,7 +134,7 @@ final class ColorResolver {
    * @see tests/src/Kernel/Utility/ColorResolverTest.php
    *    Canonical test vectors for both implementations.
    */
-  private static function computeCssColorValue(array $value): string {
+  public static function computeCssColorValue(array $value): string {
     $colorSpace = $value['colorSpace'];
     $components = $value['components'];
     $alpha = $value['alpha'] ?? NULL;

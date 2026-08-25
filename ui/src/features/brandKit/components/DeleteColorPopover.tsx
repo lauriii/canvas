@@ -1,9 +1,12 @@
 import { Cross2Icon, TrashIcon } from '@radix-ui/react-icons';
 import * as Popover from '@radix-ui/react-popover';
-import { Box, Button, Flex, IconButton, Text } from '@radix-ui/themes';
+import { Box, Button, Flex, IconButton, Spinner, Text } from '@radix-ui/themes';
 
 import ErrorCard from '@/components/error/ErrorCard';
-import { useDeleteColorMutation } from '@/services/brandKit';
+import {
+  useDeleteColorMutation,
+  useGetColorUsageDetailsQuery,
+} from '@/services/brandKit';
 
 import type { Measurable } from '@radix-ui/rect';
 import type { BrandKitColor } from '@/types/CodeComponent';
@@ -26,6 +29,30 @@ const DeleteColorPopover = ({
   const [deleteColor, { isLoading: isDeleting, isError, error, reset }] =
     useDeleteColorMutation();
 
+  const {
+    data: usageDetails,
+    isLoading: isUsageLoading,
+    isError: isUsageError,
+  } = useGetColorUsageDetailsQuery(color.id, { skip: !open });
+
+  const currentUsages = usageDetails?.current ?? [];
+  const configUsages = usageDetails?.config ?? [];
+  const priorUsages = usageDetails?.prior ?? [];
+
+  // Whether the color can be deleted is decided by the server: it also weighs
+  // auto-saves and default revisions, which the usage lists do not report.
+  const isBlocked =
+    !isUsageLoading &&
+    usageDetails !== undefined &&
+    usageDetails.deletable === false;
+  const isDeleteDisabled = isUsageLoading || isUsageError || isBlocked;
+
+  const hasPriorOnlyWarning =
+    !isUsageLoading &&
+    usageDetails !== undefined &&
+    !isBlocked &&
+    priorUsages.length > 0;
+
   const handleDelete = async () => {
     try {
       await deleteColor(color.id).unwrap();
@@ -43,6 +70,8 @@ const DeleteColorPopover = ({
         : String(error)
       : null;
 
+  const blockingCount = currentUsages.length + configUsages.length;
+
   return (
     <Popover.Root open={open} onOpenChange={onOpenChange}>
       <Popover.Anchor virtualRef={anchorRef} />
@@ -56,7 +85,7 @@ const DeleteColorPopover = ({
           align="start"
           sideOffset={4}
           className={styles.popoverContent}
-          onOpenAutoFocus={(e) => e.preventDefault()}
+          data-testid="canvas-delete-color-popover"
           onInteractOutside={(e) => {
             const target = e.target as Element | null;
             if (target?.hasAttribute('data-radix-menu-content')) {
@@ -85,10 +114,60 @@ const DeleteColorPopover = ({
             </Popover.Close>
           </Flex>
 
-          <Box px="3" py="4">
-            <Text size="2">
-              You are about to permanently delete the <b>{color.name}</b> color.
-            </Text>
+          <Box px="3" py="4" data-testid="canvas-delete-color-popover-body">
+            {isUsageLoading && (
+              <Flex justify="center">
+                <Spinner />
+              </Flex>
+            )}
+
+            {!isUsageLoading && isUsageError && (
+              <Text size="2" role="alert">
+                Unable to get usage data for <b>{color.name}</b>. Try again.
+              </Text>
+            )}
+
+            {!isUsageLoading && isBlocked && (
+              <Text size="2">
+                {blockingCount > 0 ? (
+                  <>
+                    <b>{color.name}</b> is in use on{' '}
+                    {blockingCount === 1
+                      ? '1 page or template'
+                      : `${blockingCount} pages or templates`}
+                    . Remove all uses before deleting.
+                  </>
+                ) : (
+                  <>
+                    {/* Blocked by an unpublished change or a published revision
+                        that is no longer the latest, so there is nothing to
+                        list here. */}
+                    <b>{color.name}</b> is still in use. Remove all uses before
+                    deleting.
+                  </>
+                )}
+              </Text>
+            )}
+
+            {!isUsageLoading && !isBlocked && !isUsageError && (
+              <Text size="2">
+                You are about to permanently delete the <b>{color.name}</b>{' '}
+                color.
+                {hasPriorOnlyWarning && (
+                  <>
+                    <br />
+                    <br />
+                    This will break{' '}
+                    <b>
+                      {priorUsages.length} past version
+                      {priorUsages.length > 1 ? 's' : ''}
+                    </b>
+                    . Reverting to past versions that rely on this color will
+                    appear broken.
+                  </>
+                )}
+              </Text>
+            )}
           </Box>
 
           {errorMessage && (
@@ -114,8 +193,10 @@ const DeleteColorPopover = ({
             <Button
               onClick={handleDelete}
               loading={isDeleting}
+              disabled={isDeleteDisabled}
               size="1"
               color="red"
+              data-testid="canvas-delete-color-confirm-button"
             >
               Delete
             </Button>

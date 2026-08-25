@@ -6,7 +6,7 @@ namespace Drupal\canvas\Audit;
 
 /**
  * @internal
- * @see \Drupal\canvas\Audit\ComponentAudit::getContentRevisionIdsUsingComponentIds()
+ * @see \Drupal\canvas\Audit\ConfigAuditBase::getContentRevisionIdsUsingAuditTarget()
  * @todo When Canvas adds Workspaces support (see https://www.drupal.org/i/3512616), refactor this enum to allow specifying what is being audited is "which workspace contains this?"
  */
 enum RevisionAuditEnum: string {

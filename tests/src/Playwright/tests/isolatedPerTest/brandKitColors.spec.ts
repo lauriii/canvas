@@ -88,6 +88,30 @@ async function assertPropTrigger(
   );
 }
 
+async function assertInstancesPopover(
+  page: Page,
+  colorName: string,
+  expectedContents: Array<string | RegExp>,
+): Promise<void> {
+  await page.locator(SEL.menu.instances).click();
+  await expect(page.locator(SEL.instancesPop)).toBeVisible();
+  for (const content of expectedContents) {
+    await expect(page.locator(SEL.instancesPop)).toContainText(content);
+  }
+  await page.locator(SEL.menu.instancesClose).click();
+  await expect(page.locator(SEL.instancesPop)).toBeHidden();
+}
+
+async function assertInstancesPopoverThenReopenMenu(
+  page: Page,
+  colorName: string,
+  expectedContents: Array<string | RegExp>,
+): Promise<void> {
+  await assertInstancesPopover(page, colorName, expectedContents);
+  await page.locator(SEL.row(colorName)).hover();
+  await page.locator(SEL.rowMenu(colorName)).click();
+}
+
 const SEL = {
   newBtn: '[data-testid="canvas-brand-kit-colors-new-button"]',
   newColorBtn: '[data-testid="canvas-brand-kit-colors-new-color-button"]',
@@ -147,11 +171,16 @@ const SEL = {
   menu: {
     edit: '[data-state="open"] [data-testid="canvas-color-row-edit"]',
     rename: '[data-testid="canvas-color-row-rename"]',
-    instances: '[data-testid="canvas-color-row-find-instances"]',
-    delete: '[data-testid="canvas-color-row-delete"]',
+    instances:
+      '[data-state="open"] [data-testid="canvas-color-row-find-instances"]',
+    instancesClose: '[data-testid="find-color-instances-close-button"]',
+    delete: '[data-state="open"] [data-testid="canvas-color-row-delete"]',
   },
   renameInput: '[data-testid="canvas-color-row-rename-input"]',
   instancesPop: '[data-testid="canvas-find-color-instances-popover"]',
+  deletePop: '[data-testid="canvas-delete-color-popover"]',
+  deletePopBody: '[data-testid="canvas-delete-color-popover-body"]',
+  deletePopConfirm: '[data-testid="canvas-delete-color-confirm-button"]',
 };
 
 const PROP = {
@@ -220,6 +249,7 @@ test.describe('brand kit colors', () => {
         'administer code components',
         'administer brand kit',
         'administer folders',
+        'administer patterns',
       ],
     });
     await drupal.logout();
@@ -373,13 +403,20 @@ test.describe('brand kit colors', () => {
     // Switch HSLA → HEX.
     await page.locator(SEL.form.switchModeFrom('hsla')).click();
     await expect(page.locator(SEL.form.hex)).toHaveValue('0000FF');
+    await expect(page.locator(SEL.form.save)).toBeEnabled();
 
     // Test HEX validation: invalid characters should disable save
-    await page.locator(SEL.form.hex).fill('GGGGGG');
+    await page.locator(SEL.form.hex).click();
+    await page.keyboard.press('ControlOrMeta+A');
+    await page.locator(SEL.form.hex).pressSequentially('GGGGGG', { delay: 15 });
+    await expect(page.locator(SEL.form.hex)).toHaveValue('GGGGGG');
     await expect(page.locator(SEL.form.save)).toBeDisabled();
 
     // Test HEX validation: too short should disable save
-    await page.locator(SEL.form.hex).fill('FFF');
+    await page.locator(SEL.form.hex).click();
+    await page.keyboard.press('ControlOrMeta+A');
+    await page.locator(SEL.form.hex).pressSequentially('FFF', { delay: 15 });
+    await expect(page.locator(SEL.form.hex)).toHaveValue('FFF');
     await expect(page.locator(SEL.form.save)).toBeDisabled();
 
     // Fix to valid hex
@@ -446,7 +483,10 @@ test.describe('brand kit colors', () => {
 
   test('code component color prop', async ({ page, drupal, canvas }) => {
     await drupal.login({ username: 'colormaster', password: 'colormaster' });
-    const canvasPage = await canvas.createCanvas();
+    const canvasPage = await canvas.createCanvas({
+      title: 'Brand Kit Color Test Page',
+    });
+
     await canvas.openCanvas(canvasPage);
     await canvas.openLibraryPanel();
     await canvas.addComponent({
@@ -669,5 +709,129 @@ test.describe('brand kit colors', () => {
         colorSpace: 'srgb',
       });
     });
+    await canvas.publishAllChanges();
+
+    // Report 0 usages.
+    await page.locator(SEL.row('Brand Red')).hover();
+    await page.locator(SEL.rowMenu('Brand Red')).click();
+    await assertInstancesPopover(page, 'Brand Red', [
+      'This color is not currently in use.',
+    ]);
+
+    // Delete gate: usage detection and blocking.
+    // Put "Brand Red" on the current page via `brandAll` and publish, so
+    // ColorAudit finds it in the latest content revision.
+    await openColorPropPopover(page, 'brandAll');
+    await selectKitColor(page, 'Brand Red');
+    await canvas.publishAllChanges();
+
+    // Blocked by current revision.
+    await page.locator(SEL.row('Brand Red')).hover();
+    await page.locator(SEL.rowMenu('Brand Red')).click();
+    await assertInstancesPopoverThenReopenMenu(page, 'Brand Red', [
+      '1 page found',
+      '1 instance',
+    ]);
+    await page.locator(SEL.menu.delete).click();
+    await expect(page.locator(SEL.deletePop)).toBeVisible();
+    await expect(page.locator(`${SEL.deletePop} .rt-Spinner`)).toBeHidden();
+    await expect(page.locator(SEL.deletePopConfirm)).toBeDisabled();
+    await expect(page.locator(SEL.deletePopBody)).toContainText('is in use');
+    await page.locator(`${SEL.deletePop} [aria-label="Close"]`).click();
+
+    // Create a Pattern referencing "Brand Red" via the UI.
+    // The component currently has brandAll = Brand Red (published above), so
+    // saving it as a pattern captures that reference.
+    await canvas.openLayersPanel();
+    await page
+      .getByTestId('canvas-primary-panel')
+      .getByText('Three Colors')
+      .click({ button: 'right' });
+    await page
+      .getByRole('menu', { name: 'Context menu for Three Colors' })
+      .getByText('Create pattern')
+      .click();
+    const patternNameInput = page.locator('#patternName');
+    await expect(patternNameInput).toBeVisible();
+    await patternNameInput.fill('Brand Red Pattern');
+    await page.getByRole('button', { name: 'Add to library' }).click();
+    await expect(page.getByText('Add new pattern')).toBeHidden();
+    await canvas.openBrandKitPanel();
+
+    // Blocked by current revision + config entity.
+    await page.locator(SEL.row('Brand Red')).hover();
+    await page.locator(SEL.rowMenu('Brand Red')).click();
+    await assertInstancesPopoverThenReopenMenu(page, 'Brand Red', [
+      '1 page found',
+      'Configuration',
+      'Brand Red Pattern',
+    ]);
+    await page.locator(SEL.menu.delete).click();
+    await expect(page.locator(`${SEL.deletePop} .rt-Spinner`)).toBeHidden();
+    await expect(page.locator(SEL.deletePopConfirm)).toBeDisabled();
+    await expect(page.locator(SEL.deletePopBody)).toContainText('is in use');
+    await page.locator(`${SEL.deletePop} [aria-label="Close"]`).click();
+
+    // Remove Brand Red from the page and republish.
+    await openColorPropPopover(page, 'brandAll');
+    await selectKitColor(page, 'Brand Green');
+    await canvas.publishAllChanges();
+
+    // Still blocked — config entity (pattern) still references it.
+    await page.locator(SEL.row('Brand Red')).hover();
+    await page.locator(SEL.rowMenu('Brand Red')).click();
+    await assertInstancesPopoverThenReopenMenu(page, 'Brand Red', [
+      'Configuration',
+      'Brand Red Pattern',
+    ]);
+    await page.locator(SEL.menu.delete).click();
+    await expect(page.locator(`${SEL.deletePop} .rt-Spinner`)).toBeHidden();
+    await expect(page.locator(SEL.deletePopConfirm)).toBeDisabled();
+    await expect(page.locator(SEL.deletePopBody)).toContainText('is in use');
+    await page.locator(`${SEL.deletePop} [aria-label="Close"]`).click();
+
+    // Remove Brand Red from the pattern via the UI.
+    await canvas.openLibraryPanel();
+    await page.getByTestId('canvas-library-patterns-tab-select').click();
+    const patternsTab = page.getByTestId('canvas-library-patterns-tab-content');
+    await patternsTab.getByText('Brand Red Pattern').click({ button: 'right' });
+    await page.getByRole('menuitem', { name: 'Edit pattern' }).click();
+    await expect(page).toHaveURL(/\/canvas\/pattern\//);
+    await canvas.clickPreviewComponent(
+      'js.canvas_test_code_components_color_three_colors',
+    );
+    await expect(
+      page.locator('form[data-form-id="component_instance_form"]'),
+    ).toBeVisible();
+    await openColorPropPopover(page, 'brandAll');
+    await selectKitColor(page, 'Brand Green');
+    await canvas.publishAllChanges();
+    await canvas.openBrandKitPanel();
+
+    // Prior-revision warning: not blocked, but warns.
+    // The current page no longer uses Brand Red; the pattern no longer uses it.
+    // But the prior page revision does, so a warning is shown.
+    await page.locator(SEL.row('Brand Red')).hover();
+    await page.locator(SEL.rowMenu('Brand Red')).click();
+    await assertInstancesPopoverThenReopenMenu(page, 'Brand Red', [
+      'This color is not currently in use.',
+    ]);
+    await page.locator(SEL.menu.delete).click();
+    await expect(page.locator(`${SEL.deletePop} .rt-Spinner`)).toBeHidden();
+    await expect(page.locator(SEL.deletePopConfirm)).toBeEnabled();
+    await expect(page.locator(SEL.deletePopBody)).toContainText('past version');
+    await page.locator(`${SEL.deletePop} [aria-label="Close"]`).click();
+
+    // Deletion succeeds.
+    await page.locator(SEL.row('Brand Red')).hover();
+    await page.locator(SEL.rowMenu('Brand Red')).click();
+    await assertInstancesPopoverThenReopenMenu(page, 'Brand Red', [
+      'This color is not currently in use.',
+    ]);
+    await page.locator(SEL.menu.delete).click();
+    await expect(page.locator(`${SEL.deletePop} .rt-Spinner`)).toBeHidden();
+    await expect(page.locator(SEL.deletePopConfirm)).toBeEnabled();
+    await page.locator(SEL.deletePopConfirm).click();
+    await expect(page.locator(SEL.row('Brand Red'))).toBeHidden();
   });
 });
