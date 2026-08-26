@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\EventSubscriber;
 
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
+use Drupal\canvas\PageVariantMigration;
 use Drupal\Core\Config\Action\ConfigActionManager;
 use Drupal\Core\DefaultContent\PreImportEvent;
 use Drupal\Core\Recipe\RecipeAppliedEvent;
@@ -42,6 +43,8 @@ final class RecipeSubscriber implements EventSubscriberInterface {
     // compute version hashes from the prop shapes this recipe leaves behind.
     // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentDiscoveryBase::getPropsForComponentPlugin()
     $this->componentSourceManager->generateComponents();
+    // Intrinsic marker components are not generated through discovery.
+    PageVariantMigration::ensurePageContentMarker();
   }
 
   /**
@@ -64,6 +67,10 @@ final class RecipeSubscriber implements EventSubscriberInterface {
       foreach ($actions as $action_id => $data) {
         $this->configActionManager->applyAction($action_id, $name, $data);
       }
+    }
+
+    if ($event->recipe->type === 'Site') {
+      PageVariantMigration::migrateDefaultTheme();
     }
   }
 

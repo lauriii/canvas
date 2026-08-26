@@ -22,11 +22,11 @@ use Drupal\Core\Theme\ThemeManagerInterface;
 /**
  * Defines one theme region's component tree.
  *
- * Page variants replaced theme-global regions (see ADR 0019): regions no
- * longer render pages, have no HTTP API, and are not editable. This entity
- * type remains only so the region-to-variant upgrade path can read stored
- * region config and so the theme settings form can track which themes opted
- * into Canvas. Do not build new functionality on it.
+ * Page variants replaced theme-global regions (see ADR 0019). Regions have no
+ * HTTP API and are not editable. They render only as a backward-compatibility
+ * fallback when no page variant resolves so sites remain usable until the
+ * region-to-variant migration runs or a default page variant is created
+ * manually. Do not build new functionality on it.
  *
  * @deprecated in canvas:1.11.0 and is removed from canvas:2.0.0. Use
  *   \Drupal\canvas\Entity\PageVariant instead.

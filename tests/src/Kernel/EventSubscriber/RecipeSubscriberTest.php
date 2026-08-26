@@ -6,10 +6,14 @@ namespace Drupal\Tests\canvas\Kernel\EventSubscriber;
 
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Entity\PageVariant;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\Core\Config\StorageCacheInterface;
 use Drupal\Core\Entity\Entity\EntityViewDisplay;
 use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Recipe\Recipe;
 use Drupal\Core\Recipe\RecipeRunner;
@@ -89,6 +93,32 @@ final class RecipeSubscriberTest extends KernelTestBase {
       Page::loadMultiple()
     ));
     $this->assertSame('/homepage', $this->config('system.site')->get('page.front'));
+  }
+
+  public function testPageContentMarkerCreatedWithoutCanvasConfigImport(): void {
+    $this->assertFalse($this->container->get(StorageCacheInterface::class)->exists('canvas.component.' . Marker::PAGE_CONTENT_COMPONENT_ID));
+
+    $recipe = Recipe::createFromDirectory(self::FIXTURES_DIR . '/component_reason_sync');
+    RecipeRunner::processRecipe($recipe);
+
+    $this->assertInstanceOf(Component::class, Component::load(Marker::PAGE_CONTENT_COMPONENT_ID));
+  }
+
+  public function testSiteTemplateMigratesPageRegions(): void {
+    $recipe = Recipe::createFromDirectory(self::FIXTURES_DIR . '/component_reason_sync');
+    RecipeRunner::processRecipe($recipe);
+    $theme_installer = \Drupal::service(ThemeInstallerInterface::class);
+    \assert($theme_installer instanceof ThemeInstallerInterface);
+    $theme_installer->install(['stark']);
+
+    // Applying a non-site recipe does not trigger migration.
+    RecipeRunner::processRecipe($recipe);
+    $this->assertNull($this->config('canvas.settings')->get(PageVariant::DEFAULT_SETTING));
+
+    $site_template = Recipe::createFromDirectory(self::FIXTURES_DIR . '/site_template_trigger');
+    RecipeRunner::processRecipe($site_template);
+    $this->assertSame('theme_stark', $this->config('canvas.settings')->get(PageVariant::DEFAULT_SETTING));
+    $this->assertInstanceOf(PageVariant::class, PageVariant::load('theme_stark'));
   }
 
   public function testEntityReferencesInDefaultContentComponents(): void {

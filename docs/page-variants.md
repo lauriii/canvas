@@ -57,8 +57,9 @@ Variants are managed and edited entirely in the editor:
   variant renders the variant's tree through the bare `canvas_page_variant`
   template, replacing the theme's `page.html.twig`. The theme's
   `html.html.twig` (head, body attributes, page top and bottom, for example the
-  admin toolbar) still wraps the output. When no variant resolves, core block
-  layout renders the page unchanged.
+  admin toolbar) still wraps the output. When no variant resolves, enabled
+  legacy global regions for the active theme render as a backward-compatibility
+  fallback. Core block layout renders the page when no such regions exist.
 - **The default variant** is read and set through
   `/canvas/api/v0/settings/default-page-variant` (the generic config entity API
   cannot write simple config). A staged config update can also change

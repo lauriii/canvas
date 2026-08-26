@@ -6,6 +6,7 @@ namespace Drupal\canvas\Hook;
 
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\PageVariant;
+use Drupal\canvas\PageVariantMigration;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Hook\Attribute\Hook;
@@ -46,9 +47,12 @@ class PageRegionHooks {
 
   public static function formSystemThemeSettingsSubmit(array &$form, FormStateInterface $form_state): void {
     $theme = $form_state->getBuildInfo()['args'][0];
+    $variant_id = 'theme_' . \preg_replace('/[^a-z0-9_]/', '_', (string) $theme);
     $enable = $form_state->getValue('use_canvas');
     $existing_page_regions = PageRegion::loadForTheme($theme, TRUE);
     if ($enable) {
+      $variant = PageVariant::load($variant_id);
+
       // When enabling: ensure every theme region (other than `content`, a
       // special case that never gets a PageRegion config entity) gets a
       // PageRegion config entity.
@@ -63,17 +67,19 @@ class PageRegionHooks {
           $existing_page_regions[$key]->setStatus(TRUE)->save();
           continue;
         }
-        $page_regions_generated_from_block_layout[$key]->enable()->save();
+        $region = $page_regions_generated_from_block_layout[$key];
+        $region->enable()->save();
+        $existing_page_regions[$key] = $region;
       }
 
-      // Rendering happens through the theme's page variant: convert the
-      // regions into one (an existing variant is reused, preserving edits)
-      // and select it as the site default when nothing else is.
-      $regions_by_name = [];
-      foreach (PageRegion::loadForTheme($theme, TRUE) as $region) {
-        $regions_by_name[$region->get('region')] = $region;
+      // Only migrate the regions when the theme does not have a variant yet.
+      if (!$variant instanceof PageVariant) {
+        $regions_by_name = [];
+        foreach ($existing_page_regions as $region) {
+          $regions_by_name[$region->get('region')] = $region;
+        }
+        $variant = PageVariantMigration::createFromPageRegions($theme, $regions_by_name);
       }
-      $variant = \canvas_page_variant_from_page_regions($theme, $regions_by_name);
       if ($variant instanceof PageVariant && $theme === \Drupal::config('system.theme')->get('default')) {
         $settings = \Drupal::configFactory()->getEditable('canvas.settings');
         if ($settings->get(PageVariant::DEFAULT_SETTING) === NULL) {
@@ -97,7 +103,6 @@ class PageRegionHooks {
 
       // Return rendering to core's block layout when this theme's variant is
       // the site default. The variant itself is kept: re-enabling restores it.
-      $variant_id = 'theme_' . \preg_replace('/[^a-z0-9_]/', '_', (string) $theme);
       $settings = \Drupal::configFactory()->getEditable('canvas.settings');
       if ($settings->get(PageVariant::DEFAULT_SETTING) === $variant_id) {
         $settings->set(PageVariant::DEFAULT_SETTING, NULL)->save();

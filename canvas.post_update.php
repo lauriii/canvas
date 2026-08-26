@@ -14,8 +14,8 @@ use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Entity\StagedLanguageConfigOverride;
+use Drupal\canvas\PageVariantMigration;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
-use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
@@ -747,23 +747,7 @@ function canvas_post_update_0028_install_page_variants(): void {
   // 3. Create the "Page content" marker component (shipped in config/install,
   // which existing sites do not import).
   // @see config/install/canvas.component.marker.page_content.yml
-  if (Component::load(Marker::PAGE_CONTENT_COMPONENT_ID) === NULL) {
-    Component::create([
-      'id' => Marker::PAGE_CONTENT_COMPONENT_ID,
-      'label' => 'Page content',
-      'provider' => 'canvas',
-      'source' => Marker::SOURCE_PLUGIN_ID,
-      'source_local_id' => Marker::PAGE_CONTENT_LOCAL_ID,
-      'active_version' => '3b12c0b99a6caecc',
-      'versioned_properties' => [
-        'active' => [
-          'settings' => [],
-          'fallback_metadata' => ['slot_definitions' => []],
-        ],
-      ],
-      'dependencies' => ['enforced' => ['module' => ['canvas']]],
-    ])->save();
-  }
+  PageVariantMigration::ensurePageContentMarker();
 
   // 4. Create the settings object holding the default page variant.
   $settings = \Drupal::configFactory()->getEditable('canvas.settings');
@@ -793,48 +777,7 @@ function canvas_post_update_0028_install_page_variants(): void {
  * @see \Drupal\canvas\Entity\PageVariant::ADMIN_PERMISSION
  */
 function canvas_post_update_0029_migrate_page_regions_to_variants(): void {
-  // A site that has already established its own default page variant has opted
-  // out of the automatic region→variant migration. Migrating would
-  // force-install canvas_page_template_component and build a second,
-  // theme-coupled variant it does not want. Respect the existing default and
-  // do nothing.
-  if (\Drupal::config('canvas.settings')->get(PageVariant::DEFAULT_SETTING) !== NULL) {
-    return;
-  }
-
-  $default_theme = (string) \Drupal::config('system.theme')->get('default');
-
-  // Collect the default theme's enabled regions, keyed by region machine name.
-  // Load everything and filter in PHP rather than query by `theme`: an update
-  // path must not depend on the config-entity lookup-key index, which lags
-  // config written directly to storage (as earlier update steps do).
-  $regions = [];
-  foreach (PageRegion::loadMultiple() as $region) {
-    \assert($region instanceof PageRegion);
-    if ($region->get('theme') === $default_theme && $region->status()) {
-      $regions[$region->get('region')] = $region;
-    }
-  }
-  if (!$regions) {
-    // The default theme has no enabled regions: nothing to migrate.
-    return;
-  }
-
-  $variant = canvas_page_variant_from_page_regions($default_theme, $regions);
-  // The default theme is installed by definition, so this is never NULL; guard
-  // anyway rather than assume, and promote the variant to the site default.
-  if ($variant instanceof PageVariant) {
-    // A reused pre-existing variant may be disabled; a disabled site default
-    // would fail every validated save of the variant. The site rendered
-    // through these regions until now, so the variant replacing them must be
-    // enabled.
-    if (!$variant->status()) {
-      $variant->enable()->save();
-    }
-    \Drupal::configFactory()->getEditable('canvas.settings')
-      ->set(PageVariant::DEFAULT_SETTING, $variant->id())
-      ->save();
-  }
+  PageVariantMigration::migrateDefaultTheme();
 }
 
 /**
