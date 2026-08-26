@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { ChevronDownIcon, Cross2Icon } from '@radix-ui/react-icons';
 import { IconButton, Popover, Text } from '@radix-ui/themes';
@@ -24,18 +24,27 @@ import styles from '@/components/form/components/drupal/DrupalIconPicker.module.
  *
  * @see \Drupal\canvas\Plugin\Field\FieldWidget\IconWidget
  */
-const DrupalIconPicker = ({
+export const DrupalIconPicker = ({
   attributes = {},
 }: {
   attributes?: Attributes;
   children?: React.ReactNode;
 }) => {
-  const [value, setValue] = useState<string>(
-    (attributes?.value ?? '').toString(),
-  );
+  const externalValue = (attributes?.value ?? '').toString();
+  const [value, setValue] = useState<string>(externalValue);
   const [isOpen, setIsOpen] = useState(false);
   const fieldContext = useFieldContext();
-  const { data: packs } = useGetIconPacksQuery();
+  // The catalog only changes on deploy or CLI push, but a push can happen
+  // mid-session: refetch when the cached catalog is over a minute old.
+  const { data: packs } = useGetIconPacksQuery(undefined, {
+    refetchOnMountOrArgChange: 60,
+  });
+
+  // The form can re-render this widget with a different incoming value
+  // (undo/redo, server-side form rebuilds); follow it.
+  useEffect(() => {
+    setValue(externalValue);
+  }, [externalValue]);
 
   const allowedPacks = useMemo(() => {
     const scope = (attributes?.['data-canvas-icon-packs'] ?? '')
@@ -50,18 +59,21 @@ const DrupalIconPicker = ({
       : packs;
   }, [attributes, packs]);
 
+  // Look the stored value up across every pack, not just the allowed ones,
+  // matching resolveIconValue(): a value whose pack fell out of the prop's
+  // scope still renders, so the control should still show it.
   const selectedIcon = useMemo(() => {
     if (!value) {
       return null;
     }
-    for (const pack of allowedPacks) {
+    for (const pack of packs ?? []) {
       const icon = pack.icons.find((icon) => icon.id === value);
       if (icon) {
         return icon;
       }
     }
     return null;
-  }, [allowedPacks, value]);
+  }, [packs, value]);
 
   const updateValue = (newValue: string) => {
     fieldContext?.triggerChange(newValue);
@@ -70,53 +82,67 @@ const DrupalIconPicker = ({
 
   return (
     <Popover.Root open={isOpen} onOpenChange={setIsOpen} modal={false}>
-      <Popover.Trigger>
-        <button
-          type="button"
-          className={styles.control}
-          aria-label={
-            selectedIcon ? `Icon: ${selectedIcon.label}` : 'Choose icon'
-          }
-        >
-          {value ? (
-            <>
-              <span className={styles.iconChip}>
-                {selectedIcon && <IconPreview icon={selectedIcon} size={16} />}
-              </span>
-              <Text
-                size="2"
-                className={clsx(styles.label, {
-                  [styles.labelBroken]: !selectedIcon,
-                })}
-                title={selectedIcon ? undefined : `Missing icon: ${value}`}
-                truncate
-              >
-                {selectedIcon ? selectedIcon.label : value}
-              </Text>
-              <IconButton
-                aria-label="Clear icon"
-                variant="ghost"
-                color="gray"
-                size="1"
-                className={styles.clear}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  updateValue('');
-                }}
-              >
-                <Cross2Icon width="15" height="15" />
-              </IconButton>
-            </>
-          ) : (
-            <>
-              <Text size="2" className={styles.placeholder} truncate>
-                Choose icon
-              </Text>
-              <ChevronDownIcon className={styles.chevron} aria-hidden="true" />
-            </>
-          )}
-        </button>
-      </Popover.Trigger>
+      {/* The clear button is a sibling of the trigger, not a child: nesting
+          interactive elements inside a button is invalid markup. */}
+      <div className={styles.control}>
+        <Popover.Trigger>
+          <button
+            type="button"
+            className={styles.trigger}
+            aria-label={
+              // A set but unresolvable value still announces as an icon (by
+              // its raw id), matching what the control visibly shows.
+              value
+                ? `Icon: ${selectedIcon ? selectedIcon.label : value}`
+                : 'Choose icon'
+            }
+          >
+            {value ? (
+              <>
+                <span className={styles.iconChip}>
+                  {selectedIcon && (
+                    <IconPreview icon={selectedIcon} size={16} />
+                  )}
+                </span>
+                <Text
+                  size="2"
+                  className={clsx(styles.label, {
+                    [styles.labelBroken]: !selectedIcon,
+                  })}
+                  title={
+                    selectedIcon ? undefined : `Icon not available: ${value}`
+                  }
+                  truncate
+                >
+                  {selectedIcon ? selectedIcon.label : value}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text size="2" className={styles.placeholder} truncate>
+                  Choose icon
+                </Text>
+                <ChevronDownIcon
+                  className={styles.chevron}
+                  aria-hidden="true"
+                />
+              </>
+            )}
+          </button>
+        </Popover.Trigger>
+        {value && (
+          <IconButton
+            aria-label="Clear icon"
+            variant="ghost"
+            color="gray"
+            size="1"
+            className={styles.clear}
+            onClick={() => updateValue('')}
+          >
+            <Cross2Icon width="15" height="15" />
+          </IconButton>
+        )}
+      </div>
       <Popover.Content
         side="left"
         align="start"
@@ -124,6 +150,8 @@ const DrupalIconPicker = ({
         className={styles.popover}
         // Inline style so it wins over the Radix theme's default padding.
         style={{ padding: 0 }}
+        // The picker focuses its own search field on open; without this,
+        // Radix would focus the first tabbable element instead.
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <IconPickerContent

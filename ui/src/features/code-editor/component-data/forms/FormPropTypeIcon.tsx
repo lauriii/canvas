@@ -36,7 +36,11 @@ export default function FormPropTypeIcon({
   isDisabled?: boolean;
 }) {
   const dispatch = useAppDispatch();
-  const { data: packs = [] } = useGetIconPacksQuery();
+  // The catalog only changes on deploy or CLI push, but a push can happen
+  // mid-session: refetch when the cached catalog is over a minute old.
+  const { data: packs = [] } = useGetIconPacksQuery(undefined, {
+    refetchOnMountOrArgChange: 60,
+  });
   const [isExamplePickerOpen, setIsExamplePickerOpen] = useState(false);
 
   // NULL means all installed packs are allowed.
@@ -127,12 +131,20 @@ export default function FormPropTypeIcon({
                   const isChecked =
                     selectedPackIds === null ||
                     selectedPackIds.includes(pack.id);
+                  // Disabling the last checked pack (rather than silently
+                  // ignoring the toggle) shows why it cannot be unchecked.
+                  const isLastChecked =
+                    isChecked &&
+                    (selectedPackIds === null
+                      ? packs.length === 1
+                      : selectedPackIds.length === 1);
                   return (
                     <Text as="label" size="1" key={pack.id}>
                       <Flex gap="2" align="center">
                         <Checkbox
                           size="1"
                           checked={isChecked}
+                          disabled={isLastChecked}
                           onCheckedChange={(checked) =>
                             togglePack(pack.id, checked === true)
                           }
@@ -143,6 +155,9 @@ export default function FormPropTypeIcon({
                     </Text>
                   );
                 })}
+                <Text size="1" color="gray">
+                  At least one icon pack must stay allowed.
+                </Text>
               </Flex>
             </Popover.Content>
           </Popover.Root>
@@ -175,7 +190,14 @@ export default function FormPropTypeIcon({
                 <ChevronDownIcon />
               </Button>
             </Popover.Trigger>
-            <Popover.Content side="bottom" align="start" style={{ padding: 0 }}>
+            <Popover.Content
+              side="bottom"
+              align="start"
+              style={{ padding: 0 }}
+              // The picker focuses its own search field on open; without
+              // this, Radix would focus the first tabbable element instead.
+              onOpenAutoFocus={(e) => e.preventDefault()}
+            >
               <IconPickerContent
                 packs={allowedPacks}
                 selectedId={example}
