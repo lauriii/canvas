@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   buildIconPushPlannedResults,
   discoverIconLibraries,
+  hasIconLibraryPushWork,
   planIconLibraryDeletions,
   pushIcons,
 } from './icon-push';
@@ -132,6 +133,23 @@ describe('icon-push', () => {
         'drop',
       ]);
       expect(planIconLibraryDeletions(remote, ['keep'], false)).toEqual([]);
+    });
+  });
+
+  describe('hasIconLibraryPushWork', () => {
+    it('counts pending authoritative deletions as push work for an empty declared list', () => {
+      const remote = { obsolete: remoteLibrary({ id: 'obsolete' }) };
+      // An explicitly empty declared list must still reach the push step so
+      // its delete-all semantics run against the remote libraries.
+      expect(hasIconLibraryPushWork(0, remote, [], true)).toBe(true);
+      // Without an icons key nothing gets deleted, so there is no work.
+      expect(hasIconLibraryPushWork(0, remote, [], false)).toBe(false);
+      // Nothing local and nothing remote to delete: no work either.
+      expect(hasIconLibraryPushWork(0, {}, [], true)).toBe(false);
+    });
+
+    it('treats valid local libraries as push work on their own', () => {
+      expect(hasIconLibraryPushWork(1, {}, ['my_icons'], false)).toBe(true);
     });
   });
 

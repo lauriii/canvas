@@ -103,9 +103,10 @@ permission (OAuth scope `canvas:brand_kit`).
 
 Icon libraries are part of the CLI's brand kit workflow and mirror the fonts DX: the same `--include-brand-kit` flag
 governs both, and libraries are declared in `canvas.brand-kit.json` under `icons.libraries` (mirroring
-`fonts.families`) — each entry naming an id and, optionally, a label, description, Twig template, and a `source`
+`fonts.families`) — each entry naming an id, a required human-readable `label`, and optionally a description, Twig template, and a `source`
 directory such as `node_modules/lucide-static/icons` so npm-managed icon sets stay out of the repository. A declared
-list is authoritative like the fonts list: pushing removes canvas-managed libraries that are no longer in it. As a
-zero-config shortcut, any `icons/<library>/` directory of SVG files also pushes without a declaration. Pushes are
-incremental: each asset's SHA-256 is stored on the library, so only new or changed files are uploaded. For the
-project layout and details, see the [`@drupal-canvas/cli` README](../packages/cli/README.md).
+list is authoritative like the fonts list: pushing removes canvas-managed libraries that are no longer in it. Every
+library must be declared with at least a human-readable `label` (mirroring how fonts require `name`); undeclared
+`icons/<library>/` directories are not pushed. Pushes are incremental: each asset's SHA-256 is stored on the
+library, so only new or changed files are uploaded. For the project layout and details, see the
+[`@drupal-canvas/cli` README](../packages/cli/README.md).

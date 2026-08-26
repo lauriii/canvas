@@ -229,7 +229,11 @@ the library's `source` — no copying required:
 {
   "icons": {
     "libraries": [
-      { "id": "lucide", "source": "node_modules/lucide-static/icons" }
+      {
+        "id": "lucide",
+        "label": "Lucide",
+        "source": "node_modules/lucide-static/icons"
+      }
     ]
   }
 }
@@ -522,7 +526,9 @@ will add the `canvas:brand_kit` OAuth scope.
 **Icons:** With `--include-brand-kit`, the pull command declares every
 canvas-managed icon library in `canvas.brand-kit.json`, downloads its SVG files
 to `icons/<id>/`, and writes an informational `icons/<id>/pack.json` for every
-module-provided icon pack. See [Icon libraries](#icon-libraries).
+module-provided icon pack. Existing local SVG and `pack.json` files are
+overwritten by default, or left untouched with `--skip-overwrite`. See
+[Icon libraries](#icon-libraries).
 
 ---
 

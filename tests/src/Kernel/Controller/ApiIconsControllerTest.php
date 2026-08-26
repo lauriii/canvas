@@ -93,11 +93,16 @@ final class ApiIconsControllerTest extends CanvasKernelTestBase {
    */
   public function testListRespectsAllowedPacks(): void {
     // A second pack, provided by a Canvas-managed icon library.
-    IconLibrary::create(['id' => 'demo', 'label' => 'Demo icons'])->save();
+    $library = IconLibrary::create(['id' => 'demo', 'label' => 'Demo icons']);
+    $library->save();
     $svg = \file_get_contents(\dirname(__DIR__, 3) . '/modules/canvas_test_icons/icons/star.svg');
     self::assertIsString($svg);
     $response = $this->request(self::createUploadRequest('demo', 'star.svg', $svg));
     self::assertSame(201, $response->getStatusCode());
+    // As the CLI does after uploading, commit the asset to the entity: only
+    // referenced assets become icons.
+    $library->setAssets([['name' => 'star.svg', 'uri' => 'public://canvas/icons/demo/star.svg']]);
+    $library->save();
 
     // With the default empty allow-list, every installed pack is offered.
     $data = self::decodeResponse($this->request(Request::create('/canvas/api/v0/icons')));
@@ -147,7 +152,8 @@ final class ApiIconsControllerTest extends CanvasKernelTestBase {
    * Tests uploading a valid SVG file into an icon library.
    */
   public function testUploadValidSvg(): void {
-    IconLibrary::create(['id' => 'demo', 'label' => 'Demo icons'])->save();
+    $library = IconLibrary::create(['id' => 'demo', 'label' => 'Demo icons']);
+    $library->save();
 
     $svg = \file_get_contents(\dirname(__DIR__, 3) . '/modules/canvas_test_icons/icons/star.svg');
     self::assertIsString($svg);
@@ -164,9 +170,14 @@ final class ApiIconsControllerTest extends CanvasKernelTestBase {
     self::assertNotNull($file);
     self::assertTrue($file->isPermanent());
 
-    // The uploaded file is discovered as an icon of the library's pack.
+    // An uploaded file only becomes an icon once the entity references it —
+    // the CLI commits the asset list to the entity after uploading.
     $icon_pack_manager = $this->container->get('plugin.manager.icon_pack');
     \assert($icon_pack_manager instanceof IconPackManagerInterface);
+    $definitions = $icon_pack_manager->getDefinitions() ?? [];
+    self::assertSame([], $definitions['demo']['icons'] ?? []);
+    $library->setAssets([['name' => 'star.svg', 'uri' => 'public://canvas/icons/demo/star.svg']]);
+    $library->save();
     $definitions = $icon_pack_manager->getDefinitions() ?? [];
     self::assertArrayHasKey('demo', $definitions);
     self::assertArrayHasKey('demo:star', $definitions['demo']['icons']);

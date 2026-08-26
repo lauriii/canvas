@@ -17,6 +17,7 @@ import {
   buildIconPushPlannedResults,
   collectIconLibraryResults,
   discoverIconLibraries,
+  hasIconLibraryPushWork,
   planIconLibraryDeletions,
   prepareIconLibrariesPush,
   pushIconLibrary,
@@ -1359,6 +1360,16 @@ export function pushCommand(program: Command): void {
             markStarted: () =>
               removeNotStartedResource(notStartedResources, 'icons'),
             prepare: () => prepareIconLibrariesPush(process.cwd()),
+            // An explicitly empty declared list produces no valid libraries
+            // but must still reach the push step so its authoritative
+            // delete-all semantics run; pending deletions count as push work.
+            hasPushWork: (valid) =>
+              hasIconLibraryPushWork(
+                valid.length,
+                remoteIconLibraries,
+                discoveredIconLibraries.map((library) => library.id),
+                iconsAuthoritative,
+              ),
             push: async (validLibraries, context) => {
               const remoteLibraries = await pushApiService.getIconLibraries();
               // Uploads are parallelized per library, so libraries themselves
