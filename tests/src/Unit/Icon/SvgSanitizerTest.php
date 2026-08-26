@@ -75,6 +75,10 @@ final class SvgSanitizerTest extends UnitTestCase {
       'style element with CSS-escaped @import' => ['<svg xmlns="http://www.w3.org/2000/svg"><style>@\69 mport "http://evil.example/x.css";</style></svg>'],
       'style element with CSS-escaped url()' => ['<svg xmlns="http://www.w3.org/2000/svg"><style>rect { fill: \75rl(http://evil.example/f.svg#a); }</style><rect/></svg>'],
       'style attribute with backslash-escaped expression()' => ['<svg xmlns="http://www.w3.org/2000/svg"><rect style="width: e\xpression(alert(1))"/></svg>'],
+      'fill attribute with external url()' => ['<svg xmlns="http://www.w3.org/2000/svg"><rect fill="url(https://evil.example/f.svg#a)"/></svg>'],
+      'filter attribute with external url()' => ['<svg xmlns="http://www.w3.org/2000/svg"><rect filter="url(//evil.example/f.svg#b)"/></svg>'],
+      'clip-path attribute with external url()' => ['<svg xmlns="http://www.w3.org/2000/svg"><rect clip-path="url(../other.svg#c)"/></svg>'],
+      'animation values with external url()' => ['<svg xmlns="http://www.w3.org/2000/svg"><rect fill="url(#g)"><animate attributeName="fill" values="url(#g);url(https://evil.example/f.svg#d)"/></rect></svg>'],
     ];
   }
 

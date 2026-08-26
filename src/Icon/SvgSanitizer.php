@@ -163,6 +163,13 @@ final class SvgSanitizer {
     if ($name === 'style') {
       $reasons = [...$reasons, ...self::validateCss($value, 'style attribute')];
     }
+    // Any other attribute can carry a `url()` function reference too — fill,
+    // stroke, filter, clip-path, mask, animation `values` lists, and so on —
+    // which must stay a local fragment just like in CSS. The style attribute
+    // is already covered (with CSS escape decoding) by validateCss() above.
+    elseif (\stripos($value, 'url') !== FALSE) {
+      $reasons = [...$reasons, ...self::validateUrlFunctions($value, \sprintf('"%s" attribute', $name))];
+    }
 
     return $reasons;
   }
@@ -198,8 +205,23 @@ final class SvgSanitizer {
       $reasons[] = \sprintf('The %s must not contain "expression(".', $location);
     }
 
-    // `url(…)` may only reference local fragments such as gradients/filters.
-    if (\preg_match_all('/url\s*\(([^)]*)\)/i', $css, $matches)) {
+    return [...$reasons, ...self::validateUrlFunctions($css, $location)];
+  }
+
+  /**
+   * Validates that every `url(…)` in a value references a local fragment.
+   *
+   * `url()` appears in CSS and in SVG presentation attributes (fill, stroke,
+   * filter, clip-path, mask) and animation value lists; anything but a local
+   * fragment such as a gradient or filter reference would load an external
+   * resource.
+   *
+   * @return list<string>
+   *   Rejection reasons for this value.
+   */
+  private static function validateUrlFunctions(string $value, string $location): array {
+    $reasons = [];
+    if (\preg_match_all('/url\s*\(([^)]*)\)/i', $value, $matches)) {
       foreach ($matches[1] as $url) {
         $url = \trim(\trim($url), '"\'');
         $url = \trim($url);
@@ -208,7 +230,6 @@ final class SvgSanitizer {
         }
       }
     }
-
     return $reasons;
   }
 

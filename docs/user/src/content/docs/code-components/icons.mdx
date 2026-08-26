@@ -71,13 +71,16 @@ function FeatureCard({ icon, title }) {
 
 `Icon` renders the icon as inline SVG or an `<img>` as appropriate, and renders
 nothing when the icon is unset or its library or icon was later removed. It
-forwards `className`, `style`, and other props to the rendered element, and
-takes an optional `as` (`'span'` by default, or `'div'`). Inline SVG icons
-inherit `currentColor`, so an icon follows the surrounding text color — set
-`color` on the icon (or a parent) to recolor it:
+forwards `className`, `style`, and other props to a wrapper element — an
+optional `as` (`'span'` by default, or `'div'`). A URL-backed icon's `<img>`
+fills the wrapper automatically; an inline SVG keeps the `width`/`height`
+attributes from its source file, so size it from the wrapper with a descendant
+rule (CSS wins over SVG presentation attributes). Inline SVG icons inherit
+`currentColor`, so an icon follows the surrounding text color — set `color` on
+the icon (or a parent) to recolor it:
 
 ```tsx
-<Icon icon={icon} className="size-6 text-blue-600" />
+<Icon icon={icon} className="size-6 [&_svg]:size-full text-blue-600" />
 ```
 
 ## Pick an icon on a page

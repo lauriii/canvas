@@ -67,10 +67,18 @@ final class IconLibraryPackRegistrationTest extends CanvasKernelTestBase {
     self::assertArrayHasKey('canvas_test', $definitions);
     self::assertArrayNotHasKey('demo', $definitions);
 
+    // A stray file in the directory that the entity never references (for
+    // example a partially failed upload) must not become a live icon.
+    self::assertNotFalse(\file_put_contents($directory . 'stray.svg', '<svg xmlns="http://www.w3.org/2000/svg"/>'));
+
     $library = IconLibrary::create([
       'id' => 'demo',
       'label' => 'Demo icons',
       'description' => 'A config-defined icon pack.',
+      'assets' => [
+        ['name' => 'star.svg', 'uri' => $directory . 'star.svg'],
+        ['name' => 'heart.svg', 'uri' => $directory . 'heart.svg'],
+      ],
     ]);
     $library->save();
 
@@ -81,6 +89,8 @@ final class IconLibraryPackRegistrationTest extends CanvasKernelTestBase {
     self::assertSame('canvas', $definitions['demo']['provider']);
     self::assertSame('Demo icons', $definitions['demo']['label']);
     self::assertSame(IconLibrary::DEFAULT_TEMPLATE, $definitions['demo']['template']);
+    // Only the entity's own asset list becomes icons; the stray file in the
+    // directory is excluded.
     self::assertEqualsCanonicalizing(['demo:heart', 'demo:star'], \array_keys($definitions['demo']['icons']));
 
     // Individual icons resolve through the icon collector.
@@ -100,11 +110,16 @@ final class IconLibraryPackRegistrationTest extends CanvasKernelTestBase {
     self::assertStringContainsString('<svg', $html);
     self::assertStringContainsString('m12 3 2.6 5.9', $html);
 
-    // Newly uploaded SVG files are discovered after the caches are cleared,
-    // which IconLibrary::postSave() does.
+    // Newly uploaded SVG files are discovered once the entity references them
+    // and the caches are cleared, which IconLibrary::postSave() does.
     $contents = \file_get_contents($fixtures_directory . '/home.svg');
     self::assertIsString($contents);
     self::assertNotFalse(\file_put_contents($directory . 'home.svg', $contents));
+    $library->setAssets([
+      ['name' => 'star.svg', 'uri' => $directory . 'star.svg'],
+      ['name' => 'heart.svg', 'uri' => $directory . 'heart.svg'],
+      ['name' => 'home.svg', 'uri' => $directory . 'home.svg'],
+    ]);
     $library->save();
     $definitions = $icon_pack_manager->getDefinitions() ?? [];
     self::assertEqualsCanonicalizing(['demo:heart', 'demo:home', 'demo:star'], \array_keys($definitions['demo']['icons']));

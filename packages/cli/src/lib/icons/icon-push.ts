@@ -142,6 +142,25 @@ export function planIconLibraryDeletions(
 }
 
 /**
+ * Returns true when the icon push pipeline's push step has work to do: valid
+ * local libraries to push, or pending authoritative deletions of remote
+ * canvas-managed libraries. An explicitly empty declared list carries no
+ * valid libraries but must still reach the push step so its delete-all
+ * semantics run.
+ */
+export function hasIconLibraryPushWork(
+  validCount: number,
+  remote: Record<string, IconLibrary>,
+  localIds: string[],
+  authoritative: boolean,
+): boolean {
+  return (
+    validCount > 0 ||
+    planIconLibraryDeletions(remote, localIds, authoritative).length > 0
+  );
+}
+
+/**
  * Returns true when the local library fields and uploaded assets match the
  * remote library, so the create/update request can be skipped.
  */

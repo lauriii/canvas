@@ -24,10 +24,23 @@ describe('Icon', () => {
     expect((element?.props as { className: string }).className).toBe('size-6');
   });
 
-  it('renders an <img> for a url-resolved icon', () => {
-    const element = Icon({ icon: { id: 'pack:home', url: '/files/home.svg' } });
-    expect(element?.type).toBe('img');
-    expect((element?.props as { src: string }).src).toBe('/files/home.svg');
+  it('renders an <img> filling the same wrapper for a url-resolved icon', () => {
+    const element = Icon({
+      icon: { id: 'pack:home', url: '/files/home.svg' },
+      className: 'size-6',
+    });
+    // The wrapper is the same element the svg form uses, so className and
+    // style size both forms alike.
+    expect(element?.type).toBe('span');
+    expect((element?.props as { className: string }).className).toBe('size-6');
+    const img = (element?.props as { children: React.ReactElement }).children;
+    expect(img.type).toBe('img');
+    const imgProps = img.props as {
+      src: string;
+      style: Record<string, string>;
+    };
+    expect(imgProps.src).toBe('/files/home.svg');
+    expect(imgProps.style).toEqual({ width: '100%', height: '100%' });
   });
 
   it('renders nothing when the icon is unset or unresolved', () => {

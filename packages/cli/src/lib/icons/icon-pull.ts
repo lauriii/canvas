@@ -16,10 +16,19 @@ function assertSafeDirectoryName(id: string, kind: string): void {
   }
 }
 
+async function fileExists(filePath: string): Promise<boolean> {
+  return fs
+    .access(filePath)
+    .then(() => true)
+    .catch(() => false);
+}
+
 export interface PullIconsResult {
   libraries: number;
   assets: number;
   packs: number;
+  /** Files left untouched because they already exist and --skip-overwrite was set. */
+  skipped: number;
 }
 
 /**
@@ -29,10 +38,17 @@ export interface PullIconsResult {
  * into icons/<id>/, ready to push again. Module-provided packs (in the icons
  * listing but not the config API) are written as informational
  * icons/<id>/pack.json files that push skips.
+ *
+ * With skipOverwrite, existing local SVG and pack.json files are left
+ * untouched (the same semantics the other pull tasks use); missing files are
+ * still written. Like the fonts pull, this never deletes local files: SVGs
+ * that exist only locally stay in place, and an authoritative push uploads
+ * them again unless they are removed by hand.
  */
 export async function pullIcons(
   api: ApiService,
   projectRoot: string,
+  skipOverwrite = false,
 ): Promise<PullIconsResult> {
   const [libraries, packs] = await Promise.all([
     api.getIconLibraries(),
@@ -43,6 +59,7 @@ export async function pullIcons(
   let libraryCount = 0;
   let assetCount = 0;
   let packCount = 0;
+  let skippedCount = 0;
 
   const pulledEntries: IconLibraryEntry[] = [];
   for (const library of Object.values(libraries)) {
@@ -68,8 +85,13 @@ export async function pullIcons(
           `Invalid icon asset name "${asset.name}" in library "${library.id}".`,
         );
       }
+      const assetPath = path.join(libraryDir, asset.name);
+      if (skipOverwrite && (await fileExists(assetPath))) {
+        skippedCount++;
+        continue;
+      }
       const buffer = await api.downloadFile(asset.url);
-      await fs.writeFile(path.join(libraryDir, asset.name), buffer);
+      await fs.writeFile(assetPath, buffer);
       assetCount++;
     }
 
@@ -87,9 +109,14 @@ export async function pullIcons(
     }
     assertSafeDirectoryName(packId, 'icon pack');
     const packDir = path.join(iconsDir, packId);
+    const packJsonPath = path.join(packDir, 'pack.json');
+    if (skipOverwrite && (await fileExists(packJsonPath))) {
+      skippedCount++;
+      continue;
+    }
     await fs.mkdir(packDir, { recursive: true });
     await fs.writeFile(
-      path.join(packDir, 'pack.json'),
+      packJsonPath,
       `${JSON.stringify(
         {
           id: pack.id,
@@ -106,5 +133,10 @@ export async function pullIcons(
     packCount++;
   }
 
-  return { libraries: libraryCount, assets: assetCount, packs: packCount };
+  return {
+    libraries: libraryCount,
+    assets: assetCount,
+    packs: packCount,
+    skipped: skippedCount,
+  };
 }

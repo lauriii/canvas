@@ -1453,6 +1453,7 @@ export function createBrandKitPullTask(
 export function createIconsPullTask(
   apiService: ApiService,
   projectRoot: string,
+  skipOverwrite: boolean,
 ): PullTask {
   let remoteLibraries: Record<string, IconLibrary> = {};
   let remotePackIds: string[] = [];
@@ -1521,7 +1522,7 @@ export function createIconsPullTask(
     },
 
     async execute(): Promise<PullTaskResult> {
-      const result = await pullIcons(apiService, projectRoot);
+      const result = await pullIcons(apiService, projectRoot, skipOverwrite);
 
       const results: Result[] = [];
 
@@ -1529,6 +1530,14 @@ export function createIconsPullTask(
         results.push({
           itemName: library.id,
           success: true,
+        });
+      }
+
+      if (result.skipped > 0) {
+        results.push({
+          itemName: 'icon files',
+          success: true,
+          details: [{ content: `Skipped ${result.skipped} (already exists)` }],
         });
       }
 
@@ -1672,7 +1681,13 @@ export function pullCommand(program: Command): void {
         }
 
         if (includesIcons) {
-          tasks.push(createIconsPullTask(apiService, projectRoot));
+          tasks.push(
+            createIconsPullTask(
+              apiService,
+              projectRoot,
+              options.skipOverwrite ?? false,
+            ),
+          );
         }
 
         if (includesPages) {

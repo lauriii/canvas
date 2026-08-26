@@ -85,7 +85,23 @@ final class IconPackHooks {
       ];
       $extractor = $this->iconExtractorManager->createInstance('svg', $definition);
       \assert($extractor instanceof IconExtractorInterface);
-      $definition['icons'] = $extractor->discoverIcons();
+      // Discovery globs the assets directory, which may hold files the entity
+      // does not reference (a partially failed upload, or an asset removed
+      // from the entity without its file being cleaned up yet). Only the
+      // entity's own asset list is the source of truth for the pack.
+      $asset_icon_ids = \array_map(
+        static fn (array $asset): string => \basename((string) $asset['name'], '.svg'),
+        $library->getAssets(),
+      );
+      $definition['icons'] = \array_filter(
+        $extractor->discoverIcons(),
+        static fn (string $icon_full_id): bool => \in_array(
+          \substr($icon_full_id, \strlen($id) + 1),
+          $asset_icon_ids,
+          TRUE,
+        ),
+        \ARRAY_FILTER_USE_KEY,
+      );
       $definitions[$id] = $definition;
     }
   }

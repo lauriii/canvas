@@ -88,9 +88,10 @@ shown above. For existing projects, if `globalCssPath` is not set and
 
 #### canvas.brand-kit.json (Optional)
 
-Brand Kit configuration — fonts, colors, and icon libraries — lives in `canvas.brand-kit.json` in
-the project root. When Brand Kit sync is enabled, `canvas push` and
-`canvas pull` use it to sync both with the global Brand Kit. Example:
+Brand Kit configuration — fonts, colors, and icon libraries — lives in
+`canvas.brand-kit.json` in the project root. When Brand Kit sync is enabled,
+`canvas push` and `canvas pull` use it to sync both with the global Brand Kit.
+Example:
 
 ```json
 {
@@ -231,9 +232,9 @@ labels as for fonts uploaded via the UI.
 
 Icon libraries are part of the brand kit workflow: icon sync follows brand kit
 sync, which is on by default (disable it with `--no-include-brand-kit` or
-`CANVAS_INCLUDE_BRAND_KIT=false`). Like fonts, icon
-libraries are declared in `canvas.brand-kit.json` — under a top-level `icons`
-key with a `libraries` array mirroring `fonts.families`:
+`CANVAS_INCLUDE_BRAND_KIT=false`). Like fonts, icon libraries are declared in
+`canvas.brand-kit.json` — under a top-level `icons` key with a `libraries` array
+mirroring `fonts.families`:
 
 ```json
 {
@@ -294,7 +295,11 @@ the library's `source` — no copying required:
 {
   "icons": {
     "libraries": [
-      { "id": "lucide", "source": "node_modules/lucide-static/icons" }
+      {
+        "id": "lucide",
+        "label": "Lucide",
+        "source": "node_modules/lucide-static/icons"
+      }
     ]
   }
 }
@@ -362,7 +367,7 @@ to get started.
 | _(none)_                 | _(none)_                           | User tokens from `canvas auth login` are stored in `~/.config/drupal-canvas/oauth.json` (keyed by site URL) and used automatically. No environment variable is needed.                                |
 | `--no-pages`             | `CANVAS_INCLUDE_PAGES`             | (Optional) Exclude pages from `pull`, `push`, and `reconcile-media`. `CANVAS_INCLUDE_PAGES` is deprecated; use `sync.pages` in `canvas.config.json` instead.                                          |
 | `--no-content-templates` | `CANVAS_INCLUDE_CONTENT_TEMPLATES` | (Optional) Exclude content templates from `pull`, `push`, and `reconcile-media`. `CANVAS_INCLUDE_CONTENT_TEMPLATES` is deprecated; use `sync.contentTemplates` in `canvas.config.json` instead.       |
-| `--include-brand-kit`    | `CANVAS_INCLUDE_BRAND_KIT`         | (Optional) Include brand kit (fonts, colors, and icon libraries) in `pull` and `push`. Defaults to `true`. Use `--no-include-brand-kit` to disable. Accepts `true`/`false`, `1`/`0`, or `yes`/`no`.                    |
+| `--include-brand-kit`    | `CANVAS_INCLUDE_BRAND_KIT`         | (Optional) Include brand kit (fonts, colors, and icon libraries) in `pull` and `push`. Defaults to `true`. Use `--no-include-brand-kit` to disable. Accepts `true`/`false`, `1`/`0`, or `yes`/`no`.   |
 | `--no-page-templates`    | _(none)_                           | (Optional) Exclude page templates from `pull`, `push`, and `reconcile-media`. Use `sync.pageTemplates` in `canvas.config.json` for a project default.                                                 |
 
 **Note:** When `CANVAS_SCOPE` is unset, the CLI uses the `canvas_oauth`
@@ -498,9 +503,9 @@ stay managed in the Canvas editor instead of the authored codebase.
 
 Pull code components, global CSS, package.json, local modules imported by
 components, pages, content templates, page templates, and brand kit (fonts,
-colors, and icon libraries) from Drupal to your local filesystem. Brand kit sync is on by default
-when `canvas.brand-kit.json` is present; use `--no-include-brand-kit` to skip
-it.
+colors, and icon libraries) from Drupal to your local filesystem. Brand kit sync
+is on by default when `canvas.brand-kit.json` is present; use
+`--no-include-brand-kit` to skip it.
 
 If the project's `package.json` was stored on a previous `push`, it is
 reconciled with the local file during pull. When no local `package.json` exists,
@@ -523,8 +528,9 @@ npx canvas pull [options]
   `canvas.config.json` or `src/components`)
 - `--no-pages`: Exclude pages from the pull operation
 - `--no-content-templates`: Exclude content templates from the pull operation
-- `--include-brand-kit [enabled]`: Include brand kit (fonts, colors, and icon libraries) in the
-  pull operation. Defaults to `true`; use `--no-include-brand-kit` to disable.
+- `--include-brand-kit [enabled]`: Include brand kit (fonts, colors, and icon
+  libraries) in the pull operation. Defaults to `true`; use
+  `--no-include-brand-kit` to disable.
 - `--no-page-templates`: Exclude page templates from the pull operation
 - `-y, --yes`: Skip all confirmation prompts (non-interactive mode)
 - `--skip-overwrite`: Skip items that already exist locally (the getter
@@ -577,11 +583,11 @@ npx canvas pull --yes --skip-overwrite
 ```
 
 Pulls Code Components, global CSS, pages, content templates, page templates, and
-brand kit (fonts, colors, and icon libraries) from your site by default. Use `--no-pages`,
-`--no-content-templates`, `--no-page-templates`, or `--no-include-brand-kit` to
-exclude those resources for a single run, or set `sync.*` in
-`canvas.config.json` to change project defaults. Use `--skip-overwrite` to skip
-items that already exist locally.
+brand kit (fonts, colors, and icon libraries) from your site by default. Use
+`--no-pages`, `--no-content-templates`, `--no-page-templates`, or
+`--no-include-brand-kit` to exclude those resources for a single run, or set
+`sync.*` in `canvas.config.json` to change project defaults. Use
+`--skip-overwrite` to skip items that already exist locally.
 
 **Fonts:** The pull command fetches fonts from the global Brand Kit, downloads
 font files into a `fonts/` directory, and adds local `src` entries to
@@ -600,7 +606,9 @@ leaves existing entries untouched.
 **Icons:** When brand kit sync is on, the pull command declares every
 canvas-managed icon library in `canvas.brand-kit.json`, downloads its SVG files
 to `icons/<id>/`, and writes an informational `icons/<id>/pack.json` for every
-module-provided icon pack. See [Icon libraries](#icon-libraries).
+module-provided icon pack. Existing local SVG and `pack.json` files are
+overwritten by default, or left untouched with `--skip-overwrite`. See
+[Icon libraries](#icon-libraries).
 
 ---
 
@@ -751,9 +759,8 @@ later headless sync makes them external again.
 
 Build and push local components, global CSS, build artifacts, pages, content
 templates, page templates, and brand kit (fonts, colors, and icon libraries) to
-Drupal. Brand kit
-sync is on by default when `canvas.brand-kit.json` is present; use
-`--no-include-brand-kit` to skip it.
+Drupal. Brand kit sync is on by default when `canvas.brand-kit.json` is present;
+use `--no-include-brand-kit` to skip it.
 
 **Usage:**
 
@@ -767,8 +774,8 @@ npx canvas push [options]
   `componentDir` from `canvas.config.json` or `src/components`)
 - `--no-pages`: Exclude pages from the push operation
 - `--no-content-templates`: Exclude content templates from the push operation
-- `--include-brand-kit [enabled]`: Include brand kit (fonts, colors, and icon libraries) in the
-  push operation. Defaults to `true`.
+- `--include-brand-kit [enabled]`: Include brand kit (fonts, colors, and icon
+  libraries) in the push operation. Defaults to `true`.
 - `--no-include-brand-kit`: Exclude brand kit from the push operation.
 - `--no-page-templates`: Exclude page templates from the push operation
 - `--prune-colors`: Delete colors from the site that are absent from

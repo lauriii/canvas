@@ -95,7 +95,7 @@ describe('pullIcons', () => {
 
     const result = await pullIcons(api, tmpDir);
 
-    expect(result).toEqual({ libraries: 1, assets: 2, packs: 0 });
+    expect(result).toEqual({ libraries: 1, assets: 2, packs: 0, skipped: 0 });
 
     const brandKit = JSON.parse(
       await fs.readFile(path.join(tmpDir, 'canvas.brand-kit.json'), 'utf-8'),
@@ -196,7 +196,7 @@ describe('pullIcons', () => {
 
     const result = await pullIcons(api, tmpDir);
 
-    expect(result).toEqual({ libraries: 1, assets: 0, packs: 1 });
+    expect(result).toEqual({ libraries: 1, assets: 0, packs: 1, skipped: 0 });
 
     const packInfo = JSON.parse(
       await fs.readFile(
@@ -215,6 +215,51 @@ describe('pullIcons', () => {
     await expect(
       fs.access(path.join(tmpDir, 'icons', 'my_icons', 'pack.json')),
     ).rejects.toThrow();
+  });
+
+  it('skips existing icon files and pack.json with skipOverwrite', async () => {
+    const api = mockApiService({
+      libraries: { my_icons: managedLibrary() },
+      packs: { lucide: modulePack() },
+    });
+    const localStar = path.join(tmpDir, 'icons', 'my_icons', 'star.svg');
+    const localPackJson = path.join(tmpDir, 'icons', 'lucide', 'pack.json');
+    await fs.mkdir(path.dirname(localStar), { recursive: true });
+    await fs.writeFile(localStar, '<svg>local edit</svg>', 'utf-8');
+    await fs.mkdir(path.dirname(localPackJson), { recursive: true });
+    await fs.writeFile(localPackJson, '{"local": true}', 'utf-8');
+
+    const result = await pullIcons(api, tmpDir, true);
+
+    // Existing files stay untouched; missing files are still pulled.
+    expect(result).toEqual({ libraries: 1, assets: 1, packs: 0, skipped: 2 });
+    expect(await fs.readFile(localStar, 'utf-8')).toBe('<svg>local edit</svg>');
+    expect(await fs.readFile(localPackJson, 'utf-8')).toBe('{"local": true}');
+    expect(
+      await fs.readFile(
+        path.join(tmpDir, 'icons', 'my_icons', 'heart.svg'),
+        'utf-8',
+      ),
+    ).toBe(HEART_SVG);
+    // Skipped files are never downloaded.
+    expect(api.downloadFile).not.toHaveBeenCalledWith(
+      '/sites/default/files/canvas/icons/star.svg',
+    );
+  });
+
+  it('overwrites existing icon files without skipOverwrite', async () => {
+    const api = mockApiService({
+      libraries: { my_icons: managedLibrary() },
+      packs: {},
+    });
+    const localStar = path.join(tmpDir, 'icons', 'my_icons', 'star.svg');
+    await fs.mkdir(path.dirname(localStar), { recursive: true });
+    await fs.writeFile(localStar, '<svg>local edit</svg>', 'utf-8');
+
+    const result = await pullIcons(api, tmpDir);
+
+    expect(result).toEqual({ libraries: 1, assets: 2, packs: 0, skipped: 0 });
+    expect(await fs.readFile(localStar, 'utf-8')).toBe(STAR_SVG);
   });
 
   it('rejects unsafe asset names from the server', async () => {
