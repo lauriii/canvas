@@ -10,10 +10,12 @@ use Drupal\canvas\Icon\SvgSanitizer;
 use Drupal\Component\Plugin\Discovery\CachedDiscoveryInterface;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileExists;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Theme\Icon\IconCollector;
 use Drupal\Core\Theme\Icon\IconDefinition;
 use Drupal\Core\Theme\Icon\Plugin\IconPackManagerInterface;
@@ -22,6 +24,8 @@ use Drupal\file\FileRepositoryInterface;
 use Drupal\file\Upload\ContentDispositionFilenameParser;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
@@ -30,6 +34,11 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
  * Serves both the icon picker widget and the Brand Kit "Icon libraries"
  * section. Search and filtering happen client-side over this one cacheable
  * payload, because pack contents only change on deploy or CLI push.
+ *
+ * The site-wide `icons.allowed_packs` allow-list in `canvas.settings` filters
+ * which packs the default listing offers to content authors. Sync clients
+ * request `scope=all` (gated by the brand kit administration permission) to
+ * see the complete catalog regardless of that policy.
  *
  * Also accepts SVG uploads into Canvas-managed icon libraries.
  *
@@ -55,12 +64,31 @@ final class ApiIconsController {
     private readonly FileUrlGeneratorInterface $fileUrlGenerator,
     private readonly IconCollector $iconCollector,
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly ConfigFactoryInterface $configFactory,
+    private readonly AccountInterface $currentUser,
   ) {}
 
-  public function list(): CacheableJsonResponse {
+  public function list(Request $request): CacheableJsonResponse {
+    $scope = $request->query->get('scope');
+    if ($scope !== NULL && $scope !== 'all') {
+      throw new BadRequestHttpException(\sprintf('Unknown scope "%s". Omit the scope query parameter, or pass scope=all to list every installed pack.', $scope));
+    }
+    // `scope=all` exists so sync clients (the Canvas CLI icon pull) always see
+    // the complete catalog and round-trips are unaffected by authoring policy.
+    if ($scope === 'all' && !$this->currentUser->hasPermission(IconLibrary::ADMIN_PERMISSION)) {
+      throw new AccessDeniedHttpException(\sprintf('The "%s" permission is required to use scope=all.', IconLibrary::ADMIN_PERMISSION));
+    }
+    // An empty (or absent) allow-list offers every installed pack.
+    $allowed = $scope === 'all'
+      ? []
+      : ($this->configFactory->get('canvas.settings')->get('icons.allowed_packs') ?? []);
+
     $packs = [];
     foreach ($this->iconPackManager->getDefinitions() ?? [] as $pack_id => $definition) {
       if (empty($definition['icons'])) {
+        continue;
+      }
+      if ($allowed !== [] && !\in_array($pack_id, $allowed, TRUE)) {
         continue;
       }
       $icons = [];
@@ -103,8 +131,10 @@ final class ApiIconsController {
         'icon_pack_collector',
         'config:core.extension',
         'config:icon_library_list',
+        // The allow-list filtering the default scope lives in this config.
+        'config:canvas.settings',
       ])
-      ->setCacheContexts(['user.permissions']));
+      ->setCacheContexts(['user.permissions', 'url.query_args:scope']));
     return $response;
   }
 

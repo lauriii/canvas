@@ -410,6 +410,27 @@ canvas.settings:
           pattern: '/^[a-z0-9_]+$/'
         ConfigExists:
           prefix: canvas.page_variant.
+    icons:
+      type: mapping
+      label: 'Icon settings'
+      # Optional so a canvas.settings object created before this key existed
+      # (for example by the page-variant post-update) stays valid; missing is
+      # treated as an empty allow-list.
+      requiredKey: false
+      mapping:
+        allowed_packs:
+          # An empty list offers every installed pack. This is authoring policy
+          # consumed by the icons listing endpoint, not validation: the
+          # per-prop scope `pattern` remains the validation boundary.
+          # @see \Drupal\canvas\Controller\ApiIconsController::list()
+          type: sequence
+          label: 'Icon packs offered to content authors (empty offers every installed pack)'
+          sequence:
+            type: string
+            label: 'Icon pack ID'
+            constraints:
+              Regex:
+                pattern: '/^[a-z0-9_]+$/'
 
 # The config equivalent of a ComponentTreeItemList, validated by the same constraints.
 # This is a list of component items in a tree, one item per component instance.
