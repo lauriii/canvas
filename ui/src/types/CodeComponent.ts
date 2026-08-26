@@ -88,7 +88,9 @@ export interface CodeComponentProp {
     | CodeComponentPropImageExample
     | CodeComponentPropImageExample[]
     | CodeComponentPropVideoExample
-    | CodeComponentPropVideoExample[];
+    | CodeComponentPropVideoExample[]
+    | CodeComponentPropDocumentExample
+    | CodeComponentPropDocumentExample[];
   $ref?: string;
   format?: string;
   derivedType: (typeof derivedPropTypes)[number]['type'] | null;
@@ -143,6 +145,8 @@ export interface CodeComponentPropSerialized {
     | CodeComponentPropImageExample[]
     | CodeComponentPropVideoExample
     | CodeComponentPropVideoExample[]
+    | CodeComponentPropDocumentExample
+    | CodeComponentPropDocumentExample[]
   )[];
   $ref?: string;
   format?: string;
@@ -202,6 +206,7 @@ export type CodeComponentPropPreviewValue =
   | number[]
   | CodeComponentPropImageExample[]
   | CodeComponentPropVideoExample[]
+  | CodeComponentPropDocumentExample[]
   | ResolvedColorProp
   | null;
 
@@ -308,4 +313,13 @@ export type AssetLibraryFontVariantType = BrandKitFontVariantType;
 export interface CodeComponentPropVideoExample {
   src: string;
   poster: string;
+}
+
+export interface CodeComponentPropDocumentExample {
+  src: string;
+  title?: string;
+  description?: string;
+  filename?: string;
+  filesize?: number;
+  mimetype?: string;
 }
