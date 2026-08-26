@@ -608,7 +608,7 @@ final class ApiLayoutController {
    *
    * @return array{id: string, label: string, canSwitch: bool, updated: int, owner: array{name: string, avatar: string|null}|null}|null
    */
-  private function buildWorkspaceLockInfo(ContentEntityInterface|ContentTemplate $entity): ?array {
+  private function buildWorkspaceLockInfo(ContentEntityInterface|ComponentTreeConfigEntityBase $entity): ?array {
     if (!$entity instanceof ContentEntityInterface) {
       return NULL;
     }
