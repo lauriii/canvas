@@ -37,9 +37,11 @@
 
 import {
   HEADLESS_ASSERTION_MESSAGE,
+  HEADLESS_REFRESH_ACK_MESSAGE,
   HEADLESS_REFRESH_MESSAGE,
   HEADLESS_RENEW_REQUEST_MESSAGE,
   HEADLESS_STATUS_MESSAGE,
+  HEADLESS_STATUS_REQUEST_MESSAGE,
 } from '../constants';
 import { EXPIRY_SLACK_MS } from '../draft-data';
 
@@ -158,6 +160,8 @@ export function createDraftSession(options: DraftSessionOptions): DraftSession {
   let expired = initialExpired;
   let renewState: DraftSessionRenewState = 'idle';
   let destroyed = false;
+  let hostSessionId: string | null = null;
+  let passive = false;
   const timers = new Set<ReturnType<typeof setTimeout>>();
 
   const emit = (event: DraftSessionEvent) => {
@@ -181,7 +185,10 @@ export function createDraftSession(options: DraftSessionOptions): DraftSession {
 
   const postToHost = (message: Record<string, unknown>) => {
     if (editorOrigin) {
-      hostWindow?.postMessage(message, editorOrigin);
+      hostWindow?.postMessage(
+        hostSessionId ? { ...message, hostSessionId } : message,
+        editorOrigin,
+      );
     }
   };
 
@@ -199,13 +206,25 @@ export function createDraftSession(options: DraftSessionOptions): DraftSession {
     });
   };
 
+  const expireIfDue = () => {
+    if (
+      expired ||
+      tokenExpiresAt === null ||
+      Date.now() < tokenExpiresAt - EXPIRY_SLACK_MS
+    ) {
+      return false;
+    }
+    expired = true;
+    emit({ type: 'expired' });
+    reportStatus();
+    return true;
+  };
+
   // Flip to expired on the clock, in sync with the server's slack.
   if (tokenExpiresAt !== null && !expired) {
     schedule(
       () => {
-        expired = true;
-        emit({ type: 'expired' });
-        reportStatus();
+        expireIfDue();
       },
       tokenExpiresAt - EXPIRY_SLACK_MS - Date.now(),
     );
@@ -216,7 +235,13 @@ export function createDraftSession(options: DraftSessionOptions): DraftSession {
     const remaining = tokenExpiresAt - Date.now();
     const margin = Math.min(RENEW_MARGIN_MS, remaining / 2);
     schedule(() => {
-      if (expired || renewState !== 'idle') {
+      if (passive || expired || renewState !== 'idle') {
+        return;
+      }
+      // Background tabs may delay both timers until after expiry. The renewal
+      // timer was scheduled first, so reconcile against the wall clock before
+      // it can start a stale renewal and race the recovery lane.
+      if (expireIfDue()) {
         return;
       }
       renewState = 'requested';
@@ -248,7 +273,32 @@ export function createDraftSession(options: DraftSessionOptions): DraftSession {
           return;
         }
 
+        if (event.data.type === HEADLESS_STATUS_REQUEST_MESSAGE) {
+          if (
+            typeof event.data.hostSessionId === 'string' &&
+            event.data.hostSessionId !== ''
+          ) {
+            hostSessionId = event.data.hostSessionId;
+            passive = event.data.passive === true;
+            reportStatus();
+          }
+          return;
+        }
+
+        if (
+          hostSessionId === null ||
+          event.data.hostSessionId !== hostSessionId
+        ) {
+          return;
+        }
+
         if (event.data.type === HEADLESS_REFRESH_MESSAGE) {
+          if (typeof event.data.refreshId === 'number') {
+            postToHost({
+              type: HEADLESS_REFRESH_ACK_MESSAGE,
+              refreshId: event.data.refreshId,
+            });
+          }
           emit({ type: 'refresh-requested' });
           refreshData?.();
           return;

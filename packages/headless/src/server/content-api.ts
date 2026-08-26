@@ -1,69 +1,22 @@
 /**
  * @file
  * The client for the Canvas Headless module's rendered-content endpoint:
- * resolve a Drupal path and get the routed content back as structured
- * data. The endpoint is currently provided by the Lupus Decoupled CE API
- * stack the module depends on (custom_elements + lupus_ce_renderer, at
- * `/ce-api/{path}`) — an implementation detail confined to this file:
- * names here describe what the caller gets, not who serves it, so the
- * serving stack can change without touching the SDK's surface.
+ * resolve a Drupal request URI and get the routed content back as structured
+ * data. Drupal Canvas Headless exposes it at
+ * `/canvas/content-api?requestUri={requestUri}`. The endpoint path remains an
+ * implementation detail confined to this file so the SDK's public surface
+ * describes what the caller gets rather than how Drupal serves it.
  */
 
+import { CANVAS_COMPONENT_PREVIEW_QUERY } from '../constants';
+import { isPageRedirect } from '../page';
 import { getSessionToken } from '../token';
 
 import type { DraftData } from '../draft-data';
+import type { PageResult } from '../page';
 
 /**
- * A JSON value. The page payload is parsed JSON, so its loosely shaped
- * members are typed as JSON rather than `unknown`: it says exactly what
- * they can hold, and frameworks that check values crossing the server
- * boundary for serializable types (TanStack Start's server functions)
- * accept it.
- */
-export type JsonValue =
-  | string
-  | number
-  | boolean
-  | null
-  | JsonValue[]
-  | { [key: string]: JsonValue };
-
-/**
- * Drupal's resolved-and-rendered answer for a path: the routed entity
- * rendered as a structured element tree (or markup), plus page-level data.
- */
-export interface Page {
-  title: string;
-  content_format: 'json' | 'markup';
-  content: CanvasComponentTreeElement | string;
-  breadcrumbs?: Array<{ url: string; label: string; frontpage?: boolean }>;
-  metatags?: Record<string, JsonValue>;
-  page_layout?: string;
-  local_tasks?: JsonValue[];
-  messages?: JsonValue[];
-}
-
-/**
- * One element of the rendered content tree: element name, scalar props,
- * and slots containing rendered markup or nested elements.
- */
-export interface CanvasComponentTreeElement {
-  element: string;
-  props?: Record<string, JsonValue>;
-  slots?: Record<string, CanvasComponentTreeSlot>;
-}
-
-/**
- * Slot values emitted by the Custom Elements API. A slot with one child is
- * serialized as that value; a multi-value slot is serialized as an array.
- */
-export type CanvasComponentTreeSlot =
-  | string
-  | CanvasComponentTreeElement
-  | Array<string | CanvasComponentTreeElement>;
-
-/**
- * Fetches a page by its Drupal path (e.g. `/node/4`).
+ * Fetches a page by its Drupal request URI (e.g. `/node/4?view=full`).
  *
  * With a draft session the request carries the session's user-bound bearer
  * token, so content the initiating editor may see (e.g. unpublished
@@ -76,25 +29,36 @@ export type CanvasComponentTreeSlot =
  * is served; it has no notion of JSON:API's resourceVersion.
  */
 export async function fetchPage(
-  path: string,
+  requestUri: string,
   options: {
     baseUrl: string;
     draftData?: DraftData | null;
+    componentPreviewId?: string;
     fetchImpl?: typeof fetch;
   },
-): Promise<Page | null> {
-  const { baseUrl, draftData, fetchImpl = fetch } = options;
+): Promise<PageResult | null> {
+  const { baseUrl, draftData, componentPreviewId, fetchImpl = fetch } = options;
 
-  const headers: HeadersInit = { Accept: 'application/json' };
+  const headers: Record<string, string> = { Accept: 'application/json' };
+  let liveDraft = false;
   if (draftData) {
     const token = getSessionToken(draftData);
     if (token) {
+      liveDraft = true;
       headers.Authorization = `${token.tokenType} ${token.value}`;
     }
     // Expired session: stay anonymous; the draft indicator surfaces it.
   }
 
-  const response = await fetchImpl(`${baseUrl}/ce-api${path}`, {
+  const url = new URL(`${baseUrl.replace(/\/$/, '')}/canvas/content-api`);
+  url.searchParams.set('requestUri', requestUri);
+  if (componentPreviewId) {
+    url.searchParams.set(CANVAS_COMPONENT_PREVIEW_QUERY, componentPreviewId);
+  }
+  if (liveDraft && draftData?.previewContext?.viewMode) {
+    url.searchParams.set('viewMode', draftData.previewContext.viewMode);
+  }
+  const response = await fetchImpl(url, {
     headers,
     cache: 'no-store',
   });
@@ -102,5 +66,18 @@ export async function fetchPage(
   if (!response.ok) {
     return null;
   }
-  return (await response.json()) as Page;
+  const result = (await response.json()) as PageResult;
+  if (isPageRedirect(result)) {
+    return result;
+  }
+  if (liveDraft && result.route.managedByCanvas) {
+    return {
+      ...result,
+      content: {
+        ...(result.content ?? { element: 'renderless-container' }),
+        canvasDraftMode: true,
+      },
+    };
+  }
+  return result;
 }

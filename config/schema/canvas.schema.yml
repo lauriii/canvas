@@ -1,27 +1,3 @@
-canvas.settings:
-  type: config_object
-  label: 'Drupal Canvas settings'
-  constraints:
-    FullyValidatable: ~
-  mapping:
-    icons:
-      type: mapping
-      label: 'Icon settings'
-      mapping:
-        allowed_packs:
-          # An empty list offers every installed pack. This is authoring policy
-          # consumed by the icons listing endpoint, not validation: the
-          # per-prop scope `pattern` remains the validation boundary.
-          # @see \Drupal\canvas\Controller\ApiIconsController::list()
-          type: sequence
-          label: 'Icon packs offered to content authors (empty offers every installed pack)'
-          sequence:
-            type: string
-            label: 'Icon pack ID'
-            constraints:
-              Regex:
-                pattern: '/^[a-z0-9_]+$/'
-
 canvas.component.*:
   type: versioned_config_entity
   constraints:
@@ -99,6 +75,10 @@ canvas.component.*:
           - js
           # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent
           - block
+          # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
+          - marker
+          # @see \Drupal\canvas_page_template_component\Plugin\Canvas\ComponentSource\ThemePageTemplate
+          - theme_page_template
     source_local_id:
       type: canvas.component_source_local_id.[%parent.source]
     versioned_properties:
@@ -300,6 +280,15 @@ canvas.js_component.*:
               # expand → edit → coalesce round trip without losing data.
               # @see \Drupal\canvas\PropExpressions\StructuredData\Coalescer::expand()
               EntityFieldExpressionsMustBeIdempotent: ~
+              # A nested branch (a branch inside a branch) is not yet supported;
+              # reject selections that would coalesce into one.
+              # @todo Remove once nested branching is supported, in https://git.drupalcode.org/project/canvas/-/work_items/3591865
+              EntityFieldExpressionsMustNotNestBranches: ~
+              # Reading multiple/differing fields per bundle across bundles
+              # coalesces into an object that mixes bundle-specific picks, which
+              # is unrenderable; reject it until it coalesces into a branch.
+              # @todo Remove once such selections coalesce into a branch, in https://git.drupalcode.org/project/canvas/-/work_items/3591873
+              EntityFieldExpressionsMustNotMixBundlesInObject: ~
             sequence:
               type: string
               label: 'Entity field prop expression'
@@ -315,10 +304,6 @@ canvas.js_component.*:
                   message: 'The expression is valid, but not one of the allowed types: %choices.'
                 # Validate that the expression targets an existing entity type and bundle.
                 ExpressionTargetEntityBundleExists: ~
-                # Reject references targeting multiple bundles: resolving them at
-                # render time is not yet supported.
-                # @todo https://git.drupalcode.org/project/canvas/-/work_items/3591656
-                MultiTargetBundleReferenceNotSupported: ~
                 # Reject expressions on multi-valued fields: resolving them at
                 # render time is not yet supported.
                 # @todo https://git.drupalcode.org/project/canvas/-/work_items/3589536
@@ -376,6 +361,76 @@ canvas.page_region.*:
       type: canvas.component_tree
       # A region that is left empty may be `null`.
       nullable: true
+
+canvas.page_variant.*:
+  type: config_entity
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    status:
+      constraints:
+        # The site default must stay enabled: disabled variants keep rendering
+        # where already selected, but cannot be selected anew.
+        SiteDefaultPageVariantEnabled: ~
+    id:
+      type: machine_name
+      label: 'ID'
+    label:
+      type: required_label
+      label: 'Label'
+    description:
+      type: text
+      label: 'Description'
+      nullable: true
+    component_tree:
+      type: canvas.component_tree
+      # A variant with no components yet may be `null`.
+      nullable: true
+      constraints:
+        # A page variant must contain exactly one "Page content" marker.
+        # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker::PAGE_CONTENT_COMPONENT_ID
+        PageVariantHasContentMarker: ~
+
+# Site-wide Drupal Canvas settings.
+canvas.settings:
+  type: config_object
+  label: 'Drupal Canvas settings'
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    default_page_variant:
+      type: string
+      label: 'Default page variant'
+      # The machine name of the page_variant that renders everything without an
+      # explicit selection. `null` means no default: pages render through core
+      # block layout.
+      nullable: true
+      constraints:
+        Regex:
+          pattern: '/^[a-z0-9_]+$/'
+        ConfigExists:
+          prefix: canvas.page_variant.
+    icons:
+      type: mapping
+      label: 'Icon settings'
+      # Optional so a canvas.settings object created before this key existed
+      # (for example by the page-variant post-update) stays valid; missing is
+      # treated as an empty allow-list.
+      requiredKey: false
+      mapping:
+        allowed_packs:
+          # An empty list offers every installed pack. This is authoring policy
+          # consumed by the icons listing endpoint, not validation: the
+          # per-prop scope `pattern` remains the validation boundary.
+          # @see \Drupal\canvas\Controller\ApiIconsController::list()
+          type: sequence
+          label: 'Icon packs offered to content authors (empty offers every installed pack)'
+          sequence:
+            type: string
+            label: 'Icon pack ID'
+            constraints:
+              Regex:
+                pattern: '/^[a-z0-9_]+$/'
 
 # The config equivalent of a ComponentTreeItemList, validated by the same constraints.
 # This is a list of component items in a tree, one item per component instance.
@@ -608,8 +663,6 @@ canvas.json_schema_props:
             type: field.field_settings.[%parent.field_type]
             # Optional *if* the default instance settings should be used.
             requiredKey: false
-          # After a field type is selected, a field widget must be picked.
-          # @todo MUCH later: widget settings.
           field_widget:
             type: string
             label: 'Default field widget'
@@ -758,6 +811,40 @@ canvas.component_source_settings.block:
     default_settings:
       type: block.settings.[%parent.%parent.%parent.%parent.source_local_id]
 
+# Marker components (intrinsic placeholders such as the page content marker).
+# @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
+canvas.component_source_local_id.marker:
+  type: canvas.component_source_local_id.*
+  label: 'Marker component ID'
+  constraints:
+    FullyValidatable: ~
+    Choice:
+      - page_content
+canvas.component_source_settings.marker:
+  type: canvas.component_source_settings.*
+  label: 'Marker component settings'
+  constraints:
+    FullyValidatable: ~
+
+# Theme page template components (one per installed theme, provided by the
+# optional canvas_page_template_component module). The source-local ID is the
+# theme's machine name.
+# @see \Drupal\canvas_page_template_component\Plugin\Canvas\ComponentSource\ThemePageTemplate
+canvas.component_source_local_id.theme_page_template:
+  type: canvas.component_source_local_id.*
+  label: 'Theme'
+  constraints:
+    FullyValidatable: ~
+    # Matches the `theme` validation of `type: canvas.page_region.*`.
+    NotBlank: [ ]
+    ExtensionName: [ ]
+    ExtensionExists: theme
+canvas.component_source_settings.theme_page_template:
+  type: canvas.component_source_settings.*
+  label: 'Theme page template component settings'
+  constraints:
+    FullyValidatable: ~
+
 # The `fallback` plugin ID is the only one not required to specify a source-local ID.
 canvas.component_source_settings.fallback:
   constraints:
@@ -802,6 +889,9 @@ field.value.component_tree:
         absence:
           - Drupal\Core\Block\TitleBlockPluginInterface
           - Drupal\Core\Block\MessagesBlockPluginInterface
+          # The page content marker is only allowed in page_variant trees.
+          # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
+          - marker.page_content
         presence: ~
     FullyValidatable: ~
 
@@ -856,6 +946,9 @@ canvas.pattern.*:
               # @see `type: canvas.page_region.*`
               - Drupal\Core\Block\TitleBlockPluginInterface
               - Drupal\Core\Block\MessagesBlockPluginInterface
+              # The page content marker is only allowed in page_variant trees.
+              # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
+              - marker.page_content
             presence: ~
 canvas.asset_library.*:
   type: config_entity
@@ -917,6 +1010,21 @@ canvas.asset_library.*:
         NotBlank: ~
       sequence:
         type: canvas.asset_library_manifest_entry
+    bundledSources:
+      type: sequence
+      label: 'Bundled local module sources'
+      requiredKey: false
+      orderby: value
+      constraints:
+        # There must be >=1 entry; otherwise the key should be omitted.
+        NotBlank: ~
+      sequence:
+        type: canvas.asset_library_bundled_source
+    packageJson:
+      type: string
+      label: 'Project package.json'
+      requiredKey: false
+      nullable: true
 
 canvas.asset_library_manifest_entry:
   type: mapping
@@ -933,6 +1041,30 @@ canvas.asset_library_manifest_entry:
       constraints:
         NotBlank: []
         UriScheme: ['public']
+    path:
+      type: string
+      label: 'Original relative disk path'
+      requiredKey: false
+    source:
+      type: string
+      label: 'Original source code of a module'
+      requiredKey: false
+      nullable: true
+
+canvas.asset_library_bundled_source:
+  type: mapping
+  label: 'Bundled local module source'
+  mapping:
+    path:
+      type: string
+      label: 'Original relative disk path'
+      constraints:
+        NotBlank: []
+    source:
+      type: string
+      label: 'Verbatim original source code'
+      constraints:
+        NotBlank: []
 
 canvas.brand_kit.*:
   type: config_entity
@@ -1185,6 +1317,9 @@ canvas.content_template.*.*.*:
               # @see `type: canvas.page_region.*`
               - Drupal\Core\Block\TitleBlockPluginInterface
               - Drupal\Core\Block\MessagesBlockPluginInterface
+              # The page content marker is only allowed in page_variant trees.
+              # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
+              - marker.page_content
             presence: ~
       label: 'Component tree'
     exposed_slots:
@@ -1232,6 +1367,20 @@ canvas.content_template.*.*.*:
           # @see \Drupal\canvas\Plugin\Validation\Constraint\ValidSlotNameConstraint::VALID_NAME
           pattern: '/^[a-z0-9]+([a-z0-9_-]+)[a-z0-9]+$/'
           message: "%value is not a valid exposed slot name."
+    page_variant:
+      type: string
+      label: 'Page variant'
+      # The machine name of the page_variant that renders content using this
+      # template. `null` uses the site default.
+      nullable: true
+      constraints:
+        Regex:
+          pattern: '/^[a-z0-9_]+$/'
+        ConfigExists:
+          prefix: canvas.page_variant.
+        # Disabled variants keep rendering where already selected, but cannot
+        # be selected anew (pages enforce this through their options list).
+        PageVariantSelectable: ~
 
 canvas.staged_config_update.*:
   type: config_entity
@@ -1366,6 +1515,103 @@ canvas.folder.*:
             configEntityTypeId: '%parent.%parent.configEntityTypeId'
       constraints:
         Unique: ~
+
+canvas.color.*:
+  type: config_entity
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    name:
+      type: required_label
+      label: 'Color name'
+      constraints:
+        UniqueNamePerFolderTypeConstraint:
+          id: '%parent.uuid'
+          configEntityTypeId: 'color'
+    cssVariable:
+      type: string
+      label: 'CSS variable name'
+      constraints:
+        Regex:
+          pattern: '/^--[a-zA-Z_-][a-zA-Z0-9_-]*$/'
+          message: "The %value is not a valid CSS custom property name."
+        UniqueColorCssVariableConstraint:
+          id: '%parent.uuid'
+    value:
+      type: mapping
+      label: 'Color value in W3C Design Token format'
+      mapping:
+        colorSpace:
+          type: string
+          label: 'Color space'
+          constraints:
+            Choice:
+              choices:
+                - srgb
+                - hsl
+        components:
+          type: sequence
+          label: 'Color components'
+          constraints:
+            # Each known color space requires a fixed number of components.
+            # Unknown color spaces are silently allowed so that future spaces can
+            # be introduced without updating this constraint simultaneously.
+            # @see \Drupal\canvas\Plugin\Validation\Constraint\ColorComponentCountConstraint::COMPONENT_COUNTS
+            ColorComponentCount: []
+          sequence:
+            type: float
+            label: 'Component value'
+            # @todo Add per-colorSpace range validation (e.g., sRGB [0,1], HSL [0-360, 0-100, 0-100])
+        alpha:
+          type: float
+          label: 'Alpha (opacity)'
+          requiredKey: false
+          nullable: true
+          constraints:
+            Range:
+              min: 0.0
+              max: 1.0
+              notInRangeMessage: "Alpha must be between 0 and 1."
+        hex:
+          type: string
+          label: 'Hex fallback'
+          requiredKey: false
+          nullable: true
+          constraints:
+            Regex:
+              pattern: '/^#[0-9a-fA-F]{6}$/'
+              message: "The %value is not a valid 6-digit hex color."
+    displayFormat:
+      type: string
+      label: 'Display format'
+      requiredKey: false
+      nullable: true
+      constraints:
+        Choice:
+          choices:
+            - rgb
+            - hex
+            - hsl
+    weight:
+      type: weight
+      label: 'Weight'
+
+field.widget_settings.canvas_color_picker:
+  type: mapping
+  label: 'Canvas Color Picker widget settings'
+  mapping:
+    mode:
+      type: string
+      label: 'Picker mode'
+    folders:
+      type: sequence
+      label: 'Allowed folder UUIDs'
+      requiredKey: false
+      # Populated transiently at form-build time from the x-canvas-color-folders
+      # annotation on the component prop schema. Never stored in config.
+      sequence:
+        type: string
+        label: 'Folder UUID'
 
 # Search API processor configuration
 plugin.plugin_configuration.search_api_processor.canvas_component_tree_inputs:

@@ -1,5 +1,6 @@
 {
   "name": "@drupal-canvas/cli",
+  "version": "0.23.1",
   "description": "CLI tool for managing Drupal Canvas code components",
   "license": "GPL-2.0-or-later",
   "repository": {
@@ -8,6 +9,9 @@
   },
   "bugs": "https://www.drupal.org/project/issues/canvas",
   "main": "dist/index.js",
+  "engines": {
+    "node": ">=22.19.0 <23 || >=24.5.0"
+  },
   "bin": {
     "canvas": "./dist/index.js"
   },
@@ -16,9 +20,8 @@
     "start": "node dist/index.js",
     "build": "NODE_ENV=production tsup",
     "dev": "NODE_ENV=development tsup --watch",
-    "test:vitest": "vitest run",
+    "test": "vitest run",
     "watch:test": "vitest watch",
-    "test": "npx concurrently --group npm:test:*",
     "type-check": "tsc --noEmit --pretty"
   },
   "files": [
@@ -46,7 +49,7 @@
   "dependencies": {
     "@babel/parser": "^7.26.9",
     "@clack/prompts": "^0.11.0",
-    "@drupal-canvas/eslint-config": "^0.7.0",
+    "@drupal-canvas/eslint-config": "^0.9.0",
     "@swc/wasm": "^1.12.1",
     "ajv": "^8.18.0",
     "ajv-formats": "^3.0.1",
@@ -54,7 +57,7 @@
     "chalk": "^5.4.1",
     "commander": "^14.0.0",
     "dotenv": "^16.5.0",
-    "drupal-canvas": "^0.4.2",
+    "drupal-canvas": "^0.5.0",
     "eslint": "^9.22.0",
     "js-yaml": "^4.1.0",
     "lightningcss": "^1.30.1",

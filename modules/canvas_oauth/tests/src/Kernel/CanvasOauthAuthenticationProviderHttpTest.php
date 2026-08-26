@@ -11,6 +11,7 @@ use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\consumers\Entity\Consumer;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Url;
 use Drupal\image\Entity\ImageStyle;
@@ -27,6 +28,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
@@ -129,7 +131,7 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
     $this->mockFileSystemForUploads();
 
     $source = \dirname(__DIR__, 5) . '/tests/fixtures/images/gracie-big.jpg';
-    $temp_dir = $this->container->get('file_system')->getTempDirectory();
+    $temp_dir = $this->container->get(FileSystemInterface::class)->getTempDirectory();
     $this->testImagePath = $temp_dir . '/canvas-oauth-test-upload-' . \uniqid() . '.jpg';
     \copy($source, $this->testImagePath);
   }
@@ -252,7 +254,37 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
         'DELETE',
         [],
       ],
+      'GET default page variant' => [
+        'canvas.api.settings.default_page_variant.get',
+        [],
+        ['administer page template'],
+        'GET',
+        [],
+      ],
+      'PATCH default page variant' => [
+        'canvas.api.settings.default_page_variant.set',
+        [],
+        ['administer page template'],
+        'PATCH',
+        ['default_page_variant' => NULL],
+      ],
     ];
+  }
+
+  /**
+   * Tests that an older CLI can authenticate before receiving the 410 response.
+   */
+  public function testPageRegionCompatibilityEndpointWithOauth(): void {
+    $access_token = $this->requestAccessToken(['administer page template']);
+    $request = $this->createRequest('canvas.api.config.page_region.gone.collection', [], 'GET', []);
+    $request->headers->set('Authorization', 'Bearer ' . $access_token);
+    $request->headers->set('X-Canvas-CLI', '1');
+
+    $response = $this->request($request);
+    self::assertSame(Response::HTTP_GONE, $response->getStatusCode());
+    self::assertSame([
+      'message' => 'Global regions were replaced by page templates. Upgrade @drupal-canvas/cli, or use --no-regions to continue without region synchronization.',
+    ], json_decode((string) $response->getContent(), TRUE, flags: \JSON_THROW_ON_ERROR));
   }
 
   /**

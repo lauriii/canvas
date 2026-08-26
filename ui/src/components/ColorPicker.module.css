@@ -1,0 +1,334 @@
+.colorPicker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  /* Dialog has no L/R padding, apply per-row */
+}
+
+/* Row 1: Saturation box - full width, no side padding */
+.saturationBox {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 160px;
+}
+
+/* Ensure saturation picker fills container */
+.saturationBox > div,
+.saturationBox > div > div {
+  /* The !important uses below are to override react-color library styles. */
+  width: 100%!important;
+  height: 100%!important;
+}
+
+/* Override saturation track to be full width */
+.saturationBox :global(.w-color-saturation) {
+  width: 100%;
+  border-radius: var(--radius-2);
+}
+
+/* Row 2: Tools + Sliders layout - has 12px side padding */
+.row2 {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  padding: 0 12px;
+}
+
+.toolsColumn {
+  display: flex;
+  flex-direction: row;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 9px;
+}
+
+.eyeDropperButton {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  /* The !important uses below are to override Radix button base styles. */
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.eyeDropperButton:hover {
+  /* The !important use below is to override Radix button base styles. */
+  background: transparent !important;
+}
+
+.eyeDropperButton svg {
+  width: 24px;
+  height: 24px;
+  color: var(--gray-12);
+}
+
+.colorSwatch {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--gray-6);
+  border-radius: 50%;
+}
+
+.slidersColumn {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  margin-left: 9px;
+  gap: 6px;
+}
+
+.sliderWrapper {
+  flex: 1;
+  min-height: 12px;
+}
+
+/* 14px for hue, 12px for alpha */
+.sliderWrapper :global(.w-color-hue) {
+  /* The !important use below is to override Radix button base styles. */
+  height: 14px !important;
+  border-radius: var(--radius-1);
+}
+
+.sliderWrapper :global(.w-color-alpha) {
+  /* The !important use below is to override Radix button base styles. */
+  height: 12px !important;
+  border-radius: var(--radius-1);
+}
+
+/* Add 6px margin to slider tracks so handles overflow into padded area */
+.sliderWrapper :global(.w-color-hue),
+.sliderWrapper :global(.w-color-alpha) {
+  margin: 0 6px;
+}
+
+/* Override slider pointer - 12px handles */
+.sliderWrapper :global(.w-color-hue-pointer),
+.sliderWrapper :global(.w-color-alpha-pointer) {
+  /* The !important uses below are to override Radix button base styles. */
+  width: 12px !important;
+  height: 12px !important;
+  transform: translate(-6px, -1px) !important;
+}
+
+/* Override the inner fill element to match outer pointer size */
+.sliderWrapper :global(.w-color-hue-pointer .w-color-hue-fill),
+.sliderWrapper :global(.w-color-alpha-pointer .w-color-alpha-fill) {
+  /* The !important uses below are to override Radix button base styles. */
+  width: 100% !important;
+  height: 100% !important;
+  transform: none !important;
+  border: 2px solid white !important;
+  border-radius: 50% !important;
+  background-color: rgb(248, 248, 248) !important;
+  box-shadow: 0 1px 4px rgb(0, 0, 0, 0.37) !important;
+}
+
+/* RGBA inputs row - has 12px side padding */
+.rgbaRow {
+  margin-top: var(--space-1);
+  padding: 0 12px;
+}
+
+/* Override editable input styles */
+.rgbaRow :global(.w-color-editable-input) {
+  --editable-input-label-color: var(--gray-11);
+  --editable-input-box-shadow: var(--gray-7) 0px 0px 0px 1px inset;
+  --editable-input-color: var(--gray-12);
+  --editable-input-background: var(--gray-1);
+}
+
+.rgbaRow :global(.w-color-editable-input-rgba) {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2);
+}
+
+.rgbaRow :global(.w-color-editable-input-rgba > div) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.rgbaRow :global(.w-color-editable-input-rgba label) {
+  text-align: center;
+  color: var(--gray-11);
+  font-size: var(--font-size-1);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Smaller inputs, less padding */
+.rgbaRow :global(.w-color-editable-input-rgba input) {
+  width: 100%;
+  height: 28px;
+  padding: var(--space-1);
+  transition: border-color 0.15s ease;
+  text-align: center;
+  color: var(--gray-12);
+  border: 1px solid var(--gray-7);
+  border-radius: var(--radius-1);
+  outline: none;
+  background-color: var(--gray-1);
+  font-size: var(--font-size-1);
+}
+
+.rgbaRow :global(.w-color-editable-input-rgba input:focus) {
+  border-color: var(--blue-9);
+}
+
+.rgbaRow :global(.w-color-editable-input-rgba input:hover) {
+  border-color: var(--gray-8);
+}
+
+/* Custom RGBA number inputs */
+.rgbaInputs {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 6px;
+  width: 207px;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.rgbaInputGroup {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.rgbaLabel {
+  text-align: center;
+  color: var(--gray-11);
+  font-size: var(--font-size-1);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Native RGBA number inputs - styled to match Radix UI TextField */
+.rgbaNativeInput {
+  width: 100%;
+  height: 20px;
+  padding: var(--space-1);
+  transition: border-color 0.15s ease;
+  text-align: center;
+  color: var(--gray-12);
+  border: 1px solid var(--gray-7);
+  border-radius: var(--radius-1);
+  background-color: var(--gray-1);
+  font-size: var(--font-size-1);
+  /* Hide spinners to prevent overlap with 3-digit values */
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.rgbaNativeInput:focus {
+  border-color: var(--blue-9);
+  outline: 2px solid var(--blue-9);
+  outline-offset: -2px;
+}
+
+.rgbaNativeInput:hover {
+  border-color: var(--gray-8);
+}
+
+/* Hide WebKit spinners */
+.rgbaNativeInput::-webkit-outer-spin-button,
+.rgbaNativeInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* HEX input group - wider for single input + prefix */
+.hexInputGroup {
+  flex: 1;
+}
+
+.hexInputWrapper {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 2px;
+}
+
+.hexPrefix {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  color: var(--gray-11);
+  font-size: var(--font-size-1);
+}
+
+/* HEX input - no bottom border to integrate with prefix */
+.hexInputWrapper .rgbaNativeInput {
+  flex: 1;
+  text-align: left;
+}
+
+/* Mode switch button */
+.modeSwitch {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 24px;
+  margin-block: 2px auto;
+  margin-top: -3px;
+  padding: 0;
+  cursor: pointer;
+  transition: color 0.15s ease;
+  color: var(--gray-12);
+  border: none;
+  border-radius: var(--radius-1);
+  background: transparent;
+}
+
+.modeSwitch:hover {
+  color: var(--gray-11);
+}
+
+.modeSwitch:focus {
+  outline: 2px solid var(--blue-9);
+  outline-offset: -2px;
+}
+
+.modeSwitchIconContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  font-size: 16px;
+}
+
+.modeSwitchIconContainer svg {
+  width: 16px;
+  height: 16px;
+}
+
+.modeSwitchIconContainer svg:first-child {
+  margin-bottom: -4px;
+}
+
+.modeSwitchIconContainer svg:last-child {
+  margin-top: -4px;
+}
+
+/* Validation states for hex input */
+.rgbaNativeInputInvalid {
+  border-color: var(--red-9);
+}
+
+.rgbaNativeInputInvalidSubtle {
+  border-color: var(--red-7);
+}
+
+.rgbaNativeInput.rgbaNativeInputInvalidSubtle:focus,
+.rgbaNativeInput.rgbaNativeInputInvalid:focus {
+  border-color: var(--red-9);
+  outline: 2px solid var(--red-9);
+  outline-offset: -2px;
+}

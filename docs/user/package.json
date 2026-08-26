@@ -1,5 +1,9 @@
 {
   "name": "docs",
+  "private": true,
+  "engines": {
+    "node": ">=22.19.0 <23 || >=24.5.0"
+  },
   "type": "module",
   "scripts": {
     "dev": "astro dev",
@@ -13,7 +17,7 @@
     "@astrojs/check": "^0.9.6",
     "@astrojs/starlight": "^0.37.7",
     "astro": "^5.18.2",
-    "sharp": "^0.34.3",
+    "sharp": "^0.35.3",
     "typescript": "^5.8.3",
     "zod": "^3.25.76"
   }

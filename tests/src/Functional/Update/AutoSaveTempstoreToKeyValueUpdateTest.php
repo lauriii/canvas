@@ -7,6 +7,7 @@ namespace Drupal\Tests\canvas\Functional\Update;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\Page;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
+use Drupal\Core\TempStore\SharedTempStoreFactory;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\Validator\ConstraintViolation;
@@ -35,7 +36,7 @@ final class AutoSaveTempstoreToKeyValueUpdateTest extends CanvasUpdatePathTestBa
    */
   public function testAutoSaveMigration(): void {
     // Set up test data in tempstore before the update.
-    $tempstore_factory = \Drupal::service('tempstore.shared');
+    $tempstore_factory = \Drupal::service(SharedTempStoreFactory::class);
 
     // Create test auto-save data for a page entity.
     $page = Page::load(1);
@@ -111,7 +112,11 @@ final class AutoSaveTempstoreToKeyValueUpdateTest extends CanvasUpdatePathTestBa
     $this->assertSame($auto_save_data['entity_type'], $migrated_data['entity_type']);
     $this->assertSame($auto_save_data['entity_id'], $migrated_data['entity_id']);
     $this->assertSame($auto_save_data['label'], $migrated_data['label']);
-    $this->assertSame($auto_save_data['data_hash'], $migrated_data['data_hash']);
+
+    // This hash no longer stay the same due to one of following update hooks
+    // recalculating it.
+    // @see canvas_post_update_0026_rehash_auto_save_items()
+    $this->assertNotSame($auto_save_data['data_hash'], $migrated_data['data_hash']);
 
     // Verify form violations were migrated.
     $violations_keyvalue = $keyvalue_factory->get(AutoSaveManager::FORM_VIOLATIONS_STORE);

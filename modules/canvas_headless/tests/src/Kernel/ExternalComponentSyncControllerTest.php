@@ -9,6 +9,7 @@ use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas_headless\Controller\ExternalComponentSyncController;
 use Drupal\canvas_headless\ExternalComponentSync;
 use Drupal\canvas_headless\PreviewUrlGeneratorInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Url;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\Group;
@@ -111,14 +112,14 @@ final class ExternalComponentSyncControllerTest extends CanvasKernelTestBase {
         return NULL;
       }
 
-      public function issueForPath(string $path, bool $renewal = FALSE): string {
+      public function issueForPath(string $path, bool $renewal = FALSE, array $preview_context = []): string {
         return 'test-assertion';
       }
 
     };
 
     return new ExternalComponentSyncController(
-      $this->container->get('config.factory'),
+      $this->container->get(ConfigFactoryInterface::class),
       $this->container->get(CanvasNotificationHandler::class),
       $preview_url_generator,
       $this->container->get(ExternalComponentSync::class),

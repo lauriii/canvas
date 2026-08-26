@@ -1,9 +1,10 @@
-import { isDraftSessionExpired } from '@drupal-canvas/headless';
+import { CANVAS_COMPONENT_PREVIEW_QUERY } from '@drupal-canvas/headless';
 import {
   createDraftServer,
+  isPageRedirect,
   resolveDraftConfig,
 } from '@drupal-canvas/headless/server';
-import { getCookie } from '@tanstack/react-start/server';
+import { getCookie, getRequest } from '@tanstack/react-start/server';
 
 import {
   TANSTACK_DRAFT_FLAG_COOKIE_NAME,
@@ -29,6 +30,25 @@ export const getClient = server.getClient;
 export const getPublicClient = server.getPublicClient;
 export const getDraftClient = server.getDraftClient;
 export const fetchPage = server.fetchPage;
+export const fetchComponentPreview = server.fetchComponentPreview;
+
+/** Safe loader data for the reserved isolated component-preview route. */
+export async function getComponentPreviewData() {
+  const componentId = new URL(getRequest().url).searchParams.get(
+    CANVAS_COMPONENT_PREVIEW_QUERY,
+  );
+  const draftData = await getDraftData();
+  if (!draftData || !componentId) {
+    return null;
+  }
+  const page = await fetchComponentPreview(componentId);
+  if (!page || isPageRedirect(page)) {
+    return null;
+  }
+  return {
+    page,
+  };
+}
 
 /**
  * Whether draft mode is on for this request — the flag cookie, regardless
@@ -41,4 +61,5 @@ export function isDraftModeEnabled(): boolean {
   return getCookie(TANSTACK_DRAFT_FLAG_COOKIE_NAME) === '1';
 }
 
-export { isDraftSessionExpired, resolveDraftConfig };
+export { isDraftSessionExpired } from '@drupal-canvas/headless';
+export { resolveDraftConfig };

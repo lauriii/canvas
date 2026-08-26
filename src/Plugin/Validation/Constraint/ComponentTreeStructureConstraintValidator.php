@@ -220,6 +220,17 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
       return;
     }
 
+    // The database columns storing UUIDs are case-insensitive, so compare
+    // case-insensitively.
+    if (\strcasecmp($component_instance['uuid'], ComponentTreeItemList::ROOT_UUID) === 0) {
+      $context->buildViolation('Invalid component tree item with UUID %uuid. This UUID is reserved to represent the root of the component tree, and must never be used by a component instance.', [
+        '%uuid' => $component_instance['uuid'],
+      ])
+        ->atPath('uuid')
+        ->addViolation();
+      return;
+    }
+
     $root = $payload['root'];
 
     if (empty($component_instance['parent_uuid'])) {
@@ -232,6 +243,17 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
       ])
         ->atPath('parent_uuid')
         ->addViolation();
+    }
+
+    // The database columns storing UUIDs are case-insensitive, so compare
+    // case-insensitively.
+    if (\strcasecmp($component_instance['parent_uuid'], ComponentTreeItemList::ROOT_UUID) === 0) {
+      $context->buildViolation('Invalid component tree item with UUID %uuid references the reserved root UUID as its parent. Component instances at the root of the tree must omit parent_uuid and slot.', [
+        '%uuid' => $component_instance['uuid'],
+      ])
+        ->atPath('parent_uuid')
+        ->addViolation();
+      return;
     }
 
     if (empty($component_instance['slot'])) {

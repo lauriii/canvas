@@ -24,10 +24,10 @@ export function pageSlugFromTopLevelSpecPath(filePath: string): string | null {
 }
 
 /**
- * Whether `filePath` is a top-level Canvas region spec
- * (e.g. `regions/header.json`).
+ * Whether `filePath` is a top-level Canvas page template spec
+ * (e.g. `page-templates/marketing.json`).
  */
-export function isTopLevelRegionSpecPath(filePath: string): boolean {
+export function isTopLevelPageTemplateSpecPath(filePath: string): boolean {
   const normalizedPath = filePath.replaceAll('\\', '/');
-  return /(^|\/)regions\/[^/]+\.json$/.test(normalizedPath);
+  return /(^|\/)page-templates\/[^/]+\.json$/.test(normalizedPath);
 }

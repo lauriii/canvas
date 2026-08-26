@@ -11,6 +11,8 @@ use Drupal\canvas\PropSource\HostEntityPropSource;
 use Drupal\canvas\PropSource\HostEntityUrlPropSource;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\ShapeMatcher\PropSourceSuggester;
+use Drupal\content_translation\BundleTranslationSettingsInterface;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Plugin\Component;
@@ -254,14 +256,14 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
   public function testTranslationMetadataFieldsAreConsideredIrrelevant(): void {
     // Make the "Foo" node type translatable so content_translation adds its
     // bookkeeping base fields to the node entity type.
-    \Drupal::service('content_translation.manager')->setEnabled('node', 'foo', TRUE);
-    $this->container->get('entity_field.manager')->clearCachedFieldDefinitions();
+    \Drupal::service(BundleTranslationSettingsInterface::class)->setEnabled('node', 'foo', TRUE);
+    $this->container->get(EntityFieldManagerInterface::class)->clearCachedFieldDefinitions();
 
     // Guard: the base fields exist, so there is something to omit. Without this,
     // the omission assertion below would also pass if the fields were never
     // created (e.g. if enabling translation silently failed).
     // `content_translation_outdated` is a boolean, matched by boolean props.
-    $field_definitions = $this->container->get('entity_field.manager')->getFieldDefinitions('node', 'foo');
+    $field_definitions = $this->container->get(EntityFieldManagerInterface::class)->getFieldDefinitions('node', 'foo');
     self::assertArrayHasKey('content_translation_source', $field_definitions);
     self::assertArrayHasKey('content_translation_outdated', $field_definitions);
 
@@ -1423,6 +1425,13 @@ class PropSourceSuggesterTest extends CanvasKernelTestBase {
           PropSource::HostEntity->value => [],
         ],
         '⿲sdc_test_all_props:all-props␟test_object_drupal_video' => [
+          'required' => FALSE,
+          PropSource::EntityField->value => [],
+          PropSource::Adapter->value => [],
+          PropSource::HostEntityUrl->value => [],
+          PropSource::HostEntity->value => [],
+        ],
+        '⿲sdc_test_all_props:all-props␟test_object_drupal_document' => [
           'required' => FALSE,
           PropSource::EntityField->value => [],
           PropSource::Adapter->value => [],

@@ -397,6 +397,11 @@ describe('vite-compat', () => {
       /^\.\/local\/cafe-[\w-]+\.jpg$/,
     );
     expect(result.sharedChunks).toEqual([]);
+    // Binary asset meta records the original relative disk path, derived from
+    // the resolved absolute path, and carries no source.
+    expect(result.localSources['@/lib/cafe.jpg']).toEqual({
+      path: 'src/lib/cafe.jpg',
+    });
     await expect(
       fs.access(
         path.join(
@@ -405,6 +410,156 @@ describe('vite-compat', () => {
         ),
       ),
     ).resolves.toBeUndefined();
+  });
+
+  it('records local module meta with the original disk path and verbatim source', async () => {
+    const hostRoot = await makeTempDir();
+    const outputDir = path.join(hostRoot, 'dist');
+    // A text module reachable via the `@/…` alias.
+    const helperPath = path.join(hostRoot, 'src/lib/helper.ts');
+    await fs.mkdir(path.dirname(helperPath), { recursive: true });
+    const helperSource = 'export const greet = (n: string) => `hi ${n}`;\n';
+    await fs.writeFile(helperPath, helperSource, 'utf-8');
+    // A binary asset reached via a relative import — its specifier is synthetic
+    // but the recorded path must still reflect the true disk location.
+    const posterPath = path.join(hostRoot, 'src/components/card/poster.webp');
+    await fs.mkdir(path.dirname(posterPath), { recursive: true });
+    await fs.writeFile(posterPath, 'webp', 'utf-8');
+
+    const result = await buildCanvasLocalArtifacts({
+      projectRoot: hostRoot,
+      aliasBaseDir: 'src',
+      outputDir,
+      localImports: new Map([['@/lib/helper', helperPath]]),
+      assetImports: new Map([['@/components/card/poster.webp', posterPath]]),
+    });
+
+    // Text module: path derived from the resolved path, plus verbatim source.
+    expect(result.localSources['@/lib/helper']).toEqual({
+      path: 'src/lib/helper.ts',
+      source: helperSource,
+    });
+    // Binary asset resolved from a relative import: path is the true disk
+    // location, never the synthetic specifier; no source.
+    expect(result.localSources['@/components/card/poster.webp']).toEqual({
+      path: 'src/components/card/poster.webp',
+    });
+  });
+
+  it('keeps transitively-imported local helpers bundled but captures their sources', async () => {
+    const hostRoot = await fs.realpath(await makeTempDir());
+    const outputDir = path.join(hostRoot, 'dist');
+    // `@/lib/a` is imported by a component (so it is in `localImports`).
+    const aPath = path.join(hostRoot, 'src/lib/a.ts');
+    await fs.mkdir(path.dirname(aPath), { recursive: true });
+    const aSource =
+      "import { b } from '@/lib/b';\nexport const a = `a-${b}`;\n";
+    await fs.writeFile(aPath, aSource, 'utf-8');
+    // `@/lib/b` is imported only by `@/lib/a`, never directly by a component,
+    // so it is NOT in `localImports`. Rollup inlines it into `a`'s bundle; it
+    // gets no runtime artifact, but its source must still be captured so a pull
+    // can restore the editable file.
+    const bPath = path.join(hostRoot, 'src/lib/b.ts');
+    const bSource =
+      "import { c } from '@/lib/c';\nexport const b = `b-${c}`;\n";
+    await fs.writeFile(bPath, bSource, 'utf-8');
+    // `@/lib/c` is a second-level transitive import (reached only via `b`). It
+    // verifies the `buildEnd` walk sees the whole graph, so `c` is captured even
+    // though it surfaces two levels below a component import.
+    const cPath = path.join(hostRoot, 'src/lib/c.ts');
+    const cSource = "export const c = 'c';\n";
+    await fs.writeFile(cPath, cSource, 'utf-8');
+
+    const result = await buildCanvasLocalArtifacts({
+      projectRoot: hostRoot,
+      aliasBaseDir: 'src',
+      outputDir,
+      localImports: new Map([['@/lib/a', aPath]]),
+      assetImports: new Map(),
+    });
+
+    // The entry keeps its own runtime artifact.
+    expect(result.localImportMap['@/lib/a']).toMatch(
+      /^\.\/local\/a-[\w-]+\.js$/,
+    );
+    expect(Object.keys(result.localImportMap)).toEqual(['@/lib/a']);
+    // The transitive helpers stay bundled: no runtime artifact, so no new
+    // network request per helper.
+    expect(result.localImportMap['@/lib/b']).toBeUndefined();
+    expect(result.localImportMap['@/lib/c']).toBeUndefined();
+    // Their verbatim sources are captured separately, keyed by disk path, for
+    // pull to restore.
+    expect(result.bundledSources).toContainEqual({
+      path: 'src/lib/b.ts',
+      source: bSource,
+    });
+    expect(result.bundledSources).toContainEqual({
+      path: 'src/lib/c.ts',
+      source: cSource,
+    });
+    // The entry itself is restored via `localSources`, not `bundledSources`.
+    expect(
+      result.bundledSources.some((entry) => entry.path === 'src/lib/a.ts'),
+    ).toBe(false);
+  });
+
+  it('captures the source of a relative dep imported inside a local helper', async () => {
+    const hostRoot = await fs.realpath(await makeTempDir());
+    const outputDir = path.join(hostRoot, 'dist');
+    // `@/lib/a` is imported by a component (so it is in `localImports`).
+    const aPath = path.join(hostRoot, 'src/lib/a.ts');
+    await fs.mkdir(path.dirname(aPath), { recursive: true });
+    // The edge case: a transitive dep with a *relative* import. ESLint blocks
+    // `./…` module imports in components but not inside local deps, so `a` may
+    // legally import `./nested`. `nested` has no alias specifier at all.
+    const aSource = "import { b } from './b';\nexport const a = `a-${b}`;\n";
+    await fs.writeFile(aPath, aSource, 'utf-8');
+    const nestedPath = path.join(hostRoot, 'src/lib/b.ts');
+    const nestedSource =
+      "import poster from './poster.webp';\nexport const b = poster;\n";
+    await fs.writeFile(nestedPath, nestedSource, 'utf-8');
+    const posterPath = path.join(hostRoot, 'src/lib/poster.webp');
+    await fs.writeFile(posterPath, Buffer.alloc(10_000, 1));
+
+    const result = await buildCanvasLocalArtifacts({
+      projectRoot: hostRoot,
+      aliasBaseDir: 'src',
+      outputDir,
+      localImports: new Map([['@/lib/a', aPath]]),
+      assetImports: new Map(),
+    });
+
+    // The relative module stays bundled into `a` (no runtime artifact of its
+    // own), while its static asset becomes a normal import-map entry.
+    expect(result.localImportMap['@/lib/a']).toMatch(
+      /^\.\/local\/a-[\w-]+\.js$/,
+    );
+    expect(result.localImportMap['@/lib/poster.webp']).toMatch(
+      /^\.\/local\/poster-[\w-]+\.webp$/,
+    );
+    expect(result.localSources['@/lib/poster.webp']).toEqual({
+      path: 'src/lib/poster.webp',
+    });
+    const builtEntry = await fs.readFile(
+      path.join(
+        outputDir,
+        result.localImportMap['@/lib/a'].replace(/^\.\//, ''),
+      ),
+      'utf-8',
+    );
+    expect(builtEntry).toContain('import.meta.resolve("@/lib/poster.webp")');
+    // Its source is captured by disk path so a pull can restore the file, even
+    // though it never had an import specifier to key on.
+    expect(result.bundledSources).toContainEqual({
+      path: 'src/lib/b.ts',
+      source: nestedSource,
+    });
+    expect(
+      result.bundledSources.some(
+        (entry) => entry.path === 'src/lib/poster.webp',
+      ),
+    ).toBe(false);
+    expect(result.sharedChunks).toEqual([]);
   });
 
   it('supports overriding host alias base dir', () => {
@@ -554,7 +709,7 @@ describe('vite-compat', () => {
     await fs.writeFile(
       path.join(hostRoot, '.env'),
       [
-        'CANVAS_SITE_URL=http://canvas.ddev.site',
+        'CANVAS_SITE_URL=https://canvas.ddev.site',
         'CANVAS_JSONAPI_PREFIX=api',
       ].join('\n'),
       'utf-8',
@@ -585,7 +740,7 @@ describe('vite-compat', () => {
       const transformed = transformIndexHtml?.('<html></html>');
       expect(transformed?.tags).toBeDefined();
       expect(transformed?.tags?.[0]?.children).toContain(
-        'http://canvas.ddev.site',
+        'https://canvas.ddev.site',
       );
       expect(transformed?.tags?.[0]?.children).toContain('"api"');
     });

@@ -10,7 +10,9 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas_ai\CanvasAiPermissions;
 use Drupal\canvas_ai\CanvasAiTempStore;
 use Drupal\canvas_ai\Plugin\AiFunctionCall\SetAIGeneratedTemplateData;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait;
 use Drupal\Tests\canvas_ai\Traits\FunctionalCallTestTrait;
@@ -68,7 +70,7 @@ final class SetAIGeneratedTemplateDataTest extends CanvasKernelTestBase {
     self::assertInstanceOf(AccountInterface::class, $unprivileged_user);
     $this->privilegedUser = $privileged_user;
     $this->unprivilegedUser = $unprivileged_user;
-    $this->container->get('config.factory')
+    $this->container->get(ConfigFactoryInterface::class)
       ->getEditable('system.theme')
       ->set('default', 'stark')
       ->save();
@@ -81,7 +83,7 @@ final class SetAIGeneratedTemplateDataTest extends CanvasKernelTestBase {
    */
   #[DataProvider('templateDataToolDataProvider')]
   public function testSetTemplateDataTool(string $component_structure_yaml, array $current_layout, array $expected_output): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
 
     $layout_json = \json_encode($current_layout);
 
@@ -107,7 +109,7 @@ final class SetAIGeneratedTemplateDataTest extends CanvasKernelTestBase {
    * Tests validation errors.
    */
   public function testValidationError(): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
 
     $invalid_nested_yaml = <<<YAML
 content:
@@ -147,7 +149,7 @@ YAML;
    * Tests that a prop that does not exist on a component fails validation.
    */
   public function testValidationErrorForNonExistentProp(): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
 
     // Code components (JS source) resolve props the same way as SDCs, so an
     // undefined prop must fail for both through the shared validator.
@@ -187,7 +189,7 @@ YAML;
    * Tests invalid region error.
    */
   public function testInvalidRegionError(): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
 
     $invalid_region_yaml = <<<YAML
 invalid_region:
@@ -224,7 +226,7 @@ YAML;
    * Tests the tool output with components with required image prop.
    */
   public function testTemplateDataOutputWithComponentsWithRequiredImageProp(): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
 
     // If a component has an image prop and that prop is required, the component data passed to the tool must include the
     // exact default values for the image prop, which can be obtained from ContentTemplate::normalizeForClientSide(). Otherwise,

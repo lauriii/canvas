@@ -63,6 +63,19 @@ Warning codes:
 - `conflicting_metadata`
 - `duplicate_machine_name`
 
+### `detectHeadlessSdk`
+
+```ts
+import { detectHeadlessSdk } from '@drupal-canvas/discovery';
+
+const isHeadless = detectHeadlessSdk('/absolute/path/to/project');
+```
+
+Returns `true` when the project's `package.json` declares
+`@drupal-canvas/headless` or one of its framework adapters
+(`@drupal-canvas/headless-*`) as a dependency or devDependency. Returns `false`
+when `package.json` is missing, unreadable, or invalid.
+
 ## Scripts
 
 - `npm test`

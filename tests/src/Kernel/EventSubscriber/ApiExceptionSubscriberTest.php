@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\EventSubscriber;
 
 use Drupal\canvas\EventSubscriber\ApiExceptionSubscriber;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Routing\RouteMatch;
 use Drupal\Tests\canvas\Doubles\TestVerboseException;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
@@ -32,11 +33,11 @@ class ApiExceptionSubscriberTest extends CanvasKernelTestBase {
   public function test500Response(string $exception_class, array $exception_arguments, string $expected_message): void {
     $sut = new ApiExceptionSubscriber(
       new RouteMatch('canvas.api.test', new Route('/test-path')),
-      \Drupal::service('config.factory'),
+      \Drupal::service(ConfigFactoryInterface::class),
       User::create(),
     );
 
-    $http_kernel = $this->container->get('http_kernel');
+    $http_kernel = $this->container->get(HttpKernelInterface::class);
     /** @var \Throwable $exception */
     $exception = new $exception_class(...$exception_arguments);
     $event = new ExceptionEvent(

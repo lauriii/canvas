@@ -37,11 +37,19 @@
  * the element alive across navigations, and the host must hear about the
  * current path — status reports and the renew link both carry it. Without
  * the attribute the path is read from window.location at connect time.
+ *
+ * Alongside the session machine, the element also runs a content-height
+ * reporter (./height-report) for the same `editor-origin`: an independent
+ * exchange that lets the host size the preview iframe to fit.
  */
 
 import { createDraftSession } from './draft-session';
+import { createCanvasGeometryBridge } from './geometry-bridge';
+import { createHeightReporter } from './height-report';
 
 import type { DraftSession, DraftSessionRenewState } from './draft-session';
+import type { CanvasGeometryBridge } from './geometry-bridge';
+import type { HeightReporter } from './height-report';
 
 export const DRAFT_SESSION_ELEMENT_TAG = 'canvas-draft-session';
 
@@ -84,6 +92,8 @@ export class DraftSessionElement extends BaseElement {
   static observedAttributes = ['path'];
 
   #machine: DraftSession | null = null;
+  #geometryBridge: CanvasGeometryBridge | null = null;
+  #heightReporter: HeightReporter | null = null;
   #connected = false;
   #tokenExpiresAt: number | null = null;
   #expired = false;
@@ -108,6 +118,14 @@ export class DraftSessionElement extends BaseElement {
     this.#connected = true;
 
     this.#startEpoch();
+    const editorOrigin = this.getAttribute('editor-origin');
+    this.#heightReporter = createHeightReporter({
+      editorOrigin,
+      embedded: this.#embedded,
+    });
+    if (this.#embedded && editorOrigin) {
+      this.#geometryBridge = createCanvasGeometryBridge({ editorOrigin });
+    }
     this.#render();
   }
 
@@ -115,6 +133,10 @@ export class DraftSessionElement extends BaseElement {
     this.#connected = false;
     this.#machine?.destroy();
     this.#machine = null;
+    this.#heightReporter?.destroy();
+    this.#heightReporter = null;
+    this.#geometryBridge?.destroy();
+    this.#geometryBridge = null;
   }
 
   attributeChangedCallback(

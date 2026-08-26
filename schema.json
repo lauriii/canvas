@@ -297,10 +297,52 @@
         }
       }
     },
+    "document": {
+      "title": "document",
+      "type":  "object",
+      "required": ["src"],
+      "properties": {
+        "src": {
+          "title": "Document URL",
+          "type": "string",
+          "format": "uri-reference",
+          "contentMediaType": "application/*",
+          "x-allowed-schemes": ["http", "https"],
+          "x-allowed-file-extensions": ["rtf", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "pdf", "odf", "odg", "odp", "ods", "odt", "fodt", "fods", "fodp", "fodg", "key", "numbers", "pages"]
+        },
+        "title": {
+          "title": "Document title",
+          "type": "string"
+        },
+        "description": {
+          "title": "Document description",
+          "type": "string"
+        },
+        "filename": {
+          "title": "Filename",
+          "type": "string"
+        },
+        "filesize": {
+          "title": "File size",
+          "type": "integer",
+          "description": "File size in bytes"
+        },
+        "mimetype": {
+          "title": "MIME type",
+          "type": "string"
+        }
+      }
+    },
     "content-entity-reference": {
       "title": "Content entity reference",
       "type": "object",
       "x-allowed-entity-type-id": null
+    },
+    "color": {
+      "title": "color",
+      "type": "string",
+      "$ref": "json-schema-definitions://canvas.module/color",
+      "$comment": "The $ref is intentionally self-referential. It acts as a named-type sentinel: downstream PHP and TypeScript code detects the URI string by equality to route to color-picker behavior. A strict resolver will see the justinrainbow/json-schema library append '#' to the URI; ComponentPluginManager::resolveJsonSchemaReferences() detects that mutation and restores the original clean URI. Do not remove the $ref. See PropShape::getWellKnownPropShapes() and JsonSchemaType::computeStorablePropShape()."
     },
     "config-entity-id": {
       "title": "config entity id",

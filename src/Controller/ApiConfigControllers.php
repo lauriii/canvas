@@ -32,6 +32,7 @@ use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 /**
@@ -347,6 +348,19 @@ final class ApiConfigControllers extends ApiControllerBase {
     \assert($canvas_config_entity_type instanceof ConfigEntityTypeInterface);
     $representation = $this->normalize($canvas_config_entity);
     return new JsonResponse(status: 200, data: $representation->values);
+  }
+
+  /**
+   * Rejects requests from clients that still synchronize page regions.
+   */
+  public static function pageRegionGone(Request $request): JsonResponse {
+    $message = 'Global regions were replaced by page templates.';
+    if ($request->headers->has('X-Canvas-CLI')) {
+      $message .= ' Upgrade @drupal-canvas/cli, or use --no-regions to continue without region synchronization.';
+    }
+    return new JsonResponse([
+      'message' => $message,
+    ], Response::HTTP_GONE);
   }
 
   private static function validate(CanvasHttpApiEligibleConfigEntityInterface $canvas_config_entity): void {

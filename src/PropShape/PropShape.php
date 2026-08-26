@@ -142,10 +142,19 @@ final class PropShape {
     // @todo Add support to `SDC` for `default` in https://www.drupal.org/project/canvas/issues/3462705?
     // @see https://json-schema.org/draft/2020-12/draft-bhutton-json-schema-validation-00#rfc.section.9.2
     unset($normalized_prop_schema['default']);
+    // Strip color picker annotations; they are intent annotations used at
+    // form-build time, not shape-defining. computeStorablePropShape() assigns
+    // canvas_color_picker for any color $ref regardless of mode.
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::buildComponentInstanceForm()
+    unset($normalized_prop_schema['x-canvas-color-picker']);
+    unset($normalized_prop_schema['x-canvas-color-folders']);
 
-    // TRICKY: SDC appends `'object'` to every prop's declared `type` (and then
-    // dedupes) so Twig can defer rendering to the render pipeline.
-    // The originally declared type is therefore always the first element.
+    // TRICKY: In Drupal 11.4 and earlier, SDC appends `'object'` to every
+    // prop's declared `type` (and then dedupes) so Twig can defer rendering
+    // to the render pipeline. The originally declared type is therefore
+    // always the first element.
+    // @todo Simplify this logic when Canvas depends on Drupal 11.5 and later.
+    // @see https://www.drupal.org/node/3589343
     // @see \Drupal\sdc\Component\ComponentMetadata::parseSchemaInfo()
     //
     // Prop definitions might not have been validated yet. Their `type` may

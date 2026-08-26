@@ -9,8 +9,9 @@ use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Folder;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
-use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Entity\Pattern;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Render\HtmlResponse;
 use Drupal\Core\Url;
@@ -85,6 +86,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
       'user.permissions',
       'languages:language_interface',
       'theme',
+      'url.site',
     ];
     $actual_contexts = $response->getCacheableMetadata()->getCacheContexts();
     sort($expected_contexts);
@@ -110,7 +112,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
 
     $this->setUpCurrentUser([], $permissions);
 
-    $storage = $this->container->get('entity_type.manager')->getStorage($entity_type);
+    $storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage($entity_type);
     $sut = $storage->create($values);
     $sut->save();
 
@@ -201,6 +203,23 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
     ], $response->getCacheableMetadata()->getCacheTags());
   }
 
+  /**
+   * Tests that the site name and site URL are exposed to the Canvas UI.
+   */
+  public function testControllerExposedSiteNameAndUrl(): void {
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+    $this->setUpCurrentUser([], ['access content', Page::CREATE_PERMISSION, Page::EDIT_PERMISSION]);
+    $this->config('system.site')->set('name', 'Canvas test site')->save();
+
+    $this->request(Request::create(Url::fromRoute('canvas.boot.empty', [
+      'entity_type' => '',
+      'entity' => '',
+    ])->toString()));
+
+    self::assertSame('Canvas test site', $this->drupalSettings['canvas']['siteName']);
+    self::assertSame('http://localhost', $this->drupalSettings['canvas']['siteUrl']);
+  }
+
   public static function permissionsData(): array {
     // @see \Drupal\canvas\Entity\PageAccessControlHandler
     $page_permissions = [
@@ -216,7 +235,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
           ...$page_permissions,
         ],
         [
-          'globalRegions' => FALSE,
+          'pageVariants' => FALSE,
           'patterns' => FALSE,
           'brandKit' => FALSE,
           'codeComponents' => FALSE,
@@ -233,7 +252,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
           AutoSaveManager::PUBLISH_PERMISSION,
         ],
         [
-          'globalRegions' => FALSE,
+          'pageVariants' => FALSE,
           'patterns' => FALSE,
           'brandKit' => FALSE,
           'codeComponents' => TRUE,
@@ -247,10 +266,10 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
         [
           ...$page_permissions,
           Pattern::ADMIN_PERMISSION,
-          PageRegion::ADMIN_PERMISSION,
+          PageVariant::ADMIN_PERMISSION,
         ],
         [
-          'globalRegions' => TRUE,
+          'pageVariants' => TRUE,
           'patterns' => TRUE,
           'brandKit' => FALSE,
           'codeComponents' => FALSE,
@@ -264,11 +283,11 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
         [
           ...$page_permissions,
           Pattern::ADMIN_PERMISSION,
-          PageRegion::ADMIN_PERMISSION,
+          PageVariant::ADMIN_PERMISSION,
           JavaScriptComponent::ADMIN_PERMISSION,
         ],
         [
-          'globalRegions' => TRUE,
+          'pageVariants' => TRUE,
           'patterns' => TRUE,
           'brandKit' => FALSE,
           'codeComponents' => TRUE,
@@ -282,7 +301,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
         [
           ...$page_permissions,
           Pattern::ADMIN_PERMISSION,
-          PageRegion::ADMIN_PERMISSION,
+          PageVariant::ADMIN_PERMISSION,
           JavaScriptComponent::ADMIN_PERMISSION,
           ContentTemplate::ADMIN_PERMISSION,
           AutoSaveManager::PUBLISH_PERMISSION,
@@ -290,7 +309,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
           'administer languages',
         ],
         [
-          'globalRegions' => TRUE,
+          'pageVariants' => TRUE,
           'patterns' => TRUE,
           'brandKit' => FALSE,
           'codeComponents' => TRUE,

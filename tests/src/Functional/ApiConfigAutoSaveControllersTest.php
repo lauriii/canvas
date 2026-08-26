@@ -13,6 +13,7 @@ use Drupal\canvas\Entity\Page;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileSystemInterface;
+use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Url;
 use Drupal\file\Entity\File;
 use Drupal\file\FileInterface;
@@ -69,7 +70,7 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
   }
 
   private function createManagedFontFile(string $filename = 'mona-sans.woff2'): FileInterface {
-    $file_system = $this->container->get('file_system');
+    $file_system = $this->container->get(FileSystemInterface::class);
     \assert($file_system instanceof FileSystemInterface);
     $directory = BrandKit::ARTIFACTS_DIRECTORY;
     self::assertTrue($file_system->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS));
@@ -187,6 +188,8 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
           'imports' => NULL,
           'assets' => NULL,
           'shared' => NULL,
+          'bundledSources' => NULL,
+          'packageJson' => NULL,
         ],
         [
           'css' => [
@@ -208,6 +211,8 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
           'imports' => NULL,
           'assets' => NULL,
           'shared' => NULL,
+          'bundledSources' => NULL,
+          'packageJson' => NULL,
         ],
         ['js', 'compiled'],
         ['css', 'compiled'],
@@ -377,7 +382,7 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     $file = $this->createManagedFontFile();
     $font_uri = $file->getFileUri();
     \assert(\is_string($font_uri));
-    $font_url = $this->container->get('file_url_generator')->generateString($font_uri);
+    $font_url = $this->container->get(FileUrlGeneratorInterface::class)->generateString($font_uri);
     \assert(\is_string($font_url));
     $font_entry = [
       'id' => 'font-1',
@@ -414,7 +419,7 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
       BrandKit::ENTITY_TYPE_ID,
       BrandKit::GLOBAL_ID,
     );
-    $file_usage = $this->container->get('file.usage');
+    $file_usage = $this->container->get(FileUsageInterface::class);
     \assert($file_usage instanceof FileUsageInterface);
     $tracked_file = File::load($file->id());
     self::assertInstanceOf(FileInterface::class, $tracked_file);
@@ -466,7 +471,7 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     $file = $this->createManagedFontFile();
     $font_uri = $file->getFileUri();
     \assert(\is_string($font_uri));
-    $font_url = $this->container->get('file_url_generator')->generateString($font_uri);
+    $font_url = $this->container->get(FileUrlGeneratorInterface::class)->generateString($font_uri);
     \assert(\is_string($font_url));
     $font_entry = [
       'id' => 'font-1',
@@ -504,7 +509,7 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
       BrandKit::GLOBAL_ID,
     );
 
-    $file_usage = $this->container->get('file.usage');
+    $file_usage = $this->container->get(FileUsageInterface::class);
     \assert($file_usage instanceof FileUsageInterface);
     $tracked_file = File::load($file->id());
     self::assertInstanceOf(FileInterface::class, $tracked_file);

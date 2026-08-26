@@ -14,12 +14,16 @@ use Drupal\canvas_headless\ExternalComponentSync;
 use Drupal\canvas_headless\RenderConverter\JsComponentCanvasRenderConverter;
 use Drupal\Core\Config\ConfigCrudEvent;
 use Drupal\Core\Config\ConfigEvents;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\TypedConfigManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\custom_elements\CustomElement;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Psr\Log\AbstractLogger;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Tests synchronization of external component definitions.
@@ -90,10 +94,10 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
     ])->save();
 
     $synchronizer = new ExternalComponentSync(
-      $this->container->get('config.factory'),
-      $this->container->get('entity_type.manager'),
+      $this->container->get(ConfigFactoryInterface::class),
+      $this->container->get(EntityTypeManagerInterface::class),
       $this->container->get('lock'),
-      $this->container->get('logger.factory'),
+      $this->container->get(LoggerChannelFactoryInterface::class),
       $this->container->get(ComponentSourceManager::class),
       $this->container->get(TypedConfigManagerInterface::class),
       $this->container->get(PropShapeRepositoryInterface::class),
@@ -109,11 +113,11 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
       }
 
     };
-    $this->container->get('logger.factory')->addLogger($logs);
+    $this->container->get(LoggerChannelFactoryInterface::class)->addLogger($logs);
     $code_component_saves = new class() {
       public int $count = 0;
     };
-    $this->container->get('event_dispatcher')->addListener(
+    $this->container->get(EventDispatcherInterface::class)->addListener(
       ConfigEvents::SAVE,
       static function (ConfigCrudEvent $event) use ($code_component_saves): void {
         if ($event->getConfig()->getName() === 'canvas.js_component.heroBanner') {
@@ -138,6 +142,11 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
     self::assertSame([
       'anchorId' => [
         'type' => 'string',
+        'enum' => ['features', 'contact'],
+        'meta:enum' => [
+          'features' => 'Features',
+          'contact' => 'Contact',
+        ],
         'title' => 'Anchor ID',
         'examples' => ['features'],
       ],
@@ -283,18 +292,42 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
     self::assertNotSame($first_version, $second_version);
     self::assertSame(2, $code_component_saves->count);
 
-    $result = $synchronizer->synchronize(self::metadataPayload('Updated name', 'number'));
+    $updated_payload = self::metadataPayload('Updated name', 'number');
+    $result = $synchronizer->synchronize($updated_payload);
     self::assertSame(2, $result['unchanged']);
     self::assertSame(2, $code_component_saves->count);
 
+    // Prop display metadata does not affect the component version hash, but it
+    // must still be synchronized to the JavaScript component.
+    \assert(isset($updated_payload['components'][0]['props']['anchorId']['meta:enum']));
+    $updated_payload['components'][0]['props']['anchorId']['meta:enum']['features'] = 'Featured content';
+    $result = $synchronizer->synchronize($updated_payload);
+    self::assertSame(1, $result['updated']);
+    self::assertSame(1, $result['unchanged']);
+    $component = JavaScriptComponent::load('heroBanner');
+    self::assertInstanceOf(JavaScriptComponent::class, $component);
+    $props = $component->getProps();
+    self::assertIsArray($props);
+    self::assertSame('Featured content', $props['anchorId']['meta:enum']['features']);
+    $canvas_component = Component::load('js.heroBanner');
+    self::assertInstanceOf(Component::class, $canvas_component);
+    self::assertSame($second_version, $canvas_component->getActiveVersion());
+    self::assertSame(3, $code_component_saves->count);
+
+    $result = $synchronizer->synchronize($updated_payload);
+    self::assertSame(2, $result['unchanged']);
+    self::assertSame(3, $code_component_saves->count);
+
     // Recreate the Component config entity paired with an unchanged external
     // component when it is missing.
-    Component::load('js.heroBanner')?->delete();
-    $result = $synchronizer->synchronize(self::metadataPayload('Updated name', 'number'));
+    $canvas_component = Component::load('js.heroBanner');
+    self::assertInstanceOf(Component::class, $canvas_component);
+    $canvas_component->delete();
+    $result = $synchronizer->synchronize($updated_payload);
     self::assertSame(1, $result['updated']);
     self::assertSame(1, $result['unchanged']);
     self::assertInstanceOf(Component::class, Component::load('js.heroBanner'));
-    self::assertSame(3, $code_component_saves->count);
+    self::assertSame(4, $code_component_saves->count);
   }
 
   /**
@@ -314,6 +347,11 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
               'type' => 'string',
               'title' => 'Anchor ID',
               'examples' => ['features'],
+              'enum' => ['features', 'contact'],
+              'meta:enum' => [
+                'features' => 'Features',
+                'contact' => 'Contact',
+              ],
             ],
             'level' => [
               'type' => $level_type,

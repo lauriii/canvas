@@ -80,7 +80,7 @@ trait StagedConfigEntityStorageTrait {
     return $auto_save_entity->entity;
   }
 
-  public function loadByProperties(array $values = []): array {
+  public function loadByProperties(array $values = []): never {
     throw new \LogicException('Cannot query ' . $this->entityType->id() . ' entities to load by properties.');
   }
 
@@ -118,11 +118,11 @@ trait StagedConfigEntityStorageTrait {
     return FALSE;
   }
 
-  public function getQuery($conjunction = 'AND') {
+  public function getQuery($conjunction = 'AND'): never {
     throw new \LogicException('Cannot query ' . $this->entityType->id() . ' entities.');
   }
 
-  public function getAggregateQuery($conjunction = 'AND') {
+  public function getAggregateQuery($conjunction = 'AND'): never {
     throw new \LogicException('Cannot query ' . $this->entityType->id() . ' entities.');
   }
 

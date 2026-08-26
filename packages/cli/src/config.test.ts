@@ -30,9 +30,9 @@ describe('config', () => {
         clientSecret: '',
         includePages: true,
         includeContentTemplates: true,
-        includeRegions: true,
+        includePageTemplates: true,
         scope:
-          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_region',
+          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant',
         fonts: undefined,
         componentDir: 'components',
       });
@@ -50,14 +50,13 @@ describe('config', () => {
         globalCssPath: 'src/global.css',
         includePages: true,
         includeContentTemplates: true,
-        includeRegions: true,
+        includePageTemplates: true,
         includeBrandKit: false,
         outputDir: 'dist',
         pagesDir: 'pages',
-        regionsDir: 'regions',
-        layoutPath: 'src/layout.jsx',
+        pageTemplatesDir: 'page-templates',
         scope:
-          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_region',
+          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant',
         siteUrl: '',
         userAgent: '',
       });
@@ -78,14 +77,13 @@ describe('config', () => {
         globalCssPath: 'src/global.css',
         includePages: true,
         includeContentTemplates: true,
-        includeRegions: true,
+        includePageTemplates: true,
         includeBrandKit: false,
         outputDir: 'dist',
         pagesDir: 'pages',
-        regionsDir: 'regions',
-        layoutPath: 'src/layout.jsx',
+        pageTemplatesDir: 'page-templates',
         scope:
-          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_region',
+          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant',
         siteUrl: 'https://example.com',
         userAgent: '',
       });
@@ -100,7 +98,7 @@ describe('config', () => {
         clientSecret: 'test-secret',
         includePages: true,
         includeContentTemplates: true,
-        includeRegions: true,
+        includePageTemplates: true,
         componentDir: 'components',
       });
 
@@ -261,7 +259,7 @@ describe('config', () => {
       vi.stubEnv('CANVAS_CLIENT_SECRET', 'test-secret');
       vi.stubEnv(
         'CANVAS_SCOPE',
-        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:page_region',
+        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:page_variant',
       );
       vi.stubEnv('CANVAS_INCLUDE_PAGES', 'true');
       vi.stubEnv('CANVAS_USER_AGENT', 'simpletest123456');
@@ -279,14 +277,13 @@ describe('config', () => {
         globalCssPath: 'src/global.css',
         includePages: true,
         includeContentTemplates: true,
-        includeRegions: true,
+        includePageTemplates: true,
         includeBrandKit: false,
         outputDir: 'dist',
         pagesDir: 'pages',
-        regionsDir: 'regions',
-        layoutPath: 'src/layout.jsx',
+        pageTemplatesDir: 'page-templates',
         scope:
-          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:page_region',
+          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:page_variant',
         siteUrl: 'https://test.example.com',
         userAgent: 'simpletest123456',
       });
@@ -295,14 +292,13 @@ describe('config', () => {
     it('should prefer canvas.config.json sync settings over deprecated env vars', async () => {
       vi.stubEnv('CANVAS_INCLUDE_PAGES', 'true');
       vi.stubEnv('CANVAS_INCLUDE_CONTENT_TEMPLATES', 'true');
-      vi.stubEnv('CANVAS_INCLUDE_REGIONS', 'true');
       vi.mocked(fs.existsSync).mockReturnValue(true);
       vi.mocked(fs.readFileSync).mockReturnValue(
         JSON.stringify({
           sync: {
             pages: false,
             contentTemplates: false,
-            regions: false,
+            pageTemplates: false,
           },
         }),
       );
@@ -311,7 +307,7 @@ describe('config', () => {
 
       expect(getConfig().includePages).toBe(false);
       expect(getConfig().includeContentTemplates).toBe(false);
-      expect(getConfig().includeRegions).toBe(false);
+      expect(getConfig().includePageTemplates).toBe(false);
       expect(getConfig().scope).toBe(
         'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view',
       );
@@ -320,7 +316,6 @@ describe('config', () => {
     it('should use deprecated env vars when sync settings are omitted from canvas.config.json', async () => {
       vi.stubEnv('CANVAS_INCLUDE_PAGES', 'false');
       vi.stubEnv('CANVAS_INCLUDE_CONTENT_TEMPLATES', 'false');
-      vi.stubEnv('CANVAS_INCLUDE_REGIONS', 'false');
       vi.mocked(fs.existsSync).mockReturnValue(true);
       vi.mocked(fs.readFileSync).mockReturnValue(
         JSON.stringify({ componentDir: 'src/components' }),
@@ -330,9 +325,11 @@ describe('config', () => {
 
       expect(getConfig().includePages).toBe(false);
       expect(getConfig().includeContentTemplates).toBe(false);
-      expect(getConfig().includeRegions).toBe(false);
+      // Page templates have no environment variable; without a sync setting
+      // they stay enabled.
+      expect(getConfig().includePageTemplates).toBe(true);
       expect(getConfig().scope).toBe(
-        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view',
+        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page_variant',
       );
     });
 
@@ -350,17 +347,16 @@ describe('config', () => {
         includeBrandKit: false,
         includeContentTemplates: true,
         includePages: true,
-        includeRegions: true,
+        includePageTemplates: true,
         scope:
-          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_region',
+          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant',
         componentDir: 'src/components',
         contentTemplatesDir: 'content-templates',
         fonts: undefined,
         globalCssPath: 'src/global.css',
         outputDir: 'dist',
         pagesDir: 'pages',
-        regionsDir: 'regions',
-        layoutPath: 'src/layout.jsx',
+        pageTemplatesDir: 'page-templates',
         userAgent: '',
       });
     });
@@ -372,18 +368,21 @@ describe('config', () => {
 
       expect(getConfig().includePages).toBe(true);
       expect(getConfig().scope).toBe(
-        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_region',
+        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant',
       );
     });
 
-    it('should enable region scopes when CANVAS_INCLUDE_REGIONS is true', async () => {
-      vi.stubEnv('CANVAS_INCLUDE_REGIONS', 'true');
+    it('should enable page variant scopes when sync.pageTemplates is true', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(
+        JSON.stringify({ sync: { pageTemplates: true } }),
+      );
 
       const { getConfig } = await import('./config');
 
-      expect(getConfig().includeRegions).toBe(true);
+      expect(getConfig().includePageTemplates).toBe(true);
       expect(getConfig().scope).toBe(
-        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_region',
+        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant',
       );
     });
   });
@@ -401,7 +400,6 @@ describe('config', () => {
     it('should migrate legacy sync env vars to canvas.config.json', async () => {
       vi.stubEnv('CANVAS_INCLUDE_PAGES', 'false');
       vi.stubEnv('CANVAS_INCLUDE_CONTENT_TEMPLATES', 'true');
-      vi.stubEnv('CANVAS_INCLUDE_REGIONS', 'false');
       vi.mocked(fs.existsSync).mockReturnValue(true);
       vi.mocked(fs.readFileSync).mockReturnValue(
         JSON.stringify({ componentDir: 'components' }),
@@ -416,9 +414,6 @@ describe('config', () => {
       expect(p.log.warn).toHaveBeenCalledWith(
         'CANVAS_INCLUDE_CONTENT_TEMPLATES is deprecated. Set "sync.contentTemplates" in canvas.config.json instead.',
       );
-      expect(p.log.warn).toHaveBeenCalledWith(
-        'CANVAS_INCLUDE_REGIONS is deprecated. Set "sync.regions" in canvas.config.json instead.',
-      );
       expect(fs.writeFileSync).toHaveBeenCalledTimes(1);
       const persistedCanvasConfig = JSON.parse(
         vi.mocked(fs.writeFileSync).mock.calls[0][1] as string,
@@ -428,12 +423,10 @@ describe('config', () => {
         sync: {
           pages: false,
           contentTemplates: true,
-          regions: false,
         },
       });
       expect(getConfig().includePages).toBe(false);
       expect(getConfig().includeContentTemplates).toBe(true);
-      expect(getConfig().includeRegions).toBe(false);
     });
 
     it('should create canvas.config.json with sync settings when it does not exist', async () => {
@@ -470,7 +463,7 @@ describe('config', () => {
     });
 
     it('should show sync config instructions in non-interactive mode', async () => {
-      vi.stubEnv('CANVAS_INCLUDE_REGIONS', 'false');
+      vi.stubEnv('CANVAS_INCLUDE_CONTENT_TEMPLATES', 'false');
       vi.mocked(fs.existsSync).mockReturnValue(false);
 
       await handleLegacySyncEnvMigration({ skipPrompt: true });
@@ -478,9 +471,9 @@ describe('config', () => {
       expect(p.confirm).not.toHaveBeenCalled();
       expect(fs.writeFileSync).not.toHaveBeenCalled();
       expect(p.log.info).toHaveBeenCalledWith(
-        'Add "sync.regions": false to canvas.config.json to persist this setting.',
+        'Add "sync.contentTemplates": false to canvas.config.json to persist this setting.',
       );
-      expect(getConfig().includeRegions).toBe(false);
+      expect(getConfig().includeContentTemplates).toBe(false);
     });
 
     it('should skip when componentDir already exists in canvas.config.json', async () => {

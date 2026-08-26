@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\PageVariant;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Url;
@@ -45,6 +48,9 @@ abstract class ApiLayoutControllerTestBase extends KernelTestBase {
     }
     if ($entity instanceof ContentTemplate) {
       return ContentTemplate::ADMIN_PERMISSION;
+    }
+    if ($entity instanceof PageVariant) {
+      return PageVariant::ADMIN_PERMISSION;
     }
     throw new \LogicException('Unsupported entity type: ' . $entity->getEntityTypeId());
   }
@@ -161,7 +167,7 @@ abstract class ApiLayoutControllerTestBase extends KernelTestBase {
    *
    * @see \Drupal\Tests\canvas\TestSite\CanvasTestSetup::setup()
    */
-  protected function getTestEntity(string $entity_type_id): ContentEntityInterface|ContentTemplate {
+  protected function getTestEntity(string $entity_type_id): ContentEntityInterface|ContentTemplate|PageVariant {
     if ($entity_type_id === 'node') {
       $entity = Node::load(1);
       $this->previewEntity = NULL;
@@ -170,6 +176,10 @@ abstract class ApiLayoutControllerTestBase extends KernelTestBase {
       $entity = ContentTemplate::load('node.article.full');
       $this->previewEntity = Node::load(1);
     }
+    elseif ($entity_type_id === PageVariant::ENTITY_TYPE_ID) {
+      $entity = PageVariant::load('test_variant') ?? $this->createTestPageVariant();
+      $this->previewEntity = NULL;
+    }
     else {
       throw new \InvalidArgumentException('Unsupported entity type: ' . $entity_type_id);
     }
@@ -177,7 +187,41 @@ abstract class ApiLayoutControllerTestBase extends KernelTestBase {
     return $entity;
   }
 
+  /**
+   * Creates a page variant seeded with the required "Page content" marker.
+   */
+  protected function createTestPageVariant(): PageVariant {
+    $marker = Component::load(Marker::PAGE_CONTENT_COMPONENT_ID);
+    self::assertInstanceOf(Component::class, $marker, 'The page content marker component must be installed.');
+    $variant = PageVariant::create([
+      'id' => 'test_variant',
+      'label' => 'Test variant',
+      'component_tree' => [
+        [
+          'uuid' => \Drupal::service('uuid')->generate(),
+          'component_id' => Marker::PAGE_CONTENT_COMPONENT_ID,
+          'component_version' => $marker->getActiveVersion(),
+          'inputs' => [],
+        ],
+      ],
+    ]);
+    $variant->save();
+    return $variant;
+  }
+
   public static function providerEntityTypes(): array {
+    return self::providerCanvasTestSetupTreeEntityTypes() + [
+      'Config entity type with component tree: PageVariant' => [PageVariant::ENTITY_TYPE_ID],
+    ];
+  }
+
+  /**
+   * The entity types whose trees CanvasTestSetup seeds with the node 1 layout.
+   *
+   * Tests asserting that specific component tree cannot run against a page
+   * variant, whose tree contains only the "Page content" marker.
+   */
+  public static function providerCanvasTestSetupTreeEntityTypes(): array {
     return [
       'Content entity type with component tree: Node' => ['node'],
       'Config entity type with component tree: ContentTemplate' => [ContentTemplate::ENTITY_TYPE_ID],

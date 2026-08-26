@@ -4,7 +4,7 @@ export type {
   DiscoveredComponent,
   DiscoveredContentTemplate,
   DiscoveredPage,
-  DiscoveredRegion,
+  DiscoveredPageTemplate,
   DiscoveryResult,
   DiscoveryWarning,
 } from '@drupal-canvas/discovery';
@@ -15,11 +15,6 @@ export type EnrichedDiscoveredPage = DiscoveredPage & {
 
 export type EnrichedDiscoveryResult = Omit<DiscoveryResult, 'pages'> & {
   pages: EnrichedDiscoveredPage[];
-  /**
-   * Absolute filesystem path to the user's optional layout component, or
-   * null when no layout file exists. Sent as a Vite `/@fs/` URL to the iframe.
-   */
-  layoutPath: string | null;
 };
 
 export async function fetchDiscoveryResult(): Promise<EnrichedDiscoveryResult> {

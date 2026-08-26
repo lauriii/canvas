@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import { canvasTreeToSpec } from 'drupal-canvas/json-render-utils';
 
 import { isRecord } from './utils';
 
@@ -6,7 +7,6 @@ import type {
   AuthoredSpecElement,
   AuthoredSpecElementMap,
   CanvasComponentTree,
-  canvasTreeToSpec,
 } from 'drupal-canvas/json-render-utils';
 
 // Strict RFC 4122 UUID match: version digit 1–5, variant digit 8/9/a/b. The
@@ -30,7 +30,7 @@ export function isValidUuid(value: string): boolean {
 /**
  * Builds a stable map from authored element keys to valid UUIDs. Keys that
  * already pass `isValidUuid` are kept; everything else is replaced with a
- * fresh v4 UUID. Used by the pages, regions and content-templates push
+ * fresh v4 UUID. Used by the pages, page-templates and content-templates push
  * paths so authored specs (e.g. ones produced by an AI agent) with
  * placeholder keys still push successfully.
  */
@@ -66,7 +66,7 @@ export function buildChildToParentMap(
 
 /**
  * Converts a json-render spec to an authored element map suitable for page
- * and region spec files.
+ * and page template spec files.
  *
  * The authored format differs from the json-render spec in two ways:
  * 1. The synthetic `canvas:component-tree` wrapper is stripped.
@@ -101,6 +101,111 @@ export function jsonRenderSpecToAuthoredElementMap(
   return elements;
 }
 
+function isResolvedMediaValue(
+  value: unknown,
+): value is Record<string, unknown> {
+  return isRecord(value) && typeof value.src === 'string';
+}
+
+function isReferenceInput(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    (typeof value.target_id === 'number' ||
+      typeof value.target_id === 'string' ||
+      typeof value.target_uuid === 'string')
+  );
+}
+
+function isResolvedContentEntityReferenceValue(value: unknown): boolean {
+  return isRecord(value) && typeof value.__type === 'string';
+}
+
+function extractMediaProvenance(
+  inputs: Record<string, unknown>,
+  resolvedInputs: Record<string, unknown>,
+): Record<string, unknown> | undefined {
+  const provenance = Object.fromEntries(
+    Object.entries(inputs).filter(([key, value]) => {
+      return (
+        isResolvedMediaValue(resolvedInputs[key]) && isReferenceInput(value)
+      );
+    }),
+  );
+
+  return Object.keys(provenance).length > 0 ? provenance : undefined;
+}
+
+function restoreContentEntityReferenceInputs(
+  props: Record<string, unknown>,
+  inputs: Record<string, unknown>,
+  resolvedInputs: Record<string, unknown>,
+): void {
+  for (const [key, value] of Object.entries(inputs)) {
+    if (
+      isResolvedContentEntityReferenceValue(resolvedInputs[key]) &&
+      isReferenceInput(value)
+    ) {
+      props[key] = value;
+    }
+  }
+}
+
+/**
+ * Converts a component tree with computed inputs into an authored element map.
+ *
+ * Resolved media values are written as authored props while their entity
+ * references are retained as provenance for push serialization. Content
+ * entity references retain their raw input because they are not authored as
+ * resolved entity data.
+ */
+export function resolvedComponentTreeToAuthoredElementMap(
+  tree: CanvasComponentTree,
+  { fallbackToRawInputs = false }: { fallbackToRawInputs?: boolean } = {},
+): AuthoredSpecElementMap {
+  const components = tree.map((node) => ({
+    ...node,
+    parent_uuid: node.parent_uuid ?? null,
+    slot: node.slot ?? null,
+    label: node.label ?? null,
+    inputs: isRecord(node.inputs_resolved)
+      ? node.inputs_resolved
+      : fallbackToRawInputs && isRecord(node.inputs)
+        ? node.inputs
+        : {},
+  }));
+
+  const elements = jsonRenderSpecToAuthoredElementMap(
+    canvasTreeToSpec(components),
+  );
+
+  for (const node of tree) {
+    const element = elements[node.uuid];
+    if (!element) {
+      continue;
+    }
+
+    const inputs = isRecord(node.inputs) ? node.inputs : {};
+    const resolvedInputs = isRecord(node.inputs_resolved)
+      ? node.inputs_resolved
+      : {};
+
+    if (isRecord(element.props)) {
+      restoreContentEntityReferenceInputs(
+        element.props,
+        inputs,
+        resolvedInputs,
+      );
+    }
+
+    const provenance = extractMediaProvenance(inputs, resolvedInputs);
+    if (provenance) {
+      element._provenance = provenance;
+    }
+  }
+
+  return elements;
+}
+
 /**
  * Converts a server `component_tree` array into an authored element map.
  * Rebuilds each element's `slots` map by reverse-walking parent_uuid/slot
@@ -108,7 +213,7 @@ export function jsonRenderSpecToAuthoredElementMap(
  *
  * `transformInputs` is an optional per-node hook for callers that need to
  * normalize prop values on the way out — e.g. content templates unwrap
- * `{sourceType:'static:...', value:X}` to bare literals. Pages and regions
+ * `{sourceType:'static:...', value:X}` to bare literals. Pages and page templates
  * don't use prop expressions and skip it.
  */
 export function componentTreeToAuthoredElementMap(

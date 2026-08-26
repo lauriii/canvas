@@ -6,6 +6,7 @@ namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\ObjectPropExpressionInterface;
+use Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferencePropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\ScalarPropExpressionInterface;
@@ -110,11 +111,17 @@ final class EntityFieldExpressionMustNotTargetInternalPropertyConstraintValidato
 
     // Reference expression: the referencer's `entity` property is computed (so
     // never internal-and-not-computed); descend into the referenced expression.
-    // Multi-target-bundle references are rejected separately.
-    // @see \Drupal\canvas\Plugin\Validation\Constraint\MultiTargetBundleReferenceNotSupportedConstraint
+    // A multi-target-bundle reference has one branch per bundle; descend into
+    // every branch, since an internal property in any branch is a violation.
     if ($expression instanceof ReferencePropExpressionInterface) {
-      // @todo Remove in https://git.drupalcode.org/project/canvas/-/work_items/3591656
       if ($expression instanceof ReferenceFieldPropExpression && $expression->targetsMultipleBundles()) {
+        \assert($expression->referenced instanceof ReferencedBundleSpecificBranches);
+        foreach ($expression->referenced->bundleSpecificReferencedExpressions as $branch_expression) {
+          $found = $this->findInternalProperty($branch_expression);
+          if ($found !== NULL) {
+            return $found;
+          }
+        }
         return NULL;
       }
       return $this->findInternalProperty($expression->getTargetExpression());

@@ -83,6 +83,7 @@ export function CanvasComponentsMixin<
      * @param identifier An object with either an 'id' (sdc.canvas_test_sdc.card) or 'name' (Hero) property to identify the component.
      * @param options Optional parameters:
      * - hasInputs: If true, waits for the component inputs form to be visible. (default: true)
+     * - waitForVisible: If true, waits for a visible preview overlay. (default: true)
      *
      * Example usage:
      *   await canvasEditor.addComponent({ name: 'Card' }, { waitForNetworkResponses: true });
@@ -95,7 +96,7 @@ export function CanvasComponentsMixin<
       } = { waitForVisible: true },
     ) {
       const { id, name } = identifier;
-      const { hasInputs = true } = options;
+      const { hasInputs = true, waitForVisible = true } = options;
 
       let selector, previewSelector;
 
@@ -125,16 +126,22 @@ export function CanvasComponentsMixin<
         .locator(selector);
 
       const existingInstances = this.page.locator(previewSelector);
-      const initialCount = await existingInstances.count();
+      const initialCount = waitForVisible
+        ? await existingInstances.count()
+        : undefined;
       await componentLocator.hover();
       await componentLocator.getByLabel('Open contextual menu').click();
-      await this.page.getByText('Insert').click();
+      const insertItem = this.page.getByRole('menuitem', { name: 'Insert' });
+      await expect(insertItem).toBeVisible();
+      await insertItem.click();
+      // The modal menu closing confirms the item's click handler ran (a click
+      // landing during a re-render can be swallowed, leaving the menu open).
+      await expect(insertItem).toBeHidden();
 
-      await expect(this.page.locator(previewSelector)).toHaveCount(
-        initialCount + 1,
-      );
-
-      if (options?.waitForVisible) {
+      if (waitForVisible && initialCount !== undefined) {
+        await expect(this.page.locator(previewSelector)).toHaveCount(
+          initialCount + 1,
+        );
         const updatedInstances = this.page.locator(previewSelector);
         const updatedCount = await updatedInstances.count();
         for (let i = 0; i < updatedCount; i++) {

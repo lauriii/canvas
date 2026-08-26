@@ -58,6 +58,18 @@ use Drupal\Core\Field\FieldStorageDefinitionInterface;
  * @internal
  */
 enum JsonSchemaType: string {
+
+  /**
+   * The `$ref` marking a `type: string` prop as a Canvas color prop.
+   *
+   * The literal below MUST be kept in sync with the `Choice` constraint in
+   * `type: canvas.json_schema.*`.
+   *
+   * @see ::computeStorablePropShape()
+   * @see config/schema/canvas.json_schema.yml
+   */
+  public const string COLOR_SCHEMA_REF = 'json-schema-definitions://canvas.module/color';
+
   case String = 'string';
   case Number = 'number';
   case Integer = 'integer';
@@ -265,6 +277,11 @@ enum JsonSchemaType: string {
       }
       $array_item_prop_shape = PropShape::normalize($schema['items']);
 
+      // The resolution below reuses the field type, widget and settings of the
+      // item prop shape. The array prop shape then depends on whatever config
+      // that resolution depended on (e.g. `config:media_type_list`), and must
+      // carry the same cache tags.
+      // @see \Drupal\canvas\PropShape\EphemeralPropShapeRepository::getStorablePropShape()
       $item_storable_prop_shape = $shape_repository->getStorablePropShape($array_item_prop_shape);
       if ($item_storable_prop_shape === NULL) {
         return NULL;
@@ -308,6 +325,13 @@ enum JsonSchemaType: string {
           // Other `x-formatting-context` values do not make sense.
           default => NULL,
         },
+        // Color: type: string with $ref pointing to canvas.module/color.
+        // Stores as a plain string, and render pipeline resolves to an object.
+        \array_key_exists('$ref', $schema) && $schema['$ref'] === self::COLOR_SCHEMA_REF => new StorablePropShape(
+          shape: $shape,
+          fieldTypeProp: new FieldTypePropExpression('string', 'value'),
+          fieldWidget: 'canvas_color_picker',
+        ),
         // Icons: the core Icon API's full icon id (`pack_id:icon_id`) stored
         // as a plain string in the dedicated `canvas_icon` field type.
         // Recognized either by the well-known `$ref` or by its (potentially
@@ -461,6 +485,36 @@ enum JsonSchemaType: string {
               ),
             ]),
             fieldInstanceSettings: ['file_extensions' => 'mp4'],
+          ),
+          // @see \Drupal\file\Plugin\Field\FieldType\FileItem
+          // @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter()
+          JsonSchemaObjectRef::Document => new StorablePropShape(
+            shape: $shape,
+            fieldWidget: 'file_generic',
+            fieldTypeProp: new FieldTypeObjectPropsExpression('file', [
+              'src' => new ReferenceFieldTypePropExpression(
+                new FieldTypePropExpression('file', 'entity'),
+                new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'url'),
+              ),
+              'filename' => new ReferenceFieldTypePropExpression(
+                new FieldTypePropExpression('file', 'entity'),
+                new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'filename', NULL, 'value'),
+              ),
+              'filesize' => new ReferenceFieldTypePropExpression(
+                new FieldTypePropExpression('file', 'entity'),
+                new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'filesize', NULL, 'value'),
+              ),
+              'mimetype' => new ReferenceFieldTypePropExpression(
+                new FieldTypePropExpression('file', 'entity'),
+                new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'filemime', NULL, 'value'),
+              ),
+            ]),
+            // The `document` shape's `src` property declares the allowed file
+            // extensions; the upload widget and shape matching both read that
+            // single list. Modules can widen the widget's list via
+            // hook_canvas_storable_prop_shape_alter().
+            // @see https://git.drupalcode.org/project/canvas/-/work_items/3524130#note_1678367
+            fieldInstanceSettings: ['file_extensions' => implode(' ', JsonSchemaObjectRef::Document->allowedFileExtensions())],
           ),
           default => NULL,
         },

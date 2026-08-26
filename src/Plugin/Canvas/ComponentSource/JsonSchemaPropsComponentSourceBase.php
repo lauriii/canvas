@@ -8,6 +8,8 @@ use Drupal\canvas\ComponentSource\ComponentSourceBase;
 use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Entity\EmptyTargetEntityProviderInterface;
+use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Icon\IconResolver;
 use Drupal\canvas\InvalidComponentInputsPropSourceException;
 use Drupal\canvas\MissingHostEntityException;
@@ -29,6 +31,7 @@ use Drupal\canvas\PropSource\PropSourceBase;
 use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher;
 use Drupal\canvas\ShapeMatcher\PropSourceSuggester;
+use Drupal\canvas\Utility\ColorResolver;
 use Drupal\canvas\Utility\ComponentMetadataHelper;
 use Drupal\canvas\Utility\TypedDataHelper;
 use Drupal\Component\Assertion\Inspector;
@@ -45,6 +48,7 @@ use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Plugin\Component as ComponentPlugin;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
 use Drupal\Core\Render\Component\Exception\InvalidComponentException;
 use Drupal\Core\Render\Element;
@@ -113,6 +117,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
     private readonly PropSourceSuggester $propSourceSuggester,
     private readonly LoggerChannelInterface $logger,
     protected readonly PropShapeRepositoryInterface $propShapeRepository,
+    private readonly ColorResolver $colorResolver,
     protected readonly IconResolver $iconResolver,
   ) {
     \assert(\array_key_exists('local_source_id', $configuration));
@@ -133,6 +138,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       $container->get(PropSourceSuggester::class),
       $container->get('logger.channel.canvas'),
       $container->get(PropShapeRepositoryInterface::class),
+      $container->get(ColorResolver::class),
       $container->get(IconResolver::class),
     );
   }
@@ -423,6 +429,38 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
   /**
    * {@inheritdoc}
    */
+
+  /**
+   * Resolves the fieldable host entity a component instance evaluates against.
+   *
+   * Prop sources can only evaluate structured data from fieldable entities, but
+   * a component tree may be contained by a config entity. Prioritize the given
+   * host entity; otherwise use the component instance's tree root entity if it
+   * is fieldable; otherwise none (no DynamicPropSource can be evaluated). It is
+   * up to the code using/rendering a config entity to provide a fieldable host
+   * entity if EntityFieldPropSources are used, which currently is only the case
+   * for ContentTemplate component trees.
+   *
+   * @param \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem $item
+   *   The component instance.
+   * @param \Drupal\Core\Entity\FieldableEntityInterface|null $host_entity
+   *   The host entity provided by the caller, if any.
+   *
+   * @return \Drupal\Core\Entity\FieldableEntityInterface|null
+   *   The fieldable host entity, or NULL when neither the given host nor the
+   *   tree root is a fieldable entity.
+   *
+   * @see \Drupal\canvas\PropSource\PropSourceBase::evaluate()
+   */
+  protected function getFieldableHostEntity(ComponentTreeItem $item, ?FieldableEntityInterface $host_entity): ?FieldableEntityInterface {
+    $root = $item->getRoot();
+    return match (TRUE) {
+      $host_entity instanceof FieldableEntityInterface => $host_entity,
+      $root instanceof EntityAdapter && $root->getEntity() instanceof FieldableEntityInterface => $root->getEntity(),
+      default => NULL,
+    };
+  }
+
   public function getExplicitInput(string $uuid, ComponentTreeItem $item, ?FieldableEntityInterface $host_entity = NULL): array {
     if (!$this->requiresExplicitInput()) {
       return [
@@ -431,22 +469,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       ];
     }
 
-    // Prop sources can only evaluate structured data from fieldable entities,
-    // but the component tree may be contained by a config entity.
-    // It is up to the code using/rendering that config entity to provide a
-    // fieldable host entity if EntityFieldPropSources are used, which currently
-    // is only the case for ContentTemplate component trees.
-    // @see \Drupal\canvas\PropSource\PropSourceBase::evaluate()
-    $root = $item->getRoot();
-    $fieldable_host_entity = match (TRUE) {
-      // Prioritize using the given host entity, if any.
-      $host_entity instanceof FieldableEntityInterface => $host_entity,
-      // Next, use the component instance's tree's host entity, if fieldable.
-      $root instanceof EntityAdapter && $root->getEntity() instanceof FieldableEntityInterface => $root->getEntity(),
-      // Otherwise, fall back to no host entity. This implies no
-      // DynamicPropSource can be evaluated.
-      default => NULL,
-    };
+    $fieldable_host_entity = $this->getFieldableHostEntity($item, $host_entity);
 
     $values = $item->getInputs() ?? [];
 
@@ -549,18 +572,77 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
 
   /**
    * @param array<string, EvaluationResult> $props_evaluation_results
+   * @param array<string, mixed>|null $prop_schemas
    *
-   * @return array{0: array<string, mixed>, 1: \Drupal\Core\Cache\CacheableMetadata}
+   * @return array{0: array<string, mixed>, 1: \Drupal\Core\Render\BubbleableMetadata}
+   *   The resolved prop values and their combined bubbleable metadata: the
+   *   cacheability plus the `#attached` assets a value needs to render.
    */
-  protected static function getResolvedPropsAndCacheability(array $props_evaluation_results): array {
+  protected function getResolvedPropsAndBubbleableMetadata(array $props_evaluation_results, ?array $prop_schemas = NULL): array {
     \assert(Inspector::assertAllObjects($props_evaluation_results, EvaluationResult::class));
-    $props_cacheability = new CacheableMetadata();
+    $props_bubbleable_metadata = new BubbleableMetadata();
     $props = [];
     foreach ($props_evaluation_results as $prop_name => $evaluation_result) {
-      $props_cacheability->addCacheableDependency($evaluation_result);
-      $props[$prop_name] = $evaluation_result->value;
+      $value = $evaluation_result->value;
+
+      // @todo Consider introducing a hook_canvas_prop_value_alter() to allow
+      // modules to transform resolved prop values by schema shape at render
+      // time, rather than handling well-known $ref shapes inline here.
+      // Color is stored and validated as a string, but made available to
+      // templates as a rich object.
+      if (\is_string($value)
+        && ($prop_schemas[$prop_name]['$ref'] ?? NULL) === 'json-schema-definitions://canvas.module/color') {
+        [$value, $evaluation_result] = $this->colorResolver->resolve($value);
+      }
+
+      // BubbleableMetadata::createFromObject() reads both cacheability and, via
+      // AttachmentsInterface, the assets the value needs. merge() returns a new
+      // object, so reassign to accumulate across props.
+      $props_bubbleable_metadata = $props_bubbleable_metadata->merge(BubbleableMetadata::createFromObject($evaluation_result));
+
+      $props[$prop_name] = $value;
     }
-    return [$props, $props_cacheability];
+    return [$props, $props_bubbleable_metadata];
+  }
+
+  /**
+   * Returns props safe for validateProps() converting to string.
+   *
+   * Color props are stored as strings and resolved to rich objects by
+   * getResolvedPropsAndBubbleableMetadata(). The component schema declares them
+   * as type: string, so substitute back before asserting validation. Optional
+   * color props that resolved to NULL are omitted.
+   *
+   * @param array<string, mixed> $props
+   *   The resolved props array.
+   * @param array<string, mixed> $prop_schemas
+   *   The component's prop schemas from metadata (schema['properties']).
+   *
+   * @return array<string, mixed>
+   *   Props with color arrays replaced by their cssColorValue strings.
+   *
+   * @see \Drupal\Core\Theme\Component\ComponentValidator::validateProps()
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::renderComponent()
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent::renderComponent()
+   */
+  protected function substituteColorPropsForValidation(array $props, array $prop_schemas): array {
+    $props_for_validation = $props;
+    foreach ($props_for_validation as $prop_name => $value) {
+      if (($prop_schemas[$prop_name]['$ref'] ?? NULL) !== 'json-schema-definitions://canvas.module/color') {
+        continue;
+      }
+      // Unresolved optional color props (deleted Color entity or unpopulated)
+      // are omitted, mirroring the base-class pattern before validateProps().
+      if ($value === NULL) {
+        unset($props_for_validation[$prop_name]);
+        continue;
+      }
+      // ColorResolver::resolve() always populates cssColorValue on success.
+      // Assert the invariant to fail loudly if violated.
+      \assert(\is_array($value) && \array_key_exists('cssColorValue', $value));
+      $props_for_validation[$prop_name] = $value['cssColorValue'];
+    }
+    return $props_for_validation;
   }
 
   /**
@@ -960,7 +1042,10 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
     // @see \Drupal\canvas\PropSource\StaticPropSource::formTemporaryRemoveThisExclamationExclamationExclamation()
     $entity_object_for_field_widget = match (TRUE) {
       $entity instanceof FieldableEntityInterface => $entity,
-      $entity instanceof ContentTemplate => $entity->createEmptyTargetEntity(),
+      // Config entities hosting component trees (content templates, page
+      // variants) provide an empty stand-in entity.
+      $entity instanceof EmptyTargetEntityProviderInterface => $entity->createEmptyTargetEntity(),
+      $entity instanceof Pattern => Pattern::createEmptyHostEntity(),
       default => throw new \LogicException(),
     };
 
@@ -1032,7 +1117,20 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       $field_widget_plugin_id = $static_prop_source_field_definition['field_widget'];
       $label = $component_schema['properties'][$sdc_prop_name]['title'] ?? Unicode::ucfirst($sdc_prop_name);
       $description = $component_schema['properties'][$sdc_prop_name]['description'] ?? NULL;
-      $widget = $source->getWidget($component->id(), $component->getLoadedVersion(), $sdc_prop_name, $label, $field_widget_plugin_id, $description);
+      // Read x-canvas-color-picker directly from the raw component schema,
+      // since PropShape::standardize() strips it before it's stored.
+      $field_widget_settings = [];
+      if ($field_widget_plugin_id === 'canvas_color_picker') {
+        $mode = $component_schema['properties'][$sdc_prop_name]['x-canvas-color-picker'] ?? NULL;
+        if ($mode !== NULL) {
+          $field_widget_settings = ['mode' => $mode];
+        }
+        $folders = $component_schema['properties'][$sdc_prop_name]['x-canvas-color-folders'] ?? NULL;
+        if (!empty($folders) && \is_array($folders)) {
+          $field_widget_settings['folders'] = $folders;
+        }
+      }
+      $widget = $source->getWidget($component->id(), $component->getLoadedVersion(), $sdc_prop_name, $label, $field_widget_plugin_id, $description, $field_widget_settings);
       $is_required = $static_prop_source_field_definition['required'];
       // For array props: JSON Schema `required: [prop]` means "the key must be
       // present" — it does NOT enforce ≥1 items. Only `minItems: 1` does that.

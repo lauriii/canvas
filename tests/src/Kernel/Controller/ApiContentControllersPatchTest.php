@@ -7,7 +7,11 @@ namespace Drupal\Tests\canvas\Kernel\Controller;
 use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Controller\ApiContentControllers;
+use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Entity\PageVariant;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
@@ -19,6 +23,7 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Tests the ApiContentControllers::patch() method.
@@ -102,6 +107,51 @@ class ApiContentControllersPatchTest extends CanvasKernelTestBase {
     );
   }
 
+  /**
+   * Tests clearing an explicit page variant selection.
+   */
+  public function testPatchClearsPageVariant(): void {
+    $marker = Component::load(Marker::PAGE_CONTENT_COMPONENT_ID);
+    self::assertInstanceOf(ComponentInterface::class, $marker);
+    PageVariant::create([
+      'id' => 'marketing',
+      'label' => 'Marketing',
+      'status' => TRUE,
+      'component_tree' => [[
+        'uuid' => '14b2e2b7-5e05-42e2-9f6e-2ffdbb37df35',
+        'component_id' => Marker::PAGE_CONTENT_COMPONENT_ID,
+        'component_version' => $marker->getActiveVersion(),
+        'inputs' => [],
+      ],
+      ],
+    ])->save();
+    $page = Page::create([
+      'title' => 'Marketing page',
+      'status' => FALSE,
+      'path' => ['alias' => '/marketing'],
+      'page_variant' => 'marketing',
+      'components' => [],
+    ]);
+    $page->save();
+
+    $response = $this->request(Request::create(
+      \sprintf(self::URL, $page->id()),
+      'PATCH',
+      server: ['CONTENT_TYPE' => 'application/json'],
+      content: \json_encode([
+        'title' => 'Marketing page',
+        'status' => FALSE,
+        'path' => '/marketing',
+        'pageVariant' => NULL,
+        'components' => [],
+      ], JSON_THROW_ON_ERROR),
+    ));
+
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    self::assertNull($this->decodeResponse($response)['pageVariant']);
+    self::assertSame('', Page::load($page->id())?->get('page_variant')->getString());
+  }
+
   public static function providerPatch(): \Generator {
     yield "Empty tree" => [
       [
@@ -121,6 +171,7 @@ class ApiContentControllersPatchTest extends CanvasKernelTestBase {
         'autoSavePath' => NULL,
         'components' => [],
         'description' => '',
+        'pageVariant' => NULL,
         'links' => [
           CanvasUriDefinitions::LINK_REL_UNPUBLISH => '/canvas/api/v0/content/auto-save/canvas_page/1',
           CanvasUriDefinitions::LINK_REL_EDIT => '/canvas/editor/canvas_page/1',
@@ -188,6 +239,7 @@ class ApiContentControllersPatchTest extends CanvasKernelTestBase {
           ],
         ],
         'description' => '',
+        'pageVariant' => NULL,
         'links' => [
           CanvasUriDefinitions::LINK_REL_UNPUBLISH => '/canvas/api/v0/content/auto-save/canvas_page/1',
           CanvasUriDefinitions::LINK_REL_EDIT => '/canvas/editor/canvas_page/1',

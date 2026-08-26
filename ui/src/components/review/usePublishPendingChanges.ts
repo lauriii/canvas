@@ -139,6 +139,11 @@ export const usePublishPendingChanges = ({
         );
       }
 
+      // Publishing creates a new revision, which may change which colors are
+      // in use on current revisions. Invalidate all cached color usage
+      // details so the delete gate reflects the new state.
+      dispatch(brandKitApi.util.invalidateTags(['ColorUsageDetails']));
+
       return true;
     },
     [

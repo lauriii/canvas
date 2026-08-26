@@ -3,7 +3,10 @@ import path from 'path';
 import chalk from 'chalk';
 import { Option } from 'commander';
 import * as p from '@clack/prompts';
-import { discoverCanvasProject } from '@drupal-canvas/discovery';
+import {
+  detectHeadlessSdk,
+  discoverCanvasProject,
+} from '@drupal-canvas/discovery';
 
 import { ensureConfig, getConfig, parseBooleanSetting } from '../config.js';
 import {
@@ -34,6 +37,11 @@ import {
   pushContentTemplates,
 } from '../utils/prepare-content-templates-push';
 import {
+  collectPageVariantResults,
+  preparePageVariants,
+  pushPageVariants,
+} from '../utils/prepare-page-variants-push';
+import {
   collectPageResults,
   preparePages,
   pushPages,
@@ -42,11 +50,6 @@ import {
   prepareGlobalAssetLibraryUpdate,
   pushBuiltComponents,
 } from '../utils/prepare-push';
-import {
-  collectRegionResults,
-  prepareRegions,
-  pushRegions,
-} from '../utils/prepare-regions-push';
 import {
   formatErrorMessage,
   PushPhaseError,
@@ -61,7 +64,7 @@ import { createProgressCallback, processInPool } from '../utils/request-pool';
 import { formatFilePathForOutput } from '../utils/utils';
 import { validateContentTemplates } from '../utils/validate-content-template';
 import { validatePages } from '../utils/validate-page';
-import { validateRegions } from '../utils/validate-region';
+import { validatePageTemplates } from '../utils/validate-page-variant';
 
 import type { DiscoveryWarning } from '@drupal-canvas/discovery';
 import type { Command } from 'commander';
@@ -86,10 +89,9 @@ interface PushOptions {
   scope?: string;
   includePages?: boolean;
   includeContentTemplates?: boolean;
-  includeRegions?: boolean;
   pages?: boolean;
   contentTemplates?: boolean;
-  regions?: boolean;
+  pageTemplates?: boolean;
   includeBrandKit?: boolean;
   dir?: string;
   yes?: boolean;
@@ -99,7 +101,7 @@ type PlannedPushResourceKey =
   | 'components'
   | 'pages'
   | 'content-templates'
-  | 'global-regions'
+  | 'page-templates'
   | 'brand-kit'
   | 'icons';
 
@@ -174,9 +176,9 @@ function buildNotStartedResources(
       itemType: 'Content template',
     },
     {
-      key: 'global-regions',
-      label: 'Global regions',
-      itemType: 'Global region',
+      key: 'page-templates',
+      label: 'Page templates',
+      itemType: 'Page template',
     },
     { key: 'brand-kit', label: 'brand kit', itemType: 'Font variant' },
     { key: 'icons', label: 'Icon libraries', itemType: 'Icon library' },
@@ -312,8 +314,10 @@ export type SyncExclusionSource = 'flag' | 'deprecated-flag' | 'env' | 'config';
 
 export interface SyncExclusionMessageOptions {
   noFlag: string;
-  includeFlag: string;
-  envName: string;
+  // Only categories with a shipped deprecated `--include-*` flag or
+  // `CANVAS_INCLUDE_*` environment variable carry these.
+  includeFlag?: string;
+  envName?: string;
   configPath: string;
 }
 
@@ -373,11 +377,15 @@ export function collectManifestArtifacts(manifest: BuildManifest): Array<{
   name: string;
   filePath: string;
   type: 'vendor' | 'local' | 'shared';
+  path?: string;
+  source?: string;
 }> {
   const files: Array<{
     name: string;
     filePath: string;
     type: 'vendor' | 'local' | 'shared';
+    path?: string;
+    source?: string;
   }> = [];
 
   for (const [specifier, filePath] of Object.entries(manifest.vendor)) {
@@ -385,7 +393,16 @@ export function collectManifestArtifacts(manifest: BuildManifest): Array<{
   }
 
   for (const [specifier, filePath] of Object.entries(manifest.local)) {
-    files.push({ name: specifier, filePath, type: 'local' as const });
+    // Carry the original disk path and (for text modules) the verbatim source
+    // so a subsequent pull can reconstruct the source file on disk.
+    const meta = manifest.localSources?.[specifier];
+    files.push({
+      name: specifier,
+      filePath,
+      type: 'local' as const,
+      ...(meta?.path !== undefined ? { path: meta.path } : {}),
+      ...(meta?.source !== undefined ? { source: meta.source } : {}),
+    });
   }
 
   // Add shared chunks - use filePath as the name since they don't have import specifiers
@@ -400,6 +417,10 @@ interface GroupedUploadedManifest {
   vendor: UploadedArtifact[];
   local: UploadedArtifact[];
   shared: UploadedArtifact[];
+  // Verbatim sources of local modules bundled into other artifacts. Not
+  // uploaded as file artifacts (there is no artifact); sent as-is so a pull can
+  // restore the editable file. Never part of the runtime import map.
+  bundledSources: Array<{ path: string; source: string }>;
 }
 
 /**
@@ -410,6 +431,8 @@ async function uploadAndBuildManifest(
     name: string;
     filePath: string;
     type: 'vendor' | 'local' | 'shared';
+    path?: string;
+    source?: string;
   }>,
   distDir: string,
   apiService: Pick<ApiService, 'uploadArtifact'>,
@@ -458,15 +481,20 @@ async function uploadAndBuildManifest(
     vendor: [],
     local: [],
     shared: [],
+    bundledSources: [],
   };
 
   if (failedResults.length === 0) {
     for (const file of files) {
       const uploadResult = uploadedByFilePath.get(file.filePath);
       if (uploadResult) {
+        // Only local entries carry path/source; vendor and shared stay
+        // {name, uri}.
         grouped[file.type].push({
           name: file.name,
           uri: uploadResult.uri,
+          ...(file.path !== undefined ? { path: file.path } : {}),
+          ...(file.source !== undefined ? { source: file.source } : {}),
         });
       }
     }
@@ -498,16 +526,24 @@ export async function uploadManifestArtifacts(
   groupedManifest: GroupedUploadedManifest;
 }> {
   const createSpinner = options.createSpinner ?? (() => p.spinner());
-  const emptyManifest = { vendor: [], local: [], shared: [] };
+  const emptyManifest: GroupedUploadedManifest = {
+    vendor: [],
+    local: [],
+    shared: [],
+    bundledSources: [],
+  };
 
   const artifactFiles: Array<{
     name: string;
     filePath: string;
     type: 'vendor' | 'local' | 'shared';
   }> = [];
+  // Sources of bundled local modules, carried verbatim (no artifact to upload).
+  let bundledSources: Array<{ path: string; source: string }> = [];
   try {
     const manifest = await readBuildManifest(outputDir);
     artifactFiles.push(...collectManifestArtifacts(manifest));
+    bundledSources = manifest.bundledSources ?? [];
   } catch {
     // Build manifest may not exist if build wasn't run. This is not fatal once
     // components have already been pushed.
@@ -518,7 +554,10 @@ export async function uploadManifestArtifacts(
 
   if (artifactFiles.length === 0) {
     options.logInfo?.('No component dependencies to upload');
-    return { artifactCount: 0, groupedManifest: emptyManifest };
+    return {
+      artifactCount: 0,
+      groupedManifest: { ...emptyManifest, bundledSources },
+    };
   }
 
   const dependencySpinner = createSpinner();
@@ -533,6 +572,7 @@ export async function uploadManifestArtifacts(
     dependencySpinner.stop('Pushed dependencies', 2);
     throw error;
   });
+  groupedManifest.bundledSources = bundledSources;
   const artifactCount =
     groupedManifest.vendor.length +
     groupedManifest.local.length +
@@ -575,7 +615,10 @@ export async function syncManifestArtifacts(
 }
 
 export async function updateGlobalAssetLibraryForPush(
-  apiService: Pick<ApiService, 'updateGlobalAssetLibrary'>,
+  apiService: Pick<
+    ApiService,
+    'getGlobalAssetLibrary' | 'updateGlobalAssetLibrary'
+  >,
   globalAssetLibraryUpdate: Partial<AssetLibrary> | undefined,
   manifestSyncResult: {
     artifactCount: number;
@@ -585,10 +628,25 @@ export async function updateGlobalAssetLibraryForPush(
   const assetLibraryPatch: Partial<AssetLibrary> = {
     ...(globalAssetLibraryUpdate ?? {}),
   };
-  if (manifestSyncResult.artifactCount > 0) {
-    assetLibraryPatch.imports = manifestSyncResult.groupedManifest.vendor;
-    assetLibraryPatch.assets = manifestSyncResult.groupedManifest.local;
-    assetLibraryPatch.shared = manifestSyncResult.groupedManifest.shared;
+  // Always send the current manifest groups, even when empty since empty
+  // arrays lets the backend clear them.
+  assetLibraryPatch.imports = manifestSyncResult.groupedManifest.vendor;
+  assetLibraryPatch.assets = manifestSyncResult.groupedManifest.local;
+  assetLibraryPatch.shared = manifestSyncResult.groupedManifest.shared;
+  assetLibraryPatch.bundledSources =
+    manifestSyncResult.groupedManifest.bundledSources;
+
+  const currentAssetLibrary = await apiService.getGlobalAssetLibrary();
+  const supportsCodebaseSync =
+    Object.hasOwn(currentAssetLibrary, 'bundledSources') &&
+    Object.hasOwn(currentAssetLibrary, 'packageJson');
+
+  if (!supportsCodebaseSync) {
+    delete assetLibraryPatch.bundledSources;
+    delete assetLibraryPatch.packageJson;
+    assetLibraryPatch.assets = assetLibraryPatch.assets?.map(
+      ({ name, uri }) => ({ name, uri }),
+    );
   }
 
   await apiService.updateGlobalAssetLibrary(assetLibraryPatch);
@@ -649,21 +707,15 @@ export function pushCommand(program: Command): void {
         .argParser(parseBooleanOption)
         .default(undefined),
     )
-    .addOption(
-      new Option(
-        '--include-regions [enabled]',
-        'Include global regions in the push operation',
-      )
-        .preset('true')
-        .argParser(parseBooleanOption)
-        .default(undefined),
-    )
     .option('--no-pages', 'Exclude pages from the push operation')
     .option(
       '--no-content-templates',
       'Exclude content templates from the push operation',
     )
-    .option('--no-regions', 'Exclude global regions from the push operation')
+    .option(
+      '--no-page-templates',
+      'Exclude page templates from the push operation',
+    )
     .addOption(
       new Option(
         '--include-brand-kit [enabled]',
@@ -691,7 +743,7 @@ export function pushCommand(program: Command): void {
         const { componentDir, aliasBaseDir, outputDir } = config;
         const includesPages = config.includePages;
         const includesContentTemplates = config.includeContentTemplates;
-        const includesRegions = config.includeRegions;
+        const includesPageTemplates = config.includePageTemplates;
         const includesBrandKit = config.includeBrandKit;
         // Icon libraries are part of the brand kit workflow.
         const includesIcons = includesBrandKit;
@@ -702,19 +754,27 @@ export function pushCommand(program: Command): void {
         } = includesIcons
           ? await discoverIconLibraries(process.cwd())
           : { libraries: [], authoritative: false };
-        // Step 1. Discover all components, pages, content templates and regions.
+        // When the Canvas Headless SDK is installed, components are pushed as
+        // external components (metadata only): the headless app renders them.
+        // The app's entries may be framework single-file components (.vue,
+        // .astro, .svelte) that the Canvas build pipeline cannot compile, so
+        // discovery must not require a JavaScript entry in this mode.
+        const headlessSdkDetected = detectHeadlessSdk(process.cwd());
+        // Step 1. Discover all components, pages, content templates and page
+        // templates.
         const discoveryResult = await discoverCanvasProject({
           componentRoot: componentDir,
           pagesRoot: config.pagesDir,
           contentTemplatesRoot: config.contentTemplatesDir,
-          regionsRoot: config.regionsDir,
+          pageTemplatesRoot: config.pageTemplatesDir,
           projectRoot: process.cwd(),
+          requireJsEntry: !headlessSdkDetected,
         });
         const {
           components,
           pages: allDiscoveredPages,
           contentTemplates: allDiscoveredContentTemplates,
-          regions: allDiscoveredRegions,
+          pageTemplates: allDiscoveredPageTemplates,
           warnings,
         } = discoveryResult;
         const discoveredPages = includesPages ? allDiscoveredPages : [];
@@ -724,9 +784,11 @@ export function pushCommand(program: Command): void {
           : [];
         const hasIgnoredContentTemplates =
           !includesContentTemplates && allDiscoveredContentTemplates.length > 0;
-        const discoveredRegions = includesRegions ? allDiscoveredRegions : [];
-        const hasIgnoredRegions =
-          !includesRegions && allDiscoveredRegions.length > 0;
+        const discoveredPageTemplates = includesPageTemplates
+          ? allDiscoveredPageTemplates
+          : [];
+        const hasIgnoredPageTemplates =
+          !includesPageTemplates && allDiscoveredPageTemplates.length > 0;
         const componentDiscoveryWarnings =
           components.length > 0 ? warnings : [];
         const immediateDiscoveryWarnings =
@@ -768,20 +830,18 @@ export function pushCommand(program: Command): void {
               ),
             );
           }
-          if (hasIgnoredRegions) {
+          if (hasIgnoredPageTemplates) {
             p.log.info(
               getSyncExclusionMessage(
-                'global regions',
+                'page templates',
                 getSyncExclusionSource(
-                  options.regions,
-                  options.includeRegions,
-                  process.env.CANVAS_INCLUDE_REGIONS,
+                  options.pageTemplates,
+                  undefined,
+                  undefined,
                 ),
                 {
-                  noFlag: '--no-regions',
-                  includeFlag: '--include-regions',
-                  envName: 'CANVAS_INCLUDE_REGIONS',
-                  configPath: 'sync.regions',
+                  noFlag: '--no-page-templates',
+                  configPath: 'sync.pageTemplates',
                 },
               ),
             );
@@ -792,13 +852,13 @@ export function pushCommand(program: Command): void {
           components.length === 0 &&
           discoveredPages.length === 0 &&
           discoveredContentTemplates.length === 0 &&
-          discoveredRegions.length === 0 &&
+          discoveredPageTemplates.length === 0 &&
           discoveredIconLibraries.length === 0 &&
           !(includesBrandKit && hasBrandKitFontsConfig)
         ) {
           logIgnoredLocalResources();
           p.log.warn(
-            'No components, pages, content templates, or global regions found for the enabled sync settings.',
+            'No components, pages, content templates, or page templates found for the enabled sync settings.',
           );
           p.outro('Nothing to push');
           return;
@@ -808,12 +868,12 @@ export function pushCommand(program: Command): void {
           components.length === 0 &&
           discoveredPages.length === 0 &&
           discoveredContentTemplates.length === 0 &&
-          discoveredRegions.length === 0 &&
+          discoveredPageTemplates.length === 0 &&
           includesBrandKit &&
           hasBrandKitFontsConfig
         ) {
           p.log.info(
-            'No components, pages, content templates, or global regions found; syncing brand kit fonts from canvas.brand-kit.json.',
+            'No components, pages, content templates, or page templates found; syncing brand kit fonts from canvas.brand-kit.json.',
           );
         }
 
@@ -878,25 +938,34 @@ export function pushCommand(program: Command): void {
           remoteContentTemplateById.set(remote.id, remote);
         }
 
-        // Fetch remote page regions early for the planned operations summary.
-        const remoteRegions = includesRegions
-          ? await apiService.listRegions()
-          : {};
-        // Map each remote region's name to its full `{theme}.{region}` id so
-        // the push step can resolve the PATCH/DELETE target without needing
-        // the theme in the local file.
-        const remoteRegionIdsByName = new Map(
-          Object.values(remoteRegions).map(
-            (r) => [r.region, `${r.theme}.${r.region}`] as const,
-          ),
+        // Fetch remote page variants (and the site default) early for the
+        // planned operations summary.
+        const remotePageVariants =
+          includesPageTemplates || includesPages || includesContentTemplates
+            ? await apiService.listPageVariants()
+            : {};
+        const currentDefaultPageVariant = includesPageTemplates
+          ? (await apiService.getDefaultPageVariant()).default_page_variant
+          : null;
+        const remotePageVariantIds = new Set(Object.keys(remotePageVariants));
+        const localPageTemplateIds = new Set(
+          discoveredPageTemplates.map((t) => t.id),
         );
-        const localRegionNames = new Set(
-          discoveredRegions.map((r) => r.region),
-        );
-        // Remote regions absent locally are deleted on push.
-        const remoteRegionNamesToDelete = Array.from(
-          remoteRegionIdsByName.keys(),
-        ).filter((name) => !localRegionNames.has(name));
+        // When page templates are synchronized, only locally authored IDs
+        // remain after the replacement-style sync. Otherwise, dependents may
+        // reference any existing remote variant.
+        const availablePageVariantIds = includesPageTemplates
+          ? localPageTemplateIds
+          : remotePageVariantIds;
+        // When page templates are synchronized, remote variants absent locally
+        // are candidates for deletion. The push step changes the site default
+        // before deleting its previous variant, or keeps that variant when no
+        // replacement becomes default.
+        const remotePageVariantIdsToDelete = includesPageTemplates
+          ? Array.from(remotePageVariantIds).filter(
+              (id) => !localPageTemplateIds.has(id),
+            )
+          : [];
 
         // Build a preview of planned operations.
         const operationLabels: Record<string, string> = {
@@ -958,21 +1027,21 @@ export function pushCommand(program: Command): void {
               ],
             };
           }),
-          ...discoveredRegions.map((region) => ({
-            itemName: region.region,
-            itemType: 'Global region',
+          ...discoveredPageTemplates.map((pageTemplate) => ({
+            itemName: pageTemplate.id,
+            itemType: 'Page template',
             success: true,
             details: [
               {
-                content: remoteRegionIdsByName.has(region.region)
+                content: remotePageVariantIds.has(pageTemplate.id)
                   ? operationLabels.update
                   : operationLabels.create,
               },
             ],
           })),
-          ...remoteRegionNamesToDelete.map((name) => ({
-            itemName: name,
-            itemType: 'Global region',
+          ...remotePageVariantIdsToDelete.map((id) => ({
+            itemName: id,
+            itemType: 'Page template',
             success: true,
             details: [{ content: operationLabels.delete }],
           })),
@@ -1005,6 +1074,12 @@ export function pushCommand(program: Command): void {
           p.log.warn(formatDiscoveryWarning(warning));
         }
 
+        if (headlessSdkDetected && components.length > 0) {
+          p.log.info(
+            'Canvas Headless SDK detected: components are pushed as external (metadata only).',
+          );
+        }
+
         if (!options.yes) {
           const parts: string[] = [];
           if (components.length > 0) {
@@ -1017,9 +1092,9 @@ export function pushCommand(program: Command): void {
               `${discoveredPages.length} ${pluralize(discoveredPages.length, 'page')}`,
             );
           }
-          if (discoveredRegions.length > 0) {
+          if (discoveredPageTemplates.length > 0) {
             parts.push(
-              `${discoveredRegions.length} global ${pluralize(discoveredRegions.length, 'region')}`,
+              `${discoveredPageTemplates.length} page ${pluralize(discoveredPageTemplates.length, 'template')}`,
             );
           }
           if (includesBrandKit && hasBrandKitFontsConfig) {
@@ -1061,6 +1136,7 @@ export function pushCommand(program: Command): void {
             discoveryResult,
             cleanOutputDir: true,
             requireJsEntries: true,
+            headlessSdkDetected,
           }).catch((error) => {
             const message = formatErrorMessage(error);
             if (message.startsWith('Missing local Tailwind CSS file')) {
@@ -1171,7 +1247,10 @@ export function pushCommand(program: Command): void {
           const assetSpinner = p.spinner();
           assetSpinner.start('Preparing assets');
           const preparedGlobalAssetLibrary =
-            await prepareGlobalAssetLibraryUpdate(config.outputDir);
+            await prepareGlobalAssetLibraryUpdate(
+              config.outputDir,
+              process.cwd(),
+            );
           globalCssResult = preparedGlobalAssetLibrary.result;
           globalAssetLibraryUpdate = preparedGlobalAssetLibrary.assetLibrary;
           assetSpinner.stop(
@@ -1420,6 +1499,81 @@ export function pushCommand(program: Command): void {
           });
         }
 
+        // Validate and push page templates before pages and content templates,
+        // because both can reference a newly created page template.
+        if (
+          discoveredPageTemplates.length > 0 ||
+          remotePageVariantIdsToDelete.length > 0
+        ) {
+          const hasLocalPageTemplates = discoveredPageTemplates.length > 0;
+          const pageTemplateSummary = await runPushResourcePipeline({
+            labels: {
+              start: 'Pushing page templates',
+              validating: 'Validating page templates',
+              preparing: 'Preparing page templates',
+              pushing: 'Pushing page templates',
+              done: 'Pushed page templates',
+            },
+            phases: {
+              validation: 'Page template validation failed',
+              preparation: 'Page template preparation failed',
+              push: 'Page template push failed',
+            },
+            messages: {
+              validation: 'Page template validation failed.',
+              preparation: 'Page template preparation failed.',
+              noValidItems: 'No valid page templates to push.',
+              push: 'Some page templates failed to push.',
+            },
+            itemLabel: 'Page template',
+            validate: hasLocalPageTemplates
+              ? async () =>
+                  (await validatePageTemplates(discoveryResult)).results
+              : undefined,
+            markStarted: () =>
+              removeNotStartedResource(notStartedResources, 'page-templates'),
+            prepare: hasLocalPageTemplates
+              ? async () => {
+                  const componentVersions =
+                    await pushApiService.listComponentVersions();
+                  return preparePageVariants(
+                    discoveredPageTemplates,
+                    componentVersions,
+                    discoveryResult,
+                  );
+                }
+              : undefined,
+            failOnPreparationFailures: true,
+            hasPushWork: (validPageTemplates) =>
+              validPageTemplates.length > 0 ||
+              remotePageVariantIdsToDelete.length > 0,
+            push: (validPageTemplates) =>
+              pushPageVariants(
+                validPageTemplates,
+                remotePageVariantIds,
+                pushApiService,
+                {
+                  remoteIdsToDelete: remotePageVariantIdsToDelete,
+                  currentDefault: currentDefaultPageVariant,
+                },
+              ),
+            collectResults: (pushResults, failedPreps) =>
+              collectPageVariantResults(
+                pushResults,
+                failedPreps,
+                discoveredPageTemplates,
+              ),
+            reportOptions: PUSH_REPORT_OPTIONS,
+            summary: {
+              label: 'Page templates',
+              unit: 'page template',
+            },
+          });
+          if (pageTemplateSummary) {
+            completedResources.push(pageTemplateSummary);
+          }
+        }
+
         // Validate and push pages.
         if (discoveredPages.length > 0) {
           const pageSummary = await runPushResourcePipeline({
@@ -1442,8 +1596,12 @@ export function pushCommand(program: Command): void {
             },
             itemLabel: 'Page',
             validate: async () =>
-              (await validatePages(discoveryResult, { remotePageByUuid }))
-                .results,
+              (
+                await validatePages(discoveryResult, {
+                  remotePageByUuid,
+                  availablePageVariantIds,
+                })
+              ).results,
             markStarted: () =>
               removeNotStartedResource(notStartedResources, 'pages'),
             prepare: async () => {
@@ -1496,6 +1654,7 @@ export function pushCommand(program: Command): void {
               (
                 await validateContentTemplates(discoveryResult, {
                   apiService: pushApiService,
+                  availablePageVariantIds,
                 })
               ).results,
             markStarted: () =>
@@ -1532,71 +1691,6 @@ export function pushCommand(program: Command): void {
           });
           if (contentTemplateSummary) {
             completedResources.push(contentTemplateSummary);
-          }
-        }
-
-        // Validate and push global regions.
-        if (
-          discoveredRegions.length > 0 ||
-          remoteRegionNamesToDelete.length > 0
-        ) {
-          const hasLocalRegions = discoveredRegions.length > 0;
-          const regionSummary = await runPushResourcePipeline({
-            labels: {
-              start: 'Pushing global regions',
-              validating: 'Validating global regions',
-              preparing: 'Preparing global regions',
-              pushing: 'Pushing global regions',
-              done: 'Pushed global regions',
-            },
-            phases: {
-              validation: 'Global region validation failed',
-              preparation: 'Global region preparation failed',
-              push: 'Global region push failed',
-            },
-            messages: {
-              validation: 'Global region validation failed.',
-              preparation: 'Global region preparation failed.',
-              noValidItems: 'No valid global regions to push.',
-              push: 'Some global regions failed to push.',
-            },
-            itemLabel: 'Global region',
-            validate: hasLocalRegions
-              ? async () => (await validateRegions(discoveryResult)).results
-              : undefined,
-            markStarted: () =>
-              removeNotStartedResource(notStartedResources, 'global-regions'),
-            prepare: hasLocalRegions
-              ? async () => {
-                  const componentVersions =
-                    await pushApiService.listComponentVersions();
-                  return prepareRegions(
-                    discoveredRegions,
-                    componentVersions,
-                    discoveryResult,
-                  );
-                }
-              : undefined,
-            failOnPreparationFailures: true,
-            hasPushWork: (validRegions) =>
-              validRegions.length > 0 || remoteRegionNamesToDelete.length > 0,
-            push: (validRegions) =>
-              pushRegions(
-                validRegions,
-                remoteRegionIdsByName,
-                pushApiService,
-                remoteRegionNamesToDelete,
-              ),
-            collectResults: (pushResults, failedPreps) =>
-              collectRegionResults(pushResults, failedPreps, discoveredRegions),
-            reportOptions: PUSH_REPORT_OPTIONS,
-            summary: {
-              label: 'Global regions',
-              unit: 'global region',
-            },
-          });
-          if (regionSummary) {
-            completedResources.push(regionSummary);
           }
         }
 

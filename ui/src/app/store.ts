@@ -45,6 +45,7 @@ import { headlessFrontendsApi } from '@/services/headlessFrontends';
 import { iconsApi } from '@/services/icons';
 import { notificationsApi } from '@/services/notificationsApi';
 import { pageDataFormApi } from '@/services/pageDataForm';
+import { pageVariantsApi } from '@/services/pageVariants';
 import { patternApi } from '@/services/patterns';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { personalizationApi } from '@/services/personalization';
@@ -146,6 +147,7 @@ const rootReducer = combineSlices(
     ),
   },
   patternApi,
+  pageVariantsApi,
   assetLibraryApi,
   brandKitApi,
   headlessComponentSyncApi,
@@ -247,6 +249,7 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
     middleware: (getDefaultMiddleware) => {
       return getDefaultMiddleware().concat(
         patternApi.middleware,
+        pageVariantsApi.middleware,
         assetLibraryApi.middleware,
         brandKitApi.middleware,
         headlessComponentSyncApi.middleware,

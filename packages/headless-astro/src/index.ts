@@ -27,16 +27,19 @@ export {
 export {
   getDraftEditorOrigin,
   getSessionToken,
+  isPageRedirect,
   type AccessToken,
+  type CanvasComponentTreeElement,
+  type CanvasComponentTreeSlot,
+  type DrupalRoute,
+  type DrupalRouteEntity,
   type DraftData,
+  type Page,
+  type PageHead,
+  type PageRedirect,
+  type PageResult,
 } from '@drupal-canvas/headless';
-export type {
-  CanvasComponentTreeElement,
-  CanvasComponentTreeSlot,
-  Page,
-  DraftConfig,
-  DraftServer,
-} from '@drupal-canvas/headless/server';
+export type { DraftConfig, DraftServer } from '@drupal-canvas/headless/server';
 export type {
   ComponentMetadataEntry,
   ComponentMetadataPayload,

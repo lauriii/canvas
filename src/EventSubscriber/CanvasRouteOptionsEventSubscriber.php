@@ -6,6 +6,7 @@ namespace Drupal\canvas\EventSubscriber;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\EventSubscriber\MainContentViewSubscriber;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Routing\LocalRedirectResponse;
@@ -14,6 +15,7 @@ use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Routing\RoutingEvents;
 use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Url;
+use Drupal\language\Plugin\LanguageNegotiation\LanguageNegotiationUrl;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -31,9 +33,10 @@ final class CanvasRouteOptionsEventSubscriber implements EventSubscriberInterfac
     private readonly RouteMatchInterface $routeMatch,
     private readonly LanguageManagerInterface $languageManager,
     private readonly ConfigFactoryInterface $configFactory,
+    private readonly ModuleHandlerInterface $moduleHandler,
   ) {}
 
-  public function redirectCanvasToDefaultLanguage(RequestEvent $event): void {
+  public function redirectCanvasToUnprefixedPath(RequestEvent $event): void {
     $request = $event->getRequest();
     $path = $request->getPathInfo();
     // Only act on /canvas paths, but not canvas API paths - those handle
@@ -42,29 +45,43 @@ final class CanvasRouteOptionsEventSubscriber implements EventSubscriberInterfac
       return;
     }
 
-    // If the current language differs from the default, the URL will contain a
-    // language prefix (e.g. /es/canvas/editor/canvas_page/1). Strip it with a
-    // 302 redirect so that Canvas always receives a prefix-free path
-    // (/canvas/editor/canvas_page/1).
+    // Without the language module there are no URL language prefixes to strip,
+    // and its LanguageNegotiationUrl (dereferenced below) is not autoloadable.
+    if (!$this->moduleHandler->moduleExists('language')) {
+      return;
+    }
+
+    // Strip the prefix configured for the URL-negotiated language (the
+    // default language may carry a prefix too) with a 302 redirect, so that
+    // Canvas always receives a prefix-free path (/canvas/editor/canvas_page/1).
     // @todo Remove this redirect once Canvas natively supports
     //   language-prefixed URLs in
     //   https://git.drupalcode.org/project/canvas/-/work_items/3546597.
     // @see \Drupal\canvas\EventSubscriber\CanvasRouteOptionsEventSubscriber::preventRouteNormalization()
-    $default_langcode = $this->languageManager->getDefaultLanguage()->getId();
+    $negotiation = $this->configFactory->get('language.negotiation');
+    // Only path-prefix URL negotiation encodes the language in the path. Under
+    // domain negotiation (or with URL negotiation off) a leading path segment
+    // is not a language prefix, so there is nothing to strip.
+    if ($negotiation->get('url.source') !== LanguageNegotiationUrl::CONFIG_PATH_PREFIX) {
+      return;
+    }
     $current_langcode = $this->languageManager->getCurrentLanguage(LanguageInterface::TYPE_URL)->getId();
-    if ($current_langcode !== $default_langcode) {
-      $base_path = $request->getBasePath();
-      // Fetch the actual prefix configured for this language in Drupal's
-      // URL language negotiation settings, falling back to the langcode.
-      $config = $this->configFactory->get('language.negotiation');
-      $url_settings = $config->get('url');
-      $prefixes = $url_settings['prefixes'] ?? [];
-      $prefix = $prefixes[$current_langcode] ?? $current_langcode;
-      $prefix_path = "/$prefix/";
-      if (\str_starts_with($path, $prefix_path)) {
-        $canvas_path = substr_replace($path, '/', 0, strlen($prefix_path));
-        $event->setResponse(new LocalRedirectResponse($base_path . $canvas_path, 302));
-      }
+    $prefixes = $negotiation->get('url.prefixes') ?? [];
+    // The default language may have an empty prefix; then the path is already
+    // prefix-free and there is nothing to strip.
+    $prefix = $prefixes[$current_langcode] ?? '';
+    if ($prefix === '') {
+      return;
+    }
+    $prefix_path = "/$prefix/";
+    if (\str_starts_with($path, $prefix_path)) {
+      $canvas_path = substr_replace($path, '/', 0, strlen($prefix_path));
+      // Keep the query string, but drop `destination` from the active
+      // request: RedirectResponseSubscriber would override the redirect
+      // target with it.
+      $query = $request->getQueryString();
+      $request->query->remove('destination');
+      $event->setResponse(new LocalRedirectResponse($request->getBasePath() . $canvas_path . ($query !== NULL ? "?$query" : ''), 302));
     }
   }
 
@@ -202,7 +219,7 @@ final class CanvasRouteOptionsEventSubscriber implements EventSubscriberInterfac
    * {@inheritdoc}
    */
   public static function getSubscribedEvents(): array {
-    $events[KernelEvents::REQUEST][] = ['redirectCanvasToDefaultLanguage', 100];
+    $events[KernelEvents::REQUEST][] = ['redirectCanvasToUnprefixedPath', 100];
     // Runs after the router (priority 32) so the matched route and raw
     // parameters are available, but before the OpenAPI request validator
     // (priority 0) so a redirected request never reaches it.

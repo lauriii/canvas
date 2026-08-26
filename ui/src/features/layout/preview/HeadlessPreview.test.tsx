@@ -1,0 +1,279 @@
+import { Provider } from 'react-redux';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { act, render, screen, waitFor } from '@testing-library/react';
+
+import { makeStore } from '@/app/store';
+import { setViewportMinHeight, setViewportWidth } from '@/features/ui/uiSlice';
+
+import HeadlessPreview from './HeadlessPreview';
+
+import type { HeadlessPreviewHostEvent } from '@drupal-canvas/headless-host';
+import type { HeadlessSettings } from '@drupal-canvas/types';
+
+let latestOnHeight: ((height: number) => void) | undefined;
+let navigateTo: ReturnType<typeof useNavigate> | undefined;
+const setViewportHeight = vi.fn();
+const activate = vi.fn().mockResolvedValue(undefined);
+const PREVIEW_HEIGHT_PROPERTY = '--canvas-headless-preview-height';
+
+vi.mock('@/features/layout/preview/PreviewGeometryContext', () => ({
+  usePreviewGeometryUpdater: () => ({
+    updateGeometry: vi.fn(),
+    clearGeometry: vi.fn(),
+  }),
+}));
+
+vi.mock('@/features/layout/previewOverlay/ViewportOverlay', () => ({
+  default: () => null,
+}));
+
+vi.mock('@drupal-canvas/headless-host', () => ({
+  CANVAS_COMPONENT_PREVIEW_PATH: '/api/canvas/component-preview',
+  CANVAS_COMPONENT_PREVIEW_QUERY: 'componentId',
+  createHeadlessPreviewHost: vi.fn(
+    ({
+      onEvent,
+      onHeight,
+    }: {
+      onEvent?: (event: HeadlessPreviewHostEvent) => void;
+      onHeight?: (height: number) => void;
+    }) => {
+      latestOnHeight = onHeight;
+      return {
+        activate,
+        attach: vi.fn(),
+        destroy: vi.fn(),
+        refresh: vi.fn(),
+        setViewportHeight,
+      };
+    },
+  ),
+}));
+
+const NavigationBridge = () => {
+  navigateTo = useNavigate();
+  return null;
+};
+
+const SETTINGS: HeadlessSettings = {
+  frontendUrl: 'http://localhost:3000',
+  frontends: ['http://localhost:3000'],
+  frontendOrigin: 'http://localhost:3000',
+  draftUrl: 'http://localhost:3000/api/draft',
+  assertionUrl: '/canvas-headless/assertion',
+};
+
+function renderPreview(
+  viewportMinHeight: number,
+  initialEntry = '/node/1',
+  routePath = '/:entityType/:entityId',
+) {
+  const store = makeStore();
+  store.dispatch(setViewportWidth(800));
+  store.dispatch(setViewportMinHeight(viewportMinHeight));
+
+  render(
+    <Provider store={store}>
+      <MemoryRouter initialEntries={[initialEntry]}>
+        <NavigationBridge />
+        <Routes>
+          <Route
+            path={routePath}
+            element={<HeadlessPreview settings={SETTINGS} autoSavesHash={{}} />}
+          />
+        </Routes>
+      </MemoryRouter>
+    </Provider>,
+  );
+
+  return store;
+}
+
+function getPreviewHeight(element: HTMLElement) {
+  return {
+    declaration: element.style.height,
+    value: element.style.getPropertyValue(PREVIEW_HEIGHT_PROPERTY),
+  };
+}
+
+describe('HeadlessPreview', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('activates a content-template preview through its selected content entity', async () => {
+    renderPreview(
+      500,
+      '/template/node/article/full/42',
+      '/template/:entityType/:bundle/:viewMode/:previewEntityId',
+    );
+
+    await waitFor(() =>
+      expect(activate).toHaveBeenCalledWith({
+        entity_type: 'node',
+        entity: '42',
+        view_mode: 'full',
+      }),
+    );
+  });
+
+  it('ignores viewportMinHeight for non-full view modes so the frame is content-sized', async () => {
+    renderPreview(
+      500,
+      '/template/node/article/teaser/42',
+      '/template/:entityType/:bundle/:viewMode/:previewEntityId',
+    );
+
+    // The device-viewport floor never reaches the app or the frame: a non-full
+    // view mode is sized entirely by its reported content height.
+    await waitFor(() => expect(setViewportHeight).toHaveBeenCalledWith(0));
+
+    const iframe = screen.getByTestId('canvas-headless-iframe');
+    expect(getPreviewHeight(iframe)).toEqual({
+      declaration: `var(${PREVIEW_HEIGHT_PROPERTY})`,
+      value: '0px',
+    });
+
+    act(() => latestOnHeight?.(200));
+    expect(getPreviewHeight(iframe)).toEqual({
+      declaration: `var(${PREVIEW_HEIGHT_PROPERTY})`,
+      value: '200px',
+    });
+  });
+
+  it('falls back to viewportMinHeight before any height report arrives', () => {
+    renderPreview(500);
+    const iframe = screen.getByTestId('canvas-headless-iframe');
+    expect(getPreviewHeight(iframe)).toEqual({
+      declaration: `var(${PREVIEW_HEIGHT_PROPERTY})`,
+      value: '500px',
+    });
+  });
+
+  it('follows reported content height when it exceeds viewportMinHeight', () => {
+    renderPreview(500);
+    act(() => latestOnHeight?.(1200));
+
+    const iframe = screen.getByTestId('canvas-headless-iframe');
+    expect(getPreviewHeight(iframe)).toEqual({
+      declaration: `var(${PREVIEW_HEIGHT_PROPERTY})`,
+      value: '1200px',
+    });
+  });
+
+  it('floors the iframe height at viewportMinHeight for shorter content', () => {
+    renderPreview(500);
+    act(() => latestOnHeight?.(200));
+
+    const iframe = screen.getByTestId('canvas-headless-iframe');
+    expect(getPreviewHeight(iframe)).toEqual({
+      declaration: `var(${PREVIEW_HEIGHT_PROPERTY})`,
+      value: '500px',
+    });
+  });
+
+  it('keeps the previous frame height until the next page reports its height', () => {
+    renderPreview(500);
+    act(() => latestOnHeight?.(1200));
+
+    act(() => navigateTo?.('/node/2'));
+
+    expect(screen.getByTestId('canvas-headless-viewport')).toHaveStyle({
+      height: '1200px',
+    });
+    expect(
+      getPreviewHeight(screen.getByTestId('canvas-headless-iframe')),
+    ).toEqual({
+      declaration: `var(${PREVIEW_HEIGHT_PROPERTY})`,
+      value: '1200px',
+    });
+    expect(
+      getPreviewHeight(screen.getByTestId('canvas-headless-pending-iframe')),
+    ).toEqual({
+      declaration: `var(${PREVIEW_HEIGHT_PROPERTY})`,
+      value: '500px',
+    });
+
+    act(() => latestOnHeight?.(300));
+
+    expect(screen.getByTestId('canvas-headless-viewport')).toHaveStyle({
+      height: '500px',
+    });
+    expect(
+      screen.queryByTestId('canvas-headless-pending-iframe'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not activate a page that became ready after navigating back', () => {
+    renderPreview(500);
+    act(() => latestOnHeight?.(1200));
+    const firstPageIframe = screen.getByTestId('canvas-headless-iframe');
+
+    act(() => navigateTo?.('/node/2'));
+    const secondPageOnHeight = latestOnHeight;
+    expect(secondPageOnHeight).toBeDefined();
+
+    act(() => {
+      navigateTo?.('/node/1');
+      secondPageOnHeight?.(700);
+    });
+
+    expect(screen.getByTestId('canvas-headless-iframe')).toBe(firstPageIframe);
+    expect(
+      screen.queryByTestId('canvas-headless-pending-iframe'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows progress while waiting for the next page to become ready', () => {
+    vi.useFakeTimers();
+    renderPreview(500);
+
+    act(() => navigateTo?.('/node/2'));
+    expect(
+      screen.queryByRole('progressbar', { name: 'Loading Preview' }),
+    ).not.toBeInTheDocument();
+
+    act(() => vi.advanceTimersByTime(500));
+    expect(
+      screen.getByRole('progressbar', { name: 'Loading Preview' }),
+    ).toBeInTheDocument();
+
+    act(() => latestOnHeight?.(700));
+    expect(
+      screen.queryByRole('progressbar', { name: 'Loading Preview' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps a height committed while the host temporarily probes the iframe', () => {
+    renderPreview(500);
+    const iframe = screen.getByTestId('canvas-headless-iframe');
+    const heightDeclaration = iframe.style.height;
+
+    iframe.style.height = '1500px';
+    act(() => latestOnHeight?.(1200));
+    iframe.style.height = heightDeclaration;
+
+    expect(getPreviewHeight(iframe)).toEqual({
+      declaration: `var(${PREVIEW_HEIGHT_PROPERTY})`,
+      value: '1200px',
+    });
+  });
+
+  it('sends device viewport-height changes to the embedded app', async () => {
+    const store = renderPreview(500);
+    await waitFor(() => expect(setViewportHeight).toHaveBeenCalledWith(500));
+
+    act(() => {
+      store.dispatch(setViewportMinHeight(800));
+    });
+
+    await waitFor(() => expect(setViewportHeight).toHaveBeenCalledWith(800));
+    expect(
+      getPreviewHeight(screen.getByTestId('canvas-headless-iframe')),
+    ).toEqual({
+      declaration: `var(${PREVIEW_HEIGHT_PROPERTY})`,
+      value: '800px',
+    });
+  });
+});

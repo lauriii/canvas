@@ -11,6 +11,7 @@ use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Access\AccessResultReasonInterface;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Recipe\InvalidConfigException;
@@ -57,7 +58,7 @@ final class StagedConfigUpdateTest extends CanvasKernelTestBase {
     $auto_save_manager = $this->container->get(AutoSaveManager::class);
     self::assertInstanceOf(AutoSaveManager::class, $auto_save_manager);
 
-    $storage = $this->container->get('entity_type.manager')
+    $storage = $this->container->get(EntityTypeManagerInterface::class)
       ->getStorage(StagedConfigUpdate::ENTITY_TYPE_ID);
     $sut = $storage->create([
       'id' => 'test_staged_config_update',
@@ -124,7 +125,7 @@ final class StagedConfigUpdateTest extends CanvasKernelTestBase {
   }
 
   public function testNormalizeForClientSide(): void {
-    $sut = $this->container->get('entity_type.manager')
+    $sut = $this->container->get(EntityTypeManagerInterface::class)
       ->getStorage(StagedConfigUpdate::ENTITY_TYPE_ID)
       ->create([
         'id' => 'test_staged_config_update',
@@ -152,7 +153,7 @@ final class StagedConfigUpdateTest extends CanvasKernelTestBase {
   }
 
   public function testUpdateFromClientSide(): void {
-    $sut = $this->container->get('entity_type.manager')
+    $sut = $this->container->get(EntityTypeManagerInterface::class)
       ->getStorage(StagedConfigUpdate::ENTITY_TYPE_ID)
       ->create([
         'id' => 'test_staged_config_update',
@@ -247,7 +248,7 @@ final class StagedConfigUpdateTest extends CanvasKernelTestBase {
   public function testSavingUpdatesConfig(): void {
     $this->assertSiteConfig([]);
 
-    $sut = $this->container->get('entity_type.manager')
+    $sut = $this->container->get(EntityTypeManagerInterface::class)
       ->getStorage(StagedConfigUpdate::ENTITY_TYPE_ID)
       ->create([
         'id' => 'canvas_change_site_name',
@@ -299,10 +300,10 @@ final class StagedConfigUpdateTest extends CanvasKernelTestBase {
     // added by ::makeSystemSiteValidated() takes effect. The schema may have
     // been cached during setUp() (e.g., BlockManagerDecorator triggers
     // component generation which loads schema) before this flag was set.
-    $this->container->get('config.typed')->clearCachedDefinitions();
+    $this->container->get(TypedConfigManagerInterface::class)->clearCachedDefinitions();
     $this->assertSiteConfig([]);
 
-    $sut = $this->container->get('entity_type.manager')
+    $sut = $this->container->get(EntityTypeManagerInterface::class)
       ->getStorage(StagedConfigUpdate::ENTITY_TYPE_ID)
       ->create([
         'id' => 'canvas_change_site_email',
@@ -341,7 +342,7 @@ final class StagedConfigUpdateTest extends CanvasKernelTestBase {
   }
 
   public function testCacheability(): void {
-    $sut = $this->container->get('entity_type.manager')
+    $sut = $this->container->get(EntityTypeManagerInterface::class)
       ->getStorage(StagedConfigUpdate::ENTITY_TYPE_ID)
       ->create([
         'id' => 'canvas_change_site_name',

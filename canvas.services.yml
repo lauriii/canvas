@@ -4,6 +4,8 @@ services:
     autowire: true
   Drupal\canvas\Audit\ComponentAudit:
     public: true
+  Drupal\canvas\Audit\ColorAudit:
+    public: true
   Drupal\canvas\PropExpressions\StructuredData\Labeler:
     public: true
   Drupal\canvas\PropShape\PropShapeRepositoryInterface:
@@ -14,6 +16,8 @@ services:
       - { name: needs_destruction }
   Drupal\canvas\PropShape\EphemeralPropShapeRepository: {}
   Drupal\canvas\ComponentIncompatibilityReasonRepository: {}
+  Drupal\canvas\PageVariantResolver:
+    public: true
   Drupal\canvas\JsonSchemaDefinitionsStreamwrapper:
     public: true
     tags:
@@ -67,6 +71,7 @@ services:
   Drupal\canvas\CanvasNotificationHandler: {}
   Drupal\canvas\AssetRenderer: {}
   Drupal\canvas\Utility\HomePageHelper: {}
+  Drupal\canvas\Utility\ColorResolver: {}
   Drupal\canvas\Component\Schema\PropChoiceOptionsResolver:
     arguments:
       $stringTranslation: '@string_translation'
@@ -79,7 +84,11 @@ services:
     class: \Drupal\canvas\Asset\AssetResolver
     decorates: asset.resolver
     arguments: ['@asset.resolver.canvas.inner', '@library.discovery', '@library.dependency_resolver', '@module_handler', '@theme.manager', '@language_manager', '@cache.data', '@theme_handler']
-  Drupal\canvas\ClientDataToEntityConverter: {}
+  Drupal\canvas\ClientDataToEntityConverter:
+    arguments:
+      # content_translation is an optional dependency; the '?' keeps the
+      # converter buildable when it is not installed (argument is then NULL).
+      $translationSynchronizer: '@?content_translation.synchronizer'
   Drupal\canvas\AutoSave\AutoSaveManager: {}
   # Non-serializing in-memory cache for AutoSaveManager's reconstructed entities.
   # Bounded (LRU) like core's entity.memory_cache so it cannot grow without
@@ -142,6 +151,8 @@ services:
     class: Drupal\canvas\EventSubscriber\CanvasRouteOptionsEventSubscriber
     tags:
       - { name: 'event_subscriber' }
+  Drupal\canvas\EventSubscriber\ColorConfigImportValidator: ~
+  Drupal\canvas\EventSubscriber\ComponentConfigImportValidator: ~
   Drupal\canvas\EventSubscriber\ComponentTreeConfigEntityTransformer: ~
   Drupal\canvas\EventSubscriber\DefaultContentSubscriber: ~
   # @todo Remove in https://git.drupalcode.org/project/canvas/-/work_items/3571130
@@ -233,7 +244,11 @@ services:
   Drupal\canvas\Controller\ComponentStatusController: {}
   Drupal\canvas\Controller\ComponentAuditController: {}
   Drupal\canvas\Controller\CanvasController: {}
-  Drupal\canvas\Controller\ApiAutoSaveController: {}
+  Drupal\canvas\Controller\ApiAutoSaveController:
+    arguments:
+      # content_translation is an optional dependency; the '?' keeps the
+      # controller buildable when it is not installed (argument is then NULL).
+      $translationSynchronizer: '@?content_translation.synchronizer'
   Drupal\canvas\Controller\ApiUiContentEntityReferenceControllers: {}
   Drupal\canvas\Controller\ApiUiContentTemplateControllers: {}
   Drupal\canvas\Controller\ApiUsageControllers: {}

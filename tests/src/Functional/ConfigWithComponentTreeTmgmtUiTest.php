@@ -10,6 +10,7 @@ use Behat\Mink\Element\NodeElement;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Hook\TmgmtHooks;
 use Drupal\canvas\Tmgmt\ComponentInputsConfigProcessor;
+use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Tests\tmgmt\Functional\TmgmtTestTrait;
 use Drupal\tmgmt\Entity\Job;
@@ -29,12 +30,15 @@ class ConfigWithComponentTreeTmgmtUiTest extends ConfigWithComponentTreeTranslat
   use TmgmtTestTrait;
 
   public function test(): void {
-    $module_installer = $this->container->get('module_installer');
+    $module_installer = $this->container->get(ModuleInstallerInterface::class);
     \assert($module_installer instanceof ModuleInstallerInterface);
     $module_installer->install(['tmgmt', 'tmgmt_config', 'tmgmt_test']);
     // Rebuild necessary for TMGMT-specific config schema changes.
     // @see \Drupal\canvas\Hook\TmgmtHooks::configSchemaInfoAlter()
     $this->rebuildContainer();
+
+    $page_variant_schema = $this->container->get(TypedConfigManagerInterface::class)->getDefinition('canvas.page_variant.translated');
+    self::assertSame(ComponentInputsConfigProcessor::class, $page_variant_schema['tmgmt_config_processor']);
 
     $translator = $this->createTranslator([
       'name' => 'test_tmgmt',

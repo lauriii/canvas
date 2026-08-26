@@ -5,20 +5,22 @@ namespace Drupal\canvas_ai;
 use Drupal\canvas\Component\Schema\PropMetadataNormalizer;
 use Drupal\canvas\Controller\ApiConfigControllers;
 use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\PageVariant;
+use Drupal\canvas\PageVariantResolver;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
+use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\Component\Render\MarkupInterface;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\DiffArray;
-use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Uuid\UuidInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\VariationCacheInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Extension\ThemeHandlerInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Template\Attribute as TemplateAttribute;
@@ -56,8 +58,8 @@ class CanvasAiPageBuilderHelper {
    * @param \Drupal\Core\Cache\VariationCacheInterface $memoryVariationCache
    *   The in-request variation cache, backed by the memory bin so it honors
    *   tag invalidations that happen mid-request.
-   * @param \Drupal\Core\Extension\ThemeHandlerInterface $themeHandler
-   *   The theme handler.
+   * @param \Drupal\canvas\PageVariantResolver $pageVariantResolver
+   *   Resolves the page variant that renders a given entity.
    * @param \Drupal\canvas\Component\Schema\PropMetadataNormalizer $propMetadataNormalizer
    *   The prop metadata normalizer.
    * @param \Drupal\canvas\Controller\ApiConfigControllers $apiConfigControllers
@@ -77,7 +79,7 @@ class CanvasAiPageBuilderHelper {
     private readonly VariationCacheInterface $variationCache,
     #[Autowire(service: 'cache.variation.canvas_ai_memory')]
     private readonly VariationCacheInterface $memoryVariationCache,
-    private readonly ThemeHandlerInterface $themeHandler,
+    private readonly PageVariantResolver $pageVariantResolver,
     private readonly PropMetadataNormalizer $propMetadataNormalizer,
     private readonly ApiConfigControllers $apiConfigControllers,
     #[Autowire(service: 'logger.factory')]
@@ -166,6 +168,38 @@ class CanvasAiPageBuilderHelper {
    *   Structured array with calculated nodePaths for components.
    */
   public function customYamlToArrayMapper(string $yaml_string): array {
+    $parsed_yaml = Yaml::parse($yaml_string);
+    $parsed_yaml = \is_array($parsed_yaml) ? $parsed_yaml : [];
+    return $this->computePlacement($parsed_yaml, FALSE)->operations;
+  }
+
+  /**
+   * Generates the placement data for a component structure request.
+   *
+   * @param array $operations_data
+   *   The operations structure, keyed by 'operations'.
+   *
+   * @return \Drupal\canvas_ai\CanvasAiPlacementResult
+   *   The operations (with assigned UUIDs) for the UI, plus the component
+   *   structure with those UUIDs and the predicted post-placement layout for
+   *   the model to reference in follow-up placements.
+   */
+  public function generateComponentPlacementData(array $operations_data): CanvasAiPlacementResult {
+    return $this->computePlacement($operations_data, TRUE);
+  }
+
+  /**
+   * Computes the operations, assigned UUIDs, and predicted layout for a request.
+   *
+   * @param array $data
+   *   The operations structure, keyed by 'operations'.
+   * @param bool $include_uuid
+   *   Whether to include each component's assigned UUID in the operations.
+   *
+   * @return \Drupal\canvas_ai\CanvasAiPlacementResult
+   *   The mapped placement result.
+   */
+  private function computePlacement(array $data, bool $include_uuid): CanvasAiPlacementResult {
     $result = [
       'operations' => [
         [
@@ -174,11 +208,9 @@ class CanvasAiPageBuilderHelper {
         ],
       ],
     ];
-    $parsed_yaml = Yaml::parse($yaml_string);
-    $parsed_yaml = \is_array($parsed_yaml) ? $parsed_yaml : [];
     // Add UUIDs to all components in the page builder output, so that their
     // nodePaths can be extracted later from the expected layout.
-    $data_to_process = $this->addUuidToAllComponents($parsed_yaml);
+    $data_to_process = $this->addUuidToAllComponents($data);
 
     $current_layout = $this->canvasAiTempstore->getData(CanvasAiTempStore::CURRENT_LAYOUT_KEY) ?? '';
     $current_layout = Json::decode($current_layout);
@@ -192,10 +224,10 @@ class CanvasAiPageBuilderHelper {
     // Then append them to the result.
     foreach ($data_to_process['operations'] as $operation) {
       $target = strpos($operation['target'], '/') === FALSE ? $operation['target'] : NULL;
-      $this->appendComponentsRecursive($operation['components'], $predicted_layout, $target, $result['operations'][0]['components']);
+      $this->appendComponentsRecursive($operation['components'], $predicted_layout, $target, $result['operations'][0]['components'], $include_uuid);
     }
 
-    return $result;
+    return new CanvasAiPlacementResult($result, $data_to_process, $predicted_layout);
   }
 
   /**
@@ -209,8 +241,11 @@ class CanvasAiPageBuilderHelper {
    *   The target region, if any.
    * @param array &$result_components
    *   Reference to array where processed components are collected.
+   * @param bool $include_uuid
+   *   Whether to include the component's assigned UUID in the output, so a tool
+   *   can echo it back to the model for reference_uuid chaining.
    */
-  protected function appendComponentsRecursive(array $components, array $predicted_layout, ?string $target, array &$result_components): void {
+  protected function appendComponentsRecursive(array $components, array $predicted_layout, ?string $target, array &$result_components, bool $include_uuid = FALSE): void {
     foreach ($components as $component) {
       foreach ($component as $id => $component_data) {
         // Process the current component.
@@ -219,6 +254,9 @@ class CanvasAiPageBuilderHelper {
         // the uuid.
         $node_path = $this->getCalculatedNodepath($predicted_layout, $component_data['uuid'], $target);
         $component_data_to_append['id'] = $id;
+        if ($include_uuid) {
+          $component_data_to_append['uuid'] = $component_data['uuid'];
+        }
         $component_data_to_append['nodePath'] = $node_path;
         $component_data_to_append['fieldValues'] = $component_data['props'] ?? [];
         $result_components[] = $component_data_to_append;
@@ -227,7 +265,7 @@ class CanvasAiPageBuilderHelper {
         if (!empty($component_data['slots'])) {
           foreach ($component_data['slots'] as $slot_components) {
             if (\is_array($slot_components)) {
-              $this->appendComponentsRecursive($slot_components, $predicted_layout, $target, $result_components);
+              $this->appendComponentsRecursive($slot_components, $predicted_layout, $target, $result_components, $include_uuid);
             }
           }
         }
@@ -1138,13 +1176,7 @@ class CanvasAiPageBuilderHelper {
     }
     else {
       // Target is a region name.
-      if (isset($modified_layout[$target])) {
-        // Add the component to the region.
-        $modified_layout[$target] = array_merge($component_tree, $modified_layout[$target]);
-      }
-      else {
-        throw new \Exception(\sprintf('Region "%s" not found in layout', $target));
-      }
+      $modified_layout[$target] = array_merge($component_tree, $modified_layout[$target]);
     }
 
     return $modified_layout;
@@ -1447,7 +1479,7 @@ class CanvasAiPageBuilderHelper {
 
     if (isset($layout_array['regions']) && \is_array($layout_array['regions'])) {
       foreach ($layout_array['regions'] as $region_name => $region_data) {
-        if (isset($region_data['nodePathPrefix'])) {
+        if (isset($region_data['nodePathPrefix'][0])) {
           $regions[$region_name] = $region_data['nodePathPrefix'][0];
         }
       }
@@ -1457,26 +1489,110 @@ class CanvasAiPageBuilderHelper {
   }
 
   /**
+   * Checks that a region exists in the current layout.
+   *
+   * @param string $region
+   *   The region name to check.
+   * @param string $current_layout
+   *   The current layout JSON string.
+   *
+   * @return string|null
+   *   An error message for the AI agent, or NULL when the region exists.
+   */
+  public function validateRegionExists(string $region, string $current_layout): ?string {
+    $layout_regions = $this->getRegionIndex($current_layout);
+    if (\array_key_exists($region, $layout_regions)) {
+      return NULL;
+    }
+    return \sprintf(
+      'Region "%s" does not exist. Available regions are: %s.',
+      $region,
+      implode(', ', \array_keys($layout_regions)),
+    );
+  }
+
+  /**
    * Gets the available regions from the current layout along with their descriptions, if configured.
+   *
+   * A page renders inside a single "content" region; the surrounding chrome is
+   * supplied by the page variant. The admin describes how each page variant
+   * should be used in the AI settings form, so the resolved variant's
+   * description guides the content region the agent fills.
    *
    * @param string $current_layout
    *   The current layout JSON string.
+   * @param string|null $entity_type
+   *   The entity type being edited, used to resolve the applicable page
+   *   variant. NULL falls back to the site default variant.
+   * @param string|int|null $entity_id
+   *   The entity id being edited. NULL falls back to the site default variant.
    *
    * @return array
    *   An array with region names as keys and their nodePathPrefix values and descriptions.
    */
-  public function getAvailableRegions(string $current_layout) : array {
+  public function getAvailableRegions(string $current_layout, ?string $entity_type = NULL, string|int|null $entity_id = NULL) : array {
     $region_index_mapping = $this->getRegionIndex($current_layout);
-    $region_descriptions = $this->configFactory->get('canvas_ai.theme_region.settings')->get('region_descriptions') ?? [];
+    $variant_description = $this->getVariantDescription($this->resolveVariantForContext($entity_type, $entity_id));
     $available_regions = [];
-    $active_theme = $this->themeHandler->getDefault();
     foreach ($region_index_mapping as $region_name => $region_index) {
       $available_regions[$region_name] = [
         'nodePathPrefix' => $region_index,
-        'info' => NestedArray::getValue($region_descriptions, [$active_theme, $region_name]),
+        'info' => $region_name === CanvasPageVariant::MAIN_CONTENT_REGION ? $variant_description : NULL,
       ];
     }
     return $available_regions;
+  }
+
+  /**
+   * Resolves the page variant that applies to the entity being edited.
+   *
+   * @param string|null $entity_type
+   *   The entity type being edited, or NULL when there is no entity.
+   * @param string|int|null $entity_id
+   *   The entity id being edited, or NULL when there is no entity.
+   *
+   * @return \Drupal\canvas\Entity\PageVariant|null
+   *   The applicable page variant, or NULL when none applies.
+   */
+  private function resolveVariantForContext(?string $entity_type, string|int|null $entity_id): ?PageVariant {
+    // Editing a page variant directly: its own description applies.
+    if ($entity_type === PageVariant::ENTITY_TYPE_ID) {
+      return $entity_id !== NULL ? PageVariant::load((string) $entity_id) : NULL;
+    }
+    // Editing content: resolve the variant that renders it, falling back to the
+    // site default when the entity is new or unknown.
+    $entity = NULL;
+    if ($entity_type !== NULL && $entity_id !== NULL && $this->entityTypeManager->hasDefinition($entity_type)) {
+      $loaded = $this->entityTypeManager->getStorage($entity_type)->load($entity_id);
+      if ($loaded instanceof FieldableEntityInterface) {
+        $entity = $loaded;
+      }
+    }
+    return $this->pageVariantResolver->resolve($entity);
+  }
+
+  /**
+   * Gets the AI guidance description configured for a page variant.
+   *
+   * Falls back to the variant's own description when no AI-specific guidance is
+   * configured, matching the settings form's default value.
+   *
+   * @param \Drupal\canvas\Entity\PageVariant|null $variant
+   *   The page variant, or NULL.
+   *
+   * @return string|null
+   *   The description, or NULL when none is available.
+   */
+  private function getVariantDescription(?PageVariant $variant): ?string {
+    if ($variant === NULL) {
+      return NULL;
+    }
+    $descriptions = $this->configFactory->get('canvas_ai.page_variant.settings')->get('variant_descriptions') ?? [];
+    $description = $descriptions[$variant->id()]['description'] ?? NULL;
+    if ($description === NULL || $description === '') {
+      $description = (string) ($variant->get('description') ?? '');
+    }
+    return $description === '' ? NULL : $description;
   }
 
   /**
@@ -1509,7 +1625,7 @@ class CanvasAiPageBuilderHelper {
 
       $region_index_mapping = $this->getRegionIndex($current_layout);
 
-      $region_index = $region_index_mapping[$region] ?? 0;
+      $region_index = $region_index_mapping[$region];
       $this->processComponents($components, [$region_index, 0], $result['operations'][0]['components']);
     }
 
@@ -1642,6 +1758,56 @@ class CanvasAiPageBuilderHelper {
    */
   public function formatMessageWithContext(string $context, string $userMessage): string {
     return "<context>\n{$context}\n</context>\n\n<user_message>\n{$userMessage}\n</user_message>";
+  }
+
+  /**
+   * Indexes every component in the current layout by its UUID.
+   *
+   * Walks all regions and nested slots, collecting each component's id and its
+   * resolved prop values.
+   *
+   * @param array $current_layout
+   *   The decoded current layout, as stored under
+   *   \Drupal\canvas_ai\CanvasAiTempStore::CURRENT_LAYOUT_KEY.
+   *
+   * @return array
+   *   An array keyed by component UUID, each value being
+   *   ['component_id' => string, 'props' => array].
+   */
+  public function getComponentsByUuid(array $current_layout): array {
+    $components_by_uuid = [];
+    foreach ($current_layout['regions'] ?? [] as $region_data) {
+      if (!\is_array($region_data)) {
+        continue;
+      }
+      $this->collectComponentsByUuid($region_data['components'] ?? [], $components_by_uuid);
+    }
+    return $components_by_uuid;
+  }
+
+  /**
+   * Recursively collects components keyed by UUID.
+   *
+   * @param array $components
+   *   The components at a given region or slot.
+   * @param array $components_by_uuid
+   *   Reference to the accumulating UUID-keyed array.
+   */
+  private function collectComponentsByUuid(array $components, array &$components_by_uuid): void {
+    foreach ($components as $component) {
+      if (!\is_array($component) || !isset($component['uuid'])) {
+        continue;
+      }
+      $components_by_uuid[$component['uuid']] = [
+        'component_id' => $component['name'] ?? '',
+        'props' => \is_array($component['props'] ?? NULL) ? $component['props'] : [],
+      ];
+      foreach ($component['slots'] ?? [] as $slot_payload) {
+        if (\is_array($slot_payload) && \is_array($slot_payload['components'])) {
+          $this->collectComponentsByUuid($slot_payload['components'], $components_by_uuid);
+        }
+      }
+    }
   }
 
 }

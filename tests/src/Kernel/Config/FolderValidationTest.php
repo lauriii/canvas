@@ -8,6 +8,8 @@ use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\Folder;
 use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\Core\Config\StorageCacheInterface;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use PHPUnit\Framework\Attributes\Group;
@@ -90,7 +92,7 @@ class FolderValidationTest extends BetterConfigEntityValidationTestBase {
     // - 1 code component ID
     // - The full config name for that same code component.
     // - The original code component ID again (so: duplication).
-    self::assertTrue($this->container->get('module_installer')->install(['canvas_test_code_components']));
+    self::assertTrue($this->container->get(ModuleInstallerInterface::class)->install(['canvas_test_code_components']));
     $code_components = JavaScriptComponent::loadMultiple();
     self::assertArrayHasKey('canvas_test_code_components_using_imports', $code_components);
     $test_code_component = $code_components['canvas_test_code_components_using_imports'];
@@ -199,7 +201,7 @@ class FolderValidationTest extends BetterConfigEntityValidationTestBase {
     // their label and configEntityTypeId. Loading Folder by item id and
     // configEntityTypeId throws RuntimeException.
     // ⚠️ This is testing an extreme edge case that can only be caused by developers.
-    $this->copyConfig($this->container->get('config.storage'), $this->container->get('config.storage.sync'));
+    $this->copyConfig($this->container->get(StorageCacheInterface::class), $this->container->get('config.storage.sync'));
     $sync = \Drupal::service('config.storage.sync');
     $sync->write('canvas.folder.fe79d3f7-9cd4-46b7-a285-43d2a22b0048', [
       'uuid' => 'fe79d3f7-9cd4-46b7-a285-43d2a22b0048',

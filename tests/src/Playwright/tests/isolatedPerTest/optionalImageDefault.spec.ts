@@ -1,3 +1,5 @@
+import nodePath from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { expect } from '@playwright/test';
 
 import { isolatedPerTest as test } from '../../fixtures/test.js';
@@ -6,6 +8,12 @@ test.use({
   modules: ['canvas_test_sdc', 'canvas_test_e2e_code_components'],
   enableTestExtensions: true,
 });
+
+const CAT_IMAGE =
+  '../../../../../fixtures/recipes/test_site/content/file/cats-1.jpg';
+const PUB_IMAGE =
+  '../../../../../fixtures/recipes/test_site/content/file/PrincesHead.jpg';
+const SVG_IMAGE = '../../../../../fixtures/images/canvas-test.svg';
 
 test.describe('Optional Image Default Management', () => {
   test.beforeEach(async ({ drupal }) => {
@@ -23,9 +31,12 @@ test.describe('Optional Image Default Management', () => {
     const canvasPage = await canvas.createCanvas();
     await canvas.openCanvas(canvasPage);
     await canvas.openLibraryPanel();
-    await canvas.addComponent({
-      id: 'sdc.canvas_test_sdc.image-optional-with-example-and-additional-prop',
-    });
+    await canvas.addComponent(
+      {
+        id: 'sdc.canvas_test_sdc.image-optional-with-example-and-additional-prop',
+      },
+      { waitForVisible: false },
+    );
 
     let frame = await canvas.getActivePreviewFrame();
     await expect(frame.locator('img[alt="A good dog"]')).toBeVisible();
@@ -72,8 +83,9 @@ test.describe('Optional Image Default Management', () => {
     await page.getByRole('link', { name: 'Edit' }).click();
     await canvas.waitForEditorUi();
 
-    await canvas.clickPreviewComponent(
-      'sdc.canvas_test_sdc.image-optional-with-example-and-additional-prop',
+    await canvas.openLayersPanel();
+    await canvas.openComponent(
+      'Canvas test SDC with optional image and heading',
     );
 
     const imageFieldsetAfterPublish = page.locator(
@@ -104,9 +116,12 @@ test.describe('Optional Image Default Management', () => {
     const canvasPage = await canvas.createCanvas();
     await canvas.openCanvas(canvasPage);
     await canvas.openLibraryPanel();
-    await canvas.addComponent({
-      id: 'sdc.canvas_test_sdc.image-optional-with-example-and-additional-prop',
-    });
+    await canvas.addComponent(
+      {
+        id: 'sdc.canvas_test_sdc.image-optional-with-example-and-additional-prop',
+      },
+      { waitForVisible: false },
+    );
 
     let frame = await canvas.getActivePreviewFrame();
     await expect(frame.locator('img[alt="A good dog"]')).toBeVisible();
@@ -251,13 +266,13 @@ test.describe('Optional Image Default Management', () => {
     await expect(optionalImageComponent.locator('img')).toHaveCount(0);
   });
 
-  test('SDC: Multiple media widgets — each DefaultImagePreview is scoped to its own prop, and required images cannot be deleted', async ({
+  test("SDC: Multiple media widgets — each DefaultImagePreview is scoped to its own prop, required images cannot be deleted, and removing one prop's media leaves the others intact", async ({
     page,
     drupal,
     canvas,
   }) => {
     await drupal.login({ username: 'editor', password: 'editor' });
-    await canvas.createCanvas();
+    const canvasPage = await canvas.createCanvas();
     await canvas.openLibraryPanel();
     await canvas.addComponent({
       id: 'sdc.canvas_test_sdc.mixed-images-with-example',
@@ -338,5 +353,153 @@ test.describe('Optional Image Default Management', () => {
     await expect(
       pageDataTab.locator('[class*="defaultImagePreview"]'),
     ).toHaveCount(0);
+
+    // Removing the image from one media prop must not clear the others.
+    // The component is still selected, so its form lives under the Settings
+    // tab; switch back to it.
+    await page.getByTestId('canvas-contextual-panel--settings').click();
+    await canvas.addMediaImage(CAT_IMAGE, 'Primary cat', {
+      fieldset: primaryFieldset,
+    });
+    await canvas.addMediaImage(PUB_IMAGE, 'Secondary pub', {
+      fieldset: secondaryFieldset,
+    });
+
+    await canvas.testInPreviewFrame('img.primary[alt="Primary cat"]', (img) =>
+      expect(img).toBeVisible(),
+    );
+    await canvas.testInPreviewFrame(
+      'img.secondary[alt="Secondary pub"]',
+      (img) => expect(img).toBeVisible(),
+    );
+
+    // Remove the image from the PRIMARY prop only, in the same editing
+    // session, without re-selecting the component first.
+    await primaryFieldset.locator('[data-canvas-media-remove-button]').click();
+
+    // The secondary image must survive the removal of the primary image.
+    await canvas.testInPreviewFrame('img.primary', (img) =>
+      expect(img).toBeHidden(),
+    );
+    await canvas.testInPreviewFrame(
+      'img.secondary[alt="Secondary pub"]',
+      (img) => expect(img).toBeVisible(),
+    );
+
+    // And it must still be in the secondary prop's widget.
+    await expect(
+      secondaryFieldset.locator('.js-media-library-item'),
+    ).toHaveCount(1);
+
+    // The value must also persist: reload the editor (the model is rebuilt
+    // from the auto-saved state) and check both the preview and the widgets.
+    await canvas.openCanvas(canvasPage);
+    await canvas.clickPreviewComponent(
+      'sdc.canvas_test_sdc.mixed-images-with-example',
+    );
+
+    await canvas.testInPreviewFrame('img.primary', (img) =>
+      expect(img).toBeHidden(),
+    );
+    await canvas.testInPreviewFrame(
+      'img.secondary[alt="Secondary pub"]',
+      (img) => expect(img).toBeVisible(),
+    );
+
+    const fieldsetsAfterReload = contextualPanel.locator(
+      'fieldset[data-form-id="component_instance_form"][data-canvas-media-library-fieldset="true"]',
+    );
+    await expect(fieldsetsAfterReload).toHaveCount(3);
+    await expect(
+      fieldsetsAfterReload.first().locator('.js-media-library-item'),
+    ).toHaveCount(0);
+    await expect(
+      fieldsetsAfterReload.nth(1).locator('.js-media-library-item'),
+    ).toHaveCount(1);
+  });
+
+  test('SDC: Remove button is visible and functional after selecting an SVG image', async ({
+    page,
+    drupal,
+    canvas,
+  }) => {
+    await drupal.loginAsAdmin();
+    await drupal.applyRecipe(
+      'modules/contrib/canvas/tests/fixtures/recipes/image_media_type_with_svg',
+    );
+    await drupal.logout();
+
+    await drupal.login({ username: 'editor', password: 'editor' });
+    await canvas.openCanvas(await canvas.createCanvas());
+    await canvas.openLibraryPanel();
+    await canvas.addComponent(
+      { id: 'sdc.canvas_test_sdc.image-optional-without-example' },
+      { waitForVisible: false },
+    );
+
+    const imageFieldset = page.locator(
+      '[data-testid="canvas-contextual-panel"] fieldset[data-form-id="component_instance_form"][data-canvas-media-library-fieldset="true"]',
+    );
+    await expect(imageFieldset).toBeVisible();
+
+    const addButton = imageFieldset.locator(
+      '[data-canvas-media-library-open-button="true"]',
+    );
+    await expect(addButton).toBeVisible();
+    await addButton.click();
+
+    await page
+      .locator('form[data-drupal-selector^="media-library-add-form-upload"]')
+      .locator('input[name="files[upload]"], input[name="files[upload][]"]')
+      .setInputFiles(nodePath.join(fileURLToPath(import.meta.url), SVG_IMAGE));
+
+    await page
+      .locator('input[name="media[0][fields][field_media_image][0][alt]"]')
+      .evaluate((el: HTMLInputElement, value) => {
+        el.value = value;
+      }, 'A test SVG');
+
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await page
+      .locator(
+        '.media-library-widget-modal input[data-drupal-selector^="edit-media-library-select-form"]',
+      )
+      .first()
+      // eslint-disable-next-line playwright/no-force-option
+      .setChecked(true, { force: true });
+    await page
+      .getByRole('button', { name: 'Insert selected', exact: true })
+      .click();
+
+    await expect(imageFieldset.locator('.js-media-library-item')).toHaveCount(
+      1,
+    );
+
+    const selectedItem = imageFieldset
+      .locator('.js-media-library-item')
+      .first();
+    await expect(selectedItem).toBeVisible();
+
+    const removeButton = selectedItem.locator(
+      '[data-canvas-media-remove-button]',
+    );
+    await expect(removeButton).toBeVisible();
+
+    const [itemBox, buttonBox] = await Promise.all([
+      selectedItem.boundingBox(),
+      removeButton.boundingBox(),
+    ]);
+    expect(buttonBox).not.toBeNull();
+    expect(itemBox).not.toBeNull();
+    expect(buttonBox!.y).toBeGreaterThanOrEqual(itemBox!.y);
+    expect(buttonBox!.y + buttonBox!.height).toBeLessThanOrEqual(
+      itemBox!.y + itemBox!.height,
+    );
+
+    await removeButton.click();
+
+    await expect(imageFieldset.locator('.js-media-library-item')).toHaveCount(
+      0,
+    );
   });
 });

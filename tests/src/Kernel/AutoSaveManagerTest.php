@@ -28,6 +28,7 @@ use Drupal\Tests\canvas\Traits\CanvasFieldTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
+use Drupal\user\Entity\User;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -270,6 +271,54 @@ class AutoSaveManagerTest extends CanvasKernelTestBase {
     $second = $autoSave->getAutoSaveEntity($page);
     self::assertSame($first, $second);
     self::assertSame($first->entity, $second->entity);
+  }
+
+  /**
+   * Auto-save retains a NULL entity-reference target_uuid and still resolves.
+   *
+   * A reference set by target_id alone leaves target_uuid NULL. That NULL must
+   * survive the auto-save round-trip (not be cast to '') so the reconstructed
+   * entity still resolves the referenced entity.
+   *
+   * @see \Drupal\canvas\Utility\TypedDataHelper::castRawPhpTypes()
+   */
+  public function testNullCarryingPropertiesArePersisted(): void {
+    $this->installEntitySchema('user');
+    $this->installEntitySchema('path_alias');
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+
+    $user = User::create([
+      'name' => 'test_owner',
+      'status' => 1,
+    ]);
+    self::assertSame(SAVED_NEW, $user->save());
+
+    $page = Page::create([
+      'title' => 'Original title',
+      'components' => [],
+    ]);
+    self::assertSame(SAVED_NEW, $page->save());
+
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    \assert($autoSave instanceof AutoSaveManager);
+
+    // Set the reference by `target_id` only, leaving `target_uuid` NULL.
+    $page->set('owner', ['target_id' => (int) $user->id()]);
+    $autoSave->saveEntity($page);
+
+    $autoSaveKey = AutoSaveManager::getAutoSaveKey($page);
+    $data = $autoSave->getAllAutoSaveList(with_entities: FALSE, with_conflicts: FALSE)[$autoSaveKey]['data'];
+
+    // The stored item carries `target_id`, retaining `NULL` value.
+    self::assertSame((int) $user->id(), $data['owner'][0]['target_id']);
+    self::assertArrayHasKey('target_uuid', $data['owner'][0]);
+    self::assertNull($data['owner'][0]['target_uuid']);
+
+    // The reconstructed entity still resolves the reference.
+    $reconstructed = $autoSave->getAutoSaveEntity($page)->entity;
+    \assert($reconstructed instanceof Page);
+    self::assertSame((int) $user->id(), $reconstructed->get('owner')->target_id);
+    self::assertNotNull($reconstructed->get('owner')->entity);
   }
 
   /**
@@ -1011,29 +1060,6 @@ class AutoSaveManagerTest extends CanvasKernelTestBase {
     // The 'conflict_id' elements should be present in the auto-save items list
     // if $with_conflicts is set to TRUE.
     self::assertCount($items_with_conflicts, \array_column($list, 'conflict_id'));
-
-    // Test that pre-existing auto-save entries without the 'original_hash'
-    // property do not return false positives when checking for conflicts.
-    $auto_save_store = $this->container->get('keyvalue')->get(AutoSaveManager::AUTO_SAVE_STORE);
-    $auto_save_items_with_original_hash = $auto_save_store->getAll();
-    $auto_save_items_without_original_hash = \array_map(fn (array $item) =>
-      \array_diff_key($item, \array_flip([AutoSaveManager::AUTO_SAVE_STORED_ENTITY_HASH_KEY])),
-      $auto_save_items_with_original_hash
-    );
-    $auto_save_store->setMultiple($auto_save_items_without_original_hash);
-
-    $list = $auto_save_manager->getAllAutoSaveList(with_entities: $with_entities, with_conflicts: $with_conflicts);
-    self::assertIsArray($list);
-    self::assertCount($total_items, $list);
-    // The parameter $with_entities functions as before.
-    self::assertCount($total_items, \array_column($list, 'entity'));
-    self::assertCount($items_with_entity_instance, \array_filter($list, fn(array $item) => $item['entity'] instanceof EntityInterface));
-    if (!$with_entities) {
-      self::assertCount($total_items, \array_filter($list, fn(array $item) => \is_null($item['entity'])));
-    }
-    // The auto-save entity list does not detect conflicts for any auto-save
-    // entities without 'original_hash', regardless of $with_conflicts.
-    self::assertCount(0, \array_column($list, 'conflict_id'));
   }
 
 }

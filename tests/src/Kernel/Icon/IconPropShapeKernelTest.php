@@ -76,7 +76,7 @@ final class IconPropShapeKernelTest extends CanvasKernelTestBase {
    * Pack scoping is enforced server-side by JSON Schema validation.
    */
   public function testScopeEnforcement(): void {
-    $js_component = $this->createIconPropComponent();
+    $js_component = self::createIconPropComponent();
     $plugin = JsComponentDiscovery::buildEphemeralSdcPluginInstance($js_component);
     $validator = $this->container->get(ComponentValidator::class);
 
@@ -94,7 +94,7 @@ final class IconPropShapeKernelTest extends CanvasKernelTestBase {
    * Stored icon ids resolve to renderable values at render time.
    */
   public function testRenderTimeResolution(): void {
-    $this->createIconPropComponent()->save();
+    self::createIconPropComponent()->save();
     $component = Component::load('js.icon_test');
     $this->assertInstanceOf(Component::class, $component);
     $source = $component->getComponentSource();
@@ -242,7 +242,7 @@ final class IconPropShapeKernelTest extends CanvasKernelTestBase {
   /**
    * Creates a code component with an icon prop scoped to the test pack.
    */
-  private function createIconPropComponent(): JavaScriptComponent {
+  private static function createIconPropComponent(): JavaScriptComponent {
     $js_component = JavaScriptComponent::create([
       'machineName' => 'icon_test',
       'name' => 'Icon test',

@@ -10,7 +10,7 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\IconLibrary;
 use Drupal\canvas\Entity\JavaScriptComponent;
-use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\Core\Authentication\AuthenticationProviderInterface;
 use Drupal\Core\Routing\RouteMatch;
 use Drupal\simple_oauth\Authentication\Provider\SimpleOauthAuthenticationProvider;
@@ -29,9 +29,8 @@ use Symfony\Component\HttpFoundation\Request;
  * marked as external API endpoints.
  * @see \Drupal\canvas_oauth\Routing\CanvasOauthRouteSubscriber
  *
- * It applies to artifact routes (upload and manifest sync) and to config entity
- * routes for specific entity types (JavaScript components, asset libraries, and
- * brand kits).
+ * It applies to named external API routes and to config entity routes for
+ * specific entity types.
  * @see \Drupal\canvas_oauth\Authentication\Provider\CanvasOauthAuthenticationProvider::applies()
  */
 class CanvasOauthAuthenticationProvider implements AuthenticationProviderInterface {
@@ -60,12 +59,16 @@ class CanvasOauthAuthenticationProvider implements AuthenticationProviderInterfa
     ];
     $route_match = RouteMatch::createFromRequest($request);
 
-    // Special case: artifact upload, push lifecycle routes
-    // and draft content-template preview.
+    // Special case: named external API routes that are not covered by the
+    // config or content entity checks below.
     $named_routes = [
       'canvas.api.artifacts.upload',
+      'canvas.api.config.page_region.gone.collection',
+      'canvas.api.config.page_region.gone.item',
       'canvas.api.icons.list',
       'canvas.api.icons.upload',
+      'canvas.api.settings.default_page_variant.get',
+      'canvas.api.settings.default_page_variant.set',
       'canvas.api.push.complete',
       'canvas.api.push.fail',
       'canvas.api.push.start',
@@ -94,7 +97,7 @@ class CanvasOauthAuthenticationProvider implements AuthenticationProviderInterfa
       BrandKit::ENTITY_TYPE_ID,
       ContentTemplate::ENTITY_TYPE_ID,
       IconLibrary::ENTITY_TYPE_ID,
-      PageRegion::ENTITY_TYPE_ID,
+      PageVariant::ENTITY_TYPE_ID,
     ];
 
     if ($entity_type_id !== NULL && \in_array($entity_type_id, $protected_config_entity_types, TRUE)) {

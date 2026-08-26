@@ -1,0 +1,19 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - canvas_test_code_components_color
+uuid: 22222222-2222-4222-a222-222222222222
+name: 'Brand Green'
+cssVariable: '--brand-green'
+value:
+  colorSpace: hsl
+  components:
+    - 142.0
+    - 100.0
+    - 33.3
+  alpha: null
+  hex: null
+displayFormat: hsl
+weight: 1

@@ -147,16 +147,6 @@ canvas.json_schema.prop_shape.string:
         Choice:
           choices:
             - 'text/html'
-    # Currently the only supported `type: string` shape using `$ref` is the
-    # icon shape.
-    # @see \Drupal\canvas\Icon\IconPropShape
-    '$ref':
-      requiredKey: false
-      type: string
-      constraints:
-        Choice:
-          choices:
-            - 'json-schema-definitions://canvas.module/icon'
     # Only supported for icon props: either the icon shape's base pattern, or
     # a generated pack-scope pattern such as `^(phosphor|heroicons):.+$`.
     # @see \Drupal\canvas\Icon\IconPropShape
@@ -178,6 +168,37 @@ canvas.json_schema.prop_shape.string:
             - 'block'
             # @todo Uncomment this in https://www.drupal.org/i/3517735
             # - 'inline'
+    '$ref':
+      requiredKey: false
+      type: string
+      label: '$ref'
+      constraints:
+        # The literal URIs below MUST be kept in sync with
+        # \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
+        # and \Drupal\canvas\Icon\IconPropShape.
+        Choice:
+          choices:
+            - 'json-schema-definitions://canvas.module/color'
+            - 'json-schema-definitions://canvas.module/icon'
+    'x-canvas-color-picker':
+      requiredKey: false
+      type: string
+      label: 'Color picker mode'
+      constraints:
+        # The literal values below MUST be kept in sync with:
+        # - \Drupal\canvas\ComponentMetadataRequirementsChecker (SDC validation)
+        # - \Drupal\canvas\Plugin\Field\FieldWidget\CanvasColorPickerWidget (mode labels)
+        Choice:
+          choices:
+            - 'kit-only'
+            - 'kit-and-free'
+    'x-canvas-color-folders':
+      requiredKey: false
+      type: sequence
+      label: 'Color folder IDs'
+      sequence:
+        type: string
+        label: 'Folder ID'
 
 # @see https://json-schema.org/understanding-json-schema/reference/numeric#integer
 canvas.json_schema.prop_shape.integer:
@@ -261,6 +282,7 @@ canvas.json_schema.prop_shape.object:
           choices:
             - 'json-schema-definitions://canvas.module/image'
             - 'json-schema-definitions://canvas.module/video'
+            - 'json-schema-definitions://canvas.module/document'
             # @see \Drupal\canvas\Entity\JavaScriptComponent::getContentEntityReferenceProps()
             - 'json-schema-definitions://canvas.module/content-entity-reference'
 

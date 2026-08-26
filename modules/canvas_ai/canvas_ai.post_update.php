@@ -15,6 +15,10 @@ use Drupal\Component\Serialization\Yaml;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\FileStorage;
+use Drupal\Core\Config\StorageCacheInterface;
+use Drupal\Core\Config\StorageInterface;
+use Drupal\Core\Extension\ModuleExtensionList;
+use Drupal\Core\Routing\RouteBuilderInterface;
 
 /**
  * Rebuild the router.
@@ -24,7 +28,7 @@ use Drupal\Core\Config\FileStorage;
  * @see https://www.drupal.org/project/canvas/issues/3533079
  */
 function canvas_ai_post_update_0001_rebuild_router(): void {
-  \Drupal::service('router.builder')->rebuild();
+  \Drupal::service(RouteBuilderInterface::class)->rebuild();
 }
 
 /**
@@ -47,7 +51,7 @@ function canvas_ai_post_update_0002_chat_history_max_messages(): void {
  * @see https://www.drupal.org/project/canvas/issues/3582390
  */
 function canvas_ai_post_update_0003_reimport_orchestrator_agent(): void {
-  $module_path = \Drupal::service('extension.list.module')->getPath('canvas_ai');
+  $module_path = \Drupal::service(ModuleExtensionList::class)->getPath('canvas_ai');
   $source = new FileStorage($module_path . '/config/install');
   $data = $source->read('ai_agents.ai_agent.canvas_ai_orchestrator');
   $config = \Drupal::configFactory()->getEditable('ai_agents.ai_agent.canvas_ai_orchestrator');
@@ -81,7 +85,7 @@ function canvas_ai_post_update_0004_agent_hostname_filter(): void {
  * Normalize component description settings for stricter schema validation.
  */
 function canvas_ai_post_update_0005_normalize_component_description_settings(): void {
-  $config_factory = Drupal::service('config.factory');
+  $config_factory = Drupal::service(ConfigFactoryInterface::class);
   assert($config_factory instanceof ConfigFactoryInterface);
   $config = $config_factory->getEditable('canvas_ai.component_description.settings');
 
@@ -149,7 +153,7 @@ function canvas_ai_post_update_0006_restore_orchestrator_agent_uuid(): void {
   if (empty($config->get('_core.default_config_hash'))) {
     // Recompute the hash exactly as core does when installing config
     // @see \Drupal\Core\Config\ConfigInstaller::createConfiguration()
-    $module_path = \Drupal::service('extension.list.module')->getPath('canvas_ai');
+    $module_path = \Drupal::service(ModuleExtensionList::class)->getPath('canvas_ai');
     $install = (new FileStorage($module_path . '/config/install'))->read($name);
     $config->set('_core.default_config_hash', Crypt::hashBase64(serialize($install)));
     $changed = TRUE;
@@ -213,7 +217,7 @@ function canvas_ai_post_update_0007_add_block_props_to_component_description_set
  * @see https://git.drupalcode.org/project/canvas/-/work_items/3584136
  */
 function canvas_ai_post_update_0008_reimport_component_agent(): void {
-  $module_path = \Drupal::service('extension.list.module')->getPath('canvas_ai');
+  $module_path = \Drupal::service(ModuleExtensionList::class)->getPath('canvas_ai');
   $source = new FileStorage($module_path . '/config/install');
   $data = $source->read('ai_agents.ai_agent.canvas_component_agent');
   $config = \Drupal::configFactory()->getEditable('ai_agents.ai_agent.canvas_component_agent');
@@ -226,5 +230,44 @@ function canvas_ai_post_update_0008_reimport_component_agent(): void {
 
     $message = 'The Canvas component agent system prompt has been updated. If you had customized it directly, those changes have been overwritten. The recommended way to extend or alter agent behavior is through the Context Control Center or custom event subscribers.';
     \Drupal::logger('canvas_ai')->warning($message);
+  }
+}
+
+/**
+ * Remove the obsolete theme-region-keyed AI descriptions.
+ *
+ * Page variants replaced theme regions, so the settings form now stores
+ * page-variant descriptions under `variant_descriptions`. The old
+ * `region_descriptions` key is no longer read or written; drop it so active
+ * configuration matches the schema. The old region descriptions described theme
+ * regions that no longer drive rendering, so they are discarded rather than
+ * migrated.
+ */
+function canvas_ai_post_update_0009_remove_region_descriptions(): void {
+  $config = \Drupal::configFactory()->getEditable('canvas_ai.theme_region.settings');
+  if (!$config->isNew() && $config->get('region_descriptions') !== NULL) {
+    $config->clear('region_descriptions')->save(TRUE);
+  }
+}
+
+/**
+ * Rename the AI page-variant settings object off its theme-region-era name.
+ *
+ * The settings stored under `canvas_ai.theme_region.settings` have described
+ * page variants (not theme regions) since page variants replaced regions;
+ * only the config name lagged behind. Move the object (and its translation
+ * overrides in every language collection) to `canvas_ai.page_variant.settings`
+ * so the name matches what it holds.
+ */
+function canvas_ai_post_update_0010_rename_page_variant_settings(): void {
+  $storage = \Drupal::service(StorageCacheInterface::class);
+  \assert($storage instanceof StorageInterface);
+  foreach (['', ...$storage->getAllCollectionNames()] as $collection) {
+    $collection_storage = $collection === '' ? $storage : $storage->createCollection($collection);
+    $data = $collection_storage->read('canvas_ai.theme_region.settings');
+    if (\is_array($data)) {
+      $collection_storage->write('canvas_ai.page_variant.settings', $data);
+      $collection_storage->delete('canvas_ai.theme_region.settings');
+    }
   }
 }

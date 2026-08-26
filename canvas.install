@@ -6,9 +6,11 @@ use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CanvasNotificationHandler;
 use Drupal\canvas\Health\HealthCheck;
 use Drupal\canvas\Health\HealthRecords;
+use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Extension\Requirement\RequirementSeverity;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Extension\ThemeInstallerInterface;
+use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 
 /**
  * Implements hook_module_preinstall().
@@ -24,7 +26,7 @@ function canvas_module_preinstall(string $module): void {
   // @see \Drupal\canvas\JsonSchemaDefinitionsStreamwrapper
   // @see \Drupal\Core\Extension\ModuleInstaller::install()
   // @todo Remove this after https://www.drupal.org/project/drupal/issues/3352063 lands.
-  \Drupal::service('stream_wrapper_manager')->register();
+  \Drupal::service(StreamWrapperManagerInterface::class)->register();
 }
 
 /**
@@ -63,7 +65,7 @@ function canvas_uninstall(bool $is_syncing): void {
 function canvas_requirements(string $phase): array {
   $requirements = [];
   if ($phase === 'install' || $phase == 'runtime') {
-    $canvas_stark_enabled = \Drupal::service('theme_handler')->themeExists('canvas_stark');
+    $canvas_stark_enabled = \Drupal::service(ThemeHandlerInterface::class)->themeExists('canvas_stark');
     if (!$canvas_stark_enabled) {
       $requirements['canvas_stark'] = [
         'title' => t('Drupal Canvas Theme'),
@@ -125,7 +127,7 @@ function _canvas_data_health_requirement(): array {
       '@t' => $summary['total_items'],
     ]);
     $requirement['description'] = $summary['last_checked_at'] !== NULL
-      ? t('As of @date. Run <code>vendor/bin/dr canvas:doctor --all-checks --details</code> for more information.', ['@date' => \Drupal::service('date.formatter')->format($summary['last_checked_at'])])
+      ? t('As of @date. Run <code>vendor/bin/dr canvas:doctor --all-checks --details</code> for more information.', ['@date' => \Drupal::service(DateFormatterInterface::class)->format($summary['last_checked_at'])])
       : t('Run <code>vendor/bin/dr canvas:doctor --all-checks --details</code> for more information.');
     $requirement['severity'] = RequirementSeverity::Warning;
     return $requirement;
@@ -133,7 +135,7 @@ function _canvas_data_health_requirement(): array {
 
   $requirement['value'] = t('All @t checked data items valid', ['@t' => $summary['total_items']]);
   $requirement['description'] = $summary['last_checked_at'] !== NULL
-    ? t('As of @date.', ['@date' => \Drupal::service('date.formatter')->format($summary['last_checked_at'])])
+    ? t('As of @date.', ['@date' => \Drupal::service(DateFormatterInterface::class)->format($summary['last_checked_at'])])
     : '';
   $requirement['severity'] = RequirementSeverity::OK;
   return $requirement;

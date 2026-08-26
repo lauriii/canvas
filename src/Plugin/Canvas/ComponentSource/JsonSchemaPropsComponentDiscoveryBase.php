@@ -34,6 +34,12 @@ abstract class JsonSchemaPropsComponentDiscoveryBase {
    *   The prop field definitions, keyed by prop name.
    */
   protected function getPropsForComponentPlugin(ComponentPlugin $component_plugin): array {
+    // Storable prop shapes determine both the prop field definitions computed
+    // here and the Component version hashes computed from those, so both must
+    // reflect the current site state: re-resolve any prop shapes queued by
+    // earlier cache tag invalidations. Repeated calls cost nothing — the queue
+    // is empty after the first.
+    $this->propShapeRepository->resolveInvalidatedPropShapes();
     $props = [];
     foreach (JsonSchemaPropsComponentSourceBase::getComponentInputsForMetadata($component_plugin->getPluginId(), $component_plugin->metadata) as $cpe_string => $prop_shape) {
       $cpe = ComponentPropExpression::fromString($cpe_string);

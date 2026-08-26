@@ -682,6 +682,104 @@ paths:
       responses:
         '204':
           description: Deleted individual Brand Kit
+  /canvas/api/v0/config/color:
+    description: Endpoint for managing colors.
+    get:
+      summary: Retrieves all available colors.
+      responses:
+        '200':
+          description: All available colors
+          content:
+            application/json:
+              schema:
+                type: object
+                minProperties: 0
+                additionalProperties:
+                  $ref: '#/components/schemas/Color'
+              examples:
+                primary_color:
+                  summary: A primary brand color.
+                  value:
+                    a1b2c3d4-e5f6-7890-abcd-ef1234567890:
+                      id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                      name: "Primary Blue"
+                      cssVariable: "--color-primary"
+                      value:
+                        colorSpace: "srgb"
+                        components: [0.0, 0.4, 0.8]
+                        alpha: null
+                        hex: "#0066cc"
+                      weight: 0
+    post:
+      summary: Creates a new Color.
+      requestBody:
+        description: Creates a new Color.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewColor'
+            examples:
+              example of a new color:
+                value:
+                  name: "Primary Blue"
+                  cssVariable: "--color-primary"
+                  value:
+                    colorSpace: "srgb"
+                    components: [0.0, 0.4, 0.8]
+                    alpha: null
+                    hex: "#0066cc"
+                  weight: 0
+      responses:
+        '201':
+          description: Created entity successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Color'
+        '409':
+          description: Color with same ID already exists.
+          $ref: '#/components/responses/ClientErrorResponse'
+        '422':
+          description: Validation errors exist
+          $ref: '#/components/responses/ClientErrorResponse'
+  '/canvas/api/v0/config/color/{configEntityId}':
+    description: Endpoint for managing a specific color.
+    get:
+      summary: Retrieves details of a specific color.
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '200':
+          description: Individual Color
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Color'
+    patch:
+      summary: Updates a specific Color.
+      requestBody:
+        description: Update specific Color.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ColorUpdate'
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '200':
+          description: Individual Color
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Color'
+    delete:
+      summary: Deletes a Color.
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '204':
+          description: Deleted individual Color
   /canvas/api/v0/config/component:
     description: TODO
     get:
@@ -1160,29 +1258,88 @@ paths:
           description: Access denied response.
           $ref: '#/components/responses/AuthenticationErrorResponse'
   /canvas/api/v0/config/page_region:
-    description: Endpoint for managing Page Regions.
+    description: Compatibility endpoint for clients that still use Page Regions.
     get:
-      summary: Retrieves all available Page Regions for the site's default theme.
+      deprecated: true
+      summary: Reports that Page Regions were replaced by Page Variants.
+      responses:
+        '410':
+          $ref: '#/components/responses/PageRegionGoneResponse'
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+    post:
+      deprecated: true
+      summary: Reports that Page Regions were replaced by Page Variants.
+      responses:
+        '410':
+          $ref: '#/components/responses/PageRegionGoneResponse'
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+  '/canvas/api/v0/config/page_region/{configEntityId}':
+    description: Compatibility endpoint for clients that still use Page Regions.
+    get:
+      deprecated: true
+      summary: Reports that Page Regions were replaced by Page Variants.
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '410':
+          $ref: '#/components/responses/PageRegionGoneResponse'
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+    patch:
+      deprecated: true
+      summary: Reports that Page Regions were replaced by Page Variants.
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '410':
+          $ref: '#/components/responses/PageRegionGoneResponse'
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+    delete:
+      deprecated: true
+      summary: Reports that Page Regions were replaced by Page Variants.
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '410':
+          $ref: '#/components/responses/PageRegionGoneResponse'
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+  /canvas/api/v0/config/page_variant:
+    description: Endpoint for managing Page Variants.
+    get:
+      summary: Retrieves all available Page Variants.
       responses:
         '200':
-          description: All available Page Regions
+          description: All available Page Variants
           content:
             application/json:
               schema:
                 type: object
                 minProperties: 0
                 additionalProperties:
-                  $ref: '#/components/schemas/PageRegion'
+                  $ref: '#/components/schemas/PageVariant'
               examples:
-                page_regions:
-                  summary: Page regions for a theme
+                page_variants:
+                  summary: A single page variant containing only the "Page content" marker
                   value:
-                    olivero.sidebar:
-                      id: olivero.sidebar
-                      theme: olivero
-                      region: sidebar
+                    homepage:
+                      id: homepage
+                      label: Homepage
+                      description: null
                       status: true
-                      component_tree: []
+                      component_tree:
+                        - uuid: 14b2e2b7-5e05-42e2-9f6e-2ffdbb37df35
+                          component_id: marker.page_content
+                          component_version: 3b12c0b99a6caecc
+                          inputs: {}
         '401':
           description: Unauthorized (unauthenticated) response.
           $ref: '#/components/responses/UnauthorizedErrorResponse'
@@ -1190,27 +1347,32 @@ paths:
           description: Access denied response.
           $ref: '#/components/responses/AuthenticationErrorResponse'
     post:
-      summary: Creates a new Page Region.
+      summary: Creates a new Page Variant.
       requestBody:
-        description: Create a new Page Region.
+        description: Create a new Page Variant.
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/NewPageRegion'
+              $ref: '#/components/schemas/NewPageVariant'
             examples:
-              highlighted_with_empty_tree:
+              variant_with_content_marker:
                 value:
-                  region: highlighted
+                  id: homepage
+                  label: Homepage
                   status: true
-                  component_tree: []
+                  component_tree:
+                    - uuid: 14b2e2b7-5e05-42e2-9f6e-2ffdbb37df35
+                      component_id: marker.page_content
+                      component_version: 3b12c0b99a6caecc
+                      inputs: {}
       responses:
         '201':
-          description: Created Page Region successfully
+          description: Created Page Variant successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PageRegion'
+                $ref: '#/components/schemas/PageVariant'
         '401':
           description: Unauthorized (unauthenticated) response.
           $ref: '#/components/responses/UnauthorizedErrorResponse'
@@ -1218,24 +1380,24 @@ paths:
           description: Access denied response.
           $ref: '#/components/responses/AuthenticationErrorResponse'
         '409':
-          description: Page Region with same theme + region already exists.
+          description: Page Variant with the same ID already exists.
           $ref: '#/components/responses/ClientErrorResponse'
         '422':
           description: Validation errors exist
           $ref: '#/components/responses/ClientErrorResponse'
-  '/canvas/api/v0/config/page_region/{configEntityId}':
-    description: Endpoint for managing a specific Page Region.
+  '/canvas/api/v0/config/page_variant/{configEntityId}':
+    description: Endpoint for managing a specific Page Variant.
     get:
-      summary: Retrieves details of a specific Page Region.
+      summary: Retrieves details of a specific Page Variant.
       parameters:
         - $ref: '#/components/parameters/configEntityId'
       responses:
         '200':
-          description: Individual Page Region
+          description: Individual Page Variant
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PageRegion'
+                $ref: '#/components/schemas/PageVariant'
         '401':
           description: Unauthorized (unauthenticated) response.
           $ref: '#/components/responses/UnauthorizedErrorResponse'
@@ -1243,23 +1405,23 @@ paths:
           description: Access denied response.
           $ref: '#/components/responses/AuthenticationErrorResponse'
     patch:
-      summary: Updates a specific Page Region.
+      summary: Updates a specific Page Variant.
       requestBody:
-        description: Update specific Page Region.
+        description: Update specific Page Variant.
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PageRegion'
+              $ref: '#/components/schemas/PageVariant'
       parameters:
         - $ref: '#/components/parameters/configEntityId'
       responses:
         '200':
-          description: Individual Page Region
+          description: Individual Page Variant
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PageRegion'
+                $ref: '#/components/schemas/PageVariant'
         '401':
           description: Unauthorized (unauthenticated) response.
           $ref: '#/components/responses/UnauthorizedErrorResponse'
@@ -1270,22 +1432,22 @@ paths:
           description: Validation errors exist
           $ref: '#/components/responses/ClientErrorResponse'
     delete:
-      summary: Deletes a Page Region.
+      summary: Deletes a Page Variant.
       parameters:
         - $ref: '#/components/parameters/configEntityId'
       responses:
         '204':
-          description: Deleted individual Page Region
+          description: Deleted individual Page Variant
         '401':
           description: Unauthorized (unauthenticated) response.
           $ref: '#/components/responses/UnauthorizedErrorResponse'
         '403':
           description: Access denied response.
           $ref: '#/components/responses/AuthenticationErrorResponse'
-  '/canvas/api/v0/config/page_region/{configEntityId}/translations':
-    description: Endpoint for deleting a specific translation of a Page Region. Note that the path can be prefixed with a langcode to negotiate deleting that particular translation.
+  '/canvas/api/v0/config/page_variant/{configEntityId}/translations':
+    description: Endpoint for deleting a specific translation of a Page Variant. Note that the path can be prefixed with a langcode to negotiate deleting that particular translation.
     delete:
-      summary: Deletes the language config override (translation) for a page_region config entity.
+      summary: Deletes the language config override (translation) for a page_variant config entity.
       parameters:
         - $ref: '#/components/parameters/configEntityId'
       responses:
@@ -2072,11 +2234,28 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/DrupalAjaxResponse'
+  '/canvas/api/v0/form/component-instance/pattern/{configEntityId}':
+    description: Component instance form for editing a stored Pattern.
+    parameters:
+      - $ref: '#/components/parameters/configEntityId'
+    patch:
+      summary: Generates a component instance form for a pattern.
+      responses:
+        '200':
+          $ref: '#/components/responses/ComponentInstanceFormResponse'
+    post:
+      summary: AJAX updates for this form.
+      parameters:
+        - $ref: '#/components/parameters/queryAjaxForm'
+        - $ref: '#/components/parameters/queryWrapperFormat'
+      responses:
+        '200':
+          $ref: '#/components/responses/DrupalAjaxResponse'
   '/canvas/api/v0/form/component-instance/{entityTypeId}/{entityId}':
     description: TODO
     parameters:
       - $ref: '#/components/parameters/entityTypeId'
-      - $ref: '#/components/parameters/entityId'
+      - $ref: '#/components/parameters/layoutEntityId'
     patch:
       summary: Generates a component instance form.
       responses:
@@ -2497,13 +2676,157 @@ paths:
                   error:
                     type: string
                     description: Error message indicating the conflict.
+  '/canvas/api/v0/layout-pattern/{configEntityId}':
+    description: >
+      Layout endpoints for editing a stored Pattern config entity's component
+      tree. Unlike content templates, Patterns render standalone and need no
+      preview entity.
+    parameters:
+      - $ref: '#/components/parameters/configEntityId'
+    get:
+      summary: Gets the layout, model, name and preview for a stored Pattern.
+      responses:
+        '200':
+          description: "The Pattern's component tree, wrapped in a single content region."
+          content:
+            application/json:
+              examples:
+                emptyComponentTree:
+                  value:
+                    html: '<html>The preview would be here</html>'
+                    layout:
+                      - nodeType: region
+                        name: content
+                        components: []
+                    model: {}
+                    isNew: false
+              schema:
+                type: object
+                required:
+                  - layout
+                  - model
+                  - isNew
+                  - html
+                properties:
+                  html:
+                    type: string
+                    description: HTML preview of the layout
+                  layout:
+                    type: array
+                    description: Layout regions
+                    items:
+                      $ref: '#/components/schemas/LayoutSlot'
+                  model:
+                    $ref: '#/components/schemas/Model'
+                  isNew:
+                    type: boolean
+                    description: Whether the edited Pattern is considered new.
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+    patch:
+      summary: >
+        Updates a single component in the Pattern and returns a preview as well
+        as the updated model and layout. The new layout is stored as an auto-save
+        entry (until such time as it is published).
+      requestBody:
+        $ref: '#/components/requestBodies/PatchLayout'
+      responses:
+        '200':
+          description: Stored new values and generated preview successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - html
+                  - model
+                  - layout
+                  - autoSaves
+                properties:
+                  html:
+                    type: string
+                    description: The HTML preview.
+                  layout:
+                    type: array
+                    description: Layout regions
+                    items:
+                      $ref: '#/components/schemas/LayoutSlot'
+                  model:
+                    $ref: '#/components/schemas/Model'
+                  autoSaves:
+                    $ref: '#/components/schemas/AutoSaveConcurrencyControl'
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+        '409':
+          description: >
+            The layout could not be updated because the entity
+            was modified by another user since the last time
+            it was loaded.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message indicating the conflict.
+    post:
+      summary: >
+        Updates the layout, model or name of the Pattern and returns a preview.
+        The new layout is stored as an auto-save entry (until such time as it is
+        published).
+      requestBody:
+        $ref: '#/components/requestBodies/Layout'
+      responses:
+        '200':
+          description: Stored new values and generated preview successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - html
+                  - autoSaves
+                properties:
+                  html:
+                    type: string
+                    description: The HTML preview.
+                  autoSaves:
+                    $ref: '#/components/schemas/AutoSaveConcurrencyControl'
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+        '409':
+          description: >
+            The layout could not be updated because the entity
+            was modified by another user since the last time
+            it was loaded.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message indicating the conflict.
   '/canvas/api/v0/layout/{entityTypeId}/{entityId}':
     description: Entity layout and previews endpoint.
     get:
       summary: Gets html markup, layout, model, entity form fields and various meta properties for a specified entity type and id.
       parameters:
         - $ref: '#/components/parameters/entityTypeId'
-        - $ref: '#/components/parameters/entityId'
+        - $ref: '#/components/parameters/layoutEntityId'
         - in: query
           name: autoSaved
           required: false
@@ -2646,6 +2969,10 @@ paths:
                     # @see \Drupal\Core\Entity\EntityPublishedInterface
                     # @see https://www.drupal.org/node/3505118#comment-15982801
                     description: Whether the edited content entity is marked as published.
+                  resolvedPageVariant:
+                    type: [string, "null"]
+                    # @see \Drupal\canvas\PageVariantResolver
+                    description: For content entities, the page variant that renders this entity (null when core block layout renders the page). Absent when editing config entities.
                   updated:
                     type: integer
                     title: Updated timestamp
@@ -2670,7 +2997,7 @@ paths:
         time as it is published)
       parameters:
         - $ref: '#/components/parameters/entityTypeId'
-        - $ref: '#/components/parameters/entityId'
+        - $ref: '#/components/parameters/layoutEntityId'
       requestBody:
         $ref: '#/components/requestBodies/PatchLayout'
       responses:
@@ -2731,7 +3058,7 @@ paths:
         it is published)
       parameters:
         - $ref: '#/components/parameters/entityTypeId'
-        - $ref: '#/components/parameters/entityId'
+        - $ref: '#/components/parameters/layoutEntityId'
       requestBody:
         $ref: '#/components/requestBodies/Layout'
       responses:
@@ -2999,6 +3326,51 @@ paths:
           description: Push start recorded.
         '403':
           $ref: '#/components/responses/AuthenticationErrorResponse'
+  /canvas/api/v0/settings/default-page-variant:
+    description: Endpoint for reading and setting the site default page variant.
+    get:
+      summary: Retrieves the site default page variant.
+      responses:
+        '200':
+          description: The site default page variant.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DefaultPageVariantSetting'
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+    patch:
+      summary: Sets the site default page variant.
+      requestBody:
+        description: The page variant to use as the site default; null means no default (pages render through core block layout).
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DefaultPageVariantSetting'
+      responses:
+        '200':
+          description: The updated site default page variant.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DefaultPageVariantSetting'
+        '400':
+          description: The `default_page_variant` key is missing from the request body.
+          $ref: '#/components/responses/ClientErrorResponse'
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+        '422':
+          description: The referenced page variant does not exist or is disabled.
+          $ref: '#/components/responses/ClientErrorResponse'
   /canvas/api/v0/site-data:
     description: Returns the site-level canvasData.v0 payload.
     get:
@@ -3694,6 +4066,61 @@ paths:
                     teaser:
                       label: Teaser
                       hasTemplate: true
+  /canvas/api/v0/usage/color/{color}/details:
+    get:
+      summary: Get detailed usage information for a specific color.
+      description: >
+        Returns structured data with 'deletable' (whether the color may be
+        deleted right now), plus 'current' (revisions that block deletion),
+        'prior' (superseded revisions only) and 'config' (config entities)
+        keys, each omitted when empty.
+      parameters:
+        - name: color
+          in: path
+          required: true
+          description: The UUID of the Color config entity.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: >
+            Detailed usage information.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - deletable
+                properties:
+                  deletable:
+                    description: >
+                      Whether the color may be deleted right now. This is the
+                      same access check the delete route enforces, and is not
+                      derivable from the usage lists below: those report no
+                      auto-saves, which block deletion too.
+                    type: boolean
+                  current:
+                    description: >
+                      Entities using the color in a revision that blocks
+                      deletion: the default revision or the latest one.
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ContentEntityUsage'
+                  prior:
+                    description: >
+                      Entities that used the color only in superseded
+                      revisions.
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ContentEntityUsage'
+                  config:
+                    description: Config entities whose component tree uses the color.
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ConfigEntityUsage'
+        '404':
+          description: Color not found.
   /canvas/api/v0/usage/component:
     get:
       summary: Get all components to see if they are in use.
@@ -3782,6 +4209,87 @@ paths:
 components:
   # @see https://spec.openapis.org/oas/v3.1.0.html#schema-object
   schemas:
+    ColorComponentUsage:
+      type: object
+      description: Detailed information about a specific component instance using the color.
+      required:
+        - component_uuid
+        - component_id
+        - label
+        - prop_name
+        - ancestor_labels
+      properties:
+        component_uuid:
+          type: string
+          description: The unique UUID of the component instance.
+        component_id:
+          type: string
+          description: The component type ID (e.g., sdc.module.button).
+        label:
+          type: [string, 'null']
+          description: User-assigned label for this component instance (null if not set).
+        prop_name:
+          type: string
+          description: The name of the prop that contains the color reference.
+        ancestor_labels:
+          type: array
+          items:
+            type: string
+          description: Array of ancestor component labels from root to immediate parent, for building the section hierarchy.
+    ContentEntityUsage:
+      type: object
+      description: A content entity (or revision) that references a color.
+      required:
+        - title
+        - type
+        - bundle
+        - id
+        - revision_id
+        - usages
+      properties:
+        title:
+          type: string
+          description: Label of the entity.
+        type:
+          type: string
+          description: Entity type ID.
+        bundle:
+          type: string
+          description: Bundle of the entity.
+        id:
+          type: string
+          description: Entity ID.
+        revision_id:
+          type: string
+          description: Revision ID.
+        usages:
+          type: array
+          items:
+            $ref: '#/components/schemas/ColorComponentUsage'
+          description: Array of component instances within this entity that use the color.
+    ConfigEntityUsage:
+      type: object
+      description: A config entity whose component tree references a color.
+      required:
+        - title
+        - type
+        - id
+        - usages
+      properties:
+        title:
+          type: string
+          description: Label of the config entity.
+        type:
+          type: string
+          description: Entity type ID.
+        id:
+          type: string
+          description: Config entity ID.
+        usages:
+          type: array
+          items:
+            $ref: '#/components/schemas/ColorComponentUsage'
+          description: Array of component instances within this entity that use the color.
     PaginationLink:
       type: object
       description: A JSON:API-style link object.
@@ -4073,7 +4581,6 @@ components:
         - name
         - machineName
         - status
-        - importedJsComponents
         - dataDependencies
       # @todo Sending `links` in PATCH & POST requests should be reported as invalid by OpenAPI validation, but it isn't today.
       # @see https://github.com/thephpleague/openapi-psr7-validator/issues/124#issuecomment-1483323527
@@ -4150,7 +4657,11 @@ components:
       properties:
         layout:
           type: array
-          description: Layout regions
+          description: >
+            Layout regions. Since the migration to page variants, this must
+            contain only the single "content" region; the surrounding chrome is
+            a page variant edited separately. A layout carrying any other region
+            node is rejected with a 409.
           items:
             type: object
             schema:
@@ -4179,6 +4690,10 @@ components:
           type: boolean
         isPublished:
           type: boolean
+        # Response-only in practice; accepted here so layout GET responses can
+        # round-trip into POST bodies, like isNew/isPublished/translations.
+        resolvedPageVariant:
+          type: [string, "null"]
     AutoSaveConcurrencyControl:
       title: Auto Save Concurrency Control
       type: object
@@ -4326,6 +4841,86 @@ components:
             compiled:
               type: string
               description: Compiled JS code, compiled from the original
+        imports:
+          description: File references for third party dependencies
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: object
+                required:
+                  - name
+                  - uri
+                properties:
+                  name:
+                    type: string
+                    description: Name of the manifest entry
+                  uri:
+                    type: string
+                    description: Managed file URI (a `public://` stream wrapper URI)
+        assets:
+          description: File references for local module imports
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: object
+                required:
+                  - name
+                  - uri
+                properties:
+                  name:
+                    type: string
+                    description: Name of the manifest entry
+                  uri:
+                    type: string
+                    description: Managed file URI (a `public://` stream wrapper URI)
+                  path:
+                    type: string
+                    description: Original relative disk path
+                  source:
+                    type: [string, "null"]
+                    description: Original source code
+                  url:
+                    type: string
+                    description: Generated URL for fetching the asset over HTTP (normalize-time only; never stored)
+        shared:
+          description: Shared chunk file references
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: object
+                required:
+                  - name
+                  - uri
+                properties:
+                  name:
+                    type: string
+                    description: Name of the manifest entry
+                  uri:
+                    type: string
+                    description: Managed file URI (a `public://` stream wrapper URI)
+        bundledSources:
+          description: Sources of local modules bundled into other artifacts. These entries have no `uri` and are never part of the runtime import map.
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: object
+                required:
+                  - path
+                  - source
+                properties:
+                  path:
+                    type: string
+                    description: Original relative disk path
+                  source:
+                    type: string
+                    description: Original source code
+        packageJson:
+          type: [string, "null"]
+          description: Package.json of the source repository, tracked so a project can be reconstructed with original dependencies
     NewAssetLibrary:
       type: object
       allOf:
@@ -4475,6 +5070,161 @@ components:
       required:
         - id
         - label
+    Color:
+      title: Color
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: Unique ID for the color entity (UUID)
+        name:
+          type: string
+          description: Human-readable name for the color
+        cssVariable:
+          type: string
+          description: CSS custom property name (e.g., --color-primary)
+        value:
+          type: object
+          description: Color value in W3C Design Token format
+          additionalProperties: false
+          properties:
+            colorSpace:
+              type: string
+              description: Color space (e.g., srgb, hsl)
+              enum:
+                - srgb
+                - hsl
+            components:
+              type: array
+              description: Color components [R, G, B] for sRGB or [H, S, L] for HSL
+              items:
+                type: number
+              minItems: 3
+              maxItems: 3
+            alpha:
+              type: ['number', 'null']
+              description: Alpha value between 0 and 1, or null for full opacity
+            hex:
+              type: ['string', 'null']
+              description: Optional 6-digit hex fallback (e.g., #ff0000). Must start with # followed by exactly 6 hex digits. Validated server-side.
+          required:
+            - colorSpace
+            - components
+        displayFormat:
+          type: ['string', 'null']
+          description: Original input format for display purposes (rgb, hex, or hsl)
+          enum:
+            - rgb
+            - hex
+            - hsl
+            - null
+        weight:
+          type: integer
+          description: Sort order weight for the color
+    ColorUpdate:
+      title: Color Update
+      type: object
+      description: Partial update to a Color entity. All fields are optional.
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: Unique ID for the color entity (UUID)
+        name:
+          type: string
+          description: Human-readable name for the color
+        cssVariable:
+          type: string
+          description: CSS custom property name (e.g., --color-primary)
+        value:
+          type: object
+          description: Color value in W3C Design Token format. All properties optional for partial updates.
+          properties:
+            colorSpace:
+              type: string
+              description: Color space (e.g., srgb, hsl)
+              enum:
+                - srgb
+                - hsl
+            components:
+              type: array
+              description: Color components [R, G, B] for sRGB or [H, S, L] for HSL
+              items:
+                type: number
+              minItems: 3
+              maxItems: 3
+            alpha:
+              type: ['number', 'null']
+              description: Alpha value between 0 and 1, or null for full opacity
+            hex:
+              type: ['string', 'null']
+              description: Optional 6-digit hex fallback (e.g., #ff0000). Must start with # followed by exactly 6 hex digits. Validated server-side.
+        displayFormat:
+          type: ['string', 'null']
+          description: Original input format for display purposes (rgb, hex, or hsl)
+          enum:
+            - rgb
+            - hex
+            - hsl
+            - null
+        weight:
+          type: integer
+          description: Sort order weight for the color
+    NewColor:
+      title: New Color
+      type: object
+      required:
+        - name
+        - cssVariable
+        - value
+        - weight
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          description: Human-readable name for the color
+        cssVariable:
+          type: string
+          description: CSS custom property name (e.g., --color-primary)
+        value:
+          type: object
+          description: Color value in W3C Design Token format
+          additionalProperties: false
+          properties:
+            colorSpace:
+              type: string
+              description: Color space (e.g., srgb, hsl)
+              enum:
+                - srgb
+                - hsl
+            components:
+              type: array
+              description: Color components [R, G, B] for sRGB or [H, S, L] for HSL
+              items:
+                type: number
+              minItems: 3
+              maxItems: 3
+            alpha:
+              type: ['number', 'null']
+              description: Alpha value between 0 and 1, or null for full opacity
+            hex:
+              type: ['string', 'null']
+              description: Optional 6-digit hex fallback (e.g., #ff0000). Must start with # followed by exactly 6 hex digits. Validated server-side.
+          required:
+            - colorSpace
+            - components
+        displayFormat:
+          type: ['string', 'null']
+          description: Original input format for display purposes (rgb, hex, or hsl)
+          enum:
+            - rgb
+            - hex
+            - hsl
+            - null
+        weight:
+          type: integer
+          description: Sort order weight for the color
     SegmentationRule:
       title: Segmentation Rule
       type: object
@@ -4520,75 +5270,102 @@ components:
         weight:
           type: integer
           description: The weight of the segment, used for ordering segments.
-    PageRegion:
-      title: Page Region
+    ConfigComponentTree:
+      title: Config entity component tree
+      type: array
+      description: |
+        The component instances of a config entity's component tree. Each entry
+        is a flat node with its `parent_uuid`/`slot` referencing another
+        entry to express tree structure. The HTTP API accepts an array
+        (deltas); the underlying config storage transforms it into a
+        UUID-keyed sequence on save.
+      items:
+        type: object
+        required:
+          - uuid
+          - component_id
+        additionalProperties: false
+        properties:
+          uuid:
+            type: string
+            format: uuid
+            description: Unique identifier of this component instance.
+          component_id:
+            type: string
+            description: The component config entity ID (e.g. "js.hero").
+          component_version:
+            type: string
+            description: The component version hash.
+          parent_uuid:
+            type:
+              - string
+              - 'null'
+            format: uuid
+            description: UUID of the parent component (null for root items).
+          slot:
+            type:
+              - string
+              - 'null'
+            description: The slot name in the parent component (null for root items).
+          inputs:
+            type:
+              - object
+              - 'null'
+            description: The component input values (prop sources).
+          inputs_resolved:
+            type:
+              - object
+              - 'null'
+            description: Computed component input values for local rendering.
+            readOnly: true
+          label:
+            type:
+              - string
+              - 'null'
+            description: Optional label for the component instance.
+    PageVariant:
+      title: Page Variant
+      description: A named, theme-independent, full-page component tree. Its tree must contain exactly one "Page content" marker (component ID `marker.page_content`), where the route's main content is injected.
       type: object
       additionalProperties: false
       properties:
         id:
           type: string
-          description: Page Region ID, composed of theme and region (e.g. "olivero.sidebar")
-        theme:
+          description: Page Variant machine name.
+        label:
           type: string
-          description: The theme this page region belongs to
-        region:
-          type: string
-          description: The region name within the theme
+          description: Human-readable Page Variant label.
+        description:
+          type:
+            - string
+            - 'null'
+          description: Optional description shown in the variant management UI.
         status:
           type: boolean
-          description: Whether the region is editable (active).
+          description: Whether the variant is enabled.
         component_tree:
-          type: array
-          description: |
-            The component instances rendered inside this page region. Each entry
-            is a flat node with its `parent_uuid`/`slot` referencing another
-            entry to express tree structure. The HTTP API accepts an array
-            (deltas); the underlying config storage transforms it into a
-            UUID-keyed sequence on save.
-          items:
-            type: object
-            required:
-              - uuid
-              - component_id
-            additionalProperties: false
-            properties:
-              uuid:
-                type: string
-                format: uuid
-                description: Unique identifier of this component instance.
-              component_id:
-                type: string
-                description: The component config entity ID (e.g. "js.hero").
-              component_version:
-                type: string
-                description: The component version hash.
-              parent_uuid:
-                type:
-                  - string
-                  - 'null'
-                format: uuid
-                description: UUID of the parent component (null for root items).
-              slot:
-                type:
-                  - string
-                  - 'null'
-                description: The slot name in the parent component (null for root items).
-              inputs:
-                type:
-                  - object
-                  - 'null'
-                description: The component input values (prop sources).
-              label:
-                type:
-                  - string
-                  - 'null'
-                description: Optional label for the component instance.
-    NewPageRegion:
+          description: The full-page component tree, containing exactly one "Page content" marker.
+          $ref: '#/components/schemas/ConfigComponentTree'
+    NewPageVariant:
       type: object
       allOf:
-        - $ref: '#/components/schemas/PageRegion'
+        - $ref: '#/components/schemas/PageVariant'
       required:
-        - region
+        - id
+        - label
+        - component_tree
+    DefaultPageVariantSetting:
+      title: Default page variant setting
+      type: object
+      required:
+        - default_page_variant
+      additionalProperties: false
+      properties:
+        default_page_variant:
+          type:
+            - string
+            - 'null'
+          description: The machine name of the page variant that renders pages without an explicit selection; null means no default (pages render through core block layout).
     SuggestedPropSources:
       title: A list of suggested prop sources (a level in the tree of hierarchical suggestions)
       type: array
@@ -4783,6 +5560,7 @@ components:
     FolderType:
       type: string
       enum:
+        - color
         - component
         - js_component
         - pattern
@@ -4952,6 +5730,9 @@ components:
         status:
           type: boolean
           description: ContentTemplate entity status. Defaults to false (disabled) when omitted.
+        pageVariant:
+          type: [string, "null"]
+          description: The page variant that renders this template's pages; null (or an empty string) uses the site default.
         component_tree:
           $ref: '#/components/schemas/ComponentTree'
           description: Initial component tree. Defaults to an empty tree when omitted.
@@ -4963,6 +5744,9 @@ components:
         status:
           type: boolean
           description: ContentTemplate entity status.
+        pageVariant:
+          type: [string, "null"]
+          description: The page variant that renders this template's pages; null (or an empty string) uses the site default.
         component_tree:
           $ref: '#/components/schemas/ComponentTree'
           description: Replacement component tree.
@@ -5022,6 +5806,7 @@ components:
         - autoSavePath
         - internalPath
         - components
+        - pageVariant
         - links
       properties:
         id:
@@ -5055,6 +5840,9 @@ components:
         description:
           type: string
           description: The meta description.
+        pageVariant:
+          type: [ string, "null" ]
+          description: The selected page variant machine name. Null uses the site default.
         components:
           type: array
           description: >
@@ -5110,6 +5898,7 @@ components:
           internalPath: /page/1
           components: [ ]
           description: The home page of the site.
+          pageVariant: null
           links:
             edit-form: /canvas/editor/canvas_page/1
         -
@@ -5139,6 +5928,7 @@ components:
                 body: Hello world
               label: null
           description: Learn more about us.
+          pageVariant: marketing
           links:
             edit-form: "/canvas/editor/canvas_page/1"
     DuplicateContentRequestBody:
@@ -5179,6 +5969,9 @@ components:
         description:
           type: string
           description: The meta description.
+        pageVariant:
+          type: [ string, "null" ]
+          description: The selected page variant machine name. Null uses the site default.
         components:
           type: array
           description: >
@@ -5248,6 +6041,7 @@ components:
         - suggestedPreviewEntityId
         - label
         - viewModeLabel
+        - pageVariant
         - component_tree
       properties:
         entityType:
@@ -5274,6 +6068,9 @@ components:
         viewModeLabel:
           type: string
           description: Entity View Mode label.
+        pageVariant:
+          type: [string, "null"]
+          description: The page variant that renders this template's pages; null uses the site default.
         component_tree:
           $ref: '#/components/schemas/ComponentTree'
           description: The persisted component tree.
@@ -5408,6 +6205,19 @@ components:
                 description: Error items
                 items:
                   $ref: '#/components/schemas/Error'
+    PageRegionGoneResponse:
+      description: Page Regions were replaced by Page Variants. Requests carrying the `X-Canvas-CLI` header also receive CLI upgrade guidance.
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - message
+            additionalProperties: false
+            properties:
+              message:
+                type: string
+                example: Global regions were replaced by page templates.
     ExtensionsResponse:
       description: Canvas Extensions listing
       content:
@@ -5473,6 +6283,18 @@ components:
       examples:
         arbitraryEntityId:
           value: 42
+    layoutEntityId:
+      name: entityId
+      in: path
+      required: true
+      description: "The edited entity's ID: a content entity ID, or a page variant machine name."
+      schema:
+        type: string
+      examples:
+        contentEntityId:
+          value: '42'
+        pageVariantId:
+          value: marketing
     entityUuid:
       name: entityUuid
       in: path

@@ -7,7 +7,11 @@ import {
   buildComponentRegistryModule,
   resolveComponentRegistrySourcePaths,
 } from './component-registry';
-import { CANVAS_COMPONENTS_MODULE_ID, canvasComponentRegistry } from './vite';
+import {
+  CANVAS_COMPONENTS_MODULE_ID,
+  CANVAS_GLOBAL_CSS_MODULE_ID,
+  canvasComponentRegistry,
+} from './vite';
 
 const tempDirs: string[] = [];
 
@@ -95,7 +99,10 @@ describe('component implementation registry', () => {
     const root = await makeProjectRoot();
     await writeFile(
       path.join(root, 'canvas.config.json'),
-      JSON.stringify({ componentDir: 'components/canvas' }),
+      JSON.stringify({
+        componentDir: 'components/canvas',
+        globalCssPath: 'styles/global.css',
+      }),
     );
     const sourcePaths = resolveComponentRegistrySourcePaths({
       projectRoot: root,
@@ -104,6 +111,7 @@ describe('component implementation registry', () => {
     expect(sourcePaths).toEqual({
       configPath: path.join(root, 'canvas.config.json'),
       componentRoot: path.join(root, 'components/canvas'),
+      globalCssPath: path.join(root, 'styles/global.css'),
     });
   });
 
@@ -121,6 +129,9 @@ describe('component implementation registry', () => {
     const resolvedId = resolveId(CANVAS_COMPONENTS_MODULE_ID);
 
     expect(resolvedId).toBe(`\0${CANVAS_COMPONENTS_MODULE_ID}`);
+    expect(resolveId(CANVAS_GLOBAL_CSS_MODULE_ID)).toBe(
+      path.join(root, 'src/global.css'),
+    );
 
     const load = plugin.load as unknown as (
       id: string,

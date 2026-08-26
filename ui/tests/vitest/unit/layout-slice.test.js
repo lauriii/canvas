@@ -1,10 +1,12 @@
 import { makeStore } from '@/app/store';
 import {
+  _addNewComponentToLayout,
   deleteNode,
   duplicateNode,
   initialState,
   layoutModelSlice,
   moveNode,
+  selectLayout,
   selectLayoutHistory,
   setLayoutModel,
   shiftNode,
@@ -374,5 +376,27 @@ describe('Duplicate node', () => {
     expect(stateAfterDuplication.model[newNode.uuid]).to.deep.equal(
       stateAfterDuplication.model[nodeToDuplicateUUID],
     );
+  });
+});
+
+describe('Add new component to layout', () => {
+  it('Should reject an invalid predefinedUUID and leave the layout unchanged', () => {
+    const store = makeStore();
+    const layoutBefore = selectLayout(store.getState());
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+
+    store.dispatch(
+      _addNewComponentToLayout(
+        { to: [0, 0], component: {}, predefinedUUID: 'not-a-valid-uuid' },
+        () => {},
+      ),
+    );
+
+    expect(consoleErrorSpy).toHaveBeenCalledOnce();
+    expect(selectLayout(store.getState())).to.deep.equal(layoutBefore);
+
+    consoleErrorSpy.mockRestore();
   });
 });

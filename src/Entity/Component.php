@@ -13,6 +13,7 @@ use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\canvas\Element\RenderSafeComponentContainer;
 use Drupal\canvas\EntityHandlers\ContentCreatorVisibleCanvasConfigEntityAccessControlHandler;
+use Drupal\canvas\EntityHandlers\VersionedConfigEntityStorage;
 use Drupal\canvas\Form\ComponentListBuilder;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Fallback;
 use Drupal\canvas\Plugin\VersionedConfigurationSubsetSingleLazyPluginCollection;
@@ -25,6 +26,8 @@ use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\Entity\Routing\AdminHtmlRouteProvider;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
+use Drupal\Core\Form\EnforcedResponseException;
+use Drupal\Core\Form\FormAjaxException;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -53,6 +56,7 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
   admin_permission: self::ADMIN_PERMISSION,
   handlers: [
     'access' => ContentCreatorVisibleCanvasConfigEntityAccessControlHandler::class,
+    'storage' => VersionedConfigEntityStorage::class,
     'list_builder' => ComponentListBuilder::class,
     'route_provider' => [
       'html' => AdminHtmlRouteProvider::class,
@@ -134,7 +138,11 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
 
   /**
    * {@inheritdoc}
+   *
+   * This always throws, but PHPStan reads __sleep()'s return type from its
+   * magic-method signature (array), so it cannot see a `never` declaration.
    */
+  // @phpstan-ignore canvas.requireNeverReturnType
   public function __sleep(): array {
     // @see \Drupal\Core\Database\Connection::__sleep()
     // @see \Drupal\Core\Site\Settings::__sleep()
@@ -299,68 +307,74 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
     $component_config_entity_uuid = $this->uuid();
 
     $source = $this->getComponentSource();
-    if (!$source->isBroken()) {
-      $info = $this->getComponentSource()->getClientSideInfo($this);
-      $build = $info['build'];
-      unset($info['build']);
-      // Inform the UI this is safe to instantiate.
-      $info['broken'] = FALSE;
-
-      // Wrap in a render-safe container.
-      // @todo Remove all the wrapping-in-RenderSafeComponentContainer complexity and make ComponentSourceInterface::renderComponent() for that instead in https://www.drupal.org/i/3521041
-      $build = [
-        '#type' => RenderSafeComponentContainer::PLUGIN_ID,
-        '#component' => $build + [
+    // ComponentSourceInterface::isBroken() only catches Components we already
+    // know are broken. A Component can still crash while its preview is built
+    // or rendered, so guard that too and treat any such crash as another form
+    // of brokenness, so one Component's normalization failing cannot turn an
+    // API response into a 500.
+    // @see \Drupal\canvas\Controller\ApiConfigControllers::list()
+    $is_broken = $source->isBroken();
+    $component_context = $is_broken
+      ? 'API'
+      : \sprintf('Preview rendering component %s.', $this->label());
+    try {
+      if ($is_broken) {
+        // A broken Component is IMPOSSIBLE to instantiate. The UI should
+        // render this Component differently, and disallow the user from
+        // instantiating it. Its preview only conveys the brokenness.
+        $info = [];
+        $component_build = $source->renderComponent([], [], $component_config_entity_uuid, TRUE);
+      }
+      else {
+        $info = $source->getClientSideInfo($this);
+        $component_build = $info['build'] + [
           // Wrap each rendered component instance in HTML comments that allow
           // the client side to identify it.
           // @see \Drupal\canvas\Plugin\DataType\ComponentTreeHydrated::renderify()
           '#prefix' => Markup::create("<!-- canvas-start-$component_config_entity_uuid -->"),
           '#suffix' => Markup::create("<!-- canvas-end-$component_config_entity_uuid -->"),
-        ],
-        '#component_context' => \sprintf('Preview rendering component %s.', $this->label()),
+        ];
+        unset($info['build']);
+      }
+
+      // Wrap in a render-safe container.
+      // @todo Remove all the wrapping-in-RenderSafeComponentContainer complexity and make ComponentSourceInterface::renderComponent() for that instead in https://www.drupal.org/i/3521041
+      $build = [
+        '#type' => RenderSafeComponentContainer::PLUGIN_ID,
+        '#component' => $component_build,
+        '#component_context' => $component_context,
         '#component_uuid' => $component_config_entity_uuid,
         '#is_preview' => TRUE,
       ];
 
       // Despite the Component being available in its ComponentSource, it may
-      // crash during rendering. The preview of a Component config entity should
-      // be as rich and precise as possible, so rather than letting
+      // crash during rendering. The preview of a Component config entity
+      // should be as rich and precise as possible, so rather than letting
       // \Drupal\canvas\ClientSideRepresentation::renderPreviewIfAny() do the
       // rendering, already render it early here.
       \Drupal::service(RendererInterface::class)->renderInIsolation($build);
 
-      // It is possible that despite ComponentSourceInterface::isBroken() saying
-      // the Component is not broken, it still crashes during rendering.
-      // Consider this another form of brokenness.
-      $info['broken'] = \array_key_exists('#render_crashed', $build);
+      // It is possible that despite ComponentSourceInterface::isBroken()
+      // saying the Component is not broken, it still crashes during
+      // rendering. Consider this another form of brokenness.
+      $info['broken'] = $is_broken || \array_key_exists('#render_crashed', $build);
     }
-    // Ensure a broken Component cannot break the Canvas HTTP API.
-    else {
-      try {
-        // Wrap in a render-safe container.
-        // If ::renderComponent() fails, it falls into "catch" block.
-        $build = [
-          '#type' => RenderSafeComponentContainer::PLUGIN_ID,
-          '#component' => $this->getComponentSource()->renderComponent([], [], $component_config_entity_uuid, TRUE),
-          '#component_context' => 'API',
-          '#component_uuid' => $component_config_entity_uuid,
-          '#is_preview' => TRUE,
-        ];
-      }
-      catch (\Throwable $e) {
-        // … but some ComponentSources might even fail while calling
-        // ::renderComponent(), handle this too!
-        $build = RenderSafeComponentContainer::handleComponentException(
-          $e,
-          componentContext: 'API',
-          isPreview: TRUE,
-          componentUuid: $component_config_entity_uuid,
-          component_exception_cacheability: CacheableMetadata::createFromObject($this),
-        );
-      }
-      // Inform the UI this is IMPOSSIBLE to instantiate. The UI should render
-      // this Component differently, and disallow the user from
-      // instantiating it.
+    // Let form components enforce a response: these flow-control exceptions
+    // must keep bubbling up, exactly as the render-safe container itself lets
+    // them through.
+    // @see \Drupal\canvas\Element\RenderSafeComponentContainer::renderComponent()
+    // @todo Remove this catch when https://www.drupal.org/i/2367555 is fixed.
+    catch (EnforcedResponseException | FormAjaxException $e) {
+      throw $e;
+    }
+    catch (\Throwable $e) {
+      $build = RenderSafeComponentContainer::handleComponentException(
+        $e,
+        componentContext: $component_context,
+        isPreview: TRUE,
+        componentUuid: $component_config_entity_uuid,
+        component_exception_cacheability: CacheableMetadata::createFromObject($this),
+      );
       $info = ['broken' => TRUE];
     }
 
@@ -427,7 +441,7 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
    *
    * @see docs/config-management.md#3.1
    */
-  public static function createFromClientSide(array $data): static {
+  public static function createFromClientSide(array $data): never {
     throw new \LogicException('Not supported: read-only for the client side, mutable only on the server side.');
   }
 
@@ -436,7 +450,7 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
    *
    * @see docs/config-management.md#3.1
    */
-  public function updateFromClientSide(array $data): void {
+  public function updateFromClientSide(array $data): never {
     throw new \LogicException('Not supported: read-only for the client side, mutable only on the server side.');
   }
 

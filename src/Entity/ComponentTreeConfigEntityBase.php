@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Entity;
 
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
+use Drupal\canvas\Utility\ColorPropReferences;
+use Drupal\canvas\Utility\ColorResolver;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
+use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\language\Config\LanguageConfigOverride;
 use Drupal\language\ConfigurableLanguageManagerInterface;
@@ -159,6 +163,107 @@ abstract class ComponentTreeConfigEntityBase extends ConfigEntityBase implements
   /**
    * {@inheritdoc}
    *
+   * Rewrites references to removed Brand Kit Colors to that Color's literal
+   * value, so the component tree keeps rendering the same design.
+   *
+   * Returning TRUE is essential: config entities whose ::onDependencyRemoval()
+   * returns FALSE are *deleted* by the config system when something they
+   * depend on is removed. Deleting an entire Pattern because one color it uses
+   * was deleted would be catastrophic.
+   *
+   * @see \Drupal\Core\Config\Entity\ConfigEntityBase::preDelete()
+   * @see \Drupal\canvas\Plugin\DataType\ComponentInputs::calculateDependencies()
+   */
+  public function onDependencyRemoval(array $dependencies): bool {
+    $changed = FALSE;
+
+    foreach ($dependencies['config'] ?? [] as $dependency) {
+      $color = $dependency instanceof Color ? $dependency : NULL;
+      $config_name = $dependency instanceof ConfigEntityInterface
+        ? $dependency->getConfigDependencyName()
+        : $dependency;
+      if (!\is_string($config_name)) {
+        continue;
+      }
+      $color_prefix = 'canvas.' . Color::ENTITY_TYPE_ID . '.';
+      if (!\str_starts_with($config_name, $color_prefix)) {
+        continue;
+      }
+      $color_id = \substr($config_name, \strlen($color_prefix));
+      // ::preDelete() runs before the Color leaves storage, so its value is
+      // still readable when only the config name was passed.
+      $color ??= $this->entityTypeManager()->getStorage(Color::ENTITY_TYPE_ID)->load($color_id);
+      if (!$color instanceof Color) {
+        // Nothing left to inline; leave the reference for the config health
+        // check to report rather than silently substituting a wrong color.
+        continue;
+      }
+
+      $tree = $this->getComponentTree();
+      if ($tree->replacePropValue(
+        JsonSchemaType::COLOR_SCHEMA_REF,
+        ColorPropReferences::reference($color_id),
+        self::literalColorValue($color),
+      )) {
+        // TRICKY: ::getComponentTree() hands back a list, but an
+        // already-translated component tree is stored keyed by component
+        // instance UUID — those keys are what a config translation targets.
+        // Restore them here rather than letting ::setComponentTree() do it,
+        // which it only does while raising a deprecation.
+        $values = $tree->getValue();
+        if (\count($this->getTranslationLanguages(include_default: FALSE)) > 0) {
+          $values = self::asDeterministicallyAndTranslatableKeyedComponentTreeSequence($values);
+        }
+        $this->setComponentTree($values);
+        $changed = TRUE;
+      }
+    }
+
+    return parent::onDependencyRemoval($dependencies) || $changed;
+  }
+
+  /**
+   * Returns the literal value to inline in place of a Color reference.
+   *
+   * TRICKY: a color prop stores only `#rrggbb`, `#rrggbbaa`, `hsl(…)`,
+   * `hsla(…)` or a Brand Kit reference — never `rgb()`/`rgba()`. So a
+   * translucent sRGB color must be inlined as 8-digit hex: the `rgba()` that
+   * ::computeCssColorValue() returns for it would fail validation on this
+   * entity's next save and resolve to nothing at render time. `Color::
+   * getCssValue()` answers the neighboring question — a CSS value for
+   * rendering, where `rgba()` is fine — and cannot be reused here.
+   *
+   * @see \Drupal\canvas\Validation\JsonSchema\CanvasColorStringConstraint::check()
+   * @see \Drupal\canvas\Utility\ColorResolver::resolve()
+   * @see \Drupal\canvas\Entity\Color::getCssValue()
+   */
+  private static function literalColorValue(Color $color): string {
+    $value = $color->getValue();
+    $alpha = $value['alpha'] ?? NULL;
+
+    if ($value['colorSpace'] === 'srgb') {
+      // The stored hex is always 6-digit, so alpha is appended rather than
+      // assumed to be part of it.
+      // @see config/schema/canvas.schema.yml
+      $hex = $value['hex'] ?? \sprintf(
+        '#%02x%02x%02x',
+        (int) \round($value['components'][0] * 255),
+        (int) \round($value['components'][1] * 255),
+        (int) \round($value['components'][2] * 255),
+      );
+      // Alpha quantizes to 1/255 here, which is what 8-digit hex can express.
+      return ($alpha === NULL || $alpha === 1.0)
+        ? $hex
+        : $hex . \sprintf('%02x', (int) \round($alpha * 255));
+    }
+
+    // `hsl()`/`hsla()` are themselves literal values a color prop accepts.
+    return ColorResolver::computeCssColorValue($value);
+  }
+
+  /**
+   * {@inheritdoc}
+   *
    * @todo Works around Typed Data static caching bugs in core's EntityBase, remove after https://www.drupal.org/project/drupal/issues/3571532 is fixed.
    */
   public function createDuplicate() {
@@ -180,7 +285,37 @@ abstract class ComponentTreeConfigEntityBase extends ConfigEntityBase implements
     // do not have deltas but sequence keys. Manipulate the config entity
     // property directly.
     // @see \Drupal\canvas\CanvasConfigUpdater::needsConfigEntityWithComponentTreeSequenceKeysUpdate()
-    $this->set('component_tree', self::asDeterministicallyAndTranslatableKeyedComponentTreeSequence(\array_values($this->get('component_tree'))));
+    $component_tree = $this->get('component_tree') ?? [];
+    // Config install and update paths bypass the sync import transformer, so
+    // recover the intended order from the position-encoded keys here, before
+    // they are re-keyed by UUID.
+    // @see \Drupal\canvas\EventSubscriber\ComponentTreeConfigEntityTransformer::import()
+    if (self::componentTreeSequenceIsPositionEncoded($component_tree)) {
+      // Natural-order sort so whole-number segments compare numerically (`10`
+      // sorts after `9`, not before `2`) and a parent's bare-delta key (`0`)
+      // precedes its children (`0:the_body:0`).
+      \uksort($component_tree, \strnatcmp(...));
+    }
+    $this->set('component_tree', self::asDeterministicallyAndTranslatableKeyedComponentTreeSequence(\array_values($component_tree)));
+  }
+
+  /**
+   * Whether a component tree sequence still uses non-UUID (position) keys.
+   *
+   * @param array<int|string, array{uuid?: string}> $component_tree_sequence
+   *   The raw component tree sequence.
+   *
+   * @return bool
+   *   TRUE if any key is not its item's UUID — i.e. the sequence is keyed by
+   *   position deltas or position-encoded sequence keys, not yet by UUID.
+   */
+  private static function componentTreeSequenceIsPositionEncoded(array $component_tree_sequence): bool {
+    foreach ($component_tree_sequence as $key => $item) {
+      if ($key !== ($item['uuid'] ?? NULL)) {
+        return TRUE;
+      }
+    }
+    return FALSE;
   }
 
   /**

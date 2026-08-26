@@ -9,6 +9,7 @@ use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas_test_validation\Plugin\Canvas\ComponentSource\InvalidSlots;
 use Drupal\Core\Entity\Entity\EntityViewMode;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
@@ -32,6 +33,14 @@ use PHPUnit\Framework\Attributes\TestWith;
 #[Group('canvas')]
 #[Group('slow')]
 final class ContentTemplateValidationTest extends BetterConfigEntityValidationTestBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  protected static array $propertiesWithOptionalValues = [
+    // An empty selection follows the site default page variant.
+    'page_variant',
+  ];
 
   use BetterConfigDependencyManagerTrait;
   use DataProviderWithComponentTreeTrait;
@@ -600,6 +609,16 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
     ]);
   }
 
+  /**
+   * The `page_variant` selection must reference an existing page variant.
+   */
+  public function testInvalidPageVariant(): void {
+    $this->entity->set('page_variant', 'nope');
+    $this->assertValidationErrors([
+      'page_variant' => "The 'canvas.page_variant.nope' config does not exist.",
+    ]);
+  }
+
   public function testExposedSlotMustBeEmpty(): void {
     \assert($this->entity instanceof ContentTemplate);
 
@@ -695,7 +714,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
   }
 
   public function testExposeInvalidSlotDefinedBySource(): void {
-    self::assertTrue($this->container->get('module_installer')->install(['canvas_test_validation']));
+    self::assertTrue($this->container->get(ModuleInstallerInterface::class)->install(['canvas_test_validation']));
     Component::create([
       'id' => InvalidSlots::PLUGIN_ID . '.' . InvalidSlots::PLUGIN_ID,
       'label' => 'Component with an invalid source-defined slot',

@@ -19,25 +19,35 @@ use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponentDiscovery;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
+use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
+use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\canvas_test_code_components\Hook\IslandCastaway;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\NestedArray;
+use Drupal\content_translation\BundleTranslationSettingsInterface;
 use Drupal\Core\Access\AccessResultForbidden;
 use Drupal\Core\Asset\AssetResolverInterface;
 use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Config\ConfigInstallerInterface;
+use Drupal\Core\Config\StorageCacheInterface;
 use Drupal\Core\Config\StorageInterface;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\GeneratedUrl;
+use Drupal\Core\Render\AttachmentsInterface;
 use Drupal\Core\Render\Component\Exception\InvalidComponentException;
 use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
@@ -45,15 +55,19 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\file\Entity\File;
 use Drupal\file\FileInterface;
+use Drupal\filter\Entity\FilterFormat;
+use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\link\LinkItemInterface;
 use Drupal\link\LinkTitleVisibility;
 use Drupal\media\Entity\MediaType;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
+use Drupal\node\NodeInterface;
 use Drupal\Tests\canvas\Kernel\BrokenPluginManagerInterface;
 use Drupal\Tests\canvas\Kernel\Traits\CacheBustingTrait;
 use Drupal\Tests\canvas\Traits\ComponentTreeItemInstantiatorTrait;
 use Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait;
+use Drupal\text\TextProcessed;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Depends;
 use PHPUnit\Framework\Attributes\Group;
@@ -124,7 +138,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
 
   protected function generateComponentConfig(): void {
     parent::generateComponentConfig();
-    $this->container->get('config.installer')->installDefaultConfig('module', 'canvas_test_code_components');
+    $this->container->get(ConfigInstallerInterface::class)->installDefaultConfig('module', 'canvas_test_code_components');
   }
 
   private static function createFontFile(string $filename = 'test-font.woff2'): string {
@@ -133,7 +147,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
 
   private function createManagedFontFile(string $filename = 'test-font.woff2'): FileInterface {
     $uri = $this->createFontFile($filename);
-    $file_system = \Drupal::service('file_system');
+    $file_system = \Drupal::service(FileSystemInterface::class);
     \assert($file_system instanceof FileSystemInterface);
     $directory = BrandKit::ARTIFACTS_DIRECTORY;
     self::assertTrue($file_system->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS));
@@ -954,6 +968,51 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
         $expected_cacheability->addCacheTags(['config:configurable_language_list', 'config:language.negotiation']);
       }
       $this->assertRenderedAstroIsland($component, $preview_requested, $auto_save_exists, $expected_result, $expected_cacheability);
+    }
+  }
+
+  /**
+   * A prop's `#attached` assets reach the rendered code component.
+   *
+   * @see \Drupal\filter_test\Plugin\Filter\FilterTestAssets
+   * @legacy-covers ::renderComponent
+   */
+  public function testRenderComponentKeepsPropAttachments(): void {
+    // A text format whose filter attaches an asset library but leaves the text
+    // unchanged; it stands in for a filter that needs assets to render.
+    $this->enableModules(['filter_test']);
+    FilterFormat::create([
+      'format' => 'assets',
+      'name' => 'Assets',
+      'filters' => ['filter_test_assets' => ['status' => TRUE]],
+    ])->save();
+    $this->generateComponentConfig();
+
+    $component = Component::load('js.canvas_test_code_components_interactive');
+    self::assertInstanceOf(ComponentInterface::class, $component);
+    $source = $component->getComponentSource();
+    self::assertInstanceOf(JsComponent::class, $source);
+
+    // The formatted-text value runs through the assets format, so it carries
+    // the filter's library.
+    $name = StaticPropSource::parse([
+      'sourceType' => 'static:field_item:text_long',
+      'expression' => 'ℹ︎text_long␟processed',
+      'value' => ['value' => '<p>Hello, world</p>', 'format' => 'assets'],
+      'sourceTypeSettings' => ['instance' => ['allowed_formats' => ['assets']]],
+    ])->evaluate(NULL, is_required: TRUE);
+    $inputs = [JsComponent::EXPLICIT_INPUT_NAME => ['name' => $name]];
+
+    $island = $source->renderComponent($inputs, $source->getSlotDefinitions(), 'test-uuid');
+    // Core >= 11.4.4 exposes a processed-text property's assets, so the filter's
+    // library reaches the component; older core cannot, so it is absent.
+    // @see \Drupal\text\TextProcessed::getAttachments()
+    // @todo Unconditionally execute the if branch and delete the else branch once Canvas depends on Drupal 11.4.4
+    if (is_a(TextProcessed::class, AttachmentsInterface::class, TRUE)) {
+      self::assertContains('filter/caption', $island['#attached']['library']);
+    }
+    else {
+      self::assertNotContains('filter/caption', $island['#attached']['library'] ?? []);
     }
   }
 
@@ -2663,7 +2722,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
   }
 
   protected function triggerBrokenComponent(ComponentInterface $component): ?BrokenPluginManagerInterface {
-    $config_storage = \Drupal::service('config.storage');
+    $config_storage = \Drupal::service(StorageCacheInterface::class);
     \assert($config_storage instanceof StorageInterface);
     $js_component_source = $component->getComponentSource();
     \assert($js_component_source instanceof JsComponent);
@@ -3097,6 +3156,208 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
   }
 
   /**
+   * A content-entity-reference payload resolves in the host entity's language.
+   *
+   * The referenced entity's fields must be read in the same language as the
+   * rest of the component instance's props — the host entity's language — not
+   * the referenced entity's own default language.
+   *
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::buildReferencePayload()
+   */
+  public function testContentEntityReferencePropResolvesInHostLanguage(): void {
+    $fixtures = $this->setUpContentEntityReferenceFixtures(translatable: TRUE);
+
+    $en = $this->resolvePickedNewsReference($fixtures, 'en');
+    $es = $this->resolvePickedNewsReference($fixtures, 'es');
+    self::assertSame('The referenced news item', self::resolvedLabel($en));
+    self::assertSame('The referenced news item in Spanish', self::resolvedLabel($es));
+
+    // The payload's cacheability reflects that the reading language is the
+    // host's: besides the referenced entity's cache tag (whose fields are
+    // read), it carries the host entity's cache tag, so changing the host's
+    // language/translation invalidates the payload. `user.permissions` is
+    // present because the referenced entity is resolved access-aware.
+    //
+    // There is deliberately NO `languages:language_content` cache context: the
+    // reading language is pinned to a concrete host entity (via
+    // NegotiatedLanguage::matchEntity()) and tracked by that entity's cache
+    // tag, not negotiated from request context — matching how
+    // EntityFieldPropSource and StaticPropSource resolve references. The
+    // language context only applies to the host-less fallback, where the
+    // language IS negotiated from context (NegotiatedLanguage::
+    // negotiateFromConfigAndContext()).
+    $es_cacheability = CacheableMetadata::createFromObject($es);
+    self::assertEqualsCanonicalizing([
+      'node:' . $fixtures['referenced_news']->id(),
+      'node:' . $fixtures['host_news']->id(),
+    ], $es_cacheability->getCacheTags());
+    self::assertSame(['user.permissions'], $es_cacheability->getCacheContexts());
+    self::assertSame(Cache::PERMANENT, $es_cacheability->getCacheMaxAge());
+  }
+
+  /**
+   * A draft (unpublished) referenced translation is gated on view permission.
+   *
+   * The referenced entity has a published English translation and an
+   * unpublished Spanish one. In the Spanish host language, a user who cannot
+   * view the draft receives the published English fallback (core's access-aware
+   * getTranslationFromContext()); a user who can view unpublished content
+   * receives the Spanish draft.
+   */
+  public function testContentEntityReferencePropDraftTranslationRespectsViewPermission(): void {
+    $fixtures = $this->setUpContentEntityReferenceFixtures(translatable: TRUE);
+    // Make the referenced entity's Spanish translation an unpublished draft.
+    $fixtures['referenced_news']->getTranslation('es')->setUnpublished()->save();
+
+    // A user who cannot view unpublished content gets the published fallback.
+    $this->setUpCurrentUser([], ['access content']);
+    $fallback = $this->resolvePickedNewsReference($fixtures, 'es');
+    self::assertSame('The referenced news item', self::resolvedLabel($fallback));
+    // The served translation depends on view access, so the payload must carry
+    // `user.permissions`: without it, revoking view-unpublished access would not
+    // invalidate a cached payload and one user's fallback could be served to
+    // another.
+    self::assertSame(['user.permissions'], CacheableMetadata::createFromObject($fallback)->getCacheContexts());
+
+    // A user who can view unpublished content gets the Spanish draft.
+    $this->setUpCurrentUser([], ['access content', 'bypass node access']);
+    self::assertSame('The referenced news item in Spanish', self::resolvedLabel($this->resolvePickedNewsReference($fixtures, 'es')));
+  }
+
+  /**
+   * Returns the `label` of a resolved content-entity-reference payload.
+   */
+  private static function resolvedLabel(EvaluationResult $result): mixed {
+    self::assertIsArray($result->value);
+    return $result->value['label'] ?? NULL;
+  }
+
+  /**
+   * A reference nested inside a reference also resolves in the host's language.
+   *
+   * The fix threads the negotiated language through the recursion, so not only
+   * the picked entity's fields but also those of any entity it references in
+   * turn are read in the host's language.
+   */
+  public function testContentEntityReferencePropResolvesNestedReferenceInHostLanguage(): void {
+    $fixtures = $this->setUpContentEntityReferenceFixtures(translatable: TRUE);
+
+    // A second-level referenced entity: referenced_news → field_related_news →
+    // deeper_news. The deeper entity must resolve in the host's language too.
+    $deeper_news = Node::create(['type' => 'news_item', 'title' => 'The deeper news item']);
+    self::assertEntityIsValid($deeper_news);
+    $deeper_news->save();
+    $deeper_news->addTranslation('es', ['title' => 'The deeper news item in Spanish'])->save();
+    $referenced_news = $fixtures['referenced_news'];
+    $referenced_news->set('field_related_news', $deeper_news->id())->save();
+    $referenced_news->getTranslation('es')->set('field_related_news', $deeper_news->id())->save();
+
+    // A component whose news_item_reference prop reads the referenced entity's
+    // own title and descends its field_related_news to read the deeper entity's.
+    $news_def = BetterEntityDataDefinition::create('node', 'news_item');
+    $machine_name = 'nested_content_entity_reference_test_component';
+    $component_id = JsComponent::componentIdFromJavascriptComponentId($machine_name);
+    JavaScriptComponent::create([
+      'machineName' => $machine_name,
+      'name' => 'Nested entity reference test component',
+      'status' => TRUE,
+      'props' => [
+        'news_item_reference' => [
+          'title' => 'Featured news item',
+          ...JsonSchemaObjectRef::ContentEntityReference->asPropShapeArray(),
+        ],
+      ],
+      'required' => [],
+      'js' => ['original' => '', 'compiled' => ''],
+      'css' => ['original' => '', 'compiled' => ''],
+      'dataDependencies' => [
+        'entityFields' => [
+          'news_item_reference' => [
+            (string) new FieldPropExpression($news_def, 'title', NULL, 'value'),
+            (string) new ReferenceFieldPropExpression(
+              new FieldPropExpression($news_def, 'field_related_news', NULL, 'entity'),
+              new FieldPropExpression($news_def, 'title', NULL, 'value'),
+            ),
+          ],
+        ],
+      ],
+    ])->save();
+
+    $payload = $this->resolvePickedNewsReference($fixtures, 'es', $component_id)->value;
+    self::assertIsArray($payload);
+    // The picked entity resolves in the host's (Spanish) language …
+    self::assertSame('The referenced news item in Spanish', $payload['label'] ?? NULL);
+    // … and so does the entity it references in turn.
+    $nested = $payload['field_related_news'] ?? NULL;
+    self::assertIsArray($nested);
+    self::assertSame('The deeper news item in Spanish', $nested['label'] ?? NULL);
+  }
+
+  /**
+   * Without a host, the reference resolves in the negotiated content language.
+   *
+   * When no host entity (nor a fieldable tree root) pins the reading language,
+   * NegotiatedLanguage::forReferenceHost() falls back to
+   * negotiateFromConfigAndContext(), which on a multilingual site attaches the
+   * `languages:language_content` cache context — the one place the reference
+   * payload's cacheability differs from the host-pinned case.
+   */
+  public function testContentEntityReferencePropResolvesInNegotiatedLanguageWithoutHost(): void {
+    $fixtures = $this->setUpContentEntityReferenceFixtures(translatable: TRUE);
+
+    $result = $this->resolvePickedNewsReference($fixtures, NULL);
+    // Resolves in the negotiated content language (the site default here).
+    self::assertSame('The referenced news item', self::resolvedLabel($result));
+    $cacheability = CacheableMetadata::createFromObject($result);
+    // No host entity, so no host cache tag — the reading language is carried by
+    // the content-language cache context instead. (The host-pinned case does
+    // the opposite: host cache tag, no language context.)
+    self::assertSame(['node:' . $fixtures['referenced_news']->id()], $cacheability->getCacheTags());
+    self::assertEqualsCanonicalizing(['languages:language_content', 'user.permissions'], $cacheability->getCacheContexts());
+  }
+
+  /**
+   * Resolves the picked `news_item_reference` with the host read in $host_langcode.
+   *
+   * A picked (StaticPropSource) content-entity-reference: the author selected
+   * the fixture's referenced news item. The host is read in $host_langcode,
+   * which is the language `JsComponent::getExplicitInput()` resolves the
+   * reference payload in; pass NULL for no host, so the language falls back to
+   * the negotiated content language. $component_id defaults to the fixture
+   * component, but can name another news_item_reference component (e.g. the
+   * nested case).
+   *
+   * @return \Drupal\canvas\PropExpressions\StructuredData\EvaluationResult
+   *   The developer-facing payload (and its cacheability) for the reference.
+   */
+  private function resolvePickedNewsReference(array $fixtures, ?string $host_langcode, ?string $component_id = NULL): EvaluationResult {
+    $component_id ??= $fixtures['component_id'];
+    $inputs = [
+      'news_item_reference' => [
+        'sourceType' => 'static:field_item:entity_reference',
+        'expression' => 'ℹ︎entity_reference␟entity',
+        'value' => $fixtures['referenced_news']->id(),
+        'sourceTypeSettings' => [
+          'storage' => ['target_type' => 'node'],
+          'instance' => [
+            'handler' => 'default:node',
+            'handler_settings' => ['target_bundles' => ['news_item' => 'news_item']],
+          ],
+        ],
+      ],
+    ];
+    $component = Component::load($component_id);
+    self::assertInstanceOf(Component::class, $component);
+    $source = $component->getComponentSource();
+    self::assertInstanceOf(JsComponent::class, $source);
+    $host = $host_langcode === NULL ? NULL : $fixtures['host_news']->getTranslation($host_langcode);
+    $item = $this->buildComponentTreeItem($component_id, $inputs);
+    $resolved = $source->getExplicitInput($this->container->get('uuid')->generate(), $item, $host);
+    self::assertInstanceOf(EvaluationResult::class, $resolved['resolved']['news_item_reference']);
+    return $resolved['resolved']['news_item_reference'];
+  }
+
+  /**
    * An empty content-entity-reference does not produce a developer-facing payload.
    */
   public function testContentEntityReferencePropSilentSkipPaths(): void {
@@ -3415,51 +3676,325 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
   }
 
   /**
-   * Multi-target-bundle references are not yet supported.
+   * A multi-target-bundle reference resolves to the runtime entity's branch.
    *
-   * Storing such an expression is rejected by validation
-   * (MultiTargetBundleReferenceNotSupported), so this exercises the runtime
-   * guard as defense-in-depth: config that bypassed validation (e.g. legacy
-   * data) must still fail hard rather than fatal opaquely. The branch
-   * expression is therefore written straight to config storage, bypassing the
-   * config schema checker.
+   * When the reference field targets several bundles, the stored expression
+   * carries a `ReferencedBundleSpecificBranches` target — one branch per bundle.
+   * At render time `buildReferencePayload()` selects the branch keyed by the
+   * resolved entity's entity-type + bundle, so the component receives the picks
+   * for the bundle actually referenced. This exercises both bundles through one
+   * field sequentially: re-pointing the reference at an entity of the other
+   * bundle switches which branch (and hence which `__type`) surfaces.
+   *
+   * The branch expression is saved through the component's NORMAL save — no raw
+   * config-storage writes: the former save-time rejection is gone, so branch
+   * expressions validate like any other expression, which this proves end to
+   * end.
    *
    * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::buildReferencePayload()
-   * @see \Drupal\canvas\Plugin\Validation\Constraint\MultiTargetBundleReferenceNotSupportedConstraint
-   * @todo Add multi-target-bundle references support in https://git.drupalcode.org/project/canvas/-/work_items/3591656
+   * @see \Drupal\canvas\PropExpressions\StructuredData\ReferencedBundleSpecificBranches
    */
-  public function testMultiTargetBundleReferenceThrows(): void {
+  public function testMultiTargetBundleReferenceResolvesPerBundle(): void {
     $fixtures = $this->setUpContentEntityReferenceFixtures();
 
-    // Widen the self-referencing field to target two node bundles: that is what
-    // makes a bundle-specific branch expression valid against it (and keeps the
-    // `ReferenceFieldPropExpression` constructor from emitting a deprecation
-    // about branches not matching the field's `target_bundles`).
+    // A second target bundle makes the reference field multi-bundle, which is
+    // what a bundle-specific branch expression is valid against. Create it
+    // before saving the component so branch validation passes.
     NodeType::create(['type' => 'blog_post', 'name' => 'Blog post'])->save();
-    $field = FieldConfig::loadByName('node', 'news_item', 'field_related_news');
-    self::assertInstanceOf(FieldConfig::class, $field);
-    $field->setSetting('handler_settings', [
-      'target_bundles' => ['blog_post' => 'blog_post', 'news_item' => 'news_item'],
-    ]);
-    $field->save();
+    self::widenRelatedNewsToBundles(['news_item', 'blog_post']);
 
-    // Write the branch expression directly to config storage to bypass the
-    // config schema checker (which would otherwise reject it via
-    // MultiTargetBundleReferenceNotSupported), then refresh caches so the
-    // source loads the tampered config.
+    // Save a branch expression normally: it picks `title` from whichever of the
+    // two bundles the entity behind `field_related_news` turns out to be.
+    $js_component = JavaScriptComponent::load('content_entity_reference_test_component');
+    self::assertInstanceOf(JavaScriptComponent::class, $js_component);
+    $data_dependencies = $js_component->get('dataDependencies');
+    $data_dependencies['entityFields']['news_item_reference'] = [
+      'ℹ︎␜entity:node:news_item␝field_related_news␞␟entity␜[␜entity:node:blog_post␝title␞␟value][␜entity:node:news_item␝title␞␟value]',
+    ];
+    $js_component->set('dataDependencies', $data_dependencies);
+    self::assertEntityIsValid($js_component);
+    $js_component->save();
+
+    // Branch A: `field_related_news` resolves to a news_item — the news_item
+    // branch matches, so its `__type` and picked field surface.
+    $branch_news = Node::create([
+      'type' => 'news_item',
+      'title' => 'A related news item',
+      'status' => 1,
+    ]);
+    self::assertEntityIsValid($branch_news);
+    $branch_news->save();
+    $fixtures['referenced_news']->set('field_related_news', $branch_news->id());
+    $fixtures['referenced_news']->save();
+
+    self::assertSame(
+      [
+        '__type' => 'news_item',
+        'field_related_news' => [
+          '__type' => 'news_item',
+          'label' => 'A related news item',
+        ],
+      ],
+      $this->resolveNewsItemReference($fixtures)->value,
+    );
+
+    // Branch B: re-point `field_related_news` at a blog_post — the other branch
+    // now matches, so a different `__type` and picked field surface.
+    $branch_blog = Node::create([
+      'type' => 'blog_post',
+      'title' => 'A related blog post',
+      'status' => 1,
+    ]);
+    self::assertEntityIsValid($branch_blog);
+    $branch_blog->save();
+    $fixtures['referenced_news']->set('field_related_news', $branch_blog->id());
+    $fixtures['referenced_news']->save();
+
+    self::assertSame(
+      [
+        '__type' => 'news_item',
+        'field_related_news' => [
+          '__type' => 'blog_post',
+          'label' => 'A related blog post',
+        ],
+      ],
+      $this->resolveNewsItemReference($fixtures)->value,
+    );
+  }
+
+  /**
+   * A referenced bundle with no matching branch yields a `__type`-only payload.
+   *
+   * When `target_bundles` is wider than the bundles the expression branches on,
+   * an entity of an un-branched bundle still resolves; its payload is then a
+   * `__type`-only object (no picks), distinguishing it from a missing reference
+   * (NULL). The traversed entity's cacheability is still carried, so the render
+   * stays correctly invalidated.
+   *
+   * Finally asserts the complementary case: a NULL/absent reference yields a
+   * NULL payload, not a `__type`-only object. Both funnel through the same
+   * empty-`$resolved_targets` recursion, so this pins that NULL != absence.
+   *
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::buildReferencePayload()
+   */
+  public function testMultiTargetBundleReferenceUnmatchedBundle(): void {
+    $fixtures = $this->setUpContentEntityReferenceFixtures();
+
+    NodeType::create(['type' => 'blog_post', 'name' => 'Blog post'])->save();
+    // A third bundle the branch expression deliberately does NOT pick.
+    NodeType::create(['type' => 'press_release', 'name' => 'Press release'])->save();
+    self::widenRelatedNewsToBundles(['news_item', 'blog_post', 'press_release']);
+
+    $js_component = JavaScriptComponent::load('content_entity_reference_test_component');
+    self::assertInstanceOf(JavaScriptComponent::class, $js_component);
+    $data_dependencies = $js_component->get('dataDependencies');
+    $data_dependencies['entityFields']['news_item_reference'] = [
+      'ℹ︎␜entity:node:news_item␝field_related_news␞␟entity␜[␜entity:node:blog_post␝title␞␟value][␜entity:node:news_item␝title␞␟value]',
+    ];
+    $js_component->set('dataDependencies', $data_dependencies);
+    self::assertEntityIsValid($js_component);
+    $js_component->save();
+
+    // `field_related_news` resolves to a press_release: neither branch matches.
+    $unmatched = Node::create([
+      'type' => 'press_release',
+      'title' => 'An un-branched press release',
+      'status' => 1,
+    ]);
+    self::assertEntityIsValid($unmatched);
+    $unmatched->save();
+    $fixtures['referenced_news']->set('field_related_news', $unmatched->id());
+    $fixtures['referenced_news']->save();
+
+    $resolved = $this->resolveNewsItemReference($fixtures);
+
+    // The un-branched bundle contributes exactly its `__type`, nothing else.
+    self::assertSame(
+      [
+        '__type' => 'news_item',
+        'field_related_news' => ['__type' => 'press_release'],
+      ],
+      $resolved->value,
+    );
+
+    // The cacheability of how the reference was loaded is present, AND the
+    // un-branched entity's own cache tag: even though no leaf pick is evaluated
+    // against it, the `__type`-only payload still depends on that entity, so
+    // deleting it (or changing its bundle) invalidates this render.
+    $cacheability = new CacheableMetadata();
+    $cacheability->addCacheableDependency($resolved);
+    $expected_tags = [
+      'node:' . $fixtures['referenced_news']->id(),
+      'node:' . $fixtures['host_news']->id(),
+      'node:' . $unmatched->id(),
+    ];
+    \sort($expected_tags);
+    $actual_tags = $cacheability->getCacheTags();
+    \sort($actual_tags);
+    self::assertSame($expected_tags, $actual_tags);
+
+    // NULL != absence: a NULL/absent reference (not merely an un-branched
+    // bundle) yields a NULL payload, not a `__type`-only object. Clearing the
+    // referenced entity's own `field_related_news` makes the branch's referencer
+    // resolve to NULL, exercising the other empty-`$resolved_targets` path
+    // through the same recursion — the divergence lives entirely in
+    // buildReferencePayload()'s instanceof check.
+    $fixtures['referenced_news']->set('field_related_news', NULL);
+    $fixtures['referenced_news']->save();
+
+    self::assertSame(
+      [
+        '__type' => 'news_item',
+        'field_related_news' => NULL,
+      ],
+      $this->resolveNewsItemReference($fixtures)->value,
+    );
+  }
+
+  /**
+   * Un-coalesced cross-bundle picks evaluate only against their own bundle.
+   *
+   * Per-bundle picks whose leaf shapes differ across bundles are deliberately
+   * left un-combined (they stay separate single-bundle references through one
+   * multi-bundle referencer, rather than a single branch expression). At render
+   * time `buildReferencePayload()` applies its uniform host-bundle matching
+   * rule: only the reference whose target bundle matches the resolved entity is
+   * evaluated; the other is skipped instead of evaluating a bundle-A expression
+   * against a bundle-B entity (which would fatal on a field it lacks).
+   *
+   * The blog_post pick targets `field_blog_subtitle`, a field only blog_post
+   * has: evaluating it against a news_item would fatal, so branch A genuinely
+   * exercises the skip (not just filtering). Branch B re-points the reference at
+   * a blog_post and asserts the symmetric outcome — the blog_post pick surfaces
+   * and the news_item `title` pick is skipped.
+   *
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::buildReferencePayload()
+   * @see \Drupal\canvas\PropExpressions\StructuredData\Coalescer::coalesceReferencerFieldGroup()
+   */
+  public function testMultiTargetBundleReferenceUnCoalescedCrossBundlePicks(): void {
+    $fixtures = $this->setUpContentEntityReferenceFixtures();
+
+    NodeType::create(['type' => 'blog_post', 'name' => 'Blog post'])->save();
+    self::widenRelatedNewsToBundles(['news_item', 'blog_post']);
+
+    // A field only blog_post has: picking it against a news_item would fatal,
+    // which is exactly the mis-evaluation the host-bundle skip prevents.
+    FieldStorageConfig::create([
+      'field_name' => 'field_blog_subtitle',
+      'type' => 'string',
+      'entity_type' => 'node',
+    ])->save();
+    FieldConfig::create([
+      'field_name' => 'field_blog_subtitle',
+      'entity_type' => 'node',
+      'bundle' => 'blog_post',
+      'label' => 'Subtitle',
+    ])->save();
+
+    // Two single-bundle references through the same `field_related_news`, each
+    // picking a bundle-specific final field (`title` on news_item vs the
+    // blog_post-only `field_blog_subtitle`) so their leaf shapes differ and the
+    // Coalescer leaves them un-combined. The coalescing constraint would flag
+    // two references on one field, so these are written straight to config
+    // storage — the render path must handle this input.
     $config_name = 'canvas.js_component.content_entity_reference_test_component';
     $data = $this->config($config_name)->getRawData();
     $data['dataDependencies']['entityFields']['news_item_reference'] = [
-      'ℹ︎␜entity:node:news_item␝field_related_news␞␟entity␜[␜entity:node:blog_post␝title␞␟value][␜entity:node:news_item␝title␞␟value]',
+      'ℹ︎␜entity:node:news_item␝field_related_news␞␟entity␜␜entity:node:news_item␝title␞␟value',
+      'ℹ︎␜entity:node:news_item␝field_related_news␞␟entity␜␜entity:node:blog_post␝field_blog_subtitle␞␟value',
     ];
-    $this->container->get('config.storage')->write($config_name, $data);
-    $this->container->get('config.factory')->reset($config_name);
-    $this->container->get('entity_type.manager')
+    $this->container->get(StorageCacheInterface::class)->write($config_name, $data);
+    $this->container->get(ConfigFactoryInterface::class)->reset($config_name);
+    $this->container->get(EntityTypeManagerInterface::class)
       ->getStorage(JavaScriptComponent::ENTITY_TYPE_ID)
       ->resetCache(['content_entity_reference_test_component']);
 
-    // The host references a (single-bundle) news_item, so the prop resolves to a
-    // real entity and evaluation reaches the branch expression.
+    // Branch A: `field_related_news` resolves to a news_item — only the
+    // news_item pick may be evaluated. The blog_post pick is skipped, not
+    // evaluated against the news_item: doing so would fatal, because news_item
+    // has no `field_blog_subtitle`.
+    $branch_news = Node::create([
+      'type' => 'news_item',
+      'title' => 'Only-this-branch news item',
+      'status' => 1,
+    ]);
+    self::assertEntityIsValid($branch_news);
+    $branch_news->save();
+    $fixtures['referenced_news']->set('field_related_news', $branch_news->id());
+    $fixtures['referenced_news']->save();
+
+    self::assertSame(
+      [
+        '__type' => 'news_item',
+        'field_related_news' => [
+          '__type' => 'news_item',
+          'label' => 'Only-this-branch news item',
+        ],
+      ],
+      $this->resolveNewsItemReference($fixtures)->value,
+    );
+
+    // Branch B: re-point `field_related_news` at a blog_post — now only the
+    // blog_post pick may be evaluated (its `field_blog_subtitle` surfaces), and
+    // the news_item `title` pick is skipped.
+    $branch_blog = Node::create([
+      'type' => 'blog_post',
+      'title' => 'A blog post',
+      'field_blog_subtitle' => 'Only-this-branch subtitle',
+      'status' => 1,
+    ]);
+    self::assertEntityIsValid($branch_blog);
+    $branch_blog->save();
+    $fixtures['referenced_news']->set('field_related_news', $branch_blog->id());
+    $fixtures['referenced_news']->save();
+
+    self::assertSame(
+      [
+        '__type' => 'news_item',
+        'field_related_news' => [
+          '__type' => 'blog_post',
+          'field_blog_subtitle' => 'Only-this-branch subtitle',
+        ],
+      ],
+      $this->resolveNewsItemReference($fixtures)->value,
+    );
+  }
+
+  /**
+   * Widens the self-referencing `field_related_news` to target several bundles.
+   *
+   * @param list<string> $bundles
+   *   The node bundles to set as the field's `target_bundles`.
+   */
+  private static function widenRelatedNewsToBundles(array $bundles): void {
+    $field = FieldConfig::loadByName('node', 'news_item', 'field_related_news');
+    self::assertInstanceOf(FieldConfig::class, $field);
+    $field->setSetting('handler_settings', [
+      'target_bundles' => \array_combine($bundles, $bundles),
+    ]);
+    $field->save();
+  }
+
+  /**
+   * Resolves the `news_item_reference` prop against a freshly-loaded host.
+   *
+   * The node static cache is reset and the host reloaded so entity-reference
+   * field items don't return a statically-cached target from an earlier
+   * resolution (this test re-points `field_related_news` between resolutions).
+   *
+   * @param array{host_news: \Drupal\node\NodeInterface, component_id: string, source: \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent} $fixtures
+   *   The fixtures from ::setUpContentEntityReferenceFixtures().
+   *
+   * @return \Drupal\canvas\PropExpressions\StructuredData\EvaluationResult
+   *   The resolved `news_item_reference` payload.
+   */
+  private function resolveNewsItemReference(array $fixtures): EvaluationResult {
+    $node_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage('node');
+    $node_storage->resetCache();
+    $host_id = $fixtures['host_news']->id();
+    self::assertNotNull($host_id);
+    $host = $node_storage->load($host_id);
+    self::assertInstanceOf(NodeInterface::class, $host);
     $rooted_item = $this->buildComponentTreeItem(
       $fixtures['component_id'],
       [
@@ -3468,15 +4003,15 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
           'expression' => 'ℹ︎␜entity:node:news_item␝field_related_news␞␟entity',
         ],
       ],
-      $fixtures['host_news'],
+      $host,
     );
-
-    $this->expectException(\LogicException::class);
-    $this->expectExceptionMessage('Multi-target-bundle content entity references are not yet supported');
-    $fixtures['source']->getExplicitInput(
+    $result = $fixtures['source']->getExplicitInput(
       $this->container->get('uuid')->generate(),
       $rooted_item,
     );
+    $resolved = $result['resolved']['news_item_reference'];
+    self::assertInstanceOf(EvaluationResult::class, $resolved);
+    return $resolved;
   }
 
   /**
@@ -3496,10 +4031,19 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
    *   source: \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent,
    *   }
    */
-  private function setUpContentEntityReferenceFixtures(): array {
+  private function setUpContentEntityReferenceFixtures(bool $translatable = FALSE): array {
+    if ($translatable) {
+      // Enable translation before installing the node schema so
+      // content_translation's base fields are part of it.
+      $this->enableModules(['language', 'content_translation']);
+    }
     $this->installEntitySchema('node');
     $this->installSchema('node', 'node_access');
     $this->installConfig(['node']);
+    if ($translatable) {
+      $this->installConfig(['language']);
+      ConfigurableLanguage::createFromLangcode('es')->save();
+    }
 
     // Field-level access checks during expression evaluation require an
     // authenticated user with `access content` (and view-permission for the
@@ -3507,6 +4051,10 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     $this->setUpCurrentUser([], ['access content', 'access user profiles']);
 
     NodeType::create(['type' => 'news_item', 'name' => 'News item'])->save();
+    if ($translatable) {
+      \Drupal::service(BundleTranslationSettingsInterface::class)->setEnabled('node', 'news_item', TRUE);
+      $this->container->get(EntityFieldManagerInterface::class)->clearCachedFieldDefinitions();
+    }
 
     // Self-referencing field on news_item — keeps the fixture small while
     // exercising the host→target lookup path end-to-end.
@@ -3533,6 +4081,9 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     ]);
     self::assertEntityIsValid($referenced_news);
     $referenced_news->save();
+    if ($translatable) {
+      $referenced_news->addTranslation('es', ['title' => 'The referenced news item in Spanish'])->save();
+    }
 
     // The host's owner backs the bundleless `user_reference` EntityFieldPropSource
     // case (which evaluates against `host_news.uid`). Setting it
@@ -3548,6 +4099,12 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     ]);
     self::assertEntityIsValid($host_news);
     $host_news->save();
+    if ($translatable) {
+      $host_news->addTranslation('es', [
+        'title' => 'The host news item in Spanish',
+        'field_related_news' => $referenced_news->id(),
+      ])->save();
+    }
 
     $referenced_user = $this->createUser([], 'Some Fan');
     self::assertNotFalse($referenced_user);

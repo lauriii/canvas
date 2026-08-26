@@ -8,6 +8,7 @@ namespace Drupal\Tests\canvas\Kernel\Twig;
 
 use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
 use Drupal\canvas\Twig\CanvasTwigExtension;
+use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Image\ImageFactory;
 use Drupal\Core\Image\ImageInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
@@ -57,7 +58,7 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
     $imageFactory->method('get')->with('public://balloons.png')->willReturn($image);
     $streamWrapperManager = $this->createMock(StreamWrapperManagerInterface::class);
     $streamWrapperManager->method('isValidUri')->willReturn(TRUE);
-    $fileUrlGenerator = $this->container->get('file_url_generator');
+    $fileUrlGenerator = $this->container->get(FileUrlGeneratorInterface::class);
     $renderer = $this->container->get('renderer');
 
     // Create the extension instance

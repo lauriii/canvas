@@ -1,0 +1,17 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - canvas_test_code_components_color
+uuid: 44444444-4444-4444-8444-444444444444
+name: 'Father Christmas'
+cssVariable: '--santa-face'
+value:
+  colorSpace: srgb
+  components:
+    - 1.0
+    - 0.424
+    - 0.424
+  hex: '#ff6c6c'
+weight: 3

@@ -13,6 +13,7 @@ use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\language\ConfigurableLanguageManagerInterface;
@@ -99,7 +100,7 @@ abstract class CanvasKernelTestBase extends KernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->container->get('theme_installer')->install(['stark']);
+    $this->container->get(ThemeInstallerInterface::class)->install(['stark']);
     $this->installConfig([
       // Needed for date formats.
       // @see core/modules/system/config/install/core.date_format.html_date.yml

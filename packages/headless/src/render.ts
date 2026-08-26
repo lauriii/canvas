@@ -9,7 +9,7 @@ import type {
   CanvasComponentTreeElement,
   CanvasComponentTreeSlot,
   JsonValue,
-} from './server/content-api';
+} from './page';
 
 /** The prop used on the wire for a Canvas component instance UUID. */
 export const CANVAS_COMPONENT_UUID_PROP = 'canvasUuid';
@@ -37,7 +37,67 @@ export function normalizeCanvasComponentTreeSlot(
   if (slot === undefined) {
     return [];
   }
-  return Array.isArray(slot) ? slot : [slot];
+  if (!Array.isArray(slot)) {
+    return [slot];
+  }
+  return slot.flatMap((child) => normalizeCanvasComponentTreeSlot(child));
+}
+
+/**
+ * Whether a slot has no Canvas child components and needs an editor placeholder.
+ * String-only values are component defaults/examples, which editor rendering
+ * replaces with the empty-slot placeholder.
+ */
+export function isCanvasComponentTreeSlotEmpty(
+  slot: CanvasComponentTreeSlot | undefined,
+): boolean {
+  const children = normalizeCanvasComponentTreeSlot(slot);
+  return children.length === 0 || children.every(isCanvasSlotDefaultChild);
+}
+
+/** Whether a top-level Canvas region has no rendered page content. */
+export function isCanvasComponentTreeEmpty(
+  tree: CanvasComponentTreeElement | null,
+): boolean {
+  return tree === null || isCanvasComponentTreeElementEmpty(tree);
+}
+
+/** Whether one structured element contains no rendered page content. */
+function isCanvasComponentTreeElementEmpty(
+  element: CanvasComponentTreeElement,
+): boolean {
+  if (getCanvasComponentRenderData(element)) {
+    return false;
+  }
+  return Object.values(element.slots ?? {}).every((slot) =>
+    normalizeCanvasComponentTreeSlot(slot).every((child) =>
+      typeof child === 'string'
+        ? child.trim() === ''
+        : isCanvasComponentTreeElementEmpty(child),
+    ),
+  );
+}
+
+/** Whether the structured root node was marked as draft output. */
+export function isCanvasComponentTreeDraft(
+  tree: CanvasComponentTreeElement | null,
+): boolean {
+  return tree?.canvasDraftMode === true;
+}
+
+/** Whether one slot child is default markup rather than a Canvas component. */
+function isCanvasSlotDefaultChild(
+  child: string | CanvasComponentTreeElement,
+): boolean {
+  if (typeof child === 'string') {
+    return true;
+  }
+  if (child.element !== 'drupal-markup') {
+    return false;
+  }
+  return Object.values(child.slots ?? {}).every((slot) =>
+    normalizeCanvasComponentTreeSlot(slot).every(isCanvasSlotDefaultChild),
+  );
 }
 
 /**
@@ -99,6 +159,16 @@ export function getCanvasComponentRenderData(
       : {}),
     props,
   };
+}
+
+/** Reports that editor markers cannot identify a component instance. */
+export function reportMissingCanvasComponentUuid(
+  data: Pick<CanvasComponentRenderData, 'componentName'>,
+  path: string,
+): void {
+  console.error(
+    `[canvas] Canvas component "${data.componentName}" has no instance UUID; editor markers were omitted at "${path}".`,
+  );
 }
 
 /** Reports that a component and its subtree were omitted during rendering. */

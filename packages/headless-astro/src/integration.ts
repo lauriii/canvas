@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import { loadEnv } from 'vite';
+import { CANVAS_COMPONENT_PREVIEW_PATH } from '@drupal-canvas/headless';
 import {
   readComponentManifest,
   writeComponentManifest,
@@ -180,6 +181,12 @@ export function canvas(
         addMiddleware({
           entrypoint: '@drupal-canvas/headless-astro/middleware',
           order: 'pre',
+        });
+
+        injectRoute({
+          pattern: CANVAS_COMPONENT_PREVIEW_PATH,
+          entrypoint:
+            '@drupal-canvas/headless-astro/ComponentPreviewPage.astro',
         });
 
         if (options.injectRoutes !== false) {

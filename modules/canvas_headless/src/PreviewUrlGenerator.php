@@ -69,7 +69,7 @@ class PreviewUrlGenerator implements PreviewUrlGeneratorInterface {
   /**
    * {@inheritdoc}
    */
-  public function issueForPath(string $path, bool $renewal = FALSE): ?string {
+  public function issueForPath(string $path, bool $renewal = FALSE, array $preview_context = []): ?string {
     if (!$this->currentUser->hasPermission(PreviewUrlGeneratorInterface::PREVIEW_PERMISSION)) {
       return NULL;
     }
@@ -79,6 +79,7 @@ class PreviewUrlGenerator implements PreviewUrlGeneratorInterface {
       $path,
       static::RESOURCE_VERSION,
       $renewal,
+      $preview_context,
     );
   }
 

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   HEADLESS_ASSERTION_MESSAGE,
   HEADLESS_REFRESH_MESSAGE,
+  HEADLESS_STATUS_REQUEST_MESSAGE,
 } from '../constants';
 import { EXPIRY_SLACK_MS } from '../draft-data';
 import {
@@ -15,9 +16,34 @@ import {
 
 import type { DraftSessionElementSnapshot } from './draft-session-element';
 
+const { createHeightReporterMock, destroyHeightReporterMock } = vi.hoisted(
+  () => ({
+    createHeightReporterMock: vi.fn(),
+    destroyHeightReporterMock: vi.fn(),
+  }),
+);
+
+vi.mock('./height-report', () => ({
+  createHeightReporter: createHeightReporterMock,
+}));
+
 const ORIGIN = 'https://drupal.example';
+const HOST_SESSION_ID = 'host-session';
 
 defineDraftSessionElement();
+
+function establishHostSession(): void {
+  window.dispatchEvent(
+    new MessageEvent('message', {
+      data: {
+        type: HEADLESS_STATUS_REQUEST_MESSAGE,
+        hostSessionId: HOST_SESSION_ID,
+      },
+      origin: ORIGIN,
+      source: window.parent,
+    }),
+  );
+}
 
 interface MountOptions {
   tokenExpiresAt?: number | null;
@@ -77,6 +103,10 @@ function mount(options: MountOptions = {}) {
 beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date('2026-07-08T12:00:00Z'));
+  destroyHeightReporterMock.mockReset();
+  createHeightReporterMock.mockReset().mockReturnValue({
+    destroy: destroyHeightReporterMock,
+  });
 });
 
 afterEach(() => {
@@ -197,6 +227,7 @@ describe('DraftSessionElement', () => {
 
     try {
       const { element } = mount();
+      establishHostSession();
       let refreshEvent: Event | null = null;
       element.addEventListener(DRAFT_SESSION_REFRESH_EVENT, (event) => {
         refreshEvent = event;
@@ -205,7 +236,10 @@ describe('DraftSessionElement', () => {
 
       window.dispatchEvent(
         new MessageEvent('message', {
-          data: { type: HEADLESS_REFRESH_MESSAGE },
+          data: {
+            type: HEADLESS_REFRESH_MESSAGE,
+            hostSessionId: HOST_SESSION_ID,
+          },
           origin: ORIGIN,
           source: window.parent,
         }),
@@ -245,10 +279,15 @@ describe('DraftSessionElement', () => {
         tokenExpiresAt: Date.now() + 300_000,
       });
       expect(element.hasAttribute('embedded')).toBe(true);
+      establishHostSession();
 
       window.dispatchEvent(
         new MessageEvent('message', {
-          data: { type: HEADLESS_ASSERTION_MESSAGE, assertion: 'jwt-string' },
+          data: {
+            type: HEADLESS_ASSERTION_MESSAGE,
+            assertion: 'jwt-string',
+            hostSessionId: HOST_SESSION_ID,
+          },
           origin: ORIGIN,
           source: window.parent,
         }),
@@ -271,6 +310,30 @@ describe('DraftSessionElement', () => {
       expect(element.hasAttribute('expired')).toBe(true);
     } finally {
       vi.unstubAllGlobals();
+      if (originalTop) {
+        Object.defineProperty(window, 'top', originalTop);
+      }
+    }
+  });
+
+  it('starts a height reporter on connect and tears it down on disconnect', () => {
+    const originalTop = Object.getOwnPropertyDescriptor(window, 'top');
+    Object.defineProperty(window, 'top', { value: {}, configurable: true });
+
+    try {
+      const { element } = mount({
+        tokenExpiresAt: Date.now() + 300_000,
+      });
+
+      expect(createHeightReporterMock).toHaveBeenCalledWith({
+        editorOrigin: ORIGIN,
+        embedded: true,
+      });
+
+      element.remove();
+
+      expect(destroyHeightReporterMock).toHaveBeenCalled();
+    } finally {
       if (originalTop) {
         Object.defineProperty(window, 'top', originalTop);
       }

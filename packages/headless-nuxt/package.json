@@ -1,6 +1,9 @@
 {
   "name": "@drupal-canvas/headless-nuxt",
-  "version": "0.0.1",
+  "version": "0.4.0",
+  "engines": {
+    "node": ">=22.19.0 <23 || >=24.5.0"
+  },
   "description": "Nuxt adapter for the Drupal Canvas Headless SDK.",
   "license": "MIT",
   "repository": {
@@ -63,10 +66,11 @@
     }
   },
   "scripts": {
+    "test": "vitest run",
     "type-check": "vue-tsc --noEmit --pretty"
   },
   "dependencies": {
-    "@drupal-canvas/headless": "^0.0.1",
+    "@drupal-canvas/headless": "^0.5.0",
     "@nuxt/kit": "^4.4.8",
     "h3": "^1.15.0"
   },
@@ -76,9 +80,11 @@
   },
   "devDependencies": {
     "@nuxt/nitro-server": "^4.4.8",
+    "jsdom": "^26.1.0",
     "nuxt": "^4.4.8",
     "typescript": "^5.9.3",
     "vue": "^3.5.39",
-    "vue-tsc": "^3.2.2"
+    "vue-tsc": "^3.2.2",
+    "vitest": "^4.0.18"
   }
 }

@@ -61,24 +61,35 @@ async function buildComponentUploadTasks(
   apiService: { listComponents: () => Promise<Record<string, unknown>> },
   onProgress: () => void,
 ): Promise<ComponentUploadTask[]> {
-  // External components are implemented by the configured external
-  // application and synced into Drupal as metadata only: the CLI must never
-  // update or delete them, so they are invisible to push planning.
-  const existingComponents = Object.fromEntries(
-    Object.entries(await apiService.listComponents()).filter(
-      ([, component]) => (component as Component).type !== 'external',
-    ),
-  );
+  const existingComponents = await apiService.listComponents();
   const remoteNames = new Set(Object.keys(existingComponents));
 
   const tasks: ComponentUploadTask[] = [];
   for (const [machineName, prepared] of preparedByName.entries()) {
     onProgress();
     if (remoteNames.has(machineName)) {
+      let componentPayload = prepared.componentPayload;
+      if (componentPayload.type === 'external') {
+        const serverComponent = existingComponents[machineName] as Component;
+        // Preserve dependencies used by retained React fallback assets. Entity
+        // fields describe the current props, so only the external definition is
+        // authoritative for that category.
+        const fallbackDataDependencies = {
+          ...(serverComponent.dataDependencies ?? {}),
+        };
+        delete fallbackDataDependencies.entityFields;
+        componentPayload = {
+          ...componentPayload,
+          dataDependencies: {
+            ...fallbackDataDependencies,
+            ...(componentPayload.dataDependencies ?? {}),
+          },
+        };
+      }
       tasks.push({
         machineName,
         operation: 'update',
-        componentPayload: prepared.componentPayload,
+        componentPayload,
         importedJsComponents: prepared.importedJsComponents,
       });
     } else {
@@ -102,6 +113,14 @@ async function buildComponentUploadTasks(
   for (const name of remoteNames) {
     if (!preparedByName.has(name)) {
       const serverComponent = existingComponents[name] as Component;
+
+      // External components are owned by the configured headless frontend:
+      // the CLI creates and updates their metadata but must never delete them
+      // since it is possible to configure multiple frontends that use different
+      // components.
+      if (serverComponent.type === 'external') {
+        continue;
+      }
 
       // Parse imports from server component's source code (no local file exists)
       let importedJsComponents: string[] = [];
@@ -394,10 +413,34 @@ export async function pushBuiltComponents(
 }
 
 /**
+ * Reads the project's `package.json` verbatim, if present.
+ *
+ * @param projectRoot
+ *   The project root directory.
+ *
+ * @returns The raw file contents, or `undefined` when no `package.json` exists.
+ */
+async function readProjectPackageJson(
+  projectRoot: string,
+): Promise<string | undefined> {
+  const packageJsonPath = path.join(projectRoot, 'package.json');
+  if (!(await fileExists(packageJsonPath))) {
+    return undefined;
+  }
+  return fs.readFile(packageJsonPath, 'utf-8');
+}
+
+/**
  * Prepare the global asset library (CSS/JS) update for Drupal.
+ *
+ * @param outputDir
+ *   The build output directory containing the compiled global CSS/JS.
+ * @param projectRoot
+ *   The project root.
  */
 export async function prepareGlobalAssetLibraryUpdate(
   outputDir: string,
+  projectRoot?: string,
 ): Promise<{
   result: Result;
   assetLibrary?: Partial<AssetLibrary>;
@@ -415,6 +458,9 @@ export async function prepareGlobalAssetLibraryUpdate(
         'utf-8',
       );
       const originalCss = await getGlobalCss();
+      const packageJson = projectRoot
+        ? await readProjectPackageJson(projectRoot)
+        : undefined;
       return {
         result: {
           success: true,
@@ -424,6 +470,9 @@ export async function prepareGlobalAssetLibraryUpdate(
         assetLibrary: {
           css: { original: originalCss, compiled: globalCompiledCss },
           js: { original: classNameCandidateIndexFile, compiled: '' },
+          // Only send the key when a package.json exists, so an absent file
+          // never clobbers a previously stored one.
+          ...(packageJson !== undefined ? { packageJson } : {}),
         },
       };
     }

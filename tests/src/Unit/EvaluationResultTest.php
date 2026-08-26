@@ -19,6 +19,57 @@ use PHPUnit\Framework\Attributes\Group;
 #[Group('canvas')]
 class EvaluationResultTest extends UnitTestCase {
 
+  /**
+   * An evaluation result keeps and merges the `#attached` assets it is given.
+   */
+  public function testAttachments(): void {
+    $library_a = ['library' => ['canvas/a']];
+    $library_b = ['library' => ['canvas/b']];
+
+    // Assets default to none.
+    self::assertSame([], (new EvaluationResult('x'))->getAttachments());
+
+    // Assets given to the constructor are kept.
+    $result = new EvaluationResult('x', new CacheableMetadata(), $library_a);
+    self::assertSame($library_a, $result->getAttachments());
+
+    // Wrapping an evaluation result keeps and merges its assets.
+    $wrapped = new EvaluationResult($result, new CacheableMetadata(), $library_b);
+    self::assertEqualsCanonicalizing(['canvas/a', 'canvas/b'], $wrapped->getAttachments()['library']);
+    self::assertSame('x', $wrapped->value);
+
+    // Hoisting an object-shaped result merges the assets of every value.
+    $object = new EvaluationResult([
+      'a' => new EvaluationResult('x', new CacheableMetadata(), $library_a),
+      'b' => new EvaluationResult('y', new CacheableMetadata(), $library_b),
+    ]);
+    self::assertEqualsCanonicalizing(['canvas/a', 'canvas/b'], $object->getAttachments()['library']);
+    self::assertSame(['a' => 'x', 'b' => 'y'], $object->value);
+  }
+
+  /**
+   * This value object is immutable: its assets are set at construction only.
+   */
+  #[DataProvider('immutableAttachmentMethodsProvider')]
+  public function testAttachmentsAreImmutable(string $method): void {
+    $result = new EvaluationResult('x', new CacheableMetadata(), ['library' => ['canvas/a']]);
+    $this->expectException(\LogicException::class);
+    $this->expectExceptionMessage('EvaluationResult is immutable; set its attachments at construction.');
+    $result->$method(['library' => ['canvas/b']]);
+  }
+
+  /**
+   * The methods that must reject mutating an evaluation result's attachments.
+   *
+   * @return array<string, array{string}>
+   */
+  public static function immutableAttachmentMethodsProvider(): array {
+    return [
+      'setAttachments' => ['setAttachments'],
+      'addAttachments' => ['addAttachments'],
+    ];
+  }
+
   #[DataProvider('provider')]
   public function test(CacheableMetadata $cacheability, mixed $value, CacheableMetadata $expected_cacheability, mixed $expected_value): void {
     // Special case: EvaluationResults containing an entity object, to allow

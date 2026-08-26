@@ -21,6 +21,7 @@ import { getCanvasSettings } from '@/utils/drupal-globals';
 import { hasPermission } from '@/utils/permissions';
 
 import AiWizard from '../aiExtension/AiWizard';
+import AiWizardDev from '../aiExtension/AiWizardDev';
 
 import styles from '@/components/sidePanel/PrimaryPanel.module.css';
 
@@ -30,7 +31,11 @@ export const PrimaryPanel = () => {
   const offLeftClasses = useHidePanelClasses('left');
 
   useEffect(() => {
-    if (activePanel === 'templates' && !hasPermission('contentTemplates')) {
+    if (
+      activePanel === 'templates' &&
+      !hasPermission('contentTemplates') &&
+      !hasPermission('pageVariants')
+    ) {
       dispatch(unsetActivePanel());
     }
     if (
@@ -114,11 +119,16 @@ export const PrimaryPanel = () => {
                 )}
                 {activePanel === 'aiWizard' && (
                   <ErrorBoundary>
-                    <AiWizard />
+                    {getCanvasSettings()?.aiDevMode ? (
+                      <AiWizardDev />
+                    ) : (
+                      <AiWizard />
+                    )}
                   </ErrorBoundary>
                 )}
                 {activePanel === 'templates' &&
-                  hasPermission('contentTemplates') && (
+                  (hasPermission('contentTemplates') ||
+                    hasPermission('pageVariants')) && (
                     <ErrorBoundary>
                       <Templates />
                     </ErrorBoundary>

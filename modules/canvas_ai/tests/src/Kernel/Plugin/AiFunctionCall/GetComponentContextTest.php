@@ -7,7 +7,9 @@ namespace Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall;
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\canvas_ai\CanvasAiPageBuilderHelper;
 use Drupal\canvas_ai\CanvasAiPermissions;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
@@ -80,7 +82,7 @@ final class GetComponentContextTest extends CanvasKernelTestBase {
    * Tests getting component context with proper permissions.
    */
   public function testGetComponentContextWithPermissions(): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
     $mock_helper = $this->createMock(CanvasAiPageBuilderHelper::class);
     $test_data = [
       'test_component' => [
@@ -105,7 +107,7 @@ final class GetComponentContextTest extends CanvasKernelTestBase {
    * Tests getting component context without proper permissions.
    */
   public function testGetComponentContextWithoutPermissions(): void {
-    $this->container->get('current_user')->setAccount($this->unprivilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->unprivilegedUser);
     $tool = $this->functionCallManager->createInstance('canvas_ai:get_component_context');
     $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);
     // Expect an exception to be thrown.
@@ -118,7 +120,7 @@ final class GetComponentContextTest extends CanvasKernelTestBase {
    * Tests that the tool calls the page builder helper service.
    */
   public function testPageBuilderHelperServiceCall(): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
 
     // The expectation is verified by the mock - if getComponentContextForAi
     // wasn't called exactly once, the test would fail.
@@ -137,7 +139,7 @@ final class GetComponentContextTest extends CanvasKernelTestBase {
    * Tests that required SDC props include required: true; optional do not.
    */
   public function testSdcComponentRequiredPropsInContext(): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
     $this->generateComponentConfig();
 
     $yaml = $this->container->get('canvas_ai.page_builder_helper')
@@ -160,7 +162,7 @@ final class GetComponentContextTest extends CanvasKernelTestBase {
    * Tests that required code component props include required: true.
    */
   public function testCodeComponentRequiredPropsInContext(): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
     $this->createMyCtaComponentFromSdc();
     $this->generateComponentConfig();
 
@@ -191,7 +193,7 @@ final class GetComponentContextTest extends CanvasKernelTestBase {
    * @see \Drupal\canvas_ai\CanvasAiPageBuilderHelper::refreshComponentContext()
    */
   public function testRequiredPropSurvivesSettingsConfig(): void {
-    $this->container->get('current_user')->setAccount($this->privilegedUser);
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
     $this->generateComponentConfig();
 
     // Stored config from before the required flag existed: no required key, and
@@ -222,10 +224,51 @@ final class GetComponentContextTest extends CanvasKernelTestBase {
     $this->assertSame('Edited description', $loading['description'] ?? '', 'Edited description must be preserved.');
 
     // The flag is also written back to the stored config.
-    $this->container->get('config.factory')->reset('canvas_ai.component_description.settings');
+    $this->container->get(ConfigFactoryInterface::class)->reset('canvas_ai.component_description.settings');
     $stored = Yaml::parse($this->config('canvas_ai.component_description.settings')
       ->get('component_context')['sdc']['data']);
     $this->assertTrue($stored[$card_id]['props']['loading']['required'] ?? FALSE, 'Required flag must be persisted to config.');
+  }
+
+  /**
+   * Tests the catalog_only flag returns only id, name and description.
+   */
+  public function testCatalogOnlyReturnsLeanListing(): void {
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
+    $this->generateComponentConfig();
+
+    $tool = $this->functionCallManager->createInstance('canvas_ai:get_component_context');
+    $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);
+    $tool->setContextValue('catalog_only', TRUE);
+    $tool->execute();
+
+    $catalog = Yaml::parse($tool->getReadableOutput()) ?? [];
+    $this->assertNotEmpty($catalog);
+    foreach ($catalog as $component_id => $entry) {
+      $this->assertSame(['name', 'description'], \array_keys($entry), "Catalog entry for $component_id must hold only name and description.");
+    }
+
+    // The lean listing covers the same components as the full context.
+    $full = Yaml::parse($this->container->get('canvas_ai.page_builder_helper')
+      ->getComponentContextForAi()) ?? [];
+    $this->assertSame(\array_keys($full), \array_keys($catalog));
+  }
+
+  /**
+   * Tests the output stays unchanged when catalog_only is not set.
+   */
+  public function testWithoutCatalogOnlyOutputIsUnchanged(): void {
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
+    $this->generateComponentConfig();
+
+    $expected = $this->container->get('canvas_ai.page_builder_helper')
+      ->getComponentContextForAi();
+
+    $tool = $this->functionCallManager->createInstance('canvas_ai:get_component_context');
+    $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);
+    $tool->execute();
+
+    $this->assertSame($expected, $tool->getReadableOutput());
   }
 
 }

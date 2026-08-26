@@ -17,6 +17,8 @@ import {
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 
+import { selectPageTemplate } from '../lib/page-template-selection';
+import { parsePageTemplateSpec } from '../lib/page-template-spec';
 import { isSupportedPreviewModulePath } from '../lib/preview-runtime';
 import { toPreviewPageSpec } from '../lib/spec-discovery';
 
@@ -99,6 +101,7 @@ interface PreparedComponentPreview {
 interface PreparedPagePreview {
   target: PreviewTarget;
   spec: Spec;
+  pageTemplateSpec: Spec | null;
   bundleSources: BundleComponentSource[];
   cssEntryPaths: string[];
 }
@@ -135,6 +138,7 @@ export function resolvePreviewRuntimeSettings(
 
 export function buildPreviewRuntimeEntrySource(options: {
   spec: Spec;
+  pageTemplateSpec?: Spec | null;
   componentSources: BundleComponentSource[];
   cssEntryPaths: string[];
 }): string {
@@ -181,10 +185,13 @@ export function buildPreviewRuntimeEntrySource(options: {
     '  }',
     '}',
     `const spec = ${JSON.stringify(options.spec)};`,
+    `const pageTemplateSpec = ${JSON.stringify(options.pageTemplateSpec ?? null)};`,
     `const registry = {${registryEntries}};`,
     "const container = document.getElementById('root');",
     "if (!container) { throw new Error('Missing #root element in preview document.'); }",
-    'const renderedNode = renderSpec(spec, registry);',
+    'const pageContent = renderSpec(spec, registry);',
+    'if (pageTemplateSpec) { registry["marker.page_content"] = () => pageContent; }',
+    'const renderedNode = pageTemplateSpec ? renderSpec(pageTemplateSpec, registry) : pageContent;',
     'createRoot(container).render(React.createElement(React.Fragment, null, renderedNode));',
   ].join('\n');
 }
@@ -394,6 +401,7 @@ export async function bundleInteractivePreview(options: {
   projectRoot: string;
   aliasBaseDir: string;
   spec: Spec;
+  pageTemplateSpec?: Spec | null;
   componentSources: BundleComponentSource[];
   cssEntryPaths: string[];
 }): Promise<InteractiveBundleResult> {
@@ -414,6 +422,7 @@ export async function bundleInteractivePreview(options: {
   const entryPath = path.join(temporaryDirectory, 'entry.tsx');
   const entrySource = buildPreviewRuntimeEntrySource({
     spec: options.spec,
+    pageTemplateSpec: options.pageTemplateSpec,
     componentSources: options.componentSources,
     cssEntryPaths: options.cssEntryPaths,
   });
@@ -723,6 +732,47 @@ async function preparePagePreview(options: {
     )
     .map((component) => component.cssEntryPath);
 
+  const pageTemplate = selectPageTemplate(
+    options.discoveryResult.pageTemplates,
+    parsedPage.pageVariant,
+  );
+  let pageTemplateSpec: Spec | null = null;
+  if (pageTemplate) {
+    let authoredPageTemplate: unknown;
+    try {
+      authoredPageTemplate = await parseJsonFile(pageTemplate.path);
+    } catch {
+      return {
+        warnings: [],
+        errors: [
+          toIssue(
+            'invalid_page_template_json',
+            `Failed to parse page template JSON file: ${pageTemplate.path}`,
+            pageTemplate.path,
+          ),
+        ],
+      };
+    }
+    const parsedPageTemplate = parsePageTemplateSpec(
+      authoredPageTemplate,
+      pageTemplate.path,
+      {
+        componentNames: options.discoveryResult.components.map(
+          (component) => component.name,
+        ),
+      },
+    );
+    if (!parsedPageTemplate.pageTemplate) {
+      return {
+        warnings: [],
+        errors: parsedPageTemplate.issues.map((issue) =>
+          toIssue(issue.code, issue.message, issue.path),
+        ),
+      };
+    }
+    pageTemplateSpec = parsedPageTemplate.pageTemplate.spec;
+  }
+
   return {
     warnings: [],
     prepared: {
@@ -732,6 +782,7 @@ async function preparePagePreview(options: {
         projectRelativePath: page.relativePath,
       },
       spec: parsedPage.spec,
+      pageTemplateSpec,
       bundleSources: toPreviewablePageRegistrySources(
         options.discoveryResult.components,
       ),
@@ -784,12 +835,17 @@ export async function buildPreviewPayload(
 
   const componentRoot = path.resolve(options.projectRoot, config.componentDir);
   const pagesRoot = path.resolve(options.projectRoot, config.pagesDir);
+  const pageTemplatesRoot = path.resolve(
+    options.projectRoot,
+    config.pageTemplatesDir,
+  );
 
   let discoveryResult: DiscoveryResult;
   try {
     discoveryResult = await discover({
       componentRoot,
       pagesRoot,
+      pageTemplatesRoot,
       projectRoot: options.projectRoot,
     });
   } catch (error) {
@@ -860,6 +916,10 @@ export async function buildPreviewPayload(
       projectRoot: options.projectRoot,
       aliasBaseDir: config.aliasBaseDir,
       spec: preparedResult.prepared.spec,
+      pageTemplateSpec:
+        options.mode === 'page'
+          ? (preparedResult.prepared as PreparedPagePreview).pageTemplateSpec
+          : null,
       componentSources: preparedResult.prepared.bundleSources,
       cssEntryPaths: uniqueCssPaths,
     });

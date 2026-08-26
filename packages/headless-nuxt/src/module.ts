@@ -1,3 +1,4 @@
+import { CANVAS_COMPONENT_PREVIEW_PATH } from '@drupal-canvas/headless';
 import {
   readComponentManifest,
   writeComponentManifest,
@@ -6,11 +7,13 @@ import { resolveDraftConfig } from '@drupal-canvas/headless/server';
 import { canvasComponentRegistry } from '@drupal-canvas/headless/vite';
 import {
   addComponent,
+  addPlugin,
   addServerHandler,
   addServerPlugin,
   addVitePlugin,
   createResolver,
   defineNuxtModule,
+  extendPages,
 } from '@nuxt/kit';
 
 // Nuxt 4 declares the nitro:* hooks through this builder package's module
@@ -57,7 +60,9 @@ export interface CanvasModuleOptions {
  *   preserving the app's own policy.
  * - Registers the <DraftSession> component and teaches the Vue compiler
  *   about the SDK's <canvas-draft-session> custom element.
- * - Adds the SDK packages to the Vue and Nitro builds.
+ * - Refreshes the consuming application's async data after Canvas auto-saves.
+ * - Adds the SDK packages to the Vue and Nitro builds, including linked
+ *   workspace packages outside the app root during development.
  * - Generates the component manifest (`.canvas/components.manifest.json`)
  *   at build time — in production the metadata endpoint serves this
  *   manifest, so the registry always describes the deployed build. A
@@ -89,6 +94,14 @@ export default defineNuxtModule<CanvasModuleOptions>({
     const resolver = createResolver(import.meta.url);
     if (nuxt.options.dev) {
       resolveDraftConfig();
+      // Workspace consumers resolve the linked core package outside the app
+      // root. Its preview stylesheet must remain available to Vite there.
+      nuxt.options.vite.server ??= {};
+      nuxt.options.vite.server.fs ??= {};
+      nuxt.options.vite.server.fs.allow ??= [nuxt.options.workspaceDir];
+      nuxt.options.vite.server.fs.allow.push(
+        resolver.resolve('../../headless'),
+      );
     }
 
     // The Vue build compiles the SDK's raw TypeScript.
@@ -133,6 +146,7 @@ export default defineNuxtModule<CanvasModuleOptions>({
       name: 'CanvasComponentTree',
       filePath: resolver.resolve('./runtime/components/CanvasComponentTree.ts'),
     });
+    addPlugin(resolver.resolve('./runtime/plugins/draft-refresh.client'));
     addVitePlugin(
       canvasComponentRegistry({ projectRoot: nuxt.options.rootDir }),
     );
@@ -146,6 +160,15 @@ export default defineNuxtModule<CanvasModuleOptions>({
       route: '/api/draft/session',
       method: 'get',
       handler: resolver.resolve('./runtime/server/routes/session-state'),
+    });
+
+    extendPages((pages) => {
+      pages.push({
+        name: 'canvas-component-preview',
+        path: CANVAS_COMPONENT_PREVIEW_PATH,
+        file: resolver.resolve('./runtime/pages/component-preview.vue'),
+        meta: { layout: false },
+      });
     });
 
     if (options.injectRoutes) {

@@ -37,7 +37,7 @@ final class RequestTraitTest extends CanvasKernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $request_stack = $this->container->get('request_stack');
+    $request_stack = $this->container->get(RequestStack::class);
     self::assertInstanceOf(RequestStack::class, $request_stack);
     $this->requestStack = $request_stack;
   }

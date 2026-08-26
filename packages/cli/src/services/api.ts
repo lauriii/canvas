@@ -32,7 +32,7 @@ import type {
   IconPack,
 } from '../types/IconLibrary';
 import type { Page, PageListItem } from '../types/Page';
-import type { Region, RegionListItem } from '../types/Region';
+import type { PageVariant } from '../types/PageVariant';
 import type { ConfigComponentTreePayload } from '../utils/component-tree-payload';
 
 export interface ApiOptions {
@@ -470,6 +470,7 @@ export class ApiService {
   async createPage(page: {
     title: string;
     description: string;
+    pageVariant: string | null;
     status: boolean;
     path: string;
     components: CanvasComponentTree;
@@ -493,6 +494,7 @@ export class ApiService {
     page: {
       title: string;
       description: string;
+      pageVariant: string | null;
       status: boolean;
       path: string;
       components: CanvasComponentTree;
@@ -571,10 +573,10 @@ export class ApiService {
    * Create a new content template.
    */
   async createContentTemplate(template: {
-    label: string;
     entityType: string;
     bundle: string;
     viewMode: string;
+    pageVariant: string | null;
     status: boolean;
     component_tree: ConfigComponentTreePayload;
   }): Promise<ContentTemplate> {
@@ -597,6 +599,7 @@ export class ApiService {
     template: {
       label?: string;
       status?: boolean;
+      pageVariant: string | null;
       component_tree?: ConfigComponentTreePayload;
     },
   ): Promise<ContentTemplate> {
@@ -764,12 +767,45 @@ export class ApiService {
   }
 
   /**
-   * List all regions.
+   * Rethrows a page-variant collection 404 as an actionable explanation.
+   *
+   * The list and settings routes exist on every Canvas release that has page
+   * variants (unlike a per-id 404, which just means "no such variant"), so a
+   * 404 here means the connected site's Canvas predates them: its module
+   * update — which converts theme regions into a page variant — has not run.
+   * That is a Drupal-side action the CLI user may not be able to perform
+   * themselves.
    */
-  async listRegions(): Promise<Record<string, RegionListItem>> {
+  private static rethrowPageVariantsUnsupported(error: unknown): void {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      throw new Error(
+        'This site does not serve page templates yet. Its Drupal Canvas module must be updated and database updates run first — ask a site administrator if you cannot do this yourself.',
+      );
+    }
+  }
+
+  /**
+   * List all page variants ("page templates" in the UI).
+   */
+  async listPageVariants(): Promise<Record<string, PageVariant>> {
     try {
       const response = await this.client.get(
-        '/canvas/api/v0/config/page_region',
+        '/canvas/api/v0/config/page_variant',
+      );
+      return response.data;
+    } catch (error) {
+      ApiService.rethrowPageVariantsUnsupported(error);
+      this.handleApiError(error);
+    }
+  }
+
+  /**
+   * Get a single page variant.
+   */
+  async getPageVariant(id: string): Promise<PageVariant> {
+    try {
+      const response = await this.client.get(
+        `/canvas/api/v0/config/page_variant/${id}`,
       );
       return response.data;
     } catch (error) {
@@ -778,32 +814,19 @@ export class ApiService {
   }
 
   /**
-   * Get a single region.
+   * Create a new page variant.
    */
-  async getRegion(id: string): Promise<Region> {
-    try {
-      const response = await this.client.get(
-        `/canvas/api/v0/config/page_region/${id}`,
-      );
-      return response.data;
-    } catch (error) {
-      this.handleApiError(error);
-    }
-  }
-
-  /**
-   * Create a new region.
-   */
-  async createRegion(region: {
-    theme?: string;
-    region: string;
+  async createPageVariant(pageVariant: {
+    id: string;
+    label: string;
+    description: string | null;
     status: boolean;
     component_tree: ConfigComponentTreePayload;
-  }): Promise<Region> {
+  }): Promise<PageVariant> {
     try {
       const response = await this.client.post(
-        '/canvas/api/v0/config/page_region',
-        region,
+        '/canvas/api/v0/config/page_variant',
+        pageVariant,
       );
       return response.data;
     } catch (error) {
@@ -812,19 +835,21 @@ export class ApiService {
   }
 
   /**
-   * Update an existing region.
+   * Update an existing page variant.
    */
-  async updateRegion(
+  async updatePageVariant(
     id: string,
-    region: {
+    pageVariant: {
+      label?: string;
+      description: string | null;
       status?: boolean;
       component_tree?: ConfigComponentTreePayload;
     },
-  ): Promise<Region> {
+  ): Promise<PageVariant> {
     try {
       const response = await this.client.patch(
-        `/canvas/api/v0/config/page_region/${id}`,
-        region,
+        `/canvas/api/v0/config/page_variant/${id}`,
+        pageVariant,
       );
       return response.data;
     } catch (error) {
@@ -833,11 +858,42 @@ export class ApiService {
   }
 
   /**
-   * Delete a region.
+   * Delete a page variant.
    */
-  async deleteRegion(id: string): Promise<void> {
+  async deletePageVariant(id: string): Promise<void> {
     try {
-      await this.client.delete(`/canvas/api/v0/config/page_region/${id}`);
+      await this.client.delete(`/canvas/api/v0/config/page_variant/${id}`);
+    } catch (error) {
+      this.handleApiError(error);
+    }
+  }
+
+  /**
+   * Get the site default page variant id (null when core block layout
+   * renders pages).
+   */
+  async getDefaultPageVariant(): Promise<{
+    default_page_variant: string | null;
+  }> {
+    try {
+      const response = await this.client.get(
+        '/canvas/api/v0/settings/default-page-variant',
+      );
+      return response.data;
+    } catch (error) {
+      ApiService.rethrowPageVariantsUnsupported(error);
+      this.handleApiError(error);
+    }
+  }
+
+  /**
+   * Set (or clear) the site default page variant.
+   */
+  async setDefaultPageVariant(id: string | null): Promise<void> {
+    try {
+      await this.client.patch('/canvas/api/v0/settings/default-page-variant', {
+        default_page_variant: id,
+      });
     } catch (error) {
       this.handleApiError(error);
     }
@@ -1352,7 +1408,6 @@ export class ApiService {
     if (this.siteUrl.includes('ddev.site')) {
       message += 'Troubleshooting tips:\n';
       message += '  • Check if DDEV is running: ddev status\n';
-      message += '  • Try HTTP instead of HTTPS\n';
       message += '  • Verify site is accessible in browser\n';
     } else {
       message += 'Check your site URL and internet connection.';

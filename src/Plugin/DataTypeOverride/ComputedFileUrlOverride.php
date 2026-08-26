@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Plugin\DataTypeOverride;
 
+use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\TypedData\Plugin\DataType\Uri;
 use Drupal\file\FileInterface;
 
@@ -41,7 +42,7 @@ class ComputedFileUrlOverride extends Uri {
       return NULL;
     }
     /** @var \Drupal\Core\File\FileUrlGeneratorInterface $file_url_generator */
-    $file_url_generator = \Drupal::service('file_url_generator');
+    $file_url_generator = \Drupal::service(FileUrlGeneratorInterface::class);
     $this->url = $file_url_generator->generateString($uri);
 
     return $this->url;

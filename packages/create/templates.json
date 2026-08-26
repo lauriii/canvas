@@ -1,18 +1,51 @@
 [
   {
-    "id": "acquia-nebula",
-    "label": "acquia/nebula",
+    "id": "default",
+    "aliases": ["acquia-nebula"],
+    "label": "Default (Canvas-rendered React)",
     "repository": {
       "url": "https://github.com/acquia/nebula.git",
       "ref": "main"
     }
   },
   {
-    "id": "balintbrews-canvas-starter",
-    "label": "balintbrews/canvas-starter",
+    "id": "nextjs",
+    "label": "Next.js",
+    "experimental": true,
     "repository": {
-      "url": "https://github.com/balintbrews/canvas-starter.git",
-      "ref": "main"
+      "url": "https://github.com/drupal-canvas/headless-templates.git",
+      "ref": "main",
+      "path": "nextjs"
+    }
+  },
+  {
+    "id": "astro",
+    "label": "Astro",
+    "experimental": true,
+    "repository": {
+      "url": "https://github.com/drupal-canvas/headless-templates.git",
+      "ref": "main",
+      "path": "astro"
+    }
+  },
+  {
+    "id": "nuxt",
+    "label": "Nuxt",
+    "experimental": true,
+    "repository": {
+      "url": "https://github.com/drupal-canvas/headless-templates.git",
+      "ref": "main",
+      "path": "nuxt"
+    }
+  },
+  {
+    "id": "tanstack-start",
+    "label": "TanStack Start",
+    "experimental": true,
+    "repository": {
+      "url": "https://github.com/drupal-canvas/headless-templates.git",
+      "ref": "main",
+      "path": "tanstack-start"
     }
   }
 ]

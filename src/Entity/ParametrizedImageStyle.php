@@ -8,6 +8,7 @@ namespace Drupal\canvas\Entity;
 
 use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
 use Drupal\Core\File\Exception\FileException;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Drupal\image\Entity\ImageStyle;
 
@@ -50,7 +51,7 @@ final class ParametrizedImageStyle extends ImageStyle {
     return str_replace(\urlencode('{width}'), '{width}', $url_template);
   }
 
-  public function buildUrl($path, $clean_urls = NULL) {
+  public function buildUrl($path, $clean_urls = NULL): never {
     throw new \LogicException();
   }
 
@@ -74,7 +75,7 @@ final class ParametrizedImageStyle extends ImageStyle {
   public function flush($path = NULL) {
     if ($path === NULL) {
       /** @var \Drupal\Core\File\FileSystemInterface $file_system */
-      $file_system = \Drupal::service('file_system');
+      $file_system = \Drupal::service(FileSystemInterface::class);
       // Delete all parametrized style directories in each registered wrapper.
       $wrappers = $this->getStreamWrapperManager()->getWrappers(StreamWrapperInterface::WRITE_VISIBLE);
       foreach ($wrappers as $wrapper => $wrapper_data) {
@@ -94,7 +95,7 @@ final class ParametrizedImageStyle extends ImageStyle {
     else {
       // A specific image path has been provided. Flush only that derivative.
       /** @var \Drupal\Core\File\FileSystemInterface $file_system */
-      $file_system = \Drupal::service('file_system');
+      $file_system = \Drupal::service(FileSystemInterface::class);
       $original_building = $this->buildingTemplate;
       $original_width = $this->parameters['width'] ?? NULL;
       $this->buildingTemplate = FALSE;

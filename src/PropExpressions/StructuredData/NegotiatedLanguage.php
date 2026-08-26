@@ -8,6 +8,8 @@ use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableDependencyTrait;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Entity\TranslatableInterface;
 use Drupal\Core\Language\LanguageInterface;
 
 /**
@@ -63,6 +65,32 @@ final class NegotiatedLanguage implements CacheableDependencyInterface {
         // No cache context needed on monolingual sites.
         : (new CacheableMetadata())
     );
+  }
+
+  /**
+   * Creates a NegotiatedLanguage for a component tree's referenced entities.
+   *
+   * The referenced entities must be read in the same language as the rest of
+   * the component instance's props: the host entity's language, matching how
+   * EntityFieldPropSource and StaticPropSource resolve references. Pass the
+   * same already-resolved fieldable host the prop sources were evaluated
+   * against (see JsonSchemaPropsComponentSourceBase::getFieldableHostEntity());
+   * without one (e.g. a config-entity tree) fall back to the negotiated
+   * content language.
+   *
+   * @param \Drupal\Core\Entity\FieldableEntityInterface|null $reference_host
+   *   The component instance's resolved fieldable host entity, if any.
+   *
+   * @return static
+   *
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::getFieldableHostEntity()
+   * @see \Drupal\canvas\PropSource\StaticPropSource::evaluate()
+   */
+  public static function forReferenceHost(?FieldableEntityInterface $reference_host): static {
+    // @todo Same host-language conditional as StaticPropSource/EntityFieldPropSource::evaluate(); all three collapse to matchEntity() on the tree root in https://git.drupalcode.org/project/canvas/-/work_items/3571785.
+    return $reference_host instanceof TranslatableInterface && $reference_host->isTranslatable()
+      ? static::matchEntity($reference_host)
+      : static::negotiateFromConfigAndContext();
   }
 
 }

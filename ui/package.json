@@ -5,15 +5,14 @@
   "private": true,
   "version": "0.0.0",
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=22.19.0 <23 || >=24.5.0"
   },
   "type": "module",
   "scripts": {
     "drupaldev": "VITE_DRUPAL=true vite",
     "start": "vite",
-    "build": "npx concurrently --group npm:vite:build npm:build:astro",
-    "build:astro": "npm run build --workspace=@drupal-canvas/astro-hydration",
-    "vite:build": "vite build",
+    "build": "turbo run build:app --filter=@drupal-canvas/ui",
+    "build:app": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest watch",
@@ -40,7 +39,10 @@
     "@dnd-kit/modifiers": "^9.0.0",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@drupal-canvas/astro-hydration": "*",
     "@drupal-canvas/headless-host": "*",
+    "@drupal-canvas/height-reader": "*",
+    "@drupal-canvas/preview-geometry": "*",
     "@ianvs/prettier-plugin-sort-imports": "^4.7.0",
     "@microlink/react-json-view": "^1.26.1",
     "@radix-ui/react-accordion": "^1.2.10",
@@ -53,6 +55,7 @@
     "@swc/wasm-web": "^1.10.14",
     "@uiw/codemirror-theme-github": "^4.23.7",
     "@uiw/react-codemirror": "^4.23.7",
+    "@uiw/react-color": "^2.10.3",
     "@use-gesture/react": "^10.3.1",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",

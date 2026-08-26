@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\Entity;
 
 use Drupal\canvas\Entity\Page;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\pathauto\PathautoState;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
@@ -32,7 +33,7 @@ final class PagePathautoIntegrationTest extends CanvasKernelTestBase {
   protected function setUp(): void {
     parent::setUp();
     $this->installPageEntitySchema();
-    $this->container->get('module_installer')->install(['pathauto']);
+    $this->container->get(ModuleInstallerInterface::class)->install(['pathauto']);
   }
 
   /**

@@ -13,7 +13,7 @@ import type { DraftData } from '@drupal-canvas/headless';
 import type {
   DraftConfig,
   DraftServer,
-  Page,
+  PageResult,
 } from '@drupal-canvas/headless/server';
 import type { AstroDraftContext } from './adapter';
 
@@ -88,8 +88,16 @@ export function getClient(
 export function fetchPage(
   context: AstroDraftContext,
   path: string,
-): Promise<Page | null> {
+): Promise<PageResult | null> {
   return getDraftServer(context).fetchPage(path);
+}
+
+/** Fetches one component preview through the current draft session. */
+export function fetchComponentPreview(
+  context: AstroDraftContext,
+  componentId: string,
+): Promise<PageResult | null> {
+  return getDraftServer(context).fetchComponentPreview(componentId);
 }
 
 export { isDraftSessionExpired };

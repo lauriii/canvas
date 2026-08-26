@@ -7,14 +7,12 @@ import { UnifiedMenu } from '@/components/UnifiedMenu';
 import {
   deleteNode,
   duplicateNode,
-  selectLayout,
   shiftNode,
 } from '@/features/layout/layoutModelSlice';
+import { componentSubtreeMatchesType } from '@/features/layout/layoutUtils';
 import ComponentContextMenuMoveInto from '@/features/layout/preview/ComponentContextMenuMoveInto';
-import ComponentContextMenuRegions from '@/features/layout/preview/ComponentContextMenuRegions';
 import { setDialogOpen } from '@/features/ui/dialogSlice';
 import {
-  DEFAULT_REGION,
   selectEditorViewPortScale,
   selectSelectedComponentUuid,
   unsetHoveredComponent,
@@ -24,6 +22,7 @@ import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import useGetComponentName from '@/hooks/useGetComponentName';
 import { useGetComponentsQuery } from '@/services/componentAndLayout';
+import { isMarkerComponentType } from '@/services/pageVariants';
 
 import type React from 'react';
 import type { ReactNode } from 'react';
@@ -41,11 +40,9 @@ export const ComponentContextMenuContent: React.FC<
   }
 > = ({ component, menuType = 'context' }) => {
   const dispatch = useAppDispatch();
-  const layout = useAppSelector(selectLayout);
   const { data: components } = useGetComponentsQuery();
   const componentName = useGetComponentName(component);
   const editorViewPortScale = useAppSelector(selectEditorViewPortScale);
-  const hasGlobalRegions = layout.some((r) => r.id !== DEFAULT_REGION);
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const { setSelectedComponent, unsetSelectedComponent } =
     useComponentSelection();
@@ -65,6 +62,14 @@ export const ComponentContextMenuContent: React.FC<
     components?.[componentType] &&
     'type' in components[componentType] &&
     components[componentType].type === 'external',
+  );
+  // Markers (e.g. a page variant's "Page content" marker) are intrinsic: they
+  // can only be repositioned, so every other mutating operation is hidden.
+  // The same applies to any ancestor whose slots contain a marker: deleting or
+  // duplicating it would delete or duplicate the marker with it.
+  const isMarker = componentSubtreeMatchesType(
+    component,
+    isMarkerComponentType,
   );
 
   const handleDeleteClick = useCallback(
@@ -192,21 +197,27 @@ export const ComponentContextMenuContent: React.FC<
       )}
       <UnifiedMenu.Separator />
 
-      <UnifiedMenu.Item onClick={handleDuplicateClick} shortcut="⌘ D">
-        Duplicate
-      </UnifiedMenu.Item>
-      <UnifiedMenu.Item onClick={handleCopyClick} shortcut="⌘ C">
-        Copy
-      </UnifiedMenu.Item>
+      {!isMarker && (
+        <UnifiedMenu.Item onClick={handleDuplicateClick} shortcut="⌘ D">
+          Duplicate
+        </UnifiedMenu.Item>
+      )}
+      {!isMarker && (
+        <UnifiedMenu.Item onClick={handleCopyClick} shortcut="⌘ C">
+          Copy
+        </UnifiedMenu.Item>
+      )}
       <UnifiedMenu.Item onClick={handlePasteClick} shortcut="⌘ V">
         Paste
       </UnifiedMenu.Item>
-      <PermissionCheck hasPermission="patterns">
-        <UnifiedMenu.Separator />
-        <UnifiedMenu.Item onClick={handleCreatePatternClick}>
-          Create pattern
-        </UnifiedMenu.Item>
-      </PermissionCheck>
+      {!isMarker && (
+        <PermissionCheck hasPermission="patterns">
+          <UnifiedMenu.Separator />
+          <UnifiedMenu.Item onClick={handleCreatePatternClick}>
+            Create pattern
+          </UnifiedMenu.Item>
+        </PermissionCheck>
+      )}
       <UnifiedMenu.Separator />
 
       <UnifiedMenu.Sub>
@@ -228,15 +239,18 @@ export const ComponentContextMenuContent: React.FC<
           )}
         </UnifiedMenu.SubContent>
       </UnifiedMenu.Sub>
-      {hasGlobalRegions && (
-        <PermissionCheck hasPermission="globalRegions">
-          <ComponentContextMenuRegions component={component} />
-        </PermissionCheck>
+      {!isMarker && (
+        <>
+          <UnifiedMenu.Separator />
+          <UnifiedMenu.Item
+            shortcut="⌫"
+            color="red"
+            onClick={handleDeleteClick}
+          >
+            Delete
+          </UnifiedMenu.Item>
+        </>
       )}
-      <UnifiedMenu.Separator />
-      <UnifiedMenu.Item shortcut="⌫" color="red" onClick={handleDeleteClick}>
-        Delete
-      </UnifiedMenu.Item>
     </UnifiedMenu.Content>
   );
 };

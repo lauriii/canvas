@@ -36,6 +36,11 @@
       "minLength": 1,
       "description": "View mode the template targets (e.g. full, teaser)."
     },
+    "pageVariant": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Machine name of the page variant (page template) rendering content that uses this template. Omitted means the site default."
+    },
     "elements": {
       "type": "object",
       "minProperties": 1,

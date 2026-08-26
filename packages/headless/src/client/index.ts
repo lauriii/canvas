@@ -16,3 +16,20 @@ export {
   DRAFT_SESSION_REFRESH_EVENT,
   type DraftSessionElementSnapshot,
 } from './draft-session-element';
+export {
+  createCanvasGeometryBridge,
+  type CanvasGeometryBridge,
+  type CanvasGeometryBridgeOptions,
+} from './geometry-bridge';
+export {
+  createHeightReporter,
+  type HeightReporter,
+  type HeightReporterOptions,
+} from './height-report';
+export { createCanvasGeometryObserver } from '@drupal-canvas/preview-geometry';
+export type {
+  CanvasGeometryObserver,
+  CanvasGeometryObserverOptions,
+  CanvasGeometryRoot,
+} from '@drupal-canvas/preview-geometry';
+export { createAsyncRefreshQueue } from './refresh-queue';

@@ -19,6 +19,9 @@ const FLAG_COOKIE = '__test_bypass';
 const validClaims = {
   path: '/node/1',
   resourceVersion: 'rel:working-copy',
+  previewContext: {
+    viewMode: 'teaser',
+  },
   sub: '42',
   renewUrl: 'https://drupal.example/canvas-headless/renew',
 };
@@ -102,11 +105,11 @@ function makeAdapter() {
   };
 }
 
-function makeServer(fetchImpl: typeof fetch) {
+function makeServer(fetchImpl: typeof fetch, config: DraftConfig = CONFIG) {
   const harness = makeAdapter();
   const server = createDraftServer({
     adapter: harness.adapter,
-    config: CONFIG,
+    config,
     fetchImpl,
   });
   return { ...harness, server };
@@ -128,6 +131,7 @@ describe('redeemAssertion', () => {
       expect(result.draftData).toMatchObject({
         path: '/node/1',
         resourceVersion: 'rel:working-copy',
+        previewContext: validClaims.previewContext,
         sub: '42',
         renewUrl: validClaims.renewUrl,
         accessToken: 'access-token-value',
@@ -458,5 +462,187 @@ describe('getDraftData', () => {
     const draftData = liveDraftData();
     seedSession(draftData);
     expect(await server.getDraftData()).toEqual(draftData);
+  });
+});
+
+describe('fetchPage', () => {
+  const page = {
+    content: { element: 'canvas-page' },
+    head: { title: 'Example page' },
+    route: {
+      name: 'entity.canvas_page.canonical',
+      requestUri: '/example',
+      params: { canvas_page: '1' },
+      managedByCanvas: true,
+      entity: {
+        entityType: 'canvas_page',
+        bundle: 'canvas_page',
+        id: '1',
+        uuid: 'page-uuid',
+        langcode: 'en',
+      },
+    },
+  };
+
+  it('keeps a public component tree marker-free', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(Response.json(page));
+    const { server } = makeServer(fetchImpl as unknown as typeof fetch);
+
+    await expect(server.fetchPage('/example')).resolves.toEqual(page);
+    expect(fetchImpl).toHaveBeenCalledWith(
+      new URL(
+        'https://drupal.example/canvas/content-api?requestUri=%2Fexample',
+      ),
+      expect.objectContaining({
+        cache: 'no-store',
+        headers: { Accept: 'application/json' },
+      }),
+    );
+  });
+
+  it('returns public responses without Canvas content unchanged', async () => {
+    const emptyPage = { ...page, content: null };
+    const fetchImpl = vi.fn().mockResolvedValue(Response.json(emptyPage));
+    const { server } = makeServer(fetchImpl as unknown as typeof fetch);
+
+    await expect(server.fetchPage('/example')).resolves.toEqual(emptyPage);
+  });
+
+  it('returns a configured redirect without draft annotations', async () => {
+    const redirect = {
+      redirect: {
+        external: false,
+        url: '/new-location',
+        statusCode: 301,
+      },
+    };
+    const fetchImpl = vi.fn().mockResolvedValue(Response.json(redirect));
+    const { server, seedSession } = makeServer(
+      fetchImpl as unknown as typeof fetch,
+    );
+    seedSession(liveDraftData());
+
+    await expect(server.fetchPage('/old-location')).resolves.toEqual(redirect);
+  });
+
+  it('preserves Drupal base paths in the endpoint URL', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(Response.json(page));
+    const { server } = makeServer(fetchImpl as unknown as typeof fetch, {
+      baseUrl: 'https://drupal.example/cms',
+    });
+
+    await server.fetchPage('/example');
+
+    expect(fetchImpl).toHaveBeenCalledWith(
+      new URL(
+        'https://drupal.example/cms/canvas/content-api?requestUri=%2Fexample',
+      ),
+      expect.any(Object),
+    );
+  });
+
+  it('marks a draft component tree as editor-renderable', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(Response.json(page));
+    const { server, seedSession } = makeServer(
+      fetchImpl as unknown as typeof fetch,
+    );
+    seedSession(
+      liveDraftData({
+        previewContext: {
+          viewMode: 'teaser',
+        },
+      }),
+    );
+
+    await expect(server.fetchPage('/example')).resolves.toEqual({
+      ...page,
+      content: { element: 'canvas-page', canvasDraftMode: true },
+    });
+    expect(fetchImpl).toHaveBeenCalledWith(
+      new URL(
+        'https://drupal.example/canvas/content-api?requestUri=%2Fexample&viewMode=teaser',
+      ),
+      expect.objectContaining({
+        headers: {
+          Accept: 'application/json',
+          Authorization: 'Bearer old-token',
+        },
+      }),
+    );
+  });
+
+  it('fetches a component through the existing entity draft session', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(Response.json(page));
+    const { server, seedSession } = makeServer(
+      fetchImpl as unknown as typeof fetch,
+    );
+    seedSession(
+      liveDraftData({
+        path: '/example?language=fr',
+      }),
+    );
+
+    await server.fetchComponentPreview('js.example');
+
+    expect(fetchImpl).toHaveBeenCalledWith(
+      new URL(
+        'https://drupal.example/canvas/content-api?requestUri=%2Fexample%3Flanguage%3Dfr&componentId=js.example',
+      ),
+      expect.any(Object),
+    );
+    expect(await server.getDraftData()).toMatchObject({
+      path: '/example?language=fr',
+    });
+  });
+
+  it('keeps an expired draft session anonymous and marker-free', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(Response.json(page));
+    const { server, seedSession } = makeServer(
+      fetchImpl as unknown as typeof fetch,
+    );
+    seedSession(liveDraftData({ tokenExpiresAt: Date.now() - 1 }));
+
+    await expect(server.fetchPage('/example')).resolves.toEqual(page);
+    expect(fetchImpl).toHaveBeenCalledWith(
+      expect.any(URL),
+      expect.objectContaining({
+        headers: { Accept: 'application/json' },
+      }),
+    );
+  });
+
+  it('makes empty draft content editor-renderable', async () => {
+    const emptyPage = {
+      ...page,
+      content: null,
+    };
+    const fetchImpl = vi.fn().mockResolvedValue(Response.json(emptyPage));
+    const { server, seedSession } = makeServer(
+      fetchImpl as unknown as typeof fetch,
+    );
+    seedSession(liveDraftData());
+
+    await expect(server.fetchPage('/example')).resolves.toEqual({
+      ...emptyPage,
+      content: {
+        element: 'renderless-container',
+        canvasDraftMode: true,
+      },
+    });
+  });
+
+  it('keeps unmanaged draft content empty', async () => {
+    const unmanagedPage = {
+      ...page,
+      content: null,
+      route: { ...page.route, managedByCanvas: false },
+    };
+    const fetchImpl = vi.fn().mockResolvedValue(Response.json(unmanagedPage));
+    const { server, seedSession } = makeServer(
+      fetchImpl as unknown as typeof fetch,
+    );
+    seedSession(liveDraftData());
+
+    await expect(server.fetchPage('/example')).resolves.toEqual(unmanagedPage);
   });
 });

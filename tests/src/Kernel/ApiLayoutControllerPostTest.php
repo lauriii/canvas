@@ -10,13 +10,19 @@ use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Cache\MemoryCache\MemoryCacheInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Extension\ModuleExtensionList;
+use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\Url;
 use Drupal\file\FileInterface;
 use Drupal\node\Entity\Node;
@@ -31,6 +37,7 @@ use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 /**
  * @legacy-covers \Drupal\canvas\Controller\ApiLayoutController::post
@@ -48,9 +55,9 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->container->get('module_installer')->install(['system', 'block', 'user']);
-    $this->container->get('theme_installer')->install(['stark']);
-    $this->container->get('config.factory')->getEditable('system.theme')->set('default', 'stark')->save();
+    $this->container->get(ModuleInstallerInterface::class)->install(['system', 'block', 'user']);
+    $this->container->get(ThemeInstallerInterface::class)->install(['stark']);
+    $this->container->get(ConfigFactoryInterface::class)->getEditable('system.theme')->set('default', 'stark')->save();
 
     // @todo Refactor this away in https://www.drupal.org/project/canvas/issues/3531679
     (new CanvasTestSetup())->setup(TRUE);
@@ -134,7 +141,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $this->assertSame('Updated title', $entityFromAutoSave->label());
   }
 
-  #[DataProvider('providerEntityTypes')]
+  #[DataProvider('providerCanvasTestSetupTreeEntityTypes')]
   public function testEmpty(string $entity_type): void {
     $entity = $this->getTestEntity($entity_type);
     $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);
@@ -156,7 +163,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $this->assertEquals('<div class="canvas--region-empty-placeholder"></div>', $root);
   }
 
-  #[DataProvider('providerEntityTypes')]
+  #[DataProvider('providerCanvasTestSetupTreeEntityTypes')]
   public function testMissingSlot(string $entity_type): void {
     $entity = $this->getTestEntity($entity_type);
     $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);
@@ -210,14 +217,14 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     $this->assertSame(['c4074d1f-149a-4662-aaf3-615151531cf6'], $slot_and_component_comments);
   }
 
-  #[DataProvider('providerEntityTypes')]
+  #[DataProvider('providerCanvasTestSetupTreeEntityTypes')]
   public function test(string $entity_type): void {
     $entity = $this->getTestEntity($entity_type);
     $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);
     $url = $this->getLayoutUrl($entity)->toString();
     // Load the test data from the layout controller.
     $response = $this->parentRequest(Request::create($url));
-    $this->assertResponseAutoSaves($response, [$entity], TRUE);
+    $this->assertResponseAutoSaves($response, [$entity]);
     $json = self::decodeResponse($response);
     $model = $json['model'];
     $crawler = new Crawler($json['html']);
@@ -320,123 +327,237 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     self::assertArrayHasKey($uuid, $json['model']);
   }
 
-  #[DataProvider('providerEntityTypes')]
-  public function testWithGlobal(string $entity_type): void {
-    $entity = $this->getTestEntity($entity_type);
-    $this->setUpCurrentUser(
-      [],
-      [
-        PageRegion::ADMIN_PERMISSION,
-        self::getAdminPermission($entity),
-      ]
-    );
-    $regions = PageRegion::createFromBlockLayout('stark');
-    foreach ($regions as $region) {
-      $region->save();
-    }
-
-    // Load the test data from the layout controller.
+  /**
+   * Tests editing a page variant's component tree through the layout API.
+   *
+   * A page variant serves the generic layout endpoint like other entities, but
+   * its tree is self-contained (no host entity) and the "Page content" marker
+   * renders as a placeholder in previews.
+   */
+  public function testPageVariant(): void {
+    $entity = $this->getTestEntity(PageVariant::ENTITY_TYPE_ID);
+    $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);
     $url = $this->getLayoutUrl($entity)->toString();
-    $content = $this->parentRequest(Request::create($url))->getContent();
-    $this->assertIsString($content);
-    $json = json_decode($content, TRUE);
-    $highlightedRegion = \array_filter($json['layout'], static fn (array $region) => ($region['id'] ?? NULL) === 'highlighted');
-    self::assertCount(1, $highlightedRegion);
-    self::assertGreaterThanOrEqual(1, \count(\reset($highlightedRegion)['components']));
-    $this->request(Request::create($url, method: 'POST', content: $this->filterLayoutForPost($content)));
-    $autoSave = $this->container->get(AutoSaveManager::class);
-    \assert($autoSave instanceof AutoSaveManager);
-    self::assertTrue($autoSave->getAutoSaveEntity($entity)->isEmpty());
-    foreach ($regions as $region) {
-      self::assertTrue($autoSave->getAutoSaveEntity($region)->isEmpty());
-    }
 
-    // Check that regions exist and are wrapped.
-    $contentRegion = $this->getRegion('content');
-    $this->assertNotNull($contentRegion);
-    $highlighted = $this->getRegion('highlighted');
-    $this->assertNotNull($highlighted);
+    $response = $this->parentRequest(Request::create($url));
+    $json = self::decodeResponse($response);
 
-    // Add a new component to a global region.
+    // The preview renders the marker as a visible, selectable placeholder.
+    self::assertStringContainsString('canvas--page-content-marker-placeholder', $json['html']);
+    // The preview is not wrapped in a resolved page variant: exactly one
+    // content region is annotated.
+    self::assertSame(1, \substr_count($json['html'], '<!-- canvas-region-start-content -->'));
+
+    // Add a heading component next to the marker and POST the updated layout.
     $uuid = '173c4899-a5f7-442a-b008-ea8c925735be';
     $json['model'][$uuid] = self::getNewHeadingComponentModel();
-    unset($json['isNew'], $json['isPublished'], $json['hasUnsavedStatusChange'], $json['html']);
-    $json['layout'][\key($highlightedRegion)]['components'][] = [
+    $json['layout'][0]['components'][] = [
       'nodeType' => 'component',
       'uuid' => $uuid,
       'type' => 'sdc.canvas_test_sdc.heading@8c01a2bdb897a810',
       'slots' => [],
     ];
+    unset($json['isNew'], $json['isPublished'], $json['hasUnsavedStatusChange'], $json['html'], $json['translations']);
     $json += $this->getPostContentsDefaults($entity);
     $this->request(Request::create($url, method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
+
+    // The preview now renders the new heading, still without variant chrome.
+    self::assertSame('This is a random heading.', (string) $this->cssSelect('h1[data-component-id="canvas_test_sdc:heading"]')[0]);
+
+    // The change is auto-saved, not written to the stored variant.
     $autoSave = $this->container->get(AutoSaveManager::class);
     \assert($autoSave instanceof AutoSaveManager);
-    self::assertTrue($autoSave->getAutoSaveEntity($entity)->isEmpty());
-    foreach ($regions as $region) {
-      \assert($region instanceof PageRegion);
-      self::assertEquals($region->get('region') !== 'highlighted', $autoSave->getAutoSaveEntity($region)->isEmpty());
-    }
-  }
+    $autoSaved = $autoSave->getAutoSaveEntity($entity)->entity;
+    self::assertInstanceOf(PageVariant::class, $autoSaved);
+    self::assertCount(2, $autoSaved->getComponentTree());
+    $stored = PageVariant::load($entity->id());
+    self::assertInstanceOf(PageVariant::class, $stored);
+    self::assertCount(1, $stored->getComponentTree());
 
-  #[DataProvider('providerEntityTypes')]
-  public function testWithoutPageRegionPermission(string $entity_type): void {
-    $entity = $this->getTestEntity($entity_type);
-    $this->setUpCurrentUser([], [
-      'administer url aliases',
-      self::getAdminPermission($entity),
-    ]);
-
-    $regions = PageRegion::createFromBlockLayout('stark');
-    foreach ($regions as $region) {
-      $region->save();
-    }
-
-    // Load the test data from the layout controller.
-    $url = $this->getLayoutUrl($entity)->toString();
-    $content = $this->parentRequest(Request::create($url))->getContent();
-    $this->assertIsString($content);
-    $json = json_decode($content, TRUE);
-    $highlightedRegion = \array_filter($json['layout'], static fn (array $region) => ($region['id'] ?? NULL) === 'highlighted');
-    self::assertEmpty($highlightedRegion);
-    $this->request(Request::create($url, method: 'POST', content: $this->filterLayoutForPost($content)));
-    $autoSave = $this->container->get(AutoSaveManager::class);
-    \assert($autoSave instanceof AutoSaveManager);
-    self::assertTrue($autoSave->getAutoSaveEntity($entity)->isEmpty());
-    foreach ($regions as $region) {
-      self::assertTrue($autoSave->getAutoSaveEntity($region)->isEmpty());
-    }
-
-    // Check that content region exist and is wrapped.
-    $contentRegion = $this->getRegion('content');
-    $this->assertNotNull($contentRegion);
-    // But not the highlighted region, as we don't have access to it.
-    $highlighted = $this->getRegion('highlighted');
-    $this->assertNull($highlighted);
-
-    // Add a new component instance to a ("global") region.
-    $uuid = '173c4899-a5f7-442a-b008-ea8c925735be';
-    $json['model'][$uuid] = self::getNewHeadingComponentModel();
-    unset($json['isNew'], $json['isPublished'], $json['hasUnsavedStatusChange'], $json['html']);
-    $json['layout'][1] = [
-      'nodeType' => 'region',
-      'id' => 'highlighted',
-      'name' => 'Highlighted',
+    // Paste a component carrying an entity field prop source (copied from a
+    // page). Variant trees have no host entity, so input conversion falls back
+    // to an empty stand-in entity instead of failing with a 500.
+    // @see \Drupal\canvas\Entity\PageVariant::createEmptyTargetEntity()
+    $pasted_uuid = '3e0fbfc6-733c-4e14-8a6c-c58ba86b7e88';
+    $json['model'][$pasted_uuid] = self::getNewHeadingComponentModel();
+    $json['model'][$pasted_uuid]['source']['text'] = [
+      'sourceType' => PropSource::EntityField->value,
+      'expression' => 'ℹ︎␜entity:canvas_page␝title␞␟value',
     ];
-    $json['layout'][1]['components'][] = [
+    $json['model'][$pasted_uuid]['resolved']['text'] = NULL;
+    $json['layout'][0]['components'][] = [
       'nodeType' => 'component',
-      'uuid' => $uuid,
-      'type' => 'sdc.canvas_test_sdc.heading',
+      'uuid' => $pasted_uuid,
+      'type' => 'sdc.canvas_test_sdc.heading@8c01a2bdb897a810',
       'slots' => [],
     ];
-    $json += $this->getPostContentsDefaults($entity);
-
-    $this->expectException(AccessDeniedHttpException::class);
-    $this->expectExceptionMessage('Access denied for region highlighted');
-
     $this->request(Request::create($url, method: 'POST', content: \json_encode($json, JSON_THROW_ON_ERROR)));
+
+    // The pasted component's entity-bound prop is stored as an entity field
+    // prop source in the auto-saved tree.
+    $autoSaved = $autoSave->getAutoSaveEntity($entity)->entity;
+    self::assertInstanceOf(PageVariant::class, $autoSaved);
+    self::assertCount(3, $autoSaved->getComponentTree());
+    $pasted_item = $autoSaved->getComponentTree()->getComponentTreeItemByUuid($pasted_uuid);
+    self::assertInstanceOf(ComponentTreeItem::class, $pasted_item);
+    $pasted_inputs = $pasted_item->getInputs();
+    self::assertIsArray($pasted_inputs);
+    self::assertSame(PropSource::EntityField->value, $pasted_inputs['text']['sourceType'] ?? NULL);
+    self::assertSame('ℹ︎␜entity:canvas_page␝title␞␟value', $pasted_inputs['text']['expression'] ?? NULL);
   }
 
+  /**
+   * A page variant edit must not leak into another page variant.
+   *
+   * The editor's layout and model live in a store shared across entities and a
+   * save derives its target variant from the current route, so a save issued
+   * while a *different* variant's model is still shown would otherwise
+   * overwrite the routed variant with the other variant's tree. Each variant
+   * carries exactly one "Page content" marker whose instance UUID is its
+   * stable identity, so the server rejects a whole-tree save whose marker does
+   * not match the routed variant.
+   *
+   * This is the server-side, defense-in-depth analogue of the exposed-slots
+   * isolation in MR !1359 (per-entity edits cannot mutate the shared template):
+   * a mis-routed variant save is rejected regardless of client behavior.
+   *
+   * @see \Drupal\canvas\Controller\ApiLayoutController::post()
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
+   */
+  public function testEditDoesNotLeakIntoAnotherVariant(): void {
+    $marker = Component::load(Marker::PAGE_CONTENT_COMPONENT_ID);
+    self::assertInstanceOf(Component::class, $marker);
+
+    // Two independent variants, each seeded with its own "Page content" marker
+    // (distinct instance UUIDs).
+    $alpha = PageVariant::create([
+      'id' => 'alpha',
+      'label' => 'Alpha',
+      'component_tree' => [
+        [
+          'uuid' => '11111111-1111-4111-8111-111111111111',
+          'component_id' => Marker::PAGE_CONTENT_COMPONENT_ID,
+          'component_version' => $marker->getActiveVersion(),
+          'inputs' => [],
+        ],
+      ],
+    ]);
+    $alpha->save();
+    $beta = PageVariant::create([
+      'id' => 'beta',
+      'label' => 'Beta',
+      'component_tree' => [
+        [
+          'uuid' => '22222222-2222-4222-8222-222222222222',
+          'component_id' => Marker::PAGE_CONTENT_COMPONENT_ID,
+          'component_version' => $marker->getActiveVersion(),
+          'inputs' => [],
+        ],
+      ],
+    ]);
+    $beta->save();
+
+    $this->setUpCurrentUser([], [PageVariant::ADMIN_PERMISSION]);
+
+    // Build Alpha's edited tree (its marker plus a distinctive heading). This
+    // is the stale model the shared store still holds after navigating to Beta.
+    $alpha_json = self::decodeResponse($this->parentRequest(Request::create($this->getLayoutUrl($alpha)->toString())));
+    $heading_uuid = '173c4899-a5f7-442a-b008-ea8c925735be';
+    $alpha_json['model'][$heading_uuid] = self::getNewHeadingComponentModel();
+    $alpha_json['layout'][0]['components'][] = [
+      'nodeType' => 'component',
+      'uuid' => $heading_uuid,
+      'type' => 'sdc.canvas_test_sdc.heading@8c01a2bdb897a810',
+      'slots' => [],
+    ];
+    // Drop the GET-only fields, including Alpha's `autoSaves` envelope: the
+    // save is routed at Beta and must carry Beta's own envelope (below), which
+    // is exactly what a stale client derives from the current route while the
+    // shared store still holds Alpha's layout and model.
+    unset($alpha_json['isNew'], $alpha_json['isPublished'], $alpha_json['hasUnsavedStatusChange'], $alpha_json['html'], $alpha_json['translations'], $alpha_json['autoSaves']);
+
+    // Route the save at Beta, carrying Beta's own (empty) auto-save envelope so
+    // the concurrency check passes — the mid-load window after navigating from
+    // Alpha to Beta.
+    $leaked = $alpha_json + $this->getPostContentsDefaults($beta);
+    $beta_url = $this->getLayoutUrl($beta)->toString();
+
+    try {
+      $this->request(Request::create($beta_url, method: 'POST', content: \json_encode($leaked, JSON_THROW_ON_ERROR)));
+      $this->fail('Expected the mis-routed page variant save to be rejected.');
+    }
+    catch (ConflictHttpException $exception) {
+      self::assertStringContainsString('page variant', $exception->getMessage());
+    }
+
+    // Beta received nothing: no auto-save, and its stored tree still holds only
+    // its own marker. Alpha's heading never reached Beta.
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    \assert($autoSave instanceof AutoSaveManager);
+    self::assertTrue($autoSave->getAutoSaveEntity($beta)->isEmpty());
+    $stored_beta = PageVariant::load('beta');
+    self::assertInstanceOf(PageVariant::class, $stored_beta);
+    self::assertCount(1, $stored_beta->getComponentTree());
+    foreach ($stored_beta->getComponentTree() as $item) {
+      self::assertInstanceOf(ComponentTreeItem::class, $item);
+      self::assertSame(Marker::PAGE_CONTENT_COMPONENT_ID, $item->getComponentId());
+      self::assertSame('22222222-2222-4222-8222-222222222222', $item->getUuid());
+    }
+  }
+
+  /**
+   * A submitted layout carrying a region other than "content" is rejected.
+   *
+   * Since the migration to page variants, no editable global regions remain, so
+   * the layout endpoint serves and accepts only the single "content" region;
+   * the surrounding chrome is a page variant edited separately. A client built
+   * against the old contract (e.g. a stale editor tab open from before the
+   * deploy) still posts additional region nodes. The server must reject that
+   * loudly rather than silently writing only the content region and dropping
+   * the other regions' edits.
+   *
+   * @see \Drupal\canvas\Controller\ApiLayoutController::post()
+   */
   #[DataProvider('providerEntityTypes')]
+  public function testExtraRegionRejected(string $entity_type): void {
+    $entity = $this->getTestEntity($entity_type);
+    $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);
+    $url = $this->getLayoutUrl($entity)->toString();
+
+    // A valid content region plus a stale "header" region node from the old
+    // (global regions) contract.
+    $body = [
+      'layout' => [
+        [
+          'nodeType' => 'region',
+          'name' => 'Content',
+          'components' => [],
+          'id' => 'content',
+        ],
+        [
+          'nodeType' => 'region',
+          'name' => 'Header',
+          'components' => [],
+          'id' => 'header',
+        ],
+      ],
+    ] + $this->getPostContentsDefaults($entity);
+
+    try {
+      $this->request(Request::create($url, method: 'POST', content: \json_encode($body, JSON_THROW_ON_ERROR)));
+      $this->fail('Expected the layout carrying an extra region to be rejected.');
+    }
+    catch (ConflictHttpException $exception) {
+      self::assertStringContainsString('no longer editable', $exception->getMessage());
+    }
+
+    // The rejected save wrote nothing: no auto-save entry for the entity.
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    \assert($autoSave instanceof AutoSaveManager);
+    self::assertTrue($autoSave->getAutoSaveEntity($entity)->isEmpty());
+  }
+
+  #[DataProvider('providerCanvasTestSetupTreeEntityTypes')]
   public function testWithCodeComponent(string $entity_type): void {
     $entity = $this->getTestEntity($entity_type);
     $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);
@@ -669,7 +790,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
       unset($json['model'][$uuid]['source']['heading']);
     }
 
-    $module_path = \Drupal::service('extension.list.module')->getPath('canvas');
+    $module_path = \Drupal::service(ModuleExtensionList::class)->getPath('canvas');
     $expected_preview_html = str_replace('Canvas/MODULE/PATH', $module_path, $expected_preview_html);
     \assert($reference_media->field_media_image->entity instanceof FileInterface);
     $expected_preview_html = str_replace('!!REFERENCED_MEDIA!!', $reference_media->field_media_image->src_with_alternate_widths->getGeneratedUrl(), $expected_preview_html);

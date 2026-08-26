@@ -16,13 +16,20 @@ use Drupal\canvas\PropSource\EntityFieldPropSource;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\Component\Utility\UrlHelper;
+use Drupal\content_translation\BundleTranslationSettingsInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Language\LanguageInterface;
+use Drupal\Core\Render\AttachmentsInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\file\Entity\File;
+use Drupal\filter\Entity\FilterFormat;
+use Drupal\media\Entity\Media;
 use Drupal\node\Entity\NodeType;
+use Drupal\text\TextProcessed;
 use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -1157,6 +1164,139 @@ class EntityFieldPropSourceTest extends PropSourceTestBase {
   }
 
   /**
+   * The document `src` prop resolves a private:// file to its managed URL.
+   *
+   * The document shape's `src` maps to the File entity's computed `url`
+   * property, not the raw `uri`. A media type whose source field stores files
+   * in the private file system therefore resolves to the absolute
+   * `/system/files/` route, which satisfies the shape's `http`/`https`
+   * scheme requirement.
+   *
+   * @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef::Document
+   * @see \Drupal\file\Plugin\Field\FieldType\FileUriItem
+   */
+  public function testDocumentObjectResolvesPrivateFileUrl(): void {
+    $media_type = $this->createMediaType('file', ['id' => 'private_documents']);
+    $source_field_definition = $media_type->getSource()->getSourceFieldDefinition($media_type);
+    self::assertNotNull($source_field_definition);
+    $source_field_storage = $source_field_definition->getFieldStorageDefinition();
+    \assert($source_field_storage instanceof FieldStorageConfig);
+    $source_field_storage->setSetting('uri_scheme', 'private');
+    $source_field_storage->save();
+
+    $user = $this->setUpCurrentUser(permissions: ['access content', 'view media']);
+
+    // Kernel boots reset Settings; restore the private file path registered
+    // by VfsPublicStreamUrlTrait::setUpFilesystem() so the `private://`
+    // stream wrapper resolves.
+    $this->setSetting('file_private_path', $this->siteDirectory . '/private');
+
+    $file_system = \Drupal::service(FileSystemInterface::class);
+    \assert($file_system instanceof FileSystemInterface);
+    $directory = 'private://docs';
+    self::assertTrue($file_system->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS));
+    $file_contents = 'Not really a PDF.';
+    \file_put_contents('private://docs/press-kit.pdf', $file_contents);
+    $file = File::create([
+      'uid' => $user->id(),
+      'filename' => 'press-kit.pdf',
+      'uri' => 'private://docs/press-kit.pdf',
+      'filesize' => \strlen($file_contents),
+      'filemime' => 'application/pdf',
+    ]);
+    $file->setPermanent();
+    $file->save();
+
+    $media = Media::create([
+      'bundle' => 'private_documents',
+      'name' => 'Press kit',
+      $source_field_definition->getName() => ['target_id' => $file->id()],
+    ]);
+    $media->save();
+
+    $prop_source = EntityFieldPropSource::parse([
+      'sourceType' => PropSource::EntityField->value,
+      'expression' => \sprintf('ℹ︎␜entity:media:private_documents␝%s␞␟{src↝entity␜␜entity:file␝uri␞␟url,filename↝entity␜␜entity:file␝filename␞␟value,filesize↝entity␜␜entity:file␝filesize␞␟value,mimetype↝entity␜␜entity:file␝filemime␞␟value}', $source_field_definition->getName()),
+    ]);
+
+    $result = $prop_source->evaluate($media, is_required: TRUE);
+
+    self::assertIsArray($result->value);
+    self::assertIsString($result->value['src']);
+    // The raw `private://` URI resolves to the managed-files route, served
+    // over the site's HTTP(S) base URL — not to the raw stream URI.
+    self::assertStringEndsWith('/system/files/docs/press-kit.pdf', $result->value['src']);
+    self::assertSame('press-kit.pdf', $result->value['filename']);
+    self::assertEquals(\strlen($file_contents), $result->value['filesize']);
+    self::assertSame('application/pdf', $result->value['mimetype']);
+  }
+
+  /**
+   * A processed-text prop keeps the assets its text-format filters attach.
+   *
+   * @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::doEvaluate()
+   * @see \Drupal\text\TextProcessed::getAttachments()
+   * @see \Drupal\filter_test\Plugin\Filter\FilterTestAssets
+   */
+  public function testProcessedTextKeepsFilterAttachments(): void {
+    // The test filter attaches the `filter/caption` library but leaves the text
+    // unchanged; it stands in for a filter that needs assets to render.
+    $this->enableModules(['filter_test']);
+    $this->installEntitySchema('node');
+
+    FilterFormat::create([
+      'format' => 'assets',
+      'name' => 'Assets',
+      'filters' => [
+        'filter_test_assets' => ['status' => TRUE],
+      ],
+    ])->save();
+
+    NodeType::create(['type' => 'page', 'name' => 'Page'])->save();
+    FieldStorageConfig::create([
+      'field_name' => 'field_formatted',
+      'entity_type' => 'node',
+      'type' => 'text_long',
+      'cardinality' => 1,
+    ])->save();
+    FieldConfig::create([
+      'field_name' => 'field_formatted',
+      'entity_type' => 'node',
+      'bundle' => 'page',
+      'label' => 'Formatted',
+    ])->save();
+
+    $node = $this->createNode([
+      'type' => 'page',
+      'field_formatted' => [
+        'value' => '<p>Hello, world</p>',
+        'format' => 'assets',
+      ],
+    ]);
+
+    $this->setUpCurrentUser(permissions: ['access content']);
+
+    $prop_source = EntityFieldPropSource::parse([
+      'sourceType' => PropSource::EntityField->value,
+      'expression' => 'ℹ︎␜entity:node:page␝field_formatted␞␟processed',
+    ]);
+    $result = $prop_source->evaluate($node, is_required: TRUE);
+
+    // Core >= 11.4.4 exposes a processed-text property's assets via
+    // AttachmentsInterface, so the filter's library survives evaluation. Older
+    // core does not expose them, so there is nothing for Canvas to carry.
+    // @see \Drupal\text\TextProcessed::getAttachments()
+    // @todo Unconditionally execute the if branch and delete the else branch once Canvas depends on Drupal 11.4.4
+    if (is_a(TextProcessed::class, AttachmentsInterface::class, TRUE)) {
+      self::assertArrayHasKey('library', $result->getAttachments());
+      self::assertContains('filter/caption', $result->getAttachments()['library']);
+    }
+    else {
+      self::assertSame([], $result->getAttachments());
+    }
+  }
+
+  /**
    * Tests that an EntityFieldPropSource resolves references in the host language.
    *
    * Verifies that when a node's entity reference field points to a translated
@@ -1175,7 +1315,7 @@ class EntityFieldPropSourceTest extends PropSourceTestBase {
     $this->setupContentTranslation();
     $this->installEntitySchema('node');
     NodeType::create(['type' => 'page', 'name' => 'page'])->save();
-    \Drupal::service('content_translation.manager')
+    \Drupal::service(BundleTranslationSettingsInterface::class)
       ->setEnabled('node', 'page', TRUE);
     $this->createEntityReferenceField('node', 'page', 'field_hero_image', 'Hero Image', 'media',
       selection_handler_settings: ['target_bundles' => ['image' => 'image']],

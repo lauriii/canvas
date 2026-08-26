@@ -1,13 +1,8 @@
 import { useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { DEFAULT_REGION } from '@/features/ui/uiSlice';
 import { getCanvasSettings } from '@/utils/drupal-globals';
-import {
-  removeComponentFromPathname,
-  setPreviewEntityIdInPathname,
-  setRegionInPathname,
-} from '@/utils/route-utils';
+import { setPreviewEntityIdInPathname } from '@/utils/route-utils';
 
 import type { NavigateOptions } from 'react-router-dom';
 import type { TemplateViewMode } from '@/services/componentAndLayout';
@@ -33,27 +28,11 @@ export type TemplateViewModeNavigation = Pick<
  * - Template editor (for view modes)
  * - Code editor (for custom components)
  *
- * Also handles region selection within the current route and exposes
- * navigation utilities globally via `canvasSettings.navUtils`.
+ * Exposes navigation utilities globally via `canvasSettings.navUtils`.
  */
 export function useEditorNavigation() {
   const navigate = useNavigate();
   const location = useLocation();
-
-  /**
-   * Updates the current route to select a specific region.
-   * Removes any component selection from the path and sets the region segment.
-   */
-  const setSelectedRegion = useCallback(
-    (regionId?: string) => {
-      // Remove any /component/:componentId from the path first
-      const basePath = removeComponentFromPathname(location.pathname);
-      // Use the utility to robustly set /region/:regionId
-      const newPath = setRegionInPathname(basePath, regionId, DEFAULT_REGION);
-      navigate(newPath);
-    },
-    [navigate, location.pathname],
-  );
 
   /**
    * Updates the preview entity ID in the current template editor route.
@@ -110,6 +89,21 @@ export function useEditorNavigation() {
     },
     [],
   );
+
+  /**
+   * Constructs a URL path for the pattern editor.
+   * @param patternId - The ID of the pattern to edit.
+   * @returns The URL path string, or empty string if patternId is missing.
+   */
+  const urlForPatternEditor = useCallback((patternId?: string) => {
+    if (!patternId) {
+      console.warn(
+        '[useEditorNavigation] urlForPatternEditor called with undefined patternId',
+      );
+      return '';
+    }
+    return `/pattern/${patternId}`;
+  }, []);
 
   /**
    * Constructs a URL path for the code editor.
@@ -170,6 +164,24 @@ export function useEditorNavigation() {
   );
 
   /**
+   * Navigates to the pattern editor for a given pattern.
+   * @param patternId - The ID of the pattern to edit.
+   * @param options - Optional React Router navigation options.
+   */
+  const navigateToPatternEditor = useCallback(
+    (patternId?: string, options?: NavigateOptions) => {
+      if (!patternId) {
+        console.warn(
+          '[useEditorNavigation] navigateToPatternEditor called with undefined patternId',
+        );
+        return;
+      }
+      navigate(urlForPatternEditor(patternId), options);
+    },
+    [navigate, urlForPatternEditor],
+  );
+
+  /**
    * Navigates to the code editor for a given component.
    * @param machineName - The machine name of the component to edit.
    * @param options - Optional React Router navigation options.
@@ -192,13 +204,14 @@ export function useEditorNavigation() {
    * Also exposed globally via canvasSettings.navUtils for external access.
    */
   const editorNavUtils = {
-    setSelectedRegion,
     setTemplatePreviewEntityId,
     urlForEditor,
     urlForTemplateEditor,
+    urlForPatternEditor,
     urlForCodeEditor,
     navigateToEditor,
     navigateToTemplateEditor,
+    navigateToPatternEditor,
     navigateToCodeEditor,
   };
 

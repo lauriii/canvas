@@ -2,6 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { Option } from 'commander';
 import yaml from 'js-yaml';
+import { parse } from '@babel/parser';
 import * as p from '@clack/prompts';
 import { discoverCanvasProject } from '@drupal-canvas/discovery';
 import { resolveHostGlobalCssPath } from '@drupal-canvas/vite-compat';
@@ -28,8 +29,8 @@ import { printCommandIntro } from '../utils/command-intro';
 import { appendCommandSummarySection } from '../utils/command-summary';
 import { contentTemplateToAuthored } from '../utils/content-templates';
 import { ensureTailwindImportAtTop } from '../utils/ensure-global-css-tailwind-import';
+import { pageVariantToAuthoredSpec } from '../utils/page-variants';
 import { pageToAuthoredSpec } from '../utils/pages';
-import { regionToAuthoredSpec } from '../utils/regions';
 import {
   COMMAND_RESULT_REPORT_OPTIONS,
   reportResults,
@@ -39,8 +40,12 @@ import type {
   DiscoveredComponent,
   DiscoveredContentTemplate,
   DiscoveredPage,
-  DiscoveredRegion,
+  DiscoveredPageTemplate,
 } from '@drupal-canvas/discovery';
+import type {
+  AssetLibraryBundledSource,
+  AssetLibraryManifestEntry,
+} from '@drupal-canvas/ui/types/CodeComponent';
 import type { Command } from 'commander';
 import type { ApiService } from '../services/api';
 import type { Component } from '../types/Component';
@@ -48,7 +53,7 @@ import type { ContentTemplateListItem } from '../types/ContentTemplate';
 import type { IconLibrary } from '../types/IconLibrary';
 import type { Metadata } from '../types/Metadata';
 import type { PageListItem } from '../types/Page';
-import type { RegionListItem } from '../types/Region';
+import type { PageVariant } from '../types/PageVariant';
 import type { Result } from '../types/Result';
 import type { CommandSummaryResource } from '../utils/command-summary';
 
@@ -59,10 +64,9 @@ interface PullOptions {
   scope?: string;
   includePages?: boolean;
   includeContentTemplates?: boolean;
-  includeRegions?: boolean;
   pages?: boolean;
   contentTemplates?: boolean;
-  regions?: boolean;
+  pageTemplates?: boolean;
   includeBrandKit?: boolean;
   dir?: string;
   yes?: boolean;
@@ -85,6 +89,7 @@ export interface PullTaskResult {
   results: Result[];
   title: string;
   label: string;
+  notes?: string[];
 }
 
 function pluralizeLabel(count: number, singular: string, plural?: string) {
@@ -124,6 +129,90 @@ function pullFailureItemName(message: string): string {
     : 'Pull failed';
 }
 
+function isWithinDirectory(directory: string, candidate: string): boolean {
+  const relative = path.relative(directory, candidate);
+  return (
+    relative === '' ||
+    (!relative.startsWith(`..${path.sep}`) &&
+      relative !== '..' &&
+      !path.isAbsolute(relative))
+  );
+}
+
+async function resolveAssetPullDestination(
+  projectRoot: string,
+  relativePath: string,
+): Promise<string> {
+  const destination = path.resolve(projectRoot, relativePath);
+  if (
+    destination === projectRoot ||
+    !isWithinDirectory(projectRoot, destination)
+  ) {
+    throw new Error(
+      `File "${relativePath}" resolves outside the project root.`,
+    );
+  }
+
+  let currentPath = projectRoot;
+  for (const segment of path
+    .relative(projectRoot, destination)
+    .split(path.sep)) {
+    currentPath = path.join(currentPath, segment);
+    let stats;
+    try {
+      stats = await fs.lstat(currentPath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        break;
+      }
+      throw error;
+    }
+    if (!stats.isSymbolicLink()) {
+      continue;
+    }
+
+    let resolvedLink: string;
+    try {
+      resolvedLink = await fs.realpath(currentPath);
+    } catch {
+      throw new Error(
+        `File "${relativePath}" cannot be safely resolved within the project root.`,
+      );
+    }
+    if (!isWithinDirectory(projectRoot, resolvedLink)) {
+      throw new Error(
+        `File "${relativePath}" resolves outside the project root through a symbolic link.`,
+      );
+    }
+    currentPath = resolvedLink;
+  }
+
+  return destination;
+}
+
+function sourceCanUseJsx(source: string): boolean {
+  try {
+    parse(source, {
+      sourceType: 'module',
+      plugins: ['jsx'],
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function getPulledJsPath(existingPath: string, source: string): string {
+  const extension = path.extname(existingPath).toLowerCase();
+  if (
+    (extension === '.js' || extension === '.jsx') &&
+    !sourceCanUseJsx(source)
+  ) {
+    return `${existingPath.slice(0, -extension.length)}.tsx`;
+  }
+  return existingPath;
+}
+
 export function buildSkippedLocalOnlyPullResources(
   localOnlyCount: number,
   deleteLocalOnly: boolean,
@@ -150,6 +239,7 @@ export function createComponentsPullTask(
   let components: Record<string, Component> = {};
   const localComponentMap = new Map<string, DiscoveredComponent>();
   let localOnlyComponents: DiscoveredComponent[] = [];
+  let preferJsxForNewComponents = false;
 
   function buildMetadata(component: Component): Metadata {
     const metadata: Metadata = {
@@ -216,6 +306,15 @@ export function createComponentsPullTask(
       for (const discovered of discoveryResult.components) {
         localComponentMap.set(discovered.name, discovered);
       }
+      preferJsxForNewComponents =
+        discoveryResult.components.length > 0 &&
+        discoveryResult.components.every((component) => {
+          if (!component.jsEntryPath) {
+            return false;
+          }
+          const extension = path.extname(component.jsEntryPath).toLowerCase();
+          return extension === '.js' || extension === '.jsx';
+        });
 
       const remoteMachineNames = new Set(
         Object.values(components).map((c) => c.machineName),
@@ -268,17 +367,35 @@ export function createComponentsPullTask(
             }
 
             const dir = path.dirname(discovered.metadataPath);
+            const existingJsPath = discovered.jsEntryPath;
+            const defaultJsPath = existingJsPath ?? path.join(dir, 'index.tsx');
+            const pulledJsPath = component.sourceCodeJs
+              ? getPulledJsPath(defaultJsPath, component.sourceCodeJs)
+              : defaultJsPath;
             await writeComponentFiles(component, {
               metadataPath: discovered.metadataPath,
-              jsPath: discovered.jsEntryPath ?? path.join(dir, 'index.tsx'),
+              jsPath: pulledJsPath,
               cssPath: discovered.cssEntryPath ?? path.join(dir, 'index.css'),
             });
+            if (existingJsPath && pulledJsPath !== existingJsPath) {
+              await fs.rm(existingJsPath);
+            }
           } else {
             const dir = path.join(componentDir, component.machineName);
             await fs.mkdir(dir, { recursive: true });
+            const defaultExtension =
+              preferJsxForNewComponents &&
+              component.sourceCodeJs &&
+              sourceCanUseJsx(component.sourceCodeJs)
+                ? '.jsx'
+                : '.tsx';
+            const defaultJsPath = path.join(dir, `index${defaultExtension}`);
+            const pulledJsPath = component.sourceCodeJs
+              ? getPulledJsPath(defaultJsPath, component.sourceCodeJs)
+              : defaultJsPath;
             await writeComponentFiles(component, {
               metadataPath: path.join(dir, 'component.yml'),
-              jsPath: path.join(dir, 'index.tsx'),
+              jsPath: pulledJsPath,
               cssPath: path.join(dir, 'index.css'),
             });
           }
@@ -558,40 +675,43 @@ export function createContentTemplatesPullTask(
   };
 }
 
-export function createRegionsPullTask(
+export function createPageTemplatesPullTask(
   apiService: ApiService,
-  regionsDir: string,
+  pageTemplatesDir: string,
   skipOverwrite: boolean,
 ): PullTask {
-  let regions: Record<string, RegionListItem> = {};
-  const localRegionMap = new Map<string, DiscoveredRegion>();
+  let pageVariants: Record<string, PageVariant> = {};
+  let defaultVariantId: string | null = null;
+  const localPageTemplateMap = new Map<string, DiscoveredPageTemplate>();
 
   return {
-    startLabel: 'Pulling global regions',
-    stopLabel: 'Pulled global regions',
+    startLabel: 'Pulling page templates',
+    stopLabel: 'Pulled page templates',
 
     async prepare(): Promise<PullTaskPrepareResult> {
-      const [fetched, discoveryResult] = await Promise.all([
-        apiService.listRegions(),
-        discoverCanvasProject({ regionsRoot: regionsDir }),
+      const [fetched, defaultVariant, discoveryResult] = await Promise.all([
+        apiService.listPageVariants(),
+        apiService.getDefaultPageVariant(),
+        discoverCanvasProject({ pageTemplatesRoot: pageTemplatesDir }),
       ]);
 
-      regions = fetched;
-      for (const discovered of discoveryResult.regions) {
-        localRegionMap.set(discovered.region, discovered);
+      pageVariants = fetched;
+      defaultVariantId = defaultVariant.default_page_variant;
+      for (const discovered of discoveryResult.pageTemplates) {
+        localPageTemplateMap.set(discovered.id, discovered);
       }
 
-      const total = Object.keys(regions).length;
+      const total = Object.keys(pageVariants).length;
       if (total === 0) return { summaryLines: [], localOnlyCount: 0 };
 
-      const existingCount = Object.values(regions).filter((r) =>
-        localRegionMap.has(r.region),
+      const existingCount = Object.values(pageVariants).filter((variant) =>
+        localPageTemplateMap.has(variant.id),
       ).length;
       const newCount = total - existingCount;
 
       return {
         summaryLines: [
-          formatSummaryLine('Global regions', total, newCount, existingCount),
+          formatSummaryLine('Page templates', total, newCount, existingCount),
         ],
         localOnlyCount: 0,
       };
@@ -600,42 +720,49 @@ export function createRegionsPullTask(
     async execute(): Promise<PullTaskResult> {
       const results: Result[] = [];
 
-      for (const listItem of Object.values(regions)) {
+      for (const variant of Object.values(pageVariants)) {
         try {
-          const discovered = localRegionMap.get(listItem.region);
+          const discovered = localPageTemplateMap.get(variant.id);
           if (discovered && skipOverwrite) {
             results.push({
-              itemName: listItem.region,
+              itemName: variant.id,
               success: true,
               details: [{ content: 'Skipped (already exists)' }],
             });
             continue;
           }
 
-          const region = await apiService.getRegion(listItem.id);
-
-          const nonJsComponents = region.component_tree.filter(
-            (c) => !c.component_id.startsWith('js.'),
+          // The intrinsic "Page content" marker is part of every variant and
+          // round-trips like any other component; everything else must be a
+          // code component for the authored codebase to build it.
+          const unsupportedComponents = variant.component_tree.filter(
+            (c) =>
+              !c.component_id.startsWith('js.') &&
+              !c.component_id.startsWith('marker.'),
           );
-          if (nonJsComponents.length > 0) {
+          if (unsupportedComponents.length > 0) {
             const unsupported = [
-              ...new Set(nonJsComponents.map((c) => c.component_id)),
+              ...new Set(unsupportedComponents.map((c) => c.component_id)),
             ].join(', ');
             results.push({
-              itemName: region.region,
+              itemName: variant.id,
               success: false,
               details: [
                 {
-                  content: `Skipped: contains unsupported components (${unsupported}). Only code components are supported.`,
+                  content: `Skipped: contains unsupported components (${unsupported}). Only code components and the page content marker are supported.`,
                 },
               ],
             });
             continue;
           }
 
-          const localData = regionToAuthoredSpec(region);
+          const localData = pageVariantToAuthoredSpec(
+            variant,
+            variant.id === defaultVariantId,
+          );
           const filePath =
-            discovered?.path ?? path.join(regionsDir, `${region.region}.json`);
+            discovered?.path ??
+            path.join(pageTemplatesDir, `${variant.id}.json`);
           await fs.mkdir(path.dirname(filePath), { recursive: true });
           await fs.writeFile(
             filePath,
@@ -643,10 +770,10 @@ export function createRegionsPullTask(
             'utf-8',
           );
 
-          results.push({ itemName: region.region, success: true });
+          results.push({ itemName: variant.id, success: true });
         } catch (error) {
           results.push({
-            itemName: listItem.region,
+            itemName: variant.id,
             success: false,
             details: [
               {
@@ -659,8 +786,8 @@ export function createRegionsPullTask(
 
       return {
         results,
-        title: 'Pulled global regions',
-        label: 'Global region',
+        title: 'Pulled page templates',
+        label: 'Page template',
       };
     },
   };
@@ -670,9 +797,15 @@ export function createAssetsPullTask(
   apiService: ApiService,
   globalCssPath: string,
   skipOverwrite: boolean,
+  projectRoot: string,
 ): PullTask {
   let globalCss = '';
   let localExists = false;
+  let packageJson: string | null = null;
+  let packageJsonExists = false;
+  const packageJsonPath = path.join(projectRoot, 'package.json');
+  let codebaseAssets: AssetLibraryManifestEntry[] = [];
+  let bundledSources: AssetLibraryBundledSource[] = [];
 
   return {
     startLabel: 'Pulling assets',
@@ -681,44 +814,197 @@ export function createAssetsPullTask(
     async prepare(): Promise<PullTaskPrepareResult> {
       const globalAssetLibrary = await apiService.getGlobalAssetLibrary();
       globalCss = globalAssetLibrary?.css?.original || '';
-      if (!globalCss) {
-        return { summaryLines: [], localOnlyCount: 0 };
+      packageJson = globalAssetLibrary?.packageJson || null;
+      codebaseAssets = (globalAssetLibrary?.assets ?? []).filter(
+        (entry): entry is AssetLibraryManifestEntry =>
+          typeof entry.path === 'string' && entry.path.length > 0,
+      );
+      // Sources of local modules bundled into other artifacts. They have no
+      // `uri` and are absent from the runtime import map; a pull restores them
+      // verbatim so the editable file reappears on disk.
+      bundledSources = (globalAssetLibrary?.bundledSources ?? []).filter(
+        (entry): entry is AssetLibraryBundledSource =>
+          typeof entry.path === 'string' &&
+          entry.path.length > 0 &&
+          typeof entry.source === 'string',
+      );
+      // Collect the asset sub-items that are present into one compact line,
+      // e.g. `Assets: global CSS, package.json, 7 local imports pull`.
+      const assetParts: string[] = [];
+      if (globalCss) {
+        localExists = await fs
+          .access(globalCssPath)
+          .then(() => true)
+          .catch(() => false);
+        assetParts.push('global CSS');
       }
-      localExists = await fs
-        .access(globalCssPath)
-        .then(() => true)
-        .catch(() => false);
-      return { summaryLines: ['Assets: global CSS pull'], localOnlyCount: 0 };
+      if (packageJson) {
+        packageJsonExists = await fs
+          .access(packageJsonPath)
+          .then(() => true)
+          .catch(() => false);
+        assetParts.push('package.json');
+      }
+      const localCount = codebaseAssets.length + bundledSources.length;
+      if (localCount > 0) {
+        assetParts.push(
+          `${localCount} local ${pluralizeLabel(localCount, 'import')}`,
+        );
+      }
+      const summaryLines: string[] =
+        assetParts.length > 0 ? [`Assets: ${assetParts.join(', ')} pull`] : [];
+      return { summaryLines, localOnlyCount: 0 };
     },
 
     async execute(): Promise<PullTaskResult> {
       const results: Result[] = [];
-      if (!globalCss) {
-        return { results, title: 'Pulled assets', label: 'Asset' };
-      }
-      try {
-        if (skipOverwrite && localExists) {
+      const notes: string[] = [];
+      // Set when the pulled `package.json` is newly created or its content
+      // differs from what was on disk, so the user is reminded to reinstall
+      // dependencies. An identical overwrite raises no note.
+      let packageJsonChanged = false;
+      if (globalCss) {
+        try {
+          if (skipOverwrite && localExists) {
+            results.push({
+              itemName: 'global.css',
+              success: true,
+              details: [{ content: 'Skipped (already exists)' }],
+            });
+          } else {
+            await fs.mkdir(path.dirname(globalCssPath), { recursive: true });
+            const outputCss = ensureTailwindImportAtTop(globalCss);
+            await fs.writeFile(globalCssPath, outputCss, 'utf-8');
+            results.push({ itemName: 'global.css', success: true });
+          }
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
           results.push({
             itemName: 'global.css',
-            success: true,
-            details: [{ content: 'Skipped (already exists)' }],
+            success: false,
+            details: [{ content: errorMessage }],
           });
-        } else {
-          await fs.mkdir(path.dirname(globalCssPath), { recursive: true });
-          const outputCss = ensureTailwindImportAtTop(globalCss);
-          await fs.writeFile(globalCssPath, outputCss, 'utf-8');
-          results.push({ itemName: 'global.css', success: true });
         }
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        results.push({
-          itemName: 'global.css',
-          success: false,
-          details: [{ content: errorMessage }],
-        });
       }
-      return { results, title: 'Pulled assets', label: 'Asset' };
+      if (packageJson) {
+        try {
+          if (skipOverwrite && packageJsonExists) {
+            results.push({
+              itemName: 'package.json',
+              success: true,
+              details: [{ content: 'Skipped (already exists)' }],
+            });
+          } else {
+            // Compare against the on-disk file (if any) before overwriting, so
+            // the dependency-install reminder only fires on a real change.
+            const previous = packageJsonExists
+              ? await fs.readFile(packageJsonPath, 'utf-8').catch(() => null)
+              : null;
+            packageJsonChanged = previous !== packageJson;
+            await fs.writeFile(packageJsonPath, packageJson, 'utf-8');
+            results.push({ itemName: 'package.json', success: true });
+          }
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          results.push({
+            itemName: 'package.json',
+            success: false,
+            details: [{ content: errorMessage }],
+          });
+        }
+      }
+      const resolvedProjectRoot = await fs.realpath(projectRoot);
+      for (const entry of codebaseAssets) {
+        // `entry.path` is guaranteed a non-empty string by the prepare() filter.
+        const relativePath = entry.path as string;
+        try {
+          const dest = await resolveAssetPullDestination(
+            resolvedProjectRoot,
+            relativePath,
+          );
+          const destExists = await fs
+            .access(dest)
+            .then(() => true)
+            .catch(() => false);
+          if (skipOverwrite && destExists) {
+            results.push({
+              itemName: relativePath,
+              success: true,
+              details: [{ content: 'Skipped (already exists)' }],
+            });
+            continue;
+          }
+          await fs.mkdir(path.dirname(dest), { recursive: true });
+          if (typeof entry.source === 'string') {
+            // Text module: write the verbatim original source (the `uri`
+            // artifact holds minified compiled JS, which is not editable).
+            await fs.writeFile(dest, entry.source, 'utf-8');
+          } else if (entry.url) {
+            // Binary asset: the `uri` artifact holds the original bytes;
+            // download over HTTP and write verbatim.
+            const buffer = await apiService.downloadFile(entry.url);
+            await fs.writeFile(dest, buffer);
+          } else {
+            throw new Error('No source or downloadable URL available.');
+          }
+          results.push({ itemName: relativePath, success: true });
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          results.push({
+            itemName: relativePath,
+            success: false,
+            details: [{ content: errorMessage }],
+          });
+        }
+      }
+      for (const entry of bundledSources) {
+        const relativePath = entry.path;
+        try {
+          const dest = await resolveAssetPullDestination(
+            resolvedProjectRoot,
+            relativePath,
+          );
+          const destExists = await fs
+            .access(dest)
+            .then(() => true)
+            .catch(() => false);
+          if (skipOverwrite && destExists) {
+            results.push({
+              itemName: relativePath,
+              success: true,
+              details: [{ content: 'Skipped (already exists)' }],
+            });
+            continue;
+          }
+          await fs.mkdir(path.dirname(dest), { recursive: true });
+          // Bundled sources are always verbatim text; they never carry a `uri`
+          // or downloadable URL because they are not standalone artifacts.
+          await fs.writeFile(dest, entry.source, 'utf-8');
+          results.push({ itemName: relativePath, success: true });
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          results.push({
+            itemName: relativePath,
+            success: false,
+            details: [{ content: errorMessage }],
+          });
+        }
+      }
+      if (packageJsonChanged) {
+        notes.push(
+          'package.json changed. Run `npm install` to install dependencies.',
+        );
+      }
+      return {
+        results,
+        title: 'Pulled assets',
+        label: 'Asset',
+        notes: notes.length > 0 ? notes : undefined,
+      };
     },
   };
 }
@@ -946,21 +1232,15 @@ export function pullCommand(program: Command): void {
         .argParser(parseBooleanOption)
         .default(undefined),
     )
-    .addOption(
-      new Option(
-        '--include-regions [enabled]',
-        'Include global regions in the pull operation',
-      )
-        .preset('true')
-        .argParser(parseBooleanOption)
-        .default(undefined),
-    )
     .option('--no-pages', 'Exclude pages from the pull operation')
     .option(
       '--no-content-templates',
       'Exclude content templates from the pull operation',
     )
-    .option('--no-regions', 'Exclude global regions from the pull operation')
+    .option(
+      '--no-page-templates',
+      'Exclude page templates from the pull operation',
+    )
     .addOption(
       new Option(
         '--include-brand-kit [enabled]',
@@ -990,7 +1270,7 @@ export function pullCommand(program: Command): void {
         const apiService = await createApiService();
         const includesPages = config.includePages;
         const includesContentTemplates = config.includeContentTemplates;
-        const includesRegions = config.includeRegions;
+        const includesPageTemplates = config.includePageTemplates;
         const includesBrandKit = config.includeBrandKit;
         // Icon libraries are part of the brand kit workflow.
         const includesIcons = includesBrandKit;
@@ -1007,6 +1287,7 @@ export function pullCommand(program: Command): void {
             apiService,
             resolveHostGlobalCssPath(projectRoot),
             options.skipOverwrite ?? false,
+            projectRoot,
           ),
         ];
 
@@ -1028,11 +1309,11 @@ export function pullCommand(program: Command): void {
           );
         }
 
-        if (includesRegions) {
+        if (includesPageTemplates) {
           tasks.push(
-            createRegionsPullTask(
+            createPageTemplatesPullTask(
               apiService,
-              config.regionsDir,
+              config.pageTemplatesDir,
               options.skipOverwrite ?? false,
             ),
           );
@@ -1140,6 +1421,10 @@ export function pullCommand(program: Command): void {
             'skipped',
           );
           p.log.message(skippedLines.join('\n'));
+        }
+        const notes = outcomes.flatMap((outcome) => outcome.notes ?? []);
+        if (notes.length > 0) {
+          p.note(notes.join('\n'));
         }
         p.outro(hasFailures ? 'Pull incomplete' : 'Pull completed');
         if (hasFailures) {

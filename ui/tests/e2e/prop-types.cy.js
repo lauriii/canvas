@@ -1,3 +1,4 @@
+// @canvas-ci weight=13 flaky
 /* cspell:ignore Ronk mander mando bination mentary */
 describe('Prop types editing', () => {
   const textFieldIterations = {
@@ -68,7 +69,7 @@ describe('Prop types editing', () => {
     cy.drupalLogin('canvasUser', 'canvasUser');
     cy.loadURLandWaitForCanvasLoaded();
     cy.openLibraryPanel();
-    cy.insertComponent({ name: 'Two Column' });
+    cy.insertComponent({ name: 'Two Column' }, { waitForVisible: false });
     cy.findByLabelText('Column Width').should('exist');
     cy.insertComponent({ name: 'All props' });
     cy.openLayersPanel();
@@ -96,6 +97,25 @@ describe('Prop types editing', () => {
         '#test-bool-default-false code',
         'true',
       );
+
+      // Updating another field must not flip boolean defaults.
+      cy.findByLabelText('Bool (default true)').assertToggleState(true);
+      cy.findByLabelText('String — single line').type(' keep value', {
+        force: true,
+      });
+      cy.findByLabelText('Bool (default false)').assertToggleState(false);
+      cy.findByLabelText('Bool (default true)').assertToggleState(true);
+
+      cy.waitForElementContentInIframe(
+        '#test-string code',
+        'Hello, world! keep value',
+      );
+      cy.waitForElementContentInIframe(
+        '#test-bool-default-false code',
+        'false',
+      );
+      cy.waitForElementContentInIframe('#test-bool-default-true code', 'true');
+
       cy.findByLabelText('Bool (default false)')
         .assertToggleState(false)
         .toggleToggle()

@@ -7,6 +7,8 @@ namespace Drupal\canvas\Access;
 use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Entity\PageVariant;
+use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Core\Access\AccessResult;
@@ -36,8 +38,9 @@ class CanvasUiAccessCheck implements AccessInterface {
   public function access(AccountInterface $account): AccessResult {
     $access = AccessResult::neutral('Requires >=1 content entity type with a Canvas field that can be created or edited.');
 
-    // Early access return if the account has permissions for content templates
-    // or code components.
+    // Early access return if the account has permissions for content templates,
+    // code components, the brand kit or patterns: each of those is editable in
+    // the Canvas UI without editing a content entity.
     // The permission flags on Canvas controller will show the proper
     // functionalities client-side, and there are proper access checks for each
     // operation the user attempts.
@@ -53,6 +56,14 @@ class CanvasUiAccessCheck implements AccessInterface {
     $brand_kit_access = AccessResult::allowedIfHasPermission($account, BrandKit::ADMIN_PERMISSION);
     if ($brand_kit_access->isAllowed()) {
       return $brand_kit_access;
+    }
+    $page_variants_access = AccessResult::allowedIfHasPermission($account, PageVariant::ADMIN_PERMISSION);
+    if ($page_variants_access->isAllowed()) {
+      return $page_variants_access;
+    }
+    $patterns_access = AccessResult::allowedIfHasPermission($account, Pattern::ADMIN_PERMISSION);
+    if ($patterns_access->isAllowed()) {
+      return $patterns_access;
     }
 
     $field_map = $this->entityFieldManager->getFieldMapByFieldType(ComponentTreeItem::PLUGIN_ID);

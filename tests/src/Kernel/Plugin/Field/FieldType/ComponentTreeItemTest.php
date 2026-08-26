@@ -13,6 +13,7 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\canvas\Plugin\Validation\Constraint\ValidComponentTreeItemConstraintValidator;
 use Drupal\canvas\PropSource\PropSource;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
@@ -523,6 +524,10 @@ class ComponentTreeItemTest extends CanvasKernelTestBase {
     $test_cases['invalid slot'][] = [
       'field_canvas_test.1.slot' => 'Invalid component subtree. This component subtree contains an invalid slot name for component <em class="placeholder">sdc.canvas_test_sdc.props-slots</em>: <em class="placeholder">banana</em>. Valid slot names are: <em class="placeholder">the_body, the_footer, the_colophon</em>.',
     ];
+    $test_cases['reserved root UUID'][] = [
+      'field_canvas_test.0.uuid' => 'Invalid component tree item with UUID <em class="placeholder">' . ComponentTreeItemList::ROOT_UUID . '</em>. This UUID is reserved to represent the root of the component tree, and must never be used by a component instance.',
+      'field_canvas_test.1.parent_uuid' => 'Invalid component tree item with UUID <em class="placeholder">e303dd88-9409-4dc7-8a8b-a31602884a94</em> references the reserved root UUID as its parent. Component instances at the root of the tree must omit parent_uuid and slot.',
+    ];
     foreach ($test_cases as &$test_case) {
       $test_case[2] ??= [];
     }
@@ -538,7 +543,7 @@ class ComponentTreeItemTest extends CanvasKernelTestBase {
   public function testInvalidField(array $field_values, array $expected_violations, array $permissions): void {
     $this->installEntitySchema('path_alias');
     $this->setUpCurrentUser(permissions: $permissions);
-    $this->container->get('module_installer')->install(['canvas_test_config_node_article']);
+    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_test_config_node_article']);
     $node = Node::create([
       'title' => 'Test node',
       'type' => 'article',

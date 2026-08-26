@@ -24,8 +24,8 @@ use Drupal\canvas\Validation\JsonSchema\CustomConstraintError;
 use Drupal\canvas_test_storable_prop_shape_alter\Hook\CanvasTestStorablePropShapeAlterHooks;
 use Drupal\canvas_test_storable_prop_shape_alter\Plugin\Field\FieldType\MultipleOfItem;
 use Drupal\Core\Cache\CacheCollectorInterface;
-use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormState;
@@ -33,6 +33,7 @@ use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\link\LinkItemInterface;
 use Drupal\link\LinkTitleVisibility;
 use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
+use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\system\Functional\Form\StubForm;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
@@ -42,7 +43,6 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Depends;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
-use Symfony\Component\DependencyInjection\Reference;
 
 /**
  * Tests Drupal\canvas\PropShape\PersistentPropShapeRepository.
@@ -56,6 +56,7 @@ use Symfony\Component\DependencyInjection\Reference;
 #[Group('canvas_data_model__prop_expressions')]
 class PropShapeRepositoryTest extends CanvasKernelTestBase {
 
+  use MediaTypeCreationTrait;
   use UserCreationTrait;
   use VfsPublicStreamUrlTrait;
 
@@ -66,6 +67,9 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
     // Modules providing additional SDCs.
     'sdc_test',
     'sdc_test_all_props',
+    // To be able to create a MediaType (which creates its source field).
+    // @see ::testArrayPropShapeInheritsItemPropShapeCacheTags()
+    'field',
   ];
 
   protected static $configSchemaCheckerExclusions = [
@@ -82,7 +86,7 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
   protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('path_alias');
-    $this->container->get('theme_installer')->install([
+    $this->container->get(ThemeInstallerInterface::class)->install([
       // To test $ref handling in themes.
       // @see \Drupal\canvas\JsonSchemaDefinitionsStreamwrapper
       'test_theme_base',
@@ -91,16 +95,6 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
     ]);
     // @see \Drupal\file\Plugin\Field\FieldType\FileItem::generateSampleValue()
     $this->installEntitySchema('file');
-  }
-
-  public function register(ContainerBuilder $container): void {
-    parent::register($container);
-    $container->register(PropShapeRepositoryInterface::class, PersistentPropShapeRepositoryTestHelper::class)
-      ->addArgument(new Reference(EphemeralPropShapeRepository::class))
-      ->addArgument(new Reference('cache.discovery'))
-      ->addArgument(new Reference('lock'))
-      ->addArgument(new Reference(ComponentSourceManager::class))
-      ->addArgument(new Reference('kernel'));
   }
 
   /**
@@ -117,11 +111,11 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
     $persistent_prop_shape_repository = $this->container->get(PropShapeRepositoryInterface::class);
     self::assertInstanceOf(PersistentPropShapeRepository::class, $persistent_prop_shape_repository);
 
-    // Empty prop shape repositories at the start. And only Block Components,
-    // which do not use prop shapes.
+    // Empty prop shape repositories at the start. And only Block and Marker
+    // Components, which do not use prop shapes.
     self::assertEmpty($ephemeral_prop_shape_repository->getUniquePropShapes());
     self::assertEmpty($persistent_prop_shape_repository->getUniquePropShapes());
-    self::assertSame(['block'], \array_values(\array_unique(\array_map(
+    self::assertSame(['block', 'marker'], \array_values(\array_unique(\array_map(
       fn (ComponentEntity $component): string => $component->get('source'),
       ComponentEntity::loadMultiple()
     ))));
@@ -193,10 +187,12 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
       new PropShape(['type' => 'number']),
       new PropShape(['type' => 'object']),
       new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/date-range']),
+      JsonSchemaObjectRef::Document->asPropShape(),
       JsonSchemaObjectRef::Image->asPropShape(),
       new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/shoe-icon']),
       JsonSchemaObjectRef::Video->asPropShape(),
       new PropShape(['type' => 'string']),
+      new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/color']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/heading-element']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/image-uri']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/stream-wrapper-image-uri']),
@@ -311,6 +307,11 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
         fieldTypeProp: new FieldTypePropExpression('string', 'value'),
         fieldWidget: 'string_textfield',
       ),
+      'type=string&$ref=json-schema-definitions://canvas.module/color' => new StorablePropShape(
+        shape: new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/color']),
+        fieldTypeProp: new FieldTypePropExpression('string', 'value'),
+        fieldWidget: 'canvas_color_picker',
+      ),
       'type=string&$ref=json-schema-definitions://canvas.module/image-uri' => new StorablePropShape(
         shape: new PropShape(['type' => 'string', 'contentMediaType' => 'image/*', 'format' => 'uri-reference', 'x-allowed-schemes' => ['http', 'https']]),
         fieldTypeProp: new FieldTypePropExpression('image', 'src_with_alternate_widths'),
@@ -372,6 +373,29 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
           ),
         ]),
         fieldInstanceSettings: ['file_extensions' => 'mp4'],
+        fieldWidget: 'file_generic',
+      ),
+      'type=object&$ref=' . JsonSchemaObjectRef::Document->value => new StorablePropShape(
+        shape: JsonSchemaObjectRef::Document->asPropShape(),
+        fieldTypeProp: new FieldTypeObjectPropsExpression('file', [
+          'src' => new ReferenceFieldTypePropExpression(
+            new FieldTypePropExpression('file', 'entity'),
+            new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'uri', NULL, 'url'),
+          ),
+          'filename' => new ReferenceFieldTypePropExpression(
+            new FieldTypePropExpression('file', 'entity'),
+            new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'filename', NULL, 'value'),
+          ),
+          'filesize' => new ReferenceFieldTypePropExpression(
+            new FieldTypePropExpression('file', 'entity'),
+            new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'filesize', NULL, 'value'),
+          ),
+          'mimetype' => new ReferenceFieldTypePropExpression(
+            new FieldTypePropExpression('file', 'entity'),
+            new FieldPropExpression(BetterEntityDataDefinition::create('file'), 'filemime', NULL, 'value'),
+          ),
+        ]),
+        fieldInstanceSettings: ['file_extensions' => 'rtf doc docx ppt pptx xls xlsx pdf odf odg odp ods odt fodt fods fodp fodg key numbers pages'],
         fieldWidget: 'file_generic',
       ),
       'type=string&$ref=json-schema-definitions://canvas.module/heading-element' => new StorablePropShape(
@@ -1108,6 +1132,52 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Different field types must cache their prototypes under different names.
+   *
+   * Otherwise they collide: `TypedDataManager` caches prototypes for the
+   * detached, re-parented prop fields keyed by the host root plus the field's
+   * path, so without a per-field name every prop field shares one prototype.
+   * Building an integer prop widget before an image prop widget then handed the
+   * image widget an `IntegerItem`, which crashed on `getUploadLocation()`. The
+   * order is forced here so the test does not depend on prop shape discovery
+   * order.
+   *
+   * @param \Drupal\canvas\PropShape\StorablePropShape[] $storable_prop_shapes
+   *
+   * @see \Drupal\canvas\PropSource\StaticPropSource::formTemporaryRemoveThisExclamationExclamationExclamation()
+   */
+  #[Depends('testStorablePropShapes')]
+  public function testDifferentFieldTypeWidgetsDoNotShareItemPrototype(array $storable_prop_shapes): void {
+    $integer_shape = array_find($storable_prop_shapes, fn (StorablePropShape $s): bool => $s->fieldTypeProp->getFieldType() === 'integer');
+    $image_shape = array_find($storable_prop_shapes, fn (StorablePropShape $s): bool => $s->fieldWidget === 'image_image');
+    self::assertNotNull($integer_shape);
+    self::assertNotNull($image_shape);
+
+    // Build the integer prop widget first: it seeds the item prototype cache
+    // with an IntegerItem under the shared host-entity path.
+    $this->buildTemporaryWidgetForm($integer_shape);
+
+    // Now the image prop widget. Before the field type named the dangling field,
+    // this reused the integer prototype and crashed in the file widget.
+    $image_form = $this->buildTemporaryWidgetForm($image_shape);
+
+    // The file widget built its rows, proving it received ImageItems.
+    self::assertArrayHasKey('widget', $image_form);
+  }
+
+  /**
+   * Builds the temporary widget form for a storable prop shape under a host.
+   */
+  private function buildTemporaryWidgetForm(StorablePropShape $storable_prop_shape): array {
+    $prop_source = $storable_prop_shape->toStaticPropSource();
+    $widget = $prop_source->getWidget('irrelevant-for-this-test', 'irrelevant-for-this-test', $this->randomMachineName(), $this->randomString(), $storable_prop_shape->fieldWidget);
+    $form = ['#parents' => [$this->randomMachineName()]];
+    $form_state = new FormState();
+    $form_state->setFormObject(new StubForm('some_id', $form));
+    return $prop_source->formTemporaryRemoveThisExclamationExclamationExclamation($widget, 'some-prop-name', FALSE, User::create([]), $form, $form_state);
+  }
+
+  /**
    * Tests all widgets for prop shapes have transforms.
    *
    * @param \Drupal\canvas\PropShape\StorablePropShape[] $storable_prop_shapes
@@ -1185,17 +1255,9 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
     \Drupal::state()->set(CanvasTestStorablePropShapeAlterHooks::STATE_KEY_AND_CACHE_TAG, TRUE);
     $prop_shape_repository = \Drupal::service(PropShapeRepositoryInterface::class);
     \assert($prop_shape_repository instanceof CacheCollectorInterface);
-    \assert($prop_shape_repository instanceof PersistentPropShapeRepositoryTestHelper);
     $prop_shape_repository->invalidateTags([CanvasTestStorablePropShapeAlterHooks::STATE_KEY_AND_CACHE_TAG]);
-    // The invalidation would happen immediately, but we are preventing any
-    // unneeded calls to regenerate Components in the same request.
-    // So we need a helper class that can simulate that, and call destruct()
-    // manually.
-    // Sadly, even without the fix for supporting disappearing prop shapes, this
-    // test would still pass, as that flag work-around is actually forcing some
-    // extra updates.
-    // Being honest, the asserts below are here mostly for documenting purposes.
-    $prop_shape_repository->setCacheCreated(\time());
+    // Invalidated prop shapes are re-resolved when the repository is
+    // destructed, which in production is the end of the request.
     $prop_shape_repository->destruct();
 
     $component = \Drupal::entityTypeManager()->getStorage(ComponentEntity::ENTITY_TYPE_ID)->loadUnchanged($component_id);
@@ -1203,6 +1265,123 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
     self::assertCount($module_is_already_installed ? 2 : 3, $component->getVersions());
     $settings = $component->getSettings();
     self::assertArrayNotHasKey($prop_name, $settings['prop_field_definitions']);
+  }
+
+  /**
+   * Tests `type: array` prop shapes inherit their item prop shape's tags.
+   *
+   * A `type: array` prop shape's storable prop shape is the one computed for
+   * its `items` prop shape. Consequently, whenever the item prop shape must be
+   * recomputed, so must the array prop shape — otherwise only the Components
+   * with single-value props get updated.
+   *
+   * @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter()
+   * @legacy-covers \Drupal\canvas\PropShape\EphemeralPropShapeRepository::getCandidateStorablePropShape
+   * @legacy-covers \Drupal\canvas\PropShape\PersistentPropShapeRepository::invalidateTags
+   * @legacy-covers \Drupal\canvas\PropShape\PersistentPropShapeRepository::resolveCacheMiss
+   */
+  public function testArrayPropShapeInheritsItemPropShapeCacheTags(): void {
+    // @see \Drupal\media\Plugin\media\Source\Image
+    $this->installEntitySchema('media');
+    // @see \Drupal\media_library\Plugin\Field\FieldWidget\MediaLibraryWidget
+    $this->installEntitySchema('user');
+
+    // Start from Components that are up-to-date with the current shape
+    // matching, so that only the MediaType created below can change them.
+    \Drupal::service(ComponentSourceManager::class)->generateComponents();
+
+    // Two Components with an image prop: a single one and an array of them.
+    // @see tests/modules/canvas_test_sdc/components/image/image.component.yml
+    // @see tests/modules/canvas_test_sdc/components/image-gallery/image-gallery.component.yml
+    $image_props = [
+      SingleDirectoryComponent::SOURCE_PLUGIN_ID . '.canvas_test_sdc.image' => 'image',
+      SingleDirectoryComponent::SOURCE_PLUGIN_ID . '.canvas_test_sdc.image-gallery' => 'images',
+    ];
+    $load_component = static function (string $component_id): ComponentEntity {
+      $component = \Drupal::entityTypeManager()
+        ->getStorage(ComponentEntity::ENTITY_TYPE_ID)
+        ->loadUnchanged($component_id);
+      \assert($component instanceof ComponentEntity);
+      return $component;
+    };
+    // Both Components start with an `image` (non-entity-reference) prop field
+    // definition, because no image MediaType exists yet. This is the baseline
+    // that creating a MediaType below must change — for both of them.
+    $version_counts = [];
+    foreach ($image_props as $component_id => $prop_name) {
+      $component = $load_component($component_id);
+      $version_counts[$component_id] = \count($component->getVersions());
+      self::assertSame('image', $component->getSettings()['prop_field_definitions'][$prop_name]['field_type'], $component_id);
+    }
+
+    // Creating a MediaType using the Image MediaSource changes the storable
+    // prop shape of image props: it invalidates `config:media_type_list`.
+    // @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter()
+    $this->createMediaType('image', ['id' => 'gracie_photos']);
+
+    $prop_shape_repository = \Drupal::service(PropShapeRepositoryInterface::class);
+    \assert($prop_shape_repository instanceof CacheCollectorInterface);
+    // The invalidated prop shapes are re-resolved when the prop shape
+    // repository is destructed, which in production is the end of the request.
+    // @see \Drupal\canvas\PropShape\PersistentPropShapeRepository::updateCache()
+    $prop_shape_repository->destruct();
+
+    // Both Components must now use the `entity_reference` field type, pointing
+    // at the new MediaType — not just the one with a single-value image prop.
+    foreach ($image_props as $component_id => $prop_name) {
+      $component = $load_component($component_id);
+      self::assertCount($version_counts[$component_id] + 1, $component->getVersions(), $component_id);
+      $prop_field_definition = $component->getSettings()['prop_field_definitions'][$prop_name];
+      self::assertSame('entity_reference', $prop_field_definition['field_type'], $component_id);
+      self::assertSame('media_library_widget', $prop_field_definition['field_widget'], $component_id);
+      self::assertArrayHasKey(
+        'gracie_photos',
+        $prop_field_definition['field_instance_settings']['handler_settings']['target_bundles'],
+        $component_id,
+      );
+    }
+  }
+
+  /**
+   * Tests re-resolving a warm cache that contains a non-storable prop shape.
+   *
+   * A prop shape without a storable equivalent is cached as NULL. When a later
+   * request loads that cache, ::lazyLoadCache() cannot rebuild the PropShape
+   * object for it, so ::resolveInvalidatedPropShapes() cannot re-resolve it
+   * and must remove the cache entry instead of throwing.
+   *
+   * @legacy-covers \Drupal\canvas\PropShape\PersistentPropShapeRepository::resolveInvalidatedPropShapes
+   * @legacy-covers \Drupal\canvas\PropShape\PersistentPropShapeRepository::lazyLoadCache
+   */
+  public function testResolveInvalidatedPropShapesOnWarmCacheWithNonStorableShape(): void {
+    $repository = \Drupal::service(PropShapeRepositoryInterface::class);
+    \assert($repository instanceof CacheCollectorInterface);
+    \assert($repository instanceof PropShapeRepositoryInterface);
+    // A prop shape no field type can store: cached as NULL.
+    $non_storable_shape = PropShape::normalize([
+      'type' => 'object',
+      'properties' => ['x' => ['type' => 'string']],
+    ]);
+    self::assertNull($repository->getStorablePropShape($non_storable_shape));
+    // End of the request: the cache is written, including the NULL.
+    $repository->destruct();
+
+    // The next request loads that warm cache with a fresh repository instance.
+    $fresh_repository = new PersistentPropShapeRepository(
+      \Drupal::service(EphemeralPropShapeRepository::class),
+      \Drupal::service('cache.discovery'),
+      \Drupal::service('lock'),
+      \Drupal::service(ComponentSourceManager::class),
+      \Drupal::service('kernel'),
+    );
+    // Installing a module invalidates `config:core.extension`, which queues
+    // every cached prop shape — including the NULL one — for re-resolution.
+    $fresh_repository->invalidateTags(['config:core.extension']);
+    // This must not throw, even though the NULL entry cannot be re-resolved.
+    // @see \Drupal\canvas\Hook\ComponentSourceHooks::modulesInstalled()
+    $fresh_repository->resolveInvalidatedPropShapes();
+    // The shape remains non-storable when asked again.
+    self::assertNull($fresh_repository->getStorablePropShape($non_storable_shape));
   }
 
 }

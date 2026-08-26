@@ -2,12 +2,25 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 
 import { baseQuery } from '@/services/baseQuery';
+import { brandKitApi } from '@/services/brandKit';
 
 import type { LayoutModelPiece } from '@/features/layout/layoutModelSlice';
 import type { PatternsList } from '@/types/Pattern';
 
 interface SavePatternData extends LayoutModelPiece {
   name: string;
+}
+
+async function invalidateColorUsageDetails(
+  dispatch: (action: unknown) => void,
+  queryFulfilled: Promise<unknown>,
+) {
+  try {
+    await queryFulfilled;
+    dispatch(brandKitApi.util.invalidateTags(['ColorUsageDetails']));
+  } catch {
+    // noop
+  }
 }
 
 // Define a service using a base URL and expected endpoints
@@ -27,6 +40,8 @@ export const patternApi = createApi({
         body,
       }),
       invalidatesTags: () => [{ type: 'Patterns', id: 'LIST' }],
+      onQueryStarted: (_arg, { dispatch, queryFulfilled }) =>
+        invalidateColorUsageDetails(dispatch, queryFulfilled),
     }),
     deletePattern: builder.mutation<void, string>({
       query: (id) => ({
@@ -34,6 +49,18 @@ export const patternApi = createApi({
         method: 'DELETE',
       }),
       invalidatesTags: () => [{ type: 'Patterns', id: 'LIST' }],
+      onQueryStarted: (_arg, { dispatch, queryFulfilled }) =>
+        invalidateColorUsageDetails(dispatch, queryFulfilled),
+    }),
+    updatePattern: builder.mutation<unknown, { id: string; name: string }>({
+      query: ({ id, name }) => ({
+        url: `/canvas/api/v0/config/pattern/${id}`,
+        method: 'PATCH',
+        body: { name },
+      }),
+      invalidatesTags: () => [{ type: 'Patterns', id: 'LIST' }],
+      onQueryStarted: (_arg, { dispatch, queryFulfilled }) =>
+        invalidateColorUsageDetails(dispatch, queryFulfilled),
     }),
   }),
 });
@@ -44,4 +71,5 @@ export const {
   useGetPatternsQuery,
   useSavePatternMutation,
   useDeletePatternMutation,
+  useUpdatePatternMutation,
 } = patternApi;

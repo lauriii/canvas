@@ -132,15 +132,15 @@ final class JavascriptComponentAccessTest extends CanvasKernelTestBase {
     // to delete.
     $audit = $this->container->get(ComponentAudit::class);
     self::assertSame(3, (int) $page->getRevisionId());
-    self::assertSame([Page::ENTITY_TYPE_ID => [3 => '1']], $audit->getContentRevisionIdsUsingComponentIds([$component_id], which_revisions: RevisionAuditEnum::Default));
-    self::assertSame([Page::ENTITY_TYPE_ID => [3 => '1']], $audit->getContentRevisionIdsUsingComponentIds([$component_id], which_revisions: RevisionAuditEnum::Latest));
-    self::assertSame([Page::ENTITY_TYPE_ID => [1 => '1', 2 => '1', 3 => '1']], $audit->getContentRevisionIdsUsingComponentIds([$component_id], which_revisions: RevisionAuditEnum::All));
+    self::assertSame([Page::ENTITY_TYPE_ID => [3 => '1']], $audit->getContentRevisionIdsUsingAuditTarget($component, which_revisions: RevisionAuditEnum::Default));
+    self::assertSame([Page::ENTITY_TYPE_ID => [3 => '1']], $audit->getContentRevisionIdsUsingAuditTarget($component, which_revisions: RevisionAuditEnum::Latest));
+    self::assertSame([Page::ENTITY_TYPE_ID => [1 => '1', 2 => '1', 3 => '1']], $audit->getContentRevisionIdsUsingAuditTarget($component, which_revisions: RevisionAuditEnum::All));
     $page->setNewRevision(TRUE);
     $page->set('components', [])->save();
     self::assertSame(4, (int) $page->getRevisionId());
-    self::assertSame([Page::ENTITY_TYPE_ID => []], $audit->getContentRevisionIdsUsingComponentIds([$component_id], which_revisions: RevisionAuditEnum::Default));
-    self::assertSame([Page::ENTITY_TYPE_ID => []], $audit->getContentRevisionIdsUsingComponentIds([$component_id], which_revisions: RevisionAuditEnum::Latest));
-    self::assertSame([Page::ENTITY_TYPE_ID => [1 => '1', 2 => '1', 3 => '1']], $audit->getContentRevisionIdsUsingComponentIds([$component_id], which_revisions: RevisionAuditEnum::All));
+    self::assertSame([Page::ENTITY_TYPE_ID => []], $audit->getContentRevisionIdsUsingAuditTarget($component, which_revisions: RevisionAuditEnum::Default));
+    self::assertSame([Page::ENTITY_TYPE_ID => []], $audit->getContentRevisionIdsUsingAuditTarget($component, which_revisions: RevisionAuditEnum::Latest));
+    self::assertSame([Page::ENTITY_TYPE_ID => [1 => '1', 2 => '1', 3 => '1']], $audit->getContentRevisionIdsUsingAuditTarget($component, which_revisions: RevisionAuditEnum::All));
     // @todo When Canvas adds support for Content Moderation and/or Workspaces in https://www.drupal.org/i/3439664, expand this test coverage to account for a default revision that is NOT the latest.
     // And reset the access cache.
     $entity_type_manager->getAccessControlHandler(JavaScriptComponent::ENTITY_TYPE_ID)->resetCache();
@@ -159,11 +159,12 @@ final class JavascriptComponentAccessTest extends CanvasKernelTestBase {
       ],
     ]);
     $auto_save_manager->saveEntity($page);
+    $data_hash = $auto_save_manager->getAutoSaveEntity($page)->hash;
     // The suffix is the auto-save `data_hash`: an xxh64 hash of the normalized
     // entity. It changed because empty path aliases are no longer part of that
     // normalization.
     // @see \Drupal\canvas\AutoSave\AutoSaveManager::normalizeEntity()
-    self::assertSame([Page::ENTITY_TYPE_ID => ['auto-save-4fbb5b01eba7863c' => '1']], $audit->getAutoSavesUsingComponentIds([$component_id]));
+    self::assertSame([Page::ENTITY_TYPE_ID => ['auto-save-' . $data_hash => '1']], $audit->getAutoSavesUsingAuditTarget($component));
     // And reset the access cache.
     $entity_type_manager->getAccessControlHandler(JavaScriptComponent::ENTITY_TYPE_ID)->resetCache();
     self::assertEquals(
@@ -188,8 +189,8 @@ final class JavascriptComponentAccessTest extends CanvasKernelTestBase {
     $page->save();
     self::assertSame(5, (int) $page->getRevisionId());
     self::assertFalse($page->isDefaultRevision());
-    self::assertSame([Page::ENTITY_TYPE_ID => []], $audit->getContentRevisionIdsUsingComponentIds([$component_id], which_revisions: RevisionAuditEnum::Default));
-    self::assertSame([Page::ENTITY_TYPE_ID => [5 => '1']], $audit->getContentRevisionIdsUsingComponentIds([$component_id], which_revisions: RevisionAuditEnum::Latest));
+    self::assertSame([Page::ENTITY_TYPE_ID => []], $audit->getContentRevisionIdsUsingAuditTarget($component, which_revisions: RevisionAuditEnum::Default));
+    self::assertSame([Page::ENTITY_TYPE_ID => [5 => '1']], $audit->getContentRevisionIdsUsingAuditTarget($component, which_revisions: RevisionAuditEnum::Latest));
     $entity_type_manager->getAccessControlHandler(JavaScriptComponent::ENTITY_TYPE_ID)->resetCache();
     self::assertEquals(
       AccessResult::forbidden('This code component is in use in the latest revision and cannot be deleted.')->addCacheContexts(['user.permissions']),
@@ -202,7 +203,7 @@ final class JavascriptComponentAccessTest extends CanvasKernelTestBase {
     $page->isDefaultRevision(FALSE);
     $page->set('components', [])->save();
     self::assertSame(6, (int) $page->getRevisionId());
-    self::assertSame([Page::ENTITY_TYPE_ID => []], $audit->getContentRevisionIdsUsingComponentIds([$component_id], which_revisions: RevisionAuditEnum::Latest));
+    self::assertSame([Page::ENTITY_TYPE_ID => []], $audit->getContentRevisionIdsUsingAuditTarget($component, which_revisions: RevisionAuditEnum::Latest));
     $entity_type_manager->getAccessControlHandler(JavaScriptComponent::ENTITY_TYPE_ID)->resetCache();
     self::assertEquals(
       AccessResult::allowed()->addCacheContexts(['user.permissions']),

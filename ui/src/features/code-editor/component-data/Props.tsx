@@ -30,6 +30,7 @@ import {
 } from '@/features/code-editor/component-data/FormElement';
 import FormPropTypeArray from '@/features/code-editor/component-data/forms/FormPropTypeArray';
 import FormPropTypeBoolean from '@/features/code-editor/component-data/forms/FormPropTypeBoolean';
+import FormPropTypeColor from '@/features/code-editor/component-data/forms/FormPropTypeColor';
 import FormPropTypeContentEntityReference from '@/features/code-editor/component-data/forms/FormPropTypeContentEntityReference';
 import FormPropTypeDate from '@/features/code-editor/component-data/forms/FormPropTypeDate';
 import FormPropTypeEnum from '@/features/code-editor/component-data/forms/FormPropTypeEnum';
@@ -418,6 +419,18 @@ export default function Props() {
                   targetEntityType={prop['x-allowed-entity-type-id'] ?? null}
                   targetBundle={prop['x-allowed-bundle'] ?? null}
                   isDisabled={disabledPropIds.has(prop.id)}
+                />
+              );
+            case 'color':
+              return (
+                <FormPropTypeColor
+                  id={prop.id}
+                  example={prop.example as string}
+                  required={required.includes(propName)}
+                  x-canvas-color-picker={
+                    prop['x-canvas-color-picker'] ?? 'kit-only'
+                  }
+                  x-canvas-color-folders={prop['x-canvas-color-folders']}
                 />
               );
             case 'date':

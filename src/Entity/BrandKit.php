@@ -123,26 +123,61 @@ final class BrandKit extends ConfigEntityBase implements CanvasAssetInterface {
     $file_url_generator = \Drupal::service(FileUrlGeneratorInterface::class);
     \assert($file_url_generator instanceof FileUrlGeneratorInterface);
 
-    return ClientSideRepresentation::create(
-      values: [
-        'id' => $this->id,
-        'label' => $this->label,
-        'fonts' => $this->fonts === NULL
-          ? NULL
-          : (static function (array $fonts) use ($file_url_generator): array {
-            $normalized_fonts = [];
-            foreach ($fonts as $font_entry) {
-              $normalized_fonts[] = [
-                ...self::normalizeFontEntry($font_entry),
-                'variantType' => !empty($font_entry['axes']) ? 'variable' : 'static',
-                'url' => $file_url_generator->generateString((string) $font_entry['uri']),
-              ];
-            }
-            return $normalized_fonts;
-          })($this->fonts),
-      ],
+    $values = [
+      'id' => $this->id,
+      'label' => $this->label,
+      'fonts' => $this->fonts === NULL
+        ? NULL
+        : (static function (array $fonts) use ($file_url_generator): array {
+          $normalized_fonts = [];
+          foreach ($fonts as $font_entry) {
+            $normalized_fonts[] = [
+              ...self::normalizeFontEntry($font_entry),
+              'variantType' => !empty($font_entry['axes']) ? 'variable' : 'static',
+              'url' => $file_url_generator->generateString((string) $font_entry['uri']),
+            ];
+          }
+          return $normalized_fonts;
+        })($this->fonts),
+    ];
+
+    // Only include colors if there are any.
+    $color_entities = $this->getColorEntities();
+    if ($color_entities !== []) {
+      $values['colors'] = self::normalizeColors(\array_values(\array_map(
+        static fn (Color $c): array => [
+          'id' => $c->id(),
+          'name' => $c->getName(),
+          'cssVariable' => $c->getCssVariable(),
+          'value' => $c->getValue(),
+          'displayFormat' => $c->getDisplayFormat(),
+          'weight' => $c->getWeight(),
+        ],
+        $color_entities,
+      )));
+    }
+
+    $representation = ClientSideRepresentation::create(
+      values: $values,
       preview: NULL,
+    )->addCacheableDependency($this);
+
+    // Add the Color entity-type list cache tag so that creating or deleting
+    // any Color invalidates this BrandKit response.
+    //
+    // If multi-BrandKit support is added this will need to be a more specific
+    // list tag.
+    $representation->addCacheTags(
+      \Drupal::entityTypeManager()->getDefinition(Color::ENTITY_TYPE_ID)->getListCacheTags()
     );
+
+    // Add each Color entity as a cacheable dependency so that updating a Color
+    // invalidates this BrandKit response cache.
+    foreach ($color_entities as $color_entity) {
+      $representation->addCacheableDependency($color_entity);
+    }
+
+    return $representation;
   }
 
   /**
@@ -273,7 +308,7 @@ final class BrandKit extends ConfigEntityBase implements CanvasAssetInterface {
    * @param list<string> $new_uris
    */
   public static function syncFontFileUsage(array $old_uris, array $new_uris, string $type, string $id): void {
-    $file_usage = \Drupal::service('file.usage');
+    $file_usage = \Drupal::service(FileUsageInterface::class);
     \assert($file_usage instanceof FileUsageInterface);
 
     foreach (\array_values(\array_diff($new_uris, $old_uris)) as $uri) {
@@ -297,7 +332,7 @@ final class BrandKit extends ConfigEntityBase implements CanvasAssetInterface {
    * @param list<string> $uris
    */
   public static function clearFontFileUsage(array $uris, string $type, string $id): void {
-    $file_usage = \Drupal::service('file.usage');
+    $file_usage = \Drupal::service(FileUsageInterface::class);
     \assert($file_usage instanceof FileUsageInterface);
 
     foreach ($uris as $uri) {
@@ -406,20 +441,59 @@ final class BrandKit extends ConfigEntityBase implements CanvasAssetInterface {
   }
 
   private function buildGeneratedCss(): string {
+    $css_parts = [];
+
+    // Generate @font-face rules for fonts.
     $fonts = $this->getFonts();
-    if ($fonts === []) {
+    if ($fonts !== []) {
+      $file_url_generator = \Drupal::service(FileUrlGeneratorInterface::class);
+      \assert($file_url_generator instanceof FileUrlGeneratorInterface);
+
+      foreach ($fonts as $font) {
+        $css_parts[] = self::buildFontFaceRule($font, $file_url_generator);
+      }
+    }
+
+    // Generate CSS custom properties for colors.
+    $color_rules = $this->buildColorCssRules();
+    if ($color_rules !== '') {
+      $css_parts[] = $color_rules;
+    }
+
+    return implode("\n\n", $css_parts);
+  }
+
+  /**
+   * Builds CSS rules for color custom properties.
+   *
+   * @return string
+   *   CSS rules for :root with color variables.
+   */
+  private function buildColorCssRules(): string {
+    $colors = $this->getColorEntities();
+    if ($colors === []) {
       return '';
     }
 
-    $file_url_generator = \Drupal::service(FileUrlGeneratorInterface::class);
-    \assert($file_url_generator instanceof FileUrlGeneratorInterface);
+    // Sort by weight, then by name alphabetically.
+    usort($colors, static function (Color $a, Color $b): int {
+      $weight_diff = $a->getWeight() - $b->getWeight();
+      if ($weight_diff !== 0) {
+        return $weight_diff;
+      }
+      return strcasecmp($a->getName(), $b->getName());
+    });
 
-    $rules = [];
-    foreach ($fonts as $font) {
-      $rules[] = self::buildFontFaceRule($font, $file_url_generator);
+    $properties = [];
+    foreach ($colors as $color) {
+      $properties[] = \sprintf(
+        '  %s: %s;',
+        self::escapeCssString($color->getCssVariable()),
+        $color->getCssValue()
+      );
     }
 
-    return implode("\n\n", $rules);
+    return \sprintf(":root {\n%s\n}", implode("\n", $properties));
   }
 
   /**
@@ -541,6 +615,71 @@ final class BrandKit extends ConfigEntityBase implements CanvasAssetInterface {
       unset($properties['fonts']);
     }
     return $properties;
+  }
+
+  /**
+   * Returns all Color entity IDs.
+   *
+   * @return list<string>
+   *   List of Color entity UUIDs.
+   */
+  public static function getColors(): array {
+    return \array_values(\array_map(
+      static fn (mixed $id): string => (string) $id,
+      \array_keys(\Drupal::entityTypeManager()
+        ->getStorage('color')
+        ->getQuery()
+        ->accessCheck(FALSE)
+        ->execute()),
+    ));
+  }
+
+  /**
+   * Loads and returns all Color entities.
+   *
+   * @return Color[]
+   */
+  private function getColorEntities(): array {
+    $color_ids = $this->getColors();
+    if ($color_ids === []) {
+      return [];
+    }
+    /** @var \Drupal\canvas\Entity\Color[] $colors */
+    $colors = \Drupal::entityTypeManager()
+      ->getStorage('color')
+      ->loadMultiple($color_ids);
+    return $colors;
+  }
+
+  /**
+   * Normalizes color entries for client-side representation.
+   *
+   * Sorts colors by weight, then alphabetically by name.
+   *
+   * @param list<array> $colors
+   *   List of color entries.
+   *
+   * @return list<array>
+   *   Sorted and normalized color entries.
+   */
+  private static function normalizeColors(array $colors): array {
+    // Sort by weight, then by name alphabetically.
+    usort($colors, static function (array $a, array $b): int {
+      $weight_diff = ($a['weight'] ?? 0) - ($b['weight'] ?? 0);
+      if ($weight_diff !== 0) {
+        return $weight_diff;
+      }
+      return strcasecmp($a['name'], $b['name']);
+    });
+
+    return \array_values(\array_map(static fn (array $color): array => [
+      'id' => (string) $color['id'],
+      'name' => (string) $color['name'],
+      'cssVariable' => (string) $color['cssVariable'],
+      'value' => $color['value'],
+      'displayFormat' => $color['displayFormat'] ?? NULL,
+      'weight' => (int) ($color['weight'] ?? 0),
+    ], $colors));
   }
 
 }

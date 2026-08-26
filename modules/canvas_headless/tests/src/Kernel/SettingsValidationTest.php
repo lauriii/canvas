@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_headless\Kernel;
 
+use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -173,7 +174,7 @@ class SettingsValidationTest extends CanvasKernelTestBase {
    *   Violation messages keyed by property path, sorted by path.
    */
   private function validate(array $data): array {
-    $typed_data = $this->container->get('config.typed')
+    $typed_data = $this->container->get(TypedConfigManagerInterface::class)
       ->createFromNameAndData('canvas_headless.settings', $data);
     $violations = [];
     foreach ($typed_data->validate() as $violation) {

@@ -7,7 +7,17 @@ import templates from '../templates.json' with { type: 'json' };
 import { agentsCommand } from './agents.js';
 import createProject from './create.js';
 import { parseAgentSelection } from './lib/agent-selection.js';
+import { printCommandIntro } from './lib/command-intro.js';
 import { getDescription, getName, getVersion } from './lib/meta-info.js';
+import { validateSiteUrl } from './lib/site-url.js';
+import {
+  DEFAULT_PROJECT_NAME,
+  slugifyProjectName,
+} from './lib/slugify-project-name.js';
+import {
+  assertUniqueTemplateIdentifiers,
+  resolveTemplate,
+} from './lib/template-resolution.js';
 import validateName from './lib/validate-name.js';
 
 import type { Template } from './types/template.js';
@@ -20,6 +30,9 @@ interface CreateOptions {
   template?: string;
   ref?: string;
   agents?: string;
+  experimentalHeadless?: boolean;
+  siteName?: string;
+  siteUrl?: string;
 }
 
 const program = new Command();
@@ -40,17 +53,38 @@ program
     '-a, --agents <agents>',
     'comma-separated list of additional agents to support, or "none" to skip compatibility symlinks',
   )
+  .option(
+    '--experimental-headless',
+    'enable experimental headless frontend templates',
+  )
+  .option(
+    '--site-name <name>',
+    'use slugified site name as the suggested project name',
+  )
+  .option(
+    '--site-url <url>',
+    'use Canvas site URL when configuring the project',
+  )
   .action(
     async (projectNameArg: string | undefined, options: CreateOptions) => {
-      p.intro(chalk.bold('Drupal Canvas Create'));
+      printCommandIntro('create');
 
       try {
+        const interactive = Boolean(
+          process.stdin.isTTY && process.stdout.isTTY,
+        );
         const selectedAgents = parseAgentSelection(options.agents);
+        const predefinedTemplates = templates as Template[];
+        assertUniqueTemplateIdentifiers(predefinedTemplates);
+        const availableTemplates = options.experimentalHeadless
+          ? predefinedTemplates
+          : predefinedTemplates.filter((template) => !template.experimental);
 
         // Validate template flag if provided.
         if (options.template) {
-          const template = (templates as Template[]).find(
-            (t) => t.id === options.template,
+          const template = resolveTemplate(
+            predefinedTemplates,
+            options.template,
           );
           const isCustomRepositoryUrl = [
             // Remote repositories.
@@ -63,7 +97,7 @@ program
             '/',
           ].some((prefix) => options.template?.startsWith(prefix));
           if (!template && isCustomRepositoryUrl) {
-            templates.push({
+            predefinedTemplates.push({
               id: options.template,
               label: options.template,
               repository: {
@@ -73,9 +107,7 @@ program
             });
           } else if (!template) {
             p.log.error(
-              `Template "${options.template}" not found.\n\nAvailable templates:\n${(
-                templates as Template[]
-              )
+              `Template "${options.template}" not found.\n\nAvailable templates:\n${availableTemplates
                 .map((availableTemplate) => `- ${availableTemplate.id}`)
                 .join('\n')}`,
             );
@@ -86,9 +118,17 @@ program
         // Get project name from argument or prompt.
         let projectName = projectNameArg;
         if (!projectName) {
+          if (!interactive) {
+            p.log.error('Project name is required in a non-interactive run.');
+            process.exit(1);
+          }
+
           const name = await p.text({
             message: 'Enter the project name',
-            initialValue: 'my-canvas-project',
+            initialValue:
+              options.siteName === undefined
+                ? DEFAULT_PROJECT_NAME
+                : slugifyProjectName(options.siteName),
             validate: (value) => {
               if (!value) return 'Project name is required';
               const { valid, problems } = validateName(value);
@@ -114,18 +154,53 @@ program
           }
         }
 
-        // Get template from flag or prompt.
+        let siteUrl = options.siteUrl ?? process.env.CANVAS_SITE_URL;
+        if (!siteUrl?.trim()) {
+          if (interactive) {
+            const enteredSiteUrl = await p.text({
+              message: 'Enter the Drupal site URL',
+              validate: (value) => validateSiteUrl(value.trim()),
+            });
+
+            if (p.isCancel(enteredSiteUrl)) {
+              p.cancel('Operation cancelled');
+              process.exit(0);
+            }
+
+            siteUrl = enteredSiteUrl;
+          } else {
+            siteUrl = undefined;
+          }
+        }
+
+        if (siteUrl !== undefined) {
+          siteUrl = siteUrl.trim();
+          const siteUrlValidationError = validateSiteUrl(siteUrl);
+          if (siteUrlValidationError) {
+            p.log.error(siteUrlValidationError);
+            process.exit(1);
+          }
+        }
+
+        // Get template from flag or prompts.
         let templateId = options.template;
         if (!templateId) {
-          // If there's only one template, use it automatically.
-          if ((templates as Template[]).length === 1) {
-            templateId = (templates as Template[])[0].id;
+          // If there's only one available template, use it automatically.
+          if (availableTemplates.length === 1) {
+            templateId = availableTemplates[0].id;
           } else {
+            if (!interactive) {
+              p.log.error(
+                'Template is required in a non-interactive run. Use --template.',
+              );
+              process.exit(1);
+            }
+
             const selected = await p.select({
               message: 'Select a template',
-              options: (templates as Template[]).map((t, index) => ({
-                value: t.id,
-                label: index === 0 ? `${t.label} (Recommended)` : t.label,
+              options: availableTemplates.map((template) => ({
+                value: template.id,
+                label: template.label,
               })),
             });
 
@@ -139,8 +214,9 @@ program
         }
 
         // Find the template (already validated if provided via flag).
-        const template = (templates as Template[]).find(
-          (t) => t.id === templateId,
+        const template = resolveTemplate(
+          predefinedTemplates,
+          templateId,
         ) as Template;
 
         // Set the ref if provided via flag.
@@ -149,7 +225,13 @@ program
         }
 
         // Create the project.
-        await createProject({ template, projectName, selectedAgents });
+        await createProject({
+          template,
+          projectName,
+          siteUrl,
+          selectedAgents,
+          interactive,
+        });
       } catch (error) {
         if (error instanceof Error) {
           p.log.error(`Error: ${error.message}`);

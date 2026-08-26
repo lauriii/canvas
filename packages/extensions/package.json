@@ -1,6 +1,9 @@
 {
   "name": "@drupal-canvas/extensions",
-  "version": "0.0.2",
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=22.19.0 <23 || >=24.5.0"
+  },
   "description": "API for building extensions for Drupal Canvas",
   "license": "MIT",
   "repository": {

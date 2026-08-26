@@ -38,6 +38,9 @@ const AddToComponentsDialog = () => {
         // @see \Drupal\canvas\EntityHandlers\JavascriptComponentStorage::createOrUpdateComponentEntity()
         status: true,
       },
+      // Indicate this update includes exposing the component, so the query
+      // knows to perform additional invalidation.
+      isExposing: true,
     });
   };
 

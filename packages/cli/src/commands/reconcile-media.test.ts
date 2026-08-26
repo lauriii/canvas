@@ -51,16 +51,16 @@ afterEach(async () => {
 });
 
 describe('collectReconcileSpecFiles', () => {
-  it('does not read specs when pages, content templates, and regions are disabled', async () => {
+  it('does not read specs when pages, content templates, and page templates are disabled', async () => {
     const root = await makeTempDir();
     tempDirs.push(root);
     const pagePath = path.join(root, 'pages/home.json');
     const templatePath = path.join(root, 'content-templates/article.json');
-    const regionPath = path.join(root, 'regions/header.json');
+    const pageTemplatePath = path.join(root, 'page-templates/marketing.json');
 
     await writeFile(pagePath, '{');
     await writeFile(templatePath, '{');
-    await writeFile(regionPath, '{');
+    await writeFile(pageTemplatePath, '{');
 
     const specFiles = await collectReconcileSpecFiles(
       {
@@ -85,37 +85,40 @@ describe('collectReconcileSpecFiles', () => {
             relativePath: 'content-templates/article.json',
           },
         ],
-        regions: [
+        pageTemplates: [
           {
-            region: 'header',
-            path: regionPath,
-            relativePath: 'regions/header.json',
+            id: 'marketing',
+            label: 'Marketing',
+            status: true,
+            isDefault: false,
+            path: pageTemplatePath,
+            relativePath: 'page-templates/marketing.json',
           },
         ],
       },
       {
         includePages: false,
         includeContentTemplates: false,
-        includeRegions: false,
+        includePageTemplates: false,
       },
     );
 
     expect(specFiles).toEqual([]);
   });
 
-  it('collects enabled pages and content templates while skipping disabled regions', async () => {
+  it('collects enabled pages and content templates while skipping disabled page templates', async () => {
     const root = await makeTempDir();
     tempDirs.push(root);
     const pagePath = path.join(root, 'pages/home.json');
     const templatePath = path.join(root, 'content-templates/article.json');
-    const regionPath = path.join(root, 'regions/header.json');
+    const pageTemplatePath = path.join(root, 'page-templates/marketing.json');
 
     await writeFile(pagePath, JSON.stringify({ title: 'Home', elements: {} }));
     await writeFile(
       templatePath,
       JSON.stringify({ label: 'Article', elements: {} }),
     );
-    await writeFile(regionPath, JSON.stringify({ elements: {} }));
+    await writeFile(pageTemplatePath, JSON.stringify({ elements: {} }));
 
     const specFiles = await collectReconcileSpecFiles(
       {
@@ -140,18 +143,21 @@ describe('collectReconcileSpecFiles', () => {
             relativePath: 'content-templates/article.json',
           },
         ],
-        regions: [
+        pageTemplates: [
           {
-            region: 'header',
-            path: regionPath,
-            relativePath: 'regions/header.json',
+            id: 'marketing',
+            label: 'Marketing',
+            status: true,
+            isDefault: false,
+            path: pageTemplatePath,
+            relativePath: 'page-templates/marketing.json',
           },
         ],
       },
       {
         includePages: true,
         includeContentTemplates: true,
-        includeRegions: false,
+        includePageTemplates: false,
       },
     );
 
@@ -170,11 +176,11 @@ describe('collectReconcileSpecFiles', () => {
     tempDirs.push(root);
     const pagePath = path.join(root, 'pages/home.json');
     const templatePath = path.join(root, 'content-templates/article.json');
-    const regionPath = path.join(root, 'regions/header.json');
+    const pageTemplatePath = path.join(root, 'page-templates/marketing.json');
 
     await writeFile(pagePath, '{');
     await writeFile(templatePath, '{');
-    await writeFile(regionPath, JSON.stringify({ elements: {} }));
+    await writeFile(pageTemplatePath, JSON.stringify({ elements: {} }));
 
     const specFiles = await collectReconcileSpecFiles(
       {
@@ -199,23 +205,26 @@ describe('collectReconcileSpecFiles', () => {
             relativePath: 'content-templates/article.json',
           },
         ],
-        regions: [
+        pageTemplates: [
           {
-            region: 'header',
-            path: regionPath,
-            relativePath: 'regions/header.json',
+            id: 'marketing',
+            label: 'Marketing',
+            status: true,
+            isDefault: false,
+            path: pageTemplatePath,
+            relativePath: 'page-templates/marketing.json',
           },
         ],
       },
       {
         includePages: false,
         includeContentTemplates: false,
-        includeRegions: true,
+        includePageTemplates: true,
       },
     );
 
     expect(specFiles.map((file) => file.label)).toEqual([
-      'global region "header"',
+      'page template "marketing"',
     ]);
     expect(specFiles[0].spec).toEqual({ elements: {} });
   });
@@ -227,28 +236,28 @@ describe('hasReconcileMediaSyncEnabled', () => {
       hasReconcileMediaSyncEnabled({
         includePages: false,
         includeContentTemplates: false,
-        includeRegions: false,
+        includePageTemplates: false,
       }),
     ).toBe(false);
     expect(
       hasReconcileMediaSyncEnabled({
         includePages: true,
         includeContentTemplates: false,
-        includeRegions: false,
+        includePageTemplates: false,
       }),
     ).toBe(true);
     expect(
       hasReconcileMediaSyncEnabled({
         includePages: false,
         includeContentTemplates: true,
-        includeRegions: false,
+        includePageTemplates: false,
       }),
     ).toBe(true);
     expect(
       hasReconcileMediaSyncEnabled({
         includePages: false,
         includeContentTemplates: false,
-        includeRegions: true,
+        includePageTemplates: true,
       }),
     ).toBe(true);
   });

@@ -7,13 +7,19 @@ namespace Drupal\Tests\canvas_ai\Kernel;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
 use Drupal\canvas_ai\CanvasAiPageBuilderHelper;
 use Drupal\canvas_personalization\Plugin\Canvas\ComponentSource\Personalization;
+use Drupal\Component\Serialization\Json;
 use Drupal\Core\Block\BlockManagerInterface;
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Cache\VariationCacheFactory;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -50,14 +56,13 @@ final class CanvasAiPageBuilderHelperTest extends CanvasKernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->installConfig(['system']);
     $this->installEntitySchema('path_alias');
     $this->installEntitySchema('user');
     $privileged_user = $this->createUser(['create canvas_page']);
     if (!$privileged_user instanceof User) {
       throw new \Exception('Failed to create test user');
     }
-    $this->container->get('current_user')->setAccount($privileged_user);
+    $this->container->get(AccountProxyInterface::class)->setAccount($privileged_user);
     $this->canvasAiPageBuilderHelper = $this->container->get('canvas_ai.page_builder_helper');
   }
 
@@ -133,6 +138,85 @@ final class CanvasAiPageBuilderHelperTest extends CanvasKernelTestBase {
 
     $result = $this->canvasAiPageBuilderHelper->convertCurrentLayoutToTree($input);
     $this->assertEquals($expected_output, $result);
+  }
+
+  /**
+   * Tests that admin-entered page variant descriptions reach the agent prompt.
+   *
+   * The settings form saves descriptions under `variant_descriptions`, keyed by
+   * page variant id. getAvailableRegions() must surface the resolved variant's
+   * description as the `info` for the content region the agent fills.
+   */
+  public function testGetAvailableRegionsSurfacesVariantDescription(): void {
+    // The stored active version of the "Page content" marker component. Mirrors
+    // config/install/canvas.component.marker.page_content.yml.
+    $marker_version = '3b12c0b99a6caecc';
+
+    // The marker component ships in config/install (not auto-discovered); make
+    // it available so a valid variant can be seeded with the content marker.
+    if (Component::load(Marker::PAGE_CONTENT_COMPONENT_ID) === NULL) {
+      Component::create([
+        'id' => Marker::PAGE_CONTENT_COMPONENT_ID,
+        'label' => 'Page content',
+        'provider' => 'canvas',
+        'source' => Marker::SOURCE_PLUGIN_ID,
+        'source_local_id' => Marker::PAGE_CONTENT_LOCAL_ID,
+        'active_version' => $marker_version,
+        'versioned_properties' => [
+          'active' => [
+            'settings' => [],
+            'fallback_metadata' => ['slot_definitions' => []],
+          ],
+        ],
+        'dependencies' => ['enforced' => ['module' => ['canvas']]],
+      ])->save();
+    }
+
+    PageVariant::create([
+      'id' => 'homepage',
+      'label' => 'Homepage',
+      'description' => 'Fallback description from the variant itself.',
+      'component_tree' => [
+        [
+          'uuid' => \Drupal::service('uuid')->generate(),
+          'component_id' => Marker::PAGE_CONTENT_COMPONENT_ID,
+          'component_version' => $marker_version,
+          'inputs' => [],
+        ],
+      ],
+    ])->save();
+
+    $layout = Json::encode([
+      'regions' => [
+        'content' => [
+          'nodePathPrefix' => [0],
+          'components' => [],
+        ],
+      ],
+    ]);
+
+    // Editing the variant directly, before any AI guidance is configured, falls
+    // back to the variant's own description.
+    $regions = $this->canvasAiPageBuilderHelper->getAvailableRegions($layout, PageVariant::ENTITY_TYPE_ID, 'homepage');
+    $this->assertSame('Fallback description from the variant itself.', $regions['content']['info']);
+
+    // Guidance saved through the settings form is what the agent sees.
+    $guidance = 'Homepage variant: lead with a hero, then feature sections.';
+    $this->config('canvas_ai.page_variant.settings')
+      // The descriptions are translatable, so the config object needs a
+      // langcode, exactly as ConfigFormBase sets when the settings form saves.
+      ->set('langcode', 'en')
+      ->set('variant_descriptions', [
+        'homepage' => [
+          'name' => 'Homepage',
+          'description' => $guidance,
+        ],
+      ])
+      ->save();
+
+    $regions = $this->canvasAiPageBuilderHelper->getAvailableRegions($layout, PageVariant::ENTITY_TYPE_ID, 'homepage');
+    $this->assertSame($guidance, $regions['content']['info']);
+    $this->assertSame(0, $regions['content']['nodePathPrefix']);
   }
 
   /**
@@ -392,10 +476,10 @@ XML;
    * Tests that getAllComponentsKeyedBySource uses cache correctly.
    */
   public function testGetAllComponentsKeyedBySourceCaching(): void {
-    $variation_cache = $this->container->get('variation_cache_factory')->get('default');
-    $memory_variation_cache = $this->container->get('variation_cache_factory')->get('canvas_ai_memory');
+    $variation_cache = $this->container->get(VariationCacheFactory::class)->get('default');
+    $memory_variation_cache = $this->container->get(VariationCacheFactory::class)->get('canvas_ai_memory');
     $cache_keys = [CanvasAiPageBuilderHelper::CACHE_KEY_ALL_COMPONENTS_BY_SOURCE];
-    $component_entity_type = $this->container->get('entity_type.manager')->getDefinition(Component::ENTITY_TYPE_ID);
+    $component_entity_type = $this->container->get(EntityTypeManagerInterface::class)->getDefinition(Component::ENTITY_TYPE_ID);
     $initial_cacheability = new CacheableMetadata();
     $initial_cacheability->setCacheContexts($component_entity_type->getListCacheContexts());
     $initial_cacheability->setCacheTags($component_entity_type->getListCacheTags());
@@ -512,8 +596,8 @@ XML;
   public function testBlockComponentPropsInContext(): void {
     // Create an admin user.
     $privileged_user = $this->createUser([], '', TRUE);
-    \assert($privileged_user !== FALSE);
-    $this->container->get('current_user')->setAccount($privileged_user);
+    \assert($privileged_user instanceof User);
+    $this->container->get(AccountProxyInterface::class)->setAccount($privileged_user);
     $this->container->get(BlockManagerInterface::class)->getDefinitions();
     $this->container->get(ComponentSourceManager::class)
       ->generateComponents(BlockComponent::SOURCE_PLUGIN_ID, ['system_branding_block']);
@@ -549,8 +633,8 @@ XML;
 
     // As an admin, capture the block components from the access-checked listing.
     $admin = $this->createUser([], '', TRUE);
-    \assert($admin !== FALSE);
-    $this->container->get('current_user')->setAccount($admin);
+    \assert($admin instanceof User);
+    $this->container->get(AccountProxyInterface::class)->setAccount($admin);
     $listed = $this->canvasAiPageBuilderHelper->getAllComponentsKeyedBySource();
     $this->assertArrayHasKey(BlockComponent::SOURCE_PLUGIN_ID, $listed);
     $listed_blocks = $listed[BlockComponent::SOURCE_PLUGIN_ID]['components'];
@@ -558,7 +642,7 @@ XML;
     $this->assertNotEmpty($listed_blocks);
 
     // As the anonymous user, the storage path must return the same blocks.
-    $this->container->get('current_user')->setAccount(new AnonymousUserSession());
+    $this->container->get(AccountProxyInterface::class)->setAccount(new AnonymousUserSession());
     $stored_blocks = $this->canvasAiPageBuilderHelper->getEnabledBlockComponentsFromStorage();
 
     $this->assertEquals($listed_blocks, $stored_blocks);
@@ -600,6 +684,84 @@ XML;
         $this->assertNotEmpty(trim($prompt_parts[$section][$key]), "'$section.$key' prompt is empty.");
       }
     }
+  }
+
+  /**
+   * Tests that getComponentsByUuid returns a flat UUID-keyed map.
+   */
+  public function testGetComponentsByUuid(): void {
+    $input = [
+      "regions" => [
+        "header" => [
+          "nodePathPrefix" => [0],
+          "components" => [
+            [
+              "name" => "sdc.canvas_test_sdc.heading",
+              "uuid" => "3af8363b-143c-4136-9e7c-47374cb56679",
+              "props" => ["text" => "Hello", "element" => "h1"],
+            ],
+          ],
+        ],
+        "content" => [
+          "nodePathPrefix" => [1],
+          "components" => [
+            [
+              "name" => "sdc.canvas_test_sdc.two_column",
+              "uuid" => "e9e4308d-86f3-4253-ba12-abb8c037e5be",
+              "slots" => [
+                "e9e4308d-86f3-4253-ba12-abb8c037e5be/column_one" => [
+                  "components" => [
+                    [
+                      "name" => "sdc.canvas_test_sdc.image",
+                      "uuid" => "29d9f67e-38e9-4a76-b20d-bbe11fc9a609",
+                      "props" => ["src" => "/image.png"],
+                    ],
+                  ],
+                ],
+                "e9e4308d-86f3-4253-ba12-abb8c037e5be/column_two" => [
+                  "components" => [
+                    [
+                      "name" => "sdc.canvas_test_sdc.druplicon",
+                      "uuid" => "d280666e-b608-46e0-81e0-1919542195ad",
+                    ],
+                  ],
+                ],
+              ],
+            ],
+          ],
+        ],
+        "footer" => [
+          "nodePathPrefix" => [2],
+          "components" => [],
+        ],
+      ],
+    ];
+
+    // Nested-slot components are flattened to top-level entries; component_id
+    // comes from "name"; props default to [] when absent.
+    $expected = [
+      "3af8363b-143c-4136-9e7c-47374cb56679" => [
+        "component_id" => "sdc.canvas_test_sdc.heading",
+        "props" => ["text" => "Hello", "element" => "h1"],
+      ],
+      "e9e4308d-86f3-4253-ba12-abb8c037e5be" => [
+        "component_id" => "sdc.canvas_test_sdc.two_column",
+        "props" => [],
+      ],
+      "29d9f67e-38e9-4a76-b20d-bbe11fc9a609" => [
+        "component_id" => "sdc.canvas_test_sdc.image",
+        "props" => ["src" => "/image.png"],
+      ],
+      "d280666e-b608-46e0-81e0-1919542195ad" => [
+        "component_id" => "sdc.canvas_test_sdc.druplicon",
+        "props" => [],
+      ],
+    ];
+
+    $this->assertEquals($expected, $this->canvasAiPageBuilderHelper->getComponentsByUuid($input));
+
+    // An empty layout yields an empty map.
+    $this->assertSame([], $this->canvasAiPageBuilderHelper->getComponentsByUuid([]));
   }
 
 }

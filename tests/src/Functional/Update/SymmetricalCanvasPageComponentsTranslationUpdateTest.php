@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Functional\Update;
 
 use Drupal\canvas\Entity\Page;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\Entity\BaseFieldOverride;
 use PHPUnit\Framework\Attributes\Group;
@@ -55,7 +57,7 @@ final class SymmetricalCanvasPageComponentsTranslationUpdateTest extends CanvasU
    * `canvas_dev_translation` feature flag module existed.
    */
   public function testExistingOverrideWithUnsupportedSettings(): void {
-    \Drupal::service('module_installer')->install(['language', 'content_translation']);
+    \Drupal::service(ModuleInstallerInterface::class)->install(['language', 'content_translation']);
 
     $override = self::loadOrCreateComponentsOverride();
     $override->setThirdPartySetting('content_translation', 'translation_sync', [
@@ -76,7 +78,7 @@ final class SymmetricalCanvasPageComponentsTranslationUpdateTest extends CanvasU
    * An existing override that already has the right settings is kept as-is.
    */
   public function testExistingOverrideWithValidSettings(): void {
-    \Drupal::service('module_installer')->install(['language', 'content_translation']);
+    \Drupal::service(ModuleInstallerInterface::class)->install(['language', 'content_translation']);
 
     $override = self::loadOrCreateComponentsOverride();
     $override->setThirdPartySetting('content_translation', 'translation_sync', self::SYMMETRICAL);
@@ -97,7 +99,7 @@ final class SymmetricalCanvasPageComponentsTranslationUpdateTest extends CanvasU
    * got the override created by hook_modules_installed().
    */
   public function testMissingOverride(): void {
-    \Drupal::service('module_installer')->install(['language', 'content_translation']);
+    \Drupal::service(ModuleInstallerInterface::class)->install(['language', 'content_translation']);
 
     // Installing content_translation just created the override via
     // hook_modules_installed(). Delete it to simulate a site that installed
@@ -113,7 +115,7 @@ final class SymmetricalCanvasPageComponentsTranslationUpdateTest extends CanvasU
   }
 
   private static function loadOrCreateComponentsOverride(): BaseFieldOverride {
-    $components = \Drupal::service('entity_field.manager')
+    $components = \Drupal::service(EntityFieldManagerInterface::class)
       ->getBaseFieldDefinitions(Page::ENTITY_TYPE_ID)['components'];
     \assert($components instanceof BaseFieldDefinition);
     $override = BaseFieldOverride::loadByName(Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID, 'components')

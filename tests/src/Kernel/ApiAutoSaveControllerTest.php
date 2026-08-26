@@ -735,10 +735,8 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
   }
 
   public static function providerCases(): iterable {
-    yield 'unauthorized, without global' => [FALSE, FALSE, "The 'publish auto-saves' permission is required."];
-    yield 'authorized, without global' => [TRUE, FALSE, NULL];
-    yield 'unauthorized, with global' => [FALSE, FALSE, "The 'publish auto-saves' permission is required."];
-    yield 'authorized, with global' => [TRUE, TRUE, NULL];
+    yield 'unauthorized' => [FALSE, "The 'publish auto-saves' permission is required."];
+    yield 'authorized' => [TRUE, NULL];
   }
 
   /**
@@ -747,11 +745,11 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
    * @legacy-covers ::post
    */
   #[DataProvider('providerCases')]
-  public function testPost(bool $authorized, bool $withGlobal, ?string $expected_403_message): void {
+  public function testPost(bool $authorized, ?string $expected_403_message): void {
     $this->setUpImages();
     $this->assertSiteHomepage('/user/login');
     $this->container->get(ModuleInstallerInterface::class)->install(['canvas_test_validation']);
-    $entity_type_manager = $this->container->get('entity_type.manager');
+    $entity_type_manager = $this->container->get(EntityTypeManagerInterface::class);
     $code_component_storage = $entity_type_manager->getStorage(JavaScriptComponent::ENTITY_TYPE_ID);
     $library_storage = $entity_type_manager->getStorage(AssetLibrary::ENTITY_TYPE_ID);
     $page_storage = $entity_type_manager->getStorage(Page::ENTITY_TYPE_ID);
@@ -899,31 +897,6 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     ]);
     $staged_set_homepage->save();
 
-    // Add some global elements.
-    if ($withGlobal) {
-      $page_region = PageRegion::createFromBlockLayout('stark')['stark.header'];
-      $page_region->enable()->save();
-      $validClientJson['layout'][] = [
-        "components" => [
-          [
-            "nodeType" => "component",
-            "slots" => [],
-            "type" => "block.page_title_block@" . Component::load('block.page_title_block')?->getActiveVersion(),
-            "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
-          ],
-        ],
-        "name" => "Header",
-        "nodeType" => "region",
-        "id" => $page_region->get('region'),
-      ];
-      $validClientJson['model'] += [
-        "c3f3c22c-c22e-4bb6-ad16-635f069148e4" => [
-          "label" => "Page title",
-          "label_display" => "0",
-          "provider" => "core",
-        ],
-      ];
-    }
     unset($validClientJson['autoSaves']);
     $validClientJson += $this->getClientAutoSaves([$node1]);
     // Auto-save node 1.
@@ -1142,16 +1115,6 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $this->assertFalse($saved_template->status());
     $this->assertSiteHomepage('/user/login');
 
-    if ($withGlobal) {
-      // Note: no additional error appears for the invalid auto-saved layout for
-      // the PageTemplate, because missing regions are automatically added from
-      // the active/stored PageTemplate.
-      // @see \Drupal\canvas\Entity\PageRegion::forAutoSaveData()
-      $page_region = PageRegion::load('stark.header');
-      self::assertInstanceOf(PageRegion::class, $page_region);
-      self::assertSame([], $page_region->getComponentTree()->getValue());
-    }
-
     // Fix the errors.
     $validClientJson['model'][self::TEST_HEADING_UUID]['resolved']['style'] = 'primary';
     $validClientJson['model']['af42c3b3-6d62-4ea8-ad07-670c7b9ccf75']['resolved']['element'] = 'h3';
@@ -1252,7 +1215,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $this->assertSiteHomepage('/user/login');
 
     // Try publishing something with a field change that we don't have access to.
-    $this->container->get('module_installer')->install(['canvas_test_field_access']);
+    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_test_field_access']);
     try {
       $this->makePublishAllRequest();
       $this->fail('Expected access denied error after field check on publishing auto-saved changes.');
@@ -1261,7 +1224,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
       // Access denied as expected, the title listed must be the new one.
       $this->assertSame('Unable to update field title for entity "The updated title.".', $exception->getMessage());
     }
-    $this->container->get('module_installer')->uninstall(['canvas_test_field_access']);
+    $this->container->get(ModuleInstallerInterface::class)->uninstall(['canvas_test_field_access']);
 
     self::assertArrayHasKey(AutoSaveManager::getAutoSaveKey($template), $auto_save_data);
     $response = $this->makePublishAllRequest();
@@ -1315,14 +1278,6 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     $this->assertSame('New new JavaScriptComponent name', $code_component_storage->loadUnchanged($code_component->id())?->label());
     $this->assertNotNull($library->id());
     $this->assertSame('New new AssetLibrary label', $library_storage->loadUnchanged($library->id())?->label());
-
-    if ($withGlobal) {
-      $page_region = PageRegion::load('stark.header');
-      self::assertInstanceOf(PageRegion::class, $page_region);
-      $tree = $page_region->getComponentTree()->getValue();
-      self::assertSame(['block.page_title_block'], \array_column($tree, 'component_id'));
-      self::assertSame(['c3f3c22c-c22e-4bb6-ad16-635f069148e4'], \array_column($tree, 'uuid'));
-    }
 
     // Ensure that after the nodes have been published their auto-save data is
     // removed.

@@ -23,14 +23,18 @@ use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Extension\ExtensionPathResolver;
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\File\FileExists;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\GeneratedUrl;
 use Drupal\Core\Plugin\Component as SdcPlugin;
+use Drupal\Core\Render\AttachmentsInterface;
 use Drupal\Core\StreamWrapper\PublicStream;
+use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\file\Entity\File;
+use Drupal\filter\Entity\FilterFormat;
 use Drupal\link\LinkItemInterface;
 use Drupal\media\Entity\Media;
 use Drupal\media\Entity\MediaType;
@@ -39,6 +43,7 @@ use Drupal\node\Entity\NodeType;
 use Drupal\Tests\canvas\Kernel\BrokenComponentManager;
 use Drupal\Tests\canvas\Kernel\BrokenPluginManagerInterface;
 use Drupal\Tests\canvas\Traits\SingleDirectoryComponentTreeTestTrait;
+use Drupal\text\TextProcessed;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Depends;
@@ -88,8 +93,8 @@ final class SingleDirectoryComponentTest extends JsonSchemaPropsComponentSourceB
 
     // We need to ensure the public://balloons.png image exists in the test
     // environment for the "Card with stream wrapper image" tests.
-    $file_system = \Drupal::service('file_system');
-    $extension_path_resolver = \Drupal::service('extension.path.resolver');
+    $file_system = \Drupal::service(FileSystemInterface::class);
+    $extension_path_resolver = \Drupal::service(ExtensionPathResolver::class);
     $module_path = $extension_path_resolver->getPath('module', 'canvas_test_sdc');
     $source = $module_path . '/components/card/balloons.png';
     $destination = 'public://balloons.png';
@@ -97,7 +102,7 @@ final class SingleDirectoryComponentTest extends JsonSchemaPropsComponentSourceB
     $file_system->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY);
     $file_system->copy($source, $destination, FileExists::Replace);
 
-    $this->container->get('theme_installer')->install(['sdc_theme_test']);
+    $this->container->get(ThemeInstallerInterface::class)->install(['sdc_theme_test']);
   }
 
   /**
@@ -155,6 +160,9 @@ final class SingleDirectoryComponentTest extends JsonSchemaPropsComponentSourceB
     $this->generateComponentConfig();
 
     self::assertSame([
+      'sdc.canvas_test_sdc.color-invalid-folders' => [
+        '"x-canvas-color-folders" on prop "color" requires $ref: json-schema-definitions://canvas.module/color.',
+      ],
       'sdc.canvas_test_sdc.empty-enum' => [
         'Prop "pets" has an empty enum value.',
       ],
@@ -243,6 +251,7 @@ final class SingleDirectoryComponentTest extends JsonSchemaPropsComponentSourceB
       'sdc.canvas_test_sdc.card-with-remote-image',
       'sdc.canvas_test_sdc.card-with-stream-wrapper-image',
       'sdc.canvas_test_sdc.code-example',
+      'sdc.canvas_test_sdc.color-valid',
       'sdc.canvas_test_sdc.columns',
       'sdc.canvas_test_sdc.component-mismatch-meta-enum',
       'sdc.canvas_test_sdc.component-mismatch-meta-enum-array-items',
@@ -250,6 +259,7 @@ final class SingleDirectoryComponentTest extends JsonSchemaPropsComponentSourceB
       'sdc.canvas_test_sdc.crash',
       'sdc.canvas_test_sdc.date',
       'sdc.canvas_test_sdc.deprecated',
+      'sdc.canvas_test_sdc.document',
       'sdc.canvas_test_sdc.druplicon',
       'sdc.canvas_test_sdc.experimental',
       'sdc.canvas_test_sdc.grid-container',
@@ -351,6 +361,51 @@ final class SingleDirectoryComponentTest extends JsonSchemaPropsComponentSourceB
       array_fill_keys($component_ids, SdcPlugin::class),
       $this->getReferencedPluginClasses($component_ids)
     );
+  }
+
+  /**
+   * A prop's `#attached` assets reach the rendered component.
+   *
+   * @see \Drupal\filter_test\Plugin\Filter\FilterTestAssets
+   * @legacy-covers ::renderComponent
+   */
+  public function testRenderComponentKeepsPropAttachments(): void {
+    // A text format whose filter attaches an asset library but leaves the text
+    // unchanged; it stands in for a filter that needs assets to render.
+    $this->enableModules(['filter_test']);
+    FilterFormat::create([
+      'format' => 'assets',
+      'name' => 'Assets',
+      'filters' => ['filter_test_assets' => ['status' => TRUE]],
+    ])->save();
+    $this->generateComponentConfig();
+
+    $component = Component::load('sdc.canvas_test_sdc.required-formatted-body');
+    self::assertInstanceOf(ComponentInterface::class, $component);
+    $source = $component->getComponentSource();
+    \assert($source instanceof SingleDirectoryComponent);
+
+    // The formatted-text `body` prop runs through the assets format, so its
+    // evaluated value carries the filter's library.
+    $body = StaticPropSource::parse([
+      'sourceType' => 'static:field_item:text_long',
+      'expression' => 'ℹ︎text_long␟processed',
+      'value' => ['value' => '<p>Hello, world</p>', 'format' => 'assets'],
+      'sourceTypeSettings' => ['instance' => ['allowed_formats' => ['assets']]],
+    ])->evaluate(NULL, is_required: TRUE);
+    $inputs = [JsonSchemaPropsComponentSourceBase::EXPLICIT_INPUT_NAME => ['body' => $body]];
+
+    $build = $source->renderComponent($inputs, $source->getSlotDefinitions(), 'test-uuid');
+    // Core >= 11.4.4 exposes a processed-text property's assets, so the filter's
+    // library reaches the component; older core cannot, so it is absent.
+    // @see \Drupal\text\TextProcessed::getAttachments()
+    // @todo Unconditionally execute the if branch and delete the else branch once Canvas depends on Drupal 11.4.4
+    if (is_a(TextProcessed::class, AttachmentsInterface::class, TRUE)) {
+      self::assertContains('filter/caption', $build['#attached']['library']);
+    }
+    else {
+      self::assertNotContains('filter/caption', $build['#attached']['library'] ?? []);
+    }
   }
 
   /**
@@ -580,6 +635,23 @@ HTML,
           'library' => [
             'core/components.canvas_test_sdc--code-example',
             'core/components.canvas_test_sdc--code-example',
+          ],
+        ],
+      ],
+      'sdc.canvas_test_sdc.color-valid' => [
+        'html' => <<<HTML
+<div class="color-valid" style="background-color: rgba(255, 0, 0, 1.00);">
+  <h2>Color Test Heading</h2>
+      <span data-css-color-value="rgba(255, 0, 0, 1.00)"></span>
+    <span data-css-variable=""></span>
+  </div>
+
+HTML,
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.canvas_test_sdc--color-valid',
+            'core/components.canvas_test_sdc--color-valid',
           ],
         ],
       ],
@@ -890,6 +962,22 @@ It\'s me, and I\'m small!
           'library' => [
             'core/components.canvas_test_sdc--component-no-meta-enum',
             'core/components.canvas_test_sdc--component-no-meta-enum',
+          ],
+        ],
+      ],
+      'sdc.canvas_test_sdc.document' => [
+        'html' => <<<HTML
+<p class="document">
+  <a href="https://example.com/file.pdf" type="application/pdf" download="file.pdf" title="An example document description.">Example document</a>
+      <span class="document__filesize">(25600 bytes)</span>
+  </p>
+
+HTML,
+        'cacheability' => $default_cacheability,
+        'attachments' => [
+          'library' => [
+            'core/components.canvas_test_sdc--document',
+            'core/components.canvas_test_sdc--document',
           ],
         ],
       ],
@@ -2169,7 +2257,31 @@ HTML
               0 => ['value' => "<?php\necho 'Hello, world!';\n"],
             ],
             'expression' => 'ℹ︎string_long␟value',
-            'derived_schema_metadata' => ['string_shape' => ['pattern' => '(.|\\r?\\n)*']],
+            'derived_schema_metadata' => ['string_shape' => ['pattern' => '(.|\\r?\n)*']],
+          ],
+        ],
+      ],
+      'sdc.canvas_test_sdc.color-valid' => [
+        'prop_field_definitions' => [
+          'heading' => [
+            'required' => TRUE,
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'string_textfield',
+            'default_value' => [0 => ['value' => 'Color Test Heading']],
+            'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => ['string_shape' => []],
+          ],
+          'background_color' => [
+            'required' => FALSE,
+            'field_type' => 'string',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [],
+            'field_widget' => 'canvas_color_picker',
+            'default_value' => [0 => ['value' => '#ff0000ff']],
+            'expression' => 'ℹ︎string␟value',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -2304,6 +2416,22 @@ HTML
             'default_value' => [0 => ['value' => 'A text field']],
             'expression' => 'ℹ︎string␟value',
             'derived_schema_metadata' => ['string_shape' => []],
+          ],
+        ],
+      ],
+      'sdc.canvas_test_sdc.document' => [
+        'prop_field_definitions' => [
+          'document' => [
+            'required' => TRUE,
+            'field_type' => 'file',
+            'field_storage_settings' => [],
+            'field_instance_settings' => [
+              'file_extensions' => 'rtf doc docx ppt pptx xls xlsx pdf odf odg odp ods odt fodt fods fodp fodg key numbers pages',
+            ],
+            'field_widget' => 'file_generic',
+            'default_value' => [],
+            'expression' => 'ℹ︎file␟{src↝entity␜␜entity:file␝uri␞␟url,filename↝entity␜␜entity:file␝filename␞␟value,filesize↝entity␜␜entity:file␝filesize␞␟value,mimetype↝entity␜␜entity:file␝filemime␞␟value}',
+            'derived_schema_metadata' => [],
           ],
         ],
       ],
@@ -3586,6 +3714,13 @@ HTML
           'canvas_test_sdc',
         ],
       ],
+      'sdc.canvas_test_sdc.color-valid' => [
+        'module' => [
+          'canvas',
+          'core',
+          'canvas_test_sdc',
+        ],
+      ],
       'sdc.canvas_test_sdc.columns' => [
         'module' => [
           'core',
@@ -3630,6 +3765,13 @@ HTML
       'sdc.canvas_test_sdc.deprecated' => [
         'module' => [
           'core',
+          'canvas_test_sdc',
+        ],
+      ],
+      'sdc.canvas_test_sdc.document' => [
+        'content' => [],
+        'module' => [
+          'file',
           'canvas_test_sdc',
         ],
       ],
@@ -4593,6 +4735,47 @@ HTML
         ],
         'transforms' => [],
       ],
+      'sdc.canvas_test_sdc.color-valid' => [
+        'expected_output_selectors' => [
+          'div.color-valid',
+        ],
+        'source' => 'Module component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'heading' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'string',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => ['value' => 'Color Test Heading'],
+              ],
+              'resolved' => 'Color Test Heading',
+            ],
+          ],
+          'background_color' => [
+            'required' => FALSE,
+            'jsonSchema' => [
+              'type' => 'string',
+              'title' => 'color',
+              '$ref' => 'json-schema-definitions://canvas.module/color',
+              '$comment' => 'The $ref is intentionally self-referential. It acts as a named-type sentinel: downstream PHP and TypeScript code detects the URI string by equality to route to color-picker behavior. A strict resolver will see the justinrainbow/json-schema library append \'#\' to the URI; ComponentPluginManager::resolveJsonSchemaReferences() detects that mutation and restores the original clean URI. Do not remove the $ref. See PropShape::getWellKnownPropShapes() and JsonSchemaType::computeStorablePropShape().',
+            ],
+            'sourceType' => 'static:field_item:string',
+            'expression' => 'ℹ︎string␟value',
+            'default_values' => [
+              'source' => [
+                0 => ['value' => '#ff0000ff'],
+              ],
+              'resolved' => '#ff0000ff',
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
       'sdc.canvas_test_sdc.columns' => [
         'expected_output_selectors' => [
           // TRICKY: there's no content to assert, because the preview by
@@ -4872,6 +5055,76 @@ HTML
                 0 => ['value' => 'A text field'],
               ],
               'resolved' => 'A text field',
+            ],
+          ],
+        ],
+        'transforms' => [],
+      ],
+      'sdc.canvas_test_sdc.document' => [
+        'expected_output_selectors' => [
+          'p.document > a[href="https://example.com/file.pdf"]',
+          'p.document > span.document__filesize',
+        ],
+        'source' => 'Module component',
+        'metadata' => ['slots' => []],
+        'propSources' => [
+          'document' => [
+            'required' => TRUE,
+            'jsonSchema' => [
+              'type' => 'object',
+              'title' => 'document',
+              'required' => [
+                0 => 'src',
+              ],
+              'properties' => [
+                'src' => [
+                  'title' => 'Document URL',
+                  'type' => 'string',
+                  'format' => 'uri-reference',
+                  'contentMediaType' => 'application/*',
+                  'x-allowed-schemes' => ['http', 'https'],
+                  'x-allowed-file-extensions' => ['rtf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'pdf', 'odf', 'odg', 'odp', 'ods', 'odt', 'fodt', 'fods', 'fodp', 'fodg', 'key', 'numbers', 'pages'],
+                ],
+                'title' => [
+                  'title' => 'Document title',
+                  'type' => 'string',
+                ],
+                'description' => [
+                  'title' => 'Document description',
+                  'type' => 'string',
+                ],
+                'filename' => [
+                  'title' => 'Filename',
+                  'type' => 'string',
+                ],
+                'filesize' => [
+                  'title' => 'File size',
+                  'type' => 'integer',
+                  'description' => 'File size in bytes',
+                ],
+                'mimetype' => [
+                  'title' => 'MIME type',
+                  'type' => 'string',
+                ],
+              ],
+            ],
+            'sourceType' => 'static:field_item:file',
+            'expression' => 'ℹ︎file␟{src↝entity␜␜entity:file␝uri␞␟url,filename↝entity␜␜entity:file␝filename␞␟value,filesize↝entity␜␜entity:file␝filesize␞␟value,mimetype↝entity␜␜entity:file␝filemime␞␟value}',
+            'sourceTypeSettings' => [
+              'instance' => [
+                'file_extensions' => 'rtf doc docx ppt pptx xls xlsx pdf odf odg odp ods odt fodt fods fodp fodg key numbers pages',
+              ],
+            ],
+            'default_values' => [
+              'source' => [],
+              'resolved' => [
+                'src' => 'https://example.com/file.pdf',
+                'title' => 'Example document',
+                'description' => 'An example document description.',
+                'filename' => 'file.pdf',
+                'filesize' => 25600,
+                'mimetype' => 'application/pdf',
+              ],
             ],
           ],
         ],
@@ -7410,7 +7663,7 @@ HTML
 
   protected static function getPropsForComponentFallbackTesting(): array {
     /** @var \Drupal\Core\File\FileSystemInterface $file_system */
-    $file_system = \Drupal::service('file_system');
+    $file_system = \Drupal::service(FileSystemInterface::class);
     $file_uri = 'public://image-2.jpg';
     if (!\file_exists($file_uri)) {
       $file_system->copy(\Drupal::root() . '/core/tests/fixtures/files/image-2.jpg', PublicStream::basePath(), FileExists::Replace);
@@ -7468,7 +7721,7 @@ HTML
 
   protected function triggerBrokenComponent(ComponentInterface $component): BrokenPluginManagerInterface {
     /** @var \Drupal\Tests\canvas\Kernel\BrokenPluginManagerInterface */
-    return \Drupal::service('plugin.manager.sdc');
+    return \Drupal::service(ComponentPluginManager::class);
   }
 
   /**

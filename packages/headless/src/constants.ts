@@ -22,6 +22,12 @@ export const JWT_BEARER_GRANT_TYPE =
  */
 export const CANVAS_HEADLESS_CLIENT_ID = 'canvas_headless';
 
+/** Query parameter selecting a one-component library preview. */
+export const CANVAS_COMPONENT_PREVIEW_QUERY = 'componentId';
+
+/** App route reserved for the isolated one-component preview document. */
+export const CANVAS_COMPONENT_PREVIEW_PATH = '/api/canvas/component-preview';
+
 /**
  * The host ↔ app draft-preview protocol message types.
  *
@@ -35,6 +41,9 @@ export const CANVAS_HEADLESS_CLIENT_ID = 'canvas_headless';
  * (which re-exports these constants).
  */
 
+/** Host → app: establish the current iframe document's protocol session. */
+export const HEADLESS_STATUS_REQUEST_MESSAGE = 'canvas-headless:status-request';
+
 /** App → host: draft session state, sent on load and on every change. */
 export const HEADLESS_STATUS_MESSAGE = 'canvas-headless:status';
 
@@ -46,3 +55,30 @@ export const HEADLESS_ASSERTION_MESSAGE = 'canvas-headless:assertion';
 
 /** Host → app: refresh content after Canvas persisted a new auto-save. */
 export const HEADLESS_REFRESH_MESSAGE = 'canvas-headless:refresh';
+
+/** App → host: confirms that a numbered refresh command was received. */
+export const HEADLESS_REFRESH_ACK_MESSAGE = 'canvas-headless:refresh-ack';
+
+/** Host → app: complete the trusted geometry-channel handshake. */
+export const HEADLESS_GEOMETRY_REQUEST_MESSAGE =
+  'canvas-headless:geometry-request';
+
+/** App → host: one unchanged shared-library geometry snapshot. */
+export const HEADLESS_GEOMETRY_MESSAGE = 'canvas-headless:geometry';
+
+/**
+ * App → host: current rendered content height, in CSS pixels. Sent on load
+ * and on every ResizeObserver-detected change.
+ */
+export const HEADLESS_HEIGHT_MESSAGE = 'canvas-headless:height';
+
+/** App → host: temporarily resize the iframe for viewport-height probing. */
+export const HEADLESS_HEIGHT_PROBE_MESSAGE = 'canvas-headless:height-probe';
+
+/** Host → app: the requested probe height has been applied. */
+export const HEADLESS_HEIGHT_PROBE_READY_MESSAGE =
+  'canvas-headless:height-probe-ready';
+
+/** Host → app: the base height of the selected preview viewport. */
+export const HEADLESS_VIEWPORT_HEIGHT_MESSAGE =
+  'canvas-headless:viewport-height';

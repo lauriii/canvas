@@ -19,6 +19,7 @@ final class ServiceDecorationTest extends CanvasKernelTestBase {
   public function testServiceDecoration(): void {
     $this->assertInstanceOf(CanvasComponentPluginManager::class, $this->container->get(CanvasComponentPluginManager::class));
     $this->assertInstanceOf(CanvasComponentPluginManager::class, $this->container->get(CoreComponentPluginManager::class));
+    // @phpcs:ignore Canvas.Services.ClassServiceId.StringServiceId
     $this->assertInstanceOf(CanvasComponentPluginManager::class, $this->container->get('plugin.manager.sdc'));
   }
 

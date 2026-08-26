@@ -8,7 +8,8 @@ and can mint Drupal preview assertions for the editing user — typically one
 running inside an authenticated Drupal session. The Drupal Canvas UI uses it for
 the editor's preview frame. The package owns the protocol state machine:
 activation, in-place session renewal over origin-checked postMessage, recovery
-after an expired session, and content refresh after Canvas auto-saves.
+after an expired session, content refresh after Canvas auto-saves, rendered
+content-height reporting, and preview geometry synchronization.
 
 ## Installation
 
@@ -37,6 +38,9 @@ const host = createHeadlessPreviewHost({
     return (await response.json()).assertion;
   },
   onEvent: (event) => console.log(event),
+  onHeight: (height) => {
+    document.querySelector('iframe#preview')!.style.height = `${height}px`;
+  },
 });
 
 await host.activate({ entity_type: 'canvas_page', entity: '5' });

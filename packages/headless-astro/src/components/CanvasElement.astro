@@ -1,9 +1,11 @@
 ---
 import {
   findCanvasComponent,
+  formatCanvasCommentMarker,
   getCanvasComponentRenderData,
   normalizeCanvasComponentTreeSlot,
   reportMissingCanvasComponent,
+  reportMissingCanvasComponentUuid,
 } from '@drupal-canvas/headless';
 import {
   render as renderTemplate,
@@ -21,9 +23,10 @@ interface Props {
   node: CanvasComponentTreeElement;
   components: Record<string, unknown>;
   path: string;
+  editor: boolean;
 }
 
-const { node, components, path } = Astro.props;
+const { node, components, path, editor } = Astro.props;
 const componentData = getCanvasComponentRenderData(node);
 const Component = componentData
   ? findCanvasComponent(components, componentData)
@@ -35,6 +38,13 @@ const slots = Object.entries(node.slots ?? {}).map(([name, value]) => ({
 
 if (componentData && !Component) {
   reportMissingCanvasComponent(componentData, path);
+}
+if (
+  editor &&
+  componentData &&
+  !componentData.componentUuid
+) {
+  reportMissingCanvasComponentUuid(componentData, path);
 }
 
 // Astro's template syntax compiles named slots statically. Canvas slot names
@@ -53,6 +63,8 @@ const RuntimeComponent: AstroComponentFactory = (result) => {
             children,
             components,
             path,
+            editor,
+            componentUuid: componentData?.componentUuid,
           },
         )}`,
     ]),
@@ -80,11 +92,24 @@ RuntimeComponent.isAstroComponentFactory = true;
             node={child}
             components={components}
             path={`${path}:${name}:${index}`}
+            editor={editor}
           />
         ),
       ),
     )
   ) : Component ? (
-    <RuntimeComponent />
+    <>
+      {editor && componentData?.componentUuid && (
+        <Fragment
+          set:html={`<!-- ${formatCanvasCommentMarker({ type: 'component', position: 'start', id: componentData.componentUuid })} -->`}
+        />
+      )}
+      <RuntimeComponent />
+      {editor && componentData?.componentUuid && (
+        <Fragment
+          set:html={`<!-- ${formatCanvasCommentMarker({ type: 'component', position: 'end', id: componentData.componentUuid })} -->`}
+        />
+      )}
+    </>
   ) : null
 }

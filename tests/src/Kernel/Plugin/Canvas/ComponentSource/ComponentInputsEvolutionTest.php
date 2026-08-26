@@ -550,10 +550,10 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     $updated_component = Component::load('block.canvas_test_block_input_schema_change_poc');
     self::assertNotNull($updated_component);
     // The new version of the component does not have any uses.
-    self::assertSame([], $audit->getContentRevisionsUsingComponent($updated_component, [$new_version]));
+    self::assertSame([], $audit->getContentRevisionsUsingAuditTarget($updated_component, [$new_version]));
     // Only the old version has uses that need to be updated.
-    $content_entity_revisions_to_update = $audit->getContentRevisionsUsingComponent($updated_component, [$old_version]);
-    self::assertSame($expected_config_entities_to_update, \array_keys($audit->getConfigEntityDependenciesUsingComponent($updated_component, Pattern::ENTITY_TYPE_ID)));
+    $content_entity_revisions_to_update = $audit->getContentRevisionsUsingAuditTarget($updated_component, [$old_version]);
+    self::assertSame($expected_config_entities_to_update, \array_keys($audit->getConfigEntityDependenciesUsingAuditTarget($updated_component, Pattern::ENTITY_TYPE_ID)));
     self::assertSame($expected_content_entity_revisions_to_update, \array_map(
       self::contentEntityRevisionObjectToString(...),
       $content_entity_revisions_to_update,
@@ -599,11 +599,11 @@ final class ComponentInputsEvolutionTest extends CanvasKernelTestBase {
     // new version.
     self::assertSame([], \array_map(
       self::contentEntityRevisionObjectToString(...),
-      $audit->getContentRevisionsUsingComponent($updated_component, [$old_version]),
+      $audit->getContentRevisionsUsingAuditTarget($updated_component, [$old_version]),
     ));
     self::assertSame($expected_content_entity_revisions_to_update, \array_map(
       self::contentEntityRevisionObjectToString(...),
-      $audit->getContentRevisionsUsingComponent($updated_component, [$new_version]),
+      $audit->getContentRevisionsUsingAuditTarget($updated_component, [$new_version]),
     ));
     // @phpstan-ignore-next-line
     self::assertSame($expected_post_update_markup, self::getTextOfAllRenderedBlockComponentInstances(Page::load(1)));

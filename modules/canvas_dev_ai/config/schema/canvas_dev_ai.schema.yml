@@ -1,0 +1,23 @@
+canvas_dev_ai.settings:
+  type: config_object
+  label: 'Drupal Canvas Dev AI settings'
+  mapping:
+    main_agent:
+      type: string
+      label: 'Main agent'
+      description: 'The ai_agent ID invoked for a chat turn when no Tool is active.'
+      constraints:
+        NotBlank: []
+        ConfigExists:
+          prefix: 'ai_agents.ai_agent.'
+    tools:
+      type: sequence
+      label: 'Tools'
+      description: 'The ai_agent IDs offered as Tools in the chat.'
+      orderby: value
+      sequence:
+        type: string
+        label: 'Agent ID'
+        constraints:
+          ConfigExists:
+            prefix: 'ai_agents.ai_agent.'

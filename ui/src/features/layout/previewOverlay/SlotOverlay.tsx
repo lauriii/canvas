@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import clsx from 'clsx';
 import { useParams } from 'react-router';
 
 import { useAppSelector } from '@/app/hooks';
-import { useDataToHtmlMapValue } from '@/features/layout/preview/DataToHtmlMapContext';
 import { SlotNameTag } from '@/features/layout/preview/NameTag';
+import { usePreviewGeometry } from '@/features/layout/preview/PreviewGeometryContext';
 import ComponentOverlay from '@/features/layout/previewOverlay/ComponentOverlay';
 import EmptySlotDropZone from '@/features/layout/previewOverlay/EmptySlotDropZone';
 import {
@@ -13,8 +13,6 @@ import {
   selectTargetSlot,
 } from '@/features/ui/uiSlice';
 import useGetComponentName from '@/hooks/useGetComponentName';
-import useSyncPreviewElementOffset from '@/hooks/useSyncPreviewElementOffset';
-import useSyncPreviewElementSize from '@/hooks/useSyncPreviewElementSize';
 
 import type React from 'react';
 import type {
@@ -28,39 +26,27 @@ import styles from './PreviewOverlay.module.css';
 
 export interface SlotOverlayProps {
   slot: SlotNode;
-  iframeRef: React.RefObject<HTMLIFrameElement>;
   parentComponent: ComponentNode;
   disableDrop: boolean;
-  forceRecalculate?: number; // Increment this prop to trigger a re-calculation of the slot overlay's border rect
 }
 
-const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
-  const {
-    slot,
-    parentComponent,
-    iframeRef,
-    disableDrop,
-    forceRecalculate = 0,
-  } = props;
-  const { componentsMap, slotsMap } = useDataToHtmlMapValue();
+const SlotOverlay: React.FC<SlotOverlayProps> = ({
+  slot,
+  parentComponent,
+  disableDrop,
+}) => {
+  const { geometryMap } = usePreviewGeometry();
   const slotId = slot.id;
-  const slotElementArray = useMemo(() => {
-    const element = slotsMap[slot.id]?.element;
-    return element ? [element] : null;
-  }, [slotsMap, slot.id]);
-  const { elementRect, recalculateBorder } =
-    useSyncPreviewElementSize(slotElementArray);
-  const parentElementsInsideIframe =
-    componentsMap[parentComponent.uuid]?.elements;
-  const { offset, recalculateOffset } = useSyncPreviewElementOffset(
-    slotElementArray,
-    parentElementsInsideIframe ? parentElementsInsideIframe : null,
-  );
-  // Padding calculation (if needed for visual reasons)
-  const [padding, setPadding] = useState({
-    paddingTop: '0px',
-    paddingBottom: '0px',
-  });
+  const slotGeometry = geometryMap.slot[slotId];
+  const parentGeometry = geometryMap.component[parentComponent.uuid];
+  const offsetLeft =
+    slotGeometry && parentGeometry
+      ? slotGeometry.rect.left - parentGeometry.rect.left
+      : 0;
+  const offsetTop =
+    slotGeometry && parentGeometry
+      ? slotGeometry.rect.top - parentGeometry.rect.top
+      : 0;
   const { componentId: selectedComponent } = useParams();
   const isHovered = useAppSelector((state) => {
     return selectIsComponentHovered(state, slotId);
@@ -69,51 +55,25 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
   const editorViewPortScale = useAppSelector(selectEditorViewPortScale);
   const slotName = useGetComponentName(slot, parentComponent);
   const parentComponentName = useGetComponentName(parentComponent);
-  const [forceRecalculateChildren, setForceRecalculateChildren] = useState(0);
-
-  useEffect(() => {
-    const elementInsideIframe = slotsMap[slotId]?.element;
-    if (elementInsideIframe) {
-      const computedStyle = window.getComputedStyle(elementInsideIframe);
-      setPadding({
-        paddingTop: computedStyle.paddingTop,
-        paddingBottom: computedStyle.paddingBottom,
-      });
-    }
-  }, [slotsMap, slotId]);
-
-  // Recalculate the children's borders when the elementRect changes
-  useEffect(() => {
-    setForceRecalculateChildren((prev) => prev + 1);
-  }, [elementRect]);
-
-  // Recalculate the border when the parent increments the forceRecalculate prop
-  useEffect(() => {
-    recalculateBorder();
-    recalculateOffset();
-  }, [forceRecalculate, recalculateBorder, recalculateOffset]);
 
   const style: React.CSSProperties = useMemo(
     () => ({
-      height: elementRect.height * editorViewPortScale,
-      width: elementRect.width * editorViewPortScale,
-      top: (offset.offsetTop || 0) * editorViewPortScale,
-      left: (offset.offsetLeft || 0) * editorViewPortScale,
+      height: (slotGeometry?.rect.height ?? 0) * editorViewPortScale,
+      width: (slotGeometry?.rect.width ?? 0) * editorViewPortScale,
+      top: offsetTop * editorViewPortScale,
+      left: offsetLeft * editorViewPortScale,
       pointerEvents: 'none',
-      ...padding,
     }),
     [
-      elementRect.height,
-      elementRect.width,
       editorViewPortScale,
-      offset.offsetTop,
-      offset.offsetLeft,
-      padding,
+      offsetLeft,
+      offsetTop,
+      slotGeometry?.rect.height,
+      slotGeometry?.rect.width,
     ],
   );
 
-  if (!slotElementArray) {
-    // If we can't find the element inside the iframe, don't render the overlay.
+  if (!slotGeometry || !parentGeometry) {
     return null;
   }
 
@@ -148,12 +108,10 @@ const SlotOverlay: React.FC<SlotOverlayProps> = (props) => {
       {slot.components.map((childComponent: ComponentNode, index) => (
         <ComponentOverlay
           key={childComponent.uuid}
-          iframeRef={iframeRef}
           parentSlot={slot}
           component={childComponent}
           index={index}
           disableDrop={disableDrop}
-          forceRecalculate={forceRecalculateChildren}
         />
       ))}
 

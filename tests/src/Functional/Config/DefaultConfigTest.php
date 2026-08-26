@@ -6,9 +6,12 @@ namespace Drupal\Tests\canvas\Functional\Config;
 
 use Drupal\canvas\Entity\Component as ComponentEntity;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
+use Drupal\Core\Config\ConfigManagerInterface;
 use Drupal\Core\Config\FileStorage;
 use Drupal\Core\Config\InstallStorage;
+use Drupal\Core\Config\StorageCacheInterface;
 use Drupal\Core\Config\StorageInterface;
+use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\KernelTests\AssertConfigTrait;
 use Drupal\Tests\canvas\Functional\FunctionalTestBase;
 use PHPUnit\Framework\Attributes\Group;
@@ -60,12 +63,12 @@ class DefaultConfigTest extends FunctionalTestBase {
     }
     // Just connect directly to the config table so we don't need to worry about
     // the cache layer.
-    $active_config_storage = $this->container->get('config.storage');
+    $active_config_storage = $this->container->get(StorageCacheInterface::class);
 
-    $default_config_storage = new FileStorage($this->container->get('extension.list.module')->getPath('canvas') . '/' . InstallStorage::CONFIG_INSTALL_DIRECTORY, InstallStorage::DEFAULT_COLLECTION);
+    $default_config_storage = new FileStorage($this->container->get(ModuleExtensionList::class)->getPath('canvas') . '/' . InstallStorage::CONFIG_INSTALL_DIRECTORY, InstallStorage::DEFAULT_COLLECTION);
     $this->assertDefaultConfig($default_config_storage, $active_config_storage);
 
-    $default_config_storage = new FileStorage($this->container->get('extension.list.module')->getPath('canvas') . '/' . InstallStorage::CONFIG_OPTIONAL_DIRECTORY, InstallStorage::DEFAULT_COLLECTION);
+    $default_config_storage = new FileStorage($this->container->get(ModuleExtensionList::class)->getPath('canvas') . '/' . InstallStorage::CONFIG_OPTIONAL_DIRECTORY, InstallStorage::DEFAULT_COLLECTION);
     $this->assertDefaultConfig($default_config_storage, $active_config_storage);
   }
 
@@ -79,7 +82,7 @@ class DefaultConfigTest extends FunctionalTestBase {
    */
   protected function assertDefaultConfig(StorageInterface $default_config_storage, StorageInterface $active_config_storage): void {
     /** @var \Drupal\Core\Config\ConfigManagerInterface $config_manager */
-    $config_manager = $this->container->get('config.manager');
+    $config_manager = $this->container->get(ConfigManagerInterface::class);
 
     foreach ($default_config_storage->listAll() as $config_name) {
       if ($active_config_storage->exists($config_name)) {

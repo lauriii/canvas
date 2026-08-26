@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\TypedData;
 
+use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
@@ -85,10 +86,10 @@ class BetterEntityDataDefinition extends ComplexDataDefinitionBase implements En
             $specific_bundle = $entity_type_id;
           }
           if ($specific_bundle !== NULL) {
-            $this->propertyDefinitions = \Drupal::service('entity_field.manager')->getFieldDefinitions($entity_type_id, $specific_bundle);
+            $this->propertyDefinitions = \Drupal::service(EntityFieldManagerInterface::class)->getFieldDefinitions($entity_type_id, $specific_bundle);
           }
           else {
-            $this->propertyDefinitions = \Drupal::service('entity_field.manager')->getBaseFieldDefinitions($entity_type_id);
+            $this->propertyDefinitions = \Drupal::service(EntityFieldManagerInterface::class)->getBaseFieldDefinitions($entity_type_id);
           }
         }
       }

@@ -32,6 +32,13 @@ export interface PageExtension {
   icon: string;
 }
 
+// A sub-agent the AI chat can route a request to.
+export interface AiTool {
+  id: string;
+  label: string;
+  description: string;
+}
+
 export interface DrupalSettings {
   canvas: {
     base: string;
@@ -72,7 +79,16 @@ export interface DrupalSettings {
     pageExtensions: PageExtension[];
     // ⚠️ This is highly experimental and *will* be refactored.
     aiExtensionAvailable: boolean;
+    // Set by the canvas_dev_ai module's hook_js_settings_alter() to route the AI chat to the mock dev endpoint; absent otherwise.
+    aiDevMode?: boolean;
+    // Tools the AI chat's Tools dropdown can offer. Absent or empty hides the dropdown trigger.
+    ai?: {
+      tools: AiTool[];
+    };
     loginUrl: string;
+    siteName: string;
+    // The absolute base URL of the Drupal site, without a trailing slash.
+    siteUrl: string;
     // ⚠️ This is highly experimental and *will* be refactored.
     personalizationExtensionAvailable: boolean;
     // ⚠️ This is highly experimental and *will* be refactored.

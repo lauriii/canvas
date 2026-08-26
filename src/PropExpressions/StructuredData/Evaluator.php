@@ -18,6 +18,8 @@ use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
+use Drupal\Core\Render\AttachmentsInterface;
+use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\TypedData\DataReferenceInterface;
 use Drupal\Core\TypedData\PrimitiveInterface;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeFieldItemList;
@@ -71,6 +73,7 @@ final class Evaluator {
    * @see \Drupal\Core\Language\LanguageInterface::LANGCODE_DEFAULT
    * @see \Drupal\Core\Language\LanguageInterface::LANGCODE_SITE_DEFAULT
    * @see \Drupal\Core\Language\LanguageInterface::LANGCODE_SYSTEM
+   * @see self::resolveTranslationForReference()
    */
   private static function resolveTranslation(FieldableEntityInterface $entity, NegotiatedLanguage $language): FieldableEntityInterface {
     if ($language->language->isLocked()) {
@@ -96,6 +99,37 @@ final class Evaluator {
       // this site.
       ->getTranslationFromContext($entity, $language->language->getId())
       ->addCacheableDependency($language);
+  }
+
+  /**
+   * Resolves a reference's target entity to the negotiated reading language.
+   *
+   * Unlike ::resolveTranslation(), which assumes a real (non-locked) language,
+   * this tolerates what a resolved content-entity-reference target can present:
+   * a locked language (e.g. a language-neutral host) or a non-translatable
+   * entity are read as-is rather than resolved. This is needed because a
+   * resolved reference (a FieldPropExpression ending in `entity`) yields the
+   * entity in its own default language, so without resolving it its fields
+   * (and those of any entities it references in turn) would be read in that
+   * default language instead of the negotiated one.
+   *
+   * @param \Drupal\Core\Entity\FieldableEntityInterface $entity
+   *   The resolved reference target to read in $language.
+   * @param \Drupal\canvas\PropExpressions\StructuredData\NegotiatedLanguage $language
+   *   The negotiated reading language.
+   *
+   * @return \Drupal\Core\Entity\FieldableEntityInterface
+   *   The entity's translation in $language, or the entity itself when it
+   *   cannot be resolved to one.
+   *
+   * @see self::resolveTranslation()
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::buildReferencePayload()
+   */
+  public static function resolveTranslationForReference(FieldableEntityInterface $entity, NegotiatedLanguage $language): FieldableEntityInterface {
+    if ($language->language->isLocked() || !($entity instanceof TranslatableInterface && $entity->isTranslatable())) {
+      return $entity;
+    }
+    return self::resolveTranslation($entity, $language);
   }
 
   public static function evaluate(null|EntityInterface|FieldItemInterface|FieldItemListInterface $entity_or_field, StructuredDataPropExpressionInterface $expr, bool $is_required, NegotiatedLanguage $language): EvaluationResult {
@@ -184,7 +218,9 @@ final class Evaluator {
             // Use the cacheability carried by the field property (common for
             // computed field properties), otherwise assume permanent
             // cacheability.
-            self::permanentCacheabilityUnlessSpecified($prop->getValue())
+            self::permanentCacheabilityUnlessSpecified($prop->getValue()),
+            // Keep the assets the property needs to render.
+            $prop instanceof AttachmentsInterface ? $prop->getAttachments() : [],
           );
         })(),
         FieldTypeObjectPropsExpression::class => \array_map(
@@ -273,11 +309,16 @@ final class Evaluator {
           $result = [];
           $raw_result = [];
           $result_cacheability = new CacheableMetadata();
+          $result_attachments = [];
           foreach ($field_item_list as $delta => $field_item) {
             if ($expr->delta === NULL || $expr->delta === $delta) {
               $prop = $field_item->get($expr->getFieldPropertyName());
               if ($prop instanceof CacheableDependencyInterface) {
                 $result_cacheability->addCacheableDependency($prop);
+              }
+              // Keep the assets the property needs to render.
+              if ($prop instanceof AttachmentsInterface) {
+                $result_attachments = BubbleableMetadata::mergeAttachments($result_attachments, $prop->getAttachments());
               }
               $raw_result[$delta] = $prop->getValue();
               if ($raw_result[$delta] === NULL && $prop instanceof EntityReference) {
@@ -313,7 +354,7 @@ final class Evaluator {
             $raw_result = $raw_result[$expr->delta ?? 0] ?? NULL;
           }
           if (!$is_required) {
-            return new EvaluationResult($result, $result_cacheability);
+            return new EvaluationResult($result, $result_cacheability, $result_attachments);
           }
 
           // If the evaluation is for a required component prop, then the shape
@@ -334,7 +375,7 @@ final class Evaluator {
 
           // Required and populated: evaluation successful.
           if (!$required_yet_empty) {
-            return new EvaluationResult($result, $result_cacheability);
+            return new EvaluationResult($result, $result_cacheability, $result_attachments);
           }
 
           // Required and empty: evaluation failed; infer access was forbidden.

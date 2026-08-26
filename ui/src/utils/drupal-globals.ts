@@ -15,12 +15,19 @@ export const getCanvasSettings = () => drupalSettings?.canvas;
 export const getBaseUrl = () => drupalSettings?.path?.baseUrl;
 export const getLanguages = (): Language[] =>
   drupalSettings?.canvas?.languages ?? [];
+
+// @todo remove optional chaining when Cypress code-editor-component-* tests are
+// moved to vitest and window properties can be properly mocked.
 export const getCanvasPermissions = () =>
-  drupalSettings.canvas.permissions as Record<string, boolean>;
+  (drupalSettings?.canvas?.permissions as Record<string, boolean>) ?? {};
 export const getCanvasModuleBaseUrl = () =>
   `${getBaseUrl()}${drupalSettings?.canvas?.canvasModulePath}`;
 export const getCanvasHeadlessSettings = (): HeadlessSettings | undefined =>
   drupalSettings?.canvas?.headless;
+export const getSiteName = (): string | undefined =>
+  drupalSettings?.canvas?.siteName;
+export const getSiteUrl = (): string | undefined =>
+  drupalSettings?.canvas?.siteUrl;
 
 export const CANVAS_HEADLESS_SETTINGS_CHANGE =
   'canvas:headless-settings-change';

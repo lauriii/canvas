@@ -34,7 +34,7 @@ const baseDiscovery: DiscoveryResult = {
     },
   ],
   contentTemplates: [],
-  regions: [],
+  pageTemplates: [],
   warnings: [],
   stats: { scannedFiles: 0, ignoredFiles: 0 },
 };

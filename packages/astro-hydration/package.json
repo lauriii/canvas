@@ -2,10 +2,13 @@
   "name": "@drupal-canvas/astro-hydration",
   "type": "module",
   "version": "0.0.0",
+  "engines": {
+    "node": ">=22.19.0 <23 || >=24.5.0"
+  },
+  "private": true,
   "license": "GPL-2.0-or-later",
   "scripts": {
-    "build": "npm run build:drupal-canvas && astro build && node extract-hydration-script.js",
-    "build:drupal-canvas": "npm run build --workspace=drupal-canvas",
+    "build": "astro build && node extract-hydration-script.js",
     "type-check": "tsc --noEmit --pretty"
   },
   "canvas": {
@@ -21,7 +24,7 @@
     "astro": "^5.18.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "drupal-canvas": "^0.4.2",
+    "drupal-canvas": "^0.5.0",
     "drupal-jsonapi-params": "^2.3.2",
     "preact": "^10.25.4",
     "preact-render-to-string": "^6.6.7",

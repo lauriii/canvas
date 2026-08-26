@@ -38,9 +38,12 @@ final class CoalescerTest extends UnitTestCase {
     $node_entity_type->getKeys()->willReturn(['id' => 'nid', 'label' => 'title', 'bundle' => 'type', 'uuid' => 'uuid']);
     $user_entity_type = $this->prophesize(EntityTypeInterface::class);
     $user_entity_type->getKeys()->willReturn(['id' => 'uid', 'uuid' => 'uuid']);
+    $media_entity_type = $this->prophesize(EntityTypeInterface::class);
+    $media_entity_type->getKeys()->willReturn(['id' => 'mid', 'label' => 'name', 'bundle' => 'bundle', 'uuid' => 'uuid']);
     $entity_type_manager = $this->prophesize(EntityTypeManagerInterface::class);
     $entity_type_manager->getDefinition('node')->willReturn($node_entity_type->reveal());
     $entity_type_manager->getDefinition('user')->willReturn($user_entity_type->reveal());
+    $entity_type_manager->getDefinition('media')->willReturn($media_entity_type->reveal());
     // Expression constructors consult ::hasDefinition() for optional
     // validation when the service exists; FALSE skips it, like the absent
     // service did before.
@@ -156,6 +159,47 @@ final class CoalescerTest extends UnitTestCase {
 
     $multi_bundle = ['ℹ︎␜entity:node:article␝field_media␞␟entity␜[␜entity:media:image␝name␞␟value][␜entity:media:video␝name␞␟value]'];
     yield 'already-combined multi-bundle reference → unchanged' => [$multi_bundle, $multi_bundle];
+
+    // A multi-bundle reference field whose per-bundle field selections DIFFER
+    // cannot be one field-level branch (a branch member is a single field). It
+    // coalesces into one object on the reference field: the common field
+    // (`title`, keyed `label`) becomes a bundle-specific branch prop, while the
+    // bundle-specific field (`body`, on news_item only) stays a plain reference.
+    yield 'reference chain, different fields per bundle → object with a branch prop' => [
+      [
+        'ℹ︎␜entity:node:news_item␝field_related␞␟entity␜␜entity:node:news_item␝body␞␟value',
+        'ℹ︎␜entity:node:news_item␝field_related␞␟entity␜␜entity:node:news_item␝title␞␟value',
+        'ℹ︎␜entity:node:news_item␝field_related␞␟entity␜␜entity:node:blog_post␝title␞␟value',
+      ],
+      ['ℹ︎␜entity:node:news_item␝field_related␞␟{body↝entity␜␜entity:node:news_item␝body␞␟value,label↝entity␜[␜entity:node:blog_post␝title␞␟value][␜entity:node:news_item␝title␞␟value]}'],
+    ];
+
+    // Same as above, but the multi-target-bundle reference field ALSO has a
+    // loose leaf pick (`target_id`) on the field itself. The leaf pick and the
+    // per-bundle branch picks all coalesce into one object on the field: the
+    // cross-bundle `title` picks (keyed `label`) still merge into a
+    // bundle-specific branch, and the loose `target_id` becomes a `↠` entry.
+    yield 'reference chain across bundles alongside a loose pick on the same field → one object with a branch prop' => [
+      [
+        'ℹ︎␜entity:node:news_item␝field_related␞␟target_id',
+        'ℹ︎␜entity:node:news_item␝field_related␞␟entity␜␜entity:node:news_item␝body␞␟value',
+        'ℹ︎␜entity:node:news_item␝field_related␞␟entity␜␜entity:node:news_item␝title␞␟value',
+        'ℹ︎␜entity:node:news_item␝field_related␞␟entity␜␜entity:node:blog_post␝title␞␟value',
+      ],
+      ['ℹ︎␜entity:node:news_item␝field_related␞␟{body↝entity␜␜entity:node:news_item␝body␞␟value,label↝entity␜[␜entity:node:blog_post␝title␞␟value][␜entity:node:news_item␝title␞␟value],target_id↠target_id}'],
+    ];
+
+    // Same, but every bundle reads a single (same-key) field, so the reference
+    // collapses to a bare bundle-specific branch — which still folds next to the
+    // loose `target_id` pick as one `↝` object entry keyed `label`.
+    yield 'single-field bundle-specific branch alongside a loose pick on the same field → one object' => [
+      [
+        'ℹ︎␜entity:node:news_item␝field_related␞␟target_id',
+        'ℹ︎␜entity:node:news_item␝field_related␞␟entity␜␜entity:node:news_item␝title␞␟value',
+        'ℹ︎␜entity:node:news_item␝field_related␞␟entity␜␜entity:node:blog_post␝title␞␟value',
+      ],
+      ['ℹ︎␜entity:node:news_item␝field_related␞␟{label↝entity␜[␜entity:node:blog_post␝title␞␟value][␜entity:node:news_item␝title␞␟value],target_id↠target_id}'],
+    ];
 
     $empty = [];
     yield 'empty list → empty list' => [$empty, $empty];

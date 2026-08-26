@@ -14,6 +14,7 @@ import { getDraftEditorOrigin } from '@drupal-canvas/headless';
  * renewal). Renders nothing when draft mode is off.
  * Auto-save refresh events use Astro's navigate() API, which swaps the page
  * through ClientRouter when enabled and navigates the document otherwise.
+ * The element also reports content height to the embedding host.
  *
  * The slot owns presentation: children marked
  * `data-draft-session-view="active"` show while the session is live and
@@ -68,6 +69,7 @@ const expired = !draftData || isDraftSessionExpired(draftData);
 
 <script>
   import {
+    createAsyncRefreshQueue,
     defineDraftSessionElement,
     DRAFT_SESSION_REFRESH_EVENT,
   } from '@drupal-canvas/headless/client';
@@ -75,10 +77,16 @@ const expired = !draftData || isDraftSessionExpired(draftData);
 
   defineDraftSessionElement();
 
+  const draftDataRefreshQueue = createAsyncRefreshQueue(
+    () => navigate(window.location.href, { history: 'replace' }),
+    (error) =>
+      console.error('[canvas] Failed to refresh Astro draft data.', error),
+  );
+
   // ClientRouter performs an in-place server-page fetch when enabled. Astro's
   // navigate() falls back to a document navigation when it is not enabled.
   document.addEventListener(DRAFT_SESSION_REFRESH_EVENT, (event) => {
     event.preventDefault();
-    void navigate(window.location.href, { history: 'replace' });
+    void draftDataRefreshQueue.request();
   });
 </script>

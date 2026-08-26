@@ -1,6 +1,9 @@
 {
   "name": "@drupal-canvas/headless",
-  "version": "0.0.1",
+  "version": "0.5.0",
+  "engines": {
+    "node": ">=22.19.0 <23 || >=24.5.0"
+  },
   "description": "Framework-agnostic core of the Drupal Canvas Headless SDK: draft preview sessions, draft-aware content clients, and component metadata exposure for decoupled frontend apps.",
   "license": "MIT",
   "repository": {
@@ -17,7 +20,9 @@
     "access": "public"
   },
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "./dist/preview.css"
+  ],
   "main": "./dist/index.js",
   "exports": {
     ".": {
@@ -34,6 +39,11 @@
       "types": "./dist/server/index.d.ts",
       "import": "./dist/server/index.js",
       "default": "./dist/server/index.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "import": "./dist/node.js",
+      "default": "./dist/node.js"
     },
     "./components-endpoint": {
       "types": "./dist/components-endpoint/index.d.ts",
@@ -54,12 +64,12 @@
       "types": "./dist/vite.d.ts",
       "import": "./dist/vite.js",
       "default": "./dist/vite.js"
-    }
+    },
+    "./preview.css": "./dist/preview.css"
   },
   "scripts": {
     "dev": "NODE_ENV=development tsdown --watch",
     "build": "npm run type-check && NODE_ENV=production tsdown",
-    "prepack": "npm run build",
     "test": "vitest run",
     "type-check": "tsc --noEmit --pretty"
   },
@@ -68,6 +78,8 @@
   },
   "devDependencies": {
     "@drupal-canvas/discovery": "*",
+    "@drupal-canvas/height-reader": "*",
+    "@drupal-canvas/preview-geometry": "*",
     "@types/node": "^24.10.1",
     "jsdom": "^26.1.0",
     "tsdown": "^0.22.12",

@@ -129,6 +129,88 @@ describe('PublishReview conflict UI', () => {
     ).toBeDisabled();
   });
 
+  it('removes selected changes that disappear from the pending list', async () => {
+    const user = userEvent.setup();
+    const secondChange = {
+      ...baseChange,
+      pointer: 'canvas_page:2:en',
+      label: 'Page 2',
+      entity_id: 2,
+    };
+    const { props, rerender } = renderReview([baseChange, secondChange]);
+
+    await user.click(screen.getByTestId('canvas-publish-review'));
+    await user.click(screen.getByTestId('canvas-publish-review-select-all'));
+
+    expect(screen.getByText('2 of 2 changes selected')).toBeInTheDocument();
+
+    const store = makeStore();
+    rerender(
+      <AppWrapper store={store} location="/" path="*">
+        <PublishReview {...props} changes={[baseChange]} conflictCount={0} />
+      </AppWrapper>,
+    );
+
+    expect(screen.getByText('1 of 1 changes selected')).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: 'Publish 1 selected' }),
+    );
+
+    expect(props.onPublishClick).toHaveBeenCalledWith([baseChange]);
+  });
+
+  it('clears selected rows when the review is closed without publishing', async () => {
+    const user = userEvent.setup();
+    const { props } = renderReview([baseChange]);
+
+    await user.click(screen.getByTestId('canvas-publish-review'));
+    await user.click(screen.getByLabelText('Select change Page 1'));
+    expect(screen.getByText('1 of 1 changes selected')).toBeInTheDocument();
+
+    await user.click(screen.getByLabelText('Close'));
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId('canvas-publish-reviews-content'),
+      ).not.toBeInTheDocument();
+    });
+
+    expect(props.onPublishClick).not.toHaveBeenCalled();
+
+    await user.click(screen.getByTestId('canvas-publish-review'));
+    expect(screen.getByText('0 of 1 changes selected')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'No items selected' }),
+    ).toBeDisabled();
+  });
+
+  it('publishes the latest pending change when a selected row updates', async () => {
+    const user = userEvent.setup();
+    const { props, rerender } = renderReview([baseChange]);
+
+    await user.click(screen.getByTestId('canvas-publish-review'));
+    await user.click(screen.getByLabelText('Select change Page 1'));
+    expect(screen.getByText('1 of 1 changes selected')).toBeInTheDocument();
+
+    const updatedChange = {
+      ...baseChange,
+      data_hash: 'hash-2',
+      updated: 1_777_000_001,
+    };
+    const store = makeStore();
+    rerender(
+      <AppWrapper store={store} location="/" path="*">
+        <PublishReview {...props} changes={[updatedChange]} />
+      </AppWrapper>,
+    );
+
+    await user.click(
+      screen.getByRole('button', { name: 'Publish 1 selected' }),
+    );
+
+    expect(props.onPublishClick).toHaveBeenCalledWith([updatedChange]);
+  });
+
   it('closes the review and resolves the first conflicted row from the banner', async () => {
     const user = userEvent.setup();
     const conflictedChange = {

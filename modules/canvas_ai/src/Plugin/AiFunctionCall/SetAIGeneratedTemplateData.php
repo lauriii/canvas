@@ -84,9 +84,9 @@ final class SetAIGeneratedTemplateData extends FunctionCallBase implements Execu
       $container->get('ai.context_definition_normalizer'),
     );
     $instance->pageBuilderHelper = $container->get('canvas_ai.page_builder_helper');
-    $instance->loggerFactory = $container->get('logger.factory');
-    $instance->currentUser = $container->get('current_user');
-    $instance->tempStore = $container->get('canvas_ai.tempstore');
+    $instance->loggerFactory = $container->get(LoggerChannelFactoryInterface::class);
+    $instance->currentUser = $container->get(AccountProxyInterface::class);
+    $instance->tempStore = $container->get(CanvasAiTempStore::class);
     $instance->responseValidator = $container->get('canvas_ai.response_validator');
     return $instance;
   }
@@ -111,15 +111,10 @@ final class SetAIGeneratedTemplateData extends FunctionCallBase implements Execu
 
       // Validate if regions are correct.
       $current_layout = $this->tempStore->getData(CanvasAiTempStore::CURRENT_LAYOUT_KEY) ?? '';
-      $layout_regions = $this->pageBuilderHelper->getRegionIndex($current_layout);
       foreach (\array_keys($component_structure_array) as $region) {
-        if (!\array_key_exists($region, $layout_regions)) {
-          $available_regions = implode(', ', \array_keys($layout_regions));
-          throw new \Exception(\sprintf(
-            'Region "%s" does not exist. Available regions are: %s.',
-            $region,
-            $available_regions
-          ));
+        $region_error = $this->pageBuilderHelper->validateRegionExists((string) $region, $current_layout);
+        if ($region_error !== NULL) {
+          throw new \Exception($region_error);
         }
       }
 

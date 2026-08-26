@@ -7,17 +7,18 @@ namespace Drupal\Tests\canvas\Kernel;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\canvas\Controller\ApiLayoutController;
-use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
-use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\PageVariant;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Entity\ContentEntityInterface;
-use Drupal\Core\Entity\Entity\EntityViewMode;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\ParamConverter\ParamNotConvertedException;
 use Drupal\Core\Url;
 use Drupal\language\ConfigurableLanguageManagerInterface;
@@ -69,7 +70,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->container->get('module_installer')->install(['system']);
+    $this->container->get(ModuleInstallerInterface::class)->install(['system']);
     (new CanvasTestSetup())->setup(TRUE);
     $this->setUpCurrentUser([], ['edit any article content']);
   }
@@ -81,13 +82,6 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
   public function testEmpty(string $entity_type): void {
     $entity = $this->getTestEntity($entity_type);
     $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);
-    // Enable global regions.
-    $regions = $this->enableGlobalRegions();
-    foreach ($regions as $region) {
-      // But let's make sure none of them have a component tree so we have an
-      // empty model.
-      $region->setComponentTree([])->save();
-    }
     $url = $this->getLayoutUrl($entity);
     $response = $this->request(Request::create($url->toString()));
     self::assertEquals(Response::HTTP_OK, $response->getStatusCode());
@@ -171,12 +165,12 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
   }
 
   /**
- * Tests .
- */
+   * Tests the layout exposes only the single "content" region.
+   */
   #[DataProvider('providerEntityTypes')]
   public function test(string $entity_type): void {
-    // By default, there is only the "content" region in the client-side
-    // representation.
+    // The client-side representation contains only the "content" region; page
+    // variants render the surrounding chrome and are edited separately.
     $entity = $this->getTestEntity($entity_type);
     $admin_permission = self::getAdminPermission($entity);
     $this->setUpCurrentUser([], [$admin_permission]);
@@ -185,72 +179,8 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     /** @var \Drupal\canvas\AutoSave\AutoSaveManager $autoSave */
     $autoSave = $this->container->get(AutoSaveManager::class);
     self::assertTrue($autoSave->getAutoSaveEntity($entity)->isEmpty());
-    $regions = $this->enableGlobalRegions();
-
-    // … but the corresponding client-side representation contains only the
-    // "content" region unless it has permissions to edit the global regions.
-    $this->assertRegions(1, $entity);
-
-    $this->setUpCurrentUser([], [$admin_permission, PageRegion::ADMIN_PERMISSION]);
-
-    // … and the corresponding client-side representation contains all regions
-    // plus one more (the "content" region) once it has the required permission.
-    $this->assertRegions(12, $entity);
-
-    // Disable a PageRegion to make it non-editable, and check that only 11
-    // regions are present in the client-side representation.
-    $regions['stark.highlighted']->disable()->save();
-    $this->assertRegions(11, $entity);
-
-    // Store a draft region in the auto-save manager and confirm that is returned.
-    $regions['stark.highlighted']->enable()->save();
-    $layoutData = [
-      'layout' => [
-        [
-          "nodeType" => "component",
-          "slots" => [],
-          "type" => "block.page_title_block@" . Component::load('block.page_title_block')?->getActiveVersion(),
-          "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
-        ],
-      ],
-      'model' => [
-        "c3f3c22c-c22e-4bb6-ad16-635f069148e4" => [
-          "label" => "Page title",
-          "label_display" => "0",
-          "provider" => "core",
-        ],
-      ],
-    ];
-    $stark_highlighted = $regions['stark.highlighted']->forAutoSaveData($layoutData, validate: TRUE);
-    $autoSave->saveEntity($stark_highlighted);
 
     $url = $this->getLayoutUrl($entity);
-
-    // Draft of highlighted region in global template should be returned even if
-    // there is no auto-save data for the node.
-    $response = $this->request(Request::create($url->toString()));
-    $expected_title = match(TRUE) {
-      ContentTemplate::ENTITY_TYPE_ID === $entity_type && $this->previewEntity instanceof ContentEntityInterface => $this->previewEntity->label(),
-      default => $entity->label(),
-    };
-    $this->assertTitle($expected_title . ' | Drupal');
-    $this->assertResponseAutoSaves($response, [$entity], TRUE);
-    $json = static::decodeResponse($response);
-    self::assertArrayHasKey('layout', $json);
-    $highlightedRegion = \array_filter($json['layout'], static fn (array $region) => ($region['id'] ?? NULL) === 'highlighted');
-    self::assertCount(1, $highlightedRegion);
-    self::assertArrayHasKey('model', $json);
-    self::assertArrayHasKey('c3f3c22c-c22e-4bb6-ad16-635f069148e4', $json['model']);
-    self::assertEquals('Page title', $json['model']['c3f3c22c-c22e-4bb6-ad16-635f069148e4']['resolved']['label']);
-    self::assertEquals([
-      [
-        "nodeType" => "component",
-        "slots" => [],
-        "type" => "block.page_title_block@" . Component::load('block.page_title_block')?->getActiveVersion(),
-        "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
-        'name' => NULL,
-      ],
-    ], reset($highlightedRegion)['components']);
 
     $original_entity = $entity::load($entity->id());
     \assert($original_entity instanceof $entity);
@@ -264,7 +194,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     }
 
     $response = $this->request(Request::create($url->toString()));
-    $this->assertResponseAutoSaves($response, [$original_entity], TRUE);
+    $this->assertResponseAutoSaves($response, [$original_entity]);
 
     // Extract HTML from JSON response for title assertion.
     $expected_title = match(TRUE) {
@@ -275,50 +205,21 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
 
     $json = static::decodeResponse($response);
     self::assertArrayHasKey('layout', $json);
-    $highlightedRegion = \array_filter($json['layout'], static fn (array $region) => ($region['id'] ?? NULL) === 'highlighted');
-    self::assertCount(1, $highlightedRegion);
+    self::assertCount(1, $json['layout']);
+    self::assertSame(CanvasPageVariant::MAIN_CONTENT_REGION, $json['layout'][0]['id']);
     self::assertArrayHasKey('model', $json);
-    self::assertArrayHasKey('c3f3c22c-c22e-4bb6-ad16-635f069148e4', $json['model']);
-    self::assertEquals('Page title', $json['model']['c3f3c22c-c22e-4bb6-ad16-635f069148e4']['resolved']['label']);
-    self::assertEquals([
-      [
-        "nodeType" => "component",
-        "slots" => [],
-        "type" => "block.page_title_block@" . Component::load('block.page_title_block')?->getActiveVersion(),
-        "uuid" => "c3f3c22c-c22e-4bb6-ad16-635f069148e4",
-        'name' => NULL,
-      ],
-    ], reset($highlightedRegion)['components']);
     if ($original_entity instanceof Node) {
       \assert(isset($new_title));
       self::assertEquals($new_title, $json['entity_form_fields']['title[0][value]']);
     }
+    elseif ($original_entity instanceof PageVariant) {
+      // Config entities have no entity form, but the generic layout endpoint
+      // keeps the response shape uniform.
+      self::assertSame([], $json['entity_form_fields']);
+    }
     else {
       self::assertArrayNotHasKey('entity_form_fields', $json);
     }
-
-    // Now let's remove the draft of the page region but retain that of the
-    // node.
-    $autoSave->delete($regions['stark.highlighted']);
-    // We should still see the global regions.
-    $response = $this->request(Request::create($url->toString()));
-    $this->assertResponseAutoSaves($response, [$original_entity], TRUE);
-    $json = static::decodeResponse($response);
-    self::assertArrayHasKey('layout', $json);
-    $highlightedRegion = \array_filter($json['layout'], static fn (array $region) => ($region['id'] ?? NULL) === 'highlighted');
-    self::assertCount(1, $highlightedRegion);
-    // @see \Drupal\Tests\canvas\TestSite\CanvasTestSetup::setup()
-    self::assertEquals([
-      [
-        "nodeType" => "component",
-        "slots" => [],
-        "type" => "block.page_title_block@" . Component::load('block.page_title_block')?->getActiveVersion(),
-        'name' => NULL,
-      ],
-    ],
-      // Filter out the UUID as that is added randomly by creating the block
-      // in the setup class.
-      \array_map(static fn(array $component) => \array_diff_key($component, \array_flip(['uuid'])), \current($highlightedRegion)['components']));
 
     // Test that saving the exact values as the stored/live node, no auto-saves
     // remain.
@@ -326,85 +227,13 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     \assert($original_entity instanceof $entity);
     $autoSave->saveEntity($original_entity);
     $response = $this->request(Request::create($url->toString()));
-    $this->assertResponseAutoSaves($response, [$original_entity], TRUE);
-  }
-
-  /**
-   * Global regions are hidden when editing a content template for non-full view mode.
-   */
-  public function testNonFullContentTemplateHidesGlobalRegions(): void {
-    // Ensure the teaser view mode exists (node module provides it by default).
-    $view_mode = $this->container->get('entity_type.manager')
-      ->getStorage('entity_view_mode')
-      ->load('node.teaser');
-    if ($view_mode === NULL) {
-      EntityViewMode::create([
-        'id' => 'node.teaser',
-        'label' => 'Teaser',
-        'targetEntityType' => 'node',
-      ])->save();
-    }
-
-    ContentTemplate::create([
-      'id' => 'node.article.teaser',
-      'content_entity_type_id' => 'node',
-      'content_entity_type_bundle' => 'article',
-      'content_entity_type_view_mode' => 'teaser',
-      'component_tree' => [
-        [
-          'uuid' => 'e1f6fbca-e331-4506-9dba-5734194c1e59',
-          'component_id' => 'sdc.canvas_test_sdc.my-hero',
-          'component_version' => 'a681ae184a8f6b7f',
-          'inputs' => [
-            'heading' => 'Canvas is large and in charge!',
-            'subheading' => [
-              'sourceType' => PropSource::EntityField->value,
-              'expression' => 'ℹ︎␜entity:node:article␝created␞␟value',
-              'adapter' => 'unix_to_date',
-            ],
-            'cta1' => [
-              'sourceType' => PropSource::EntityField->value,
-              'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
-            ],
-            'cta1href' => [
-              'sourceType' => PropSource::HostEntityUrl->value,
-            ],
-          ],
-        ],
-      ],
-    ])->save();
-
-    $this->previewEntity = Node::load(1);
-    self::assertInstanceOf(ContentEntityInterface::class, $this->previewEntity);
-    $entity = ContentTemplate::load('node.article.teaser');
-    self::assertInstanceOf(ContentTemplate::class, $entity);
-    $this->setUpCurrentUser([], [ContentTemplate::ADMIN_PERMISSION, PageRegion::ADMIN_PERMISSION]);
-    $this->enableGlobalRegions();
-
-    $url = $this->getLayoutUrl($entity);
-    $response = $this->request(Request::create($url->toString()));
-    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
-
-    $json = static::decodeResponse($response);
-    self::assertArrayHasKey('layout', $json);
-    self::assertCount(1, $json['layout'], 'Non-full content template must expose only the content region.');
-    self::assertSame(CanvasPageVariant::MAIN_CONTENT_REGION, $json['layout'][0]['id']);
-
-    $this->assertResponseAutoSaves($response, [$entity], FALSE);
-
-    self::assertArrayHasKey('html', $json);
-    $this->setRawContent($json['html']);
-    self::assertNotNull($this->getRegion('content'), 'Content region must be present in preview HTML.');
-    self::assertNull($this->getRegion('header'), 'Global regions must not appear in preview HTML for non-full view mode.');
-    self::assertNull($this->getRegion('highlighted'), 'Global regions must not appear in preview HTML for non-full view mode.');
+    $this->assertResponseAutoSaves($response, [$original_entity]);
   }
 
   protected function assertRegions(int $count, EntityInterface $entity): NodeInterface {
     $node = Node::load(1);
     \assert($node instanceof NodeInterface);
     $url = $this->getLayoutUrl($entity);
-    // Draft of highlighted region in global template should be returned even if
-    // there is no auto-save data for the node.
     $response = $this->request(Request::create($url->toString()));
     $json = static::decodeResponse($response);
     $this->assertArrayHasKey('layout', $json);
@@ -416,134 +245,105 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $content = $this->getRegion('content');
     $this->assertNotNull($content);
 
-    foreach ($json['layout'] as $region) {
-      $this->assertArrayHasKey('nodeType', $region);
-      $this->assertSame('region', $region['nodeType']);
-      $this->assertArrayHasKey('id', $region);
-      $this->assertArrayHasKey('name', $region);
-      $this->assertArrayHasKey('components', $region);
+    // The layout serves only the single "content" region.
+    $region = $json['layout'][0];
+    $this->assertArrayHasKey('nodeType', $region);
+    $this->assertSame('region', $region['nodeType']);
+    $this->assertArrayHasKey('id', $region);
+    $this->assertSame(CanvasPageVariant::MAIN_CONTENT_REGION, $region['id']);
+    $this->assertArrayHasKey('name', $region);
+    $this->assertSame('Content', $region['name']);
+    $this->assertArrayHasKey('components', $region);
 
-      if ($region['id'] === 'highlighted') {
-        // @see \Drupal\Tests\canvas\TestSite\CanvasTestSetup::setup()
-        $this->assertEquals([
+    // A page variant is seeded with only the "Page content" marker; the rest
+    // of this method asserts the CanvasTestSetup node tree.
+    if ($entity instanceof PageVariant) {
+      self::assertCount(1, $region['components']);
+      self::assertSame('component', $region['components'][0]['nodeType']);
+      self::assertStringStartsWith(Marker::PAGE_CONTENT_COMPONENT_ID . '@', $region['components'][0]['type']);
+      return $node;
+    }
+
+    $this->assertSame([
+      [
+        'uuid' => CanvasTestSetup::UUID_TWO_COLUMN_UUID,
+        'nodeType' => 'component',
+        'type' => 'sdc.canvas_test_sdc.two_column@f90c1f6cfb2fc04a',
+        'name' => NULL,
+        'slots' => [
           [
-            "nodeType" => "component",
-            'name' => NULL,
-            "slots" => [],
-            // The component version may vary depending on upstream changes in
-            // core.
-            "type" => "block.page_title_block@" . Component::load('block.page_title_block')?->getActiveVersion(),
-          ],
-        ],
-          // Filter out the UUID as that is added randomly by creating the block
-          // in the setup class.
-          \array_map(static fn(array $component) => \array_diff_key($component, \array_flip(['uuid'])), $region['components']));
-        continue;
-      }
-      if ($region['id'] === 'sidebar_first') {
-        // @see \Drupal\Tests\canvas\TestSite\CanvasTestSetup::setup()
-        // @see \Drupal\canvas\Entity\PageRegion::createFromBlockLayout()
-        $this->assertSame([
-          [
-            "nodeType" => "component",
-            // The component version may vary depending on upstream changes in
-            // core.
-            "type" => "block.system_messages_block@" . Component::load('block.system_messages_block')?->getActiveVersion(),
-            'name' => NULL,
-            "slots" => [],
-          ],
-        ],
-          // Filter out the UUID as that is added randomly by creating the block
-          // in the setup class.
-          \array_map(static fn(array $component) => \array_diff_key($component, \array_flip(['uuid'])), $region['components']));
-        continue;
-      }
-      if ($region['id'] !== CanvasPageVariant::MAIN_CONTENT_REGION) {
-        $this->assertEmpty($region['components']);
-        continue;
-      }
-      $this->assertSame('Content', $region['name']);
-      $this->assertSame([
-        [
-          'uuid' => CanvasTestSetup::UUID_TWO_COLUMN_UUID,
-          'nodeType' => 'component',
-          'type' => 'sdc.canvas_test_sdc.two_column@f90c1f6cfb2fc04a',
-          'name' => NULL,
-          'slots' => [
-            [
-              'id' => CanvasTestSetup::UUID_TWO_COLUMN_UUID . '/column_one',
-              'name' => 'column_one',
-              'nodeType' => 'slot',
-              'components' => [
-                [
-                  'uuid' => CanvasTestSetup::UUID_STATIC_IMAGE,
-                  'nodeType' => 'component',
-                  'type' => 'sdc.canvas_test_sdc.image@fb40be57bd7e0973',
-                  'name' => NULL,
-                  'slots' => [],
-                ],
-                [
-                  'uuid' => CanvasTestSetup::UUID_STATIC_CARD1,
-                  'nodeType' => 'component',
-                  'type' => 'sdc.canvas_test_sdc.my-hero@a681ae184a8f6b7f',
-                  'name' => NULL,
-                  'slots' => [],
-                ],
-                [
-                  'uuid' => CanvasTestSetup::UUID_CODE_COMPONENT,
-                  'nodeType' => 'component',
-                  'type' => 'js.test-code-component@36a8cee6a86c3d8d',
-                  'name' => NULL,
-                  'slots' => [],
-                ],
-                [
-                  'uuid' => CanvasTestSetup::UUID_ALL_SLOTS_EMPTY,
-                  'nodeType' => 'component',
-                  'type' => 'sdc.canvas_test_sdc.one_column@80cc82f44d0a94f2',
-                  'name' => NULL,
-                  'slots' => [
-                    [
-                      'id' => CanvasTestSetup::UUID_ALL_SLOTS_EMPTY . '/content',
-                      'name' => 'content',
-                      'nodeType' => 'slot',
-                      'components' => [],
-                    ],
+            'id' => CanvasTestSetup::UUID_TWO_COLUMN_UUID . '/column_one',
+            'name' => 'column_one',
+            'nodeType' => 'slot',
+            'components' => [
+              [
+                'uuid' => CanvasTestSetup::UUID_STATIC_IMAGE,
+                'nodeType' => 'component',
+                'type' => 'sdc.canvas_test_sdc.image@fb40be57bd7e0973',
+                'name' => NULL,
+                'slots' => [],
+              ],
+              [
+                'uuid' => CanvasTestSetup::UUID_STATIC_CARD1,
+                'nodeType' => 'component',
+                'type' => 'sdc.canvas_test_sdc.my-hero@a681ae184a8f6b7f',
+                'name' => NULL,
+                'slots' => [],
+              ],
+              [
+                'uuid' => CanvasTestSetup::UUID_CODE_COMPONENT,
+                'nodeType' => 'component',
+                'type' => 'js.test-code-component@36a8cee6a86c3d8d',
+                'name' => NULL,
+                'slots' => [],
+              ],
+              [
+                'uuid' => CanvasTestSetup::UUID_ALL_SLOTS_EMPTY,
+                'nodeType' => 'component',
+                'type' => 'sdc.canvas_test_sdc.one_column@80cc82f44d0a94f2',
+                'name' => NULL,
+                'slots' => [
+                  [
+                    'id' => CanvasTestSetup::UUID_ALL_SLOTS_EMPTY . '/content',
+                    'name' => 'content',
+                    'nodeType' => 'slot',
+                    'components' => [],
                   ],
                 ],
               ],
             ],
-            [
-              'id' => CanvasTestSetup::UUID_TWO_COLUMN_UUID . '/column_two',
-              'name' => 'column_two',
-              'nodeType' => 'slot',
-              'components' => [
-                [
-                  'uuid' => CanvasTestSetup::UUID_STATIC_CARD2,
-                  'nodeType' => 'component',
-                  'type' => 'sdc.canvas_test_sdc.my-hero@a681ae184a8f6b7f',
-                  'name' => NULL,
-                  'slots' => [],
-                ],
-                [
-                  'uuid' => CanvasTestSetup::UUID_STATIC_CARD3,
-                  'nodeType' => 'component',
-                  'type' => 'sdc.canvas_test_sdc.my-hero@a681ae184a8f6b7f',
-                  'name' => NULL,
-                  'slots' => [],
-                ],
-                [
-                  'uuid' => CanvasTestSetup::UUID_STATIC_IMAGE2,
-                  'nodeType' => 'component',
-                  'type' => 'sdc.canvas_test_sdc.image@fb40be57bd7e0973',
-                  'name' => 'Magnificent image!',
-                  'slots' => [],
-                ],
+          ],
+          [
+            'id' => CanvasTestSetup::UUID_TWO_COLUMN_UUID . '/column_two',
+            'name' => 'column_two',
+            'nodeType' => 'slot',
+            'components' => [
+              [
+                'uuid' => CanvasTestSetup::UUID_STATIC_CARD2,
+                'nodeType' => 'component',
+                'type' => 'sdc.canvas_test_sdc.my-hero@a681ae184a8f6b7f',
+                'name' => NULL,
+                'slots' => [],
+              ],
+              [
+                'uuid' => CanvasTestSetup::UUID_STATIC_CARD3,
+                'nodeType' => 'component',
+                'type' => 'sdc.canvas_test_sdc.my-hero@a681ae184a8f6b7f',
+                'name' => NULL,
+                'slots' => [],
+              ],
+              [
+                'uuid' => CanvasTestSetup::UUID_STATIC_IMAGE2,
+                'nodeType' => 'component',
+                'type' => 'sdc.canvas_test_sdc.image@fb40be57bd7e0973',
+                'name' => 'Magnificent image!',
+                'slots' => [],
               ],
             ],
           ],
         ],
-      ], $region['components']);
-    }
+      ],
+    ], $region['components']);
 
     self::assertIsArray($json);
     if ($entity instanceof NodeInterface) {
@@ -824,27 +624,6 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
   }
 
   /**
-   * @return \Drupal\canvas\Entity\PageRegion[]
-   */
-  protected function enableGlobalRegions(string $theme = 'stark', int $expected_region_count = 11): array {
-    $this->container->get('theme_installer')->install([$theme]);
-    $this->container->get('config.factory')
-      ->getEditable('system.theme')
-      ->set('default', $theme)
-      ->save();
-    $this->container->get('theme.manager')->resetActiveTheme();
-
-    $regions = PageRegion::createFromBlockLayout($theme);
-    // Check that all the theme regions get a corresponding PageRegion config
-    // entity (except the "content" region).
-    self::assertCount($expected_region_count, $regions);
-    foreach ($regions as $region) {
-      $region->save();
-    }
-    return $regions;
-  }
-
-  /**
    * Data provider for testFieldAccess.
    *
    * @return array[]
@@ -877,7 +656,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
    */
   #[DataProvider('fieldAccessProvider')]
   public function testFieldAccess(array $permissions, ?string $exception_message): void {
-    $this->container->get('module_installer')->install(['canvas_test_field_access']);
+    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_test_field_access']);
     $this->setUpCurrentUser([], $permissions);
 
     // Test field access using URL/request approach rather than directly calling controller
@@ -1001,7 +780,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
    */
   #[DataProvider('providerConfigTranslationAccessDenied')]
   public function testConfigTranslationAccessDenied(array $permissions): void {
-    $this->container->get('module_installer')->install([
+    $this->container->get(ModuleInstallerInterface::class)->install([
       'config_translation',
     ]);
     $template = $this->getTestEntity(ContentTemplate::ENTITY_TYPE_ID);
@@ -1026,7 +805,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
    *    so config-override languages disappear from available entirely.
    */
   public function testConfigTranslationAvailabilityLinksAndPermissions(): void {
-    $this->container->get('module_installer')->install([
+    $this->container->get(ModuleInstallerInterface::class)->install([
       'language',
       'config_translation',
       'content_translation',
@@ -1046,7 +825,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     // Add a French config language override to the ContentTemplate.
     $template = $this->getTestEntity(ContentTemplate::ENTITY_TYPE_ID);
     \assert($template instanceof ContentTemplate);
-    $languageManager = $this->container->get('language_manager');
+    $languageManager = $this->container->get(LanguageManagerInterface::class);
     \assert($languageManager instanceof ConfigurableLanguageManagerInterface);
     $override = $languageManager->getLanguageConfigOverride('fr', $template->getConfigDependencyName());
     $override->setData(['component_tree' => []])->save();
@@ -1096,7 +875,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
 
     // When config_translation is uninstalled the detection block is skipped
     // entirely, so French must also disappear from available.
-    $this->container->get('module_installer')->uninstall(['config_translation']);
+    $this->container->get(ModuleInstallerInterface::class)->uninstall(['config_translation']);
     $this->setUpCurrentUser([], [ContentTemplate::ADMIN_PERMISSION]);
     $json = static::decodeResponse($this->request(Request::create($url->toString())));
     self::assertNotContains('fr', $json['translations']['available'],

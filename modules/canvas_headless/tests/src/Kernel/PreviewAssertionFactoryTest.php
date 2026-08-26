@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas_headless\Kernel;
 
 use Drupal\canvas_headless\PreviewAssertionFactory;
 use Drupal\canvas_headless\PreviewAssertionFactoryInterface;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\language\Entity\ConfigurableLanguage;
@@ -81,7 +82,14 @@ class PreviewAssertionFactoryTest extends CanvasKernelTestBase {
     $account->method('id')->willReturn(42);
 
     $jwt = $this->container->get(PreviewAssertionFactoryInterface::class)
-      ->issue($account, '/home', 'rel:working-copy');
+      ->issue(
+        $account,
+        '/home',
+        'rel:working-copy',
+        preview_context: [
+          'viewMode' => 'teaser',
+        ],
+      );
     $this->assertNotSame('', $jwt);
 
     $token = (new Parser(new JoseEncoder()))->parse($jwt);
@@ -99,6 +107,9 @@ class PreviewAssertionFactoryTest extends CanvasKernelTestBase {
     $this->assertSame('/home', $claims->get('path'));
     $this->assertSame('activation', $claims->get('use'));
     $this->assertSame('rel:working-copy', $claims->get('resourceVersion'));
+    $this->assertSame([
+      'viewMode' => 'teaser',
+    ], $claims->get('previewContext'));
     $this->assertStringEndsWith('/canvas-headless/renew', $claims->get('renewUrl'));
     $this->assertNotEmpty($claims->get('jti'));
 
@@ -139,7 +150,7 @@ class PreviewAssertionFactoryTest extends CanvasKernelTestBase {
    */
   public function testAudienceIsDerivedInDefaultLanguage(): void {
     ConfigurableLanguage::createFromLangcode('de')->save();
-    $language_manager = $this->container->get('language_manager');
+    $language_manager = $this->container->get(LanguageManagerInterface::class);
     self::assertSame('en', $language_manager->getDefaultLanguage()->getId());
 
     $expected = Url::fromRoute('oauth2_token.token', [], [

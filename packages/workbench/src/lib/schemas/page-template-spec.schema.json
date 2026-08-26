@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Canvas page template spec",
+  "description": "Authored Canvas page template (page variant) format. Workbench normalizes this into an @json-render/react-compatible spec by synthesizing the canvas:component-tree root wrapper.",
+  "type": "object",
+  "required": ["label", "elements"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional JSON Schema reference for editor tooling."
+    },
+    "label": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable label of the page template."
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description of the page template."
+    },
+    "status": {
+      "type": "boolean",
+      "description": "Whether the page template is enabled. A default page template cannot be disabled."
+    },
+    "default": {
+      "type": "boolean",
+      "description": "Whether this page template is the site default. At most one enabled page template file may set this."
+    },
+    "elements": {
+      "type": "object",
+      "description": "Authored page template elements. Workbench preserves key insertion order when synthesizing canvas:component-tree children.",
+      "propertyNames": {
+        "not": {
+          "const": "canvas:component-tree"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/element"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "element": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "props": {},
+        "slots": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "_provenance": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

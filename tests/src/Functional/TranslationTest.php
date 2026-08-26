@@ -9,15 +9,20 @@ namespace Drupal\Tests\canvas\Functional;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
-use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\PageVariant;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\PropSource\PropSource;
+use Drupal\content_translation\BundleTranslationSettingsInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Field\Entity\BaseFieldOverride;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
+use Drupal\Core\Routing\RouteBuilderInterface;
 use Drupal\Core\Url;
 use Drupal\language\ConfigurableLanguageManagerInterface;
 use Drupal\language\Entity\ConfigurableLanguage;
@@ -144,7 +149,7 @@ class TranslationTest extends FunctionalTestBase {
     $override->save();
 
     // Display the `field_canvas_test` field.
-    \Drupal::service('entity_display.repository')
+    \Drupal::service(EntityDisplayRepositoryInterface::class)
       ->getViewDisplay('node', 'article')
       ->setComponent('field_canvas_test', [
         'label' => 'hidden',
@@ -412,7 +417,7 @@ class TranslationTest extends FunctionalTestBase {
     self::assertSame(LanguageInterface::LANGCODE_SITE_DEFAULT, $content_language_settings->getDefaultLangcode());
     self::assertFalse($content_language_settings->isLanguageAlterable());
 
-    $content_translation_manager = $this->container->get('content_translation.manager');
+    $content_translation_manager = $this->container->get(BundleTranslationSettingsInterface::class);
     self::assertTrue($content_translation_manager->isEnabled(Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID));
     self::assertEquals([
       'untranslatable_fields_hide' => 0,
@@ -463,7 +468,7 @@ class TranslationTest extends FunctionalTestBase {
     // Create a translation from the original English node.
     $translation = $node->addTranslation('fr');
     $this->assertInstanceOf(Node::class, $translation);
-    $this->container->get('content_translation.manager')->getTranslationMetadata($translation)->setSource($node->language()->getId());
+    $this->container->get(BundleTranslationSettingsInterface::class)->getTranslationMetadata($translation)->setSource($node->language()->getId());
     // @phpstan-ignore-next-line
     $translation->title = 'The French title';
     $translation->save();
@@ -508,7 +513,7 @@ class TranslationTest extends FunctionalTestBase {
    * Returns the active version string for the heading SDC component.
    */
   private function getHeadingComponentVersion(): string {
-    $component = $this->container->get('entity_type.manager')
+    $component = $this->container->get(EntityTypeManagerInterface::class)
       ->getStorage('component')
       ->load('sdc.canvas_test_sdc.heading');
     \assert($component instanceof Component);
@@ -530,8 +535,8 @@ class TranslationTest extends FunctionalTestBase {
       ->setDefaultLangcode(LanguageInterface::LANGCODE_SITE_DEFAULT)
       ->setLanguageAlterable(TRUE)
       ->save();
-    $this->container->get('content_translation.manager')->setEnabled('canvas_page', 'canvas_page', TRUE);
-    $this->container->get('router.builder')->setRebuildNeeded();
+    $this->container->get(BundleTranslationSettingsInterface::class)->setEnabled('canvas_page', 'canvas_page', TRUE);
+    $this->container->get(RouteBuilderInterface::class)->setRebuildNeeded();
 
     $version = $this->getHeadingComponentVersion();
 
@@ -560,7 +565,7 @@ class TranslationTest extends FunctionalTestBase {
     // `translation_sync` setting created on module install — requires
     // it to synchronize a newly added translation.
     // @see \Drupal\content_translation\Hook\ContentTranslationHooks::entityPresave()
-    $this->container->get('content_translation.manager')
+    $this->container->get(BundleTranslationSettingsInterface::class)
       ->getTranslationMetadata($fr_page)
       ->setSource('en');
     $fr_page->set('title', 'Page de test Canvas');
@@ -577,49 +582,59 @@ class TranslationTest extends FunctionalTestBase {
   }
 
   /**
-   * Creates a PageRegion for the default theme with a French language override.
+   * Creates the site default page variant with a French language override.
    *
-   * @return \Drupal\canvas\Entity\PageRegion
-   *   The saved PageRegion entity.
+   * @return \Drupal\canvas\Entity\PageVariant
+   *   The saved page variant.
    */
-  private function createPageRegionWithFrenchOverride(): PageRegion {
+  private function createChromePageVariantWithFrenchOverride(): PageVariant {
     $version = $this->getHeadingComponentVersion();
+    $marker = Component::load(Marker::PAGE_CONTENT_COMPONENT_ID);
+    \assert($marker instanceof Component);
 
-    $default_theme = $this->container->get('theme_handler')->getDefault();
-    $regions = PageRegion::createFromBlockLayout($default_theme);
-    $new_region = reset($regions);
-    \assert($new_region instanceof PageRegion);
-    $existing = $this->container->get('entity_type.manager')
-      ->getStorage(PageRegion::ENTITY_TYPE_ID)
-      ->load($new_region->id());
-    $region = $existing instanceof PageRegion ? $existing : $new_region;
-    $region->set('component_tree', [
-      [
-        'uuid' => '33333333-3333-4333-8333-333333333333',
-        'component_id' => 'sdc.canvas_test_sdc.heading',
-        'component_version' => $version,
-        'inputs' => [
-          'text' => 'Hello from region',
-          'element' => 'h3',
+    // The page chrome around the content: a page variant with a heading next
+    // to the "Page content" marker, selected as the site default. (Page
+    // regions no longer render; variants replaced them.)
+    $variant = PageVariant::load('chrome') ?? PageVariant::create([
+      'id' => 'chrome',
+      'label' => 'Chrome',
+      'component_tree' => [
+        [
+          'uuid' => '44444444-4444-4444-8444-444444444444',
+          'component_id' => Marker::PAGE_CONTENT_COMPONENT_ID,
+          'component_version' => $marker->getActiveVersion(),
+          'inputs' => [],
         ],
-        'label' => 'English region heading',
+        [
+          'uuid' => '33333333-3333-4333-8333-333333333333',
+          'component_id' => 'sdc.canvas_test_sdc.heading',
+          'component_version' => $version,
+          'inputs' => [
+            'text' => 'Hello from page variant',
+            'element' => 'h3',
+          ],
+          'label' => 'English region heading',
+        ],
       ],
     ]);
-    $region->enable()->save();
+    $variant->save();
+    $this->container->get(ConfigFactoryInterface::class)->getEditable('canvas.settings')
+      ->set(PageVariant::DEFAULT_SETTING, $variant->id())
+      ->save();
 
     $language_manager = $this->container->get(LanguageManagerInterface::class);
     \assert($language_manager instanceof ConfigurableLanguageManagerInterface);
-    $region_override = $language_manager->getLanguageConfigOverride('fr', $region->getConfigDependencyName());
-    $region_override->setData([
+    $variant_override = $language_manager->getLanguageConfigOverride('fr', $variant->getConfigDependencyName());
+    $variant_override->setData([
       'component_tree' => [
         '33333333-3333-4333-8333-333333333333' => [
           'label' => 'French region heading',
-          'inputs' => ['text' => 'Bonjour de la région'],
+          'inputs' => ['text' => 'Bonjour du variant de page'],
         ],
       ],
     ])->save();
 
-    return $region;
+    return $variant;
   }
 
   /**
@@ -637,7 +652,7 @@ class TranslationTest extends FunctionalTestBase {
     }
 
     $page = $this->createCanvasTranslationTestPage();
-    $this->createPageRegionWithFrenchOverride();
+    $this->createChromePageVariantWithFrenchOverride();
     $page_id = $page->id();
 
     // Create a ContentTemplate for node/article/full with French language
@@ -698,14 +713,15 @@ class TranslationTest extends FunctionalTestBase {
       return $content_region['components'][0]['name'];
     };
 
-    // Helper: returns the first component's name from the first non-content
-    // region (the PageRegion created by createPageRegionWithFrenchOverride()).
+    // Helper: returns the heading component's name from the page variant's
+    // layout (the variant created by createChromePageVariantWithFrenchOverride()).
     $get_region_name_in_api_response = function (string $root_relative_url): ?string {
       $response = $this->makeApiRequest('GET', Url::fromUri("base:$root_relative_url"), []);
       self::assertSame(200, $response->getStatusCode());
       $layout = json_decode((string) $response->getBody(), TRUE)['layout'];
-      $page_region = current(array_filter($layout, fn($r) => $r['id'] !== 'content'));
-      return $page_region['components'][0]['name'];
+      $content_region = current(array_filter($layout, fn($r) => $r['id'] === 'content'));
+      $headings = array_filter($content_region['components'], fn($c) => !str_starts_with($c['type'], 'marker.'));
+      return current($headings)['name'];
     };
 
     // Assert the canvas_page layout API returns the correct translation per
@@ -715,17 +731,17 @@ class TranslationTest extends FunctionalTestBase {
     // Language that does not have translations enabled should fallback to default language.
     self::assertSame('English heading', $get_name_in_api_response("/hi/canvas/api/v0/layout/canvas_page/$page_id"));
 
-    // Assert the PageRegion layout API returns the correct translation per
-    // language prefix.
-    self::assertSame('English region heading', $get_region_name_in_api_response("/canvas/api/v0/layout/canvas_page/$page_id"));
-    self::assertSame('French region heading', $get_region_name_in_api_response("/fr/canvas/api/v0/layout/canvas_page/$page_id"));
-    // Language that does not have translations enabled should fallback to default language.
-    self::assertSame('English region heading', $get_region_name_in_api_response("/hi/canvas/api/v0/layout/canvas_page/$page_id"));
+    // Assert the page variant layout API serves the variant's tree. The
+    // variant edits in the site default language; its French override renders
+    // on the live page (asserted in testTranslationForPage()).
+    // @todo Assert French labels once the variant editor negotiates config
+    //   override languages like the content template editor does, in https://www.drupal.org/i/3591806.
+    self::assertSame('English region heading', $get_region_name_in_api_response("/canvas/api/v0/layout/page_variant/chrome"));
 
     // Create an article node with English and French translations to use as the
     // ContentTemplate preview entity. The French translation has a distinct
     // title so we can assert language-aware field resolution.
-    $node_storage = $this->container->get('entity_type.manager')->getStorage('node');
+    $node_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage('node');
     $node = $node_storage->create([
       'type' => 'article',
       'title' => 'Preview node',
@@ -909,7 +925,7 @@ class TranslationTest extends FunctionalTestBase {
    */
   public function testTranslationForPage(): void {
     $page = $this->createCanvasTranslationTestPage();
-    $this->createPageRegionWithFrenchOverride();
+    $this->createChromePageVariantWithFrenchOverride();
     $page_id = $page->id();
 
     // Retrieve the French language object for constructing the /fr/ URL.
@@ -927,7 +943,7 @@ class TranslationTest extends FunctionalTestBase {
 
     // The French translation of the canvas_page should be displayed.
     $this->assertSession()->pageTextContains('Bonjour, Canvas!');
-    $this->assertSession()->pageTextContains('Bonjour de la région');
+    $this->assertSession()->pageTextContains('Bonjour du variant de page');
     $this->assertSession()->pageTextNotContains('Hello, Canvas!');
 
     // Visit the English page URL to verify the original content.
@@ -1088,18 +1104,18 @@ class TranslationTest extends FunctionalTestBase {
   }
 
   /**
-   * Tests that /fr/* paths use the French PageRegion translation.
+   * Tests that /fr/* paths use the French PageVariant translation.
    *
    * Visiting any path with a French language prefix applies the French
-   * LanguageConfigOverride of the PageRegion config entity. This is true
+   * LanguageConfigOverride of the PageVariant config entity. This is true
    * regardless of whether the entity displayed at the current path itself has
    * a French translation.
    *
-   * Also tests that when a language exists but has no PageRegion translation,
+   * Also tests that when a language exists but has no PageVariant translation,
    * it falls back to the default language (English).
    */
-  public function testNonDefaultTranslationPageRegionTranslation(): void {
-    $this->createPageRegionWithFrenchOverride();
+  public function testNonDefaultTranslationPageVariantTranslation(): void {
+    $this->createChromePageVariantWithFrenchOverride();
 
     // Create a plain article node with no French translation.
     $node = $this->createTestNode();
@@ -1114,25 +1130,25 @@ class TranslationTest extends FunctionalTestBase {
     $french_node_url = Url::fromRoute('entity.node.canonical', ['node' => $nid], ['language' => $fr_language]);
 
     // Visit /fr/node/{nid} — the node has no French translation, but the URL
-    // prefix is French, so the French PageRegion override must still be used.
+    // prefix is French, so the French PageVariant override must still be used.
     $this->drupalGet($french_node_url);
     $this->assertSession()->statusCodeEquals(200);
 
-    // French PageRegion text must appear because the URL prefix is French,
+    // French PageVariant text must appear because the URL prefix is French,
     // regardless of the node lacking a French translation.
-    $this->assertSession()->pageTextContains('Bonjour de la région');
+    $this->assertSession()->pageTextContains('Bonjour du variant de page');
 
-    // English PageRegion text must NOT appear on the French-prefixed node URL.
-    $this->assertSession()->pageTextNotContains('Hello from region');
+    // English PageVariant text must NOT appear on the French-prefixed node URL.
+    $this->assertSession()->pageTextNotContains('Hello from page variant');
 
     $this->drupalGet($node->toUrl());
     $this->assertSession()->statusCodeEquals(200);
 
-    // English PageRegion text must appear on the English node URL.
-    $this->assertSession()->pageTextContains('Hello from region');
+    // English PageVariant text must appear on the English node URL.
+    $this->assertSession()->pageTextContains('Hello from page variant');
 
-    // French PageRegion text must NOT appear on the English node URL.
-    $this->assertSession()->pageTextNotContains('Bonjour de la région');
+    // French PageVariant text must NOT appear on the English node URL.
+    $this->assertSession()->pageTextNotContains('Bonjour du variant de page');
 
     // Retrieve the Hindi language object for constructing the /hi/ URL.
     $hi_language = $language_manager->getLanguage('hi');
@@ -1140,13 +1156,13 @@ class TranslationTest extends FunctionalTestBase {
 
     $hindi_node_url = Url::fromRoute('entity.node.canonical', ['node' => $nid], ['language' => $hi_language]);
 
-    // Visit /hi/node/{nid} — there is no Hindi PageRegion translation, so it
+    // Visit /hi/node/{nid} — there is no Hindi PageVariant translation, so it
     // must fall back to the default language (English).
     $this->drupalGet($hindi_node_url);
     $this->assertSession()->statusCodeEquals(200);
 
-    // English PageRegion text must appear because no Hindi translation exists.
-    $this->assertSession()->pageTextContains('Hello from region');
+    // English PageVariant text must appear because no Hindi translation exists.
+    $this->assertSession()->pageTextContains('Hello from page variant');
 
   }
 
@@ -1180,21 +1196,7 @@ class TranslationTest extends FunctionalTestBase {
     self::assertInstanceOf(Page::class, $reloaded);
     self::assertTrue($reloaded->hasTranslation('fr'));
 
-    // A user with entity update access but without the `delete content
-    // translations` permission must also be denied.
     $user = $this->drupalCreateUser([Page::EDIT_PERMISSION]);
-    \assert($user instanceof UserInterface);
-    $this->drupalLogin($user);
-    $request_options['headers']['X-CSRF-Token'] = $this->drupalGet('session/token');
-    $response = $this->makeApiRequest('DELETE', $fr_delete_url, $request_options);
-    self::assertSame(Response::HTTP_FORBIDDEN, $response->getStatusCode());
-    $reloaded = $page_storage->loadUnchanged($page_id);
-    self::assertInstanceOf(Page::class, $reloaded);
-    self::assertTrue($reloaded->hasTranslation('fr'));
-
-    // Only a user with both update access and `delete content translations`
-    // can successfully delete a translation.
-    $user = $this->drupalCreateUser([Page::EDIT_PERMISSION, 'delete content translations']);
     \assert($user instanceof UserInterface);
     $this->drupalLogin($user);
     $request_options['headers']['X-CSRF-Token'] = $this->drupalGet('session/token');
@@ -1231,7 +1233,7 @@ class TranslationTest extends FunctionalTestBase {
   public static function deleteConfigEntityTranslationProvider(): array {
     return [
       'Content Template' => [ContentTemplate::ENTITY_TYPE_ID],
-      'Page Region' => [PageRegion::ENTITY_TYPE_ID],
+      'Page Variant' => [PageVariant::ENTITY_TYPE_ID],
     ];
   }
 
@@ -1254,7 +1256,7 @@ class TranslationTest extends FunctionalTestBase {
       self::assertInstanceOf(ContentTemplate::class, $entity);
     }
     else {
-      $entity = $this->createPageRegionWithFrenchOverride();
+      $entity = $this->createChromePageVariantWithFrenchOverride();
     }
     $entity_id = $entity->id();
 

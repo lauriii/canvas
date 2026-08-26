@@ -46,6 +46,10 @@ parameters:
   ignoreErrors:
     - identifier: missingType.iterableValue
     - identifier: missingType.generics
+    # PageRegion is deprecated (see ADR 0019) but deliberately still powers the
+    # region-to-variant upgrade path, the theme settings form, and their tests.
+    # Internal usage stays legitimate until the entity type is removed in 2.0.0.
+    - message: '#deprecated class Drupal\\canvas\\Entity\\PageRegion#'
     # PHPStan finds many false positives for this, specifically when using the DIC or Typed Data.
     - identifier: varTag.type
     # All of the ignores below are for missing parameter or return types that are imposed by upstream implementations.
@@ -94,6 +98,8 @@ parameters:
     - { identifier: canvas.requireStaticMethods, path: modules/canvas_ai/** }
 # Canvas' custom PHPStan rules.
 rules:
+  - Canvas\PHPStan\Rules\NoUndeclaredModuleHardReferenceRule
+  - Canvas\PHPStan\Rules\NoUndeclaredModuleInheritanceRule
   - Canvas\PHPStan\Rules\DisallowDrupalFlushAllCachesRule
   - Canvas\PHPStan\Rules\DisallowHookSchemaRule
   - Canvas\PHPStan\Rules\NoDuplicateTraitUseRule
@@ -106,6 +112,8 @@ rules:
   - Canvas\PHPStan\Rules\ComponentPreSaveUpdateMethodsRule
   - Canvas\PHPStan\Rules\ComponentConfigUpdaterMustDeclarePreSaveIntentRule
   - Canvas\PHPStan\Rules\RequireTypedDataHelperForInternalCheckRule
+  - Canvas\PHPStan\Rules\NeedsDetectorMustNotMutateEntityRule
+  - Canvas\PHPStan\Rules\RequireNeverReturnTypeRule
   - mglaman\PHPStanDrupal\Rules\Drupal\TodoCommentWithIssueUrlRule
 # Run `composer run phpstan-regenerate-ignores-for-non-min-core-version-features` to update this list of ignores.
 includes:

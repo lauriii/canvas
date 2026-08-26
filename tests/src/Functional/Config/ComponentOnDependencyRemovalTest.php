@@ -10,6 +10,7 @@ use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Fallback;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Tests\canvas\Functional\FunctionalTestBase;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
@@ -42,7 +43,7 @@ class ComponentOnDependencyRemovalTest extends FunctionalTestBase {
   public function switchDefaultTheme(bool $withUninstall): void {
     $theme_installer = $this->container->get(ThemeInstallerInterface::class);
     $theme_installer->install(['stark']);
-    $this->container->get('config.factory')->getEditable('system.theme')->set('default', 'stark')->save();
+    $this->container->get(ConfigFactoryInterface::class)->getEditable('system.theme')->set('default', 'stark')->save();
     if ($withUninstall) {
       $theme_installer->uninstall(['test_theme_child']);
     }

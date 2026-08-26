@@ -1,3 +1,13 @@
+# Public redirect-or-content endpoint. Middleware rewrites GET requests to the
+# Drupal URI supplied by `requestUri`; other methods reach this route and get 405.
+canvas_headless.content:
+  path: '/canvas/content-api'
+  defaults:
+    _controller: 'Drupal\canvas_headless\Controller\CanvasContentController::get'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+
 # Session renewal. Same-origin JSON endpoint for the Canvas editor's
 # JavaScript: it fetches a fresh assertion here and relays it into the
 # embedded app via postMessage. POST with header-based CSRF protection,

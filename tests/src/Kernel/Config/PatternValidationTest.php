@@ -8,6 +8,7 @@ namespace Drupal\Tests\canvas\Kernel\Config;
 
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\Pattern;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\file\Entity\File;
 use Drupal\media\Entity\Media;
@@ -358,6 +359,33 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
       ],
       'expected_messages' => [
         'component_tree.1.parent_uuid' => 'Invalid component tree item with UUID <em class="placeholder">e303dd88-9409-4dc7-8a8b-a31602884a94</em> references an invalid parent <em class="placeholder">6381352f-5b0a-4ca1-960d-a5505b37b27c</em>.',
+      ],
+    ];
+
+    yield "reserved root UUID" => [
+      'component_tree' => [
+        [
+          'uuid' => ComponentTreeItemList::ROOT_UUID,
+          'component_id' => 'sdc.canvas_test_sdc.props-slots',
+          'component_version' => '0e79e884426a53ae',
+          'inputs' => [
+            'heading' => 'And we laugh like soft, mad children',
+          ],
+        ],
+        [
+          'uuid' => 'e303dd88-9409-4dc7-8a8b-a31602884a94',
+          'slot' => 'the_body',
+          'parent_uuid' => ComponentTreeItemList::ROOT_UUID,
+          'component_id' => 'sdc.canvas_test_sdc.props-slots',
+          'component_version' => '0e79e884426a53ae',
+          'inputs' => [
+            'heading' => ' Smug in the wooly cotton brains of infancy',
+          ],
+        ],
+      ],
+      'expected_messages' => [
+        'component_tree.0.uuid' => 'Invalid component tree item with UUID <em class="placeholder">' . ComponentTreeItemList::ROOT_UUID . '</em>. This UUID is reserved to represent the root of the component tree, and must never be used by a component instance.',
+        'component_tree.1.parent_uuid' => 'Invalid component tree item with UUID <em class="placeholder">e303dd88-9409-4dc7-8a8b-a31602884a94</em> references the reserved root UUID as its parent. Component instances at the root of the tree must omit parent_uuid and slot.',
       ],
     ];
 

@@ -16,9 +16,14 @@ administer folders:
 administer patterns:
   title: 'Administer patterns'
 
+# Page variants are what the UI calls "page templates", and they replace page
+# regions, so both entity types share this permission: a role that could
+# administer the page template before the migration keeps that ability after it.
 # @see \Drupal\canvas\Entity\PageRegion::ADMIN_PERMISSION
+# @see \Drupal\canvas\Entity\PageVariant::ADMIN_PERMISSION
 administer page template:
   title: 'Administer page template'
+  description: 'Create and edit the page templates that render pages, and choose the site default.'
 
 # @see \Drupal\canvas\Entity\ContentTemplate::ADMIN_PERMISSION
 administer content templates:

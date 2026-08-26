@@ -53,6 +53,7 @@ drupalcode
 drupaldev
 drupalsettings
 druplicon
+echoai
 endapply
 entityviewdisplay
 Español
@@ -75,7 +76,12 @@ greppable
 heredocs
 herobanner
 herobannersecond
+Hexa
 hotfixes
+hsla
+hsva
+HSLA
+HSVA
 hyperscriptification
 hyperscriptified
 hyperscriptify
@@ -83,6 +89,7 @@ hyperscriptifying
 ianvs
 importmap
 inlines
+instantiator
 interactable
 interruptibility
 invariantly
@@ -129,6 +136,7 @@ Postel
 preflight
 preflights
 replayable
+sindresorhus
 slugified
 slugifies
 Slugifies
@@ -156,6 +164,8 @@ reparse
 reparsed
 requiredness
 rescanning
+rgba
+RGBA
 rightbar
 rightclick
 roundtripped
@@ -207,6 +217,7 @@ unloadable
 unmixable
 unmodeled
 unparseable
+unrenderable
 unpartitioned
 unrooted
 unstorable
@@ -220,6 +231,7 @@ upserting
 upserts
 upstreaming
 useswr
+Unhead
 uuidv
 Validatable
 vaul
@@ -268,4 +280,6 @@ trae
 unwindowed
 videomedia
 wrappable
+xclip
+xsel
 zencoder
