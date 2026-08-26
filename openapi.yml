@@ -2195,6 +2195,14 @@ paths:
     description: Lists the icon packs installed on the site
     get:
       summary: Lists the icon packs installed on the site
+      parameters:
+        - in: query
+          name: scope
+          required: false
+          description: Pass `all` (requires the `administer brand kit` permission) to bypass the site's `icons.allowed_packs` allow-list, which otherwise filters the listed packs; used by sync clients such as the Canvas CLI.
+          schema:
+            type: string
+            enum: [all]
       responses:
         '200':
           description: All icon packs with their icons

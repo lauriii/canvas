@@ -36,6 +36,21 @@ The shape maps to a plain string field with the `canvas_icon` widget
 searchable grid scoped to the packs allowed for the prop. Outside the Canvas editor the widget degrades to a text
 input holding the icon id.
 
+Props opted in through contrib picker modules' own markers (for example `x-canvas-icon`) are not icon props to Canvas
+and keep working through those modules; a prop carrying both that marker and the icon `$ref` gets Canvas's field type
+and picker.
+
+## Restricting the packs a site offers
+
+The `icons.allowed_packs` list in the `canvas.settings` config restricts which installed packs the Canvas editor
+offers to content authors — the icon picker, the Brand Kit "Icon libraries" section, and the code editor. An empty
+list (the default) offers every installed pack. A prop scoped to a pack outside the allow-list offers no icons: the
+intersection fails closed.
+
+This is authoring policy, not validation. Already-stored values keep rendering, and the per-prop `pattern` remains
+the validation boundary. Sync clients (the Canvas CLI) request the listing endpoint with `scope=all` and are
+unaffected.
+
 ## Rendering contract
 
 Each component source renders an icon the idiomatic way for its technology; the shared
@@ -69,9 +84,10 @@ exists (an unresolvable id logs a warning).
 
 ## Listing endpoint
 
-`GET /canvas/api/v0/icons` returns every installed pack and its icons (id, name, label, and an inline `svg` preview
+`GET /canvas/api/v0/icons` returns the offered packs and their icons (id, name, label, and an inline `svg` preview
 or asset `url`), with cacheable responses. The icon picker and the Brand Kit "Icon libraries" section both consume
-it; search happens client-side.
+it; search happens client-side. The response honors the `icons.allowed_packs` allow-list unless the caller passes
+`scope=all` (see above).
 
 ## Canvas-managed icon libraries (CLI push)
 

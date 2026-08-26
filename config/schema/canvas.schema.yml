@@ -1,3 +1,27 @@
+canvas.settings:
+  type: config_object
+  label: 'Drupal Canvas settings'
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    icons:
+      type: mapping
+      label: 'Icon settings'
+      mapping:
+        allowed_packs:
+          # An empty list offers every installed pack. This is authoring policy
+          # consumed by the icons listing endpoint, not validation: the
+          # per-prop scope `pattern` remains the validation boundary.
+          # @see \Drupal\canvas\Controller\ApiIconsController::list()
+          type: sequence
+          label: 'Icon packs offered to content authors (empty offers every installed pack)'
+          sequence:
+            type: string
+            label: 'Icon pack ID'
+            constraints:
+              Regex:
+                pattern: '/^[a-z0-9_]+$/'
+
 canvas.component.*:
   type: versioned_config_entity
   constraints:

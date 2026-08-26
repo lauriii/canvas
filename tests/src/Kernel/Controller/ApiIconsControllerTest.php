@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\Controller;
 
 use Drupal\canvas\Entity\IconLibrary;
+use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Theme\Icon\Plugin\IconPackManagerInterface;
 use Drupal\file\Entity\File;
@@ -17,6 +18,7 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
  * Tests the icons listing and icon library upload HTTP API.
@@ -82,6 +84,63 @@ final class ApiIconsControllerTest extends CanvasKernelTestBase {
     self::assertContains('icon_pack_plugin', $cache_tags);
     self::assertContains('icon_pack_collector', $cache_tags);
     self::assertContains('config:icon_library_list', $cache_tags);
+    self::assertContains('config:canvas.settings', $cache_tags);
+    self::assertContains('url.query_args:scope', $response->getCacheableMetadata()->getCacheContexts());
+  }
+
+  /**
+   * Tests that the site-wide allow-list filters the default listing.
+   */
+  public function testListRespectsAllowedPacks(): void {
+    // A second pack, provided by a Canvas-managed icon library.
+    IconLibrary::create(['id' => 'demo', 'label' => 'Demo icons'])->save();
+    $svg = \file_get_contents(\dirname(__DIR__, 3) . '/modules/canvas_test_icons/icons/star.svg');
+    self::assertIsString($svg);
+    $response = $this->request(self::createUploadRequest('demo', 'star.svg', $svg));
+    self::assertSame(201, $response->getStatusCode());
+
+    // With the default empty allow-list, every installed pack is offered.
+    $data = self::decodeResponse($this->request(Request::create('/canvas/api/v0/icons')));
+    self::assertArrayHasKey('canvas_test', $data['packs']);
+    self::assertArrayHasKey('demo', $data['packs']);
+
+    // A non-empty allow-list restricts the default listing to those packs.
+    $this->config('canvas.settings')->set('icons.allowed_packs', ['canvas_test'])->save();
+    $data = self::decodeResponse($this->request(Request::create('/canvas/api/v0/icons')));
+    self::assertArrayHasKey('canvas_test', $data['packs']);
+    self::assertArrayNotHasKey('demo', $data['packs']);
+
+    // scope=all bypasses the allow-list for brand kit administrators, so CLI
+    // pulls always see the complete catalog.
+    $data = self::decodeResponse($this->request(Request::create('/canvas/api/v0/icons', 'GET', ['scope' => 'all'])));
+    self::assertArrayHasKey('canvas_test', $data['packs']);
+    self::assertArrayHasKey('demo', $data['packs']);
+  }
+
+  /**
+   * Tests that scope=all requires the brand kit administration permission.
+   */
+  public function testListScopeAllRequiresAdminPermission(): void {
+    // A user who passes the route's access check but does not hold the brand
+    // kit administration permission.
+    $user = $this->createUser([JavaScriptComponent::ADMIN_PERMISSION]);
+    self::assertNotFalse($user);
+    $this->setCurrentUser($user);
+
+    $this->expectException(AccessDeniedHttpException::class);
+    $this->request(Request::create('/canvas/api/v0/icons', 'GET', ['scope' => 'all']));
+  }
+
+  /**
+   * Tests that an unknown scope value is rejected.
+   */
+  public function testListRejectsUnknownScope(): void {
+    $request = Request::create('/canvas/api/v0/icons', 'GET', ['scope' => 'bogus']);
+    // In non-production environments the OpenAPI request validator rejects the
+    // unknown value first; bypass it to exercise the controller's own guard.
+    $request->headers->set('X-NO-OPENAPI-VALIDATION', '1');
+    $this->expectException(BadRequestHttpException::class);
+    $this->request($request);
   }
 
   /**

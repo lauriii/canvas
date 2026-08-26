@@ -1067,10 +1067,13 @@ export class ApiService {
 
   /**
    * List all installed icon packs (module-provided and canvas-managed).
+   *
+   * Requests scope=all so pulls see the complete catalog even when the site
+   * restricts the packs offered to content authors.
    */
   async getIconPacks(): Promise<Record<string, IconPack>> {
     try {
-      const response = await this.client.get('/canvas/api/v0/icons');
+      const response = await this.client.get('/canvas/api/v0/icons?scope=all');
       return response.data.packs;
     } catch (error) {
       this.handleApiError(error);

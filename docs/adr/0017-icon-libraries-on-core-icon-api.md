@@ -45,6 +45,12 @@ extractor into a renderable value — inline SVG markup or an asset URL — so c
 SVG sources by hand. A stored id whose pack or icon no longer exists resolves to nothing plus a logged warning, the
 same failure mode core accepts for its own icon render element.
 
+**A site-wide allow-list filters what content authors are offered.** The `icons.allowed_packs` list in
+`canvas.settings` filters the listing endpoint for content authors: it is authoring policy rather than validation
+(stored values keep rendering, the per-prop `pattern` stays the validation boundary), and a per-prop scope intersects
+with it fail-closed — a prop scoped to a disallowed pack offers no icons. Sync clients request `scope=all`, gated by
+the brand kit administration permission, so CLI round-trips are unaffected by the policy.
+
 **Icons are a shared field type, not a code-component feature.** An icon-shaped prop maps to a dedicated `canvas_icon`
 field type (extending core's `string`) paired with the icon picker widget, registered in the shared prop-shape layer
 that every JSON-Schema-prop component source uses. Render-time resolution of the stored id lives in the shared
@@ -78,6 +84,8 @@ rejected before anything is stored.
   the core Icon API (new extractors, caching) accrue to Canvas for free.
 - Pack scoping rides on plain JSON Schema, so any spec-compliant validator — server-side or client-side — enforces
   it without Canvas-specific extensions.
+- The site-wide allow-list only shapes what the listing endpoint offers authors; it validates nothing, and sync
+  clients bypass it with the permission-gated `scope=all`.
 - Canvas-managed libraries are ordinary config entities: deployable via configuration management, protected by their
   own permission and OAuth scope, and their assets are ordinary managed files with usage tracking.
 - Because config-defined packs are registered in an alter hook that runs after core's own pack processing, Canvas is
