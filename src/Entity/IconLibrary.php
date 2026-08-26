@@ -246,7 +246,7 @@ final class IconLibrary extends ConfigEntityBase implements CanvasHttpApiEligibl
    * @see \Drupal\canvas\Controller\ApiIconsController::list()
    */
   private static function invalidateIconCaches(): void {
-    $icon_pack_manager = \Drupal::service('plugin.manager.icon_pack');
+    $icon_pack_manager = \Drupal::service(IconPackManagerInterface::class);
     \assert($icon_pack_manager instanceof CachedDiscoveryInterface);
     $icon_pack_manager->clearCachedDefinitions();
     // The icon collector's per-request static cache is not covered by the tag
@@ -287,7 +287,7 @@ final class IconLibrary extends ConfigEntityBase implements CanvasHttpApiEligibl
     if ($id === NULL || $id === '') {
       return;
     }
-    $icon_pack_manager = \Drupal::service('plugin.manager.icon_pack');
+    $icon_pack_manager = \Drupal::service(IconPackManagerInterface::class);
     \assert($icon_pack_manager instanceof IconPackManagerInterface);
     $definition = $icon_pack_manager->getDefinitions()[$id] ?? NULL;
     $provider = \is_array($definition) ? ($definition['provider'] ?? NULL) : NULL;

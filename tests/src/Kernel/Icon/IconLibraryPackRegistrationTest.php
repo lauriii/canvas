@@ -59,7 +59,7 @@ final class IconLibraryPackRegistrationTest extends CanvasKernelTestBase {
       self::assertNotFalse(\file_put_contents($directory . $filename, $contents));
     }
 
-    $icon_pack_manager = $this->container->get('plugin.manager.icon_pack');
+    $icon_pack_manager = $this->container->get(IconPackManagerInterface::class);
     \assert($icon_pack_manager instanceof IconPackManagerInterface);
 
     // Before the icon library exists, only extension-provided packs exist.

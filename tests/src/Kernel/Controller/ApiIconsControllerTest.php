@@ -172,7 +172,7 @@ final class ApiIconsControllerTest extends CanvasKernelTestBase {
 
     // An uploaded file only becomes an icon once the entity references it —
     // the CLI commits the asset list to the entity after uploading.
-    $icon_pack_manager = $this->container->get('plugin.manager.icon_pack');
+    $icon_pack_manager = $this->container->get(IconPackManagerInterface::class);
     \assert($icon_pack_manager instanceof IconPackManagerInterface);
     $definitions = $icon_pack_manager->getDefinitions() ?? [];
     self::assertSame([], $definitions['demo']['icons'] ?? []);
