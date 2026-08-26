@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\EventSubscriber;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\PageVariantResolver;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
@@ -84,7 +85,21 @@ final class PageVariantSelectorSubscriber implements EventSubscriberInterface {
     // so adding or changing the default invalidates cached pages.
     $event->addCacheableDependency($this->configFactory->get('canvas.settings'));
     if ($variant === NULL) {
-      // No variant resolves: leave core block layout to render the page.
+      // Render legacy regions when page variant could not be resolved
+      // and active theme still has page regions available.
+      $regions = PageRegion::loadForActiveTheme();
+      if ($regions === []) {
+        // No variant or legacy region resolves: leave core block layout to
+        // render the page.
+        return;
+      }
+      foreach ($regions as $region) {
+        $event->addCacheableDependency($region);
+      }
+      $event->setPluginId(CanvasPageVariant::PLUGIN_ID);
+      $event->setPluginConfiguration([
+        CanvasPageVariant::PREVIEW_KEY => $is_preview,
+      ]);
       return;
     }
     $event->addCacheableDependency($variant);

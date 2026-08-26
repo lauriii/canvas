@@ -10,6 +10,7 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\EventSubscriber\PageVariantSelectorSubscriber;
 use Drupal\canvas\PageVariantResolver;
@@ -674,6 +675,54 @@ final class PageVariantTest extends CanvasKernelTestBase {
     self::assertInstanceOf(RendererInterface::class, $renderer);
     $html = (string) $renderer->renderInIsolation($build['#content']);
     self::assertStringContainsString($sentinel, $html);
+  }
+
+  /**
+   * Tests rendering legacy global regions when no default variant exists.
+   */
+  public function testDisplayVariantRendersLegacyRegionsWithoutDefault(): void {
+    self::assertNull($this->config('canvas.settings')->get(PageVariant::DEFAULT_SETTING));
+    $this->config('system.theme')->set('default', 'stark')->save();
+
+    $region = PageRegion::create([
+      'theme' => 'stark',
+      'region' => 'sidebar_first',
+      'component_tree' => [
+        [
+          'uuid' => \Drupal::service('uuid')->generate(),
+          'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+          'component_version' => 'd34b93534777207a',
+          'inputs' => ['heading' => 'Legacy global region'],
+        ],
+      ],
+    ]);
+    $region->save();
+
+    $subscriber = $this->container->get(PageVariantSelectorSubscriber::class);
+    self::assertInstanceOf(PageVariantSelectorSubscriber::class, $subscriber);
+    $route = new Route('/front-end-page');
+    $event = new PageDisplayVariantSelectionEvent('simple_page', new RouteMatch('canvas.test', $route, [], []));
+    $subscriber->onSelectPageDisplayVariant($event);
+    self::assertSame(CanvasPageVariant::PLUGIN_ID, $event->getPluginId());
+    self::assertSame([
+      CanvasPageVariant::PREVIEW_KEY => FALSE,
+    ], $event->getPluginConfiguration());
+
+    $variant_manager = $this->container->get('plugin.manager.display_variant');
+    self::assertInstanceOf(VariantManager::class, $variant_manager);
+    $plugin = $variant_manager->createInstance($event->getPluginId(), $event->getPluginConfiguration());
+    self::assertInstanceOf(CanvasPageVariant::class, $plugin);
+    $plugin->setMainContent(['#markup' => 'Route main content']);
+    $plugin->setTitle('Rendered title');
+    $build = $plugin->build();
+
+    self::assertArrayHasKey('sidebar_first', $build);
+    self::assertArrayHasKey(CanvasPageVariant::MAIN_CONTENT_REGION, $build);
+    $renderer = $this->container->get(RendererInterface::class);
+    self::assertInstanceOf(RendererInterface::class, $renderer);
+    $html = (string) $renderer->renderInIsolation($build);
+    self::assertStringContainsString('Legacy global region', $html);
+    self::assertStringContainsString('Route main content', $html);
   }
 
   /**
