@@ -73,6 +73,22 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
 
   public const EXAMPLE_VIDEO_HORIZONTAL = '/ui/assets/videos/mountain_wide.mp4';
   public const EXAMPLE_VIDEO_VERTICAL = '/ui/assets/videos/bird_vertical.mp4';
+  public const EXAMPLE_DOCUMENT = '/ui/assets/documents/sample.pdf';
+
+  /**
+   * The root-relative example URLs that ship with the module.
+   *
+   * Only these exact strings are accepted as relative example URLs; every
+   * other example URL must be fully qualified.
+   *
+   * @see self::validateExampleUrl()
+   * @see self::rewriteExampleUrl()
+   */
+  public const EXAMPLE_URL_ALLOW_LIST = [
+    self::EXAMPLE_VIDEO_HORIZONTAL,
+    self::EXAMPLE_VIDEO_VERTICAL,
+    self::EXAMPLE_DOCUMENT,
+  ];
 
   protected ExtensionPathResolver $extensionPathResolver;
   protected AutoSaveManager $autoSaveManager;
@@ -725,7 +741,7 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
       return;
     }
     // Only allow precise matches for both DX and security reasons.
-    if ($url === self::EXAMPLE_VIDEO_HORIZONTAL || $url === self::EXAMPLE_VIDEO_VERTICAL) {
+    if (\in_array($url, self::EXAMPLE_URL_ALLOW_LIST, TRUE)) {
       return;
     }
     throw new \InvalidArgumentException('Default images for Javascript Components must be a fully-qualified URL with both scheme and host.');

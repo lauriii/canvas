@@ -88,7 +88,9 @@ export interface CodeComponentProp {
     | CodeComponentPropImageExample
     | CodeComponentPropImageExample[]
     | CodeComponentPropVideoExample
-    | CodeComponentPropVideoExample[];
+    | CodeComponentPropVideoExample[]
+    | CodeComponentPropDocumentExample
+    | CodeComponentPropDocumentExample[];
   $ref?: string;
   format?: string;
   pattern?: string;
@@ -144,6 +146,8 @@ export interface CodeComponentPropSerialized {
     | CodeComponentPropImageExample[]
     | CodeComponentPropVideoExample
     | CodeComponentPropVideoExample[]
+    | CodeComponentPropDocumentExample
+    | CodeComponentPropDocumentExample[]
   )[];
   $ref?: string;
   format?: string;
@@ -204,6 +208,7 @@ export type CodeComponentPropPreviewValue =
   | number[]
   | CodeComponentPropImageExample[]
   | CodeComponentPropVideoExample[]
+  | CodeComponentPropDocumentExample[]
   | ResolvedColorProp
   // Icon props resolve to a renderable value for the preview, mirroring the
   // server-side resolution at render time.
@@ -326,4 +331,13 @@ export type AssetLibraryFontVariantType = BrandKitFontVariantType;
 export interface CodeComponentPropVideoExample {
   src: string;
   poster: string;
+}
+
+export interface CodeComponentPropDocumentExample {
+  src: string;
+  title?: string;
+  description?: string;
+  filename?: string;
+  filesize?: number;
+  mimetype?: string;
 }

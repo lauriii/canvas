@@ -1195,12 +1195,13 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       self::assertSame(Cache::PERMANENT, $g->getCacheMaxAge());
     };
 
-    // Assert that the two example videos Canvas ships with are rewritten to include
+    // Assert that the example assets Canvas ships with are rewritten to include
     // the relative path on the current site.
     $module_path = \Drupal::service(ModuleExtensionList::class)->getPath('canvas');
-    foreach ([JsComponent::EXAMPLE_VIDEO_HORIZONTAL, JsComponent::EXAMPLE_VIDEO_VERTICAL] as $shipped_video_file) {
-      $generated_url = $source->rewriteExampleUrl($shipped_video_file);
-      self::assertSame(\base_path() . $module_path . $shipped_video_file, $generated_url->getGeneratedUrl());
+    self::assertCount(3, JsComponent::EXAMPLE_URL_ALLOW_LIST);
+    foreach (JsComponent::EXAMPLE_URL_ALLOW_LIST as $shipped_example_file) {
+      $generated_url = $source->rewriteExampleUrl($shipped_example_file);
+      self::assertSame(\base_path() . $module_path . $shipped_example_file, $generated_url->getGeneratedUrl());
       $assert_cacheability($generated_url);
     }
 
@@ -1212,18 +1213,21 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     // Assert that any other `/ui/assets/…` URL is disallowed, not even one to
     // the containing directory.
     // Rationale: avoid security concerns by not relying on file_exists(),
-    // potential bypasses of that, and instead only have 2 allowed examples.
-    try {
-      self::assertSame('/ui/assets/videos', dirname(JsComponent::EXAMPLE_VIDEO_VERTICAL));
-      $source->rewriteExampleUrl('/ui/assets/videos');
-      $this->fail();
-    }
-    catch (\InvalidArgumentException $e) {
-      self::assertSame('Default images for Javascript Components must be a fully-qualified URL with both scheme and host.', $e->getMessage());
+    // potential bypasses of that, and instead only allow the listed examples.
+    self::assertSame('/ui/assets/videos', dirname(JsComponent::EXAMPLE_VIDEO_VERTICAL));
+    self::assertSame('/ui/assets/documents', dirname(JsComponent::EXAMPLE_DOCUMENT));
+    foreach (['/ui/assets/videos', '/ui/assets/documents'] as $example_directory) {
+      try {
+        $source->rewriteExampleUrl($example_directory);
+        $this->fail();
+      }
+      catch (\InvalidArgumentException $e) {
+        self::assertSame('Default images for Javascript Components must be a fully-qualified URL with both scheme and host.', $e->getMessage());
+      }
     }
 
-    // Assert that neither a prefix nor a suffix is tolerated: only these exact
-    // 2 strings are allowed.
+    // Assert that neither a prefix nor a suffix is tolerated: only the exact
+    // allow-listed strings are allowed.
     // Rationale: configuration management DX is degraded if the example is
     // environment-dependent (Drupal served from root vs subdir, Canvas module
     // installation location).

@@ -999,6 +999,65 @@ describe('props in code editor', () => {
       });
     });
 
+    it('creates a new document prop', async () => {
+      await addProp('Document', 'Document');
+      await waitFor(() => {
+        expect(screen.getByLabelText('Example document')).toHaveTextContent(
+          'Sample document (PDF)',
+        );
+      });
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop).toMatchObject({
+          type: 'object',
+          example: {
+            src: '/ui/assets/documents/sample.pdf',
+            filename: 'sample.pdf',
+            mimetype: 'application/pdf',
+          },
+          format: undefined,
+          $ref: 'json-schema-definitions://canvas.module/document',
+        });
+      });
+
+      // Selecting "None" clears the example.
+      await userEvent.click(
+        screen.getByRole('combobox', { name: 'Example document' }),
+      );
+      const noneOption = await screen.findByRole('option', {
+        name: '- None -',
+      });
+      await userEvent.click(noneOption);
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop).toMatchObject({
+          type: 'object',
+          example: '',
+          format: undefined,
+          $ref: 'json-schema-definitions://canvas.module/document',
+        });
+      });
+
+      // Setting the prop as required restores the default example.
+      await userEvent.click(screen.getByLabelText('Required'));
+      expect(screen.getByLabelText('Example document')).toHaveTextContent(
+        'Sample document (PDF)',
+      );
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop).toMatchObject({
+          type: 'object',
+          example: {
+            src: '/ui/assets/documents/sample.pdf',
+            filename: 'sample.pdf',
+            mimetype: 'application/pdf',
+          },
+          format: undefined,
+          $ref: 'json-schema-definitions://canvas.module/document',
+        });
+      });
+    });
+
     it('creates a new boolean prop', async () => {
       await addProp('Boolean', 'Is featured');
       await waitFor(() => {
@@ -1544,6 +1603,11 @@ describe('props in code editor', () => {
       {
         targetTypeName: 'Video',
         expectedDerivedType: 'video' as const,
+        expectedFormat: undefined,
+      },
+      {
+        targetTypeName: 'Document',
+        expectedDerivedType: 'document' as const,
         expectedFormat: undefined,
       },
       {
@@ -3380,6 +3444,27 @@ describe('props in code editor', () => {
       });
     });
 
+    it('enables multiple values for document prop', async () => {
+      await addProp('Document', 'DocumentLibrary');
+      const checkbox = await screen.findByRole('checkbox', {
+        name: 'Allow multiple values',
+      });
+      expect(checkbox).toBeInTheDocument();
+      fireEvent.click(checkbox);
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop.allowMultiple).toBe(true);
+        expect(prop.type).toBe('array');
+        expect(prop.items).toEqual({
+          type: 'object',
+          $ref: 'json-schema-definitions://canvas.module/document',
+        });
+        expect(Array.isArray(prop.example)).toBe(true);
+        expect(prop.valueMode).toBe('unlimited');
+        expect(prop.limitedCount).toBe(1);
+      });
+    });
+
     it('adds multiple date values in unlimited mode', async () => {
       await addProp('Date and time', 'EventDates');
       const checkbox = await screen.findByRole('checkbox', {
@@ -3744,7 +3829,7 @@ describe('props in code editor', () => {
     );
   });
 
-  describe('serialization with invalid video/image arrays', () => {
+  describe('serialization with invalid object arrays', () => {
     it('utils.ts must handle empty strings in video array without crashing', () => {
       const videoPropsWithEmptyStrings = [
         {
@@ -3765,6 +3850,29 @@ describe('props in code editor', () => {
 
       expect(() =>
         serializeProps(videoPropsWithEmptyStrings as any),
+      ).not.toThrow();
+    });
+
+    it('utils.ts must handle empty strings in document array without crashing', () => {
+      const documentPropsWithEmptyStrings = [
+        {
+          id: 'test-document-prop',
+          name: 'Documents',
+          type: 'array',
+          items: {
+            type: 'object',
+            $ref: 'json-schema-definitions://canvas.module/document',
+          },
+          example: ['', ''],
+          derivedType: 'document',
+          allowMultiple: true,
+          valueMode: 'limited',
+          limitedCount: 2,
+        },
+      ];
+
+      expect(() =>
+        serializeProps(documentPropsWithEmptyStrings as any),
       ).not.toThrow();
     });
 
