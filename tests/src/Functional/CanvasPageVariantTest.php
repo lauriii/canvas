@@ -150,6 +150,8 @@ class CanvasPageVariantTest extends FunctionalTestBase {
     Role::load('canvaspageadmin')
       ?->grantPermission(Page::EDIT_PERMISSION)
         ->grantPermission(PageVariant::ADMIN_PERMISSION)
+        // Canvas API requests run inside the Canvas workspace.
+        ->grantPermission('view any workspace')
         ->save();
     $this->rebuildContainer();
     $this->generateComponentConfig();

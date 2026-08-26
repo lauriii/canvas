@@ -16,6 +16,7 @@ use Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
@@ -24,9 +25,11 @@ use Drupal\file\FileInterface;
 use Drupal\media\Entity\Media;
 use Drupal\media\MediaInterface;
 use Drupal\node\Entity\Node;
+use Drupal\Tests\canvas\Kernel\Traits\CanvasWorkspaceConfigTestTrait;
 use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
 use Drupal\Tests\canvas\Traits\AutoSaveRequestTestTrait;
 use Drupal\Tests\canvas\Traits\CanvasFieldTrait;
+use Drupal\Tests\workspace_config\Kernel\WorkspaceConfigTestTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -49,6 +52,20 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
 
   use CanvasFieldTrait;
   use AutoSaveRequestTestTrait;
+  use CanvasWorkspaceConfigTestTrait;
+  use WorkspaceConfigTestTrait;
+
+  /**
+   * {@inheritdoc}
+   *
+   * Publishing runs through workspace_config, which expects its key-value
+   * decoration to be in place as on a real site.
+   */
+  public function register(ContainerBuilder $container): void {
+    parent::register($container);
+    $this->registerCanvasStagingKeyValue($container);
+    $this->registerWorkspaceConfigKeyValue($container);
+  }
 
   /**
    * {@inheritdoc}
@@ -537,6 +554,9 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       'edit any article content',
       JavaScriptComponent::ADMIN_PERMISSION,
       AutoSaveManager::PUBLISH_PERMISSION,
+      // Publishing goes through the workspace: core's publish operation maps
+      // to this permission.
+      'edit any workspace',
     ]);
 
     // Create a JS component with TWO slots: 'description' and 'sidebar'.
