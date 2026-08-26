@@ -15,4 +15,5 @@ value:
     - 33.3
   alpha: null
   hex: null
+displayFormat: hsl
 weight: 1

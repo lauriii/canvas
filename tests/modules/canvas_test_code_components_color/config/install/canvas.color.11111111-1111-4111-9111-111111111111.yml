@@ -14,4 +14,5 @@ value:
     - 0.0
     - 0.0
   hex: '#cc0000'
+displayFormat: hex
 weight: 0

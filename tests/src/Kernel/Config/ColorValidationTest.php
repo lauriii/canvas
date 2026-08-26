@@ -46,11 +46,10 @@ final class ColorValidationTest extends BetterConfigEntityValidationTestBase {
   /**
    * {@inheritdoc}
    *
-   * Color entity properties are all required at the top level.
-   * Nested optional fields within 'value' (alpha, hex) are handled
-   * by config schema validation, not entity property validation.
+   * Color entity properties are all required at the top level, except
+   * displayFormat which is optional and may be null.
    */
-  protected static array $propertiesWithOptionalValues = [];
+  protected static array $propertiesWithOptionalValues = ['displayFormat'];
 
   /**
    * {@inheritdoc}

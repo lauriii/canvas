@@ -101,7 +101,10 @@ const hsvaToValue = (
 
 interface ColorPickerProps {
   value: BrandKitColorValue;
-  onChange: (value: BrandKitColorValue) => void;
+  onChange: (
+    value: BrandKitColorValue,
+    displayFormat: 'rgb' | 'hex' | 'hsl',
+  ) => void;
   onValidityChange?: (isValid: boolean) => void;
 }
 
@@ -145,27 +148,33 @@ const ColorPicker = ({
     // Track user-selected mode to prevent auto-reset
     userModeRef.current = newMode;
 
-    // Determine the target colorSpace based on the new mode
-    // hex mode uses srgb colorSpace
+    // Determine the target colorSpace and displayFormat based on the new mode
     const targetColorSpace: BrandKitColorValue['colorSpace'] =
       newMode === 'hsla' ? 'hsl' : 'srgb';
+    const displayFormat: 'rgb' | 'hex' | 'hsl' =
+      newMode === 'hex' ? 'hex' : newMode === 'hsla' ? 'hsl' : 'rgb';
 
     // Only convert if the colorSpace is actually changing
     if (targetColorSpace !== value.colorSpace) {
-      onChange(hsvaToValue(hsva, targetColorSpace));
+      onChange(hsvaToValue(hsva, targetColorSpace), displayFormat);
+    } else {
+      // colorSpace didn't change, but displayFormat might have
+      onChange(hsvaToValue(hsva, targetColorSpace), displayFormat);
     }
   };
 
   const handleHsvaChange = (newHsva: HsvaColor) => {
-    const roundedHsva = withRoundedAlpha(newHsva);
-    setHsva(roundedHsva);
-    onChange(hsvaToValue(roundedHsva, value.colorSpace));
+    setHsva(newHsva);
+    const displayFormat =
+      colorMode === 'hex' ? 'hex' : colorMode === 'hsla' ? 'hsl' : 'rgb';
+    onChange(hsvaToValue(newHsva, value.colorSpace), displayFormat);
   };
-
   const handleColorInputsChange = (newHsva: HsvaColor) => {
     const roundedHsva = withRoundedAlpha(newHsva);
+    const displayFormat =
+      colorMode === 'hex' ? 'hex' : colorMode === 'hsla' ? 'hsl' : 'rgb';
+    onChange(hsvaToValue(newHsva, value.colorSpace), displayFormat);
     setHsva(roundedHsva);
-    onChange(hsvaToValue(roundedHsva, value.colorSpace));
   };
 
   const hasEyeDropper = typeof window !== 'undefined' && 'EyeDropper' in window;
@@ -187,12 +196,15 @@ const ColorPicker = ({
         setHsva(mergedHsva);
         // Eyedropper always produces sRGB
         const rgba = hsvaToRgba(mergedHsva);
-        onChange({
-          colorSpace: 'srgb',
-          components: [rgba.r / 255, rgba.g / 255, rgba.b / 255],
-          alpha: mergedHsva.a === 1 ? null : mergedHsva.a,
-          hex: result.sRGBHex,
-        });
+        onChange(
+          {
+            colorSpace: 'srgb',
+            components: [rgba.r / 255, rgba.g / 255, rgba.b / 255],
+            alpha: mergedHsva.a === 1 ? null : mergedHsva.a,
+            hex: result.sRGBHex,
+          },
+          'hex',
+        );
       }
     } catch {
       // User cancelled or eyedropper failed — no action needed

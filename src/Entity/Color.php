@@ -26,6 +26,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  *     alpha: float|null,
  *     hex: string|null
  *   },
+ *   displayFormat: string|null,
  *   weight: int
  * }
  * @phpstan-type ColorEntryInput array{
@@ -38,6 +39,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  *     alpha: float|int|string|null,
  *     hex: string|null
  *   },
+ *   displayFormat: string|null,
  *   weight: int|string
  * }
  */
@@ -60,6 +62,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
     'name',
     'cssVariable',
     'value',
+    'displayFormat',
     'weight',
   ],
   constraints: [
@@ -104,6 +107,7 @@ final class Color extends ConfigEntityBase implements CanvasHttpApiEligibleConfi
    * }
    */
   protected array $value;
+  protected ?string $displayFormat = NULL;
   protected int $weight = 0;
 
   public function id(): ?string {
@@ -124,6 +128,7 @@ final class Color extends ConfigEntityBase implements CanvasHttpApiEligibleConfi
         'name' => $this->name,
         'cssVariable' => $this->cssVariable,
         'value' => $this->value,
+        'displayFormat' => $this->displayFormat ?? NULL,
         'weight' => $this->weight,
       ],
       preview: NULL,
@@ -196,6 +201,10 @@ final class Color extends ConfigEntityBase implements CanvasHttpApiEligibleConfi
 
   public function getWeight(): int {
     return $this->weight;
+  }
+
+  public function getDisplayFormat(): ?string {
+    return $this->displayFormat;
   }
 
   /**

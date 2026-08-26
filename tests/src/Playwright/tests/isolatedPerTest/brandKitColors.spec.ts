@@ -152,6 +152,8 @@ const SEL = {
   // First child div of the row is the color swatch (inline style with background-color)
   rowSwatch: (name: string) =>
     `[data-testid="canvas-color-row-${name}"] > div:first-child`,
+  // The displayed color value text that appears on row hover
+  rowValue: (name: string) => `[data-testid="canvas-color-row-${name}"] > span`,
   rowMenu: (name: string) =>
     `[data-testid="canvas-color-row-${name}"] [aria-label="Open contextual menu"]`,
   folder: (name: string) => `[data-canvas-folder-name="${name}"]`,
@@ -265,11 +267,38 @@ test.describe('brand kit colors', () => {
     await expect(page.locator(SEL.row('Brand Red'))).toBeVisible();
     await expect(page.locator(SEL.row('Brand Blue'))).toBeVisible();
 
+    // - Verify each color row displays its stored value in the expected format on hover
+    await page.locator(SEL.row('Brand Red')).hover();
+    await expect(page.locator(SEL.rowValue('Brand Red'))).toBeVisible();
+    await expect(page.locator(SEL.rowValue('Brand Red'))).toHaveText('#CC0000');
+
+    await page.locator(SEL.row('Brand Green')).hover();
+    await expect(page.locator(SEL.rowValue('Brand Green'))).toBeVisible();
+    await expect(page.locator(SEL.rowValue('Brand Green'))).toHaveText(
+      'hsl(142, 100%, 33%)',
+    );
+
+    await page.locator(SEL.row('Brand Blue')).hover();
+    await expect(page.locator(SEL.rowValue('Brand Blue'))).toBeVisible();
+    await expect(page.locator(SEL.rowValue('Brand Blue'))).toHaveText(
+      'rgb(0, 68, 204)',
+    );
+
     // - Verify each color loads in its expected format based on how it was created:
     //   * Brand Green (hsl) → should open in HSLA mode
     //   * Brand Blue (srgb without hex) → should open in RGBA mode
     // Note that a color created in hex will save/open as RGB, as hex is just
     // another way of representing RGB.
+
+    // Edit Brand Red - should open in RGBA mode (srgb colorSpace)
+    await page.locator(SEL.row('Brand Red')).hover();
+    await page.locator(SEL.rowMenu('Brand Red')).click();
+    await page.locator(SEL.menu.edit).click();
+    await expect(page.locator(SEL.form.rgba.r)).toBeVisible();
+    await expect(page.locator(SEL.form.rgba.r)).toHaveValue('204');
+    await expect(page.locator(SEL.form.rgba.g)).toHaveValue('0');
+    await expect(page.locator(SEL.form.rgba.b)).toHaveValue('0');
+    await page.locator(SEL.form.cancel).click();
 
     // Edit Brand Green - should open in HSLA mode (HSL colorSpace)
     await page.locator(SEL.row('Brand Green')).hover();
