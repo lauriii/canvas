@@ -8,6 +8,8 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\MissingComponentInputsException;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
+use Drupal\canvas\Plugin\DataType\ComponentInputs;
 use Drupal\canvas\Plugin\DataType\ConfigEntityVersionAdapter;
 use Drupal\canvas\Plugin\DataType\ResolvedComponentInputs;
 use Drupal\canvas\PropExpressions\StructuredData\ContentAwareDependentInterface;
@@ -83,6 +85,9 @@ use Symfony\Component\Validator\ConstraintViolationList;
           // @see `type: canvas.page_region.*`
           TitleBlockPluginInterface::class,
           MessagesBlockPluginInterface::class,
+          // The page content marker is only allowed in page_variant trees.
+          // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
+          Marker::PAGE_CONTENT_COMPONENT_ID,
         ],
         'presence' => NULL,
       ],
@@ -122,6 +127,18 @@ class ComponentTreeItem extends FieldItemBase {
 
   // @todo Decide what the best location is for this constant.
   public const string VIOLATION_CODE_GARBAGE_INPUT = 'garbage';
+
+  /**
+   * String-typed properties that are nullable and must not be cast to ''.
+   *
+   * @see \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator::validate()
+   * @see \Drupal\canvas\Utility\TypedDataHelper::castRawPhpTypes()
+   */
+  public const array NULLABLE_STRING_PROPERTIES = [
+    'parent_uuid',
+    'slot',
+    'label',
+  ];
 
   use ComponentTreeItemListInstantiatorTrait;
 
@@ -677,6 +694,77 @@ class ComponentTreeItem extends FieldItemBase {
     }
     $this->setInput($inputs ?? []);
     return $changed;
+  }
+
+  /**
+   * Lists the props of a given schema shape holding a given stored value.
+   *
+   * TRICKY: props are identified by their JSON schema `$ref`, never by their
+   * value. A plain string prop whose value merely looks like a reference is
+   * not one, and creates no config dependency either — so it must not be
+   * reported as a usage.
+   *
+   * @param string $ref
+   *   The JSON schema `$ref` identifying which props to consider.
+   * @param string $value
+   *   The stored value to look for. Matched exactly.
+   *
+   * @return string[]
+   *   Prop names, in stored order.
+   *
+   * @see \Drupal\canvas\Plugin\DataType\ComponentInputs::getPropNamesByRef()
+   */
+  public function getPropNamesWithValue(string $ref, string $value): array {
+    $component_inputs = $this->get('inputs');
+    \assert($component_inputs instanceof ComponentInputs);
+    return \array_values(\array_filter(
+      $component_inputs->getPropNamesByRef($ref),
+      static fn (string $prop_name): bool => $component_inputs->getScalarPropValue($prop_name) === $value,
+    ));
+  }
+
+  /**
+   * Rewrites one stored value, in place, across props of a given schema shape.
+   *
+   * Unlike ::updatePropSourcesOnDependencyRemoval(), the prop source is kept
+   * and only its value changes. That suits a shape whose value can degrade to
+   * a literal — a Brand Kit color becoming the color it resolved to — where
+   * dropping the prop would discard a deliberate authoring choice.
+   *
+   * @param string $ref
+   *   The JSON schema `$ref` identifying which props to consider.
+   * @param string $old_value
+   *   The stored value to replace. Matched exactly.
+   * @param string $new_value
+   *   The value to store instead.
+   *
+   * @return bool
+   *   TRUE if any prop value was rewritten.
+   *
+   * @see \Drupal\canvas\Entity\ComponentTreeConfigEntityBase::onDependencyRemoval()
+   */
+  public function replacePropValue(string $ref, string $old_value, string $new_value): bool {
+    $prop_names = $this->getPropNamesWithValue($ref, $old_value);
+    if ($prop_names === []) {
+      return FALSE;
+    }
+    $inputs = $this->getInputs();
+    if ($inputs === NULL) {
+      return FALSE;
+    }
+    foreach ($prop_names as $prop_name) {
+      // Preserve the stored shape: collapsed props stay collapsed, expanded
+      // StaticPropSources keep their `sourceType` and `expression`.
+      if (\is_array($inputs[$prop_name])) {
+        $inputs[$prop_name]['value'] = $new_value;
+      }
+      else {
+        $inputs[$prop_name] = $new_value;
+      }
+    }
+    $this->setInput($inputs);
+
+    return TRUE;
   }
 
   public function optimizeInputs(): void {

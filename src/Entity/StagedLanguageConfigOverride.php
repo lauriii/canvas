@@ -77,7 +77,7 @@ final class StagedLanguageConfigOverride extends ConfigEntityBase implements Aut
   protected string $id;
 
   /**
-   * The config name (e.g. canvas.page_region.stark.sidebar_first).
+   * The config name (e.g. canvas.page_variant.marketing).
    *
    * The language code is stored in ConfigEntityBase::$langcode.
    */
@@ -95,8 +95,8 @@ final class StagedLanguageConfigOverride extends ConfigEntityBase implements Aut
    */
   public function __construct(array $values, $entity_type) {
     parent::__construct($values, $entity_type);
-    if (!\str_starts_with($this->config_name, "canvas." . ContentTemplate::ENTITY_TYPE_ID) && !\str_starts_with($this->config_name, "canvas." . PageRegion::ENTITY_TYPE_ID)) {
-      throw new \OutOfRangeException(\sprintf('Even though the %s entity type is designed to support config translations for any config, for now it is restricted to Canvas ContentTemplates and PageRegions.', self::ENTITY_TYPE_ID));
+    if (!\str_starts_with($this->config_name, "canvas." . ContentTemplate::ENTITY_TYPE_ID) && !\str_starts_with($this->config_name, "canvas." . PageRegion::ENTITY_TYPE_ID) && !\str_starts_with($this->config_name, "canvas." . PageVariant::ENTITY_TYPE_ID)) {
+      throw new \OutOfRangeException(\sprintf('Even though the %s entity type is designed to support config translations for any config, for now it is restricted to Canvas ContentTemplates, PageRegions, and PageVariants.', self::ENTITY_TYPE_ID));
     }
   }
 

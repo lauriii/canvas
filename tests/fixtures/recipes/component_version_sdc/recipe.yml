@@ -1,0 +1,6 @@
+name: 'Component version: SDC components with image props'
+description: 'Installs SDCs whose props change storable prop shape once an image media type exists. Stands in for the recipe that originates components in a site template.'
+type: 'Test'
+install:
+  - canvas
+  - canvas_test_sdc

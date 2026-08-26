@@ -38,6 +38,7 @@ export enum EditorFrameMode {
 export enum EditorFrameContext {
   ENTITY = 'entity',
   TEMPLATE = 'template',
+  PATTERN = 'pattern',
   NONE = 'none',
 }
 

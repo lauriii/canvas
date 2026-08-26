@@ -28,7 +28,7 @@ final readonly class TmgmtHooks {
     // not translatable.
     $types_with_component_trees = [
       'canvas.content_template.*.*.*',
-      'canvas.page_region.*',
+      'canvas.page_variant.*',
     ];
     foreach ($types_with_component_trees as $types_with_component_tree) {
       if (isset($definitions[$types_with_component_tree])) {

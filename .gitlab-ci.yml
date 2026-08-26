@@ -680,11 +680,13 @@ cypress E2E:
   parallel: 4
   script:
     - npx cypress run --browser electron --reporter junit --reporter-options "mochaFile=junit-[hash].xml" --spec=`node ./tests/support/parallel.js` 2>&1 | tee cypress.log; EXIT_CODE=${PIPESTATUS[0]}
-    # Auto-retry when known frequent random failures occur.
-    - grep "✖.*autocomplete-props" $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/ui/cypress.log && exit 112 || true
-    - grep "✖.*copy-and-paste" $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/ui/cypress.log && exit 112 || true
-    - grep "✖.*global-regions-interact" $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/ui/cypress.log && exit 112 || true
-    - grep "✖.*media-library-component-instance" $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/ui/cypress.log && exit 112 || true
+    # Auto-retry the job when a known-flaky spec fails. The list comes from the
+    # specs tagged `// @canvas-ci flaky`, so those markers are the single source
+    # of truth for both the split (parallel.js) and this retry guard.
+    - |
+      for spec in $(node ./tests/support/flaky-specs.js); do
+        grep "✖.*$spec" $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME/ui/cypress.log && exit 112 || true
+      done
     # If no auto-retry was attempted, use the original exit code.
     - exit $EXIT_CODE
   retry:

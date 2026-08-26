@@ -7,7 +7,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import { RegionsProvider } from 'drupal-canvas';
 import {
   defineComponentRegistry,
   renderSpec,
@@ -28,7 +27,7 @@ import {
 import { getPreviewTargetKey } from '@wb/lib/preview-target-key';
 import { resolveWorkbenchPreviewNavigation } from '@wb/lib/resolve-workbench-preview-navigation';
 
-import type { ComponentType, ErrorInfo, ReactNode } from 'react';
+import type { ErrorInfo, ReactNode } from 'react';
 import type { EnrichedDiscoveryResult } from '@wb/lib/discovery-client';
 import type {
   PreviewFrameError,
@@ -50,9 +49,17 @@ function postFrameMessage(
 }
 
 interface RenderableState {
-  type: 'component' | 'page' | 'region';
+  type: 'component' | 'page' | 'page-template';
   renderId: string;
   node: ReactNode;
+}
+
+function PageContentMarkerPlaceholder() {
+  return (
+    <div className="m-4 rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+      Page content
+    </div>
+  );
 }
 
 function PreviewErrorAlert({ message }: { message: string }) {
@@ -73,8 +80,11 @@ function RenderSignal({
   onRendered,
 }: {
   renderId: string;
-  type: 'component' | 'page' | 'region';
-  onRendered: (type: 'component' | 'page' | 'region', renderId: string) => void;
+  type: 'component' | 'page' | 'page-template';
+  onRendered: (
+    type: 'component' | 'page' | 'page-template',
+    renderId: string,
+  ) => void;
 }) {
   useEffect(() => {
     onRendered(type, renderId);
@@ -210,42 +220,19 @@ export function PreviewFrameApp() {
           })),
         );
 
-        let node = renderSpec(request.payload.spec, registry);
-
-        // When the request carries a layout payload, render each region into
-        // a node, dynamically import the user's layout component, and wrap
-        // the page output in `<RegionsProvider><Layout>{children}</Layout>`.
-        const layoutPayload = request.payload.layout;
-        if (layoutPayload && request.payload.renderType === 'page') {
-          const renderedRegions: Record<string, ReactNode> = {};
-          for (const [regionName, regionSpec] of Object.entries(
-            layoutPayload.regions,
-          )) {
-            renderedRegions[regionName] = renderSpec(regionSpec, registry);
+        let node: ReactNode;
+        if (
+          request.payload.renderType === 'page' &&
+          request.payload.pageTemplate
+        ) {
+          const pageContent = renderSpec(request.payload.spec, registry);
+          registry['marker.page_content'] = () => <>{pageContent}</>;
+          node = renderSpec(request.payload.pageTemplate.spec, registry);
+        } else {
+          if (request.payload.renderType === 'page-template') {
+            registry['marker.page_content'] = PageContentMarkerPlaceholder;
           }
-          const layoutModule = (await import(
-            /* @vite-ignore */ layoutPayload.jsEntryUrl
-          )) as { default?: ComponentType<{ children: ReactNode }> };
-          const LayoutComponent = layoutModule.default;
-          if (typeof LayoutComponent !== 'function') {
-            throw new Error(
-              `Layout module at ${layoutPayload.jsEntryUrl} must have a default export that is a React component.`,
-            );
-          }
-          // Cast: workbench's @types/react may not be exact-version-identical
-          // with the one drupal-canvas's emitted .d.ts resolves to, so the
-          // ReactNode type identities differ structurally even when they're
-          // the same shape. Suppress the assignability check at the boundary.
-          const RegionsProviderUntyped =
-            RegionsProvider as unknown as ComponentType<{
-              regions: Record<string, ReactNode>;
-              children: ReactNode;
-            }>;
-          node = (
-            <RegionsProviderUntyped regions={renderedRegions}>
-              <LayoutComponent>{node}</LayoutComponent>
-            </RegionsProviderUntyped>
-          );
+          node = renderSpec(request.payload.spec, registry);
         }
 
         const renderType: RenderableState['type'] = request.payload.renderType;

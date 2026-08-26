@@ -1,0 +1,23 @@
+<?php
+
+/**
+ * @file
+ * Install hooks for the Canvas page template component module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_install().
+ */
+function canvas_page_template_component_install(): void {
+  // Generate the page template component for the default theme only. The
+  // upgrade path additionally generates one per theme whose page regions it
+  // converts to a variant.
+  // @see canvas_page_template_component_ensure_component()
+  // @see canvas_post_update_0029_migrate_page_regions_to_variants()
+  $default_theme = \Drupal::config('system.theme')->get('default');
+  if (\is_string($default_theme) && $default_theme !== '') {
+    canvas_page_template_component_ensure_component($default_theme);
+  }
+}

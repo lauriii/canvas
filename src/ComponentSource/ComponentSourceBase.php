@@ -6,6 +6,7 @@ namespace Drupal\canvas\ComponentSource;
 
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
+use Drupal\canvas\Utility\TypedDataHelper;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\SortArray;
 use Drupal\Core\Config\Schema\Mapping;
@@ -14,9 +15,6 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Plugin\ContextAwarePluginAssignmentTrait;
 use Drupal\Core\Plugin\ContextAwarePluginTrait;
 use Drupal\Core\Plugin\PluginBase;
-use Drupal\Core\TypedData\PrimitiveInterface;
-use Drupal\Core\TypedData\TraversableTypedDataInterface;
-use Drupal\Core\TypedData\TypedDataInterface;
 
 /**
  * @internal
@@ -63,7 +61,7 @@ abstract class ComponentSourceBase extends PluginBase implements ComponentSource
     // generation and validation agree.
     // @see \Drupal\canvas\Entity\Component::validateActiveVersion()
     $normalized_data = [
-      'settings' => $this->settingsAffectingVersionHash(self::castRawTypedConfigToPhpTypes($typed_source_specific_settings)),
+      'settings' => $this->settingsAffectingVersionHash(TypedDataHelper::castRawPhpTypes($typed_source_specific_settings)),
       'slot_definitions' => $this instanceof ComponentSourceWithSlotsInterface
         ? self::normalizeSlotDefinitions($this->getSlotDefinitions())
         : [],
@@ -107,42 +105,6 @@ abstract class ComponentSourceBase extends PluginBase implements ComponentSource
    */
   protected function settingsAffectingVersionHash(mixed $settings): mixed {
     return $settings;
-  }
-
-  /**
-   * Recursively calls PrimitiveInterface::getCastedValue()
-   *
-   * Unlike `Mapping::toArray()` (raw, un-cast values, possibly strings), this
-   * casts every primitive leaf via `PrimitiveInterface::getCastedValue()`, to
-   * use the corresponding native PHP type.
-   *
-   * @param \Drupal\Core\TypedData\TypedDataInterface $element
-   *   The typed config element to extract from.
-   *
-   * @return mixed
-   *   Scalar/NULL for primitives; an array (keys preserved) for mappings and
-   *   sequences.
-   */
-  private static function castRawTypedConfigToPhpTypes(TypedDataInterface $element): mixed {
-    if ($element instanceof PrimitiveInterface) {
-      return $element->getCastedValue();
-    }
-    if ($element instanceof TraversableTypedDataInterface) {
-      // Preserve `toArray()`'s NULL-vs-array distinction: an optional, unset
-      // sequence/mapping stays NULL rather than becoming an empty array, which
-      // would needlessly change the hash of components that have such a key.
-      if ($element->getValue() === NULL) {
-        return NULL;
-      }
-      $casted = [];
-      foreach ($element as $name => $child) {
-        $casted[$name] = self::castRawTypedConfigToPhpTypes($child);
-      }
-      return $casted;
-    }
-    // Anything that is neither a primitive nor traversable (e.g. an `ignore`
-    // element) has no canonical config-schema type; use its value verbatim.
-    return $element->getValue();
   }
 
   private static function normalizeSlotDefinitions(array $slot_definitions): array {

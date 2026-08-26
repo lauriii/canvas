@@ -32,10 +32,15 @@ export async function fetchPreviewManifest(): Promise<PreviewManifest> {
   return data;
 }
 
+export interface PagePreviewResponse {
+  spec: Spec;
+  pageVariant: string | null;
+}
+
 export async function fetchPreviewPageSpec(
   slug: string,
   signal?: AbortSignal,
-): Promise<Spec> {
+): Promise<PagePreviewResponse> {
   const response = await fetch(
     `/__canvas/page-preview-spec?${new URLSearchParams({ slug }).toString()}`,
     { signal },
@@ -51,7 +56,7 @@ export async function fetchPreviewPageSpec(
     );
   }
 
-  const data = (await response.json()) as Spec;
+  const data = (await response.json()) as PagePreviewResponse;
   return data;
 }
 
@@ -60,6 +65,7 @@ export interface ContentTemplatePreviewMetadata {
   entityTypeId: string;
   bundle: string;
   viewMode: string;
+  pageVariant: string | null;
 }
 
 export interface ContentTemplatePreviewResponse {
@@ -109,17 +115,20 @@ export async function fetchWorkbenchConfig(
   return data;
 }
 
-export interface RegionPreviewResponse {
+export interface PageTemplatePreviewResponse {
   spec: Spec;
+  label: string;
+  description: string;
   status: boolean;
+  isDefault: boolean;
 }
 
-export async function fetchPreviewRegionSpec(
+export async function fetchPreviewPageTemplateSpec(
   id: string,
   signal?: AbortSignal,
-): Promise<RegionPreviewResponse> {
+): Promise<PageTemplatePreviewResponse> {
   const response = await fetch(
-    `/__canvas/region-preview-spec?${new URLSearchParams({ id }).toString()}`,
+    `/__canvas/page-template-preview-spec?${new URLSearchParams({ id }).toString()}`,
     { signal },
   );
 
@@ -129,10 +138,10 @@ export async function fetchPreviewRegionSpec(
     } | null;
     throw new Error(
       errorBody?.error ??
-        `Region preview request failed with status ${response.status}.`,
+        `Page template preview request failed with status ${response.status}.`,
     );
   }
 
-  const data = (await response.json()) as RegionPreviewResponse;
+  const data = (await response.json()) as PageTemplatePreviewResponse;
   return data;
 }

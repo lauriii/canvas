@@ -1,30 +1,36 @@
-import fs from 'fs';
 import path from 'path';
 
-const NODE_INDEX = Number(process.env.CI_NODE_INDEX || 1);
+import { readSpecTags, walkSpecs } from './spec-tags.js';
+
+const NODE_INDEX = Number(process.env.CI_NODE_INDEX || 1); // 1-based.
 const NODE_TOTAL = Number(process.env.CI_NODE_TOTAL || 1);
 const TEST_FOLDER = path.join(process.cwd(), 'tests/e2e');
 
-const walk = (dir) => {
-  let files = fs.readdirSync(dir);
-  files = files.map((file) => {
-    const filePath = path.join(dir, file);
-    const stats = fs.statSync(filePath);
-    if (stats.isDirectory()) {
-      return walk(filePath);
-    }
-    if (stats.isFile() && filePath.match(/\.cy\.js$/)) {
-      return filePath;
-    }
-  });
+const specs = walkSpecs(TEST_FOLDER).sort().map(readSpecTags);
 
-  return files.reduce((all, folderContents) => all.concat(folderContents), []);
+// One bin per CI node, tracking accumulated weight.
+const bins = Array.from({ length: NODE_TOTAL }, () => ({ load: 0, files: [] }));
+const assign = (spec, binIndex) => {
+  bins[binIndex].files.push(spec.file);
+  bins[binIndex].load += spec.weight;
 };
+const lightestBin = () =>
+  bins.reduce((min, bin, i) => (bin.load < bins[min].load ? i : min), 0);
 
-const getSpecFiles = () =>
-  walk(TEST_FOLDER)
-    .sort()
-    .filter((item) => !!item)
-    .filter((_, index) => index % NODE_TOTAL === NODE_INDEX - 1);
+// Phase 1 — deal flaky specs round-robin so no two land on the same node. This
+// bounds how much Cypress in-spec retries (which re-run a failed test up to N
+// times) can inflate any single node when a flaky test misbehaves.
+specs
+  .filter((spec) => spec.flaky)
+  .sort((a, b) => b.weight - a.weight)
+  .forEach((spec, i) => assign(spec, i % NODE_TOTAL));
 
-console.log(getSpecFiles().join(','));
+// Phase 2 — greedy longest-processing-time: assign the heaviest remaining spec
+// to the currently-lightest bin, so the slow specs spread across nodes instead
+// of stacking on whichever node the alphabetical order happened to fill.
+specs
+  .filter((spec) => !spec.flaky)
+  .sort((a, b) => b.weight - a.weight)
+  .forEach((spec) => assign(spec, lightestBin()));
+
+console.log(bins[NODE_INDEX - 1].files.join(','));

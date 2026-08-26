@@ -372,49 +372,6 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
     if (isset($data['dataDependencies']) && \is_array($data['dataDependencies'])) {
       $data['dataDependencies'] = self::coalesceEntityFields($data['dataDependencies']);
     }
-    // The external application's component metadata owns the identity of an
-    // external component: client-side renames, status changes, and type
-    // changes would be reverted by the next synchronization, so reject them.
-    // (The synchronization itself writes entity properties directly and is
-    // not affected.)
-    if (!$this->isNew()) {
-      $violation_list = new EntityConstraintViolationList($this);
-      if ($this->isExternal()) {
-        if (\array_key_exists('name', $data) && $data['name'] !== $this->label()) {
-          $violation_list->add(new ConstraintViolation(
-            'External code components cannot be renamed: the external application owns the component name.',
-            'External code components cannot be renamed: the external application owns the component name.',
-            [],
-            NULL,
-            'name',
-            $data['name'],
-          ));
-        }
-        if (\array_key_exists('status', $data) && $data['status'] !== $this->status()) {
-          $violation_list->add(new ConstraintViolation(
-            'External code components cannot be exposed or unexposed: the external application owns the component status.',
-            'External code components cannot be exposed or unexposed: the external application owns the component status.',
-            [],
-            NULL,
-            'status',
-            $data['status'],
-          ));
-        }
-      }
-      if (\array_key_exists('type', $data) && $data['type'] !== $this->getComponentType()) {
-        $violation_list->add(new ConstraintViolation(
-          'The code component type cannot be changed.',
-          NULL,
-          [],
-          NULL,
-          'type',
-          $data['type'],
-        ));
-      }
-      if ($violation_list->count() > 0) {
-        throw new ConstraintViolationException($violation_list);
-      }
-    }
     foreach (array_intersect_key($data, array_flip([
       'machineName',
       'name',

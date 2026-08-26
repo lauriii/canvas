@@ -83,6 +83,7 @@ describe('page-spec', () => {
     const result = parsePageSpec(
       {
         title: 'Home',
+        pageVariant: 'marketing',
         elements: {
           hero: {
             type: 'js.hero',
@@ -99,6 +100,7 @@ describe('page-spec', () => {
     );
 
     expect(result.issues).toEqual([]);
+    expect(result.page?.pageVariant).toBe('marketing');
     expect(result.page?.spec.root).toBe('canvas:component-tree');
   });
 

@@ -1,4 +1,7 @@
-import type { CodeComponentSerialized } from '@/types/CodeComponent';
+import type {
+  BrandKitColor,
+  CodeComponentSerialized,
+} from '@/types/CodeComponent';
 import type { PatternsList } from '@/types/Pattern';
 import type { TransformConfig } from '@/utils/transforms';
 
@@ -107,10 +110,13 @@ export type FolderInList = {
   items:
     | ComponentsList
     | Record<string, CodeComponentSerialized>
-    | PatternsList;
+    | PatternsList
+    | Record<string, BrandKitColor>;
 };
 
 export type FoldersInList = FolderInList[];
+
+export type FolderType = 'component' | 'pattern' | 'js_component' | 'color';
 
 /**
  * Type predicate to check if a component is a PropSourceComponent.

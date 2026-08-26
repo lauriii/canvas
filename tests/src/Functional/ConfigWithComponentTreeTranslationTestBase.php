@@ -33,9 +33,9 @@ use Drupal\Tests\canvas\Traits\DataProviderWithComponentTreeTrait;
  * - optional unpopulated prop (present in schema, absent in source data)
  * - non-static prop sources (excluded from translation)
  *
- * NOTE: PageRegions are not tested because ContentTemplate allows a superset of
- * prop sources (it allows EntityFieldPropSources etc which PageRegion config
- * entities' component trees do not).
+ * NOTE: Page variants are not tested because ContentTemplate allows a superset
+ * of prop sources (it allows EntityFieldPropSources etc which page variant
+ * config entities' component trees do not).
  *
  * @see \Drupal\Tests\canvas\Kernel\Config\ConfigWithComponentTreeTestBase
  * @see \Drupal\Tests\canvas\Kernel\Config\ContentTemplateTest::testTranslationLifeCycleInDepth()

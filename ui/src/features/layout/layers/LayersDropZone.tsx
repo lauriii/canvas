@@ -8,7 +8,6 @@ import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 
 import type {
   ComponentNode,
-  RegionNode,
   SlotNode,
 } from '@/features/layout/layoutModelSlice';
 
@@ -18,12 +17,11 @@ export interface LayersDropZoneProps {
   layer: ComponentNode | SlotNode;
   position: 'top' | 'bottom' | 'left' | 'right';
   parentSlot?: SlotNode;
-  parentRegion?: RegionNode;
   indent: number;
 }
 
 const LayersDropZone: React.FC<LayersDropZoneProps> = (props) => {
-  const { layer, position, indent, parentSlot, parentRegion } = props;
+  const { layer, position, indent, parentSlot } = props;
   const layout = useAppSelector(selectLayout);
   const [draggedItem, setDraggedItem] = useState('');
   const type = 'uuid' in layer ? 'component' : 'slot';
@@ -61,7 +59,6 @@ const LayersDropZone: React.FC<LayersDropZoneProps> = (props) => {
     data: {
       component: layer,
       parentSlot: parentSlot,
-      parentRegion: parentRegion,
       path: dropPath,
       destination: 'layers',
       accepts: ['layers'],

@@ -27,6 +27,7 @@ function makeHarness(
   overrides: Partial<HeightReporterOptions> = {},
   config: {
     readDocumentHeight?: () => number;
+    passive?: boolean;
     onPostMessage?: (
       message: unknown,
       hostWindow: Pick<Window, 'postMessage'>,
@@ -104,6 +105,7 @@ function makeHarness(
       data: {
         type: HEADLESS_STATUS_REQUEST_MESSAGE,
         hostSessionId: HOST_SESSION_ID,
+        ...(config.passive && { passive: true }),
       },
     }),
   );
@@ -218,7 +220,7 @@ describe('createHeightReporter', () => {
       },
     });
 
-    const { hostWindow, postMessage } = makeHarness(
+    const { hostWindow, postMessage, triggerResize } = makeHarness(
       {},
       {
         readDocumentHeight: () => section.clientHeight,
@@ -285,7 +287,14 @@ describe('createHeightReporter', () => {
         ),
     ).toEqual([1500, 4000, null]);
 
+    // The browser can deliver the resize caused by restoring the iframe after
+    // the probe acknowledgement. Its root height is unchanged, so it must not
+    // start another identical probe cycle.
     postMessage.mockClear();
+    triggerResize(section.clientHeight);
+    await Promise.resolve();
+    expect(postMessage).not.toHaveBeenCalled();
+
     viewportHeight = 600;
     window.dispatchEvent(
       new MessageEvent('message', {
@@ -331,6 +340,18 @@ describe('createHeightReporter', () => {
   it('posts nothing when standalone', () => {
     const { postMessage, triggerResize } = makeHarness({ embedded: false });
     triggerResize(250);
+    expect(postMessage).not.toHaveBeenCalled();
+  });
+
+  it('posts nothing for a passive attached document', async () => {
+    const { postMessage, triggerMutation, triggerResize } = makeHarness(
+      {},
+      { passive: true },
+    );
+    triggerResize(250);
+    triggerMutation(300);
+    await Promise.resolve();
+
     expect(postMessage).not.toHaveBeenCalled();
   });
 

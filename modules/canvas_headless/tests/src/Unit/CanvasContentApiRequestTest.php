@@ -32,16 +32,43 @@ final class CanvasContentApiRequestTest extends UnitTestCase {
           self::assertSame(HttpKernelInterface::MAIN_REQUEST, $type);
           self::assertTrue($catch);
           self::assertSame('/articles/example', $request->getPathInfo());
-          self::assertSame('/articles/example?campaign=test', $request->getRequestUri());
+          self::assertSame(
+            '/articles/example?' . http_build_query([
+              'campaign' => 'test',
+              CanvasContentApiRequest::PREVIEW_VIEW_MODE_QUERY => 'route-view-mode',
+              CanvasContentApiRequest::COMPONENT_PREVIEW_QUERY => 'route-component',
+              CanvasContentApiRequest::API_QUERY_PARAMETERS_KEY => [
+                CanvasContentApiRequest::PREVIEW_VIEW_MODE_QUERY => 'teaser',
+                CanvasContentApiRequest::COMPONENT_PREVIEW_QUERY => 'preview-component',
+              ],
+            ]),
+            $request->getRequestUri(),
+          );
           self::assertSame(
             CanvasContentApiRequest::REQUEST_FORMAT,
             $request->getRequestFormat(),
           );
-          self::assertSame(['campaign' => 'test'], $request->query->all());
+          self::assertSame([
+            'campaign' => 'test',
+            CanvasContentApiRequest::PREVIEW_VIEW_MODE_QUERY => 'route-view-mode',
+            CanvasContentApiRequest::COMPONENT_PREVIEW_QUERY => 'route-component',
+            CanvasContentApiRequest::API_QUERY_PARAMETERS_KEY => [
+              CanvasContentApiRequest::PREVIEW_VIEW_MODE_QUERY => 'teaser',
+              CanvasContentApiRequest::COMPONENT_PREVIEW_QUERY => 'preview-component',
+            ],
+          ], $request->query->all());
           self::assertSame(
-            '/articles/example?campaign=test',
+            '/articles/example?campaign=test&viewMode=route-view-mode&componentId=route-component',
             $request->attributes->get(CanvasContentApiRequest::REQUESTED_URI_ATTRIBUTE),
           );
+          self::assertSame(
+            [
+              CanvasContentApiRequest::PREVIEW_VIEW_MODE_QUERY => 'teaser',
+              CanvasContentApiRequest::COMPONENT_PREVIEW_QUERY => 'preview-component',
+            ],
+            $request->attributes->get(CanvasContentApiRequest::API_QUERY_PARAMETERS_KEY),
+          );
+          self::assertTrue($request->attributes->get('_disable_route_normalizer'));
           self::assertSame('Bearer preview-token', $request->headers->get('Authorization'));
           return new Response();
         },
@@ -49,11 +76,36 @@ final class CanvasContentApiRequestTest extends UnitTestCase {
     $middleware = new CanvasContentApiRequest($kernel);
     $request = Request::create(
       'https://drupal.example/canvas/content-api?' .
-      http_build_query(['requestUri' => '/articles/example?campaign=test']),
+      http_build_query([
+        'requestUri' => '/articles/example?campaign=test&viewMode=route-view-mode&componentId=route-component',
+        CanvasContentApiRequest::PREVIEW_VIEW_MODE_QUERY => 'teaser',
+        CanvasContentApiRequest::COMPONENT_PREVIEW_QUERY => 'preview-component',
+      ]),
     );
     $request->headers->set('Authorization', 'Bearer preview-token');
 
     $middleware->handle($request);
+  }
+
+  /**
+   * Tests that normal page requests retain canonical URL handling.
+   */
+  public function testPageRequestDoesNotDisableRouteNormalizer(): void {
+    $kernel = $this->createMock(HttpKernelInterface::class);
+    $kernel->expects($this->once())
+      ->method('handle')
+      ->willReturnCallback(
+        static function (Request $request): Response {
+          self::assertFalse($request->attributes->has('_disable_route_normalizer'));
+          return new Response();
+        },
+      );
+
+    $request = Request::create(
+      CanvasContentApiRequest::API_PATH . '?requestUri=/articles/example',
+    );
+
+    (new CanvasContentApiRequest($kernel))->handle($request);
   }
 
   /**

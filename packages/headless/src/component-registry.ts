@@ -29,6 +29,8 @@ export interface ComponentRegistrySourcePaths {
   configPath: string;
   /** The component discovery root selected by the current configuration. */
   componentRoot: string;
+  /** The app's configured global CSS entrypoint. */
+  globalCssPath: string;
 }
 
 /**
@@ -99,6 +101,7 @@ export function resolveComponentRegistrySourcePaths(
   return {
     configPath: path.join(projectRoot, 'canvas.config.json'),
     componentRoot: path.resolve(projectRoot, config.componentDir),
+    globalCssPath: path.resolve(projectRoot, config.globalCssPath),
   };
 }
 

@@ -592,6 +592,26 @@ export function componentExistsInLayout(
 }
 
 /**
+ * Checks if a component or any of its descendants matches a type predicate
+ * @param component - The root of the subtree to check
+ * @param predicate - Called with each component's type (`<id>@<version>`)
+ * @returns true if the component or any component in its slots matches
+ */
+export function componentSubtreeMatchesType(
+  component: ComponentNode,
+  predicate: (type: string) => boolean,
+): boolean {
+  if (predicate(component.type)) {
+    return true;
+  }
+  return (component.slots ?? []).some((slot) =>
+    slot.components.some((child) =>
+      componentSubtreeMatchesType(child, predicate),
+    ),
+  );
+}
+
+/**
  * Checks if a component is a parent of another component by recursively traversing the layout tree
  * @param possibleParent - The component to check if it's a parent
  * @param childUuid - UUID of the potential child component

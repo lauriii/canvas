@@ -1,0 +1,64 @@
+/* Zero-size popover anchor, positioned against .aiWizard so the menu opens
+   above the right end of deep-chat's input row. */
+.menuAnchor {
+  position: absolute;
+  right: 16px;
+  bottom: 108px;
+  width: 0;
+  height: 0;
+}
+
+.heading {
+  display: block;
+  padding: 4px 8px 8px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--gray-11);
+  font-size: var(--font-size-1);
+  font-weight: var(--font-weight-medium);
+}
+
+.toolRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px;
+  cursor: pointer;
+  text-align: left;
+  border: none;
+  border-radius: var(--radius-2);
+  background: transparent;
+  gap: 8px;
+}
+
+.toolRow:hover {
+  background: var(--gray-3);
+}
+
+.toolRow.selected {
+  background: var(--blue-3);
+}
+
+.toolLabel {
+  color: var(--gray-12);
+  font-size: var(--font-size-2);
+  font-weight: var(--font-weight-medium);
+}
+
+.toolDescription {
+  color: var(--gray-11);
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
+}
+
+.checkIcon {
+  flex-shrink: 0;
+  color: var(--blue-9);
+}
+
+.toolIcon {
+  flex-shrink: 0;
+  color: var(--gray-11);
+}

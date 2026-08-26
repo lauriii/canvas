@@ -55,12 +55,23 @@ class ComponentPluginManager extends CoreComponentPluginManager implements Categ
     $depth++;
 
     $schema = BaseConstraint::arrayToObjectRecursive($schema);
+    $original_ref = isset($schema->{'$ref'}) ? (string) $schema->{'$ref'} : NULL;
     $refSchema = (array) $this->schemaStorage->resolveRefSchema($schema);
     $schema = (array) $schema;
     unset($schema['$ref']);
 
     // Merge referenced schema into the current schema.
     $schema += $refSchema;
+
+    // Restore the original $ref only when resolveRefSchema() injected a
+    // modified one (e.g. '#'-suffixed). This happens when the definition is
+    // self-referential. Canvas code that detects well-known prop shapes (color
+    // picker, etc.) depends on the original, clean URI. For non-self-
+    // referential definitions, the resolved schema won't have a $ref key.
+    // @see \Drupal\canvas\PropShape\PropShape::getWellKnownPropShapes()
+    if ($original_ref !== NULL && isset($refSchema['$ref']) && $refSchema['$ref'] !== $original_ref) {
+      $schema['$ref'] = $original_ref;
+    }
 
     // Recursively resolve nested objects.
     foreach ($schema as $key => $value) {

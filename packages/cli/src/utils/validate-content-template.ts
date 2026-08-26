@@ -88,6 +88,7 @@ export async function validateContentTemplates(
       | 'listComponentVersions'
       | 'listViewModes'
     >;
+    availablePageVariantIds?: ReadonlySet<string>;
   },
 ): Promise<{ results: Result[] }> {
   const ajv = new Ajv({ allErrors: true });
@@ -121,6 +122,17 @@ export async function validateContentTemplates(
       const spec = JSON.parse(fileContent) as Record<string, unknown>;
 
       const details: ValidationDetail[] = [];
+
+      if (
+        typeof spec.pageVariant === 'string' &&
+        options?.availablePageVariantIds &&
+        !options.availablePageVariantIds.has(spec.pageVariant)
+      ) {
+        details.push({
+          heading: 'pageVariant',
+          content: `Unknown page template "${spec.pageVariant}". Pull it from the site or add its file under page-templates.`,
+        });
+      }
 
       if (!validateSpec(spec)) {
         for (const error of validateSpec.errors ?? []) {

@@ -1,0 +1,17 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - canvas_test_code_components_color
+uuid: 66666666-6666-4666-a666-666666666666
+name: 'Wow Monster'
+cssVariable: '--wow-monster'
+value:
+  colorSpace: srgb
+  components:
+    - 0.455
+    - 0.827
+    - 0.851
+  hex: '#74d3d9'
+weight: 5

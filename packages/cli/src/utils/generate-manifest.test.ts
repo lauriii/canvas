@@ -100,6 +100,55 @@ describe('generateManifest', () => {
     ]);
   });
 
+  it('adds localSources with path and text source, sorted, when provided', async () => {
+    const result = await generateManifest({
+      outputDir: tmpDir,
+      vendorImportMap: null,
+      localImportMap: {
+        '@/lib/foo': './local/foo-abc.js',
+        '@/assets/poster.webp': './local/poster-def.webp',
+      },
+      localSources: {
+        '@/lib/foo': {
+          path: 'src/lib/foo.ts',
+          source: 'export const x = 1;\n',
+        },
+        '@/assets/poster.webp': { path: 'src/assets/poster.webp' },
+      },
+      sharedChunks: [],
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.manifest.localSources).toEqual({
+      '@/assets/poster.webp': { path: 'src/assets/poster.webp' },
+      '@/lib/foo': { path: 'src/lib/foo.ts', source: 'export const x = 1;\n' },
+    });
+    // Sorted alphabetically by specifier.
+    expect(Object.keys(result.manifest.localSources ?? {})).toEqual([
+      '@/assets/poster.webp',
+      '@/lib/foo',
+    ]);
+  });
+
+  it('omits localSources when none provided or empty', async () => {
+    const withoutMeta = await generateManifest({
+      outputDir: tmpDir,
+      vendorImportMap: null,
+      localImportMap: { '@/lib/foo': './local/foo-abc.js' },
+      sharedChunks: [],
+    });
+    expect(withoutMeta.manifest.localSources).toBeUndefined();
+
+    const emptyMeta = await generateManifest({
+      outputDir: tmpDir,
+      vendorImportMap: null,
+      localImportMap: { '@/lib/foo': './local/foo-abc.js' },
+      localSources: {},
+      sharedChunks: [],
+    });
+    expect(emptyMeta.manifest.localSources).toBeUndefined();
+  });
+
   it('writes canvas-manifest.json to outputDir', async () => {
     await generateManifest({
       outputDir: tmpDir,

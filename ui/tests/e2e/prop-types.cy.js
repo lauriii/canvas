@@ -1,3 +1,4 @@
+// @canvas-ci weight=13 flaky
 /* cspell:ignore Ronk mander mando bination mentary */
 describe('Prop types editing', () => {
   const textFieldIterations = {

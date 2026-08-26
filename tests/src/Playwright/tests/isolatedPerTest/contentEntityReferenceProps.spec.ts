@@ -4,10 +4,6 @@ import { isolatedPerTest as test } from '../../fixtures/test.js';
 
 import type { Locator } from '@playwright/test';
 
-test.use({
-  modules: ['canvas_test_code_components_content_entity_ref'],
-});
-
 const COMPONENT_CODE = [
   'const Component = ({ author }) => (',
   '  <div>Author: {author?.name}</div>',
@@ -124,6 +120,15 @@ test.describe('Content entity reference props', () => {
   // the permissions needed to see User and Content.
   test.beforeEach(async ({ drupal }) => {
     await drupal.loginAsAdmin();
+    // The user_picture field and node.body storage the module depends on come
+    // from a recipe, not the module's config/install, so it installs on any
+    // profile. Apply it before enabling the module.
+    await drupal.applyRecipe(
+      `modules/contrib/canvas/tests/fixtures/recipes/canvas_test_code_components_content_entity_ref_fields`,
+    );
+    await drupal.installModules([
+      'canvas_test_code_components_content_entity_ref',
+    ]);
     await drupal.addPermissions({
       role: 'editor',
       permissions: ['access content', 'access user profiles'],

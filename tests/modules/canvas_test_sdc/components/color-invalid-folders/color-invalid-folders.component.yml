@@ -1,0 +1,12 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Color with invalid folders
+props:
+  type: object
+  properties:
+    color:
+      title: 'Color'
+      type: string
+      x-canvas-color-folders:
+        - 88888888-8888-4888-8888-888888888888
+      examples:
+        - '#ff0000ff'

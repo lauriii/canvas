@@ -14,6 +14,7 @@ import {
   setTargetSlot,
   setTreeDragging,
   setUpdatingComponent,
+  unsetHoveredComponent,
   unsetTargetSlot,
 } from '@/features/ui/uiSlice';
 import { useDropFromLayoutHandler } from '@/hooks/useDropFromLayoutHandler';
@@ -127,6 +128,10 @@ const DragEventsHandler: React.FC = () => {
 
   function handleDragStart(event: DragStartEvent) {
     initMouseTracking();
+    // Nothing is hovered while dragging. The overlay only clears its hovered
+    // component on mouseout, which never fires when a drag starts without the
+    // pointer leaving that component.
+    dispatch(unsetHoveredComponent());
     setComponentName(event.active.data?.current?.name);
     const isFolderDrag = event.active.data?.current?.type === 'folder';
     setIsDraggingFolder(isFolderDrag);
@@ -148,7 +153,6 @@ const DragEventsHandler: React.FC = () => {
   function handleDragOver(event: DragOverEvent) {
     const { over, active } = event;
     const parentSlot = over?.data?.current?.parentSlot;
-    const parentRegion = over?.data?.current?.parentRegion;
 
     // If dragging a folder and hovering over non-folder destination, prevent visual feedback.
     if (active.data?.current?.type === 'folder') {
@@ -158,10 +162,10 @@ const DragEventsHandler: React.FC = () => {
       }
     }
 
-    if (parentRegion) {
-      dispatch(setTargetSlot(parentRegion.id));
-    } else if (parentSlot) {
+    if (parentSlot) {
       dispatch(setTargetSlot(parentSlot.id));
+    } else {
+      dispatch(unsetTargetSlot());
     }
   }
 

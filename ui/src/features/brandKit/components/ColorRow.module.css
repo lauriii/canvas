@@ -1,0 +1,57 @@
+.colorRow {
+  display: flex;
+  align-items: center;
+  height: var(--space-6);
+  padding: 0 var(--space-2);
+  cursor: grab;
+  border-radius: var(--radius-2);
+  gap: var(--space-2);
+}
+
+.colorRow:hover {
+  background-color: var(--blue-3);
+}
+
+.colorRow button {
+  cursor: pointer;
+}
+
+.colorRowDots {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  color: var(--slate-12);
+  border-radius: var(--radius-1);
+}
+
+.colorRowDots:hover {
+  cursor: pointer;
+  background-color: var(--blue-5);
+}
+
+/* While the contextual menu or a popover is open, the dots button should always show */
+.colorRow:has([data-state="open"]) .colorRowDots,
+.colorRow[data-popover-open] .colorRowDots {
+  display: flex;
+}
+
+.colorRow:hover .colorRowDots {
+  display: flex;
+}
+
+.hexCode {
+  display: none;
+  flex-shrink: 0;
+  margin-right: var(--space-2);
+}
+
+.colorRow:hover .hexCode {
+  display: block;
+}
+
+/* When dragging, reduce opacity and change cursor */
+.colorRow.isDragging {
+  cursor: grabbing;
+  opacity: 0.5;
+}

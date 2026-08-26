@@ -8,6 +8,8 @@ use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheableDependencyTrait;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Render\AttachmentsInterface;
+use Drupal\Core\Render\BubbleableMetadata;
 
 /**
  * A value object wrapping the result of evaluating a prop expression.
@@ -25,7 +27,7 @@ use Drupal\Core\Entity\EntityInterface;
  * The constructor may receive additional structures, which require hoisting.
  * @phpstan-type RawSingleCardinalityObjectEvaluationResult array<string, \Drupal\canvas\PropExpressions\StructuredData\EvaluationResult>
  */
-final class EvaluationResult implements CacheableDependencyInterface {
+final class EvaluationResult implements CacheableDependencyInterface, AttachmentsInterface {
 
   use CacheableDependencyTrait;
 
@@ -35,20 +37,31 @@ final class EvaluationResult implements CacheableDependencyInterface {
   public readonly mixed $value;
 
   /**
+   * The assets (JavaScript, CSS, settings) the evaluated value needs to render.
+   *
+   * @var array<string, mixed>
+   */
+  public readonly array $attachments;
+
+  /**
    * @param ActualEvaluationResult|\Drupal\canvas\PropExpressions\StructuredData\EvaluationResult|array<\Drupal\canvas\PropExpressions\StructuredData\EvaluationResult> $value
    *   The evaluation result.
    * @param \Drupal\Core\Cache\CacheableDependencyInterface $cacheability
    *   (optional) The cacheability metadata for the evaluation result.
+   * @param array<string, mixed> $attachments
+   *   (optional) The `#attached` assets the evaluation result needs to bubble.
    */
   public function __construct(
     mixed $value,
     CacheableDependencyInterface $cacheability = new CacheableMetadata(),
+    array $attachments = [],
   ) {
     if (!$value instanceof self && !self::hasNestedInstances($value)) {
       \assert((\is_array($value) && !static::hasNestedInstances($value)) || $value instanceof EntityInterface || \is_string($value) || $value instanceof \Stringable || \is_int($value) || \is_float($value) || \is_bool($value) || \is_null($value));
       // @phpstan-ignore-next-line assign.propertyType
       $this->value = $value;
       $this->setCacheability($cacheability);
+      $this->attachments = $attachments;
       return;
     }
 
@@ -65,6 +78,7 @@ final class EvaluationResult implements CacheableDependencyInterface {
         CacheableMetadata::createFromObject($value)
           ->addCacheableDependency($cacheability)
       );
+      $this->attachments = BubbleableMetadata::mergeAttachments($value->attachments, $attachments);
       return;
     }
 
@@ -83,6 +97,36 @@ final class EvaluationResult implements CacheableDependencyInterface {
       CacheableMetadata::createFromObject($hoisted)
         ->addCacheableDependency($cacheability)
     );
+    $this->attachments = BubbleableMetadata::mergeAttachments($hoisted->attachments, $attachments);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getAttachments(): array {
+    return $this->attachments;
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * @throws \LogicException
+   *   Always: this value object is immutable, so its assets can only be set
+   *   when it is constructed.
+   */
+  public function addAttachments(array $attachments): never {
+    throw new \LogicException('EvaluationResult is immutable; set its attachments at construction.');
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * @throws \LogicException
+   *   Always: this value object is immutable, so its assets can only be set
+   *   when it is constructed.
+   */
+  public function setAttachments(array $attachments): never {
+    throw new \LogicException('EvaluationResult is immutable; set its attachments at construction.');
   }
 
   /**
@@ -117,6 +161,7 @@ final class EvaluationResult implements CacheableDependencyInterface {
   private static function hoistFromArray(array $value) : static {
     \assert(self::hasNestedInstances($value));
     $combined_cacheability = new CacheableMetadata();
+    $combined_attachments = [];
     $hoisted_values = [];
     foreach ($value as $k => $v) {
       // An evaluation result may contain an arbitrarily complex nested array,
@@ -130,8 +175,9 @@ final class EvaluationResult implements CacheableDependencyInterface {
       }
       $hoisted_values[$k] = $v->value;
       $combined_cacheability->addCacheableDependency($v);
+      $combined_attachments = BubbleableMetadata::mergeAttachments($combined_attachments, $v->attachments);
     }
-    return new EvaluationResult($hoisted_values, $combined_cacheability);
+    return new EvaluationResult($hoisted_values, $combined_cacheability, $combined_attachments);
   }
 
 }

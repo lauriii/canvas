@@ -104,8 +104,9 @@ describe('resolveCanvasConfig', () => {
     expect(config.sync).toEqual({
       pages: true,
       contentTemplates: true,
-      regions: true,
+      pageTemplates: true,
     });
+    expect(config.legacy).toBeUndefined();
   });
 
   it('uses sync settings from canvas.config.json', async () => {
@@ -117,7 +118,7 @@ describe('resolveCanvasConfig', () => {
         sync: {
           pages: false,
           contentTemplates: false,
-          regions: false,
+          pageTemplates: false,
         },
       }),
     );
@@ -127,7 +128,7 @@ describe('resolveCanvasConfig', () => {
     expect(config.sync).toEqual({
       pages: false,
       contentTemplates: false,
-      regions: false,
+      pageTemplates: false,
     });
   });
 
@@ -144,8 +145,32 @@ describe('resolveCanvasConfig', () => {
     expect(config.sync).toEqual({
       pages: false,
       contentTemplates: true,
-      regions: true,
+      pageTemplates: true,
     });
+  });
+
+  it('surfaces region-era keys as legacy config without honoring them', async () => {
+    const root = await makeTempDir();
+    tempDirs.push(root);
+    await writeFile(
+      path.join(root, 'canvas.config.json'),
+      JSON.stringify({
+        regionsDir: 'regions',
+        layoutPath: 'src/layout.jsx',
+        sync: { regions: false },
+      }),
+    );
+
+    const config = resolveCanvasConfig({ hostRoot: root });
+
+    expect(config.legacy).toEqual({
+      regionsDir: 'regions',
+      syncRegions: false,
+      layoutPath: 'src/layout.jsx',
+    });
+    // Legacy keys do not feed the page-template settings.
+    expect(config.pageTemplatesDir).toBe('page-templates');
+    expect(config.sync.pageTemplates).toBe(true);
   });
 
   it('uses explicit globalCssPath without warning', async () => {

@@ -161,4 +161,27 @@ describe('contentTemplateToAuthored', () => {
       },
     });
   });
+
+  it('writes the page variant selection only when the server has one', () => {
+    const template: ContentTemplate = {
+      id: 'node.article.full',
+      label: 'Article full',
+      status: true,
+      entityType: 'node',
+      bundle: 'article',
+      viewMode: 'full',
+      component_tree: [],
+    };
+
+    expect(contentTemplateToAuthored(template)).not.toHaveProperty(
+      'pageVariant',
+    );
+    expect(
+      contentTemplateToAuthored({ ...template, pageVariant: null }),
+    ).not.toHaveProperty('pageVariant');
+    expect(
+      contentTemplateToAuthored({ ...template, pageVariant: 'marketing' })
+        .pageVariant,
+    ).toBe('marketing');
+  });
 });

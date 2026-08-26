@@ -54,8 +54,8 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/page/:slug" element={<App />} />
           <Route path="/content-template" element={<App />} />
           <Route path="/content-template/:templateSlug" element={<App />} />
-          <Route path="/region" element={<App />} />
-          <Route path="/region/:regionId" element={<App />} />
+          <Route path="/page-template" element={<App />} />
+          <Route path="/page-template/:pageTemplateId" element={<App />} />
           <Route
             path="*"
             element={<Navigate to={defaultWorkbenchRoute} replace />}

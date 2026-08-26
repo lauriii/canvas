@@ -94,6 +94,8 @@ export interface CodeComponentProp {
   derivedType: (typeof derivedPropTypes)[number]['type'] | null;
   contentMediaType?: string;
   'x-formatting-context'?: string;
+  'x-canvas-color-picker'?: 'kit-only' | 'kit-and-free';
+  'x-canvas-color-folders'?: string[];
   'x-allowed-entity-type-id'?: string;
   'x-allowed-bundle'?: string;
   allowMultiple?: boolean;
@@ -145,6 +147,8 @@ export interface CodeComponentPropSerialized {
   $ref?: string;
   format?: string;
   contentMediaType?: string;
+  'x-canvas-color-picker'?: 'kit-only' | 'kit-and-free';
+  'x-canvas-color-folders'?: string[];
   'x-formatting-context'?: string;
   'x-allowed-entity-type-id'?: string;
   'x-allowed-bundle'?: string;
@@ -176,6 +180,20 @@ export interface CodeComponentSlotSerialized {
   examples?: string[];
 }
 
+/**
+ * Resolved color prop value for preview.
+ *
+ * Mirrors the PHP resolveColorPropValue() output exactly.
+ *
+ * @see src/Plugin/Canvas/ComponentSource/JsonSchemaPropsComponentSourceBase.php
+ */
+export interface ResolvedColorProp {
+  value: BrandKitColorValue;
+  cssColorValue: string;
+  cssVariable: string | null;
+  colorName: string | null;
+}
+
 export type CodeComponentPropPreviewValue =
   | string
   | number
@@ -183,7 +201,9 @@ export type CodeComponentPropPreviewValue =
   | string[]
   | number[]
   | CodeComponentPropImageExample[]
-  | CodeComponentPropVideoExample[];
+  | CodeComponentPropVideoExample[]
+  | ResolvedColorProp
+  | null;
 
 export interface AssetLibrary {
   id: string;
@@ -199,17 +219,57 @@ export interface AssetLibrary {
   imports?: AssetLibraryManifestEntry[] | null;
   assets?: AssetLibraryManifestEntry[] | null;
   shared?: AssetLibraryManifestEntry[] | null;
+  bundledSources?: AssetLibraryBundledSource[] | null;
+  packageJson?: string | null;
 }
 
 export interface AssetLibraryManifestEntry {
   name: string;
   uri: string;
+  path?: string;
+  source?: string;
+  url?: string;
+}
+
+export interface AssetLibraryBundledSource {
+  path: string;
+  source: string;
+}
+
+/**
+ * Color value in W3C Design Token format.
+ * @see https://www.designtokens.org/TR/2025.10/color/
+ */
+export interface BrandKitColorValue {
+  /** Color space identifier (e.g., 'srgb', 'hsl') */
+  colorSpace: 'srgb' | 'hsl';
+  /**
+   * Color components.
+   * For sRGB: [R, G, B] each 0-1
+   * For HSL: [H, S, L] where H is 0-360, S and L are 0-100
+   */
+  components: [number, number, number];
+  /** Alpha (opacity) value 0-1, or null for fully opaque */
+  alpha: number | null;
+  /** Optional 6-digit hex fallback for sRGB colors */
+  hex: string | null;
+}
+
+export interface BrandKitColor {
+  id: string;
+  name: string;
+  cssVariable: string;
+  value: BrandKitColorValue;
+  /** Original input format for display purposes */
+  displayFormat?: 'rgb' | 'hex' | 'hsl' | null;
+  weight: number;
 }
 
 export interface BrandKit {
   id: string;
   label: string;
   fonts: BrandKitFont[] | null;
+  colors: BrandKitColor[] | null;
 }
 
 export type BrandKitFontVariantType = 'static' | 'variable';

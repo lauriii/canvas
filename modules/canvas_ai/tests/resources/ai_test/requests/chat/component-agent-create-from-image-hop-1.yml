@@ -1,0 +1,174 @@
+request:
+  messages:
+    -
+      role: user
+      text: 'Make a component out of this'
+      images:
+        -
+          type: Drupal\ai\OperationType\GenericType\ImageFile
+          base64: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC'
+          mime_type: image/png
+          filename: temp
+      remote_files: {  }
+      tools: null
+      tool_id: null
+    -
+      role: assistant
+      text: 'I can build that as a code component.'
+      images: {  }
+      remote_files: {  }
+      tools: null
+      tool_id: null
+    -
+      role: user
+      text: |-
+        <context>
+        The user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. GENERATE THE TITLE FOR THE PAGE using canvas_title_generation_agent. This is a **CRITICAL** step to ensure that request is successful. Page description is empty. GENERATE THE DESCRIPTION FOR THE PAGE using canvas_metadata_generation_agent. This is a **CRITICAL** step to ensure that request is successful.
+        </context>
+
+        <user_message>
+        Create this component
+        </user_message>
+      images: {  }
+      remote_files: {  }
+      tools: null
+      tool_id: null
+  debug_data: {  }
+  chat_tools:
+    -
+      type: function
+      function:
+        name: ai_agent_edit_component_js
+        description: 'This method allows you to edit the javascript on components.'
+        parameters:
+          type: object
+          properties:
+            javascript:
+              name: javascript
+              type: string
+              description: 'Javascript All the new javascript that should replace the old one.'
+            props_metadata:
+              name: props_metadata
+              type: string
+              description: 'Props Metadata for props'
+            slots_metadata:
+              name: slots_metadata
+              type: string
+              description: "Slots Metadata for slots. A JSON array where each entry is an object with an 'id' (slot machine name), 'name' (human-readable title) and an optional 'example' (sample child markup)."
+            component_machine_name:
+              name: component_machine_name
+              type: string
+              description: 'Component machine name The machine name of the component to edit.'
+            selected_component_required_props:
+              name: selected_component_required_props
+              type: array
+              description: 'Selected Component Required Props The existing required props of the selected component.'
+              items:
+                type: string
+          required:
+            - javascript
+            - props_metadata
+            - component_machine_name
+    -
+      type: function
+      function:
+        name: ai_agent_create_component
+        description: 'This method creates a new component.'
+        parameters:
+          type: object
+          properties:
+            component_name:
+              name: component_name
+              type: string
+              description: 'Component Name The data name of the component that we should create.'
+            js_structure:
+              name: js_structure
+              type: string
+              description: 'Javascript All the new javascript.'
+            css_structure:
+              name: css_structure
+              type: string
+              description: 'CSS All the new CSS.'
+            props_metadata:
+              name: props_metadata
+              type: string
+              description: 'Props Metadata for props'
+            slots_metadata:
+              name: slots_metadata
+              type: string
+              description: "Slots Metadata for slots. A JSON array where each entry is an object with an 'id' (slot machine name), 'name' (human-readable title) and an optional 'example' (sample child markup)."
+          required:
+            - component_name
+    -
+      type: function
+      function:
+        name: ai_agent_get_props_type
+        description: 'This method gets the props type in Drupal Canvas.'
+        parameters:
+          type: object
+          properties:
+            derived_proptypes:
+              name: derived_proptypes
+              type: string
+              description: 'Prop Type The prop type for Drupal Canvas.'
+          required:
+            - derived_proptypes
+    -
+      type: function
+      function:
+        name: ai_agent_get_js_component
+        description: 'This method gets the javascript, css, props and slots for a JS component.'
+        parameters:
+          type: object
+          properties:
+            component_name:
+              name: component_name
+              type: string
+              description: 'Component Name The data name of the component that we should get the data for.'
+          required:
+            - component_name
+    -
+      type: function
+      function:
+        name: ai_agent_get_node_fields
+        description: 'This method allows to get node fields.'
+        parameters:
+          type: object
+          properties:
+            node_type:
+              name: node_type
+              type: string
+              description: 'Node Type The node type for which you want to get fields.'
+          required:
+            - node_type
+  chat_structured_json_schema: {  }
+  chat_strict_schema: false
+response:
+  normalized:
+    role: assistant
+    text: 'I am creating the CTA Card component from your image now.'
+    images: {  }
+    remote_files: {  }
+    tools:
+      -
+        id: call_1
+        type: function
+        function:
+          name: ai_agent_create_component
+          arguments: '{"component_name":"CTA Card","js_structure":"export default function CtaCard({ heading }) {\n  return <section className=\"bg-blue-600 text-white\"><h2>{heading}<\/h2><\/section>;\n}\n","css_structure":"","props_metadata":"[{\"id\":\"heading\",\"name\":\"Heading\",\"type\":\"string\",\"example\":\"Ready to get started?\"}]"}'
+    tool_id: null
+  rawOutput: null
+  metadata: {  }
+  tokenUsage:
+    input: 0
+    output: 0
+    total: 0
+    reasoning: 0
+    cached: 0
+  rateLimits:
+    rateLimitMaxRequests: null
+    rateLimitMaxTokens: null
+    rateLimitRemainingRequests: null
+    rateLimitRemainingTokens: null
+    rateLimitResetRequests: null
+    rateLimitResetTokens: null

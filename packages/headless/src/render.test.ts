@@ -5,6 +5,7 @@ import {
   componentNameFromElement,
   findCanvasComponent,
   getCanvasComponentRenderData,
+  isCanvasComponentTreeDraft,
   isCanvasComponentTreeEmpty,
   isCanvasComponentTreeSlotEmpty,
   normalizeCanvasComponentTreeSlot,
@@ -28,6 +29,9 @@ describe('headless component rendering helpers', () => {
       child,
       'Tail',
     ]);
+    expect(
+      normalizeCanvasComponentTreeSlot(['<p>Lead</p>', [child, ['Tail']]]),
+    ).toEqual(['<p>Lead</p>', child, 'Tail']);
   });
 
   it('identifies slots without rendered children', () => {
@@ -54,7 +58,7 @@ describe('headless component rendering helpers', () => {
   });
 
   it('identifies top-level regions without rendered page content', () => {
-    expect(isCanvasComponentTreeEmpty('')).toBe(true);
+    expect(isCanvasComponentTreeEmpty(null)).toBe(true);
     expect(isCanvasComponentTreeEmpty({ element: 'canvas-page' })).toBe(true);
     expect(
       isCanvasComponentTreeEmpty({
@@ -67,13 +71,23 @@ describe('headless component rendering helpers', () => {
         },
       }),
     ).toBe(true);
-    expect(isCanvasComponentTreeEmpty('<p>Rendered markup</p>')).toBe(false);
     expect(
       isCanvasComponentTreeEmpty({
         element: 'canvas-page',
         slots: { content: { element: 'js-card' } },
       }),
     ).toBe(false);
+  });
+
+  it('identifies draft output on the root', () => {
+    expect(isCanvasComponentTreeDraft(null)).toBe(false);
+    expect(isCanvasComponentTreeDraft({ element: 'js-card' })).toBe(false);
+    expect(
+      isCanvasComponentTreeDraft({
+        element: 'canvas-page',
+        canvasDraftMode: true,
+      }),
+    ).toBe(true);
   });
 
   it('maps external component element names to registry keys', () => {

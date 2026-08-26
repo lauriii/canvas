@@ -34,4 +34,18 @@ interface PropShapeRepositoryInterface {
    */
   public function getStorablePropShape(PropShape $shape): ?StorablePropShape;
 
+  /**
+   * Re-resolves the prop shapes queued by cache tag invalidations.
+   *
+   * When a cache tag is invalidated, its prop shapes are not re-resolved right
+   * away: the config the tag describes is often still incomplete at that
+   * moment. They are re-resolved later instead — at the latest when the
+   * repository is destructed, but any code about to read storable prop shapes
+   * whose correctness matters (e.g. to compute Component version hashes) must
+   * call this first.
+   *
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentDiscoveryBase::getPropsForComponentPlugin()
+   */
+  public function resolveInvalidatedPropShapes(): void;
+
 }

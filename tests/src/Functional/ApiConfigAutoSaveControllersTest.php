@@ -188,6 +188,8 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
           'imports' => NULL,
           'assets' => NULL,
           'shared' => NULL,
+          'bundledSources' => NULL,
+          'packageJson' => NULL,
         ],
         [
           'css' => [
@@ -209,6 +211,8 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
           'imports' => NULL,
           'assets' => NULL,
           'shared' => NULL,
+          'bundledSources' => NULL,
+          'packageJson' => NULL,
         ],
         ['js', 'compiled'],
         ['css', 'compiled'],

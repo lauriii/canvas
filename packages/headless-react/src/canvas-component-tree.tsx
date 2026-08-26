@@ -8,6 +8,7 @@ import {
   findCanvasComponent,
   getCanvasComponentRenderData,
   getCanvasTemplateMarkerAttributes,
+  isCanvasComponentTreeDraft,
   isCanvasComponentTreeEmpty,
   isCanvasComponentTreeSlotEmpty,
   normalizeCanvasComponentTreeSlot,
@@ -16,14 +17,16 @@ import {
 } from '@drupal-canvas/headless';
 
 import type { ElementType, ReactNode } from 'react';
-import type { CanvasMarker as CanvasMarkerProps } from '@drupal-canvas/headless';
-import type { CanvasComponentTreeElement } from '@drupal-canvas/headless/server';
+import type {
+  CanvasComponentTreeElement,
+  CanvasMarker as CanvasMarkerProps,
+} from '@drupal-canvas/headless';
 
 /** App component implementations keyed by component.yml machine name. */
 export type CanvasComponentRegistry = Record<string, ElementType>;
 
 export interface CanvasComponentTreeProps {
-  tree: CanvasComponentTreeElement | string;
+  tree: CanvasComponentTreeElement | null;
   components: CanvasComponentRegistry;
 }
 
@@ -44,20 +47,17 @@ export function CanvasComponentTree({
   tree,
   components,
 }: CanvasComponentTreeProps) {
-  const editor = typeof tree !== 'string' && tree.canvasDraftMode === true;
+  const editor = isCanvasComponentTreeDraft(tree);
   const emptyRegion = editor && isCanvasComponentTreeEmpty(tree);
-  const content =
-    typeof tree === 'string' ? (
-      <CanvasMarkup html={tree} />
-    ) : (
-      <CanvasElement
-        node={tree}
-        components={components}
-        path="tree"
-        editor={editor}
-        key={getCanvasElementKey(tree, 'tree')}
-      />
-    );
+  const content = tree ? (
+    <CanvasElement
+      node={tree}
+      components={components}
+      path="tree"
+      editor={editor}
+      key={getCanvasElementKey(tree, 'tree')}
+    />
+  ) : null;
 
   return editor ? (
     <>

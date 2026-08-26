@@ -22,6 +22,12 @@ export const JWT_BEARER_GRANT_TYPE =
  */
 export const CANVAS_HEADLESS_CLIENT_ID = 'canvas_headless';
 
+/** Query parameter selecting a one-component library preview. */
+export const CANVAS_COMPONENT_PREVIEW_QUERY = 'componentId';
+
+/** App route reserved for the isolated one-component preview document. */
+export const CANVAS_COMPONENT_PREVIEW_PATH = '/api/canvas/component-preview';
+
 /**
  * The host ↔ app draft-preview protocol message types.
  *

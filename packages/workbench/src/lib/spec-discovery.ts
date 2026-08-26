@@ -70,6 +70,7 @@ export function toPreviewPageSpec(
   },
 ): {
   spec: Spec | null;
+  pageVariant: string | null;
   issues: PageSpecIssue[];
 } {
   const parsed = parsePageSpec(value, options.sourcePath, {
@@ -78,6 +79,7 @@ export function toPreviewPageSpec(
 
   return {
     spec: parsed.page?.spec ?? null,
+    pageVariant: parsed.page?.pageVariant ?? null,
     issues: parsed.issues,
   };
 }
@@ -113,6 +115,7 @@ export function toPreviewContentTemplateSpec(
         entityTypeId: parsed.template.entityTypeId,
         bundle: parsed.template.bundle,
         viewMode: parsed.template.viewMode,
+        pageVariant: parsed.template.pageVariant,
       }
     : null;
 

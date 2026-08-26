@@ -17,6 +17,10 @@ import type { ComponentRegistrySourcePaths } from './component-registry';
 export const CANVAS_COMPONENTS_MODULE_ID =
   'virtual:@drupal-canvas/headless/components';
 
+/** Virtual module resolving to the app's configured global CSS entrypoint. */
+export const CANVAS_GLOBAL_CSS_MODULE_ID =
+  'virtual:@drupal-canvas/headless/global.css';
+
 const RESOLVED_CANVAS_COMPONENTS_MODULE_ID = `\0${CANVAS_COMPONENTS_MODULE_ID}`;
 
 type RegistryWatchEvent = 'add' | 'addDir' | 'change' | 'unlink' | 'unlinkDir';
@@ -89,9 +93,14 @@ export function canvasComponentRegistry(
       configureComponentRegistryWatcher(server, () => projectRoot);
     },
     resolveId(id) {
-      return id === CANVAS_COMPONENTS_MODULE_ID
-        ? RESOLVED_CANVAS_COMPONENTS_MODULE_ID
-        : undefined;
+      if (id === CANVAS_COMPONENTS_MODULE_ID) {
+        return RESOLVED_CANVAS_COMPONENTS_MODULE_ID;
+      }
+      if (id === CANVAS_GLOBAL_CSS_MODULE_ID) {
+        return resolveComponentRegistrySourcePaths({ projectRoot })
+          .globalCssPath;
+      }
+      return undefined;
     },
     async load(id) {
       return id === RESOLVED_CANVAS_COMPONENTS_MODULE_ID

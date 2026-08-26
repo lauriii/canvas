@@ -45,6 +45,21 @@ export const Route = createFileRoute('/api/draft')({
 //   const { GET, OPTIONS } = createComponentMetadataHandlers();
 ```
 
+Mount the component-preview route:
+
+```tsx
+// src/routes/api/canvas.component-preview.tsx
+import ComponentPreview, {
+  loadComponentPreview,
+} from '@drupal-canvas/headless-tanstack-start/ComponentPreview';
+import { createFileRoute, notFound } from '@tanstack/react-router';
+
+export const Route = createFileRoute('/api/canvas/component-preview')({
+  loader: async () => (await loadComponentPreview()) ?? notFound(),
+  component: () => <ComponentPreview {...Route.useLoaderData()} />,
+});
+```
+
 **3. src/start.ts** — the session-aware CSP `frame-ancestors` middleware:
 
 ```ts
@@ -79,6 +94,9 @@ the registry updates when components are added, removed, or renamed.
 ## Data access
 
 `getClient()` returns the draft-aware JSON:API client; `fetchPage()` fetches
-rendered content, resolved through Drupal's routing. Both are
-draft-session-aware and server-only — call them inside `createServerFn`
-handlers, never in isomorphic loaders directly.
+Canvas-rendered content when available, plus route and document-head data, for a
+path resolved through Drupal routing. Both are draft-session-aware and
+server-only — call them inside `createServerFn` handlers, never in isomorphic
+loaders directly. Render `page.content` directly and return
+`toTanStackHead(page.head)` from the route's `head` callback. Handle
+`PageRedirect` in the loader with TanStack Router's `redirect()`.

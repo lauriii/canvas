@@ -9,7 +9,7 @@ use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Folder;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
-use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
@@ -239,7 +239,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
           ...$page_permissions,
         ],
         [
-          'globalRegions' => FALSE,
+          'pageVariants' => FALSE,
           'patterns' => FALSE,
           'brandKit' => FALSE,
           'codeComponents' => FALSE,
@@ -256,7 +256,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
           AutoSaveManager::PUBLISH_PERMISSION,
         ],
         [
-          'globalRegions' => FALSE,
+          'pageVariants' => FALSE,
           'patterns' => FALSE,
           'brandKit' => FALSE,
           'codeComponents' => TRUE,
@@ -270,10 +270,10 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
         [
           ...$page_permissions,
           Pattern::ADMIN_PERMISSION,
-          PageRegion::ADMIN_PERMISSION,
+          PageVariant::ADMIN_PERMISSION,
         ],
         [
-          'globalRegions' => TRUE,
+          'pageVariants' => TRUE,
           'patterns' => TRUE,
           'brandKit' => FALSE,
           'codeComponents' => FALSE,
@@ -287,11 +287,11 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
         [
           ...$page_permissions,
           Pattern::ADMIN_PERMISSION,
-          PageRegion::ADMIN_PERMISSION,
+          PageVariant::ADMIN_PERMISSION,
           JavaScriptComponent::ADMIN_PERMISSION,
         ],
         [
-          'globalRegions' => TRUE,
+          'pageVariants' => TRUE,
           'patterns' => TRUE,
           'brandKit' => FALSE,
           'codeComponents' => TRUE,
@@ -305,7 +305,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
         [
           ...$page_permissions,
           Pattern::ADMIN_PERMISSION,
-          PageRegion::ADMIN_PERMISSION,
+          PageVariant::ADMIN_PERMISSION,
           JavaScriptComponent::ADMIN_PERMISSION,
           ContentTemplate::ADMIN_PERMISSION,
           AutoSaveManager::PUBLISH_PERMISSION,
@@ -313,7 +313,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
           'administer languages',
         ],
         [
-          'globalRegions' => TRUE,
+          'pageVariants' => TRUE,
           'patterns' => TRUE,
           'brandKit' => FALSE,
           'codeComponents' => TRUE,

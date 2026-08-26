@@ -169,3 +169,7 @@ openapi.yml:
       #/paths/~1canvas~1api~1v0~1form~1content-entity~1{entityTypeId}~1{entityId}/post/parameters
     - >-
       #/paths/~1canvas~1api~1v0~1form~1content-entity~1{entityTypeId}~1{entityId}~1{entityFormMode}/post/parameters
+modules/canvas_headless/openapi.yml:
+  # This operation only redirects and deliberately has no 2xx response.
+  operation-2xx-response:
+    - '#/paths/~1canvas-headless~1renew/get/responses'

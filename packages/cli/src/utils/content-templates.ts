@@ -23,7 +23,7 @@ function sourceTypePrefix(value: unknown): string | null {
 /**
  * Convert a single server prop value into the authored format. Content
  * templates are the only authored shape that carries prop expressions —
- * pages and regions don't support `sourceType`, so they skip this step.
+ * pages and page templates don't support `sourceType`, so they skip this step.
  *
  * - Static prop sources (`{sourceType: "static:...", value: X}`) unwrap to
  *   their inner literal — in authored files, plain values without a
@@ -63,6 +63,11 @@ export interface AuthoredContentTemplateFile {
   entityType: string;
   bundle: string;
   viewMode: string;
+  /**
+   * Machine name of the page variant ("page template" in the UI) rendering
+   * content that uses this template. Omitted means the site default.
+   */
+  pageVariant?: string;
   elements: AuthoredSpecElementMap;
 }
 
@@ -81,6 +86,7 @@ export function contentTemplateToAuthored(
     entityType: template.entityType,
     bundle: template.bundle,
     viewMode: template.viewMode,
+    ...(template.pageVariant ? { pageVariant: template.pageVariant } : {}),
     elements,
   };
 }

@@ -192,6 +192,23 @@ export function CanvasNavigationMixin<TBase extends Constructor<CanvasBase>>(
       }
     }
 
+    async openBrandKitPanel() {
+      await this.page
+        .getByTestId('canvas-side-menu')
+        .getByLabel('Brand Kit')
+        .click();
+      try {
+        await expect(
+          this.page.getByRole('heading', { name: 'Brand Kit' }),
+        ).toBeVisible();
+      } catch (error) {
+        throw new Error(
+          'openBrandKitPanel: Brand Kit panel did not open - was it already open?\n' +
+            (error instanceof Error ? error.message : String(error)),
+        );
+      }
+    }
+
     async openContentNavigation() {
       await this.page.getByTestId('canvas-navigation-button').click();
       await expect(

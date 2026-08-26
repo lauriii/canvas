@@ -1,0 +1,91 @@
+.popoverContent {
+  z-index: 6;
+  width: 287px;
+  padding: 0;
+  border: 1px solid var(--gray-6);
+  border-radius: 4px;
+  background-color: white;
+  box-shadow: var(--shadow-4);
+}
+
+/* Header with title and close button */
+.header {
+  border-bottom: 1px solid var(--gray-4);
+}
+
+/* Footer with action buttons */
+.footer {
+  border-top: 1px solid var(--gray-4);
+}
+
+/* Scrollable body area */
+.body {
+  overflow-y: auto;
+  max-height: 400px;
+}
+
+.colorSwatch {
+  width: 24px;
+  height: 24px;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+}
+
+.pageCollapsible {
+  width: 100%;
+}
+
+.pageTrigger {
+  /* Unset Radix trigger styling, which is very different. */
+  all: unset;
+}
+
+.pageTrigger:hover {
+  background-color: var(--gray-3);
+}
+
+.pageTrigger:focus-visible {
+  outline: 2px solid var(--blue-9);
+  outline-offset: -2px;
+}
+
+.chevron {
+  width: 16px;
+  height: 16px;
+  transition: transform 150ms ease;
+  transform: rotate(0deg);
+}
+
+.chevronOpen {
+  composes: chevron;
+  transform: rotate(90deg);
+}
+
+.pageContent {
+  overflow: hidden;
+}
+
+.sectionGroup {
+  padding: var(--space-2) 0;
+}
+
+.componentName {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.componentLink:hover {
+  color: var(--blue-9);
+  background-color: var(--gray-3);
+}
+
+.componentLink:focus-visible {
+  outline: 2px solid var(--blue-9);
+  outline-offset: -2px;
+}
+
+.triggerBadge {
+  /* Override Radix padding so the surrounding box is smaller. */
+  padding: 0 4px !important;
+}

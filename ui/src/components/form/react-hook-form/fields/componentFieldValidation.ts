@@ -163,6 +163,17 @@ export const shouldSkipPropValidation = (
     return true;
   }
 
+  // Color props are string props with a Canvas $ref sentinel that AJV cannot
+  // resolve; validation happens server-side. Unlike object props, they don't
+  // get the type-based bypass.
+  if (
+    propSchemas[propName]?.$ref?.startsWith(
+      'json-schema-definitions://canvas.module/',
+    )
+  ) {
+    return true;
+  }
+
   const formData = new FormData(target.form);
   const formState = Object.fromEntries(formData);
   const { multipleInputsSingleValue } = propInputData(

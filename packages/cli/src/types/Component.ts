@@ -14,6 +14,10 @@ export interface UploadedArtifact {
   name: string;
   /** Opaque server-assigned file identifier. */
   uri: string;
+  /** Original relative disk path of the source file. */
+  path?: string;
+  /** Original source code of a module. */
+  source?: string;
 }
 
 /**
@@ -23,6 +27,17 @@ export interface BuildManifest {
   vendor: Record<string, string>;
   local: Record<string, string>;
   shared?: string[];
+  /**
+   * Original sources for local artifacts: relative disk path and, for text
+   * modules, the verbatim original source. Keyed by the same specifier used in
+   * `local`. Absent entries fall back to no path/source.
+   */
+  localSources?: Record<string, { path: string; source?: string }>;
+  /**
+   * Original sources of local modules bundled into other artifacts, kept so a
+   * pull can restore the editable file. No `uri`; never part of the import map.
+   */
+  bundledSources?: Array<{ path: string; source: string }>;
 }
 
 /**

@@ -1,3 +1,4 @@
+// @canvas-ci weight=8
 import fields from './entity-form-fields/index.js';
 
 describe(

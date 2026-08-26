@@ -43,6 +43,11 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
   private const string HYDRATION_EXCEPTION_KEY = 'hydration_exception';
 
   /**
+   * The markup a slot with no components renders in the editor, as its target.
+   */
+  public const string EMPTY_SLOT_PLACEHOLDER = '<div class="canvas--slot-empty-placeholder"></div>';
+
+  /**
    * @var null|array<string, array{'edges': array<string, TRUE>}>
    */
   protected ?array $graph = NULL;
@@ -73,6 +78,32 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       ));
     }
     return $dependencies;
+  }
+
+  /**
+   * Rewrites one stored value across every instance in this tree.
+   *
+   * @param string $ref
+   *   The JSON schema `$ref` identifying which props to consider.
+   * @param string $old_value
+   *   The stored value to replace. Matched exactly.
+   * @param string $new_value
+   *   The value to store instead.
+   *
+   * @return bool
+   *   TRUE if any component instance in this tree was rewritten.
+   *
+   * @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem::replacePropValue()
+   */
+  public function replacePropValue(string $ref, string $old_value, string $new_value): bool {
+    $changed = FALSE;
+    foreach ($this as $item) {
+      \assert($item instanceof ComponentTreeItem);
+      // Not short-circuiting: every instance must be rewritten, not just the
+      // first one found.
+      $changed = $item->replacePropValue($ref, $old_value, $new_value) || $changed;
+    }
+    return $changed;
   }
 
   /**
@@ -304,7 +335,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
               // When previewing and the slot value is a default: omit the
               // default in favor of a placeholder div.
               elseif ($isPreview && \is_string($slot_value)) {
-                $slots[$slot] = ['#markup' => Markup::create('<div class="canvas--slot-empty-placeholder"></div>')];
+                $slots[$slot] = ['#markup' => Markup::create(self::EMPTY_SLOT_PLACEHOLDER)];
               }
               // Explicit slot value: renderify, just like the rest of the
               // component tree.
@@ -526,16 +557,43 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       if ($parent_uuid === self::ROOT_UUID) {
         continue;
       }
-      \assert(\array_key_exists('slots', $hydrated[$parent_uuid]) && \is_array($hydrated[$parent_uuid]['slots']));
+
+      // A child component instance can only be placed if its parent offers the
+      // slot it claims to live in. A valid component tree guarantees this, but
+      // even an invalid one must still render to the maximum possible extent.
+      // Best-effort rendering means that some component subtrees (i.e. a child
+      // that cannot be rendered, and all its descendants) are omitted during
+      // rendering.
+      // 4 scenarios can result in a child that cannot be placed. Scenarios 1, 3
+      // and 4 require bypassing validation (e.g. through a custom update path,
+      // or saving modified entities with component trees without validating
+      // them). Scenario 2 can also occur for a valid component tree, because
+      // hydration depends on state outside it.
+      // @see \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator::validateComponentInstance()
+      if (
+        // 1. The parent does not exist at all (dangling `parent_uuid`).
+        !\array_key_exists($parent_uuid, $hydrated)
+        // 2. The parent failed to hydrate, so it has no `slots` key. And
+        //    ::renderify() re-throws its exception before reaching slots
+        //    anyway.
+        || \array_key_exists(self::HYDRATION_EXCEPTION_KEY, $hydrated[$parent_uuid])
+        // 3. The parent's ComponentSource has no slots whatsoever (for example
+        //    `BlockComponent`), so it never sets a `slots` key.
+        || !\array_key_exists('slots', $hydrated[$parent_uuid])
+        // 4. The parent has slots, but not the one claimed by this child.
+        || !\array_key_exists($slot, $hydrated[$parent_uuid]['slots'])
+      ) {
+        unset($hydrated[$uuid]);
+        continue;
+      }
 
       // Remove default slot value: this slot is populated.
-      if (\array_key_exists($slot, $hydrated[$parent_uuid]['slots']) && \is_string($hydrated[$parent_uuid]['slots'][$slot])) {
+      if (\is_string($hydrated[$parent_uuid]['slots'][$slot])) {
         $hydrated[$parent_uuid]['slots'][$slot] = [];
       }
 
-      // @phpstan-ignore-next-line
+      \assert(\is_array($hydrated[$parent_uuid]['slots'][$slot]));
       \assert(!\array_key_exists($uuid, $hydrated[$parent_uuid]['slots'][$slot]));
-      // @phpstan-ignore-next-line
       $hydrated[$parent_uuid]['slots'][$slot][$uuid] = $hydrated[$uuid];
       unset($hydrated[$uuid]);
     }

@@ -1,5 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { createHeadlessPreviewHost } from '@drupal-canvas/headless-host';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
+import {
+  CANVAS_COMPONENT_PREVIEW_PATH,
+  CANVAS_COMPONENT_PREVIEW_QUERY,
+  createHeadlessPreviewHost,
+} from '@drupal-canvas/headless-host';
 
 import { fetchCsrfToken } from '@/utils/csrf';
 import { getBaseUrl } from '@/utils/drupal-globals';
@@ -22,7 +32,58 @@ export interface HeadlessDraftSession {
   geometry: CanvasGeometry[];
 }
 
+export interface HeadlessPreviewContext {
+  viewMode?: string;
+  componentPreviewId?: string;
+}
+
 const WAITING_TEXT = 'Waiting for the preview to report its draft session…';
+
+// HeadlessPreview keeps its current and pending frames mounted while changing
+// routes. Track their owners so one frame's cleanup cannot hide a session that
+// the other frame has already reported as active.
+const activeMainPreviewOwners = new Map<string, Set<symbol>>();
+const mainPreviewListeners = new Map<string, Set<() => void>>();
+
+function hasActiveMainPreview(frontendKey: string): boolean {
+  return (activeMainPreviewOwners.get(frontendKey)?.size ?? 0) > 0;
+}
+
+function subscribeToMainPreview(
+  frontendKey: string,
+  listener: () => void,
+): () => void {
+  const listeners = mainPreviewListeners.get(frontendKey) ?? new Set();
+  listeners.add(listener);
+  mainPreviewListeners.set(frontendKey, listeners);
+  return () => {
+    listeners.delete(listener);
+    if (listeners.size === 0) {
+      mainPreviewListeners.delete(frontendKey);
+    }
+  };
+}
+
+function setMainPreviewActive(
+  frontendKey: string,
+  owner: symbol,
+  active: boolean,
+): void {
+  const wasActive = hasActiveMainPreview(frontendKey);
+  const owners = activeMainPreviewOwners.get(frontendKey) ?? new Set();
+  if (active) {
+    owners.add(owner);
+    activeMainPreviewOwners.set(frontendKey, owners);
+  } else {
+    owners.delete(owner);
+    if (owners.size === 0) {
+      activeMainPreviewOwners.delete(frontendKey);
+    }
+  }
+  if (wasActive !== hasActiveMainPreview(frontendKey)) {
+    mainPreviewListeners.get(frontendKey)?.forEach((listener) => listener());
+  }
+}
 
 /**
  * Maps host protocol events to the editor's status line text.
@@ -64,16 +125,46 @@ export function useHeadlessDraftSession(
   entityId: string | undefined,
   autoSavesHash?: AutoSavesHashRecord,
   viewportHeight?: number,
+  previewContext?: HeadlessPreviewContext,
 ): HeadlessDraftSession {
-  const { frontendOrigin, draftUrl, assertionUrl } = settings;
+  const { frontendUrl, frontendOrigin, draftUrl, assertionUrl } = settings;
+  const mainPreviewOwnerRef = useRef(Symbol('canvas-headless-main-preview'));
+  const isComponentPreview = Boolean(previewContext?.componentPreviewId);
+  const subscribeToCurrentMainPreview = useCallback(
+    (listener: () => void) => subscribeToMainPreview(draftUrl, listener),
+    [draftUrl],
+  );
+  const getMainPreviewSnapshot = useCallback(
+    () => !isComponentPreview || hasActiveMainPreview(draftUrl),
+    [draftUrl, isComponentPreview],
+  );
+  const mainPreviewActive = useSyncExternalStore(
+    subscribeToCurrentMainPreview,
+    getMainPreviewSnapshot,
+    () => !isComponentPreview,
+  );
+  const sessionKey = JSON.stringify([
+    frontendUrl,
+    frontendOrigin,
+    draftUrl,
+    assertionUrl,
+    entityType,
+    entityId,
+    previewContext?.viewMode,
+    previewContext?.componentPreviewId,
+  ]);
   const [statusText, setStatusText] = useState(WAITING_TEXT);
   const [geometry, setGeometry] = useState<CanvasGeometry[]>([]);
+  const [geometrySessionKey, setGeometrySessionKey] = useState<string | null>(
+    null,
+  );
   const hostRef = useRef<HeadlessPreviewHost | null>(null);
   const lastAutoSavesHashRef = useRef(autoSavesHash);
   const viewportHeightRef = useRef(viewportHeight);
   viewportHeightRef.current = viewportHeight;
   const [contentHeight, setContentHeight] = useState<number | null>(null);
   const [contentHeightReady, setContentHeightReady] = useState(false);
+  const [heightSessionKey, setHeightSessionKey] = useState<string | null>(null);
 
   const fetchAssertion = useCallback(
     async (params: Record<string, string>): Promise<string> => {
@@ -107,8 +198,17 @@ export function useHeadlessDraftSession(
   // then unmounts this hook after the replacement is ready.
   useEffect(() => {
     const iframe = iframeRef.current;
-    if (!iframe || !entityType || !entityId) {
+    if (
+      !iframe ||
+      !entityType ||
+      !entityId ||
+      (isComponentPreview && !mainPreviewActive)
+    ) {
       return;
+    }
+    const mainPreviewOwner = mainPreviewOwnerRef.current;
+    if (!isComponentPreview) {
+      setMainPreviewActive(draftUrl, mainPreviewOwner, false);
     }
     setStatusText(WAITING_TEXT);
     setContentHeightReady(false);
@@ -121,21 +221,55 @@ export function useHeadlessDraftSession(
       onEvent: (event) => {
         if (event.type === 'geometry') {
           setGeometry(event.geometry);
+          setGeometrySessionKey(sessionKey);
         } else {
+          if (!isComponentPreview) {
+            if (event.type === 'active') {
+              setMainPreviewActive(draftUrl, mainPreviewOwner, true);
+            } else if (
+              event.type === 'activation-failed' ||
+              event.type === 'renew-failed' ||
+              event.type === 'recovering' ||
+              event.type === 'recovery-failed'
+            ) {
+              setMainPreviewActive(draftUrl, mainPreviewOwner, false);
+            }
+          }
           setStatusText(statusTextFor(event));
         }
       },
       onHeight: (height) => {
         setContentHeight(height);
         setContentHeightReady(true);
+        setHeightSessionKey(sessionKey);
       },
     });
     hostRef.current = host;
     if (viewportHeightRef.current !== undefined) {
       host.setViewportHeight(viewportHeightRef.current);
     }
-    void host.activate({ entity_type: entityType, entity: entityId });
+    if (previewContext?.componentPreviewId) {
+      const previewUrl = new URL(
+        `${frontendUrl}${CANVAS_COMPONENT_PREVIEW_PATH}`,
+      );
+      previewUrl.searchParams.set(
+        CANVAS_COMPONENT_PREVIEW_QUERY,
+        previewContext.componentPreviewId,
+      );
+      host.attach(previewUrl.toString());
+    } else {
+      void host.activate({
+        ...(entityType && { entity_type: entityType }),
+        ...(entityId && { entity: entityId }),
+        ...(previewContext?.viewMode && {
+          view_mode: previewContext.viewMode,
+        }),
+      });
+    }
     return () => {
+      if (!isComponentPreview) {
+        setMainPreviewActive(draftUrl, mainPreviewOwner, false);
+      }
       if (hostRef.current === host) {
         hostRef.current = null;
       }
@@ -143,11 +277,17 @@ export function useHeadlessDraftSession(
     };
   }, [
     iframeRef,
+    frontendUrl,
     frontendOrigin,
     draftUrl,
     fetchAssertion,
     entityType,
     entityId,
+    isComponentPreview,
+    mainPreviewActive,
+    previewContext?.viewMode,
+    previewContext?.componentPreviewId,
+    sessionKey,
   ]);
 
   useEffect(() => {
@@ -170,5 +310,17 @@ export function useHeadlessDraftSession(
     hostRef.current?.setViewportHeight(viewportHeight);
   }, [viewportHeight]);
 
-  return { statusText, contentHeight, contentHeightReady, geometry };
+  const currentSessionHeight =
+    heightSessionKey === sessionKey ? contentHeight : null;
+  const currentSessionGeometry =
+    geometrySessionKey === sessionKey &&
+    (!isComponentPreview || mainPreviewActive)
+      ? geometry
+      : [];
+  return {
+    statusText,
+    contentHeight: currentSessionHeight,
+    contentHeightReady: heightSessionKey === sessionKey && contentHeightReady,
+    geometry: currentSessionGeometry,
+  };
 }

@@ -9,6 +9,7 @@ namespace Drupal\Tests\canvas\Kernel\Controller;
 use Drupal\canvas\Controller\ApiMediaControllers;
 use Drupal\canvas\Entity\Page;
 use Drupal\Core\Cache\CacheableJsonResponse;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\MockFileUploadTrait;
@@ -153,6 +154,45 @@ class ApiMediaControllersPostTest extends CanvasKernelTestBase {
 
     $data = $this->decodeResponse($response);
     $this->assertSame($expected_message, $data['errors'][0]['detail']);
+  }
+
+  /**
+   * Tests that a non-image file with an allowed extension is rejected.
+   *
+   * A file whose name has an allowed image extension but whose contents are
+   * not a valid image must not be stored: the FileIsImage validator rejects it
+   * with a 422.
+   *
+   * @legacy-covers \Drupal\canvas\Controller\ApiMediaControllers::upload
+   */
+  public function testPostNonImageWithAllowedExtension(): void {
+    // Write a non-image payload to a file with an allowed image extension.
+    $temp_dir = $this->container->get(FileSystemInterface::class)->getTempDirectory();
+    $payload_path = $temp_dir . '/canvas-test-payload-' . \uniqid() . '.jpg';
+    \file_put_contents($payload_path, "<?php phpinfo(); ?>\n<script>alert(document.cookie)</script>");
+
+    $response = $this->request(
+      Request::create(
+        \sprintf(self::URL, 'image'),
+        'POST',
+        parameters: ['file' => 'payload.jpg', 'alt' => 'x'],
+        files: [
+          'file' => new UploadedFile($payload_path, 'payload.jpg', 'image/jpeg', NULL, test: TRUE),
+        ],
+        server: ['CONTENT_TYPE' => 'multipart/form-data'],
+      )
+    );
+
+    // The response of a POST request shouldn't be cacheable.
+    \assert($response instanceof JsonResponse && !$response instanceof CacheableJsonResponse);
+    $this->assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+    $data = $this->decodeResponse($response);
+    $this->assertStringStartsWith('The image file is invalid or the image type is not allowed.', $data['errors'][0]['detail']);
+
+    // No managed file or media entity should have been created.
+    $entity_type_manager = $this->container->get(EntityTypeManagerInterface::class);
+    $this->assertEmpty($entity_type_manager->getStorage('file')->loadMultiple());
+    $this->assertEmpty($entity_type_manager->getStorage('media')->loadMultiple());
   }
 
   public function testPostWithoutFile(): void {

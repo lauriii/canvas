@@ -1,6 +1,13 @@
 import { useEffect, useRef } from 'react';
 import clsx from 'clsx';
 
+import {
+  calculateComponentPreviewSizing,
+  COMPONENT_PREVIEW_HEIGHT,
+  COMPONENT_PREVIEW_IFRAME_HEIGHT,
+  COMPONENT_PREVIEW_IFRAME_WIDTH,
+  COMPONENT_PREVIEW_WIDTH,
+} from '@/components/componentPreviewSizing';
 import { getBaseUrl, getDrupalSettings } from '@/utils/drupal-globals';
 
 import type { CanvasComponent } from '@/types/Component';
@@ -56,10 +63,6 @@ const ComponentPreview: React.FC<ComponentPreviewProps> = ({
   componentListItem,
 }) => {
   const component = componentListItem;
-  const defaultIframeWidth = 1200;
-  const defaultIframeHeight = 800;
-  const defaultPreviewWidth = 300;
-  const defaultPreviewHeight = 200;
 
   const css = drupalSettings?.canvas.globalAssets.css + component.css;
   const js_footer =
@@ -131,13 +134,16 @@ const ComponentPreview: React.FC<ComponentPreviewProps> = ({
     scalingElement.style.width = `${offsetWidth}px`;
     scalingElement.style.height = `${offsetHeight}px`;
     if (offsetWidth > maxWidth || offsetHeight > maxHeight) {
-      const widthScale = maxWidth / offsetWidth;
-      const heightScale = maxHeight / offsetHeight;
-      const scale = Math.min(widthScale, heightScale);
-      scalingElement.style.transform = `scale(${scale})`;
+      const sizing = calculateComponentPreviewSizing(
+        offsetWidth,
+        offsetHeight,
+        maxWidth,
+        maxHeight,
+      );
+      scalingElement.style.transform = `scale(${sizing.scale})`;
       tooltipElement.style.position = 'relative';
-      tooltipElement.style.width = `${offsetWidth * scale}px`;
-      tooltipElement.style.height = `${offsetHeight * scale}px`;
+      tooltipElement.style.width = `${sizing.width}px`;
+      tooltipElement.style.height = `${sizing.height}px`;
     }
     tooltipElement.style.visibility = 'visible';
   }
@@ -188,8 +194,8 @@ const ComponentPreview: React.FC<ComponentPreviewProps> = ({
           offsetHeight,
           scalingElement,
           tooltipElement,
-          defaultIframeWidth,
-          defaultIframeHeight,
+          COMPONENT_PREVIEW_IFRAME_WIDTH,
+          COMPONENT_PREVIEW_IFRAME_HEIGHT,
         );
         return;
       }
@@ -230,8 +236,8 @@ const ComponentPreview: React.FC<ComponentPreviewProps> = ({
         offsetHeight,
         scalingElement,
         tooltipElement,
-        defaultPreviewWidth,
-        defaultPreviewHeight,
+        COMPONENT_PREVIEW_WIDTH,
+        COMPONENT_PREVIEW_HEIGHT,
       );
 
       const hasCanvasIsland =
@@ -266,8 +272,8 @@ const ComponentPreview: React.FC<ComponentPreviewProps> = ({
         <iframe
           ref={iframeRef}
           title={component.name}
-          width={defaultIframeWidth}
-          height={defaultIframeHeight}
+          width={COMPONENT_PREVIEW_IFRAME_WIDTH}
+          height={COMPONENT_PREVIEW_IFRAME_HEIGHT}
           data-preview-component-id={component.id}
           srcDoc={html}
           className={clsx(styles.iframe)}

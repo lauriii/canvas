@@ -257,18 +257,19 @@ class JavascriptComponentTest extends CanvasKernelTestBase {
   }
 
   /**
-   * Tests that saved external components reject identity changes.
+   * Tests that the client side may change a component's name, status, and type.
    *
-   * The external application's component metadata owns the name, status, and
-   * type of an external component; client-side changes would be reverted by
-   * the next synchronization and are rejected.
+   * These changes are accepted so that tools such as the CLI can reconcile
+   * components with a decoupled application: an external component's name and
+   * status may change, and a react component may be converted to external.
    *
    * @legacy-covers ::updateFromClientSide
    */
-  public function testExternalComponentIdentityIsLocked(): void {
-    $client_data = [
-      'machineName' => 'external_locked',
-      'name' => 'External locked',
+  public function testClientSideMayChangeComponentIdentity(): void {
+    // The external application's name and status are no longer locked.
+    $external_data = [
+      'machineName' => 'external_mutable',
+      'name' => 'External mutable',
       'status' => TRUE,
       'type' => 'external',
       'required' => [],
@@ -276,42 +277,20 @@ class JavascriptComponentTest extends CanvasKernelTestBase {
       'slots' => [],
       'dataDependencies' => [],
     ];
-    $component = JavaScriptComponent::createFromClientSide($client_data);
+    $component = JavaScriptComponent::createFromClientSide($external_data);
     $component->save();
-
-    // Resending the same identity values along with metadata changes is fine.
     $component->updateFromClientSide([
-      ...$client_data,
-      'props' => [
-        'title' => [
-          'type' => 'string',
-          'title' => 'Title',
-          'examples' => ['A title'],
-        ],
-      ],
+      ...$external_data,
+      'name' => 'Renamed',
+      'status' => FALSE,
     ]);
-    self::assertSame(['title'], \array_keys($component->getProps() ?? []));
+    self::assertSame('Renamed', $component->label());
+    self::assertFalse($component->status());
 
-    $identity_changes = [
-      [['name' => 'Renamed'], 'External code components cannot be renamed'],
-      [['status' => FALSE], 'External code components cannot be exposed or unexposed'],
-      [['type' => 'react'], 'The code component type cannot be changed.'],
-    ];
-    foreach ($identity_changes as [$identity_change, $expected_message]) {
-      try {
-        $component->updateFromClientSide($identity_change + $client_data);
-        $this->fail("Expected a constraint violation containing '$expected_message'.");
-      }
-      catch (ConstraintViolationException $e) {
-        self::assertStringContainsString($expected_message, $e->getMessage());
-      }
-    }
-
-    // The type of a saved React component is locked, too: synchronization is
-    // the only operation allowed to make the external application authoritative.
+    // A react component may be converted to an external component.
     $react_component = JavaScriptComponent::createFromClientSide([
-      'machineName' => 'react_locked',
-      'name' => 'React locked',
+      'machineName' => 'react_mutable',
+      'name' => 'React mutable',
       'status' => TRUE,
       'required' => [],
       'props' => [],
@@ -324,9 +303,9 @@ class JavascriptComponentTest extends CanvasKernelTestBase {
       'dataDependencies' => [],
     ]);
     $react_component->save();
-    $this->expectException(ConstraintViolationException::class);
-    $this->expectExceptionMessage('The code component type cannot be changed.');
     $react_component->updateFromClientSide(['type' => 'external']);
+    self::assertSame('external', $react_component->getComponentType());
+    self::assertTrue($react_component->isExternal());
   }
 
 }

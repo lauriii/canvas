@@ -39,7 +39,7 @@ final class ComponentDependencyUninstallValidator implements ModuleUninstallVali
     $reasons = [];
     foreach ($components as $component) {
       \assert($component instanceof ComponentInterface);
-      $usage = $this->componentAudit->getContentRevisionsUsingComponent($component);
+      $usage = $this->componentAudit->getContentRevisionsUsingAuditTarget($component);
       $count = \count($usage);
       if ($count === 0) {
         continue;

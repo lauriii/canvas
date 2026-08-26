@@ -76,7 +76,12 @@ the registry updates when components are added, removed, or renamed.
 ## Data access
 
 `getClient(Astro)` returns the draft-aware JSON:API client;
-`fetchPage(Astro, path)` fetches rendered content, resolved through Drupal's
-routing. Both are draft-session-aware. Every accessor takes the `Astro` global
-(pages, components) or the APIContext (endpoints, middleware), because Astro
-exposes cookies per request rather than through request-scoped globals.
+`fetchPage(Astro, path)` fetches Canvas-rendered content when available, plus
+route and document-head data, for a path resolved through Drupal routing. Both
+are draft-session-aware. Render `page.content` directly and render `page.head`
+with the application's head manager. Its shape is directly compatible with
+[Unhead](https://unhead.unjs.io/). Handle `PageRedirect` before page rendering
+with `Astro.redirect(redirect.url, redirect.statusCode)`. Every accessor takes
+the `Astro` global (pages, components) or the APIContext (endpoints,
+middleware), because Astro exposes cookies per request rather than through
+request-scoped globals.

@@ -1,6 +1,9 @@
 {
   "name": "@drupal-canvas/auth",
   "version": "0.0.0",
+  "engines": {
+    "node": ">=22.19.0 <23 || >=24.5.0"
+  },
   "description": "Shared OAuth helpers and token store for Drupal Canvas tooling (CLI + Workbench)",
   "private": true,
   "license": "MIT",

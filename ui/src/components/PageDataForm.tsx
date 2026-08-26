@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import { useParams } from 'react-router';
 import { Box, Spinner } from '@radix-ui/themes';
@@ -11,14 +11,21 @@ import { selectFormValues } from '@/features/form/formStateSlice';
 import { setUpdatePreview } from '@/features/layout/layoutModelSlice';
 import { selectPageData, setPageData } from '@/features/pageData/pageDataSlice';
 import { useDrupalBehaviors } from '@/hooks/useDrupalBehaviors';
+import { useEditorNavigation } from '@/hooks/useEditorNavigation';
 import hyperscriptify from '@/local_packages/hyperscriptify';
 import propsify from '@/local_packages/hyperscriptify/propsify/standard/index.js';
 import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
 import { useGetPageDataFormQuery } from '@/services/pageDataForm';
+import {
+  PAGE_VARIANT_ENTITY_TYPE,
+  useGetDefaultPageVariantQuery,
+} from '@/services/pageVariants';
 import { AJAX_UPDATE_FORM_STATE_EVENT } from '@/types/Ajax';
 import parseHyperscriptifyTemplate from '@/utils/parse-hyperscriptify-template';
 
 import type { AjaxUpdateFormStateEvent } from '@/types/Ajax';
+
+import styles from '@/components/PageDataForm.module.css';
 
 const PageDataFormRenderer = () => {
   const pageData = useAppSelector(selectPageData);
@@ -43,6 +50,45 @@ const PageDataFormRenderer = () => {
   );
 
   const formRef = useRef<HTMLDivElement>(null);
+  const { navigateToEditor } = useEditorNavigation();
+  const { data: defaultVariant } = useGetDefaultPageVariantQuery();
+  const defaultVariantId = defaultVariant?.default_page_variant ?? null;
+  // The edit-template link is server-rendered Drupal markup, not a react
+  // router <Link>; intercept it so it navigates without a full page load.
+  const interceptEditTemplateLink = useCallback(
+    (event: React.MouseEvent) => {
+      const link = (event.target as HTMLElement).closest(
+        '[data-testid="canvas-page-template-edit"]',
+      );
+      if (!link) {
+        return;
+      }
+      // Edit the template currently chosen in the form — which may be an
+      // unsaved, pending selection — rather than the server-rendered href,
+      // which reflects the saved selection. An empty or "_none" value means
+      // "site default", which edits the configured default variant.
+      const select = link
+        .closest('[data-testid="canvas-page-data-form"]')
+        ?.querySelector<HTMLSelectElement>('select[name="page_variant"]');
+      let variantId: string | undefined;
+      if (select) {
+        const selected = select.value;
+        variantId =
+          !selected || selected === '_none'
+            ? (defaultVariantId ?? undefined)
+            : selected;
+      } else {
+        variantId = link
+          .getAttribute('href')
+          ?.split(`/editor/${PAGE_VARIANT_ENTITY_TYPE}/`)[1];
+      }
+      if (variantId) {
+        event.preventDefault();
+        navigateToEditor(PAGE_VARIANT_ENTITY_TYPE, variantId);
+      }
+    },
+    [navigateToEditor, defaultVariantId],
+  );
   const loading = isFetching || isFetchingLayout;
   useDrupalBehaviors(formRef, jsxFormContent, loading);
 
@@ -76,7 +122,11 @@ const PageDataFormRenderer = () => {
     }
 
     setJsxFormContent(
-      <div data-testid="canvas-page-data-form">
+      <div
+        data-testid="canvas-page-data-form"
+        className={styles.pageDataForm}
+        onClick={interceptEditTemplateLink}
+      >
         {hyperscriptify(
           template,
           React.createElement,
@@ -86,7 +136,7 @@ const PageDataFormRenderer = () => {
         )}
       </div>,
     );
-  }, [formTemplate, pageDataExists]);
+  }, [formTemplate, pageDataExists, interceptEditTemplateLink]);
 
   useEffect(() => {
     const ajaxUpdateFormStateListener: (

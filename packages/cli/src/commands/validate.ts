@@ -12,9 +12,10 @@ import {
   splitFailedResultsByFile,
 } from '../utils/report-results.js';
 import { validateContentTemplates } from '../utils/validate-content-template.js';
+import { validatePageTemplates } from '../utils/validate-page-variant.js';
 import { validatePages } from '../utils/validate-page.js';
-import { validateRegions } from '../utils/validate-region.js';
 import { validateComponents } from '../utils/validate.js';
+import { formatDiscoveryWarning } from './push.js';
 
 import type { Command } from 'commander';
 import type { ApiService } from '../services/api.js';
@@ -74,11 +75,26 @@ export function validateCommand(program: Command): void {
           componentRoot: config.componentDir,
           pagesRoot: config.pagesDir,
           contentTemplatesRoot: config.contentTemplatesDir,
-          regionsRoot: config.regionsDir,
+          pageTemplatesRoot: config.pageTemplatesDir,
           projectRoot: process.cwd(),
         });
+        for (const warning of discoveryResult.warnings) {
+          p.log.warn(formatDiscoveryWarning(warning));
+        }
         const results: Result[] = [];
         const apiService = await createOptionalValidationApiService();
+        let availablePageVariantIds: Set<string> | undefined;
+        if (apiService) {
+          try {
+            const remotePageVariants = await apiService.listPageVariants();
+            availablePageVariantIds = new Set([
+              ...Object.keys(remotePageVariants),
+              ...discoveryResult.pageTemplates.map((template) => template.id),
+            ]);
+          } catch {
+            // Server unreachable or does not support page variants yet.
+          }
+        }
 
         const s = p.spinner();
         s.start('Validating components');
@@ -100,7 +116,10 @@ export function validateCommand(program: Command): void {
           const pageSpinner = p.spinner();
           pageSpinner.start('Validating pages');
 
-          const { results: pageResults } = await validatePages(discoveryResult);
+          const { results: pageResults } = await validatePages(
+            discoveryResult,
+            { availablePageVariantIds },
+          );
           for (const result of pageResults) {
             results.push({ ...result, itemType: 'Page' });
           }
@@ -114,7 +133,7 @@ export function validateCommand(program: Command): void {
 
           const { results: ctResults } = await validateContentTemplates(
             discoveryResult,
-            apiService ? { apiService } : undefined,
+            apiService ? { apiService, availablePageVariantIds } : undefined,
           );
           for (const result of ctResults) {
             results.push({ ...result, itemType: 'Content template' });
@@ -123,17 +142,17 @@ export function validateCommand(program: Command): void {
           ctSpinner.stop('Validated content templates', 0);
         }
 
-        if (discoveryResult && discoveryResult.regions.length > 0) {
-          const regionSpinner = p.spinner();
-          regionSpinner.start('Validating global regions');
+        if (discoveryResult && discoveryResult.pageTemplates.length > 0) {
+          const pageTemplateSpinner = p.spinner();
+          pageTemplateSpinner.start('Validating page templates');
 
-          const { results: regionResults } =
-            await validateRegions(discoveryResult);
-          for (const result of regionResults) {
-            results.push({ ...result, itemType: 'Global region' });
+          const { results: pageTemplateResults } =
+            await validatePageTemplates(discoveryResult);
+          for (const result of pageTemplateResults) {
+            results.push({ ...result, itemType: 'Page template' });
           }
 
-          regionSpinner.stop('Validated global regions', 0);
+          pageTemplateSpinner.stop('Validated page templates', 0);
         }
 
         reportResults(

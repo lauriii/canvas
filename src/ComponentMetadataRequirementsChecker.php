@@ -51,7 +51,7 @@ final class ComponentMetadataRequirementsChecker {
     // Check fundamentals.
     $validator = new Validator();
     foreach ($metadata->schema['properties'] ?? [] as $prop_name => $prop) {
-      if (\in_array(Attribute::class, $prop['type'], TRUE)) {
+      if (\in_array(Attribute::class, (array) $prop['type'], TRUE)) {
         continue;
       }
 
@@ -62,7 +62,7 @@ final class ComponentMetadataRequirementsChecker {
       }
 
       // For array types, also check enum in items.
-      $is_array_prop_type = \in_array('array', $prop['type'], TRUE);
+      $is_array_prop_type = \in_array('array', (array) $prop['type'], TRUE);
       if ($is_array_prop_type && isset($prop['items']['enum']) && \in_array('', $prop['items']['enum'], TRUE)) {
         $messages[] = \sprintf('Prop "%s" has an empty enum value in items.', $prop_name);
       }
@@ -140,6 +140,33 @@ final class ComponentMetadataRequirementsChecker {
         if (!\in_array($prop['x-formatting-context'], ['inline', 'block'], TRUE)) {
           $messages[] = \sprintf('Invalid value "%s" for "x-formatting-context". Valid values are "inline" and "block".', $prop['x-formatting-context']);
           continue;
+        }
+      }
+
+      // Validation for x-canvas-color-picker.
+      if (isset($prop['x-canvas-color-picker'])) {
+        if (!\in_array($prop['x-canvas-color-picker'], ['kit-only', 'kit-and-free'], TRUE)) {
+          $messages[] = \sprintf('Invalid value "%s" for "x-canvas-color-picker". Valid values are "kit-only" and "kit-and-free".', $prop['x-canvas-color-picker']);
+          continue;
+        }
+      }
+
+      // Validation for x-canvas-color-folders.
+      if (\array_key_exists('x-canvas-color-folders', $prop)) {
+        $folders = $prop['x-canvas-color-folders'];
+        if (($prop['$ref'] ?? NULL) !== 'json-schema-definitions://canvas.module/color') {
+          $messages[] = \sprintf('"x-canvas-color-folders" on prop "%s" requires $ref: json-schema-definitions://canvas.module/color.', $prop_name);
+          continue;
+        }
+        if (!\is_array($folders) || empty($folders)) {
+          $messages[] = \sprintf('"x-canvas-color-folders" on prop "%s" must be a non-empty array of folder UUIDs.', $prop_name);
+          continue;
+        }
+        foreach ($folders as $folder_id) {
+          if (!\is_string($folder_id) || $folder_id === '') {
+            $messages[] = \sprintf('"x-canvas-color-folders" on prop "%s" must contain only non-empty strings.', $prop_name);
+            break;
+          }
         }
       }
 

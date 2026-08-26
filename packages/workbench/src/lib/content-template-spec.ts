@@ -14,6 +14,7 @@ export interface AuthoredContentTemplateSpec {
   entityType: string;
   bundle: string;
   viewMode: string;
+  pageVariant?: string;
   elements: AuthoredSpecElementMap;
 }
 
@@ -22,9 +23,11 @@ export interface ContentTemplateSpecMetadata {
   entityTypeId: string;
   bundle: string;
   viewMode: string;
+  pageVariant: string | null;
 }
 
 export interface NormalizedContentTemplateSpec extends ContentTemplateSpecMetadata {
+  pageVariant: string | null;
   spec: Spec;
 }
 
@@ -64,6 +67,7 @@ export function normalizeContentTemplateSpec(
     entityTypeId: template.entityType,
     bundle: template.bundle,
     viewMode: template.viewMode,
+    pageVariant: template.pageVariant ?? null,
     spec: {
       root: 'canvas:component-tree',
       elements: {
@@ -120,6 +124,9 @@ export function parseContentTemplateSpecMetadata(
     }
     metadata[key] = fieldValue;
   });
+  metadata.pageVariant = isNonEmptyString(value.pageVariant)
+    ? value.pageVariant
+    : null;
 
   if (issues.length > 0) {
     return { template: null, issues };
@@ -159,6 +166,7 @@ export function parseContentTemplateSpec(
     'entityType',
     'bundle',
     'viewMode',
+    'pageVariant',
     'elements',
   ]);
   const unexpectedTopLevelKeys = Object.keys(value).filter(
@@ -180,6 +188,14 @@ export function parseContentTemplateSpec(
       code: 'invalid_content_template_spec',
       message: `Content template file must include a non-empty $schema string when provided: ${sourcePath}`,
       path: `${sourcePath}#$schema`,
+    });
+  }
+
+  if ('pageVariant' in value && !isNonEmptyString(value.pageVariant)) {
+    issues.push({
+      code: 'invalid_content_template_spec',
+      message: `Content template "pageVariant" must be a non-empty string in ${sourcePath}.`,
+      path: `${sourcePath}#pageVariant`,
     });
   }
 
@@ -235,6 +251,9 @@ export function parseContentTemplateSpec(
     entityType: metadataResult.template.entityTypeId,
     bundle: metadataResult.template.bundle,
     viewMode: metadataResult.template.viewMode,
+    pageVariant: isNonEmptyString(value.pageVariant)
+      ? value.pageVariant
+      : undefined,
     elements: parsedElements.elements,
   });
 

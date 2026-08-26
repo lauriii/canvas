@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'path';
 import {
   ASSET_EXTENSIONS,
+  detectHeadlessSdk,
   resolveCanvasConfig,
 } from '@drupal-canvas/discovery';
 
@@ -237,6 +238,12 @@ const rule: EslintRule.RuleModule = {
     fixable: 'code',
   },
   create(context: EslintRule.RuleContext): EslintRule.RuleListener {
+    // Headless apps own their own module graph and bundler, so the import
+    // restrictions that exist for Drupal-rendered components do not apply.
+    if (detectHeadlessSdk(context.cwd)) {
+      return {};
+    }
+
     if (!isComponentDir(dirname(context.filename))) {
       return {};
     }

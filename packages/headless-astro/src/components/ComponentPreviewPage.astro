@@ -1,0 +1,45 @@
+---
+import { CANVAS_COMPONENT_PREVIEW_QUERY } from '@drupal-canvas/headless';
+import { isPageRedirect } from '@drupal-canvas/headless/server';
+import 'virtual:@drupal-canvas/headless/global.css';
+import CanvasComponentTree from './CanvasComponentTree.astro';
+import DraftSession from './DraftSession.astro';
+import { fetchComponentPreview, getDraftData } from '../server';
+
+export const prerender = false;
+
+const draftData = await getDraftData(Astro);
+const componentId = Astro.url.searchParams.get(CANVAS_COMPONENT_PREVIEW_QUERY);
+if (!draftData || !componentId) {
+  return Astro.redirect('/');
+}
+const page = await fetchComponentPreview(Astro, componentId);
+if (!page || isPageRedirect(page)) {
+  return Astro.redirect('/');
+}
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: white;
+      }
+
+      astro-dev-toolbar {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <main data-canvas-component-preview-document>
+      <CanvasComponentTree tree={page.content} />
+      <DraftSession />
+    </main>
+  </body>
+</html>

@@ -29,6 +29,7 @@ export enum LayoutItemType {
   COMPONENT = 'component',
   DYNAMIC = 'dynamicComponent',
   CODE = 'code',
+  COLOR = 'color',
   UNDEFINED = 'undefined',
 }
 

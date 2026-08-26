@@ -26,7 +26,12 @@ class UriTemplate extends StringData {
 
   /**
    * {@inheritdoc}
+   *
+   * This always throws, but subclasses (e.g.
+   * ImageDerivativeWithParametrizedWidth) override it to return a value, so it
+   * cannot declare `never`.
    */
+  // @phpstan-ignore canvas.requireNeverReturnType
   public function getValue() {
     throw new \LogicException('@todo This should return a \League\Uri\UriTemplate. Exception for now to ensure nothing calls it to avoid BC breaks.');
   }

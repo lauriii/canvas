@@ -1,6 +1,9 @@
 {
   "name": "@drupal-canvas/height-reader",
   "version": "0.0.0",
+  "engines": {
+    "node": ">=22.19.0 <23 || >=24.5.0"
+  },
   "description": "Shared DOM logic for measuring rendered content height across viewport-relative CSS, used by the Canvas UI editor preview and the headless SDK",
   "private": true,
   "license": "MIT",

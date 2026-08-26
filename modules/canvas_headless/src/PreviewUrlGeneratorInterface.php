@@ -57,11 +57,13 @@ interface PreviewUrlGeneratorInterface {
    * @param bool $renewal
    *   TRUE for the in-place renewal lane; see
    *   \Drupal\canvas_headless\PreviewAssertionFactoryInterface::issue().
+   * @param array{viewMode?: string} $preview_context
+   *   Optional rendering context for a content-template preview.
    *
    * @return string|null
    *   The serialized, signed JWT, or NULL when the current user may not
    *   preview.
    */
-  public function issueForPath(string $path, bool $renewal = FALSE): ?string;
+  public function issueForPath(string $path, bool $renewal = FALSE, array $preview_context = []): ?string;
 
 }

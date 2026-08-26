@@ -122,6 +122,11 @@ final class AutoSaveTempstoreToKeyValueUpdateTest extends CanvasUpdatePathTestBa
     // revision, so the seeded placeholder hash does not survive.
     $this->assertNotEmpty($migrated_data['data_hash']);
 
+    // This hash no longer stay the same due to one of following update hooks
+    // recalculating it.
+    // @see canvas_post_update_0026_rehash_auto_save_items()
+    $this->assertNotSame($auto_save_data['data_hash'], $migrated_data['data_hash']);
+
     // Verify form violations were migrated.
     $violations_keyvalue = $keyvalue_factory->get(AutoSaveManager::FORM_VIOLATIONS_STORE);
     $migrated_violations = $violations_keyvalue->get($violations_key);

@@ -64,7 +64,9 @@ export function createHeightReporter(
   const stableHeightReader = new StableHeightReader();
   let baseViewportHeight =
     resolvedWindow?.innerHeight ?? resolvedTarget.clientHeight;
+  let lastObservedRootHeight = resolvedTarget.offsetHeight;
   let hostSessionId: string | null = null;
+  let passive = false;
   let destroyed = false;
   let measuring = false;
   let measureAgain = false;
@@ -93,9 +95,15 @@ export function createHeightReporter(
     // Host-assisted probes intentionally resize the observed document root.
     // Those changes are part of the current measurement, not new content
     // changes that should queue another probe pass.
-    if (!probeActive) {
-      scheduleHeight();
+    if (probeActive) {
+      return;
     }
+    const rootHeight = resolvedTarget.offsetHeight;
+    if (rootHeight === lastObservedRootHeight) {
+      return;
+    }
+    lastObservedRootHeight = rootHeight;
+    scheduleHeight();
   });
 
   function releaseProbeAfterLayout() {
@@ -117,7 +125,13 @@ export function createHeightReporter(
 
   function requestProbeHeight(height: number | null): Promise<void> {
     return new Promise((resolve, reject) => {
-      if (!editorOrigin || !hostWindow || !hostSessionId || destroyed) {
+      if (
+        !editorOrigin ||
+        !hostWindow ||
+        !hostSessionId ||
+        passive ||
+        destroyed
+      ) {
         reject(new Error('The height probe host is unavailable.'));
         return;
       }
@@ -175,8 +189,11 @@ export function createHeightReporter(
       typeof event.data.hostSessionId === 'string'
     ) {
       hostSessionId = event.data.hostSessionId;
+      passive = event.data.passive === true;
       stableHeightReader.clear();
-      scheduleHeight();
+      if (!passive) {
+        scheduleHeight();
+      }
       return;
     }
 
@@ -222,7 +239,7 @@ export function createHeightReporter(
   }
 
   async function measureAndPostHeight() {
-    if (!editorOrigin || !hostSessionId || destroyed) {
+    if (!editorOrigin || !hostSessionId || passive || destroyed) {
       return;
     }
     const measurementSessionId = hostSessionId;
@@ -249,7 +266,12 @@ export function createHeightReporter(
               },
             },
           );
-          if (!destroyed && measurementSessionId === hostSessionId) {
+          lastObservedRootHeight = resolvedTarget.offsetHeight;
+          if (
+            !destroyed &&
+            !passive &&
+            measurementSessionId === hostSessionId
+          ) {
             hostWindow?.postMessage(
               {
                 type: HEADLESS_HEIGHT_MESSAGE,
@@ -264,7 +286,12 @@ export function createHeightReporter(
           // report the unpinned document height rather than stopping sync.
           const height =
             await stableHeightReader.measureDocumentHeight(resolvedDocument);
-          if (!destroyed && measurementSessionId === hostSessionId) {
+          lastObservedRootHeight = resolvedTarget.offsetHeight;
+          if (
+            !destroyed &&
+            !passive &&
+            measurementSessionId === hostSessionId
+          ) {
             hostWindow?.postMessage(
               {
                 type: HEADLESS_HEIGHT_MESSAGE,

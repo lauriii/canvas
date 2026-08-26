@@ -5,18 +5,19 @@ import '@drupal-canvas/headless/preview.css';
 import {
   CANVAS_EMPTY_REGION_PLACEHOLDER_CLASS,
   formatCanvasCommentMarker,
+  isCanvasComponentTreeDraft,
   isCanvasComponentTreeEmpty,
 } from '@drupal-canvas/headless';
 
 import type { CanvasComponentTreeElement } from '@drupal-canvas/headless/server';
 
 interface Props {
-  tree: CanvasComponentTreeElement | string;
+  tree: CanvasComponentTreeElement | null;
   components?: Record<string, unknown>;
 }
 
 const { tree, components = canvasComponents } = Astro.props;
-const editor = typeof tree !== 'string' && tree.canvasDraftMode === true;
+const editor = isCanvasComponentTreeDraft(tree);
 const emptyRegion = editor && isCanvasComponentTreeEmpty(tree);
 ---
 
@@ -36,9 +37,7 @@ const emptyRegion = editor && isCanvasComponentTreeEmpty(tree);
   )
 }
 {
-  typeof tree === 'string' ? (
-    <Fragment set:html={tree} />
-  ) : (
+  tree && (
     <CanvasElement
       node={tree}
       components={components}

@@ -81,6 +81,29 @@ examples:
     poster: https://example.com/600x400.png
 ```
 
+### Document
+
+Reference to a document object with metadata like filename, file size, and MIME
+type. Only the file URL is required to exist; all other metadata is always
+optional.
+
+The shape declares an allowed file extension list (`pdf`, `doc`, `docx`,
+`xls`, `xlsx`, `ppt`, `pptx`, and other common document formats — see the
+`document` definition in `schema.json`). A file field or File media type is
+suggested for a document prop only when its own allowed extensions overlap
+that list.
+
+```yaml
+type: object
+$ref: json-schema-definitions://canvas.module/document
+examples:
+  - src: https://example.com/annual-report.pdf
+    title: Annual report
+    filename: annual-report.pdf
+    filesize: 25600
+    mimetype: application/pdf
+```
+
 ### Boolean
 
 True or false value.

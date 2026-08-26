@@ -161,6 +161,18 @@ const derivedPropTypes = [
       $ref: 'json-schema-definitions://canvas.module/content-entity-reference',
     },
   },
+  {
+    type: 'color' as const,
+    displayName: 'Color',
+    derive: (prop: CodeComponentPropSerialized) =>
+      prop.type === 'string' &&
+      prop.$ref === 'json-schema-definitions://canvas.module/color',
+    init: {
+      type: 'string',
+      $ref: 'json-schema-definitions://canvas.module/color',
+      example: '#ff0000ff',
+    },
+  },
 ];
 
 export default derivedPropTypes;

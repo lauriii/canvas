@@ -2,11 +2,11 @@
 
 Canvas Workbench is a local preview and development app for Drupal Canvas Code
 Components, inspired by Storybook. It scans your project, lists discovered
-components, pages, and content templates, and renders previews in an isolated
-frame.
+components, pages, content templates, and page templates, and renders previews
+in an isolated frame.
 
 Workbench has no required configuration. If your project uses the default Canvas
-layout, you can run it from your project root:
+paths, you can run it from your project root:
 
 ```bash
 npx @drupal-canvas/workbench@latest
@@ -43,6 +43,7 @@ need:
   "componentDir": "src/components",
   "pagesDir": "pages",
   "contentTemplatesDir": "content-templates",
+  "pageTemplatesDir": "page-templates",
   "aliasBaseDir": "src",
   "globalCssPath": "src/global.css"
 }
@@ -55,6 +56,7 @@ Workbench reads these options:
 | `componentDir`        | `"src/components"`    | Root directory Workbench scans for `component.yml`, `*.component.yml`, source files, and mocks. It must be inside `aliasBaseDir`. |
 | `pagesDir`            | `"pages"`             | Directory Workbench scans for page specs such as `pages/home.json`.                                                               |
 | `contentTemplatesDir` | `"content-templates"` | Directory Workbench scans for content template specs such as `content-templates/node.article.full.json`.                          |
+| `pageTemplatesDir`    | `"page-templates"`    | Directory Workbench scans for page template specs such as `page-templates/marketing.json`.                                        |
 | `aliasBaseDir`        | `"src"`               | Base directory for resolving `@/` imports inside component source files.                                                          |
 | `globalCssPath`       | `"src/global.css"`    | Global CSS entrypoint loaded into the preview iframe. This is where Workbench picks up shared styles and Tailwind setup.          |
 
@@ -96,6 +98,9 @@ For page targets, output writes:
 - `page-default.html`
 - `manifest.json`
 
+Page artifacts use the page's `pageVariant`, or the local page template marked
+with `"default": true`, and render the page at `marker.page_content`.
+
 `manifest.json` is target-specific:
 
 - Component manifests include `entries.default` and `entries.mocks`.
@@ -136,9 +141,10 @@ For end-user guidance, see:
 - The packaged client is served from packaged source files through the Workbench
   Vite runtime, not from a standalone production-built browser bundle.
 - The packaged runtime exposes `/__canvas/discovery` and
-  `/__canvas/preview-manifest`, serves the shell on `/component/...` and
-  `/page/...`, and watches the host project for file changes. Source-only edits
-  update the preview via Vite HMR without remounting the iframe.
+  `/__canvas/preview-manifest`, serves the shell on `/component/...`,
+  `/page/...`, and `/page-template/...`, and watches the host project for file
+  changes. Source-only edits update the preview via Vite HMR without remounting
+  the iframe.
 
 ## Strict preview MVP contract
 

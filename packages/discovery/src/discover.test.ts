@@ -64,39 +64,45 @@ describe('discoverCanvasProject', () => {
     expect(result.pages[0].slug).toBe('home');
   });
 
-  it('discovers regions matching `{region}.json`, sourcing region machine name from filename only', async () => {
+  it('discovers page templates matching `{id}.json`, sourcing the variant machine name from filename only', async () => {
     const root = await makeTempDir();
     tempDirs.push(root);
 
     await writeFile(
-      path.join(root, 'regions/header.json'),
-      JSON.stringify({ elements: {} }),
+      path.join(root, 'page-templates/marketing.json'),
+      JSON.stringify({ label: 'Marketing', elements: {} }),
     );
     await writeFile(
-      path.join(root, 'regions/footer.json'),
-      JSON.stringify({ elements: {} }),
+      path.join(root, 'page-templates/docs.json'),
+      JSON.stringify({ label: 'Docs', elements: {} }),
     );
     await writeFile(
-      path.join(root, 'regions/sidebar_first.json'),
-      JSON.stringify({ elements: {} }),
+      path.join(root, 'page-templates/theme_stark.json'),
+      JSON.stringify({ label: 'Stark theme', elements: {} }),
     );
     // Nested file — should be ignored.
-    await writeFile(path.join(root, 'regions/nested/ignored.json'), '{}');
+    await writeFile(
+      path.join(root, 'page-templates/nested/ignored.json'),
+      '{}',
+    );
+    // Not a machine name — should be ignored.
+    await writeFile(path.join(root, 'page-templates/Not-Valid.json'), '{}');
 
     const result = await discoverCanvasProject({ componentRoot: root });
 
-    expect(result.regions.map((r) => r.region)).toEqual([
-      'footer',
-      'header',
-      'sidebar_first',
+    expect(result.pageTemplates.map((t) => t.id)).toEqual([
+      'docs',
+      'marketing',
+      'theme_stark',
     ]);
-    const header = result.regions.find((r) => r.region === 'header');
-    expect(header).toMatchObject({
-      region: 'header',
-      relativePath: 'regions/header.json',
+    const marketing = result.pageTemplates.find((t) => t.id === 'marketing');
+    expect(marketing).toMatchObject({
+      id: 'marketing',
+      label: 'Marketing',
+      status: null,
+      isDefault: false,
+      relativePath: 'page-templates/marketing.json',
     });
-    // Theme is no longer surfaced — it is resolved server-side.
-    expect(header).not.toHaveProperty('theme');
   });
 
   it('supports a dedicated pagesRoot outside the component scan root', async () => {
@@ -200,6 +206,72 @@ describe('discoverCanvasProject', () => {
     expect(
       result.warnings.some((warning) => warning.code === 'missing_js_entry'),
     ).toBe(true);
+  });
+
+  it('discovers external components without a JavaScript entry', async () => {
+    const root = await makeTempDir();
+    tempDirs.push(root);
+
+    await writeFile(
+      path.join(root, 'src/hero/component.yml'),
+      ['name: Hero', 'type: external'].join('\n'),
+    );
+
+    const result = await discoverCanvasProject({ componentRoot: root });
+
+    expect(result.components).toHaveLength(1);
+    expect(result.components[0].type).toBe('external');
+    expect(result.components[0].jsEntryPath).toBeNull();
+    expect(
+      result.warnings.some((warning) => warning.code === 'missing_js_entry'),
+    ).toBe(false);
+  });
+
+  it('keeps entry-less components when requireJsEntry is false', async () => {
+    const root = await makeTempDir();
+    tempDirs.push(root);
+
+    // A framework single-file component (.vue) the build pipeline cannot
+    // compile, without an explicit `type: external`. It is dropped by default
+    // but kept when the caller pushes metadata only.
+    await writeFile(path.join(root, 'src/card/component.yml'), 'name: Card');
+    await writeFile(
+      path.join(root, 'src/card/index.vue'),
+      '<template><div /></template>',
+    );
+
+    const dropped = await discoverCanvasProject({ componentRoot: root });
+    expect(dropped.components).toHaveLength(0);
+    expect(
+      dropped.warnings.some((warning) => warning.code === 'missing_js_entry'),
+    ).toBe(true);
+
+    const kept = await discoverCanvasProject({
+      componentRoot: root,
+      requireJsEntry: false,
+    });
+    expect(kept.components).toHaveLength(1);
+    expect(kept.components[0].name).toBe('card');
+    expect(kept.components[0].jsEntryPath).toBeNull();
+    expect(
+      kept.warnings.some((warning) => warning.code === 'missing_js_entry'),
+    ).toBe(false);
+  });
+
+  it('leaves type undefined when metadata omits it', async () => {
+    const root = await makeTempDir();
+    tempDirs.push(root);
+
+    await writeFile(path.join(root, 'src/card/component.yml'), 'name: Card');
+    await writeFile(
+      path.join(root, 'src/card/index.tsx'),
+      'export default function Card() { return null; }',
+    );
+
+    const result = await discoverCanvasProject({ componentRoot: root });
+
+    expect(result.components).toHaveLength(1);
+    expect(result.components[0].type).toBeUndefined();
   });
 
   it('keeps components when CSS is missing', async () => {

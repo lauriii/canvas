@@ -680,6 +680,62 @@ YAML;
           ],
         ],
       ],
+      'test_unknown_target_region' => [
+        'layout_type' => 'multi_region_empty',
+        'yaml_input' => <<<YAML
+          operations:
+            - target: 'sidebar'
+              reference_uuid: ''
+              placement: 'inside'
+              components:
+                - sdc.canvas_test_sdc.heading:
+                    props:
+                      text: "Some text"
+                      element: "h1"
+          YAML,
+        'expected_error' => [
+          'Operation 0' => [
+            'Region "sidebar" does not exist. Available regions are: header, content, footer.',
+          ],
+        ],
+      ],
+      'test_missing_target' => [
+        'layout_type' => 'multi_region_empty',
+        'yaml_input' => <<<YAML
+          operations:
+            - reference_uuid: ''
+              placement: 'inside'
+              components:
+                - sdc.canvas_test_sdc.heading:
+                    props:
+                      text: "Some text"
+                      element: "h1"
+          YAML,
+        'expected_error' => [
+          'Operation 0' => [
+            'The target key is missing or invalid in the operation.',
+          ],
+        ],
+      ],
+      'test_non_string_target' => [
+        'layout_type' => 'multi_region_empty',
+        'yaml_input' => <<<YAML
+          operations:
+            - target: 0
+              reference_uuid: ''
+              placement: 'inside'
+              components:
+                - sdc.canvas_test_sdc.heading:
+                    props:
+                      text: "Some text"
+                      element: "h1"
+          YAML,
+        'expected_error' => [
+          'Operation 0' => [
+            'The target key is missing or invalid in the operation.',
+          ],
+        ],
+      ],
     ];
   }
 

@@ -47,38 +47,6 @@ describe('writeSiteUrlEnv', () => {
     }
   });
 
-  it.each([
-    ['https://canvas.ddev.site', 'http://canvas.ddev.site'],
-    ['https://sub.canvas.ddev.site/path', 'http://sub.canvas.ddev.site/path'],
-    ['https://ddev.site', 'http://ddev.site'],
-  ])('writes %s as plain HTTP for DDEV sites', async (siteUrl, written) => {
-    const projectDir = await createProjectDir();
-
-    try {
-      await writeSiteUrlEnv(projectDir, siteUrl);
-
-      expect(await readFile(join(projectDir, '.env'), 'utf-8')).toBe(
-        `CANVAS_SITE_URL="${written}"\n`,
-      );
-    } finally {
-      await rm(projectDir, { recursive: true, force: true });
-    }
-  });
-
-  it('keeps HTTPS for hosts that merely end in ddev.site', async () => {
-    const projectDir = await createProjectDir();
-
-    try {
-      await writeSiteUrlEnv(projectDir, 'https://myddev.site');
-
-      expect(await readFile(join(projectDir, '.env'), 'utf-8')).toBe(
-        'CANVAS_SITE_URL="https://myddev.site"\n',
-      );
-    } finally {
-      await rm(projectDir, { recursive: true, force: true });
-    }
-  });
-
   it('copies .env.example and replaces the Canvas site URL', async () => {
     const projectDir = await createProjectDir();
     const example =

@@ -13,10 +13,10 @@ import {
 import { isTopLevelContentTemplateSpecPath } from '../lib/content-template-spec-path';
 import {
   isTopLevelPageSpecPath,
-  isTopLevelRegionSpecPath,
+  isTopLevelPageTemplateSpecPath,
 } from '../lib/page-spec-path';
+import { parsePageTemplateSpec } from '../lib/page-template-spec';
 import { buildPreviewManifest } from '../lib/preview-contract';
-import { parseRegionSpec } from '../lib/region-spec';
 import {
   toDiscoveredContentTemplateName,
   toDiscoveredPageName,
@@ -250,6 +250,7 @@ async function loadPreviewPageSpec(
   slug: string,
 ): Promise<{
   spec: unknown | null;
+  pageVariant: string | null;
   status: number;
   error: string | null;
 }> {
@@ -259,6 +260,7 @@ async function loadPreviewPageSpec(
   if (!page) {
     return {
       spec: null,
+      pageVariant: null,
       status: 404,
       error: `No page found for slug "${slug}".`,
     };
@@ -270,6 +272,7 @@ async function loadPreviewPageSpec(
   } catch {
     return {
       spec: null,
+      pageVariant: null,
       status: 404,
       error: `Failed to read page file: ${page.path}`,
     };
@@ -281,6 +284,7 @@ async function loadPreviewPageSpec(
   } catch {
     return {
       spec: null,
+      pageVariant: null,
       status: 400,
       error: `Failed to parse page JSON file: ${page.path}`,
     };
@@ -295,6 +299,7 @@ async function loadPreviewPageSpec(
   if (!parsedPage.spec) {
     return {
       spec: null,
+      pageVariant: null,
       status: 400,
       error:
         parsedPage.issues[0]?.message ?? `Page spec is invalid: ${page.path}`,
@@ -303,6 +308,7 @@ async function loadPreviewPageSpec(
 
   return {
     spec: parsedPage.spec,
+    pageVariant: parsedPage.pageVariant,
     status: 200,
     error: null,
   };
@@ -318,6 +324,7 @@ async function loadPreviewContentTemplateSpec(
     entityTypeId: string;
     bundle: string;
     viewMode: string;
+    pageVariant: string | null;
   } | null;
   status: number;
   error: string | null;
@@ -383,7 +390,7 @@ async function loadPreviewContentTemplateSpec(
   };
 }
 
-async function loadPreviewRegionSpec(
+async function loadPreviewPageTemplateSpec(
   discoveryResult: DiscoveryResult,
   id: string,
 ): Promise<{
@@ -391,28 +398,37 @@ async function loadPreviewRegionSpec(
   status: number;
   error: string | null;
   enabled: boolean;
+  label: string;
+  description: string;
+  isDefault: boolean;
 }> {
-  const region = discoveryResult.regions.find(
-    (candidate) => candidate.region === id,
+  const pageTemplate = discoveryResult.pageTemplates.find(
+    (candidate) => candidate.id === id,
   );
-  if (!region) {
+  if (!pageTemplate) {
     return {
       spec: null,
       status: 404,
-      error: `No global region found for id "${id}".`,
+      error: `No page template found for id "${id}".`,
       enabled: true,
+      label: id,
+      description: '',
+      isDefault: false,
     };
   }
 
   let fileContent: string;
   try {
-    fileContent = await fs.readFile(region.path, 'utf-8');
+    fileContent = await fs.readFile(pageTemplate.path, 'utf-8');
   } catch {
     return {
       spec: null,
       status: 404,
-      error: `Failed to read region file: ${region.path}`,
+      error: `Failed to read page template file: ${pageTemplate.path}`,
       enabled: true,
+      label: id,
+      description: '',
+      isDefault: false,
     };
   }
 
@@ -423,30 +439,43 @@ async function loadPreviewRegionSpec(
     return {
       spec: null,
       status: 400,
-      error: `Failed to parse region JSON file: ${region.path}`,
+      error: `Failed to parse page template JSON file: ${pageTemplate.path}`,
       enabled: true,
+      label: id,
+      description: '',
+      isDefault: false,
     };
   }
 
-  const parsedRegion = parseRegionSpec(parsedJson, region.path, {
-    componentNames: discoveryResult.components.map((c) => c.name),
-  });
-  if (!parsedRegion.region) {
+  const parsedPageTemplate = parsePageTemplateSpec(
+    parsedJson,
+    pageTemplate.path,
+    {
+      componentNames: discoveryResult.components.map((c) => c.name),
+    },
+  );
+  if (!parsedPageTemplate.pageTemplate) {
     return {
       spec: null,
       status: 400,
       error:
-        parsedRegion.issues[0]?.message ??
-        `Region spec is invalid: ${region.path}`,
+        parsedPageTemplate.issues[0]?.message ??
+        `Page template spec is invalid: ${pageTemplate.path}`,
       enabled: true,
+      label: id,
+      description: '',
+      isDefault: false,
     };
   }
 
   return {
-    spec: parsedRegion.region.spec,
+    spec: parsedPageTemplate.pageTemplate.spec,
     status: 200,
     error: null,
-    enabled: parsedRegion.region.status,
+    enabled: parsedPageTemplate.pageTemplate.status,
+    label: parsedPageTemplate.pageTemplate.label,
+    description: parsedPageTemplate.pageTemplate.description,
+    isDefault: parsedPageTemplate.pageTemplate.isDefault,
   };
 }
 
@@ -477,7 +506,7 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
         componentRoot: paths.componentDiscoveryRoot,
         pagesRoot: paths.pagesDiscoveryRoot,
         contentTemplatesRoot: paths.contentTemplatesDiscoveryRoot,
-        regionsRoot: paths.regionsDiscoveryRoot,
+        pageTemplatesRoot: paths.pageTemplatesDiscoveryRoot,
         projectRoot: paths.hostProjectRoot,
       });
     })();
@@ -566,22 +595,9 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
           const responseResult =
             await enrichDiscoveredContentTemplates(withEnrichedPages);
 
-          let layoutAvailable = false;
-          try {
-            await fs.access(paths.layoutPath);
-            layoutAvailable = true;
-          } catch {
-            layoutAvailable = false;
-          }
-
           res.statusCode = 200;
           res.setHeader('Content-Type', 'application/json');
-          res.end(
-            JSON.stringify({
-              ...responseResult,
-              layoutPath: layoutAvailable ? paths.layoutPath : null,
-            }),
-          );
+          res.end(JSON.stringify(responseResult));
         })().catch((error) => {
           res.statusCode = 500;
           res.setHeader('Content-Type', 'application/json');
@@ -700,7 +716,7 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
       });
 
       server.middlewares.use(
-        '/__canvas/region-preview-spec',
+        '/__canvas/page-template-preview-spec',
         (req, res, next) => {
           if (req.method !== 'GET') {
             next();
@@ -721,14 +737,20 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
               return;
             }
 
-            const result = await loadPreviewRegionSpec(cachedResult!, id);
+            const result = await loadPreviewPageTemplateSpec(cachedResult!, id);
             res.statusCode = result.status;
             res.setHeader('Content-Type', 'application/json');
             res.end(
               JSON.stringify(
                 result.error
                   ? { error: result.error }
-                  : { spec: result.spec, status: result.enabled },
+                  : {
+                      spec: result.spec,
+                      label: result.label,
+                      description: result.description,
+                      status: result.enabled,
+                      isDefault: result.isDefault,
+                    },
               ),
             );
           })().catch((error) => {
@@ -772,7 +794,10 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
               JSON.stringify(
                 pageResult.error
                   ? { error: pageResult.error }
-                  : pageResult.spec,
+                  : {
+                      spec: pageResult.spec,
+                      pageVariant: pageResult.pageVariant,
+                    },
               ),
             );
           })().catch((error) => {
@@ -847,17 +872,14 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
         const pageChanged = isTopLevelPageSpecPath(filePath);
         const contentTemplateChanged =
           isTopLevelContentTemplateSpecPath(filePath);
-        const regionChanged = isTopLevelRegionSpecPath(filePath);
-        const layoutChanged =
-          path.resolve(filePath) === path.resolve(paths.layoutPath);
+        const pageTemplateChanged = isTopLevelPageTemplateSpecPath(filePath);
         const mockChanged = isMockSpecPath(filePath);
         if (
           !metadataChanged &&
           !sourceChanged &&
           !pageChanged &&
           !contentTemplateChanged &&
-          !regionChanged &&
-          !layoutChanged &&
+          !pageTemplateChanged &&
           !mockChanged
         ) {
           return;
@@ -868,8 +890,7 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
           mockChanged ||
           pageChanged ||
           contentTemplateChanged ||
-          regionChanged ||
-          layoutChanged ||
+          pageTemplateChanged ||
           (sourceChanged && event !== 'change');
         if (!requiresManifestRefresh) {
           server.ws.send({

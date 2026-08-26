@@ -63,7 +63,7 @@ class CanvasUiAccessCheckTest extends UnitTestCase {
   public static function provider(): array {
     return [
       [NULL, FALSE],
-      [Pattern::ADMIN_PERMISSION, FALSE],
+      [Pattern::ADMIN_PERMISSION, TRUE],
       [JavaScriptComponent::ADMIN_PERMISSION, TRUE],
       [ContentTemplate::ADMIN_PERMISSION, TRUE],
     ];

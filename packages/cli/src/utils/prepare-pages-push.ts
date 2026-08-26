@@ -44,6 +44,7 @@ export interface PreparedPage {
   uuid: string | null;
   title: string;
   description: string;
+  pageVariant: string | null;
   path: string;
   components: Page['components'];
   filePath: string;
@@ -70,6 +71,7 @@ export async function preparePages(
       const spec = JSON.parse(fileContent) as {
         title: unknown;
         description?: string;
+        pageVariant?: unknown;
         path?: string;
         elements: AuthoredSpecElementMap;
       };
@@ -86,6 +88,10 @@ export async function preparePages(
         uuid: localPage.uuid,
         title: pageTitle ?? localPage.name,
         description: spec.description ?? '',
+        pageVariant:
+          typeof spec.pageVariant === 'string' && spec.pageVariant !== ''
+            ? spec.pageVariant
+            : null,
         path: spec.path ?? '',
         components,
         filePath: localPage.path,
@@ -132,6 +138,7 @@ export async function pushPages(
       await apiService.updatePage(remotePage.id, {
         title: page.title,
         description: page.description,
+        pageVariant: page.pageVariant,
         status: remotePage.status,
         path: normalizePathAlias(page.path),
         components: page.components,
@@ -141,6 +148,7 @@ export async function pushPages(
       const created = await apiService.createPage({
         title: page.title,
         description: page.description,
+        pageVariant: page.pageVariant,
         status: false,
         path: page.path,
         components: page.components,

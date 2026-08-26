@@ -68,9 +68,10 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
     'content_entity_type_view_mode',
     'component_tree',
     'exposed_slots',
+    'page_variant',
   ],
 )]
-final class ContentTemplate extends ComponentTreeConfigEntityBase implements CanvasHttpApiEligibleConfigEntityInterface, EntityViewDisplayInterface, AutoSavePublishAwareInterface {
+final class ContentTemplate extends ComponentTreeConfigEntityBase implements CanvasHttpApiEligibleConfigEntityInterface, EmptyTargetEntityProviderInterface, EntityViewDisplayInterface, AutoSavePublishAwareInterface {
 
   public const string ENTITY_TYPE_ID = 'content_template';
 
@@ -110,6 +111,11 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
    * @var ?array<string, array{'component_uuid': string, 'slot_name': string, 'label': string}>
    */
   protected ?array $exposed_slots = [];
+
+  /**
+   * The machine name of the selected page variant, or NULL for the default.
+   */
+  protected ?string $page_variant = NULL;
 
   /**
    * Disabled by default.
@@ -210,7 +216,24 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
     $view_mode = $this->getViewMode();
     $this->addDependency($view_mode->getConfigDependencyKey(), $view_mode->getConfigDependencyName());
 
+    // Depend on the selected page variant, if any. Deleting that variant
+    // triggers ::onDependencyRemoval() to drop the selection rather than
+    // cascade-deleting this template.
+    if ($this->page_variant !== NULL) {
+      $variant = PageVariant::load($this->page_variant);
+      if ($variant !== NULL) {
+        $this->addDependency($variant->getConfigDependencyKey(), $variant->getConfigDependencyName());
+      }
+    }
+
     return $this;
+  }
+
+  /**
+   * Returns the machine name of the selected page variant, or NULL.
+   */
+  public function getPageVariant(): ?string {
+    return $this->page_variant;
   }
 
   /**
@@ -409,6 +432,21 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
       $this->setComponentTree($tree->getValue());
     }
 
+    // Drop a stale page variant selection instead of letting the config
+    // dependency system cascade-delete this template when the selected variant
+    // is removed.
+    if ($this->page_variant !== NULL && isset($dependencies['config'])) {
+      $variant_config_name = 'canvas.' . PageVariant::ENTITY_TYPE_ID . '.' . $this->page_variant;
+      foreach ($dependencies['config'] as $dependency) {
+        $name = $dependency instanceof ConfigEntityInterface ? $dependency->getConfigDependencyName() : $dependency;
+        if ($name === $variant_config_name) {
+          $this->set('page_variant', NULL);
+          $changed = TRUE;
+          break;
+        }
+      }
+    }
+
     $changed |= parent::onDependencyRemoval($dependencies);
     return (bool) $changed;
   }
@@ -463,13 +501,14 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
         'status' => $this->status,
         'id' => $this->id(),
         'suggestedPreviewEntityId' => $preview_entity ? (int) $preview_entity->id() : NULL,
+        'pageVariant' => $this->page_variant,
         'component_tree' => $component_tree,
       ],
       preview: NULL,
     )
       ->addCacheableDependency($preview_entity_cacheability)
       // Cacheability metadata for the suggested preview entity.
-      ->addCacheTags($content_entity_type->getListCacheContexts())
+      ->addCacheContexts($content_entity_type->getListCacheContexts())
       // @phpstan-ignore-next-line argument.type
       ->addCacheTags($content_entity_type->getBundleListCacheTags($this->content_entity_type_bundle));
   }
@@ -483,6 +522,15 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
       'content_entity_type_view_mode' => $view_mode,
       'component_tree' => $data['component_tree'] ?? [],
       'status' => $data['status'] ?? FALSE,
+      // Optional, so that a template can be created with its page template
+      // already selected; omitting it falls back to the site default variant.
+      // Anything that is not a non-empty string means "no selection": the
+      // property is typed, so passing a non-string through would be a fatal
+      // error rather than the validation error a client deserves.
+      // @see ::updateFromClientSide()
+      'page_variant' => \is_string($data['pageVariant'] ?? NULL) && $data['pageVariant'] !== ''
+        ? $data['pageVariant']
+        : NULL,
     ]);
   }
 
@@ -496,6 +544,15 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
     }
     if (\array_key_exists('status', $data)) {
       $this->set('status', (bool) $data['status']);
+    }
+    if (\array_key_exists('pageVariant', $data)) {
+      // Anything that is not a non-empty string means "no selection": the
+      // property is typed, so passing a non-string through would be a fatal
+      // error rather than the validation error a client deserves.
+      // @see ::createFromClientSide()
+      $this->set('page_variant', \is_string($data['pageVariant']) && $data['pageVariant'] !== ''
+        ? $data['pageVariant']
+        : NULL);
     }
   }
 

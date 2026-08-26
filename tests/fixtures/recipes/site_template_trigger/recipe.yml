@@ -1,0 +1,5 @@
+name: 'Site template trigger'
+description: 'Triggers post-site-template recipe behavior in tests.'
+type: Site
+install:
+  - canvas

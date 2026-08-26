@@ -159,7 +159,7 @@ final class DefaultRelativeUrlPropSource extends PropSourceBase {
     return JsonSchemaStringFormat::from($property_definition['format'])->isUriEsque();
   }
 
-  public function asChoice(): string {
+  public function asChoice(): never {
     throw new \LogicException();
   }
 

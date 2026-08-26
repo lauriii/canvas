@@ -10,6 +10,7 @@ use Drupal\ai_agents\PluginInterfaces\AiAgentContextInterface;
 use Drupal\canvas_ai\AiResponseValidator;
 use Drupal\canvas_ai\CanvasAiPageBuilderHelper;
 use Drupal\canvas_ai\CanvasAiPermissions;
+use Drupal\canvas_ai\CanvasAiTempStore;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Plugin\Context\ContextDefinition;
 use Drupal\Core\Session\AccountProxyInterface;
@@ -77,6 +78,13 @@ final class PlaceComponents extends FunctionCallBase implements ExecutableFuncti
   protected AiResponseValidator $responseValidator;
 
   /**
+   * The Canvas AI tempstore.
+   *
+   * @var \Drupal\canvas_ai\CanvasAiTempStore
+   */
+  protected CanvasAiTempStore $tempStore;
+
+  /**
    * Load from dependency injection container.
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition): FunctionCallInterface | static {
@@ -90,6 +98,7 @@ final class PlaceComponents extends FunctionCallBase implements ExecutableFuncti
     $instance->loggerFactory = $container->get(LoggerChannelFactoryInterface::class);
     $instance->currentUser = $container->get(AccountProxyInterface::class);
     $instance->responseValidator = $container->get('canvas_ai.response_validator');
+    $instance->tempStore = $container->get(CanvasAiTempStore::class);
     return $instance;
   }
 
@@ -104,9 +113,10 @@ final class PlaceComponents extends FunctionCallBase implements ExecutableFuncti
     try {
       $operations = [];
       $all_errors = [];
+      $current_layout = $this->tempStore->getData(CanvasAiTempStore::CURRENT_LAYOUT_KEY) ?? '';
       foreach ($this->getContextValue('operations') as $index => $operation) {
         $operation['components'] = Yaml::parse($operation['components'] ?? '');
-        $all_errors = array_merge($all_errors, $this->validatePlacementParams($operation, $index));
+        $all_errors = array_merge($all_errors, $this->validatePlacementParams($operation, $index, $current_layout));
         if (\is_array($operation['components'])) {
           $this->responseValidator->validateComponentStructure($operation['components']);
         }
@@ -146,11 +156,13 @@ final class PlaceComponents extends FunctionCallBase implements ExecutableFuncti
    *   The operation to validate, with its components block already parsed.
    * @param int $index
    *   The index of the operation, used for error messages.
+   * @param string $current_layout
+   *   The current layout JSON string, used to resolve the target region.
    *
    * @return array
    *   An array of validation errors, keyed by operation, or empty if valid.
    */
-  private function validatePlacementParams(array $operation, int $index): array {
+  private function validatePlacementParams(array $operation, int $index, string $current_layout): array {
     $errors = [];
     $error_key = 'Operation ' . $index;
 
@@ -162,6 +174,17 @@ final class PlaceComponents extends FunctionCallBase implements ExecutableFuncti
     if (!isset($operation['placement']) || !\in_array($operation['placement'], ['above', 'below', 'inside'], TRUE)) {
       $errors[$error_key][] = 'The placement key is missing or invalid in the operation.';
       return $errors;
+    }
+
+    // A target naming a region must match a region present in the layout. A
+    // target containing a slash names a `parent_uuid/slot_name` pair instead,
+    // whose parent is resolved during nodePath calculation.
+    if (strpos($operation['target'], '/') === FALSE) {
+      $region_error = $this->pageBuilderHelper->validateRegionExists($operation['target'], $current_layout);
+      if ($region_error !== NULL) {
+        $errors[$error_key][] = $region_error;
+        return $errors;
+      }
     }
 
     $placement = $operation['placement'];

@@ -143,7 +143,7 @@ describe('validatePages', () => {
           relativePath: 'pages/home.json',
         },
       ],
-      regions: [],
+      pageTemplates: [],
       warnings: [],
       stats: { scannedFiles: 1, ignoredFiles: 0 },
     };
@@ -151,6 +151,64 @@ describe('validatePages', () => {
     try {
       await expect(validatePages(discoveryResult)).resolves.toEqual({
         results: [{ itemName: 'Home', success: true }],
+      });
+    } finally {
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects an unknown page template selection', async () => {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'canvas-page-'));
+    const pagePath = path.join(tmpDir, 'home.json');
+    await fs.writeFile(
+      pagePath,
+      JSON.stringify({
+        title: 'Home',
+        path: '/home',
+        pageVariant: 'missing',
+        elements: {},
+      }),
+      'utf-8',
+    );
+
+    const discoveryResult: DiscoveryResult = {
+      componentRoot: tmpDir,
+      projectRoot: tmpDir,
+      components: [],
+      contentTemplates: [],
+      pages: [
+        {
+          name: 'home',
+          slug: 'home',
+          uuid: null,
+          path: pagePath,
+          relativePath: 'pages/home.json',
+        },
+      ],
+      pageTemplates: [],
+      warnings: [],
+      stats: { scannedFiles: 1, ignoredFiles: 0 },
+    };
+
+    try {
+      await expect(
+        validatePages(discoveryResult, {
+          availablePageVariantIds: new Set(['default']),
+        }),
+      ).resolves.toEqual({
+        results: [
+          {
+            itemName: 'Home (pages/home.json)',
+            success: false,
+            details: [
+              {
+                heading: 'pageVariant',
+                content:
+                  'Unknown page template "missing". Pull it from the site or add its file under page-templates.',
+              },
+            ],
+          },
+        ],
       });
     } finally {
       await fs.rm(tmpDir, { recursive: true, force: true });
@@ -186,7 +244,7 @@ describe('validatePages', () => {
           relativePath: 'pages/home.json',
         },
       ],
-      regions: [],
+      pageTemplates: [],
       warnings: [],
       stats: { scannedFiles: 1, ignoredFiles: 0 },
     };
@@ -245,7 +303,7 @@ describe('validatePages', () => {
           relativePath: 'pages/new-page.json',
         },
       ],
-      regions: [],
+      pageTemplates: [],
       warnings: [],
       stats: { scannedFiles: 1, ignoredFiles: 0 },
     };
@@ -325,7 +383,7 @@ describe('validatePages', () => {
             relativePath: 'pages/home.json',
           },
         ],
-        regions: [],
+        pageTemplates: [],
         warnings: [],
         stats: { scannedFiles: 2, ignoredFiles: 0 },
       };

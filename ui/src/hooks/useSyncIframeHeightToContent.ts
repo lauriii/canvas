@@ -274,8 +274,13 @@ function useSyncIframeHeightToContent(
         if (iframeContentDoc) {
           const iframeHTML = iframeContentDoc.documentElement;
 
-          // initially set the iFrame height to the height passed in to the hook
-          iframe.style.height = height + 'px';
+          // Initially set the iFrame height to the height passed in to the
+          // hook. A height of 0 (used by view modes whose height is driven
+          // entirely by their content) must clear the inline height instead:
+          // an inline `height: 0px` beats the stylesheet's `height: 100%` and
+          // collapses the iFrame, and nothing restores it when the vh probe in
+          // detectAndTagVhElements() does not run.
+          iframe.style.height = height > 0 ? `${height}px` : '';
           iframeHTML.style.overflow = 'hidden';
           // Set up a MutationObserver to watch for changes in the content of the iframe
           mutationObserverRef.current = new MutationObserver(handleMutations);

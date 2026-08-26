@@ -61,6 +61,14 @@ class ModuleHooks {
           'link_title' => NULL,
         ],
       ],
+      // Bare page template for a page variant: the variant's component tree is
+      // the whole page body, replacing the theme's page.html.twig.
+      // @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant::build()
+      'canvas_page_variant' => [
+        'variables' => [
+          'content' => NULL,
+        ],
+      ],
     ];
   }
 

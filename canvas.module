@@ -15,7 +15,6 @@ use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBa
 use Drupal\canvas\PropSource\FieldStorageDefinition;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\Core\Render\Markup;
 
 /**
  * Provides allowed values for a 'list_*' field used in a StaticPropSource.
@@ -51,33 +50,6 @@ function canvas_load_allowed_values_for_component_prop(FieldStorageDefinitionInt
   assert($source instanceof JsonSchemaPropsComponentSourceBase);
 
   return $source->getOptionsForExplicitInputEnumProp($prop_name);
-}
-
-/**
- * Implements hook_preprocess_HOOK() for regions.
- *
- * @see \Drupal\canvas\Render\MainContent\CanvasPreviewRenderer::prepare()
- */
-function canvas_preprocess_region(array &$variables):void {
-  if (!\array_key_exists('#canvas_region_preview', $variables['elements'])) {
-    // Nothing to do: this is a region being rendered outside of a Canvas
-    // preview context.
-    return;
-  }
-
-  $region = $variables['region'];
-  assert(is_string($region) && strlen($region) >= 1);
-
-  $content = (string) $variables['content'];
-
-  // Additional `content-start` and `content-end` comment annotations to
-  // surround just the {{ content }} output to allow Canvas's UI to more
-  // accurately render the region overlays.
-  $variables['content'] = Markup::create(<<<HTML
-<!-- canvas-region-content-start-$region -->
-$content
-<!-- canvas-region-content-end-$region -->
-HTML);
 }
 
 /**

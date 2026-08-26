@@ -56,6 +56,7 @@ drupalcode
 drupaldev
 drupalsettings
 druplicon
+echoai
 endapply
 entityviewdisplay
 Español
@@ -80,7 +81,12 @@ greppable
 heredocs
 herobanner
 herobannersecond
+Hexa
 hotfixes
+hsla
+hsva
+HSLA
+HSVA
 hyperscriptification
 hyperscriptified
 hyperscriptify
@@ -169,6 +175,8 @@ rescanning
 retag
 retagging
 retags
+rgba
+RGBA
 rightbar
 rightclick
 roundtripped

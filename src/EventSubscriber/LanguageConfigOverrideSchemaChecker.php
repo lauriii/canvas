@@ -61,6 +61,7 @@ final readonly class LanguageConfigOverrideSchemaChecker implements EventSubscri
    */
   public static function getSubscribedEvents(): array {
     return [
+      // @phpstan-ignore-next-line canvas.undeclaredModuleDependency (test-only subscriber; `language` is always installed wherever it is registered — see CanvasKernelTestBase::register())
       LanguageConfigOverrideEvents::SAVE_OVERRIDE => 'onSaveOverride',
     ];
   }

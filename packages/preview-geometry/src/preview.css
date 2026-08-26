@@ -17,3 +17,46 @@
 .canvas--region-empty-placeholder {
   min-height: var(--canvas--sortable-empty-region-height);
 }
+
+/* Shown where a page variant's "Page content" marker sits while the variant
+ * itself is edited. The route's main content replaces it at render time. */
+.canvas--page-content-marker-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--canvas--sortable-empty-region-height);
+  padding: 32px 24px;
+  text-align: center;
+  color: #18794e;
+  border: 1.5px dashed rgb(48, 164, 108, 0.55);
+  border-radius: 8px;
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      rgb(48, 164, 108, 0.03) 0,
+      rgb(48, 164, 108, 0.03) 10px,
+      transparent 10px,
+      transparent 20px
+    ),
+    rgb(48, 164, 108, 0.04);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 1rem;
+  gap: 6px;
+}
+
+.canvas--page-content-marker-placeholder__icon {
+  margin-bottom: 2px;
+  opacity: 0.85;
+}
+
+.canvas--page-content-marker-placeholder__title {
+  letter-spacing: 0.02em;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.canvas--page-content-marker-placeholder__caption {
+  color: rgb(24, 121, 78, 0.7);
+  font-size: 12px;
+}

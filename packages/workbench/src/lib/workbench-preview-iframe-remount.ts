@@ -1,13 +1,17 @@
 import { isTopLevelContentTemplateSpecPath } from './content-template-spec-path';
-import { isTopLevelPageSpecPath } from './page-spec-path';
+import {
+  isTopLevelPageSpecPath,
+  isTopLevelPageTemplateSpecPath,
+} from './page-spec-path';
 
 import type { DiscoveryResult } from './discovery-client';
 import type { PreviewManifest } from './preview-contract';
 
 /**
  * Stable structural fingerprint for discovery + manifest: global CSS URL, sorted
- * component names, sorted page slugs, sorted content-template slugs. Content
- * edits to an existing JSON file should not change this string.
+ * component names, sorted page slugs, sorted content-template slugs, and sorted
+ * page-template ids. Content edits to an existing JSON file should not change
+ * this string.
  */
 export function computeWorkbenchStructuralFingerprint(
   discovery: DiscoveryResult,
@@ -26,7 +30,11 @@ export function computeWorkbenchStructuralFingerprint(
     .map((template) => template.slug)
     .sort()
     .join('\0');
-  return `${globalCss}\n${componentNames}\n${pageSlugs}\n${contentTemplateSlugs}`;
+  const pageTemplateIds = [...discovery.pageTemplates]
+    .map((pageTemplate) => pageTemplate.id)
+    .sort()
+    .join('\0');
+  return `${globalCss}\n${componentNames}\n${pageSlugs}\n${contentTemplateSlugs}\n${pageTemplateIds}`;
 }
 
 export interface WorkbenchHotPayload {
@@ -57,7 +65,8 @@ export function shouldSkipWorkbenchIframeRemount(params: {
 
   if (
     !isTopLevelPageSpecPath(payload.filePath) &&
-    !isTopLevelContentTemplateSpecPath(payload.filePath)
+    !isTopLevelContentTemplateSpecPath(payload.filePath) &&
+    !isTopLevelPageTemplateSpecPath(payload.filePath)
   ) {
     return false;
   }

@@ -13,7 +13,7 @@ import type { DiscoveredContentTemplate } from '@drupal-canvas/discovery';
 import type { CanvasComponentTree } from 'drupal-canvas/json-render-utils';
 
 vi.mock('@drupal-canvas/discovery', () => ({
-  loadComponentsMetadata: vi.fn(async () => new Map()),
+  loadComponentsMetadata: vi.fn(async () => []),
 }));
 
 function mockDiscoveredContentTemplate(
@@ -46,6 +46,7 @@ describe('pushContentTemplates', () => {
             entityTypeId: 'node',
             bundle: 'article',
             viewMode: 'full',
+            pageVariant: null,
             components: [] satisfies CanvasComponentTree,
             filePath: '/tmp/content-templates/node.article.full.json',
           },
@@ -62,6 +63,7 @@ describe('pushContentTemplates', () => {
       entityType: 'node',
       bundle: 'article',
       viewMode: 'full',
+      pageVariant: null,
       status: true,
       component_tree: [],
     });
@@ -93,6 +95,7 @@ describe('pushContentTemplates', () => {
             entityTypeId: 'node',
             bundle: 'article',
             viewMode: 'full',
+            pageVariant: null,
             components: [] satisfies CanvasComponentTree,
             filePath: '/tmp/content-templates/node.article.full.json',
           },
@@ -109,9 +112,133 @@ describe('pushContentTemplates', () => {
     expect(results[0].success).toBe(false);
     expect(results[0].index).toBe(3);
   });
+
+  it('includes an authored page variant selection in create and update payloads', async () => {
+    const createContentTemplate = vi.fn().mockResolvedValue({});
+    const updateContentTemplate = vi.fn().mockResolvedValue({});
+    const prepared = {
+      id: 'node.article.full',
+      label: 'Article full',
+      entityTypeId: 'node',
+      bundle: 'article',
+      viewMode: 'full',
+      pageVariant: 'marketing',
+      components: [] satisfies CanvasComponentTree,
+      filePath: '/tmp/content-templates/node.article.full.json',
+    };
+
+    await pushContentTemplates([{ index: 0, result: prepared }], new Map(), {
+      createContentTemplate,
+      updateContentTemplate,
+    });
+    expect(createContentTemplate).toHaveBeenCalledWith(
+      expect.objectContaining({ pageVariant: 'marketing' }),
+    );
+
+    await pushContentTemplates(
+      [{ index: 0, result: prepared }],
+      new Map([
+        [
+          'node.article.full',
+          {
+            id: 'node.article.full',
+            label: 'Article full',
+            status: true,
+            entityType: 'node',
+            bundle: 'article',
+            viewMode: 'full',
+          },
+        ],
+      ]),
+      { createContentTemplate, updateContentTemplate },
+    );
+    expect(updateContentTemplate).toHaveBeenCalledWith(
+      'node.article.full',
+      expect.objectContaining({ pageVariant: 'marketing' }),
+    );
+  });
+
+  it('clears an existing page variant selection when the authored file has none', async () => {
+    const updateContentTemplate = vi.fn().mockResolvedValue({});
+
+    await pushContentTemplates(
+      [
+        {
+          index: 0,
+          result: {
+            id: 'node.article.full',
+            label: 'Article full',
+            entityTypeId: 'node',
+            bundle: 'article',
+            viewMode: 'full',
+            pageVariant: null,
+            components: [] satisfies CanvasComponentTree,
+            filePath: '/tmp/content-templates/node.article.full.json',
+          },
+        },
+      ],
+      new Map([
+        [
+          'node.article.full',
+          {
+            id: 'node.article.full',
+            label: 'Article full',
+            status: true,
+            entityType: 'node',
+            bundle: 'article',
+            viewMode: 'full',
+            pageVariant: 'marketing',
+          },
+        ],
+      ]),
+      { createContentTemplate: vi.fn(), updateContentTemplate },
+    );
+
+    expect(updateContentTemplate).toHaveBeenCalledWith(
+      'node.article.full',
+      expect.objectContaining({ pageVariant: null }),
+    );
+  });
 });
 
 describe('prepareContentTemplates', () => {
+  it('prepares an unset page variant selection as null', async () => {
+    const temporaryDirectory = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'prepare-content-template-'),
+    );
+    const templatePath = path.join(
+      temporaryDirectory,
+      'node.article.full.json',
+    );
+
+    try {
+      await fs.writeFile(
+        templatePath,
+        JSON.stringify({
+          label: 'Article full',
+          entityType: 'node',
+          bundle: 'article',
+          viewMode: 'full',
+          elements: {},
+        }),
+        'utf-8',
+      );
+
+      const result = await prepareContentTemplates(
+        [mockDiscoveredContentTemplate({ path: templatePath })],
+        new Map(),
+        {
+          components: [],
+        } as never,
+      );
+
+      expect(result.failed).toEqual([]);
+      expect(result.valid[0].result.pageVariant).toBeNull();
+    } finally {
+      await fs.rm(temporaryDirectory, { recursive: true, force: true });
+    }
+  });
+
   it('reports legacy state pointer failures without repeating template name and path', async () => {
     const temporaryDirectory = await fs.mkdtemp(
       path.join(os.tmpdir(), 'prepare-content-template-'),

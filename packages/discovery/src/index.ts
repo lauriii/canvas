@@ -9,15 +9,17 @@ export {
 } from './asset-extensions';
 export { DEFAULT_CANVAS_CONFIG, resolveCanvasConfig } from './config';
 export type { CanvasConfigWarning } from './config';
+export { detectHeadlessSdk } from './detect-headless-sdk';
 export { findDuplicateMachineNames, loadComponentsMetadata } from './metadata';
 export type {
   CanvasConfig,
+  CanvasLegacyRegionConfig,
   CanvasSyncConfig,
   ComponentMetadata,
   DiscoveredComponent,
   DiscoveredContentTemplate,
   DiscoveredPage,
-  DiscoveredRegion,
+  DiscoveredPageTemplate,
   DiscoveryOptions,
   DiscoveryResult,
   DiscoveryWarning,

@@ -1,6 +1,9 @@
 {
   "name": "@drupal-canvas/vite-plugin",
-  "version": "0.1.2",
+  "version": "0.2.0",
+  "engines": {
+    "node": ">=22.19.0 <23 || >=24.5.0"
+  },
   "description": "Vite plugin for developing Drupal Canvas Code Components",
   "license": "MIT",
   "repository": {

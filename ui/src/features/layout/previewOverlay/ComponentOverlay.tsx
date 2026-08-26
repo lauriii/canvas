@@ -20,6 +20,7 @@ import {
 } from '@/features/ui/uiSlice';
 import useComponentSelection from '@/hooks/useComponentSelection';
 import useGetComponentName from '@/hooks/useGetComponentName';
+import { isMarkerComponentType } from '@/services/pageVariants';
 
 import type React from 'react';
 import type { CanvasStackDirection } from '@drupal-canvas/preview-geometry';
@@ -187,7 +188,11 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
           <ComponentNameTag
             name={name}
             id={component.uuid}
-            nodeType={component.nodeType}
+            nodeType={
+              isMarkerComponentType(component.type)
+                ? 'marker'
+                : component.nodeType
+            }
           />
         </div>
       )}
@@ -207,14 +212,12 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
               component={component}
               position={stackDirection.startsWith('v') ? 'top' : 'left'}
               parentSlot={parentSlot}
-              parentRegion={parentRegion}
             />
           )}
           <ComponentDropZone
             component={component}
             position={stackDirection.startsWith('v') ? 'bottom' : 'right'}
             parentSlot={parentSlot}
-            parentRegion={parentRegion}
           />
         </>
       )}

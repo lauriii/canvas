@@ -13,6 +13,7 @@ export default defineConfig({
     index: 'src/index.ts',
     'client/index': 'src/client/index.ts',
     'server/index': 'src/server/index.ts',
+    node: 'src/node.ts',
     'components-endpoint/index': 'src/components-endpoint/index.ts',
     'components-endpoint/handler': 'src/components-endpoint/handler.ts',
     'component-registry': 'src/component-registry.ts',

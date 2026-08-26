@@ -16,6 +16,7 @@ import {
   formatComponentPathConstraintMessage,
   resolvePreviewRuntimeSettings,
 } from './preview-payload';
+import { trustSystemCertificates } from './system-ca';
 
 import type { DiscoveryResult } from '@drupal-canvas/discovery';
 import type {
@@ -29,6 +30,8 @@ import type {
   PreviewRequest,
   PreviewTarget,
 } from './preview-payload';
+
+trustSystemCertificates();
 
 export interface PreviewBuildCliArgs {
   mode: 'component' | 'page';

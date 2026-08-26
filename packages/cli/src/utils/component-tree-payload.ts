@@ -23,7 +23,7 @@ export type ConfigComponentTreePayload = ConfigComponentTreeNodePayload[];
 /**
  * Strips null/undefined `parent_uuid`, `slot`, and `label` from each node so
  * the server-side config schema validation accepts the payload. Used by the
- * region and content template push paths.
+ * page template and content template push paths.
  */
 export function stripNullableKeysForConfigComponentTree(
   components: CanvasComponentTree,

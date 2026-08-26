@@ -13,7 +13,7 @@ import type { queryError } from '@/features/error-handling/queryErrorSlice';
 /**
  * Normalizes various API error formats into a standard error object. Written by Claude AI.
  */
-const normalizeError = (
+export const normalizeError = (
   error: FetchBaseQueryError | SerializedError,
 ): queryError => {
   // Default values

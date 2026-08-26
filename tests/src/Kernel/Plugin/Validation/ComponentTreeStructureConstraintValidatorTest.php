@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Validation;
 
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
 use Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraint;
 use Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator;
@@ -397,6 +398,49 @@ final class ComponentTreeStructureConstraintValidatorTest extends CanvasKernelTe
           'layout.4.component_id' => "The 'canvas.component.sdc.canvas_test_sdc.missing-component-2' config does not exist.",
           'layout.5.component_id' => "The 'canvas.component.sdc.canvas_test_sdc.missing-component-2' config does not exist.",
           'layout.6.parent_uuid' => 'Invalid component tree item with UUID <em class="placeholder">9b6a4cf9-e707-48a1-babf-cb726b86726a</em> references an invalid parent <em class="placeholder">1be63e02-d343-4d67-a1fe-7fa533fba2c6</em>.',
+        ],
+      ],
+      'INVALID: reserved root UUID used as component instance UUID' => [
+        [
+          [
+            'uuid' => ComponentTreeItemList::ROOT_UUID,
+            'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+            'component_version' => 'd34b93534777207a',
+          ],
+        ],
+        [
+          'layout.0.uuid' => 'Invalid component tree item with UUID <em class="placeholder">' . ComponentTreeItemList::ROOT_UUID . '</em>. This UUID is reserved to represent the root of the component tree, and must never be used by a component instance.',
+        ],
+      ],
+      'INVALID: reserved root UUID used as component instance UUID (uppercase)' => [
+        [
+          [
+            'uuid' => \strtoupper(ComponentTreeItemList::ROOT_UUID),
+            'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+            'component_version' => 'd34b93534777207a',
+          ],
+        ],
+        [
+          'layout.0.uuid' => 'Invalid component tree item with UUID <em class="placeholder">' . \strtoupper(ComponentTreeItemList::ROOT_UUID) . '</em>. This UUID is reserved to represent the root of the component tree, and must never be used by a component instance.',
+        ],
+      ],
+      'INVALID: reserved root UUID used as parent_uuid' => [
+        [
+          [
+            'uuid' => '7f4c4a09-3013-4b86-9d4f-27dbcd0078b4',
+            'component_id' => 'sdc.canvas_test_sdc.props-slots',
+            'component_version' => '0e79e884426a53ae',
+          ],
+          [
+            'uuid' => '0f7dbcc5-0ea7-4b3d-96eb-b322b1f95522',
+            'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+            'component_version' => 'd34b93534777207a',
+            'parent_uuid' => ComponentTreeItemList::ROOT_UUID,
+            'slot' => 'the_body',
+          ],
+        ],
+        [
+          'layout.1.parent_uuid' => 'Invalid component tree item with UUID <em class="placeholder">0f7dbcc5-0ea7-4b3d-96eb-b322b1f95522</em> references the reserved root UUID as its parent. Component instances at the root of the tree must omit parent_uuid and slot.',
         ],
       ],
     ];

@@ -362,24 +362,6 @@ final class PlaceComponentsTest extends CanvasKernelTestBase {
   }
 
   /**
-   * Tests placement against a target region that does not exist.
-   */
-  public function testPlaceComponentsWithUnknownTargetRegion(): void {
-    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
-    $this->container->get(CanvasAiTempStore::class)->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout('multi_region_empty'));
-
-    $result = $this->getComponentToolOutput([
-      self::buildOperation(<<<YAML
-        - sdc.canvas_test_sdc.heading:
-            props:
-              text: "Some text"
-              element: "h1"
-        YAML, target: 'sidebar'),
-    ]);
-    $this->assertSame('Failed to place components: Region "sidebar" not found in layout', self::normalizeErrorString($result));
-  }
-
-  /**
    * Tests placement against a reference_uuid that does not exist.
    */
   public function testPlaceComponentsWithUnknownReferenceUuid(): void {
@@ -798,6 +780,22 @@ final class PlaceComponentsTest extends CanvasKernelTestBase {
         'expected_error' => [
           'Operation 0' => [
             'The components value must be a YAML list.',
+          ],
+        ],
+      ],
+      'test_unknown_target_region' => [
+        'layout_type' => 'multi_region_empty',
+        'operations' => [
+          self::buildOperation(<<<YAML
+            - sdc.canvas_test_sdc.heading:
+                props:
+                  text: "Some text"
+                  element: "h1"
+            YAML, target: 'sidebar'),
+        ],
+        'expected_error' => [
+          'Operation 0' => [
+            'Region "sidebar" does not exist. Available regions are: header, content, footer.',
           ],
         ],
       ],

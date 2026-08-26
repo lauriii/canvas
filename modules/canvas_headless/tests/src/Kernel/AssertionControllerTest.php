@@ -182,11 +182,15 @@ class AssertionControllerTest extends KernelTestBase {
     $response = $this->request(self::mintRequest([
       'entity_type' => 'node',
       'entity' => (string) $node->id(),
+      'view_mode' => 'teaser',
     ]));
 
     self::assertSame(200, $response->getStatusCode());
     $claims = self::decodeAssertion($response->getContent());
     self::assertSame('/node/' . $node->id(), $claims->claims()->get('path'));
+    self::assertSame([
+      'viewMode' => 'teaser',
+    ], $claims->claims()->get('previewContext'));
   }
 
   /**

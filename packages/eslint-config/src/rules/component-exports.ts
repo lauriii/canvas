@@ -1,3 +1,5 @@
+import { detectHeadlessSdk } from '@drupal-canvas/discovery';
+
 import { isComponentEntrypoint } from '../utils/components.js';
 
 import type { Rule as EslintRule } from 'eslint';
@@ -10,6 +12,13 @@ const rule: EslintRule.RuleModule = {
     },
   },
   create(context: EslintRule.RuleContext): EslintRule.RuleListener {
+    // A headless app renders its own components, so it decides how they are
+    // exported and consumed. Its entries may also be framework single-file
+    // components with no JavaScript default export.
+    if (detectHeadlessSdk(context.cwd)) {
+      return {};
+    }
+
     if (!isComponentEntrypoint(context)) {
       return {};
     }

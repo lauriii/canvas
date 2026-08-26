@@ -1,0 +1,9 @@
+name: 'Drupal Canvas Page Template Component'
+type: module
+description: 'Exposes each installed theme''s page template (and its regions as slots) as a Drupal Canvas component for use in page variants.'
+package: 'Drupal Canvas'
+hidden: true
+core_version_requirement: ^11.3
+php: 8.3
+dependencies:
+  - canvas:canvas

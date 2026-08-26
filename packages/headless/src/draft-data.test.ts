@@ -48,6 +48,16 @@ describe('parseDraftData', () => {
     );
   });
 
+  it('round-trips optional content-template preview context', () => {
+    const draftData = {
+      ...validDraftData,
+      previewContext: {
+        viewMode: 'teaser',
+      },
+    };
+    expect(parseDraftData(serializeDraftData(draftData))).toEqual(draftData);
+  });
+
   it.each([null, undefined, ''])('returns null for %s', (value) => {
     expect(parseDraftData(value)).toBeNull();
   });

@@ -1,15 +1,14 @@
 import clsx from 'clsx';
-import { useParams } from 'react-router';
 import {
   BoxModelIcon,
   Component1Icon,
   CubeIcon,
+  DiscIcon,
   FileTextIcon,
 } from '@radix-ui/react-icons';
 
 import { useAppSelector } from '@/app/hooks';
 import {
-  DEFAULT_REGION,
   selectDragging,
   selectIsComponentHovered,
   selectNoComponentIsHovered,
@@ -24,6 +23,9 @@ const VARIANTS = {
   region: <CubeIcon width={10} height={10} />,
   slot: <BoxModelIcon width={10} height={10} />,
   page: <FileTextIcon width={10} height={10} />,
+  // The page variant "Page content" marker: the injection point for the
+  // route's main content.
+  marker: <DiscIcon width={10} height={10} />,
 };
 
 interface NameTagProps {
@@ -42,6 +44,7 @@ const NameTag: React.FC<NameTagProps> = (props) => {
         [styles.slot]: nodeType === 'slot',
         [styles.region]: nodeType === 'region',
         [styles.page]: nodeType === 'page',
+        [styles.marker]: nodeType === 'marker',
       })}
     >
       {VARIANTS[nodeType as keyof typeof VARIANTS]}
@@ -78,17 +81,11 @@ export const RegionNameTag: React.FC<NameTagProps> = (props) => {
   });
   const targetSlot = useAppSelector(selectTargetSlot);
   const isTarget = targetSlot === id;
-  const { regionId: focusedRegion = DEFAULT_REGION } = useParams();
 
   // Show the name of the region when either the region is hovered or when it's the target of drag and drop.
   // Desired result is that only one NameTag is shown at a time:
   // either the selected or the hovered component or, when dragging, the target slot or region.
-  const showName =
-    isTarget ||
-    (!targetSlot &&
-      isHovered &&
-      !isDragging &&
-      focusedRegion === DEFAULT_REGION);
+  const showName = isTarget || (!targetSlot && isHovered && !isDragging);
 
   if (!showName) {
     return null;
@@ -116,5 +113,11 @@ export const ComponentNameTag: React.FC<NameTagProps> = (props) => {
   if (!showName) {
     return null;
   }
-  return <NameTag name={name} id={id} nodeType="component" />;
+  return (
+    <NameTag
+      name={name}
+      id={id}
+      nodeType={props.nodeType === 'marker' ? 'marker' : 'component'}
+    />
+  );
 };

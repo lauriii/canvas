@@ -40,7 +40,6 @@ test.describe('Canvas UI Permissions', () => {
     });
     await expect(menu.getByText('Paste')).toHaveCount(1);
     await expect(menu.getByText('Create pattern')).toHaveCount(1);
-    await expect(menu.getByText('Move to global region')).toHaveCount(1);
     await page.locator('body').click(); // Dismiss the context menu
     await expect(menu).not.toBeAttached();
 
@@ -139,7 +138,6 @@ test.describe('Canvas UI Permissions', () => {
     });
     await expect(menu.getByText('Paste')).toHaveCount(1);
     await expect(menu.getByText('Create pattern')).toHaveCount(0);
-    await expect(menu.getByText('Move to global region')).toHaveCount(0);
     await page.locator('body').click(); // Dismiss the context menu
     await expect(menu).not.toBeAttached();
 

@@ -240,6 +240,39 @@ describe('preview geometry measurement', () => {
     });
   });
 
+  it('does not expand an element box to include out-of-flow descendant text', () => {
+    document.body.innerHTML = `
+      <!-- canvas-start-header -->
+      <header>
+        <span>Brand</span>
+        <span class="offscreen-menu">Menu</span>
+      </header>
+      <!-- canvas-end-header -->
+    `;
+    const header = document.querySelector('header')!;
+    mockClientRects(header, [domRect(0, 0, 320, 80)]);
+    const createRange = document.createRange.bind(document);
+    vi.spyOn(document, 'createRange').mockImplementation(() => {
+      const range = createRange();
+      range.getClientRects = () =>
+        [
+          domRect(20, 20, 120, 40),
+          domRect(20, 500, 120, 40),
+        ] as unknown as DOMRectList;
+      return range;
+    });
+
+    const [boundary] = discoverCanvasBoundaries(document);
+    expect(measureCanvasBoundary(boundary)?.rect).toEqual({
+      top: 0,
+      right: 320,
+      bottom: 80,
+      left: 0,
+      width: 320,
+      height: 80,
+    });
+  });
+
   it('excludes boundary whitespace beside an inline component', () => {
     document.body.innerHTML = `<!-- canvas-start-video-one --><video></video>
 <!-- canvas-end-video-one --><!-- canvas-start-video-two --><video></video>

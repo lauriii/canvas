@@ -1,0 +1,18 @@
+{#
+/**
+ * @file
+ * Bare page template for a Drupal Canvas page variant.
+ *
+ * The entire page body comes from the variant's component tree, so this
+ * intentionally replaces the theme's page.html.twig and renders nothing but the
+ * variant. The html.html.twig wrapper (head, body attributes, page top and
+ * bottom, for example the admin toolbar) still renders through the theme.
+ *
+ * Available variables:
+ * - content: The rendered page variant component tree, with the route's main
+ *   content injected at the "Page content" marker.
+ *
+ * @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant::build()
+ */
+#}
+{{ content }}

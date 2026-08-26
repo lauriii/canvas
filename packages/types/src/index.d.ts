@@ -1,4 +1,5 @@
 import type {
+  AiTool,
   DrupalSettings,
   HeadlessSettings,
   Language,
@@ -14,4 +15,5 @@ export type {
   HeadlessSettings,
   Language,
   PageExtension,
+  AiTool,
 };

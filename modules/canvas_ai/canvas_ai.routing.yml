@@ -29,11 +29,11 @@ canvas_ai.setting:
   requirements:
     _permission: 'use Drupal Canvas AI'
 
-canvas_ai.theme_region_settings:
-  path: '/admin/config/ai/canvas-ai-theme-region-settings'
+canvas_ai.page_variant_settings:
+  path: '/admin/config/ai/canvas-ai-page-variant-settings'
   defaults:
-    _title: 'Canvas AI Theme Region Settings'
-    _form: 'Drupal\canvas_ai\Form\CanvasAIThemeRegionSettingsForm'
+    _title: 'Canvas AI Page Variant Settings'
+    _form: 'Drupal\canvas_ai\Form\CanvasAiPageVariantSettingsForm'
   requirements:
     _permission: 'use Drupal Canvas AI'
 

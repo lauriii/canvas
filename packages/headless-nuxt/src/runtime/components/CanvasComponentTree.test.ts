@@ -18,6 +18,15 @@ const components = {
   'action-link': defineComponent({
     setup: () => () => h('a', { href: '/' }, 'Action'),
   }),
+  'site-header': defineComponent({
+    setup: () => () => h('header', 'Header'),
+  }),
+  article: defineComponent({
+    setup: () => () => h('main', 'Content'),
+  }),
+  'site-footer': defineComponent({
+    setup: () => () => h('footer', 'Footer'),
+  }),
 };
 
 function component(
@@ -61,13 +70,31 @@ describe('CanvasComponentTree', () => {
     document.body.replaceChildren();
   });
 
+  it('renders empty published content', () => {
+    const container = document.createElement('div');
+    document.body.append(container);
+    const app = createApp({
+      setup: () => () =>
+        h(CanvasComponentTree, {
+          tree: null,
+          components: {},
+        }),
+    });
+    app.mount(container);
+
+    expect(container.textContent).toBe('');
+    expect(commentMarkers(container)).toEqual([]);
+
+    app.unmount();
+  });
+
   it('renders the standard empty-region placeholder for an empty draft tree', () => {
     const container = document.createElement('div');
     document.body.append(container);
     const app = createApp({
       setup: () => () =>
         h(CanvasComponentTree, {
-          tree: { element: 'canvas-page', canvasDraftMode: true },
+          tree: { element: 'renderless-container', canvasDraftMode: true },
           components: {},
         }),
     });
@@ -81,6 +108,32 @@ describe('CanvasComponentTree', () => {
       'canvas-region-start-content',
       'canvas-region-end-content',
     ]);
+
+    app.unmount();
+  });
+
+  it('renders children of a synthetic multi-root wrapper in order', () => {
+    const container = document.createElement('div');
+    document.body.append(container);
+    const app = createApp({
+      setup: () => () =>
+        h(CanvasComponentTree, {
+          tree: {
+            element: 'renderless-container',
+            slots: {
+              children: [
+                component('js-site-header', 'header-one'),
+                component('js-article', 'article-one'),
+                component('js-site-footer', 'footer-one'),
+              ],
+            },
+          },
+          components,
+        }),
+    });
+    app.mount(container);
+
+    expect(container.textContent).toBe('HeaderContentFooter');
 
     app.unmount();
   });

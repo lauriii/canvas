@@ -763,7 +763,9 @@ const AiWizard = () => {
   // Helper to transform the current layout into a JSON representation.
   const transformLayout = () => {
     const theLayout = currentValuesRef.current.theLayoutModel;
-    if (!theLayout?.layout) return null;
+    // Until LayoutLoader initializes the slice, `layout` holds either no
+    // regions or the regions of the previously edited entity.
+    if (!theLayout?.isInitialized || !theLayout?.layout) return null;
     const result: any = { regions: {} };
     theLayout.layout.forEach((region, regionIndex) => {
       result.regions[region.id] = {
@@ -983,6 +985,10 @@ const AiWizard = () => {
           requestBody.append(
             'layout',
             currentValuesRef.current.textPropsMapString,
+          );
+          requestBody.append(
+            'current_layout',
+            JSON.stringify(transformLayout()),
           );
           requestBody.append('derived_proptypes', JSON.stringify(fixtureProps));
         } else {

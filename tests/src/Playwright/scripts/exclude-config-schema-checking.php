@@ -39,8 +39,9 @@ if ($autoloader === NULL) {
 }
 require_once $autoloader;
 
-$services_yml = $argv[1] ?? '';
-$exclusions = array_slice($argv, 2);
+$args = $_SERVER['argv'] ?? [];
+$services_yml = $args[1] ?? '';
+$exclusions = array_slice($args, 2);
 if ($services_yml === '' || $exclusions === [] || !is_file($services_yml)) {
   // Nothing to do (e.g. strict config schema checking is not enabled).
   exit(0);

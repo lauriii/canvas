@@ -11,13 +11,11 @@ import {
 } from '@/features/layout/layoutUtils';
 
 import layoutFixture from '../../fixtures/layout-default.json';
-import regionsLayoutFixture from '../../fixtures/layout-regions.json';
 
-let layout, regionsLayout;
+let layout;
 
 beforeEach(() => {
   layout = layoutFixture;
-  regionsLayout = regionsLayoutFixture;
 });
 
 describe('isChildNode', () => {
@@ -137,24 +135,24 @@ describe('replaceUUIDsAndUpdateModel', () => {
   });
 
   describe('findParentRegion', () => {
-    it('should find the correct parent region for a given UUID', () => {
-      // Test for a component directly in a region
-      const headerRegion = findParentRegion(
-        regionsLayout.layout,
-        '13ea974f-cf74-406a-9171-dad5f96e805f',
+    it('should find the content region for a given UUID', () => {
+      // Test for a component directly in the content region
+      const topLevelRegion = findParentRegion(
+        layout.layout,
+        'a7470350-deb2-4d9f-982c-464d356403d4',
       );
-      expect(headerRegion.id).to.equal('header');
+      expect(topLevelRegion.id).to.equal('content');
 
       // Test for a component in nested slots
-      const contentRegion = findParentRegion(
-        regionsLayout.layout,
-        '8afbb203-ae72-4155-8319-8c7b1915787a',
+      const nestedRegion = findParentRegion(
+        layout.layout,
+        'static-static-card1ab',
       );
-      expect(contentRegion.id).to.equal('content');
+      expect(nestedRegion.id).to.equal('content');
 
       // Test for a non-existent UUID
       const nonExistentRegion = findParentRegion(
-        regionsLayout.layout,
+        layout.layout,
         'non-existent-uuid',
       );
       expect(nonExistentRegion).to.be.undefined;
@@ -267,29 +265,26 @@ describe('replaceUUIDsAndUpdateModel', () => {
   });
 
   describe('findParentInfo', () => {
-    it('should find parent info for a component in a region', () => {
-      // Component in header region
+    it('should find parent info for a component in the content region', () => {
+      // Component directly in the content region
       const regionComponent = findParentInfo(
-        regionsLayout.layout,
-        '13ea974f-cf74-406a-9171-dad5f96e805f',
+        layout.layout,
+        'a7470350-deb2-4d9f-982c-464d356403d4',
       );
 
       expect(regionComponent).to.not.be.null;
-      expect(regionComponent.parentId).to.equal('header');
+      expect(regionComponent.parentId).to.equal('content');
       expect(regionComponent.parentType).to.equal('region');
       expect(regionComponent.childIndex).to.equal(0);
     });
 
     it('should find parent info for a component in a slot', () => {
       // Component in a slot
-      const slotComponent = findParentInfo(
-        regionsLayout.layout,
-        '8afbb203-ae72-4155-8319-8c7b1915787a',
-      );
+      const slotComponent = findParentInfo(layout.layout, 'static-image-udf7d');
 
       expect(slotComponent).to.not.be.null;
       expect(slotComponent.parentId).to.equal(
-        'ad3eff8e-2180-4be1-a60f-df3f2c5ac393/column_one',
+        'a7470350-deb2-4d9f-982c-464d356403d4/column_one',
       );
       expect(slotComponent.parentType).to.equal('slot');
       expect(slotComponent.childIndex).to.equal(1); // It's the second component in the slot
@@ -297,7 +292,7 @@ describe('replaceUUIDsAndUpdateModel', () => {
 
     it('should return null for non-existent component', () => {
       const nonExistentComponent = findParentInfo(
-        regionsLayout.layout,
+        layout.layout,
         'non-existent-uuid',
       );
 
@@ -307,18 +302,18 @@ describe('replaceUUIDsAndUpdateModel', () => {
 
   describe('areConsecutiveSiblings', () => {
     it('should return true for a single component', () => {
-      const result = areConsecutiveSiblings(regionsLayout.layout, [
-        '13ea974f-cf74-406a-9171-dad5f96e805f',
+      const result = areConsecutiveSiblings(layout.layout, [
+        'a7470350-deb2-4d9f-982c-464d356403d4',
       ]);
 
       expect(result).to.be.true;
     });
 
-    it('should return true for consecutive siblings in a region', () => {
-      // Components in the highlighted region
-      const result = areConsecutiveSiblings(regionsLayout.layout, [
-        '70812c33-8706-4754-b0d4-3467a869bd69', // First component
-        'cb3078d3-7295-401a-8623-a838b3ae3350', // Second component
+    it('should return true for consecutive siblings in the content region', () => {
+      // Consecutive top-level components in the content region
+      const result = areConsecutiveSiblings(layout.layout, [
+        'static-static-card2df', // Second component
+        'static-static-card3rr', // Third component
       ]);
 
       expect(result).to.be.true;
@@ -326,47 +321,37 @@ describe('replaceUUIDsAndUpdateModel', () => {
 
     it('should return true for consecutive siblings in a slot', () => {
       // Components in the column_one slot
-      const result = areConsecutiveSiblings(regionsLayout.layout, [
-        '9bee944d-a92d-42b9-a0ae-abae0080cdfa', // First component in slot
-        '8afbb203-ae72-4155-8319-8c7b1915787a', // Second component in slot
+      const result = areConsecutiveSiblings(layout.layout, [
+        'static-static-card1ab', // First component in slot
+        'static-image-udf7d', // Second component in slot
       ]);
 
       expect(result).to.be.true;
     });
 
-    it('should return false for non-consecutive siblings in a region', () => {
-      // First and third components in highlighted region
-      const result = areConsecutiveSiblings(regionsLayout.layout, [
-        '70812c33-8706-4754-b0d4-3467a869bd69', // First component
-        '167aa265-2bb0-45f7-91bb-dedb64dabb3b', // Third component
+    it('should return false for non-consecutive siblings in the content region', () => {
+      // Second and fourth top-level components in the content region
+      const result = areConsecutiveSiblings(layout.layout, [
+        'static-static-card2df', // Second component
+        'static-image-static-imageStyle-something7d', // Fourth component
       ]);
 
       expect(result).to.be.false;
     });
 
-    it('should return false for components in different regions', () => {
-      // Component from header and component from highlighted
-      const result = areConsecutiveSiblings(regionsLayout.layout, [
-        '13ea974f-cf74-406a-9171-dad5f96e805f', // In header region
-        '70812c33-8706-4754-b0d4-3467a869bd69', // In highlighted region
-      ]);
-
-      expect(result).to.be.false;
-    });
-
-    it('should return false for components in different slots', () => {
-      // Component from one slot and component from region
-      const result = areConsecutiveSiblings(regionsLayout.layout, [
-        '8afbb203-ae72-4155-8319-8c7b1915787a', // In column_one slot
-        '13ea974f-cf74-406a-9171-dad5f96e805f', // In header region
+    it('should return false for components in different parents', () => {
+      // Component in a slot and a top-level component in the content region
+      const result = areConsecutiveSiblings(layout.layout, [
+        'static-image-udf7d', // In column_one slot
+        'static-static-card2df', // Top-level in content region
       ]);
 
       expect(result).to.be.false;
     });
 
     it('should return false if any component does not exist', () => {
-      const result = areConsecutiveSiblings(regionsLayout.layout, [
-        '13ea974f-cf74-406a-9171-dad5f96e805f', // Existing component
+      const result = areConsecutiveSiblings(layout.layout, [
+        'a7470350-deb2-4d9f-982c-464d356403d4', // Existing component
         'non-existent-uuid', // Non-existent component
       ]);
 
@@ -374,7 +359,7 @@ describe('replaceUUIDsAndUpdateModel', () => {
     });
 
     it('should return true for empty array of UUIDs', () => {
-      const result = areConsecutiveSiblings(regionsLayout.layout, []);
+      const result = areConsecutiveSiblings(layout.layout, []);
       expect(result).to.be.true;
     });
   });

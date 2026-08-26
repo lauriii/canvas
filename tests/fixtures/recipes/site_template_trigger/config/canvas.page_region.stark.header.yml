@@ -1,0 +1,9 @@
+langcode: en
+status: true
+dependencies:
+  theme:
+    - stark
+id: stark.header
+theme: stark
+region: header
+component_tree: {  }

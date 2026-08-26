@@ -49,7 +49,7 @@ final class CanvasContentResponseSubscriberTest extends UnitTestCase {
   /**
    * Tests that a routed redirect becomes a cacheable JSON result.
    */
-  public function testRedirect(): void {
+  public function testRelativeRedirect(): void {
     $redirect = new TrustedRedirectResponse('/new-path?source=old', 301);
     $redirect->headers->set('Cache-Control', 'public, max-age=300');
     $redirect->headers->set('Content-Language', 'en');
@@ -103,6 +103,104 @@ final class CanvasContentResponseSubscriberTest extends UnitTestCase {
       $response->headers->getCookies()[0]->getName(),
     );
     self::assertSame('value', $response->headers->getCookies()[0]->getValue());
+  }
+
+  /**
+   * Tests that same-site absolute redirects become relative metadata.
+   */
+  public function testSameSiteAbsoluteRedirect(): void {
+    $redirect = new TrustedRedirectResponse(
+      'https://drupal.example/about-us?preview=1#hero',
+      301,
+    );
+    $event = $this->event(
+      $redirect,
+      Request::create(
+        CanvasContentApiRequest::API_PATH,
+        server: [
+          'HTTP_HOST' => 'drupal.example',
+          'HTTPS' => 'on',
+        ],
+      ),
+    );
+
+    CanvasContentResponseSubscriber::convertRedirect($event);
+
+    $response = $event->getResponse();
+    self::assertInstanceOf(CacheableJsonResponse::class, $response);
+    self::assertSame([
+      'redirect' => [
+        'external' => FALSE,
+        'url' => '/about-us?preview=1#hero',
+        'statusCode' => 301,
+      ],
+    ], json_decode((string) $response->getContent(), TRUE, flags: JSON_THROW_ON_ERROR));
+  }
+
+  /**
+   * Tests that same-site absolute redirects drop the Drupal subdirectory.
+   */
+  public function testSameSiteAbsoluteRedirectWithSubdirectoryInstall(): void {
+    $redirect = new TrustedRedirectResponse(
+      'https://drupal.example/subdir/about-us?preview=1#hero',
+      301,
+    );
+    $event = $this->event(
+      $redirect,
+      Request::create(
+        '/subdir' . CanvasContentApiRequest::API_PATH,
+        server: [
+          'SCRIPT_NAME' => '/subdir/index.php',
+          'SCRIPT_FILENAME' => '/var/www/html/index.php',
+          'HTTP_HOST' => 'drupal.example',
+          'HTTPS' => 'on',
+        ],
+      ),
+    );
+
+    CanvasContentResponseSubscriber::convertRedirect($event);
+
+    $response = $event->getResponse();
+    self::assertInstanceOf(CacheableJsonResponse::class, $response);
+    self::assertSame([
+      'redirect' => [
+        'external' => FALSE,
+        'url' => '/about-us?preview=1#hero',
+        'statusCode' => 301,
+      ],
+    ], json_decode((string) $response->getContent(), TRUE, flags: JSON_THROW_ON_ERROR));
+  }
+
+  /**
+   * Tests that truly external redirects stay absolute in metadata.
+   */
+  public function testExternalRedirect(): void {
+    $redirect = new TrustedRedirectResponse(
+      'https://example.com/landing?campaign=canvas',
+      302,
+    );
+    $event = $this->event(
+      $redirect,
+      Request::create(
+        CanvasContentApiRequest::API_PATH,
+        server: [
+          'HTTP_HOST' => 'drupal.example',
+          'HTTPS' => 'on',
+        ],
+      ),
+    );
+
+    CanvasContentResponseSubscriber::convertRedirect($event);
+
+    $response = $event->getResponse();
+    self::assertInstanceOf(CacheableJsonResponse::class, $response);
+    self::assertSame([
+      'redirect' => [
+        'external' => TRUE,
+        'url' => 'https://example.com/landing?campaign=canvas',
+        'statusCode' => 302,
+      ],
+    ], json_decode((string) $response->getContent(), TRUE, flags: JSON_THROW_ON_ERROR));
   }
 
   /**

@@ -1,3 +1,4 @@
+// @canvas-ci weight=4 flaky
 const testMediaLibraryInComponentInstanceForm = (
   cy,
   entityType = 'canvas_page',

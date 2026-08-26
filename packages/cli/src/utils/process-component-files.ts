@@ -79,28 +79,36 @@ export async function readComponentMetadata(
  * @param params Component payload parameters
  * @returns Component payload for API
  */
-export function createComponentPayload(params: {
-  metadata: Metadata;
-  machineName: string;
-  componentName: string;
+type ComponentPayloadCode = {
   sourceCodeJs: string;
   compiledJs: string;
   sourceCodeCss: string;
   compiledCss: string;
   importedJsComponents: string[];
-  dataDependencies: DataDependencies;
-}): Component {
-  const {
-    metadata,
-    machineName,
-    componentName,
-    sourceCodeJs,
-    compiledJs,
-    sourceCodeCss,
-    compiledCss,
-    importedJsComponents,
-    dataDependencies,
-  } = params;
+};
+
+type CreateComponentPayloadParams =
+  | {
+      metadata: Metadata;
+      machineName: string;
+      componentName: string;
+      dataDependencies: DataDependencies;
+      type: 'external';
+    }
+  | {
+      metadata: Metadata;
+      machineName: string;
+      componentName: string;
+      dataDependencies: DataDependencies;
+      type?: Exclude<Component['type'], 'external'>;
+      code: ComponentPayloadCode;
+    };
+
+export function createComponentPayload(
+  params: CreateComponentPayloadParams,
+): Component {
+  const { metadata, machineName, componentName, dataDependencies, type } =
+    params;
 
   // Ensure props is correctly structured
   const propsData = stripProjectedContentEntityReferencePropKeys(
@@ -119,18 +127,34 @@ export function createComponentPayload(params: {
       metadata.dataDependencies.entityFields;
   }
 
-  return {
+  const payload: Component = {
     machineName,
     name: metadata.name || componentName,
     status: metadata.status,
     required: Array.isArray(metadata.required) ? metadata.required : [],
     props: propsData,
     slots: slotsData,
-    sourceCodeJs: sourceCodeJs,
-    compiledJs: compiledJs,
-    sourceCodeCss: sourceCodeCss,
-    compiledCss: compiledCss,
-    importedJsComponents: importedJsComponents || [],
     dataDependencies: payloadDataDependencies,
   };
+
+  if (type !== undefined) {
+    payload.type = type;
+  }
+
+  if ('code' in params) {
+    const {
+      sourceCodeJs,
+      compiledJs,
+      sourceCodeCss,
+      compiledCss,
+      importedJsComponents,
+    } = params.code;
+    payload.sourceCodeJs = sourceCodeJs;
+    payload.compiledJs = compiledJs;
+    payload.sourceCodeCss = sourceCodeCss;
+    payload.compiledCss = compiledCss;
+    payload.importedJsComponents = importedJsComponents;
+  }
+
+  return payload;
 }

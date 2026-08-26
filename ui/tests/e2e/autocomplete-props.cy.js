@@ -1,3 +1,4 @@
+// @canvas-ci flaky
 describe('Prop with autocomplete', () => {
   before(() => {
     cy.drupalCanvasInstall(['canvas_test_autocomplete']);

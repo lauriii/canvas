@@ -101,7 +101,6 @@ const FontFamiliesList = ({
           sideOffset={20}
           align="start"
           className={styles.flyoutContent}
-          onOpenAutoFocus={(event) => event.preventDefault()}
         >
           <FontFamilyFlyout
             copiedSnippetId={copiedSnippetId}

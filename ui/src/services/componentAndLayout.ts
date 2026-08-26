@@ -15,6 +15,7 @@ import {
   setSnapshotTitle,
 } from '@/features/pagePreview/previewSlice';
 import { baseQueryWithAutoSaves } from '@/services/baseQuery';
+import { brandKitApi } from '@/services/brandKit';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
 
@@ -52,6 +53,9 @@ export type LayoutApiResponse = RootLayoutModel & {
       avatar: string | null;
     } | null;
   } | null;
+  // For content entities: the page variant rendering this entity, null when
+  // core block layout renders the page. Absent for config entities.
+  resolvedPageVariant?: string | null;
 };
 
 export type TemplateViewMode = {
@@ -63,6 +67,7 @@ export type TemplateViewMode = {
   status: boolean;
   id: string;
   suggestedPreviewEntityId?: number;
+  pageVariant?: string | null;
 };
 
 export type TemplateInBundle = {
@@ -265,8 +270,15 @@ export const componentAndLayoutApi = createApi({
       query: ({ bundle, viewMode, entityType, previewEntityId }) => {
         return `canvas/api/v0/layout-content-template/${entityType}.${bundle}.${viewMode}/${previewEntityId}`;
       },
-      providesTags: () => [{ type: 'Layout' }],
-      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+      // The extra template-scoped tag lets a mutation on one content template
+      // refetch only that template's frame. Invalidating the untagged `Layout`
+      // still reaches this query, because an invalidation without an id
+      // matches every provider of the type.
+      providesTags: (result, error, { entityType, bundle, viewMode }) => [
+        { type: 'Layout' },
+        { type: 'Layout', id: `${entityType}.${bundle}.${viewMode}` },
+      ],
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
         try {
           const {
             data: { entity_form_fields, html, autoSaves },
@@ -279,6 +291,28 @@ export const componentAndLayoutApi = createApi({
           // the template editor frame.
           dispatch(setSnapshotHTML(''));
           dispatch(setSnapshotTitle(''));
+          dispatch(setHtml(html));
+          handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+        } catch (err) {
+          dispatch(setPageData({}));
+        }
+      },
+    }),
+    getPatternLayout: builder.query<LayoutApiResponse, string>({
+      query: (patternId) => `canvas/api/v0/layout-pattern/${patternId}`,
+      providesTags: () => [{ type: 'Layout' }],
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          const {
+            data: { entity_form_fields, html, autoSaves },
+            meta,
+          } = await queryFulfilled;
+          dispatch(setInitialPageData(entity_form_fields));
+          // Clear any stale snapshot (e.g. from a prior language/template
+          // preview) so selectPreviewHtml returns this fresh editor html.
+          // Mirrors getTemplateLayout; without it a leftover preview snapshot
+          // masks the pattern editor frame.
+          dispatch(setSnapshotHTML(''));
           dispatch(setHtml(html));
           handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         } catch (err) {
@@ -309,6 +343,7 @@ export const componentAndLayoutApi = createApi({
             { type: 'PendingChanges', id: 'LIST' },
           ]),
         );
+        dispatch(brandKitApi.util.invalidateTags(['ColorUsageDetails']));
         // Update our template preview slice.
         dispatch(setHtml(html));
         handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
@@ -332,6 +367,57 @@ export const componentAndLayoutApi = createApi({
             { type: 'PendingChanges', id: 'LIST' },
           ]),
         );
+        dispatch(brandKitApi.util.invalidateTags(['ColorUsageDetails']));
+        dispatch(setHtml(html));
+        handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+        // Pass update preview false to prevent a subsequent preview update,
+        // we have the data here.
+        dispatch(setLayoutModel({ layout, model, updatePreview: false }));
+      },
+    }),
+
+    postPatternLayout: builder.mutation<
+      { html: string; autoSaves: AutoSavesHash },
+      { layout: any; model: any; entity_form_fields: any }
+    >({
+      query: (body) => ({
+        url: 'canvas/api/v0/layout-pattern/{entity_id}',
+        method: 'POST',
+        body,
+      }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        const { data, meta } = await queryFulfilled;
+        const { html, autoSaves } = data;
+        dispatch(
+          pendingChangesApi.util.invalidateTags([
+            { type: 'PendingChanges', id: 'LIST' },
+          ]),
+        );
+        dispatch(brandKitApi.util.invalidateTags(['ColorUsageDetails']));
+        // Update our pattern preview slice.
+        dispatch(setHtml(html));
+        handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+        dispatch(setPostPreviewCompleted(true));
+      },
+    }),
+    updateComponentInPattern: builder.mutation<
+      UpdateComponentResultType,
+      UpdateComponentQueryArg
+    >({
+      query: (body) => ({
+        url: 'canvas/api/v0/layout-pattern/{entity_id}',
+        method: 'PATCH',
+        body,
+      }),
+      async onQueryStarted(body, { dispatch, queryFulfilled }) {
+        const { data, meta } = await queryFulfilled;
+        const { html, layout, model, autoSaves } = data;
+        dispatch(
+          pendingChangesApi.util.invalidateTags([
+            { type: 'PendingChanges', id: 'LIST' },
+          ]),
+        );
+        dispatch(brandKitApi.util.invalidateTags(['ColorUsageDetails']));
         dispatch(setHtml(html));
         handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         // Pass update preview false to prevent a subsequent preview update,
@@ -434,6 +520,7 @@ export const componentAndLayoutApi = createApi({
         { type: 'CodeComponentAutoSave', id },
         { type: 'CodeComponents', id: 'LIST' },
         { type: 'Components', id: 'LIST' },
+        { type: 'Folders', id: 'LIST' },
       ],
     }),
     createFolder: builder.mutation<any, any>({
@@ -679,6 +766,25 @@ export const componentAndLayoutApi = createApi({
         { type: 'ViewModes', id: 'LIST' },
       ],
     }),
+    updateContentTemplate: builder.mutation<
+      TemplateViewMode,
+      { id: string; pageVariant?: string | null; status?: boolean }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `canvas/api/v0/config/content_template/${id}`,
+        method: 'PATCH',
+        body,
+      }),
+      // The page template selection changes what the editor frame renders
+      // around the template, so that template's layout has to be refetched
+      // too. Scoped to the mutated template on purpose: this mutation is also
+      // reachable while a page is open, and invalidating `Layout` outright
+      // would refetch that page's layout and discard its unsaved page data.
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'ContentTemplates', id: 'LIST' },
+        { type: 'Layout', id },
+      ],
+    }),
     getContentTemplates: builder.query<TemplateList, void>({
       query: () => `canvas/api/v0/config/content_template`,
       providesTags: () => [{ type: 'ContentTemplates', id: 'LIST' }],
@@ -709,6 +815,9 @@ export const {
   useGetTemplateLayoutQuery,
   usePostTemplateLayoutMutation,
   useUpdateComponentInTemplateMutation,
+  useGetPatternLayoutQuery,
+  usePostPatternLayoutMutation,
+  useUpdateComponentInPatternMutation,
   useGetCodeComponentsQuery,
   useGetCodeComponentQuery,
   useCreateCodeComponentMutation,
@@ -722,6 +831,7 @@ export const {
   useUpdateAutoSaveMutation,
   useCreateContentTemplateMutation,
   useDeleteContentTemplateMutation,
+  useUpdateContentTemplateMutation,
   useGetContentTemplatesQuery,
   useGetViewModesQuery,
   useGetPreviewContentEntitiesQuery,

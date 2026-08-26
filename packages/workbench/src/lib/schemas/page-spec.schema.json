@@ -28,6 +28,11 @@
       "type": "string",
       "description": "Page meta description."
     },
+    "pageVariant": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Machine name of the page variant (page template) rendering this page. Omitted means the site default."
+    },
     "elements": {
       "type": "object",
       "description": "Authored page elements. Workbench preserves key insertion order when synthesizing canvas:component-tree children.",

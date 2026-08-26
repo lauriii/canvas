@@ -112,7 +112,7 @@ final class ExternalComponentSyncControllerTest extends CanvasKernelTestBase {
         return NULL;
       }
 
-      public function issueForPath(string $path, bool $renewal = FALSE): string {
+      public function issueForPath(string $path, bool $renewal = FALSE, array $preview_context = []): string {
         return 'test-assertion';
       }
 

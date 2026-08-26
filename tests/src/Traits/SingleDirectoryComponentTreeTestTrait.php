@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Traits;
 
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\PropSource\PropSource;
 
 /**
@@ -319,6 +320,28 @@ trait SingleDirectoryComponentTreeTestTrait {
             'uuid' => 'e303dd88-9409-4dc7-8a8b-a31602884a94',
             'slot' => 'banana',
             'parent_uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
+            'component_version' => '0e79e884426a53ae',
+            'component_id' => 'sdc.canvas_test_sdc.props-slots',
+            'inputs' => [
+              'heading' => ' Smug in the wooly cotton brains of infancy',
+            ],
+          ],
+        ],
+      ],
+      'reserved root UUID' => [
+        [
+          [
+            'uuid' => ComponentTreeItemList::ROOT_UUID,
+            'component_id' => 'sdc.canvas_test_sdc.props-slots',
+            'component_version' => '0e79e884426a53ae',
+            'inputs' => [
+              'heading' => 'And we laugh like soft, mad children',
+            ],
+          ],
+          [
+            'uuid' => 'e303dd88-9409-4dc7-8a8b-a31602884a94',
+            'slot' => 'the_body',
+            'parent_uuid' => ComponentTreeItemList::ROOT_UUID,
             'component_version' => '0e79e884426a53ae',
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
             'inputs' => [

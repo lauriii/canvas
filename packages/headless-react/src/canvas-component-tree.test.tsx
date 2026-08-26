@@ -65,6 +65,45 @@ describe('CanvasComponentTree', () => {
     ).toBe('<article>Hello</article>');
   });
 
+  it('renders empty published content', () => {
+    expect(
+      renderToStaticMarkup(<CanvasComponentTree tree={null} components={{}} />),
+    ).toBe('');
+  });
+
+  it('renders children of a synthetic multi-root wrapper in order', () => {
+    expect(
+      renderToStaticMarkup(
+        <CanvasComponentTree
+          tree={{
+            element: 'renderless-container',
+            slots: {
+              children: [
+                {
+                  element: 'js-site-header',
+                  props: { canvasUuid: 'header-one' },
+                },
+                {
+                  element: 'js-article',
+                  props: { canvasUuid: 'article-one', title: 'Hello' },
+                },
+                {
+                  element: 'js-site-footer',
+                  props: { canvasUuid: 'footer-one' },
+                },
+              ],
+            },
+          }}
+          components={{
+            'site-header': () => <header>Header</header>,
+            article: ({ title }: { title: string }) => <main>{title}</main>,
+            'site-footer': () => <footer>Footer</footer>,
+          }}
+        />,
+      ),
+    ).toBe('<header>Header</header><main>Hello</main><footer>Footer</footer>');
+  });
+
   it('keeps a string slot default in published output', () => {
     expect(
       renderToStaticMarkup(
@@ -138,7 +177,7 @@ describe('CanvasComponentTree', () => {
   it('renders the standard empty-region placeholder for an empty draft tree', () => {
     const html = renderToStaticMarkup(
       <CanvasComponentTree
-        tree={{ element: 'canvas-page', canvasDraftMode: true }}
+        tree={{ element: 'renderless-container', canvasDraftMode: true }}
         components={{}}
       />,
     );

@@ -11,6 +11,7 @@ use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas_headless\Grant\PreviewAssertionGrant;
 use Drupal\canvas_headless\PreviewAssertionFactory;
+use Drupal\canvas_headless\StackMiddleware\CanvasContentApiRequest;
 use Drupal\consumers\Entity\Consumer;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
@@ -204,6 +205,7 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
       'name' => 'entity.canvas_page.canonical',
       'requestUri' => '/page/' . $page->id(),
       'params' => ['canvas_page' => (string) $page->id()],
+      'managedByCanvas' => TRUE,
       'entity' => [
         'entityType' => 'canvas_page',
         'bundle' => 'canvas_page',
@@ -218,8 +220,58 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
 
     $page->setComponentTree([])->save();
     $empty_response = $this->renderPage($page);
+    $empty_data = self::responseData($empty_response);
     self::assertSame(200, $empty_response->getStatusCode());
-    self::assertNull(self::responseData($empty_response)['content']);
+    self::assertNull($empty_data['content']);
+    self::assertTrue($empty_data['route']['managedByCanvas']);
+  }
+
+  /**
+   * Tests rendering one external component with its resolved defaults.
+   */
+  public function testExternalComponentPreview(): void {
+    $page = $this->createPage();
+    $page_uri = '/page/' . $page->id() . '?' . http_build_query([
+      CanvasContentApiRequest::COMPONENT_PREVIEW_QUERY => 'route-owned-value',
+    ]);
+    $component_preview_context = [
+      CanvasContentApiRequest::COMPONENT_PREVIEW_QUERY => self::COMPONENT_ID,
+    ];
+
+    // The API selector is inert outside an authenticated headless preview.
+    $this->setCurrentAccount($this->editor);
+    $stored_content = \json_encode(
+      self::responseData($this->renderContentPath($page_uri, $component_preview_context))['content'],
+      JSON_THROW_ON_ERROR,
+    );
+    self::assertStringContainsString('Stored component heading', $stored_content);
+
+    $this->setCurrentAccount($this->createTokenAccount(with_preview_scope: TRUE));
+    // A route-owned componentId query parameter must not select a preview.
+    $route_content = \json_encode(
+      self::responseData($this->renderContentPath($page_uri))['content'],
+      JSON_THROW_ON_ERROR,
+    );
+    self::assertStringContainsString('Stored component heading', $route_content);
+
+    $response = $this->renderContentPath($page_uri, $component_preview_context);
+    $data = self::responseData($response);
+    $component = Component::load(self::COMPONENT_ID);
+    self::assertInstanceOf(Component::class, $component);
+
+    self::assertSame('js-canvas-headless-test', $data['content']['element']);
+    self::assertSame('Example heading', $data['content']['props']['heading']);
+    self::assertSame($component->uuid(), $data['content']['props']['canvasUuid']);
+    self::assertTrue($data['route']['managedByCanvas']);
+    self::assertSame($page_uri, $data['route']['requestUri']);
+    self::assertContains(
+      'config:canvas.component.' . self::COMPONENT_ID,
+      $response->getCacheableMetadata()->getCacheTags(),
+    );
+    self::assertContains(
+      'url.query_args:' . CanvasContentApiRequest::API_QUERY_PARAMETERS_KEY,
+      $response->getCacheableMetadata()->getCacheContexts(),
+    );
   }
 
   /**
@@ -327,6 +379,21 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
       'status' => TRUE,
     ]);
     $template->save();
+    ContentTemplate::create([
+      'id' => 'node.article.teaser',
+      'content_entity_type_id' => 'node',
+      'content_entity_type_bundle' => 'article',
+      'content_entity_type_view_mode' => 'teaser',
+      'component_tree' => [
+        [
+          'uuid' => $this->container->get('uuid')->generate(),
+          'component_id' => $component->id(),
+          'component_version' => $component->getActiveVersion(),
+          'inputs' => ['heading' => 'Teaser template heading'],
+        ],
+      ],
+      'status' => TRUE,
+    ])->save();
     $this->setCurrentAccount($this->editor);
 
     $response = $this->renderContentPath('/node/' . $node->id());
@@ -335,6 +402,7 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
 
     self::assertSame(200, $response->getStatusCode());
     self::assertSame('js-canvas-headless-test', $data['content']['element']);
+    self::assertTrue($data['route']['managedByCanvas']);
     self::assertStringContainsString('Published template heading', $content);
     self::assertContains(
       'config:canvas.content_template.node.article.full',
@@ -346,6 +414,7 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     $without_canvas_content_data = self::responseData($without_canvas_content);
     self::assertSame(200, $without_canvas_content->getStatusCode());
     self::assertNull($without_canvas_content_data['content']);
+    self::assertFalse($without_canvas_content_data['route']['managedByCanvas']);
     self::assertSame('Template-backed content', $without_canvas_content_data['head']['title']);
     self::assertSame(
       '/node/' . $node->id(),
@@ -357,6 +426,18 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     );
 
     $this->setCurrentAccount($this->createTokenAccount(with_preview_scope: TRUE));
+    $teaser_preview = $this->renderContentPath(
+      '/node/' . $node->id(),
+      ['viewMode' => 'teaser'],
+    );
+    self::assertStringContainsString(
+      'Teaser template heading',
+      \json_encode(self::responseData($teaser_preview)['content'], JSON_THROW_ON_ERROR),
+    );
+    self::assertContains(
+      'url.query_args:' . CanvasContentApiRequest::API_QUERY_PARAMETERS_KEY,
+      $teaser_preview->getCacheableMetadata()->getCacheContexts(),
+    );
     $stored_preview = $this->renderContentPath('/node/' . $node->id());
     $stored_preview_content = \json_encode(
       self::responseData($stored_preview)['content'],
@@ -391,8 +472,10 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     $draft->setComponentTree([]);
     $this->container->get(AutoSaveManager::class)->saveEntity($draft);
     $empty_preview = $this->renderContentPath('/node/' . $node->id());
+    $empty_preview_data = self::responseData($empty_preview);
     self::assertSame(200, $empty_preview->getStatusCode());
-    self::assertNull(self::responseData($empty_preview)['content']);
+    self::assertNull($empty_preview_data['content']);
+    self::assertTrue($empty_preview_data['route']['managedByCanvas']);
   }
 
   /**
@@ -443,6 +526,7 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
         'name' => 'user.login',
         'requestUri' => '/user/login',
         'params' => [],
+        'managedByCanvas' => FALSE,
         'entity' => NULL,
       ],
     ], self::responseData($without_entity));
@@ -460,6 +544,7 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     $without_canvas_content_data = self::responseData($without_canvas_content);
     self::assertSame(200, $without_canvas_content->getStatusCode());
     self::assertNull($without_canvas_content_data['content']);
+    self::assertFalse($without_canvas_content_data['route']['managedByCanvas']);
     self::assertSame('Not rendered by Canvas', $without_canvas_content_data['head']['title']);
     self::assertSame('entity.node.canonical', $without_canvas_content_data['route']['name']);
     self::assertSame(
@@ -663,10 +748,16 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
 
   /**
    * Renders a routed entity through the public kernel boundary.
+   *
+   * @param array{viewMode?: string, componentId?: string} $preview_context
+   *   Optional content-template or component preview context.
    */
-  private function renderContentPath(string $request_uri): CacheableJsonResponse {
+  private function renderContentPath(string $request_uri, array $preview_context = []): CacheableJsonResponse {
     $request = Request::create(
-      '/canvas/content-api?' . http_build_query(['requestUri' => $request_uri]),
+      '/canvas/content-api?' . http_build_query([
+        'requestUri' => $request_uri,
+        ...$preview_context,
+      ]),
     );
     $response = $this->request($request);
     self::assertInstanceOf(CacheableJsonResponse::class, $response);

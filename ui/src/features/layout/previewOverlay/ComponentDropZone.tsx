@@ -11,7 +11,6 @@ import useGetComponentName from '@/hooks/useGetComponentName';
 import type React from 'react';
 import type {
   ComponentNode,
-  RegionNode,
   SlotNode,
 } from '@/features/layout/layoutModelSlice';
 
@@ -21,10 +20,9 @@ export interface ComponentDropZoneProps {
   component: ComponentNode;
   position: 'top' | 'bottom' | 'left' | 'right';
   parentSlot?: SlotNode;
-  parentRegion?: RegionNode;
 }
 const ComponentDropZone: React.FC<ComponentDropZoneProps> = (props) => {
-  const { component, position, parentSlot, parentRegion } = props;
+  const { component, position, parentSlot } = props;
   const layout = useAppSelector(selectLayout);
   const [draggedItem, setDraggedItem] = useState('');
   const componentName = useGetComponentName(component);
@@ -57,7 +55,6 @@ const ComponentDropZone: React.FC<ComponentDropZoneProps> = (props) => {
     data: {
       component: component,
       parentSlot: parentSlot,
-      parentRegion: parentRegion,
       path: dropPath,
       accepts,
     },

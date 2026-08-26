@@ -41,7 +41,7 @@ The two APIs differ as follows:
 | Content roots | Canonical entity routes return one entity element; other routes may return a list when a top-level `renderless-container` is removed | Returns one element or `null`; multiple roots stay inside a transparent `renderless-container` wrapper |
 | Content response | Returns `title`, `breadcrumbs`, `metatags`, `content_format`, `content`, `page_layout`, `local_tasks`, and `messages` | Returns `content`, `head`, and `route` |
 | Document metadata | Returns the title and Metatag module data in Lupus-specific response fields | Returns title, meta, non-canonical, non-stylesheet links, and JSON-LD entries in a head object compatible with the [Unhead](https://unhead.unjs.io/) library |
-| Route information | Does not include route or entity details in a standard shape | Returns the route name, requested URI, route parameters, and rendered entity details when available |
+| Route information | Does not include route or entity details in a standard shape | Returns the route name, requested URI, route parameters, whether Canvas manages the component tree, and rendered entity details when available |
 | Redirects | Returns `redirect` and optional Drupal messages as JSON | Returns the redirect URL, original status code, and external URL flag as JSON |
 | Error format | Renders Drupal error routes through the Custom Elements renderer | Returns `application/problem+json` responses |
 | Partial responses | Supports `_select=content` | Returns the complete endpoint response, support for include param will be added later |
@@ -63,7 +63,8 @@ A successful response will contain `content`, `head`, and `route`:
   details and page metadata; a route without an entity can still contribute its title.
 - `head` will use a shape that works with Unhead and other frontend frameworks. The frontend owns its public canonical
   URL, so the response will not include canonical links.
-- `route` will describe the routed request and its canonical entity when one exists.
+- `route` will describe the routed request, say whether Canvas manages the complete component tree, and include its
+  canonical entity when one exists.
 
 Output with more than one root will keep a transparent `renderless-container` root instead of returning a list.
 Redirects will use JSON and include the original redirect status. Route and access failures will use RFC 9457 Problem

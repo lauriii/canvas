@@ -1,6 +1,9 @@
 {
   "name": "@drupal-canvas/vite-compat",
   "version": "0.0.0",
+  "engines": {
+    "node": ">=22.19.0 <23 || >=24.5.0"
+  },
   "description": "Shared Vite compatibility helpers for Canvas runtimes",
   "private": true,
   "license": "MIT",

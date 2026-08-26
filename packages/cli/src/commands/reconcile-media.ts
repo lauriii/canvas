@@ -44,14 +44,13 @@ interface ReconcileMediaOptions {
   scope?: string;
   includePages?: boolean;
   includeContentTemplates?: boolean;
-  includeRegions?: boolean;
   pages?: boolean;
   contentTemplates?: boolean;
-  regions?: boolean;
+  pageTemplates?: boolean;
   sync?: Partial<{
     pages: boolean;
     contentTemplates: boolean;
-    regions: boolean;
+    pageTemplates: boolean;
   }>;
   dir?: string;
   yes?: boolean;
@@ -60,7 +59,7 @@ interface ReconcileMediaOptions {
 export interface ReconcileMediaSyncConfig {
   includePages: boolean;
   includeContentTemplates: boolean;
-  includeRegions: boolean;
+  includePageTemplates: boolean;
 }
 
 export interface ReconcileSpecFile {
@@ -179,7 +178,7 @@ async function readReconcileSpecFile(
 export async function collectReconcileSpecFiles(
   discoveryResult: Pick<
     DiscoveryResult,
-    'pages' | 'contentTemplates' | 'regions'
+    'pages' | 'contentTemplates' | 'pageTemplates'
   >,
   syncConfig: ReconcileMediaSyncConfig,
 ): Promise<ReconcileSpecFile[]> {
@@ -209,13 +208,13 @@ export async function collectReconcileSpecFiles(
     }
   }
 
-  if (syncConfig.includeRegions) {
-    for (const region of discoveryResult.regions) {
+  if (syncConfig.includePageTemplates) {
+    for (const pageTemplate of discoveryResult.pageTemplates) {
       specFiles.push(
         await readReconcileSpecFile(
-          `global region "${region.region}"`,
-          region.relativePath,
-          region.path,
+          `page template "${pageTemplate.id}"`,
+          pageTemplate.relativePath,
+          pageTemplate.path,
         ),
       );
     }
@@ -230,7 +229,7 @@ export function hasReconcileMediaSyncEnabled(
   return (
     syncConfig.includePages ||
     syncConfig.includeContentTemplates ||
-    syncConfig.includeRegions
+    syncConfig.includePageTemplates
   );
 }
 
@@ -387,7 +386,7 @@ export function reconcileMediaCommand(program: Command): void {
   program
     .command('reconcile-media')
     .description(
-      'upload supported external media from pages, content templates, and global regions to Drupal and store its provenance',
+      'upload supported external media from pages, content templates, and page templates to Drupal and store its provenance',
     )
     .option('--client-id <id>', 'Client ID')
     .option('--client-secret <secret>', 'Client Secret')
@@ -411,15 +410,6 @@ export function reconcileMediaCommand(program: Command): void {
         .argParser(parseBooleanOption)
         .default(undefined),
     )
-    .addOption(
-      new Option(
-        '--include-regions [enabled]',
-        'Include global regions in the media reconciliation operation',
-      )
-        .preset('true')
-        .argParser(parseBooleanOption)
-        .default(undefined),
-    )
     .option(
       '--no-pages',
       'Exclude pages from the media reconciliation operation',
@@ -429,8 +419,8 @@ export function reconcileMediaCommand(program: Command): void {
       'Exclude content templates from the media reconciliation operation',
     )
     .option(
-      '--no-regions',
-      'Exclude global regions from the media reconciliation operation',
+      '--no-page-templates',
+      'Exclude page templates from the media reconciliation operation',
     )
     .option('-d, --dir <directory>', 'Component directory')
     .option('-y, --yes', 'Skip confirmation prompts')
@@ -444,11 +434,11 @@ export function reconcileMediaCommand(program: Command): void {
         const syncConfig = {
           includePages: currentConfig.includePages,
           includeContentTemplates: currentConfig.includeContentTemplates,
-          includeRegions: currentConfig.includeRegions,
+          includePageTemplates: currentConfig.includePageTemplates,
         };
         if (!hasReconcileMediaSyncEnabled(syncConfig)) {
           p.log.info(
-            'No pages, content templates, or global regions are enabled for media reconciliation.',
+            'No pages, content templates, or page templates are enabled for media reconciliation.',
           );
           p.outro('Media reconciliation skipped');
           return;
@@ -462,7 +452,7 @@ export function reconcileMediaCommand(program: Command): void {
           componentRoot: nextConfig.componentDir,
           pagesRoot: nextConfig.pagesDir,
           contentTemplatesRoot: nextConfig.contentTemplatesDir,
-          regionsRoot: nextConfig.regionsDir,
+          pageTemplatesRoot: nextConfig.pageTemplatesDir,
           projectRoot: process.cwd(),
         });
         const componentMetadata = await loadComponentsMetadata(discoveryResult);
@@ -474,7 +464,7 @@ export function reconcileMediaCommand(program: Command): void {
 
         if (specFiles.length === 0) {
           p.log.warn(
-            'No local pages, content templates, or global regions found for the enabled sync settings.',
+            'No local pages, content templates, or page templates found for the enabled sync settings.',
           );
           p.outro('Media reconciliation skipped');
           return;

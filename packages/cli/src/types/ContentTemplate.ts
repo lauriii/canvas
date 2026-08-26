@@ -9,6 +9,7 @@ export interface ContentTemplate {
   viewMode: string;
   viewModeLabel?: string;
   suggestedPreviewEntityId?: number | null;
+  pageVariant?: string | null;
   component_tree: CanvasComponentTree;
 }
 

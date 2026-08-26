@@ -1,30 +1,8 @@
 import {
   removeComponentFromPathname,
-  removeRegionFromPathname,
   setComponentInPathname,
   setPreviewEntityIdInPathname,
-  setRegionInPathname,
 } from '@/utils/route-utils';
-
-describe('removeRegionFromPathname', () => {
-  it('should remove region segment from pathname', () => {
-    const pathname = '/editor/node/123/region/main';
-    const result = removeRegionFromPathname(pathname);
-    expect(result).to.equal('/editor/node/123');
-  });
-
-  it('should handle pathname without region segment', () => {
-    const pathname = '/editor/node/123';
-    const result = removeRegionFromPathname(pathname);
-    expect(result).to.equal('/editor/node/123');
-  });
-
-  it('should remove trailing slash', () => {
-    const pathname = '/editor/node/123/region/main/';
-    const result = removeRegionFromPathname(pathname);
-    expect(result).to.equal('/editor/node/123');
-  });
-});
 
 describe('removeComponentFromPathname', () => {
   it('should handle pathname without component segment', () => {
@@ -43,44 +21,6 @@ describe('removeComponentFromPathname', () => {
   it('should remove trailing slash', () => {
     const pathname = '/editor/node/123/component/abc-123/';
     const result = removeComponentFromPathname(pathname);
-    expect(result).to.equal('/editor/node/123');
-  });
-});
-
-describe('setRegionInPathname', () => {
-  it('should append region when not present', () => {
-    const pathname = '/editor/node/123';
-    const result = setRegionInPathname(pathname, 'sidebar');
-    expect(result).to.equal('/editor/node/123/region/sidebar');
-  });
-
-  it('should replace existing region', () => {
-    const pathname = '/editor/node/123/region/main';
-    const result = setRegionInPathname(pathname, 'sidebar');
-    expect(result).to.equal('/editor/node/123/region/sidebar');
-  });
-
-  it('should remove region when regionId matches default', () => {
-    const pathname = '/editor/node/123/region/main';
-    const result = setRegionInPathname(pathname, 'main', 'main');
-    expect(result).to.equal('/editor/node/123');
-  });
-
-  it('should remove region when regionId is undefined', () => {
-    const pathname = '/editor/node/123/region/main';
-    const result = setRegionInPathname(pathname);
-    expect(result).to.equal('/editor/node/123');
-  });
-
-  it('should not add region when regionId is undefined', () => {
-    const pathname = '/editor/node/123';
-    const result = setRegionInPathname(pathname);
-    expect(result).to.equal('/editor/node/123');
-  });
-
-  it('should handle default region parameter', () => {
-    const pathname = '/editor/node/123';
-    const result = setRegionInPathname(pathname, 'content', 'content');
     expect(result).to.equal('/editor/node/123');
   });
 });
@@ -157,12 +97,11 @@ describe('setPreviewEntityIdInPathname', () => {
       expect(result).to.equal('/template/node/article/full');
     });
 
-    it('should preserve region and component segments', () => {
-      const pathname =
-        '/template/node/article/full/2/region/main/component/abc-123';
+    it('should preserve component segment', () => {
+      const pathname = '/template/node/article/full/2/component/abc-123';
       const result = setPreviewEntityIdInPathname(pathname, 5);
       expect(result).to.equal(
-        '/template/node/article/full/5/region/main/component/abc-123',
+        '/template/node/article/full/5/component/abc-123',
       );
     });
 

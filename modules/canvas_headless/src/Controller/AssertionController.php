@@ -79,7 +79,11 @@ class AssertionController extends ControllerBase {
     // recovery mints (no flag) load the app by URL and are redeemed
     // server-side instead.
     $renewal = $request->query->getBoolean('renewal');
-    $assertion = $this->previewUrlGenerator->issueForPath($path, $renewal);
+    $assertion = $this->previewUrlGenerator->issueForPath(
+      $path,
+      $renewal,
+      static::previewContext($request),
+    );
     // The route requires the permission the generator checks, so a NULL here
     // means the two got out of sync — fail loudly, not with a broken preview.
     if ($assertion === NULL) {
@@ -140,12 +144,10 @@ class AssertionController extends ControllerBase {
       throw new BadRequestHttpException('The entity has no canonical URL.');
     }
 
-    // The claim is consumed as a path within the frontend app's own routing
-    // space, and the app appends it to a base URL that already carries
-    // Drupal's base path. On a subdirectory install ("/cms") the generated
-    // path would carry that prefix too, so the app would request
-    // "/cms/ce-api/cms/node/4" and always land on its not-found page. Strip
-    // Drupal's base path so only the site-relative path travels in the claim.
+    // The claim becomes requestUri for the content endpoint, whose URL already
+    // includes Drupal's base path. On a subdirectory install ("/cms"), the
+    // generated canonical path includes that prefix too. Strip it so the claim
+    // carries only the site-relative path.
     $base_path = $request->getBasePath();
     if ($base_path !== '' && str_starts_with($path, $base_path . '/')) {
       $path = substr($path, \strlen($base_path));
@@ -166,6 +168,24 @@ class AssertionController extends ControllerBase {
       throw new BadRequestHttpException('The path query parameter must be a relative path.');
     }
     return $path;
+  }
+
+  /**
+   * Reads optional content-template rendering context.
+   *
+   * @return array{viewMode?: string}
+   *   The context carried by the signed preview assertion.
+   */
+  protected static function previewContext(Request $request): array {
+    $context = [];
+    $view_mode = (string) $request->query->get('view_mode', '');
+    if ($view_mode !== '') {
+      if (preg_match('/^[a-z0-9_]+$/', $view_mode) !== 1) {
+        throw new BadRequestHttpException('The view_mode query parameter is invalid.');
+      }
+      $context['viewMode'] = $view_mode;
+    }
+    return $context;
   }
 
 }

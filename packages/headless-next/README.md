@@ -58,6 +58,11 @@ export const dynamic = 'force-dynamic';
 export const { GET, OPTIONS } = createComponentMetadataHandler();
 ```
 
+```tsx
+// app/api/canvas/component-preview/page.tsx
+export { default } from '@drupal-canvas/headless-next/ComponentPreviewPage';
+```
+
 **3. Session banner** — a server component gathers the session state
 (`getDraftData()`, `getDraftEditorOrigin()`, `isDraftSessionExpired()`) and
 renders `<DraftSession>` from `@drupal-canvas/headless-next/client` with a
@@ -79,5 +84,13 @@ the registry updates when components are added, removed, or renamed.
 ## Data access
 
 `getClient()` returns the draft-aware JSON:API client; `fetchPage()` fetches
-rendered content, resolved through Drupal's routing. Both are
-draft-session-aware.
+Canvas-rendered content when available, plus route and document-head data, for a
+path resolved through Drupal routing. Both are draft-session-aware. Render
+`page.content` directly. Use `toNextMetadata(page.head)` from
+`@drupal-canvas/headless-next` in `generateMetadata()`. Handle `PageRedirect`
+before page rendering with `permanentRedirect()` for permanent redirects and
+`redirect()` for other redirects.
+
+`toNextMetadata()` maps the Canvas head entries that Next.js Metadata can
+represent. It omits entries that Next.js Metadata cannot represent. Render
+omitted entries as native head elements in the page or layout.

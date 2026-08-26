@@ -9,6 +9,8 @@ use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropSource\HostEntityPropSource;
 use Drupal\canvas\ShapeMatcher\HostEntityPropSourceMatcher;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\Core\Recipe\Recipe;
+use Drupal\Core\Recipe\RecipeRunner;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
@@ -65,6 +67,13 @@ class HostEntityPropSourceMatcherTest extends PropSourceMatcherTestBase {
     parent::setUp();
     $this->installEntitySchema('user');
     $this->installEntitySchema('node');
+    // The user_picture field and node.body storage the module depends on come
+    // from a recipe, not test-only setup, so the Playwright test reuses it too.
+    // Apply it before installing the module so the components' dependencies are
+    // met.
+    // @see tests/fixtures/recipes/canvas_test_code_components_content_entity_ref_fields
+    $recipe = Recipe::createFromDirectory(__DIR__ . '/../../../fixtures/recipes/canvas_test_code_components_content_entity_ref_fields');
+    RecipeRunner::processRecipe($recipe);
     $this->installConfig(['node', 'canvas_test_code_components_content_entity_ref']);
   }
 

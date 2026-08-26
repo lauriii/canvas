@@ -97,8 +97,8 @@ function getResourceGroup(type: string): ResourceGroup {
       return { label: 'Pages', order: 20 };
     case 'Content template':
       return { label: 'Content templates', order: 30 };
-    case 'Global region':
-      return { label: 'Global regions', order: 40 };
+    case 'Page template':
+      return { label: 'Page templates', order: 40 };
     case 'Asset':
       return { label: 'Assets', order: 15 };
     case 'Dependency':

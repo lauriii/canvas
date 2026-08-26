@@ -29,6 +29,7 @@ interface PreviewFrameDescriptor {
   frameKey: string;
   entityType: string;
   entityId: string;
+  viewMode?: string;
   autoSavesHash: AutoSavesHashRecord;
 }
 
@@ -50,6 +51,7 @@ const HeadlessPreviewFrame: React.FC<HeadlessPreviewFrameProps> = ({
   autoSavesHash,
   entityType,
   entityId,
+  viewMode,
   viewportWidth,
   viewportMinHeight,
   active,
@@ -61,6 +63,12 @@ const HeadlessPreviewFrame: React.FC<HeadlessPreviewFrameProps> = ({
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const { updateGeometry, clearGeometry } = usePreviewGeometryUpdater();
   const editorFrameMode = useAppSelector(selectEditorFrameMode);
+
+  // For non-full view modes (e.g. teaser, card), use no min height so the
+  // frame is sized to its content. A selected device-viewport preset only
+  // floors the "full" view mode, mirroring the same-origin Viewport.
+  const effectiveMinHeight =
+    viewMode && viewMode !== 'full' ? 0 : viewportMinHeight;
   const { statusText, contentHeight, contentHeightReady, geometry } =
     useHeadlessDraftSession(
       iframeRef,
@@ -68,15 +76,18 @@ const HeadlessPreviewFrame: React.FC<HeadlessPreviewFrameProps> = ({
       entityType,
       entityId,
       autoSavesHash,
-      viewportMinHeight,
+      effectiveMinHeight,
+      { viewMode },
     );
 
-  // Floors at viewportMinHeight (selected device-viewport preset) so a
-  // shorter piece of content never shrinks the frame below the simulated
-  // device height — the same floor useSyncIframeHeightToContent keeps for
-  // the same-origin preview.
-  const effectiveHeight = Math.max(contentHeight ?? 0, viewportMinHeight);
-  const iframeHeight = contentHeightReady ? effectiveHeight : viewportMinHeight;
+  // Floors at effectiveMinHeight (the selected device-viewport preset for the
+  // "full" view mode, or 0 for content-sized view modes) so a shorter piece of
+  // content never shrinks the frame below the simulated device height — the
+  // same floor useSyncIframeHeightToContent keeps for the same-origin preview.
+  const effectiveHeight = Math.max(contentHeight ?? 0, effectiveMinHeight);
+  const iframeHeight = contentHeightReady
+    ? effectiveHeight
+    : effectiveMinHeight;
 
   useEffect(() => {
     if (contentHeightReady) {
@@ -207,20 +218,22 @@ const HeadlessPreview: React.FC<HeadlessPreviewProps> = ({
 }) => {
   const viewportWidth = useAppSelector(selectViewportWidth);
   const viewportMinHeight = useAppSelector(selectViewportMinHeight);
-  const { entityId, entityType } = useParams();
+  const { entityId, entityType, previewEntityId, viewMode } = useParams();
+  const contentEntityId = entityId ?? previewEntityId;
   const autoSavesHashRef = useRef(autoSavesHash);
   autoSavesHashRef.current = autoSavesHash;
   const currentFrame = useMemo<PreviewFrameDescriptor | null>(() => {
-    if (!entityType || !entityId) {
+    if (!entityType || !contentEntityId) {
       return null;
     }
     return {
-      frameKey: `${entityType}:${entityId}`,
+      frameKey: `${entityType}:${contentEntityId}:${viewMode ?? ''}`,
       entityType,
-      entityId,
+      entityId: contentEntityId,
+      viewMode,
       autoSavesHash: autoSavesHashRef.current,
     };
-  }, [entityId, entityType]);
+  }, [contentEntityId, entityType, viewMode]);
   const currentFrameKeyRef = useRef(currentFrame?.frameKey);
   currentFrameKeyRef.current = currentFrame?.frameKey;
   const [frames, setFrames] = useState<PreviewFrameState>(() => ({

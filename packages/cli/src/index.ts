@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import tls from 'node:tls';
 import chalk from 'chalk';
 import { Command } from 'commander';
 
@@ -17,6 +18,12 @@ import {
   handleLegacyComponentDirMigration,
   handleLegacySyncEnvMigration,
 } from './config';
+
+// Trust certificates from the system CA store, such as those issued by DDEV's CA.
+tls.setDefaultCACertificates([
+  ...tls.getCACertificates('default'),
+  ...tls.getCACertificates('system'),
+]);
 
 const version = (packageJson as { version?: string }).version;
 

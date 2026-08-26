@@ -16,6 +16,14 @@ class CanvasAiTempStore {
   public const CURRENT_LAYOUT_KEY = 'current_layout';
 
   /**
+   * Key prefix for the serialized agent state, keyed by job ID.
+   *
+   * Keeps the client-supplied job IDs in a key space of their own, so they
+   * cannot collide with the other keys in this collection.
+   */
+  private const AGENT_STATE_KEY_PREFIX = 'agent_state_';
+
+  /**
    * The private tempstore object.
    *
    * @var \Drupal\Core\TempStore\PrivateTempStore
@@ -71,6 +79,47 @@ class CanvasAiTempStore {
    */
   public function deleteData(string $key): void {
     $this->tempStore->delete($key);
+  }
+
+  /**
+   * Gets the serialized agent state for a chat turn.
+   *
+   * @param string $job_id
+   *   The job ID identifying the chat turn.
+   *
+   * @return array|null
+   *   The state as written by the agent's ::toArray(), or NULL when the turn
+   *   is not paused.
+   */
+  public function getStoredAgentState(string $job_id): ?array {
+    $state = $this->tempStore->get(self::AGENT_STATE_KEY_PREFIX . $job_id);
+    return \is_array($state) ? $state : NULL;
+  }
+
+  /**
+   * Stores the serialized agent state for a chat turn.
+   *
+   * @param string $job_id
+   *   The job ID identifying the chat turn.
+   * @param array $state
+   *   The state, as returned by the agent's ::toArray().
+   *
+   * @throws \Drupal\Core\TempStore\TempStoreException
+   */
+  public function setStoredAgentState(string $job_id, array $state): void {
+    $this->tempStore->set(self::AGENT_STATE_KEY_PREFIX . $job_id, $state);
+  }
+
+  /**
+   * Removes the serialized agent state for a chat turn.
+   *
+   * @param string $job_id
+   *   The job ID identifying the chat turn.
+   *
+   * @throws \Drupal\Core\TempStore\TempStoreException
+   */
+  public function deleteStoredAgentState(string $job_id): void {
+    $this->tempStore->delete(self::AGENT_STATE_KEY_PREFIX . $job_id);
   }
 
 }

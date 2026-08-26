@@ -62,6 +62,9 @@ export interface CanvasProjectBuildOptions {
   discoveryResult: DiscoveryResult;
   cleanOutputDir?: boolean;
   requireJsEntries?: boolean;
+  // When the Canvas Headless SDK is installed, every component is pushed as an
+  // external component (metadata only): the SDK-powered app renders them.
+  headlessSdkDetected?: boolean;
 }
 
 function getOutputBaseName(component: DiscoveredComponent): string {
@@ -259,12 +262,14 @@ async function buildComponentPayload(options: {
     metadata,
     machineName,
     componentName: options.component.name,
-    sourceCodeJs: options.sourceCodeJs,
-    compiledJs,
-    sourceCodeCss: options.sourceCodeCss,
-    compiledCss: options.compiledCss,
-    importedJsComponents: options.importedJsComponents,
     dataDependencies: options.dataDependencies,
+    code: {
+      sourceCodeJs: options.sourceCodeJs,
+      compiledJs,
+      sourceCodeCss: options.sourceCodeCss,
+      compiledCss: options.compiledCss,
+      importedJsComponents: options.importedJsComponents,
+    },
   });
 }
 
@@ -333,6 +338,52 @@ export async function buildCanvasProject(
   const builtComponents: BuiltComponent[] = [];
 
   for (const component of options.discoveryResult.components) {
+    // A component is external when its metadata says so, or when the Canvas
+    // Headless SDK is installed. External components are pushed as metadata
+    // only: no JavaScript is built or uploaded.
+    const isExternal =
+      component.type === 'external' || options.headlessSdkDetected === true;
+
+    if (isExternal) {
+      const result: Result = {
+        itemName: component.name,
+        success: true,
+        details: [],
+      };
+      try {
+        const metadata = await readComponentMetadata(component.metadataPath);
+        if (!metadata) {
+          throw new Error(`Invalid metadata file for ${component.name}.`);
+        }
+        const machineName =
+          metadata.machineName ||
+          component.name.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+        const componentPayload = createComponentPayload({
+          metadata,
+          machineName,
+          componentName: component.name,
+          dataDependencies: {},
+          type: 'external',
+        });
+        builtComponents.push({
+          machineName: componentPayload.machineName,
+          componentName: component.name,
+          componentPayload,
+          importedJsComponents: [],
+        });
+      } catch (error) {
+        result.success = false;
+        result.details = [
+          {
+            heading: 'Error while preparing external component',
+            content: error instanceof Error ? error.message : String(error),
+          },
+        ];
+      }
+      componentResults.push(result);
+      continue;
+    }
+
     const prepared = await prepareComponentBuild({
       component,
       outputDir,
@@ -426,6 +477,8 @@ export async function buildCanvasProject(
     outputDir,
     vendorImportMap: vendorResult.importMap,
     localImportMap: localResult.localImportMap,
+    localSources: localResult.localSources,
+    bundledSources: localResult.bundledSources,
     sharedChunks: [...vendorResult.sharedChunks, ...localResult.sharedChunks],
   });
   if (!manifestResult.success) {
