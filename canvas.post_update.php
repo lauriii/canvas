@@ -918,8 +918,9 @@ function canvas_post_update_0032_main_workspace(): void {
 }
 
 /**
- * Maps the legacy review permissions onto the shipped workflow's
- * per-transition permissions.
+ * Maps the legacy review permissions onto per-transition permissions.
+ *
+ * The target permissions are those of the shipped review workflow.
  */
 function canvas_post_update_0033_review_workflow_permissions(): void {
   $legacy_map = [

@@ -313,8 +313,10 @@ function _canvas_ensure_workspaces_module_enabled(): void {
 }
 
 /**
- * Adds the workflow-driven review process: Workflows module, shipped
- * workflow, and workspace review-workflow fields.
+ * Adds the workflow-driven review process.
+ *
+ * Enables the Workflows module, creates the shipped review workflow, and
+ * installs the workspace review-workflow fields.
  */
 function canvas_update_11203(): void {
   if (!\Drupal::moduleHandler()->moduleExists('workflows')) {

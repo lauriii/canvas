@@ -261,22 +261,4 @@ trait CanvasFieldTrait {
     return $src;
   }
 
-  private function assertValidJsonUpdateNode(Node $node, bool $dynamic_image = TRUE): void {
-    // Ensure the field has been updated.
-    $this->assertNodeValues(
-      $node,
-      [
-        'sdc.canvas_test_sdc.heading',
-        'sdc.canvas_test_sdc.image',
-        'block.system_branding_block',
-      ],
-      $this->getValidConvertedInputs($dynamic_image),
-      [
-        'title' => 'The updated title.',
-        'status' => '1',
-      ]
-    );
-
-  }
-
 }

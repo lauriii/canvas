@@ -959,8 +959,7 @@ final class WorkspaceAutoSave {
   private const DEPENDENT_ENTITY_TYPE_IDS = ['path_alias'];
 
   /**
-   * Adds pending-list entries for config staged via the workspace_config
-   * module.
+   * Adds pending-list entries for config staged via workspace_config.
    *
    * Each workspace_config row stages one config object. Rows staging a config
    * entity are presented as that entity (loaded inside the workspace, so the
@@ -1006,7 +1005,10 @@ final class WorkspaceAutoSave {
           'entity_id' => $row->id(),
           'data' => AutoSaveManager::toStorableArray($row),
           'label' => $name === '' ? (string) $row->id() : $name,
-          'data_hash' => AutoSaveManager::generateHashFromData(['name' => $name, 'changed' => $row->get('changed')->value]),
+          'data_hash' => AutoSaveManager::generateHashFromData([
+            'name' => $name,
+            'changed' => $row->get('changed')->value,
+          ]),
         ];
       }
       $out[$key] = $entry + [
@@ -1203,7 +1205,13 @@ final class WorkspaceAutoSave {
         $this->pendingBuffer->delete((string) $key);
       }
     }
-    foreach ([AutoSaveManager::AUTO_SAVE_STORE, AutoSaveManager::FORM_VIOLATIONS_STORE, AutoSaveManager::COMPONENT_INSTANCE_FORM_VIOLATIONS_STORE, AutoSaveRevisionPruner::STORE] as $collection) {
+    $collections = [
+      AutoSaveManager::AUTO_SAVE_STORE,
+      AutoSaveManager::FORM_VIOLATIONS_STORE,
+      AutoSaveManager::COMPONENT_INSTANCE_FORM_VIOLATIONS_STORE,
+      AutoSaveRevisionPruner::STORE,
+    ];
+    foreach ($collections as $collection) {
       $store = $this->keyValueFactory->get($collection);
       foreach (\array_keys($store->getAll()) as $key) {
         if (\str_starts_with((string) $key, $prefix)) {

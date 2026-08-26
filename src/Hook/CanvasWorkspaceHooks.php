@@ -43,7 +43,7 @@ final class CanvasWorkspaceHooks {
 
     $fields['canvas_review_workflow'] = BaseFieldDefinition::create('string')
       ->setLabel(new TranslatableMarkup('Review workflow'))
-      ->setDescription(new TranslatableMarkup('The workflow whose states and transitions govern this workspace\'s review process.'))
+      ->setDescription(new TranslatableMarkup("The workflow whose states and transitions govern this workspace's review process."))
       ->setDefaultValue(WorkspaceReviewWorkflowType::DEFAULT_WORKFLOW_ID);
 
     $fields['canvas_require_review'] = BaseFieldDefinition::create('boolean')

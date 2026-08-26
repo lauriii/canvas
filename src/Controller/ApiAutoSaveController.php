@@ -196,7 +196,17 @@ final class ApiAutoSaveController extends ApiControllerBase {
     /** @var \Drupal\workspaces\WorkspaceInterface|null $workspace */
     $workspace = $this->entityTypeManager->getStorage('workspace')->load($workspace_id);
     if ($workspace === NULL) {
-      return new JsonResponse(data: ['errors' => [['detail' => \sprintf('The workspace "%s" no longer exists.', $workspace_id), 'source' => ['pointer' => 'workspace']]]], status: Response::HTTP_CONFLICT);
+      return new JsonResponse(
+        data: [
+          'errors' => [
+            [
+              'detail' => \sprintf('The workspace "%s" no longer exists.', $workspace_id),
+              'source' => ['pointer' => 'workspace'],
+            ],
+          ],
+        ],
+        status: Response::HTTP_CONFLICT,
+      );
     }
 
     $publish_access = $workspace->access('publish', $this->currentUser, return_as_object: TRUE);

@@ -7,8 +7,10 @@ namespace Drupal\canvas\Workspace;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 /**
- * An entity's pending work lives in another workspace (core's one-workspace
- * -per-entity tracking); the attempted staged write was rejected.
+ * Thrown when an entity's pending work lives in another workspace.
+ *
+ * Core tracks one workspace per entity, so the attempted staged write was
+ * rejected.
  *
  * Mapped to a structured 409 naming the owning workspace, so the client can
  * present "locked in workspace X" with a switch action instead of a generic
