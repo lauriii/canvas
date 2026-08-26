@@ -7,7 +7,10 @@ import useMutationObserver from '@/hooks/useMutationObserver';
 import { usePatchProp } from '@/services/preview';
 import { isPropSourceComponent } from '@/types/Component';
 
-import type { CodeComponentPropImageExample } from '@/types/CodeComponent';
+import type {
+  CodeComponentPropDocumentExample,
+  CodeComponentPropImageExample,
+} from '@/types/CodeComponent';
 
 import styles from './DefaultImagePreview.module.css';
 
@@ -111,11 +114,13 @@ const DefaultImagePreview = ({ propName }: DefaultImagePreviewProps) => {
   // Use the proper interface from CodeComponent.ts
   const defaultImageValue = propData?.default_values?.resolved as
     | CodeComponentPropImageExample
+    | CodeComponentPropDocumentExample
     | undefined;
 
   const sourceValue = selectedModel.source?.[propName]?.value;
   const resolvedValue = selectedModel.resolved?.[propName] as
     | CodeComponentPropImageExample
+    | CodeComponentPropDocumentExample
     | undefined;
 
   const hasDefaultImage = !!defaultImageValue?.src;
@@ -160,8 +165,46 @@ const DefaultImagePreview = ({ propName }: DefaultImagePreviewProps) => {
   }
 
   const isOptional = !propData?.required;
+
+  // A document default carries a filename or MIME type instead of the image
+  // example's alt/width/height; render it as a file chip instead of a broken
+  // <img> pointing at a non-image URL.
+  const isDocumentValue =
+    'filename' in defaultImageValue || 'mimetype' in defaultImageValue;
+
+  if (isDocumentValue) {
+    const documentValue = defaultImageValue as CodeComponentPropDocumentExample;
+    const documentLabel =
+      documentValue.filename ||
+      documentValue.title ||
+      documentValue.src.split('/').pop() ||
+      'Default';
+    const fileExtension =
+      documentValue.src.split('.').pop()?.toUpperCase() ?? '';
+    return (
+      <div ref={componentRefCallback} className={styles.defaultImagePreview}>
+        <div className={styles.defaultImageContainer}>
+          <span aria-hidden="true" className={styles.defaultDocumentThumbnail}>
+            {fileExtension}
+          </span>
+          {isOptional && (
+            <button
+              type="button"
+              onClick={handleRemoveDefault}
+              className={styles.removeDefaultButton}
+              aria-label="Remove default"
+              title="Remove default"
+            />
+          )}
+          <span className={styles.defaultImageLabel}>{documentLabel}</span>
+        </div>
+      </div>
+    );
+  }
+
   const imageUrl = defaultImageValue.src;
-  const imageAlt = defaultImageValue.alt || 'Default';
+  const imageAlt =
+    (defaultImageValue as CodeComponentPropImageExample).alt || 'Default';
 
   return (
     <div ref={componentRefCallback} className={styles.defaultImagePreview}>

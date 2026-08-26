@@ -591,10 +591,22 @@ export function CanvasComponentsMixin<
       });
     }
 
-    async clickPreviewComponent(componentId: string) {
-      const component = this.page.locator(
-        `#canvasPreviewOverlay [data-canvas-component-id="${componentId}"]`,
-      );
+    /**
+     * Selects a component instance in the preview.
+     *
+     * Pass options.index to pick one of several instances of the same
+     * component, in preview order.
+     */
+    async clickPreviewComponent(
+      componentId: string,
+      options: { index?: number } = {},
+    ) {
+      const { index = 0 } = options;
+      const component = this.page
+        .locator(
+          `#canvasPreviewOverlay [data-canvas-component-id="${componentId}"]`,
+        )
+        .nth(index);
 
       // Directly trigger click events via JavaScript because of webkit
       await component.evaluate((el) => {
