@@ -139,7 +139,7 @@ const BrandKitColorsSection = () => {
   }
 
   return (
-    <Flex direction="column" gap="2">
+    <Flex direction="column">
       <Flex direction="row" gap="2" mb="2">
         <form
           style={{ flexGrow: '1' }}

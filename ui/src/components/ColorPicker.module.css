@@ -211,7 +211,7 @@
 /* Native RGBA number inputs - styled to match Radix UI TextField */
 .rgbaNativeInput {
   width: 100%;
-  height: 28px;
+  height: 20px;
   padding: var(--space-1);
   transition: border-color 0.15s ease;
   text-align: center;
@@ -278,6 +278,7 @@
   width: 15px;
   height: 24px;
   margin-block: 2px auto;
+  margin-top: -3px;
   padding: 0;
   cursor: pointer;
   transition: color 0.15s ease;
@@ -294,6 +295,26 @@
 .modeSwitch:focus {
   outline: 2px solid var(--blue-9);
   outline-offset: -2px;
+}
+
+.modeSwitchIconContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  font-size: 16px;
+}
+
+.modeSwitchIconContainer svg {
+  width: 16px;
+  height: 16px;
+}
+
+.modeSwitchIconContainer svg:first-child {
+  margin-bottom: -4px;
+}
+
+.modeSwitchIconContainer svg:last-child {
+  margin-top: -4px;
 }
 
 /* Validation states for hex input */

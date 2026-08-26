@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { CaretSortIcon } from '@radix-ui/react-icons';
+import { TriangleDownIcon, TriangleUpIcon } from '@radix-ui/react-icons';
 import {
   hexToHsva,
   hslaToHsva,
@@ -496,7 +496,10 @@ const ColorInputs = ({
         aria-label="Switch color format"
         title="Switch color format"
       >
-        <CaretSortIcon />
+        <span className={styles.modeSwitchIconContainer}>
+          <TriangleUpIcon />
+          <TriangleDownIcon />
+        </span>
       </button>
     </div>
   );
