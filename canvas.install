@@ -44,7 +44,7 @@ function canvas_install(): void {
  *   canvas_post_update_0023 has run.
  *
  * @see \Drupal\canvas\AutoSave\Workspace\CanvasWorkspaceProvider
- * @see canvas_post_update_0024_main_workspace()
+ * @see canvas_post_update_0032_main_workspace()
  */
 function _canvas_ensure_auto_save_workspace(string $provider = 'default'): void {
   $storage = \Drupal::entityTypeManager()->getStorage('workspace');

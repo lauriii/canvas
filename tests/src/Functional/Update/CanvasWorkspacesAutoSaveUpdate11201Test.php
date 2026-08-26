@@ -15,13 +15,13 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  *
  * {@link canvas_update_11201()} installs the staging entity schema, ensures the
  * Workspaces module is enabled, and creates the shared auto-save workspace.
- * {@link canvas_post_update_0023_migrate_auto_save_to_workspace()} moves legacy
+ * {@link canvas_post_update_0031_migrate_auto_save_to_workspace()} moves legacy
  * `canvas.auto_save` key-value entries into workspace staging. This test seeds
  * legacy KV data before updates and asserts it is migrated away afterward (see
  * {@link \Drupal\canvas\AutoSave\Workspace\LegacyAutoSaveMigrator}).
  *
  * @legacy-covers \canvas_update_11201
- * @legacy-covers \canvas_post_update_0023_migrate_auto_save_to_workspace
+ * @legacy-covers \canvas_post_update_0031_migrate_auto_save_to_workspace
  */
 #[RunTestsInSeparateProcesses]
 #[Group('canvas')]

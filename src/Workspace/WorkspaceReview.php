@@ -43,7 +43,7 @@ final class WorkspaceReview {
    * Kept only for the update-path mapping onto the new permissions.
    *
    * @see \Drupal\canvas\WorkspaceReviewPermissions
-   * @see canvas_post_update_0025_review_workflow_permissions()
+   * @see canvas_post_update_0033_review_workflow_permissions()
    */
   public const string SUBMIT_PERMISSION = 'canvas submit workspace for review';
   public const string APPROVE_PERMISSION = 'canvas approve workspace';

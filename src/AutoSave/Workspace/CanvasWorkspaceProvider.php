@@ -31,7 +31,7 @@ use Drupal\workspaces\WorkspaceTrackerInterface;
  * Phase 1 view grant so their staged drafts stay reachable until the update
  * path grants the corresponding core permissions.
  *
- * @see canvas_post_update_0024_main_workspace()
+ * @see canvas_post_update_0032_main_workspace()
  * @see \Drupal\workspaces\WorkspaceAccessControlHandler
  */
 final class CanvasWorkspaceProvider extends WorkspaceProviderBase {
@@ -65,7 +65,7 @@ final class CanvasWorkspaceProvider extends WorkspaceProviderBase {
       // request with the system.db_update route and does not define
       // MAINTENANCE_MODE, so the route name is the reliable signal. Core
       // already exempts CLI (drush updb) from the check.
-      // @see canvas_post_update_0023_migrate_auto_save_to_workspace()
+      // @see canvas_post_update_0031_migrate_auto_save_to_workspace()
       // @see \Drupal\workspaces\WorkspaceManager::doSwitchWorkspace()
       // @see \Drupal\Core\Update\UpdateKernel::setupRequestMatch()
       if ($this->routeMatch->getRouteName() === 'system.db_update'

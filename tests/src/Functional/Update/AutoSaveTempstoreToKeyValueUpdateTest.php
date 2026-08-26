@@ -105,7 +105,7 @@ final class AutoSaveTempstoreToKeyValueUpdateTest extends CanvasUpdatePathTestBa
 
     // The tempstore data is first migrated to the key-value store
     // (canvas_post_update_0010_migrate_auto_save) and from there into
-    // workspace staging (canvas_post_update_0022_migrate_auto_save_to_workspace),
+    // workspace staging (canvas_post_update_0031_migrate_auto_save_to_workspace),
     // which removes the key-value row again.
     $keyvalue_factory = \Drupal::service('keyvalue');
     $keyvalue_store = $keyvalue_factory->get(AutoSaveManager::AUTO_SAVE_STORE);

@@ -120,7 +120,7 @@ unit of review and publish.
 
 8. **Update path.** `canvas_update_11202` enables `workspace_config`,
    installs the new fields, backfills snapshot rows, and re-keys the
-   key-value stores; `canvas_post_update_0024_main_workspace` (running
+   key-value stores; `canvas_post_update_0032_main_workspace` (running
    after the Phase 1 key-value migration) relabels the workspace, moves it
    to the default provider, and maps the provider-granted access onto core
    permissions ("view any workspace" for Canvas-editor roles; "edit any
@@ -130,7 +130,7 @@ unit of review and publish.
    review workflow, converts `canvas_workspace_status` to a plain string
    (workflow state IDs are open-ended), and installs
    `canvas_review_workflow`;
-   `canvas_post_update_0025_review_workflow_permissions` maps the two
+   `canvas_post_update_0033_review_workflow_permissions` maps the two
    legacy review permissions onto the shipped workflow's per-transition
    permissions and revokes them.
 
