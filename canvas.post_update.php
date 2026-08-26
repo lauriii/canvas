@@ -687,7 +687,11 @@ function _canvas_coerce_block_label_display_in_raw(array &$data): bool {
  * @see \Drupal\canvas\AutoSave\AutoSaveManager::toStorableArray()
  */
 function canvas_post_update_0026_rehash_auto_save_items(): void {
-  $auto_save_store = \Drupal::service('keyvalue')->get(AutoSaveManager::AUTO_SAVE_STORE);
+  // Staging bookkeeping must resolve identically in every workspace.
+  // @see \Drupal\canvas\CanvasServiceProvider::registerWorkspaceInvariantKeyValueFactory()
+  /** @var \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $keyvalue_factory */
+  $keyvalue_factory = \Drupal::service(CanvasServiceProvider::STAGING_KEY_VALUE_SERVICE);
+  $auto_save_store = $keyvalue_factory->get(AutoSaveManager::AUTO_SAVE_STORE);
   $entity_type_manager = \Drupal::service(EntityTypeManagerInterface::class);
 
   // AutoSaveManager's normalization helpers are private static. Use reflection
