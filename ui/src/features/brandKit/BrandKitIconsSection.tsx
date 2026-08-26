@@ -12,6 +12,7 @@ import {
 import EmptyStateCallout from '@/components/EmptyStateCallout';
 import IconPickerContent from '@/components/icons/IconPickerContent';
 import IconPreview from '@/components/icons/IconPreview';
+import { filterAndRankPacks } from '@/components/icons/iconSearch';
 import { useGetIconPacksQuery } from '@/services/icons';
 
 import styles from '@/features/brandKit/BrandKitIconsSection.module.css';
@@ -27,26 +28,18 @@ import styles from '@/features/brandKit/BrandKitIconsSection.module.css';
  * editing, uploading, or deleting is offered.
  */
 const BrandKitIconsSection = () => {
-  const { data: packs = [], isLoading } = useGetIconPacksQuery();
+  // The catalog only changes on deploy or CLI push, but a push can happen
+  // mid-session: refetch when the cached catalog is over a minute old.
+  const { data: packs = [], isLoading } = useGetIconPacksQuery(undefined, {
+    refetchOnMountOrArgChange: 60,
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [openPackId, setOpenPackId] = useState<string | null>(null);
 
-  const filteredPacks = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
-    if (!term) {
-      return packs;
-    }
-    return packs
-      .map((pack) => ({
-        ...pack,
-        icons: pack.icons.filter(
-          (icon) =>
-            icon.name.toLowerCase().includes(term) ||
-            icon.label.toLowerCase().includes(term),
-        ),
-      }))
-      .filter((pack) => pack.icons.length > 0);
-  }, [packs, searchTerm]);
+  const filteredPacks = useMemo(
+    () => filterAndRankPacks(packs, searchTerm),
+    [packs, searchTerm],
+  );
 
   const isSearching = searchTerm.trim() !== '';
 
@@ -165,12 +158,18 @@ const BrandKitIconsSection = () => {
                   // padding.
                   style={{ padding: 0 }}
                   className={styles.popover}
+                  // The picker focuses its own search field on open; without
+                  // this, Radix would focus the first tabbable element
+                  // instead.
                   onOpenAutoFocus={(e) => e.preventDefault()}
                 >
                   <IconPickerContent
                     packs={[pack]}
                     onSelect={() => {}}
                     onClose={() => setOpenPackId(null)}
+                    // Browsing only: clicking an icon selects nothing, so it
+                    // should not be recorded as recently used.
+                    trackRecent={false}
                   />
                 </Popover.Content>
               </Popover.Root>
