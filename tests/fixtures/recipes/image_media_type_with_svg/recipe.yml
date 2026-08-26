@@ -1,0 +1,9 @@
+name: 'Image media type with SVG support'
+recipes:
+  - core/recipes/image_media_type
+config:
+  strict: false
+  actions:
+    field.field.media.image.field_media_image:
+      setProperties:
+        settings.file_extensions: 'png gif jpg jpeg webp svg'
