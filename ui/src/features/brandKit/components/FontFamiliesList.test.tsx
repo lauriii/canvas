@@ -92,11 +92,13 @@ describe('FontFamiliesList', () => {
       </Theme>,
     );
 
+    // The explicit label replaces the button's descendant text for assistive
+    // technology, so it must carry the file formats the row shows.
     const openFamilyButton = screen.getByRole('button', {
-      name: 'Open Mona Sans font details, 2 variants',
+      name: 'Open Mona Sans font details, 2 variants, WOFF2 / TTF',
     });
     const closedFamilyButton = screen.getByRole('button', {
-      name: 'Open Recursive font details, 1 variable font',
+      name: 'Open Recursive font details, 1 variable font, WOFF2',
     });
 
     expect(openFamilyButton).toHaveAttribute('data-state', 'active');

@@ -102,7 +102,7 @@ const FontFamiliesList = ({
                 aria-expanded={isOpen}
                 aria-label={`Open ${fontGroup.family} font details, ${buildFontFamilySummary(
                   fontGroup.fonts,
-                )}`}
+                )}, ${buildFontFamilyFormatsLabel(fontGroup.fonts)}`}
               >
                 <Flex direction="column" className={styles.familyMeta}>
                   <Text size="1" weight="medium" className={styles.familyName}>

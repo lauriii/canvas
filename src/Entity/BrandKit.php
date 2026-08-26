@@ -417,9 +417,40 @@ final class BrandKit extends ConfigEntityBase implements CanvasAssetInterface {
       'uri' => (string) $entry['uri'],
       'format' => (string) $entry['format'],
       'weight' => (string) $entry['weight'],
-      'style' => (string) $entry['style'],
+      'style' => self::normalizeFontStyle((string) $entry['style'], $axes),
       'axes' => $axes,
     ];
+  }
+
+  /**
+   * The `font-style` a single `@font-face` can declare for this file.
+   *
+   * Kits saved before this was derived persisted `normal italic` for a
+   * variable font whose `ital` axis spans both — not a valid `font-style`
+   * descriptor, so the browser drops the declaration. A variable font is
+   * declared as the face its slant axis defaults to; its italic is reached
+   * through `font-variation-settings`.
+   *
+   * @param array|null $axes
+   *   The font's variable axes, if any.
+   *
+   * @phpstan-param list<FontAxis>|null $axes
+   */
+  private static function normalizeFontStyle(string $style, ?array $axes): string {
+    foreach ($axes ?? [] as $axis) {
+      if ($axis['tag'] === 'ital') {
+        return $axis['default'] > 0 ? 'italic' : 'normal';
+      }
+    }
+    foreach ($axes ?? [] as $axis) {
+      if ($axis['tag'] === 'slnt') {
+        return $axis['default'] != 0.0 ? 'italic' : 'normal';
+      }
+    }
+    if ($axes !== NULL && $axes !== [] && !\in_array($style, ['normal', 'italic'], TRUE)) {
+      return 'normal';
+    }
+    return $style;
   }
 
   /**

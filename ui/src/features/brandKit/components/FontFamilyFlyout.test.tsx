@@ -148,10 +148,14 @@ describe('FontFamilyFlyout', () => {
       `canvas-brand-kit-font-preview-${variableFont.id}`,
     );
     expect(preview).toHaveStyle({ fontWeight: '400' });
-    // Every axis is on its own default, so the class is the whole example.
+    // Every axis is on its own default, so only `opsz` needs a declaration:
+    // left out, `font-optical-sizing: auto` would vary it with the font size
+    // while the preview pins it.
     expect(
       screen.getByTestId(`canvas-brand-kit-font-snippet-${variableFont.id}`),
-    ).toHaveTextContent('<p class="font-noto-sans">');
+    ).toHaveTextContent(
+      '<p class="font-noto-sans [font-variation-settings:\'opsz\'_16]">',
+    );
 
     // A pointer drag on a range input surfaces as a change event.
     fireEvent.change(screen.getByLabelText('Weight'), {
@@ -162,7 +166,9 @@ describe('FontFamilyFlyout', () => {
     expect(preview.style.fontVariationSettings).toBe('"wght" 450, "opsz" 16');
     expect(
       screen.getByTestId(`canvas-brand-kit-font-snippet-${variableFont.id}`),
-    ).toHaveTextContent('<p class="font-noto-sans font-[450]">');
+    ).toHaveTextContent(
+      '<p class="font-noto-sans font-[450] [font-variation-settings:\'opsz\'_16]">',
+    );
   });
 
   it('tells the reader the example code follows the sliders', () => {

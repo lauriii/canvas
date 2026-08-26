@@ -323,6 +323,27 @@ describe('fontCss helpers', () => {
     expect(buildTailwindHtmlSnippet(dualItalicFont)).not.toContain('italic]');
   });
 
+  it('keeps opsz in the usage snippet even at its default', () => {
+    // `font-optical-sizing: auto` — the initial value — varies `opsz` with the
+    // font size, while the preview pins every axis. Left out, the copied code
+    // would render a different optical size than the preview shows.
+    const opticalFont = {
+      ...variableFont,
+      axes: [
+        { tag: 'wght', name: 'Weight', min: 100, max: 900, default: 400 },
+        { tag: 'opsz', name: 'Optical size', min: 8, max: 144, default: 14 },
+      ],
+      axisSettings: [
+        { tag: 'wght', value: 400 },
+        { tag: 'opsz', value: 14 },
+      ],
+    };
+
+    expect(buildTailwindHtmlSnippet(opticalFont)).toContain(
+      "[font-variation-settings:'opsz'_14]",
+    );
+  });
+
   it('escapes a typed weight before putting it in an attribute', () => {
     expect(
       buildTailwindHtmlSnippet({ ...font, weight: '400" onload="x' }),

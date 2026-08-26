@@ -261,6 +261,28 @@ final class AssetLibraryFontsTest extends CanvasKernelTestBase {
     self::assertStringContainsString("format('woff2');", $entity->getCss());
     self::assertStringContainsString('font-display: swap;', $entity->getCss(), 'Generated @font-face rules must swap rather than block first paint.');
     self::assertStringContainsString(".example { font-family: 'Inter', sans-serif; }", $entity->getCss());
+
+    // A kit saved before styles were derived from the axes persisted
+    // 'normal italic' for a variable font whose ital axis spans both — not a
+    // valid font-style descriptor. Set the raw property, as loading such a
+    // kit does, and the served rule must declare the face the axis defaults
+    // to.
+    $entity->set('fonts', [
+      [
+        'id' => '00000000-0000-4000-8000-000000000002',
+        'family' => 'Inter',
+        'uri' => $this->createFontFile('legacy-dual-italic.woff2'),
+        'format' => 'woff2',
+        'weight' => '100 900',
+        'style' => 'normal italic',
+        'axes' => [
+          ['tag' => 'wght', 'name' => 'Weight', 'min' => 100.0, 'max' => 900.0, 'default' => 400.0],
+          ['tag' => 'ital', 'name' => 'Italic', 'min' => 0.0, 'max' => 1.0, 'default' => 0.0],
+        ],
+      ],
+    ]);
+    self::assertStringContainsString("font-style: normal;\n", $entity->getCss());
+    self::assertStringNotContainsString('normal italic', $entity->getCss());
   }
 
   public function testFontFamilyWithSingleQuoteIsEscapedInGeneratedCss(): void {

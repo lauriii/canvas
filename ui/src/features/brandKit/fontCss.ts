@@ -282,7 +282,10 @@ const buildUsageUtilities = (font: AssetLibraryFont): string[] => {
         value: getAxisSettingValue(font, axis.tag) ?? axis.default,
         fallback: axis.default,
       }))
-      .filter((axis) => axis.value !== axis.fallback)
+      // An axis at its default renders that way with no declaration — except
+      // `opsz`, which `font-optical-sizing: auto` varies with the font size
+      // unless a declaration pins it, as the preview pins every axis.
+      .filter((axis) => axis.tag === 'opsz' || axis.value !== axis.fallback)
       .map((axis) => `'${axis.tag}'_${formatAxisValue(axis.value)}`);
 
     if (variations.length > 0) {
