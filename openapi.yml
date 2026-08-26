@@ -2774,6 +2774,8 @@ paths:
                     type: [string, "null"]
                     # @see \Drupal\canvas\PageVariantResolver
                     description: For content entities, the page variant that renders this entity (null when core block layout renders the page). Absent when editing config entities.
+                  lockedInWorkspace:
+                    $ref: '#/components/schemas/WorkspaceLockInfo'
                   updated:
                     type: integer
                     title: Updated timestamp
@@ -4495,6 +4497,45 @@ components:
         # round-trip into POST bodies, like isNew/isPublished/translations.
         resolvedPageVariant:
           type: [string, "null"]
+        lockedInWorkspace:
+          $ref: '#/components/schemas/WorkspaceLockInfo'
+    WorkspaceLockInfo:
+      title: Workspace lock info
+      description: >
+        The workspace that owns the entity's pending work when it is not the
+        active one, so the editor can show the lock before the first write.
+        Null when the entity is not locked elsewhere.
+      # @see \Drupal\canvas\Controller\ApiLayoutController::buildWorkspaceLockInfo()
+      type: [object, "null"]
+      additionalProperties: false
+      required:
+        - id
+        - label
+        - canSwitch
+      properties:
+        id:
+          type: string
+          description: The owning workspace ID.
+        label:
+          type: string
+          description: The owning workspace label.
+        canSwitch:
+          type: boolean
+          description: Whether the current user may switch to the owning workspace.
+        updated:
+          type: integer
+          description: When the pending work was last updated.
+        owner:
+          type: [object, "null"]
+          additionalProperties: false
+          required:
+            - name
+            - avatar
+          properties:
+            name:
+              type: string
+            avatar:
+              type: [string, "null"]
     AutoSaveConcurrencyControl:
       title: Auto Save Concurrency Control
       type: object
