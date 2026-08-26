@@ -4863,6 +4863,14 @@ components:
           required:
             - colorSpace
             - components
+        displayFormat:
+          type: ['string', 'null']
+          description: Original input format for display purposes (rgb, hex, or hsl)
+          enum:
+            - rgb
+            - hex
+            - hsl
+            - null
         weight:
           type: integer
           description: Sort order weight for the color
@@ -4904,6 +4912,14 @@ components:
             hex:
               type: ['string', 'null']
               description: Optional 6-digit hex fallback (e.g., #ff0000). Must start with # followed by exactly 6 hex digits. Validated server-side.
+        displayFormat:
+          type: ['string', 'null']
+          description: Original input format for display purposes (rgb, hex, or hsl)
+          enum:
+            - rgb
+            - hex
+            - hsl
+            - null
         weight:
           type: integer
           description: Sort order weight for the color
@@ -4950,6 +4966,14 @@ components:
           required:
             - colorSpace
             - components
+        displayFormat:
+          type: ['string', 'null']
+          description: Original input format for display purposes (rgb, hex, or hsl)
+          enum:
+            - rgb
+            - hex
+            - hsl
+            - null
         weight:
           type: integer
           description: Sort order weight for the color

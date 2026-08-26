@@ -265,11 +265,29 @@ const ColorRow = ({ color }: ColorRowProps) => {
                   className={styles.hexCode}
                   style={{ color: '#646464' }}
                 >
-                  {color.value.colorSpace === 'hsl'
-                    ? `hsl(${Math.round(color.value.components[0])}, ${Math.round(color.value.components[1])}%, ${Math.round(color.value.components[2])}%)`
-                    : (
-                        color.value.hex ?? getColorHex(color.value)
-                      ).toUpperCase()}
+                  {(() => {
+                    const format =
+                      color.displayFormat ??
+                      (color.value.colorSpace === 'hsl' ? 'hsl' : 'hex');
+
+                    switch (format) {
+                      case 'hsl':
+                        return `hsl(${Math.round(color.value.components[0])}, ${Math.round(color.value.components[1])}%, ${Math.round(color.value.components[2])}%)`;
+
+                      case 'rgb': {
+                        const r = Math.round(color.value.components[0] * 255);
+                        const g = Math.round(color.value.components[1] * 255);
+                        const b = Math.round(color.value.components[2] * 255);
+                        return `rgb(${r}, ${g}, ${b})`;
+                      }
+
+                      case 'hex':
+                      default:
+                        return (
+                          color.value.hex ?? getColorHex(color.value)
+                        ).toUpperCase();
+                    }
+                  })()}
                 </Text>
               )}
 

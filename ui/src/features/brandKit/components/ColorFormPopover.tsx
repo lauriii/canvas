@@ -54,6 +54,7 @@ interface FormState {
   colorName: string;
   variableName: string;
   colorValue: BrandKitColorValue;
+  displayFormat: 'rgb' | 'hex' | 'hsl' | null;
   variableNameTouched: boolean;
   originalColor: { value: BrandKitColorValue } | null;
   colorNameError: string;
@@ -68,7 +69,11 @@ type FormAction =
   | { type: 'INIT_EDIT'; color: BrandKitColor }
   | { type: 'SET_COLOR_NAME'; value: string }
   | { type: 'SET_VARIABLE_NAME'; value: string }
-  | { type: 'SET_COLOR_VALUE'; value: BrandKitColorValue }
+  | {
+      type: 'SET_COLOR_VALUE';
+      value: BrandKitColorValue;
+      displayFormat: 'rgb' | 'hex' | 'hsl';
+    }
   | { type: 'SET_COLOR_VALIDITY'; isValid: boolean }
   | { type: 'SET_FOLDER_ERROR'; error: string }
   | { type: 'SHOW_VALIDATION_ERRORS' };
@@ -77,6 +82,7 @@ const INITIAL_FORM_STATE: FormState = {
   colorName: '',
   variableName: '',
   colorValue: DEFAULT_COLOR_VALUE,
+  displayFormat: 'rgb',
   variableNameTouched: false,
   originalColor: null,
   colorNameError: '',
@@ -106,6 +112,7 @@ function formReducer(state: FormState, action: FormAction): FormState {
           ? action.color.cssVariable.slice(2)
           : action.color.cssVariable,
         colorValue: action.color.value,
+        displayFormat: action.color.displayFormat ?? null,
         variableNameTouched: true,
         originalColor: { value: action.color.value },
       };
@@ -138,7 +145,11 @@ function formReducer(state: FormState, action: FormAction): FormState {
       };
 
     case 'SET_COLOR_VALUE':
-      return { ...state, colorValue: action.value };
+      return {
+        ...state,
+        colorValue: action.value,
+        displayFormat: action.displayFormat,
+      };
 
     case 'SET_COLOR_VALIDITY':
       return {
@@ -205,6 +216,7 @@ const ColorFormPopover = ({
     colorName,
     variableName,
     colorValue,
+    displayFormat,
     originalColor,
     colorNameError,
     variableNameError,
@@ -240,8 +252,15 @@ const ColorFormPopover = ({
     updateForm({ type: 'SET_COLOR_NAME', value });
   };
 
-  const handleColorPickerChange = (newValue: BrandKitColorValue) => {
-    updateForm({ type: 'SET_COLOR_VALUE', value: newValue });
+  const handleColorPickerChange = (
+    newValue: BrandKitColorValue,
+    newDisplayFormat: 'rgb' | 'hex' | 'hsl',
+  ) => {
+    updateForm({
+      type: 'SET_COLOR_VALUE',
+      value: newValue,
+      displayFormat: newDisplayFormat,
+    });
   };
 
   const handleColorValidityChange = (isValid: boolean) => {
@@ -269,6 +288,7 @@ const ColorFormPopover = ({
           name: colorName,
           cssVariable,
           value: colorValue,
+          displayFormat: displayFormat ?? undefined,
           weight: 0,
         }).unwrap();
 
@@ -301,6 +321,7 @@ const ColorFormPopover = ({
           id: color.id,
           changes: {
             value: colorValue,
+            displayFormat: displayFormat ?? undefined,
           },
         }).unwrap();
       }

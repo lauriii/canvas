@@ -1467,6 +1467,17 @@ canvas.color.*:
             Regex:
               pattern: '/^#[0-9a-fA-F]{6}$/'
               message: "The %value is not a valid 6-digit hex color."
+    displayFormat:
+      type: string
+      label: 'Display format'
+      requiredKey: false
+      nullable: true
+      constraints:
+        Choice:
+          choices:
+            - rgb
+            - hex
+            - hsl
     weight:
       type: weight
       label: 'Weight'

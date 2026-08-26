@@ -260,6 +260,8 @@ export interface BrandKitColor {
   name: string;
   cssVariable: string;
   value: BrandKitColorValue;
+  /** Original input format for display purposes */
+  displayFormat?: 'rgb' | 'hex' | 'hsl' | null;
   weight: number;
 }
 
