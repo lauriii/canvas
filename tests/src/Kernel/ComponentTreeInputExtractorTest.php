@@ -147,7 +147,7 @@ final class ComponentTreeInputExtractorTest extends CanvasKernelTestBase {
         [
           'uuid' => $child_uuid,
           'component' => 'sdc.canvas_test_sdc.props-slots',
-          'parent' => $uuid,
+          'parent_uuid' => $uuid,
           'slot' => 'the_body',
           'inputs' => [
             'heading' => 'This is a slotted component!',

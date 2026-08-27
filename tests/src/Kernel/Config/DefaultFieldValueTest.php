@@ -109,7 +109,7 @@ class DefaultFieldValueTest extends CanvasKernelTestBase {
     array_push(
       $test_cases['non unique uuids'],
       SchemaIncompleteException::class,
-      'Schema errors for field.field.node.article.field_canvas_test with the following errors: 0 [default_value] Not all component instance UUIDs in this component tree are unique.'
+      'Schema errors for field.field.node.article.field_canvas_test with the following errors: 0 [default_value.0.uuid] Invalid component tree item with UUID &lt;em class=&quot;placeholder&quot;&gt;09de669f-b85b-40ef-9c01-b27f1b089020&lt;/em&gt;. This UUID is used by &lt;em class=&quot;placeholder&quot;&gt;2&lt;/em&gt; component instances in this component tree; each component instance must have a unique UUID., 1 [default_value.2.uuid] Invalid component tree item with UUID &lt;em class=&quot;placeholder&quot;&gt;09de669f-b85b-40ef-9c01-b27f1b089020&lt;/em&gt;. This UUID is used by &lt;em class=&quot;placeholder&quot;&gt;2&lt;/em&gt; component instances in this component tree; each component instance must have a unique UUID.'
     );
     array_push(
       $test_cases['invalid parent'],
