@@ -21,12 +21,22 @@ export interface ColorPullPlan {
   unchanged: number;
   /** Item names of file entries with no matching color on the server. */
   localOnly: string[];
+  /** Item names of dropped duplicate entries (same cssVariable, first kept). */
+  duplicates: string[];
   /** Whether the file's colors array needs to be written at all. */
   changed: boolean;
 }
 
-function itemName(name: string, cssVariable: string): string {
-  return `${name} (${cssVariable})`;
+export interface ColorPullOptions {
+  /** Keep existing local entries untouched; only append new server colors. */
+  skipOverwrite?: boolean;
+}
+
+function itemName(
+  name: string | undefined,
+  cssVariable: string | undefined,
+): string {
+  return `${name ?? '(unnamed)'} (${cssVariable ?? 'no cssVariable'})`;
 }
 
 /**
@@ -63,19 +73,53 @@ function entriesEquivalent(
  * Computes the pulled colors array: server colors in server order (palette
  * order), keeping the local entry verbatim when it is semantically equal so
  * hand formatting survives, followed by local-only entries in their original
- * order — pull never removes a color that exists only in the file.
+ * order — pull never removes a color that exists only in the file. When two
+ * local entries share a cssVariable the first is kept and the rest are
+ * reported as dropped duplicates. With `skipOverwrite`, existing local
+ * entries are left untouched in place and only new server colors append.
  */
 export function planColorPull(
   remoteColors: BrandKitColorEntry[],
   localColors: BrandKitColorFileEntry[] | undefined,
+  options: ColorPullOptions = {},
 ): ColorPullPlan {
   const locals = localColors ?? [];
-  const localByVariable = new Map(locals.map((c) => [c.cssVariable, c]));
+  const localByVariable = new Map<string, BrandKitColorFileEntry>();
+  const duplicates: string[] = [];
+  for (const local of locals) {
+    if (localByVariable.has(local?.cssVariable as string)) {
+      duplicates.push(itemName(local?.name, local?.cssVariable));
+      continue;
+    }
+    localByVariable.set(local?.cssVariable as string, local);
+  }
   const remoteVariables = new Set(remoteColors.map((c) => c.cssVariable));
 
   const added: string[] = [];
   const updated: string[] = [];
   let unchanged = 0;
+
+  if (options.skipOverwrite) {
+    const newRemote = remoteColors.filter(
+      (remote) => !localByVariable.has(remote.cssVariable),
+    );
+    for (const remote of newRemote) {
+      added.push(itemName(remote.name, remote.cssVariable));
+    }
+    unchanged = remoteColors.length - newRemote.length;
+    const localOnly = locals
+      .filter((local) => !remoteVariables.has(local?.cssVariable as string))
+      .map((local) => itemName(local?.name, local?.cssVariable));
+    return {
+      colors: [...locals, ...newRemote.map(toFileEntry)],
+      added,
+      updated,
+      unchanged,
+      localOnly,
+      duplicates: [],
+      changed: newRemote.length > 0,
+    };
+  }
 
   const nextColors: BrandKitColorFileEntry[] = remoteColors.map((remote) => {
     const local = localByVariable.get(remote.cssVariable);
@@ -92,9 +136,9 @@ export function planColorPull(
   });
 
   const localOnly: string[] = [];
-  for (const local of locals) {
-    if (!remoteVariables.has(local.cssVariable)) {
-      localOnly.push(itemName(local.name, local.cssVariable));
+  for (const local of localByVariable.values()) {
+    if (!remoteVariables.has(local?.cssVariable as string)) {
+      localOnly.push(itemName(local?.name, local?.cssVariable));
       nextColors.push(local);
     }
   }
@@ -105,7 +149,15 @@ export function planColorPull(
       : nextColors.length !== locals.length ||
         nextColors.some((entry, i) => entry !== locals[i]);
 
-  return { colors: nextColors, added, updated, unchanged, localOnly, changed };
+  return {
+    colors: nextColors,
+    added,
+    updated,
+    unchanged,
+    localOnly,
+    duplicates,
+    changed,
+  };
 }
 
 /**

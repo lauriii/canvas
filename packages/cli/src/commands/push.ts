@@ -13,6 +13,7 @@ import {
   buildColorPushPlannedResults,
   pushColors,
 } from '../lib/colors/color-push.js';
+import { validateColorsConfig } from '../lib/colors/color-validate.js';
 import {
   buildFontPushPlannedResults,
   pushFonts,
@@ -884,6 +885,12 @@ export function pushCommand(program: Command): void {
         }
 
         logIgnoredLocalResources();
+
+        // Validate the brand kit colors file before any network request so a
+        // malformed file fails fast instead of after a partial push.
+        if (includesBrandKit && config.colors !== undefined) {
+          validateColorsConfig(config.colors);
+        }
 
         apiService = await createApiService();
         const pushApiService = apiService;

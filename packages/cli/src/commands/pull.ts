@@ -1015,6 +1015,7 @@ export function createAssetsPullTask(
 export function createBrandKitPullTask(
   apiService: ApiService,
   projectRoot: string,
+  skipOverwrite: boolean = false,
 ): PullTask {
   let totalFontVariants = 0;
   let newCount = 0;
@@ -1068,6 +1069,7 @@ export function createBrandKitPullTask(
         const colorPlan = planColorPull(
           remoteColors,
           readBrandKitColors(projectRoot),
+          { skipOverwrite },
         );
         summaryLines.push(
           formatSummaryLine(
@@ -1121,6 +1123,7 @@ export function createBrandKitPullTask(
       const colorPlan = planColorPull(
         remoteColors,
         readBrandKitColors(projectRoot),
+        { skipOverwrite },
       );
       for (const itemName of colorPlan.added) {
         results.push({
@@ -1151,6 +1154,11 @@ export function createBrandKitPullTask(
       if (colorPlan.localOnly.length > 0) {
         notes.push(
           `${colorPlan.localOnly.length} ${pluralizeLabel(colorPlan.localOnly.length, 'color')} in canvas.brand-kit.json ${colorPlan.localOnly.length === 1 ? 'is' : 'are'} not on the site and ${colorPlan.localOnly.length === 1 ? 'was' : 'were'} kept: ${colorPlan.localOnly.join(', ')}. Run \`canvas push\` to create them.`,
+        );
+      }
+      if (colorPlan.duplicates.length > 0) {
+        notes.push(
+          `Removed ${colorPlan.duplicates.length} duplicate color ${pluralizeLabel(colorPlan.duplicates.length, 'entry', 'entries')} from canvas.brand-kit.json (the first entry for each cssVariable was kept): ${colorPlan.duplicates.join(', ')}.`,
         );
       }
 
@@ -1250,7 +1258,13 @@ export function pullCommand(program: Command): void {
         ];
 
         if (includesBrandKit) {
-          tasks.push(createBrandKitPullTask(apiService, projectRoot));
+          tasks.push(
+            createBrandKitPullTask(
+              apiService,
+              projectRoot,
+              options.skipOverwrite ?? false,
+            ),
+          );
         }
 
         if (includesPages) {

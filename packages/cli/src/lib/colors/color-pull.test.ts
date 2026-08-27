@@ -159,6 +159,76 @@ describe('planColorPull', () => {
     expect(planColorPull([], undefined).changed).toBe(false);
     expect(planColorPull([], []).changed).toBe(false);
   });
+
+  it('keeps the first duplicate cssVariable entry and reports the rest', () => {
+    const first: BrandKitColorFileEntry = {
+      name: 'Brand Red',
+      cssVariable: '--brand-red',
+      value: '#CC0000',
+    };
+    const second: BrandKitColorFileEntry = {
+      name: 'Second',
+      cssVariable: '--brand-red',
+      value: '#0000cc',
+    };
+    const plan = planColorPull([remoteColor()], [first, second]);
+    expect(plan.colors).toEqual([first]);
+    expect(plan.colors[0]).toBe(first);
+    expect(plan.duplicates).toEqual(['Second (--brand-red)']);
+  });
+
+  it('does not crash on a malformed local entry and repairs it from the server', () => {
+    const broken = {
+      name: 'Brand Red',
+      cssVariable: '--brand-red',
+    } as BrandKitColorFileEntry;
+    const plan = planColorPull([remoteColor()], [broken]);
+    expect(plan.colors).toEqual([
+      { name: 'Brand Red', cssVariable: '--brand-red', value: '#cc0000' },
+    ]);
+    expect(plan.updated).toEqual(['Brand Red (--brand-red)']);
+  });
+
+  it('reports a junk local-only entry without crashing', () => {
+    const junk = {} as BrandKitColorFileEntry;
+    const plan = planColorPull([], [junk]);
+    expect(plan.localOnly).toEqual(['(unnamed) (no cssVariable)']);
+    expect(plan.colors).toEqual([junk]);
+  });
+
+  it('leaves existing local entries alone with skipOverwrite', () => {
+    const local: BrandKitColorFileEntry = {
+      name: 'Brand Red',
+      cssVariable: '--brand-red',
+      value: '#123456',
+    };
+    const plan = planColorPull(
+      [
+        remoteColor(),
+        remoteColor({
+          id: 'uuid-blue',
+          name: 'Brand Blue',
+          cssVariable: '--brand-blue',
+          value: {
+            colorSpace: 'srgb',
+            components: [0, 0, 0.8],
+            alpha: null,
+            hex: '#0000cc',
+          },
+          weight: 1,
+        }),
+      ],
+      [local],
+      { skipOverwrite: true },
+    );
+    expect(plan.colors).toEqual([
+      local,
+      { name: 'Brand Blue', cssVariable: '--brand-blue', value: '#0000cc' },
+    ]);
+    expect(plan.added).toEqual(['Brand Blue (--brand-blue)']);
+    expect(plan.unchanged).toBe(1);
+    expect(plan.changed).toBe(true);
+  });
 });
 
 describe('writeBrandKitColorsConfig', () => {

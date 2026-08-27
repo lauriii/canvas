@@ -41,7 +41,12 @@ function validateTokenObject(
   }
   const alpha = value.alpha;
   if (alpha !== undefined && alpha !== null) {
-    if (typeof alpha !== 'number' || alpha < 0 || alpha > 1) {
+    if (
+      typeof alpha !== 'number' ||
+      !Number.isFinite(alpha) ||
+      alpha < 0 ||
+      alpha > 1
+    ) {
       errors.push(`${label}: "value.alpha" must be between 0 and 1.`);
     }
   }
@@ -58,14 +63,16 @@ function validateTokenObject(
 /**
  * Validates the colors array from canvas.brand-kit.json before push: required
  * name, valid CSS custom property name, valid hex string or token object, and
- * no duplicate names or variables. Mirrors the server-side constraints on
+ * no duplicate variables. Mirrors the server-side constraints on
  * `canvas.color.*` so failures happen offline, naming the offending entry.
+ * Names deliberately are not checked for uniqueness: the server allows two
+ * colors to share a name (its name constraint only guards against folder
+ * name collisions, which need server-side data to check).
  * Throws with all errors listed so the user can fix the file in one go.
  */
 export function validateColorsConfig(colors: BrandKitColorFileEntry[]): void {
   const errors: string[] = [];
   const seenVariables = new Map<string, number>();
-  const seenNames = new Map<string, number>();
 
   for (let i = 0; i < colors.length; i++) {
     const entry = colors[i];
@@ -79,12 +86,6 @@ export function validateColorsConfig(colors: BrandKitColorFileEntry[]): void {
     const name = typeof entry.name === 'string' ? entry.name.trim() : '';
     if (name === '') {
       errors.push(`${label}: missing or empty "name".`);
-    } else if (seenNames.has(name)) {
-      errors.push(
-        `${label}: duplicate name "${name}" (also used at index ${seenNames.get(name)}). Color names must be unique.`,
-      );
-    } else {
-      seenNames.set(name, i);
     }
 
     const cssVariable = entry.cssVariable;
@@ -115,9 +116,13 @@ export function validateColorsConfig(colors: BrandKitColorFileEntry[]): void {
         value as unknown as Record<string, unknown>,
         errors,
       );
-    } else {
+    } else if (value === undefined || value === null) {
       errors.push(
         `${label}: missing "value". Expected a hex color string or a color object with "colorSpace" and "components".`,
+      );
+    } else {
+      errors.push(
+        `${label}: invalid "value": ${JSON.stringify(value)}. Expected a hex color string or a color object with "colorSpace" and "components".`,
       );
     }
 

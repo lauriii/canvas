@@ -202,6 +202,32 @@ export async function pushColors(
   let deleted = 0;
   let createSequence = 0;
 
+  // Prune first so a variable that moved from a server-only color to a new
+  // file entry frees its unique cssVariable before the create runs.
+  const serverOnly = remote.filter((c) => !localVariables.has(c.cssVariable));
+  const serverOnlyNames: string[] = [];
+  for (const color of serverOnly) {
+    const name = itemName(color.name, color.cssVariable);
+    if (!options.pruneColors) {
+      serverOnlyNames.push(name);
+      continue;
+    }
+    try {
+      await api.deleteColor(color.id);
+      deleted++;
+      outcomes.push({ itemName: name, operation: 'delete', success: true });
+    } catch (error) {
+      // A color in use cannot be deleted; report the server's reason and
+      // keep pushing the rest.
+      outcomes.push({
+        itemName: name,
+        operation: 'delete',
+        success: false,
+        detail: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   for (const local of locals) {
     const name = itemName(local.entry.name, local.entry.cssVariable);
     const existing = remoteByVariable.get(local.entry.cssVariable);
@@ -247,30 +273,6 @@ export async function pushColors(
     await api.updateColor(existing.id, changes);
     updated++;
     outcomes.push({ itemName: name, operation: 'update', success: true });
-  }
-
-  const serverOnly = remote.filter((c) => !localVariables.has(c.cssVariable));
-  const serverOnlyNames: string[] = [];
-  for (const color of serverOnly) {
-    const name = itemName(color.name, color.cssVariable);
-    if (!options.pruneColors) {
-      serverOnlyNames.push(name);
-      continue;
-    }
-    try {
-      await api.deleteColor(color.id);
-      deleted++;
-      outcomes.push({ itemName: name, operation: 'delete', success: true });
-    } catch (error) {
-      // A color in use cannot be deleted; report the server's reason and
-      // keep pushing the rest.
-      outcomes.push({
-        itemName: name,
-        operation: 'delete',
-        success: false,
-        detail: error instanceof Error ? error.message : String(error),
-      });
-    }
   }
 
   return {

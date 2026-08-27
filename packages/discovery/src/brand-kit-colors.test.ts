@@ -8,6 +8,7 @@ import {
   buildBrandKitColorCss,
   colorTokenToCss,
   colorTokenValuesEqual,
+  normalizeColorValue,
   parseHexColor,
   readBrandKitColors,
   serializeColorValue,
@@ -135,6 +136,65 @@ describe('serializeColorValue', () => {
     const token = parseHexColor('#1a2b3c');
     expect(serializeColorValue(token!)).toBe('#1a2b3c');
   });
+
+  it('keeps a token object when components only round to the hex', () => {
+    // 0.1 rounds to hex 1a, but 0x1a / 255 is not 0.1 — writing the string
+    // would change the components on the next push.
+    expect(
+      serializeColorValue({
+        colorSpace: 'srgb',
+        components: [0.1, 0.2, 0.3],
+        alpha: null,
+        hex: '#1a334d',
+      }),
+    ).toEqual({
+      colorSpace: 'srgb',
+      components: [0.1, 0.2, 0.3],
+      hex: '#1a334d',
+    });
+  });
+
+  it('keeps a token object when the stored hex disagrees with the components', () => {
+    expect(
+      serializeColorValue({
+        colorSpace: 'srgb',
+        components: [0.5, 0.5, 0.5],
+        alpha: null,
+        hex: '#000000',
+      }),
+    ).toEqual({
+      colorSpace: 'srgb',
+      components: [0.5, 0.5, 0.5],
+      hex: '#000000',
+    });
+  });
+
+  it('accepts an uppercase hex that matches the components', () => {
+    expect(
+      serializeColorValue({
+        colorSpace: 'srgb',
+        components: [204 / 255, 0, 0],
+        alpha: null,
+        hex: '#CC0000',
+      }),
+    ).toBe('#CC0000');
+  });
+});
+
+describe('normalizeColorValue', () => {
+  it('returns null for missing or malformed values', () => {
+    expect(normalizeColorValue(undefined)).toBeNull();
+    expect(normalizeColorValue(null)).toBeNull();
+    expect(normalizeColorValue('#nope')).toBeNull();
+    expect(normalizeColorValue({ colorSpace: 'srgb' } as never)).toBeNull();
+    expect(normalizeColorValue([] as never)).toBeNull();
+    expect(normalizeColorValue(42 as never)).toBeNull();
+  });
+
+  it('passes through a well-formed token object', () => {
+    const token = { colorSpace: 'srgb' as const, components: [0.8, 0, 0] };
+    expect(normalizeColorValue(token)).toBe(token);
+  });
 });
 
 describe('colorTokenToCss', () => {
@@ -161,6 +221,20 @@ describe('colorTokenToCss', () => {
         components: [0.8, 0, 0],
         alpha: 0.5,
         hex: '#cc0000',
+      }),
+    ).toBe('rgba(204, 0, 0, 0.5)');
+  });
+
+  it('ignores a malformed stored hex and computes from components', () => {
+    expect(
+      colorTokenToCss({ colorSpace: 'srgb', components: [0.8, 0, 0], hex: '' }),
+    ).toBe('#cc0000');
+    expect(
+      colorTokenToCss({
+        colorSpace: 'srgb',
+        components: [0.8, 0, 0],
+        alpha: 0.5,
+        hex: '#f00',
       }),
     ).toBe('rgba(204, 0, 0, 0.5)');
   });

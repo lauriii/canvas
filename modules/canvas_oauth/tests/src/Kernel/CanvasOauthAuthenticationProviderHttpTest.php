@@ -252,6 +252,30 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
         'PATCH',
         ['name' => 'Updated test red'],
       ],
+      'POST color' => [
+        'canvas.api.config.post',
+        ['canvas_config_entity_type_id' => Color::ENTITY_TYPE_ID],
+        ['administer brand kit'],
+        'POST',
+        [
+          'name' => 'Test blue',
+          'cssVariable' => '--color-test-blue',
+          'value' => [
+            'colorSpace' => 'srgb',
+            'components' => [0.0, 0.0, 0.8],
+            'alpha' => NULL,
+            'hex' => '#0000cc',
+          ],
+          'weight' => 1,
+        ],
+      ],
+      'DELETE color' => [
+        'canvas.api.config.delete',
+        ['canvas_config_entity_type_id' => Color::ENTITY_TYPE_ID, 'canvas_config_entity' => self::COLOR_UUID],
+        ['administer brand kit'],
+        'DELETE',
+        [],
+      ],
       'DELETE js component' => [
         'canvas.api.config.delete',
         ['canvas_config_entity_type_id' => JavaScriptComponent::ENTITY_TYPE_ID, 'canvas_config_entity' => 'test-code-component'],

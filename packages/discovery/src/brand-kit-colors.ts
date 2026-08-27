@@ -72,16 +72,28 @@ export function parseHexColor(value: string): ColorTokenValue | null {
 
 /**
  * Normalizes a file value (hex string or token object) to a token object.
- * Returns null for a malformed hex string; object values pass through
- * unchecked (strict validation is the CLI's job).
+ * Returns null for a malformed hex string, a missing value, or an object
+ * without a components array, so callers can treat any hand-edited junk as
+ * "no parseable value" instead of crashing (strict validation with useful
+ * messages is the CLI's job).
  */
 export function normalizeColorValue(
-  value: BrandKitColorFileValue,
+  value: BrandKitColorFileValue | null | undefined,
 ): ColorTokenValue | null {
+  if (value == null) {
+    return null;
+  }
   if (typeof value === 'string') {
     return parseHexColor(value);
   }
-  return value;
+  if (
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    Array.isArray(value.components)
+  ) {
+    return value;
+  }
+  return null;
 }
 
 const EPSILON = 1e-9;
@@ -122,15 +134,41 @@ export function colorTokenValuesEqual(
 }
 
 /**
+ * True when parsing the hex string reproduces exactly these components, so
+ * replacing the token with the string loses nothing.
+ */
+function hexMatchesComponents(hex: string, components: number[]): boolean {
+  if (!/^#[0-9a-fA-F]{6}$/.test(hex) || components.length < 3) {
+    return false;
+  }
+  for (let i = 0; i < 3; i++) {
+    const channel = parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16);
+    if (!numbersEqual(components[i], channel / 255)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
  * Serializes a token value for canvas.brand-kit.json: the plain hex string
- * when that is lossless (opaque sRGB with a stored hex), otherwise a token
- * object with a fixed key order and only the keys that carry information.
+ * when that is lossless (opaque sRGB whose components are exactly what the
+ * stored hex parses back to), otherwise a token object with a fixed key
+ * order and only the keys that carry information. The exactness matters for
+ * data written by other API clients: components that merely round to the
+ * hex would parse back different, making the next push rewrite a color the
+ * user never touched.
  */
 export function serializeColorValue(
   token: ColorTokenValue,
 ): BrandKitColorFileValue {
   const opaque = token.alpha == null || numbersEqual(token.alpha, 1);
-  if (token.colorSpace === 'srgb' && token.hex != null && opaque) {
+  if (
+    token.colorSpace === 'srgb' &&
+    token.hex != null &&
+    opaque &&
+    hexMatchesComponents(token.hex, token.components)
+  ) {
     return token.hex;
   }
   const out: ColorTokenValue = {
@@ -178,7 +216,12 @@ export function colorTokenToCss(token: ColorTokenValue): string {
     }
     case 'srgb':
     default: {
-      const hex = token.hex ?? computedHex(token.components);
+      // Only trust a well-formed stored hex; the lenient Workbench path can
+      // see hand-edited junk here.
+      const hex =
+        token.hex != null && /^#[0-9a-fA-F]{6}$/.test(token.hex)
+          ? token.hex
+          : computedHex(token.components);
       if (roundedAlpha === 1) {
         return hex;
       }

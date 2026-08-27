@@ -60,13 +60,10 @@ describe('validateColorsConfig', () => {
     expect(message).toContain('missing or empty "name"');
   });
 
-  it('rejects a duplicate name pointing at both entries', () => {
-    const message = errorsFor([
-      valid,
-      { ...valid, cssVariable: '--brand-red-2' },
-    ]);
-    expect(message).toContain('duplicate name "Brand Red"');
-    expect(message).toContain('index 0');
+  it('accepts two colors sharing a name (legal on the server)', () => {
+    expect(() =>
+      validateColorsConfig([valid, { ...valid, cssVariable: '--brand-red-2' }]),
+    ).not.toThrow();
   });
 
   it('rejects an invalid CSS custom property name', () => {
@@ -97,14 +94,16 @@ describe('validateColorsConfig', () => {
     expect(message).toContain('exactly 3 numbers');
   });
 
-  it('rejects an out-of-range alpha', () => {
-    const message = errorsFor([
-      {
-        ...valid,
-        value: { colorSpace: 'srgb', components: [0, 0, 0], alpha: 2 },
-      },
-    ]);
-    expect(message).toContain('between 0 and 1');
+  it('rejects an out-of-range or non-finite alpha', () => {
+    for (const alpha of [2, Number.NaN, Number.POSITIVE_INFINITY]) {
+      const message = errorsFor([
+        {
+          ...valid,
+          value: { colorSpace: 'srgb', components: [0, 0, 0], alpha },
+        },
+      ]);
+      expect(message).toContain('between 0 and 1');
+    }
   });
 
   it('rejects an invalid stored hex on a token object', () => {
@@ -128,6 +127,17 @@ describe('validateColorsConfig', () => {
       { name: 'No value', cssVariable: '--no-value' } as BrandKitColorFileEntry,
     ]);
     expect(message).toContain('missing "value"');
+  });
+
+  it('rejects a value of the wrong type as invalid, not missing', () => {
+    const message = errorsFor([{ ...valid, value: 42 as unknown as string }]);
+    expect(message).toContain('invalid "value": 42');
+  });
+
+  it('rejects a non-object entry', () => {
+    const message = errorsFor([null as unknown as BrandKitColorFileEntry]);
+    expect(message).toContain('Color at index 0');
+    expect(message).toContain('must be an object');
   });
 
   it('reports every error in one run', () => {

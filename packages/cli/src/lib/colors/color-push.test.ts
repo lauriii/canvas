@@ -249,6 +249,31 @@ describe('pushColors', () => {
     expect(api.updateColor).toHaveBeenCalledWith('uuid-red', { weight: 1 });
   });
 
+  it('prunes server-only colors before creating new ones', async () => {
+    const api = mockApi([remoteColor()]);
+    await pushColors(
+      [{ name: 'Brand Blue', cssVariable: '--brand-blue', value: '#0000cc' }],
+      api,
+      { pruneColors: true },
+    );
+
+    const deleteOrder = vi.mocked(api.deleteColor).mock.invocationCallOrder[0];
+    const createOrder = vi.mocked(api.createColor).mock.invocationCallOrder[0];
+    expect(deleteOrder).toBeLessThan(createOrder);
+  });
+
+  it('allows two colors sharing a name', async () => {
+    const api = mockApi([]);
+    const result = await pushColors(
+      [
+        { name: 'Primary', cssVariable: '--primary-a', value: '#cc0000' },
+        { name: 'Primary', cssVariable: '--primary-b', value: '#0000cc' },
+      ],
+      api,
+    );
+    expect(result).toMatchObject({ created: 2 });
+  });
+
   it('rejects an invalid file before contacting the site', async () => {
     const api = mockApi([]);
     await expect(
