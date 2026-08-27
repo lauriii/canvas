@@ -28,6 +28,7 @@ import {
   dispatchUpdateProp,
   hasNonEmptyArrayValue,
 } from '@/features/code-editor/utils/arrayPropUtils';
+import { getNumericInputError } from '@/features/code-editor/utils/numericInputUtils';
 import {
   VALUE_MODE_LIMITED,
   VALUE_MODE_UNLIMITED,
@@ -394,6 +395,15 @@ function EnumValuesForm({
 
   const invalidValueIndices = getDuplicateValueIndices(values);
 
+  // Validation errors for integer and number values, by index. Derived rather
+  // than stored, so the error always describes the value currently in the
+  // field, including one loaded from an existing component rather than typed.
+  const valueErrors = values.map(({ value }) =>
+    type === 'integer' || type === 'number'
+      ? getNumericInputError(String(value ?? ''), type)
+      : null,
+  );
+
   const handleAdd = () => {
     onChange([...values, { label: '', value: '' }]);
   };
@@ -453,8 +463,18 @@ function EnumValuesForm({
                     }[type]
                   }
                   disabled={isDisabled}
-                  // Show as invalid if duplicate
-                  color={invalidValueIndices[index] ? 'red' : undefined}
+                  // Show as invalid if duplicate or not valid for the type.
+                  color={
+                    invalidValueIndices[index] || valueErrors[index]
+                      ? 'red'
+                      : undefined
+                  }
+                  {...(valueErrors[index]
+                    ? { 'data-invalid-prop-value': true }
+                    : {})}
+                  aria-invalid={
+                    !!invalidValueIndices[index] || !!valueErrors[index]
+                  }
                 />
               </FormElement>
             </Box>
@@ -491,6 +511,11 @@ function EnumValuesForm({
           {invalidValueIndices[index] && (
             <Text color="red" size="1">
               Value must be unique.
+            </Text>
+          )}
+          {valueErrors[index] && (
+            <Text color="red" size="1">
+              {valueErrors[index]}
             </Text>
           )}
         </React.Fragment>
