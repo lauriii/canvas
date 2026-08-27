@@ -2,6 +2,7 @@ import { useCallback, useLayoutEffect, useRef } from 'react';
 import {
   collectElementsUnderRoots,
   isVhMeasurementCandidate,
+  measureNaturalDocumentHeight,
   STABLE_HEIGHT_ATTRIBUTE,
   StableHeightReader,
 } from '@drupal-canvas/height-reader';
@@ -51,10 +52,20 @@ function useSyncIframeHeightToContent(
       const iframeHTML = iframe.contentDocument.documentElement;
       const iframeBody = iframe.contentDocument.body;
       window.requestAnimationFrame(() => {
-        if (previewContainer?.style) {
+        if (previewContainer?.style && iframe.contentDocument) {
           // set the iFrame container height to the height of the content inside the iFrame.
-          if (iframeHTML?.offsetHeight) {
-            previewContainer.style.height = `${iframeHTML.offsetHeight}px`;
+          // A page styling html or body with height/block-size 100% makes
+          // offsetHeight track the iframe height instead of the content, so
+          // measure with those rules neutralized (#3544531).
+          const contentHeight = measureNaturalDocumentHeight(
+            iframe.contentDocument,
+          );
+          // The measurement briefly writes inline styles on html and body;
+          // discard those records so the MutationObserver does not treat them
+          // as content changes and re-enter this resize.
+          mutationObserverRef.current?.takeRecords();
+          if (contentHeight) {
+            previewContainer.style.height = `${contentHeight}px`;
           }
         }
         if (iframeHTML?.style) {

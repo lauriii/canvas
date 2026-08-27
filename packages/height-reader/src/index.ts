@@ -7,6 +7,7 @@ export {
   applyStableHeight,
   collectElementsUnderRoots,
   getElementSignature,
+  measureNaturalDocumentHeight,
   StableHeightReader,
   STABLE_HEIGHT_ATTRIBUTE,
   usesViewportHeightProperty,
