@@ -615,9 +615,7 @@ describe('preview-payload', () => {
       await writeFile(
         path.join(projectRoot, 'canvas.brand-kit.json'),
         JSON.stringify({
-          colors: [
-            { name: 'Brand Red', cssVariable: '--brand-red', value: '#cc0000' },
-          ],
+          colors: { 'brand-red': '#cc0000' },
         }),
       );
 

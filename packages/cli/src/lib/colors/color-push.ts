@@ -1,13 +1,14 @@
 import {
   colorTokenValuesEqual,
-  normalizeColorValue,
+  normalizeBrandKitColors,
 } from '@drupal-canvas/discovery';
 
 import { validateColorsConfig } from './color-validate.js';
 
 import type {
-  BrandKitColorFileEntry,
+  BrandKitColorsFileMap,
   ColorTokenValue,
+  NormalizedBrandKitColor,
 } from '@drupal-canvas/discovery';
 import type { ApiService } from '../../services/api.js';
 import type {
@@ -36,12 +37,6 @@ export interface ColorPushResult {
   outcomes: ColorPushOutcome[];
 }
 
-interface LocalColor {
-  entry: BrandKitColorFileEntry;
-  token: ColorTokenValue;
-  index: number;
-}
-
 function itemName(name: string, cssVariable: string): string {
   return `${name} (${cssVariable})`;
 }
@@ -60,38 +55,32 @@ function toValuePayload(token: ColorTokenValue): ColorTokenValue {
   };
 }
 
-function normalizeLocalColors(colors: BrandKitColorFileEntry[]): LocalColor[] {
-  return colors.map((entry, index) => ({
-    entry,
-    // Validation guarantees the value parses.
-    token: normalizeColorValue(entry.value) as ColorTokenValue,
-    index,
-  }));
-}
-
-function displayFormatsEqual(
-  local: BrandKitColorFileEntry,
-  remote: BrandKitColorEntry,
-): boolean {
-  return (local.displayFormat ?? null) === (remote.displayFormat ?? null);
+/**
+ * The display name a local entry asserts, if any. An entry without an
+ * explicit name never renames an existing server color — the derived name
+ * is only a default for newly created colors — so a UI-given label
+ * survives hand-written one-line entries.
+ */
+function assertedName(color: NormalizedBrandKitColor): string | undefined {
+  return color.explicitName;
 }
 
 /**
  * Whether pushing must rewrite weights to make the server's palette order
- * match the file's array order. Weights are left alone when the relative
+ * match the file's map order. Weights are left alone when the relative
  * order of the file's colors already matches their relative order on the
  * server and any new colors simply append — so a push right after a pull
  * writes nothing.
  */
 function needsWeightReassignment(
-  locals: LocalColor[],
+  locals: NormalizedBrandKitColor[],
   remote: BrandKitColorEntry[],
 ): boolean {
   const remoteVariables = new Set(remote.map((c) => c.cssVariable));
   const localMatchedOrder = locals
-    .filter((c) => remoteVariables.has(c.entry.cssVariable))
-    .map((c) => c.entry.cssVariable);
-  const localVariables = new Set(locals.map((c) => c.entry.cssVariable));
+    .filter((c) => remoteVariables.has(c.cssVariable))
+    .map((c) => c.cssVariable);
+  const localVariables = new Set(locals.map((c) => c.cssVariable));
   const remoteMatchedOrder = remote
     .filter((c) => localVariables.has(c.cssVariable))
     .map((c) => c.cssVariable);
@@ -109,13 +98,13 @@ function needsWeightReassignment(
   // New colors inserted anywhere except after every existing one need
   // explicit weights to land where the file puts them.
   const lastMatchedIndex = locals.reduce(
-    (max, c) =>
-      remoteVariables.has(c.entry.cssVariable) ? Math.max(max, c.index) : max,
+    (max, c, index) =>
+      remoteVariables.has(c.cssVariable) ? Math.max(max, index) : max,
     -1,
   );
   return locals.some(
-    (c) =>
-      !remoteVariables.has(c.entry.cssVariable) && c.index < lastMatchedIndex,
+    (c, index) =>
+      !remoteVariables.has(c.cssVariable) && index < lastMatchedIndex,
   );
 }
 
@@ -126,25 +115,28 @@ function needsWeightReassignment(
  * (and reported during the push).
  */
 export function buildColorPushPlannedResults(
-  colors: BrandKitColorFileEntry[],
+  colors: BrandKitColorsFileMap,
   remoteColors: BrandKitColorEntry[],
   operationLabels: { create: string; update: string; delete: string },
   pruneColors: boolean,
 ): Result[] {
+  const locals = normalizeBrandKitColors(colors);
   const remoteByVariable = new Map(remoteColors.map((c) => [c.cssVariable, c]));
-  const localVariables = new Set(colors.map((c) => c.cssVariable));
+  const localVariables = new Set(locals.map((c) => c.cssVariable));
   const results: Result[] = [];
 
-  for (const entry of colors) {
+  for (const color of locals) {
+    const existing = remoteByVariable.get(color.cssVariable);
     results.push({
-      itemName: itemName(entry.name, entry.cssVariable),
+      itemName: itemName(
+        assertedName(color) ?? existing?.name ?? color.name,
+        color.cssVariable,
+      ),
       itemType: 'Color',
       success: true,
       details: [
         {
-          content: remoteByVariable.has(entry.cssVariable)
-            ? operationLabels.update
-            : operationLabels.create,
+          content: existing ? operationLabels.update : operationLabels.create,
         },
       ],
     });
@@ -168,13 +160,13 @@ export function buildColorPushPlannedResults(
 
 /**
  * Push colors from canvas.brand-kit.json to the site via the color config
- * endpoints. Matches entries to server colors by `cssVariable`, creates and
+ * endpoints. Matches map keys to server colors by CSS variable, creates and
  * updates as needed, and never deletes unless `pruneColors` is set — a color
  * present only on the server is reported instead. Returns null when the file
  * has no `colors` key (colors are not managed by this project).
  */
 export async function pushColors(
-  colors: BrandKitColorFileEntry[] | undefined,
+  colors: BrandKitColorsFileMap | undefined,
   api: ApiService,
   options: { pruneColors?: boolean } = {},
 ): Promise<ColorPushResult | null> {
@@ -186,8 +178,9 @@ export async function pushColors(
   const brandKit = await api.getBrandKit();
   const remote = brandKit.colors ?? [];
   const remoteByVariable = new Map(remote.map((c) => [c.cssVariable, c]));
-  const localVariables = new Set(colors.map((c) => c.cssVariable));
-  const locals = normalizeLocalColors(colors);
+  // Validation guarantees unique keys and parseable values.
+  const locals = normalizeBrandKitColors(colors);
+  const localVariables = new Set(locals.map((c) => c.cssVariable));
 
   const reassignWeights = needsWeightReassignment(locals, remote);
   const maxRemoteWeight = remote.reduce(
@@ -228,21 +221,28 @@ export async function pushColors(
     }
   }
 
-  for (const local of locals) {
-    const name = itemName(local.entry.name, local.entry.cssVariable);
-    const existing = remoteByVariable.get(local.entry.cssVariable);
+  for (let index = 0; index < locals.length; index++) {
+    const local = locals[index];
+    const token = local.token as ColorTokenValue;
+    const existing = remoteByVariable.get(local.cssVariable);
+    const name = itemName(
+      assertedName(local) ?? existing?.name ?? local.name,
+      local.cssVariable,
+    );
 
     if (!existing) {
       const payload: BrandKitColorPayload = {
-        name: local.entry.name,
-        cssVariable: local.entry.cssVariable,
-        value: toValuePayload(local.token),
-        weight: reassignWeights
-          ? local.index
-          : maxRemoteWeight + 1 + createSequence,
+        name: local.name,
+        cssVariable: local.cssVariable,
+        value: toValuePayload(token),
+        weight: reassignWeights ? index : maxRemoteWeight + 1 + createSequence,
       };
-      if (local.entry.displayFormat != null) {
-        payload.displayFormat = local.entry.displayFormat;
+      // The display format defaults from the value's string form ("#..."
+      // edits as hex, "hsl(...)" as HSL) unless the file asserts one.
+      const displayFormat =
+        local.explicitDisplayFormat ?? local.derivedDisplayFormat;
+      if (displayFormat != null) {
+        payload.displayFormat = displayFormat;
       }
       createSequence++;
       await api.createColor(payload);
@@ -252,17 +252,23 @@ export async function pushColors(
     }
 
     const changes: Partial<BrandKitColorPayload> = {};
-    if (local.entry.name !== existing.name) {
-      changes.name = local.entry.name;
+    const localName = assertedName(local);
+    if (localName !== undefined && localName !== existing.name) {
+      changes.name = localName;
     }
-    if (!colorTokenValuesEqual(local.token, existing.value)) {
-      changes.value = toValuePayload(local.token);
+    if (!colorTokenValuesEqual(token, existing.value)) {
+      changes.value = toValuePayload(token);
     }
-    if (!displayFormatsEqual(local.entry, existing)) {
-      changes.displayFormat = local.entry.displayFormat ?? null;
+    // Only an explicitly asserted display format updates the server; the
+    // derived one is a creation default, never a diff.
+    if (
+      local.explicitDisplayFormat !== undefined &&
+      (local.explicitDisplayFormat ?? null) !== (existing.displayFormat ?? null)
+    ) {
+      changes.displayFormat = local.explicitDisplayFormat ?? null;
     }
-    if (reassignWeights && existing.weight !== local.index) {
-      changes.weight = local.index;
+    if (reassignWeights && existing.weight !== index) {
+      changes.weight = index;
     }
 
     if (Object.keys(changes).length === 0) {

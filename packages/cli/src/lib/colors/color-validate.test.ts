@@ -2,15 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import { validateColorsConfig } from './color-validate';
 
-import type { BrandKitColorFileEntry } from '@drupal-canvas/discovery';
+import type { BrandKitColorsFileMap } from '@drupal-canvas/discovery';
 
-const valid: BrandKitColorFileEntry = {
-  name: 'Brand Red',
-  cssVariable: '--brand-red',
-  value: '#cc0000',
-};
-
-function errorsFor(colors: BrandKitColorFileEntry[]): string {
+function errorsFor(colors: BrandKitColorsFileMap): string {
   try {
     validateColorsConfig(colors);
   } catch (err) {
@@ -20,132 +14,116 @@ function errorsFor(colors: BrandKitColorFileEntry[]): string {
 }
 
 describe('validateColorsConfig', () => {
-  it('accepts valid entries', () => {
+  it('accepts valid entries in every form', () => {
     expect(() =>
-      validateColorsConfig([
-        valid,
-        {
-          name: 'Overlay',
-          cssVariable: '--overlay',
-          value: {
-            colorSpace: 'hsl',
-            components: [220, 60, 50],
-            alpha: 0.5,
-          },
-          displayFormat: 'hsl',
-        },
-        {
-          name: 'Alpha hex',
-          cssVariable: '--alpha-hex',
-          value: '#cc000080',
-        },
-      ]),
+      validateColorsConfig({
+        'brand-red': '#cc0000',
+        '--prefixed': '#00cc00',
+        overlay: 'hsla(220, 60%, 50%, 0.5)',
+        'brand-rgb': 'rgb(204, 0, 0)',
+        'alpha-hex': '#cc000080',
+        exact: { colorSpace: 'srgb', components: [0.1, 0.2, 0.3] },
+        accent: { value: '#0000cc', name: 'Accent blue', displayFormat: 'rgb' },
+      }),
     ).not.toThrow();
   });
 
   it('accepts an empty palette', () => {
-    expect(() => validateColorsConfig([])).not.toThrow();
+    expect(() => validateColorsConfig({})).not.toThrow();
   });
 
-  it('rejects a malformed hex naming the entry and the expected format', () => {
-    const message = errorsFor([{ ...valid, value: '#cc00' }]);
-    expect(message).toContain('Color "Brand Red" (index 0)');
+  it('rejects a non-object colors value', () => {
+    const message = errorsFor([] as unknown as BrandKitColorsFileMap);
+    expect(message).toContain('must be an object');
+    expect(message).toContain('"brand-red": "#cc0000"');
+  });
+
+  it('rejects a malformed color string naming the entry and the accepted forms', () => {
+    const message = errorsFor({ 'brand-red': '#cc00' });
+    expect(message).toContain('Color "brand-red"');
     expect(message).toContain('#cc00');
-    expect(message).toContain('#cc0000');
+    expect(message).toContain('"#cc0000"');
+    expect(message).toContain('rgb(204, 0, 0)');
   });
 
-  it('rejects a missing name', () => {
-    const message = errorsFor([{ ...valid, name: ' ' }]);
-    expect(message).toContain('Color at index 0');
-    expect(message).toContain('missing or empty "name"');
+  it('rejects an invalid color key', () => {
+    const message = errorsFor({ '1bad': '#cc0000' });
+    expect(message).toContain('Color "1bad"');
+    expect(message).toContain('invalid color key');
   });
 
-  it('accepts two colors sharing a name (legal on the server)', () => {
-    expect(() =>
-      validateColorsConfig([valid, { ...valid, cssVariable: '--brand-red-2' }]),
-    ).not.toThrow();
-  });
-
-  it('rejects an invalid CSS custom property name', () => {
-    const message = errorsFor([{ ...valid, cssVariable: 'brand-red' }]);
-    expect(message).toContain('invalid "cssVariable": "brand-red"');
+  it('rejects two keys naming the same variable', () => {
+    const message = errorsFor({
+      'brand-red': '#cc0000',
+      '--brand-red': '#0000cc',
+    });
+    expect(message).toContain('duplicate of "brand-red"');
     expect(message).toContain('--brand-red');
   });
 
-  it('rejects a duplicate cssVariable', () => {
-    const message = errorsFor([valid, { ...valid, name: 'Other' }]);
-    expect(message).toContain('duplicate cssVariable "--brand-red"');
-  });
-
   it('rejects an unknown color space', () => {
-    const message = errorsFor([
-      {
-        ...valid,
-        value: { colorSpace: 'lab' as 'srgb', components: [0, 0, 0] },
-      },
-    ]);
-    expect(message).toContain('invalid "value.colorSpace"');
+    const message = errorsFor({
+      bad: { colorSpace: 'lab' as 'srgb', components: [0, 0, 0] },
+    });
+    expect(message).toContain('invalid "colorSpace"');
   });
 
   it('rejects a wrong component count', () => {
-    const message = errorsFor([
-      { ...valid, value: { colorSpace: 'srgb', components: [0, 0] } },
-    ]);
+    const message = errorsFor({
+      bad: { colorSpace: 'srgb', components: [0, 0] },
+    });
     expect(message).toContain('exactly 3 numbers');
   });
 
   it('rejects an out-of-range or non-finite alpha', () => {
     for (const alpha of [2, Number.NaN, Number.POSITIVE_INFINITY]) {
-      const message = errorsFor([
-        {
-          ...valid,
-          value: { colorSpace: 'srgb', components: [0, 0, 0], alpha },
-        },
-      ]);
+      const message = errorsFor({
+        bad: { colorSpace: 'srgb', components: [0, 0, 0], alpha },
+      });
       expect(message).toContain('between 0 and 1');
     }
   });
 
   it('rejects an invalid stored hex on a token object', () => {
-    const message = errorsFor([
-      {
-        ...valid,
-        value: { colorSpace: 'srgb', components: [0, 0, 0], hex: '#cc000080' },
-      },
-    ]);
+    const message = errorsFor({
+      bad: { colorSpace: 'srgb', components: [0, 0, 0], hex: '#cc000080' },
+    });
     expect(message).toContain('6-digit hex');
   });
 
-  it('rejects an invalid displayFormat', () => {
-    const message = errorsFor([{ ...valid, displayFormat: 'cmyk' as 'hex' }]);
+  it('rejects an invalid displayFormat and an empty name on the wrapper form', () => {
+    const message = errorsFor({
+      bad: { value: '#cc0000', displayFormat: 'cmyk' as 'hex', name: ' ' },
+    });
     expect(message).toContain('invalid "displayFormat"');
     expect(message).toContain('rgb, hex, hsl');
+    expect(message).toContain('non-empty string');
   });
 
-  it('rejects a missing value', () => {
-    const message = errorsFor([
-      { name: 'No value', cssVariable: '--no-value' } as BrandKitColorFileEntry,
-    ]);
-    expect(message).toContain('missing "value"');
+  it('rejects a missing wrapper value and wrong-typed values', () => {
+    expect(errorsFor({ bad: { value: null } as never })).toContain(
+      'missing value',
+    );
+    expect(errorsFor({ bad: 42 as unknown as string })).toContain(
+      'invalid value 42',
+    );
   });
 
-  it('rejects a value of the wrong type as invalid, not missing', () => {
-    const message = errorsFor([{ ...valid, value: 42 as unknown as string }]);
-    expect(message).toContain('invalid "value": 42');
-  });
-
-  it('rejects a non-object entry', () => {
-    const message = errorsFor([null as unknown as BrandKitColorFileEntry]);
-    expect(message).toContain('Color at index 0');
-    expect(message).toContain('must be an object');
+  it('accepts two colors sharing a name (legal on the server)', () => {
+    expect(() =>
+      validateColorsConfig({
+        'primary-a': { value: '#cc0000', name: 'Primary' },
+        'primary-b': { value: '#0000cc', name: 'Primary' },
+      }),
+    ).not.toThrow();
   });
 
   it('reports every error in one run', () => {
-    const message = errorsFor([
-      { ...valid, value: '#nope' },
-      { name: '', cssVariable: '--x', value: '#cc0000' },
-    ]);
-    expect(message).toContain('index 0');
-    expect(message).toContain('index 1');
+    const message = errorsFor({
+      first: '#nope',
+      '2bad': '#cc0000',
+    });
+    expect(message).toContain('Color "first"');
+    expect(message).toContain('Color "2bad"');
   });
 });

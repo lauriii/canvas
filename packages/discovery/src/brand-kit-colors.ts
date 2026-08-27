@@ -12,6 +12,13 @@ export const BRAND_KIT_CONFIG_FILENAME = 'canvas.brand-kit.json';
  */
 export const CSS_VARIABLE_PATTERN = /^--[a-zA-Z_-][a-zA-Z0-9_-]*$/;
 
+/**
+ * Pattern for a color key in the `colors` map: the CSS custom property name
+ * with or without its `--` prefix. Stripping or adding the prefix maps
+ * bijectively onto the server's `cssVariable` pattern.
+ */
+export const COLOR_KEY_PATTERN = /^(--)?[a-zA-Z_-][a-zA-Z0-9_-]*$/;
+
 /** Six- or eight-digit hex color string accepted in the brand kit file. */
 export const HEX_COLOR_PATTERN = /^#([0-9a-fA-F]{6})([0-9a-fA-F]{2})?$/;
 
@@ -27,17 +34,88 @@ export interface ColorTokenValue {
 }
 
 /**
- * A color value as written in canvas.brand-kit.json: either a hex string
- * (`#rrggbb` or `#rrggbbaa`) or the full design token object.
+ * A color value in canvas.brand-kit.json: a CSS color string (`#rrggbb`,
+ * `#rrggbbaa`, `rgb()`, `rgba()`, `hsl()`, or `hsla()`) or the full design
+ * token object for exact component values.
  */
 export type BrandKitColorFileValue = string | ColorTokenValue;
 
-/** A single entry in the `colors` array of canvas.brand-kit.json. */
-export interface BrandKitColorFileEntry {
-  name: string;
-  cssVariable: string;
+/**
+ * The wrapper form of a `colors` map entry, used when an entry needs more
+ * than its value: a display name differing from the one derived from the
+ * key, or an explicit editor display format.
+ */
+export interface BrandKitColorFileObject {
   value: BrandKitColorFileValue;
+  name?: string;
   displayFormat?: 'rgb' | 'hex' | 'hsl' | null;
+}
+
+/**
+ * The `colors` key of canvas.brand-kit.json: a map from color key (the CSS
+ * custom property name, `--` prefix optional) to a value or wrapper object,
+ * in palette order — the shape of a Tailwind theme or a flat W3C design
+ * tokens document.
+ */
+export type BrandKitColorsFileMap = Record<
+  string,
+  BrandKitColorFileValue | BrandKitColorFileObject
+>;
+
+export type ColorDisplayFormat = 'rgb' | 'hex' | 'hsl';
+
+/**
+ * A `colors` map entry normalized for the sync engine and CSS generation.
+ */
+export interface NormalizedBrandKitColor {
+  /** The map key exactly as written in the file. */
+  rawKey: string;
+  /** The key without a `--` prefix. */
+  key: string;
+  /** The CSS custom property name (`--` + key). */
+  cssVariable: string;
+  /** Display name: the explicit one, or derived from the key. */
+  name: string;
+  /** Set only when the file asserts a name via the wrapper form. */
+  explicitName?: string;
+  /** Set only when the file asserts a display format via the wrapper form. */
+  explicitDisplayFormat?: ColorDisplayFormat | null;
+  /** Display format implied by the value's string form, when any. */
+  derivedDisplayFormat?: ColorDisplayFormat;
+  /** Parsed token value, or null when the value cannot be parsed. */
+  token: ColorTokenValue | null;
+  /** The map value exactly as written in the file. */
+  rawValue: BrandKitColorFileValue | BrandKitColorFileObject;
+}
+
+/**
+ * Normalizes a `colors` map key: strips an optional `--` prefix. Returns
+ * null when the key cannot map onto a valid CSS custom property name.
+ */
+export function normalizeColorKey(key: string): string | null {
+  if (typeof key !== 'string') {
+    return null;
+  }
+  const bare = key.startsWith('--') ? key.slice(2) : key;
+  return /^[a-zA-Z_-][a-zA-Z0-9_-]*$/.test(bare) ? bare : null;
+}
+
+/** Returns the CSS custom property name for a normalized color key. */
+export function keyToCssVariable(key: string): string {
+  return `--${key}`;
+}
+
+/**
+ * Derives a display name from a color key: `brand-red` becomes "Brand Red".
+ * The server requires every color to have a name; deriving it keeps the
+ * common file entry to a single line.
+ */
+export function deriveColorName(key: string): string {
+  return key
+    .split(/[-_]+/)
+    .filter((word) => word.length > 0)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 }
 
 /**
@@ -70,12 +148,89 @@ export function parseHexColor(value: string): ColorTokenValue | null {
   };
 }
 
+const RGB_PATTERN =
+  /^rgba?\(\s*(\d{1,3})\s*(?:,|\s)\s*(\d{1,3})\s*(?:,|\s)\s*(\d{1,3})\s*(?:(?:,|\/)\s*([\d.]+%?)\s*)?\)$/;
+const HSL_PATTERN =
+  /^hsla?\(\s*(-?[\d.]+)(?:deg)?\s*(?:,|\s)\s*(-?[\d.]+)%\s*(?:,|\s)\s*(-?[\d.]+)%\s*(?:(?:,|\/)\s*([\d.]+%?)\s*)?\)$/;
+
+function parseAlphaString(raw: string | undefined): number | null {
+  if (raw === undefined) {
+    return null;
+  }
+  const value = raw.endsWith('%')
+    ? Number.parseFloat(raw.slice(0, -1)) / 100
+    : Number.parseFloat(raw);
+  if (!Number.isFinite(value)) {
+    return Number.NaN;
+  }
+  return value === 1 ? null : value;
+}
+
 /**
- * Normalizes a file value (hex string or token object) to a token object.
- * Returns null for a malformed hex string, a missing value, or an object
- * without a components array, so callers can treat any hand-edited junk as
- * "no parseable value" instead of crashing (strict validation with useful
- * messages is the CLI's job).
+ * Parses a CSS color string — hex, `rgb()`, `rgba()`, `hsl()`, or `hsla()`,
+ * in comma or space syntax — into a design token value plus the editor
+ * display format the string form implies. Returns null for anything else.
+ */
+export function parseCssColorString(
+  value: string,
+): { token: ColorTokenValue; displayFormat: ColorDisplayFormat } | null {
+  const hexToken = parseHexColor(value);
+  if (hexToken) {
+    return { token: hexToken, displayFormat: 'hex' };
+  }
+
+  const rgbMatch = RGB_PATTERN.exec(value);
+  if (rgbMatch) {
+    const channels = [rgbMatch[1], rgbMatch[2], rgbMatch[3]].map((c) =>
+      parseInt(c, 10),
+    );
+    if (channels.some((c) => c > 255)) {
+      return null;
+    }
+    const alpha = parseAlphaString(rgbMatch[4]);
+    if (Number.isNaN(alpha)) {
+      return null;
+    }
+    return {
+      token: {
+        colorSpace: 'srgb',
+        components: channels.map((c) => c / 255),
+        alpha,
+        hex: computedHex(channels.map((c) => c / 255)),
+      },
+      displayFormat: 'rgb',
+    };
+  }
+
+  const hslMatch = HSL_PATTERN.exec(value);
+  if (hslMatch) {
+    const components = [hslMatch[1], hslMatch[2], hslMatch[3]].map((c) =>
+      Number.parseFloat(c),
+    );
+    if (components.some((c) => !Number.isFinite(c))) {
+      return null;
+    }
+    const alpha = parseAlphaString(hslMatch[4]);
+    if (Number.isNaN(alpha)) {
+      return null;
+    }
+    // No hex is computed for HSL: the equality comparator ignores a
+    // one-sided hex, and every renderer derives CSS from the components.
+    return {
+      token: { colorSpace: 'hsl', components, alpha, hex: null },
+      displayFormat: 'hsl',
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Normalizes a file value (CSS color string or token object) to a token
+ * object. Returns null for a malformed string, a missing value, or an
+ * object without a components array, so callers can treat hand-edited junk
+ * as "no parseable value" instead of crashing (strict validation with
+ * useful messages is the CLI's job).
  */
 export function normalizeColorValue(
   value: BrandKitColorFileValue | null | undefined,
@@ -84,7 +239,7 @@ export function normalizeColorValue(
     return null;
   }
   if (typeof value === 'string') {
-    return parseHexColor(value);
+    return parseCssColorString(value)?.token ?? null;
   }
   if (
     typeof value === 'object' &&
@@ -134,47 +289,36 @@ export function colorTokenValuesEqual(
 }
 
 /**
- * True when parsing the hex string reproduces exactly these components, so
- * replacing the token with the string loses nothing.
- */
-function hexMatchesComponents(hex: string, components: number[]): boolean {
-  if (!/^#[0-9a-fA-F]{6}$/.test(hex) || components.length < 3) {
-    return false;
-  }
-  for (let i = 0; i < 3; i++) {
-    const channel = parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16);
-    if (!numbersEqual(components[i], channel / 255)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-/**
- * Serializes a token value for canvas.brand-kit.json: the plain hex string
- * when that is lossless (opaque sRGB whose components are exactly what the
- * stored hex parses back to), otherwise a token object with a fixed key
- * order and only the keys that carry information. The exactness matters for
- * data written by other API clients: components that merely round to the
- * hex would parse back different, making the next push rewrite a color the
- * user never touched.
+ * Serializes a token value for canvas.brand-kit.json: a CSS color string
+ * when one parses back to the exact same token — hex for opaque sRGB,
+ * `rgba()` for translucent sRGB, `hsl()`/`hsla()` for HSL — otherwise the
+ * token object with a fixed key order and only the keys that carry
+ * information. The parse-back check makes losslessness structural: any
+ * value another API client wrote that a string cannot represent exactly
+ * stays an object, so the next push never rewrites a color the user did
+ * not touch.
  */
 export function serializeColorValue(
   token: ColorTokenValue,
 ): BrandKitColorFileValue {
-  const opaque = token.alpha == null || numbersEqual(token.alpha, 1);
-  if (
-    token.colorSpace === 'srgb' &&
-    token.hex != null &&
-    opaque &&
-    hexMatchesComponents(token.hex, token.components)
-  ) {
-    return token.hex;
+  const candidate = serializeCandidateString(token);
+  if (candidate !== null) {
+    const parsed = parseCssColorString(candidate)?.token;
+    if (
+      parsed &&
+      exactTokensEqual(parsed, token) &&
+      (token.hex == null ||
+        parsed.hex == null ||
+        parsed.hex.toLowerCase() === token.hex.toLowerCase())
+    ) {
+      return candidate;
+    }
   }
   const out: ColorTokenValue = {
     colorSpace: token.colorSpace,
     components: token.components,
   };
+  const opaque = token.alpha == null || token.alpha === 1;
   if (!opaque) {
     out.alpha = token.alpha;
   }
@@ -182,6 +326,50 @@ export function serializeColorValue(
     out.hex = token.hex;
   }
   return out;
+}
+
+function serializeCandidateString(token: ColorTokenValue): string | null {
+  const opaque = token.alpha == null || token.alpha === 1;
+  if (token.colorSpace === 'srgb') {
+    if (opaque && token.hex != null) {
+      return token.hex;
+    }
+    if (!opaque && token.components.length >= 3) {
+      const channels = token.components
+        .slice(0, 3)
+        .map((c) => Math.round(c * 255));
+      return `rgba(${channels.join(', ')}, ${String(token.alpha)})`;
+    }
+    return null;
+  }
+  if (token.colorSpace === 'hsl' && token.components.length >= 3) {
+    const [h, s, l] = token.components.map(String);
+    return opaque
+      ? `hsl(${h}, ${s}%, ${l}%)`
+      : `hsla(${h}, ${s}%, ${l}%, ${String(token.alpha)})`;
+  }
+  return null;
+}
+
+/**
+ * Exact structural equality for the serialize round-trip check: components
+ * and alpha must reproduce bit-for-bit, not within an epsilon, or the
+ * string form would change the stored value on the next push. Absent, null,
+ * and 1 alpha are all the same opacity.
+ */
+function exactTokensEqual(a: ColorTokenValue, b: ColorTokenValue): boolean {
+  if (a.colorSpace !== b.colorSpace) {
+    return false;
+  }
+  if (a.components.length !== b.components.length) {
+    return false;
+  }
+  for (let i = 0; i < a.components.length; i++) {
+    if (a.components[i] !== b.components[i]) {
+      return false;
+    }
+  }
+  return (a.alpha ?? 1) === (b.alpha ?? 1);
 }
 
 function channelTo255(component: number): number {
@@ -234,27 +422,78 @@ export function colorTokenToCss(token: ColorTokenValue): string {
 }
 
 /**
+ * Leniently normalizes a raw `colors` map for the sync engine and CSS
+ * generation: invalid keys and junk values yield entries with a null token
+ * (or are skipped when the key cannot name a variable at all). Strict
+ * validation with useful messages is the CLI's job.
+ */
+export function normalizeBrandKitColors(
+  map: unknown,
+): NormalizedBrandKitColor[] {
+  if (!map || typeof map !== 'object' || Array.isArray(map)) {
+    return [];
+  }
+  const colors: NormalizedBrandKitColor[] = [];
+  for (const [rawKey, rawValue] of Object.entries(
+    map as Record<string, unknown>,
+  )) {
+    const key = normalizeColorKey(rawKey);
+    if (key === null) {
+      continue;
+    }
+    let value: BrandKitColorFileValue | null | undefined;
+    let explicitName: string | undefined;
+    let explicitDisplayFormat: ColorDisplayFormat | null | undefined;
+    if (
+      rawValue &&
+      typeof rawValue === 'object' &&
+      !Array.isArray(rawValue) &&
+      'value' in rawValue
+    ) {
+      const wrapper = rawValue as BrandKitColorFileObject;
+      value = wrapper.value;
+      if (typeof wrapper.name === 'string' && wrapper.name.trim() !== '') {
+        explicitName = wrapper.name;
+      }
+      if ('displayFormat' in wrapper) {
+        explicitDisplayFormat = wrapper.displayFormat;
+      }
+    } else {
+      value = rawValue as BrandKitColorFileValue;
+    }
+    const derivedDisplayFormat =
+      typeof value === 'string'
+        ? parseCssColorString(value)?.displayFormat
+        : undefined;
+    colors.push({
+      rawKey,
+      key,
+      cssVariable: keyToCssVariable(key),
+      name: explicitName ?? deriveColorName(key),
+      explicitName,
+      explicitDisplayFormat,
+      derivedDisplayFormat,
+      token: normalizeColorValue(value),
+      rawValue: rawValue as BrandKitColorFileValue | BrandKitColorFileObject,
+    });
+  }
+  return colors;
+}
+
+/**
  * Builds the `:root` custom property block for a set of brand kit colors,
- * in array order (the file's order is the palette order). Entries whose
- * `cssVariable` does not match the server's pattern or whose value cannot
- * be parsed are skipped; an empty result is the empty string.
+ * in map order (the file's order is the palette order). Entries whose value
+ * cannot be parsed are skipped; an empty result is the empty string.
  */
 export function buildBrandKitColorCss(
-  entries: BrandKitColorFileEntry[],
+  colors: NormalizedBrandKitColor[],
 ): string {
   const properties: string[] = [];
-  for (const entry of entries) {
-    if (
-      typeof entry?.cssVariable !== 'string' ||
-      !CSS_VARIABLE_PATTERN.test(entry.cssVariable)
-    ) {
+  for (const color of colors) {
+    if (color.token === null) {
       continue;
     }
-    const token = normalizeColorValue(entry.value);
-    if (!token || !Array.isArray(token.components)) {
-      continue;
-    }
-    properties.push(`  ${entry.cssVariable}: ${colorTokenToCss(token)};`);
+    properties.push(`  ${color.cssVariable}: ${colorTokenToCss(color.token)};`);
   }
   if (properties.length === 0) {
     return '';
@@ -263,12 +502,13 @@ export function buildBrandKitColorCss(
 }
 
 /**
- * Leniently reads the `colors` array from canvas.brand-kit.json in the
- * given project root. A missing file, invalid JSON, or an absent/non-array
- * `colors` key all yield an empty array — callers that need strict
- * validation (the CLI) do their own.
+ * Leniently reads and normalizes the `colors` map from
+ * canvas.brand-kit.json in the given project root. A missing file, invalid
+ * JSON, or an absent or non-object `colors` key all yield an empty array.
  */
-export function readBrandKitColors(hostRoot: string): BrandKitColorFileEntry[] {
+export function readBrandKitColors(
+  hostRoot: string,
+): NormalizedBrandKitColor[] {
   let raw: string;
   try {
     raw = readFileSync(resolve(hostRoot, BRAND_KIT_CONFIG_FILENAME), 'utf-8');
@@ -284,12 +524,5 @@ export function readBrandKitColors(hostRoot: string): BrandKitColorFileEntry[] {
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
     return [];
   }
-  const colors = (parsed as { colors?: unknown }).colors;
-  if (!Array.isArray(colors)) {
-    return [];
-  }
-  return colors.filter(
-    (entry): entry is BrandKitColorFileEntry =>
-      !!entry && typeof entry === 'object' && !Array.isArray(entry),
-  );
+  return normalizeBrandKitColors((parsed as { colors?: unknown }).colors);
 }

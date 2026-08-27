@@ -3,16 +3,22 @@ import path from 'path';
 import {
   BRAND_KIT_CONFIG_FILENAME,
   colorTokenValuesEqual,
-  normalizeColorValue,
+  deriveColorName,
+  normalizeBrandKitColors,
   serializeColorValue,
 } from '@drupal-canvas/discovery';
 
-import type { BrandKitColorFileEntry } from '@drupal-canvas/discovery';
+import type {
+  BrandKitColorFileObject,
+  BrandKitColorFileValue,
+  BrandKitColorsFileMap,
+  NormalizedBrandKitColor,
+} from '@drupal-canvas/discovery';
 import type { BrandKitColorEntry } from '../../types/Component.js';
 
 export interface ColorPullPlan {
-  /** The colors array the file should contain after the pull. */
-  colors: BrandKitColorFileEntry[];
+  /** The colors map the file should contain after the pull. */
+  colors: BrandKitColorsFileMap;
   /** Item names of colors newly added to the file. */
   added: string[];
   /** Item names of colors whose file entry was updated from the server. */
@@ -21,9 +27,9 @@ export interface ColorPullPlan {
   unchanged: number;
   /** Item names of file entries with no matching color on the server. */
   localOnly: string[];
-  /** Item names of dropped duplicate entries (same cssVariable, first kept). */
+  /** Raw keys of dropped duplicate entries (same variable, first kept). */
   duplicates: string[];
-  /** Whether the file's colors array needs to be written at all. */
+  /** Whether the file's colors map needs to be written at all. */
   changed: boolean;
 }
 
@@ -32,122 +38,175 @@ export interface ColorPullOptions {
   skipOverwrite?: boolean;
 }
 
-function itemName(
-  name: string | undefined,
-  cssVariable: string | undefined,
-): string {
-  return `${name ?? '(unnamed)'} (${cssVariable ?? 'no cssVariable'})`;
+function itemName(name: string, cssVariable: string): string {
+  return `${name} (${cssVariable})`;
 }
 
 /**
- * Serializes a server color into a hand-editable file entry: fixed key
- * order, hex string when lossless, `displayFormat` only when set.
+ * Serializes a server color into a hand-editable map entry: the plain CSS
+ * string when lossless, wrapped in an object only when the color needs a
+ * display name differing from the one its key derives (or, on a rewrite,
+ * when the local entry had asserted a display format).
  */
-function toFileEntry(remote: BrandKitColorEntry): BrandKitColorFileEntry {
-  const entry: BrandKitColorFileEntry = {
-    name: remote.name,
-    cssVariable: remote.cssVariable,
-    value: serializeColorValue(remote.value),
-  };
-  if (remote.displayFormat != null) {
-    entry.displayFormat = remote.displayFormat;
+function toFileValue(
+  remote: BrandKitColorEntry,
+  key: string,
+  previous?: NormalizedBrandKitColor,
+): BrandKitColorFileValue | BrandKitColorFileObject {
+  const value = serializeColorValue(remote.value);
+  const name = remote.name !== deriveColorName(key) ? remote.name : undefined;
+  const displayFormat =
+    previous?.explicitDisplayFormat !== undefined
+      ? (remote.displayFormat ?? null)
+      : undefined;
+  if (name === undefined && displayFormat === undefined) {
+    return value;
+  }
+  const entry: BrandKitColorFileObject = { value };
+  if (name !== undefined) {
+    entry.name = name;
+  }
+  if (displayFormat !== undefined) {
+    entry.displayFormat = displayFormat;
   }
   return entry;
 }
 
+/**
+ * Whether the local entry already represents the server color, so pull can
+ * keep it verbatim. Only asserted fields count: a one-line entry never
+ * differs by name or display format, so hand-written entries survive pulls
+ * untouched while a UI rename still reaches entries that assert a name.
+ */
 function entriesEquivalent(
-  local: BrandKitColorFileEntry,
+  local: NormalizedBrandKitColor,
   remote: BrandKitColorEntry,
 ): boolean {
-  if (local.name !== remote.name) {
+  if (local.explicitName !== undefined && local.explicitName !== remote.name) {
     return false;
   }
-  if ((local.displayFormat ?? null) !== (remote.displayFormat ?? null)) {
+  if (
+    local.explicitDisplayFormat !== undefined &&
+    (local.explicitDisplayFormat ?? null) !== (remote.displayFormat ?? null)
+  ) {
     return false;
   }
-  const token = normalizeColorValue(local.value);
-  return token !== null && colorTokenValuesEqual(token, remote.value);
+  return (
+    local.token !== null && colorTokenValuesEqual(local.token, remote.value)
+  );
 }
 
 /**
- * Computes the pulled colors array: server colors in server order (palette
- * order), keeping the local entry verbatim when it is semantically equal so
- * hand formatting survives, followed by local-only entries in their original
- * order — pull never removes a color that exists only in the file. When two
- * local entries share a cssVariable the first is kept and the rest are
+ * Computes the pulled colors map: server colors in server order (palette
+ * order), keeping the local entry — key spelling included — verbatim when
+ * it is semantically equal, followed by local-only entries in their
+ * original order. Pull never removes a color that exists only in the file;
+ * entries with invalid keys are kept and reported rather than dropped. When
+ * two entries name the same variable the first is kept and the rest are
  * reported as dropped duplicates. With `skipOverwrite`, existing local
  * entries are left untouched in place and only new server colors append.
  */
 export function planColorPull(
   remoteColors: BrandKitColorEntry[],
-  localColors: BrandKitColorFileEntry[] | undefined,
+  localColors: BrandKitColorsFileMap | undefined,
   options: ColorPullOptions = {},
 ): ColorPullPlan {
-  const locals = localColors ?? [];
-  const localByVariable = new Map<string, BrandKitColorFileEntry>();
+  const rawEntries = Object.entries(localColors ?? {});
+  const normalized = normalizeBrandKitColors(localColors ?? {});
+  const normalizedByRawKey = new Map(normalized.map((c) => [c.rawKey, c]));
+
+  const localByVariable = new Map<string, NormalizedBrandKitColor>();
   const duplicates: string[] = [];
-  for (const local of locals) {
-    if (localByVariable.has(local?.cssVariable as string)) {
-      duplicates.push(itemName(local?.name, local?.cssVariable));
+  for (const color of normalized) {
+    if (localByVariable.has(color.cssVariable)) {
+      duplicates.push(color.rawKey);
       continue;
     }
-    localByVariable.set(local?.cssVariable as string, local);
+    localByVariable.set(color.cssVariable, color);
   }
   const remoteVariables = new Set(remoteColors.map((c) => c.cssVariable));
 
   const added: string[] = [];
   const updated: string[] = [];
   let unchanged = 0;
+  const localOnly: string[] = [];
+  const nextColors: BrandKitColorsFileMap = {};
 
   if (options.skipOverwrite) {
-    const newRemote = remoteColors.filter(
-      (remote) => !localByVariable.has(remote.cssVariable),
-    );
-    for (const remote of newRemote) {
-      added.push(itemName(remote.name, remote.cssVariable));
+    for (const [rawKey, rawValue] of rawEntries) {
+      nextColors[rawKey] = rawValue as BrandKitColorsFileMap[string];
     }
-    unchanged = remoteColors.length - newRemote.length;
-    const localOnly = locals
-      .filter((local) => !remoteVariables.has(local?.cssVariable as string))
-      .map((local) => itemName(local?.name, local?.cssVariable));
+    let addedCount = 0;
+    for (const remote of remoteColors) {
+      if (localByVariable.has(remote.cssVariable)) {
+        unchanged++;
+        continue;
+      }
+      const key = remote.cssVariable.slice(2);
+      nextColors[key] = toFileValue(remote, key);
+      added.push(itemName(remote.name, remote.cssVariable));
+      addedCount++;
+    }
+    for (const color of localByVariable.values()) {
+      if (!remoteVariables.has(color.cssVariable)) {
+        localOnly.push(itemName(color.name, color.cssVariable));
+      }
+    }
     return {
-      colors: [...locals, ...newRemote.map(toFileEntry)],
+      colors: nextColors,
       added,
       updated,
       unchanged,
       localOnly,
       duplicates: [],
-      changed: newRemote.length > 0,
+      changed: addedCount > 0,
     };
   }
 
-  const nextColors: BrandKitColorFileEntry[] = remoteColors.map((remote) => {
+  for (const remote of remoteColors) {
     const local = localByVariable.get(remote.cssVariable);
+    const key = remote.cssVariable.slice(2);
     if (local === undefined) {
+      nextColors[key] = toFileValue(remote, key);
       added.push(itemName(remote.name, remote.cssVariable));
-      return toFileEntry(remote);
+      continue;
     }
     if (entriesEquivalent(local, remote)) {
+      nextColors[local.rawKey] = local.rawValue;
       unchanged++;
-      return local;
+      continue;
     }
+    nextColors[local.rawKey] = toFileValue(remote, local.key, local);
     updated.push(itemName(remote.name, remote.cssVariable));
-    return toFileEntry(remote);
-  });
+  }
 
-  const localOnly: string[] = [];
-  for (const local of localByVariable.values()) {
-    if (!remoteVariables.has(local?.cssVariable as string)) {
-      localOnly.push(itemName(local?.name, local?.cssVariable));
-      nextColors.push(local);
+  for (const [rawKey, rawValue] of rawEntries) {
+    const color = normalizedByRawKey.get(rawKey);
+    if (color === undefined) {
+      // Invalid key: keep the entry and report it, never drop it silently.
+      nextColors[rawKey] = rawValue as BrandKitColorsFileMap[string];
+      localOnly.push(`"${rawKey}" (invalid color key, kept)`);
+      continue;
+    }
+    if (localByVariable.get(color.cssVariable) !== color) {
+      // A dropped duplicate, already reported.
+      continue;
+    }
+    if (!remoteVariables.has(color.cssVariable)) {
+      nextColors[rawKey] = rawValue as BrandKitColorsFileMap[string];
+      localOnly.push(itemName(color.name, color.cssVariable));
     }
   }
 
+  const nextEntries = Object.entries(nextColors);
   const changed =
     localColors === undefined
       ? remoteColors.length > 0
-      : nextColors.length !== locals.length ||
-        nextColors.some((entry, i) => entry !== locals[i]);
+      : nextEntries.length !== rawEntries.length ||
+        nextEntries.some(
+          ([key, value], i) =>
+            key !== rawEntries[i][0] || value !== rawEntries[i][1],
+        );
 
   return {
     colors: nextColors,
@@ -161,12 +220,37 @@ export function planColorPull(
 }
 
 /**
- * Writes the colors array into canvas.brand-kit.json, preserving every other
+ * Reads the raw `colors` map from canvas.brand-kit.json, distinguishing an
+ * absent key (colors not managed, undefined) from an authored empty map.
+ * A missing or unreadable file also yields undefined.
+ */
+export async function readBrandKitColorsFile(
+  projectRoot: string,
+): Promise<BrandKitColorsFileMap | undefined> {
+  const configPath = path.resolve(projectRoot, BRAND_KIT_CONFIG_FILENAME);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(await fs.readFile(configPath, 'utf-8'));
+  } catch {
+    return undefined;
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return undefined;
+  }
+  const colors = (parsed as { colors?: unknown }).colors;
+  if (colors && typeof colors === 'object' && !Array.isArray(colors)) {
+    return colors as BrandKitColorsFileMap;
+  }
+  return undefined;
+}
+
+/**
+ * Writes the colors map into canvas.brand-kit.json, preserving every other
  * top-level key. Creates the file when it does not exist.
  */
 export async function writeBrandKitColorsConfig(
   projectRoot: string,
-  colors: BrandKitColorFileEntry[],
+  colors: BrandKitColorsFileMap,
 ): Promise<void> {
   const configPath = path.resolve(projectRoot, BRAND_KIT_CONFIG_FILENAME);
   let fileContent: Record<string, unknown> = {};

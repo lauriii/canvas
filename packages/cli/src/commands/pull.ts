@@ -4,15 +4,13 @@ import { Option } from 'commander';
 import yaml from 'js-yaml';
 import { parse } from '@babel/parser';
 import * as p from '@clack/prompts';
-import {
-  discoverCanvasProject,
-  readBrandKitColors,
-} from '@drupal-canvas/discovery';
+import { discoverCanvasProject } from '@drupal-canvas/discovery';
 import { resolveHostGlobalCssPath } from '@drupal-canvas/vite-compat';
 
 import { ensureConfig, getConfig } from '../config';
 import {
   planColorPull,
+  readBrandKitColorsFile,
   writeBrandKitColorsConfig,
 } from '../lib/colors/color-pull.js';
 import {
@@ -1065,12 +1063,12 @@ export function createBrandKitPullTask(
       }
 
       remoteColors = brandKit.colors ?? [];
+      const colorPlan = planColorPull(
+        remoteColors,
+        await readBrandKitColorsFile(projectRoot),
+        { skipOverwrite },
+      );
       if (remoteColors.length > 0) {
-        const colorPlan = planColorPull(
-          remoteColors,
-          readBrandKitColors(projectRoot),
-          { skipOverwrite },
-        );
         summaryLines.push(
           formatSummaryLine(
             'brand kit colors',
@@ -1079,6 +1077,16 @@ export function createBrandKitPullTask(
             colorPlan.unchanged + colorPlan.updated.length,
             'color',
           ),
+        );
+      } else if (
+        colorPlan.changed ||
+        colorPlan.localOnly.length > 0 ||
+        colorPlan.duplicates.length > 0
+      ) {
+        // No colors to pull, but the local file still has color entries to
+        // report or tidy — schedule the task so that work happens.
+        summaryLines.push(
+          `brand kit colors: 0 pull (${colorPlan.localOnly.length + colorPlan.duplicates.length} local-only)`,
         );
       }
 
@@ -1122,7 +1130,7 @@ export function createBrandKitPullTask(
       // verbatim, local-only entries preserved and reported.
       const colorPlan = planColorPull(
         remoteColors,
-        readBrandKitColors(projectRoot),
+        await readBrandKitColorsFile(projectRoot),
         { skipOverwrite },
       );
       for (const itemName of colorPlan.added) {
@@ -1158,7 +1166,7 @@ export function createBrandKitPullTask(
       }
       if (colorPlan.duplicates.length > 0) {
         notes.push(
-          `Removed ${colorPlan.duplicates.length} duplicate color ${pluralizeLabel(colorPlan.duplicates.length, 'entry', 'entries')} from canvas.brand-kit.json (the first entry for each cssVariable was kept): ${colorPlan.duplicates.join(', ')}.`,
+          `Removed ${colorPlan.duplicates.length} duplicate color ${pluralizeLabel(colorPlan.duplicates.length, 'entry', 'entries')} from canvas.brand-kit.json (the first entry for each variable was kept): ${colorPlan.duplicates.map((key) => `"${key}"`).join(', ')}.`,
         );
       }
 

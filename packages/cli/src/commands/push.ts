@@ -744,6 +744,16 @@ export function pushCommand(program: Command): void {
         applySyncOptionAliasesAndWarnings(options);
         updateConfigFromOptions(options);
 
+        // Validate the brand kit colors file at command start — before
+        // authentication (which can prompt), discovery, and any request —
+        // so a malformed file cannot cause a partial push.
+        {
+          const earlyConfig = getConfig();
+          if (earlyConfig.includeBrandKit && earlyConfig.colors !== undefined) {
+            validateColorsConfig(earlyConfig.colors);
+          }
+        }
+
         await ensureAuthConfig();
         await ensureConfig(['componentDir']);
         const config = getConfig();
@@ -885,12 +895,6 @@ export function pushCommand(program: Command): void {
         }
 
         logIgnoredLocalResources();
-
-        // Validate the brand kit colors file before any network request so a
-        // malformed file fails fast instead of after a partial push.
-        if (includesBrandKit && config.colors !== undefined) {
-          validateColorsConfig(config.colors);
-        }
 
         apiService = await createApiService();
         const pushApiService = apiService;

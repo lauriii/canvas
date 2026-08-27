@@ -9,7 +9,7 @@ import {
 } from '@drupal-canvas/discovery';
 
 import type {
-  BrandKitColorFileEntry,
+  BrandKitColorsFileMap,
   CanvasConfigWarning,
 } from '@drupal-canvas/discovery';
 
@@ -100,7 +100,7 @@ export interface Config {
   pageTemplatesDir: string;
   globalCssPath: string;
   fonts?: FontsConfig;
-  colors?: BrandKitColorFileEntry[];
+  colors?: BrandKitColorsFileMap;
 }
 
 export { BRAND_KIT_CONFIG_FILENAME };
@@ -111,7 +111,7 @@ export const BRAND_KIT_GLOBAL_ID = 'global';
 /** Top-level shape of canvas.brand-kit.json (fonts, colors, and future brand kit keys). */
 export interface BrandKitConfigFile {
   fonts?: FontsConfig;
-  colors?: BrandKitColorFileEntry[];
+  colors?: BrandKitColorsFileMap;
 }
 
 function loadBrandKitFile(hostRoot: string): BrandKitConfigFile {
@@ -138,9 +138,9 @@ function loadBrandKitFile(hostRoot: string): BrandKitConfigFile {
     result.fonts = fonts;
   }
   // An absent colors key means colors are not managed from this file; an
-  // explicit array (even empty) is an authored palette.
+  // explicit map (even empty) is an authored palette.
   const colors = parsed?.colors;
-  if (Array.isArray(colors)) {
+  if (colors && typeof colors === 'object' && !Array.isArray(colors)) {
     result.colors = colors;
   }
   return result;

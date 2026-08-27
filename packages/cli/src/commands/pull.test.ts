@@ -1484,7 +1484,7 @@ describe('Pull Command', () => {
           cssVariable: '--brand-red',
           value: {
             colorSpace: 'srgb',
-            components: [0.8, 0, 0],
+            components: [204 / 255, 0, 0],
             alpha: null,
             hex: '#cc0000',
           },
@@ -1509,30 +1509,21 @@ describe('Pull Command', () => {
         'utf-8',
       );
       expect(JSON.parse(raw)).toEqual({
-        colors: [
-          { name: 'Brand Red', cssVariable: '--brand-red', value: '#cc0000' },
-        ],
+        colors: { 'brand-red': '#cc0000' },
       });
     });
 
     it('should keep local-only colors and report them as notes', async () => {
       await fs.writeFile(
         path.join(tmpDir, 'canvas.brand-kit.json'),
-        `${JSON.stringify(
-          {
-            colors: [
-              { name: 'Local', cssVariable: '--local', value: '#123456' },
-            ],
-          },
-          null,
-          2,
-        )}\n`,
+        `${JSON.stringify({ colors: { local: '#123456' } }, null, 2)}\n`,
         'utf-8',
       );
       const api = mockApiServiceWithColors([]);
       const task = createBrandKitPullTask(api, tmpDir);
 
-      await task.prepare();
+      const { summaryLines } = await task.prepare();
+      expect(summaryLines).toEqual(['brand kit colors: 0 pull (1 local-only)']);
       const results = await task.execute();
 
       expect(results.notes?.[0]).toContain('Local (--local)');
@@ -1540,9 +1531,7 @@ describe('Pull Command', () => {
         path.join(tmpDir, 'canvas.brand-kit.json'),
         'utf-8',
       );
-      expect(JSON.parse(raw).colors).toEqual([
-        { name: 'Local', cssVariable: '--local', value: '#123456' },
-      ]);
+      expect(JSON.parse(raw).colors).toEqual({ local: '#123456' });
     });
   });
 });

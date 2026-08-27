@@ -8,7 +8,11 @@ import {
   buildBrandKitColorCss,
   colorTokenToCss,
   colorTokenValuesEqual,
+  deriveColorName,
+  normalizeBrandKitColors,
+  normalizeColorKey,
   normalizeColorValue,
+  parseCssColorString,
   parseHexColor,
   readBrandKitColors,
   serializeColorValue,
@@ -29,6 +33,28 @@ afterEach(async () => {
   tempDirs.length = 0;
 });
 
+describe('normalizeColorKey', () => {
+  it('accepts bare keys and strips a -- prefix', () => {
+    expect(normalizeColorKey('brand-red')).toBe('brand-red');
+    expect(normalizeColorKey('--brand-red')).toBe('brand-red');
+    expect(normalizeColorKey('_private')).toBe('_private');
+  });
+
+  it('rejects keys that cannot name a custom property', () => {
+    for (const bad of ['', '1red', 'brand red', 'brand.red', '--', '--1x']) {
+      expect(normalizeColorKey(bad)).toBeNull();
+    }
+  });
+});
+
+describe('deriveColorName', () => {
+  it('derives a title-cased name from the key', () => {
+    expect(deriveColorName('brand-red')).toBe('Brand Red');
+    expect(deriveColorName('overlay')).toBe('Overlay');
+    expect(deriveColorName('text_muted')).toBe('Text Muted');
+  });
+});
+
 describe('parseHexColor', () => {
   it('parses a six-digit hex into srgb components with a null alpha', () => {
     expect(parseHexColor('#cc0000')).toEqual({
@@ -41,10 +67,7 @@ describe('parseHexColor', () => {
 
   it('parses an eight-digit hex into a two-decimal alpha', () => {
     const token = parseHexColor('#cc000080');
-    expect(token).toMatchObject({
-      colorSpace: 'srgb',
-      hex: '#cc0000',
-    });
+    expect(token).toMatchObject({ colorSpace: 'srgb', hex: '#cc0000' });
     expect(token?.alpha).toBe(0.5);
   });
 
@@ -55,6 +78,52 @@ describe('parseHexColor', () => {
   it('rejects malformed strings', () => {
     for (const bad of ['#cc00', 'cc0000', '#cc000', '#gg0000', '#cc00001']) {
       expect(parseHexColor(bad)).toBeNull();
+    }
+  });
+});
+
+describe('parseCssColorString', () => {
+  it('parses rgb() and rgba() in comma and space syntax', () => {
+    expect(parseCssColorString('rgb(204, 0, 0)')).toEqual({
+      token: {
+        colorSpace: 'srgb',
+        components: [204 / 255, 0, 0],
+        alpha: null,
+        hex: '#cc0000',
+      },
+      displayFormat: 'rgb',
+    });
+    expect(parseCssColorString('rgba(204 0 0 / 0.5)')?.token.alpha).toBe(0.5);
+    expect(parseCssColorString('rgba(204, 0, 0, 50%)')?.token.alpha).toBe(0.5);
+  });
+
+  it('parses hsl() and hsla() without computing a hex', () => {
+    expect(parseCssColorString('hsl(220, 60%, 50%)')).toEqual({
+      token: {
+        colorSpace: 'hsl',
+        components: [220, 60, 50],
+        alpha: null,
+        hex: null,
+      },
+      displayFormat: 'hsl',
+    });
+    expect(parseCssColorString('hsla(220, 60%, 50%, 0.5)')?.token.alpha).toBe(
+      0.5,
+    );
+    expect(parseCssColorString('hsl(220 60% 50% / 0.5)')?.token.alpha).toBe(
+      0.5,
+    );
+  });
+
+  it('rejects out-of-range channels and junk', () => {
+    for (const bad of [
+      'rgb(300, 0, 0)',
+      'rgb(1, 2)',
+      'hsl(220, 60, 50)',
+      'red',
+      'var(--other)',
+    ]) {
+      expect(parseCssColorString(bad)).toBeNull();
     }
   });
 });
@@ -75,11 +144,8 @@ describe('colorTokenValuesEqual', () => {
     expect(colorTokenValuesEqual(red, { ...red, alpha: 0.5 })).toBeFalsy();
   });
 
-  it('compares hex case-insensitively', () => {
+  it('compares hex case-insensitively and ignores a one-sided hex', () => {
     expect(colorTokenValuesEqual(red, { ...red, hex: '#CC0000' })).toBeTruthy();
-  });
-
-  it('ignores a one-sided hex', () => {
     expect(colorTokenValuesEqual(red, { ...red, hex: null })).toBeTruthy();
   });
 
@@ -94,51 +160,49 @@ describe('colorTokenValuesEqual', () => {
 });
 
 describe('serializeColorValue', () => {
-  it('writes an opaque srgb color with a stored hex as the plain string', () => {
+  it('writes an opaque srgb color with an exact stored hex as the string', () => {
     expect(
       serializeColorValue({
         colorSpace: 'srgb',
-        components: [0.8, 0, 0],
+        components: [204 / 255, 0, 0],
         alpha: null,
         hex: '#cc0000',
       }),
     ).toBe('#cc0000');
   });
 
-  it('keeps a token object when alpha is meaningful', () => {
+  it('writes translucent srgb as rgba() when exact', () => {
     expect(
       serializeColorValue({
         colorSpace: 'srgb',
-        components: [0.8, 0, 0],
+        components: [204 / 255, 0, 0],
         alpha: 0.5,
         hex: '#cc0000',
       }),
-    ).toEqual({
-      colorSpace: 'srgb',
-      components: [0.8, 0, 0],
-      alpha: 0.5,
-      hex: '#cc0000',
-    });
+    ).toBe('rgba(204, 0, 0, 0.5)');
   });
 
-  it('keeps a token object when no hex is stored, omitting empty keys', () => {
+  it('writes hsl tokens as hsl()/hsla() strings', () => {
     expect(
       serializeColorValue({
-        colorSpace: 'srgb',
-        components: [0.8, 0, 0],
+        colorSpace: 'hsl',
+        components: [220, 60, 50],
         alpha: null,
+        hex: '#3366cc',
+      }),
+    ).toBe('hsl(220, 60%, 50%)');
+    expect(
+      serializeColorValue({
+        colorSpace: 'hsl',
+        components: [220.5, 60, 50],
+        alpha: 0.25,
         hex: null,
       }),
-    ).toEqual({ colorSpace: 'srgb', components: [0.8, 0, 0] });
-  });
-
-  it('round-trips through parseHexColor', () => {
-    const token = parseHexColor('#1a2b3c');
-    expect(serializeColorValue(token!)).toBe('#1a2b3c');
+    ).toBe('hsla(220.5, 60%, 50%, 0.25)');
   });
 
   it('keeps a token object when components only round to the hex', () => {
-    // 0.1 rounds to hex 1a, but 0x1a / 255 is not 0.1 — writing the string
+    // 0.1 rounds to hex 1a, but 0x1a / 255 is not 0.1 — a string form
     // would change the components on the next push.
     expect(
       serializeColorValue({
@@ -169,31 +233,16 @@ describe('serializeColorValue', () => {
     });
   });
 
-  it('accepts an uppercase hex that matches the components', () => {
-    expect(
-      serializeColorValue({
-        colorSpace: 'srgb',
-        components: [204 / 255, 0, 0],
-        alpha: null,
-        hex: '#CC0000',
-      }),
-    ).toBe('#CC0000');
-  });
-});
-
-describe('normalizeColorValue', () => {
-  it('returns null for missing or malformed values', () => {
-    expect(normalizeColorValue(undefined)).toBeNull();
-    expect(normalizeColorValue(null)).toBeNull();
-    expect(normalizeColorValue('#nope')).toBeNull();
-    expect(normalizeColorValue({ colorSpace: 'srgb' } as never)).toBeNull();
-    expect(normalizeColorValue([] as never)).toBeNull();
-    expect(normalizeColorValue(42 as never)).toBeNull();
-  });
-
-  it('passes through a well-formed token object', () => {
-    const token = { colorSpace: 'srgb' as const, components: [0.8, 0, 0] };
-    expect(normalizeColorValue(token)).toBe(token);
+  it('round-trips through the parsers', () => {
+    for (const value of [
+      '#1a2b3c',
+      'rgba(204, 0, 0, 0.5)',
+      'hsl(220, 60%, 50%)',
+      'hsla(220, 60%, 50%, 0.13)',
+    ]) {
+      const parsed = parseCssColorString(value);
+      expect(serializeColorValue(parsed!.token)).toBe(value);
+    }
   });
 });
 
@@ -253,27 +302,97 @@ describe('colorTokenToCss', () => {
   });
 });
 
+describe('normalizeColorValue', () => {
+  it('returns null for missing or malformed values', () => {
+    expect(normalizeColorValue(undefined)).toBeNull();
+    expect(normalizeColorValue(null)).toBeNull();
+    expect(normalizeColorValue('#nope')).toBeNull();
+    expect(normalizeColorValue({ colorSpace: 'srgb' } as never)).toBeNull();
+    expect(normalizeColorValue([] as never)).toBeNull();
+    expect(normalizeColorValue(42 as never)).toBeNull();
+  });
+
+  it('passes through a well-formed token object', () => {
+    const token = { colorSpace: 'srgb' as const, components: [0.8, 0, 0] };
+    expect(normalizeColorValue(token)).toBe(token);
+  });
+});
+
+describe('normalizeBrandKitColors', () => {
+  it('normalizes plain string entries with derived names', () => {
+    const colors = normalizeBrandKitColors({ 'brand-red': '#cc0000' });
+    expect(colors).toHaveLength(1);
+    expect(colors[0]).toMatchObject({
+      rawKey: 'brand-red',
+      key: 'brand-red',
+      cssVariable: '--brand-red',
+      name: 'Brand Red',
+      explicitName: undefined,
+      derivedDisplayFormat: 'hex',
+    });
+    expect(colors[0].token).toMatchObject({ hex: '#cc0000' });
+  });
+
+  it('normalizes prefixed keys and wrapper objects', () => {
+    const colors = normalizeBrandKitColors({
+      '--accent': { value: '#00cc00', name: 'Accent green' },
+    });
+    expect(colors[0]).toMatchObject({
+      rawKey: '--accent',
+      key: 'accent',
+      cssVariable: '--accent',
+      name: 'Accent green',
+      explicitName: 'Accent green',
+    });
+  });
+
+  it('accepts a bare token object as the map value', () => {
+    const colors = normalizeBrandKitColors({
+      exact: { colorSpace: 'srgb', components: [0.1, 0.2, 0.3] },
+    });
+    expect(colors[0].token).toEqual({
+      colorSpace: 'srgb',
+      components: [0.1, 0.2, 0.3],
+    });
+  });
+
+  it('skips invalid keys and yields null tokens for junk values', () => {
+    const colors = normalizeBrandKitColors({
+      '1bad': '#cc0000',
+      broken: 'not-a-color',
+    });
+    expect(colors).toHaveLength(1);
+    expect(colors[0].key).toBe('broken');
+    expect(colors[0].token).toBeNull();
+  });
+
+  it('returns an empty array for non-object input', () => {
+    expect(normalizeBrandKitColors(undefined)).toEqual([]);
+    expect(normalizeBrandKitColors([])).toEqual([]);
+    expect(normalizeBrandKitColors('nope')).toEqual([]);
+  });
+});
+
 describe('buildBrandKitColorCss', () => {
-  it('emits a :root block in file order', () => {
-    const css = buildBrandKitColorCss([
-      { name: 'Brand Red', cssVariable: '--brand-red', value: '#cc0000' },
-      {
-        name: 'Overlay',
-        cssVariable: '--overlay',
-        value: { colorSpace: 'hsl', components: [220, 60, 50], alpha: 0.5 },
-      },
-    ]);
+  it('emits a :root block in map order', () => {
+    const css = buildBrandKitColorCss(
+      normalizeBrandKitColors({
+        'brand-red': '#cc0000',
+        overlay: 'hsla(220, 60%, 50%, 0.5)',
+      }),
+    );
     expect(css).toBe(
       ':root {\n  --brand-red: #cc0000;\n  --overlay: hsla(220, 60%, 50%, 0.5);\n}',
     );
   });
 
-  it('skips entries with invalid variables or unparseable values', () => {
-    const css = buildBrandKitColorCss([
-      { name: 'Bad var', cssVariable: 'brand-red', value: '#cc0000' },
-      { name: 'Bad value', cssVariable: '--bad', value: '#xyz' },
-      { name: 'Good', cssVariable: '--good', value: '#00cc00' },
-    ]);
+  it('skips entries whose value cannot be parsed', () => {
+    const css = buildBrandKitColorCss(
+      normalizeBrandKitColors({
+        bad: '#xyz',
+        good: '#00cc00',
+      }),
+    );
     expect(css).toBe(':root {\n  --good: #00cc00;\n}');
   });
 
@@ -283,59 +402,30 @@ describe('buildBrandKitColorCss', () => {
 });
 
 describe('readBrandKitColors', () => {
-  it('reads color entries from canvas.brand-kit.json', async () => {
+  it('reads and normalizes the colors map from canvas.brand-kit.json', async () => {
     const root = await makeTempDir();
     tempDirs.push(root);
     await fs.writeFile(
       path.join(root, BRAND_KIT_CONFIG_FILENAME),
       JSON.stringify({
         fonts: { families: [] },
-        colors: [
-          { name: 'Brand Red', cssVariable: '--brand-red', value: '#cc0000' },
-        ],
+        colors: { 'brand-red': '#cc0000' },
       }),
       'utf-8',
     );
-    expect(readBrandKitColors(root)).toEqual([
-      { name: 'Brand Red', cssVariable: '--brand-red', value: '#cc0000' },
-    ]);
+    const colors = readBrandKitColors(root);
+    expect(colors).toHaveLength(1);
+    expect(colors[0].cssVariable).toBe('--brand-red');
   });
 
-  it('returns an empty array for a missing file', async () => {
+  it('returns an empty array for a missing file, invalid JSON, or a non-object colors key', async () => {
     const root = await makeTempDir();
     tempDirs.push(root);
     expect(readBrandKitColors(root)).toEqual([]);
-  });
-
-  it('returns an empty array for invalid JSON', async () => {
-    const root = await makeTempDir();
-    tempDirs.push(root);
-    await fs.writeFile(
-      path.join(root, BRAND_KIT_CONFIG_FILENAME),
-      '{ "colors": [',
-      'utf-8',
-    );
-    expect(readBrandKitColors(root)).toEqual([]);
-  });
-
-  it('returns an empty array when colors is absent or not an array', async () => {
-    const root = await makeTempDir();
-    tempDirs.push(root);
     const file = path.join(root, BRAND_KIT_CONFIG_FILENAME);
-    await fs.writeFile(file, JSON.stringify({ fonts: {} }), 'utf-8');
+    await fs.writeFile(file, '{ "colors": {', 'utf-8');
     expect(readBrandKitColors(root)).toEqual([]);
-    await fs.writeFile(file, JSON.stringify({ colors: {} }), 'utf-8');
+    await fs.writeFile(file, JSON.stringify({ colors: [1, 2] }), 'utf-8');
     expect(readBrandKitColors(root)).toEqual([]);
-  });
-
-  it('drops non-object entries', async () => {
-    const root = await makeTempDir();
-    tempDirs.push(root);
-    await fs.writeFile(
-      path.join(root, BRAND_KIT_CONFIG_FILENAME),
-      JSON.stringify({ colors: [null, 'nope', 42, { name: 'ok' }] }),
-      'utf-8',
-    );
-    expect(readBrandKitColors(root)).toEqual([{ name: 'ok' }]);
   });
 });

@@ -3,10 +3,13 @@ import os from 'os';
 import path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { planColorPull, writeBrandKitColorsConfig } from './color-pull';
+import {
+  planColorPull,
+  readBrandKitColorsFile,
+  writeBrandKitColorsConfig,
+} from './color-pull';
 import { pushColors } from './color-push';
 
-import type { BrandKitColorFileEntry } from '@drupal-canvas/discovery';
 import type { ApiService } from '../../services/api';
 import type { BrandKitColorEntry } from '../../types/Component';
 
@@ -19,7 +22,7 @@ function remoteColor(
     cssVariable: '--brand-red',
     value: {
       colorSpace: 'srgb',
-      components: [0.8, 0, 0],
+      components: [204 / 255, 0, 0],
       alpha: null,
       hex: '#cc0000',
     },
@@ -29,209 +32,180 @@ function remoteColor(
   };
 }
 
+function remoteBlue(
+  overrides: Partial<BrandKitColorEntry> = {},
+): BrandKitColorEntry {
+  return remoteColor({
+    id: 'uuid-blue',
+    name: 'Brand Blue',
+    cssVariable: '--brand-blue',
+    value: {
+      colorSpace: 'srgb',
+      components: [0, 0, 204 / 255],
+      alpha: null,
+      hex: '#0000cc',
+    },
+    ...overrides,
+  });
+}
+
 describe('planColorPull', () => {
-  it('serializes new server colors as hand-editable entries', () => {
+  it('writes new server colors as one-line entries when the name derives from the key', () => {
     const plan = planColorPull([remoteColor()], undefined);
-    expect(plan.colors).toEqual([
-      { name: 'Brand Red', cssVariable: '--brand-red', value: '#cc0000' },
-    ]);
+    expect(plan.colors).toEqual({ 'brand-red': '#cc0000' });
     expect(plan.added).toEqual(['Brand Red (--brand-red)']);
     expect(plan.changed).toBe(true);
   });
 
-  it('keeps a semantically equal local entry verbatim', () => {
-    const local: BrandKitColorFileEntry = {
-      name: 'Brand Red',
-      cssVariable: '--brand-red',
-      value: '#CC0000',
-    };
-    const plan = planColorPull([remoteColor()], [local]);
-    expect(plan.colors[0]).toBe(local);
+  it('writes a wrapper entry when the server name does not derive from the key', () => {
+    const plan = planColorPull(
+      [remoteColor({ name: 'My Fancy Red' })],
+      undefined,
+    );
+    expect(plan.colors).toEqual({
+      'brand-red': { value: '#cc0000', name: 'My Fancy Red' },
+    });
+  });
+
+  it('serializes hsl colors as hsl strings', () => {
+    const plan = planColorPull(
+      [
+        remoteColor({
+          cssVariable: '--overlay',
+          name: 'Overlay',
+          value: {
+            colorSpace: 'hsl',
+            components: [220, 60, 50],
+            alpha: 0.5,
+            hex: '#3366cc',
+          },
+        }),
+      ],
+      undefined,
+    );
+    expect(plan.colors).toEqual({ overlay: 'hsla(220, 60%, 50%, 0.5)' });
+  });
+
+  it('keeps a semantically equal local entry and its key spelling verbatim', () => {
+    const local = { '--brand-red': '#CC0000' };
+    const plan = planColorPull([remoteColor()], local);
+    expect(plan.colors).toEqual({ '--brand-red': '#CC0000' });
     expect(plan.unchanged).toBe(1);
     expect(plan.changed).toBe(false);
   });
 
+  it('does not rewrite a one-line entry when only the server name differs', () => {
+    const plan = planColorPull([remoteColor({ name: 'My Fancy Red' })], {
+      'brand-red': '#cc0000',
+    });
+    expect(plan.colors).toEqual({ 'brand-red': '#cc0000' });
+    expect(plan.changed).toBe(false);
+  });
+
+  it('updates an entry that asserts a name the server renamed', () => {
+    const plan = planColorPull([remoteColor({ name: 'New Name' })], {
+      'brand-red': { value: '#cc0000', name: 'Old Name' },
+    });
+    expect(plan.colors).toEqual({
+      'brand-red': { value: '#cc0000', name: 'New Name' },
+    });
+    expect(plan.updated).toEqual(['New Name (--brand-red)']);
+  });
+
   it('updates a local entry whose value differs on the server', () => {
-    const plan = planColorPull(
-      [
-        remoteColor({
-          value: {
-            colorSpace: 'srgb',
-            components: [0, 0, 0.8],
-            alpha: null,
-            hex: '#0000cc',
-          },
-        }),
-      ],
-      [{ name: 'Brand Red', cssVariable: '--brand-red', value: '#cc0000' }],
-    );
-    expect(plan.colors).toEqual([
-      { name: 'Brand Red', cssVariable: '--brand-red', value: '#0000cc' },
-    ]);
+    const plan = planColorPull([remoteColor({ value: remoteBlue().value })], {
+      'brand-red': '#cc0000',
+    });
+    expect(plan.colors).toEqual({ 'brand-red': '#0000cc' });
     expect(plan.updated).toEqual(['Brand Red (--brand-red)']);
     expect(plan.changed).toBe(true);
   });
 
   it('reorders the file to the server palette order', () => {
-    const red: BrandKitColorFileEntry = {
-      name: 'Brand Red',
-      cssVariable: '--brand-red',
-      value: '#cc0000',
-    };
-    const blue: BrandKitColorFileEntry = {
-      name: 'Brand Blue',
-      cssVariable: '--brand-blue',
-      value: '#0000cc',
-    };
     const plan = planColorPull(
-      [
-        remoteColor({
-          id: 'uuid-blue',
-          name: 'Brand Blue',
-          cssVariable: '--brand-blue',
-          value: {
-            colorSpace: 'srgb',
-            components: [0, 0, 0.8],
-            alpha: null,
-            hex: '#0000cc',
-          },
-          weight: 0,
-        }),
-        remoteColor({ weight: 1 }),
-      ],
-      [red, blue],
+      [remoteBlue({ weight: 0 }), remoteColor({ weight: 1 })],
+      { 'brand-red': '#cc0000', 'brand-blue': '#0000cc' },
     );
-    expect(plan.colors).toEqual([blue, red]);
+    expect(Object.keys(plan.colors)).toEqual(['brand-blue', 'brand-red']);
     expect(plan.changed).toBe(true);
     expect(plan.unchanged).toBe(2);
   });
 
   it('keeps local-only entries at the end and reports them', () => {
-    const localOnly: BrandKitColorFileEntry = {
-      name: 'Draft',
-      cssVariable: '--draft',
-      value: '#123456',
-    };
-    const plan = planColorPull([remoteColor()], [localOnly]);
-    expect(plan.colors).toEqual([
-      { name: 'Brand Red', cssVariable: '--brand-red', value: '#cc0000' },
-      localOnly,
-    ]);
+    const plan = planColorPull([remoteColor()], { draft: '#123456' });
+    expect(plan.colors).toEqual({
+      'brand-red': '#cc0000',
+      draft: '#123456',
+    });
     expect(plan.localOnly).toEqual(['Draft (--draft)']);
   });
 
-  it('serializes a translucent color as a token object', () => {
+  it('serializes non-exact components as a token object', () => {
     const plan = planColorPull(
       [
         remoteColor({
           value: {
             colorSpace: 'srgb',
-            components: [0.8, 0, 0],
-            alpha: 0.5,
-            hex: '#cc0000',
+            components: [0.1, 0.2, 0.3],
+            alpha: null,
+            hex: '#1a334d',
           },
         }),
       ],
       undefined,
     );
-    expect(plan.colors[0].value).toEqual({
+    expect(plan.colors['brand-red']).toEqual({
       colorSpace: 'srgb',
-      components: [0.8, 0, 0],
-      alpha: 0.5,
-      hex: '#cc0000',
+      components: [0.1, 0.2, 0.3],
+      hex: '#1a334d',
     });
   });
 
-  it('includes displayFormat only when the server has one', () => {
-    const plan = planColorPull(
-      [remoteColor({ displayFormat: 'rgb' })],
-      undefined,
-    );
-    expect(plan.colors[0]).toEqual({
-      name: 'Brand Red',
-      cssVariable: '--brand-red',
-      value: '#cc0000',
-      displayFormat: 'rgb',
+  it('keeps the first duplicate variable entry and reports the rest', () => {
+    const plan = planColorPull([remoteColor()], {
+      'brand-red': '#CC0000',
+      '--brand-red': '#0000cc',
     });
+    expect(plan.colors).toEqual({ 'brand-red': '#CC0000' });
+    expect(plan.duplicates).toEqual(['--brand-red']);
+    expect(plan.changed).toBe(true);
+  });
+
+  it('keeps and reports entries with invalid keys instead of dropping them', () => {
+    const plan = planColorPull([], { '1bad': '#cc0000' });
+    expect(plan.colors).toEqual({ '1bad': '#cc0000' });
+    expect(plan.localOnly).toEqual(['"1bad" (invalid color key, kept)']);
+    expect(plan.changed).toBe(false);
+  });
+
+  it('repairs a local entry whose value no longer parses', () => {
+    const plan = planColorPull([remoteColor()], { 'brand-red': 'nonsense' });
+    expect(plan.colors).toEqual({ 'brand-red': '#cc0000' });
+    expect(plan.updated).toEqual(['Brand Red (--brand-red)']);
   });
 
   it('does not mark an empty file changed when the server has no colors', () => {
     expect(planColorPull([], undefined).changed).toBe(false);
-    expect(planColorPull([], []).changed).toBe(false);
-  });
-
-  it('keeps the first duplicate cssVariable entry and reports the rest', () => {
-    const first: BrandKitColorFileEntry = {
-      name: 'Brand Red',
-      cssVariable: '--brand-red',
-      value: '#CC0000',
-    };
-    const second: BrandKitColorFileEntry = {
-      name: 'Second',
-      cssVariable: '--brand-red',
-      value: '#0000cc',
-    };
-    const plan = planColorPull([remoteColor()], [first, second]);
-    expect(plan.colors).toEqual([first]);
-    expect(plan.colors[0]).toBe(first);
-    expect(plan.duplicates).toEqual(['Second (--brand-red)']);
-  });
-
-  it('does not crash on a malformed local entry and repairs it from the server', () => {
-    const broken = {
-      name: 'Brand Red',
-      cssVariable: '--brand-red',
-    } as BrandKitColorFileEntry;
-    const plan = planColorPull([remoteColor()], [broken]);
-    expect(plan.colors).toEqual([
-      { name: 'Brand Red', cssVariable: '--brand-red', value: '#cc0000' },
-    ]);
-    expect(plan.updated).toEqual(['Brand Red (--brand-red)']);
-  });
-
-  it('reports a junk local-only entry without crashing', () => {
-    const junk = {} as BrandKitColorFileEntry;
-    const plan = planColorPull([], [junk]);
-    expect(plan.localOnly).toEqual(['(unnamed) (no cssVariable)']);
-    expect(plan.colors).toEqual([junk]);
+    expect(planColorPull([], {}).changed).toBe(false);
   });
 
   it('leaves existing local entries alone with skipOverwrite', () => {
-    const local: BrandKitColorFileEntry = {
-      name: 'Brand Red',
-      cssVariable: '--brand-red',
-      value: '#123456',
-    };
     const plan = planColorPull(
-      [
-        remoteColor(),
-        remoteColor({
-          id: 'uuid-blue',
-          name: 'Brand Blue',
-          cssVariable: '--brand-blue',
-          value: {
-            colorSpace: 'srgb',
-            components: [0, 0, 0.8],
-            alpha: null,
-            hex: '#0000cc',
-          },
-          weight: 1,
-        }),
-      ],
-      [local],
+      [remoteColor(), remoteBlue({ weight: 1 })],
+      { 'brand-red': '#123456' },
       { skipOverwrite: true },
     );
-    expect(plan.colors).toEqual([
-      local,
-      { name: 'Brand Blue', cssVariable: '--brand-blue', value: '#0000cc' },
-    ]);
+    expect(plan.colors).toEqual({
+      'brand-red': '#123456',
+      'brand-blue': '#0000cc',
+    });
     expect(plan.added).toEqual(['Brand Blue (--brand-blue)']);
     expect(plan.unchanged).toBe(1);
     expect(plan.changed).toBe(true);
   });
 });
 
-describe('writeBrandKitColorsConfig', () => {
+describe('readBrandKitColorsFile and writeBrandKitColorsConfig', () => {
   let tmpDir: string;
 
   beforeEach(async () => {
@@ -242,33 +216,38 @@ describe('writeBrandKitColorsConfig', () => {
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
-  it('preserves other top-level keys', async () => {
+  it('distinguishes an absent colors key from an empty map', async () => {
+    const configPath = path.join(tmpDir, 'canvas.brand-kit.json');
+    expect(await readBrandKitColorsFile(tmpDir)).toBeUndefined();
+    await fs.writeFile(configPath, JSON.stringify({ fonts: {} }), 'utf-8');
+    expect(await readBrandKitColorsFile(tmpDir)).toBeUndefined();
+    await fs.writeFile(configPath, JSON.stringify({ colors: {} }), 'utf-8');
+    expect(await readBrandKitColorsFile(tmpDir)).toEqual({});
+  });
+
+  it('preserves other top-level keys on write', async () => {
     const configPath = path.join(tmpDir, 'canvas.brand-kit.json');
     await fs.writeFile(
       configPath,
       `${JSON.stringify({ fonts: { families: [{ name: 'Inter' }] } }, null, 2)}\n`,
       'utf-8',
     );
-    await writeBrandKitColorsConfig(tmpDir, [
-      { name: 'Brand Red', cssVariable: '--brand-red', value: '#cc0000' },
-    ]);
+    await writeBrandKitColorsConfig(tmpDir, { 'brand-red': '#cc0000' });
     const raw = await fs.readFile(configPath, 'utf-8');
     expect(JSON.parse(raw)).toEqual({
       fonts: { families: [{ name: 'Inter' }] },
-      colors: [
-        { name: 'Brand Red', cssVariable: '--brand-red', value: '#cc0000' },
-      ],
+      colors: { 'brand-red': '#cc0000' },
     });
     expect(raw.endsWith('\n')).toBe(true);
   });
 
   it('creates the file when it does not exist', async () => {
-    await writeBrandKitColorsConfig(tmpDir, []);
+    await writeBrandKitColorsConfig(tmpDir, {});
     const raw = await fs.readFile(
       path.join(tmpDir, 'canvas.brand-kit.json'),
       'utf-8',
     );
-    expect(JSON.parse(raw)).toEqual({ colors: [] });
+    expect(JSON.parse(raw)).toEqual({ colors: {} });
   });
 });
 
@@ -314,7 +293,7 @@ describe('round trip', () => {
 
   it('pull right after push produces no file change', async () => {
     const { api } = fakeServer([
-      remoteColor({ weight: 0 }),
+      remoteColor({ name: 'My Fancy Red', weight: 0 }),
       remoteColor({
         id: 'uuid-overlay',
         name: 'Overlay',
@@ -335,14 +314,12 @@ describe('round trip', () => {
       (await api.getBrandKit()).colors ?? [],
       undefined,
     );
-    let fileColors = firstPull.colors;
-
     // Edit: change a value, add a color, reorder.
-    fileColors = [
-      { name: 'Brand Blue', cssVariable: '--brand-blue', value: '#0000cc' },
-      { ...fileColors[1] },
-      { ...fileColors[0], value: '#dd0000' },
-    ];
+    const fileColors = {
+      'brand-blue': '#0000cc',
+      overlay: firstPull.colors.overlay,
+      'brand-red': { value: '#dd0000', name: 'My Fancy Red' },
+    };
 
     await pushColors(fileColors, api);
 
