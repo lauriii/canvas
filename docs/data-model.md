@@ -161,13 +161,14 @@ These columns always meet the following requirements
 1. every `component instance` is represented by a "uuid, component_id, component_version" triple, with:
   - the value for "component_id" being the ID of a `Component config entity` (NOT that of the underlying `component`)
   - the value for "component_version" being a version on the (versioned!) `Component config entity` (see `\Drupal\canvas\Entity\VersionedConfigEntityInterface::getVersions()`)
-  - the "uuid" being a randomly generated UUID; it must never be `a548b48d-58a8-4077-aa04-da9405a6f418` (compared case-insensitively): that UUID is reserved to represent the root of the component tree (see `\Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::ROOT_UUID`)
+  - the "uuid" being a randomly generated UUID in its lowercase canonical form; it must never be `a548b48d-58a8-4077-aa04-da9405a6f418` (compared case-insensitively): that UUID is reserved to represent the root of the component tree (see `\Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::ROOT_UUID`)
 2. Any top-level items have NULL for both the `parent_uuid` and `slot`.
 3. Nested components must have a value for both the `parent_uuid` and `slot`.
     1. The `parent_uuid` must exist in a sibling field item in the `ComponentTreeItemList`.
     2. The `slot` must be present in the parent `component`'s slot definitions
     3. The `parent_uuid` must not be the same as the `uuid` - you cannot reference yourself as a parent
     4. The `parent_uuid` must not be the reserved root UUID either: placement at the root of the tree is expressed by omitting both `parent_uuid` and `slot` (see requirement 2)
+    5. The chain of `parent_uuid` references must not form a cycle: no component instance can be an ancestor of itself
 4. Each `uuid` must be unique in the list of items
 5. The `delta` of each field item represents the order that components in the same level of the tree appear in.
 

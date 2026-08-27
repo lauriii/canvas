@@ -516,7 +516,8 @@ class ComponentTreeItemTest extends CanvasKernelTestBase {
       \sprintf('field_canvas_test.2.inputs.%s', self::UUID_DYNAMIC_STATIC_CARD_4) => 'The required properties are missing.',
     ];
     $test_cases['non unique uuids'][] = [
-      'field_canvas_test' => 'Not all component instance UUIDs in this component tree are unique.',
+      'field_canvas_test.0.uuid' => 'Invalid component tree item with UUID <em class="placeholder">09de669f-b85b-40ef-9c01-b27f1b089020</em>. This UUID is used by <em class="placeholder">2</em> component instances in this component tree; each component instance must have a unique UUID.',
+      'field_canvas_test.2.uuid' => 'Invalid component tree item with UUID <em class="placeholder">09de669f-b85b-40ef-9c01-b27f1b089020</em>. This UUID is used by <em class="placeholder">2</em> component instances in this component tree; each component instance must have a unique UUID.',
     ];
     $test_cases['invalid parent'][] = [
       'field_canvas_test.1.parent_uuid' => 'Invalid component tree item with UUID <em class="placeholder">e303dd88-9409-4dc7-8a8b-a31602884a94</em> references an invalid parent <em class="placeholder">6381352f-5b0a-4ca1-960d-a5505b37b27c</em>.',

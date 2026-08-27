@@ -26,7 +26,6 @@ use Symfony\Component\Validator\Constraints\Optional;
 use Symfony\Component\Validator\Constraints\Required;
 use Symfony\Component\Validator\Constraints\Sequentially;
 use Symfony\Component\Validator\Constraints\Type;
-use Symfony\Component\Validator\Constraints\Unique;
 use Symfony\Component\Validator\Constraints\Uuid;
 use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\ConstraintViolation;
@@ -157,7 +156,7 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
       new Sequentially([
         new Type('array'),
         new All([$component_instance_constraint]),
-        new Unique(fields: ['uuid'], message: 'Not all component instance UUIDs in this component tree are unique.'),
+        new Callback(self::validateUuidUniqueness(...)),
       ]),
     ]);
 
@@ -231,9 +230,56 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
       return;
     }
 
+    // Require the lowercase canonical form: the database columns storing UUIDs
+    // are case-insensitive, but rendering matches UUIDs exactly, so two
+    // spellings of one UUID would collide in storage yet not resolve each
+    // other as parents. Checked after the reserved-UUID ban so that any
+    // spelling of the reserved UUID gets the more specific message above.
+    if ($component_instance['uuid'] !== \strtolower($component_instance['uuid'])) {
+      $context->buildViolation('Invalid component tree item with UUID %uuid. UUIDs must be lowercase.', [
+        '%uuid' => $component_instance['uuid'],
+      ])
+        ->atPath('uuid')
+        ->addViolation();
+      return;
+    }
+
     $root = $payload['root'];
 
     if (empty($component_instance['parent_uuid'])) {
+      // The mirror image of the "a parent UUID requires a slot name" check
+      // below: a slot name without a parent UUID is meaningless, because a
+      // slot can only be identified relative to a parent component instance.
+      if (!empty($component_instance['slot'])) {
+        $context->buildViolation('Invalid component tree item with UUID %uuid. A parent UUID must be present if a slot name is provided.', [
+          '%uuid' => $component_instance['uuid'],
+        ])
+          ->atPath('slot')
+          ->addViolation();
+      }
+      return;
+    }
+
+    // The database columns storing UUIDs are case-insensitive, so compare
+    // case-insensitively.
+    if (\strcasecmp($component_instance['parent_uuid'], ComponentTreeItemList::ROOT_UUID) === 0) {
+      $context->buildViolation('Invalid component tree item with UUID %uuid references the reserved root UUID as its parent. Component instances at the root of the tree must omit parent_uuid and slot.', [
+        '%uuid' => $component_instance['uuid'],
+      ])
+        ->atPath('parent_uuid')
+        ->addViolation();
+      return;
+    }
+
+    // Require the lowercase canonical form here too; see the identical check
+    // for `uuid` above.
+    if ($component_instance['parent_uuid'] !== \strtolower($component_instance['parent_uuid'])) {
+      $context->buildViolation('Invalid component tree item with UUID %uuid. Its parent_uuid %parent_uuid must be lowercase.', [
+        '%uuid' => $component_instance['uuid'],
+        '%parent_uuid' => $component_instance['parent_uuid'],
+      ])
+        ->atPath('parent_uuid')
+        ->addViolation();
       return;
     }
 
@@ -244,12 +290,10 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
         ->atPath('parent_uuid')
         ->addViolation();
     }
-
-    // The database columns storing UUIDs are case-insensitive, so compare
-    // case-insensitively.
-    if (\strcasecmp($component_instance['parent_uuid'], ComponentTreeItemList::ROOT_UUID) === 0) {
-      $context->buildViolation('Invalid component tree item with UUID %uuid references the reserved root UUID as its parent. Component instances at the root of the tree must omit parent_uuid and slot.', [
+    elseif (self::isPartOfParentCycle($component_instance, $tree)) {
+      $context->buildViolation('Invalid component tree item with UUID %uuid is part of a cycle: it is an ancestor of its own parent %parent_uuid.', [
         '%uuid' => $component_instance['uuid'],
+        '%parent_uuid' => $component_instance['parent_uuid'],
       ])
         ->atPath('parent_uuid')
         ->addViolation();
@@ -340,6 +384,51 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
         ->atPath('slot')
         ->addViolation();
     }
+  }
+
+  /**
+   * Reports one violation per component instance carrying a duplicated UUID.
+   *
+   * Items that are not arrays or lack a `uuid` key are ignored: the Collection
+   * constraint already reports those.
+   */
+  private static function validateUuidUniqueness(array $tree, ExecutionContextInterface $context): void {
+    $count_by_uuid = \array_count_values(\array_filter(\array_column($tree, 'uuid'), \is_string(...)));
+    foreach ($tree as $key => $item) {
+      $uuid = \is_array($item) ? ($item['uuid'] ?? NULL) : NULL;
+      if (\is_string($uuid) && $count_by_uuid[$uuid] > 1) {
+        $context->buildViolation('Invalid component tree item with UUID %uuid. This UUID is used by %count component instances in this component tree; each component instance must have a unique UUID.', [
+          '%uuid' => $uuid,
+          '%count' => $count_by_uuid[$uuid],
+        ])
+          ->atPath(\sprintf('[%s][uuid]', $key))
+          ->addViolation();
+      }
+    }
+  }
+
+  /**
+   * Whether following this component instance's chain of parents returns to it.
+   *
+   * Only component instances that are themselves part of the cycle are
+   * detected. 3 possible outcomes when following the chain of parents:
+   * 1. it terminates: at a root-level component instance, at a parent absent
+   *    from this tree (a dangling parent, or a parent living in the content
+   *    template this tree is validated against) — no cycle;
+   * 2. it re-encounters this component instance — it is part of a cycle;
+   * 3. it enters a cycle that does not contain this component instance (it
+   *    merely descends from one) — not flagged here: the cycle's own members
+   *    are, and fixing those makes this component instance renderable again.
+   */
+  private static function isPartOfParentCycle(array $component_instance, array $tree): bool {
+    $ancestor_uuid = $component_instance['parent_uuid'];
+    $visited = [$component_instance['uuid'] => TRUE];
+    while ($ancestor_uuid !== NULL && !isset($visited[$ancestor_uuid])) {
+      $visited[$ancestor_uuid] = TRUE;
+      $ancestors = \array_filter($tree, static fn (array $item): bool => ($item['uuid'] ?? NULL) === $ancestor_uuid);
+      $ancestor_uuid = $ancestors === [] ? NULL : (\reset($ancestors)['parent_uuid'] ?? NULL);
+    }
+    return $ancestor_uuid === $component_instance['uuid'];
   }
 
 }
