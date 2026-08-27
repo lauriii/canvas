@@ -1,7 +1,11 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { STABLE_HEIGHT_ATTRIBUTE, StableHeightReader } from './stable-height';
+import {
+  measureNaturalDocumentHeight,
+  STABLE_HEIGHT_ATTRIBUTE,
+  StableHeightReader,
+} from './stable-height';
 
 type HeightMode = 'fixed' | 'viewport';
 
@@ -65,6 +69,36 @@ function installHeightHarness(options: {
 afterEach(() => {
   document.body.innerHTML = '';
   vi.restoreAllMocks();
+});
+
+describe('measureNaturalDocumentHeight', () => {
+  it('leaves no style attribute behind on roots that had none', () => {
+    document.documentElement.removeAttribute('style');
+    document.body.removeAttribute('style');
+
+    measureNaturalDocumentHeight(document);
+
+    expect(document.documentElement.hasAttribute('style')).toBe(false);
+    expect(document.body.hasAttribute('style')).toBe(false);
+  });
+
+  it('restores the previous inline height styles', () => {
+    document.documentElement.style.setProperty('height', '100%');
+    document.body.style.setProperty('min-height', '50px', 'important');
+
+    measureNaturalDocumentHeight(document);
+
+    expect(document.documentElement.style.getPropertyValue('height')).toBe(
+      '100%',
+    );
+    expect(document.body.style.getPropertyValue('min-height')).toBe('50px');
+    expect(document.body.style.getPropertyPriority('min-height')).toBe(
+      'important',
+    );
+
+    document.documentElement.removeAttribute('style');
+    document.body.removeAttribute('style');
+  });
 });
 
 describe('StableHeightReader', () => {
