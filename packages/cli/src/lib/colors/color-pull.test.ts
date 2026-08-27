@@ -2,6 +2,7 @@ import fs from 'fs/promises';
 import os from 'os';
 import path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { BRAND_KIT_SCHEMA_URL } from '@drupal-canvas/discovery';
 
 import {
   planColorPull,
@@ -273,13 +274,18 @@ describe('readBrandKitColorsFile and writeBrandKitColorsConfig', () => {
     expect(raw.endsWith('\n')).toBe(true);
   });
 
-  it('creates the file when it does not exist', async () => {
+  it('creates the file with a $schema reference when it does not exist', async () => {
     await writeBrandKitColorsConfig(tmpDir, {});
     const raw = await fs.readFile(
       path.join(tmpDir, 'canvas.brand-kit.json'),
       'utf-8',
     );
-    expect(JSON.parse(raw)).toEqual({ colors: {} });
+    expect(JSON.parse(raw)).toEqual({
+      $schema: BRAND_KIT_SCHEMA_URL,
+      colors: {},
+    });
+    // The reference comes first so the file reads like its siblings.
+    expect(raw.startsWith('{\n  "$schema"')).toBe(true);
   });
 });
 

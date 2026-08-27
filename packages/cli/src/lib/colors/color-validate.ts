@@ -88,10 +88,23 @@ function validateValue(label: string, value: unknown, errors: string[]): void {
  * Throws with all errors listed so the user can fix the file in one go.
  */
 export function validateColorsConfig(colors: BrandKitColorsFileMap): void {
+  const errors = collectColorConfigErrors(colors);
+  if (errors.length > 0) {
+    throw new Error(`Color config validation failed:\n${errors.join('\n')}`);
+  }
+}
+
+/**
+ * Collects the validation errors for a `colors` map without throwing, so
+ * callers like `canvas validate` can report them per entry.
+ */
+export function collectColorConfigErrors(
+  colors: BrandKitColorsFileMap,
+): string[] {
   if (!colors || typeof colors !== 'object' || Array.isArray(colors)) {
-    throw new Error(
-      'Color config validation failed:\n"colors" must be an object mapping color keys to values, like { "brand-red": "#cc0000" }.',
-    );
+    return [
+      '"colors" must be an object mapping color keys to values, like { "brand-red": "#cc0000" }.',
+    ];
   }
 
   const errors: string[] = [];
@@ -145,7 +158,5 @@ export function validateColorsConfig(colors: BrandKitColorsFileMap): void {
     }
   }
 
-  if (errors.length > 0) {
-    throw new Error(`Color config validation failed:\n${errors.join('\n')}`);
-  }
+  return errors;
 }

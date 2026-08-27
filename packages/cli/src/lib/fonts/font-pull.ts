@@ -1,5 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
+import { BRAND_KIT_SCHEMA_URL } from '@drupal-canvas/discovery';
 
 import { BRAND_KIT_CONFIG_FILENAME } from '../../config.js';
 import { FONT_EXTENSIONS, normalizeFontFormat } from './font-extensions.js';
@@ -324,7 +325,11 @@ export async function updateBrandKitConfig(
   if (newFamilies.length === 0) return;
 
   const configPath = path.resolve(projectRoot, BRAND_KIT_CONFIG_FILENAME);
-  let fileContent: Record<string, unknown> = {};
+  // A newly created file gets a $schema reference for editor tooling;
+  // existing files are left to their author's choice.
+  let fileContent: Record<string, unknown> = {
+    $schema: BRAND_KIT_SCHEMA_URL,
+  };
   try {
     const raw = await fs.readFile(configPath, 'utf-8');
     const parsed = JSON.parse(raw);
@@ -332,7 +337,7 @@ export async function updateBrandKitConfig(
       fileContent = parsed as Record<string, unknown>;
     }
   } catch {
-    // File missing or invalid; start with empty object.
+    // File missing or invalid; start fresh.
   }
 
   const existingFonts = (fileContent.fonts as FontsConfig | undefined) ?? {

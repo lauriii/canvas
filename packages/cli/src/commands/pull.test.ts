@@ -1509,6 +1509,8 @@ describe('Pull Command', () => {
         'utf-8',
       );
       expect(JSON.parse(raw)).toEqual({
+        $schema:
+          'https://unpkg.com/@drupal-canvas/workbench/dist/client/src/lib/schemas/brand-kit.schema.json',
         colors: { 'brand-red': '#cc0000' },
       });
     });

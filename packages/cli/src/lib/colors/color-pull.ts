@@ -2,6 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import {
   BRAND_KIT_CONFIG_FILENAME,
+  BRAND_KIT_SCHEMA_URL,
   colorTokenValuesEqual,
   deriveColorName,
   normalizeBrandKitColors,
@@ -265,7 +266,11 @@ export async function writeBrandKitColorsConfig(
   colors: BrandKitColorsFileMap,
 ): Promise<void> {
   const configPath = path.resolve(projectRoot, BRAND_KIT_CONFIG_FILENAME);
-  let fileContent: Record<string, unknown> = {};
+  // A newly created file gets a $schema reference for editor tooling;
+  // existing files are left to their author's choice.
+  let fileContent: Record<string, unknown> = {
+    $schema: BRAND_KIT_SCHEMA_URL,
+  };
   try {
     const raw = await fs.readFile(configPath, 'utf-8');
     const parsed = JSON.parse(raw);
@@ -273,7 +278,7 @@ export async function writeBrandKitColorsConfig(
       fileContent = parsed as Record<string, unknown>;
     }
   } catch {
-    // File missing or invalid; start with an empty object.
+    // File missing or invalid; start fresh.
   }
 
   await fs.writeFile(

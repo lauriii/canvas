@@ -5,6 +5,13 @@ import { resolve } from 'node:path';
 export const BRAND_KIT_CONFIG_FILENAME = 'canvas.brand-kit.json';
 
 /**
+ * Published URL of the brand kit JSON Schema, written as `$schema` into
+ * newly created files so editors validate and autocomplete them.
+ */
+export const BRAND_KIT_SCHEMA_URL =
+  'https://unpkg.com/@drupal-canvas/workbench/dist/client/src/lib/schemas/brand-kit.schema.json';
+
+/**
  * Server-side pattern for CSS custom property names.
  *
  * Mirrors the Regex constraint on `canvas.color.*` `cssVariable` in

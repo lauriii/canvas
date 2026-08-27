@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Canvas brand kit",
+  "description": "canvas.brand-kit.json: the local brand kit synchronized by the Canvas CLI and rendered by Workbench previews. Carries fonts and colors. This schema covers structure and value forms; the CLI's own validation additionally checks what a schema cannot express (two keys naming the same variable, numeric ranges inside color strings, font files existing on disk).",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional JSON Schema reference for editor tooling."
+    },
+    "fonts": {
+      "type": "object",
+      "description": "Brand kit fonts: font families resolved from providers or local files and synchronized to the site.",
+      "required": ["families"],
+      "properties": {
+        "defaults": {
+          "type": "object",
+          "description": "Defaults applied to provider-based families that do not set their own weights, styles, or subsets.",
+          "properties": {
+            "weights": { "$ref": "#/$defs/fontWeights" },
+            "styles": { "$ref": "#/$defs/fontStyles" },
+            "subsets": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 }
+            }
+          },
+          "additionalProperties": false
+        },
+        "families": {
+          "type": "array",
+          "description": "Font families, each either a local font file (src) or a provider-resolved family.",
+          "items": { "$ref": "#/$defs/fontFamily" }
+        },
+        "providers": {
+          "type": "object",
+          "description": "Provider-specific options.",
+          "properties": {
+            "adobe": {
+              "type": "object",
+              "required": ["id"],
+              "properties": {
+                "id": {
+                  "type": "array",
+                  "description": "Adobe Fonts kit ids.",
+                  "items": { "type": "string", "minLength": 1 }
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "colors": {
+      "type": "object",
+      "description": "Brand kit colors: a map from color key (the CSS custom property name, with or without its -- prefix) to a CSS color value. Key order is the palette order. The display name derives from the key (\"brand-red\" becomes \"Brand Red\") unless an entry asserts one.",
+      "patternProperties": {
+        "^(?!--$)(--)?[a-zA-Z_-][a-zA-Z0-9_-]*$": {
+          "$ref": "#/$defs/colorEntry"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "cssColorString": {
+      "type": "string",
+      "description": "A CSS color string: #rrggbb, #rrggbbaa, rgb(), rgba(), hsl(), or hsla(), in comma or space syntax.",
+      "pattern": "^(#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?|rgba?\\(\\s*\\d{1,3}\\s*(,|\\s)\\s*\\d{1,3}\\s*(,|\\s)\\s*\\d{1,3}\\s*((,|/)\\s*[\\d.]+%?\\s*)?\\)|hsla?\\(\\s*-?[\\d.]+(deg)?\\s*(,|\\s)\\s*[\\d.]+%\\s*(,|\\s)\\s*[\\d.]+%\\s*((,|/)\\s*[\\d.]+%?\\s*)?\\))$"
+    },
+    "colorTokenValue": {
+      "type": "object",
+      "description": "A color value in W3C design token format, for exact component values a CSS string cannot express.",
+      "required": ["colorSpace", "components"],
+      "properties": {
+        "colorSpace": { "enum": ["srgb", "hsl"] },
+        "components": {
+          "type": "array",
+          "description": "Three components: sRGB channels 0-1, or HSL hue plus saturation and lightness percentages.",
+          "items": { "type": "number" },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "alpha": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Opacity 0-1. Absent, null, and 1 all mean opaque."
+        },
+        "hex": {
+          "type": ["string", "null"],
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "description": "Stored six-digit hex, kept in sync with the components."
+        }
+      },
+      "additionalProperties": false
+    },
+    "colorEntry": {
+      "oneOf": [
+        { "$ref": "#/$defs/cssColorString" },
+        { "$ref": "#/$defs/colorTokenValue" },
+        {
+          "type": "object",
+          "description": "Wrapper form for an entry that needs more than its value: a display name differing from the one derived from the key, or an explicit editor display format.",
+          "required": ["value"],
+          "properties": {
+            "value": {
+              "oneOf": [
+                { "$ref": "#/$defs/cssColorString" },
+                { "$ref": "#/$defs/colorTokenValue" }
+              ]
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Display name shown in the editor."
+            },
+            "displayFormat": {
+              "enum": ["rgb", "hex", "hsl", null],
+              "description": "Editor display format. Usually derived from the value form; null means the server default."
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "fontWeights": {
+      "type": "array",
+      "description": "Weights such as \"400\", \"700\", or a variable range \"100 900\".",
+      "items": { "type": ["string", "number"] }
+    },
+    "fontStyles": {
+      "type": "array",
+      "items": { "type": ["string", "number"] }
+    },
+    "fontAxisDefaults": {
+      "type": "object",
+      "description": "Default value overrides per variable font axis tag, clamped to the axis range.",
+      "additionalProperties": { "type": "number" }
+    },
+    "fontFamily": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "A local font file.",
+          "required": ["name", "src"],
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "src": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Project-relative path to the font file."
+            },
+            "weights": { "$ref": "#/$defs/fontWeights" },
+            "styles": { "$ref": "#/$defs/fontStyles" },
+            "axisDefaults": { "$ref": "#/$defs/fontAxisDefaults" },
+            "provider": false,
+            "subsets": false
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "A provider-resolved family.",
+          "required": ["name"],
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "provider": {
+              "enum": [
+                "google",
+                "bunny",
+                "fontshare",
+                "fontsource",
+                "npm",
+                "adobe"
+              ]
+            },
+            "subsets": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 }
+            },
+            "weights": { "$ref": "#/$defs/fontWeights" },
+            "styles": { "$ref": "#/$defs/fontStyles" },
+            "axisDefaults": { "$ref": "#/$defs/fontAxisDefaults" },
+            "src": false
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

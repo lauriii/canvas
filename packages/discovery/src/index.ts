@@ -9,6 +9,7 @@ export {
 } from './asset-extensions';
 export {
   BRAND_KIT_CONFIG_FILENAME,
+  BRAND_KIT_SCHEMA_URL,
   COLOR_KEY_PATTERN,
   CSS_VARIABLE_PATTERN,
   HEX_COLOR_PATTERN,
