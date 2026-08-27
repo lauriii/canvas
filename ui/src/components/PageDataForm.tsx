@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import { useParams } from 'react-router';
 import { Box, Spinner } from '@radix-ui/themes';
@@ -30,8 +30,6 @@ import styles from '@/components/PageDataForm.module.css';
 const PageDataFormRenderer = () => {
   const pageData = useAppSelector(selectPageData);
   const { showBoundary } = useErrorBoundary();
-  const [jsxFormContent, setJsxFormContent] =
-    useState<React.ReactElement | null>(null);
   const dispatch = useAppDispatch();
   const formState = useAppSelector((state) =>
     selectFormValues(state, FORM_TYPES.ENTITY_FORM),
@@ -90,7 +88,6 @@ const PageDataFormRenderer = () => {
     [navigateToEditor, defaultVariantId],
   );
   const loading = isFetching || isFetchingLayout;
-  useDrupalBehaviors(formRef, jsxFormContent, loading);
 
   const pageDataExists = !!Object.keys(pageData).length;
 
@@ -106,22 +103,27 @@ const PageDataFormRenderer = () => {
     }
   }, [refetch, entityId, entityType]);
 
-  useEffect(() => {
+  // Derived during render rather than in an effect: an effect would leave one
+  // render in which the form template is already the newly fetched one but the
+  // content is still the previous one. Form elements that take their value from
+  // the markup only read it when they mount, so mounting them from the previous
+  // template in that render leaves them showing values the refetch replaced.
+  const jsxFormContent = useMemo(() => {
     // If the HTML for the form has not yet loaded OR the JSON for the page data
     // has not, don't render the form.
     // Were we pulling this data *directly* from an API, doing this would be
     // best accomplished by the isLoading property provided by RTK. This serves
     // the same purpose without adding complexity to our reducers.
     if (!formTemplate || !pageDataExists) {
-      return;
+      return null;
     }
 
     const template = parseHyperscriptifyTemplate(formTemplate as string);
     if (!template) {
-      return;
+      return null;
     }
 
-    setJsxFormContent(
+    return (
       <div
         data-testid="canvas-page-data-form"
         className={styles.pageDataForm}
@@ -134,9 +136,11 @@ const PageDataFormRenderer = () => {
           twigToJSXComponentMap,
           { propsify },
         )}
-      </div>,
+      </div>
     );
   }, [formTemplate, pageDataExists, interceptEditTemplateLink]);
+
+  useDrupalBehaviors(formRef, jsxFormContent, loading);
 
   useEffect(() => {
     const ajaxUpdateFormStateListener: (

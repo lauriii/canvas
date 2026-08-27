@@ -1,8 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { makeStore } from '@/app/store';
+import { initialState as configurationInitialState } from '@/features/configuration/configurationSlice';
+import { pageDataFormApi } from '@/services/pageDataForm';
 import {
   applyConflictStateFromResponse,
   CONFLICT_CODE,
+  pendingChangesApi,
 } from '@/services/pendingChangesApi';
 
 import type { PendingChange } from '@/services/pendingChangesApi';
@@ -111,5 +115,67 @@ describe('applyConflictStateFromResponse', () => {
       hasConflict: false,
       conflict_id: undefined,
     });
+  });
+});
+
+describe('publishAllPendingChanges', () => {
+  const formUrlFragment = '/canvas/api/v0/form/content-entity/';
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('causes the page data form to be refetched after publishing', async () => {
+    const requestedUrls: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = input instanceof Request ? input.url : String(input);
+        requestedUrls.push(url);
+        if (url.includes('session/token')) {
+          return new Response('csrf-token');
+        }
+        const body = url.includes(formUrlFragment)
+          ? { html: '<form></form>' }
+          : { message: 'Successfully published.' };
+        return new Response(JSON.stringify(body), {
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }),
+    );
+    const countFormRequests = () =>
+      requestedUrls.filter((url) => url.includes(formUrlFragment)).length;
+
+    const store = makeStore({
+      configuration: {
+        ...configurationInitialState,
+        baseUrl: 'http://localhost/',
+      },
+    });
+    // The page data form is subscribed to for as long as the editor is open.
+    const formSubscription = store.dispatch(
+      pageDataFormApi.endpoints.getPageDataForm.initiate({
+        entityId: '2',
+        entityType: 'canvas_page',
+      }),
+    );
+    await formSubscription;
+    expect(countFormRequests()).toBe(1);
+
+    try {
+      await store.dispatch(
+        pendingChangesApi.endpoints.publishAllPendingChanges.initiate({
+          'canvas_page:2:en': pendingChange,
+        }),
+      );
+
+      // Publishing deletes the auto-save the cached form markup was built from,
+      // so that markup no longer matches the saved entity and must be refetched.
+      await vi.waitFor(() => expect(countFormRequests()).toBe(2), {
+        timeout: 5000,
+      });
+    } finally {
+      formSubscription.unsubscribe();
+    }
   });
 });

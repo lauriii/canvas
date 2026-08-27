@@ -8,6 +8,7 @@ import {
 } from '@/components/review/PublishReview.slice';
 import { baseQuery } from '@/services/baseQuery';
 import { componentAndLayoutApi } from '@/services/componentAndLayout';
+import { pageDataFormApi } from '@/services/pageDataForm';
 
 interface Owner {
   name: string;
@@ -187,6 +188,16 @@ export const pendingChangesApi = createApi({
           // any hook_entity_presave code
           dispatch(
             componentAndLayoutApi.util.invalidateTags([{ type: 'Layout' }]),
+          );
+          // The rendered entity form is built from the auto-save entity when one
+          // exists, and publishing deletes that auto-save. The cached markup
+          // therefore no longer matches what was saved, and form elements that
+          // take their value from the markup rather than from the page data
+          // store - such as a multi-value select - would render stale values.
+          dispatch(
+            pageDataFormApi.util.invalidateTags([
+              { type: 'PageDataForm', id: 'FORM' },
+            ]),
           );
           dispatch(setPreviousPendingChanges());
           dispatch(setErrors());
