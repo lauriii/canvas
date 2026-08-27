@@ -489,7 +489,28 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
 
     $resolved_values = [];
     foreach ($values as $prop => $input) {
-      $values[$prop] = $this->uncollapse($input, $prop)->toArray();
+      try {
+        $values[$prop] = $this->uncollapse($input, $prop)->toArray();
+      }
+      catch (\OutOfRangeException $e) {
+        // The stored inputs SHOULD match this component version's
+        // `prop_field_definitions`, but that cannot be guaranteed: for
+        // example, renaming a code component's prop via the CLI leaves
+        // component trees whose stored inputs still use the old prop name.
+        // Ignore such inputs rather than letting the exception break both
+        // rendering and the editor; ::validateComponentInput() still reports
+        // them as violations.
+        // @see https://en.wikipedia.org/wiki/Robustness_principle
+        // @see ::hydrateComponent()
+        $this->logger->warning('Ignoring the stored input for prop %prop of component instance %uuid with input `%input`. Original error: %error', [
+          '%prop' => $prop,
+          '%input' => json_encode($input),
+          '%uuid' => $uuid,
+          '%error' => $e->getMessage(),
+        ]);
+        unset($values[$prop]);
+        continue;
+      }
       try {
         $resolved_values[$prop] = PropSource::parse($values[$prop])
           ->evaluate($fieldable_host_entity, is_required: FALSE);
@@ -675,8 +696,23 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
         //   empty by the field type)
         // - the server side MUST fall back to a `DefaultRelativeUrlPropSource`
         //   to be able to render the component at all
-        $model['source'][$prop_name] = $this->getDefaultStaticPropSource($prop_name, FALSE)
-          ->toArray();
+        try {
+          $model['source'][$prop_name] = $this->getDefaultStaticPropSource($prop_name, FALSE)
+            ->toArray();
+        }
+        catch (\OutOfRangeException $e) {
+          // Same tolerance as in ::getExplicitInput(): a stored input whose
+          // prop name is unknown to this component version has no default
+          // static prop source; drop it from the client model instead of
+          // crashing the editor.
+          $this->logger->warning('Ignoring the stored input for prop %prop of component %component. Original error: %error', [
+            '%prop' => $prop_name,
+            '%component' => $this->getPluginId() . '.' . $this->getSourceSpecificComponentId(),
+            '%error' => $e->getMessage(),
+          ]);
+          unset($model['source'][$prop_name], $model['resolved'][$prop_name]);
+          continue;
+        }
       }
       // Remove 'value' from source when it matches resolved value, unless NULL.
       // NULL values must be preserved to indicate explicit user deletion.
@@ -691,6 +727,25 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       ) {
         unset($model['source'][$prop_name]['value']);
       }
+    }
+
+    // A component tree's stored inputs may lack a required prop of this
+    // component version, e.g. when the prop was renamed outside the editor
+    // after the tree stored an input under the old name. The client model MUST
+    // still contain every required prop: the component instance form relies on
+    // that guarantee. Fall back to the default static prop source, like a
+    // freshly instantiated component does.
+    // @see ::buildComponentInstanceForm()
+    // @see https://www.drupal.org/i/3529788
+    foreach ($this->configuration['prop_field_definitions'] ?? [] as $prop_name => $definition) {
+      // A not-yet-upgraded instance's definition may lack `required`; treat a
+      // missing flag as not-required, matching ::getExplicitInputDefinitions().
+      if (($definition['required'] ?? FALSE) === FALSE || \array_key_exists($prop_name, $model['source'])) {
+        continue;
+      }
+      $default_source = $this->getDefaultStaticPropSource($prop_name, FALSE);
+      $model['source'][$prop_name] = $default_source->toArray();
+      $model['resolved'][$prop_name] = $default_source->evaluate(NULL, is_required: FALSE)->value;
     }
 
     return $model;

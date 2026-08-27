@@ -7,11 +7,13 @@ namespace Drupal\Tests\canvas\Kernel;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\canvas\Controller\ApiLayoutController;
+use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
+use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
@@ -621,6 +623,84 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
     $this->expectExceptionMessage('For now Canvas only works if the entity is a canvas_page! Other entity types and bundles must use content templates for now, see https://drupal.org/i/3498525');
     $request = Request::create('/api/canvas/content/canvas_page/' . $node->id());
     $controller->get(request: $request, entity: $node);
+  }
+
+  /**
+   * Stored inputs with an unknown prop name must not break the editor.
+   *
+   * Renaming a component's prop (e.g. a code component modified via the CLI)
+   * after component trees have stored inputs for it leaves those trees with a
+   * stored prop name that no longer exists in the component version's
+   * `prop_field_definitions`. The layout API must tolerate that instead of
+   * failing with an uncaught OutOfRangeException.
+   *
+   * @see https://git.drupalcode.org/project/canvas/-/issues/3538859
+   */
+  public function testUnknownPropNameInStoredInputs(): void {
+    $this->setUpCurrentUser([], [Page::EDIT_PERMISSION]);
+    $component = Component::load('sdc.canvas_test_sdc.props-no-slots');
+    self::assertInstanceOf(Component::class, $component);
+    $uuid = '624f9c47-b3d0-40ee-9525-1fa9e0e3f8f3';
+    $page = Page::create([
+      'title' => 'Corrupted tree',
+      'status' => TRUE,
+      'components' => [
+        [
+          'uuid' => $uuid,
+          'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+          'component_version' => $component->getActiveVersion(),
+          'inputs' => ['heading' => 'Hello, world!'],
+        ],
+      ],
+    ]);
+    self::assertCount(0, $page->getTypedData()->validate());
+    $page->save();
+
+    // Rename the stored prop to a name unknown to this component version,
+    // bypassing validation — like a CLI-side prop rename does.
+    $database = $this->container->get('database');
+    foreach (['canvas_page__components', 'canvas_page_revision__components'] as $table) {
+      $database->update($table)
+        ->fields(['components_inputs' => json_encode(['renamed_heading' => 'Hello, world!'], JSON_THROW_ON_ERROR)])
+        ->condition('entity_id', (string) $page->id())
+        ->execute();
+    }
+    $this->container->get(EntityTypeManagerInterface::class)->getStorage('canvas_page')->resetCache();
+
+    $response = $this->request(Request::create($this->getLayoutUrl($page)->toString()));
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    $json = static::decodeResponse($response);
+    // The unknown prop is dropped from the client model.
+    self::assertArrayNotHasKey('renamed_heading', $json['model'][$uuid]['source'] ?? []);
+    self::assertArrayNotHasKey('renamed_heading', $json['model'][$uuid]['resolved'] ?? []);
+    // The required `heading` prop, now without a stored input, falls back to
+    // the default static prop source in the client model — the component
+    // instance form relies on every required prop being present.
+    self::assertSame('There goes my hero', $json['model'][$uuid]['source']['heading']['value'] ?? NULL);
+    self::assertSame('There goes my hero', $json['model'][$uuid]['resolved']['heading'] ?? NULL);
+    // The component instance still renders in the preview, falling back to the
+    // default example value for its required prop.
+    self::assertIsString($json['html']);
+    self::assertStringContainsString('There goes my hero', $json['html']);
+
+    // The same corruption with a stored `default-relative-url` prop source
+    // crashes in ::inputToClientModel() rather than in ::getExplicitInput();
+    // it must be dropped from the client model, not crash.
+    $model = $component->getComponentSource()->inputToClientModel([
+      'source' => [
+        'renamed_image' => [
+          'sourceType' => PropSource::DefaultRelativeUrl->value,
+          'value' => ['src' => 'cat.jpg'],
+          'jsonSchema' => ['type' => 'object'],
+          'componentId' => 'sdc.canvas_test_sdc.props-no-slots',
+        ],
+      ],
+      'resolved' => [
+        'renamed_image' => new EvaluationResult(['src' => 'cat.jpg']),
+      ],
+    ]);
+    self::assertArrayNotHasKey('renamed_image', $model['source']);
+    self::assertArrayNotHasKey('renamed_image', $model['resolved']);
   }
 
   /**
