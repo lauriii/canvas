@@ -549,6 +549,17 @@ The honest bounds on the business case:
   Large sites (tens of thousands of pages) fit only once incremental
   rebuilds exist; until then Next ISR on Advanced is the practical answer.
 
+A competitive pass against a leading commercial headless CMS was run
+separately and kept out of committed content per publishing hygiene; its
+conclusions are folded vendor-neutrally into the ranked list below and the
+OpenSpec proposal. The material outcomes: the publish notification was
+elevated from deferred to in-scope (first-party publish webhooks with
+change payloads are table stakes in the category), a delivery-credential
+revisit path for gated content is now recorded, static-deployment
+redirects guidance was added, and three genuine differentiators were
+confirmed — anonymous zero-credential builds, a true no-Node artifact, and
+cache-tag invalidation granularity richer than entity-id webhooks.
+
 ## 4. What Canvas would need to add (ranked)
 
 Everything below is deliberately generic (useful to any client that walks the
@@ -585,11 +596,18 @@ case.
    opt-in header without core's global debug setting), so a build can record
    dependencies per page. This is the enabler for incremental rebuilds and
    costs nothing at request time (the tags are already computed).
-5. **An invalidation feed, later.** Only after 1+4 exist is a push signal
-   worth designing (a queue/webhook of invalidated cache tags since T, or a
-   polling endpoint). Out of scope for the first cut: ISR on Next covers the
-   interim for large sites, full rebuilds cover small ones, and Canvas emits
-   no publish event today that could carry it anyway.
+5. **A publish notification now; the full invalidation feed later.**
+   Originally this research deferred the entire push signal. A competitive
+   pass revised that: first-party publish webhooks carrying change payloads
+   (which entities a publish touched, not just that something happened) are
+   a standard feature of comparable headless delivery platforms, and
+   leaving rebuild triggers wholly to contrib was this proposal's weakest
+   point. The proposal now includes a minimal publish event (the primitive
+   Canvas lacks) plus a configurable webhook posting changed-entity
+   references — enough for CI rebuild triggers and on-demand ISR
+   revalidation. The richer feed (a replayable log of invalidated cache
+   tags, which capture indirect dependencies entity ids cannot) stays
+   deferred behind items 1 and 4.
 
 ## 5. What was not verified
 
