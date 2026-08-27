@@ -1,0 +1,69 @@
+diff -ruN --exclude=node_modules --exclude=.env --exclude=.env.* --exclude=dist --exclude=.astro --exclude=.next --exclude=.output --exclude=out --exclude=*.log --exclude=package-lock.json --exclude=.agents --exclude=.claude --exclude=skills-lock.json --exclude=.nuxt --exclude=.canvas headless-templates/nextjs/app/[[...slug]]/page.tsx spike-next/app/[[...slug]]/page.tsx
+--- headless-templates/nextjs/app/[[...slug]]/page.tsx	2026-08-27 17:23:52
++++ spike-next/app/[[...slug]]/page.tsx	2026-08-27 17:48:31
+@@ -8,10 +8,53 @@
+ import { notFound, permanentRedirect, redirect } from 'next/navigation';
+ import { cache } from 'react';
+ 
+-export const dynamic = 'force-dynamic';
+-
+ interface CatchAllPageProps {
+   params: Promise<{ slug?: string[] }>;
++}
++
++interface JsonApiEntity {
++  attributes: {
++    status: boolean;
++    drupal_internal__id?: number;
++    drupal_internal__nid?: number;
++    path?: { alias?: string | null } | null;
++  };
++}
++
++async function listPublishedPaths(): Promise<string[]> {
++  const baseUrl = process.env.CANVAS_SITE_URL!.replace(/\/$/, '');
++  const paths: string[] = ['/'];
++  const collections: Array<[string, (a: JsonApiEntity['attributes']) => string]> = [
++    [
++      'canvas_page/canvas_page',
++      (a) => a.path?.alias || `/page/${a.drupal_internal__id}`,
++    ],
++    ['node/article', (a) => a.path?.alias || `/node/${a.drupal_internal__nid}`],
++  ];
++  for (const [collection, toPath] of collections) {
++    const response = await fetch(`${baseUrl}/jsonapi/${collection}`, {
++      headers: { Accept: 'application/vnd.api+json' },
++    });
++    if (!response.ok) {
++      throw new Error(`JSON:API ${collection} failed: ${response.status}`);
++    }
++    const document = (await response.json()) as { data?: JsonApiEntity[] };
++    for (const entity of document.data ?? []) {
++      // filter[status]=1 silently returns empty for canvas_page, so filter
++      // client-side.
++      if (entity.attributes.status) {
++        paths.push(toPath(entity.attributes));
++      }
++    }
++  }
++  return paths;
++}
++
++export async function generateStaticParams(): Promise<{ slug: string[] }[]> {
++  const paths = await listPublishedPaths();
++  return paths.map((path) => ({
++    slug: path.split('/').filter(Boolean),
++  }));
+ }
+ 
+ const getPage = cache((path: string) => fetchPage(path));
+diff -ruN --exclude=node_modules --exclude=.env --exclude=.env.* --exclude=dist --exclude=.astro --exclude=.next --exclude=.output --exclude=out --exclude=*.log --exclude=package-lock.json --exclude=.agents --exclude=.claude --exclude=skills-lock.json --exclude=.nuxt --exclude=.canvas headless-templates/nextjs/next-env.d.ts spike-next/next-env.d.ts
+--- headless-templates/nextjs/next-env.d.ts	1970-01-01 02:00:00
++++ spike-next/next-env.d.ts	2026-08-27 17:39:58
+@@ -0,0 +1,6 @@
++/// <reference types="next" />
++/// <reference types="next/image-types/global" />
++import "./.next/types/routes.d.ts";
++
++// NOTE: This file should not be edited
++// see https://nextjs.org/docs/app/api-reference/config/typescript for more information.

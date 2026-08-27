@@ -1,0 +1,1341 @@
+diff -ruN --exclude=node_modules --exclude=.env --exclude=.env.* --exclude=dist --exclude=.astro --exclude=*.log --exclude=package-lock.json --exclude=.agents --exclude=.claude --exclude=skills-lock.json headless-templates/astro/.canvas/components.manifest.json spike-astro/.canvas/components.manifest.json
+--- headless-templates/astro/.canvas/components.manifest.json	1970-01-01 02:00:00
++++ spike-astro/.canvas/components.manifest.json	2026-08-27 17:38:16
+@@ -0,0 +1,1137 @@
++{
++  "version": 1,
++  "components": [
++    {
++      "machineName": "accordion-item",
++      "name": "Accordion Item",
++      "status": true,
++      "required": [
++        "title"
++      ],
++      "props": {
++        "title": {
++          "title": "Title",
++          "type": "string",
++          "examples": [
++            "Accordion item title"
++          ]
++        },
++        "headingElement": {
++          "title": "Heading Element",
++          "type": "string",
++          "examples": [
++            "h3"
++          ],
++          "enum": [
++            "h2",
++            "h3",
++            "h4",
++            "h5",
++            "h6"
++          ],
++          "meta:enum": {
++            "h2": "h2",
++            "h3": "h3",
++            "h4": "h4",
++            "h5": "h5",
++            "h6": "h6"
++          }
++        },
++        "defaultOpen": {
++          "title": "Default Open",
++          "type": "boolean",
++          "examples": [
++            false
++          ]
++        },
++        "anchorId": {
++          "title": "Anchor ID",
++          "type": "string"
++        }
++      },
++      "slots": {
++        "content": {
++          "title": "Content"
++        }
++      },
++      "relativeDirectory": "accordion-item"
++    },
++    {
++      "machineName": "accordion",
++      "name": "Accordion",
++      "status": true,
++      "required": [],
++      "props": {
++        "borderColor": {
++          "title": "Border Color",
++          "type": "string",
++          "examples": [
++            "gray_200"
++          ],
++          "enum": [
++            "gray_200",
++            "gray_300",
++            "gray_400",
++            "primary_200",
++            "primary_300"
++          ],
++          "meta:enum": {
++            "gray_200": "Gray 200",
++            "gray_300": "Gray 300",
++            "gray_400": "Gray 400",
++            "primary_200": "Primary 200",
++            "primary_300": "Primary 300"
++          }
++        },
++        "variant": {
++          "title": "Variant",
++          "type": "string",
++          "examples": [
++            "default"
++          ],
++          "enum": [
++            "default",
++            "bordered",
++            "separated"
++          ],
++          "meta:enum": {
++            "default": "Default",
++            "bordered": "Bordered",
++            "separated": "Separated"
++          }
++        }
++      },
++      "slots": {
++        "items": {
++          "title": "Items"
++        }
++      },
++      "relativeDirectory": "accordion"
++    },
++    {
++      "machineName": "blockquote",
++      "name": "Blockquote",
++      "status": true,
++      "required": [
++        "textColor"
++      ],
++      "props": {
++        "text": {
++          "title": "Text",
++          "type": "string",
++          "examples": [
++            "Insert a quote..."
++          ],
++          "contentMediaType": "text/html",
++          "x-formatting-context": "block"
++        },
++        "textColor": {
++          "title": "Text Color",
++          "type": "string",
++          "examples": [
++            "dark"
++          ],
++          "enum": [
++            "dark",
++            "light"
++          ],
++          "meta:enum": {
++            "dark": "Dark",
++            "light": "Light"
++          }
++        },
++        "name": {
++          "title": "Name",
++          "type": "string"
++        },
++        "title": {
++          "title": "Title",
++          "type": "string"
++        }
++      },
++      "slots": [],
++      "relativeDirectory": "blockquote"
++    },
++    {
++      "machineName": "button",
++      "name": "Button",
++      "status": true,
++      "required": [
++        "text"
++      ],
++      "props": {
++        "variant": {
++          "title": "Variant",
++          "type": "string",
++          "examples": [
++            "solid"
++          ],
++          "enum": [
++            "solid",
++            "outline_dark",
++            "outline_light",
++            "ghost_neutral",
++            "ghost_light",
++            "link",
++            "link_underline",
++            "link_dark",
++            "link_light",
++            "nav_link_dark"
++          ],
++          "meta:enum": {
++            "solid": "Solid",
++            "outline_dark": "Outline Dark",
++            "outline_light": "Outline Light",
++            "ghost_neutral": "Ghost Neutral",
++            "ghost_light": "Ghost Light",
++            "link": "Link",
++            "link_underline": "Link Underline",
++            "link_dark": "Link Dark",
++            "link_light": "Link Light",
++            "nav_link_dark": "Nav Link Dark"
++          }
++        },
++        "text": {
++          "title": "Text",
++          "type": "string",
++          "examples": [
++            "Button"
++          ]
++        },
++        "link": {
++          "title": "Link",
++          "type": "string",
++          "format": "uri-reference"
++        }
++      },
++      "slots": [],
++      "relativeDirectory": "button"
++    },
++    {
++      "machineName": "card_container",
++      "name": "Card Container",
++      "status": true,
++      "required": [
++        "layout",
++        "textColor"
++      ],
++      "props": {
++        "preHeading": {
++          "title": "Pre Heading",
++          "type": "string",
++          "examples": [
++            "Featured services"
++          ]
++        },
++        "heading": {
++          "title": "Heading",
++          "type": "string",
++          "examples": [
++            "What we offer."
++          ]
++        },
++        "headingSize": {
++          "title": "Heading Size",
++          "type": "string",
++          "examples": [
++            "large"
++          ],
++          "enum": [
++            "extra_large",
++            "large",
++            "medium",
++            "small"
++          ],
++          "meta:enum": {
++            "extra_large": "Extra Large",
++            "large": "Large",
++            "medium": "Medium",
++            "small": "Small"
++          }
++        },
++        "textColor": {
++          "title": "Text Color",
++          "type": "string",
++          "examples": [
++            "dark"
++          ],
++          "enum": [
++            "dark",
++            "light"
++          ],
++          "meta:enum": {
++            "dark": "Dark",
++            "light": "Light"
++          }
++        },
++        "headingPosition": {
++          "title": "Heading Position",
++          "type": "string",
++          "examples": [
++            "center_aligned"
++          ],
++          "enum": [
++            "left_aligned",
++            "center_aligned",
++            "right_aligned"
++          ],
++          "meta:enum": {
++            "left_aligned": "Left aligned",
++            "center_aligned": "Center aligned",
++            "right_aligned": "Right aligned"
++          }
++        },
++        "headingElement": {
++          "title": "Heading Element",
++          "type": "string",
++          "examples": [
++            "h2"
++          ],
++          "enum": [
++            "h1",
++            "h2",
++            "h3",
++            "h4",
++            "h5",
++            "h6"
++          ],
++          "meta:enum": {
++            "h1": "h1",
++            "h2": "h2",
++            "h3": "h3",
++            "h4": "h4",
++            "h5": "h5",
++            "h6": "h6"
++          }
++        },
++        "layout": {
++          "title": "Layout",
++          "type": "string",
++          "examples": [
++            "33-33-33"
++          ],
++          "enum": [
++            "50-50",
++            "33-33-33",
++            "50-25-25",
++            "25-25-50",
++            "25-25-25-25"
++          ],
++          "meta:enum": {
++            "50-50": "50-50",
++            "33-33-33": "33-33-33",
++            "50-25-25": "50-25-25",
++            "25-25-50": "25-25-50",
++            "25-25-25-25": "25-25-25-25"
++          }
++        }
++      },
++      "slots": {
++        "content": {
++          "title": "Content"
++        }
++      },
++      "relativeDirectory": "card_container"
++    },
++    {
++      "machineName": "card",
++      "name": "Card",
++      "status": true,
++      "required": [
++        "variant",
++        "layout"
++      ],
++      "props": {
++        "variant": {
++          "title": "Variant",
++          "type": "string",
++          "examples": [
++            "default"
++          ],
++          "enum": [
++            "default",
++            "link_card"
++          ],
++          "meta:enum": {
++            "default": "Default",
++            "link_card": "Link Card"
++          }
++        },
++        "image": {
++          "title": "Image",
++          "type": "object",
++          "examples": [
++            {
++              "src": "https://placehold.co/800x600@2x.png?alternateWidths=https%3A%2F%2Fplacehold.co%2F%7Bwidth%7Dx%7Bheight%7D%402x.png",
++              "alt": "Example image placeholder",
++              "width": 800,
++              "height": 600
++            }
++          ],
++          "$ref": "json-schema-definitions://canvas.module/image"
++        },
++        "layout": {
++          "title": "Layout",
++          "type": "string",
++          "examples": [
++            "left_aligned"
++          ],
++          "enum": [
++            "left_aligned",
++            "center_aligned",
++            "right_aligned"
++          ],
++          "meta:enum": {
++            "left_aligned": "Left aligned",
++            "center_aligned": "Center aligned",
++            "right_aligned": "Right aligned"
++          }
++        },
++        "heading": {
++          "title": "Heading",
++          "type": "string",
++          "examples": [
++            "Feature or benefit"
++          ]
++        },
++        "headingElement": {
++          "title": "Heading Element",
++          "type": "string",
++          "examples": [
++            "h3"
++          ],
++          "enum": [
++            "h1",
++            "h2",
++            "h3",
++            "h4",
++            "h5",
++            "h6"
++          ],
++          "meta:enum": {
++            "h1": "h1",
++            "h2": "h2",
++            "h3": "h3",
++            "h4": "h4",
++            "h5": "h5",
++            "h6": "h6"
++          }
++        },
++        "byline": {
++          "title": "Byline",
++          "type": "string",
++          "examples": [
++            "Alice Williams"
++          ]
++        },
++        "text": {
++          "title": "Text",
++          "type": "string",
++          "examples": [
++            "Help people become familiar with the organization and its offerings, creating a sense of connection and trust."
++          ],
++          "contentMediaType": "text/html",
++          "x-formatting-context": "block"
++        },
++        "link": {
++          "title": "Link",
++          "type": "string",
++          "examples": [
++            "/"
++          ],
++          "format": "uri-reference"
++        },
++        "linkLabel": {
++          "title": "Link Label",
++          "type": "string"
++        },
++        "linkVariant": {
++          "title": "Link Variant",
++          "type": "string",
++          "examples": [
++            "link"
++          ],
++          "enum": [
++            "solid",
++            "outline_dark",
++            "link",
++            "link_underline"
++          ],
++          "meta:enum": {
++            "solid": "Solid",
++            "outline_dark": "Outline Dark",
++            "link": "Link",
++            "link_underline": "Link Underline"
++          }
++        }
++      },
++      "slots": [],
++      "relativeDirectory": "card"
++    },
++    {
++      "machineName": "footer",
++      "name": "Footer",
++      "status": true,
++      "required": [],
++      "props": {
++        "text": {
++          "title": "Text",
++          "type": "string",
++          "examples": [
++            "© 2025 Company Name. All rights reserved."
++          ]
++        }
++      },
++      "slots": [],
++      "relativeDirectory": "footer"
++    },
++    {
++      "machineName": "grid_container",
++      "name": "Grid container",
++      "status": true,
++      "required": [
++        "layout"
++      ],
++      "props": {
++        "layout": {
++          "title": "Layout",
++          "type": "string",
++          "examples": [
++            "33-33-33"
++          ],
++          "enum": [
++            "50-50",
++            "33-33-33",
++            "75-25",
++            "25-75",
++            "67-33",
++            "33-67",
++            "50-25-25",
++            "25-25-50",
++            "25-25-25-25"
++          ],
++          "meta:enum": {
++            "50-50": "50-50",
++            "33-33-33": "33-33-33",
++            "75-25": "75-25",
++            "25-75": "25-75",
++            "67-33": "67-33",
++            "33-67": "33-67",
++            "50-25-25": "50-25-25",
++            "25-25-50": "25-25-50",
++            "25-25-25-25": "25-25-25-25"
++          }
++        },
++        "gap": {
++          "title": "Gap",
++          "type": "string",
++          "examples": [
++            "medium"
++          ],
++          "enum": [
++            "extra_small",
++            "small",
++            "medium",
++            "large",
++            "extra_large"
++          ],
++          "meta:enum": {
++            "extra_small": "Extra Small",
++            "small": "Small",
++            "medium": "Medium",
++            "large": "Large",
++            "extra_large": "Extra Large"
++          }
++        }
++      },
++      "slots": {
++        "content": {
++          "title": "Content"
++        }
++      },
++      "relativeDirectory": "grid_container"
++    },
++    {
++      "machineName": "header",
++      "name": "Header",
++      "status": true,
++      "required": [],
++      "props": {},
++      "slots": {
++        "logo": {
++          "title": "Logo"
++        },
++        "menu": {
++          "title": "Menu"
++        }
++      },
++      "relativeDirectory": "header"
++    },
++    {
++      "machineName": "heading",
++      "name": "Heading",
++      "status": true,
++      "required": [
++        "textColor",
++        "headingElement",
++        "headingSize",
++        "layout"
++      ],
++      "props": {
++        "preHeading": {
++          "title": "Pre Heading",
++          "type": "string"
++        },
++        "heading": {
++          "title": "Heading",
++          "type": "string",
++          "examples": [
++            "Enter a heading..."
++          ]
++        },
++        "textColor": {
++          "title": "Text Color",
++          "type": "string",
++          "examples": [
++            "dark"
++          ],
++          "enum": [
++            "dark",
++            "light"
++          ],
++          "meta:enum": {
++            "dark": "Dark",
++            "light": "Light"
++          }
++        },
++        "headingElement": {
++          "title": "Heading Element",
++          "type": "string",
++          "examples": [
++            "h2"
++          ],
++          "enum": [
++            "h1",
++            "h2",
++            "h3",
++            "h4",
++            "h5",
++            "h6"
++          ],
++          "meta:enum": {
++            "h1": "h1",
++            "h2": "h2",
++            "h3": "h3",
++            "h4": "h4",
++            "h5": "h5",
++            "h6": "h6"
++          }
++        },
++        "headingSize": {
++          "title": "Heading Size",
++          "type": "string",
++          "examples": [
++            "medium"
++          ],
++          "enum": [
++            "small",
++            "medium",
++            "large",
++            "extra_large"
++          ],
++          "meta:enum": {
++            "small": "Small",
++            "medium": "Medium",
++            "large": "Large",
++            "extra_large": "Extra Large"
++          }
++        },
++        "layout": {
++          "title": "Layout",
++          "type": "string",
++          "examples": [
++            "left_aligned"
++          ],
++          "enum": [
++            "left_aligned",
++            "center_aligned",
++            "right_aligned"
++          ],
++          "meta:enum": {
++            "left_aligned": "Left aligned",
++            "center_aligned": "Center aligned",
++            "right_aligned": "Right aligned"
++          }
++        }
++      },
++      "slots": [],
++      "relativeDirectory": "heading"
++    },
++    {
++      "machineName": "hero",
++      "name": "Hero",
++      "status": true,
++      "required": [
++        "backgroundImage",
++        "layout",
++        "headingSize",
++        "textColor"
++      ],
++      "props": {
++        "backgroundImage": {
++          "title": "Background Image",
++          "type": "object",
++          "examples": [
++            {
++              "src": "https://placehold.co/1920x1080@2x.png",
++              "alt": "Example image placeholder",
++              "width": 1920,
++              "height": 1080
++            }
++          ],
++          "$ref": "json-schema-definitions://canvas.module/image"
++        },
++        "layout": {
++          "title": "Layout",
++          "type": "string",
++          "examples": [
++            "left_aligned"
++          ],
++          "enum": [
++            "left_aligned",
++            "centered"
++          ],
++          "meta:enum": {
++            "left_aligned": "Left aligned",
++            "centered": "Centered"
++          }
++        },
++        "preHeading": {
++          "title": "Pre Heading",
++          "type": "string",
++          "examples": [
++            "Mission"
++          ]
++        },
++        "headingElement": {
++          "title": "Heading Element",
++          "type": "string",
++          "examples": [
++            "h2"
++          ],
++          "enum": [
++            "h1",
++            "h2",
++            "h3",
++            "h4",
++            "h5",
++            "h6"
++          ],
++          "meta:enum": {
++            "h1": "h1",
++            "h2": "h2",
++            "h3": "h3",
++            "h4": "h4",
++            "h5": "h5",
++            "h6": "h6"
++          }
++        },
++        "headingSize": {
++          "title": "Heading Size",
++          "type": "string",
++          "examples": [
++            "extra_large"
++          ],
++          "enum": [
++            "extra_large",
++            "large",
++            "medium",
++            "small"
++          ],
++          "meta:enum": {
++            "extra_large": "Extra Large",
++            "large": "Large",
++            "medium": "Medium",
++            "small": "Small"
++          }
++        },
++        "heading": {
++          "title": "Heading",
++          "type": "string",
++          "examples": [
++            "This space deserves a hero."
++          ]
++        },
++        "text": {
++          "title": "Text",
++          "type": "string",
++          "examples": [
++            "This is a space to welcome visitors to the site. Grab their attention with copy that clearly states what the site is about."
++          ],
++          "contentMediaType": "text/html",
++          "x-formatting-context": "block"
++        },
++        "textColor": {
++          "title": "Text Color",
++          "type": "string",
++          "examples": [
++            "dark"
++          ],
++          "enum": [
++            "dark",
++            "light"
++          ],
++          "meta:enum": {
++            "dark": "Dark",
++            "light": "Light"
++          }
++        }
++      },
++      "slots": {
++        "buttons": {
++          "title": "Buttons"
++        }
++      },
++      "relativeDirectory": "hero"
++    },
++    {
++      "machineName": "image",
++      "name": "Image",
++      "status": true,
++      "required": [
++        "image"
++      ],
++      "props": {
++        "image": {
++          "title": "Image",
++          "type": "object",
++          "examples": [
++            {
++              "src": "https://placehold.co/800x600@2x.png?alternateWidths=https%3A%2F%2Fplacehold.co%2F%7Bwidth%7Dx%7Bheight%7D%402x.png",
++              "alt": "Example image placeholder",
++              "width": 800,
++              "height": 600
++            }
++          ],
++          "$ref": "json-schema-definitions://canvas.module/image"
++        }
++      },
++      "slots": [],
++      "relativeDirectory": "image"
++    },
++    {
++      "machineName": "logo_card",
++      "name": "Logo Card",
++      "status": true,
++      "required": [
++        "image"
++      ],
++      "props": {
++        "image": {
++          "title": "Image",
++          "type": "object",
++          "examples": [
++            {
++              "src": "https://placehold.co/800x600@2x.png?alternateWidths=https%3A%2F%2Fplacehold.co%2F%7Bwidth%7Dx%7Bheight%7D%402x.png",
++              "alt": "Example image placeholder",
++              "width": 800,
++              "height": 600
++            }
++          ],
++          "$ref": "json-schema-definitions://canvas.module/image"
++        }
++      },
++      "slots": [],
++      "relativeDirectory": "logo_card"
++    },
++    {
++      "machineName": "section",
++      "name": "Section",
++      "status": true,
++      "required": [
++        "width"
++      ],
++      "props": {
++        "width": {
++          "title": "Width",
++          "type": "string",
++          "examples": [
++            "normal"
++          ],
++          "enum": [
++            "normal",
++            "wide"
++          ],
++          "meta:enum": {
++            "normal": "Normal",
++            "wide": "Wide"
++          }
++        }
++      },
++      "slots": {
++        "content": {
++          "title": "Content"
++        }
++      },
++      "relativeDirectory": "section"
++    },
++    {
++      "machineName": "spacer",
++      "name": "Spacer",
++      "status": true,
++      "required": [
++        "height"
++      ],
++      "props": {
++        "height": {
++          "title": "Height",
++          "type": "string",
++          "examples": [
++            "medium"
++          ],
++          "enum": [
++            "small",
++            "medium",
++            "large",
++            "extra_large"
++          ],
++          "meta:enum": {
++            "small": "Small",
++            "medium": "Medium",
++            "large": "Large",
++            "extra_large": "Extra Large"
++          }
++        }
++      },
++      "slots": [],
++      "relativeDirectory": "spacer"
++    },
++    {
++      "machineName": "text",
++      "name": "Text",
++      "status": true,
++      "required": [
++        "textSize",
++        "textColor"
++      ],
++      "props": {
++        "text": {
++          "title": "Text",
++          "type": "string",
++          "examples": [
++            "Enter some text..."
++          ],
++          "contentMediaType": "text/html",
++          "x-formatting-context": "block"
++        },
++        "textSize": {
++          "title": "Text Size",
++          "type": "string",
++          "examples": [
++            "normal"
++          ],
++          "enum": [
++            "extra_small",
++            "small",
++            "normal",
++            "large",
++            "extra_large"
++          ],
++          "meta:enum": {
++            "extra_small": "Extra Small",
++            "small": "Small",
++            "normal": "Normal",
++            "large": "Large",
++            "extra_large": "Extra Large"
++          }
++        },
++        "textColor": {
++          "title": "Text Color",
++          "type": "string",
++          "examples": [
++            "dark"
++          ],
++          "enum": [
++            "dark",
++            "light"
++          ],
++          "meta:enum": {
++            "dark": "Dark",
++            "light": "Light"
++          }
++        }
++      },
++      "slots": [],
++      "relativeDirectory": "text"
++    },
++    {
++      "machineName": "two_column_text",
++      "name": "Two Column Text",
++      "status": true,
++      "required": [
++        "layout",
++        "columnWidths",
++        "headingElement",
++        "headingSize",
++        "textColor"
++      ],
++      "props": {
++        "image": {
++          "title": "Image",
++          "type": "object",
++          "examples": [
++            {
++              "src": "https://placehold.co/800x600@2x.png?alternateWidths=https%3A%2F%2Fplacehold.co%2F%7Bwidth%7Dx%7Bheight%7D%402x.png",
++              "alt": "Example image placeholder",
++              "width": 800,
++              "height": 600
++            }
++          ],
++          "$ref": "json-schema-definitions://canvas.module/image"
++        },
++        "layout": {
++          "title": "Layout",
++          "type": "string",
++          "examples": [
++            "text_image"
++          ],
++          "enum": [
++            "text_image",
++            "image_text"
++          ],
++          "meta:enum": {
++            "text_image": "Text - Image",
++            "image_text": "Image - Text"
++          }
++        },
++        "columnWidths": {
++          "title": "Column Widths",
++          "type": "string",
++          "examples": [
++            "50_50"
++          ],
++          "enum": [
++            "33_66",
++            "50_50",
++            "66_33"
++          ],
++          "meta:enum": {
++            "33_66": "Text 33% - Image 66%",
++            "50_50": "Text 50% - Image 50%",
++            "66_33": "Text 66% - Image 33%"
++          }
++        },
++        "preHeading": {
++          "title": "Pre Heading",
++          "type": "string",
++          "examples": [
++            "Mission"
++          ]
++        },
++        "heading": {
++          "title": "Heading",
++          "type": "string",
++          "examples": [
++            "This space deserves a hero."
++          ]
++        },
++        "headingElement": {
++          "title": "Heading Element",
++          "type": "string",
++          "examples": [
++            "h2"
++          ],
++          "enum": [
++            "h1",
++            "h2",
++            "h3",
++            "h4",
++            "h5",
++            "h6"
++          ],
++          "meta:enum": {
++            "h1": "h1",
++            "h2": "h2",
++            "h3": "h3",
++            "h4": "h4",
++            "h5": "h5",
++            "h6": "h6"
++          }
++        },
++        "headingSize": {
++          "title": "Heading Size",
++          "type": "string",
++          "examples": [
++            "large"
++          ],
++          "enum": [
++            "extra_large",
++            "large",
++            "medium",
++            "small"
++          ],
++          "meta:enum": {
++            "extra_large": "Extra Large",
++            "large": "Large",
++            "medium": "Medium",
++            "small": "Small"
++          }
++        },
++        "text": {
++          "title": "Text",
++          "type": "string",
++          "examples": [
++            "This is a space to welcome visitors to the site. Grab their attention with copy that clearly states what the site is about."
++          ],
++          "contentMediaType": "text/html",
++          "x-formatting-context": "block"
++        },
++        "textColor": {
++          "title": "Text Color",
++          "type": "string",
++          "examples": [
++            "dark"
++          ],
++          "enum": [
++            "dark",
++            "light"
++          ],
++          "meta:enum": {
++            "dark": "Dark",
++            "light": "Light"
++          }
++        }
++      },
++      "slots": {
++        "buttons": {
++          "title": "Buttons"
++        }
++      },
++      "relativeDirectory": "two_column_text"
++    },
++    {
++      "machineName": "video",
++      "name": "Video",
++      "status": true,
++      "required": [
++        "video"
++      ],
++      "props": {
++        "video": {
++          "title": "Video",
++          "type": "object",
++          "examples": [
++            {
++              "src": "/ui/assets/videos/mountain_wide.mp4",
++              "poster": "https://placehold.co/1920x1080.png?text=Widescreen"
++            }
++          ],
++          "$ref": "json-schema-definitions://canvas.module/video"
++        }
++      },
++      "slots": [],
++      "relativeDirectory": "video"
++    }
++  ],
++  "warnings": []
++}
+diff -ruN --exclude=node_modules --exclude=.env --exclude=.env.* --exclude=dist --exclude=.astro --exclude=*.log --exclude=package-lock.json --exclude=.agents --exclude=.claude --exclude=skills-lock.json headless-templates/astro/astro.config.hybrid.mjs spike-astro/astro.config.hybrid.mjs
+--- headless-templates/astro/astro.config.hybrid.mjs	1970-01-01 02:00:00
++++ spike-astro/astro.config.hybrid.mjs	2026-08-27 17:35:44
+@@ -0,0 +1,13 @@
++import node from '@astrojs/node';
++import canvas from '@drupal-canvas/headless-astro/integration';
++import tailwindcss from '@tailwindcss/vite';
++import { defineConfig } from 'astro/config';
++
++export default defineConfig({
++  output: 'static',
++  adapter: node({ mode: 'standalone' }),
++  integrations: [canvas()],
++  vite: {
++    plugins: [tailwindcss()],
++  },
++});
+diff -ruN --exclude=node_modules --exclude=.env --exclude=.env.* --exclude=dist --exclude=.astro --exclude=*.log --exclude=package-lock.json --exclude=.agents --exclude=.claude --exclude=skills-lock.json headless-templates/astro/astro.config.mjs spike-astro/astro.config.mjs
+--- headless-templates/astro/astro.config.mjs	2026-08-27 17:23:52
++++ spike-astro/astro.config.mjs	2026-08-27 17:35:54
+@@ -4,7 +4,7 @@
+ import { defineConfig } from 'astro/config';
+ 
+ export default defineConfig({
+-  output: 'server',
++  output: 'static',
+   adapter: node({ mode: 'standalone' }),
+   integrations: [canvas()],
+   vite: {
+diff -ruN --exclude=node_modules --exclude=.env --exclude=.env.* --exclude=dist --exclude=.astro --exclude=*.log --exclude=package-lock.json --exclude=.agents --exclude=.claude --exclude=skills-lock.json headless-templates/astro/astro.config.pure-static.mjs spike-astro/astro.config.pure-static.mjs
+--- headless-templates/astro/astro.config.pure-static.mjs	1970-01-01 02:00:00
++++ spike-astro/astro.config.pure-static.mjs	2026-08-27 17:35:44
+@@ -0,0 +1,15 @@
++// Pure static: no adapter, no canvas() integration (its routes force a
++// server). Just the component implementation registry the renderer needs.
++import { canvasComponentRegistry } from '@drupal-canvas/headless/vite';
++import tailwindcss from '@tailwindcss/vite';
++import { defineConfig } from 'astro/config';
++
++export default defineConfig({
++  output: 'static',
++  vite: {
++    plugins: [tailwindcss(), canvasComponentRegistry()],
++    ssr: {
++      noExternal: ['@drupal-canvas/headless', '@drupal-canvas/headless-astro'],
++    },
++  },
++});
+diff -ruN --exclude=node_modules --exclude=.env --exclude=.env.* --exclude=dist --exclude=.astro --exclude=*.log --exclude=package-lock.json --exclude=.agents --exclude=.claude --exclude=skills-lock.json headless-templates/astro/astro.config.server.mjs spike-astro/astro.config.server.mjs
+--- headless-templates/astro/astro.config.server.mjs	1970-01-01 02:00:00
++++ spike-astro/astro.config.server.mjs	2026-08-27 17:26:03
+@@ -0,0 +1,13 @@
++import node from '@astrojs/node';
++import canvas from '@drupal-canvas/headless-astro/integration';
++import tailwindcss from '@tailwindcss/vite';
++import { defineConfig } from 'astro/config';
++
++export default defineConfig({
++  output: 'server',
++  adapter: node({ mode: 'standalone' }),
++  integrations: [canvas()],
++  vite: {
++    plugins: [tailwindcss()],
++  },
++});
+diff -ruN --exclude=node_modules --exclude=.env --exclude=.env.* --exclude=dist --exclude=.astro --exclude=*.log --exclude=package-lock.json --exclude=.agents --exclude=.claude --exclude=skills-lock.json headless-templates/astro/astro.config.static.mjs spike-astro/astro.config.static.mjs
+--- headless-templates/astro/astro.config.static.mjs	1970-01-01 02:00:00
++++ spike-astro/astro.config.static.mjs	2026-08-27 17:33:46
+@@ -0,0 +1,13 @@
++import node from '@astrojs/node';
++import canvas from '@drupal-canvas/headless-astro/integration';
++import tailwindcss from '@tailwindcss/vite';
++import { defineConfig } from 'astro/config';
++
++export default defineConfig({
++  output: 'static',
++  adapter: node({ mode: 'standalone' }),
++  integrations: [canvas()],
++  vite: {
++    plugins: [tailwindcss()],
++  },
++});
+diff -ruN --exclude=node_modules --exclude=.env --exclude=.env.* --exclude=dist --exclude=.astro --exclude=*.log --exclude=package-lock.json --exclude=.agents --exclude=.claude --exclude=skills-lock.json headless-templates/astro/src/components/hero/index.astro spike-astro/src/components/hero/index.astro
+--- headless-templates/astro/src/components/hero/index.astro	2026-08-27 17:23:52
++++ spike-astro/src/components/hero/index.astro	2026-08-27 17:35:04
+@@ -6,7 +6,17 @@
+   headingSize: 'extra_large' | 'large' | 'medium' | 'small';
+   heading?: string; text?: string; textColor: 'dark' | 'light'; darkenImage?: boolean;
+ }
+-const { backgroundImage, layout = 'left_aligned', preHeading, headingElement = 'h2', headingSize = 'large', heading, text, textColor = 'dark', darkenImage = false } = Astro.props;
++// ponytail: spike shim — site-3 content was authored against a different
++// component library whose hero uses title/description/buttonLabel props.
++// Accept both shapes so the static-build fidelity test renders real content.
++const raw = Astro.props as Props & {
++  title?: string; description?: string; buttonLabel?: string; buttonLink?: string;
++};
++const { backgroundImage, layout = 'left_aligned', preHeading, headingElement = 'h2', headingSize = 'large', textColor = 'dark', darkenImage = false } = raw;
++const heading = raw.heading ?? raw.title;
++const text = raw.text ?? raw.description;
++const buttonLabel = raw.buttonLabel;
++const buttonLink = raw.buttonLink;
+ const layouts: Record<string, string> = {
+   text_image: 'flex-col md:flex-row',
+   image_text: 'flex-col md:flex-row-reverse',
+@@ -56,7 +66,9 @@
+                 set:html={text}
+               />
+             )}
+-            <div class="flex w-full min-w-3xs gap-4"><slot name="buttons" /></div>
++            <div class="flex w-full min-w-3xs gap-4"><slot name="buttons" />{buttonLabel && (
++              <a href={buttonLink ?? '#'} class="rounded bg-black px-6 py-3 font-semibold text-white">{buttonLabel}</a>
++            )}</div>
+           </div>
+           <div class="flex w-full items-center md:w-1/2"></div>
+         </div>
+diff -ruN --exclude=node_modules --exclude=.env --exclude=.env.* --exclude=dist --exclude=.astro --exclude=*.log --exclude=package-lock.json --exclude=.agents --exclude=.claude --exclude=skills-lock.json headless-templates/astro/src/lib/static-paths.ts spike-astro/src/lib/static-paths.ts
+--- headless-templates/astro/src/lib/static-paths.ts	1970-01-01 02:00:00
++++ spike-astro/src/lib/static-paths.ts	2026-08-27 17:31:11
+@@ -0,0 +1,61 @@
++/**
++ * ponytail: build-time page enumeration via anonymous JSON:API. Follows
++ * links.next pagination; covers canvas_page + article. A real solution
++ * needs a Canvas-provided route inventory (see HEADLESS-SSG-RESEARCH.md).
++ */
++const SITE = process.env.CANVAS_SITE_URL ?? '';
++
++interface JsonApiItem {
++  attributes: {
++    path?: { alias?: string | null } | null;
++    drupal_internal__id?: number;
++    drupal_internal__nid?: number;
++    status?: boolean;
++  };
++}
++
++async function collect(url: string): Promise<JsonApiItem[]> {
++  const items: JsonApiItem[] = [];
++  let next: string | null = url;
++  while (next) {
++    const response = await fetch(next, {
++      headers: { Accept: 'application/vnd.api+json' },
++    });
++    if (!response.ok) {
++      throw new Error(`JSON:API enumeration failed: ${response.status} ${next}`);
++    }
++    const doc = (await response.json()) as {
++      data?: JsonApiItem[];
++      links?: { next?: { href?: string } };
++    };
++    items.push(...(doc.data ?? []));
++    next = doc.links?.next?.href ?? null;
++  }
++  return items;
++}
++
++/** Site-relative paths of all published pages the build should emit. */
++export async function enumeratePaths(): Promise<string[]> {
++  const [pages, articles] = await Promise.all([
++    collect(
++      `${SITE}/jsonapi/canvas_page/canvas_page?fields[canvas_page--canvas_page]=path,drupal_internal__id,status`,
++    ),
++    collect(
++      `${SITE}/jsonapi/node/article?fields[node--article]=path,drupal_internal__nid,status`,
++    ).catch(() => [] as JsonApiItem[]),
++  ]);
++  // Server-side filter[status]=1 silently returns an empty set for
++  // canvas_page (see the research doc), so published-only is client-side.
++  const paths = new Set<string>(['/']);
++  for (const item of pages) {
++    const a = item.attributes;
++    if (!a.status) continue;
++    paths.add(a.path?.alias || `/page/${a.drupal_internal__id}`);
++  }
++  for (const item of articles) {
++    const a = item.attributes;
++    if (!a.status) continue;
++    paths.add(a.path?.alias || `/node/${a.drupal_internal__nid}`);
++  }
++  return [...paths];
++}
+diff -ruN --exclude=node_modules --exclude=.env --exclude=.env.* --exclude=dist --exclude=.astro --exclude=*.log --exclude=package-lock.json --exclude=.agents --exclude=.claude --exclude=skills-lock.json headless-templates/astro/src/pages/[...slug].astro spike-astro/src/pages/[...slug].astro
+--- headless-templates/astro/src/pages/[...slug].astro	2026-08-27 17:23:52
++++ spike-astro/src/pages/[...slug].astro	2026-08-27 17:27:23
+@@ -6,6 +6,16 @@
+ 
+ import type { PageHead } from '@drupal-canvas/headless-astro';
+ 
++import { enumeratePaths } from '../lib/static-paths';
++
++export async function getStaticPaths() {
++  const paths = await enumeratePaths();
++  return paths.map((path) => ({
++    params: { slug: path === '/' ? undefined : path.replace(/^\//, '') },
++  }));
++}
++
++
+ type AstroHead = Omit<PageHead, 'title'> & { title?: string };
+ 
+ const { slug } = Astro.params;
