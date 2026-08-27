@@ -3,11 +3,15 @@ import path from 'path';
 import dotenv from 'dotenv';
 import * as p from '@clack/prompts';
 import {
+  BRAND_KIT_CONFIG_FILENAME,
   DEFAULT_CANVAS_CONFIG,
   resolveCanvasConfig,
 } from '@drupal-canvas/discovery';
 
-import type { CanvasConfigWarning } from '@drupal-canvas/discovery';
+import type {
+  BrandKitColorFileEntry,
+  CanvasConfigWarning,
+} from '@drupal-canvas/discovery';
 
 // Load environment variables.
 export function loadEnvFiles() {
@@ -96,23 +100,24 @@ export interface Config {
   pageTemplatesDir: string;
   globalCssPath: string;
   fonts?: FontsConfig;
+  colors?: BrandKitColorFileEntry[];
 }
 
-/** Filename for brand kit (font) configuration in the project root. */
-export const BRAND_KIT_CONFIG_FILENAME = 'canvas.brand-kit.json';
+export { BRAND_KIT_CONFIG_FILENAME };
 
-/** Global brand kit id used by the CLI for font sync (single site-wide kit). */
+/** Global brand kit id used by the CLI for brand kit sync (single site-wide kit). */
 export const BRAND_KIT_GLOBAL_ID = 'global';
 
-/** Top-level shape of canvas.brand-kit.json (fonts and future brand kit keys). */
+/** Top-level shape of canvas.brand-kit.json (fonts, colors, and future brand kit keys). */
 export interface BrandKitConfigFile {
   fonts?: FontsConfig;
+  colors?: BrandKitColorFileEntry[];
 }
 
-function loadFontsFromBrandKitFile(hostRoot: string): FontsConfig | undefined {
+function loadBrandKitFile(hostRoot: string): BrandKitConfigFile {
   const configPath = path.resolve(hostRoot, BRAND_KIT_CONFIG_FILENAME);
   if (!fs.existsSync(configPath)) {
-    return undefined;
+    return {};
   }
   const raw = fs.readFileSync(configPath, 'utf-8');
   let parsed: BrandKitConfigFile;
@@ -127,11 +132,18 @@ function loadFontsFromBrandKitFile(hostRoot: string): FontsConfig | undefined {
           : String(err);
     throw new Error(`Invalid JSON in ${BRAND_KIT_CONFIG_FILENAME}: ${message}`);
   }
+  const result: BrandKitConfigFile = {};
   const fonts = parsed?.fonts;
   if (fonts && typeof fonts === 'object' && Array.isArray(fonts.families)) {
-    return fonts;
+    result.fonts = fonts;
   }
-  return undefined;
+  // An absent colors key means colors are not managed from this file; an
+  // explicit array (even empty) is an authored palette.
+  const colors = parsed?.colors;
+  if (Array.isArray(colors)) {
+    result.colors = colors;
+  }
+  return result;
 }
 
 const canvasConfigWarnings: CanvasConfigWarning[] = [];
@@ -239,6 +251,8 @@ const includeBrandKit = getEnvBoolean(
   DEFAULT_INCLUDE_BRAND_KIT,
 );
 
+const brandKitFile = loadBrandKitFile(process.cwd());
+
 let config: Config = {
   siteUrl: process.env.CANVAS_SITE_URL || '',
   clientId: process.env.CANVAS_CLIENT_ID || '',
@@ -263,7 +277,8 @@ let config: Config = {
   contentTemplatesDir: contentTemplatesDir,
   pageTemplatesDir: pageTemplatesDir,
   globalCssPath: globalCssPath,
-  fonts: loadFontsFromBrandKitFile(process.cwd()),
+  fonts: brandKitFile.fonts,
+  colors: brandKitFile.colors,
 };
 
 export function getConfig(): Config {

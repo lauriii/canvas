@@ -2,7 +2,10 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadEnv } from 'vite';
-import { resolveCanvasConfig } from '@drupal-canvas/discovery';
+import {
+  BRAND_KIT_CONFIG_FILENAME,
+  resolveCanvasConfig,
+} from '@drupal-canvas/discovery';
 import { validateCanvasImportRoots } from '@drupal-canvas/vite-compat';
 
 export interface WorkbenchPathsOptions {
@@ -82,6 +85,7 @@ export function resolveWorkbenchPaths(
       pagesDiscoveryRoot,
       contentTemplatesDiscoveryRoot,
       pageTemplatesDiscoveryRoot,
+      path.join(hostProjectRoot, BRAND_KIT_CONFIG_FILENAME),
     ]),
   ];
 

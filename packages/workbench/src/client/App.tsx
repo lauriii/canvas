@@ -890,6 +890,9 @@ export function App() {
             ];
         const cssUrls = selectedComponentMock
           ? [
+              ...(previewManifest.brandKitCssUrl
+                ? [previewManifest.brandKitCssUrl]
+                : []),
               ...(previewManifest.globalCssUrl
                 ? [previewManifest.globalCssUrl]
                 : []),
@@ -898,6 +901,9 @@ export function App() {
                 .map((component) => toViteFsUrl(component.cssEntryPath!)),
             ]
           : [
+              ...(previewManifest.brandKitCssUrl
+                ? [previewManifest.brandKitCssUrl]
+                : []),
               ...(previewManifest.globalCssUrl
                 ? [previewManifest.globalCssUrl]
                 : []),
@@ -1003,6 +1009,9 @@ export function App() {
                   }),
                 ),
               cssUrls: [
+                ...(previewManifest.brandKitCssUrl
+                  ? [previewManifest.brandKitCssUrl]
+                  : []),
                 ...(previewManifest.globalCssUrl
                   ? [previewManifest.globalCssUrl]
                   : []),
@@ -1219,6 +1228,9 @@ export function App() {
                   }),
                 ),
               cssUrls: [
+                ...(previewManifest.brandKitCssUrl
+                  ? [previewManifest.brandKitCssUrl]
+                  : []),
                 ...(previewManifest.globalCssUrl
                   ? [previewManifest.globalCssUrl]
                   : []),
@@ -1292,6 +1304,9 @@ export function App() {
                   jsEntryUrl: toViteFsUrl(component.jsEntryPath),
                 })),
               cssUrls: [
+                ...(previewManifest.brandKitCssUrl
+                  ? [previewManifest.brandKitCssUrl]
+                  : []),
                 ...(previewManifest.globalCssUrl
                   ? [previewManifest.globalCssUrl]
                   : []),
