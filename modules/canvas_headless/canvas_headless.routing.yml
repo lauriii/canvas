@@ -77,6 +77,19 @@ canvas_headless.frontends.patch:
     no_cache: TRUE
     _auth: ['cookie']
 
+# SPIKE PROTOTYPE for the headless-route-inventory proposal: a public,
+# published-only list of the paths Canvas renders, for build tools, sitemap
+# generators, and other clients that must walk the site. Anonymous by design,
+# like the content endpoint above: it exposes nothing an anonymous crawl of
+# the site would not discover.
+canvas_headless.inventory:
+  path: '/canvas/api/v0/headless/inventory'
+  defaults:
+    _controller: 'Drupal\canvas_headless\Controller\RouteInventoryController::get'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+
 # The browser coordinates component synchronization because it can reach the
 # same frontend URL it embeds. Drupal issues the proof-by-redemption assertion,
 # validates and persists the returned metadata, and records lifecycle

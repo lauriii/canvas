@@ -237,6 +237,39 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorMessage'
 
+  /canvas/api/v0/headless/inventory:
+    get:
+      summary: List Canvas-rendered paths (spike prototype)
+      description: |
+        Enumerates the canonical paths of published Canvas pages and of
+        published content entities rendered by an enabled full-view content
+        template. Public and published-only; intended for clients that need
+        to walk the site (static builds, sitemap generators, cache warmers).
+      parameters:
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: One page of the path inventory.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RouteInventoryPayload'
+      security: []
+
   /canvas/api/v0/headless/components/sync/start:
     post:
       summary: Start external component synchronization
@@ -440,6 +473,48 @@ components:
           format: uuid
         langcode:
           type: string
+
+    RouteInventoryPayload:
+      type: object
+      additionalProperties: false
+      required: [paths, total, offset, limit]
+      properties:
+        paths:
+          type: array
+          items:
+            $ref: '#/components/schemas/RouteInventoryEntry'
+        total:
+          type: integer
+          minimum: 0
+        offset:
+          type: integer
+          minimum: 0
+        limit:
+          type: integer
+          minimum: 1
+
+    RouteInventoryEntry:
+      type: object
+      additionalProperties: false
+      required: [path, entityType, id, uuid, langcode, changed]
+      properties:
+        path:
+          type: string
+          description: Site-relative canonical path, alias included.
+        entityType:
+          type: string
+        id:
+          type: string
+        uuid:
+          type: string
+          format: uuid
+        langcode:
+          type: string
+        changed:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
 
     FrontendEntry:
       type: object
