@@ -6,6 +6,7 @@ namespace Drupal\canvas_oauth\Authentication\Provider;
 
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\BrandKit;
+use Drupal\canvas\Entity\Color;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\JavaScriptComponent;
@@ -93,6 +94,7 @@ class CanvasOauthAuthenticationProvider implements AuthenticationProviderInterfa
       JavaScriptComponent::ENTITY_TYPE_ID,
       AssetLibrary::ENTITY_TYPE_ID,
       BrandKit::ENTITY_TYPE_ID,
+      Color::ENTITY_TYPE_ID,
       ContentTemplate::ENTITY_TYPE_ID,
       PageVariant::ENTITY_TYPE_ID,
     ];
