@@ -138,10 +138,11 @@ function loadBrandKitFile(hostRoot: string): BrandKitConfigFile {
     result.fonts = fonts;
   }
   // An absent colors key means colors are not managed from this file; an
-  // explicit map (even empty) is an authored palette.
-  const colors = parsed?.colors;
-  if (colors && typeof colors === 'object' && !Array.isArray(colors)) {
-    result.colors = colors;
+  // explicit map (even empty) is an authored palette. Any other present
+  // value is carried through so validation can reject it with a useful
+  // message instead of colors being silently skipped.
+  if (parsed && typeof parsed === 'object' && 'colors' in parsed) {
+    result.colors = parsed.colors as BrandKitConfigFile['colors'];
   }
   return result;
 }

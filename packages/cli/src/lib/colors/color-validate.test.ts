@@ -33,9 +33,11 @@ describe('validateColorsConfig', () => {
   });
 
   it('rejects a non-object colors value', () => {
-    const message = errorsFor([] as unknown as BrandKitColorsFileMap);
-    expect(message).toContain('must be an object');
-    expect(message).toContain('"brand-red": "#cc0000"');
+    for (const bad of [[], null, 'red', 42]) {
+      const message = errorsFor(bad as unknown as BrandKitColorsFileMap);
+      expect(message).toContain('must be an object');
+      expect(message).toContain('"brand-red": "#cc0000"');
+    }
   });
 
   it('rejects a malformed color string naming the entry and the accepted forms', () => {

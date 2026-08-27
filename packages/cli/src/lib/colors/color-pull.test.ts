@@ -67,6 +67,38 @@ describe('planColorPull', () => {
     });
   });
 
+  it('serializes an RGB-displayed color as an rgb() string carrying the format', () => {
+    const plan = planColorPull(
+      [
+        remoteColor({
+          cssVariable: '--ink',
+          name: 'Ink',
+          displayFormat: 'rgb',
+          value: {
+            colorSpace: 'srgb',
+            components: [20 / 255, 24 / 255, 31 / 255],
+            alpha: null,
+            hex: '#14181f',
+          },
+        }),
+      ],
+      undefined,
+    );
+    expect(plan.colors).toEqual({ ink: 'rgb(20, 24, 31)' });
+  });
+
+  it('asserts a display format the serialized string cannot carry', () => {
+    // A display format that mismatches the value form (possible via the
+    // API) survives the pull as an explicit wrapper field.
+    const plan = planColorPull(
+      [remoteColor({ displayFormat: 'hsl' })],
+      undefined,
+    );
+    expect(plan.colors).toEqual({
+      'brand-red': { value: '#cc0000', displayFormat: 'hsl' },
+    });
+  });
+
   it('serializes hsl colors as hsl strings', () => {
     const plan = planColorPull(
       [

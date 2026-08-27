@@ -238,9 +238,12 @@ export async function pushColors(
         weight: reassignWeights ? index : maxRemoteWeight + 1 + createSequence,
       };
       // The display format defaults from the value's string form ("#..."
-      // edits as hex, "hsl(...)" as HSL) unless the file asserts one.
+      // edits as hex, "hsl(...)" as HSL) unless the file asserts one — and
+      // an asserted null means the server default, not the derived format.
       const displayFormat =
-        local.explicitDisplayFormat ?? local.derivedDisplayFormat;
+        local.explicitDisplayFormat !== undefined
+          ? local.explicitDisplayFormat
+          : local.derivedDisplayFormat;
       if (displayFormat != null) {
         payload.displayFormat = displayFormat;
       }

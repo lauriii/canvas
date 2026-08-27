@@ -15,7 +15,7 @@ export const CSS_VARIABLE_PATTERN = /^--[a-zA-Z_-][a-zA-Z0-9_-]*$/;
 /**
  * Pattern for a color key in the `colors` map: the CSS custom property name
  * with or without its `--` prefix. Stripping or adding the prefix maps
- * bijectively onto the server's `cssVariable` pattern.
+ * one-to-one onto the server's `cssVariable` pattern.
  */
 export const COLOR_KEY_PATTERN = /^(--)?[a-zA-Z_-][a-zA-Z0-9_-]*$/;
 
@@ -160,7 +160,7 @@ function parseAlphaString(raw: string | undefined): number | null {
   const value = raw.endsWith('%')
     ? Number.parseFloat(raw.slice(0, -1)) / 100
     : Number.parseFloat(raw);
-  if (!Number.isFinite(value)) {
+  if (!Number.isFinite(value) || value < 0 || value > 1) {
     return Number.NaN;
   }
   return value === 1 ? null : value;
@@ -207,7 +207,14 @@ export function parseCssColorString(
     const components = [hslMatch[1], hslMatch[2], hslMatch[3]].map((c) =>
       Number.parseFloat(c),
     );
-    if (components.some((c) => !Number.isFinite(c))) {
+    // Hue is an unbounded angle; saturation and lightness are percentages.
+    if (
+      components.some((c) => !Number.isFinite(c)) ||
+      components[1] < 0 ||
+      components[1] > 100 ||
+      components[2] < 0 ||
+      components[2] > 100
+    ) {
       return null;
     }
     const alpha = parseAlphaString(hslMatch[4]);
@@ -293,15 +300,16 @@ export function colorTokenValuesEqual(
  * when one parses back to the exact same token — hex for opaque sRGB,
  * `rgba()` for translucent sRGB, `hsl()`/`hsla()` for HSL — otherwise the
  * token object with a fixed key order and only the keys that carry
- * information. The parse-back check makes losslessness structural: any
+ * information. The parse-back check makes the lossless guarantee structural: any
  * value another API client wrote that a string cannot represent exactly
  * stays an object, so the next push never rewrites a color the user did
  * not touch.
  */
 export function serializeColorValue(
   token: ColorTokenValue,
+  preferredFormat?: ColorDisplayFormat | null,
 ): BrandKitColorFileValue {
-  const candidate = serializeCandidateString(token);
+  const candidate = serializeCandidateString(token, preferredFormat);
   if (candidate !== null) {
     const parsed = parseCssColorString(candidate)?.token;
     if (
@@ -328,9 +336,20 @@ export function serializeColorValue(
   return out;
 }
 
-function serializeCandidateString(token: ColorTokenValue): string | null {
+function serializeCandidateString(
+  token: ColorTokenValue,
+  preferredFormat?: ColorDisplayFormat | null,
+): string | null {
   const opaque = token.alpha == null || token.alpha === 1;
   if (token.colorSpace === 'srgb') {
+    // An opaque color the editor displays as RGB keeps its rgb() form, so
+    // the string carries the display format too.
+    if (opaque && preferredFormat === 'rgb' && token.components.length >= 3) {
+      const channels = token.components
+        .slice(0, 3)
+        .map((c) => Math.round(c * 255));
+      return `rgb(${channels.join(', ')})`;
+    }
     if (opaque && token.hex != null) {
       return token.hex;
     }
@@ -373,7 +392,9 @@ function exactTokensEqual(a: ColorTokenValue, b: ColorTokenValue): boolean {
 }
 
 function channelTo255(component: number): number {
-  return Math.round(component * 255);
+  // Clamp so out-of-range components (which the server schema does not
+  // constrain) can never emit an invalid hex like a seven-digit string.
+  return Math.min(255, Math.max(0, Math.round(component * 255)));
 }
 
 function computedHex(components: number[]): string {

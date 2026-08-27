@@ -88,6 +88,17 @@ describe('pushColors', () => {
     );
   });
 
+  it('treats an asserted null display format as the server default on create', async () => {
+    const api = mockApi([]);
+    await pushColors(
+      { 'brand-red': { value: '#cc0000', displayFormat: null } },
+      api,
+    );
+    expect(api.createColor).toHaveBeenCalledWith(
+      expect.not.objectContaining({ displayFormat: expect.anything() }),
+    );
+  });
+
   it('uses the explicit name and display format from the wrapper form', async () => {
     const api = mockApi([]);
     await pushColors(

@@ -66,6 +66,7 @@ import { validatePageTemplates } from '../utils/validate-page-variant';
 
 import type { DiscoveryWarning } from '@drupal-canvas/discovery';
 import type { Command } from 'commander';
+import type { ColorPushOutcome } from '../lib/colors/color-push.js';
 import type { ApiService } from '../services/api.js';
 import type {
   AssetLibrary,
@@ -1125,6 +1126,7 @@ export function pushCommand(program: Command): void {
         let globalCssResult: Result | undefined;
         let globalAssetLibraryUpdate: Partial<AssetLibrary> | undefined;
         let fontCount = 0;
+        let colorPruneFailures: ColorPushOutcome[] = [];
 
         if (components.length > 0) {
           removeNotStartedResource(notStartedResources, 'components');
@@ -1419,6 +1421,11 @@ export function pushCommand(program: Command): void {
                   action: 'pushed',
                 });
               }
+              // Refused prune deletions must fail the command at the end,
+              // after the remaining resources have pushed.
+              colorPruneFailures = result.outcomes.filter(
+                (outcome) => !outcome.success,
+              );
             }
           } catch (err) {
             colorSpinner.stop('Brand kit colors push failed', 2);
@@ -1680,6 +1687,19 @@ export function pushCommand(program: Command): void {
           if (contentTemplateSummary) {
             completedResources.push(contentTemplateSummary);
           }
+        }
+
+        if (colorPruneFailures.length > 0) {
+          throw new PushPhaseError(
+            'Brand kit color prune incomplete',
+            [
+              `${colorPruneFailures.length} ${pluralize(colorPruneFailures.length, 'color')} could not be deleted:`,
+              ...colorPruneFailures.map(
+                (outcome) =>
+                  `  ${outcome.itemName}: ${outcome.detail ?? 'deletion refused'}`,
+              ),
+            ].join('\n'),
+          );
         }
 
         await apiService.signalPushComplete();

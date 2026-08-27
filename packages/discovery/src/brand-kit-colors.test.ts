@@ -115,11 +115,15 @@ describe('parseCssColorString', () => {
     );
   });
 
-  it('rejects out-of-range channels and junk', () => {
+  it('rejects out-of-range channels, alphas, percentages, and junk', () => {
     for (const bad of [
       'rgb(300, 0, 0)',
       'rgb(1, 2)',
+      'rgba(204, 0, 0, 2)',
+      'rgba(204, 0, 0, 150%)',
       'hsl(220, 60, 50)',
+      'hsl(220, 160%, 50%)',
+      'hsla(220, 60%, 50%, 1.5)',
       'red',
       'var(--other)',
     ]) {
@@ -233,6 +237,29 @@ describe('serializeColorValue', () => {
     });
   });
 
+  it('keeps the rgb() form for opaque colors displayed as RGB', () => {
+    expect(
+      serializeColorValue(
+        {
+          colorSpace: 'srgb',
+          components: [20 / 255, 24 / 255, 31 / 255],
+          alpha: null,
+          hex: '#14181f',
+        },
+        'rgb',
+      ),
+    ).toBe('rgb(20, 24, 31)');
+    // Without the preference the same token serializes as hex.
+    expect(
+      serializeColorValue({
+        colorSpace: 'srgb',
+        components: [20 / 255, 24 / 255, 31 / 255],
+        alpha: null,
+        hex: '#14181f',
+      }),
+    ).toBe('#14181f');
+  });
+
   it('round-trips through the parsers', () => {
     for (const value of [
       '#1a2b3c',
@@ -261,6 +288,12 @@ describe('colorTokenToCss', () => {
     expect(
       colorTokenToCss({ colorSpace: 'srgb', components: [0.8, 0, 0] }),
     ).toBe('#cc0000');
+  });
+
+  it('clamps out-of-range components instead of emitting invalid hex', () => {
+    expect(
+      colorTokenToCss({ colorSpace: 'srgb', components: [1.5, -0.2, 0] }),
+    ).toBe('#ff0000');
   });
 
   it('renders translucent srgb as rgba', () => {

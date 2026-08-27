@@ -5,6 +5,7 @@ import {
   colorTokenValuesEqual,
   deriveColorName,
   normalizeBrandKitColors,
+  parseCssColorString,
   serializeColorValue,
 } from '@drupal-canvas/discovery';
 
@@ -44,21 +45,32 @@ function itemName(name: string, cssVariable: string): string {
 
 /**
  * Serializes a server color into a hand-editable map entry: the plain CSS
- * string when lossless, wrapped in an object only when the color needs a
- * display name differing from the one its key derives (or, on a rewrite,
- * when the local entry had asserted a display format).
+ * string when lossless (in the form matching the editor's display format,
+ * so the string carries the format), wrapped in an object only when the
+ * color needs a display name differing from the one its key derives, a
+ * display format its serialized value cannot express, or — on a rewrite —
+ * when the local entry had asserted a display format.
  */
 function toFileValue(
   remote: BrandKitColorEntry,
   key: string,
   previous?: NormalizedBrandKitColor,
 ): BrandKitColorFileValue | BrandKitColorFileObject {
-  const value = serializeColorValue(remote.value);
+  const value = serializeColorValue(remote.value, remote.displayFormat);
   const name = remote.name !== deriveColorName(key) ? remote.name : undefined;
-  const displayFormat =
-    previous?.explicitDisplayFormat !== undefined
-      ? (remote.displayFormat ?? null)
+  const derivedFormat =
+    typeof value === 'string'
+      ? parseCssColorString(value)?.displayFormat
       : undefined;
+  let displayFormat: BrandKitColorFileObject['displayFormat'];
+  if (previous?.explicitDisplayFormat !== undefined) {
+    displayFormat = remote.displayFormat ?? null;
+  } else if (
+    remote.displayFormat != null &&
+    remote.displayFormat !== derivedFormat
+  ) {
+    displayFormat = remote.displayFormat;
+  }
   if (name === undefined && displayFormat === undefined) {
     return value;
   }
