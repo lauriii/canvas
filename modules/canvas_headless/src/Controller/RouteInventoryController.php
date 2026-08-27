@@ -18,15 +18,18 @@ use Symfony\Component\HttpFoundation\Request;
  *
  * Lists the canonical paths of published Canvas pages plus published content
  * entities whose bundle is rendered by an enabled full-view content template.
- * Anonymous, published-only, offset-paginated. Built to prove feasibility for
- * the headless-route-inventory OpenSpec proposal; not production code. Known
- * simplifications, recorded in the proposal's tasks:
+ * Published-only, offset-paginated; reflects the requesting account's entity
+ * access (an anonymous request sees the anonymous view). Built to prove
+ * feasibility for the headless-static-builds OpenSpec proposal; not
+ * production code. Known simplifications, recorded in the proposal's tasks:
  * - offset pagination over an id-merged list (a real implementation wants a
  *   keyset cursor so pages are stable under concurrent publishes);
  * - default translation only (no per-language path variants);
  * - no representation of non-entity routes (front page alias, views pages);
  * - access variation is only covered at 'user.permissions' granularity, which
- *   is too coarse for per-user access schemes such as node grants.
+ *   is too coarse for per-user access schemes such as node grants;
+ * - entity types without a published key are listed unfiltered, and types
+ *   without a changed timestamp yield changed: null.
  */
 final class RouteInventoryController {
 

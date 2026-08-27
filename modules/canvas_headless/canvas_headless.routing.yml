@@ -77,11 +77,11 @@ canvas_headless.frontends.patch:
     no_cache: TRUE
     _auth: ['cookie']
 
-# SPIKE PROTOTYPE for the headless-route-inventory proposal: a public,
+# SPIKE PROTOTYPE for the headless-static-builds proposal: a public,
 # published-only list of the paths Canvas renders, for build tools, sitemap
-# generators, and other clients that must walk the site. Anonymous by design,
-# like the content endpoint above: it exposes nothing an anonymous crawl of
-# the site would not discover.
+# generators, and other clients that must walk the site. Open access like the
+# content endpoint above; the response reflects the requesting account's
+# entity access, so an anonymous request sees exactly the anonymous view.
 canvas_headless.inventory:
   path: '/canvas/api/v0/headless/inventory'
   defaults:
