@@ -4722,6 +4722,28 @@ components:
         packageJson:
           type: [string, "null"]
           description: Package.json of the source repository, tracked so a project can be reconstructed with original dependencies
+        npmDependencies:
+          type: object
+          description: >-
+            npm packages that installed modules and themes declare under the
+            `canvas.npm` key of their info file, by package name. Read-only:
+            computed from the site's extensions and ignored if sent back. A CLI
+            `pull` adds a missing one to the project's package.json once; a
+            forced one is set to the declared version even where the project
+            has another, because the extension requires it.
+          readOnly: true
+          additionalProperties:
+            type: object
+            required:
+              - version
+              - force
+            properties:
+              version:
+                type: string
+                description: The exact version the extension was built against.
+              force:
+                type: boolean
+                description: Whether the extension requires this version.
     NewAssetLibrary:
       type: object
       allOf:

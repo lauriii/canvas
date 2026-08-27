@@ -519,6 +519,7 @@ describe('Pull Command', () => {
       assets?: unknown[],
       downloadFile?: ReturnType<typeof vi.fn>,
       bundledSources?: unknown[],
+      npmDependencies?: Record<string, { version: string; force: boolean }>,
     ): ApiService {
       return {
         getGlobalAssetLibrary: vi.fn().mockResolvedValue({
@@ -526,12 +527,220 @@ describe('Pull Command', () => {
           packageJson,
           assets,
           bundledSources,
+          npmDependencies,
         }),
         downloadFile:
           downloadFile ??
           vi.fn().mockResolvedValue(Buffer.from([0x00, 0x01, 0x02])),
       } as unknown as ApiService;
     }
+
+    it("adds the packages the site's modules declare to package.json", async () => {
+      await fs.writeFile(
+        path.join(tmpDir, 'package.json'),
+        `{\n  "name": "p",\n  "dependencies": {\n    "react": "^19.0.0"\n  }\n}\n`,
+      );
+      const api = mockApiService(
+        'body {}',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { '@acme/canvas-forms': { version: '1.2.0', force: false } },
+      );
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
+
+      const { summaryLines } = await task.prepare();
+      // Named in the plan, before anything is written.
+      expect(summaryLines).toEqual([
+        'Assets: global CSS, module npm dependencies (@acme/canvas-forms@1.2.0) pull',
+      ]);
+
+      const result = await task.execute();
+      expect(result.results).toContainEqual({
+        itemName: '@acme/canvas-forms',
+        success: true,
+        details: [{ content: 'Module npm dependency 1.2.0' }],
+      });
+      expect(result.notes).toContain(
+        'package.json changed. Run `npm install` to install dependencies.',
+      );
+      const written = JSON.parse(
+        await fs.readFile(path.join(tmpDir, 'package.json'), 'utf-8'),
+      );
+      expect(written.dependencies).toEqual({
+        react: '^19.0.0',
+        '@acme/canvas-forms': '1.2.0',
+      });
+      expect(written.canvas).toEqual({
+        npmDependencies: { '@acme/canvas-forms': '1.2.0' },
+      });
+    });
+
+    it('leaves a version the developer set and says so', async () => {
+      await fs.writeFile(
+        path.join(tmpDir, 'package.json'),
+        JSON.stringify({ dependencies: { '@acme/canvas-forms': 'file:../m' } }),
+      );
+      const api = mockApiService(
+        'body {}',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { '@acme/canvas-forms': { version: '1.2.0', force: false } },
+      );
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
+      await task.prepare();
+      const result = await task.execute();
+      expect(result.notes?.join('\n')).toContain(
+        "package.json has @acme/canvas-forms@file:../m, but the site's extension declares 1.2.0",
+      );
+      expect(result.notes).not.toContain(
+        'package.json changed. Run `npm install` to install dependencies.',
+      );
+      const written = JSON.parse(
+        await fs.readFile(path.join(tmpDir, 'package.json'), 'utf-8'),
+      );
+      expect(written.dependencies).toEqual({
+        '@acme/canvas-forms': 'file:../m',
+      });
+    });
+
+    it('gives back what was pushed, byte for byte, when it already has the declared package', async () => {
+      // The site stores what the last push sent; pull restores it, then the
+      // merge must find nothing to do. Several shapes a developer might push.
+      const pushedFiles = [
+        `{\n  "name": "p",\n  "dependencies": {\n    "@acme/canvas-forms": "1.2.0",\n    "react": "^19.0.0"\n  }\n}\n`,
+        `{\n\t"dependencies": {\n\t\t"@acme/canvas-forms": "^1.2.0"\n\t}\n}`,
+        JSON.stringify({ devDependencies: { '@acme/canvas-forms': '1.2.0' } }),
+        JSON.stringify({
+          dependencies: { react: '^19.0.0' },
+          canvas: { npmDependencies: { '@acme/canvas-forms': '1.2.0' } },
+        }),
+      ];
+      for (const pushed of pushedFiles) {
+        await fs.rm(path.join(tmpDir, 'package.json'), { force: true });
+        const api = mockApiService(
+          'body {}',
+          pushed,
+          undefined,
+          undefined,
+          undefined,
+          { '@acme/canvas-forms': { version: '1.2.0', force: false } },
+        );
+        const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
+        await task.prepare();
+        const result = await task.execute();
+        await expect(
+          fs.readFile(path.join(tmpDir, 'package.json'), 'utf-8'),
+        ).resolves.toBe(pushed);
+        expect(result.results.map((r) => r.itemName)).not.toContain(
+          '@acme/canvas-forms',
+        );
+      }
+    });
+
+    it('applies a forced declaration and says what it changed', async () => {
+      await fs.writeFile(
+        path.join(tmpDir, 'package.json'),
+        JSON.stringify({ dependencies: { '@acme/canvas-forms': '1.2.0' } }),
+      );
+      const api = mockApiService(
+        'body {}',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { '@acme/canvas-forms': { version: '1.3.0', force: true } },
+      );
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
+      const { summaryLines } = await task.prepare();
+      expect(summaryLines).toEqual([
+        'Assets: global CSS, module npm dependencies (@acme/canvas-forms@1.3.0 (forced)) pull',
+      ]);
+      const result = await task.execute();
+      expect(result.results).toContainEqual({
+        itemName: '@acme/canvas-forms',
+        success: true,
+        details: [
+          { content: 'Module npm dependency 1.3.0 (forced: was 1.2.0)' },
+        ],
+      });
+      expect(result.notes).toContain(
+        'package.json changed. Run `npm install` to install dependencies.',
+      );
+      const written = JSON.parse(
+        await fs.readFile(path.join(tmpDir, 'package.json'), 'utf-8'),
+      );
+      expect(written.dependencies).toEqual({ '@acme/canvas-forms': '1.3.0' });
+    });
+
+    it('refreshes the record when the site declares nothing any more', async () => {
+      await fs.writeFile(
+        path.join(tmpDir, 'package.json'),
+        JSON.stringify({
+          dependencies: { a: '1.0.0' },
+          canvas: { npmDependencies: { a: '1.0.0' } },
+        }),
+      );
+      // An empty object is a statement, not an absence: the record forgets
+      // `a`, the dependency itself stays.
+      const api = mockApiService(
+        'body {}',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {},
+      );
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
+      await task.prepare();
+      const result = await task.execute();
+      const written = JSON.parse(
+        await fs.readFile(path.join(tmpDir, 'package.json'), 'utf-8'),
+      );
+      expect(written.dependencies).toEqual({ a: '1.0.0' });
+      expect(written.canvas).toBeUndefined();
+      expect(result.notes?.join('\n')).toContain(
+        'No longer declared by the site, left in package.json: a.',
+      );
+    });
+
+    it('still adds declared packages under --skip-overwrite when package.json was just restored', async () => {
+      // No package.json on disk; the site stores one and declares a package.
+      const api = mockApiService(
+        'body {}',
+        JSON.stringify({ name: 'restored', dependencies: {} }),
+        undefined,
+        undefined,
+        undefined,
+        { '@acme/canvas-forms': { version: '1.2.0', force: false } },
+      );
+      const task = createAssetsPullTask(api, globalCssPath, true, tmpDir);
+      await task.prepare();
+      await task.execute();
+      const written = JSON.parse(
+        await fs.readFile(path.join(tmpDir, 'package.json'), 'utf-8'),
+      );
+      expect(written.dependencies).toEqual({ '@acme/canvas-forms': '1.2.0' });
+    });
+
+    it('merges nothing when the site does not report declared packages', async () => {
+      const original = JSON.stringify({
+        dependencies: { a: '1.0.0' },
+        canvas: { npmDependencies: { a: '1.0.0' } },
+      });
+      await fs.writeFile(path.join(tmpDir, 'package.json'), original);
+      // An older Canvas: no `npmDependencies` key at all. Unknown is not empty.
+      const api = mockApiService('body {}');
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
+      await task.prepare();
+      await task.execute();
+      await expect(
+        fs.readFile(path.join(tmpDir, 'package.json'), 'utf-8'),
+      ).resolves.toBe(original);
+    });
 
     it('should include global CSS in summary', async () => {
       const api = mockApiService('body {}');

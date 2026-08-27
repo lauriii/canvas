@@ -1,0 +1,23 @@
+name: 'Test Canvas npm dependency'
+type: module
+description: 'Declares an npm package for code components, the way a module whose JavaScript is published on npm would.'
+package: Testing
+dependencies:
+  - canvas:canvas
+canvas:
+  npm:
+    '@canvas-test/declared-package': 1.2.3
+    # The mapping form: a declaration the extension requires.
+    '@canvas-test/required-client':
+      version: 2.0.0
+      force: true
+    # Rejected: `force` must be a boolean.
+    '@canvas-test/bad-force':
+      version: 1.0.0
+      force: 'yes'
+    # Rejected: not an exact version. A range, tag, URL, or path must never
+    # reach a project's package.json from an info file.
+    '@canvas-test/ranged': ^1.0.0
+    '@canvas-test/tarball': 'https://example.com/evil.tgz'
+    # Rejected: not a valid npm package name.
+    'Not A Package': 1.0.0

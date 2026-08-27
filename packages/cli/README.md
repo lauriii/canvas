@@ -272,6 +272,44 @@ import * as Accordion from '@radix-ui/react-accordion';
 > **Important:** Third-party packages are bundled and uploaded as vendor
 > artifacts. Use [`npx canvas push`](#push) to include them.
 
+### Packages a Drupal module declares
+
+A Drupal module or theme whose code component JavaScript is published on npm
+declares the package and the exact version it ships under `canvas.npm` in its
+info file:
+
+```yaml
+canvas:
+  npm:
+    '@acme/canvas-forms': 1.2.0
+    '@acme/canvas-forms-client':
+      version: 2.0.0
+      force: true
+```
+
+[`npx canvas pull`](#pull) adds a declared package that is missing from your
+`package.json`, once, and tells you to run `npm install`. It records what it
+added under `canvas.npmDependencies` so that, if you later remove that package,
+no pull puts it back. It never changes a value, never removes a dependency, and
+never reorders the file: if your `package.json` disagrees with what the site
+declares, pull says so and names the `npm install` that would follow the site.
+Push stores `package.json` verbatim and pull restores it verbatim, so a pull of
+what you pushed gives the same file back.
+
+A declaration marked `force: true` is one the extension requires, for example a
+client package that must move with the module. For those, pull sets the declared
+version even where `package.json` has another value (a range that allows the
+declared version is left alone), re-adds the package if it was removed, and
+reports what it changed; push the result and later pulls give it back unchanged.
+`build` and `push` fail before bundling when a component imports a declared
+package that is not installed, and warn when it is installed at a version other
+than the one the site's extension declares.
+
+> **Important:** a module's code component JavaScript ships on npm, not through
+> the Canvas import map. A module that also serves a copy through
+> `hook_canvas_importmap_alter()` overrides the pushed bundle on the site and in
+> the editor, while this project and Workbench use the npm copy.
+
 ### Shared Local Modules via `@/` Alias
 
 Utilities and helpers can be imported from shared locations **outside** of any
@@ -333,7 +371,16 @@ local filesystem. Brand Kit fonts are only included when explicitly enabled.
 
 If the project's `package.json` was captured on a previous `push`, it is written
 back to the project root during pull. It is overwritten by default, or skipped
-with `--skip-overwrite`, the same as global CSS.
+with `--skip-overwrite`, the same as global CSS. Un-pushed hand edits to
+`package.json` are overwritten by that restore; push them first.
+
+After that restore, a package the site's modules and themes declare under
+`canvas.npm` that is missing from `package.json` is added, once (see
+[Packages a Drupal module declares](#packages-a-drupal-module-declares)); a file
+that already has every declared package is left byte for byte as pushed. The
+plan names the declared packages before anything is written. With
+`--skip-overwrite`, a `package.json` that existed before the pull is left alone
+and the skipped packages are named.
 
 **Usage:**
 

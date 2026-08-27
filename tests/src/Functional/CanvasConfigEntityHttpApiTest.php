@@ -1770,6 +1770,23 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     $this->assertSame([], $individual_body);
   }
 
+  /**
+   * Asserts the read-only `npmDependencies` is present, and strips it.
+   *
+   * It is computed from the site's installed extensions rather than stored, so
+   * it cannot be part of a literal round-trip expectation.
+   *
+   * @see \Drupal\canvas\Entity\AssetLibrary::normalizeForClientSide()
+   */
+  private function withoutNpmDependencies(?array $body): array {
+    $this->assertIsArray($body);
+    $this->assertArrayHasKey('npmDependencies', $body);
+    // No test module declares any, so the computed object is empty.
+    $this->assertSame([], $body['npmDependencies']);
+    unset($body['npmDependencies']);
+    return $body;
+  }
+
   public function testAssetLibrary(): void {
     // Delete the library created during install.
     $library = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
@@ -1872,7 +1889,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
         "$base/canvas/api/v0/config/asset_library/global",
       ],
     ]);
-    $this->assertSame($body, $asset_library_to_send);
+    $this->assertSame($this->withoutNpmDependencies($body), $asset_library_to_send);
     // Confirm no auto-save entity has been created.
     $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 200, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response', 'config:canvas.asset_library.global'], 'UNCACHEABLE (request policy)', 'MISS');
     $this->assertExpectedResponse('GET', $auto_save_url, $request_options, 200, ['user.permissions'], [AutoSaveManager::CACHE_TAG, 'http_response', 'config:canvas.asset_library.global'], 'UNCACHEABLE (request policy)', 'HIT');
@@ -1883,7 +1900,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'label' => $asset_library_to_send['label'],
     ];
     $body = $this->assertExpectedResponse('PATCH', Url::fromUri("base:/canvas/api/v0/config/asset_library/global"), $request_options, 200, NULL, NULL, NULL, NULL);
-    $this->assertSame($body, $asset_library_to_send);
+    $this->assertSame($this->withoutNpmDependencies($body), $asset_library_to_send);
 
     // @todo Test that creating an auto-save entry for the 'global' does not
     //   affect the GET request in https:/drupal.org/i/3505224.
@@ -1898,8 +1915,8 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     ], $body);
 
     // Admin should be able to get the Asset Library from the Canvas HTTP API.
-    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['user.permissions'], ['config:canvas.asset_library.global', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
-    $this->assertSame($asset_library_to_send, $body);
+    $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['user.permissions'], ['config:canvas.asset_library.global', 'config:core.extension', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+    $this->assertSame($asset_library_to_send, $this->withoutNpmDependencies($body));
 
     // Cannot delete the global library.
     $this->assertExpectedResponse('DELETE', Url::fromUri('base:/canvas/api/v0/config/asset_library/global'), [], 403, NULL, NULL, NULL, NULL);
@@ -1992,7 +2009,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       $request_options[RequestOptions::JSON] = $case['patch'];
       $this->assertExpectedResponse('PATCH', $canonical_url, $request_options, 200, NULL, NULL, NULL, NULL);
 
-      $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['user.permissions'], ['config:canvas.asset_library.global', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
+      $body = $this->assertExpectedResponse('GET', $canonical_url, [], 200, ['user.permissions'], ['config:canvas.asset_library.global', 'config:core.extension', 'http_response'], 'UNCACHEABLE (request policy)', 'MISS');
       self::assertNotNull($body);
       $this->assertArrayHasKey('shared', $body, $case['label']);
       $this->assertSame($case['expected_shared'], $body['shared'], $case['label']);

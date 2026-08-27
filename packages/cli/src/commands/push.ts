@@ -21,6 +21,7 @@ import {
   pluralize,
   pluralizeComponent,
   updateConfigFromOptions,
+  warnAboutNpmDependencyMismatches,
 } from '../utils/command-helpers';
 import { printCommandIntro } from '../utils/command-intro';
 import {
@@ -1150,6 +1151,8 @@ export function pushCommand(program: Command): void {
               'Tailwind build failed, global assets upload aborted. Nothing was pushed.',
             );
           }
+
+          warnAboutNpmDependencyMismatches(canvasBuild.npmDependencyMismatches);
 
           // Build and push components.
           try {
