@@ -166,6 +166,51 @@ describe('headless height probing', () => {
     host.destroy();
   });
 
+  it('preserves page variant identity when renewing', async () => {
+    const iframe = document.createElement('iframe');
+    document.body.append(iframe);
+    const fetchAssertion = vi.fn().mockResolvedValue('signed assertion');
+    const host = createHeadlessPreviewHost({
+      iframe,
+      frontendOrigin: FRONTEND_ORIGIN,
+      draftUrl: 'https://app.example/api/draft',
+      fetchAssertion,
+    });
+
+    await host.activate({
+      entity_type: 'page_variant',
+      entity: 'alternate',
+    });
+    const postMessage = vi.spyOn(iframe.contentWindow!, 'postMessage');
+    iframe.dispatchEvent(new Event('load'));
+    const statusRequest = postMessage.mock.calls[0][0] as {
+      hostSessionId: string;
+    };
+    fetchAssertion.mockClear();
+
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        origin: FRONTEND_ORIGIN,
+        source: iframe.contentWindow,
+        data: {
+          type: HEADLESS_RENEW_REQUEST_MESSAGE,
+          path: '/',
+          hostSessionId: statusRequest.hostSessionId,
+        },
+      }),
+    );
+
+    await vi.waitFor(() =>
+      expect(fetchAssertion).toHaveBeenCalledWith({
+        path: '/',
+        entity_type: 'page_variant',
+        entity: 'alternate',
+        renewal: '1',
+      }),
+    );
+    host.destroy();
+  });
+
   it('temporarily applies probe heights and restores the iframe', async () => {
     const { host, hostSessionId, iframe, postMessage, send } =
       await createHeightHarness();

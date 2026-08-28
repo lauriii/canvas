@@ -21,6 +21,7 @@ const validClaims = {
   resourceVersion: 'rel:working-copy',
   previewContext: {
     viewMode: 'teaser',
+    pageVariant: 'alternate',
   },
   sub: '42',
   renewUrl: 'https://drupal.example/canvas-headless/renew',
@@ -550,6 +551,7 @@ describe('fetchPage', () => {
       liveDraftData({
         previewContext: {
           viewMode: 'teaser',
+          pageVariant: 'alternate',
         },
       }),
     );
@@ -560,7 +562,7 @@ describe('fetchPage', () => {
     });
     expect(fetchImpl).toHaveBeenCalledWith(
       new URL(
-        'https://drupal.example/canvas/content-api?requestUri=%2Fexample&viewMode=teaser',
+        'https://drupal.example/canvas/content-api?requestUri=%2Fexample&viewMode=teaser&pageVariant=alternate',
       ),
       expect.objectContaining({
         headers: {
@@ -579,6 +581,7 @@ describe('fetchPage', () => {
     seedSession(
       liveDraftData({
         path: '/example?language=fr',
+        previewContext: { pageVariant: 'alternate' },
       }),
     );
 

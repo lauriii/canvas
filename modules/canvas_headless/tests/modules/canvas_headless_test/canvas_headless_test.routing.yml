@@ -1,0 +1,7 @@
+canvas_headless_test.html_only:
+  path: '/canvas-headless-test/html-only'
+  defaults:
+    _controller: 'Drupal\canvas_headless\Controller\CanvasContentController::get'
+  requirements:
+    _access: 'TRUE'
+    _format: 'html'

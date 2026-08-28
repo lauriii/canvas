@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas_headless\Controller;
 
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas_headless\PreviewUrlGeneratorInterface;
 use Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException;
 use Drupal\Component\Plugin\Exception\PluginNotFoundException;
@@ -137,6 +138,12 @@ class AssertionController extends ControllerBase {
     if (!$entity->access('view')) {
       throw new AccessDeniedHttpException('The entity may not be viewed.');
     }
+    // Page variants are config entities without a canonical URL. Their
+    // headless editor preview enters the frontend at its root path and carries
+    // the edited variant in signed preview context instead.
+    if ($entity instanceof PageVariant) {
+      return '/';
+    }
     try {
       $path = $entity->toUrl()->toString(TRUE)->getGeneratedUrl();
     }
@@ -173,7 +180,7 @@ class AssertionController extends ControllerBase {
   /**
    * Reads optional content-template rendering context.
    *
-   * @return array{viewMode?: string}
+   * @return array{viewMode?: string, pageVariant?: string}
    *   The context carried by the signed preview assertion.
    */
   protected static function previewContext(Request $request): array {
@@ -184,6 +191,12 @@ class AssertionController extends ControllerBase {
         throw new BadRequestHttpException('The view_mode query parameter is invalid.');
       }
       $context['viewMode'] = $view_mode;
+    }
+    if ((string) $request->query->get('entity_type', '') === PageVariant::ENTITY_TYPE_ID) {
+      $page_variant = (string) $request->query->get('entity', '');
+      if ($page_variant !== '') {
+        $context['pageVariant'] = $page_variant;
+      }
     }
     return $context;
   }

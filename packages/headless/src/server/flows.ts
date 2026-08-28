@@ -99,10 +99,15 @@ export async function redeemAssertion(
   const previewContext =
     rawPreviewContext &&
     (rawPreviewContext.viewMode === undefined ||
-      typeof rawPreviewContext.viewMode === 'string')
+      typeof rawPreviewContext.viewMode === 'string') &&
+    (rawPreviewContext.pageVariant === undefined ||
+      typeof rawPreviewContext.pageVariant === 'string')
       ? {
           ...(typeof rawPreviewContext.viewMode === 'string' && {
             viewMode: rawPreviewContext.viewMode,
+          }),
+          ...(typeof rawPreviewContext.pageVariant === 'string' && {
+            pageVariant: rawPreviewContext.pageVariant,
           }),
         }
       : undefined;

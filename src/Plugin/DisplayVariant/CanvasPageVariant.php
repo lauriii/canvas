@@ -10,6 +10,7 @@ use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\PageVariant;
+use Drupal\canvas\PageVariantResolver;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Core\Block\MessagesBlockPluginInterface;
@@ -99,7 +100,7 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
    */
   private $title = '';
 
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, private readonly AutoSaveManager $autoSaveManager, private readonly ConfigFactoryInterface $configFactory) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, private readonly AutoSaveManager $autoSaveManager, private readonly PageVariantResolver $pageVariantResolver, private readonly ConfigFactoryInterface $configFactory) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
 
@@ -109,6 +110,7 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
       $plugin_id,
       $plugin_definition,
       $container->get(AutoSaveManager::class),
+      $container->get(PageVariantResolver::class),
       $container->get(ConfigFactoryInterface::class),
     );
   }
@@ -167,21 +169,8 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
       throw new \LogicException(\sprintf('The "%s" page variant does not exist.', $variant_id));
     }
 
-    // In preview, render the auto-saved draft of the variant if one exists.
     if ($is_preview) {
-      $autoSaveData = $this->autoSaveManager->getAutoSaveEntity($variant);
-      if (!$autoSaveData->isEmpty() && $autoSaveData->entity instanceof PageVariant) {
-        // Auto-save drafts are written without validation, so an invalid draft
-        // is an expected input here. Only render a draft that validates;
-        // otherwise fall back to the published variant, degrading gracefully
-        // instead of rendering broken chrome (or throwing) in every editor
-        // preview of a page that uses this variant.
-        // @see \Drupal\canvas\Controller\ApiLayoutController::updateEntity()
-        $violations = $autoSaveData->entity->getTypedData()->validate();
-        if (\count($violations) === 0) {
-          $variant = $autoSaveData->entity;
-        }
-      }
+      $variant = $this->pageVariantResolver->resolvePreviewVariant($variant);
     }
 
     \assert(!empty($this->mainContent));
@@ -189,11 +178,13 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
     // Track whether a block showing the messages is displayed.
     $messages_block_displayed = FALSE;
 
-    $content = $this->renderComponentTree(
+    $content = self::renderComponentTree(
       $variant->getComponentTree(),
       $variant,
       $is_preview,
       $messages_block_displayed,
+      $this->mainContent,
+      $this->title,
     );
 
     // If no block displays status messages, still render them, above the page.
@@ -247,11 +238,13 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
         }
       }
 
-      $build[$region->get('region')] = $this->renderComponentTree(
+      $build[$region->get('region')] = self::renderComponentTree(
         $region->getComponentTree(),
         $region,
         $is_preview,
         $messages_block_displayed,
+        $this->mainContent,
+        $this->title,
       );
     }
 
@@ -280,14 +273,14 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
    * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::renderComponent()
    * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker::renderComponent()
    */
-  private function renderComponentTree(ComponentTreeItemList $component_tree, ComponentTreeEntityInterface $entity, bool $is_preview, bool &$messages_block_displayed): array {
+  public static function renderComponentTree(ComponentTreeItemList $component_tree, ComponentTreeEntityInterface $entity, bool $is_preview, bool &$messages_block_displayed, array $main_content, mixed $title): array {
     $fiber = new \Fiber(fn() => $component_tree->toRenderable($entity, $is_preview));
     $component_instance = $fiber->start();
     while ($fiber->isSuspended()) {
       $component_instance = match (TRUE) {
         // Page-level information.
-        $component_instance instanceof TitleBlockPluginInterface => (function () use ($component_instance, $fiber) {
-          $component_instance->setTitle($this->title);
+        $component_instance instanceof TitleBlockPluginInterface => (function () use ($component_instance, $fiber, $title) {
+          $component_instance->setTitle($title);
           return $fiber->resume();
         })(),
         $component_instance instanceof MessagesBlockPluginInterface => (function () use ($fiber, &$messages_block_displayed) {
@@ -295,7 +288,7 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
           return $fiber->resume();
         })(),
         // The "Page content" marker: inject the route's main content in place.
-        $component_instance instanceof Marker => $fiber->resume($this->mainContent),
+        $component_instance instanceof Marker => $fiber->resume($main_content),
         // If the fiber was suspended in some other context (e.g. while loading
         // entities) resume it to continue component tree rendering.
         default => $fiber->resume(),

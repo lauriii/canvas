@@ -43,6 +43,12 @@ paths:
           description: Optional external component preview selector.
           schema:
             type: string
+        - name: pageVariant
+          in: query
+          required: false
+          description: Optional page variant editor preview selector.
+          schema:
+            type: string
       responses:
         '200':
           description: Content result or redirect result.

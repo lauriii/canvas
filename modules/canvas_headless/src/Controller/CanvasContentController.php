@@ -6,6 +6,7 @@ namespace Drupal\canvas_headless\Controller;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas_headless\CanvasContentEntityRenderer;
 use Drupal\canvas_headless\CanvasContentHeadBuilder;
@@ -21,7 +22,9 @@ use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\Core\Session\AccountSwitcherInterface;
 use Drupal\custom_elements\CustomElementNormalizer;
+use Drupal\simple_oauth\Authentication\TokenAuthUserInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -42,6 +45,7 @@ final class CanvasContentController {
     #[Autowire(service: 'custom_elements.normalizer')]
     private readonly CustomElementNormalizer $customElementNormalizer,
     private readonly AccountProxyInterface $currentUser,
+    private readonly AccountSwitcherInterface $accountSwitcher,
   ) {}
 
   /**
@@ -67,57 +71,73 @@ final class CanvasContentController {
     $content = NULL;
     $rendered_entity = NULL;
     $managed_by_canvas = FALSE;
+    $build = NULL;
+    $is_preview = PreviewTokenInspector::hasPreviewScope($this->currentUser->getAccount());
+    $view_mode = NULL;
+    $api_query_parameters = [];
+    if ($is_preview) {
+      $route = $route_match->getRouteObject();
+      \assert($route !== NULL);
+      $route->setOption('_canvas_use_template_draft', TRUE);
+      $api_query_parameters = $request->attributes->get(
+        CanvasContentApiRequest::API_QUERY_PARAMETERS_KEY,
+        [],
+      );
+      \assert(\is_array($api_query_parameters));
+      $view_mode = $api_query_parameters[CanvasContentApiRequest::PREVIEW_VIEW_MODE_QUERY] ?? NULL;
+      \assert($view_mode === NULL || \is_string($view_mode));
+    }
 
-    if ($entity instanceof ContentEntityInterface) {
-      $is_preview = PreviewTokenInspector::hasPreviewScope($this->currentUser->getAccount());
-      $view_mode = NULL;
-      $api_query_parameters = [];
-      if ($is_preview) {
-        $route = $route_match->getRouteObject();
-        \assert($route !== NULL);
-        $route->setOption('_canvas_use_template_draft', TRUE);
-        $api_query_parameters = $request->attributes->get(
-          CanvasContentApiRequest::API_QUERY_PARAMETERS_KEY,
-          [],
-        );
-        \assert(\is_array($api_query_parameters));
-        $view_mode = $api_query_parameters[CanvasContentApiRequest::PREVIEW_VIEW_MODE_QUERY] ?? NULL;
-        \assert($view_mode === NULL || \is_string($view_mode));
-      }
-
-      $component_preview_id = $api_query_parameters[CanvasContentApiRequest::COMPONENT_PREVIEW_QUERY] ?? NULL;
-      \assert($component_preview_id === NULL || \is_string($component_preview_id));
-      if ($is_preview && $component_preview_id !== NULL) {
-        [$build, $render_cacheability] = $this->renderComponentPreview($component_preview_id);
+    $component_preview_id = $api_query_parameters[CanvasContentApiRequest::COMPONENT_PREVIEW_QUERY] ?? NULL;
+    \assert($component_preview_id === NULL || \is_string($component_preview_id));
+    $page_variant_preview_id = $api_query_parameters[CanvasContentApiRequest::PAGE_VARIANT_PREVIEW_QUERY] ?? NULL;
+    \assert($page_variant_preview_id === NULL || \is_string($page_variant_preview_id));
+    if ($is_preview && $component_preview_id !== NULL) {
+      [$build, $render_cacheability] = $this->renderComponentPreview($component_preview_id);
+      if ($entity instanceof ContentEntityInterface) {
         $rendered_entity = $entity;
+        $head_result = $this->headBuilder->build($rendered_entity);
       }
       else {
-        [$build, $rendered_entity, $render_cacheability] = $this->renderEntity(
-          $entity,
-          $is_preview,
-          $view_mode ?? 'full',
-        );
+        $head_result = $this->headBuilder->buildFromRoute($request, $route_match);
       }
-      $managed_by_canvas = $build !== NULL;
+      $cacheability = (new BubbleableMetadata())
+        ->addCacheableDependency($render_cacheability)
+        ->addCacheableDependency($head_result['cacheability']);
+    }
+    elseif ($is_preview && $page_variant_preview_id !== NULL) {
+      [$build, $render_cacheability] = $this->renderPageVariantPreview($page_variant_preview_id);
+      $head_result = $this->headBuilder->buildFromRoute($request, $route_match);
+      $cacheability = (new BubbleableMetadata())
+        ->addCacheableDependency($render_cacheability)
+        ->addCacheableDependency($head_result['cacheability']);
+    }
+    elseif ($entity instanceof ContentEntityInterface) {
+      [$build, $rendered_entity, $render_cacheability] = $this->renderEntity(
+        $entity,
+        $is_preview,
+        $view_mode ?? 'full',
+      );
       $head_result = $this->headBuilder->build($rendered_entity);
       $cacheability = (new BubbleableMetadata())
         ->addCacheableDependency($render_cacheability)
         ->addCacheableDependency($head_result['cacheability']);
-      if ($build !== NULL) {
-        $custom_element = $this->canvasRenderConverter->convertRenderArray($build);
-        $cacheability->addCacheableDependency($custom_element);
-        $content = $this->customElementNormalizer->normalize(
-          $custom_element,
-          context: [
-            'explicit' => TRUE,
-            'cache_metadata' => $cacheability,
-          ],
-        );
-      }
     }
     else {
       $head_result = $this->headBuilder->buildFromRoute($request, $route_match);
       $cacheability = $head_result['cacheability'];
+    }
+    $managed_by_canvas = $build !== NULL;
+    if ($build !== NULL) {
+      $custom_element = $this->canvasRenderConverter->convertRenderArray($build);
+      $cacheability->addCacheableDependency($custom_element);
+      $content = $this->customElementNormalizer->normalize(
+        $custom_element,
+        context: [
+          'explicit' => TRUE,
+          'cache_metadata' => $cacheability,
+        ],
+      );
     }
 
     // @todo Remove additional Custom Elements JSON normalization when json-render support is added.
@@ -147,6 +167,65 @@ final class CanvasContentController {
     ]);
     $response->addCacheableDependency($cacheability);
     return $response;
+  }
+
+  /**
+   * Builds the auto-saved page variant being edited.
+   *
+   * @return array{?array, \Drupal\Core\Cache\CacheableMetadata}
+   *   The variant render array when headless-compatible and its cacheability.
+   */
+  private function renderPageVariantPreview(string $page_variant_id): array {
+    $variant = $this->entityTypeManager
+      ->getStorage(PageVariant::ENTITY_TYPE_ID)
+      ->load($page_variant_id);
+    if (!$variant instanceof PageVariant) {
+      throw new NotFoundHttpException('The page variant does not exist.');
+    }
+    $preview_account = $this->currentUser->getAccount();
+    \assert($preview_account instanceof TokenAuthUserInterface);
+    // Preview tokens intentionally exclude administrative permissions. Check
+    // this read against the user bound to the token, whose access was also
+    // checked before Drupal minted the page variant preview assertion. The
+    // account switch is required because the token and subject share a user
+    // ID while varying by OAuth scope in the permission cache.
+    $access_handler = $this->entityTypeManager
+      ->getAccessControlHandler(PageVariant::ENTITY_TYPE_ID);
+    $access_handler->resetCache();
+    $this->accountSwitcher->switchTo($preview_account->getSubject());
+    try {
+      $access = $access_handler->access(
+        $variant,
+        'view',
+        $preview_account->getSubject(),
+        TRUE,
+      );
+    }
+    finally {
+      $this->accountSwitcher->switchBack();
+    }
+    if (!$access->isAllowed()) {
+      $cacheability = (new CacheableMetadata())
+        ->addCacheableDependency($variant)
+        ->addCacheableDependency($access)
+        ->addCacheContexts(['oauth2_scopes']);
+      throw new CacheableAccessDeniedHttpException($cacheability, 'The page variant may not be viewed.');
+    }
+
+    $result = $this->entityRenderer->buildPageVariantPreview($variant);
+    $build = $result['build'];
+    $cacheability = $result['cacheability']
+      ->addCacheableDependency($access)
+      ->addCacheContexts([
+        'oauth2_scopes',
+        'url.query_args:' . CanvasContentApiRequest::API_QUERY_PARAMETERS_KEY,
+      ]);
+    if ($build !== NULL) {
+      $cacheability
+        ->addCacheableDependency(CacheableMetadata::createFromRenderArray($build))
+        ->applyTo($build);
+    }
+    return [$build, $cacheability];
   }
 
   /**
