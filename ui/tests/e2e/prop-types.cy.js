@@ -464,17 +464,14 @@ describe('Prop types editing', () => {
     () => {
       // @todo The time prop isn't appearing in the form so this is just date
       // for now.
-      // @todo these tests confirm that the date+time inputs can be changed and the
-      // preview updates in response. It is not yet confirmed if the values found
-      // in the form and preview are *correct*. This may require time zone/locale
-      // adjustments - do not interpret the presence of this test as evidence that
-      // time zone offsets are working as they should.
 
       const dateSelector =
         '[name$="[test_string_format_date][0][value][date]"]';
-      // The stored value is rendered back as-is: Canvas applies no time zone
-      // conversion to date props, so the site's time zone (Australia/Sydney in
-      // tests) must not shift this back to 2018-11-12.
+      // The form value is asserted against the stored value, not just against
+      // itself: Canvas applies no time zone conversion to date props, so the
+      // test site's time zone (Australia/Sydney) must not shift this back to
+      // 2018-11-12. Time zone correctness of the *time* half is still
+      // unverified here, because no time input is rendered for this prop.
       // @see https://www.drupal.org/i/3587862
       cy.get(dateSelector).should('have.value', '2018-11-13');
       cy.waitForElementContentInIframe(
