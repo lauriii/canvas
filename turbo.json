@@ -15,6 +15,17 @@
       "inputs": ["$TURBO_DEFAULT$", "!README.md", "!CHANGELOG.md", "!**/*.test.*"],
       "outputs": ["dist/**"]
     },
+    "drupal-canvas#build": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!README.md",
+        "!CHANGELOG.md",
+        "!**/*.test.*",
+        "$TURBO_ROOT$/schema.json"
+      ],
+      "outputs": ["dist/**"]
+    },
     "build:app": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", "!README.md", "!CHANGELOG.md", "!**/*.test.*"],
