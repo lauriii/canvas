@@ -472,7 +472,11 @@ describe('Prop types editing', () => {
 
       const dateSelector =
         '[name$="[test_string_format_date][0][value][date]"]';
-      cy.get(dateSelector).should('have.value', '2018-11-12');
+      // The stored value is rendered back as-is: Canvas applies no time zone
+      // conversion to date props, so the site's time zone (Australia/Sydney in
+      // tests) must not shift this back to 2018-11-12.
+      // @see https://www.drupal.org/i/3587862
+      cy.get(dateSelector).should('have.value', '2018-11-13');
       cy.waitForElementContentInIframe(
         '#test-string-format-date',
         '2018-11-13',
