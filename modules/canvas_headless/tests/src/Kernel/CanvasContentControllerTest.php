@@ -9,12 +9,16 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Entity\PageVariant;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas_headless\Grant\PreviewAssertionGrant;
 use Drupal\canvas_headless\PreviewAssertionFactory;
 use Drupal\canvas_headless\StackMiddleware\CanvasContentApiRequest;
 use Drupal\consumers\Entity\Consumer;
 use Drupal\Core\Cache\CacheableJsonResponse;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
+use Drupal\Core\Routing\RouteBuilderInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Session\AnonymousUserSession;
@@ -138,6 +142,7 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     $this->createUser();
     $editor = $this->createUser([
       'access content',
+      PageVariant::ADMIN_PERMISSION,
     ]);
     \assert($editor instanceof UserInterface);
     $this->editor = $editor;
@@ -227,6 +232,355 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Tests that the selected page variant wraps routed Canvas content.
+   */
+  public function testCanvasPageVariantResponse(): void {
+    $this->enableModules(['canvas_headless_test']);
+    $this->container->get(RouteBuilderInterface::class)->rebuild();
+    $variant = $this->createPageVariant(
+      'headless',
+      'Before page content',
+      'After page content',
+    );
+    $this->config('canvas.settings')
+      ->set(PageVariant::DEFAULT_SETTING, $variant->id())
+      ->save();
+
+    $page = $this->createPage();
+    $this->setCurrentAccount($this->editor);
+    $response = $this->renderPage($page);
+    $data = self::responseData($response);
+    $content = \json_encode($data['content'], JSON_THROW_ON_ERROR);
+
+    self::assertTrue($data['route']['managedByCanvas']);
+    self::assertSame(3, \substr_count($content, '"element":"js-canvas-headless-test"'));
+    $before = \strpos($content, 'Before page content');
+    $page_content = \strpos($content, 'Stored component heading');
+    $after = \strpos($content, 'After page content');
+    self::assertNotFalse($before);
+    self::assertNotFalse($page_content);
+    self::assertNotFalse($after);
+    self::assertTrue($before < $page_content);
+    self::assertTrue($page_content < $after);
+    self::assertStringNotContainsString('canvas-preview-content-region', $content);
+    self::assertContains(
+      'config:canvas.page_variant.headless',
+      $response->getCacheableMetadata()->getCacheTags(),
+    );
+    self::assertContains(
+      'config:canvas.settings',
+      $response->getCacheableMetadata()->getCacheTags(),
+    );
+
+    // The editor preview composes both a pending page variant selection and
+    // that newly selected variant's own auto-saved component tree.
+    $selected = $this->createPageVariant(
+      'selected_in_preview',
+      'Published selected chrome',
+      'After selected page content',
+    );
+    $selected_id = $selected->id();
+    \assert(\is_string($selected_id));
+    $draft = clone $selected;
+    $draft_tree = $draft->getComponentTree()->getValue();
+    $draft_tree[0]['inputs']['heading'] = 'Draft page chrome';
+    $draft->setComponentTree($draft_tree);
+    $this->container->get(AutoSaveManager::class)->saveEntity($draft);
+    $page_draft = clone $page;
+    $page_draft->set('page_variant', $selected_id);
+    $this->container->get(AutoSaveManager::class)->saveEntity($page_draft);
+
+    // The page variant selector is private preview context. A normal request
+    // cannot use it to render a config entity draft.
+    $public_variant_preview = $this->renderContentPath(
+      '/page/' . $page->id(),
+      [CanvasContentApiRequest::PAGE_VARIANT_PREVIEW_QUERY => $selected_id],
+    );
+    $public_variant_preview_content = \json_encode(
+      self::responseData($public_variant_preview)['content'],
+      JSON_THROW_ON_ERROR,
+    );
+    self::assertStringContainsString('Before page content', $public_variant_preview_content);
+    self::assertStringNotContainsString('Draft page chrome', $public_variant_preview_content);
+
+    /** @var \Drupal\user\UserInterface $restricted_user */
+    $restricted_user = $this->createUser(['access content']);
+    $this->setCurrentAccount($this->createTokenAccount(
+      with_preview_scope: TRUE,
+      user: $restricted_user,
+    ));
+    try {
+      $this->renderContentPath(
+        '/page/' . $page->id(),
+        [CanvasContentApiRequest::PAGE_VARIANT_PREVIEW_QUERY => $selected_id],
+      );
+      self::fail('A preview token must not expose page variants its user cannot view.');
+    }
+    catch (CacheableAccessDeniedHttpException $exception) {
+      self::assertContains('oauth2_scopes', $exception->getCacheContexts());
+      self::assertContains('user.permissions', $exception->getCacheContexts());
+    }
+
+    $this->setCurrentAccount($this->createTokenAccount(with_preview_scope: TRUE));
+
+    // Editing a page variant previews that variant's own auto-saved tree. It
+    // does not require a canonical URL or inject the routed entity's content.
+    $variant_preview = $this->renderContentPath(
+      '/page/' . $page->id(),
+      [CanvasContentApiRequest::PAGE_VARIANT_PREVIEW_QUERY => $selected_id],
+    );
+    $variant_preview_data = self::responseData($variant_preview);
+    $variant_preview_content = \json_encode(
+      $variant_preview_data['content'],
+      JSON_THROW_ON_ERROR,
+    );
+    self::assertTrue($variant_preview_data['route']['managedByCanvas']);
+    self::assertStringContainsString('Draft page chrome', $variant_preview_content);
+    self::assertStringContainsString('canvas--page-content-marker-placeholder', $variant_preview_content);
+    self::assertStringNotContainsString('Stored component heading', $variant_preview_content);
+    self::assertStringNotContainsString('Published selected chrome', $variant_preview_content);
+
+    // A page variant has no canonical URL, so its frontend entry URI is the
+    // site root. Detached preview routing must not inherit the front page's
+    // format requirement.
+    $this->config('system.site')
+      ->set('page.front', '/canvas-headless-test/html-only')
+      ->save();
+    $front_page_preview = $this->renderContentPath(
+      '/',
+      [CanvasContentApiRequest::PAGE_VARIANT_PREVIEW_QUERY => $selected_id],
+    );
+    $front_page_preview_data = self::responseData($front_page_preview);
+    self::assertSame(200, $front_page_preview->getStatusCode());
+    self::assertSame('canvas_headless.content', $front_page_preview_data['route']['name']);
+    self::assertSame('/', $front_page_preview_data['route']['requestUri']);
+    self::assertTrue($front_page_preview_data['route']['managedByCanvas']);
+    self::assertStringContainsString(
+      'Draft page chrome',
+      \json_encode($front_page_preview_data['content'], JSON_THROW_ON_ERROR),
+    );
+
+    $empty_page = Page::create([
+      'title' => 'Empty page',
+      'owner' => $this->editor->id(),
+      'status' => TRUE,
+      'components' => [],
+    ]);
+    self::assertEntityIsValid($empty_page);
+    $empty_page->save();
+    $empty_preview = $this->renderPage($empty_page);
+    $empty_preview_content = \json_encode(
+      self::responseData($empty_preview)['content'],
+      JSON_THROW_ON_ERROR,
+    );
+    $before = \strpos($empty_preview_content, 'Before page content');
+    $content_region = \strpos($empty_preview_content, 'canvas-preview-content-region');
+    $after = \strpos($empty_preview_content, 'After page content');
+    self::assertNotFalse($before);
+    self::assertNotFalse($content_region);
+    self::assertNotFalse($after);
+    self::assertTrue($before < $content_region);
+    self::assertTrue($content_region < $after);
+
+    $preview = $this->renderPage($page);
+    $preview_content = \json_encode(self::responseData($preview)['content'], JSON_THROW_ON_ERROR);
+    self::assertStringContainsString('Draft page chrome', $preview_content);
+    self::assertStringNotContainsString('Before page content', $preview_content);
+    self::assertStringNotContainsString('Published selected chrome', $preview_content);
+    self::assertStringContainsString('canvas-preview-content-region', $preview_content);
+    self::assertContains(
+      AutoSaveManager::CACHE_TAG,
+      $preview->getCacheableMetadata()->getCacheTags(),
+    );
+
+    // A content template's selection overrides the site default, including
+    // an auto-saved template selection during a draft preview.
+    $node = Node::create([
+      'type' => 'article',
+      'title' => 'Content template page variant',
+      'uid' => $this->editor->id(),
+      'status' => TRUE,
+    ]);
+    $node->save();
+    $this->setCurrentAccount($this->editor);
+
+    $response = $this->renderContentPath('/node/' . $node->id());
+    $data = self::responseData($response);
+    $content = \json_encode($data['content'], JSON_THROW_ON_ERROR);
+    self::assertTrue($data['route']['managedByCanvas']);
+    self::assertStringContainsString('Before page content', $content);
+    self::assertStringContainsString('"element":"drupal-markup"', $content);
+
+    $template_variant = $this->createPageVariant(
+      'content_template',
+      'Published template chrome',
+      'After published template content',
+    );
+    $component = Component::load(self::COMPONENT_ID);
+    self::assertInstanceOf(Component::class, $component);
+    $template = ContentTemplate::create([
+      'content_entity_type_id' => 'node',
+      'content_entity_type_bundle' => 'article',
+      'content_entity_type_view_mode' => 'full',
+      'component_tree' => [
+        [
+          'uuid' => $this->container->get('uuid')->generate(),
+          'component_id' => $component->id(),
+          'component_version' => $component->getActiveVersion(),
+          'inputs' => ['heading' => 'Published template content'],
+        ],
+      ],
+      'page_variant' => $template_variant->id(),
+      'status' => TRUE,
+    ]);
+    self::assertEntityIsValid($template);
+    $template->save();
+
+    $response = $this->renderContentPath('/node/' . $node->id());
+    $content = \json_encode(
+      self::responseData($response)['content'],
+      JSON_THROW_ON_ERROR,
+    );
+    self::assertStringContainsString('Published template chrome', $content);
+    self::assertStringContainsString('Published template content', $content);
+    self::assertStringNotContainsString('Before page content', $content);
+
+    $template_draft = clone $template;
+    $template_draft->set('page_variant', $selected_id);
+    $template_draft_tree = $template_draft->getComponentTree()->getValue();
+    $template_draft_tree[0]['inputs']['heading'] = 'Draft template content';
+    $template_draft->setComponentTree($template_draft_tree);
+    $this->container->get(AutoSaveManager::class)->saveEntity($template_draft);
+    $this->setCurrentAccount($this->createTokenAccount(with_preview_scope: TRUE));
+
+    $preview = $this->renderContentPath('/node/' . $node->id());
+    $preview_content = \json_encode(
+      self::responseData($preview)['content'],
+      JSON_THROW_ON_ERROR,
+    );
+    self::assertStringContainsString('Draft page chrome', $preview_content);
+    self::assertStringContainsString('Draft template content', $preview_content);
+    self::assertStringNotContainsString('Published template chrome', $preview_content);
+    self::assertStringNotContainsString('Published template content', $preview_content);
+  }
+
+  /**
+   * Tests that headless ignores a theme-backed page variant.
+   */
+  public function testThemePageVariantResponse(): void {
+    $this->config('system.theme')->set('default', 'stark')->save();
+    $this->container->get(ModuleInstallerInterface::class)
+      ->install(['canvas_page_template_component']);
+
+    $theme_template = Component::load('theme_page_template.stark');
+    self::assertInstanceOf(Component::class, $theme_template);
+    $component = Component::load(self::COMPONENT_ID);
+    self::assertInstanceOf(Component::class, $component);
+    $marker = Component::load(Marker::PAGE_CONTENT_COMPONENT_ID);
+    self::assertInstanceOf(Component::class, $marker);
+
+    $template_uuid = $this->container->get('uuid')->generate();
+    $variant = PageVariant::create([
+      'id' => 'theme_stark',
+      'label' => 'Stark theme',
+      'component_tree' => [
+        [
+          'uuid' => $template_uuid,
+          'component_id' => $theme_template->id(),
+          'component_version' => $theme_template->getActiveVersion(),
+          'inputs' => [],
+        ],
+        [
+          'uuid' => $this->container->get('uuid')->generate(),
+          'component_id' => $component->id(),
+          'component_version' => $component->getActiveVersion(),
+          'parent_uuid' => $template_uuid,
+          'slot' => 'header',
+          'inputs' => ['heading' => 'Theme header'],
+        ],
+        [
+          'uuid' => $this->container->get('uuid')->generate(),
+          'component_id' => $marker->id(),
+          'component_version' => $marker->getActiveVersion(),
+          'parent_uuid' => $template_uuid,
+          'slot' => 'content',
+          'inputs' => [],
+        ],
+        [
+          'uuid' => $this->container->get('uuid')->generate(),
+          'component_id' => $component->id(),
+          'component_version' => $component->getActiveVersion(),
+          'parent_uuid' => $template_uuid,
+          'slot' => 'footer',
+          'inputs' => ['heading' => 'Theme footer'],
+        ],
+      ],
+    ]);
+    self::assertEntityIsValid($variant);
+    $variant->save();
+    $this->config('canvas.settings')
+      ->set(PageVariant::DEFAULT_SETTING, $variant->id())
+      ->save();
+
+    $this->setCurrentAccount($this->editor);
+    $response = $this->renderPage($this->createPage());
+    $data = self::responseData($response);
+    $content = \json_encode($data['content'], JSON_THROW_ON_ERROR);
+    self::assertTrue($data['route']['managedByCanvas']);
+    self::assertSame('js-canvas-headless-test', $data['content']['element']);
+    self::assertStringContainsString('Stored component heading', $content);
+    self::assertStringNotContainsString('Theme header', $content);
+    self::assertStringNotContainsString('Theme footer', $content);
+    self::assertContains(
+      'config:canvas.page_variant.theme_stark',
+      $response->getCacheableMetadata()->getCacheTags(),
+    );
+    self::assertContains(
+      'config:canvas.settings',
+      $response->getCacheableMetadata()->getCacheTags(),
+    );
+
+    $node = Node::create([
+      'type' => 'article',
+      'title' => 'Drupal-owned main content',
+      'uid' => $this->editor->id(),
+      'status' => TRUE,
+    ]);
+    $node->save();
+    $response = $this->renderContentPath('/node/' . $node->id());
+    $data = self::responseData($response);
+    self::assertNull($data['content']);
+    self::assertFalse($data['route']['managedByCanvas']);
+    self::assertContains(
+      'config:canvas.page_variant.theme_stark',
+      $response->getCacheableMetadata()->getCacheTags(),
+    );
+
+    // Compatibility is based on the valid auto-saved variant during preview,
+    // rather than on the published variant that contains the theme template.
+    $draft_source = $this->createPageVariant(
+      'headless_draft_source',
+      'Draft headless chrome',
+      'After draft headless content',
+    );
+    $draft = clone $variant;
+    $draft->setComponentTree($draft_source->getComponentTree()->getValue());
+    $this->container->get(AutoSaveManager::class)->saveEntity($draft);
+    $this->setCurrentAccount($this->createTokenAccount(with_preview_scope: TRUE));
+
+    $preview = $this->renderPage($this->createPage());
+    $preview_data = self::responseData($preview);
+    $preview_content = \json_encode(
+      $preview_data['content'],
+      JSON_THROW_ON_ERROR,
+    );
+    self::assertTrue($preview_data['route']['managedByCanvas']);
+    self::assertStringContainsString('Draft headless chrome', $preview_content);
+    self::assertStringContainsString('Stored component heading', $preview_content);
+    self::assertStringNotContainsString('Theme header', $preview_content);
+  }
+
+  /**
    * Tests rendering one external component with its resolved defaults.
    */
   public function testExternalComponentPreview(): void {
@@ -236,6 +590,9 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     ]);
     $component_preview_context = [
       CanvasContentApiRequest::COMPONENT_PREVIEW_QUERY => self::COMPONENT_ID,
+      // Component previews attached to a page variant carry that editor's
+      // context too. The requested component must still win.
+      CanvasContentApiRequest::PAGE_VARIANT_PREVIEW_QUERY => 'must_not_win',
     ];
 
     // The API selector is inert outside an authenticated headless preview.
@@ -426,18 +783,31 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     );
 
     $this->setCurrentAccount($this->createTokenAccount(with_preview_scope: TRUE));
+    $page_variant = $this->createPageVariant(
+      'teaser_default',
+      'Page chrome must not wrap teasers',
+      'After page content',
+    );
+    $this->config('canvas.settings')
+      ->set(PageVariant::DEFAULT_SETTING, $page_variant->id())
+      ->save();
     $teaser_preview = $this->renderContentPath(
       '/node/' . $node->id(),
       ['viewMode' => 'teaser'],
     );
-    self::assertStringContainsString(
-      'Teaser template heading',
-      \json_encode(self::responseData($teaser_preview)['content'], JSON_THROW_ON_ERROR),
+    $teaser_preview_content = \json_encode(
+      self::responseData($teaser_preview)['content'],
+      JSON_THROW_ON_ERROR,
     );
+    self::assertStringContainsString('Teaser template heading', $teaser_preview_content);
+    self::assertStringNotContainsString('Page chrome must not wrap teasers', $teaser_preview_content);
     self::assertContains(
       'url.query_args:' . CanvasContentApiRequest::API_QUERY_PARAMETERS_KEY,
       $teaser_preview->getCacheableMetadata()->getCacheContexts(),
     );
+    $this->config('canvas.settings')
+      ->set(PageVariant::DEFAULT_SETTING, NULL)
+      ->save();
     $stored_preview = $this->renderContentPath('/node/' . $node->id());
     $stored_preview_content = \json_encode(
       self::responseData($stored_preview)['content'],
@@ -700,6 +1070,47 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Creates a page variant with distinguishable chrome around its marker.
+   */
+  private function createPageVariant(
+    string $id,
+    string $before_heading,
+    string $after_heading,
+  ): PageVariant {
+    $component = Component::load(self::COMPONENT_ID);
+    self::assertInstanceOf(Component::class, $component);
+    $marker = Component::load(Marker::PAGE_CONTENT_COMPONENT_ID);
+    self::assertInstanceOf(Component::class, $marker);
+    $variant = PageVariant::create([
+      'id' => $id,
+      'label' => $id,
+      'component_tree' => [
+        [
+          'uuid' => $this->container->get('uuid')->generate(),
+          'component_id' => $component->id(),
+          'component_version' => $component->getActiveVersion(),
+          'inputs' => ['heading' => $before_heading],
+        ],
+        [
+          'uuid' => $this->container->get('uuid')->generate(),
+          'component_id' => $marker->id(),
+          'component_version' => $marker->getActiveVersion(),
+          'inputs' => [],
+        ],
+        [
+          'uuid' => $this->container->get('uuid')->generate(),
+          'component_id' => $component->id(),
+          'component_version' => $component->getActiveVersion(),
+          'inputs' => ['heading' => $after_heading],
+        ],
+      ],
+    ]);
+    self::assertEntityIsValid($variant);
+    $variant->save();
+    return $variant;
+  }
+
+  /**
    * Stores an auto-save without changing the persisted page.
    */
   private function saveAutoSave(Page $page, string $title, ?array $components = NULL): void {
@@ -714,10 +1125,11 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
   /**
    * Creates a user-bound OAuth account, optionally carrying the preview scope.
    */
-  private function createTokenAccount(bool $with_preview_scope): TokenAuthUser {
+  private function createTokenAccount(bool $with_preview_scope, ?UserInterface $user = NULL): TokenAuthUser {
+    $user ??= $this->editor;
     $token = Oauth2Token::create([
       'bundle' => 'access_token',
-      'auth_user_id' => $this->editor->id(),
+      'auth_user_id' => $user->id(),
       'client' => $this->consumer->id(),
       'scopes' => $with_preview_scope
         ? [['scope_id' => PreviewAssertionGrant::SCOPE]]
@@ -749,8 +1161,8 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
   /**
    * Renders a routed entity through the public kernel boundary.
    *
-   * @param array{viewMode?: string, componentId?: string} $preview_context
-   *   Optional content-template or component preview context.
+   * @param array{viewMode?: string, componentId?: string, pageVariant?: string} $preview_context
+   *   Optional editor preview context.
    */
   private function renderContentPath(string $request_uri, array $preview_context = []): CacheableJsonResponse {
     $request = Request::create(

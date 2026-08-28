@@ -14,6 +14,10 @@ import type {
 /** The prop used on the wire for a Canvas component instance UUID. */
 export const CANVAS_COMPONENT_UUID_PROP = 'canvasUuid';
 
+/** Renderless wire element locating routed content inside page chrome. */
+export const CANVAS_PREVIEW_CONTENT_REGION_ELEMENT =
+  'canvas-preview-content-region';
+
 /**
  * Component metadata separated from the props an app component receives.
  */
@@ -83,6 +87,24 @@ export function isCanvasComponentTreeDraft(
   tree: CanvasComponentTreeElement | null,
 ): boolean {
   return tree?.canvasDraftMode === true;
+}
+
+/** Whether a tree contains an explicit page content region. */
+export function hasCanvasPreviewContentRegion(
+  tree: CanvasComponentTreeElement | null,
+): boolean {
+  if (tree === null) {
+    return false;
+  }
+  if (tree.element === CANVAS_PREVIEW_CONTENT_REGION_ELEMENT) {
+    return true;
+  }
+  return Object.values(tree.slots ?? {}).some((slot) =>
+    normalizeCanvasComponentTreeSlot(slot).some(
+      (child) =>
+        typeof child !== 'string' && hasCanvasPreviewContentRegion(child),
+    ),
+  );
 }
 
 /** Whether one slot child is default markup rather than a Canvas component. */

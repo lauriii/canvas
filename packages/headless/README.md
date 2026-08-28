@@ -130,8 +130,17 @@ mostly wiring:
    source from `@drupal-canvas/headless/component-registry` — and expose a
    `CanvasComponentTree` renderer that consumes it.
 
-   In draft mode, the renderer must emit Canvas boundaries and use
-   `@drupal-canvas/headless/preview.css` for empty drop targets.
+   In draft mode, the renderer must emit Canvas boundaries and load
+   `@drupal-canvas/headless/preview.css` to give empty slots and regions
+   measurable geometry for Canvas UI overlays. A draft `full` view-mode tree
+   with page variant chrome places its editable region inside the transparent
+   `CANVAS_PREVIEW_CONTENT_REGION_ELEMENT` (`canvas-preview-content-region`).
+   Render that element's slot children without a DOM wrapper and surround them
+   with the `content` region boundaries. When it has no content, include an
+   element with `CANVAS_EMPTY_REGION_PLACEHOLDER_CLASS` so Canvas can measure
+   the region for its drop-target overlay. Before adding top-level `content`
+   boundaries, use `hasCanvasPreviewContentRegion()` to avoid emitting a second
+   pair.
 
 5. Wire the client side: render the `<canvas-draft-session>` element, or the
    React `<DraftSession>` from `@drupal-canvas/headless-react`, with the session

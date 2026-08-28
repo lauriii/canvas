@@ -194,6 +194,37 @@ describe('CanvasComponentTree', () => {
     );
   });
 
+  it('renders an empty page content region between page variant chrome', () => {
+    const html = renderToStaticMarkup(
+      <CanvasComponentTree
+        tree={{
+          element: 'renderless-container',
+          canvasDraftMode: true,
+          slots: {
+            default: [
+              { element: 'js-site-header', props: { canvasUuid: 'header' } },
+              { element: 'canvas-preview-content-region' },
+              { element: 'js-site-footer', props: { canvasUuid: 'footer' } },
+            ],
+          },
+        }}
+        components={{
+          'site-header': () => <header>Header</header>,
+          'site-footer': () => <footer>Footer</footer>,
+        }}
+      />,
+    );
+
+    const regionStart = html.indexOf('data-canvas-type="region"');
+    const placeholder = html.indexOf('canvas--region-empty-placeholder');
+    const regionEnd = html.lastIndexOf('data-canvas-type="region"');
+    expect(html.indexOf('</header>')).toBeLessThan(regionStart);
+    expect(regionStart).toBeLessThan(placeholder);
+    expect(placeholder).toBeLessThan(regionEnd);
+    expect(regionEnd).toBeLessThan(html.indexOf('<footer>'));
+    expect(html.match(/data-canvas-type="region"/g)).toHaveLength(2);
+  });
+
   it('renders components without identity but omits their editor markers', () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     const html = renderToStaticMarkup(

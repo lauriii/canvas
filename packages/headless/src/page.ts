@@ -93,6 +93,11 @@ export function isPageRedirect(result: PageResult): result is PageRedirect {
  * and slots containing rendered markup or nested elements.
  */
 export interface CanvasComponentTreeElement {
+  /**
+   * Structural elements include `renderless-container` and the draft-only
+   * `canvas-preview-content-region` that locates routed content inside page
+   * chrome.
+   */
   element: string;
   props?: Record<string, JsonValue>;
   slots?: Record<string, CanvasComponentTreeSlot>;

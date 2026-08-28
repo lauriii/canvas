@@ -64,6 +64,36 @@ describe('CanvasComponentTree', () => {
     );
   });
 
+  it('renders an empty page content region between page variant chrome', async () => {
+    const container = await AstroContainer.create();
+    const html = await container.renderToString(CanvasComponentTree, {
+      props: {
+        tree: {
+          element: 'renderless-container',
+          canvasDraftMode: true,
+          slots: {
+            default: [
+              component('js-site-header', 'header-one', 'Header'),
+              { element: 'canvas-preview-content-region' },
+              component('js-site-footer', 'footer-one', 'Footer'),
+            ],
+          },
+        },
+        components,
+      },
+    });
+
+    const regionStart = html.indexOf('canvas-region-start-content');
+    const placeholder = html.indexOf(CANVAS_EMPTY_REGION_PLACEHOLDER_CLASS);
+    const regionEnd = html.indexOf('canvas-region-end-content');
+    expect(html.indexOf('Header</span>')).toBeLessThan(regionStart);
+    expect(regionStart).toBeLessThan(placeholder);
+    expect(placeholder).toBeLessThan(regionEnd);
+    expect(regionEnd).toBeLessThan(html.indexOf('<span>Footer'));
+    expect(html.match(/canvas-region-start-content/g)).toHaveLength(1);
+    expect(html.match(/canvas-region-end-content/g)).toHaveLength(1);
+  });
+
   it('renders children of a synthetic multi-root wrapper in order', async () => {
     const container = await AstroContainer.create();
     const html = await container.renderToString(CanvasComponentTree, {

@@ -71,10 +71,12 @@ export {
 } from './page';
 export {
   CANVAS_COMPONENT_UUID_PROP,
+  CANVAS_PREVIEW_CONTENT_REGION_ELEMENT,
   componentElementFromName,
   componentNameFromElement,
   findCanvasComponent,
   getCanvasComponentRenderData,
+  hasCanvasPreviewContentRegion,
   isCanvasComponentTreeDraft,
   isCanvasComponentTreeEmpty,
   isCanvasComponentTreeSlotEmpty,

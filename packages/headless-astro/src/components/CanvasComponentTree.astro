@@ -5,6 +5,7 @@ import '@drupal-canvas/headless/preview.css';
 import {
   CANVAS_EMPTY_REGION_PLACEHOLDER_CLASS,
   formatCanvasCommentMarker,
+  hasCanvasPreviewContentRegion,
   isCanvasComponentTreeDraft,
   isCanvasComponentTreeEmpty,
 } from '@drupal-canvas/headless';
@@ -18,11 +19,12 @@ interface Props {
 
 const { tree, components = canvasComponents } = Astro.props;
 const editor = isCanvasComponentTreeDraft(tree);
-const emptyRegion = editor && isCanvasComponentTreeEmpty(tree);
+const previewContentRegion = editor && hasCanvasPreviewContentRegion(tree);
+const emptyRegion = editor && !previewContentRegion && isCanvasComponentTreeEmpty(tree);
 ---
 
 {
-  editor && (
+  editor && !previewContentRegion && (
     <Fragment
       set:html={`<!-- ${formatCanvasCommentMarker({ type: 'region', position: 'start', id: 'content' })} -->`}
     />
@@ -47,7 +49,7 @@ const emptyRegion = editor && isCanvasComponentTreeEmpty(tree);
   )
 }
 {
-  editor && (
+  editor && !previewContentRegion && (
     <Fragment
       set:html={`<!-- ${formatCanvasCommentMarker({ type: 'region', position: 'end', id: 'content' })} -->`}
     />

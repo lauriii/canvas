@@ -13,7 +13,11 @@ services:
   Drupal\canvas_headless\Routing\CanvasContentRouteEnhancer:
     tags:
       - { name: route_enhancer, priority: -1000 }
+  Drupal\canvas_headless\Routing\DetachedPreviewRouteProcessor:
+    tags:
+      - { name: path_processor_inbound, priority: -1000 }
   Drupal\canvas_headless\EventSubscriber\CanvasContentResponseSubscriber: {}
+  Drupal\canvas_headless\EventSubscriber\DetachedPreviewRouteSubscriber: {}
   Drupal\canvas_headless\CanvasContentEntityRenderer: {}
   Drupal\canvas_headless\CanvasContentHeadBuilder:
     arguments:

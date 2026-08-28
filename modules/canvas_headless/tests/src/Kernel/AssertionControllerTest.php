@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_headless\Kernel;
 
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas_headless\PreviewAssertionFactory;
 use Drupal\Core\Url;
 use Drupal\KernelTests\KernelTestBase;
@@ -107,6 +108,7 @@ class AssertionControllerTest extends KernelTestBase {
     $editor = $this->createUser([
       'access canvas headless preview',
       'access content',
+      PageVariant::ADMIN_PERMISSION,
     ]);
     \assert($editor instanceof UserInterface);
     $this->editor = $editor;
@@ -190,6 +192,30 @@ class AssertionControllerTest extends KernelTestBase {
     self::assertSame('/node/' . $node->id(), $claims->claims()->get('path'));
     self::assertSame([
       'viewMode' => 'teaser',
+    ], $claims->claims()->get('previewContext'));
+  }
+
+  /**
+   * Tests minting for a page variant without a canonical URL.
+   */
+  public function testMintForPageVariant(): void {
+    PageVariant::create([
+      'id' => 'alternate',
+      'label' => 'Alternate',
+      'component_tree' => [],
+    ])->save();
+
+    $this->setCurrentUser($this->editor);
+    $response = $this->request(self::mintRequest([
+      'entity_type' => PageVariant::ENTITY_TYPE_ID,
+      'entity' => 'alternate',
+    ]));
+
+    self::assertSame(200, $response->getStatusCode());
+    $claims = self::decodeAssertion($response->getContent());
+    self::assertSame('/', $claims->claims()->get('path'));
+    self::assertSame([
+      'pageVariant' => 'alternate',
     ], $claims->claims()->get('previewContext'));
   }
 

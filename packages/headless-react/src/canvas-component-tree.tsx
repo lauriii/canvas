@@ -5,9 +5,11 @@ import '@drupal-canvas/headless/preview.css';
 import {
   CANVAS_EMPTY_REGION_PLACEHOLDER_CLASS,
   CANVAS_EMPTY_SLOT_PLACEHOLDER_CLASS,
+  CANVAS_PREVIEW_CONTENT_REGION_ELEMENT,
   findCanvasComponent,
   getCanvasComponentRenderData,
   getCanvasTemplateMarkerAttributes,
+  hasCanvasPreviewContentRegion,
   isCanvasComponentTreeDraft,
   isCanvasComponentTreeEmpty,
   isCanvasComponentTreeSlotEmpty,
@@ -48,7 +50,9 @@ export function CanvasComponentTree({
   components,
 }: CanvasComponentTreeProps) {
   const editor = isCanvasComponentTreeDraft(tree);
-  const emptyRegion = editor && isCanvasComponentTreeEmpty(tree);
+  const previewContentRegion = editor && hasCanvasPreviewContentRegion(tree);
+  const emptyRegion =
+    editor && !previewContentRegion && isCanvasComponentTreeEmpty(tree);
   const content = tree ? (
     <CanvasElement
       node={tree}
@@ -59,7 +63,7 @@ export function CanvasComponentTree({
     />
   ) : null;
 
-  return editor ? (
+  return editor && !previewContentRegion ? (
     <>
       <CanvasMarker position="start" type="region" id="content" />
       {emptyRegion && <CanvasEmptyRegionPlaceholder />}
@@ -79,27 +83,23 @@ function CanvasEmptyRegionPlaceholder() {
 }
 
 function CanvasElement({ node, components, path, editor }: CanvasElementProps) {
-  if (node.element === 'drupal-markup') {
+  if (node.element === CANVAS_PREVIEW_CONTENT_REGION_ELEMENT) {
+    const content = renderStructuralChildren(node, components, path, editor);
+    if (!editor) {
+      return <>{content}</>;
+    }
     return (
       <>
-        {Object.values(node.slots ?? {}).flatMap((slot, slotIndex) =>
-          normalizeCanvasComponentTreeSlot(slot).map((child, childIndex) => {
-            const childPath = `${path}:${slotIndex}:${childIndex}`;
-            return typeof child === 'string' ? (
-              <CanvasMarkup html={child} key={childPath} />
-            ) : (
-              <CanvasElement
-                node={child}
-                components={components}
-                path={childPath}
-                editor={editor}
-                key={getCanvasElementKey(child, childPath)}
-              />
-            );
-          }),
-        )}
+        <CanvasMarker position="start" type="region" id="content" />
+        {isCanvasComponentTreeEmpty(node) && <CanvasEmptyRegionPlaceholder />}
+        {content}
+        <CanvasMarker position="end" type="region" id="content" />
       </>
     );
+  }
+
+  if (node.element === 'drupal-markup') {
+    return <>{renderStructuralChildren(node, components, path, editor)}</>;
   }
 
   const componentData = getCanvasComponentRenderData(node);
@@ -152,6 +152,30 @@ function CanvasElement({ node, components, path, editor }: CanvasElementProps) {
         id={componentData.componentUuid}
       />
     </>
+  );
+}
+
+function renderStructuralChildren(
+  node: CanvasComponentTreeElement,
+  components: CanvasComponentRegistry,
+  path: string,
+  editor: boolean,
+): ReactNode[] {
+  return Object.values(node.slots ?? {}).flatMap((slot, slotIndex) =>
+    normalizeCanvasComponentTreeSlot(slot).map((child, childIndex) => {
+      const childPath = `${path}:${slotIndex}:${childIndex}`;
+      return typeof child === 'string' ? (
+        <CanvasMarkup html={child} key={childPath} />
+      ) : (
+        <CanvasElement
+          node={child}
+          components={components}
+          path={childPath}
+          editor={editor}
+          key={getCanvasElementKey(child, childPath)}
+        />
+      );
+    }),
   );
 }
 

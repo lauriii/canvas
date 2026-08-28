@@ -29,6 +29,7 @@ use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Render\PageDisplayVariantSelectionEvent;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Routing\RouteMatch;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
@@ -577,6 +578,21 @@ final class PageVariantTest extends CanvasKernelTestBase {
     self::assertInstanceOf(PageVariant::class, $chosen);
     self::assertSame('chosen', $chosen->id());
 
+    // Preview resolution returns a valid auto-saved draft, while normal
+    // resolution continues to return the published variant.
+    $auto_save_manager = $this->container->get(AutoSaveManager::class);
+    self::assertInstanceOf(AutoSaveManager::class, $auto_save_manager);
+    $chosen_draft = clone $chosen;
+    $chosen_draft->set('label', 'Chosen draft');
+    $auto_save_manager->saveEntity($chosen_draft);
+    self::assertSame('Chosen', $resolver->resolve(Page::create(['title' => 'Published', 'page_variant' => 'chosen']))?->label());
+    self::assertSame('Chosen draft', $resolver->resolve(Page::create(['title' => 'Preview', 'page_variant' => 'chosen']), is_preview: TRUE)?->label());
+
+    // Invalid auto-saves do not replace the published variant.
+    $chosen_draft->setComponentTree([]);
+    $auto_save_manager->saveEntity($chosen_draft);
+    self::assertSame('Chosen', $resolver->resolve(Page::create(['title' => 'Invalid draft', 'page_variant' => 'chosen']), is_preview: TRUE)?->label());
+
     // A selection pointing at a missing variant falls back to the default.
     $fallback = $resolver->resolve(Page::create(['title' => 'Stale selection', 'page_variant' => 'deleted']));
     self::assertInstanceOf(PageVariant::class, $fallback);
@@ -664,7 +680,10 @@ final class PageVariantTest extends CanvasKernelTestBase {
 
     $sentinel = 'canvas-main-content-3f9c1e';
     $plugin->setMainContent(['#markup' => $sentinel]);
-    $plugin->setTitle('Rendered title');
+    // Static route titles are resolved to TranslatableMarkup objects despite
+    // the narrower PageVariantInterface documentation.
+    // @phpstan-ignore-next-line argument.type
+    $plugin->setTitle(new TranslatableMarkup('Rendered title'));
     $build = $plugin->build();
 
     // The page body renders through the bare variant template.
@@ -850,7 +869,7 @@ final class PageVariantTest extends CanvasKernelTestBase {
   }
 
   /**
-   * Tests that no variant is selected while a page variant itself is edited.
+   * Tests display variant selection while Canvas entities are edited.
    *
    * Requests that edit a page variant (its layout API and component instance
    * form routes carry it as a parameter) must not have their page wrapped in
@@ -859,7 +878,7 @@ final class PageVariantTest extends CanvasKernelTestBase {
    *
    * @see \Drupal\canvas\EventSubscriber\PageVariantSelectorSubscriber
    */
-  public function testNoVariantSelectedWhileEditingAVariant(): void {
+  public function testVariantSelectionWhileEditing(): void {
     PageVariant::create(['id' => 'site_default', 'label' => 'Site default', 'component_tree' => [self::markerInstance()]])->save();
     $this->config('canvas.settings')->set(PageVariant::DEFAULT_SETTING, 'site_default')->save();
     $variant = PageVariant::load('site_default');
@@ -876,6 +895,58 @@ final class PageVariantTest extends CanvasKernelTestBase {
 
     // A request editing a page variant leaves core block layout in place.
     $event = new PageDisplayVariantSelectionEvent('simple_page', new RouteMatch('canvas.test', $route, ['entity' => $variant], ['entity' => $variant->id()]));
+    $subscriber->onSelectPageDisplayVariant($event);
+    self::assertSame('simple_page', $event->getPluginId());
+
+    // A full content-template preview uses the template's auto-saved page
+    // variant selection rather than its published selection.
+    PageVariant::create(['id' => 'draft_selection', 'label' => 'Draft selection', 'component_tree' => [self::markerInstance()]])->save();
+    $template = ContentTemplate::create([
+      'content_entity_type_id' => 'node',
+      'content_entity_type_bundle' => 'helpful',
+      'content_entity_type_view_mode' => 'full',
+      'page_variant' => 'site_default',
+      'status' => TRUE,
+    ]);
+    $template->save();
+    $draft = clone $template;
+    $draft->set('page_variant', 'draft_selection');
+    $this->container->get(AutoSaveManager::class)->saveEntity($draft);
+
+    $preview_route = new Route(
+      '/canvas/api/v0/layout-content-template/{entity}/{preview_entity}',
+      options: ['_canvas_use_template_draft' => TRUE],
+    );
+    $node = Node::create(['type' => 'helpful', 'title' => 'Preview entity']);
+    $event = new PageDisplayVariantSelectionEvent('simple_page', new RouteMatch(
+      'canvas.test.content_template',
+      $preview_route,
+      ['entity' => $template, 'preview_entity' => $node],
+      ['entity' => $template->id(), 'preview_entity' => '1'],
+    ));
+    $subscriber->onSelectPageDisplayVariant($event);
+    self::assertSame(CanvasPageVariant::PLUGIN_ID, $event->getPluginId());
+    self::assertSame([
+      CanvasPageVariant::PREVIEW_KEY => TRUE,
+      CanvasPageVariant::VARIANT_ID_KEY => 'draft_selection',
+    ], $event->getPluginConfiguration());
+
+    // A non-full content-template preview does not receive page chrome, even
+    // when both a full template and the site default resolve to variants.
+    $teaser_template = ContentTemplate::create([
+      'content_entity_type_id' => 'node',
+      'content_entity_type_bundle' => 'helpful',
+      'content_entity_type_view_mode' => 'teaser',
+      'page_variant' => 'draft_selection',
+      'status' => TRUE,
+    ]);
+    $teaser_template->save();
+    $event = new PageDisplayVariantSelectionEvent('simple_page', new RouteMatch(
+      'canvas.test.content_template',
+      $preview_route,
+      ['entity' => $teaser_template, 'preview_entity' => $node],
+      ['entity' => $teaser_template->id(), 'preview_entity' => '1'],
+    ));
     $subscriber->onSelectPageDisplayVariant($event);
     self::assertSame('simple_page', $event->getPluginId());
   }

@@ -5,6 +5,7 @@ import {
   componentNameFromElement,
   findCanvasComponent,
   getCanvasComponentRenderData,
+  hasCanvasPreviewContentRegion,
   isCanvasComponentTreeDraft,
   isCanvasComponentTreeEmpty,
   isCanvasComponentTreeSlotEmpty,
@@ -86,6 +87,23 @@ describe('headless component rendering helpers', () => {
       isCanvasComponentTreeDraft({
         element: 'canvas-page',
         canvasDraftMode: true,
+      }),
+    ).toBe(true);
+  });
+
+  it('finds a routed content region inside page chrome', () => {
+    expect(hasCanvasPreviewContentRegion(null)).toBe(false);
+    expect(hasCanvasPreviewContentRegion({ element: 'js-card' })).toBe(false);
+    expect(
+      hasCanvasPreviewContentRegion({
+        element: 'renderless-container',
+        slots: {
+          default: [
+            { element: 'js-site-header' },
+            { element: 'canvas-preview-content-region' },
+            { element: 'js-site-footer' },
+          ],
+        },
       }),
     ).toBe(true);
   });
