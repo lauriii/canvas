@@ -1,0 +1,9 @@
+name: Invalid slots and dependencies
+machineName: invalid-slots-and-dependencies
+slots:
+  body:
+    title: ''
+    extra: rejected
+dataDependencies:
+  entityFields:
+    reference: []

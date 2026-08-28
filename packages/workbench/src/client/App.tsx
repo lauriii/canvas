@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { canvasTreeToSpec } from 'drupal-canvas/json-render-utils';
+import { CircleAlertIcon } from 'lucide-react';
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
 import { PreviewEntityPicker } from '@wb/client/components/preview-entity-picker';
+import { PreviewErrorAlert } from '@wb/client/components/preview-error-alert';
 import { ThemeMenu } from '@wb/client/components/theme-menu';
 import { Badge } from '@wb/client/components/ui/badge';
 import { Separator } from '@wb/client/components/ui/separator';
@@ -51,6 +53,7 @@ import { getServerComponentRegistry } from '@wb/lib/server-component-registry';
 import { WORKBENCH_PREVIEW_HTML_PATH } from '@wb/lib/workbench-preview-constants';
 import {
   computeWorkbenchStructuralFingerprint,
+  shouldHideComponentPreviewFrame,
   shouldSkipWorkbenchIframeRemount,
 } from '@wb/lib/workbench-preview-iframe-remount';
 
@@ -87,6 +90,33 @@ interface ComponentPreviewVariant {
 function formatPageTemplateLabel(id: string): string {
   const spaced = id.replace(/_/g, ' ');
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+function formatComponentMetadataErrors(
+  component: PreviewManifestComponent,
+): string {
+  const errorsBySource = new Map<
+    string,
+    PreviewManifestComponent['metadataErrors']
+  >();
+  for (const error of component.metadataErrors) {
+    const errors = errorsBySource.get(error.sourcePath) ?? [];
+    errors.push(error);
+    errorsBySource.set(error.sourcePath, errors);
+  }
+  return [...errorsBySource.entries()]
+    .map(([sourcePath, errors]) => {
+      const diagnostics = errors
+        .map((error) => {
+          const location = error.line
+            ? `Line ${error.line}, Column ${error.column}: `
+            : '';
+          return `${location}${error.path} ${error.message}`;
+        })
+        .join('\n');
+      return `${sourcePath}\n${diagnostics}`;
+    })
+    .join('\n\n');
 }
 
 function toComponentRoute(
@@ -182,8 +212,18 @@ export function App() {
   >({});
   const [error, setError] = useState<string | null>(null);
   const [isFrameReady, setIsFrameReady] = useState(false);
+  const [settledPreviewRenderId, setSettledPreviewRenderId] = useState<
+    string | null
+  >(null);
   const [iframeKey, setIframeKey] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const setIframeElement = useCallback((iframe: HTMLIFrameElement | null) => {
+    if (iframeRef.current !== iframe) {
+      iframeRef.current = iframe;
+      setIsFrameReady(false);
+      setSettledPreviewRenderId(null);
+    }
+  }, []);
   const lastStructuralFingerprintRef = useRef<string | null>(null);
   const warningToastIdsRef = useRef<Set<string>>(new Set());
   const [sidebarDefaultOpen] = useState(getSidebarDefaultOpen);
@@ -405,6 +445,11 @@ export function App() {
     }, [componentPreviewVariants, selectedComponent, selectedMockIndex]);
 
   const selectedComponentMock = selectedComponentVariant?.mock ?? null;
+  const selectedComponentRenderId = selectedComponent
+    ? selectedComponentMock
+      ? `${selectedComponent.id}:${selectedComponentMock.id}`
+      : `${selectedComponent.id}:${JSON.stringify(selectedComponentEntityIds)}`
+    : null;
 
   useEffect(() => {
     let isMounted = true;
@@ -417,6 +462,7 @@ export function App() {
 
         setDiscoveryResult(discovery);
         setPreviewManifest(manifest);
+        setError(null);
         lastStructuralFingerprintRef.current =
           computeWorkbenchStructuralFingerprint(discovery, manifest);
       })
@@ -459,6 +505,7 @@ export function App() {
 
           setDiscoveryResult(discovery);
           setPreviewManifest(manifest);
+          setError(null);
           lastStructuralFingerprintRef.current = nextFingerprint;
 
           if (
@@ -658,7 +705,15 @@ export function App() {
       }
 
       if (event.data.type === 'preview:rendered') {
+        setSettledPreviewRenderId(event.data.payload.renderId);
         return;
+      }
+
+      if (
+        event.data.type === 'preview:error' &&
+        event.data.payload.renderId !== null
+      ) {
+        setSettledPreviewRenderId(event.data.payload.renderId);
       }
     };
 
@@ -725,6 +780,10 @@ export function App() {
       selectedComponent.js.url
     ) {
       const selectedComponentJsUrl = selectedComponent.js.url;
+      const renderId = selectedComponentRenderId;
+      if (!renderId) {
+        return;
+      }
       void (async () => {
         const defaultSpec: Spec = canvasTreeToSpec([
           {
@@ -741,11 +800,7 @@ export function App() {
         const entityFields = selectedComponent.dataDependencies.entityFields;
         const entityFieldGroups =
           selectedComponentMock === null
-            ? groupEntityFieldsByProp(
-                entityFields,
-                selectedComponent.props,
-                selectedComponentEntityIds,
-              )
+            ? groupEntityFieldsByProp(entityFields, selectedComponentEntityIds)
             : [];
         if (workbenchConfig?.siteUrl && entityFieldGroups.length > 0) {
           try {
@@ -813,9 +868,6 @@ export function App() {
             });
           }
         }
-        const selectedMockRenderId = selectedComponentMock
-          ? `${selectedComponent.id}:${selectedComponentMock.id}`
-          : `${selectedComponent.id}:${JSON.stringify(selectedComponentEntityIds)}`;
         const registrySources = selectedComponentMock
           ? (discoveryResult?.components
               .filter(
@@ -856,7 +908,7 @@ export function App() {
           source: 'canvas-workbench-parent',
           type: 'preview:render',
           payload: {
-            renderId: selectedMockRenderId,
+            renderId,
             renderType: 'component',
             spec: specToRender,
             registrySources,
@@ -1281,6 +1333,7 @@ export function App() {
     selectedComponent,
     selectedComponentMock,
     selectedComponentEntityIds,
+    selectedComponentRenderId,
     selectedContentTemplate,
     selectedEntityId,
     selectedPage,
@@ -1289,7 +1342,12 @@ export function App() {
   ]);
 
   if (error) {
-    return <div>Workbench failed: {error}</div>;
+    return (
+      <div>
+        <strong>Workbench failed</strong>
+        <pre>{error}</pre>
+      </div>
+    );
   }
 
   if (!discoveryResult || !previewManifest) {
@@ -1320,6 +1378,11 @@ export function App() {
     selectedContentTemplate?.relativePath ??
     selectedPageTemplate?.relativePath ??
     selectedComponent?.projectRelativeDirectory;
+  const shouldHidePreviewFrame = shouldHideComponentPreviewFrame(
+    selectedKind === 'component' ? selectedComponent : null,
+    selectedComponentRenderId,
+    settledPreviewRenderId,
+  );
 
   return (
     <SidebarProvider defaultOpen={sidebarDefaultOpen}>
@@ -1409,8 +1472,18 @@ export function App() {
                           navigate(toComponentRoute(component.id, null));
                         }}
                       >
-                        <span>{component.label}</span>
-                        {!component.previewable ? (
+                        <span className="min-w-0 flex-1 truncate">
+                          {component.label}
+                        </span>
+                        {component.metadataErrors.length > 0 ? (
+                          <CircleAlertIcon
+                            className="ml-auto text-destructive"
+                            role="img"
+                            aria-label="Invalid metadata"
+                          >
+                            <title>Invalid metadata</title>
+                          </CircleAlertIcon>
+                        ) : !component.previewable ? (
                           <Badge variant="destructive">No preview</Badge>
                         ) : null}
                       </SidebarMenuButton>
@@ -1515,21 +1588,35 @@ export function App() {
             </div>
           ) : selectedKind === 'component' &&
             selectedComponent &&
-            !selectedComponent.previewable ? (
+            !selectedComponent.previewable &&
+            selectedComponent.metadataErrors.length === 0 ? (
             <div className="flex flex-1 rounded-none border p-4">
               This component is not previewable in strict mode. Reason:{' '}
               {selectedComponent.ineligibilityReason}
             </div>
           ) : (
-            <div className="min-h-0 flex-1 rounded-none border">
+            <div className="relative min-h-0 flex-1 overflow-hidden rounded-none border">
               <iframe
                 key={iframeKey}
-                ref={iframeRef}
+                ref={setIframeElement}
                 title="Canvas component preview"
                 src={WORKBENCH_PREVIEW_HTML_PATH}
-                className="h-full w-full"
+                className={`h-full w-full ${
+                  shouldHidePreviewFrame ? 'invisible' : ''
+                }`}
+                aria-hidden={shouldHidePreviewFrame}
                 sandbox="allow-scripts allow-same-origin allow-popups"
               />
+              {selectedKind === 'component' &&
+              selectedComponent &&
+              selectedComponent.metadataErrors.length > 0 ? (
+                <div className="absolute inset-0 z-10 flex items-start justify-center overflow-auto bg-background p-4">
+                  <PreviewErrorAlert
+                    title="Component metadata is invalid."
+                    message={formatComponentMetadataErrors(selectedComponent)}
+                  />
+                </div>
+              ) : null}
             </div>
           )}
         </section>

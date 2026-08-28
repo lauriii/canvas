@@ -1,0 +1,19 @@
+name: Unsupported prop shapes
+machineName: unsupported-prop-shapes
+props:
+  properties:
+    unsupportedKeyword:
+      type: boolean
+      title: Unsupported keyword
+      format: date
+    badCardinality:
+      type: array
+      title: Bad cardinality
+      items:
+        type: integer
+      minItems: 0
+      maxItems: 1
+    badObject:
+      type: object
+      title: Bad object
+      $ref: https://example.com/unsupported

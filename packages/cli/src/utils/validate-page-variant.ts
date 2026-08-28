@@ -1,8 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
-import addFormats from 'ajv-formats';
-import Ajv from 'ajv/dist/2020.js';
 import { loadComponentsMetadata } from '@drupal-canvas/discovery';
+import { createCanvasAjv } from '@drupal-canvas/json-schema-validation';
 
 import pageTemplateSpecSchema from '../../../workbench/src/lib/schemas/page-template-spec.schema.json';
 import { collectUnreconciledMediaProps } from './prop-transforms';
@@ -55,9 +54,9 @@ function withoutMarkerElements(
 export async function validatePageTemplates(
   discoveryResult: DiscoveryResult,
 ): Promise<{ results: Result[] }> {
-  const ajv = new Ajv();
-  addFormats(ajv);
-  const validatePageTemplateSpec = ajv.compile(pageTemplateSpecSchema);
+  const validatePageTemplateSpec = createCanvasAjv().compile(
+    pageTemplateSpecSchema,
+  );
 
   const metadata = await loadComponentsMetadata(discoveryResult);
   const context = buildElementsValidationContext(metadata);

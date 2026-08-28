@@ -1,0 +1,10 @@
+name: Invalid prop example
+machineName: invalid-prop-example
+props:
+  properties:
+    count:
+      type: integer
+      title: Count
+      minimum: 1
+      examples:
+        - zero

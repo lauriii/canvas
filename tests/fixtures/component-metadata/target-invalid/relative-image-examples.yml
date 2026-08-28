@@ -1,0 +1,19 @@
+name: Relative images
+machineName: relative-images
+props:
+  properties:
+    image:
+      type: object
+      title: Image
+      $ref: json-schema-definitions://canvas.module/image
+      examples:
+        - src: /images/example.png
+    gallery:
+      type: array
+      title: Gallery
+      items:
+        type: object
+        $ref: json-schema-definitions://canvas.module/image
+      examples:
+        -
+          - src: images/gallery.png

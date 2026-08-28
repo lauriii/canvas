@@ -221,6 +221,7 @@ services:
       - { name: twig.extension }
 
   # Controllers.
+  Drupal\canvas\Controller\ApiCodeComponentMetadataController: ~
   Drupal\canvas\Controller\ApiConfigControllers: ~
   Drupal\canvas\Controller\ApiConfigAutoSaveControllers: ~
   Drupal\canvas\Controller\ApiContentAutoSaveControllers: ~

@@ -1,7 +1,9 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import {
+  ComponentMetadataValidationError,
   discoverCanvasProject,
+  loadComponentMetadata,
   loadComponentsMetadata,
 } from '@drupal-canvas/discovery';
 import {
@@ -10,13 +12,17 @@ import {
   getWorkbenchHostGlobalCssVirtualUrl,
 } from '@drupal-canvas/vite-compat';
 
+import { isComponentMetadataPath } from '../lib/component-metadata-path';
 import { isTopLevelContentTemplateSpecPath } from '../lib/content-template-spec-path';
 import {
   isTopLevelPageSpecPath,
   isTopLevelPageTemplateSpecPath,
 } from '../lib/page-spec-path';
 import { parsePageTemplateSpec } from '../lib/page-template-spec';
-import { buildPreviewManifest } from '../lib/preview-contract';
+import {
+  buildPreviewManifest,
+  markPreviewManifestComponentMetadataInvalid,
+} from '../lib/preview-contract';
 import {
   toDiscoveredContentTemplateName,
   toDiscoveredPageName,
@@ -26,23 +32,19 @@ import {
 } from '../lib/spec-discovery';
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import type { DiscoveryResult } from '@drupal-canvas/discovery';
+import type {
+  ComponentMetadata,
+  DiscoveryResult,
+} from '@drupal-canvas/discovery';
 import type { Plugin } from 'vite';
 import type { EnrichedDiscoveredPage } from '../lib/discovery-client';
 import type {
+  PreviewManifest,
   PreviewManifestComponent,
   PreviewManifestComponentMock,
   PreviewWarning,
 } from '../lib/preview-contract';
 import type { WorkbenchPaths } from './paths';
-
-function isComponentMetadataPath(filePath: string): boolean {
-  const normalizedPath = filePath.replaceAll('\\', '/');
-  return (
-    /(^|\/)component\.yml$/.test(normalizedPath) ||
-    /(^|\/)[^/]+\.component\.yml$/.test(normalizedPath)
-  );
-}
 
 function isPreviewSourcePath(filePath: string): boolean {
   const normalizedPath = filePath.replaceAll('\\', '/');
@@ -488,6 +490,81 @@ async function loadWorkbenchHtmlTemplate(
   return transformIndexHtml(url, html);
 }
 
+export async function buildWorkbenchPreviewManifest(
+  discoveryResult: DiscoveryResult,
+): Promise<PreviewManifest> {
+  const manifest = buildPreviewManifest(discoveryResult);
+  const discoveredComponentNames = manifest.components.map(
+    (component) => component.name,
+  );
+  const componentMocksAndExamples = await Promise.all(
+    manifest.components.map(async (component, index) => {
+      const discoveredComponent = discoveryResult.components[index];
+      if (!discoveredComponent) {
+        throw new Error(
+          `Missing discovery result for ${component.metadataPath}.`,
+        );
+      }
+
+      let metadata: ComponentMetadata;
+      try {
+        metadata = await loadComponentMetadata(
+          discoveredComponent,
+          discoveryResult.projectRoot,
+        );
+      } catch (error) {
+        if (error instanceof ComponentMetadataValidationError) {
+          return {
+            component: {
+              ...markPreviewManifestComponentMetadataInvalid(
+                component,
+                error.sourcePath,
+                error.diagnostics,
+              ),
+              label: error.authoredName ?? component.label,
+            },
+            warnings: [],
+          };
+        }
+        throw error;
+      }
+
+      const componentPreviewMetadata =
+        await extractComponentPreviewMetadataFromComponentYaml(
+          component.metadataPath,
+        );
+      const exampleProps = componentPreviewMetadata.exampleProps;
+      const { mocks, warnings } = await loadComponentMocks(
+        component,
+        manifest.componentRoot,
+        discoveredComponentNames,
+        exampleProps,
+        componentPreviewMetadata.requiredPropNames,
+      );
+      return {
+        component: {
+          ...component,
+          label: componentPreviewMetadata.label ?? component.label,
+          exampleProps,
+          props: metadata.props.properties ?? {},
+          dataDependencies: metadata.dataDependencies ?? {},
+          mocks,
+        },
+        warnings,
+      };
+    }),
+  );
+
+  manifest.components = componentMocksAndExamples.map(
+    ({ component }) => component,
+  );
+  manifest.warnings = [
+    ...manifest.warnings,
+    ...componentMocksAndExamples.flatMap(({ warnings }) => warnings),
+  ];
+  return manifest;
+}
+
 export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
   let cachedResult: DiscoveryResult | null = null;
   let refreshTask: Promise<void> | null = null;
@@ -652,47 +729,7 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
         void (async () => {
           await refresh();
 
-          const manifest = buildPreviewManifest(cachedResult!);
-          const localMetadata = await loadComponentsMetadata(cachedResult!);
-          const discoveredComponentNames = manifest.components.map(
-            (component) => component.name,
-          );
-          const componentMocksAndExamples = await Promise.all(
-            manifest.components.map(async (component, index) => {
-              const componentPreviewMetadata =
-                await extractComponentPreviewMetadataFromComponentYaml(
-                  component.metadataPath,
-                );
-              const metadata = localMetadata[index];
-              const exampleProps = componentPreviewMetadata.exampleProps;
-              const { mocks, warnings } = await loadComponentMocks(
-                component,
-                manifest.componentRoot,
-                discoveredComponentNames,
-                exampleProps,
-                componentPreviewMetadata.requiredPropNames,
-              );
-              return {
-                component: {
-                  ...component,
-                  label: componentPreviewMetadata.label ?? component.label,
-                  exampleProps,
-                  props: metadata?.props.properties ?? {},
-                  dataDependencies: metadata?.dataDependencies ?? {},
-                  mocks,
-                },
-                warnings,
-              };
-            }),
-          );
-
-          manifest.components = componentMocksAndExamples.map(
-            ({ component }) => component,
-          );
-          manifest.warnings = [
-            ...manifest.warnings,
-            ...componentMocksAndExamples.flatMap(({ warnings }) => warnings),
-          ];
+          const manifest = await buildWorkbenchPreviewManifest(cachedResult!);
 
           res.statusCode = 200;
           res.setHeader('Content-Type', 'application/json');

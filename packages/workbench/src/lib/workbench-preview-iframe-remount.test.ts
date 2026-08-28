@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   computeWorkbenchStructuralFingerprint,
+  shouldHideComponentPreviewFrame,
   shouldSkipWorkbenchIframeRemount,
 } from './workbench-preview-iframe-remount';
 
@@ -60,6 +61,38 @@ describe('computeWorkbenchStructuralFingerprint', () => {
   });
 });
 
+describe('shouldHideComponentPreviewFrame', () => {
+  it('hides a previous component until the selected component settles', () => {
+    const component = { previewable: true, metadataErrors: [] };
+
+    expect(
+      shouldHideComponentPreviewFrame(component, 'component-b', 'component-a'),
+    ).toBe(true);
+    expect(
+      shouldHideComponentPreviewFrame(component, 'component-b', 'component-b'),
+    ).toBe(false);
+  });
+
+  it('hides the frame behind component metadata errors', () => {
+    expect(
+      shouldHideComponentPreviewFrame(
+        {
+          previewable: false,
+          metadataErrors: [
+            {
+              sourcePath: 'component.yml',
+              path: '$.type',
+              message: 'invalid',
+            },
+          ],
+        },
+        null,
+        null,
+      ),
+    ).toBe(true);
+  });
+});
+
 describe('shouldSkipWorkbenchIframeRemount', () => {
   const fp = computeWorkbenchStructuralFingerprint(baseDiscovery, baseManifest);
 
@@ -97,7 +130,7 @@ describe('shouldSkipWorkbenchIframeRemount', () => {
     ).toBe(false);
   });
 
-  it('returns false when path is not a top-level page spec', () => {
+  it('returns false when path does not support an in-place refresh', () => {
     expect(
       shouldSkipWorkbenchIframeRemount({
         payload: {
@@ -155,6 +188,26 @@ describe('shouldSkipWorkbenchIframeRemount', () => {
       }),
     ).toBe(false);
   });
+
+  it.each([
+    'src/components/hero/component.yml',
+    'src/components/hero/hero.component.yml',
+  ])(
+    'returns true for component metadata change at %s with same fingerprint',
+    (filePath) => {
+      expect(
+        shouldSkipWorkbenchIframeRemount({
+          payload: {
+            reloadFrameOnly: false,
+            filePath,
+            event: 'change',
+          },
+          previousFingerprint: fp,
+          nextFingerprint: fp,
+        }),
+      ).toBe(true);
+    },
+  );
 
   it('returns true for page json change with same fingerprint', () => {
     expect(

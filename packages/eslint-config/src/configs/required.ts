@@ -3,14 +3,13 @@ import { defineConfig, globalIgnores } from 'eslint/config';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
-import componentContentEntityReferencePropsRule from '../rules/component-content-entity-reference-props.js';
 import componentDirNameRule from '../rules/component-dir-name.js';
 import componentExportsRule from '../rules/component-exports.js';
 import componentImportsRule from '../rules/component-imports.js';
 import componentNoHierarchyRule from '../rules/component-no-hierarchy.js';
-import componentPropExampleValueImageUrlRule from '../rules/component-prop-example-value-image-url.js';
 import componentPropExampleValueNoEmptyStringRule from '../rules/component-prop-example-value-no-empty-string.js';
 import componentPropNamesRule from '../rules/component-prop-names.js';
+import componentRequiredPropsRule from '../rules/component-required-props.js';
 
 import type { Config } from '@eslint/config-helpers';
 
@@ -35,29 +34,25 @@ const required: Config[] = defineConfig([
     plugins: {
       'drupal-canvas': {
         rules: {
-          'component-content-entity-reference-props':
-            componentContentEntityReferencePropsRule,
-          'component-prop-example-value-image-url':
-            componentPropExampleValueImageUrlRule,
-          'component-prop-example-value-no-empty-string':
-            componentPropExampleValueNoEmptyStringRule,
           'component-dir-name': componentDirNameRule,
           'component-exports': componentExportsRule,
           'component-imports': componentImportsRule,
           'component-no-hierarchy': componentNoHierarchyRule,
+          'component-prop-example-value-no-empty-string':
+            componentPropExampleValueNoEmptyStringRule,
           'component-prop-names': componentPropNamesRule,
+          'component-required-props': componentRequiredPropsRule,
         },
       },
     },
     rules: {
-      'drupal-canvas/component-content-entity-reference-props': 'error',
-      'drupal-canvas/component-prop-example-value-image-url': 'error',
-      'drupal-canvas/component-prop-example-value-no-empty-string': 'error',
       'drupal-canvas/component-dir-name': 'error',
       'drupal-canvas/component-exports': 'error',
       'drupal-canvas/component-imports': 'error',
       'drupal-canvas/component-no-hierarchy': 'error',
+      'drupal-canvas/component-prop-example-value-no-empty-string': 'error',
       'drupal-canvas/component-prop-names': 'error',
+      'drupal-canvas/component-required-props': 'error',
     },
   },
 ]);

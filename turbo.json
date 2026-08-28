@@ -31,6 +31,43 @@
       "inputs": ["$TURBO_DEFAULT$", "!README.md", "!CHANGELOG.md", "!**/*.test.*"],
       "outputs": ["dist/**"]
     },
+    "@drupal-canvas/cli#build": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!README.md",
+        "!CHANGELOG.md",
+        "!**/*.test.*",
+        "$TURBO_ROOT$/component-metadata.schema.json",
+        "$TURBO_ROOT$/schema.json",
+        "$TURBO_ROOT$/packages/workbench/src/lib/schemas/content-template-spec.schema.json",
+        "$TURBO_ROOT$/packages/workbench/src/lib/schemas/page-spec.schema.json",
+        "$TURBO_ROOT$/packages/workbench/src/lib/schemas/page-template-spec.schema.json"
+      ],
+      "outputs": ["dist/**"]
+    },
+    "@drupal-canvas/headless#build": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!README.md",
+        "!CHANGELOG.md",
+        "!**/*.test.*",
+        "$TURBO_ROOT$/component-metadata.schema.json"
+      ],
+      "outputs": ["dist/**"]
+    },
+    "@drupal-canvas/workbench#build": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!README.md",
+        "!CHANGELOG.md",
+        "!**/*.test.*",
+        "$TURBO_ROOT$/component-metadata.schema.json"
+      ],
+      "outputs": ["dist/**"]
+    },
     "type-check": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", "!README.md", "!CHANGELOG.md"]

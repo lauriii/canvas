@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   discoverCanvasProject,
   resolveCanvasConfig,
@@ -26,7 +26,10 @@ async function withWorkingDirectory<T>(
   }
 }
 
-async function validateFixtureProject(fixtureName: string) {
+async function validateFixtureProject(
+  fixtureName: string,
+  options: Parameters<typeof validateComponents>[1] = {},
+) {
   const projectRoot = path.join(fixtureRoot, fixtureName);
   const config = resolveCanvasConfig({ hostRoot: projectRoot });
   const componentRoot = path.resolve(projectRoot, config.componentDir);
@@ -36,14 +39,16 @@ async function validateFixtureProject(fixtureName: string) {
   });
 
   return withWorkingDirectory(projectRoot, () =>
-    validateComponents(discoveryResult),
+    validateComponents(discoveryResult, options),
   );
 }
 
 describe('local codebase fixture projects', () => {
   it('reports imports and assets examples documented as unsupported', async () => {
+    const validateCodeComponentPayload = vi.fn(async () => {});
     const { results } = await validateFixtureProject(
       'imports-and-assets-unsupported-caught-by-eslint',
+      { apiService: { validateCodeComponentPayload } },
     );
     const messages = results
       .flatMap((componentResult) => componentResult.details ?? [])
@@ -74,5 +79,6 @@ describe('local codebase fixture projects', () => {
     expect(messages).toContain(
       'Component directories must be direct children of configured componentDir "src/components". Found "heading" inside "src/components/marketing".',
     );
+    expect(validateCodeComponentPayload).not.toHaveBeenCalled();
   });
 });

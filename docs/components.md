@@ -165,8 +165,9 @@ refer to "blocks" and not "block plugins", under the hood, they actually _are_ b
 
 `JS` `component`s specify the accepted explicit inputs ("props") and their shapes in the underlying
 `JavaScriptComponent config entity`, using the exact same format (JSON schema) as `SDC` `component`s (see [section
-3.1.1 above](#3.1.1)). See [section 3.2 `JavaScriptComponent config entity` in the `Canvas Config Management`
-doc](config-management.md#3.2) for all details.
+3.1.1 above](#3.1.1)). The authored `component.yml` contract and target-aware validation behavior are documented in
+[Code Component metadata](code-component-metadata.md). See [section 3.2 `JavaScriptComponent config entity` in the
+`Canvas Config Management` doc](config-management.md#3.2) for all details.
 
 `JS` `component`s DO NOT accept implicit inputs.
 

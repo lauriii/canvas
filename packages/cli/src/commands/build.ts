@@ -1,6 +1,9 @@
 import chalk from 'chalk';
 import * as p from '@clack/prompts';
-import { discoverCanvasProject } from '@drupal-canvas/discovery';
+import {
+  detectHeadlessSdk,
+  discoverCanvasProject,
+} from '@drupal-canvas/discovery';
 
 import { getConfig } from '../config';
 import { buildCanvasProject } from '../utils/build-project';
@@ -46,12 +49,15 @@ export function buildCommand(program: Command): void {
         updateConfigFromOptions(options);
         const { aliasBaseDir, outputDir, componentDir } = getConfig();
 
+        const headlessSdkDetected = detectHeadlessSdk(process.cwd());
+
         // Step 1: Discover local components.
         const s1 = p.spinner();
         s1.start('Discovering components');
         const discoveryResult = await discoverCanvasProject({
           componentRoot: componentDir,
           projectRoot: process.cwd(),
+          requireJsEntry: !headlessSdkDetected,
         });
         const { components, warnings } = discoveryResult;
         s1.stop('Discovered components', 0);
@@ -81,6 +87,7 @@ export function buildCommand(program: Command): void {
             outputDir,
             discoveryResult,
             cleanOutputDir: true,
+            headlessSdkDetected,
           });
         } catch (error) {
           s2.stop('Build failed', 2);

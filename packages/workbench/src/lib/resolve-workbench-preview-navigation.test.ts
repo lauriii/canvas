@@ -30,6 +30,7 @@ function manifestComponent(
     exampleProps: {},
     props: {},
     dataDependencies: {},
+    metadataErrors: [],
     mocks,
   };
 }

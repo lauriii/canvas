@@ -1,8 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
-import addFormats from 'ajv-formats';
-import Ajv from 'ajv/dist/2020.js';
 import { loadComponentsMetadata } from '@drupal-canvas/discovery';
+import { createCanvasAjv } from '@drupal-canvas/json-schema-validation';
 
 import contentTemplateSpecSchema from '../../../workbench/src/lib/schemas/content-template-spec.schema.json';
 import { authoredElementMapToComponentTree } from './authored-elements';
@@ -91,9 +90,9 @@ export async function validateContentTemplates(
     availablePageVariantIds?: ReadonlySet<string>;
   },
 ): Promise<{ results: Result[] }> {
-  const ajv = new Ajv({ allErrors: true });
-  addFormats(ajv);
-  const validateSpec = ajv.compile(contentTemplateSpecSchema);
+  const validateSpec = createCanvasAjv({ allErrors: true }).compile(
+    contentTemplateSpecSchema,
+  );
 
   const metadata = await loadComponentsMetadata(discoveryResult);
   const context = buildContentTemplateValidationContext(metadata);

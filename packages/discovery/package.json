@@ -26,9 +26,10 @@
     "type-check": "tsc --noEmit --pretty"
   },
   "dependencies": {
+    "@drupal-canvas/json-schema-validation": "*",
     "glob": "^13.0.1",
     "ignore": "^7.0.5",
-    "js-yaml": "^4.1.1"
+    "yaml": "^2.8.3"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",

@@ -1,8 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
-import addFormats from 'ajv-formats';
-import Ajv from 'ajv/dist/2020.js';
 import { loadComponentsMetadata } from '@drupal-canvas/discovery';
+import { createCanvasAjv } from '@drupal-canvas/json-schema-validation';
 
 import pageSpecSchema from '../../../workbench/src/lib/schemas/page-spec.schema.json';
 import {
@@ -37,9 +36,7 @@ export async function validatePages(
   discoveryResult: DiscoveryResult,
   options: PageValidationOptions = {},
 ): Promise<{ results: Result[] }> {
-  const ajv = new Ajv();
-  addFormats(ajv);
-  const validatePageSpec = ajv.compile(pageSpecSchema);
+  const validatePageSpec = createCanvasAjv().compile(pageSpecSchema);
 
   const metadata = await loadComponentsMetadata(discoveryResult);
   const context = buildElementsValidationContext(metadata);

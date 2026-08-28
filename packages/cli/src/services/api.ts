@@ -41,6 +41,10 @@ export interface ApiOptions {
   tokenEndpoint?: string;
 }
 
+export class CodeComponentMetadataOperationUnsupportedError extends Error {}
+
+export class CodeComponentMetadataValidationUnavailableError extends Error {}
+
 export interface UploadedMedia<TInputsResolved = unknown> {
   id: number;
   uuid: string;
@@ -300,6 +304,31 @@ export class ApiService {
 
   getAccessToken(): string | null {
     return this.accessToken;
+  }
+
+  async validateCodeComponentPayload(component: Component): Promise<void> {
+    try {
+      await this.client.post(
+        '/canvas/api/v0/code-components/validate',
+        component,
+      );
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 404) {
+          throw new CodeComponentMetadataOperationUnsupportedError();
+        }
+        if (
+          !error.response ||
+          [401, 403].includes(error.response.status) ||
+          error.response.status >= 500
+        ) {
+          throw new CodeComponentMetadataValidationUnavailableError(
+            'Target metadata validation is unavailable.',
+          );
+        }
+      }
+      this.handleApiError(error);
+    }
   }
 
   /**
