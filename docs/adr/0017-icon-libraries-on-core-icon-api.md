@@ -75,8 +75,10 @@ pack definition per entity — sources pointing at the library's public files di
 through the `svg` extractor, caches invalidated on entity and asset changes — so downstream consumers (picker,
 rendering, Twig) see no difference from module-provided packs. A deriver was rejected for the id constraints
 described above; the alter hook is the supported extension point that keeps pack ids colon-free. Uploaded SVG assets
-are sanitized at the trust boundary: files containing scripts, event handler attributes, or external references are
-rejected before anything is stored.
+are sanitized at the trust boundary: files containing scripts, event handler attributes, external references, or
+`<style>` elements are rejected before anything is stored. Stylesheets are refused rather than scoped because a
+resolved icon is inlined into the page, where SVG CSS is not scoped to the icon, and rewriting selectors would mean
+altering the stored file.
 
 ## Consequences
 

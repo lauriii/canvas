@@ -382,6 +382,58 @@ export function getSyncExclusionMessage(
   }
 }
 
+export interface PushableResources {
+  componentCount: number;
+  pageCount: number;
+  contentTemplateCount: number;
+  pageTemplateCount: number;
+  iconLibraryCount: number;
+  /** True when the brand kit is included and canvas.brand-kit.json declares fonts. */
+  pushesBrandKit: boolean;
+  /** True when the brand kit is included and canvas.brand-kit.json declares icon libraries. */
+  pushesIconLibraries: boolean;
+}
+
+/**
+ * Returns true when the push has something to send: local resources for the
+ * enabled sync settings, or a declared brand kit configuration. A declared
+ * configuration is work even when it declares an empty list, because the push
+ * replaces the remote set with it: an empty `icons.libraries` list deletes
+ * every remote canvas-managed icon library, the same way an empty
+ * `fonts.families` list clears the remote fonts.
+ */
+export function hasPushableResources(resources: PushableResources): boolean {
+  return (
+    resources.componentCount > 0 ||
+    resources.pageCount > 0 ||
+    resources.contentTemplateCount > 0 ||
+    resources.pageTemplateCount > 0 ||
+    resources.iconLibraryCount > 0 ||
+    resources.pushesBrandKit ||
+    resources.pushesIconLibraries
+  );
+}
+
+/**
+ * Returns the message announcing a brand-kit-only push: no local components,
+ * pages, content templates or page templates were found, but
+ * canvas.brand-kit.json declares configuration that still has to be synced.
+ * Returns undefined when there is no such declaration to announce.
+ */
+export function getBrandKitOnlyPushMessage(
+  pushesBrandKit: boolean,
+  pushesIconLibraries: boolean,
+): string | undefined {
+  const declarations = [
+    ...(pushesBrandKit ? ['brand kit'] : []),
+    ...(pushesIconLibraries ? ['icon libraries'] : []),
+  ];
+  if (declarations.length === 0) {
+    return undefined;
+  }
+  return `No components, pages, content templates, or page templates found; syncing ${declarations.join(' and ')} from canvas.brand-kit.json.`;
+}
+
 /**
  * Reads the build manifest from the dist directory.
  */
@@ -798,6 +850,12 @@ export function pushCommand(program: Command): void {
         // Icon libraries are part of the brand kit workflow.
         const includesIcons = includesBrandKit;
         const hasBrandKitFontsConfig = config.fonts !== undefined;
+        const {
+          libraries: discoveredIconLibraries,
+          authoritative: iconsAuthoritative,
+        } = includesIcons
+          ? await discoverIconLibraries(process.cwd())
+          : { libraries: [], authoritative: false };
         const hasBrandKitColorsConfig = config.colors !== undefined;
         const hasBrandKitConfig =
           hasBrandKitFontsConfig || hasBrandKitColorsConfig;
@@ -807,12 +865,6 @@ export function pushCommand(program: Command): void {
         // .astro, .svelte) that the Canvas build pipeline cannot compile, so
         // discovery must not require a JavaScript entry in this mode.
         const headlessSdkDetected = detectHeadlessSdk(process.cwd());
-        const {
-          libraries: discoveredIconLibraries,
-          authoritative: iconsAuthoritative,
-        } = includesIcons
-          ? await discoverIconLibraries(process.cwd())
-          : { libraries: [], authoritative: false };
         // Step 1. Discover all components, pages, content templates and page
         // templates.
         const discoveryResult = await discoverCanvasProject({
@@ -901,17 +953,26 @@ export function pushCommand(program: Command): void {
           }
         };
 
+        // A declared brand kit list is authoritative, so both a fonts and an
+        // icons declaration are push work even when they declare nothing: the
+        // push replaces the remote set with the declared one.
+        const pushesBrandKit = includesBrandKit && hasBrandKitConfig;
+        const pushesIconLibraries = includesIcons && iconsAuthoritative;
+
         if (
-          components.length === 0 &&
-          discoveredPages.length === 0 &&
-          discoveredContentTemplates.length === 0 &&
-          discoveredPageTemplates.length === 0 &&
-          discoveredIconLibraries.length === 0 &&
-          !(includesBrandKit && hasBrandKitConfig)
+          !hasPushableResources({
+            componentCount: components.length,
+            pageCount: discoveredPages.length,
+            contentTemplateCount: discoveredContentTemplates.length,
+            pageTemplateCount: discoveredPageTemplates.length,
+            iconLibraryCount: discoveredIconLibraries.length,
+            pushesBrandKit,
+            pushesIconLibraries,
+          })
         ) {
           logIgnoredLocalResources();
           p.log.warn(
-            'No components, pages, content templates, or page templates found for the enabled sync settings.',
+            'No components, pages, content templates, page templates, or icon libraries found for the enabled sync settings.',
           );
           p.outro('Nothing to push');
           return;
@@ -921,13 +982,15 @@ export function pushCommand(program: Command): void {
           components.length === 0 &&
           discoveredPages.length === 0 &&
           discoveredContentTemplates.length === 0 &&
-          discoveredPageTemplates.length === 0 &&
-          includesBrandKit &&
-          hasBrandKitConfig
+          discoveredPageTemplates.length === 0
         ) {
-          p.log.info(
-            'No components, pages, content templates, or page templates found; syncing brand kit from canvas.brand-kit.json.',
+          const brandKitOnlyMessage = getBrandKitOnlyPushMessage(
+            pushesBrandKit,
+            pushesIconLibraries,
           );
+          if (brandKitOnlyMessage !== undefined) {
+            p.log.info(brandKitOnlyMessage);
+          }
         }
 
         if (components.length === 0) {
@@ -992,18 +1055,17 @@ export function pushCommand(program: Command): void {
           }
         }
 
-        // Fetch remote icon libraries early for the planned operations summary.
-        let remoteIconLibraries: Record<string, IconLibrary> = {};
-        if (
+        // Fetch remote icon libraries early for the planned operations
+        // summary. This lookup is required rather than best-effort: it also
+        // decides which remote libraries an authoritative declaration
+        // deletes, so treating a failure as "no remote libraries" would skip
+        // every deletion and still report a successful push. Let the failure
+        // stop the push, like the other required remote lookups below.
+        const remoteIconLibraries: Record<string, IconLibrary> =
           includesIcons &&
           (discoveredIconLibraries.length > 0 || iconsAuthoritative)
-        ) {
-          try {
-            remoteIconLibraries = await apiService.getIconLibraries();
-          } catch {
-            remoteIconLibraries = {};
-          }
-        }
+            ? await apiService.getIconLibraries()
+            : {};
 
         // Fetch remote pages early for the planned operations summary.
         const remotePages =

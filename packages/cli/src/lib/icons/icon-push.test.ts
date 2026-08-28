@@ -440,6 +440,41 @@ describe('icon-push', () => {
       );
     });
 
+    it('reports assets already uploaded when a later upload fails', async () => {
+      await writeBrandKitIcons({
+        libraries: [{ id: 'my_icons', label: 'My icons' }],
+      });
+      await writeSvgDir('icons/my_icons', {
+        'star.svg': STAR_SVG,
+        'heart.svg': STAR_SVG,
+      });
+      vi.mocked(api.uploadIconAsset).mockImplementation(
+        (libraryId: string, filename: string) => {
+          if (filename === 'heart.svg') {
+            return Promise.reject(new Error('Upload failed.'));
+          }
+          return Promise.resolve({
+            uri: `public://canvas/icons/${filename}`,
+            fid: 1,
+            url: `/sites/default/files/canvas/icons/${filename}`,
+          });
+        },
+      );
+
+      const result = await pushIcons(api, tmpDir);
+
+      expect(result.failed).toBe(1);
+      const outcome = result.outcomes.find((o) => o.id === 'my_icons');
+      expect(outcome?.success).toBe(false);
+      // An upload replaces the live file, so the one that succeeded is
+      // already serving new artwork even though the library was not updated.
+      expect(outcome?.errors).toEqual([
+        `${path.join('icons', 'my_icons', 'heart.svg')}: Upload failed.`,
+        '1 of 2 assets were uploaded before the failure and are already live on the site; re-run the push to reconcile my_icons.',
+      ]);
+      expect(api.updateIconLibrary).not.toHaveBeenCalled();
+    });
+
     it('fails validation for an unsafe local SVG without pushing it', async () => {
       await writeBrandKitIcons({
         libraries: [{ id: 'my_icons', label: 'My icons' }],
