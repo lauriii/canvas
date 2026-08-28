@@ -310,6 +310,17 @@ export async function pushIconLibrary(
   }
 
   if (errors.length > 0) {
+    // An upload replaces the library's live file in place, so uploads that
+    // succeeded before the failure are already serving their new artwork
+    // while the library keeps the previous asset list. Report that rather
+    // than leaving it silent; re-running the push re-uploads by hash and
+    // reconciles the library.
+    const uploaded = uploadResults.filter((result) => result.success).length;
+    if (uploaded > 0) {
+      errors.push(
+        `${uploaded} of ${toUpload.length} assets were uploaded before the failure and are already live on the site; re-run the push to reconcile ${library.id}.`,
+      );
+    }
     return { id: library.id, success: false, errors };
   }
 

@@ -27,6 +27,11 @@ final class SvgSanitizer {
     'iframe',
     'embed',
     'object',
+    // Resolved icons are inlined into the page, and CSS in an inline SVG is
+    // not scoped to it: a stylesheet inside an icon styles the whole
+    // document. Rejected rather than scoped or stripped, because rewriting
+    // selectors would mean altering the stored file.
+    'style',
   ];
 
   /**
@@ -97,7 +102,13 @@ final class SvgSanitizer {
       \assert($element instanceof \DOMElement);
       $tag = \strtolower($element->localName ?? '');
 
-      if (\in_array($tag, self::FORBIDDEN_ELEMENTS, TRUE)) {
+      if ($tag === 'style') {
+        // A dedicated message: unlike the other forbidden elements, a
+        // stylesheet looks harmless, so say why it is refused and what to do
+        // instead.
+        $reasons[] = 'The file must not contain <style> elements: an inline SVG stylesheet is not scoped to the icon and would style the whole page. Move the styles into presentation attributes on the SVG elements.';
+      }
+      elseif (\in_array($tag, self::FORBIDDEN_ELEMENTS, TRUE)) {
         $reasons[] = \sprintf('The file must not contain <%s> elements.', $tag);
       }
 
@@ -108,10 +119,6 @@ final class SvgSanitizer {
         if (\preg_match('/href/i', $attribute_name)) {
           $reasons[] = \sprintf('The file must not contain <%s> elements that target href attributes.', $tag);
         }
-      }
-
-      if ($tag === 'style') {
-        $reasons = [...$reasons, ...self::validateCss($element->textContent, '<style> element')];
       }
 
       foreach (\iterator_to_array($element->attributes) as $attribute) {
@@ -175,7 +182,10 @@ final class SvgSanitizer {
   }
 
   /**
-   * Validates inline CSS from a `<style>` element or `style` attribute.
+   * Validates inline CSS from a `style` attribute.
+   *
+   * `<style>` elements are rejected outright, so only the attribute — whose
+   * declarations apply to its own element — reaches this.
    *
    * @return list<string>
    *   Rejection reasons for this CSS.

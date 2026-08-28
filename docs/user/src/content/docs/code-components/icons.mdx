@@ -123,7 +123,11 @@ id.
 The declared set is authoritative: pushing removes any Canvas-managed library no
 longer listed. Pushes are incremental — unchanged icons are not re-uploaded.
 Uploaded SVG files are sanitized on the server, and pushing icon libraries
-requires the **administer brand kit** permission.
+requires the **administer brand kit** permission. Files with scripts, event
+handler attributes, external references, or a `<style>` element are rejected
+with an explanation — an icon is inlined into the page, where its stylesheet
+would not stay scoped to the icon, so move such styles into presentation
+attributes on the SVG elements.
 
 For the full CLI options, see the
 [`@drupal-canvas/cli` README](https://www.npmjs.com/package/@drupal-canvas/cli).

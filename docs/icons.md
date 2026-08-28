@@ -97,9 +97,14 @@ label, optional description and Twig template, and references to SVG assets uplo
 `hook_icon_pack_alter()` (`\Drupal\canvas\Hook\IconPackHooks`), so downstream consumers see no difference from
 module-provided packs.
 
-Uploaded SVGs pass through `\Drupal\canvas\Icon\SvgSanitizer`, which rejects scripts, event handler attributes, and
-external references — this is a trust boundary. Managing icon libraries requires the `administer brand kit`
-permission (OAuth scope `canvas:brand_kit`).
+Uploaded SVGs pass through `\Drupal\canvas\Icon\SvgSanitizer`, which rejects scripts, event handler attributes,
+external references, and `<style>` elements — this is a trust boundary. Managing icon libraries requires the
+`administer brand kit` permission (OAuth scope `canvas:brand_kit`).
+
+`<style>` elements are refused because a resolved icon is inlined into the page and CSS in an inline SVG is not
+scoped to it, so an icon's stylesheet would style the whole document. Icon sets exported with a stylesheet (for
+example `.cls-1 { fill: … }`) need those declarations moved into presentation attributes on the SVG elements; a
+`style` attribute, which only affects its own element, stays allowed.
 
 Icon libraries are part of the CLI's brand kit workflow and mirror the fonts DX: the same `--include-brand-kit` flag
 governs both, and libraries are declared in `canvas.brand-kit.json` under `icons.libraries` (mirroring
