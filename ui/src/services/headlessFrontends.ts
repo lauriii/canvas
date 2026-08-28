@@ -4,6 +4,7 @@ import { baseQuery } from './baseQuery';
 
 export interface StoredFrontend {
   url: string;
+  components: string[];
 }
 
 interface FrontendsResponse {

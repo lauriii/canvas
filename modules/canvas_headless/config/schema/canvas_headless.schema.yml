@@ -40,6 +40,19 @@ canvas_headless.settings:
               Regex:
                 pattern: '~^(?!https?://[^/]+(?:/[^/]*)*/(?:(?:\.|%2e){1,2})(?:/|$))https?://(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}|(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?)(?::\d+)?(/[^\s\\@?#]*[^/\s\\@?#])?$~i'
                 message: 'The frontend URL must be an absolute http:// or https:// URL whose host is a hostname or a dotted-quad IPv4 address, with no credentials, query, fragment, dot path segments, or trailing slash.'
+          components:
+            type: sequence
+            label: 'Frontend-managed Canvas component IDs'
+            sequence:
+              type: string
+              label: 'Canvas component ID'
+              constraints:
+                NotBlank: {  }
+                Regex:
+                  # Headless sync stores Canvas component IDs for external code
+                  # components, for example `js.hero-banner`.
+                  pattern: '/^js\.[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*$/'
+                  message: 'The %value component ID is not valid. It must be a code component ID, such as js.hero-banner.'
     assertion_expiration:
       type: integer
       label: 'Preview assertion expiration time in seconds'

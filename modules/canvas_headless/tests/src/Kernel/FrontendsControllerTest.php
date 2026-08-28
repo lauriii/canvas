@@ -50,11 +50,31 @@ final class FrontendsControllerTest extends CanvasKernelTestBase {
     self::assertSame(Response::HTTP_OK, $response->getStatusCode());
     self::assertSame([
       'frontends' => [
-        ['url' => 'https://first.example/app'],
-        ['url' => 'http://127.0.0.1:3000'],
+        ['url' => 'https://first.example/app', 'components' => []],
+        ['url' => 'http://127.0.0.1:3000', 'components' => []],
       ],
     ], self::decode($response));
     self::assertSame(self::decode($response), self::decode($controller->get()));
+
+    $this->config('canvas_headless.settings')
+      ->set('frontends', [
+        ['url' => 'https://first.example/app', 'components' => ['js.heroBanner']],
+        ['url' => 'http://127.0.0.1:3000', 'components' => ['js.card']],
+      ])
+      ->save();
+
+    $response = $controller->patch(self::request([
+      'frontends' => [
+        ['url' => 'http://127.0.0.1:3000'],
+        ['url' => 'https://first.example/app'],
+      ],
+    ]));
+    self::assertSame([
+      'frontends' => [
+        ['url' => 'http://127.0.0.1:3000', 'components' => ['js.card']],
+        ['url' => 'https://first.example/app', 'components' => ['js.heroBanner']],
+      ],
+    ], self::decode($response));
   }
 
   /**

@@ -63,7 +63,7 @@ final class ExternalComponentSyncController {
     }
 
     try {
-      $result = $this->synchronizer->synchronize($payload);
+      $result = $this->synchronizer->synchronize($frontend, $payload);
     }
     catch (\Throwable $e) {
       return $this->errorResponse($frontend, $e->getMessage(), Response::HTTP_UNPROCESSABLE_ENTITY);

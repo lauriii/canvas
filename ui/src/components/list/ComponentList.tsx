@@ -1,18 +1,26 @@
 import { useEffect, useMemo } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
+import { skipToken } from '@reduxjs/toolkit/query';
 
 import ListItem from '@/components/list/ListItem';
 import { LayoutItemType } from '@/features/ui/primaryPanelSlice';
+import { useCanvasHeadlessSettings } from '@/hooks/useCanvasHeadlessSettings';
 import {
   useGetComponentsQuery,
   useGetFoldersQuery,
 } from '@/services/componentAndLayout';
+import { useGetFrontendsQuery } from '@/services/headlessFrontends';
 import { isMarkerComponentType } from '@/services/pageVariants';
 
 import LibraryItemList from './LibraryItemList';
 
 import type { CanvasComponent, ComponentsList } from '@/types/Component';
 import type { FolderData } from './FolderList';
+
+const normalizeFrontendUrl = (frontendUrl: string) => {
+  const frontend = new URL(frontendUrl);
+  return `${frontend.origin}${frontend.pathname === '/' ? '' : frontend.pathname}`;
+};
 
 interface ComponentListProps {
   searchTerm: string;
@@ -26,7 +34,13 @@ export type ComponentVisibility =
   | 'non-external-and-fallback-external';
 
 const ComponentList = ({ searchTerm, visibility }: ComponentListProps) => {
+  const headlessSettings = useCanvasHeadlessSettings();
   const { data: allComponents, error, isLoading } = useGetComponentsQuery();
+  const {
+    data: configuredFrontends,
+    error: frontendsError,
+    isLoading: frontendsLoading,
+  } = useGetFrontendsQuery(headlessSettings ? undefined : skipToken);
   // Markers (e.g. the page variant "Page content" marker) are intrinsic
   // placeholders managed by Canvas: they are never offered in the library.
   // Memoized: a fresh object on every render would remount the whole list on
@@ -48,6 +62,16 @@ const ComponentList = ({ searchTerm, visibility }: ComponentListProps) => {
     isLoading: foldersLoading,
   } = useGetFoldersQuery();
   const { showBoundary } = useErrorBoundary();
+  const activeFrontendComponentIds = useMemo(() => {
+    if (!headlessSettings) {
+      return null;
+    }
+    const activeFrontend = configuredFrontends?.find(
+      (frontend) =>
+        normalizeFrontendUrl(frontend.url) === headlessSettings.frontendUrl,
+    );
+    return new Set(activeFrontend?.components ?? []);
+  }, [configuredFrontends, headlessSettings]);
   const visibleComponents = useMemo(() => {
     if (visibility === 'all') {
       return components;
@@ -58,7 +82,9 @@ const ComponentList = ({ searchTerm, visibility }: ComponentListProps) => {
         if (visibility === 'external-only') {
           return (
             component.library === 'primary_components' &&
-            component.type === 'external'
+            component.type === 'external' &&
+            (activeFrontendComponentIds === null ||
+              activeFrontendComponentIds.has(component.id))
           );
         }
         if (visibility === 'non-external-only') {
@@ -74,13 +100,13 @@ const ComponentList = ({ searchTerm, visibility }: ComponentListProps) => {
         );
       }),
     );
-  }, [components, visibility]);
+  }, [activeFrontendComponentIds, components, visibility]);
 
   useEffect(() => {
-    if (error || foldersError) {
-      showBoundary(error || foldersError);
+    if (error || foldersError || frontendsError) {
+      showBoundary(error || foldersError || frontendsError);
     }
-  }, [error, foldersError, showBoundary]);
+  }, [error, foldersError, frontendsError, showBoundary]);
 
   const renderItem = (item: CanvasComponent) => {
     return <ListItem item={item} type={LayoutItemType.COMPONENT} />;
@@ -90,7 +116,7 @@ const ComponentList = ({ searchTerm, visibility }: ComponentListProps) => {
     <LibraryItemList<CanvasComponent>
       items={visibleComponents as ComponentsList}
       folders={folders as FolderData}
-      isLoading={isLoading || foldersLoading}
+      isLoading={isLoading || foldersLoading || frontendsLoading}
       searchTerm={searchTerm}
       layoutType={LayoutItemType.COMPONENT}
       topLevelLabel="Components"

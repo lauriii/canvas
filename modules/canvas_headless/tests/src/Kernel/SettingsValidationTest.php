@@ -48,7 +48,7 @@ class SettingsValidationTest extends CanvasKernelTestBase {
    */
   public function testConstraintsRejectInvalidValues(): void {
     $violations = $this->validate([
-      'frontends' => [['url' => 'http://localhost:3000/']],
+      'frontends' => [['url' => 'http://localhost:3000/', 'components' => []]],
       'assertion_expiration' => 3600,
     ]);
 
@@ -71,7 +71,7 @@ class SettingsValidationTest extends CanvasKernelTestBase {
   #[DataProvider('providerFrontendUrls')]
   public function testFrontendUrlRestriction(string $frontend_url, bool $valid): void {
     $violations = $this->validate([
-      'frontends' => [['url' => $frontend_url]],
+      'frontends' => [['url' => $frontend_url, 'components' => []]],
       'assertion_expiration' => 60,
     ]);
 
@@ -137,7 +137,7 @@ class SettingsValidationTest extends CanvasKernelTestBase {
    */
   public function testUnknownAndMissingKeysAreRejected(): void {
     $violations = $this->validate([
-      'frontends' => [['url' => 'http://localhost:3000']],
+      'frontends' => [['url' => 'http://localhost:3000', 'components' => []]],
       'component_metadata_url' => '/custom/components',
       'unknown_key' => 'whatever',
     ]);
@@ -159,9 +159,36 @@ class SettingsValidationTest extends CanvasKernelTestBase {
     ]);
 
     $this->assertSame([
-      'frontends.0' => ["'url' is a required key."],
+      'frontends.0' => [
+        "'url' is a required key.",
+        "'components' is a required key.",
+      ],
       'frontends.0.label' => ["'label' is not a supported key."],
     ], $violations);
+  }
+
+  /**
+   * Tests that frontend component ownership is valid as a string list.
+   */
+  public function testFrontendComponentsValidate(): void {
+    $this->assertSame([], $this->validate([
+      'frontends' => [[
+        'url' => 'http://localhost:3000',
+        'components' => ['js.heroBanner', 'js.cardWithSlot'],
+      ],
+      ],
+      'assertion_expiration' => 60,
+    ]));
+
+    $violations = $this->validate([
+      'frontends' => [[
+        'url' => 'http://localhost:3000',
+        'components' => [TRUE],
+      ],
+      ],
+      'assertion_expiration' => 60,
+    ]);
+    $this->assertArrayHasKey('frontends.0.components.0', $violations);
   }
 
   /**

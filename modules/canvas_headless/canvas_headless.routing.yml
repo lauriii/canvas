@@ -60,7 +60,7 @@ canvas_headless.frontends.get:
     _controller: 'Drupal\canvas_headless\Controller\FrontendsController::get'
   methods: [GET]
   requirements:
-    _permission: 'administer canvas headless frontends'
+    _custom_access: 'Drupal\canvas_headless\Controller\FrontendsController::accessGet'
   options:
     no_cache: TRUE
     _auth: ['cookie']

@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace Drupal\canvas_headless\Controller;
 
 use Drupal\canvas_headless\FrontendUrl;
+use Drupal\canvas_headless\PreviewUrlGeneratorInterface;
+use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
+use Drupal\Core\Session\AccountInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -35,6 +38,14 @@ final class FrontendsController implements ContainerInjectionInterface {
   }
 
   /**
+   * Grants read access to users who can preview or administer frontends.
+   */
+  public static function accessGet(AccountInterface $account): AccessResult {
+    return AccessResult::allowedIfHasPermission($account, PreviewUrlGeneratorInterface::PREVIEW_PERMISSION)
+      ->orIf(AccessResult::allowedIfHasPermission($account, 'administer canvas headless frontends'));
+  }
+
+  /**
    * Returns the ordered list of frontends.
    */
   public function get(): JsonResponse {
@@ -48,6 +59,12 @@ final class FrontendsController implements ContainerInjectionInterface {
     $payload = json_decode($request->getContent(), TRUE);
     if (!\is_array($payload) || !\array_key_exists('frontends', $payload) || !\is_array($payload['frontends']) || !\array_is_list($payload['frontends'])) {
       return new JsonResponse(['error' => 'The request body must contain a "frontends" list.'], Response::HTTP_BAD_REQUEST);
+    }
+
+    $existing_frontends = [];
+    foreach ($this->currentList() as $frontend) {
+      $configured_frontend = FrontendUrl::fromConfig($frontend['url']);
+      $existing_frontends[$configured_frontend === NULL ? $frontend['url'] : $configured_frontend->baseUrl] = $frontend;
     }
 
     $frontends = [];
@@ -70,7 +87,10 @@ final class FrontendsController implements ContainerInjectionInterface {
         return new JsonResponse(['error' => \sprintf('"%s" is already in the list.', $url)], Response::HTTP_UNPROCESSABLE_ENTITY);
       }
       $seen_origins[$frontend->baseUrl] = TRUE;
-      $frontends[] = ['url' => $url];
+      $frontends[] = [
+        'url' => $url,
+        'components' => $this->normalizeComponentIds($existing_frontends[$frontend->baseUrl]['components'] ?? []),
+      ];
     }
 
     $this->configFactory->getEditable('canvas_headless.settings')
@@ -83,7 +103,7 @@ final class FrontendsController implements ContainerInjectionInterface {
   /**
    * Reads the stored list, normalized for the response.
    *
-   * @return array<int, array{url: string}>
+   * @return array<int, array{url: string, components: list<string>}>
    *   The ordered frontends.
    */
   private function currentList(): array {
@@ -94,10 +114,29 @@ final class FrontendsController implements ContainerInjectionInterface {
     $frontends = [];
     foreach ($stored as $item) {
       if (\is_array($item) && \is_string($item['url'] ?? NULL)) {
-        $frontends[] = ['url' => $item['url']];
+        $frontends[] = [
+          'url' => $item['url'],
+          'components' => $this->normalizeComponentIds($item['components'] ?? []),
+        ];
       }
     }
     return $frontends;
+  }
+
+  /**
+   * Normalizes a list of Canvas component IDs.
+   *
+   * @param mixed $components
+   *   The stored component IDs.
+   *
+   * @return list<string>
+   *   The normalized component IDs.
+   */
+  private static function normalizeComponentIds(mixed $components): array {
+    if (!\is_array($components)) {
+      return [];
+    }
+    return array_values(array_filter($components, \is_string(...)));
   }
 
 }
