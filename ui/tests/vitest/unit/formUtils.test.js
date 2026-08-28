@@ -68,13 +68,16 @@ let inputAndUiData = {
   model: {
     'all-props': {
       resolved: {},
-      // Minimal source representation.
+      // Minimal source representation. Every prop the form can edit is
+      // populated by a static prop source; the `sourceType` values mirror what
+      // \Drupal\canvas\PropSource\StaticPropSource::toArray() sends.
       source: {
-        a_boolean: {},
-        unchecked_boolean: {},
-        number: {},
-        float: {},
+        a_boolean: { sourceType: 'static:field_item:boolean' },
+        unchecked_boolean: { sourceType: 'static:field_item:boolean' },
+        number: { sourceType: 'static:field_item:integer' },
+        float: { sourceType: 'static:field_item:float' },
         datetime: {
+          sourceType: 'static:field_item:datetime',
           sourceTypeSettings: {
             instance: {},
             storage: {
@@ -83,6 +86,7 @@ let inputAndUiData = {
           },
         },
         date: {
+          sourceType: 'static:field_item:datetime',
           sourceTypeSettings: {
             instance: {},
             storage: {
@@ -91,6 +95,7 @@ let inputAndUiData = {
           },
         },
         datetimeMultiple: {
+          sourceType: 'static:field_item:datetime',
           sourceTypeSettings: {
             instance: {},
             storage: {
@@ -99,6 +104,7 @@ let inputAndUiData = {
           },
         },
         dateMultiple: {
+          sourceType: 'static:field_item:datetime',
           sourceTypeSettings: {
             instance: {},
             storage: {
@@ -107,6 +113,7 @@ let inputAndUiData = {
           },
         },
         cta1href: {
+          sourceType: 'static:field_item:link',
           sourceTypeSettings: {
             instance: {
               // Simulate a title.
@@ -116,6 +123,7 @@ let inputAndUiData = {
           },
         },
         linkNoTitle: {
+          sourceType: 'static:field_item:link',
           sourceTypeSettings: {
             instance: {
               title: 0,
@@ -124,6 +132,7 @@ let inputAndUiData = {
           },
         },
         linkNoTitleEmpty: {
+          sourceType: 'static:field_item:link',
           sourceTypeSettings: {
             instance: {
               title: 0,
@@ -131,7 +140,9 @@ let inputAndUiData = {
             storage: {},
           },
         },
-        entityReferenceAutocomplete: {},
+        entityReferenceAutocomplete: {
+          sourceType: 'static:field_item:entity_reference',
+        },
       },
     },
   },
@@ -421,6 +432,61 @@ Value`,
       emptyColors: [],
     });
   });
+
+  it.each([
+    // A prop linked to an entity field in a ContentTemplate.
+    ['entity-field', { expression: 'ℹ︎␜entity:node␝created␞␟value' }],
+    // The same, through an adapter that converts the timestamp to a date.
+    [
+      'entity-field',
+      { expression: 'ℹ︎␜entity:node␝created␞␟value', adapter: 'unix_to_date' },
+    ],
+    // The deprecated alias of `entity-field`, still present in older stored
+    // content templates.
+    // @see \Drupal\canvas\PropSource\PropSource::Dynamic
+    ['dynamic', { expression: 'ℹ︎␜entity:node␝created␞␟value' }],
+    // A prop populated by an adapter rather than by a widget.
+    ['adapter:unix_to_date', { adapterInputs: {} }],
+    // A prop resolving to the host entity's URL: its widget is disabled.
+    ['host-entity-url', {}],
+  ])(
+    'Should ignore form state for a prop whose source is %s',
+    (sourceType, extraSourceKeys) => {
+      // In a ContentTemplate a prop can be linked to a field on the host
+      // entity. Its widget is then replaced by a linked field badge, but the
+      // form state the widget left behind — and the widget transforms the
+      // server still reports for the prop — remain. Those transforms must not
+      // run against a non-static prop source, which carries no
+      // `sourceTypeSettings`.
+      // @see https://www.drupal.org/i/3567167
+      const linkedModel = inputAndUiData.model['all-props'];
+      const linkedInputAndUiData = {
+        ...inputAndUiData,
+        model: {
+          'all-props': {
+            ...linkedModel,
+            source: {
+              ...linkedModel.source,
+              date: { sourceType, ...extraSourceKeys },
+            },
+          },
+        },
+      };
+
+      const { propsValues } = getPropsValues(
+        formState,
+        linkedInputAndUiData,
+        transformConfig,
+      );
+
+      // The linked prop is resolved from the host entity, not from the form.
+      expect(propsValues).to.not.have.property('date');
+      // The sibling date prop, still populated by a static prop source, is
+      // transformed as usual.
+      expect(propsValues.datetime).to.equal('2025-01-31T20:30:33.000Z');
+      expect(propsValues.heading).to.equal('hello, world!');
+    },
+  );
 
   it('Should transform multiple entity autocomplete values', () => {
     const multiCardinalityFormState = {
