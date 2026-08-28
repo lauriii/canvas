@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import clsx from 'clsx';
 import { useDraggable } from '@dnd-kit/core';
 import { CollapsibleContent } from '@radix-ui/react-collapsible';
@@ -17,6 +17,7 @@ import {
   selectCollapsedLayers,
   selectComponentIsSelected,
   selectIsComponentHovered,
+  selectSelection,
   setHoveredComponent,
   toggleCollapsedLayer,
   unsetHoveredComponent,
@@ -59,9 +60,15 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
   const componentId = component.uuid;
   const isCollapsed = collapsedLayers.includes(componentId);
   const nodeName = useGetComponentName(component);
-  const isSelected = useAppSelector((state) =>
-    selectComponentIsSelected(state, componentId),
+  // The selection itself while this component is part of it, and null when it is
+  // not. Redux replaces the selection object on every selection, including one
+  // that selects the same component again, which the effect below relies on.
+  const selectionWhileSelected = useAppSelector((state) =>
+    selectComponentIsSelected(state, componentId)
+      ? selectSelection(state)
+      : null,
   );
+  const isSelected = selectionWhileSelected !== null;
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `${component.uuid}_layers`,
     data: {
@@ -70,6 +77,20 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
       name: nodeName,
     },
   });
+
+  const layerRef = useRef<HTMLDivElement>(null);
+
+  // The selection is often changed outside of the layers panel, for instance by
+  // clicking a component in the preview. Keep the highlighted layer visible so
+  // that the panel does not look like nothing is selected. This runs for every
+  // selection that includes this component, not only when it starts being
+  // selected, so selecting it again after scrolling the panel elsewhere still
+  // brings it back.
+  useEffect(() => {
+    if (selectionWhileSelected) {
+      layerRef.current?.scrollIntoView({ block: 'nearest' });
+    }
+  }, [selectionWhileSelected]);
 
   const handleItemClick = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
@@ -141,6 +162,7 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
           data-canvas-uuid={component.uuid}
         >
           <SidebarNode
+            ref={layerRef}
             id={`layer-${componentId}-name`}
             onMouseEnter={handleItemMouseEnter}
             onMouseLeave={handleItemMouseLeave}
