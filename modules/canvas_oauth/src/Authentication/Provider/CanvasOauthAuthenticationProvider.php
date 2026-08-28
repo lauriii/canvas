@@ -62,6 +62,7 @@ class CanvasOauthAuthenticationProvider implements AuthenticationProviderInterfa
     // config or content entity checks below.
     $named_routes = [
       'canvas.api.artifacts.upload',
+      'canvas.api.code_component.validate',
       'canvas.api.config.page_region.gone.collection',
       'canvas.api.config.page_region.gone.item',
       'canvas.api.settings.default_page_variant.get',

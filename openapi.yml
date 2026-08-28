@@ -404,6 +404,51 @@ paths:
                       - No auto-save data found for this entity.
         '413':
           $ref: '#/components/responses/ClientErrorResponse'
+  /canvas/api/v0/code-components/validate:
+    post:
+      summary: Validates a normalized Code Component payload without saving it
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/UpdatedCodeComponent'
+              required:
+                - name
+                - machineName
+                - status
+                - required
+                - props
+                - slots
+                - dataDependencies
+            examples:
+              minimal component:
+                value:
+                  machineName: example
+                  name: Example
+                  status: true
+                  required: []
+                  props: {}
+                  slots: {}
+                  sourceCodeJs: 'export default function Example() {}'
+                  sourceCodeCss: ''
+                  compiledJs: 'export default function Example() {}'
+                  compiledCss: ''
+                  importedJsComponents: []
+                  dataDependencies: {}
+      responses:
+        '204':
+          description: The target site accepts the payload metadata.
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+        '422':
+          description: The target site rejected the payload.
+          $ref: '#/components/responses/ClientErrorResponse'
   /canvas/api/v0/config/asset_library:
     description: Endpoint for managing asset libraries.
     get:

@@ -53,6 +53,7 @@ import {
   splitFailedResultsByFile,
 } from '../utils/report-results';
 import { createProgressCallback, processInPool } from '../utils/request-pool';
+import { preflightCodeComponentPayloads } from '../utils/target-component-metadata';
 import { formatFilePathForOutput } from '../utils/utils';
 import { validateContentTemplates } from '../utils/validate-content-template';
 import { validatePages } from '../utils/validate-page';
@@ -1148,6 +1149,28 @@ export function pushCommand(program: Command): void {
             throw new ReportedPushError(
               'Build failed',
               'Tailwind build failed, global assets upload aborted. Nothing was pushed.',
+            );
+          }
+
+          const preflight = await preflightCodeComponentPayloads(
+            canvasBuild.builtComponents,
+            componentPushApiService,
+          );
+          for (const warning of preflight.warnings) {
+            p.log.warn(warning);
+          }
+          if (preflight.results.some((result) => !result.success)) {
+            componentSpinner.stop('Validation failed', 2);
+            reportResults(
+              preflight.results.filter((result) => !result.success),
+              'Component validation failed',
+              'Component',
+              PUSH_REPORT_OPTIONS,
+            );
+            reportDiscoveryWarnings(componentDiscoveryWarnings);
+            throw new ReportedPushError(
+              'Component validation failed',
+              'Target validation failed. Nothing was pushed.',
             );
           }
 

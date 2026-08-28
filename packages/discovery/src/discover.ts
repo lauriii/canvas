@@ -3,9 +3,9 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { glob } from 'glob';
 import ignore from 'ignore';
-import { load as parseYaml } from 'js-yaml';
 
-import { findDuplicateMachineNames, loadComponentsMetadata } from './metadata';
+import { findDuplicateMachineNames, loadComponentMetadata } from './metadata';
+import { ComponentMetadataValidationError } from './metadata-validation';
 
 import type {
   DiscoveredComponent,
@@ -64,27 +64,6 @@ async function fileExists(filePath: string): Promise<boolean> {
 // -> '<40-char sha1 hex digest>'
 function createStableId(metadataPath: string): string {
   return createHash('sha1').update(metadataPath).digest('hex');
-}
-
-// Reads only the component type from a metadata file. External components have
-// no JavaScript entry, so pairing must know the type before deciding whether a
-// missing entry is an error. Full metadata parsing and validation happen later
-// via loadComponentsMetadata; this tolerant read never throws.
-async function readComponentType(
-  metadataPath: string,
-): Promise<DiscoveredComponent['type']> {
-  try {
-    const raw = parseYaml(await fs.readFile(metadataPath, 'utf-8'));
-    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
-      const type = (raw as Record<string, unknown>).type;
-      if (type === 'react' || type === 'external') {
-        return type;
-      }
-    }
-  } catch {
-    // Unreadable or malformed metadata is reported later by validation.
-  }
-  return undefined;
 }
 
 async function getCandidateMetadataFiles(
@@ -433,7 +412,6 @@ export async function discoverCanvasProject(
         : path.basename(absoluteDirectory);
 
       const metadataPath = path.resolve(absoluteDirectory, metadataFilename);
-      const componentType = await readComponentType(metadataPath);
 
       const jsCandidates = await Promise.all(
         entryExtensions.map(async (extension) => {
@@ -465,12 +443,9 @@ export async function discoverCanvasProject(
         });
       }
 
-      // External components are implemented by an external (headless)
-      // application, so they need no JavaScript entry: they are pushed as
-      // metadata only. Callers pushing metadata only (requireJsEntry: false)
-      // likewise keep entry-less components. Every other component requires an
-      // entry file.
-      if (!entryCandidate && componentType !== 'external' && requireJsEntry) {
+      // Callers pushing metadata only (requireJsEntry: false) keep entry-less
+      // components. Every other component requires an entry file.
+      if (!entryCandidate && requireJsEntry) {
         warnings.push({
           code: 'missing_js_entry',
           message: `Missing JavaScript entry file for ${metadataFilename}.`,
@@ -497,7 +472,6 @@ export async function discoverCanvasProject(
         metadataPath,
         jsEntryPath: entryCandidate?.candidatePath ?? null,
         cssEntryPath,
-        type: componentType,
       });
     }
   }
@@ -525,9 +499,30 @@ export async function discoverCanvasProject(
     },
   };
 
-  // Check for duplicate machine names across components.
-  const metadata = await loadComponentsMetadata(result);
-  const duplicateWarnings = findDuplicateMachineNames(components, metadata);
+  // Invalid metadata is reported by consumers when they load it. Discovery
+  // remains available so editors and validation commands can surface those
+  // errors without stopping file watching or skipping the remaining files.
+  const validMetadataEntries = (
+    await Promise.all(
+      components.map(async (component) => {
+        try {
+          return {
+            component,
+            metadata: await loadComponentMetadata(component, projectRoot),
+          };
+        } catch (error) {
+          if (error instanceof ComponentMetadataValidationError) {
+            return null;
+          }
+          throw error;
+        }
+      }),
+    )
+  ).filter((entry) => entry !== null);
+  const duplicateWarnings = findDuplicateMachineNames(
+    validMetadataEntries.map(({ component }) => component),
+    validMetadataEntries.map(({ metadata }) => metadata),
+  );
   warnings.push(...duplicateWarnings);
 
   return result;

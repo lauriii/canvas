@@ -1,8 +1,8 @@
-import { createAjv } from '@/utils/ajv';
+import { createCanvasAjv } from '@drupal-canvas/json-schema-validation';
 
 import type * as ReactType from 'react';
 
-const ajv = createAjv();
+const ajv = createCanvasAjv();
 
 /**
  * Formats an Ajv errors array into a human-readable string.

@@ -1,0 +1,6 @@
+name: Missing prop title
+machineName: missing-prop-title
+props:
+  properties:
+    missingTitle:
+      type: string

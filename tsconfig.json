@@ -23,6 +23,9 @@
       "@drupal-canvas/types": ["./packages/types/src"],
       "@drupal-canvas/ui/*": ["./ui/src/*"],
       "@drupal-canvas/eslint-config": ["./packages/eslint-config/src/index.ts"],
+      "@drupal-canvas/json-schema-validation": [
+        "./packages/json-schema-validation/src/index.ts"
+      ],
       "@/*": ["./ui/src/*"],
       "@assets/*": ["./ui/assets/*"],
       "@tests/*": ["./ui/tests/*"],

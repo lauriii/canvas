@@ -291,8 +291,11 @@ function emptyBuildManifest(): Manifest {
 
 async function validateComponentsForBuild(
   discoveryResult: DiscoveryResult,
+  externalComponents: boolean,
 ): Promise<Result[]> {
-  const { results } = await validateComponents(discoveryResult);
+  const { results } = await validateComponents(discoveryResult, {
+    externalComponents,
+  });
   return results.filter((result) => !result.success);
 }
 
@@ -312,6 +315,7 @@ export async function buildCanvasProject(
 
   const validationFailures = await validateComponentsForBuild(
     options.discoveryResult,
+    options.headlessSdkDetected ?? false,
   );
   if (validationFailures.length > 0) {
     const manifestPath = path.join(outputDir, 'canvas-manifest.json');
@@ -338,11 +342,9 @@ export async function buildCanvasProject(
   const builtComponents: BuiltComponent[] = [];
 
   for (const component of options.discoveryResult.components) {
-    // A component is external when its metadata says so, or when the Canvas
-    // Headless SDK is installed. External components are pushed as metadata
-    // only: no JavaScript is built or uploaded.
-    const isExternal =
-      component.type === 'external' || options.headlessSdkDetected === true;
+    // When the Canvas Headless SDK is installed, components are pushed as
+    // metadata only: no JavaScript is built or uploaded.
+    const isExternal = options.headlessSdkDetected === true;
 
     if (isExternal) {
       const result: Result = {

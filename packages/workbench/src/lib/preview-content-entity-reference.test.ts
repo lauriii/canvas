@@ -90,18 +90,9 @@ describe('preview-content-entity-reference', () => {
         articleThree: ['ℹ︎␜entity:node:article␝title␞␟value'],
       },
       {
-        articleOne: {
-          'x-allowed-entity-type-id': 'node',
-          'x-allowed-bundle': 'article',
-        },
-        articleTwo: {
-          'x-allowed-entity-type-id': 'node',
-          'x-allowed-bundle': 'article',
-        },
-        articleThree: {
-          'x-allowed-entity-type-id': 'node',
-          'x-allowed-bundle': 'article',
-        },
+        articleOne: {},
+        articleTwo: {},
+        articleThree: {},
       },
     );
 
@@ -112,16 +103,14 @@ describe('preview-content-entity-reference', () => {
     ]);
   });
 
-  it('skips props without projected entity targets', () => {
+  it('skips props whose entity field target cannot be derived', () => {
     expect(
       getContentEntityReferencePropPreviews(
         {
-          article: ['ℹ︎␜entity:node:article␝title␞␟value'],
+          article: ['not-an-entity-field-expression'],
         },
         {
-          article: {
-            'x-allowed-entity-type-id': 'node',
-          },
+          article: {},
         },
       ),
     ).toEqual([]);
@@ -134,20 +123,6 @@ describe('preview-content-entity-reference', () => {
           articleOne: ['ℹ︎␜entity:node:article␝title␞␟value'],
           articleTwo: ['ℹ︎␜entity:node:article␝title␞␟value'],
           articleThree: ['ℹ︎␜entity:node:article␝title␞␟value'],
-        },
-        {
-          articleOne: {
-            'x-allowed-entity-type-id': 'node',
-            'x-allowed-bundle': 'article',
-          },
-          articleTwo: {
-            'x-allowed-entity-type-id': 'node',
-            'x-allowed-bundle': 'article',
-          },
-          articleThree: {
-            'x-allowed-entity-type-id': 'node',
-            'x-allowed-bundle': 'article',
-          },
         },
         {
           articleOne: '1',
@@ -183,7 +158,7 @@ describe('preview-content-entity-reference', () => {
     ]);
   });
 
-  it('finds authored CER target IDs in specs', () => {
+  it('derives CER targets from entity field expressions in specs', () => {
     expect(
       getContentEntityReferenceSpecResolutionJobs(
         {
@@ -216,16 +191,14 @@ describe('preview-content-entity-reference', () => {
             ineligibilityReason: null,
             exampleProps: {},
             props: {
-              article: {
-                'x-allowed-entity-type-id': 'node',
-                'x-allowed-bundle': 'article',
-              },
+              article: {},
             },
             dataDependencies: {
               entityFields: {
                 article: ['ℹ︎␜entity:node:article␝title␞␟value'],
               },
             },
+            metadataErrors: [],
             mocks: [],
           },
         ],
@@ -247,7 +220,7 @@ describe('preview-content-entity-reference', () => {
     ]);
   });
 
-  it('resolves authored CER target IDs into a preview model', async () => {
+  it('resolves expression-derived CER targets into a preview model', async () => {
     vi.spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(new Response('csrf-token'))
       .mockResolvedValueOnce(
@@ -288,16 +261,14 @@ describe('preview-content-entity-reference', () => {
             ineligibilityReason: null,
             exampleProps: {},
             props: {
-              article: {
-                'x-allowed-entity-type-id': 'node',
-                'x-allowed-bundle': 'article',
-              },
+              article: {},
             },
             dataDependencies: {
               entityFields: {
                 article: ['ℹ︎␜entity:node:article␝title␞␟value'],
               },
             },
+            metadataErrors: [],
             mocks: [],
           },
         ],

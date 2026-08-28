@@ -244,10 +244,9 @@ describe('buildCanvasProject', () => {
         'props:',
         '  properties:',
         '    article:',
+        '      title: Article',
         '      type: object',
         '      $ref: json-schema-definitions://canvas.module/content-entity-reference',
-        '      x-allowed-entity-type-id: node',
-        '      x-allowed-bundle: article',
         'slots: {}',
         'dataDependencies:',
         '  entityFields:',
@@ -298,74 +297,10 @@ describe('buildCanvasProject', () => {
       },
     });
     expect(result.builtComponents[0]?.componentPayload.props.article).toEqual({
+      title: 'Article',
       type: 'object',
       $ref: 'json-schema-definitions://canvas.module/content-entity-reference',
     });
-  });
-
-  it('builds a metadata-only payload for external components without a JS entry', async () => {
-    const heroDir = path.join(componentDir, 'hero');
-    await fs.mkdir(heroDir, { recursive: true });
-    await fs.writeFile(
-      path.join(heroDir, 'component.yml'),
-      [
-        'name: hero',
-        'machineName: hero',
-        'status: true',
-        'type: external',
-        'props:',
-        '  properties: {}',
-        'slots: {}',
-      ].join('\n'),
-    );
-    const component = {
-      id: 'hero',
-      name: 'hero',
-      kind: 'index',
-      directory: heroDir,
-      relativeDirectory: 'src/components/hero',
-      metadataPath: path.join(heroDir, 'component.yml'),
-      jsEntryPath: null,
-      cssEntryPath: null,
-      type: 'external',
-    } as DiscoveredComponent;
-    const discoveryResult = {
-      componentRoot: componentDir,
-      projectRoot: tmpDir,
-      components: [component],
-      pages: [],
-      contentTemplates: [],
-      pageTemplates: [],
-      regions: [],
-      warnings: [],
-      stats: { scannedFiles: 1, ignoredFiles: 0 },
-    } as DiscoveryResult;
-
-    const result = await buildCanvasProject({
-      projectRoot: tmpDir,
-      componentDir,
-      aliasBaseDir: 'src',
-      outputDir,
-      discoveryResult,
-      cleanOutputDir: true,
-      // Push forces this true; external components must still succeed.
-      requireJsEntries: true,
-    });
-
-    expect(buildCanvasComponentEntry).not.toHaveBeenCalled();
-    expect(result.componentResults).toEqual([
-      expect.objectContaining({ itemName: 'hero', success: true }),
-    ]);
-    expect(result.builtComponents).toHaveLength(1);
-    const payload = result.builtComponents[0]?.componentPayload;
-    expect(payload).toEqual(
-      expect.objectContaining({ machineName: 'hero', type: 'external' }),
-    );
-    expect(payload).not.toHaveProperty('sourceCodeJs');
-    expect(payload).not.toHaveProperty('compiledJs');
-    expect(payload).not.toHaveProperty('sourceCodeCss');
-    expect(payload).not.toHaveProperty('compiledCss');
-    expect(payload).not.toHaveProperty('importedJsComponents');
   });
 
   it('marks every component external when the Headless SDK is detected', async () => {
@@ -453,6 +388,7 @@ describe('buildCanvasProject', () => {
     await fs.writeFile(staleManifestPath, '{"stale":true}', 'utf-8');
 
     vi.mocked(validateComponents).mockResolvedValueOnce({
+      warnings: [],
       results: [
         {
           itemName: 'card',

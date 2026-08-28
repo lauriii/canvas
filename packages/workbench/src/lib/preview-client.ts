@@ -23,8 +23,12 @@ export async function fetchPreviewManifest(): Promise<PreviewManifest> {
   const response = await fetch('/__canvas/preview-manifest');
 
   if (!response.ok) {
+    const errorBody = (await response.json().catch(() => null)) as {
+      error?: string;
+    } | null;
     throw new Error(
-      `Preview manifest request failed with status ${response.status}.`,
+      errorBody?.error ??
+        `Preview manifest request failed with status ${response.status}.`,
     );
   }
 

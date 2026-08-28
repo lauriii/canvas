@@ -5,6 +5,7 @@ import yaml from 'js-yaml';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { setConfig } from '../config';
+import { readValidatedComponentMetadata } from '../utils/component-metadata';
 import {
   createAssetsPullTask,
   createComponentsPullTask,
@@ -274,6 +275,64 @@ describe('Pull Command', () => {
           article: ['entity:node:article.title.value'],
         },
       });
+    });
+
+    it('normalizes empty slots from the API to an authored mapping', async () => {
+      const component = {
+        ...mockComponent('empty-slots'),
+        slots: [],
+      } as unknown as Component;
+      const task = createComponentsPullTask(
+        mockApiService({ a: component }),
+        tmpDir,
+        false,
+      );
+
+      await task.prepare();
+      await task.execute();
+
+      const metadataPath = path.join(tmpDir, 'empty-slots', 'component.yml');
+      const metadata = await readValidatedComponentMetadata(metadataPath);
+      expect(metadata.slots).toEqual({});
+    });
+
+    it('writes metadata that validates without projected prop keys', async () => {
+      const component: Component = {
+        ...mockComponent('article-card'),
+        required: [],
+        props: {
+          article: {
+            title: 'Article',
+            type: 'object',
+            $ref: 'json-schema-definitions://canvas.module/content-entity-reference',
+            'x-allowed-entity-type-id': 'node',
+            'x-allowed-bundle': 'article',
+          },
+        },
+        dataDependencies: {
+          entityFields: {
+            article: ['entity:node:article.title.value'],
+          },
+        },
+      };
+      const task = createComponentsPullTask(
+        mockApiService({ a: component }),
+        tmpDir,
+        false,
+      );
+
+      await task.prepare();
+      await task.execute();
+
+      const metadataPath = path.join(tmpDir, 'article-card', 'component.yml');
+      const metadata = await readValidatedComponentMetadata(metadataPath);
+      expect(metadata.props.properties.article).not.toHaveProperty(
+        'x-allowed-entity-type-id',
+      );
+      expect(metadata.props.properties.article).not.toHaveProperty(
+        'x-allowed-bundle',
+      );
+      expect(metadata.dataDependencies).toEqual(component.dataDependencies);
     });
 
     it('should update existing component files in-place', async () => {

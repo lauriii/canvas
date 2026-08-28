@@ -108,8 +108,6 @@ describe('pullAgentsContext', () => {
         '      title: Article',
         '      type: object',
         '      $ref: json-schema-definitions://canvas.module/content-entity-reference',
-        '      x-allowed-entity-type-id: node',
-        '      x-allowed-bundle: article',
         'dataDependencies:',
         '  entityFields:',
         '    article:',
@@ -176,7 +174,7 @@ describe('pullAgentsContext', () => {
     );
   });
 
-  it('reports CER props that are missing local projected target metadata', async () => {
+  it('reports CER props whose entity field target cannot be derived', async () => {
     const componentRoot = path.join(tmpDir, 'components');
     const componentDir = path.join(componentRoot, 'article-card');
     await fs.mkdir(componentDir, { recursive: true });
@@ -198,7 +196,7 @@ describe('pullAgentsContext', () => {
         'dataDependencies:',
         '  entityFields:',
         '    article:',
-        '      - ℹ︎␜entity:node:article␝title␞␟value',
+        '      - not-an-entity-field-expression',
         '',
       ].join('\n'),
     );
@@ -222,9 +220,9 @@ describe('pullAgentsContext', () => {
         component: 'article-card',
         props: {
           article: {
-            entityFields: ['ℹ︎␜entity:node:article␝title␞␟value'],
+            entityFields: ['not-an-entity-field-expression'],
             error:
-              'Missing x-allowed-entity-type-id or x-allowed-bundle on the content-entity-reference prop metadata.',
+              'Unable to derive a bundled entity target from dataDependencies.entityFields.',
           },
         },
       },

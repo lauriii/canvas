@@ -1,0 +1,10 @@
+name: Invalid required props
+machineName: invalid-required-props
+required:
+  - missing
+  - text
+props:
+  properties:
+    text:
+      title: Text
+      type: string

@@ -1,6 +1,4 @@
-import { promises as fs } from 'fs';
-import path from 'path';
-import * as yaml from 'js-yaml';
+import { readValidatedComponentMetadata } from './component-metadata';
 
 import type { Component, DataDependencies } from '../types/Component';
 import type { Metadata } from '../types/Metadata';
@@ -32,47 +30,7 @@ export function stripProjectedContentEntityReferencePropKeys(
   return sanitizedProps;
 }
 
-/**
- * Reads and validates component metadata from a YAML file
- * @param filePath Path to the YAML file
- * @returns Properly structured component metadata
- */
-export async function readComponentMetadata(
-  filePath: string,
-): Promise<Metadata | undefined> {
-  try {
-    const content = await fs.readFile(filePath, 'utf-8');
-    // Make sure we return an object even if the file is empty
-    const rawMetadata = yaml.load(content) || {};
-
-    if (typeof rawMetadata !== 'object') {
-      console.error(
-        `Invalid metadata format in ${filePath}. Expected an object, got ${typeof rawMetadata}`,
-      );
-      return undefined;
-    }
-
-    // Basic validation and normalization
-    const metadata = rawMetadata as Metadata;
-
-    // Ensure other required fields
-    if (!metadata.name) {
-      metadata.name = path.basename(path.dirname(filePath));
-    }
-    if (!metadata.machineName) {
-      metadata.machineName = path.basename(path.dirname(filePath));
-    }
-
-    if (!metadata.slots || typeof metadata.slots !== 'object') {
-      metadata.slots = {};
-    }
-
-    return metadata;
-  } catch (error) {
-    console.error(`Error reading component metadata from ${filePath}:`, error);
-    return undefined;
-  }
-}
+export const readComponentMetadata = readValidatedComponentMetadata;
 
 /**
  * Creates a standardized component payload for API requests

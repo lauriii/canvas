@@ -1,0 +1,10 @@
+name: Invalid Canvas reference example
+machineName: invalid-canvas-ref-example
+props:
+  properties:
+    image:
+      title: Image
+      type: object
+      $ref: json-schema-definitions://canvas.module/image
+      examples:
+        - alt: Missing required source

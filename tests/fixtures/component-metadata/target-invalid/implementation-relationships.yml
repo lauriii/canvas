@@ -1,0 +1,30 @@
+name: Invalid metadata relationships
+machineName: invalid-metadata-relationships
+required:
+  - requiredList
+  - reference
+props:
+  properties:
+    requiredList:
+      title: Required list
+      type: array
+      items:
+        type: string
+      examples:
+        - [item]
+    optionalList:
+      title: Optional list
+      type: array
+      items:
+        type: string
+      minItems: 1
+    reference:
+      title: Reference
+      type: object
+      $ref: json-schema-definitions://canvas.module/content-entity-reference
+      examples:
+        - {}
+dataDependencies:
+  entityFields:
+    optionalList:
+      - 'ℹ︎␜entity:node:article␝title␞␟value'

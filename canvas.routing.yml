@@ -46,6 +46,18 @@ canvas.api.auto-save.post:
   options:
     _format: 'json'
 
+canvas.api.code_component.validate:
+  path: '/canvas/api/v0/code-components/validate'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiCodeComponentMetadataController::validatePayload'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _permission: 'administer code components'
+  options:
+    _format: 'json'
+    canvas_external_api: true
+  methods: [POST]
+
 canvas.api.config.auto-save.get:
   path: '/canvas/api/v0/config/auto-save/{canvas_config_entity_type_id}/{canvas_config_entity}'
   defaults:

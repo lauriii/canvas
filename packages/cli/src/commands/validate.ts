@@ -1,6 +1,9 @@
 import chalk from 'chalk';
 import * as p from '@clack/prompts';
-import { discoverCanvasProject } from '@drupal-canvas/discovery';
+import {
+  detectHeadlessSdk,
+  discoverCanvasProject,
+} from '@drupal-canvas/discovery';
 
 import { getConfig } from '../config.js';
 import { createApiService, isUserAuthenticated } from '../services/api.js';
@@ -71,12 +74,14 @@ export function validateCommand(program: Command): void {
         updateConfigFromOptions(options);
 
         const config = getConfig();
+        const headlessSdkDetected = detectHeadlessSdk(process.cwd());
         const discoveryResult = await discoverCanvasProject({
           componentRoot: config.componentDir,
           pagesRoot: config.pagesDir,
           contentTemplatesRoot: config.contentTemplatesDir,
           pageTemplatesRoot: config.pageTemplatesDir,
           projectRoot: process.cwd(),
+          requireJsEntry: !headlessSdkDetected,
         });
         for (const warning of discoveryResult.warnings) {
           p.log.warn(formatDiscoveryWarning(warning));
@@ -99,13 +104,15 @@ export function validateCommand(program: Command): void {
         const s = p.spinner();
         s.start('Validating components');
 
-        const { results: componentResults } = await validateComponents(
-          discoveryResult,
-          {
+        const { results: componentResults, warnings: validationWarnings } =
+          await validateComponents(discoveryResult, {
             fix: options.fix,
             apiService,
-          },
-        );
+            externalComponents: headlessSdkDetected,
+          });
+        for (const warning of validationWarnings) {
+          p.log.warn(warning);
+        }
         for (const result of componentResults) {
           results.push({ ...result, itemType: 'Component' });
         }

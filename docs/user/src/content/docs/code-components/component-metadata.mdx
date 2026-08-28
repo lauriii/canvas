@@ -209,8 +209,6 @@ props:
       title: Featured article
       type: object
       $ref: json-schema-definitions://canvas.module/content-entity-reference
-      x-allowed-entity-type-id: node
-      x-allowed-bundle: article
 dataDependencies:
   entityFields:
     featuredArticle:
@@ -222,10 +220,9 @@ Content entity reference props must be optional: do not list them in `required`.
 Do not add `examples`; preview values are resolved from
 `dataDependencies.entityFields`.
 
-Every content entity reference prop must include:
-
-- `x-allowed-entity-type-id`: the Drupal entity type, such as `node`
-- `x-allowed-bundle`: the Drupal bundle, such as `article`
+Do not add `x-allowed-entity-type-id` or `x-allowed-bundle`. Canvas derives
+those values from the entity field expressions when it constructs the SDC
+definition.
 
 Add `dataDependencies.entityFields.<propName>` with one or more expressions from
 `.agents/drupal-canvas/content-entity-reference-expressions.json`. If that file

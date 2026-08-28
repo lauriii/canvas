@@ -29,11 +29,27 @@ export default defineConfig({
     // not need the Canvas monorepo source layout at runtime.
     alwaysBundle: [
       '@drupal-canvas/discovery',
+      '@drupal-canvas/json-schema-validation',
       '@drupal-canvas/height-reader',
       '@drupal-canvas/preview-geometry',
     ],
     // Discovery's own runtime dependencies, pulled in transitively.
-    onlyBundle: ['glob', 'ignore', 'js-yaml'],
+    onlyBundle: [
+      'ajv',
+      'ajv-formats',
+      'ajv-formats-draft2019',
+      'extend',
+      'fast-deep-equal',
+      'fast-uri',
+      'glob',
+      'ignore',
+      'json-schema-traverse',
+      'nearley',
+      'schemes',
+      'smtp-address-parser',
+      'uri-js',
+      'yaml',
+    ],
   },
   dts: {
     eager: true,
@@ -41,6 +57,7 @@ export default defineConfig({
     // references they hold into the unpublished UI workspace.
     resolve: [
       '@drupal-canvas/discovery',
+      '@drupal-canvas/json-schema-validation',
       '@drupal-canvas/height-reader',
       '@drupal-canvas/preview-geometry',
       /^@drupal-canvas\/ui\//,
