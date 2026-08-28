@@ -14,6 +14,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Hook\Order\Order;
 use Drupal\Core\Hook\Order\OrderAfter;
+use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
@@ -52,6 +53,13 @@ class ModuleHooks {
       'field__component_tree' => [
         'base hook' => 'field',
       ],
+      // Entities rendered by a Canvas ContentTemplate must not use their own
+      // template (such as `node.html.twig`), but they must still be themed, so
+      // that preprocessing runs for them.
+      // @see \Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder::getBuildDefaults()
+      'canvas_entity_with_content_template' => [
+        'render element' => 'elements',
+      ],
       'canvas_cta' => [
         'variables' => [
           'icon' => NULL,
@@ -62,6 +70,20 @@ class ModuleHooks {
         ],
       ],
     ];
+  }
+
+  /**
+   * Implements hook_preprocess_HOOK().
+   *
+   * Populates `content` with the entity as rendered by its content template,
+   * the same way `template_preprocess_node()` does for `node.html.twig`.
+   */
+  #[Hook('preprocess_canvas_entity_with_content_template')]
+  public static function preprocessCanvasEntityWithContentTemplate(array &$variables): void {
+    $variables['content'] = [];
+    foreach (Element::children($variables['elements']) as $key) {
+      $variables['content'][$key] = $variables['elements'][$key];
+    }
   }
 
   /**

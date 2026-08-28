@@ -147,8 +147,15 @@ final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
         $keys[] = 'with-canvas';
         // We don't want to use the default theme template (such as
         // `node.html.twig`) because any content entity type that uses Canvas'
-        // ContentTemplates is opting in to full control via Canvas.
-        unset($defaults['#theme']);
+        // ContentTemplates is opting in to full control via Canvas. A minimal
+        // theme hook is used rather than no theme hook at all, because removing
+        // `#theme` would take this render array out of the theme layer
+        // entirely, and preprocessing is how modules decorate a rendered
+        // entity. Contextual links, for example, exist only because
+        // `contextual` implements `hook_preprocess()`.
+        // @see \Drupal\canvas\Hook\ModuleHooks::theme()
+        // @see \Drupal\contextual\Hook\ContextualThemeHooks::preprocess()
+        $defaults['#theme'] = 'canvas_entity_with_content_template';
       }
       else {
         $keys[] = 'without-canvas';
