@@ -39,17 +39,17 @@ import {
   useCreateCodeComponentMutation,
   useGetComponentsQuery,
 } from '@/services/componentAndLayout';
-import { isPropSourceComponent } from '@/types/Component';
 import { getBaseUrl, getDrupalSettings } from '@/utils/drupal-globals';
 
 import fixtureProps from '../../../../modules/canvas_ai/src/PropsSchema.json';
 import ActiveToolPill from './ActiveToolPill';
 import AiToolSelector from './AiToolSelector';
 import { buildCurrentLayout } from './currentLayout';
+import { progressToHtml, removeMediaFields } from './placementUtils';
 
 import type { LayoutModelSliceState } from '@/features/layout/layoutModelSlice';
 import type { CodeComponent } from '@/types/CodeComponent';
-import type { CanvasComponent, PropSourceComponent } from '@/types/Component';
+import type { CanvasComponent } from '@/types/Component';
 
 import styles from './AiWizard.module.css';
 
@@ -120,21 +120,6 @@ const createHistoryStore = () => {
   };
 };
 const historyStore = createHistoryStore();
-
-// Builds the progress message: the agent's narration, above a status row that
-// spins until the turn is finished. The narration is escaped and its newlines
-// turned into line breaks. The message is added as HTML rather than text so the
-// backend leaves it out of the chat history it sends to the model.
-// @see \Drupal\canvas_ai\CanvasAiChatHelper::getFilteredChatHistory()
-const progressToHtml = (progress: string, isFinished: boolean): string => {
-  const narration = progress
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/\n/g, '<br>');
-  const icon = isFinished ? 'aiCompletedIcon' : 'aiLoader';
-  return `${narration}<div class="aiProgressStatus"><span class="${icon}"></span>Thinking</div>`;
-};
 
 // Runs a message mutation, keeping the transcript pinned to the bottom only
 // when it already was. Measures before the mutation, since adding to the list
@@ -250,32 +235,6 @@ const canvasPageDataHandler = {
   },
 };
 
-// Filters out 'media' fields from a js component instance's fieldValues based on the
-// component definition's propSources, forcing the component to use the example
-// image from its definition.
-// Block components do not have propSources, so we cannot set field values while
-// placing them - return unchanged in that case.
-// @todo Refactor this after https://www.drupal.org/i/3552000 is fixed.
-function removeMediaFields(componentDef: CanvasComponent, componentInst: any) {
-  if (!isPropSourceComponent(componentDef)) {
-    return componentInst;
-  }
-  const newFieldValues = {} as any;
-  const fieldValues = componentInst.fieldValues || {};
-  for (const [key, value] of Object.entries(fieldValues)) {
-    const prop = (componentDef as PropSourceComponent).propSources[key];
-    const isMedia =
-      (prop?.sourceTypeSettings?.storage as any)?.target_type === 'media';
-    if (!isMedia) {
-      newFieldValues[key] = value;
-    }
-  }
-  return {
-    ...componentInst,
-    fieldValues: newFieldValues,
-  };
-}
-
 // Helper to delay the placement of components.
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -287,16 +246,14 @@ const operationsHandler = {
     availableComponents,
     layoutUtils,
     componentSelectionUtils,
-    navigate,
-    params,
+    onPlaced,
   }: {
     message: any;
     dispatch: any;
     availableComponents: any;
     layoutUtils: any;
     componentSelectionUtils: any;
-    navigate: any;
-    params: any;
+    onPlaced: () => void;
   }) => {
     // Logic for placing components (SDCs/Blocks/Code components) to the editor frame.
     for (const op of message.operations) {
@@ -321,19 +278,47 @@ const operationsHandler = {
                   component: componentToUse,
                   withValues: componentAfterFilteringImageProps.fieldValues,
                   to: component.nodePath,
+                  // Keep the backend-assigned UUID: the place_components tool
+                  // result tells the model to chain reference_uuid on it, so
+                  // the layout must contain that UUID, not a fresh one.
+                  predefinedUUID: component.uuid,
                 },
                 componentSelectionUtils.setSelectedComponent,
               ),
             );
+            onPlaced();
             // Wait for a second before placing the next component, for the UI to render the component.
             await delay(1000);
           }
         }
       }
     }
-    const { entityId, entityType } = params;
-    // Redirect to /editor.
-    navigate(`/editor/${entityType}/${entityId}`);
+  },
+};
+
+const componentUpdatesHandler = {
+  canHandle: (msg: any) => 'component_updates' in msg && msg.component_updates,
+  handle: async ({
+    message,
+    dispatch,
+    layoutUtils,
+  }: {
+    message: any;
+    dispatch: any;
+    layoutUtils: any;
+  }) => {
+    // The edit_components tool returns prop changes keyed by component UUID;
+    // apply each to the layout so the canvas reflects the edit.
+    for (const [componentToUpdateId, values] of Object.entries(
+      message.component_updates,
+    )) {
+      await dispatch(
+        layoutUtils.updateExistingComponentValues({
+          componentToUpdateId,
+          values,
+        }),
+      );
+    }
   },
 };
 
@@ -346,6 +331,7 @@ const messageHandlers = [
   slotsMetadataHandler,
   requiredPropsHandler,
   operationsHandler,
+  componentUpdatesHandler,
 ];
 
 function getHandlersForMessage(message: any) {
@@ -629,7 +615,7 @@ const AiWizardDev = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   // Ends the hop loop of the turn in flight. Aborting the fetch only rejects
   // the request the loop is awaiting, so the loop is signalled separately.
-  const turnRef = useRef<{ stopped: boolean } | null>(null);
+  const turnRef = useRef<{ stopped: boolean; placed: boolean } | null>(null);
 
   // Ref for the values that cannot change during a turn: the route params and
   // the open code component.
@@ -653,13 +639,10 @@ const AiWizardDev = () => {
     ?.componentSelectionUtils as any;
 
   const { data: availableComponents } = useGetComponentsQuery();
+  // Mirrors the latest component list, so placements see components created
+  // or refreshed during the session rather than the list loaded at mount.
   const componentsRef = useRef<any>(null);
-
-  useEffect(() => {
-    if (availableComponents && !componentsRef.current) {
-      componentsRef.current = availableComponents;
-    }
-  }, [availableComponents]);
+  componentsRef.current = availableComponents ?? componentsRef.current;
 
   // Reads the layout and its model from the same store snapshot, so the
   // structure and the prop values describe the same state.
@@ -721,32 +704,23 @@ const AiWizardDev = () => {
       try {
         const handlers = getHandlersForMessage(message);
         for (const handler of handlers) {
-          // If the handler is operationsHandler, do not await it here.
-          if (handler === operationsHandler) {
-            setTimeout(() => {
-              // Do the async work in the background.
-              operationsHandler.handle({
-                message,
-                dispatch,
-                availableComponents: componentsRef.current,
-                layoutUtils,
-                componentSelectionUtils,
-                navigate,
-                params,
-              });
-            }, 0);
-          } else {
-            await handler.handle({
-              message,
-              dispatch,
-              createCodeComponent,
-              navigate,
-              availableComponents: componentsRef.current,
-              layoutUtils,
-              componentSelectionUtils,
-              params,
-            });
-          }
+          // Await every handler, operationsHandler included: the hop loop
+          // rebuilds current_layout from the store for the next request, so
+          // placements must have landed before this promise resolves.
+          await handler.handle({
+            message,
+            dispatch,
+            createCodeComponent,
+            navigate,
+            availableComponents: componentsRef.current,
+            layoutUtils,
+            componentSelectionUtils,
+            onPlaced: () => {
+              if (turnRef.current) {
+                turnRef.current.placed = true;
+              }
+            },
+          });
         }
         return { text: message.message };
       } catch (error) {
@@ -763,7 +737,6 @@ const AiWizardDev = () => {
       componentSelectionUtils,
       navigate,
       createCodeComponent,
-      params,
     ],
   );
 
@@ -865,8 +838,14 @@ const AiWizardDev = () => {
         const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
         const abortController = new AbortController();
         abortControllerRef.current = abortController;
-        const turn = { stopped: false };
+        const turn = { stopped: false, placed: false };
         turnRef.current = turn;
+        // The component the user had selected when they sent the message is
+        // the scope of the request for the whole turn. Placing a component
+        // selects it, so reading the selection again on later hops would tell
+        // the agent the user narrowed the request to what it just placed.
+        const activeComponentUuid =
+          store.getState().ui.selection.items[0] ?? '';
 
         // With attachments deep-chat sends one `message<n>` JSON string per
         // message instead of a `messages` array. Later hops send JSON, so read
@@ -900,7 +879,7 @@ const AiWizardDev = () => {
               current.params.codeComponentId || current.codeComponentName,
             selected_component_required_props:
               current.codeComponentRequiredProps || [],
-            active_component_uuid: state.ui.selection.items[0] ?? '',
+            active_component_uuid: activeComponentUuid,
             current_layout: transformLayout(),
             derived_proptypes: fixtureProps,
             page_title: pageData['title[0][value]'],
@@ -981,6 +960,13 @@ const AiWizardDev = () => {
             await signals.onResponse(processedMessage);
           }
         } while (data.should_continue && !turn.stopped);
+
+        // Placing selects each component in turn. Once the build has landed,
+        // leave nothing selected: the editor route and the selection state
+        // must agree, or the contextual panel shows an empty form.
+        if (turn.placed) {
+          componentSelectionUtils.unsetSelectedComponent();
+        }
       } catch (error: any) {
         // Keep the narration, with its status row switched to finished.
         renderProgress(narration, true);

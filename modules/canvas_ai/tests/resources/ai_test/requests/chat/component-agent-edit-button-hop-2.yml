@@ -4,7 +4,7 @@ request:
       role: user
       text: |-
         <context>
-        User is now in the code component editor, viewing a code component with id red_button
+        User is now in the code component editor, viewing a code component with id red_button. Components cannot be placed or edited here, because this is not a Canvas page.
         </context>
 
         <user_message>

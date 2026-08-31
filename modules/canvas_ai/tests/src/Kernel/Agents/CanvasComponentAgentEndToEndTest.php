@@ -303,4 +303,28 @@ final class CanvasComponentAgentEndToEndTest extends CanvasKernelTestBase {
     );
   }
 
+  /**
+   * Running out of loops falls back to a default message for this agent.
+   *
+   * This agent ships without a max_loops_message, unlike the dev page builder
+   * agent, so the controller supplies its own text.
+   *
+   * @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::getNotSolvableMessage()
+   */
+  public function testMaxLoopsWithoutAConfiguredMessageUsesTheDefault(): void {
+    $agent = $this->config('ai_agents.ai_agent.canvas_component_agent');
+    self::assertSame('', $agent->get('max_loops_message'));
+    // The budget is exhausted before the first provider call, so no fixture is
+    // needed for this turn.
+    $agent->set('max_loops', 0)->save();
+
+    $response = $this->hop([
+      'messages' => [['role' => 'user', 'text' => 'Make a red button']],
+    ]);
+
+    $this->assertFalse($response['status']);
+    $this->assertFalse($response['should_continue']);
+    $this->assertSame('I was unable to fully answer your question within the allowed number of processing steps. Please try rephrasing or narrowing your question.', $response['message']);
+  }
+
 }

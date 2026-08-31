@@ -8,6 +8,7 @@ The UI is powered by [Deepchat](https://deepchat.dev/), providing an intuitive a
   1. [AI Agents](https://www.drupal.org/project/ai_agents) framework (^1.2@beta or higher).
   2. An AI Provider module that supports function calling. You can find the list of providers [here](https://www.drupal.org/project/ai/)
   3. A valid API key for your chosen AI provider, configured within Drupal.
+  4. A current-generation chat model. The page builder agent decides whether a request fixes the outcome (act on it) or leaves it to the agent (propose a plan and wait for approval); that judgement, and the approval stop itself, depend on the model following the instruction: GPT-5.2 and GPT-5.6 Luna both do, while older or lightweight models (for example GPT-4o or Gemini 3.5 Flash) may act directly. GPT-5.6 Luna builds pages well at a lower cost per turn than the larger models, which makes it a sensible default. If you need a plan for a specific request, ask for one in the message.
 
 ## Installation
 1. Setup Canvas according to the [Contribution Guide](../../CONTRIBUTING.md)

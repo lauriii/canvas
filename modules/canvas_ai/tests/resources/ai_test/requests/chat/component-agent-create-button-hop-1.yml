@@ -18,7 +18,7 @@ request:
       role: user
       text: |-
         <context>
-        The user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. GENERATE THE TITLE FOR THE PAGE using canvas_title_generation_agent. This is a **CRITICAL** step to ensure that request is successful. Page description is empty. GENERATE THE DESCRIPTION FOR THE PAGE using canvas_metadata_generation_agent. This is a **CRITICAL** step to ensure that request is successful.
+        The user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. Page description is empty.
         </context>
 
         <user_message>

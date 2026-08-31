@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_ai\Kernel;
 
+use Drupal\ai_agents\Entity\AiAgent;
 use Drupal\ai_agents\PluginBase\AiAgentEntityWrapper;
+use Drupal\ai_agents\PluginInterfaces\AiAgentInterface;
 use Drupal\ai_agents\PluginManager\AiAgentManager;
 use Drupal\canvas_ai\CanvasAiPermissions;
 use Drupal\canvas_ai\CanvasAiTempStore;
@@ -54,14 +56,27 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
     // canvas_dev_ai's shipped settings reference ai_agent entities from
     // canvas_ai's config/install, and its schema constraints require them to
     // exist, so they must be installed before canvas_dev_ai is.
-    $this->installConfig(['canvas_ai']);
+    $this->installConfig(['canvas_ai', 'ai', 'ai_agents', 'ai_test']);
+    $this->installEntitySchema('user');
+    // Uninstalling any module fires user_module_uninstall(), which deletes from
+    // the users_data table. Kernel tests do not create it unless asked.
+    $this->installSchema('user', ['users_data']);
+    $this->installEntitySchema('path_alias');
+    $this->setUpCurrentUser(permissions: [CanvasAiPermissions::USE_CANVAS_AI]);
+    // The echoai provider reads the ai_mock_provider_result table before the
+    // file fixtures.
+    $this->installEntitySchema('ai_mock_provider_result');
+    // The controller instantiates the default chat provider before running the
+    // agent, so every hop needs one even when the agent is mocked.
+    $this->config('ai.settings')
+      ->set('default_providers.chat', ['provider_id' => 'echoai', 'model_id' => 'gpt-test'])
+      ->save();
   }
 
   /**
    * Tests that the `aiDevMode` flag follows the module install state.
    */
   public function testAiDevModeFlagFollowsInstallState(): void {
-    $this->installSchema('user', ['users_data']);
     $this->assertArrayNotHasKey('aiDevMode', $this->alterJsSettings()['canvas']);
 
     $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
@@ -79,9 +94,6 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
   public function testControllerRejectsInvalidCsrfToken(): void {
     $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
     $this->refreshContainer();
-    $this->installEntitySchema('user');
-    $this->installEntitySchema('path_alias');
-    $this->setUpCurrentUser(permissions: [CanvasAiPermissions::USE_CANVAS_AI]);
 
     $request = Request::create('/admin/api/canvas/ai-dev', 'POST');
     $request->headers->set('X-CSRF-Token', 'invalid-token');
@@ -99,17 +111,7 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
   public function testDetermineSolvabilityFailureClearsStoredAgentState(): void {
     $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
     $this->refreshContainer();
-    $this->installEntitySchema('user');
-    $this->installEntitySchema('path_alias');
-    $this->installConfig(['ai', 'ai_agents', 'ai_test']);
-    $this->installEntitySchema('ai_mock_provider_result');
-    $this->setUpCurrentUser(permissions: [CanvasAiPermissions::USE_CANVAS_AI]);
     $this->setUpAiDevHops();
-    // The controller instantiates the default chat provider before running the
-    // agent, so the hop needs one even though the mocked agent never uses it.
-    $this->config('ai.settings')
-      ->set('default_providers.chat', ['provider_id' => 'echoai', 'model_id' => 'gpt-test'])
-      ->save();
 
     // Seed the state a previous hop would have parked, so deletion is
     // observable. The controller resumes it through the agent's fromArray().
@@ -142,6 +144,42 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
       'progress' => '',
     ], $response);
     self::assertNull($temp_store->getStoredAgentState('test-request'));
+  }
+
+  /**
+   * A not-solvable response gives the expected error.
+   *
+   * Any not-solvable response outside max-loop exhaustion triggers this error.
+   *
+   * @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::getNotSolvableMessage()
+   * @see \Drupal\Tests\canvas_ai\Kernel\Agents\CanvasDevPageBuilderAgentEndToEndTest::testMaxLoopsOutcomeIsReported()
+   * @see \Drupal\Tests\canvas_ai\Kernel\Agents\CanvasComponentAgentEndToEndTest::testMaxLoopsWithoutAConfiguredMessageUsesTheDefault()
+   */
+  public function testNotSolvableResponseGivesExpectedError(): void {
+    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
+    $this->refreshContainer();
+    $this->setUpAiDevHops();
+
+    // The agent gave up on loop 1, well inside the agent's max_loops of 50.
+    $agent = $this->createMock(AiAgentEntityWrapper::class);
+    $agent->method('determineSolvability')->willReturn(AiAgentInterface::JOB_NOT_SOLVABLE);
+    $agent->method('isFinished')->willReturn(TRUE);
+    $agent->method('toArray')->willReturn(['looped' => 1]);
+    $agent->method('getAiAgentEntity')->willReturnCallback(
+      fn () => AiAgent::load('canvas_dev_page_builder_agent'),
+    );
+    $agent_manager = $this->createMock(AiAgentManager::class);
+    $agent_manager->method('hasDefinition')->willReturn(TRUE);
+    $agent_manager->method('createInstance')->willReturn($agent);
+    $this->container->set('plugin.manager.ai_agents', $agent_manager);
+
+    $response = $this->hop([
+      'messages' => [['role' => 'user', 'text' => 'Add a hero']],
+    ]);
+
+    self::assertFalse($response['status']);
+    self::assertSame('The request could not be completed. Please try again.', $response['message']);
+    self::assertFalse($response['should_continue']);
   }
 
   /**
