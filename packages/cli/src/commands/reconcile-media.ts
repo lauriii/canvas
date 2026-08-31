@@ -96,17 +96,63 @@ function sanitizeFilename(filename: string): string {
   return filename.replace(/[^a-zA-Z0-9._-]+/g, '-');
 }
 
-const SUPPORTED_IMAGE_TYPES: Record<string, string> = {
-  'image/jpeg': '.jpg',
-  'image/png': '.png',
-  'image/gif': '.gif',
-  'image/webp': '.webp',
-  'image/avif': '.avif',
+// cspell:ignore msword openxmlformats officedocument wordprocessingml
+// cspell:ignore presentationml spreadsheetml opendocument
+// MIME type to file extension maps, keyed by the Drupal media bundle the
+// upload targets. The document map covers every extension in the document
+// shape's `x-allowed-file-extensions` list in schema.json (a test keeps the
+// two in sync). The list deliberately excludes `txt`: document props carry
+// `contentMediaType: application/*`, and text/plain files are not part of
+// the shape even though core's document media type field accepts them.
+export const SUPPORTED_MEDIA_MIME_TYPES: Record<
+  string,
+  Record<string, string>
+> = {
+  image: {
+    'image/jpeg': '.jpg',
+    'image/png': '.png',
+    'image/gif': '.gif',
+    'image/webp': '.webp',
+    'image/avif': '.avif',
+  },
+  document: {
+    'application/pdf': '.pdf',
+    'application/rtf': '.rtf',
+    'application/msword': '.doc',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+      '.docx',
+    'application/vnd.ms-powerpoint': '.ppt',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation':
+      '.pptx',
+    'application/vnd.ms-excel': '.xls',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+      '.xlsx',
+    'application/vnd.oasis.opendocument.text': '.odt',
+    'application/vnd.oasis.opendocument.spreadsheet': '.ods',
+    'application/vnd.oasis.opendocument.presentation': '.odp',
+    'application/vnd.oasis.opendocument.graphics': '.odg',
+    'application/vnd.oasis.opendocument.formula': '.odf',
+    'application/vnd.oasis.opendocument.text-flat-xml': '.fodt',
+    'application/vnd.oasis.opendocument.spreadsheet-flat-xml': '.fods',
+    'application/vnd.oasis.opendocument.presentation-flat-xml': '.fodp',
+    'application/vnd.oasis.opendocument.graphics-flat-xml': '.fodg',
+    'application/vnd.apple.keynote': '.key',
+    'application/vnd.apple.numbers': '.numbers',
+    'application/vnd.apple.pages': '.pages',
+  },
 };
+
+// Flattened map for guessing a filename extension from a Content-Type header
+// when the URL path has none. Validation against the media type's own map
+// happens separately at upload time.
+const ALL_MIME_EXTENSIONS: Record<string, string> = Object.assign(
+  {},
+  ...Object.values(SUPPORTED_MEDIA_MIME_TYPES),
+);
 
 function extensionFromContentType(contentType: string | undefined): string {
   const normalized = contentType?.split(';')[0]?.trim().toLowerCase() ?? '';
-  return SUPPORTED_IMAGE_TYPES[normalized] ?? '';
+  return ALL_MIME_EXTENSIONS[normalized] ?? '';
 }
 
 export async function downloadExternalMedia(
@@ -259,6 +305,31 @@ interface MediaWorkItem {
   externalUrl: string;
   mediaType: string;
   alt: string;
+  title: string;
+  description: string;
+}
+
+function stringProp(value: unknown, key: string): string {
+  return isRecord(value) && typeof value[key] === 'string' ? value[key] : '';
+}
+
+/**
+ * Builds the upload form fields for a media type.
+ *
+ * `title` names the media entity. Image media also store `alt` on the image
+ * field; document media store `description` on the file field.
+ */
+function uploadFormData(
+  item: MediaWorkItem,
+  filename: string,
+): Record<string, string> {
+  if (item.mediaType === 'document') {
+    return {
+      title: item.title || filename,
+      description: item.description,
+    };
+  }
+  return { title: filename, alt: item.alt };
 }
 
 export async function reconcileElementMapMedia(
@@ -295,7 +366,9 @@ export async function reconcileElementMapMedia(
         propName,
         externalUrl: match.url,
         mediaType: match.mediaType,
-        alt: isRecord(value) && typeof value.alt === 'string' ? value.alt : '',
+        alt: stringProp(value, 'alt'),
+        title: stringProp(value, 'title'),
+        description: stringProp(value, 'description'),
       });
     }
   }
@@ -309,22 +382,18 @@ export async function reconcileElementMapMedia(
   const uploadResults = await processInPool(uniqueUrls, async (url) => {
     const firstItem = workItems.find((item) => item.externalUrl === url)!;
     const downloaded = await downloadMedia(url);
-    if (
-      downloaded.mimeType &&
-      !(downloaded.mimeType in SUPPORTED_IMAGE_TYPES)
-    ) {
+    const supportedMimeTypes =
+      SUPPORTED_MEDIA_MIME_TYPES[firstItem.mediaType] ?? {};
+    if (downloaded.mimeType && !(downloaded.mimeType in supportedMimeTypes)) {
       throw new Error(
-        `Unsupported image type "${downloaded.mimeType}". Supported types: ${Object.keys(SUPPORTED_IMAGE_TYPES).join(', ')}.`,
+        `Unsupported ${firstItem.mediaType} type "${downloaded.mimeType}". Supported types: ${Object.keys(supportedMimeTypes).join(', ')}.`,
       );
     }
     const uploaded = await apiService.uploadMedia<ReconciledMediaInputs>({
       mediaType: firstItem.mediaType,
       filename: downloaded.filename,
       fileBuffer: downloaded.buffer,
-      data: {
-        title: downloaded.filename,
-        alt: firstItem.alt,
-      },
+      data: uploadFormData(firstItem, downloaded.filename),
     });
     return uploaded;
   });
