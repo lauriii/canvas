@@ -3021,10 +3021,13 @@ paths:
                   description: The file to upload
                 title:
                   type: string
-                  description: Title for the media (used for image media types)
+                  description: The media entity name. Image media types also store it as the image field's "title" property.
                 alt:
                   type: string
                   description: Alt text for the media (used for image media types)
+                description:
+                  type: string
+                  description: Stored as the file field's "description" property (used for document media types)
             examples:
               image-upload:
                 summary: Upload an image with alt text
@@ -3032,6 +3035,12 @@ paths:
                   file: (binary content of sunset.jpg)
                   title: Sunset
                   alt: A vibrant sunset over the horizon
+              document-upload:
+                summary: Upload a document
+                value:
+                  file: (binary content of annual-report.pdf)
+                  title: Annual Report
+                  description: Fiscal year 2025 results
       responses:
         '201':
           description: Media entity created successfully
@@ -3052,22 +3061,50 @@ paths:
                     format: uuid
                     description: The media entity UUID
                   inputs_resolved:
-                    type: object
                     description: Resolved input values for use in Canvas components
-                    properties:
-                      src:
-                        type: string
-                        format: uri-reference
-                        description: Image URL with ?alternateWidths query parameter
-                      alt:
-                        type: string
-                        description: Alt text
-                      width:
-                        type: integer
-                        description: Image width in pixels
-                      height:
-                        type: integer
-                        description: Image height in pixels
+                    oneOf:
+                      - type: object
+                        description: Image media types, matching the image object shape
+                        required:
+                          - src
+                          - alt
+                          - width
+                          - height
+                        properties:
+                          src:
+                            type: string
+                            format: uri-reference
+                            description: Image URL with ?alternateWidths query parameter
+                          alt:
+                            type: string
+                            description: Alt text
+                          width:
+                            type: integer
+                            description: Image width in pixels
+                          height:
+                            type: integer
+                            description: Image height in pixels
+                      - type: object
+                        description: Document media types, matching the document object shape
+                        required:
+                          - src
+                          - filename
+                          - filesize
+                          - mimetype
+                        properties:
+                          src:
+                            type: string
+                            format: uri-reference
+                            description: Document file URL
+                          filename:
+                            type: string
+                            description: File name
+                          filesize:
+                            type: integer
+                            description: File size in bytes
+                          mimetype:
+                            type: string
+                            description: MIME type
               examples:
                 image-upload:
                   summary: Successful image upload
@@ -3079,6 +3116,16 @@ paths:
                       alt: A vibrant sunset over the horizon
                       width: 400
                       height: 300
+                document-upload:
+                  summary: Successful document upload
+                  value:
+                    id: 6
+                    uuid: 8f0a3c2d-1e4b-4b6a-9c7d-2e5f8a1b3c4d
+                    inputs_resolved:
+                      src: '/sites/default/files/2026-03/annual-report.pdf'
+                      filename: annual-report.pdf
+                      filesize: 25600
+                      mimetype: application/pdf
         '400':
           $ref: '#/components/responses/ClientErrorResponse'
         '403':

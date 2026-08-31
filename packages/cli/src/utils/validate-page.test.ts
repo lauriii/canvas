@@ -97,6 +97,33 @@ describe('validateElements', () => {
     expect(result.details?.[0].heading).toContain('text');
     expect(result.details?.[0].content).toContain('undefined');
   });
+
+  it('reports an actionable error for prop shapes the drupal-canvas package does not bundle', () => {
+    const metadata: ComponentMetadata[] = [
+      {
+        name: 'Attachment',
+        machineName: 'attachment',
+        status: true,
+        props: {
+          properties: {
+            file: {
+              title: 'File',
+              type: 'object',
+              $ref: 'json-schema-definitions://canvas.module/unbundled-shape',
+            },
+          },
+        },
+        required: [],
+        slots: {},
+      },
+    ];
+
+    expect(() => buildElementsValidationContext(metadata)).toThrow(
+      'The installed drupal-canvas package does not support "unbundled-shape" props. ' +
+        '"unbundled-shape" props require a newer drupal-canvas version. ' +
+        'Run `npm install drupal-canvas@latest` in the project, then retry.',
+    );
+  });
 });
 
 describe('validatePages', () => {

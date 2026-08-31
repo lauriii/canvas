@@ -278,6 +278,29 @@ describe('getUnreconciledMedia', () => {
     const value = { src: '' };
     expect(getUnreconciledMedia(value, imageSchema)).toBeNull();
   });
+
+  it('matches external document URLs with the document media type', () => {
+    const documentSchema = {
+      title: 'Document',
+      type: 'object' as const,
+      $ref: 'json-schema-definitions://canvas.module/document',
+    };
+    const value = { src: 'https://example.com/spec.pdf', filename: 'spec.pdf' };
+    expect(getUnreconciledMedia(value, documentSchema)).toEqual({
+      url: 'https://example.com/spec.pdf',
+      mediaType: 'document',
+    });
+  });
+
+  it('rejects relative document URLs', () => {
+    const documentSchema = {
+      title: 'Document',
+      type: 'object' as const,
+      $ref: 'json-schema-definitions://canvas.module/document',
+    };
+    const value = { src: '/ui/assets/documents/sample.pdf' };
+    expect(getUnreconciledMedia(value, documentSchema)).toBeNull();
+  });
 });
 
 describe('collectUnreconciledMediaProps', () => {

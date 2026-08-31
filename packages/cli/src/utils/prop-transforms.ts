@@ -33,8 +33,21 @@ const imageDescriptor: MediaPropDescriptor = {
   },
 };
 
+const documentDescriptor: MediaPropDescriptor = {
+  mediaType: 'document',
+  matchesSchema: (schema) =>
+    schema.$ref === 'json-schema-definitions://canvas.module/document',
+  getUrl: (value) => {
+    if (!isRecord(value) || typeof value.src !== 'string') return null;
+    return value.src;
+  },
+};
+
 // Media type descriptors. The first matching descriptor is used.
-const mediaDescriptors: MediaPropDescriptor[] = [imageDescriptor];
+const mediaDescriptors: MediaPropDescriptor[] = [
+  imageDescriptor,
+  documentDescriptor,
+];
 
 export interface UnreconciledMediaMatch {
   url: string;

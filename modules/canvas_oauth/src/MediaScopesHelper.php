@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas_oauth;
 
+use Drupal\canvas\Controller\ApiMediaControllers;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\DependencyInjection\AutowireTrait;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
@@ -22,9 +23,9 @@ final class MediaScopesHelper implements ContainerInjectionInterface {
   ) {}
 
   /**
-   * Creates OAuth2 scopes for all media types with the image source plugin.
+   * Creates OAuth2 scopes for all media types with a supported source plugin.
    */
-  public function ensureMediaImageScopes(): void {
+  public function ensureMediaScopes(): void {
     $dependencies = [
       'enforced' => [
         'module' => [
@@ -36,7 +37,7 @@ final class MediaScopesHelper implements ContainerInjectionInterface {
     $oauth2_scope_storage = $this->entityTypeManager->getStorage('oauth2_scope');
     foreach ($media_types as $media_type) {
       \assert($media_type instanceof MediaTypeInterface);
-      if ($media_type->getSource()->getPluginId() !== 'image') {
+      if (!\in_array($media_type->getSource()->getPluginId(), ApiMediaControllers::SUPPORTED_SOURCE_PLUGIN_IDS, TRUE)) {
         continue;
       }
       $media_type_id = $media_type->id();
