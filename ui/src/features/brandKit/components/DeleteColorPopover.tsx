@@ -2,11 +2,13 @@ import { Cross2Icon, TrashIcon } from '@radix-ui/react-icons';
 import * as Popover from '@radix-ui/react-popover';
 import { Box, Button, Flex, IconButton, Spinner, Text } from '@radix-ui/themes';
 
+import { useAppDispatch } from '@/app/hooks';
 import ErrorCard from '@/components/error/ErrorCard';
 import {
   useDeleteColorMutation,
   useGetColorUsageDetailsQuery,
 } from '@/services/brandKit';
+import { componentAndLayoutApi } from '@/services/componentAndLayout';
 
 import type { Measurable } from '@radix-ui/rect';
 import type { BrandKitColor } from '@/types/CodeComponent';
@@ -26,6 +28,7 @@ const DeleteColorPopover = ({
   open,
   onOpenChange,
 }: DeleteColorPopoverProps) => {
+  const dispatch = useAppDispatch();
   const [deleteColor, { isLoading: isDeleting, isError, error, reset }] =
     useDeleteColorMutation();
 
@@ -56,6 +59,11 @@ const DeleteColorPopover = ({
   const handleDelete = async () => {
     try {
       await deleteColor(color.id).unwrap();
+      dispatch(
+        componentAndLayoutApi.util.invalidateTags([
+          { type: 'Folders', id: 'LIST' },
+        ]),
+      );
       onOpenChange(false);
       reset();
     } catch (err) {

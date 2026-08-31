@@ -492,6 +492,33 @@ test.describe('brand kit colors', () => {
     // Folder count should now show 2 (Brand Yellow + New Blue)
     await expect(page.locator(SEL.folderCount('Color Pocket'))).toHaveText('2');
 
+    // Delete one folder color, then add another color to the same folder.
+    // This verifies folder updates continue to work without refreshing the page.
+    await page.locator(SEL.folderRow('Color Pocket', 'New Blue')).hover();
+    await page.locator(SEL.folderRowMenu('Color Pocket', 'New Blue')).click();
+    await page.locator(SEL.menu.delete).click();
+    await expect(page.locator(`${SEL.deletePop} .rt-Spinner`)).toBeHidden();
+    await expect(page.locator(SEL.deletePopConfirm)).toBeEnabled();
+    await page.locator(SEL.deletePopConfirm).click();
+    await expect(
+      page.locator(SEL.folderRow('Color Pocket', 'New Blue')),
+    ).toBeHidden();
+    await expect(page.locator(SEL.folderCount('Color Pocket'))).toHaveText('1');
+
+    await page.locator(SEL.folder('Color Pocket')).hover();
+    await page.locator(SEL.folderMenuOpen('Color Pocket')).click();
+    await page.locator(SEL.folderMenu.addColor).click();
+    await page.locator(SEL.form.name).fill('Pocket Cyan');
+    await page.locator(SEL.form.rgba.r).fill('0');
+    await page.locator(SEL.form.rgba.g).fill('255');
+    await page.locator(SEL.form.rgba.b).fill('255');
+    await page.locator(SEL.form.rgba.a).fill('1');
+    await page.locator(SEL.form.save).click();
+    await expect(
+      page.locator(SEL.folderRow('Color Pocket', 'Pocket Cyan')),
+    ).toBeVisible();
+    await expect(page.locator(SEL.folderCount('Color Pocket'))).toHaveText('2');
+
     // Add a new color via newBtn, call it "Groovy Gray", make it gray.
     await page.locator(SEL.newBtn).click();
     await page.locator(SEL.newColorBtn).click();
