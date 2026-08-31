@@ -1,6 +1,11 @@
 .popoverContent {
   z-index: 6;
+  overflow-y: auto;
   width: 230px;
+  max-height: min(
+    calc(100vh - 16px),
+    var(--radix-popover-content-available-height, 100vh)
+  );
   padding: 0;
   border: 1px solid var(--gray-6);
   border-radius: 4px;

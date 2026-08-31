@@ -273,7 +273,7 @@ const ColorFormPopover = ({
 
     updateForm({ type: 'SHOW_VALIDATION_ERRORS' });
 
-    const hasColorNameError = !colorName.trim();
+    const hasColorNameError = operation === 'add' && !colorName.trim();
     const hasVariableNameError = !!validateCssVariableClientSide(variableName);
     const hasColorValueError = !isColorValueValid;
 
@@ -321,6 +321,7 @@ const ColorFormPopover = ({
         await updateColor({
           id: color.id,
           changes: {
+            cssVariable,
             value: colorValue,
             displayFormat: displayFormat ?? undefined,
           },
@@ -350,7 +351,7 @@ const ColorFormPopover = ({
         !!variableNameError
       );
     }
-    return false;
+    return !variableName.trim() || !!variableNameError;
   }, [
     colorName,
     variableName,
@@ -389,6 +390,8 @@ const ColorFormPopover = ({
           side="bottom"
           align={align}
           sideOffset={4}
+          avoidCollisions
+          collisionPadding={8}
           className={styles.popoverContent}
           data-testid="canvas-color-form-popover"
           onOpenAutoFocus={(e) => {
@@ -460,32 +463,32 @@ const ColorFormPopover = ({
                       </Text>
                     )}
                   </Flex>
+                </>
+              )}
 
-                  <Flex direction="column" gap="1" px="3">
-                    <label htmlFor="variableName" className={styles.fieldLabel}>
-                      Variable name
-                    </label>
-                    <TextField.Root
-                      id="variableName"
-                      value={variableName}
-                      onChange={(e) => handleVariableNameChange(e.target.value)}
-                      placeholder="e.g., color-primary"
-                      size="1"
-                      data-testid="canvas-color-variable-input"
-                    >
-                      <TextField.Slot side="left">--</TextField.Slot>
-                    </TextField.Root>
-                    {variableNameError && (
-                      <Text
-                        size="1"
-                        color="red"
-                        data-testid="color-variable-error"
-                      >
-                        {variableNameError}
-                      </Text>
-                    )}
-                  </Flex>
+              <Flex direction="column" gap="1" px="3">
+                <label htmlFor="variableName" className={styles.fieldLabel}>
+                  Variable name
+                </label>
+                <TextField.Root
+                  id="variableName"
+                  value={variableName}
+                  onChange={(e) => handleVariableNameChange(e.target.value)}
+                  placeholder="e.g., color-primary"
+                  size="1"
+                  data-testid="canvas-color-variable-input"
+                >
+                  <TextField.Slot side="left">--</TextField.Slot>
+                </TextField.Root>
+                {variableNameError && (
+                  <Text size="1" color="red" data-testid="color-variable-error">
+                    {variableNameError}
+                  </Text>
+                )}
+              </Flex>
 
+              {operation === 'add' && (
+                <>
                   <ErrorBoundary
                     title="Color picker unavailable"
                     variant="card"

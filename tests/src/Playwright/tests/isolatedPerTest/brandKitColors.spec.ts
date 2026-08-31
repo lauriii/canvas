@@ -321,9 +321,27 @@ test.describe('brand kit colors', () => {
     await expect(page.locator(SEL.form.rgba.b)).toHaveValue('204');
     await expect(page.locator(SEL.form.rgba.a)).toHaveValue('0.9');
 
+    // Confirm duplicate CSS variable prevention in edit mode.
+    await page.locator(SEL.form.variable).fill('brand-green');
+    await page.locator(SEL.form.save).click();
+    await expect(
+      page.locator('[data-testid="color-error-card"]'),
+    ).toBeVisible();
+    await expect(
+      page.locator('[data-testid="color-error-card"]'),
+    ).toContainText('already in use');
+
+    // Set a unique variable name and continue editing.
+    await page.locator(SEL.form.variable).fill('brand-yellow');
+    await page.locator(SEL.form.save).click();
     // - Edit "Brand Blue" so the color is now yellow (255, 255, 0)
     // Color picker is already open from format verification above
 
+    await page.locator(SEL.row('Brand Blue')).hover();
+    await page.locator(SEL.rowMenu('Brand Blue')).click();
+    await page.locator(SEL.menu.edit).click();
+    // The CSS variable error should be hidden.
+    await expect(page.locator('[data-testid="color-error-card"]')).toBeHidden();
     // Test validation: enter out-of-range RGB value should disable save
     await page.locator(SEL.form.rgba.r).fill('999');
     await expect(page.locator(SEL.form.save)).toBeDisabled();
