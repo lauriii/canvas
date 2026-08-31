@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useReducer } from 'react';
+import parse from 'html-react-parser';
 import { Cross2Icon } from '@radix-ui/react-icons';
 import * as Popover from '@radix-ui/react-popover';
 import {
@@ -14,6 +15,7 @@ import ColorPicker from '@/components/ColorPicker';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import ErrorCard from '@/components/error/ErrorCard';
 import { countUniqueCurrentAndConfigUsages } from '@/features/brandKit/colorUsage';
+import { extractErrorMessageFromApiResponse } from '@/features/error-handling/error-handling';
 import { validateCssVariableClientSide } from '@/features/validation/validation';
 import {
   useCreateColorMutation,
@@ -25,7 +27,6 @@ import {
   useUpdateFolderMutation,
 } from '@/services/componentAndLayout';
 import { getColorAlpha, getColorHex } from '@/utils/brandKitColor';
-import { normalizeError } from '@/utils/rtkQuery-error';
 
 import type { Measurable } from '@radix-ui/rect';
 import type { BrandKitColor, BrandKitColorValue } from '@/types/CodeComponent';
@@ -367,12 +368,12 @@ const ColorFormPopover = ({
     : isCreateError && createError
       ? {
           title: 'Failed to create color',
-          message: normalizeError(createError).message,
+          message: parse(extractErrorMessageFromApiResponse(createError)),
         }
       : isUpdateError && updateError
         ? {
             title: 'Failed to update color',
-            message: normalizeError(updateError).message,
+            message: parse(extractErrorMessageFromApiResponse(updateError)),
           }
         : null;
 
