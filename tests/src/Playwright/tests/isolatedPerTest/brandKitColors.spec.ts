@@ -141,6 +141,7 @@ const SEL = {
     curSwatch: `${POP_SEL} [data-testid="canvas-color-current-swatch"]`,
     prevSwatch: `${POP_SEL} [data-testid="canvas-color-preview-swatch"]`,
     info: `${POP_SEL} [data-testid="canvas-color-edit-info"]`,
+    errorCard: `${POP_SEL} [data-testid="color-error-card"]`,
   },
   folderNew: {
     content: '[data-testid="canvas-manage-library-add-folder-content"]',
@@ -491,6 +492,16 @@ test.describe('brand kit colors', () => {
     ).toBeVisible();
     // Folder count should now show 2 (Brand Yellow + New Blue)
     await expect(page.locator(SEL.folderCount('Color Pocket'))).toHaveText('2');
+
+    // Add a new color via newBtn with an existing name, confirm validation.
+    await page.locator(SEL.newBtn).click();
+    await page.locator(SEL.newColorBtn).click();
+    await page.locator(SEL.form.name).fill('Brand Red');
+    await page.locator(SEL.form.save).click();
+    await expect(page.locator(SEL.form.errorCard)).toBeVisible();
+    await expect(page.locator(SEL.form.name)).toBeVisible();
+    await expect(page.locator(SEL.form.name)).toHaveValue('Brand Red');
+    await page.locator(SEL.form.cancel).click();
 
     // Delete one folder color, then add another color to the same folder.
     // This verifies folder updates continue to work without refreshing the page.

@@ -10,11 +10,11 @@ use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
 
 /**
- * Validates the UniqueColorCssVariableConstraint constraint.
+ * Validates the UniqueColorNameConstraint constraint.
  *
  * @internal
  */
-final class UniqueColorCssVariableConstraintValidator extends ConstraintValidator {
+final class UniqueColorNameConstraintValidator extends ConstraintValidator {
 
   use UniqueColorConstraintValidationTrait;
 
@@ -22,8 +22,8 @@ final class UniqueColorCssVariableConstraintValidator extends ConstraintValidato
    * {@inheritdoc}
    */
   public function validate(mixed $value, Constraint $constraint): void {
-    if (!$constraint instanceof UniqueColorCssVariableConstraint) {
-      throw new UnexpectedTypeException($constraint, UniqueColorCssVariableConstraint::class);
+    if (!$constraint instanceof UniqueColorNameConstraint) {
+      throw new UnexpectedTypeException($constraint, UniqueColorNameConstraint::class);
     }
 
     $this->validateUniqueColorValue($value, $constraint);
@@ -33,7 +33,14 @@ final class UniqueColorCssVariableConstraintValidator extends ConstraintValidato
    * {@inheritdoc}
    */
   protected function getColorFieldValue(Color $color): string {
-    return $color->getCssVariable();
+    return $color->getName();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function normalizeColorValue(string $value): string {
+    return mb_strtolower(trim($value));
   }
 
 }
