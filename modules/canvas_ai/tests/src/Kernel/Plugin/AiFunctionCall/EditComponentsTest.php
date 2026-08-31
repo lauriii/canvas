@@ -153,6 +153,22 @@ final class EditComponentsTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Tests that a props value that is not a mapping is rejected.
+   *
+   * A bare string parses as valid YAML, and the tool used to forward it as
+   * the component's updates, which the client then spread into the model one
+   * character at a time.
+   */
+  public function testScalarPropsValueReportsError(): void {
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
+    $this->container->get(CanvasAiTempStore::class)->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout());
+
+    $edits = [['component_uuid' => '72384115-a8ee-44bc-9a13-de1c7a4d9b96', 'props' => 'just a string']];
+    $result = $this->getToolOutput('canvas_ai:edit_components', ['component_edits' => $edits]);
+    $this->assertSame('Failed to edit components: The props value for component 72384115-a8ee-44bc-9a13-de1c7a4d9b96 must be a YAML mapping of prop names to values, one "prop_name: value" pair per line.', self::normalizeErrorString($result));
+  }
+
+  /**
    * Tests that editing a UUID absent from the page is reported as an error.
    */
   public function testEditUnknownUuidReportsError(): void {
@@ -168,6 +184,31 @@ final class EditComponentsTest extends CanvasKernelTestBase {
 
     $result = $this->getToolOutput('canvas_ai:edit_components', ['component_edits' => $edits]);
     $this->assertSame('Failed to edit components: Component defd2f6c-f27d-422b-b397-b793df89d922 was not found on the page.', self::normalizeErrorString($result));
+  }
+
+  /**
+   * Tests that unparseable props YAML produces an instructive error.
+   *
+   * Unquoted date-like values such as 2233-33-33 make Symfony YAML throw a
+   * cryptic invalid-date ParseException; the tool must tell the model to
+   * quote string values instead of echoing the raw parse error.
+   */
+  public function testUnparseablePropsYamlGetsInstructiveError(): void {
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
+    $this->container->get(CanvasAiTempStore::class)->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout());
+
+    $edits = [
+      [
+        'component_uuid' => '72384115-a8ee-44bc-9a13-de1c7a4d9b96',
+        'props' => 'text: 2233-33-33',
+      ],
+    ];
+    $result = $this->getToolOutput('canvas_ai:edit_components', ['component_edits' => $edits]);
+
+    $normalized = self::normalizeErrorString($result);
+    $this->assertStringStartsWith('Failed to edit components:', $normalized);
+    $this->assertStringContainsString('The props value is not valid YAML:', $normalized);
+    $this->assertStringContainsString('Rewrite it with every string value quoted', $normalized);
   }
 
   /**

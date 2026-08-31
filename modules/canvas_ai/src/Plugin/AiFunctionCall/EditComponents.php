@@ -17,6 +17,7 @@ use Drupal\Core\Plugin\Context\ContextDefinition;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\Yaml\Exception\ParseException;
 use Symfony\Component\Yaml\Yaml;
 
 /**
@@ -24,8 +25,8 @@ use Symfony\Component\Yaml\Yaml;
  *
  * Companion to \Drupal\canvas_ai\Plugin\AiFunctionCall\PlaceComponents: place
  * puts a component on the page, edit tweaks the props of one already there,
- * addressed by UUID. It ships inert — no agent lists it yet; wiring it to the
- * dev agent is a later issue.
+ * addressed by UUID. The canvas_dev_page_builder_agent lists it; the frontend
+ * applies the returned component_updates on the next hop.
  *
  * @see \Drupal\canvas_ai\Controller\CanvasBuilder::render()
  * @see \Drupal\canvas_ai\Plugin\AiFunctionCall\PlaceComponents
@@ -123,6 +124,11 @@ final class EditComponents extends FunctionCallBase implements ExecutableFunctio
         if (!\is_string($uuid) || !$props) {
           throw new \Exception('Each edit must provide a "component_uuid" and its prop changes.');
         }
+        // A scalar parses fine but is not a props map; the client would spread
+        // it into the component's values character by character.
+        if (!\is_array($props)) {
+          throw new \Exception(\sprintf('The props value for component %s must be a YAML mapping of prop names to values, one "prop_name: value" pair per line.', $uuid));
+        }
         $component_updates[$uuid] = $props;
       }
 
@@ -131,6 +137,13 @@ final class EditComponents extends FunctionCallBase implements ExecutableFunctio
       // The frontend applies these updates to the page on the next hop.
       $this->setStructuredOutput(['component_updates' => $component_updates]);
       $this->setOutput("The updates were applied successfully.\n" . Yaml::dump($component_updates));
+    }
+    catch (ParseException $e) {
+      // A raw parse error gives the model nothing to act on, so it retries
+      // the same payload; tell it how to fix the YAML instead.
+      $message = \sprintf("The props value is not valid YAML: %s Rewrite it with every string value quoted — unquoted dash-separated values such as 2233-33-33 are read as invalid dates, and HTML or multi-line text must be quoted too.", $e->getMessage());
+      $this->loggerFactory->get('canvas_ai')->error($message);
+      $this->setOutput(\sprintf('Failed to edit components: %s', $message));
     }
     catch (\Exception $e) {
       $this->loggerFactory->get('canvas_ai')->error($e->getMessage());

@@ -43,6 +43,11 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 final class CanvasDevAiBuilder extends ControllerBase {
 
   /**
+   * Asserted alongside every non-canvas_page context.
+   */
+  private const NOT_PLACEABLE = ' Components cannot be placed or edited here, because this is not a Canvas page.';
+
+  /**
    * The prompt keys the client must send on every request.
    */
   private const REQUIRED_PROMPT_KEYS = [
@@ -179,6 +184,7 @@ final class CanvasDevAiBuilder extends ControllerBase {
     [$status, $message] = match ($solvability) {
       AiAgentInterface::JOB_SHOULD_ANSWER_QUESTION => [FALSE, $agent->answerQuestion()],
       AiAgentInterface::JOB_INFORMS => [TRUE, $agent->inform()],
+      AiAgentInterface::JOB_NOT_SOLVABLE => [FALSE, self::getNotSolvableMessage($agent)],
       default => [FALSE, 'Something went wrong'],
     };
     return new JsonResponse([
@@ -395,12 +401,88 @@ final class CanvasDevAiBuilder extends ControllerBase {
 
     $messages = $prompt['messages'];
     $task_message = array_pop($messages);
-    $context = $this->canvasAiPageBuilderHelper->generateVerboseContextForOrchestrator($prompt);
+    $context = self::getAgentExtraContext($prompt);
     $message_xml = $this->canvasAiPageBuilderHelper->formatMessageWithContext($context, $task_message['text']);
     $agent->setChatInput(new ChatInput([
       new ChatMessage($task_message['role'], $message_xml, $image_files),
     ]));
     $agent->setChatHistory($this->canvasAiChatHelper->getFilteredChatHistory($messages));
+  }
+
+  /**
+   * Explains why the agent gave up on the turn.
+   *
+   * The agent returns JOB_NOT_SOLVABLE when it ran out of loops or when the
+   * provider call failed. Only the first case has a message worth showing;
+   * anything else in the chat history is the narration of an earlier hop.
+   *
+   * @param \Drupal\ai_agents\PluginBase\AiAgentEntityWrapper $agent
+   *   The agent that gave up.
+   *
+   * @return string
+   *   The configured max-loops message, or a generic failure message.
+   *
+   * @see \Drupal\ai_agents\PluginBase\AiAgentEntityWrapper::getMaxLoopsMessage()
+   */
+  private static function getNotSolvableMessage(AiAgentEntityWrapper $agent): string {
+    $entity = $agent->getAiAgentEntity();
+    if ($agent->toArray()['looped'] > (int) $entity->get('max_loops')) {
+      $message = (string) $entity->get('max_loops_message');
+      return $message !== '' ? $message : 'I was unable to fully answer your question within the allowed number of processing steps. Please try rephrasing or narrowing your question.';
+    }
+    return 'The request could not be completed. Please try again.';
+  }
+
+  /**
+   * Provides extra context about the canvas UI to the active agent.
+   *
+   * Identical to generateVerboseContextForOrchestrator(), except it omits that
+   * method's instructions forcing the model to generate a title and
+   * description. Kept as a separate method so the orchestrator's existing use
+   * of that method stays unaffected.
+   *
+   * @todo Replace generateVerboseContextForOrchestrator() with this method once the orchestrator no longer forces title and description generation, see https://git.drupalcode.org/project/canvas/-/work_items/3591777
+   *
+   * @param array $prompt
+   *   The decoded prompt.
+   *
+   * @return string
+   *   The context string; the caller wraps it into the user message.
+   *
+   * @see \Drupal\canvas_ai\CanvasAiPageBuilderHelper::generateVerboseContextForOrchestrator()
+   * @see \Drupal\canvas_ai\CanvasAiPageBuilderHelper::formatMessageWithContext()
+   */
+  private static function getAgentExtraContext(array $prompt): string {
+    if (!empty($prompt['selected_component'])) {
+      return 'User is now in the code component editor, viewing a code component with id ' . $prompt['selected_component'] . '.' . self::NOT_PLACEABLE;
+    }
+
+    $entity_type = $prompt['entity_type'] ?? '';
+    if ($entity_type === 'node') {
+      return 'The user is currently working on a \'node\' entity.' . self::NOT_PLACEABLE;
+    }
+
+    if ($entity_type !== 'canvas_page') {
+      return 'User has not created any entities.' . self::NOT_PLACEABLE;
+    }
+
+    $has_active_component = !empty($prompt['active_component_uuid'])
+      && $prompt['active_component_uuid'] !== 'None';
+
+    $base_message = 'The user is currently working on a canvas_page entity. ';
+    $base_message .= $has_active_component
+      ? 'User has selected a component in the page with uuid ' . $prompt['active_component_uuid'] . '. '
+      : 'User has not selected any particular component from the page. ';
+
+    $has_title = !empty($prompt['page_title']) && $prompt['page_title'] !== 'Untitled page';
+    $base_message .= $has_title
+      ? 'Page title: ' . $prompt['page_title'] . '. '
+      : 'Page title is empty. ';
+    $base_message .= !empty($prompt['page_description'])
+      ? 'Page description: ' . $prompt['page_description']
+      : 'Page description is empty.';
+
+    return $base_message;
   }
 
   /**
@@ -457,7 +539,12 @@ final class CanvasDevAiBuilder extends ControllerBase {
     ];
     foreach ($agent->getToolResults(TRUE) as $tool) {
       if ($tool instanceof BuilderResponseFunctionCallInterface) {
-        $response = array_merge($response, $tool->getStructuredOutput());
+        $structured_output = $tool->getStructuredOutput();
+        // Combine canvas_page_data across every tool call in this hop.
+        if (isset($response['canvas_page_data'], $structured_output['canvas_page_data'])) {
+          $structured_output['canvas_page_data'] += $response['canvas_page_data'];
+        }
+        $response = array_merge($response, $structured_output);
       }
       // @todo Remove this branch without replacing it: neither agent runs here, and a file-upload turn carries no layout of its own, so deleting the key at turn end would leave the layout-reading tools with nothing. See https://git.drupalcode.org/project/canvas/-/work_items/3591777
       if (\in_array($tool->getPluginId(), [

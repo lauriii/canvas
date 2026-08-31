@@ -20,6 +20,7 @@ final class CanvasDevAiAgentSelectionForm extends ConfigFormBase {
   private const SELECTABLE_AGENTS = [
     'canvas_ai_orchestrator',
     'canvas_component_agent',
+    'canvas_dev_page_builder_agent',
     'canvas_page_builder_agent',
   ];
 
