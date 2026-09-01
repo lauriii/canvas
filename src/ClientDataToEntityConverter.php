@@ -201,6 +201,39 @@ class ClientDataToEntityConverter {
     // Create a form state from the received entity fields.
     $form_state = new FormState();
     $form_state->set('entity', $entity);
+
+    // 'Peek' at the form to identify controls that need special handling.
+    $peek_form_object = $this->entityTypeManager->getFormObject($entity->getEntityTypeId(), 'default');
+    $peek_form_state = $this->buildFormState($peek_form_object, $entity, 'default')
+      // Don't fetch any form values from the request
+      ->setUserInput([])
+      // Don't process any input or interfere with form caches.
+      ->setProcessInput(FALSE)
+      // Don't perform any submission logic.
+      ->setProgrammed(FALSE);
+    $peek_form = $this->formBuilder->buildForm($peek_form_object, $peek_form_state);
+
+    // Selects with Drupal's `_none` option use it as their empty value. Convert
+    // their NULL values before `http_build_query()`, which would otherwise omit
+    // them.
+    $empty_option_selects = self::spotElementsByType(
+      $peek_form,
+      'select',
+      static fn (array $element): bool => \is_array($element['#options'] ?? NULL) && \array_key_exists('_none', $element['#options']),
+    );
+    foreach (\array_intersect_key($entity_form_fields, \array_flip($empty_option_selects)) as $name => $value) {
+      if ($value === NULL) {
+        // An explicit empty value supersedes stale flattened values for the
+        // same field, regardless of their order in the request.
+        foreach (\array_keys($entity_form_fields) as $submitted_name) {
+          if (\is_string($submitted_name) && \str_starts_with($submitted_name, $name . '[')) {
+            unset($entity_form_fields[$submitted_name]);
+          }
+        }
+        $entity_form_fields[$name] = '_none';
+      }
+    }
+
     // Expand form values from their respective element name, e.g.
     // ['title[0][value]' => 'Node title'] becomes
     // ['title' => ['value' => 'Node title']].
@@ -291,18 +324,6 @@ class ClientDataToEntityConverter {
         $this->formBuilder->setCache($ajax_form_build_id, $ajax_submitted_form, $form_state);
       }
     }
-
-    // 'Peek' at the form to work out any form fields that are booleans or
-    // buttons.
-    $peek_form_object = $this->entityTypeManager->getFormObject($entity->getEntityTypeId(), 'default');
-    $peek_form_state = $this->buildFormState($peek_form_object, $entity, 'default')
-      // Don't fetch any form values from the request
-      ->setUserInput([])
-      // Don't process any input or interfere with form caches.
-      ->setProcessInput(FALSE)
-      // Don't perform any submission logic.
-      ->setProgrammed(FALSE);
-    $peek_form = $this->formBuilder->buildForm($peek_form_object, $peek_form_state);
 
     $buttons = array_merge(self::spotElementsByType($peek_form, 'button'), self::spotElementsByType($peek_form, 'submit'));
     $entity_form_fields = array_diff_key($entity_form_fields, \array_flip($buttons));
@@ -453,13 +474,13 @@ class ClientDataToEntityConverter {
     return $values;
   }
 
-  private static function spotElementsByType(array $form, string $type): array {
+  private static function spotElementsByType(array $form, string $type, ?\Closure $filter = NULL): array {
     $elements = [];
     foreach (Element::children($form) as $child) {
       $element = $form[$child];
-      $elements = \array_merge($elements, self::spotElementsByType($element, $type));
+      $elements = \array_merge($elements, self::spotElementsByType($element, $type, $filter));
 
-      if (($element['#type'] ?? NULL) === $type && \array_key_exists('#name', $element)) {
+      if (($element['#type'] ?? NULL) === $type && \array_key_exists('#name', $element) && ($filter === NULL || $filter($element))) {
         $elements[] = $element['#name'];
       }
     }

@@ -209,7 +209,7 @@ test.describe('Page variants', () => {
     await expect(page).toHaveURL(/\/canvas\/editor\/page_variant\/marketing/);
   });
 
-  test('selecting a page template updates the preview before publishing', async ({
+  test('selecting and clearing a page template updates the preview before publishing', async ({
     page,
     drupal,
     canvas,
@@ -268,6 +268,40 @@ test.describe('Page variants', () => {
     await canvas.openCanvas(canvasPage);
     await canvas.waitForEditorFrame();
     await expect(previewFrame.getByText('MarketingChrome')).toBeVisible();
+    await canvas.publishAllChanges();
+    await canvas.openCanvas(canvasPage);
+    await canvas.waitForEditorFrame();
+
+    // Clear the explicit selection. The normalized NULL value must reach the
+    // backend so it clears the field and resolves the site default again.
+    await pageDataForm
+      .locator('button')
+      .filter({ hasText: 'Page template' })
+      .click();
+    await expect(variantSelect).toBeVisible();
+    const defaultAutoSave = page.waitForResponse(
+      (response) =>
+        response.url().includes('/canvas/api/v0/layout/canvas_page/') &&
+        response.request().method() === 'POST' &&
+        Object.prototype.hasOwnProperty.call(
+          response.request().postDataJSON().entity_form_fields,
+          'page_variant',
+        ) &&
+        response.request().postDataJSON().entity_form_fields.page_variant ===
+          null,
+    );
+    await variantSelect.selectOption({ label: 'Site default' });
+    await defaultAutoSave;
+    await expect(previewFrame.getByText('MarketingChrome')).toHaveCount(0);
+
+    await canvas.publishAllChanges();
+    await page.reload();
+    await canvas.waitForEditorUi();
+    await pageDataForm
+      .locator('button')
+      .filter({ hasText: 'Page template' })
+      .click();
+    await expect(variantSelect).toHaveValue('_none');
   });
 
   test('changing the site default updates an inherited page preview', async ({
