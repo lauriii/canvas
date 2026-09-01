@@ -1,4 +1,5 @@
 import {
+  deriveColorName,
   normalizeColorKey,
   parseCssColorString,
 } from '@drupal-canvas/discovery';
@@ -33,6 +34,21 @@ function validateTokenObject(
   ) {
     errors.push(
       `${label}: "components" must be an array of exactly 3 numbers.`,
+    );
+  } else if (
+    colorSpace === 'srgb' &&
+    components.some((c: number) => c < 0 || c > 1)
+  ) {
+    errors.push(`${label}: sRGB components must be between 0 and 1.`);
+  } else if (
+    colorSpace === 'hsl' &&
+    (components[1] < 0 ||
+      components[1] > 100 ||
+      components[2] < 0 ||
+      components[2] > 100)
+  ) {
+    errors.push(
+      `${label}: HSL saturation and lightness must be between 0 and 100.`,
     );
   }
   const alpha = value.alpha;
@@ -78,13 +94,11 @@ function validateValue(label: string, value: unknown, errors: string[]): void {
 
 /**
  * Validates the `colors` map from canvas.brand-kit.json before push: valid
- * color keys, parseable values, and well-formed wrapper objects. Mirrors
- * the server-side constraints on `canvas.color.*` so failures happen
- * offline, naming the offending entry.
- * Display names are optional (derived from the key when absent) and are
- * deliberately not checked for uniqueness: the server allows two colors to
- * share a name (its name constraint only guards against folder name
- * collisions, which need server-side data to check).
+ * color keys, parseable values, well-formed wrapper objects, and unique
+ * display names. Mirrors the server-side constraints on `canvas.color.*` —
+ * including `UniqueColorNameConstraint`, which compares names trimmed and
+ * case-insensitively — so failures happen offline, naming the offending
+ * entry. For an entry without an explicit `name` the derived one counts.
  * Throws with all errors listed so the user can fix the file in one go.
  */
 export function validateColorsConfig(colors: BrandKitColorsFileMap): void {
@@ -109,6 +123,7 @@ export function collectColorConfigErrors(
 
   const errors: string[] = [];
   const seenKeys = new Map<string, string>();
+  const seenNames = new Map<string, string>();
 
   for (const [rawKey, rawValue] of Object.entries(colors)) {
     const label = `Color "${rawKey}"`;
@@ -127,6 +142,30 @@ export function collectColorConfigErrors(
       );
     } else {
       seenKeys.set(key, rawKey);
+    }
+
+    // The site requires color names to be unique, compared trimmed and
+    // case-insensitively. An entry without an explicit name gets the one
+    // derived from its key.
+    const explicitName =
+      rawValue &&
+      typeof rawValue === 'object' &&
+      !Array.isArray(rawValue) &&
+      'value' in rawValue &&
+      typeof (rawValue as { name?: unknown }).name === 'string'
+        ? ((rawValue as { name: string }).name as string)
+        : undefined;
+    const effectiveName = explicitName ?? deriveColorName(key);
+    const normalizedName = effectiveName.trim().toLowerCase();
+    if (normalizedName !== '') {
+      const existingName = seenNames.get(normalizedName);
+      if (existingName !== undefined) {
+        errors.push(
+          `${label}: duplicate name "${effectiveName}" (also used by "${existingName}"). The site requires unique color names; set a different "name".`,
+        );
+      } else {
+        seenNames.set(normalizedName, rawKey);
+      }
     }
 
     if (

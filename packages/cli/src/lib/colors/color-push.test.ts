@@ -269,16 +269,18 @@ describe('pushColors', () => {
     expect(api.updateColor).toHaveBeenCalledWith('uuid-red', { weight: 1 });
   });
 
-  it('allows two colors sharing a name', async () => {
+  it('rejects two colors sharing a name before contacting the site', async () => {
     const api = mockApi([]);
-    const result = await pushColors(
-      {
-        'primary-a': { value: '#cc0000', name: 'Primary' },
-        'primary-b': { value: '#0000cc', name: 'Primary' },
-      },
-      api,
-    );
-    expect(result).toMatchObject({ created: 2 });
+    await expect(
+      pushColors(
+        {
+          'primary-a': { value: '#cc0000', name: 'Primary' },
+          'primary-b': { value: '#0000cc', name: 'Primary' },
+        },
+        api,
+      ),
+    ).rejects.toThrow('duplicate name "Primary"');
+    expect(api.getBrandKit).not.toHaveBeenCalled();
   });
 
   it('rejects an invalid file before contacting the site', async () => {

@@ -75,6 +75,30 @@
       "type": "object",
       "description": "A color value in W3C design token format, for exact component values a CSS string cannot express.",
       "required": ["colorSpace", "components"],
+      "allOf": [
+        {
+          "if": { "properties": { "colorSpace": { "const": "srgb" } } },
+          "then": {
+            "properties": {
+              "components": { "items": { "minimum": 0, "maximum": 1 } }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "colorSpace": { "const": "hsl" } } },
+          "then": {
+            "properties": {
+              "components": {
+                "prefixItems": [
+                  { "type": "number" },
+                  { "minimum": 0, "maximum": 100 },
+                  { "minimum": 0, "maximum": 100 }
+                ]
+              }
+            }
+          }
+        }
+      ],
       "properties": {
         "colorSpace": { "enum": ["srgb", "hsl"] },
         "components": {

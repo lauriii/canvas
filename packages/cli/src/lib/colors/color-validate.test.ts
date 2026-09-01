@@ -111,13 +111,34 @@ describe('validateColorsConfig', () => {
     );
   });
 
-  it('accepts two colors sharing a name (legal on the server)', () => {
-    expect(() =>
-      validateColorsConfig({
-        'primary-a': { value: '#cc0000', name: 'Primary' },
-        'primary-b': { value: '#0000cc', name: 'Primary' },
-      }),
-    ).not.toThrow();
+  it('rejects two colors sharing a name, trimmed and case-insensitively', () => {
+    const message = errorsFor({
+      'primary-a': { value: '#cc0000', name: 'Primary' },
+      'primary-b': { value: '#0000cc', name: ' PRIMARY ' },
+    });
+    expect(message).toContain('duplicate name " PRIMARY "');
+    expect(message).toContain('"primary-a"');
+  });
+
+  it('rejects an explicit name colliding with a derived one', () => {
+    const message = errorsFor({
+      'brand-red': '#cc0000',
+      accent: { value: '#0000cc', name: 'Brand Red' },
+    });
+    expect(message).toContain('duplicate name "Brand Red"');
+  });
+
+  it('rejects out-of-range token components', () => {
+    expect(
+      errorsFor({ bad: { colorSpace: 'srgb', components: [1.5, 0, 0] } }),
+    ).toContain('sRGB components must be between 0 and 1');
+    expect(
+      errorsFor({ bad: { colorSpace: 'hsl', components: [220, 150, 50] } }),
+    ).toContain('HSL saturation and lightness must be between 0 and 100');
+    // Hue is an unbounded angle.
+    expect(
+      errorsFor({ ok: { colorSpace: 'hsl', components: [-20, 60, 50] } }),
+    ).toBe('');
   });
 
   it('reports every error in one run', () => {

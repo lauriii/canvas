@@ -109,6 +109,18 @@ describe('validateBrandKit', () => {
     const { results } = await validateBrandKit(tmpDir);
     expect(results[0].success).toBe(false);
   });
+
+  it('reports out-of-range token components through both schema and semantics', async () => {
+    await writeBrandKit({
+      colors: { bad: { colorSpace: 'srgb', components: [1.5, 0, 0] } },
+    });
+    const { results } = await validateBrandKit(tmpDir);
+    expect(results[0].success).toBe(false);
+    const contents = (results[0].details ?? [])
+      .map((d) => d.content)
+      .join('\n');
+    expect(contents).toContain('between 0 and 1');
+  });
 });
 
 describe('brand kit schema and pull output stay in sync', () => {
