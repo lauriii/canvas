@@ -65,7 +65,7 @@ the data paths drifting:
 | One component as JSON | `GET /component-api/album.photo/{media}`, a route derived from the producer |
 | A whole page as JSON | `GET /any/path?_wrapper_format=envelope`, or `GET /page-api/any/path` |
 | Its props schema | `GET /component-api/schema/album.photo` |
-| The catalog, for codegen | `GET /component-api/schema` |
+| The catalog, for code generation | `GET /component-api/schema` |
 | The envelope's own schema | `GET /component-api/schema/_envelope` |
 
 The derived data route carries `_entity_access: media.view`, taken from the
@@ -104,7 +104,7 @@ Checks run against Drupal core 11.4.4 on the development site this was built
 on:
 
 - **Kernel tests** cover the producer feeding both the Twig render and the
-  envelope node, serializability, cacheability collected during production,
+  envelope node, serializable values, cacheability collected during production,
   cache keys computable before the producer runs, per-field access, text-format
   filtering, unconditional prop validation, the two-node union, slots holding
   nodes, byte-identity between a component fetched alone and the same node read
@@ -123,9 +123,9 @@ on:
   Canvas requires kernel tests to extend its own base class, and this module
   cannot without acquiring the dependency it exists to avoid.
 - **Static analysis** reports only `Unused ...::__construct` findings on
-  classes wired through `services.yml` and `routing.yml`. Analysing an existing
+  classes wired through `services.yml` and `routing.yml`. Analyzing an existing
   Canvas controller directory on its own produces identical findings, so this
-  is an artifact of analysing a narrow path rather than a defect.
+  is an artifact of analyzing a narrow path rather than a defect.
 
 ## What is not implemented here
 

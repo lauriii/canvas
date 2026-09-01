@@ -26,6 +26,10 @@ final class NodeCardProducer extends ComponentProducerBase {
    */
   public function produce(mixed $subject, ProducerContext $context): array {
     \assert($subject instanceof NodeInterface);
+    // Counts invocations, so a test can show that a render cache hit does not
+    // reach the producer at all.
+    $state = \Drupal::state();
+    $state->set('multi_frontend_test.produce_count', $state->get('multi_frontend_test.produce_count', 0) + 1);
     $context->addCacheableDependency($subject);
 
     return [

@@ -160,6 +160,31 @@ final class ComponentProducerTest extends KernelTestBase {
   }
 
   /**
+   * A render cache hit never reaches the producer.
+   *
+   * This is the answer to the standing objection that generating a tree
+   * before rendering it forfeits render caching. It does not: the cache key
+   * is derived from the producer ID and the subject's identity, both known
+   * before the producer runs, so a hit short-circuits the work exactly as a
+   * render-cached views listing is not rebuilt from its query.
+   */
+  public function testRenderCacheHitSkipsTheProducer(): void {
+    \Drupal::state()->set('multi_frontend_test.produce_count', 0);
+
+    $first = ProducedComponent::build('multi_frontend_test.card', $this->node);
+    $this->container->get('renderer')->renderInIsolation($first);
+    $this->assertSame(1, \Drupal::state()->get('multi_frontend_test.produce_count'));
+
+    $second = ProducedComponent::build('multi_frontend_test.card', $this->node);
+    $this->container->get('renderer')->renderInIsolation($second);
+    $this->assertSame(
+      1,
+      \Drupal::state()->get('multi_frontend_test.produce_count'),
+      'The second render was served from the render cache without invoking the producer.',
+    );
+  }
+
+  /**
    * A field the viewer may not see never reaches the props.
    */
   public function testFieldAccessIsApplied(): void {

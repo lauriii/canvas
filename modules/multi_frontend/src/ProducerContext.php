@@ -75,11 +75,18 @@ final class ProducerContext {
     if ($item === NULL || $item->isEmpty()) {
       return NULL;
     }
+    $properties = $item->getProperties(TRUE);
+    if (!\array_key_exists('value', $properties)) {
+      // Not a text field at all. Returning NULL is better than throwing on a
+      // property that does not exist: the schema should not have declared
+      // this prop as HTML in the first place.
+      return NULL;
+    }
     $value = (string) ($item->get('value')->getValue() ?? '');
     if ($value === '') {
       return NULL;
     }
-    $format = $item->getFieldDefinition()->getType() === 'text_long' || $item->getFieldDefinition()->getType() === 'text' || $item->getFieldDefinition()->getType() === 'text_with_summary'
+    $format = \array_key_exists('format', $properties)
       ? (string) ($item->get('format')->getValue() ?? '')
       : '';
     if ($format === '') {

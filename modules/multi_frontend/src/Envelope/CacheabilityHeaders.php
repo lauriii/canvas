@@ -17,10 +17,10 @@ use Symfony\Component\HttpFoundation\Response;
  * summary, and a Cache-Control that says plainly whether the response may be
  * stored publicly.
  *
- * Surrogate-Key is Fastly's spelling. Other CDNs use other header names for
- * the same idea, and a site maps it in one line of edge configuration; the
- * point is that the tags leave the building at all, which is where both
- * existing structured-output implementations stop.
+ * Surrogate-Key is one common spelling of this header. Other CDNs use other
+ * names for the same idea, and a site maps it in one line of edge
+ * configuration; the point is that the tags leave the building at all, which
+ * is where both existing structured-output implementations stop.
  */
 final class CacheabilityHeaders {
 
