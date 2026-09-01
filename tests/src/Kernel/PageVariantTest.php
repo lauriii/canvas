@@ -8,6 +8,7 @@ use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Controller\ApiSettingsController;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Entity\EntityConstraintViolationList;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageRegion;
@@ -40,6 +41,8 @@ use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\Routing\Route;
+use Symfony\Component\Validator\ConstraintViolation;
+use Symfony\Component\Validator\ConstraintViolationInterface;
 
 /**
  * Tests the page variant foundation.
@@ -1039,7 +1042,50 @@ final class PageVariantTest extends CanvasKernelTestBase {
       'content_entity_type_view_mode' => 'full',
       'page_variant' => 'other',
     ])->save();
+
+    // Another page selects 'other' only in its auto-saved draft.
+    $pending_page = Page::create(['title' => 'Pending page']);
+    self::assertSaveWithoutViolations($pending_page);
+    $pending_draft = Page::load($pending_page->id());
+    self::assertInstanceOf(Page::class, $pending_draft);
+    $pending_draft->set('title', 'Pending draft');
+    $pending_draft->set('page_variant', 'other');
+    $auto_save_manager = $this->container->get(AutoSaveManager::class);
+    self::assertInstanceOf(AutoSaveManager::class, $auto_save_manager);
+    $auto_save_manager->saveEntity($pending_draft);
+    $form_violations = new EntityConstraintViolationList($pending_draft);
+    $form_violations->add(new ConstraintViolation(
+      'The description is invalid.',
+      NULL,
+      [],
+      NULL,
+      'description.0.value',
+      'Invalid description',
+    ));
+    $form_violations->add(new ConstraintViolation(
+      'The page template is invalid.',
+      NULL,
+      [],
+      NULL,
+      'page_variant',
+      'other',
+    ));
+    $auto_save_manager->saveEntityFormViolations($pending_draft, $form_violations);
+
     $other->setStatus(FALSE)->save();
+
+    // Disabling restores the draft's persisted selection while preserving its
+    // unrelated changes.
+    $reconciled_draft = $auto_save_manager->getAutoSaveEntity($pending_page)->entity;
+    self::assertInstanceOf(Page::class, $reconciled_draft);
+    self::assertSame('Pending draft', $reconciled_draft->label());
+    self::assertNull($reconciled_draft->get('page_variant')->value);
+    $remaining_form_violations = $auto_save_manager->getEntityFormViolations($reconciled_draft);
+    self::assertCount(1, $remaining_form_violations);
+    $remaining_form_violation = $remaining_form_violations[0];
+    self::assertInstanceOf(ConstraintViolationInterface::class, $remaining_form_violation);
+    self::assertSame('description.0.value', $remaining_form_violation->getPropertyPath());
+    self::assertSame('Invalid description', $remaining_form_violation->getInvalidValue());
 
     // Disabled variants are omitted from new selections…
     self::assertSame(['main' => 'Main'], PageVariant::allowedValues());

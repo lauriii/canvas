@@ -183,6 +183,54 @@ final class PageVariant extends ComponentTreeConfigEntityBase implements CanvasH
   }
 
   /**
+   * {@inheritdoc}
+   *
+   * Reconciles pending page selections when this variant is disabled.
+   */
+  public function postSave(EntityStorageInterface $storage, $update = TRUE): void {
+    parent::postSave($storage, $update);
+    $original = $update ? $this->getOriginal() : NULL;
+    if (!$original instanceof self || !$original->status() || $this->status()) {
+      return;
+    }
+
+    $entity_type_manager = \Drupal::entityTypeManager();
+    if (!$entity_type_manager->hasDefinition(Page::ENTITY_TYPE_ID)) {
+      return;
+    }
+    $page_storage = $entity_type_manager->getStorage(Page::ENTITY_TYPE_ID);
+    $auto_save_manager = \Drupal::service(AutoSaveManager::class);
+    foreach ($auto_save_manager->getAllAutoSaveList(with_entities: TRUE, with_conflicts: FALSE) as $entry) {
+      $draft = $entry['entity'];
+      if (!$draft instanceof Page || $draft->get('page_variant')->value !== $this->id()) {
+        continue;
+      }
+      $persisted = $page_storage->loadUnchanged($entry['entity_id']);
+      if ($persisted instanceof Page && $persisted->get('page_variant')->value === $this->id()) {
+        continue;
+      }
+      // The selection is restored below, so discard only its stale errors.
+      $remaining_form_violations = new EntityConstraintViolationList($draft);
+      foreach ($auto_save_manager->getEntityFormViolations($draft) as $violation) {
+        $property_path = $violation->getPropertyPath();
+        if (\in_array($property_path, [
+          'page_variant',
+          'entity_form_fields.page_variant',
+        ], TRUE)) {
+          continue;
+        }
+        $remaining_form_violations->add($violation);
+      }
+      $draft->set('page_variant', $persisted instanceof Page ? $persisted->get('page_variant')->value : NULL);
+      $auto_save_manager->saveEntity($draft);
+      $auto_save_manager->saveEntityFormViolations(
+        $draft,
+        $remaining_form_violations->count() > 0 ? $remaining_form_violations : NULL,
+      );
+    }
+  }
+
+  /**
    * Allowed values callback for page variant selection fields.
    *
    * Called via setSetting('allowed_values_function', ...) in
