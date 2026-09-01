@@ -501,6 +501,72 @@ class ClientDataToEntityConverterTest extends KernelTestBase {
     self::assertEquals(TestTime::$requestTime, $node->getChangedTime());
   }
 
+  /**
+   * Tests that submitted NULL clears only an optional options field.
+   */
+  public function testOptionalOptionsFieldCanBeCleared(): void {
+    $field_name = 'field_optional_option';
+    $text_field_name = 'field_optional_text';
+    FieldStorageConfig::create([
+      'field_name' => $field_name,
+      'entity_type' => 'node',
+      'type' => 'list_string',
+      'settings' => [
+        'allowed_values' => ['marketing' => 'Marketing'],
+      ],
+    ])->save();
+    FieldConfig::create([
+      'field_name' => $field_name,
+      'entity_type' => 'node',
+      'bundle' => 'article',
+      'label' => 'Optional option',
+    ])->save();
+    FieldStorageConfig::create([
+      'field_name' => $text_field_name,
+      'entity_type' => 'node',
+      'type' => 'string',
+    ])->save();
+    FieldConfig::create([
+      'field_name' => $text_field_name,
+      'entity_type' => 'node',
+      'bundle' => 'article',
+      'label' => 'Optional text',
+    ])->save();
+    $this->container
+      ->get(EntityDisplayRepositoryInterface::class)
+      ->getFormDisplay('node', 'article')
+      ->setComponent($field_name, ['type' => 'options_select'])
+      ->setComponent($text_field_name, ['type' => 'string_textfield'])
+      ->save();
+
+    /** @var \Drupal\user\Entity\User $account */
+    $account = $this->createUser(values: ['roles' => ['canvas']]);
+    $this->setCurrentUser($account);
+
+    $node = $this->createTestNode([
+      $field_name => 'marketing',
+      $text_field_name => 'Original text',
+    ]);
+    self::assertSame('marketing', $node->get($field_name)->getString());
+    self::assertSame('Original text', $node->get($text_field_name)->getString());
+    $client_json = $this->getValidClientJson(FALSE);
+    // The explicit empty value must win even when a stale flattened value
+    // appears later in the request.
+    $client_json['entity_form_fields'][$field_name] = NULL;
+    $client_json['entity_form_fields'][$field_name . '[0]'] = 'marketing';
+    $client_json['entity_form_fields'][$text_field_name . '[0][value]'] = 'Original text';
+    $client_json['entity_form_fields'][$text_field_name] = NULL;
+
+    $updated_node = $this->assertConvert(
+      $client_json,
+      [],
+      'The updated title.',
+      $node,
+    );
+    self::assertSame('', $updated_node->get($field_name)->getString());
+    self::assertSame('Original text', $updated_node->get($text_field_name)->getString());
+  }
+
   protected function assertConvert(array $client_json, array $expected_errors, string $expected_title, ?Node $node = NULL): NodeInterface {
     $node = $node ?? $this->createTestNode();
     $form = \Drupal::entityTypeManager()->getFormObject($node->getEntityTypeId(), 'default');
