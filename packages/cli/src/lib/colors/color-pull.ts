@@ -153,7 +153,11 @@ export function planColorPull(
   const updated: string[] = [];
   let unchanged = 0;
   const localOnly: string[] = [];
-  const nextColors: BrandKitColorsFileMap = {};
+  // Null prototype: `__proto__` is a valid color key, and assigning it to a
+  // plain object would hit the prototype setter and silently drop the color.
+  const nextColors: BrandKitColorsFileMap = Object.create(
+    null,
+  ) as BrandKitColorsFileMap;
 
   if (options.skipOverwrite) {
     for (const [rawKey, rawValue] of rawEntries) {

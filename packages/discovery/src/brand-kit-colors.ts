@@ -158,10 +158,16 @@ export function parseHexColor(value: string): ColorTokenValue | null {
 
 // Strict decimal tokens: `parseFloat()` consumes only a valid prefix, so a
 // permissive `[\d.]+` would accept junk like "0.5.6" and quietly truncate.
-const RGB_PATTERN =
-  /^rgba?\(\s*(\d{1,3})\s*(?:,|\s)\s*(\d{1,3})\s*(?:,|\s)\s*(\d{1,3})\s*(?:(?:,|\/)\s*((?:\d+(?:\.\d+)?|\.\d+)%?)\s*)?\)$/;
-const HSL_PATTERN =
-  /^hsla?\(\s*(-?(?:\d+(?:\.\d+)?|\.\d+))(?:deg)?\s*(?:,|\s)\s*(-?(?:\d+(?:\.\d+)?|\.\d+))%\s*(?:,|\s)\s*(-?(?:\d+(?:\.\d+)?|\.\d+))%\s*(?:(?:,|\/)\s*((?:\d+(?:\.\d+)?|\.\d+)%?)\s*)?\)$/;
+// Legacy comma syntax and modern space-and-slash syntax are separate
+// patterns, matching CSS: mixed forms like `rgb(1, 2 3)` are invalid.
+const RGB_LEGACY_PATTERN =
+  /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*((?:\d+(?:\.\d+)?|\.\d+)%?)\s*)?\)$/;
+const RGB_MODERN_PATTERN =
+  /^rgba?\(\s*(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})\s*(?:\/\s*((?:\d+(?:\.\d+)?|\.\d+)%?)\s*)?\)$/;
+const HSL_LEGACY_PATTERN =
+  /^hsla?\(\s*(-?(?:\d+(?:\.\d+)?|\.\d+))(?:deg)?\s*,\s*(-?(?:\d+(?:\.\d+)?|\.\d+))%\s*,\s*(-?(?:\d+(?:\.\d+)?|\.\d+))%\s*(?:,\s*((?:\d+(?:\.\d+)?|\.\d+)%?)\s*)?\)$/;
+const HSL_MODERN_PATTERN =
+  /^hsla?\(\s*(-?(?:\d+(?:\.\d+)?|\.\d+))(?:deg)?\s+(-?(?:\d+(?:\.\d+)?|\.\d+))%\s+(-?(?:\d+(?:\.\d+)?|\.\d+))%\s*(?:\/\s*((?:\d+(?:\.\d+)?|\.\d+)%?)\s*)?\)$/;
 
 function parseAlphaString(raw: string | undefined): number | null {
   if (raw === undefined) {
@@ -189,7 +195,8 @@ export function parseCssColorString(
     return { token: hexToken, displayFormat: 'hex' };
   }
 
-  const rgbMatch = RGB_PATTERN.exec(value);
+  const rgbMatch =
+    RGB_LEGACY_PATTERN.exec(value) ?? RGB_MODERN_PATTERN.exec(value);
   if (rgbMatch) {
     const channels = [rgbMatch[1], rgbMatch[2], rgbMatch[3]].map((c) =>
       parseInt(c, 10),
@@ -212,7 +219,8 @@ export function parseCssColorString(
     };
   }
 
-  const hslMatch = HSL_PATTERN.exec(value);
+  const hslMatch =
+    HSL_LEGACY_PATTERN.exec(value) ?? HSL_MODERN_PATTERN.exec(value);
   if (hslMatch) {
     const components = [hslMatch[1], hslMatch[2], hslMatch[3]].map((c) =>
       Number.parseFloat(c),

@@ -214,6 +214,17 @@ describe('planColorPull', () => {
     expect(Object.keys(plan.colors)).toEqual(['----brand']);
   });
 
+  it('keeps a __proto__ color instead of hitting the prototype setter', () => {
+    // `--__proto__` is a valid custom property; a plain-object map would
+    // silently drop the assignment.
+    const plan = planColorPull(
+      [remoteColor({ cssVariable: '--__proto__', name: 'Proto' })],
+      undefined,
+    );
+    expect(Object.keys(plan.colors)).toEqual(['__proto__']);
+    expect(plan.colors['__proto__']).toBeDefined();
+  });
+
   it('keeps and reports entries with invalid keys instead of dropping them', () => {
     const plan = planColorPull([], { '1bad': '#cc0000' });
     expect(plan.colors).toEqual({ '1bad': '#cc0000' });
