@@ -111,6 +111,12 @@ on:
   between a component fetched alone and the same node read from a page, and the
   published schema.
 
+  All of them pass on Drupal core 11.4.4, run in four batches for the reason
+  below: 5 + 5 + 4 assertions-heavy tests in `ComponentProducerTest`
+  (71 + 77 + 68 assertions) and 5 in `CacheabilityNormalizerTest`. The only
+  reported issues are two deprecations raised by core's own
+  `TwigSandboxPolicy` against twig 3.28, which any Twig render triggers.
+
   Note that Canvas CI does **not** run them: its Kernel job is scoped to
   `tests/src/Kernel/Config` on purpose, to prove the suite executes without a
   multi-hour run. A green Kernel check on a pull request says nothing about
