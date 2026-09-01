@@ -45,6 +45,7 @@ const PageDataFormRenderer = () => {
   const {
     currentData: formTemplate,
     error,
+    fulfilledTimeStamp,
     isFetching,
     refetch,
   } = useGetPageDataFormQuery(
@@ -131,6 +132,7 @@ const PageDataFormRenderer = () => {
 
     setJsxFormContent(
       <div
+        key={`${entityType}:${entityId}:${fulfilledTimeStamp}`}
         data-testid="canvas-page-data-form"
         className={styles.pageDataForm}
         onClick={interceptEditTemplateLink}
@@ -148,6 +150,7 @@ const PageDataFormRenderer = () => {
     entityId,
     entityType,
     formTemplate,
+    fulfilledTimeStamp,
     pageDataIsCurrent,
     interceptEditTemplateLink,
   ]);
