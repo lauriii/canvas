@@ -1,0 +1,46 @@
+services:
+  _defaults:
+    autoconfigure: true
+
+  plugin.manager.component_producer:
+    class: Drupal\multi_frontend\ComponentProducerManager
+    arguments:
+      - '@container.namespaces'
+      - '@cache.discovery'
+      - '@module_handler'
+  Drupal\multi_frontend\ComponentProducerManager: '@plugin.manager.component_producer'
+
+  Drupal\multi_frontend\ProducerInvoker:
+    arguments:
+      - '@plugin.manager.component_producer'
+      - '@plugin.manager.sdc'
+      - '@Drupal\Core\Theme\Component\ComponentValidator'
+      - '@renderer'
+
+  Drupal\multi_frontend\Envelope\EnvelopeBuilder:
+    arguments:
+      - '@Drupal\multi_frontend\ProducerInvoker'
+      - '@renderer'
+
+  Drupal\multi_frontend\Schema\SchemaPublisher:
+    arguments:
+      - '@plugin.manager.component_producer'
+      - '@plugin.manager.sdc'
+
+  multi_frontend.main_content_renderer.envelope:
+    class: Drupal\multi_frontend\Render\EnvelopeMainContentRenderer
+    arguments:
+      - '@Drupal\multi_frontend\Envelope\EnvelopeBuilder'
+      - '@title_resolver'
+      - '@language_manager'
+      - '@renderer'
+    tags:
+      - { name: render.main_content_renderer, format: envelope }
+
+  multi_frontend.page_api_middleware:
+    class: Drupal\multi_frontend\StackMiddleware\PageApiMiddleware
+    tags:
+      - { name: http_middleware, priority: 300 }
+
+  Drupal\multi_frontend\Routing\ComponentApiRoutes:
+    arguments: ['@plugin.manager.component_producer']

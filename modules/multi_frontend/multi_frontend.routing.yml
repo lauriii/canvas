@@ -1,0 +1,30 @@
+multi_frontend.schema.catalog:
+  path: '/component-api/schema'
+  defaults:
+    _controller: '\Drupal\multi_frontend\Controller\ComponentApiController::schemaCatalog'
+  methods: [GET]
+  requirements:
+    # Component schemas describe code that already ships in the codebase, the
+    # way a theme's .component.yml does. They carry no content and no access
+    # decision, so they are public, which is what makes them usable by a
+    # front-end developer's toolchain without credentials.
+    _access: 'TRUE'
+
+multi_frontend.schema.envelope:
+  path: '/component-api/schema/_envelope'
+  defaults:
+    _controller: '\Drupal\multi_frontend\Controller\ComponentApiController::envelopeSchema'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+
+multi_frontend.schema.component:
+  path: '/component-api/schema/{producer}'
+  defaults:
+    _controller: '\Drupal\multi_frontend\Controller\ComponentApiController::componentSchema'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+
+route_callbacks:
+  - 'Drupal\multi_frontend\Routing\ComponentApiRoutes::routes'
