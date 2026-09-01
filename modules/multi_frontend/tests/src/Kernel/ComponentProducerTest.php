@@ -59,7 +59,7 @@ final class ComponentProducerTest extends KernelTestBase {
     $this->installEntitySchema('user');
     $this->installEntitySchema('node');
     $this->installSchema('node', ['node_access']);
-    $this->installConfig(['system', 'filter', 'node']);
+    $this->installConfig(['system', 'user', 'filter', 'node']);
 
     NodeType::create(['type' => 'page', 'name' => 'Page'])->save();
     FieldStorageConfig::create([
@@ -77,10 +77,12 @@ final class ComponentProducerTest extends KernelTestBase {
     $this->setUpCurrentUser(['uid' => 0], ['access content']);
     Role::load(RoleInterface::ANONYMOUS_ID)?->grantPermission('access content')->save();
 
+    $author = $this->createUser([], 'ada');
     $this->node = Node::create([
       'type' => 'page',
       'title' => 'A node title',
       'status' => 1,
+      'uid' => $author->id(),
       'created' => 1771065000,
       'body' => ['value' => '<p>A <em>summary</em>.</p>', 'format' => 'plain_text'],
     ]);
@@ -95,7 +97,7 @@ final class ComponentProducerTest extends KernelTestBase {
     $html = (string) $this->container->get('renderer')->renderInIsolation($build);
 
     $this->assertStringContainsString('A node title', $html);
-    $this->assertStringContainsString('datetime="2026-02-14T09:10:00+00:00"', $html);
+    $this->assertStringContainsString('datetime="2026-02-14T10:30:00+00:00"', $html);
     $this->assertStringContainsString('class="card"', $html);
 
     $cacheability = new CacheableMetadata();
@@ -106,7 +108,7 @@ final class ComponentProducerTest extends KernelTestBase {
     $this->assertSame('A node title', $node->props['title']);
     // An ISO 8601 timestamp, not a formatted date. The template formats it;
     // the contract does not.
-    $this->assertSame('2026-02-14T09:10:00+00:00', $node->props['createdAt']);
+    $this->assertSame('2026-02-14T10:30:00+00:00', $node->props['createdAt']);
     $this->assertSame('/node/' . $this->node->id(), $node->props['url']);
   }
 
@@ -288,10 +290,12 @@ final class ComponentProducerTest extends KernelTestBase {
     $child = $node->slots['footer'][0];
     $this->assertInstanceOf(ComponentNode::class, $child);
     $this->assertSame('multi_frontend_test:byline', $child->componentId);
+    $this->assertSame('ada', $child->props['name']);
 
     // The child's cacheability reached the parent, and the child kept its own.
-    $this->assertContains('user:0', $node->getCacheTags());
-    $this->assertContains('user:0', $child->getCacheTags());
+    $owner_tag = 'user:' . $this->node->getOwnerId();
+    $this->assertContains($owner_tag, $node->getCacheTags());
+    $this->assertContains($owner_tag, $child->getCacheTags());
 
     $serialized = $node->toArray();
     $this->assertSame('component', $serialized['slots']->footer[0]['type']);

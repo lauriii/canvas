@@ -52,8 +52,12 @@ final class NodeCardProducer extends ComponentProducerBase {
     \assert($subject instanceof NodeInterface);
     // A slot holds nodes, not markup, which is what lets a converted component
     // compose with another one, or with an unconverted subtree.
+    $owner = $subject->getOwner();
+    if ($owner === NULL) {
+      return [];
+    }
     return [
-      'footer' => [$context->produceChild('multi_frontend_test.byline', $subject->getOwner())],
+      'footer' => [$context->produceChild('multi_frontend_test.byline', $owner)],
     ];
   }
 
