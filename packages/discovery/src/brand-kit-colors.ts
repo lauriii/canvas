@@ -130,8 +130,9 @@ export function deriveColorName(key: string): string {
  * Returns null when the string is not a valid hex color.
  *
  * Matches what the editor UI stores when a user picks a hex color:
- * components as channel / 255 floats, alpha null when opaque and rounded
- * to two decimals otherwise, and the six-digit hex preserved.
+ * components as channel / 255 floats, alpha null when opaque, and the
+ * six-digit hex preserved. Alpha keeps its exact `aa / 255` value — rounding
+ * would turn `#cc000001` into 0 — so renderers round only when producing CSS.
  */
 export function parseHexColor(value: string): ColorTokenValue | null {
   const match = HEX_COLOR_PATTERN.exec(value);
@@ -145,7 +146,7 @@ export function parseHexColor(value: string): ColorTokenValue | null {
   let alpha: number | null = null;
   if (match[2] !== undefined) {
     const a = parseInt(match[2], 16) / 255;
-    alpha = a === 1 ? null : Math.round(a * 100) / 100;
+    alpha = a === 1 ? null : a;
   }
   return {
     colorSpace: 'srgb',
@@ -244,9 +245,10 @@ export function parseCssColorString(
 /**
  * Normalizes a file value (CSS color string or token object) to a token
  * object. Returns null for a malformed string, a missing value, or an
- * object without a components array, so callers can treat hand-edited junk
- * as "no parseable value" instead of crashing (strict validation with
- * useful messages is the CLI's job).
+ * object that is not a well-formed token — wrong color space, components
+ * that are not three finite numbers, or an out-of-range alpha — so callers
+ * can treat hand-edited junk as "no parseable value" instead of rendering
+ * invalid CSS (strict validation with useful messages is the CLI's job).
  */
 export function normalizeColorValue(
   value: BrandKitColorFileValue | null | undefined,
@@ -260,7 +262,14 @@ export function normalizeColorValue(
   if (
     typeof value === 'object' &&
     !Array.isArray(value) &&
-    Array.isArray(value.components)
+    (value.colorSpace === 'srgb' || value.colorSpace === 'hsl') &&
+    Array.isArray(value.components) &&
+    value.components.length === 3 &&
+    value.components.every(
+      (c) => typeof c === 'number' && Number.isFinite(c),
+    ) &&
+    (value.alpha == null ||
+      (typeof value.alpha === 'number' && value.alpha >= 0 && value.alpha <= 1))
   ) {
     return value;
   }

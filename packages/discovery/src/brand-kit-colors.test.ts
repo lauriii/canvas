@@ -65,10 +65,12 @@ describe('parseHexColor', () => {
     });
   });
 
-  it('parses an eight-digit hex into a two-decimal alpha', () => {
+  it('parses an eight-digit hex preserving the exact alpha', () => {
     const token = parseHexColor('#cc000080');
     expect(token).toMatchObject({ colorSpace: 'srgb', hex: '#cc0000' });
-    expect(token?.alpha).toBe(0.5);
+    expect(token?.alpha).toBe(128 / 255);
+    // Rounding would collapse a 1/255 alpha to 0.
+    expect(parseHexColor('#cc000001')?.alpha).toBe(1 / 255);
   });
 
   it('treats a ff alpha channel as opaque', () => {
@@ -345,6 +347,35 @@ describe('normalizeColorValue', () => {
     expect(normalizeColorValue({ colorSpace: 'srgb' } as never)).toBeNull();
     expect(normalizeColorValue([] as never)).toBeNull();
     expect(normalizeColorValue(42 as never)).toBeNull();
+    // Malformed token shapes must not reach the CSS renderer.
+    expect(
+      normalizeColorValue({ colorSpace: 'hsl', components: [] } as never),
+    ).toBeNull();
+    expect(
+      normalizeColorValue({
+        colorSpace: 'srgb',
+        components: ['1', 0, 0],
+      } as never),
+    ).toBeNull();
+    expect(
+      normalizeColorValue({
+        colorSpace: 'lab',
+        components: [0, 0, 0],
+      } as never),
+    ).toBeNull();
+    expect(
+      normalizeColorValue({
+        colorSpace: 'srgb',
+        components: [0, 0, Number.NaN],
+      } as never),
+    ).toBeNull();
+    expect(
+      normalizeColorValue({
+        colorSpace: 'srgb',
+        components: [0, 0, 0],
+        alpha: 2,
+      } as never),
+    ).toBeNull();
   });
 
   it('passes through a well-formed token object', () => {
