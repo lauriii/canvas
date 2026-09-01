@@ -18,8 +18,6 @@ use Drupal\multi_frontend\Schema\SchemaPublisher;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\user\Traits\UserCreationTrait;
-use Drupal\user\Entity\Role;
-use Drupal\user\RoleInterface;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
@@ -74,8 +72,9 @@ final class ComponentProducerTest extends KernelTestBase {
       'label' => 'Body',
     ])->save();
 
-    $this->setUpCurrentUser(['uid' => 0], ['access content']);
-    Role::load(RoleInterface::ANONYMOUS_ID)?->grantPermission('access content')->save();
+    // An authenticated user, because permissions cannot be granted to the
+    // anonymous account through a role in a kernel test.
+    $this->setUpCurrentUser([], ['access content']);
 
     $author = $this->createUser([], 'ada');
     $this->node = Node::create([

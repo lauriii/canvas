@@ -8,6 +8,7 @@ props:
     title:
       type: string
       title: Title
+      minLength: 1
       examples: ['A node title']
     url:
       type: string
