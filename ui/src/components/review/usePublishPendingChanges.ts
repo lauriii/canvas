@@ -91,8 +91,14 @@ export const usePublishPendingChanges = ({
           dispatch(setUpdatePreview(false));
           dispatch(
             setInitialPageData({
-              ...entityFormFields,
-              changed: Math.floor(new Date().getTime() / 1000),
+              values: {
+                ...entityFormFields,
+                changed: Math.floor(new Date().getTime() / 1000),
+              },
+              owner: {
+                entityType: currentEntityType,
+                entityId: currentEntityId,
+              },
             }),
           );
         }

@@ -209,6 +209,121 @@ test.describe('Page variants', () => {
     await expect(page).toHaveURL(/\/canvas\/editor\/page_variant\/marketing/);
   });
 
+  test('page template form state follows SPA page navigation', async ({
+    page,
+    drupal,
+    canvas,
+  }) => {
+    await drupal.login({ username: 'editor', password: 'editor' });
+    const defaultPage = await canvas.createCanvas({
+      title: 'Default template page',
+    });
+    await page
+      .locator('[data-drupal-selector="edit-path-0-alias"]')
+      .fill('/default-template-page');
+    await canvas.publishAllChanges();
+    const marketingPage = await canvas.createCanvas({
+      title: 'Marketing template page',
+    });
+    await page
+      .locator('[data-drupal-selector="edit-path-0-alias"]')
+      .fill('/marketing-template-page');
+    await canvas.publishAllChanges();
+
+    await createMarketingVariant(page);
+    await canvas.openCanvas(marketingPage);
+
+    const openPageTemplateSelect = async () => {
+      const pageDataForm = page.getByTestId('canvas-page-data-form');
+      const select = pageDataForm.getByLabel('Page template');
+      await pageDataForm
+        .locator('button')
+        .filter({ hasText: 'Page template' })
+        .click();
+      await expect(select).toBeVisible();
+      return select;
+    };
+
+    let variantSelect = await openPageTemplateSelect();
+    const marketingAutoSave = page.waitForResponse(
+      (response) =>
+        response.url().includes('/canvas/api/v0/layout/canvas_page/') &&
+        response.request().method() === 'POST' &&
+        (response.request().postData() ?? '').includes('marketing'),
+    );
+    await variantSelect.selectOption({ label: 'Marketing' });
+    await marketingAutoSave;
+    await canvas.publishAllChanges();
+
+    // Navigate to the default page without reloading the application. Its
+    // template field must not retain the Marketing page's form state.
+    await canvas.openPagesPanel();
+    await page
+      .getByText('Default template page /default-template-page')
+      .click();
+    await expect(page).toHaveURL(
+      new RegExp(`/canvas/editor/canvas_page/${defaultPage.entity_id}$`),
+    );
+    variantSelect = await openPageTemplateSelect();
+    await expect(variantSelect).toHaveValue('_none');
+
+    // Switching in both directions must always show the routed page's value.
+    await page
+      .getByText('Marketing template page /marketing-template-page')
+      .click();
+    variantSelect = await openPageTemplateSelect();
+    await expect(variantSelect).toHaveValue('marketing');
+    await page
+      .getByText('Default template page /default-template-page')
+      .click();
+    variantSelect = await openPageTemplateSelect();
+    await expect(variantSelect).toHaveValue('_none');
+
+    // Changing another field must submit this page's template selection, not
+    // the value retained from the page visited immediately before it.
+    const defaultTitleAutoSave = page.waitForRequest(
+      (request) =>
+        request.url().includes('/canvas/api/v0/layout/canvas_page/') &&
+        request.method() === 'POST' &&
+        (request.postData() ?? '').includes('Renamed default template page'),
+    );
+    await page.getByLabel('Title').fill('Renamed default template page');
+    const defaultTitleFields = (await defaultTitleAutoSave).postDataJSON()
+      .entity_form_fields;
+    expect(
+      Object.entries(defaultTitleFields)
+        .filter(([key]) => key.startsWith('page_variant'))
+        .map(([, value]) => value),
+    ).not.toContain('marketing');
+
+    // A page created through the SPA starts with the site default even when
+    // the previously visited page had an explicit selection.
+    await page
+      .getByText('Marketing template page /marketing-template-page')
+      .click();
+    await page.getByTestId('canvas-navigation-button').click();
+    await page.getByTestId('canvas-navigation-new-button').click();
+    await page.getByTestId('canvas-navigation-new-page-button').click();
+    await canvas.waitForEditorUi();
+    variantSelect = await openPageTemplateSelect();
+    await expect(variantSelect).toHaveValue('_none');
+
+    const newPageTitleAutoSave = page.waitForRequest(
+      (request) =>
+        request.url().includes('/canvas/api/v0/layout/canvas_page/') &&
+        request.method() === 'POST' &&
+        (request.postData() ?? '').includes('Fresh default template page'),
+    );
+    await page.getByLabel('Title').fill('Fresh default template page');
+    const newPageTitleFields = (await newPageTitleAutoSave).postDataJSON()
+      .entity_form_fields;
+    expect(
+      Object.entries(newPageTitleFields)
+        .filter(([key]) => key.startsWith('page_variant'))
+        .map(([, value]) => value),
+    ).not.toContain('marketing');
+  });
+
   test('selecting and clearing a page template updates the preview before publishing', async ({
     page,
     drupal,

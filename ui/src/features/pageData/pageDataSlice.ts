@@ -11,6 +11,16 @@ export interface PageDataState extends Values {}
 
 const initialState: PageDataState = {};
 
+export interface PageDataOwner {
+  entityType: string;
+  entityId: string;
+}
+
+interface InitialPageData {
+  values: Values;
+  owner: PageDataOwner | null;
+}
+
 export interface StateWithHistoryWrapper {
   pageData: StateWithHistory<PageDataState>;
 }
@@ -19,21 +29,17 @@ export const pageDataSlice = createSlice({
   name: 'pageData',
   initialState,
   reducers: (create) => ({
+    resetPageData: create.reducer(() => initialState),
     setPageData: create.reducer((state, action: PayloadAction<Values>) => {
       return {
         ...state,
         ...action.payload,
       };
     }),
-    // Identical to setPageData but just with a different type for ensuring this
-    // doesn't trigger an undo/redo action.
+    // Initial Page data is a complete snapshot. Replace the current state
+    // without creating an undo/redo action.
     setInitialPageData: create.reducer(
-      (state, action: PayloadAction<Values>) => {
-        return {
-          ...state,
-          ...action.payload,
-        };
-      },
+      (_state, action: PayloadAction<InitialPageData>) => action.payload.values,
     ),
     externalUpdateComplete: create.reducer(
       (state, action: PayloadAction<string>) => {
@@ -66,6 +72,7 @@ export const pageDataSlice = createSlice({
 });
 
 export const {
+  resetPageData,
   setPageData,
   setInitialPageData,
   updatePageDataExternally,
@@ -74,8 +81,27 @@ export const {
 
 export const pageDataReducer = pageDataSlice.reducer;
 
+// Keep ownership out of the editable values submitted to Drupal and tracked
+// by undo history.
+export const pageDataOwnerSlice = createSlice({
+  name: 'pageDataOwner',
+  initialState: null as PageDataOwner | null,
+  reducers: {},
+  extraReducers: (builder) => {
+    builder
+      .addCase(setInitialPageData, (_state, action) => action.payload.owner)
+      .addCase(resetPageData, () => null);
+  },
+});
+
+export const pageDataOwnerReducer = pageDataOwnerSlice.reducer;
+
 export const selectPageData = (state: StateWithHistoryWrapper) =>
   state.pageData.present;
 
 export const selectPageDataHistory = (state: StateWithHistoryWrapper) =>
   state.pageData;
+
+export const selectPageDataOwner = (state: {
+  pageDataOwner: PageDataOwner | null;
+}) => state.pageDataOwner;
