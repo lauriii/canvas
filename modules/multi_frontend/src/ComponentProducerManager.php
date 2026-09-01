@@ -45,7 +45,10 @@ final class ComponentProducerManager extends DefaultPluginManager {
     // "schema" are therefore never ambiguous with a producer ID in a URL.
     // @see \Drupal\multi_frontend\Routing\ComponentApiRoutes
     if (!str_contains((string) $plugin_id, '.')) {
-      throw new \LogicException(\sprintf('The component producer "%s" must have an ID containing a dot, such as "album.photo".', $plugin_id));
+      throw new InvalidPluginDefinitionException(
+        (string) $plugin_id,
+        \sprintf('The component producer "%s" must have an ID containing a dot, such as "album.photo".', $plugin_id),
+      );
     }
   }
 

@@ -18,10 +18,10 @@ use Drupal\multi_frontend\ComponentProducerManager;
  * something a developer's toolchain can consume.
  *
  * Schemas are stamped draft-07 rather than the draft-04 core's metadata
- * schema declares. A props schema fragment carries no dialect today, so this is a
- * decision about what to stamp rather than a bug to fix, and draft-07 is what
- * a default Ajv install validates with no extra package and what contains
- * every keyword this ecosystem already uses.
+ * schema declares. A props schema fragment carries no dialect today, so this
+ * is a decision about what to stamp rather than a bug to fix. Draft-07 is
+ * what a default Ajv install validates with no extra package, and what
+ * contains every keyword this ecosystem already uses.
  */
 final class SchemaPublisher {
 

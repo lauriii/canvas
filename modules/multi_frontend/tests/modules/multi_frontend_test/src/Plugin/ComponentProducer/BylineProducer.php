@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\multi_frontend_test\Plugin\ComponentProducer;
 
-use Drupal\user\UserInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\multi_frontend\Attribute\ComponentProducer;
 use Drupal\multi_frontend\ComponentProducerBase;
 use Drupal\multi_frontend\ProducerContext;
+use Drupal\user\UserInterface;
 
 /**
  * Produces a byline for a user.
