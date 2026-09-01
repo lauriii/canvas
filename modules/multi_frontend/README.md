@@ -105,10 +105,22 @@ on:
 
 - **Kernel tests** cover the producer feeding both the Twig render and the
   envelope node, serializable values, cacheability collected during production,
-  cache keys computable before the producer runs, per-field access, text-format
-  filtering, unconditional prop validation, the two-node union, slots holding
-  nodes, byte-identity between a component fetched alone and the same node read
-  from a page, and the published schema.
+  cache keys computable before the producer runs, a render cache hit never
+  reaching the producer, per-field access, text-format filtering, unconditional
+  prop validation, the two-node union, slots holding nodes, byte-identity
+  between a component fetched alone and the same node read from a page, and the
+  published schema.
+
+  Note that Canvas CI does **not** run them: its Kernel job is scoped to
+  `tests/src/Kernel/Config` on purpose, to prove the suite executes without a
+  multi-hour run. A green Kernel check on a pull request says nothing about
+  this directory. Run them explicitly, and in batches on a memory-constrained
+  machine, because a single invocation of all of them under
+  `RunTestsInSeparateProcesses` needs more than a 1 GiB container has:
+
+      vendor/bin/phpunit -c web/core/phpunit.xml.dist \
+        --filter 'testFieldAccessIsApplied|testFormattedTextIsFiltered' \
+        <path>/modules/multi_frontend/tests/src/Kernel/ComponentProducerTest.php
 - **Live endpoints**, all returning 200 with the documented shape:
   `/component-api/schema`, `/component-api/schema/album.photo`,
   `/component-api/schema/_envelope`, `/component-api/album.photo/1`, and
