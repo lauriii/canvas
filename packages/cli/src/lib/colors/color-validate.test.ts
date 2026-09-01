@@ -86,6 +86,21 @@ describe('validateColorsConfig', () => {
     }
   });
 
+  it('rejects unknown token and wrapper properties', () => {
+    expect(
+      errorsFor({
+        bad: {
+          colorSpace: 'srgb',
+          components: [0, 0, 0],
+          opacity: 0.5,
+        } as never,
+      }),
+    ).toContain('unknown color object property "opacity"');
+    expect(
+      errorsFor({ bad: { value: '#cc0000', displayName: 'Bad' } as never }),
+    ).toContain('unknown property "displayName"');
+  });
+
   it('rejects an invalid stored hex on a token object', () => {
     const message = errorsFor({
       bad: { colorSpace: 'srgb', components: [0, 0, 0], hex: '#cc000080' },

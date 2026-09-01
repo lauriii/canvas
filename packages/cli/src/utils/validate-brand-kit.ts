@@ -23,9 +23,25 @@ export async function validateBrandKit(
   let raw: string;
   try {
     raw = await fs.readFile(configPath, 'utf-8');
-  } catch {
-    // The brand kit file is optional.
-    return { results: [] };
+  } catch (error) {
+    // The brand kit file is optional, but only when it is actually absent;
+    // a permissions or I/O failure must not pass as a valid file.
+    if ((error as NodeJS.ErrnoException)?.code === 'ENOENT') {
+      return { results: [] };
+    }
+    return {
+      results: [
+        {
+          itemName: BRAND_KIT_CONFIG_FILENAME,
+          success: false,
+          details: [
+            {
+              content: `Could not read the file: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        },
+      ],
+    };
   }
 
   let parsed: unknown;

@@ -45,6 +45,16 @@ function itemName(name: string, cssVariable: string): string {
 }
 
 /**
+ * The map key for a server variable. Usually the variable without its `--`
+ * prefix, but a variable like `----brand` must keep its full spelling: its
+ * sliced form starts with `--` and would normalize to a different variable.
+ */
+function variableToKey(cssVariable: string): string {
+  const bare = cssVariable.slice(2);
+  return bare.startsWith('--') ? cssVariable : bare;
+}
+
+/**
  * Serializes a server color into a hand-editable map entry: the plain CSS
  * string when lossless (in the form matching the editor's display format,
  * so the string carries the format), wrapped in an object only when the
@@ -155,7 +165,7 @@ export function planColorPull(
         unchanged++;
         continue;
       }
-      const key = remote.cssVariable.slice(2);
+      const key = variableToKey(remote.cssVariable);
       nextColors[key] = toFileValue(remote, key);
       added.push(itemName(remote.name, remote.cssVariable));
       addedCount++;
@@ -178,7 +188,7 @@ export function planColorPull(
 
   for (const remote of remoteColors) {
     const local = localByVariable.get(remote.cssVariable);
-    const key = remote.cssVariable.slice(2);
+    const key = variableToKey(remote.cssVariable);
     if (local === undefined) {
       nextColors[key] = toFileValue(remote, key);
       added.push(itemName(remote.name, remote.cssVariable));

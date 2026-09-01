@@ -155,10 +155,12 @@ export function parseHexColor(value: string): ColorTokenValue | null {
   };
 }
 
+// Strict decimal tokens: `parseFloat()` consumes only a valid prefix, so a
+// permissive `[\d.]+` would accept junk like "0.5.6" and quietly truncate.
 const RGB_PATTERN =
-  /^rgba?\(\s*(\d{1,3})\s*(?:,|\s)\s*(\d{1,3})\s*(?:,|\s)\s*(\d{1,3})\s*(?:(?:,|\/)\s*([\d.]+%?)\s*)?\)$/;
+  /^rgba?\(\s*(\d{1,3})\s*(?:,|\s)\s*(\d{1,3})\s*(?:,|\s)\s*(\d{1,3})\s*(?:(?:,|\/)\s*((?:\d+(?:\.\d+)?|\.\d+)%?)\s*)?\)$/;
 const HSL_PATTERN =
-  /^hsla?\(\s*(-?[\d.]+)(?:deg)?\s*(?:,|\s)\s*(-?[\d.]+)%\s*(?:,|\s)\s*(-?[\d.]+)%\s*(?:(?:,|\/)\s*([\d.]+%?)\s*)?\)$/;
+  /^hsla?\(\s*(-?(?:\d+(?:\.\d+)?|\.\d+))(?:deg)?\s*(?:,|\s)\s*(-?(?:\d+(?:\.\d+)?|\.\d+))%\s*(?:,|\s)\s*(-?(?:\d+(?:\.\d+)?|\.\d+))%\s*(?:(?:,|\/)\s*((?:\d+(?:\.\d+)?|\.\d+)%?)\s*)?\)$/;
 
 function parseAlphaString(raw: string | undefined): number | null {
   if (raw === undefined) {

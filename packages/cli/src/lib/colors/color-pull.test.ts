@@ -204,6 +204,16 @@ describe('planColorPull', () => {
     expect(plan.changed).toBe(true);
   });
 
+  it('preserves the full spelling of a variable whose sliced key would collapse', () => {
+    // `----brand` is a valid custom property; its sliced key `--brand`
+    // would normalize back to a different variable.
+    const plan = planColorPull(
+      [remoteColor({ cssVariable: '----brand', name: 'Brand' })],
+      undefined,
+    );
+    expect(Object.keys(plan.colors)).toEqual(['----brand']);
+  });
+
   it('keeps and reports entries with invalid keys instead of dropping them', () => {
     const plan = planColorPull([], { '1bad': '#cc0000' });
     expect(plan.colors).toEqual({ '1bad': '#cc0000' });

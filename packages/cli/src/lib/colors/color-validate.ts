@@ -8,6 +8,17 @@ import type { BrandKitColorsFileMap } from '@drupal-canvas/discovery';
 
 const COLOR_SPACES: ReadonlySet<string> = new Set(['srgb', 'hsl']);
 const DISPLAY_FORMATS: ReadonlySet<string> = new Set(['rgb', 'hex', 'hsl']);
+const TOKEN_KEYS: ReadonlySet<string> = new Set([
+  'colorSpace',
+  'components',
+  'alpha',
+  'hex',
+]);
+const WRAPPER_KEYS: ReadonlySet<string> = new Set([
+  'value',
+  'name',
+  'displayFormat',
+]);
 
 /** Server-side pattern for the stored six-digit hex on a token object. */
 const STORED_HEX_PATTERN = /^#[0-9a-fA-F]{6}$/;
@@ -67,6 +78,13 @@ function validateTokenObject(
     if (typeof hex !== 'string' || !STORED_HEX_PATTERN.test(hex)) {
       errors.push(
         `${label}: invalid "hex": ${JSON.stringify(hex)}. Expected a 6-digit hex color like "#cc0000".`,
+      );
+    }
+  }
+  for (const key of Object.keys(value)) {
+    if (!TOKEN_KEYS.has(key)) {
+      errors.push(
+        `${label}: unknown color object property "${key}". Expected only: colorSpace, components, alpha, hex.`,
       );
     }
   }
@@ -197,6 +215,13 @@ export function collectColorConfigErrors(
         errors.push(
           `${label}: invalid "displayFormat": ${JSON.stringify(displayFormat)}. Expected one of: rgb, hex, hsl.`,
         );
+      }
+      for (const key of Object.keys(wrapper)) {
+        if (!WRAPPER_KEYS.has(key)) {
+          errors.push(
+            `${label}: unknown property "${key}". Expected only: value, name, displayFormat.`,
+          );
+        }
       }
       validateValue(label, wrapper.value, errors);
     } else {
