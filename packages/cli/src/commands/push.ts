@@ -8,7 +8,12 @@ import {
   discoverCanvasProject,
 } from '@drupal-canvas/discovery';
 
-import { ensureConfig, getConfig, parseBooleanSetting } from '../config.js';
+import {
+  ensureBrandKitFileReadable,
+  ensureConfig,
+  getConfig,
+  parseBooleanSetting,
+} from '../config.js';
 import {
   buildColorPushPlannedResults,
   pushColors,
@@ -745,13 +750,16 @@ export function pushCommand(program: Command): void {
         applySyncOptionAliasesAndWarnings(options);
         updateConfigFromOptions(options);
 
-        // Validate the brand kit colors file at command start — before
+        // Validate the brand kit file at command start — before
         // authentication (which can prompt), discovery, and any request —
         // so a malformed file cannot cause a partial push.
         {
           const earlyConfig = getConfig();
-          if (earlyConfig.includeBrandKit && earlyConfig.colors !== undefined) {
-            validateColorsConfig(earlyConfig.colors);
+          if (earlyConfig.includeBrandKit) {
+            ensureBrandKitFileReadable();
+            if (earlyConfig.colors !== undefined) {
+              validateColorsConfig(earlyConfig.colors);
+            }
           }
         }
 

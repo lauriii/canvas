@@ -114,6 +114,22 @@ export interface BrandKitConfigFile {
   colors?: BrandKitColorsFileMap;
 }
 
+/** Parse error for canvas.brand-kit.json, reported by the commands that
+ * need the file rather than thrown at module load (which would take down
+ * every command, including `validate`, whose job is reporting it). */
+let brandKitFileError: string | undefined;
+
+/**
+ * Throws the stored canvas.brand-kit.json parse error, if any. Commands
+ * that sync the brand kit call this up front so a broken file fails with
+ * its message instead of being silently treated as unmanaged.
+ */
+export function ensureBrandKitFileReadable(): void {
+  if (brandKitFileError !== undefined) {
+    throw new Error(brandKitFileError);
+  }
+}
+
 function loadBrandKitFile(hostRoot: string): BrandKitConfigFile {
   const configPath = path.resolve(hostRoot, BRAND_KIT_CONFIG_FILENAME);
   if (!fs.existsSync(configPath)) {
@@ -130,7 +146,8 @@ function loadBrandKitFile(hostRoot: string): BrandKitConfigFile {
         : err instanceof Error
           ? err.message
           : String(err);
-    throw new Error(`Invalid JSON in ${BRAND_KIT_CONFIG_FILENAME}: ${message}`);
+    brandKitFileError = `Invalid JSON in ${BRAND_KIT_CONFIG_FILENAME}: ${message}`;
+    return {};
   }
   const result: BrandKitConfigFile = {};
   const fonts = parsed?.fonts;

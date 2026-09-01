@@ -70,6 +70,14 @@ describe('validateBrandKit', () => {
     expect(results[0].details?.[0].content).toContain('Invalid JSON');
   });
 
+  it('rejects a mistyped top-level key', async () => {
+    await writeBrandKit({ color: { 'brand-red': '#cc0000' } });
+    const { results } = await validateBrandKit(tmpDir);
+    expect(results[0].success).toBe(false);
+    const contents = (results[0].details ?? []).map((d) => d.content);
+    expect(contents.join('\n')).toContain('color');
+  });
+
   it('reports schema violations such as a mistyped wrapper property', async () => {
     await writeBrandKit({
       colors: { accent: { value: '#00cc00', label: 'not a wrapper field' } },

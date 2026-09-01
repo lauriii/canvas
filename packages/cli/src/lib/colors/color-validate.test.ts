@@ -120,6 +120,14 @@ describe('validateColorsConfig', () => {
     expect(message).toContain('"primary-a"');
   });
 
+  it('rejects a separator-only key that derives no display name', () => {
+    const message = errorsFor({ _: '#cc0000' });
+    expect(message).toContain('no display name can be derived');
+    expect(message).toContain('"name"');
+    // A wrapper name fixes it.
+    expect(errorsFor({ _: { value: '#cc0000', name: 'Underscore' } })).toBe('');
+  });
+
   it('rejects an explicit name colliding with a derived one', () => {
     const message = errorsFor({
       'brand-red': '#cc0000',

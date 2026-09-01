@@ -65,6 +65,7 @@
       "additionalProperties": false
     }
   },
+  "additionalProperties": false,
   "$defs": {
     "cssColorString": {
       "type": "string",

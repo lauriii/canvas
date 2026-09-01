@@ -157,6 +157,13 @@ export function collectColorConfigErrors(
         : undefined;
     const effectiveName = explicitName ?? deriveColorName(key);
     const normalizedName = effectiveName.trim().toLowerCase();
+    if (normalizedName === '') {
+      // A key of only separators (like "_" or "-") derives no display name,
+      // and the server requires one.
+      errors.push(
+        `${label}: no display name can be derived from this key; set "name" in the wrapper form, like { "value": "#cc0000", "name": "My color" }.`,
+      );
+    }
     if (normalizedName !== '') {
       const existingName = seenNames.get(normalizedName);
       if (existingName !== undefined) {
