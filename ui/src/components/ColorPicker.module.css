@@ -189,7 +189,7 @@
   flex-direction: row;
   align-items: flex-end;
   gap: 6px;
-  width: 207px;
+  width: 100%;
   font-size: 12px;
   line-height: 16px;
 }
