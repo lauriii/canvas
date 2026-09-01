@@ -473,7 +473,11 @@ const CanvasColorPickerField = ({
   // Render top-level colors (no folder)
   const renderTopLevelColors = () => {
     if (filteredTopLevel.length === 0) return null;
-    return filteredTopLevel.map(renderColorRow);
+    return (
+      <div className={styles.topLevelColors}>
+        {filteredTopLevel.map(renderColorRow)}
+      </div>
+    );
   };
 
   // Show free color picker?
@@ -540,7 +544,7 @@ const CanvasColorPickerField = ({
           <Popover.Content
             side="left"
             align="start"
-            sideOffset={4}
+            sideOffset={21}
             className={styles.popoverContent}
           >
             {/* Main header */}
