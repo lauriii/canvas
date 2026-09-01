@@ -66,7 +66,25 @@ final class ProducerInvoker {
       $cacheability->addCacheableDependency($render_context->pop());
     }
 
-    $this->componentValidator->validateProps($props, $this->componentManager->createInstance($producer->getComponentId()));
+    $component_id = $producer->getComponentId();
+    $definition = $this->componentManager->getDefinition($component_id);
+
+    // An optional prop with no value is an absent prop, not a null one. This
+    // matters more than it looks: a prop populated from an access-controlled
+    // field is NULL exactly when the viewer may not see it, and a schema that
+    // types it as a string would then refuse to render the whole component
+    // for that viewer. Dropping the key is what JSON Schema means by optional,
+    // and it keeps a producer from having to build its return array
+    // conditionally, which is the render-array awkwardness this replaces.
+    // A required prop that is NULL still fails validation, loudly.
+    $required = $definition['props']['required'] ?? [];
+    $props = \array_filter(
+      $props,
+      static fn (mixed $value, string $name): bool => $value !== NULL || \in_array($name, $required, TRUE),
+      ARRAY_FILTER_USE_BOTH,
+    );
+
+    $this->componentValidator->validateProps($props, $this->componentManager->createInstance($component_id));
 
     return $props;
   }

@@ -192,7 +192,7 @@ final class ComponentProducerTest extends KernelTestBase {
     $cacheability = new CacheableMetadata();
     $allowed = $this->container->get(ProducerInvoker::class)
       ->produceNode('multi_frontend_test.card', $this->node, $cacheability);
-    $this->assertNotNull($allowed->props['summary']);
+    $this->assertNotEmpty($allowed->props['summary']);
 
     \Drupal::state()->set('multi_frontend_test.deny_body', TRUE);
     \Drupal::entityTypeManager()->getStorage('node')->resetCache();
@@ -202,7 +202,7 @@ final class ComponentProducerTest extends KernelTestBase {
     $denied = $this->container->get(ProducerInvoker::class)
       ->produceNode('multi_frontend_test.card', $node, $denied_cacheability);
 
-    $this->assertNull($denied->props['summary']);
+    $this->assertArrayNotHasKey('summary', $denied->props);
     // The access result's cacheability came along, so the response varies on
     // whatever the check varied on.
     $this->assertContains('multi_frontend_test.deny_body', $denied->getCacheTags());
@@ -226,16 +226,48 @@ final class ComponentProducerTest extends KernelTestBase {
    * Invalid props are rejected unconditionally, not behind assert().
    */
   public function testInvalidPropsAreRejectedWithoutAssertions(): void {
-    $this->node->setTitle('')->save();
     $invoker = $this->container->get(ProducerInvoker::class);
 
     // Core's SDC validation runs behind assert(), which core's own
     // documentation tells sites to compile out in production. The producer
     // path validates unconditionally: the exception below is thrown by a
-    // direct call, not by an assertion.
+    // direct call, not by an assertion. The broken producer returns a
+    // formatted date where the schema says format: date-time, which is
+    // precisely the thing the contract exists to stop crossing the boundary.
     $this->expectException(InvalidComponentException::class);
-    $this->expectExceptionMessageMatches('/title/');
-    $invoker->produceProps('multi_frontend_test.card', $this->node, new CacheableMetadata());
+    $this->expectExceptionMessageMatches('/createdAt/');
+    $invoker->produceProps('multi_frontend_test.broken_card', $this->node, new CacheableMetadata());
+  }
+
+  /**
+   * One component, two producers: the registry is keyed for it.
+   */
+  public function testTwoProducersForOneComponent(): void {
+    $definitions = $this->container->get('plugin.manager.component_producer')->getDefinitions();
+
+    $this->assertSame('multi_frontend_test:card', $definitions['multi_frontend_test.card']['component']);
+    $this->assertSame('multi_frontend_test:card', $definitions['multi_frontend_test.broken_card']['component']);
+  }
+
+  /**
+   * An optional prop with no value is absent, not null.
+   *
+   * A prop populated from an access-controlled field is NULL exactly when the
+   * viewer may not see it. Passing NULL to a prop the schema types as a
+   * string would refuse to render the component for that viewer, which turns
+   * an access rule into a broken page.
+   */
+  public function testOptionalNullPropIsOmitted(): void {
+    \Drupal::state()->set('multi_frontend_test.deny_body', TRUE);
+    $storage = \Drupal::entityTypeManager()->getStorage('node');
+    $storage->resetCache();
+    $node = $storage->load((int) $this->node->id());
+
+    $props = $this->container->get(ProducerInvoker::class)
+      ->produceProps('multi_frontend_test.card', $node, new CacheableMetadata());
+
+    $this->assertArrayNotHasKey('summary', $props);
+    $this->assertArrayHasKey('title', $props);
   }
 
   /**
