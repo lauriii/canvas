@@ -221,6 +221,54 @@ export async function pushColors(
     }
   }
 
+  // The site requires unique display names, so check every name that will
+  // exist after this push — intended local names plus names retained on the
+  // server (kept server-only colors and refused prune deletions) — before
+  // any create or update, so a collision is one named error rather than a
+  // server rejection after earlier mutations.
+  {
+    const finalNames = new Map<string, string>();
+    const collisions: string[] = [];
+    const claim = (rawName: string, label: string) => {
+      const normalized = rawName.trim().toLowerCase();
+      if (normalized === '') {
+        return;
+      }
+      const holder = finalNames.get(normalized);
+      if (holder !== undefined) {
+        collisions.push(`"${rawName}" is used by both ${holder} and ${label}.`);
+        return;
+      }
+      finalNames.set(normalized, label);
+    };
+    for (const local of locals) {
+      const existing = remoteByVariable.get(local.cssVariable);
+      const finalName = assertedName(local) ?? existing?.name ?? local.name;
+      claim(finalName, itemName(finalName, local.cssVariable));
+    }
+    const refusedPruneVariables = new Set(
+      outcomes
+        .filter((o) => o.operation === 'delete' && !o.success)
+        .map((o) => o.itemName),
+    );
+    for (const color of serverOnly) {
+      const kept =
+        !options.pruneColors ||
+        refusedPruneVariables.has(itemName(color.name, color.cssVariable));
+      if (kept) {
+        claim(
+          color.name,
+          `${itemName(color.name, color.cssVariable)} (on the site, not in the file)`,
+        );
+      }
+    }
+    if (collisions.length > 0) {
+      throw new Error(
+        `Color name conflicts (the site requires unique color names, compared case-insensitively):\n${collisions.join('\n')}`,
+      );
+    }
+  }
+
   for (let index = 0; index < locals.length; index++) {
     const local = locals[index];
     const token = local.token as ColorTokenValue;

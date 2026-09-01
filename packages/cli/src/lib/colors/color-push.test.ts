@@ -269,6 +269,51 @@ describe('pushColors', () => {
     expect(api.updateColor).toHaveBeenCalledWith('uuid-red', { weight: 1 });
   });
 
+  it('rejects a new color whose name collides with a retained server-only color', async () => {
+    const api = mockApi([remoteColor()]);
+    await expect(
+      pushColors({ accent: { value: '#0000cc', name: ' BRAND red ' } }, api),
+    ).rejects.toThrow('Color name conflicts');
+    expect(api.createColor).not.toHaveBeenCalled();
+    expect(api.updateColor).not.toHaveBeenCalled();
+  });
+
+  it('rejects a rename that collides with a retained remote name', async () => {
+    // --brand-blue stays on the server (not in the file), so renaming
+    // --brand-red to its name must fail before any update.
+    const api = mockApi([remoteColor(), remoteBlue({ weight: 1 })]);
+    await expect(
+      pushColors(
+        { 'brand-red': { value: '#cc0000', name: 'Brand Blue' } },
+        api,
+      ),
+    ).rejects.toThrow('Color name conflicts');
+    expect(api.updateColor).not.toHaveBeenCalled();
+  });
+
+  it('allows a name freed by a successful prune', async () => {
+    const api = mockApi([remoteColor()]);
+    const result = await pushColors(
+      { accent: { value: '#0000cc', name: 'Brand Red' } },
+      api,
+      { pruneColors: true },
+    );
+    expect(result).toMatchObject({ deleted: 1, created: 1 });
+  });
+
+  it('rejects a name still held by a refused prune deletion', async () => {
+    const api = mockApi([remoteColor()]);
+    vi.mocked(api.deleteColor).mockRejectedValue(
+      new Error('This color is in use and cannot be deleted.'),
+    );
+    await expect(
+      pushColors({ accent: { value: '#0000cc', name: 'Brand Red' } }, api, {
+        pruneColors: true,
+      }),
+    ).rejects.toThrow('Color name conflicts');
+    expect(api.createColor).not.toHaveBeenCalled();
+  });
+
   it('rejects two colors sharing a name before contacting the site', async () => {
     const api = mockApi([]);
     await expect(
