@@ -9,7 +9,11 @@ import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map';
 import { FORM_TYPES } from '@/features/form/constants';
 import { selectFormValues } from '@/features/form/formStateSlice';
 import { setUpdatePreview } from '@/features/layout/layoutModelSlice';
-import { selectPageData, setPageData } from '@/features/pageData/pageDataSlice';
+import {
+  selectPageData,
+  selectPageDataOwner,
+  setPageData,
+} from '@/features/pageData/pageDataSlice';
 import { useDrupalBehaviors } from '@/hooks/useDrupalBehaviors';
 import { useEditorNavigation } from '@/hooks/useEditorNavigation';
 import hyperscriptify from '@/local_packages/hyperscriptify';
@@ -29,6 +33,7 @@ import styles from '@/components/PageDataForm.module.css';
 
 const PageDataFormRenderer = () => {
   const pageData = useAppSelector(selectPageData);
+  const pageDataOwner = useAppSelector(selectPageDataOwner);
   const { showBoundary } = useErrorBoundary();
   const [jsxFormContent, setJsxFormContent] =
     useState<React.ReactElement | null>(null);
@@ -93,6 +98,9 @@ const PageDataFormRenderer = () => {
   useDrupalBehaviors(formRef, jsxFormContent, loading);
 
   const pageDataExists = !!Object.keys(pageData).length;
+  const pageDataIsCurrent =
+    pageDataOwner?.entityType === entityType &&
+    pageDataOwner?.entityId === entityId;
 
   useEffect(() => {
     if (error) {
@@ -107,12 +115,12 @@ const PageDataFormRenderer = () => {
   }, [refetch, entityId, entityType]);
 
   useEffect(() => {
-    // If the HTML for the form has not yet loaded OR the JSON for the page data
-    // has not, don't render the form.
+    // If the HTML for the form has not yet loaded OR the JSON for the current
+    // page data has not, don't render the form.
     // Were we pulling this data *directly* from an API, doing this would be
     // best accomplished by the isLoading property provided by RTK. This serves
     // the same purpose without adding complexity to our reducers.
-    if (!formTemplate || !pageDataExists) {
+    if (!formTemplate || !pageDataIsCurrent) {
       return;
     }
 
@@ -136,7 +144,13 @@ const PageDataFormRenderer = () => {
         )}
       </div>,
     );
-  }, [formTemplate, pageDataExists, interceptEditTemplateLink]);
+  }, [
+    entityId,
+    entityType,
+    formTemplate,
+    pageDataIsCurrent,
+    interceptEditTemplateLink,
+  ]);
 
   useEffect(() => {
     const ajaxUpdateFormStateListener: (

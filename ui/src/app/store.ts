@@ -18,7 +18,9 @@ import {
 } from '@/features/layout/layoutModelSlice';
 import { notificationsSlice } from '@/features/notifications/notificationsSlice';
 import {
+  pageDataOwnerReducer,
   pageDataReducer,
+  resetPageData,
   setInitialPageData,
 } from '@/features/pageData/pageDataSlice';
 import { previewSlice } from '@/features/pagePreview/previewSlice';
@@ -138,12 +140,14 @@ const rootReducer = combineSlices(
           const { present } = previousHistory;
           return (
             Object.keys(present).length > 0 &&
-            action.type !== setInitialPageData.type
+            action.type !== setInitialPageData.type &&
+            action.type !== resetPageData.type
           );
         },
       }),
       'pageData',
     ),
+    pageDataOwner: pageDataOwnerReducer,
   },
   patternApi,
   pageVariantsApi,
@@ -209,11 +213,11 @@ const undoRedoActionIdMiddleware: Middleware<{}, RootState> =
       type === setInitialLayoutModel.type ||
       type === setTranslations.type ||
       type === setInitialPageData.type ||
+      type === resetPageData.type ||
       type === setInitialized.type
     ) {
-      // Ignore initial actions that set the state of the model or page data
-      // from the return of API responses. The user should not be able to undo
-      // or redo these actions.
+      // Ignore actions that initialize or reset editor state outside user
+      // edits. They should not appear in the user-facing undo/redo history.
       return next(action);
     }
     const [slice] = type.split('/');
