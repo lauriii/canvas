@@ -160,14 +160,16 @@ export function parseHexColor(value: string): ColorTokenValue | null {
 // permissive `[\d.]+` would accept junk like "0.5.6" and quietly truncate.
 // Legacy comma syntax and modern space-and-slash syntax are separate
 // patterns, matching CSS: mixed forms like `rgb(1, 2 3)` are invalid.
+// Function names are case-insensitive and rgb() channels follow the CSS
+// <number-percentage> grammar, fractions included.
 const RGB_LEGACY_PATTERN =
-  /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*((?:\d+(?:\.\d+)?|\.\d+)%?)\s*)?\)$/;
+  /^rgba?\(\s*((?:\d{1,3}(?:\.\d+)?|\.\d+)%?)\s*,\s*((?:\d{1,3}(?:\.\d+)?|\.\d+)%?)\s*,\s*((?:\d{1,3}(?:\.\d+)?|\.\d+)%?)\s*(?:,\s*((?:\d+(?:\.\d+)?|\.\d+)%?)\s*)?\)$/i;
 const RGB_MODERN_PATTERN =
-  /^rgba?\(\s*(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})\s*(?:\/\s*((?:\d+(?:\.\d+)?|\.\d+)%?)\s*)?\)$/;
+  /^rgba?\(\s*((?:\d{1,3}(?:\.\d+)?|\.\d+)%?)\s+((?:\d{1,3}(?:\.\d+)?|\.\d+)%?)\s+((?:\d{1,3}(?:\.\d+)?|\.\d+)%?)\s*(?:\/\s*((?:\d+(?:\.\d+)?|\.\d+)%?)\s*)?\)$/i;
 const HSL_LEGACY_PATTERN =
-  /^hsla?\(\s*(-?(?:\d+(?:\.\d+)?|\.\d+))(?:deg)?\s*,\s*(-?(?:\d+(?:\.\d+)?|\.\d+))%\s*,\s*(-?(?:\d+(?:\.\d+)?|\.\d+))%\s*(?:,\s*((?:\d+(?:\.\d+)?|\.\d+)%?)\s*)?\)$/;
+  /^hsla?\(\s*(-?(?:\d+(?:\.\d+)?|\.\d+))(?:deg)?\s*,\s*(-?(?:\d+(?:\.\d+)?|\.\d+))%\s*,\s*(-?(?:\d+(?:\.\d+)?|\.\d+))%\s*(?:,\s*((?:\d+(?:\.\d+)?|\.\d+)%?)\s*)?\)$/i;
 const HSL_MODERN_PATTERN =
-  /^hsla?\(\s*(-?(?:\d+(?:\.\d+)?|\.\d+))(?:deg)?\s+(-?(?:\d+(?:\.\d+)?|\.\d+))%\s+(-?(?:\d+(?:\.\d+)?|\.\d+))%\s*(?:\/\s*((?:\d+(?:\.\d+)?|\.\d+)%?)\s*)?\)$/;
+  /^hsla?\(\s*(-?(?:\d+(?:\.\d+)?|\.\d+))(?:deg)?\s+(-?(?:\d+(?:\.\d+)?|\.\d+))%\s+(-?(?:\d+(?:\.\d+)?|\.\d+))%\s*(?:\/\s*((?:\d+(?:\.\d+)?|\.\d+)%?)\s*)?\)$/i;
 
 function parseAlphaString(raw: string | undefined): number | null {
   if (raw === undefined) {
@@ -195,13 +197,20 @@ export function parseCssColorString(
     return { token: hexToken, displayFormat: 'hex' };
   }
 
-  const rgbMatch =
-    RGB_LEGACY_PATTERN.exec(value) ?? RGB_MODERN_PATTERN.exec(value);
+  const rgbLegacyMatch = RGB_LEGACY_PATTERN.exec(value);
+  const rgbMatch = rgbLegacyMatch ?? RGB_MODERN_PATTERN.exec(value);
   if (rgbMatch) {
-    const channels = [rgbMatch[1], rgbMatch[2], rgbMatch[3]].map((c) =>
-      parseInt(c, 10),
+    const raw = [rgbMatch[1], rgbMatch[2], rgbMatch[3]];
+    // Legacy comma syntax requires all channels to share one type; the
+    // modern syntax may mix numbers and percentages (CSS Color 4).
+    const percentCount = raw.filter((c) => c.endsWith('%')).length;
+    if (rgbLegacyMatch && percentCount !== 0 && percentCount !== 3) {
+      return null;
+    }
+    const components = raw.map((c) =>
+      c.endsWith('%') ? Number.parseFloat(c) / 100 : Number.parseFloat(c) / 255,
     );
-    if (channels.some((c) => c > 255)) {
+    if (components.some((c) => !Number.isFinite(c) || c > 1)) {
       return null;
     }
     const alpha = parseAlphaString(rgbMatch[4]);
@@ -211,9 +220,9 @@ export function parseCssColorString(
     return {
       token: {
         colorSpace: 'srgb',
-        components: channels.map((c) => c / 255),
+        components,
         alpha,
-        hex: computedHex(channels.map((c) => c / 255)),
+        hex: computedHex(components),
       },
       displayFormat: 'rgb',
     };

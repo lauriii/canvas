@@ -117,6 +117,25 @@ describe('parseCssColorString', () => {
     );
   });
 
+  it('parses percentage channels, fractional channels, and uppercase names', () => {
+    expect(parseCssColorString('rgb(80%, 0%, 0%)')?.token.components).toEqual([
+      0.8, 0, 0,
+    ]);
+    expect(parseCssColorString('RGB(204, 0, 0)')?.token.components).toEqual([
+      204 / 255,
+      0,
+      0,
+    ]);
+    // Modern syntax may mix numbers and percentages (CSS Color 4).
+    expect(parseCssColorString('rgb(50% 0 0 / 0.5)')?.token.alpha).toBe(0.5);
+    expect(
+      parseCssColorString('rgb(204.6 0 0)')?.token.components[0],
+    ).toBeCloseTo(204.6 / 255);
+    expect(parseCssColorString('HSLA(220, 60%, 50%, 0.5)')?.token.alpha).toBe(
+      0.5,
+    );
+  });
+
   it('rejects out-of-range channels, alphas, percentages, and junk', () => {
     for (const bad of [
       'rgb(300, 0, 0)',
@@ -132,6 +151,9 @@ describe('parseCssColorString', () => {
       'hsl(220 60%, 50%)',
       'rgb(204, 0, 0 / 0.5)',
       'rgb(204 0 0, 0.5)',
+      'rgb(80%, 0, 0)',
+      'rgb(120%, 0%, 0%)',
+      'rgb(255.5 0 0)',
       'red',
       'var(--other)',
     ]) {
