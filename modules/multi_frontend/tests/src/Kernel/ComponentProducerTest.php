@@ -9,6 +9,7 @@ use Drupal\Core\Render\Component\Exception\InvalidComponentException;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\multi_frontend\ComponentProducerManager;
 use Drupal\multi_frontend\Element\ProducedComponent;
 use Drupal\multi_frontend\Envelope\ComponentNode;
 use Drupal\multi_frontend\Envelope\EnvelopeBuilder;
@@ -243,7 +244,7 @@ final class ComponentProducerTest extends KernelTestBase {
    * One component, two producers: the registry is keyed for it.
    */
   public function testTwoProducersForOneComponent(): void {
-    $definitions = $this->container->get('plugin.manager.component_producer')->getDefinitions();
+    $definitions = $this->container->get(ComponentProducerManager::class)->getDefinitions();
 
     $this->assertSame('multi_frontend_test:card', $definitions['multi_frontend_test.card']['component']);
     $this->assertSame('multi_frontend_test:card', $definitions['multi_frontend_test.broken_card']['component']);
