@@ -52,8 +52,9 @@ final class ComponentApiRoutes {
         [],
         ['GET'],
       );
-      // Route names may contain dots. Rewriting them to underscores is not
-      // injective: "foo.bar_baz" and "foo_bar.baz" would collide.
+      // Route names may contain dots. Rewriting them to underscores maps two
+      // different producers onto one name: "foo.bar_baz" and "foo_bar.baz"
+      // would collide, and one route would overwrite the other.
       $collection->add('multi_frontend.component.' . $id, $route);
     }
     return $collection;

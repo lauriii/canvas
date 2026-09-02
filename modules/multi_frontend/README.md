@@ -146,7 +146,7 @@ on:
   (unsaved entities, revisions, attributes), props that were never checked for
   the JSON round trip the interface promises, child nodes rebuilt from props
   alone, empty props encoding as `[]` where the schema requires an object,
-  non-injective route names, language contexts wrongly treated as URL-borne,
+  route names that collapsed two producers onto one name, language contexts wrongly treated as URL-borne,
   and discarded `GeneratedUrl` cacheability. `#variant` support was removed
   rather than repaired: the envelope had no way to express it, so the same
   call site would have selected a variant in Twig and not in JSON.
