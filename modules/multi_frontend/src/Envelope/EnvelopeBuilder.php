@@ -61,6 +61,9 @@ final class EnvelopeBuilder {
     }
 
     if (self::isPlainContainer($element) && self::containsProducedComponent($element)) {
+      // The container renders nothing itself, but its cacheability is still
+      // the page's, so it moves up rather than being dropped with it.
+      $cacheability->addCacheableDependency(CacheableMetadata::createFromRenderArray($element));
       $nodes = [];
       foreach (Element::children($element, TRUE) as $key) {
         $nodes = [...$nodes, ...$this->build($element[$key], $cacheability)];
@@ -85,13 +88,22 @@ final class EnvelopeBuilder {
   /**
    * Whether an element is a bare array of children that renders nothing itself.
    */
+  /**
+   * Properties that do not stop a container from being split.
+   *
+   * #cache is metadata rather than rendering: it is merged into the parent
+   * instead of blocking the descent, because otherwise a controller that does
+   * the correct thing and declares a list cache tag on its wrapper turns its
+   * whole page into one markup blob. Everything else with a "#" prefix,
+   * #prefix and #theme and #attached and #pre_render alike, changes what the
+   * subtree means or carries something the envelope has nowhere to put, so
+   * descending past it would silently drop it.
+   */
+  private const SPLITTABLE_PROPERTIES = ['#access', '#weight', '#sorted', '#printed', '#cache'];
+
   private static function isPlainContainer(array $element): bool {
-    // Anything with render properties of its own is not a bare container:
-    // #prefix, #attached, #cache, #pre_render and friends all change what the
-    // subtree means, and descending past them would silently drop them. Only
-    // #access (already handled), #weight and #sorted are safe to ignore.
     foreach (\array_keys($element) as $key) {
-      if (\is_string($key) && \str_starts_with($key, '#') && !\in_array($key, ['#access', '#weight', '#sorted'], TRUE)) {
+      if (\is_string($key) && \str_starts_with($key, '#') && !\in_array($key, self::SPLITTABLE_PROPERTIES, TRUE)) {
         return FALSE;
       }
     }

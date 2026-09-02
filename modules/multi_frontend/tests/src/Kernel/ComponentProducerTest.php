@@ -329,6 +329,51 @@ final class ComponentProducerTest extends KernelTestBase {
   }
 
   /**
+   * A wrapper carrying only #cache is still split into nodes.
+   *
+   * Found by pointing a real front end at this. A controller that does the
+   * correct thing and declares a list cache tag on the array it returns was
+   * turning its whole page into one markup blob, because #cache looked like
+   * a render property. It is metadata: it moves up to the parent instead of
+   * blocking the descent.
+   */
+  public function testContainerWithCacheMetadataIsStillSplit(): void {
+    $build = [
+      'a' => ProducedComponent::build('multi_frontend_test.card', $this->node),
+      'b' => ProducedComponent::build('multi_frontend_test.card', $this->node),
+      '#cache' => ['tags' => ['node_list']],
+    ];
+
+    $cacheability = new CacheableMetadata();
+    $nodes = $this->container->get(EnvelopeBuilder::class)->build($build, $cacheability);
+
+    $this->assertCount(2, $nodes);
+    $this->assertContainsOnlyInstancesOf(ComponentNode::class, $nodes);
+    // The wrapper's own cache tag survives the split.
+    $this->assertContains('node_list', $cacheability->getCacheTags());
+  }
+
+  /**
+   * A wrapper that renders something itself is not split.
+   */
+  public function testContainerThatRendersIsNotSplit(): void {
+    $build = [
+      '#type' => 'html_tag',
+      '#tag' => 'section',
+      'a' => ProducedComponent::build('multi_frontend_test.card', $this->node),
+    ];
+
+    $nodes = $this->container->get(EnvelopeBuilder::class)->build($build, new CacheableMetadata());
+
+    // Descending would have silently dropped the <section> wrapper, so the
+    // subtree is rendered whole instead. This is the containment limit the
+    // design names, and it is deliberate rather than accidental.
+    $this->assertCount(1, $nodes);
+    $this->assertInstanceOf(HtmlNode::class, $nodes[0]);
+    $this->assertStringContainsString('<section>', $nodes[0]->markup);
+  }
+
+  /**
    * A component node is the same whether fetched alone or read from a page.
    */
   public function testComponentNodeIsIdenticalInBothPlaces(): void {

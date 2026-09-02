@@ -127,6 +127,13 @@ on:
       vendor/bin/phpunit -c web/core/phpunit.xml.dist \
         --filter 'testFieldAccessIsApplied|testFormattedTextIsFiltered' \
         <path>/modules/multi_frontend/tests/src/Kernel/ComponentProducerTest.php
+- **A real front end.** An Astro site was built against a live site and
+  measured against JSON:API doing the same job: 7 lines of data code against
+  31, 1,600 bytes against 3,287, no hand-written types against all of them,
+  and zero client changes when the module added a field against two. It loses
+  to JSON:API on filtering, sorting and pagination, and on day-one entity
+  coverage, both by design (D7). The comparison, including two silent failures
+  the JSON:API version produced, is in the change's `examples.md`.
 - **Live endpoints**, all returning 200 with the documented shape:
   `/component-api/schema`, `/component-api/schema/album.photo`,
   `/component-api/schema/_envelope`, `/component-api/album.photo/1`, and
