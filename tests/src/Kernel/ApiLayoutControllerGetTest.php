@@ -20,6 +20,7 @@ use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\ParamConverter\ParamNotConvertedException;
+use Drupal\Core\Routing\RouteBuilderInterface;
 use Drupal\Core\Url;
 use Drupal\language\ConfigurableLanguageManagerInterface;
 use Drupal\language\Entity\ConfigurableLanguage;
@@ -882,6 +883,89 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
       'French is absent from available when config_translation is uninstalled.');
     self::assertArrayNotHasKey('fr', $json['translations']['links'],
       'Delete link is absent when config_translation is not installed.');
+  }
+
+  /**
+   * Page variant previews apply translation overrides; editing stays on base.
+   *
+   * The languages involved are unremarkable: the site default is English and
+   * so is the variant -- only a translation override exists. Requesting the
+   * layout at the language's negotiated URL (which is what the editor's
+   * `?canvas_preview_langcode` preview flow redirects to) must render the
+   * preview with the override applied, exactly what the front end serves for
+   * that language. The client model must NOT follow the language: Canvas
+   * operates on base config, so editing always edits the original.
+   *
+   * @see https://www.drupal.org/i/3592001
+   */
+  public function testPageVariantPreviewAppliesTranslationOverrides(): void {
+    $this->container->get(ModuleInstallerInterface::class)->install(['language', 'config_translation']);
+    ConfigurableLanguage::createFromLangcode('hu')->save();
+    // Allow requests to target `hu` via a URL prefix -- the shape the editor's
+    // language preview flow produces (`?canvas_preview_langcode` redirects
+    // through the site's configured negotiation). The container must be
+    // rebuilt so the URL language negotiator picks up the prefixes.
+    // @see \Drupal\Tests\canvas\Kernel\ApiAutoSaveControllerTranslationTest::testEditingNonDefaultTranslationDoesNotConvergeDraft()
+    $this->config('language.negotiation')->set('url.prefixes', ['en' => '', 'hu' => 'hu'])->save();
+    $this->container->get('kernel')->rebuildContainer();
+    $this->container->get(RouteBuilderInterface::class)->rebuild();
+
+    $entity = $this->getTestEntity(PageVariant::ENTITY_TYPE_ID);
+    \assert($entity instanceof PageVariant);
+    $this->setUpCurrentUser([], [self::getAdminPermission($entity)]);
+
+    // Give the variant a component with a static text prop.
+    $uuid = \Drupal::service('uuid')->generate();
+    $tree = \array_values($entity->get('component_tree') ?? []);
+    $tree[] = [
+      'uuid' => $uuid,
+      'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+      'component_version' => 'd34b93534777207a',
+      'inputs' => [
+        'heading' => [
+          'sourceType' => 'static:field_item:string',
+          'value' => 'Original heading',
+          'expression' => 'ℹ︎string␟value',
+        ],
+      ],
+    ];
+    $entity->set('component_tree', $tree);
+    $entity->save();
+
+    // Translate the heading via a config override, targeting the component
+    // instance by its UUID sequence key -- the shape config_translation
+    // writes.
+    $language_manager = $this->container->get(LanguageManagerInterface::class);
+    \assert($language_manager instanceof ConfigurableLanguageManagerInterface);
+    $language_manager->getLanguageConfigOverride('hu', $entity->getConfigDependencyName())
+      ->set('component_tree', [
+        $uuid => [
+          'inputs' => [
+            'heading' => ['value' => 'Hungarian heading'],
+          ],
+        ],
+      ])
+      ->save();
+
+    $url = $this->getLayoutUrl($entity)->toString();
+
+    // Base language: preview and model both carry the original.
+    $response = $this->request(Request::create($url));
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    $json = static::decodeResponse($response);
+    self::assertStringContainsString('Original heading', $json['html']);
+    self::assertStringNotContainsString('Hungarian heading', $json['html']);
+    self::assertSame('Original heading', $json['model'][$uuid]['resolved']['heading']);
+
+    // Preview language: the preview shows the translation...
+    $response = $this->request(Request::create('/hu' . $url));
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    $json = static::decodeResponse($response);
+    self::assertStringContainsString('Hungarian heading', $json['html']);
+    self::assertStringNotContainsString('Original heading', $json['html']);
+    // ...while the model still carries the original, because editing always
+    // edits the original.
+    self::assertSame('Original heading', $json['model'][$uuid]['resolved']['heading']);
   }
 
 }

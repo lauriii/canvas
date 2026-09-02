@@ -7,6 +7,7 @@ namespace Drupal\canvas\Plugin\DisplayVariant;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\BrandKit;
+use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\PageVariant;
@@ -20,6 +21,8 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Display\Attribute\PageDisplayVariant;
 use Drupal\Core\Display\PageVariantInterface;
 use Drupal\Core\Display\VariantBase;
+use Drupal\Core\Language\LanguageInterface;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -100,7 +103,7 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
    */
   private $title = '';
 
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, private readonly AutoSaveManager $autoSaveManager, private readonly PageVariantResolver $pageVariantResolver, private readonly ConfigFactoryInterface $configFactory) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, private readonly AutoSaveManager $autoSaveManager, private readonly PageVariantResolver $pageVariantResolver, private readonly ConfigFactoryInterface $configFactory, private readonly LanguageManagerInterface $languageManager) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
 
@@ -112,7 +115,28 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
       $container->get(AutoSaveManager::class),
       $container->get(PageVariantResolver::class),
       $container->get(ConfigFactoryInterface::class),
+      $container->get(LanguageManagerInterface::class),
     );
+  }
+
+  /**
+   * Returns the component tree to render for a preview of this entity.
+   *
+   * In preview, the entity may be an auto-save draft, which is always base
+   * (untranslated) data: drafts are stored outside the config system, so the
+   * language's LanguageConfigOverride is never applied to them. When
+   * previewing in a language that has a translation override, merge it in, so
+   * the preview chrome matches what the front end serves for that language.
+   */
+  private function getPreviewComponentTree(ComponentTreeConfigEntityBase $entity): ComponentTreeItemList {
+    // ::getTranslationLanguages() already excludes the site default language
+    // and any language without a stored override, so membership alone decides
+    // whether an override applies.
+    $langcode = $this->languageManager->getCurrentLanguage()->getId();
+    if (\array_key_exists($langcode, $entity->getTranslationLanguages(include_default: FALSE))) {
+      return $entity->getTranslatedComponentTree($langcode);
+    }
+    return $entity->getComponentTree();
   }
 
   /**
@@ -154,8 +178,17 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
     // Both rendering paths depend on the site default selection. A change to
     // it must invalidate the cached page.
     // @see \Drupal\canvas\PageVariantResolver
-    CacheableMetadata::createFromObject($this->configFactory->get('canvas.settings'))
-      ->applyTo($build);
+    $cacheability = CacheableMetadata::createFromObject($this->configFactory->get('canvas.settings'));
+    if ($is_preview) {
+      // A preview renders the negotiated language's translation override, so
+      // its output varies by interface language. The override itself needs no
+      // cache tag of its own: it shares the base config object's tag, already
+      // present via the rendered entity's cacheability.
+      // @see \Drupal\language\Config\LanguageConfigOverride::save()
+      // @see self::getPreviewComponentTree()
+      $cacheability->addCacheContexts(['languages:' . LanguageInterface::TYPE_INTERFACE]);
+    }
+    $cacheability->applyTo($build);
 
     return $build;
   }
@@ -179,7 +212,7 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
     $messages_block_displayed = FALSE;
 
     $content = self::renderComponentTree(
-      $variant->getComponentTree(),
+      $is_preview ? $this->getPreviewComponentTree($variant) : $variant->getComponentTree(),
       $variant,
       $is_preview,
       $messages_block_displayed,
@@ -239,7 +272,7 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
       }
 
       $build[$region->get('region')] = self::renderComponentTree(
-        $region->getComponentTree(),
+        $is_preview ? $this->getPreviewComponentTree($region) : $region->getComponentTree(),
         $region,
         $is_preview,
         $messages_block_displayed,

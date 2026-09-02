@@ -30,6 +30,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\FormBuilderInterface;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\Session\AccountProxyInterface;
@@ -533,10 +534,37 @@ final class ApiLayoutController {
   }
 
   private function buildPreviewRenderable(FieldableEntityInterface|ComponentTreeConfigEntityBase $entity, ?FieldableEntityInterface $preview_entity = NULL): array {
-    $renderable = $entity instanceof ContentTemplate
+    $varies_by_language = FALSE;
+    if ($entity instanceof ContentTemplate) {
       // @phpstan-ignore-next-line
-      ? $entity->build($preview_entity, isPreview: TRUE)
-      : $this->componentTreeLoader->load($entity)->toRenderable($entity, isPreview: TRUE);
+      $renderable = $entity->build($preview_entity, isPreview: TRUE);
+    }
+    else {
+      $tree = $this->componentTreeLoader->load($entity);
+      // Render the preview in the negotiated language: when this request is
+      // for a non-default language that has a translation override, preview
+      // the merged (base + override) tree, exactly what the front end will
+      // serve for that language. The entity reaching this controller carries
+      // the untranslated base: it was upcast during routing, and both the
+      // client model and PATCHes must keep operating on base config anyway --
+      // only the preview should follow the language.
+      // @see \Drupal\canvas\Entity\ComponentTreeConfigEntityBase::getTranslatedComponentTree()
+      if ($entity instanceof ComponentTreeConfigEntityBase) {
+        // ::getTranslationLanguages() already excludes the site default
+        // language and any language without a stored override, so membership
+        // alone decides whether an override applies.
+        $preview_langcode = $this->languageManager->getCurrentLanguage()->getId();
+        if (\array_key_exists($preview_langcode, $entity->getTranslationLanguages(include_default: FALSE))) {
+          $tree = $entity->getTranslatedComponentTree($preview_langcode);
+          // The preview now varies by interface language. The override needs
+          // no cache tag of its own: it shares the base config object's tag,
+          // which the rendered tree already carries.
+          // @see \Drupal\language\Config\LanguageConfigOverride::save()
+          $varies_by_language = TRUE;
+        }
+      }
+      $renderable = $tree->toRenderable($entity, isPreview: TRUE);
+    }
 
     $build = [];
     if (isset($renderable[ComponentTreeItemList::ROOT_UUID])) {
@@ -548,6 +576,9 @@ final class ApiLayoutController {
       : Markup::create('<!-- canvas-region-start-content --><div class="canvas--region-empty-placeholder"></div>');
     $build['#suffix'] = Markup::create('<!-- canvas-region-end-content -->');
     $build['#attached']['library'][] = 'canvas/preview';
+    if ($varies_by_language) {
+      $build['#cache']['contexts'][] = 'languages:' . LanguageInterface::TYPE_INTERFACE;
+    }
     if (!self::shouldIncludePageChrome($entity)) {
       $build['#canvas_hide_page_chrome'] = TRUE;
     }
