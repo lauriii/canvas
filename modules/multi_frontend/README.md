@@ -111,10 +111,15 @@ on:
   between a component fetched alone and the same node read from a page, and the
   published schema.
 
-  There are 26 test methods, 19 in `ComponentProducerTest` and 7 in
-  `CacheabilityNormalizerTest`. They pass on Drupal core 11.4.4, run in
-  batches for the reason below. Batch counts move as tests are added, so run
-  them rather than trusting a number here. The only
+  All 28 pass on Drupal core 11.4.4: 20 in `ComponentProducerTest`, run in
+  three batches of 6, 7 and 7 (91, 111 and 98 assertions), and 8 in
+  `CacheabilityNormalizerTest` (20 assertions). Every method in both files was
+  executed; the batches exist only for the memory reason below. The two
+  reported issues are deprecations from core's own `TwigSandboxPolicy` against
+  twig 3.28, which any Twig render triggers.
+
+  This count has gone stale twice. Re-run them and re-count rather than
+  trusting the number here. The only
   reported issues are two deprecations raised by core's own
   `TwigSandboxPolicy` against twig 3.28, which any Twig render triggers.
 
