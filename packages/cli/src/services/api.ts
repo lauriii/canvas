@@ -1147,9 +1147,7 @@ export class ApiService {
     }
   }
 
-  /**
-   * Create a new brand kit color. The server assigns the id.
-   */
+  /** Create a brand kit color; the server assigns the id. */
   async createColor(color: BrandKitColorPayload): Promise<BrandKitColorEntry> {
     try {
       const response = await this.client.post(
@@ -1162,9 +1160,7 @@ export class ApiService {
     }
   }
 
-  /**
-   * Update an existing brand kit color by its server-assigned id.
-   */
+  /** Update a brand kit color by its server-assigned id. */
   async updateColor(
     id: string,
     color: Partial<BrandKitColorPayload>,
@@ -1180,10 +1176,7 @@ export class ApiService {
     }
   }
 
-  /**
-   * Delete a brand kit color by its server-assigned id.
-   * The server refuses to delete a color that is in use.
-   */
+  /** Delete a brand kit color by id; the server refuses one in use. */
   async deleteColor(id: string): Promise<void> {
     try {
       await this.client.delete(

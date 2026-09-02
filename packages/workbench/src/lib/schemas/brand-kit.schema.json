@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Canvas brand kit",
-  "description": "canvas.brand-kit.json: the local brand kit synchronized by the Canvas CLI and rendered by Workbench previews. Carries fonts and colors. This schema covers structure and value forms; the CLI's own validation additionally checks what a schema cannot express (two keys naming the same variable, numeric ranges inside color strings, font files existing on disk).",
+  "description": "canvas.brand-kit.json: fonts and colors synchronized by the Canvas CLI and rendered by Workbench previews. Covers structure and value forms; `canvas validate` additionally checks what a schema cannot express.",
   "type": "object",
   "properties": {
     "$schema": {
@@ -56,7 +56,7 @@
     },
     "colors": {
       "type": "object",
-      "description": "Brand kit colors: a map from color key (the CSS custom property name, with or without its -- prefix) to a CSS color value. Key order is the palette order. The display name derives from the key (\"brand-red\" becomes \"Brand Red\") unless an entry asserts one.",
+      "description": "Map from color key (the CSS custom property name, -- prefix optional) to a color value, in palette order. The display name derives from the key unless an entry asserts one.",
       "patternProperties": {
         "^(?!--$)(--)?[a-zA-Z_-][a-zA-Z0-9_-]*$": {
           "$ref": "#/$defs/colorEntry"

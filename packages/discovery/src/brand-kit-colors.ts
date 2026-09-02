@@ -126,13 +126,9 @@ export function deriveColorName(key: string): string {
 }
 
 /**
- * Parses a `#rrggbb`/`#rrggbbaa` string into a design token value.
- * Returns null when the string is not a valid hex color.
- *
- * Matches what the editor UI stores when a user picks a hex color:
- * components as channel / 255 floats, alpha null when opaque, and the
- * six-digit hex preserved. Alpha keeps its exact `aa / 255` value — rounding
- * would turn `#cc000001` into 0 — so renderers round only when producing CSS.
+ * Parses `#rrggbb`/`#rrggbbaa` into a token the way the editor UI stores it:
+ * channel / 255 floats, six-digit hex kept, alpha null when opaque and the
+ * exact `aa / 255` otherwise (rounding would turn `#cc000001` into 0).
  */
 export function parseHexColor(value: string): ColorTokenValue | null {
   const match = HEX_COLOR_PATTERN.exec(value);
@@ -156,12 +152,9 @@ export function parseHexColor(value: string): ColorTokenValue | null {
   };
 }
 
-// Strict decimal tokens: `parseFloat()` consumes only a valid prefix, so a
-// permissive `[\d.]+` would accept junk like "0.5.6" and quietly truncate.
-// Legacy comma syntax and modern space-and-slash syntax are separate
-// patterns, matching CSS: mixed forms like `rgb(1, 2 3)` are invalid.
-// Function names are case-insensitive and rgb() channels follow the CSS
-// <number-percentage> grammar, fractions included.
+// Strict decimals (a lax `[\d.]+` would truncate junk like "0.5.6"); legacy
+// comma and modern space-and-slash syntax stay separate patterns, matching
+// CSS; rgb() channels follow the CSS <number-percentage> grammar.
 const RGB_LEGACY_PATTERN =
   /^rgba?\(\s*((?:\d{1,3}(?:\.\d+)?|\.\d+)%?)\s*,\s*((?:\d{1,3}(?:\.\d+)?|\.\d+)%?)\s*,\s*((?:\d{1,3}(?:\.\d+)?|\.\d+)%?)\s*(?:,\s*((?:\d+(?:\.\d+)?|\.\d+)%?)\s*)?\)$/i;
 const RGB_MODERN_PATTERN =
@@ -260,12 +253,9 @@ export function parseCssColorString(
 }
 
 /**
- * Normalizes a file value (CSS color string or token object) to a token
- * object. Returns null for a malformed string, a missing value, or an
- * object that is not a well-formed token — wrong color space, components
- * that are not three finite numbers, or an out-of-range alpha — so callers
- * can treat hand-edited junk as "no parseable value" instead of rendering
- * invalid CSS (strict validation with useful messages is the CLI's job).
+ * Normalizes a file value (CSS string or token object) to a token, or null
+ * for anything malformed, so renderers skip hand-edited junk instead of
+ * emitting invalid CSS. Useful error messages are the CLI validator's job.
  */
 export function normalizeColorValue(
   value: BrandKitColorFileValue | null | undefined,
@@ -300,11 +290,9 @@ function numbersEqual(a: number, b: number): boolean {
 }
 
 /**
- * Semantic equality between two token values: same color space, numerically
- * equal components, equal effective alpha (absent, null, and 1 are all
- * opaque), and — only when both sides carry one — case-insensitively equal
- * hex. A one-sided hex is ignored because it is a cached display value the
- * server derives from (and clears alongside) the components.
+ * Semantic token equality: same space and components, same effective alpha
+ * (absent/null/1 are all opaque), hex compared case-insensitively and only
+ * when both sides carry one (it is a cached display value).
  */
 export function colorTokenValuesEqual(
   a: ColorTokenValue,
@@ -331,14 +319,10 @@ export function colorTokenValuesEqual(
 }
 
 /**
- * Serializes a token value for canvas.brand-kit.json: a CSS color string
- * when one parses back to the exact same token — hex for opaque sRGB,
- * `rgba()` for translucent sRGB, `hsl()`/`hsla()` for HSL — otherwise the
- * token object with a fixed key order and only the keys that carry
- * information. The parse-back check makes the lossless guarantee structural: any
- * value another API client wrote that a string cannot represent exactly
- * stays an object, so the next push never rewrites a color the user did
- * not touch.
+ * Serializes a token for canvas.brand-kit.json: a CSS string when one parses
+ * back to the exact same token, otherwise the token object. The parse-back
+ * check makes the lossless guarantee structural — a value no string can
+ * represent exactly stays an object, so the next push never rewrites it.
  */
 export function serializeColorValue(
   token: ColorTokenValue,
@@ -406,10 +390,8 @@ function serializeCandidateString(
 }
 
 /**
- * Exact structural equality for the serialize round-trip check: components
- * and alpha must reproduce bit-for-bit, not within an epsilon, or the
- * string form would change the stored value on the next push. Absent, null,
- * and 1 alpha are all the same opacity.
+ * Bit-for-bit equality for the serialize round-trip check — an epsilon here
+ * would let the string form change the stored value on the next push.
  */
 function exactTokensEqual(a: ColorTokenValue, b: ColorTokenValue): boolean {
   if (a.colorSpace !== b.colorSpace) {
@@ -478,10 +460,8 @@ export function colorTokenToCss(token: ColorTokenValue): string {
 }
 
 /**
- * Leniently normalizes a raw `colors` map for the sync engine and CSS
- * generation: invalid keys and junk values yield entries with a null token
- * (or are skipped when the key cannot name a variable at all). Strict
- * validation with useful messages is the CLI's job.
+ * Leniently normalizes a raw `colors` map: junk values yield a null token,
+ * unusable keys are skipped. Strict validation is the CLI's job.
  */
 export function normalizeBrandKitColors(
   map: unknown,
@@ -537,9 +517,8 @@ export function normalizeBrandKitColors(
 }
 
 /**
- * Builds the `:root` custom property block for a set of brand kit colors,
- * in map order (the file's order is the palette order). Entries whose value
- * cannot be parsed are skipped; an empty result is the empty string.
+ * Builds the `:root` custom property block in map order. Unparseable
+ * entries are skipped; an empty result is the empty string.
  */
 export function buildBrandKitColorCss(
   colors: NormalizedBrandKitColor[],
@@ -558,9 +537,8 @@ export function buildBrandKitColorCss(
 }
 
 /**
- * Leniently reads and normalizes the `colors` map from
- * canvas.brand-kit.json in the given project root. A missing file, invalid
- * JSON, or an absent or non-object `colors` key all yield an empty array.
+ * Leniently reads and normalizes the `colors` map from canvas.brand-kit.json;
+ * a missing file, invalid JSON, or non-object `colors` yields an empty array.
  */
 export function readBrandKitColors(
   hostRoot: string,

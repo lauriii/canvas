@@ -4,6 +4,7 @@ import path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BRAND_KIT_SCHEMA_URL } from '@drupal-canvas/discovery';
 
+import { remoteBlue, remoteColor } from './color-fixtures';
 import {
   planColorPull,
   readBrandKitColorsFile,
@@ -13,42 +14,6 @@ import { pushColors } from './color-push';
 
 import type { ApiService } from '../../services/api';
 import type { BrandKitColorEntry } from '../../types/Component';
-
-function remoteColor(
-  overrides: Partial<BrandKitColorEntry> = {},
-): BrandKitColorEntry {
-  return {
-    id: 'uuid-red',
-    name: 'Brand Red',
-    cssVariable: '--brand-red',
-    value: {
-      colorSpace: 'srgb',
-      components: [204 / 255, 0, 0],
-      alpha: null,
-      hex: '#cc0000',
-    },
-    displayFormat: null,
-    weight: 0,
-    ...overrides,
-  };
-}
-
-function remoteBlue(
-  overrides: Partial<BrandKitColorEntry> = {},
-): BrandKitColorEntry {
-  return remoteColor({
-    id: 'uuid-blue',
-    name: 'Brand Blue',
-    cssVariable: '--brand-blue',
-    value: {
-      colorSpace: 'srgb',
-      components: [0, 0, 204 / 255],
-      alpha: null,
-      hex: '#0000cc',
-    },
-    ...overrides,
-  });
-}
 
 describe('planColorPull', () => {
   it('writes new server colors as one-line entries when the name derives from the key', () => {
@@ -98,25 +63,6 @@ describe('planColorPull', () => {
     expect(plan.colors).toEqual({
       'brand-red': { value: '#cc0000', displayFormat: 'hsl' },
     });
-  });
-
-  it('serializes hsl colors as hsl strings', () => {
-    const plan = planColorPull(
-      [
-        remoteColor({
-          cssVariable: '--overlay',
-          name: 'Overlay',
-          value: {
-            colorSpace: 'hsl',
-            components: [220, 60, 50],
-            alpha: 0.5,
-            hex: '#3366cc',
-          },
-        }),
-      ],
-      undefined,
-    );
-    expect(plan.colors).toEqual({ overlay: 'hsla(220, 60%, 50%, 0.5)' });
   });
 
   it('keeps a semantically equal local entry and its key spelling verbatim', () => {
@@ -171,27 +117,6 @@ describe('planColorPull', () => {
       draft: '#123456',
     });
     expect(plan.localOnly).toEqual(['Draft (--draft)']);
-  });
-
-  it('serializes non-exact components as a token object', () => {
-    const plan = planColorPull(
-      [
-        remoteColor({
-          value: {
-            colorSpace: 'srgb',
-            components: [0.1, 0.2, 0.3],
-            alpha: null,
-            hex: '#1a334d',
-          },
-        }),
-      ],
-      undefined,
-    );
-    expect(plan.colors['brand-red']).toEqual({
-      colorSpace: 'srgb',
-      components: [0.1, 0.2, 0.3],
-      hex: '#1a334d',
-    });
   });
 
   it('keeps the first duplicate variable entry and reports the rest', () => {

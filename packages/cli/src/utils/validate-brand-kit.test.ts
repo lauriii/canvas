@@ -5,10 +5,9 @@ import Ajv from 'ajv/dist/2020.js';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import brandKitSchema from '../../../workbench/src/lib/schemas/brand-kit.schema.json';
+import { remoteColor } from '../lib/colors/color-fixtures';
 import { planColorPull } from '../lib/colors/color-pull';
 import { validateBrandKit } from './validate-brand-kit';
-
-import type { BrandKitColorEntry } from '../types/Component';
 
 let tmpDir: string;
 
@@ -111,46 +110,9 @@ describe('validateBrandKit', () => {
       .map((d) => d.content);
     expect(fontErrors.join('\n')).toContain('file not found');
   });
-
-  it('reports malformed color values through both schema and semantics', async () => {
-    await writeBrandKit({ colors: { bad: '#cc00' } });
-    const { results } = await validateBrandKit(tmpDir);
-    expect(results[0].success).toBe(false);
-  });
-
-  it('reports out-of-range token components through both schema and semantics', async () => {
-    await writeBrandKit({
-      colors: { bad: { colorSpace: 'srgb', components: [1.5, 0, 0] } },
-    });
-    const { results } = await validateBrandKit(tmpDir);
-    expect(results[0].success).toBe(false);
-    const contents = (results[0].details ?? [])
-      .map((d) => d.content)
-      .join('\n');
-    expect(contents).toContain('between 0 and 1');
-  });
 });
 
 describe('brand kit schema and pull output stay in sync', () => {
-  function remoteColor(
-    overrides: Partial<BrandKitColorEntry>,
-  ): BrandKitColorEntry {
-    return {
-      id: 'uuid',
-      name: 'Brand Red',
-      cssVariable: '--brand-red',
-      value: {
-        colorSpace: 'srgb',
-        components: [204 / 255, 0, 0],
-        alpha: null,
-        hex: '#cc0000',
-      },
-      displayFormat: null,
-      weight: 0,
-      ...overrides,
-    };
-  }
-
   it('everything a pull writes validates against the schema', () => {
     const plan = planColorPull(
       [

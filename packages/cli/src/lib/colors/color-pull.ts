@@ -45,9 +45,8 @@ function itemName(name: string, cssVariable: string): string {
 }
 
 /**
- * The map key for a server variable. Usually the variable without its `--`
- * prefix, but a variable like `----brand` must keep its full spelling: its
- * sliced form starts with `--` and would normalize to a different variable.
+ * Map key for a server variable: the name minus `--`, kept whole when the
+ * sliced form would itself start with `--` (e.g. `----brand`).
  */
 function variableToKey(cssVariable: string): string {
   const bare = cssVariable.slice(2);
@@ -55,12 +54,10 @@ function variableToKey(cssVariable: string): string {
 }
 
 /**
- * Serializes a server color into a hand-editable map entry: the plain CSS
- * string when lossless (in the form matching the editor's display format,
- * so the string carries the format), wrapped in an object only when the
- * color needs a display name differing from the one its key derives, a
- * display format its serialized value cannot express, or — on a rewrite —
- * when the local entry had asserted a display format.
+ * Serializes a server color into a hand-editable entry: the plain CSS string
+ * when lossless (in the form matching the editor's display format), wrapped
+ * in an object only when the entry must also assert a name or a display
+ * format the string cannot carry.
  */
 function toFileValue(
   remote: BrandKitColorEntry,
@@ -96,10 +93,9 @@ function toFileValue(
 }
 
 /**
- * Whether the local entry already represents the server color, so pull can
- * keep it verbatim. Only asserted fields count: a one-line entry never
- * differs by name or display format, so hand-written entries survive pulls
- * untouched while a UI rename still reaches entries that assert a name.
+ * Whether the local entry already represents the server color, so pull keeps
+ * it verbatim. Only asserted fields count — a one-line entry never differs
+ * by name or display format.
  */
 function entriesEquivalent(
   local: NormalizedBrandKitColor,
@@ -120,14 +116,10 @@ function entriesEquivalent(
 }
 
 /**
- * Computes the pulled colors map: server colors in server order (palette
- * order), keeping the local entry — key spelling included — verbatim when
- * it is semantically equal, followed by local-only entries in their
- * original order. Pull never removes a color that exists only in the file;
- * entries with invalid keys are kept and reported rather than dropped. When
- * two entries name the same variable the first is kept and the rest are
- * reported as dropped duplicates. With `skipOverwrite`, existing local
- * entries are left untouched in place and only new server colors append.
+ * Computes the pulled colors map: server colors in palette order, equal
+ * local entries kept verbatim, local-only entries (invalid keys included)
+ * preserved at the end and reported, duplicate variables first-wins. With
+ * `skipOverwrite`, existing entries stay in place and new colors append.
  */
 export function planColorPull(
   remoteColors: BrandKitColorEntry[],

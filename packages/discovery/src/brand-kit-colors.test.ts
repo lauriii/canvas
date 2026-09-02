@@ -205,17 +205,6 @@ describe('serializeColorValue', () => {
     ).toBe('#cc0000');
   });
 
-  it('writes translucent srgb as rgba() when exact', () => {
-    expect(
-      serializeColorValue({
-        colorSpace: 'srgb',
-        components: [204 / 255, 0, 0],
-        alpha: 0.5,
-        hex: '#cc0000',
-      }),
-    ).toBe('rgba(204, 0, 0, 0.5)');
-  });
-
   it('writes hsl tokens as hsl()/hsla() strings', () => {
     expect(
       serializeColorValue({

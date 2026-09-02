@@ -42,9 +42,8 @@ function itemName(name: string, cssVariable: string): string {
 }
 
 /**
- * Full explicit value payload for the API. The server merges partial `value`
- * objects on update (and clears a stale hex), so always sending every key —
- * with explicit nulls — keeps the stored value exactly what the file says.
+ * Full value payload with explicit nulls: the server merges partial `value`
+ * objects on update, so every key is always sent.
  */
 function toValuePayload(token: ColorTokenValue): ColorTokenValue {
   return {
@@ -56,21 +55,17 @@ function toValuePayload(token: ColorTokenValue): ColorTokenValue {
 }
 
 /**
- * The display name a local entry asserts, if any. An entry without an
- * explicit name never renames an existing server color — the derived name
- * is only a default for newly created colors — so a UI-given label
- * survives hand-written one-line entries.
+ * The name a local entry asserts, if any. A derived name is only a creation
+ * default and never renames an existing color, so UI-given labels survive.
  */
 function assertedName(color: NormalizedBrandKitColor): string | undefined {
   return color.explicitName;
 }
 
 /**
- * Whether pushing must rewrite weights to make the server's palette order
- * match the file's map order. Weights are left alone when the relative
- * order of the file's colors already matches their relative order on the
- * server and any new colors simply append — so a push right after a pull
- * writes nothing.
+ * Whether push must rewrite weights to match the file's map order. Weights
+ * stay untouched when relative order already matches and new colors simply
+ * append — so a push right after a pull writes nothing.
  */
 function needsWeightReassignment(
   locals: NormalizedBrandKitColor[],
@@ -109,10 +104,8 @@ function needsWeightReassignment(
 }
 
 /**
- * Builds planned color rows for the push plan (local entries vs the remote
- * brand kit). Colors on the server but absent locally are planned for
- * deletion only when pruning is requested; otherwise they are left alone
- * (and reported during the push).
+ * Planned color rows for the push plan: create/update per local entry, plus
+ * deletions for server-only colors when pruning.
  */
 export function buildColorPushPlannedResults(
   colors: BrandKitColorsFileMap,
@@ -159,11 +152,9 @@ export function buildColorPushPlannedResults(
 }
 
 /**
- * Push colors from canvas.brand-kit.json to the site via the color config
- * endpoints. Matches map keys to server colors by CSS variable, creates and
- * updates as needed, and never deletes unless `pruneColors` is set — a color
- * present only on the server is reported instead. Returns null when the file
- * has no `colors` key (colors are not managed by this project).
+ * Pushes canvas.brand-kit.json colors to the site, matched to server colors
+ * by CSS variable. Never deletes unless `pruneColors` is set; returns null
+ * when the file has no `colors` key (colors unmanaged).
  */
 export async function pushColors(
   colors: BrandKitColorsFileMap | undefined,
@@ -221,11 +212,9 @@ export async function pushColors(
     }
   }
 
-  // The site requires unique display names, so check every name that will
-  // exist after this push — intended local names plus names retained on the
-  // server (kept server-only colors and refused prune deletions) — before
-  // any create or update, so a collision is one named error rather than a
-  // server rejection after earlier mutations.
+  // The site requires unique names: check every name that will exist after
+  // this push (local intents plus retained server-only colors and refused
+  // prunes) before any mutation, so a collision is one named error.
   {
     const finalNames = new Map<string, string>();
     const collisions: string[] = [];

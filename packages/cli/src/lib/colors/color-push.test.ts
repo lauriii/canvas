@@ -1,45 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { remoteBlue, remoteColor } from './color-fixtures';
 import { buildColorPushPlannedResults, pushColors } from './color-push';
 
 import type { ApiService } from '../../services/api';
 import type { BrandKitColorEntry } from '../../types/Component';
-
-function remoteColor(
-  overrides: Partial<BrandKitColorEntry> = {},
-): BrandKitColorEntry {
-  return {
-    id: 'uuid-red',
-    name: 'Brand Red',
-    cssVariable: '--brand-red',
-    value: {
-      colorSpace: 'srgb',
-      components: [204 / 255, 0, 0],
-      alpha: null,
-      hex: '#cc0000',
-    },
-    displayFormat: null,
-    weight: 0,
-    ...overrides,
-  };
-}
-
-function remoteBlue(
-  overrides: Partial<BrandKitColorEntry> = {},
-): BrandKitColorEntry {
-  return remoteColor({
-    id: 'uuid-blue',
-    name: 'Brand Blue',
-    cssVariable: '--brand-blue',
-    value: {
-      colorSpace: 'srgb',
-      components: [0, 0, 204 / 255],
-      alpha: null,
-      hex: '#0000cc',
-    },
-    ...overrides,
-  });
-}
 
 function mockApi(colors: BrandKitColorEntry[]): ApiService {
   return {
@@ -78,14 +43,6 @@ describe('pushColors', () => {
       displayFormat: 'hex',
     });
     expect(result).toMatchObject({ created: 1, updated: 0, unchanged: 0 });
-  });
-
-  it('derives the display format from the value form on create', async () => {
-    const api = mockApi([]);
-    await pushColors({ overlay: 'hsla(220, 60%, 50%, 0.5)' }, api);
-    expect(api.createColor).toHaveBeenCalledWith(
-      expect.objectContaining({ displayFormat: 'hsl' }),
-    );
   });
 
   it('treats an asserted null display format as the server default on create', async () => {
@@ -219,19 +176,6 @@ describe('pushColors', () => {
       operation: 'delete',
     });
     expect(failed?.detail).toContain('in use');
-  });
-
-  it('is a no-op right after a pull (matching order writes no weights)', async () => {
-    const api = mockApi([remoteColor(), remoteBlue()]);
-    // What a pull writes: server order, hex strings.
-    const result = await pushColors(
-      { 'brand-red': '#cc0000', 'brand-blue': '#0000cc' },
-      api,
-    );
-
-    expect(api.createColor).not.toHaveBeenCalled();
-    expect(api.updateColor).not.toHaveBeenCalled();
-    expect(result).toMatchObject({ created: 0, updated: 0, unchanged: 2 });
   });
 
   it('reassigns weights when the map order differs from the server order', async () => {

@@ -111,13 +111,9 @@ function validateValue(label: string, value: unknown, errors: string[]): void {
 }
 
 /**
- * Validates the `colors` map from canvas.brand-kit.json before push: valid
- * color keys, parseable values, well-formed wrapper objects, and unique
- * display names. Mirrors the server-side constraints on `canvas.color.*` —
- * including `UniqueColorNameConstraint`, which compares names trimmed and
- * case-insensitively — so failures happen offline, naming the offending
- * entry. For an entry without an explicit `name` the derived one counts.
- * Throws with all errors listed so the user can fix the file in one go.
+ * Validates the `colors` map before push, mirroring the server-side
+ * constraints on `canvas.color.*` (including trimmed, case-insensitive name
+ * uniqueness) so failures happen offline. Throws with every error listed.
  */
 export function validateColorsConfig(colors: BrandKitColorsFileMap): void {
   const errors = collectColorConfigErrors(colors);
@@ -162,9 +158,8 @@ export function collectColorConfigErrors(
       seenKeys.set(key, rawKey);
     }
 
-    // The site requires color names to be unique, compared trimmed and
-    // case-insensitively. An entry without an explicit name gets the one
-    // derived from its key.
+    // Unique-name check: an entry without an explicit name counts its
+    // derived one.
     const explicitName =
       rawValue &&
       typeof rawValue === 'object' &&
