@@ -99,11 +99,11 @@ final class EnvelopeBuilder {
    * subtree means or carries something the envelope has nowhere to put, so
    * descending past it would silently drop it.
    */
-  private const SPLITTABLE_PROPERTIES = ['#access', '#weight', '#sorted', '#printed', '#cache'];
+  private const SAFE_TO_DESCEND_PAST = ['#access', '#weight', '#sorted', '#printed', '#cache'];
 
   private static function isPlainContainer(array $element): bool {
     foreach (\array_keys($element) as $key) {
-      if (\is_string($key) && \str_starts_with($key, '#') && !\in_array($key, self::SPLITTABLE_PROPERTIES, TRUE)) {
+      if (\is_string($key) && \str_starts_with($key, '#') && !\in_array($key, self::SAFE_TO_DESCEND_PAST, TRUE)) {
         return FALSE;
       }
     }
