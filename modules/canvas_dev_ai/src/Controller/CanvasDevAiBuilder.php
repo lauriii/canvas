@@ -7,6 +7,7 @@ namespace Drupal\canvas_dev_ai\Controller;
 use Drupal\ai\AiProviderPluginManager;
 use Drupal\ai\OperationType\Chat\ChatInput;
 use Drupal\ai\OperationType\Chat\ChatMessage;
+use Drupal\ai\OperationType\Chat\StreamedChatMessageIteratorInterface;
 use Drupal\ai\OperationType\GenericType\ImageFile;
 use Drupal\ai_agents\Enum\AiAgentStatusItemTypes;
 use Drupal\ai_agents\PluginBase\AiAgentEntityWrapper;
@@ -559,8 +560,17 @@ final class CanvasDevAiBuilder extends ControllerBase {
       $response['progress'] = $this->getAiProgress($job_id);
     }
     else {
-      $response['message'] = $agent->solve();
-      $response['progress'] = $this->getAiProgressWithoutAnswer($job_id, $response['message']);
+      // ai_agents 1.3.5 widened solve() to also return a streaming iterator,
+      // see https://www.drupal.org/project/ai_agents/issues/3538174. This
+      // controller never calls ::setStreaming(), and its response is JSON, so
+      // a stream here would mean the agent was configured elsewhere: fail
+      // loudly rather than serialize an iterator into the response.
+      $message = $agent->solve();
+      if ($message instanceof StreamedChatMessageIteratorInterface) {
+        throw new \LogicException('The dev chat requires a non-streaming agent response.');
+      }
+      $response['message'] = $message;
+      $response['progress'] = $this->getAiProgressWithoutAnswer($job_id, $message);
     }
     return new JsonResponse($this->canvasAiPageBuilderHelper->processCanvasPageFields($response));
   }
