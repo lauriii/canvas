@@ -111,8 +111,13 @@ const formattedTextTransformer: PropTransformer = {
  * Link props (`format: uri | uri-reference | iri | iri-reference`).
  * Authored: plain string (URL or path). Server: `{ uri, options }`.
  *
- * Relative paths (not starting with a scheme) are prefixed with `internal:`
- * as expected by Drupal's link field storage.
+ * Root-relative paths (no scheme, leading `/`) are prefixed with `internal:`,
+ * matching what the server stores when the same value is authored in the
+ * Canvas UI. Other scheme-less references (`foo`, `?x=1`, `#frag`) are sent
+ * as-is: `internal:` requires a leading slash, so prefixing them would produce
+ * a URI the server rejects.
+ *
+ * @see \Drupal\canvas\TypedData\LinkUrl::getValue()
  */
 const linkTransformer: PropTransformer = {
   matches(schema) {
@@ -130,11 +135,14 @@ const linkTransformer: PropTransformer = {
     }
 
     // Only uri-reference and iri-reference allow relative paths;
-    // uri and iri require a scheme. Add internal: prefix for relative paths.
+    // uri and iri require a scheme.
     const isReference =
       schema.format === 'uri-reference' || schema.format === 'iri-reference';
-    const hasScheme = /^[a-z][a-z0-9+.-]*:/.test(value);
-    const uri = !hasScheme && isReference ? `internal:${value}` : value;
+    const hasScheme = /^[a-z][a-z0-9+.-]*:/i.test(value);
+    const uri =
+      isReference && !hasScheme && value.startsWith('/')
+        ? `internal:${value}`
+        : value;
     return { uri, options: [] };
   },
 };

@@ -128,6 +128,38 @@ describe('serializePropsForServer — link transformer', () => {
     });
   });
 
+  // Must stay in sync with \Drupal\canvas\TypedData\LinkUrl::getValue(): a
+  // value pushed by the CLI must be stored the same way as when authored in
+  // the Canvas UI. Every input is a valid `format: uri-reference` string.
+  it.each([
+    // Scheme-less, root-relative: `internal:` scheme.
+    ['/foo', 'internal:/foo'],
+    ['/foo?x=1#frag', 'internal:/foo?x=1#frag'],
+    ['/', 'internal:/'],
+    // Scheme-less, not root-relative: unchanged. `internal:` requires a
+    // leading slash, so `internal:foo` would be rejected by the server.
+    ['foo', 'foo'],
+    ['foo.html?x=1', 'foo.html?x=1'],
+    ['?x=1', '?x=1'],
+    ['#frag', '#frag'],
+    // Anything with a scheme: unchanged.
+    ['https://example.com/', 'https://example.com/'],
+    ['HTTPS://example.com/', 'HTTPS://example.com/'],
+    ['entity:node/1', 'entity:node/1'],
+    ['internal:/already', 'internal:/already'],
+    ['mailto:a@example.com', 'mailto:a@example.com'],
+    // Empty: unchanged.
+    ['', ''],
+  ])('normalizes %j to %j like LinkUrl::getValue()', (authored, stored) => {
+    const schemas: Record<string, CodeComponentPropSerialized> = {
+      link: { title: 'Link', type: 'string', format: 'uri-reference' },
+    };
+
+    expect(serializePropsForServer({ link: authored }, schemas)).toEqual({
+      link: { uri: stored, options: [] },
+    });
+  });
+
   it('does not add internal: prefix to absolute URLs in uri-reference', () => {
     const schemas: Record<string, CodeComponentPropSerialized> = {
       link: { title: 'Link', type: 'string', format: 'uri-reference' },
