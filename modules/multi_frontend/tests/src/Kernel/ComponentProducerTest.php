@@ -16,6 +16,7 @@ use Drupal\multi_frontend\Envelope\EnvelopeBuilder;
 use Drupal\multi_frontend\Envelope\HtmlNode;
 use Drupal\multi_frontend\ProducerInvoker;
 use Drupal\multi_frontend\Schema\SchemaPublisher;
+use Drupal\multi_frontend_test\AccessCallbacks;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -256,6 +257,25 @@ final class ComponentProducerTest extends KernelTestBase {
   }
 
   /**
+   * A value stored without a text format is still filtered.
+   *
+   * A text field whose format was never set, which any programmatic save or
+   * migration can produce, used to be returned as the raw stored column on
+   * the reasoning that an empty format meant "not a formatted-text field".
+   * Core renders such a field as nothing; this returned live markup into a
+   * prop declared as HTML.
+   */
+  public function testTextWithoutAFormatIsStillFiltered(): void {
+    $this->node->set('body', ['value' => '<script>alert(1)</script>', 'format' => NULL])->save();
+
+    $props = $this->container->get(ProducerInvoker::class)
+      ->produceProps('multi_frontend_test.card', $this->node, new CacheableMetadata());
+
+    $this->assertStringNotContainsString('<script>', (string) $props['summary']);
+    $this->assertStringContainsString('&lt;script&gt;', (string) $props['summary']);
+  }
+
+  /**
    * Invalid props are rejected unconditionally, not behind assert().
    */
   public function testInvalidPropsAreRejectedWithoutAssertions(): void {
@@ -371,6 +391,24 @@ final class ComponentProducerTest extends KernelTestBase {
     $this->assertCount(1, $nodes);
     $this->assertInstanceOf(HtmlNode::class, $nodes[0]);
     $this->assertStringContainsString('<section>', $nodes[0]->markup);
+  }
+
+  /**
+   * An element whose access core has not resolved is never produced.
+   *
+   * #access_callback is resolved by core, through the trusted-callback
+   * policy, and only then checked. An envelope that produced the element
+   * before that happened would hand a consumer data the HTML path suppresses.
+   */
+  public function testUnresolvedAccessCallbackIsNotProduced(): void {
+    $build = ProducedComponent::build('multi_frontend_test.card', $this->node);
+    $build['#access_callback'] = [AccessCallbacks::class, 'deny'];
+
+    $nodes = $this->container->get(EnvelopeBuilder::class)->build($build, new CacheableMetadata());
+
+    // Denied, so it renders as nothing and contributes no node at all. What
+    // matters is that it is not a ComponentNode carrying the props.
+    $this->assertSame([], $nodes);
   }
 
   /**

@@ -54,7 +54,16 @@ final class EnvelopeBuilder {
       return [];
     }
 
-    if (($element['#type'] ?? NULL) === 'produced_component') {
+    // Core resolves #access_callback into #access before it checks access, and
+    // it does so through the trusted-callback policy. Reimplementing that here
+    // would be both duplication and a place to get security wrong, so an
+    // element carrying an unresolved callback is rendered rather than
+    // produced: core applies the callback on that path, and a denied element
+    // renders as nothing. The cost is one component arriving as an html node
+    // instead of a typed one, which is the safe direction to be wrong in.
+    $access_unresolved = \array_key_exists('#access_callback', $element) && !\array_key_exists('#access', $element);
+
+    if (($element['#type'] ?? NULL) === 'produced_component' && !$access_unresolved) {
       return [
         $this->invoker->produceNode($element['#producer'], $element['#subject'], $cacheability),
       ];
@@ -99,7 +108,7 @@ final class EnvelopeBuilder {
    * subtree means or carries something the envelope has nowhere to put, so
    * descending past it would silently drop it.
    */
-  private const SAFE_TO_DESCEND_PAST = ['#access', '#weight', '#sorted', '#printed', '#cache'];
+  private const SAFE_TO_DESCEND_PAST = ['#access', '#weight', '#sorted', '#cache'];
 
   private static function isPlainContainer(array $element): bool {
     foreach (\array_keys($element) as $key) {

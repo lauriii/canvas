@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\multi_frontend\Render;
 
+use Drupal\Component\Render\MarkupInterface;
+use Drupal\Component\Render\PlainTextOutput;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Controller\TitleResolverInterface;
@@ -93,11 +95,19 @@ final class EnvelopeMainContentRenderer implements MainContentRendererInterface 
     if ($title === NULL) {
       return NULL;
     }
+    // The title crosses as plain text, always. Core can tell a markup title
+    // from a raw one, because one is a MarkupInterface and Twig escapes the
+    // other. A consumer receiving `string` cannot, and would have to choose
+    // between escaping markup titles into gibberish and rendering a raw node
+    // label as HTML. Flattening to text removes the choice.
     if (\is_array($title)) {
       $build = $title;
       $rendered = (string) $this->renderer->renderInIsolation($build);
       $cacheability->addCacheableDependency(CacheableMetadata::createFromRenderArray($build));
-      return $rendered;
+      return PlainTextOutput::renderFromHtml($rendered);
+    }
+    if ($title instanceof MarkupInterface) {
+      return PlainTextOutput::renderFromHtml((string) $title);
     }
     return (string) $title;
   }

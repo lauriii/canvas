@@ -57,8 +57,29 @@ final class CacheabilityNormalizerTest extends KernelTestBase {
     $normalized = $this->normalize(
       (new CacheableMetadata())->setCacheContexts(['languages:language_interface']),
     );
-    $this->assertTrue($normalized['varies']['public']);
     $this->assertSame(['accept-language'], $normalized['varies']['on']);
+    // Not public: core's user negotiator reads the account's preferred
+    // language and its session negotiator reads the session, so two visitors
+    // sending the same Accept-Language can still be owed different responses.
+    $this->assertFalse($normalized['varies']['public']);
+  }
+
+  /**
+   * Per-visitor contexts are never reported as shared-cache safe.
+   *
+   * Each of these was once classified as safe on the reasoning that it is
+   * constant for anonymous visitors. None of them is, and being wrong in the
+   * permissive direction here puts one visitor's response in front of
+   * another.
+   */
+  public function testPerVisitorContextsAreNotPublic(): void {
+    foreach (['ip', 'theme', 'timezone', 'headers', 'headers:Cookie', 'session', 'user.permissions'] as $context) {
+      $normalized = $this->normalize((new CacheableMetadata())->setCacheContexts([$context]));
+      $this->assertFalse(
+        $normalized['varies']['public'],
+        \sprintf('Context "%s" must not be reported as publicly cacheable.', $context),
+      );
+    }
   }
 
   /**
@@ -82,8 +103,9 @@ final class CacheabilityNormalizerTest extends KernelTestBase {
     $normalized = $this->normalize(
       (new CacheableMetadata())->setCacheContexts(['headers:X-Something']),
     );
-    $this->assertTrue($normalized['varies']['public']);
     $this->assertSame(['x-something'], $normalized['varies']['on']);
+    // Naming the dimension is not the same as making the response shareable.
+    $this->assertFalse($normalized['varies']['public']);
   }
 
   /**
@@ -94,6 +116,23 @@ final class CacheabilityNormalizerTest extends KernelTestBase {
       (new CacheableMetadata())->setCacheContexts(['some_module.thing']),
     );
     $this->assertFalse($normalized['varies']['public']);
+  }
+
+  /**
+   * Drupal's tag-shaped internal sentinels do not cross the boundary.
+   *
+   * Every form carries one of these. It is not a cache tag anything can invalidate, so
+   * emitting it would put a value a CDN cannot purge into the one header a
+   * CDN acts on.
+   */
+  public function testSentinelTagsAreNotEmitted(): void {
+    $normalized = $this->normalize(
+      (new CacheableMetadata())->setCacheTags([
+        'CACHE_MISS_IF_UNCACHEABLE_HTTP_METHOD:form',
+        'config:system.site',
+      ]),
+    );
+    $this->assertSame(['config:system.site'], $normalized['tags']);
   }
 
   /**

@@ -86,14 +86,20 @@ final class ProducerContext {
     if ($value === '') {
       return NULL;
     }
+
+    // Every value goes through a text format, with no exceptions. An earlier
+    // version returned the raw column when the format was empty, on the
+    // reasoning that an empty format meant "not a formatted-text field". That
+    // is wrong twice over: a text_long field whose format was never set, which
+    // any programmatic save or migration can produce, has an empty format and
+    // a value that has never been filtered. Core renders such a field as
+    // nothing; this returned live markup into a prop declared as HTML.
+    //
+    // A NULL format makes core use the site's fallback format, which is the
+    // same decision core makes everywhere else.
     $format = \array_key_exists('format', $properties)
-      ? (string) ($item->get('format')->getValue() ?? '')
-      : '';
-    if ($format === '') {
-      // Not a formatted-text field. Return the raw value, which the schema
-      // should not have declared as HTML.
-      return $value;
-    }
+      ? ((string) ($item->get('format')->getValue() ?? '') ?: NULL)
+      : NULL;
     $build = [
       '#type' => 'processed_text',
       '#text' => $value,

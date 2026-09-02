@@ -44,12 +44,16 @@ final class PageApiMiddleware implements HttpKernelInterface {
     $query = $request->query->all();
     $query[MainContentViewSubscriber::WRAPPER_FORMAT] = EnvelopeMainContentRenderer::FORMAT;
 
-    $server = $request->server->all();
     $query_string = http_build_query($query);
-    $server['REQUEST_URI'] = $request->getBaseUrl() . $inner_path . ($query_string === '' ? '' : '?' . $query_string);
-    $server['QUERY_STRING'] = $query_string;
 
-    $rewritten = $request->duplicate($query, NULL, NULL, NULL, NULL, $server);
+    // Mutate the duplicate's server bag rather than passing $server to
+    // duplicate(): Symfony rebuilds the whole header bag from $_SERVER when
+    // given one, which silently reverts anything an outer middleware set or
+    // removed on the original request.
+    $rewritten = $request->duplicate($query);
+    $rewritten->server->set('REQUEST_URI', $request->getBaseUrl() . $inner_path . ($query_string === '' ? '' : '?' . $query_string));
+    $rewritten->server->set('QUERY_STRING', $query_string);
+
     return $this->httpKernel->handle($rewritten, $type, $catch);
   }
 

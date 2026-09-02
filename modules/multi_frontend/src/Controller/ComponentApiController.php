@@ -85,9 +85,7 @@ final class ComponentApiController extends ControllerBase {
    */
   public function schemaCatalog(): CacheableJsonResponse {
     $response = new CacheableJsonResponse($this->schemaPublisher->catalog());
-    $response->addCacheableDependency(
-      (new CacheableMetadata())->addCacheTags(['component_producer_plugins', 'component_plugins']),
-    );
+    $response->addCacheableDependency(self::schemaCacheability());
     return $response;
   }
 
@@ -99,9 +97,7 @@ final class ComponentApiController extends ControllerBase {
       throw new NotFoundHttpException();
     }
     $response = new CacheableJsonResponse($this->schemaPublisher->componentSchema($producer));
-    $response->addCacheableDependency(
-      (new CacheableMetadata())->addCacheTags(['component_producer_plugins', 'component_plugins']),
-    );
+    $response->addCacheableDependency(self::schemaCacheability());
     return $response;
   }
 
@@ -110,8 +106,22 @@ final class ComponentApiController extends ControllerBase {
    */
   public static function envelopeSchema(): CacheableJsonResponse {
     $response = new CacheableJsonResponse(SchemaPublisher::envelopeSchema());
-    $response->addCacheableDependency((new CacheableMetadata())->setCacheMaxAge(3600));
+    $response->addCacheableDependency(self::schemaCacheability()->setCacheMaxAge(3600));
     return $response;
+  }
+
+  /**
+   * Cacheability shared by the schema responses.
+   *
+   * These documents embed absolute URLs built from the incoming request's
+   * host, so they vary on it. Without `url.site` one request can poison the
+   * cached catalog for everyone with whatever Host header it sent, and the
+   * catalog is precisely the document a build toolchain follows.
+   */
+  private static function schemaCacheability(): CacheableMetadata {
+    return (new CacheableMetadata())
+      ->addCacheTags(['component_producer_plugins', 'component_plugins'])
+      ->addCacheContexts(['url.site']);
   }
 
 }

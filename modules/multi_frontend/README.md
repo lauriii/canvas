@@ -111,9 +111,10 @@ on:
   between a component fetched alone and the same node read from a page, and the
   published schema.
 
-  All 22 pass on Drupal core 11.4.4, run in batches for the reason below:
-  `ComponentProducerTest` in three batches of 5, 7 and 4 (71, 104 and 68
-  assertions) and `CacheabilityNormalizerTest` with 6 (12 assertions). The only
+  There are 26 test methods, 19 in `ComponentProducerTest` and 7 in
+  `CacheabilityNormalizerTest`. They pass on Drupal core 11.4.4, run in
+  batches for the reason below. Batch counts move as tests are added, so run
+  them rather than trusting a number here. The only
   reported issues are two deprecations raised by core's own
   `TwigSandboxPolicy` against twig 3.28, which any Twig render triggers.
 
@@ -141,13 +142,28 @@ on:
   holds one `html` node, which is exactly what an unconverted site should
   return and is the number the on-ramp has to move.
 - **Cacheability on the wire**: `/component-api/album.photo/1` emits
-  `Surrogate-Key: file:1 media:1`, and `/page-api/node/1` reports
-  `"varies": {"public": false, "on": ["cookie"]}` because the page's contexts
-  include `user.permissions`.
+  `Surrogate-Key: config:filter.format.basic_html file:1 media:1`, and
+  `/page-api/node/1` reports
+  `"varies": {"public": false, "on": ["accept-language", "cookie"]}`.
+  Per-node precision is real: on `/page-api/photos` the card with a caption
+  carries the text format's tag and the card without one does not.
 - **Coding standards** pass. `phpcs.xml` gains one exemption, with a comment:
   Canvas requires kernel tests to extend its own base class, and this module
   cannot without acquiring the dependency it exists to avoid.
-- **A Copilot review** of the first push found ten real defects, all fixed and
+- **Two independent review passes** found sixteen real defects between them,
+  all fixed and covered. A security pass found three that mattered: a text
+  value stored without a format was returned raw into a prop declared as HTML,
+  where core renders nothing; `ip`, `theme`, `timezone` and a bare `headers`
+  context were all reported as safe for a shared cache, which is precisely the
+  failure the class was written to prevent; and the schema endpoints built
+  absolute URLs from the request Host without varying on it, so one
+  unauthenticated request could poison the cached catalog a build toolchain
+  follows. Each has a regression test.
+
+  It also corrected a claim made here: "discarded `GeneratedUrl` cacheability"
+  was listed below as fixed, and it had been fixed only in the test fixture.
+  All four production call sites still had it. They are fixed now.
+- **A code review** of the first push found ten real defects, all fixed and
   covered: `#access` bypassed by the envelope walk, container splitting that
   dropped `#prefix`/`#attached`/`#cache`, three render-cache-key collisions
   (unsaved entities, revisions, attributes), props that were never checked for
@@ -176,6 +192,9 @@ Honest scope. This is the vertical slice, not the whole plan.
 | Interleaving conversion with `#pre_render` expansion | **not done**. A `#pre_render` that creates a produced component is not seen |
 | Regions other than `content` | **not done**. They come from the active theme's block layout, which is theme-scoped config |
 | `#lazy_builder` over the data path | **not done**, and out of scope by design |
+| `#attached` on a fallback node | **dropped.** An `html` node is `{type, markup, cacheability}`, with nowhere to put libraries or `drupalSettings`, so markup that needed JavaScript to work arrives inert. Cacheability does survive. This is the practical ceiling on "unconverted modules keep working" |
+| Error responses in envelope format | **not done.** A 403 or 404 through `/page-api` is core's `text/plain`, so a client calling `res.json()` throws. The published envelope schema describes 200 responses only |
+| `Vary` and `Cache-Control` from `CacheabilityHeaders` | **partly.** `Surrogate-Key` crosses. On a site with the internal page cache disabled, core's `FinishResponseSubscriber` marks responses not cacheable and strips `Vary`, so only the body's `varies` survives. Read the body, not the headers, for variation |
 | The `front_end` extension type | **not done**, a separate milestone |
 | `typegen` and framework adapters | **not done**, and not core's to ship |
 

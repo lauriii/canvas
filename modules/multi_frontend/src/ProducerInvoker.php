@@ -117,6 +117,14 @@ final class ProducerInvoker {
     // metadata is real rather than a copy of the response's, and only then
     // merges upward.
     $node_cacheability = new CacheableMetadata();
+    if ($subject instanceof EntityInterface) {
+      // Whatever the decision to show this subject varied on belongs to the
+      // node, not just to the response that happens to carry it. Without this
+      // a node can report itself publicly cacheable while the endpoint
+      // serving it is gated, and a consumer trusting the body would cache an
+      // access-controlled resource for everyone.
+      $node_cacheability->addCacheableDependency($subject->access('view', NULL, TRUE));
+    }
     $props = $this->produceProps($producer_id, $subject, $node_cacheability, $depth);
 
     /** @var \Drupal\multi_frontend\ComponentProducerInterface $producer */

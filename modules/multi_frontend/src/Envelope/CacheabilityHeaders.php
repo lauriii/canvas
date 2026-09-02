@@ -21,6 +21,13 @@ use Symfony\Component\HttpFoundation\Response;
  * names for the same idea, and a site maps it in one line of edge
  * configuration; the point is that the tags leave the building at all, which
  * is where both existing structured-output implementations stop.
+ *
+ * Only Surrogate-Key reliably survives. When the internal page cache is
+ * disabled, core's FinishResponseSubscriber marks the response not cacheable
+ * and removes Vary outright, overwriting what is set here. That is core's
+ * decision to make and not one to fight, so the body's "varies" summary is
+ * the authoritative signal and these headers are a convenience for sites
+ * whose page cache is on.
  */
 final class CacheabilityHeaders {
 
