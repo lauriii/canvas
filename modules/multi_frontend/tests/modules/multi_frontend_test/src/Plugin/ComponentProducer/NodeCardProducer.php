@@ -32,9 +32,16 @@ final class NodeCardProducer extends ComponentProducerBase {
     $state->set('multi_frontend_test.produce_count', $state->get('multi_frontend_test.produce_count', 0) + 1);
     $context->addCacheableDependency($subject);
 
+    // toString(TRUE) returns a GeneratedUrl carrying the cacheability of
+    // path aliases and whatever else varied the URL. Calling
+    // getGeneratedUrl() without recording it throws that away, and the node
+    // can then cache a stale path.
+    $url = $subject->toUrl()->toString(TRUE);
+    $context->addCacheableDependency($url);
+
     return [
       'title' => $subject->label(),
-      'url' => $subject->toUrl()->toString(TRUE)->getGeneratedUrl(),
+      'url' => $url->getGeneratedUrl(),
       'createdAt' => (new \DateTimeImmutable('@' . (int) $subject->getCreatedTime()))
         ->setTimezone(new \DateTimeZone('UTC'))
         ->format(\DateTimeInterface::ATOM),

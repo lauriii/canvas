@@ -47,7 +47,6 @@ final class ProducedComponent extends RenderElementBase {
     return [
       '#producer' => NULL,
       '#subject' => NULL,
-      '#variant' => NULL,
       '#attributes' => [],
       '#pre_render' => [
         [static::class, 'preRenderProducedComponent'],
@@ -80,6 +79,11 @@ final class ProducedComponent extends RenderElementBase {
     ] + $extra;
 
     $keys = ProducerInvoker::cacheKeys($producer_id, $subject);
+    if ($keys !== NULL && ($extra['#attributes'] ?? []) !== []) {
+      // Attributes change the rendered output, so two builds of one subject
+      // with different attributes must not share a cache entry.
+      $keys[] = \hash('xxh64', \serialize($extra['#attributes']));
+    }
     if ($keys !== NULL) {
       $build['#cache']['keys'] = $keys;
       if ($subject instanceof EntityInterface) {
@@ -103,22 +107,8 @@ final class ProducedComponent extends RenderElementBase {
     $cacheability = new CacheableMetadata();
     $node = $invoker->produceNode($element['#producer'], $element['#subject'], $cacheability);
 
-    $build = [
-      '#type' => 'component',
-      '#component' => $node->componentId,
-      '#props' => $node->props,
-      '#attributes' => $element['#attributes'] ?? [],
-    ];
-    if (($element['#variant'] ?? NULL) !== NULL) {
-      // SDC's own element understands variants, so a producer never has to.
-      $build['#variant'] = $element['#variant'];
-    }
-    if ($node->slots !== []) {
-      $build['#slots'] = \array_map(
-        static fn (array $nodes): array => \array_map([static::class, 'renderNode'], $nodes),
-        $node->slots,
-      );
-    }
+    $build = static::renderNode($node);
+    $build['#attributes'] = \array_merge($build['#attributes'] ?? [], $element['#attributes'] ?? []);
     $cacheability->applyTo($build);
 
     $element['component'] = $build;
@@ -132,15 +122,27 @@ final class ProducedComponent extends RenderElementBase {
    *   A render array.
    */
   public static function renderNode(EnvelopeNodeInterface $node): array {
-    $build = match (TRUE) {
-      $node instanceof ComponentNode => [
+    $build = [];
+    if ($node instanceof ComponentNode) {
+      $build = [
         '#type' => 'component',
         '#component' => $node->componentId,
         '#props' => $node->props,
-      ],
-      $node instanceof HtmlNode => ['#markup' => $node->markup],
-      default => [],
-    };
+        '#attributes' => $node->attributes,
+      ];
+      // Slots hold nodes, and those nodes have their own slots. Copying only
+      // the props would make a tree deeper than one level render differently
+      // from the envelope that describes it.
+      if ($node->slots !== []) {
+        $build['#slots'] = \array_map(
+          static fn (array $nodes): array => \array_map([static::class, 'renderNode'], $nodes),
+          $node->slots,
+        );
+      }
+    }
+    elseif ($node instanceof HtmlNode) {
+      $build = ['#markup' => $node->markup];
+    }
     CacheableMetadata::createFromObject($node)->applyTo($build);
     return $build;
   }

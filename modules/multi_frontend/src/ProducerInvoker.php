@@ -7,6 +7,8 @@ namespace Drupal\multi_frontend;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\RevisionableInterface;
+use Drupal\Core\Render\Component\Exception\InvalidComponentException;
 use Drupal\Core\Render\RenderContext;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Theme\Component\ComponentValidator;
@@ -86,6 +88,19 @@ final class ProducerInvoker {
 
     $this->componentValidator->validateProps($props, $this->componentManager->createInstance($component_id));
 
+    // The schema cannot express "this value survives being serialized", and
+    // that is the one rule this whole contract rests on: core accepts a Url
+    // object in a `type: string` prop and JSON-encodes it to an empty object.
+    // Checking the round trip here is the difference between claiming props
+    // are data and knowing it.
+    $encoded = \json_encode($props, JSON_THROW_ON_ERROR);
+    if (\json_decode($encoded, TRUE, 512, JSON_THROW_ON_ERROR) !== $props) {
+      throw new InvalidComponentException(\sprintf(
+        'Producer "%s" returned props that do not survive JSON serialization. Props must be plain arrays and scalars.',
+        $producer_id,
+      ));
+    }
+
     return $props;
   }
 
@@ -145,16 +160,27 @@ final class ProducerInvoker {
    *   Cache keys, or NULL when the subject has no stable identity.
    */
   public static function cacheKeys(string $producer_id, mixed $subject): ?array {
-    if ($subject instanceof EntityInterface) {
-      return [
-        'produced_component',
-        $producer_id,
-        $subject->getEntityTypeId(),
-        (string) $subject->id(),
-        $subject->language()->getId(),
-      ];
+    if (!$subject instanceof EntityInterface) {
+      return NULL;
     }
-    return NULL;
+    // An unsaved entity has no ID, so every unsaved entity of a type would
+    // share one key and serve another entity's props.
+    if ($subject->isNew()) {
+      return NULL;
+    }
+    $keys = [
+      'produced_component',
+      $producer_id,
+      $subject->getEntityTypeId(),
+      (string) $subject->id(),
+      $subject->language()->getId(),
+    ];
+    // Two revisions of one entity share an ID, so without the revision the
+    // first one rendered would be served for both.
+    if ($subject instanceof RevisionableInterface && $subject->getRevisionId() !== NULL) {
+      $keys[] = (string) $subject->getRevisionId();
+    }
+    return $keys;
   }
 
 }

@@ -27,7 +27,7 @@ final class CacheabilityNormalizer {
    * A shared cache keyed by URL already distinguishes these, so they neither
    * make a response private nor need an HTTP vary dimension.
    */
-  private const URL_BORNE = ['url', 'route', 'languages', 'request_format'];
+  private const URL_BORNE = ['url', 'route', 'request_format'];
 
   /**
    * Contexts that map onto an HTTP request header.
@@ -37,6 +37,13 @@ final class CacheabilityNormalizer {
     'session' => 'cookie',
     'user' => 'cookie',
     'headers' => NULL,
+    // Language negotiation is not necessarily URL-borne: it can come from a
+    // header, a cookie, or the session. Treating it as URL-borne would let a
+    // shared cache reuse one language's response for another with no Vary,
+    // so it varies on Accept-Language. When negotiation is by cookie or
+    // session, a cookie context is present too and makes the response
+    // private anyway.
+    'languages' => 'accept-language',
   ];
 
   /**
@@ -101,7 +108,7 @@ final class CacheabilityNormalizer {
         if ($header !== NULL) {
           $on[] = strtolower($header);
         }
-        if ($root !== 'headers') {
+        if ($root !== 'headers' && $root !== 'languages') {
           $public = FALSE;
         }
         continue;

@@ -38,10 +38,27 @@ final class CacheabilityNormalizerTest extends KernelTestBase {
    */
   public function testUrlBorneContextsStayPublic(): void {
     $normalized = $this->normalize(
-      (new CacheableMetadata())->setCacheContexts(['url.path', 'languages:language_interface', 'route']),
+      (new CacheableMetadata())->setCacheContexts(['url.path', 'route']),
     );
     $this->assertTrue($normalized['varies']['public']);
     $this->assertSame([], $normalized['varies']['on']);
+  }
+
+  /**
+   * Language is not URL-borne, so it varies on the negotiated header.
+   *
+   * Drupal can negotiate language from the URL, but also from a header, a
+   * cookie, or the session. Treating it as URL-borne would let a shared cache
+   * serve one language's response for another with no Vary at all. When
+   * negotiation is by cookie or session, a cookie context is present too and
+   * makes the response private anyway.
+   */
+  public function testLanguageContextVariesOnHeader(): void {
+    $normalized = $this->normalize(
+      (new CacheableMetadata())->setCacheContexts(['languages:language_interface']),
+    );
+    $this->assertTrue($normalized['varies']['public']);
+    $this->assertSame(['accept-language'], $normalized['varies']['on']);
   }
 
   /**

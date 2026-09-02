@@ -151,14 +151,46 @@ final class ComponentProducerTest extends KernelTestBase {
    * Render cache keys are computable before the producer runs.
    */
   public function testCacheKeysAreComputableUpFront(): void {
-    $keys = $this->container->get(ProducerInvoker::class)
-      ->cacheKeys('multi_frontend_test.card', $this->node);
+    $keys = ProducerInvoker::cacheKeys('multi_frontend_test.card', $this->node);
     $this->assertSame(
-      ['produced_component', 'multi_frontend_test.card', 'node', (string) $this->node->id(), 'en'],
+      [
+        'produced_component',
+        'multi_frontend_test.card',
+        'node',
+        (string) $this->node->id(),
+        'en',
+        // Nodes are revisionable, and two revisions share an entity ID, so
+        // without this the first one rendered would be served for both.
+        (string) $this->node->getRevisionId(),
+      ],
       $keys,
     );
     $build = ProducedComponent::build('multi_frontend_test.card', $this->node);
     $this->assertSame($keys, $build['#cache']['keys']);
+  }
+
+  /**
+   * A subject with no stable identity is not render cached.
+   */
+  public function testUnsavedSubjectIsNotCached(): void {
+    $unsaved = Node::create(['type' => 'page', 'title' => 'Not saved yet']);
+    $this->assertNull(ProducerInvoker::cacheKeys('multi_frontend_test.card', $unsaved));
+
+    $build = ProducedComponent::build('multi_frontend_test.card', $unsaved);
+    $this->assertArrayNotHasKey('keys', $build['#cache'] ?? []);
+  }
+
+  /**
+   * Attributes change the output, so they change the cache key.
+   */
+  public function testAttributesAreInTheCacheKey(): void {
+    $plain = ProducedComponent::build('multi_frontend_test.card', $this->node);
+    $decorated = ProducedComponent::build(
+      'multi_frontend_test.card',
+      $this->node,
+      ['#attributes' => ['class' => ['promoted']]],
+    );
+    $this->assertNotSame($plain['#cache']['keys'], $decorated['#cache']['keys']);
   }
 
   /**

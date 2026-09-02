@@ -52,7 +52,9 @@ final class ComponentApiRoutes {
         [],
         ['GET'],
       );
-      $collection->add('multi_frontend.component.' . str_replace('.', '_', $id), $route);
+      // Route names may contain dots. Rewriting them to underscores is not
+      // injective: "foo.bar_baz" and "foo_bar.baz" would collide.
+      $collection->add('multi_frontend.component.' . $id, $route);
     }
     return $collection;
   }

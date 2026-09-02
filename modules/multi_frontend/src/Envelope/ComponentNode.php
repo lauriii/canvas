@@ -54,7 +54,7 @@ final class ComponentNode implements EnvelopeNodeInterface {
     return [
       'type' => 'component',
       'component' => $this->componentId,
-      'props' => $this->props,
+      'props' => (object) $this->props,
       'slots' => (object) $slots,
       'attributes' => (object) $this->attributes,
       'cacheability' => CacheabilityNormalizer::normalize($this),

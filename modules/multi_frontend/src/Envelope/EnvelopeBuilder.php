@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\multi_frontend\Envelope;
 
+use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Render\Element;
@@ -46,6 +47,13 @@ final class EnvelopeBuilder {
    *   The nodes.
    */
   public function build(array $element, RefinableCacheableDependencyInterface $cacheability): array {
+    // An element denied by #access renders as nothing, and must produce
+    // nothing here too. Skipping this check would hand a consumer data the
+    // HTML path would have withheld.
+    if (\array_key_exists('#access', $element) && !self::isAccessAllowed($element['#access'], $cacheability)) {
+      return [];
+    }
+
     if (($element['#type'] ?? NULL) === 'produced_component') {
       return [
         $this->invoker->produceNode($element['#producer'], $element['#subject'], $cacheability),
@@ -78,12 +86,27 @@ final class EnvelopeBuilder {
    * Whether an element is a bare array of children that renders nothing itself.
    */
   private static function isPlainContainer(array $element): bool {
-    foreach (['#type', '#theme', '#markup', '#plain_text', '#lazy_builder'] as $key) {
-      if (isset($element[$key])) {
+    // Anything with render properties of its own is not a bare container:
+    // #prefix, #attached, #cache, #pre_render and friends all change what the
+    // subtree means, and descending past them would silently drop them. Only
+    // #access (already handled), #weight and #sorted are safe to ignore.
+    foreach (\array_keys($element) as $key) {
+      if (\is_string($key) && \str_starts_with($key, '#') && !\in_array($key, ['#access', '#weight', '#sorted'], TRUE)) {
         return FALSE;
       }
     }
     return Element::children($element) !== [];
+  }
+
+  /**
+   * Resolves an element's #access, recording what the decision varied on.
+   */
+  private static function isAccessAllowed(mixed $access, RefinableCacheableDependencyInterface $cacheability): bool {
+    if ($access instanceof AccessResultInterface) {
+      $cacheability->addCacheableDependency($access);
+      return $access->isAllowed();
+    }
+    return $access !== FALSE;
   }
 
   /**

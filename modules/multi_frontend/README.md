@@ -111,9 +111,9 @@ on:
   between a component fetched alone and the same node read from a page, and the
   published schema.
 
-  All of them pass on Drupal core 11.4.4, run in four batches for the reason
-  below: 5 + 5 + 4 assertions-heavy tests in `ComponentProducerTest`
-  (71 + 77 + 68 assertions) and 5 in `CacheabilityNormalizerTest`. The only
+  All 22 pass on Drupal core 11.4.4, run in batches for the reason below:
+  `ComponentProducerTest` in three batches of 5, 7 and 4 (71, 104 and 68
+  assertions) and `CacheabilityNormalizerTest` with 6 (12 assertions). The only
   reported issues are two deprecations raised by core's own
   `TwigSandboxPolicy` against twig 3.28, which any Twig render triggers.
 
@@ -140,6 +140,16 @@ on:
 - **Coding standards** pass. `phpcs.xml` gains one exemption, with a comment:
   Canvas requires kernel tests to extend its own base class, and this module
   cannot without acquiring the dependency it exists to avoid.
+- **A Copilot review** of the first push found ten real defects, all fixed and
+  covered: `#access` bypassed by the envelope walk, container splitting that
+  dropped `#prefix`/`#attached`/`#cache`, three render-cache-key collisions
+  (unsaved entities, revisions, attributes), props that were never checked for
+  the JSON round trip the interface promises, child nodes rebuilt from props
+  alone, empty props encoding as `[]` where the schema requires an object,
+  non-injective route names, language contexts wrongly treated as URL-borne,
+  and discarded `GeneratedUrl` cacheability. `#variant` support was removed
+  rather than repaired: the envelope had no way to express it, so the same
+  call site would have selected a variant in Twig and not in JSON.
 - **Static analysis** reports only `Unused ...::__construct` findings on
   classes wired through `services.yml` and `routing.yml`. Analyzing an existing
   Canvas controller directory on its own produces identical findings, so this
