@@ -4,10 +4,16 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Config;
 
+// cspell:ignore Szia világ
+
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\PropSource\PropSource;
+use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\Core\Language\LanguageManagerInterface;
+use Drupal\language\ConfigurableLanguageManagerInterface;
+use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\BetterConfigDependencyManagerTrait;
 use Drupal\Tests\canvas\Traits\FallbackComponentTreeConfigValidationTestTrait;
@@ -226,6 +232,87 @@ class PageVariantValidationTest extends BetterConfigEntityValidationTestBase {
         'component_tree' => 'A page variant must contain a "Page content" placement.',
       ],
     ]);
+  }
+
+  /**
+   * A translation override plus a delta-keyed tree must not break validation.
+   *
+   * The languages involved are entirely unremarkable: the site default is
+   * English and so is the page variant -- nothing ever changes langcodes.
+   * Merely translating the variant while a delta-keyed tree exists is enough,
+   * because the two trees being merged are keyed differently:
+   * - a saved component_tree is re-keyed by UUID in preSave(), but an
+   *   auto-save draft never runs preSave(), so it keeps the delta keys the
+   *   client sends;
+   * - a config translation override always targets component instances by
+   *   their UUID sequence key, and carries only the translated inputs.
+   *
+   * CanvasConfigEntityTranslationsAreValidConstraintValidator simulates
+   * Config::setOverriddenData() by merging override onto base. Unless the
+   * base is re-keyed by UUID first, NestedArray::mergeDeepArray() sees the two
+   * as disjoint and appends the override's sparse entries as component
+   * instances of their own -- no component_id, no component_version -- which
+   * trips the assertions in ComponentInputsMapping when the merged result is
+   * validated against config schema.
+   *
+   * @see \Drupal\canvas\Plugin\Validation\Constraint\CanvasConfigEntityTranslationsAreValidConstraintValidator
+   * @see \Drupal\canvas\Entity\ComponentTreeConfigEntityBase::preSave()
+   * @see \Drupal\canvas\Config\Schema\ComponentInputsMapping
+   * @see https://www.drupal.org/i/3591850
+   */
+  public function testValidationWithTranslationOverrideAndDeltaKeyedTree(): void {
+    $this->container->get(ModuleInstallerInterface::class)->install(['language', 'config_translation']);
+    ConfigurableLanguage::createFromLangcode('hu')->save();
+    $language_manager = $this->container->get(LanguageManagerInterface::class);
+    \assert($language_manager instanceof ConfigurableLanguageManagerInterface);
+    $language_manager->reset();
+
+    // Plain setup: the site default language and the entity langcode agree.
+    self::assertSame('en', $language_manager->getDefaultLanguage()->getId());
+    self::assertSame('en', $this->entity->language()->getId());
+
+    $config_name = $this->entity->getConfigDependencyName();
+    $stored_tree = $this->config($config_name)->get('component_tree');
+    \assert(\is_array($stored_tree));
+    $uuid = '4f785025-9bd9-4752-9dd6-068b957b03ee';
+    // Saving re-keyed the stored tree by UUID.
+    self::assertArrayHasKey($uuid, $stored_tree);
+
+    // Reconstruct the delta-keyed shape an auto-save draft has: same
+    // component instances, but sequence keys as sent by the client, because
+    // drafts are stored and rehydrated without ever running preSave(). This
+    // must happen before the translation exists; with a translation present,
+    // ::setComponentTree() converts to sequence keys right away -- which is
+    // exactly why only pre-existing drafts can carry this shape.
+    $draft = PageVariant::create($this->entity->toArray());
+    $draft->enforceIsNew(FALSE);
+    $draft->set('component_tree', \array_values($stored_tree));
+    self::assertSame(
+      \range(0, \count($stored_tree) - 1),
+      \array_keys($draft->get('component_tree')),
+      'The draft component tree is delta-keyed.',
+    );
+
+    // Now translate the variant: config_translation writes a UUID-keyed
+    // override holding only the translated inputs.
+    $base_heading = $stored_tree[$uuid]['inputs']['heading'];
+    $language_manager->getLanguageConfigOverride('hu', $config_name)
+      ->set('component_tree', [
+        $uuid => [
+          'inputs' => [
+            'heading' => \is_array($base_heading)
+              ? ['value' => 'Szia, világ!']
+              : 'Szia, világ!',
+          ],
+        ],
+      ])
+      ->save();
+
+    // Validating the draft merges the delta-keyed base with the UUID-keyed
+    // override. Without the re-keying, this crashes with an AssertionError
+    // from ComponentInputsMapping instead of reporting anything.
+    $this->entity = $draft;
+    $this->assertValidationErrors([]);
   }
 
 }
