@@ -12,8 +12,11 @@ use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSyn
 use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
 use Drupal\canvas\Controller\ApiTranslationControllers;
 use Drupal\canvas\Entity\Page;
+use Drupal\content_translation\BundleTranslationSettingsInterface;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Url;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
@@ -127,7 +130,7 @@ final class ApiTranslationControllersForkTest extends CanvasKernelTestBase {
     $item = $es->getComponentTree()->getComponentTreeItemByUuid(self::UUID_A);
     self::assertNotNull($item);
     $item->setInput(['text' => 'Hola A (es)', 'element' => 'h1']);
-    $this->container->get('content_translation.manager')
+    $this->container->get(BundleTranslationSettingsInterface::class)
       ->getTranslationMetadata($es)
       ->setSource('en');
     $es->save();
@@ -140,7 +143,7 @@ final class ApiTranslationControllersForkTest extends CanvasKernelTestBase {
    * The active version of the given component.
    */
   private function getComponentVersion(string $component_id): string {
-    $component = $this->container->get('entity_type.manager')
+    $component = $this->container->get(EntityTypeManagerInterface::class)
       ->getStorage('component')
       ->load($component_id);
     self::assertNotNull($component);
@@ -154,7 +157,7 @@ final class ApiTranslationControllersForkTest extends CanvasKernelTestBase {
     return Url::fromRoute(
       $unfork ? 'canvas.api.content.translation.unfork' : 'canvas.api.content.translation.fork',
       ['canvas_page' => $page->id()],
-      ['language' => $this->container->get('language_manager')->getLanguage($langcode)],
+      ['language' => $this->container->get(LanguageManagerInterface::class)->getLanguage($langcode)],
     )->toString();
   }
 
@@ -183,7 +186,7 @@ final class ApiTranslationControllersForkTest extends CanvasKernelTestBase {
   private function stageDefaultTranslationDraft(Page $page, string $title): void {
     $auto_save = $this->container->get(AutoSaveManager::class);
     \assert($auto_save instanceof AutoSaveManager);
-    $storage = $this->container->get('entity_type.manager')->getStorage(Page::ENTITY_TYPE_ID);
+    $storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage(Page::ENTITY_TYPE_ID);
     $page_id = $page->id();
     \assert($page_id !== NULL);
     $stored = $storage->loadUnchanged($page_id);
