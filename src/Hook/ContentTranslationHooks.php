@@ -185,7 +185,7 @@ final readonly class ContentTranslationHooks {
    */
   public static function markDivergentComponentTreeTranslationsForked(): void {
     $entity_type_manager = \Drupal::entityTypeManager();
-    $entity_field_manager = \Drupal::service('entity_field.manager');
+    $entity_field_manager = \Drupal::service(EntityFieldManagerInterface::class);
     \assert($entity_field_manager instanceof EntityFieldManagerInterface);
     $fork_field_name = ComponentTreeTranslationFork::FIELD_NAME;
 
