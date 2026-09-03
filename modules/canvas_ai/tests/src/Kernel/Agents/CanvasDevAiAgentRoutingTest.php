@@ -83,7 +83,7 @@ final class CanvasDevAiAgentRoutingTest extends CanvasKernelTestBase {
   /**
    * Tests the shipped configuration invokes the component agent.
    *
-   * @todo Update this test once the Drupal Canvas agent exists and becomes the configured main agent, in https://git.drupalcode.org/project/canvas/-/work_items/3591777
+   * @todo Update this test once the Drupal Canvas agent becomes the configured main agent, in https://git.drupalcode.org/project/canvas/-/work_items/3591995
    */
   public function testDefaultConfiguration(): void {
     $this->hop(['messages' => [['role' => 'user', 'text' => 'Routing test.']]]);

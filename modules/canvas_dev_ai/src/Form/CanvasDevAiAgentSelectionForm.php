@@ -16,8 +16,13 @@ final class CanvasDevAiAgentSelectionForm extends ConfigFormBase {
 
   /**
    * The ai_agent IDs that may be selected.
+   *
+   * CanvasDevAiHooks reads this to decide which Tools are available, so every
+   * ID here is described to the Canvas agent whether or not it is enabled.
+   *
+   * @todo Trim to canvas_agent, canvas_component_agent and canvas_dev_page_builder_agent, and set canvas_agent as the main agent, in https://git.drupalcode.org/project/canvas/-/work_items/3591995
    */
-  private const SELECTABLE_AGENTS = [
+  public const SELECTABLE_AGENTS = [
     'canvas_ai_orchestrator',
     'canvas_component_agent',
     'canvas_dev_page_builder_agent',

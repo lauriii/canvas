@@ -567,7 +567,7 @@ final class CanvasDevAiBuilder extends ControllerBase {
       // loudly rather than serialize an iterator into the response.
       $message = $agent->solve();
       if ($message instanceof StreamedChatMessageIteratorInterface) {
-        throw new \LogicException('The dev chat requires a non-streaming agent response.');
+        throw new \LogicException('Canvas AI agents does not support streaming.');
       }
       $response['message'] = $message;
       $response['progress'] = $this->getAiProgressWithoutAnswer($job_id, $message);
