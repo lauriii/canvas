@@ -9,7 +9,9 @@ use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer;
 use Drupal\canvas\Controller\ApiLayoutController;
 use Drupal\canvas\Entity\Page;
+use Drupal\content_translation\BundleTranslationSettingsInterface;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Url;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\language\Entity\ContentLanguageSettings;
@@ -117,7 +119,7 @@ final class ApiLayoutControllerLanguageTest extends CanvasKernelTestBase {
       'path' => ['alias' => '/spanish-page'],
       'components' => $page->get('components')->getValue(),
     ]);
-    $this->container->get('content_translation.manager')
+    $this->container->get(BundleTranslationSettingsInterface::class)
       ->getTranslationMetadata($es)
       ->setSource('en');
     $es->save();
@@ -188,7 +190,7 @@ final class ApiLayoutControllerLanguageTest extends CanvasKernelTestBase {
     $fork_url = Url::fromRoute(
       'canvas.api.content.translation.fork',
       ['canvas_page' => $page->id()],
-      ['language' => $this->container->get('language_manager')->getLanguage('es')],
+      ['language' => $this->container->get(LanguageManagerInterface::class)->getLanguage('es')],
     )->toString();
     $response = $this->request(Request::create($fork_url, 'POST'));
     self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode(), (string) $response->getContent());
