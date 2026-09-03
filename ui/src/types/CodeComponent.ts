@@ -93,6 +93,7 @@ export interface CodeComponentProp {
     | CodeComponentPropDocumentExample[];
   $ref?: string;
   format?: string;
+  pattern?: string;
   derivedType: (typeof derivedPropTypes)[number]['type'] | null;
   contentMediaType?: string;
   'x-formatting-context'?: string;
@@ -150,6 +151,7 @@ export interface CodeComponentPropSerialized {
   )[];
   $ref?: string;
   format?: string;
+  pattern?: string;
   contentMediaType?: string;
   'x-canvas-color-picker'?: 'kit-only' | 'kit-and-free';
   'x-canvas-color-folders'?: string[];
@@ -208,7 +210,23 @@ export type CodeComponentPropPreviewValue =
   | CodeComponentPropVideoExample[]
   | CodeComponentPropDocumentExample[]
   | ResolvedColorProp
+  // Icon props resolve to a renderable value for the preview, mirroring the
+  // server-side resolution at render time.
+  | CodeComponentPropIconPreviewValue
   | null;
+
+/**
+ * The renderable value an icon prop resolves to.
+ *
+ * Mirrors the server-side resolution: inline `svg` markup or an asset `url`.
+ *
+ * @see \Drupal\canvas\Icon\IconResolver
+ */
+export interface CodeComponentPropIconPreviewValue {
+  id: string;
+  svg?: string;
+  url?: string;
+}
 
 export interface AssetLibrary {
   id: string;

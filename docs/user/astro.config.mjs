@@ -103,6 +103,7 @@ export default defineConfig({
               slug: 'code-components/responsive-images',
             },
             { label: 'Brand Kit', slug: 'code-components/brand-kit' },
+            { label: 'Icons', slug: 'code-components/icons' },
             {
               label: 'Component metadata',
               slug: 'code-components/component-metadata',

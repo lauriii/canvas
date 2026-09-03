@@ -163,6 +163,113 @@ adds human-readable axis names (e.g. "Weight", "Optical size") for common
 OpenType axis tags so the Brand Kit UI shows the same CSS axes sliders and
 labels as for fonts uploaded via the UI.
 
+#### Icon libraries
+
+Icon libraries are part of the brand kit workflow: icon sync is enabled with
+`--include-brand-kit` or `CANVAS_INCLUDE_BRAND_KIT=true`. Like fonts, icon
+libraries are declared in `canvas.brand-kit.json` — under a top-level `icons`
+key with a `libraries` array mirroring `fonts.families`:
+
+```json
+{
+  "fonts": { "families": [] },
+  "icons": {
+    "libraries": [
+      {
+        "id": "lucide",
+        "label": "Lucide",
+        "source": "node_modules/lucide-static/icons"
+      },
+      { "id": "my_icons", "label": "My icons" }
+    ]
+  }
+}
+```
+
+Each entry declares one canvas-managed icon library:
+
+- `id` (required): the library id; lowercase letters, digits, and underscores.
+- `label` (required): human-readable label. Every library must be declared with
+  at least a label, just as every font family requires a `name`.
+- `description`: optional description.
+- `template`: optional Twig rendering template override; omit to use the server
+  default.
+- `source`: directory the SVG files are read from, relative to the project root;
+  defaults to `icons/<id>`. Point it at an npm package directory (e.g.
+  `node_modules/lucide-static/icons`) to keep vendored icon sets out of the
+  repository.
+
+The SVG files themselves live in the `source` directory; the filename (minus
+`.svg`) becomes the icon id. A bare `icons/<id>/` directory is never pushed on
+its own — every library must be declared in `canvas.brand-kit.json` with a
+label.
+
+```
+icons/
+  my_icons/
+    star.svg           # icons; the filename (minus .svg) is the icon id
+  lucide/
+    pack.json          # module-provided pack info written by pull; not pushed
+```
+
+**Replace semantics (like fonts):** when the `icons` key is present in
+`canvas.brand-kit.json`, the declared set is authoritative — pushing deletes
+canvas-managed libraries on the site that are no longer in it, and an empty
+`libraries` array deletes them all. Without an `icons` key, push only adds and
+updates. `pull` writes each canvas-managed library's entry into
+`canvas.brand-kit.json` (preserving existing entries) and downloads its SVG
+files into `icons/<id>/`, so a pulled project pushes back unchanged.
+Module-provided packs are pulled as informational `icons/<id>/pack.json` files
+that push skips.
+
+**Importing an existing icon set from npm:** declare the package directory as
+the library's `source` — no copying required:
+
+```json
+{
+  "icons": {
+    "libraries": [
+      {
+        "id": "lucide",
+        "label": "Lucide",
+        "source": "node_modules/lucide-static/icons"
+      }
+    ]
+  }
+}
+```
+
+Or copy the SVG files into `icons/<id>/` and declare the library with a label:
+
+```json
+{
+  "icons": {
+    "libraries": [{ "id": "lucide_icons", "label": "Lucide icons" }]
+  }
+}
+```
+
+```bash
+mkdir -p icons/lucide_icons
+cp node_modules/lucide-static/icons/*.svg icons/lucide_icons/
+npx canvas push --include-brand-kit
+```
+
+Every SVG becomes an icon named after its filename, available in the Canvas icon
+picker and the Brand Kit, and rendered through the core Icon API.
+
+**Incremental pushes:** every uploaded file's SHA-256 is stored on the icon
+library, so a re-push uploads only new or changed files — unchanged icons never
+leave your machine, and an unchanged library skips its update entirely. Uploads
+run concurrently with live per-library progress.
+
+**SVG sanitization:** The server rejects unsafe SVG files (scripts, event
+handler attributes, `javascript:` URLs, DOCTYPE declarations, and external
+references) with a per-file error. The CLI runs the same checks locally before
+uploading for fast feedback, and reports server-side rejections with the file
+path and the server's error message. A rejected file fails its library, but
+other libraries continue to push.
+
 If you still have `CANVAS_COMPONENT_DIR` set in your shell, `.env`, or
 `.canvasrc`, the CLI will warn you and offer to create or update
 `canvas.config.json` with `componentDir`.
@@ -329,7 +436,8 @@ stay managed in the Canvas editor instead of the authored codebase.
 
 Pull code components, global CSS, package.json, local modules imported by
 components, pages, content templates, and page templates from Drupal to your
-local filesystem. Brand Kit fonts are only included when explicitly enabled.
+local filesystem. Brand Kit fonts and icon libraries are only included when
+explicitly enabled.
 
 If the project's `package.json` was captured on a previous `push`, it is written
 back to the project root during pull. It is overwritten by default, or skipped
@@ -380,6 +488,12 @@ Pull Brand Kit fonts:
 npx canvas pull --include-brand-kit
 ```
 
+Pull icon libraries:
+
+```bash
+npx canvas pull --include-brand-kit
+```
+
 Pull only new items (skip existing):
 
 ```bash
@@ -397,7 +511,8 @@ from your site by default. Use `--no-pages`, `--no-content-templates`, or
 `--no-page-templates` to exclude those resources for a single run, or set
 `sync.*` in `canvas.config.json` to change project defaults. Use
 `--include-brand-kit` or `CANVAS_INCLUDE_BRAND_KIT=true` to include Brand Kit
-fonts. Use `--skip-overwrite` to skip items that already exist locally.
+fonts and icon libraries. Use `--skip-overwrite` to skip items that already
+exist locally.
 
 **Fonts:** The pull command fetches fonts from the global Brand Kit, downloads
 font files into a `fonts/` directory, and adds local `src` entries to
@@ -407,6 +522,13 @@ push) are skipped, so push-then-pull is idempotent. New variants added via the
 Canvas UI for a family you already have in config are downloaded and appended to
 `families`. Requires `--include-brand-kit` or `CANVAS_INCLUDE_BRAND_KIT` which
 will add the `canvas:brand_kit` OAuth scope.
+
+**Icons:** With `--include-brand-kit`, the pull command declares every
+canvas-managed icon library in `canvas.brand-kit.json`, downloads its SVG files
+to `icons/<id>/`, and writes an informational `icons/<id>/pack.json` for every
+module-provided icon pack. Existing local SVG and `pack.json` files are
+overwritten by default, or left untouched with `--skip-overwrite`. See
+[Icon libraries](#icon-libraries).
 
 ---
 
@@ -510,8 +632,8 @@ tree-shaking, and dependency management.
 ### `push`
 
 Build and push local components, global CSS, build artifacts, pages, content
-templates, and page templates to Drupal. Brand Kit fonts are only included when
-explicitly enabled.
+templates, and page templates to Drupal. Brand Kit fonts and icon libraries are
+only included when explicitly enabled.
 
 **Usage:**
 
@@ -549,6 +671,12 @@ Push Brand Kit fonts:
 npx canvas push --include-brand-kit
 ```
 
+Push icon libraries:
+
+```bash
+npx canvas push --include-brand-kit
+```
+
 Push components in a specific directory:
 
 ```bash
@@ -577,21 +705,28 @@ component assets. Push can include:
    Requires `--include-brand-kit` or `CANVAS_INCLUDE_BRAND_KIT` which will add
    the `canvas:brand_kit` OAuth scope. See
    [Font push (Brand Kit)](#font-push-brand-kit).
-4. **Vendor artifacts** - Bundled third-party dependencies
-5. **Local artifacts** - Bundled local imports (e.g., `@/utils`)
-6. **Shared chunks** - Common code shared between vendor bundles
-7. **Pages** - Canvas pages built from components, unless excluded with
+4. **Icon libraries** - With `--include-brand-kit` or
+   `CANVAS_INCLUDE_BRAND_KIT`, each icon library declared in
+   `canvas.brand-kit.json` is validated, its SVG files are uploaded, and the
+   icon library is created, updated, reported unchanged, or deleted per the
+   replace semantics. Files rejected by the server's SVG sanitizer fail that
+   library with the file path and server error; other libraries continue. See
+   [Icon libraries](#icon-libraries).
+5. **Vendor artifacts** - Bundled third-party dependencies
+6. **Local artifacts** - Bundled local imports (e.g., `@/utils`)
+7. **Shared chunks** - Common code shared between vendor bundles
+8. **Pages** - Canvas pages built from components, unless excluded with
    `--no-pages` or `sync.pages: false`.
-8. **Content Templates** - Content templates that define component layouts for
+9. **Content Templates** - Content templates that define component layouts for
    entity view modes, unless excluded with `--no-content-templates` or
    `sync.contentTemplates: false`.
-9. **Page templates** - Page variants that render the full page around the
-   content, unless excluded with `--no-page-templates` or
-   `sync.pageTemplates: false`. A page template file can set `"default": true`
-   to become the site default page variant (written through
-   `/canvas/api/v0/settings/default-page-variant` with the `canvas:page_variant`
-   scope); at most one file may claim it. The current site default is never
-   deleted by a push.
+10. **Page templates** - Page variants that render the full page around the
+    content, unless excluded with `--no-page-templates` or
+    `sync.pageTemplates: false`. A page template file can set `"default": true`
+    to become the site default page variant (written through
+    `/canvas/api/v0/settings/default-page-variant` with the
+    `canvas:page_variant` scope); at most one file may claim it. The current
+    site default is never deleted by a push.
 
 ---
 

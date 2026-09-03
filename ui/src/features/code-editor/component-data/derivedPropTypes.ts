@@ -20,6 +20,8 @@
  * @see config/schema/canvas.schema.yml#canvas.js_component.*.mapping.props
  */
 
+import { isIconPattern } from '@/components/icons/iconScope';
+
 import type { CodeComponentPropSerialized } from '@/types/CodeComponent';
 
 const derivedPropTypes = [
@@ -32,6 +34,7 @@ const derivedPropTypes = [
       !prop.format &&
       !prop.contentMediaType &&
       !prop['x-formatting-context'] &&
+      !isIconPattern(prop.pattern) &&
       (!prop.enum || prop.enum.length === 0),
     init: {
       type: 'string',
@@ -59,6 +62,23 @@ const derivedPropTypes = [
     init: {
       type: 'string',
       format: 'uri-reference',
+    },
+  },
+  {
+    type: 'icon' as const,
+    displayName: 'Icon',
+    // The stored value is the core Icon API's full icon id
+    // (`pack_id:icon_id`). An optional `pattern` scopes the prop to a subset
+    // of the installed icon packs. A pattern-only shape (no `$ref`, e.g.
+    // after server-side schema normalization) is still an icon, mirroring
+    // \Drupal\canvas\Icon\IconPropShape::isIconSchema().
+    derive: (prop: CodeComponentPropSerialized) =>
+      prop.type === 'string' &&
+      (prop.$ref === 'json-schema-definitions://canvas.module/icon' ||
+        (!prop.$ref && isIconPattern(prop.pattern))),
+    init: {
+      type: 'string',
+      $ref: 'json-schema-definitions://canvas.module/icon',
     },
   },
   {

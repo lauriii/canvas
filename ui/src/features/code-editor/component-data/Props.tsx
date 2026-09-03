@@ -36,6 +36,7 @@ import FormPropTypeDate from '@/features/code-editor/component-data/forms/FormPr
 import FormPropTypeDocument from '@/features/code-editor/component-data/forms/FormPropTypeDocument';
 import FormPropTypeEnum from '@/features/code-editor/component-data/forms/FormPropTypeEnum';
 import FormPropTypeFormattedText from '@/features/code-editor/component-data/forms/FormPropTypeFormattedText';
+import FormPropTypeIcon from '@/features/code-editor/component-data/forms/FormPropTypeIcon';
 import FormPropTypeImage from '@/features/code-editor/component-data/forms/FormPropTypeImage';
 import FormPropTypeLink, {
   DEFAULT_LINK_EXAMPLES,
@@ -214,6 +215,9 @@ export default function Props() {
                       'image',
                       'video',
                       'document',
+                      // The icon example depends on the installed icon packs.
+                      // @see FormPropTypeIcon
+                      'icon',
                     ].includes(value);
                     const isContentEntityReference =
                       value === 'contentEntityReference';
@@ -230,6 +234,7 @@ export default function Props() {
                           derivedType: value,
                           $ref: undefined,
                           format: undefined,
+                          pattern: undefined,
                           // Explicitly clear type-specific fields so they are not
                           // carried over from a previously selected prop type.
                           // When adding a new prop type with type-specific fields,
@@ -342,6 +347,15 @@ export default function Props() {
                   allowMultiple={prop.allowMultiple}
                   valueMode={prop.valueMode}
                   limitedCount={prop.limitedCount}
+                />
+              );
+            case 'icon':
+              return (
+                <FormPropTypeIcon
+                  id={prop.id}
+                  example={prop.example as string}
+                  pattern={prop.pattern}
+                  isDisabled={disabledPropIds.has(prop.id)}
                 />
               );
             case 'image':

@@ -1111,6 +1111,87 @@ paths:
       responses:
         '204':
           description: Deleted individual Folder.
+  /canvas/api/v0/config/icon_library:
+    description: Endpoint for managing icon libraries.
+    get:
+      summary: Retrieves all available icon libraries.
+      responses:
+        '200':
+          description: All available icon libraries
+          content:
+            application/json:
+              schema:
+                type: object
+                minProperties: 0
+                additionalProperties:
+                  $ref: '#/components/schemas/IconLibrary'
+    post:
+      summary: Creates a new icon library.
+      requestBody:
+        description: Creates a new icon library.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewIconLibrary'
+            examples:
+              example of an icon library:
+                value:
+                  id: "demo_icons"
+                  label: "Demo icons"
+                  description: null
+                  template: null
+                  assets: null
+      responses:
+        '201':
+          description: Created entity successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IconLibrary'
+        '409':
+          description: Icon library with same ID already exists.
+          $ref: '#/components/responses/ClientErrorResponse'
+        '422':
+          description: Validation errors exist
+          $ref: '#/components/responses/ClientErrorResponse'
+  '/canvas/api/v0/config/icon_library/{configEntityId}':
+    description: Endpoint for managing a specific icon library.
+    get:
+      summary: Retrieves details of a specific icon library.
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '200':
+          description: Individual icon library
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IconLibrary'
+    patch:
+      summary: Updates a specific icon library.
+      requestBody:
+        description: Update specific icon library.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IconLibrary'
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '200':
+          description: Individual icon library
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IconLibrary'
+    delete:
+      summary: Deletes an icon library.
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      responses:
+        '204':
+          description: Deleted individual icon library
   /canvas/api/v0/config/js_component:
     get:
       summary: Gets list of Code Components
@@ -2286,6 +2367,124 @@ paths:
               schema:
                 type: object
                 description: A Drupal AJAX response.
+  '/canvas/api/v0/icon-libraries/{configEntityId}/assets':
+    description: Upload an SVG file to an icon library
+    post:
+      summary: Upload an SVG file to an icon library
+      parameters:
+        - $ref: '#/components/parameters/configEntityId'
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '201':
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  uri:
+                    type: string
+                    description: The file URI
+                  fid:
+                    type: integer
+                    description: The file entity ID
+                  url:
+                    type: string
+                    description: The public URL to the file
+                  hash:
+                    type: string
+                    pattern: '^[0-9a-f]{64}$'
+                    description: SHA-256 of the file contents
+        '422':
+          description: The SVG file was rejected.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    description: Human-readable reasons why the SVG file was rejected
+                    items:
+                      type: string
+  /canvas/api/v0/icons:
+    description: Lists the icon packs installed on the site
+    get:
+      summary: Lists the icon packs installed on the site
+      parameters:
+        - in: query
+          name: scope
+          required: false
+          description: Pass `all` (requires the `administer brand kit` permission) to bypass the site's `icons.allowed_packs` allow-list, which otherwise filters the listed packs; used by sync clients such as the Canvas CLI.
+          schema:
+            type: string
+            enum: [all]
+      responses:
+        '200':
+          description: All icon packs with their icons
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - packs
+                properties:
+                  packs:
+                    type: object
+                    description: All icon packs, keyed by icon pack id
+                    additionalProperties:
+                      type: object
+                      required:
+                        - id
+                        - label
+                        - description
+                        - iconCount
+                        - icons
+                      properties:
+                        id:
+                          type: string
+                          description: The icon pack id
+                        label:
+                          type: string
+                          description: Human-readable label
+                        description:
+                          type: string
+                          description: Human-readable description
+                        iconCount:
+                          type: integer
+                          description: The number of icons in this pack
+                        icons:
+                          type: array
+                          items:
+                            type: object
+                            required:
+                              - id
+                              - name
+                              - label
+                            properties:
+                              id:
+                                type: string
+                                description: The full icon id (`pack_id:icon_id`)
+                              name:
+                                type: string
+                                description: The icon id within the pack
+                              label:
+                                type: string
+                                description: Humanized icon name
+                              svg:
+                                type: string
+                                description: Inline SVG markup, when the pack's extractor exposes the SVG contents
+                              url:
+                                type: string
+                                description: URL to the icon asset, when the icon resolves to a file instead of inline SVG
   '/canvas/api/v0/layout-content-template-draft/{entityTypeId}/{entityId}':
     description: >
       Resolves a content template draft (provided in the request body) against
@@ -4911,6 +5110,55 @@ components:
       type: object
       allOf:
         - $ref: '#/components/schemas/BrandKit'
+      required:
+        - id
+        - label
+    IconLibrary:
+      title: Icon Library
+      type: object
+      properties:
+        id:
+          type: string
+          description: Icon library ID
+        label:
+          type: string
+          description: Human-readable label
+        description:
+          type: [string, "null"]
+          description: Human-readable description
+        template:
+          type: [string, "null"]
+          description: Twig template used to render icons in this library; null means the default template
+        assets:
+          description: Uploaded SVG files that make up this icon library
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: object
+                required:
+                  - name
+                  - uri
+                additionalProperties: false
+                properties:
+                  name:
+                    type: string
+                    description: The SVG file name (e.g. star.svg)
+                  uri:
+                    type: string
+                    description: Managed file URI
+                  hash:
+                    type: [string, "null"]
+                    pattern: '^[0-9a-f]{64}$'
+                    description: SHA-256 of the file contents; lets the CLI skip re-uploading unchanged files
+                  url:
+                    type: string
+                    readOnly: true
+                    description: Public URL to the SVG file (derived server-side from uri)
+    NewIconLibrary:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/IconLibrary'
       required:
         - id
         - label

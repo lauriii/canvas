@@ -13,6 +13,15 @@ import {
   buildFontPushPlannedResults,
   pushFonts,
 } from '../lib/fonts/font-push.js';
+import {
+  buildIconPushPlannedResults,
+  collectIconLibraryResults,
+  discoverIconLibraries,
+  hasIconLibraryPushWork,
+  planIconLibraryDeletions,
+  prepareIconLibrariesPush,
+  pushIconLibrary,
+} from '../lib/icons/icon-push.js';
 import { createApiService, ensureAuthConfig } from '../services/api.js';
 import { buildCanvasProject } from '../utils/build-project';
 import {
@@ -70,6 +79,7 @@ import type {
   UploadedArtifactResult,
 } from '../types/Component.js';
 import type { ContentTemplateListItem } from '../types/ContentTemplate.js';
+import type { IconLibrary } from '../types/IconLibrary.js';
 import type { PageListItem } from '../types/Page.js';
 import type { Result } from '../types/Result.js';
 import type { CommandSummaryResource } from '../utils/command-summary';
@@ -94,7 +104,8 @@ type PlannedPushResourceKey =
   | 'pages'
   | 'content-templates'
   | 'page-templates'
-  | 'brand-kit';
+  | 'brand-kit'
+  | 'icons';
 
 interface NotStartedPushResource {
   key: PlannedPushResourceKey;
@@ -172,6 +183,7 @@ function buildNotStartedResources(
       itemType: 'Page template',
     },
     { key: 'brand-kit', label: 'brand kit', itemType: 'Font variant' },
+    { key: 'icons', label: 'Icon libraries', itemType: 'Icon library' },
   ];
 
   return resourceDefinitions
@@ -343,6 +355,58 @@ export function getSyncExclusionMessage(
     case 'config':
       return `Local ${label} were found but excluded by "${options.configPath}": false in canvas.config.json. Set it to true to push them.`;
   }
+}
+
+export interface PushableResources {
+  componentCount: number;
+  pageCount: number;
+  contentTemplateCount: number;
+  pageTemplateCount: number;
+  iconLibraryCount: number;
+  /** True when the brand kit is included and canvas.brand-kit.json declares fonts. */
+  pushesBrandKitFonts: boolean;
+  /** True when the brand kit is included and canvas.brand-kit.json declares icon libraries. */
+  pushesIconLibraries: boolean;
+}
+
+/**
+ * Returns true when the push has something to send: local resources for the
+ * enabled sync settings, or a declared brand kit configuration. A declared
+ * configuration is work even when it declares an empty list, because the push
+ * replaces the remote set with it: an empty `icons.libraries` list deletes
+ * every remote canvas-managed icon library, the same way an empty
+ * `fonts.families` list clears the remote fonts.
+ */
+export function hasPushableResources(resources: PushableResources): boolean {
+  return (
+    resources.componentCount > 0 ||
+    resources.pageCount > 0 ||
+    resources.contentTemplateCount > 0 ||
+    resources.pageTemplateCount > 0 ||
+    resources.iconLibraryCount > 0 ||
+    resources.pushesBrandKitFonts ||
+    resources.pushesIconLibraries
+  );
+}
+
+/**
+ * Returns the message announcing a brand-kit-only push: no local components,
+ * pages, content templates or page templates were found, but
+ * canvas.brand-kit.json declares configuration that still has to be synced.
+ * Returns undefined when there is no such declaration to announce.
+ */
+export function getBrandKitOnlyPushMessage(
+  pushesBrandKitFonts: boolean,
+  pushesIconLibraries: boolean,
+): string | undefined {
+  const declarations = [
+    ...(pushesBrandKitFonts ? ['brand kit fonts'] : []),
+    ...(pushesIconLibraries ? ['icon libraries'] : []),
+  ];
+  if (declarations.length === 0) {
+    return undefined;
+  }
+  return `No components, pages, content templates, or page templates found; syncing ${declarations.join(' and ')} from canvas.brand-kit.json.`;
 }
 
 /**
@@ -673,7 +737,7 @@ export function pushCommand(program: Command): void {
   program
     .command('push')
     .description(
-      'build and push local components, global CSS, component dependencies, and optional fonts and content to Drupal',
+      'build and push local components, global CSS, component dependencies, and optional fonts, icons, and content to Drupal',
     )
     .option('--client-id <id>', 'Client ID')
     .option('--client-secret <secret>', 'Client Secret')
@@ -735,7 +799,15 @@ export function pushCommand(program: Command): void {
         const includesContentTemplates = config.includeContentTemplates;
         const includesPageTemplates = config.includePageTemplates;
         const includesBrandKit = config.includeBrandKit;
+        // Icon libraries are part of the brand kit workflow.
+        const includesIcons = includesBrandKit;
         const hasBrandKitFontsConfig = config.fonts !== undefined;
+        const {
+          libraries: discoveredIconLibraries,
+          authoritative: iconsAuthoritative,
+        } = includesIcons
+          ? await discoverIconLibraries(process.cwd())
+          : { libraries: [], authoritative: false };
         // When the Canvas Headless SDK is installed, components are pushed as
         // external components (metadata only): the headless app renders them.
         // The app's entries may be framework single-file components (.vue,
@@ -830,16 +902,26 @@ export function pushCommand(program: Command): void {
           }
         };
 
+        // A declared brand kit list is authoritative, so both a fonts and an
+        // icons declaration are push work even when they declare nothing: the
+        // push replaces the remote set with the declared one.
+        const pushesBrandKitFonts = includesBrandKit && hasBrandKitFontsConfig;
+        const pushesIconLibraries = includesIcons && iconsAuthoritative;
+
         if (
-          components.length === 0 &&
-          discoveredPages.length === 0 &&
-          discoveredContentTemplates.length === 0 &&
-          discoveredPageTemplates.length === 0 &&
-          !(includesBrandKit && hasBrandKitFontsConfig)
+          !hasPushableResources({
+            componentCount: components.length,
+            pageCount: discoveredPages.length,
+            contentTemplateCount: discoveredContentTemplates.length,
+            pageTemplateCount: discoveredPageTemplates.length,
+            iconLibraryCount: discoveredIconLibraries.length,
+            pushesBrandKitFonts,
+            pushesIconLibraries,
+          })
         ) {
           logIgnoredLocalResources();
           p.log.warn(
-            'No components, pages, content templates, or page templates found for the enabled sync settings.',
+            'No components, pages, content templates, page templates, or icon libraries found for the enabled sync settings.',
           );
           p.outro('Nothing to push');
           return;
@@ -849,13 +931,15 @@ export function pushCommand(program: Command): void {
           components.length === 0 &&
           discoveredPages.length === 0 &&
           discoveredContentTemplates.length === 0 &&
-          discoveredPageTemplates.length === 0 &&
-          includesBrandKit &&
-          hasBrandKitFontsConfig
+          discoveredPageTemplates.length === 0
         ) {
-          p.log.info(
-            'No components, pages, content templates, or page templates found; syncing brand kit fonts from canvas.brand-kit.json.',
+          const brandKitOnlyMessage = getBrandKitOnlyPushMessage(
+            pushesBrandKitFonts,
+            pushesIconLibraries,
           );
+          if (brandKitOnlyMessage !== undefined) {
+            p.log.info(brandKitOnlyMessage);
+          }
         }
 
         if (components.length === 0) {
@@ -882,6 +966,18 @@ export function pushCommand(program: Command): void {
             remoteBrandKitFonts = [];
           }
         }
+
+        // Fetch remote icon libraries early for the planned operations
+        // summary. This lookup is required rather than best-effort: it also
+        // decides which remote libraries an authoritative declaration
+        // deletes, so treating a failure as "no remote libraries" would skip
+        // every deletion and still report a successful push. Let the failure
+        // stop the push, like the other required remote lookups below.
+        const remoteIconLibraries: Record<string, IconLibrary> =
+          includesIcons &&
+          (discoveredIconLibraries.length > 0 || iconsAuthoritative)
+            ? await apiService.getIconLibraries()
+            : {};
 
         // Fetch remote pages early for the planned operations summary.
         const remotePages =
@@ -1020,6 +1116,16 @@ export function pushCommand(program: Command): void {
                 delete: operationLabels.delete,
               })
             : []),
+          ...buildIconPushPlannedResults(
+            discoveredIconLibraries.map((library) => library.id),
+            remoteIconLibraries,
+            {
+              create: operationLabels.create,
+              update: operationLabels.update,
+              delete: operationLabels.delete,
+            },
+            iconsAuthoritative,
+          ),
         ];
         if (plannedResults.length > 0) {
           notStartedResources.push(...buildNotStartedResources(plannedResults));
@@ -1057,6 +1163,11 @@ export function pushCommand(program: Command): void {
           }
           if (includesBrandKit && hasBrandKitFontsConfig) {
             parts.push('brand kit fonts (canvas.brand-kit.json)');
+          }
+          if (discoveredIconLibraries.length > 0) {
+            parts.push(
+              `${discoveredIconLibraries.length} icon ${pluralize(discoveredIconLibraries.length, 'library', 'libraries')}`,
+            );
           }
           const confirmed = await p.confirm({
             message: `Push these changes to ${config.siteUrl}?`,
@@ -1303,6 +1414,126 @@ export function pushCommand(program: Command): void {
               'Brand kit push failed',
               formatErrorMessage(err),
             );
+          }
+        }
+
+        // Step 4c: Push icon libraries from icons/ (when enabled).
+        if (
+          includesIcons &&
+          (discoveredIconLibraries.length > 0 ||
+            (iconsAuthoritative && Object.keys(remoteIconLibraries).length > 0))
+        ) {
+          const iconSummary = await runPushResourcePipeline({
+            labels: {
+              start: 'Pushing icon libraries',
+              validating: 'Validating icon libraries',
+              preparing: 'Preparing icon libraries',
+              pushing: 'Pushing icon libraries',
+              done: 'Pushed icon libraries',
+            },
+            phases: {
+              validation: 'Icon library validation failed',
+              preparation: 'Icon library preparation failed',
+              push: 'Icon library push failed',
+            },
+            messages: {
+              validation: 'Icon library validation failed.',
+              noValidItems: 'No valid icon libraries to push.',
+              push: 'Some icon libraries failed to push.',
+            },
+            itemLabel: 'Icon library',
+            markStarted: () =>
+              removeNotStartedResource(notStartedResources, 'icons'),
+            prepare: () => prepareIconLibrariesPush(process.cwd()),
+            // An explicitly empty declared list produces no valid libraries
+            // but must still reach the push step so its authoritative
+            // delete-all semantics run; pending deletions count as push work.
+            hasPushWork: (valid) =>
+              hasIconLibraryPushWork(
+                valid.length,
+                remoteIconLibraries,
+                discoveredIconLibraries.map((library) => library.id),
+                iconsAuthoritative,
+              ),
+            push: async (validLibraries, context) => {
+              const remoteLibraries = await pushApiService.getIconLibraries();
+              // Uploads are parallelized per library, so libraries themselves
+              // push sequentially to keep the progress message coherent.
+              const results = await processInPool(
+                validLibraries,
+                (entry) =>
+                  pushIconLibrary(
+                    pushApiService,
+                    entry.result,
+                    remoteLibraries[entry.result.id],
+                    {
+                      onProgress: (libraryId, done, total) =>
+                        context?.updateMessage(
+                          `Pushing icon library ${libraryId}: ${done}/${total} files`,
+                        ),
+                    },
+                  ),
+                1,
+              );
+              const mapped = results.map((result) => ({
+                ...result,
+                success: Boolean(result.success && result.result?.success),
+                index: validLibraries[result.index]?.index ?? result.index,
+              }));
+              // A declared library list is authoritative: remove remote
+              // canvas-managed libraries that are no longer listed,
+              // mirroring fonts' replace semantics.
+              const deletions = planIconLibraryDeletions(
+                remoteLibraries,
+                discoveredIconLibraries.map((library) => library.id),
+                iconsAuthoritative,
+              );
+              let deletionIndex = discoveredIconLibraries.length;
+              for (const id of deletions) {
+                context?.updateMessage(`Deleting icon library ${id}`);
+                try {
+                  await pushApiService.deleteIconLibrary(id);
+                  mapped.push({
+                    success: true,
+                    result: {
+                      id,
+                      operation: 'delete',
+                      success: true,
+                      errors: [],
+                    },
+                    index: deletionIndex++,
+                  });
+                } catch (error) {
+                  mapped.push({
+                    success: false,
+                    result: {
+                      id,
+                      success: false,
+                      errors: [
+                        error instanceof Error ? error.message : String(error),
+                      ],
+                    },
+                    index: deletionIndex++,
+                  });
+                }
+              }
+              return mapped;
+            },
+            collectResults: (pushResults, failedPreps) =>
+              collectIconLibraryResults(
+                pushResults,
+                failedPreps,
+                discoveredIconLibraries,
+              ),
+            reportOptions: PUSH_REPORT_OPTIONS,
+            summary: {
+              label: 'Icon libraries',
+              unit: 'icon library',
+              unitPlural: 'icon libraries',
+            },
+          });
+          if (iconSummary) {
+            completedResources.push(iconSummary);
           }
         }
 

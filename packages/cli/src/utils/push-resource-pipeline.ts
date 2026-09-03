@@ -76,6 +76,10 @@ interface PushResourcePipelineOptions<
   hasPushWork?: (valid: Array<PreparedPushResource<TPrepared>>) => boolean;
   push: (
     valid: Array<PreparedPushResource<TPrepared>>,
+    context?: {
+      /** Updates the live spinner message, e.g. for upload progress. */
+      updateMessage: (message: string) => void;
+    },
   ) => Promise<Array<PushOperationResult<TPushResult>>>;
   collectResults: (
     pushResults: Array<PushOperationResult<TPushResult>>,
@@ -203,7 +207,9 @@ export async function runPushResourcePipeline<
 
   let pushResults: Array<PushOperationResult<TPushResult>>;
   try {
-    pushResults = await push(validResources);
+    pushResults = await push(validResources, {
+      updateMessage: (message) => spinner.message(message),
+    });
   } catch (error) {
     spinner.stop(labels.done, 2);
     throw new PushPhaseError(phases.push, formatErrorMessage(error));

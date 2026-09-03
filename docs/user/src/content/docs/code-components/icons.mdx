@@ -1,0 +1,135 @@
+---
+title: Code Components - Icons
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Canvas components can use icons from icon libraries. An icon library is a named
+set of icons — for example an icon pack shipped by a module or theme, or a set
+of SVG files you push with the Canvas CLI. Installed libraries appear in the
+**Brand Kit** panel under **Icon libraries**, and their icons are offered
+wherever a component has an icon prop.
+
+Icons are a code component prop type: a component author adds an `Icon` prop,
+and a content author then picks an icon for it on the page.
+
+## Make icons available
+
+Icons come from icon libraries, so a library has to be installed before any
+icon shows up in the picker. There are two ways to add one.
+
+- **Install a module or theme that provides an icon pack.** Any icon pack
+  discovered by Drupal core's Icon API (declared in an extension's
+  `*.icons.yml` file) is automatically available to Canvas — no extra
+  configuration.
+- **Push a local set of SVG files with the Canvas CLI.** This keeps an icon
+  library in source control alongside your components, using the same Brand Kit
+  workflow as fonts. See [Push a local icon library](#push-a-local-icon-library)
+  below.
+
+Once a library is installed, open the **Brand Kit** panel in the Canvas editor
+and expand **Icon libraries** to confirm it is listed, along with its icon
+count.
+
+## Add an icon prop to a component
+
+In the Canvas code editor, open the component and, in the **Component Data**
+pane, add a prop and set its **Type** to **Icon**.
+
+Two options are specific to icon props:
+
+- **Icon packs** — by default the prop can use icons from every installed
+  library. Restrict it to one or more specific libraries so authors only see a
+  relevant set.
+- **Example icon** — an optional icon shown as the placeholder while you design
+  and preview the component.
+
+<Aside>
+  If no icon library is installed, the icon picker is empty. Add a library
+  first — see [Make icons available](#make-icons-available).
+</Aside>
+
+## Use the icon in component code
+
+Canvas resolves the chosen icon and passes your component a ready-to-render
+value — you never handle SVG files yourself. Render it with the `Icon`
+component from `drupal-canvas`, the same way you render rich text with
+`FormattedText`:
+
+```tsx
+import { Icon } from 'drupal-canvas';
+
+function FeatureCard({ icon, title }) {
+  return (
+    <div>
+      <Icon icon={icon} />
+      <h3>{title}</h3>
+    </div>
+  );
+}
+```
+
+`Icon` renders the icon as inline SVG or an `<img>` as appropriate, and renders
+nothing when the icon is unset or its library or icon was later removed. It
+forwards `className`, `style`, and other props to a wrapper element — an
+optional `as` (`'span'` by default, or `'div'`). A URL-backed icon's `<img>`
+fills the wrapper automatically; an inline SVG keeps the `width`/`height`
+attributes from its source file, so size it from the wrapper with a descendant
+rule (CSS wins over SVG presentation attributes). Inline SVG icons inherit
+`currentColor`, so an icon follows the surrounding text color — set `color` on
+the icon (or a parent) to recolor it:
+
+```tsx
+<Icon icon={icon} className="size-6 [&_svg]:size-full text-blue-600" />
+```
+
+## Pick an icon on a page
+
+When a component with an icon prop is placed on a page, select the component and
+open its **Settings**. The icon prop shows an icon control; click it to open the
+picker, search by name, and choose an icon. The preview updates to show it. Use
+the clear button to remove the icon.
+
+## Push a local icon library
+
+Icon libraries are part of the Brand Kit workflow, so icon sync uses the same
+`--include-brand-kit` flag as fonts.
+
+```bash
+npx canvas push --include-brand-kit
+```
+
+Every library you push must be declared in `canvas.brand-kit.json` under an
+`icons.libraries` array:
+
+```json
+{
+  "icons": {
+    "libraries": [
+      { "id": "lucide", "label": "Lucide", "source": "node_modules/lucide-static/icons" },
+      { "id": "my_icons", "label": "My icons" }
+    ]
+  }
+}
+```
+
+Each entry needs an `id` (lowercase letters, digits, and underscores) and a
+human-readable `label`. The optional `source` points at the directory of `.svg`
+files, relative to the project root; it defaults to `icons/<id>`. Point it at an
+npm package such as `node_modules/lucide-static/icons` to keep vendored icon
+sets out of your repository. Each file's name (minus `.svg`) becomes the icon
+id.
+
+The declared set is authoritative: pushing removes any Canvas-managed library no
+longer listed. Pushes are incremental — unchanged icons are not re-uploaded.
+Uploaded SVG files are sanitized on the server, and pushing icon libraries
+requires the **administer brand kit** permission. Files with scripts, event
+handler attributes, external references, or a `<style>` element are rejected
+with an explanation — an icon is inlined into the page, where its stylesheet
+would not stay scoped to the icon, so move such styles into presentation
+attributes on the SVG elements.
+
+For the full CLI options, see the
+[`@drupal-canvas/cli` README](https://www.npmjs.com/package/@drupal-canvas/cli).
+The same `canvas.brand-kit.json` also configures fonts — see
+[Brand Kit](/code-components/brand-kit).

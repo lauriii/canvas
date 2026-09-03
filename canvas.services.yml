@@ -61,6 +61,12 @@ services:
   Drupal\canvas\ShapeMatcher\HostEntityPropSourceMatcher:
     public: false
 
+  # Icons.
+  Drupal\canvas\Icon\IconResolver:
+    arguments:
+      $logger: '@logger.channel.canvas'
+  Drupal\canvas\Icon\SvgSanitizer: {}
+
   # Utilities.
   Drupal\canvas\CanvasNotificationHandler: {}
   Drupal\canvas\AssetRenderer: {}
@@ -214,6 +220,9 @@ services:
   Drupal\canvas\Access\AuthenticationAccessChecker:
     tags:
       - { name: access_check, applies_to: _canvas_authentication_required }
+  Drupal\canvas\Access\IconsAccessCheck:
+    tags:
+      - { name: access_check, applies_to: _canvas_icons_access }
 
   # Twig.
   Drupal\canvas\Twig\CanvasTwigExtension:
@@ -223,6 +232,7 @@ services:
   # Controllers.
   Drupal\canvas\Controller\ApiCodeComponentMetadataController: ~
   Drupal\canvas\Controller\ApiConfigControllers: ~
+  Drupal\canvas\Controller\ApiIconsController: ~
   Drupal\canvas\Controller\ApiConfigAutoSaveControllers: ~
   Drupal\canvas\Controller\ApiContentAutoSaveControllers: ~
   Drupal\canvas\Controller\ApiExtensionControllers: ~

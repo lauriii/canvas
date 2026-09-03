@@ -8,6 +8,7 @@ use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
+use Drupal\canvas\Entity\IconLibrary;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\Core\Authentication\AuthenticationProviderInterface;
@@ -65,6 +66,8 @@ class CanvasOauthAuthenticationProvider implements AuthenticationProviderInterfa
       'canvas.api.code_component.validate',
       'canvas.api.config.page_region.gone.collection',
       'canvas.api.config.page_region.gone.item',
+      'canvas.api.icons.list',
+      'canvas.api.icons.upload',
       'canvas.api.settings.default_page_variant.get',
       'canvas.api.settings.default_page_variant.set',
       'canvas.api.push.complete',
@@ -94,6 +97,7 @@ class CanvasOauthAuthenticationProvider implements AuthenticationProviderInterfa
       AssetLibrary::ENTITY_TYPE_ID,
       BrandKit::ENTITY_TYPE_ID,
       ContentTemplate::ENTITY_TYPE_ID,
+      IconLibrary::ENTITY_TYPE_ID,
       PageVariant::ENTITY_TYPE_ID,
     ];
 

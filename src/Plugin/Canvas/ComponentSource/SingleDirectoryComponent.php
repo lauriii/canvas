@@ -162,6 +162,13 @@ final class SingleDirectoryComponent extends JsonSchemaPropsComponentSourceBase 
 
     [$props, $props_bubbleable_metadata] = $this->getResolvedPropsAndBubbleableMetadata($inputs[self::EXPLICIT_INPUT_NAME] ?? [], $prop_schemas);
 
+    // Resolve stored icon ids into renderable values. SDC props render through
+    // Twig, so icons are wrapped in a render array: this renders the inline
+    // SVG (or image) and satisfies core's prop validation, which dismisses
+    // type errors for render-array prop values.
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::resolveIconProps()
+    $props = $this->resolveIconProps($props, $props_bubbleable_metadata, wrap_for_twig: TRUE);
+
     // Color props are resolved from strings to rich objects by
     // getResolvedPropsAndBubbleableMetadata(), but the schema declares them as
     // `type: string`. Call validateProps() only when the component has color
@@ -180,7 +187,6 @@ final class SingleDirectoryComponent extends JsonSchemaPropsComponentSourceBase 
       $props_for_validation = $this->substituteColorPropsForValidation($props, $prop_schemas);
       \assert($this->componentValidator->validateProps($props_for_validation, $this->getComponentPlugin()));
     }
-
     $build = [
       '#type' => 'component',
       '#component' => $this->getSourceSpecificComponentId(),

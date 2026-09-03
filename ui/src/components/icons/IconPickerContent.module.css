@@ -1,0 +1,147 @@
+/*
+ * Icon picker visuals, per the "Icon Libraries" Figma file (node 73-13758,
+ * subnode 73:22639). Colors use the Radix theme tokens already used by the
+ * Canvas UI instead of the raw hex values in the Figma file.
+ */
+.picker {
+  overflow: hidden;
+  width: 304px;
+  max-height: 420px;
+  border-radius: var(--radius-3);
+  background: var(--color-panel-solid);
+}
+
+.header {
+  padding: var(--space-2) var(--space-3);
+  background: var(--blue-2);
+}
+
+.libraryChip {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  color: var(--blue-11);
+  border-radius: 3px;
+  background: var(--blue-4);
+}
+
+.libraryName {
+  color: var(--gray-12);
+}
+
+.libraryCount {
+  color: var(--gray-11);
+}
+
+.searchWrapper {
+  padding: var(--space-2);
+}
+
+.search {
+  width: 100%;
+}
+
+.packTabs {
+  padding: 0 var(--space-2) var(--space-1);
+}
+
+.packTab {
+  padding: 2px var(--space-2);
+  cursor: pointer;
+  color: var(--gray-11);
+  border: 1px solid var(--gray-a5);
+  border-radius: var(--radius-full);
+  background: none;
+  font-size: var(--font-size-1);
+}
+
+.packTab:hover {
+  background: var(--gray-2);
+}
+
+.packTab[aria-pressed='true'] {
+  color: var(--blue-11);
+  border-color: var(--blue-8);
+  background: var(--blue-3);
+}
+
+.scrollArea {
+  overflow-y: auto;
+  padding: 0 var(--space-2) var(--space-2);
+}
+
+.packHeading {
+  display: block;
+  margin: var(--space-2) 0 var(--space-1);
+  color: var(--gray-11);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  row-gap: var(--space-3);
+}
+
+.cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  padding: var(--space-1);
+  cursor: pointer;
+  border: 1px solid transparent;
+  border-radius: var(--radius-2);
+  background: none;
+  gap: var(--space-1);
+  /* ponytail: large packs (thousands of icons) rely on content-visibility to
+     keep rendering cheap; per-pack lazy fetch is the upgrade path if the
+     payload itself becomes the bottleneck. */
+  content-visibility: auto;
+  contain-intrinsic-size: 68px 44px;
+}
+
+.cell:hover {
+  background: var(--gray-2);
+}
+
+.cell:focus-visible,
+.packTab:focus-visible {
+  outline: 2px solid var(--focus-8);
+  outline-offset: -1px;
+}
+
+.cellSelected,
+.cellSelected:hover {
+  border-color: var(--blue-9);
+  background: var(--blue-3);
+}
+
+.cellSelected .cellLabel {
+  color: var(--blue-9);
+}
+
+.cellLabel {
+  overflow: hidden;
+  max-width: 100%;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--gray-11);
+  font-size: var(--font-size-1);
+}
+
+.footer {
+  padding: var(--space-1) var(--space-2);
+  border-top: 1px solid var(--gray-3);
+}
+
+.status {
+  color: var(--gray-11);
+}
+
+.hint {
+  flex-shrink: 0;
+  color: var(--gray-9);
+}
