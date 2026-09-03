@@ -11,7 +11,9 @@ use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\content_translation\BundleTranslationSettingsInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -98,7 +100,7 @@ final class ComponentTreeTranslationForkTest extends ContentComponentTreeSymmetr
    */
   private function addSeededTranslation(ContentEntityInterface $entity, string $langcode, string $field_name, string $text): ContentEntityInterface {
     $translation = $entity->addTranslation($langcode);
-    $this->container->get('content_translation.manager')
+    $this->container->get(BundleTranslationSettingsInterface::class)
       ->getTranslationMetadata($translation)
       ->setSource($entity->getUntranslated()->language()->getId());
     $translation->set('title', "$langcode title");
@@ -117,7 +119,7 @@ final class ComponentTreeTranslationForkTest extends ContentComponentTreeSymmetr
   #[TestWith([Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID, 'components'], 'base field (BaseFieldOverride)')]
   public function test(string $entity_type_id, string $bundle, string $field_name): void {
     $this->setUpSymmetricalContentTranslation($entity_type_id, $bundle, $field_name);
-    $entity_storage = $this->container->get('entity_type.manager')->getStorage($entity_type_id);
+    $entity_storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage($entity_type_id);
 
     $entity = $this->createEntityWithDefaultTranslation($entity_type_id, $bundle, $field_name, $entity_storage);
     $entity->save();
