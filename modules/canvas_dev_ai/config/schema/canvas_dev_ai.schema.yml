@@ -1,3 +1,8 @@
+# The defaults are set by canvas_dev_ai_install() rather than shipped in
+# config/install, because the constraints below reference config entities this
+# module ships itself, which do not exist while its simple config is saved.
+# @see canvas_dev_ai_install()
+# @see https://www.drupal.org/project/drupal/issues/3425992
 canvas_dev_ai.settings:
   type: config_object
   label: 'Drupal Canvas Dev AI settings'
