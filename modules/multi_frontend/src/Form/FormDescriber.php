@@ -7,6 +7,7 @@ namespace Drupal\multi_frontend\Form;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Form\FormBuilderInterface;
+use Drupal\Core\Form\OptGroup;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Render\ElementInfoManagerInterface;
 
@@ -43,7 +44,10 @@ final class FormDescriber {
     'range' => ['type' => 'number'],
     'checkbox' => ['type' => 'boolean'],
     'date' => ['type' => 'string', 'format' => 'date'],
-    'datetime-local' => ['type' => 'string', 'format' => 'date-time'],
+    // Not format: date-time. An HTML datetime-local value carries no offset,
+    // and draft-07's date-time is RFC 3339, which requires one, so every
+    // valid value from the browser would fail its own published schema.
+    'datetime-local' => ['type' => 'string', 'pattern' => '^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2})?$'],
   ];
 
   /**
@@ -117,7 +121,7 @@ final class FormDescriber {
         'required' => $required,
         'additionalProperties' => FALSE,
       ],
-      'ui' => $ui,
+      'ui' => $ui === [] ? new \stdClass() : $ui,
       'unsupported' => $unsupported,
     ];
   }
@@ -168,6 +172,14 @@ final class FormDescriber {
       if (\in_array($name, self::MACHINERY_NAMES, TRUE)) {
         continue;
       }
+      // FormBuilder refuses input for a disabled element, so publishing it as
+      // a writable field would hand a client a contract whose value is
+      // silently discarded.
+      // @see \Drupal\Core\Form\FormBuilder::doBuildForm()
+      if (!empty($child['#disabled'])) {
+        $unsupported[] = \sprintf('%s (disabled)', $name);
+        continue;
+      }
       $schema = $this->schemaFor($child, $type);
       if ($schema === NULL) {
         // Named, not silently dropped. A client can see what it is missing.
@@ -204,10 +216,11 @@ final class FormDescriber {
   private function schemaFor(array $element, string $type): ?array {
     // Ask the element plugin before consulting the built-in map, so that an
     // element core has never heard of can still describe itself, and so that
-    // an element can override how it is described.
-    $self_described = $this->askElement($element, $type);
-    if ($self_described !== NULL) {
-      return $self_described;
+    // an element can override how it is described. An element that implements
+    // the interface is authoritative either way: NULL from it means "I cannot
+    // be described", which must not then fall through to the built-in map.
+    if ($this->describesItself($type)) {
+      return $this->askElement($element, $type);
     }
 
     if (\array_key_exists($type, self::SCALAR_TYPES)) {
@@ -226,9 +239,17 @@ final class FormDescriber {
       if ($options === []) {
         return NULL;
       }
+      // Select options nest under optgroup labels. Reading only the outer
+      // keys would publish the group's label as a submittable value and drop
+      // every real option inside it.
+      $options = OptGroup::flattenOptions($options);
       $values = \array_map(static fn ($k): string => (string) $k, \array_keys($options));
       $labels = \array_map(static fn ($v): string => \is_array($v) ? '' : (string) $v, \array_values($options));
-      $one = ['type' => 'string', 'enum' => $values, 'meta:enum' => \array_combine($values, $labels)];
+      // Cast to object: option keys are often numeric, and array_combine()
+      // then yields a PHP list that JSON-encodes as an array, contradicting
+      // the documented map shape.
+      $meta = (object) \array_combine($values, $labels);
+      $one = ['type' => 'string', 'enum' => $values, 'meta:enum' => $meta];
       $schema = ($type === 'checkboxes' || !empty($element['#multiple']))
         ? ['type' => 'array', 'items' => $one]
         : $one;
@@ -279,16 +300,31 @@ final class FormDescriber {
   }
 
   /**
-   * Lets the element plugin describe itself, if it knows how.
+   * Whether this element type projects its own schema.
+   */
+  private function describesItself(string $type): bool {
+    return $this->elementClass($type) !== NULL;
+  }
+
+  /**
+   * Lets the element plugin describe itself.
    */
   private function askElement(array $element, string $type): ?array {
-    $definition = $this->elementInfo->getDefinition($type, FALSE);
-    $class = $definition['class'] ?? NULL;
-    // A #type with no element plugin behind it, or one that has not taught
-    // itself to answer. The built-in map may still know it; if it does not, it
-    // is reported as unsupported.
+    $class = $this->elementClass($type);
+    return $class === NULL ? NULL : $class::toJsonSchema($element);
+  }
+
+  /**
+   * The self-describing class behind a #type, if there is one.
+   *
+   * @return class-string<\Drupal\multi_frontend\Form\JsonSchemaFormElementInterface>|null
+   *   The class, or NULL when the type has no element plugin or its plugin
+   *   does not implement the interface.
+   */
+  private function elementClass(string $type): ?string {
+    $class = $this->elementInfo->getDefinition($type, FALSE)['class'] ?? NULL;
     return \is_string($class) && \is_a($class, JsonSchemaFormElementInterface::class, TRUE)
-      ? $class::toJsonSchema($element)
+      ? $class
       : NULL;
   }
 

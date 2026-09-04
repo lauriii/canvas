@@ -84,8 +84,9 @@ final class ComponentApiController extends ControllerBase {
    * Serves the catalog of published schemas.
    */
   public function schemaCatalog(): CacheableJsonResponse {
-    $response = new CacheableJsonResponse($this->schemaPublisher->catalog());
-    $response->addCacheableDependency(self::schemaCacheability());
+    $cacheability = self::schemaCacheability();
+    $response = new CacheableJsonResponse($this->schemaPublisher->catalog($cacheability));
+    $response->addCacheableDependency($cacheability);
     return $response;
   }
 
@@ -96,8 +97,9 @@ final class ComponentApiController extends ControllerBase {
     if ($this->producerManager->getDefinition($producer, FALSE) === NULL) {
       throw new NotFoundHttpException();
     }
-    $response = new CacheableJsonResponse($this->schemaPublisher->componentSchema($producer));
-    $response->addCacheableDependency(self::schemaCacheability());
+    $cacheability = self::schemaCacheability();
+    $response = new CacheableJsonResponse($this->schemaPublisher->componentSchema($producer, $cacheability));
+    $response->addCacheableDependency($cacheability);
     return $response;
   }
 
@@ -105,8 +107,9 @@ final class ComponentApiController extends ControllerBase {
    * Serves the envelope's own schema.
    */
   public static function envelopeSchema(): CacheableJsonResponse {
-    $response = new CacheableJsonResponse(SchemaPublisher::envelopeSchema());
-    $response->addCacheableDependency(self::schemaCacheability()->setCacheMaxAge(3600));
+    $cacheability = self::schemaCacheability()->setCacheMaxAge(3600);
+    $response = new CacheableJsonResponse(SchemaPublisher::envelopeSchema($cacheability));
+    $response->addCacheableDependency($cacheability);
     return $response;
   }
 

@@ -93,8 +93,15 @@ final class ProducerInvoker {
     // object in a `type: string` prop and JSON-encodes it to an empty object.
     // Checking the round trip here is the difference between claiming props
     // are data and knowing it.
+    // Compare the re-encoded form rather than the decoded value. A strict
+    // comparison against the original rejects valid data: json_encode(1.0)
+    // emits "1", which decodes to an int, so a producer returning a whole
+    // number for a `type: number` prop would be refused. Re-encoding still
+    // catches the failure this exists for, because an unserializable object
+    // encodes to {} and comes back as [], which re-encodes differently.
     $encoded = \json_encode($props, JSON_THROW_ON_ERROR);
-    if (\json_decode($encoded, TRUE, 512, JSON_THROW_ON_ERROR) !== $props) {
+    $round_tripped = \json_decode($encoded, TRUE, 512, JSON_THROW_ON_ERROR);
+    if (\json_encode($round_tripped, JSON_THROW_ON_ERROR) !== $encoded) {
       throw new InvalidComponentException(\sprintf(
         'Producer "%s" returned props that do not survive JSON serialization. Props must be plain arrays and scalars.',
         $producer_id,

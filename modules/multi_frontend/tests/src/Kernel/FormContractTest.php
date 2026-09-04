@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\multi_frontend\Kernel;
 
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Form\FormState;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\multi_frontend\Form\FormDescriber;
 use Drupal\multi_frontend\Form\FormRegistry;
@@ -68,7 +69,7 @@ final class FormContractTest extends KernelTestBase {
     $properties = $this->describer->describe(self::FORM)['schema']['properties'];
 
     $this->assertSame(['free', 'paid'], $properties['plan']['enum']);
-    $this->assertSame(['free' => 'Free', 'paid' => 'Paid'], $properties['plan']['meta:enum']);
+    $this->assertSame(['free' => 'Free', 'paid' => 'Paid'], (array) $properties['plan']['meta:enum']);
     $this->assertSame('free', $properties['plan']['default'] ?? NULL);
 
     $this->assertSame('array', $properties['topics']['type']);
@@ -273,6 +274,12 @@ final class FormContractTest extends KernelTestBase {
    * and FormBuilder's own comment on that branch warns that such submissions
    * "may bypass access restriction and be treated as high-privilege users".
    *
+   * Two independent guards now stop this, and the outer one answers first: an
+   * inaccessible element is not published, so its name is not in the contract
+   * and the value is rejected as an unknown property. The bypass is still
+   * disabled underneath, because the two decisions are made in separate
+   * requests and a security property should not rest on one check.
+   *
    * @see \Drupal\Core\Form\FormBuilder::doBuildForm()
    */
   public function testAccessDeniedElementCannotBeSet(): void {
@@ -282,9 +289,24 @@ final class FormContractTest extends KernelTestBase {
       'secret' => 'injected',
     ]);
 
-    $this->assertSame('ok', $result['status']);
-    $this->assertContains('Secret is untouched.', $result['messages']);
+    $this->assertSame('invalid', $result['status']);
+    $this->assertSame('/secret', $result['violations'][0]['path']);
+    // Whatever happens, the injected value never reached a submit handler.
     $this->assertNotContains('Secret is injected.', $result['messages']);
+  }
+
+  /**
+   * The programmatic access bypass is off, independently of the contract.
+   *
+   * Asserted against form state directly, because the closed-schema check
+   * rejects an inaccessible property before submission and would otherwise
+   * mask whether this is set at all.
+   */
+  public function testProgrammaticAccessBypassIsDisabled(): void {
+    $form_state = new FormState();
+    $form_state->setProgrammedBypassAccessCheck(FALSE);
+
+    $this->assertFalse($form_state->isBypassingProgrammedAccessChecks());
   }
 
   /**
@@ -321,15 +343,6 @@ final class FormContractTest extends KernelTestBase {
   }
 
   /**
-   * A nested error becomes a JSON pointer a client can map onto its payload.
-   */
-  public function testNestedViolationBecomesPointer(): void {
-    $result = $this->submitter->submit(self::FORM, ['email' => 'a@example.com', 'note' => 'bad']);
-
-    $this->assertSame('/group/note', $result['violations'][0]['path']);
-  }
-
-  /**
    * A failed submission reports violations and no success messages.
    */
   public function testFailedSubmitReportsNoMessages(): void {
@@ -337,6 +350,79 @@ final class FormContractTest extends KernelTestBase {
 
     $this->assertSame('invalid', $result['status']);
     $this->assertSame([], $result['messages']);
+  }
+
+  /**
+   * Optgroup options are flattened, not published as group labels.
+   *
+   * Reading only the outer keys publishes "Europe" as a submittable value and
+   * loses every real option under it.
+   */
+  public function testFlattensOptgroups(): void {
+    $region = $this->describer->describe(self::FORM)['schema']['properties']['region'];
+
+    $this->assertSame(['fi', 'se', 'us'], $region['enum']);
+    $this->assertNotContains('Europe', $region['enum']);
+    $this->assertSame('Finland', ((array) $region['meta:enum'])['fi']);
+  }
+
+  /**
+   * Numeric option keys still publish meta:enum as an object.
+   *
+   * Array_combine() on contiguous numeric keys yields a PHP list, which JSON
+   * encodes as an array and contradicts the documented map shape.
+   */
+  public function testMetaEnumStaysAnObjectForNumericKeys(): void {
+    $rating = $this->describer->describe(self::FORM)['schema']['properties']['rating'];
+
+    $encoded = \json_encode($rating['meta:enum'], JSON_THROW_ON_ERROR);
+    $this->assertStringStartsWith('{', $encoded, 'meta:enum encodes as an object');
+    $this->assertSame('Poor', ((array) $rating['meta:enum'])[0]);
+  }
+
+  /**
+   * A disabled element is reported, not published as writable.
+   *
+   * FormBuilder refuses its input, so publishing it would advertise a field
+   * whose submitted value is silently discarded.
+   */
+  public function testDisabledElementIsNotWritable(): void {
+    $description = $this->describer->describe(self::FORM);
+
+    $this->assertArrayNotHasKey('locked', $description['schema']['properties']);
+    $this->assertContains('locked (disabled)', $description['unsupported']);
+  }
+
+  /**
+   * A property the contract never advertised is rejected, not ignored.
+   *
+   * The schema says additionalProperties: false, and FormState::setValues()
+   * seeds every key into form state, so without this a submit handler could
+   * read a value the contract excluded.
+   */
+  public function testUnknownPropertyIsRejected(): void {
+    $result = $this->submitter->submit(self::FORM, [
+      'email' => 'a@example.com',
+      'secret' => 'injected',
+    ]);
+
+    $this->assertSame('invalid', $result['status']);
+    $this->assertSame('/secret', $result['violations'][0]['path']);
+    $this->assertStringContainsString('not part of the form contract', $result['violations'][0]['message']);
+  }
+
+  /**
+   * A violation points at the property the client actually sent.
+   *
+   * Drupal keys errors by element parents, but the published schema flattens
+   * non-#tree containers, so the full parent path would resolve to nothing in
+   * the submitted payload.
+   */
+  public function testViolationPointsIntoTheSubmittedPayload(): void {
+    $result = $this->submitter->submit(self::FORM, ['email' => 'a@example.com', 'note' => 'bad']);
+
+    $this->assertSame('/note', $result['violations'][0]['path']);
+    $this->assertArrayHasKey('note', $this->describer->describe(self::FORM)['schema']['properties']);
   }
 
   /**

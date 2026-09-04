@@ -62,6 +62,10 @@ final class EnvelopeMainContentRenderer implements MainContentRendererInterface 
     }
 
     $cacheability = new CacheableMetadata();
+    // The envelope serializes the negotiated content language, and page
+    // content can supply no language context of its own, so a static page
+    // would otherwise let one language's envelope be reused for another.
+    $cacheability->addCacheContexts(['languages:' . LanguageInterface::TYPE_CONTENT]);
     $nodes = $this->envelopeBuilder->build($main_content, $cacheability);
 
     $envelope = new PageEnvelope(

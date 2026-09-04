@@ -52,4 +52,4 @@ services:
     arguments: ['@form_builder', '@plugin.manager.element_info']
 
   Drupal\multi_frontend\Form\FormSubmitter:
-    arguments: ['@form_builder', '@messenger']
+    arguments: ['@form_builder', '@messenger', '@Drupal\multi_frontend\Form\FormDescriber']

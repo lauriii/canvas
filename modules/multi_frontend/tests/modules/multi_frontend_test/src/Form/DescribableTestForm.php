@@ -99,6 +99,29 @@ final class DescribableTestForm extends FormBase {
       '#access' => AccessResult::forbidden(),
       '#default_value' => 'untouched',
     ];
+    // Options nested under group labels, which a naive read publishes as
+    // submittable values.
+    $form['region'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Region'),
+      '#options' => [
+        'Europe' => ['fi' => $this->t('Finland'), 'se' => $this->t('Sweden')],
+        'Americas' => ['us' => $this->t('United States')],
+      ],
+    ];
+    // Numeric option keys, which array_combine() turns into a PHP list.
+    $form['rating'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Rating'),
+      '#options' => [0 => $this->t('Poor'), 1 => $this->t('Good')],
+    ];
+    // FormBuilder refuses input for this, so it is not a writable field.
+    $form['locked'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Locked'),
+      '#disabled' => TRUE,
+      '#default_value' => 'fixed',
+    ];
     $form['actions']['submit'] = ['#type' => 'submit', '#value' => $this->t('Save')];
     return $form;
   }

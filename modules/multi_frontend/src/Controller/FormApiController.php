@@ -52,7 +52,12 @@ final class FormApiController extends ControllerBase {
     }
     $response = new CacheableJsonResponse(['forms' => $forms]);
     $response->addCacheableDependency(
-      (new CacheableMetadata())->addCacheContexts(['user.permissions', 'url.site']),
+      (new CacheableMetadata())->addCacheContexts([
+        'user.permissions',
+        'url.site',
+        // Labels in the catalog are translated too.
+        'languages:language_interface',
+      ]),
     );
     return $response;
   }
@@ -67,17 +72,21 @@ final class FormApiController extends ControllerBase {
     }
 
     $cacheability = (new CacheableMetadata())
-      // A form can build different elements for different permissions, and
-      // the catalog itself is per-site.
-      ->addCacheContexts(['user.permissions', 'url.site']);
+      // A form can build different elements for different permissions, the
+      // catalog is per-site, and every label, description and option label in
+      // the response has been translated into the interface language.
+      ->addCacheContexts(['user.permissions', 'url.site', 'languages:language_interface']);
     try {
       $description = $this->describer->describe($definition['class'], $cacheability);
     }
-    catch (\Throwable $e) {
-      // A definition can name something the form builder cannot build, most
-      // often an entity form, which needs an entity to build against and is
-      // not reachable through FormBuilder at all. Say so rather than
-      // returning a stack trace.
+    catch (\InvalidArgumentException $e) {
+      // Narrow deliberately. This is the one failure that is the definition's
+      // fault rather than the server's: FormBuilder throws it for a form it
+      // cannot resolve, most often an entity form, which needs an entity to
+      // build against and is not reachable through FormBuilder at all.
+      // Catching every Throwable here would turn database and service faults
+      // into 422s carrying raw exception text.
+      // @see \Drupal\Core\Form\FormBuilder::getFormId()
       throw new UnprocessableEntityHttpException(\sprintf(
         'The form "%s" cannot be described: %s',
         $form,

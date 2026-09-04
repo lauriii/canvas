@@ -29,6 +29,7 @@ final class FormSubmitter {
   public function __construct(
     private readonly FormBuilderInterface $formBuilder,
     private readonly MessengerInterface $messenger,
+    private readonly FormDescriber $describer,
   ) {}
 
   /**
@@ -43,6 +44,28 @@ final class FormSubmitter {
    *   The outcome.
    */
   public function submit(string $form_arg, array $values): array {
+    // The published schema says additionalProperties: false, and that has to
+    // be enforced here to be true. FormState::setValues() seeds every key
+    // into form state and core copies them to user input without removing
+    // unknown ones, so a submit handler could read a property the contract
+    // never advertised. Reject rather than strip: silently dropping a value a
+    // client believed it sent is how a contract loses trust.
+    $allowed = \array_keys((array) $this->describer->describe($form_arg)['schema']['properties']);
+    $unknown = \array_diff(\array_keys($values), $allowed);
+    if ($unknown !== []) {
+      return [
+        'status' => 'invalid',
+        'violations' => \array_values(\array_map(
+          static fn (string $name): array => [
+            'path' => '/' . self::escapePointerSegment($name),
+            'message' => 'This property is not part of the form contract.',
+          ],
+          $unknown,
+        )),
+        'messages' => [],
+      ];
+    }
+
     $form_state = new FormState();
     $form_state->setValues($values);
     // Core defaults programmatic submission to bypassing element access,
@@ -58,10 +81,7 @@ final class FormSubmitter {
     $violations = [];
     foreach ($form_state->getErrors() as $path => $message) {
       $violations[] = [
-        // Drupal keys errors by element parents joined with "][". A client
-        // that received a flat schema should get a flat path back, and a
-        // nested one should get a pointer it can map onto what it sent.
-        'path' => '/' . \str_replace('][', '/', (string) $path),
+        'path' => self::pointerFor((string) $path),
         'message' => \strip_tags((string) $message),
       ];
     }
@@ -79,6 +99,36 @@ final class FormSubmitter {
       'violations' => $violations,
       'messages' => $violations === [] ? $messages : [],
     ];
+  }
+
+  /**
+   * Turns a Drupal error key into a JSON Pointer into the submitted values.
+   *
+   * Drupal keys errors by element parents joined with "][", which is a path
+   * through the *form*, while the published schema is a flat map of values.
+   * The value a client sent lives under the element's own name, so the last
+   * segment is the one that points into its payload; anything else would hand
+   * back a pointer that resolves to nothing.
+   */
+  private static function pointerFor(string $path): string {
+    if ($path === '') {
+      // A form-level error belongs to the whole document, and RFC 6901 spells
+      // that as the empty string, not "/".
+      return '';
+    }
+    $segments = \explode('][', $path);
+    return '/' . self::escapePointerSegment((string) \end($segments));
+  }
+
+  /**
+   * Escapes one JSON Pointer segment.
+   *
+   * RFC 6901: "~" becomes "~0" and "/" becomes "~1", in that order. Element
+   * names can contain both, and an unescaped one silently targets a different
+   * property.
+   */
+  private static function escapePointerSegment(string $segment): string {
+    return \str_replace(['~', '/'], ['~0', '~1'], $segment);
   }
 
   /**

@@ -111,17 +111,21 @@ on:
   between a component fetched alone and the same node read from a page, and the
   published schema.
 
-  All 28 pass on Drupal core 11.4.4: 20 in `ComponentProducerTest`, run in
-  three batches of 6, 7 and 7 (91, 111 and 98 assertions), and 8 in
-  `CacheabilityNormalizerTest` (20 assertions). Every method in both files was
-  executed; the batches exist only for the memory reason below. The two
-  reported issues are deprecations from core's own `TwigSandboxPolicy` against
-  twig 3.28, which any Twig render triggers.
+  All 56 pass on Drupal core 11.4.4, in 484 assertions:
 
-  This count has gone stale twice. Re-run them and re-count rather than
-  trusting the number here. The only
-  reported issues are two deprecations raised by core's own
-  `TwigSandboxPolicy` against twig 3.28, which any Twig render triggers.
+  | File | Tests | Assertions |
+  | --- | --- | --- |
+  | `ComponentProducerTest` + `CacheabilityNormalizerTest` | 28 | 320 |
+  | `FormContractTest` | 28 | 164 |
+
+  `ComponentProducerTest` is run in three batches of 6, 7 and 7 for the memory
+  reason below; every method in every file was executed. The only reported
+  issues are deprecations from core's own `TwigSandboxPolicy` against twig
+  3.28, which any Twig render triggers.
+
+  This count has gone stale three times, once in the same commit that added
+  the tests it was counting. Re-run them and re-count rather than trusting the
+  number here.
 
   Note that Canvas CI does **not** run them: its Kernel job is scoped to
   `tests/src/Kernel/Config` on purpose, to prove the suite executes without a

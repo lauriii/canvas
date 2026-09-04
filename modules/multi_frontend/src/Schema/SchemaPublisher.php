@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\multi_frontend\Schema;
 
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Theme\ComponentPluginManager;
 use Drupal\Core\Url;
 use Drupal\multi_frontend\ComponentProducerManager;
@@ -38,23 +39,35 @@ final class SchemaPublisher {
    * @return array<string, mixed>
    *   The catalog.
    */
-  public function catalog(): array {
+
+  /**
+   * Builds an absolute URL, keeping the cacheability it was generated with.
+   *
+   * Outbound route and path processors add metadata to a GeneratedUrl --
+   * language prefixes and path aliases among them -- and reducing it to a
+   * string throws that away, so a cached document can keep a link that is no
+   * longer correct.
+   */
+  private static function url(string $route, array $parameters, ?CacheableMetadata $cacheability): string {
+    $generated = Url::fromRoute($route, $parameters)->setAbsolute()->toString(TRUE);
+    $cacheability?->addCacheableDependency($generated);
+    return $generated->getGeneratedUrl();
+  }
+
+  public function catalog(?CacheableMetadata $cacheability = NULL): array {
     $producers = [];
     foreach ($this->producerManager->getDefinitions() as $id => $definition) {
       $producers[] = [
         'producer' => $id,
         'component' => $definition['component'],
         'subject' => $definition['subject'],
-        'schema' => Url::fromRoute('multi_frontend.schema.component', ['producer' => $id])
-          ->setAbsolute()
-          ->toString(TRUE)
-          ->getGeneratedUrl(),
+        'schema' => self::url('multi_frontend.schema.component', ['producer' => $id], $cacheability),
       ];
     }
     usort($producers, static fn (array $a, array $b): int => strcmp($a['producer'], $b['producer']));
     return [
       '$schema' => self::DIALECT,
-      'envelope' => Url::fromRoute('multi_frontend.schema.envelope')->setAbsolute()->toString(TRUE)->getGeneratedUrl(),
+      'envelope' => self::url('multi_frontend.schema.envelope', [], $cacheability),
       'producers' => $producers,
     ];
   }
@@ -65,17 +78,14 @@ final class SchemaPublisher {
    * @return array<string, mixed>
    *   A JSON Schema.
    */
-  public function componentSchema(string $producer_id): array {
+  public function componentSchema(string $producer_id, ?CacheableMetadata $cacheability = NULL): array {
     $definition = $this->producerManager->getDefinition($producer_id);
     $component = $this->componentManager->getDefinition($definition['component']);
     $props = $component['props'] ?? ['type' => 'object', 'properties' => []];
 
     return [
       '$schema' => self::DIALECT,
-      '$id' => Url::fromRoute('multi_frontend.schema.component', ['producer' => $producer_id])
-        ->setAbsolute()
-        ->toString(TRUE)
-        ->getGeneratedUrl(),
+      '$id' => self::url('multi_frontend.schema.component', ['producer' => $producer_id], $cacheability),
       'title' => (string) ($component['name'] ?? $definition['component']),
     ] + self::stripNonSerializableProps($props);
   }
@@ -120,7 +130,7 @@ final class SchemaPublisher {
    * @return array<string, mixed>
    *   A JSON Schema.
    */
-  public static function envelopeSchema(): array {
+  public static function envelopeSchema(?CacheableMetadata $cacheability = NULL): array {
     $cacheability = [
       'type' => 'object',
       'required' => ['tags', 'maxAge', 'contexts', 'varies'],
@@ -157,13 +167,16 @@ final class SchemaPublisher {
 
     return [
       '$schema' => self::DIALECT,
-      '$id' => Url::fromRoute('multi_frontend.schema.envelope')->setAbsolute()->toString(TRUE)->getGeneratedUrl(),
+      '$id' => self::url('multi_frontend.schema.envelope', [], $cacheability),
       'title' => 'PageEnvelope',
       'type' => 'object',
       'required' => ['page', 'regions', 'cacheability'],
       'properties' => [
         'page' => [
           'type' => 'object',
+          // Every envelope carries all three. Leaving them optional makes a
+          // generated client treat guaranteed page metadata as nullable.
+          'required' => ['title', 'langcode', 'layout'],
           'properties' => [
             'title' => ['type' => ['string', 'null']],
             'langcode' => ['type' => 'string'],
