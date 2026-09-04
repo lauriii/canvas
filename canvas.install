@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CanvasNotificationHandler;
+use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Health\HealthCheck;
 use Drupal\canvas\Health\HealthRecords;
+use Drupal\canvas\Hook\ContentTranslationHooks;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Extension\Requirement\RequirementSeverity;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Extension\ThemeInstallerInterface;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
+use Drupal\language\Entity\ContentLanguageSettings;
 
 /**
  * Implements hook_module_preinstall().
@@ -158,4 +162,42 @@ function canvas_update_11200(): void {
     // No need to manually flush caches during the update.
     // @see \Drupal\system\Controller\DbUpdateController::triggerBatch()
   }
+}
+
+/**
+ * Install the `canvas_component_tree_fork` base field storage definitions.
+ */
+function canvas_update_11201(): void {
+  // Only sites opted into experimental translation forks carry the field.
+  // Other sites get it when the gating modules are installed.
+  // @see \Drupal\canvas\Hook\ContentTranslationHooks::modulesInstalled()
+  if (ContentTranslationHooks::translationForksEnabled()) {
+    ContentTranslationHooks::installForkFieldStorageDefinitions();
+  }
+}
+
+/**
+ * Create the `canvas_page` content language settings.
+ *
+ * New sites get this from `config/optional`; existing multilingual sites need
+ * it so a page's original language becomes changeable
+ * (`language_alterable: true` gates the langcode field's edit access).
+ */
+function canvas_update_11202(): void {
+  // Without the Language module the config entity type does not exist. When
+  // Language gets installed later, core installs the `config/optional`
+  // version.
+  // @see \Drupal\Core\Config\ConfigInstaller::installOptionalConfig()
+  if (!\Drupal::moduleHandler()->moduleExists('language')) {
+    return;
+  }
+  $settings = ContentLanguageSettings::loadByEntityTypeBundle(Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID);
+  // Never clobber settings a site builder already configured.
+  if (!$settings->isNew()) {
+    return;
+  }
+  $settings
+    ->setDefaultLangcode(LanguageInterface::LANGCODE_SITE_DEFAULT)
+    ->setLanguageAlterable(TRUE)
+    ->save();
 }

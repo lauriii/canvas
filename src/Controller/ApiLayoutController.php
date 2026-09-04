@@ -8,6 +8,7 @@ use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\canvas\ClientDataToEntityConverter;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
+use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
@@ -153,9 +154,12 @@ final class ApiLayoutController {
       )),
     ];
     $available_translations = [];
+    $forked_translations = [];
     $links = [];
     if ($entity instanceof ContentEntityInterface) {
       $available_translations = \array_keys($entity->getTranslationLanguages(FALSE));
+      // @see \Drupal\canvas\Hook\ContentTranslationHooks::translationForksEnabled()
+      $forks_enabled = $this->moduleHandler->moduleExists('canvas_dev_translation');
       if ($this->moduleHandler->moduleExists('content_translation')) {
         foreach ($available_translations as $langcode) {
           $translation = $entity->getTranslation($langcode);
@@ -170,6 +174,25 @@ final class ApiLayoutController {
                 ['language' => $translation->language()],
               )->toString(),
             ];
+          }
+          // Fork state and fork/unfork links. $entity is the auto-save draft
+          // when one exists, so the reported state is draft-aware.
+          // @see canvas_dev_translation.routing.yml
+          if ($forks_enabled && $translation->hasField(ComponentTreeTranslationFork::FIELD_NAME)) {
+            $is_forked = ComponentTreeTranslationFork::isForkedTranslation($translation);
+            if ($is_forked) {
+              $forked_translations[] = $langcode;
+            }
+            // The fork routes only exist for canvas_page.
+            // @todo https://www.drupal.org/i/3498525 should generalize this to
+            //   all eligible content entity types, like the delete route.
+            if ($entity->getEntityTypeId() === Page::ENTITY_TYPE_ID && $translation->access('update')) {
+              $links[$langcode][$is_forked ? CanvasUriDefinitions::LINK_REL_UNFORK : CanvasUriDefinitions::LINK_REL_FORK] = Url::fromRoute(
+                $is_forked ? 'canvas.api.content.translation.unfork' : 'canvas.api.content.translation.fork',
+                ['canvas_page' => $entity->id()],
+                ['language' => $translation->language()],
+              )->toString();
+            }
           }
         }
       }
@@ -207,9 +230,46 @@ final class ApiLayoutController {
     $default_langcode = $entity instanceof ContentEntityInterface
       ? $entity->getUntranslated()->language()->getId()
       : $entity->language()->getId();
+    // Advertise the language-change affordance: a `set-default-language` link
+    // (the entity's PATCH URL) for each configurable language that is not the
+    // current original language, has no existing translation (forked
+    // translations are still translations, so forked siblings are excluded
+    // too), and passes the langcode field `edit` access check (with the
+    // Language module installed: `ContentLanguageSettings.language_alterable`).
+    // The client renders the affordance purely from link presence.
+    // @see \Drupal\canvas\Controller\ApiContentControllers::patch()
+    // @see \Drupal\language\Hook\LanguageHooks::entityFieldAccess()
+    // The PATCH route only exists for canvas_page.
+    // @todo https://www.drupal.org/i/3498525 should generalize this to all
+    //   eligible content entity types.
+    if ($entity instanceof ContentEntityInterface && $entity->getEntityTypeId() === Page::ENTITY_TYPE_ID) {
+      $langcode_key = $entity->getEntityType()->getKey('langcode');
+      \assert(\is_string($langcode_key));
+      // The langcode field access result is language-independent: check once.
+      if ($entity->getUntranslated()->get($langcode_key)->access('edit')) {
+        foreach ($this->languageManager->getLanguages() as $langcode => $language) {
+          if ($langcode === $default_langcode || \in_array($langcode, $available_translations, TRUE)) {
+            continue;
+          }
+          // Generate against the original language so the URL carries its
+          // language prefix: the PATCH must upcast the default translation.
+          $links[$langcode][CanvasUriDefinitions::LINK_REL_SET_DEFAULT_LANGUAGE] = Url::fromRoute(
+            'canvas.api.content.patch',
+            ['canvas_page' => $entity->id()],
+            ['language' => $entity->getUntranslated()->language()],
+          )->toString();
+        }
+      }
+    }
     array_unshift($available_translations, $default_langcode);
     $data['translations'] = [
       'available' => $available_translations,
+      // The entity's original language. The client must not infer it from the
+      // order of `available`.
+      'defaultLangcode' => $default_langcode,
+      // Langcodes whose translation owns an independent (forked) component
+      // tree, draft-aware.
+      'forked' => $forked_translations,
       'links' => $links,
     ];
     if ($entity instanceof ContentEntityInterface && $entity instanceof EntityPublishedInterface) {
@@ -290,8 +350,20 @@ final class ApiLayoutController {
           : $entity
         );
         if ($entity instanceof ContentEntityInterface) {
+          $host_langcode = $entity->language()->getId();
           foreach ($entity->getTranslationLanguages(include_default: FALSE) as $language) {
-            $this->autoSaveManager->saveEntity($entity->getTranslation($language->getId()));
+            $translation = $entity->getTranslation($language->getId());
+            // Forked sibling translations were not updated (their trees are
+            // independent), so they must not receive spurious auto-save
+            // entries. The previewed translation itself is always saved: when
+            // it is forked, its own tree is exactly what was reconciled in
+            // place.
+            // @see \Drupal\canvas\ComponentSource\ComponentSourceManager::updateComponentInstances()
+            if ($language->getId() !== $host_langcode
+              && ComponentTreeTranslationFork::isForkedTranslation($translation)) {
+              continue;
+            }
+            $this->autoSaveManager->saveEntity($translation);
           }
         }
         foreach ($configTranslationsToSave as $stagedOverride) {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
-import { NavLink, useParams } from 'react-router-dom';
+import { NavLink, useParams, useSearchParams } from 'react-router-dom';
 import TemplateIcon from '@assets/icons/template.svg?react';
 import {
   ChevronLeftIcon,
@@ -79,6 +79,7 @@ const PageInfo = () => {
   const { navigateToEditor } = useEditorNavigation();
   const { redirectToNextBestPage } = useSmartRedirect();
   const { entityType, entityId, patternId } = useParams();
+  const [searchParams] = useSearchParams();
   const codeComponentName = useAppSelector(selectCodeComponentProperty('name'));
   const isCodeEditor = codeComponentName !== '';
   const editorFrameContext = useAppSelector(selectEditorFrameContext);
@@ -159,8 +160,13 @@ const PageInfo = () => {
   }, [dispatch, homepageConfig, isGetStagedUpdateSuccess]);
 
   function handleNewPage() {
+    // The language switcher selection is the creation language: creating a
+    // page while viewing language X creates it in X. Without an active
+    // selection the backend decides.
+    const activeLanguage = searchParams.get('language');
     createContent({
       entity_type: 'canvas_page',
+      ...(activeLanguage && { langcode: activeLanguage }),
     });
     setPopoverOpen(false);
   }

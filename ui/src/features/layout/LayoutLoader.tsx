@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import { useParams } from 'react-router';
 import { skipToken } from '@reduxjs/toolkit/query';
@@ -7,6 +7,10 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { clearSelection } from '@/features/ui/uiSlice';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
+import {
+  getEntityDefaultLangcode,
+  subscribeToEntityLanguages,
+} from '@/utils/entity-language';
 
 import {
   selectIsInitialized,
@@ -19,6 +23,15 @@ const LayoutLoader = () => {
   const isInitialized = useAppSelector(selectIsInitialized);
   const { entityId, entityType } = useParams();
 
+  // The entity's original language, when known (boot settings, or a previous
+  // layout response). Part of the query arg so that learning it after an
+  // unprefixed first fetch re-fetches with the right URL language prefix —
+  // the base query applies the prefix itself.
+  // @see ui/src/utils/entity-language.ts
+  const defaultLangcode = useSyncExternalStore(subscribeToEntityLanguages, () =>
+    getEntityDefaultLangcode(entityType, entityId),
+  );
+
   const {
     data: fetchedLayout,
     error,
@@ -26,7 +39,9 @@ const LayoutLoader = () => {
     isFetching,
     refetch,
   } = useGetPageLayoutQuery(
-    entityId && entityType ? { entityId, entityType } : skipToken,
+    entityId && entityType
+      ? { entityId, entityType, defaultLangcode }
+      : skipToken,
     // Setting `refetchOnMountOrArgChange` instead of a cache invalidation
     // prevents re-fetching due to the same query being used elsewhere in the app.
     { refetchOnMountOrArgChange: true },

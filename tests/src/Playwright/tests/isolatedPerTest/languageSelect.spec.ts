@@ -186,15 +186,19 @@ test.describe('Language Select', () => {
       ),
     ).toHaveCount(0);
 
-    // The editor role has edit (update) access, so the delete-translation
-    // options trigger is rendered for the existing French translation - and
-    // only for it (the default English and untranslated Spanish have none).
+    // French is translated and the editor can delete translations, so it has a
+    // dots (⋮) options trigger. Untranslated Spanish advertises "Set as default
+    // language" (the page's language is alterable), so it has one too; the
+    // default English language has none.
+    await expect(
+      page.locator('[data-testid="language-options-popover-trigger"]'),
+    ).toHaveCount(2);
     await expect(
       page.locator('[aria-label="More options for French"]'),
     ).toBeVisible();
     await expect(
-      page.locator('[data-testid="language-options-popover-trigger"]'),
-    ).toHaveCount(1);
+      page.locator('[aria-label="More options for Spanish"]'),
+    ).toBeAttached();
     // The current permissions include 'administer languages' so the configure
     // button should be present.
     await expect(
@@ -253,7 +257,8 @@ test.describe('Language Select', () => {
     await languageButton.click();
 
     // French has a translation: checkmark and options trigger must still be
-    // present after reload.
+    // present after reload, alongside untranslated Spanish's
+    // "Set as default language" trigger.
     await expect(
       page.locator(
         '[data-testid="language-option-fr"] [data-canvas-has-translation="true"]',
@@ -261,7 +266,7 @@ test.describe('Language Select', () => {
     ).toHaveAttribute('data-canvas-has-translation', 'true');
     await expect(
       page.locator('[data-testid="language-options-popover-trigger"]'),
-    ).toHaveCount(1);
+    ).toHaveCount(2);
 
     // Switch to Spanish language (which has no translation).
     const spanishOption = page.locator('[data-testid="language-option-es"]');
@@ -536,16 +541,16 @@ test.describe('Language Select', () => {
     await confirmButton.click();
     await expect(deleteDialog).toBeHidden();
 
-    // The in-app delete drops French's options trigger (and with it the
-    // popover) once the request resolves. Wait for that before reopening so
-    // the dropdown - not a still-open popover - receives the Escape key.
+    // The in-app delete drops French's check mark once the request resolves.
     await expect(
-      page.locator('[aria-label="More options for French"]'),
+      page.locator(
+        '[data-testid="language-option-fr"] [data-canvas-has-translation="true"]',
+      ),
     ).toHaveCount(0);
 
     // Reopen the dropdown: French is still listed but, with its translation
-    // gone, it no longer shows a check mark or an options trigger - confirming
-    // the list refreshed without a page reload.
+    // gone, it no longer shows a check mark - confirming the list refreshed
+    // without a page reload.
     await expect(async () => {
       // Click an element outside the language select to ensure it fully closes,
       // regardless of submenus.
@@ -565,14 +570,172 @@ test.describe('Language Select', () => {
         '[data-testid="language-option-fr"] [data-canvas-has-translation="true"]',
       ),
     ).toHaveCount(0);
+
+    // Once the layout refetch lands, French is untranslated (and the page's
+    // language is alterable), so its options popover now offers "Set as
+    // default language" instead of deletion.
     await expect(
       page.locator('[aria-label="More options for French"]'),
+    ).toBeAttached();
+    await openPopover();
+    await expect(
+      page
+        .locator('[data-testid="language-options-set-default-language"]')
+        .first(),
+    ).toBeAttached();
+    await expect(
+      page.locator('[data-testid="language-options-delete"]'),
     ).toHaveCount(0);
 
-    // Spanish never had a translation: the dots button is not rendered at all.
+    // Spanish never had a translation: it offers only "Set as default
+    // language" too.
+    await expect(
+      page.locator('[aria-label="More options for Spanish"]'),
+    ).toBeAttached();
+  });
+
+  test('Creating a page while viewing a language creates it in that language', async ({
+    page,
+    canvas,
+    drupal,
+  }) => {
+    await login({ username: 'editor', password: 'editor', drupal });
+    const canvasPage = await canvas.createCanvas();
+    await page.goto(`/canvas/editor/canvas_page/${canvasPage.entity_id}`);
+    await canvas.waitForEditorUi();
+
+    // Switch to French: the app moves to the preview route with ?language=fr.
+    await page
+      .locator(
+        '[data-testid="canvas-topbar"] [data-testid="language-select-trigger"]',
+      )
+      .click();
+    await page.locator('[data-testid="language-option-fr"]').click();
+    await page.waitForURL(/\/preview\/canvas_page\/\d+\/full\?language=fr/, {
+      timeout: 10000,
+    });
+
+    // Creating a page now sends the active language as the creation language.
+    const createRequest = page.waitForRequest(
+      (request) =>
+        request.url().includes('/canvas/api/v0/content/canvas_page') &&
+        request.method() === 'POST',
+    );
+    await page.getByTestId('canvas-navigation-button').click();
+    const newButton = page.getByTestId('canvas-navigation-new-button');
+    await expect(newButton).toBeVisible();
+    await newButton.click();
+    const newPageButton = page.getByTestId('canvas-navigation-new-page-button');
+    await expect(newPageButton).toBeVisible();
+    // Once the client learns the new page's original language it re-fetches
+    // the layout through the French URL prefix, pinning the editor to the
+    // French original.
+    const prefixedLayoutRequest = page.waitForRequest((request) =>
+      /\/fr\/canvas\/api\/v0\/layout\/canvas_page\/\d+/.test(request.url()),
+    );
+    await newPageButton.click();
+    expect((await createRequest).postDataJSON()).toMatchObject({
+      langcode: 'fr',
+    });
+
+    // The editor opens the new page with French as its original language.
+    await page.waitForURL(/\/editor\/canvas_page\/\d+$/, { timeout: 10000 });
+    await prefixedLayoutRequest;
+    await canvas.waitForEditorUi();
+    await page
+      .locator(
+        '[data-testid="canvas-topbar"] [data-testid="language-select-trigger"]',
+      )
+      .click();
+    await expect(
+      page.locator('[data-testid="language-option-fr"]'),
+    ).toContainText('(Default)');
+    await expect(
+      page.locator('[data-testid="language-option-en"]'),
+    ).not.toContainText('(Default)');
+  });
+
+  test('Set as default language retags an untranslated page and reloads into the editor', async ({
+    page,
+    canvas,
+    drupal,
+  }) => {
+    await login({ username: 'editor', password: 'editor', drupal });
+    const canvasPage = await canvas.createCanvas();
+    await page.goto(`/canvas/editor/canvas_page/${canvasPage.entity_id}`);
+    await canvas.waitForEditorUi();
+
+    const languageButton = page.locator(
+      '[data-testid="canvas-topbar"] [data-testid="language-select-trigger"]',
+    );
+    await languageButton.click();
+
+    // Untranslated Spanish offers "Set as default language" in its options
+    // popover.
+    const spanishTrigger = page
+      .locator('[data-state="open"][role="menu"]')
+      .locator('[aria-label="More options for Spanish"]')
+      .first();
+    await expect(spanishTrigger).toBeAttached();
+    await spanishTrigger.click();
+    const setDefaultItem = page
+      .locator('[data-testid="language-options-set-default-language"]')
+      .first();
+    await expect(setDefaultItem).toBeAttached();
+    await setDefaultItem.click();
+
+    // Confirming performs the change and fully reloads into the editor. The
+    // reloaded editor addresses the now-Spanish original through the Spanish
+    // URL prefix.
+    const setDefaultDialog = page
+      .locator('[role="dialog"][data-state="open"]')
+      .filter({
+        has: page.locator('h1', { hasText: 'Set as default language' }),
+      })
+      .first();
+    await expect(setDefaultDialog).toBeVisible();
+    const patchResponse = page.waitForResponse(
+      (response) =>
+        response
+          .url()
+          .includes(
+            `/canvas/api/v0/content/canvas_page/${canvasPage.entity_id}`,
+          ) && response.request().method() === 'PATCH',
+    );
+    const prefixedLayoutRequest = page.waitForRequest((request) =>
+      /\/es\/canvas\/api\/v0\/layout\/canvas_page\/\d+/.test(request.url()),
+    );
+    await setDefaultDialog
+      .getByRole('button', { name: 'Set as default language' })
+      .click();
+    expect((await patchResponse).status()).toBe(200);
+    await prefixedLayoutRequest;
+    await canvas.waitForEditorUi();
+
+    // After the reload Spanish is the default (editable) language and English
+    // is offered as a preview language.
+    await languageButton.click();
+    await expect(
+      page.locator('[data-testid="language-option-es"]'),
+    ).toContainText('(Default)');
+    await expect(
+      page.locator('[data-testid="language-option-en"]'),
+    ).not.toContainText('(Default)');
+    // Spanish is the original now, so it no longer offers the affordance,
+    // while untranslated English does.
     await expect(
       page.locator('[aria-label="More options for Spanish"]'),
     ).toHaveCount(0);
+    await expect(
+      page.locator('[aria-label="More options for English"]'),
+    ).toBeAttached();
+
+    // Selecting English navigates to its preview: the old default language
+    // became a translation target.
+    await page.locator('[data-testid="language-option-en"]').click();
+    await page.waitForURL(/\/preview\/canvas_page\/\d+\/full\?language=en/, {
+      timeout: 10000,
+    });
   });
 
   test('Unpublishing a page and previewing a translation does not corrupt the default language title', async ({

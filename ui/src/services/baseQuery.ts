@@ -2,6 +2,7 @@ import { fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import { fetchCsrfToken } from '@/utils/csrf';
 import { getCanvasSettings } from '@/utils/drupal-globals';
+import { applyEntityLanguagePrefix } from '@/utils/entity-language';
 
 import type {
   BaseQueryApi,
@@ -162,12 +163,19 @@ const rawBaseQuery = (appConfiguration: AppConfiguration) => {
     const url = typeof arg == 'string' ? arg : arg.url;
     const { entityType, entityId, templateBundle, templateViewMode } =
       extractEntityParams(window.location.href);
-    const newUrl = replaceEntityParamsInUrl(
-      url,
-      entityType,
-      entityId,
-      templateBundle,
-      templateViewMode,
+    // Pin entity-scoped editor requests to the target entity's original
+    // language: without its URL prefix, `EntityConverter` would upcast the
+    // negotiated translation, so edits and auto-saves could land on the wrong
+    // translation of a page whose original language is not the site default.
+    // @see ui/src/utils/entity-language.ts
+    const newUrl = applyEntityLanguagePrefix(
+      replaceEntityParamsInUrl(
+        url,
+        entityType,
+        entityId,
+        templateBundle,
+        templateViewMode,
+      ),
     );
     const newArg = typeof arg == 'string' ? newUrl : { ...arg, url: newUrl };
     return defaultQuery(newArg, api, extraOptions);

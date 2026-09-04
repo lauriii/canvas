@@ -30,13 +30,19 @@ config:
       create:
         id: es
         label: Spanish
+    # Canvas ships this config in config/optional (language_alterable: true),
+    # and the wildcard import above already imports it, so `create` would
+    # collide. The fallback values mirror the shipped file.
     language.content_settings.canvas_page.canvas_page:
-      create:
+      createIfNotExists:
         target_entity_type_id: canvas_page
         target_bundle: canvas_page
-        third_party_settings:
-          content_translation:
-            enabled: true
+        default_langcode: site_default
+        language_alterable: true
+      setThirdPartySetting:
+        module: content_translation
+        key: enabled
+        value: true
     # The chrome page variant renders every page; select it as the site
     # default so its heading appears around the test pages.
     canvas.settings:

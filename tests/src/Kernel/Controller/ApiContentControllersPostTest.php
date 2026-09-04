@@ -13,6 +13,7 @@ use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\Core\Cache\CacheableJsonResponse;
+use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -45,6 +46,7 @@ class ApiContentControllersPostTest extends CanvasKernelTestBase {
   protected static $modules = [
     'canvas_test_page',
     'field',
+    'language',
   ];
 
   private const string URL = '/canvas/api/v0/content/canvas_page';
@@ -59,7 +61,7 @@ class ApiContentControllersPostTest extends CanvasKernelTestBase {
     $this->installEntitySchema('canvas_page');
     $this->installEntitySchema('path_alias');
     $this->installEntitySchema('media');
-    $this->installConfig(['system', 'field', 'filter', 'path_alias']);
+    $this->installConfig(['system', 'field', 'filter', 'path_alias', 'language']);
 
     $this->setUpCurrentUser([], ['access content', Page::CREATE_PERMISSION, Page::EDIT_PERMISSION]);
 
@@ -347,6 +349,78 @@ class ApiContentControllersPostTest extends CanvasKernelTestBase {
         ], JSON_THROW_ON_ERROR),
       ),
     );
+  }
+
+  /**
+   * Tests choosing the new page's original language at creation time.
+   */
+  public function testPostWithLangcode(): void {
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+
+    // An explicit langcode becomes the new page's original language.
+    $response = $this->request(
+      Request::create(
+        self::URL,
+        'POST',
+        server: ['CONTENT_TYPE' => 'application/json'],
+        content: \json_encode([
+          'title' => 'French page',
+          'status' => FALSE,
+          'path' => '/french-page',
+          'components' => [],
+          'langcode' => 'fr',
+        ], JSON_THROW_ON_ERROR),
+      ),
+    );
+    $this->assertSame(Response::HTTP_CREATED, $response->getStatusCode());
+    $page = Page::load($this->decodeResponse($response)['id']);
+    \assert($page instanceof Page);
+    $this->assertSame('fr', $page->language()->getId());
+    $this->assertSame('fr', $page->get('title')->getLangcode());
+
+    // An unknown langcode is rejected and no entity is created.
+    $page_count_before = \count(Page::loadMultiple());
+    $response = $this->request(
+      Request::create(
+        self::URL,
+        'POST',
+        server: ['CONTENT_TYPE' => 'application/json'],
+        content: \json_encode([
+          'title' => 'Rejected page',
+          'status' => FALSE,
+          'path' => '/rejected-page',
+          'components' => [],
+          'langcode' => 'xx',
+        ], JSON_THROW_ON_ERROR),
+      ),
+    );
+    $this->assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
+    $this->assertSame(
+      ['error' => 'The provided langcode "xx" is not one of the configured languages.'],
+      $this->decodeResponse($response),
+    );
+    $this->assertCount($page_count_before, Page::loadMultiple());
+
+    // Omitting the langcode defers to core defaults: the site default
+    // language, as `ContentLanguageSettings.default_langcode` is
+    // `site_default`.
+    $response = $this->request(
+      Request::create(
+        self::URL,
+        'POST',
+        server: ['CONTENT_TYPE' => 'application/json'],
+        content: \json_encode([
+          'title' => 'Default language page',
+          'status' => FALSE,
+          'path' => '/default-language-page',
+          'components' => [],
+        ], JSON_THROW_ON_ERROR),
+      ),
+    );
+    $this->assertSame(Response::HTTP_CREATED, $response->getStatusCode());
+    $page = Page::load($this->decodeResponse($response)['id']);
+    \assert($page instanceof Page);
+    $this->assertSame('en', $page->language()->getId());
   }
 
   public function testPostWithEmptyContentRequest(): void {

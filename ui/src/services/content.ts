@@ -26,6 +26,15 @@ export interface CreateContentResponse {
 export interface CreateContentRequest {
   entity_id?: string;
   entity_type: string;
+  // The new entity's original language. Omitted means the backend decides
+  // (the site's content language settings). Ignored when duplicating.
+  langcode?: string;
+}
+
+export interface SetDefaultLanguageRequest {
+  // The entity's `set-default-language` link URL from the layout API.
+  url: string;
+  langcode: string;
 }
 
 export interface UpdateContentRequest {
@@ -159,10 +168,12 @@ export const contentApi = createApi({
       CreateContentResponse,
       CreateContentRequest
     >({
-      query: ({ entity_type, entity_id }) => ({
+      query: ({ entity_type, entity_id, langcode }) => ({
         url: `/canvas/api/v0/content/${entity_type}`,
         method: 'POST',
-        body: entity_id ? { entity_id } : {},
+        // Duplication keeps the source entity's language, so `langcode` is
+        // only sent when creating from scratch.
+        body: entity_id ? { entity_id } : { ...(langcode && { langcode }) },
       }),
       // Instead of invalidating the cache tag { type: 'Content', id: 'LIST' }, we manually refetch the first 50 items after creation.
       // The newly added page is ensured to be the first item of the pages due to the sort order used by the backend.
@@ -265,6 +276,16 @@ export const contentApi = createApi({
         }
       },
     }),
+    setDefaultLanguage: builder.mutation<void, SetDefaultLanguageRequest>({
+      // PATCHes the langcode to the entity's `set-default-language` link URL,
+      // delegating to core's retag semantics. The caller fully reloads the
+      // editor on success, so no cache invalidation is needed here.
+      query: ({ url, langcode }) => ({
+        url,
+        method: 'PATCH',
+        body: { langcode },
+      }),
+    }),
     getStagedConfig: builder.query<StagedConfig, string>({
       query: (entityId) => ({
         url: `/canvas/api/v0/config/auto-save/staged_config_update/${entityId}`,
@@ -295,6 +316,7 @@ export const {
   useDeleteContentMutation,
   useCreateContentMutation,
   useUpdateContentMutation,
+  useSetDefaultLanguageMutation,
   useGetStagedConfigQuery,
   useSetStagedConfigMutation,
 } = contentApi;

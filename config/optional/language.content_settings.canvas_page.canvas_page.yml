@@ -1,0 +1,10 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - canvas
+id: canvas_page.canvas_page
+target_entity_type_id: canvas_page
+target_bundle: canvas_page
+default_langcode: site_default
+language_alterable: true

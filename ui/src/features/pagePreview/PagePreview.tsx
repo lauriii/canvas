@@ -114,31 +114,59 @@ const PagePreview = () => {
   // the generic /layout route, which only supports canvas_page entities, so it
   // is skipped for templates (their preview entity is rendered via the
   // snapshot query below).
-  useGetPageLayoutQuery(
+  const { data: defaultLayoutData } = useGetPageLayoutQuery(
     entityId && entityType && !isContentTemplate
       ? { entityId, entityType }
       : skipToken,
   );
 
   // Language preview: auto-fetch whenever language/entity changes.
-  const { error: languagePreviewError } = useGetSnapshotPreviewQuery(
-    {
-      entityType: entityType!,
-      entityId: entityId!,
-      language,
-      isTemplate: isContentTemplate,
-      templateInfo: { bundle, viewMode },
-    },
-    {
-      skip:
-        !!headlessSettings ||
-        !isPreview ||
-        (!language && !isContentTemplate) ||
-        !entityType ||
-        !entityId,
-      refetchOnMountOrArgChange: true,
-    },
-  );
+  const { error: languagePreviewError, refetch: refetchLanguagePreview } =
+    useGetSnapshotPreviewQuery(
+      {
+        entityType: entityType!,
+        entityId: entityId!,
+        language,
+        isTemplate: isContentTemplate,
+        templateInfo: { bundle, viewMode },
+      },
+      {
+        skip:
+          !!headlessSettings ||
+          !isPreview ||
+          (!language && !isContentTemplate) ||
+          !entityType ||
+          !entityId,
+        refetchOnMountOrArgChange: true,
+      },
+    );
+
+  // When the active language's fork state flips (fork/unfork), the
+  // translation's layout was replaced server-side, and the layout refetch
+  // that reported the change also reset the snapshot to the default-language
+  // render. Re-fetch the language snapshot so the preview shows the actual
+  // translation again. Read fork state from the layout query itself: the
+  // slice's translations only update on initial load.
+  const translations = defaultLayoutData?.translations;
+  const activeLanguageForked =
+    !!language && !!translations?.forked?.includes(language);
+  const activeLanguageForkedRef = useRef(activeLanguageForked);
+  useEffect(() => {
+    if (activeLanguageForkedRef.current === activeLanguageForked) {
+      return;
+    }
+    activeLanguageForkedRef.current = activeLanguageForked;
+    if (!language || !isPreview || headlessSettings) {
+      return;
+    }
+    refetchLanguagePreview();
+  }, [
+    activeLanguageForked,
+    language,
+    isPreview,
+    headlessSettings,
+    refetchLanguagePreview,
+  ]);
 
   // Clear snapshot HTML and title when leaving language preview and handle errors.
   useEffect(() => {

@@ -1893,15 +1893,28 @@ paths:
       requestBody:
         description: Updates a single content entity with its component tree.
         required: true
-        $ref: '#/components/requestBodies/NewContentRequest'
+        $ref: '#/components/requestBodies/PatchContentRequest'
       responses:
         '200':
           description: Content entity updated successfully.
           $ref: '#/components/responses/ContentEntityResponse'
+        '400':
+          description: The provided langcode is not one of the configured languages.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+              examples:
+                "unknown langcode":
+                  value:
+                    error: 'The provided langcode "xx" is not one of the configured languages.'
         '404':
           description: Content entity not found.
         '409':
-          description: Conflict because existing auto-saved data exists.
+          description: Conflict because existing auto-saved data exists, or a language change is blocked.
           content:
             application/json:
               schema:
@@ -1913,6 +1926,25 @@ paths:
                 "existing auto-saved data":
                   value:
                     error: "Page with ID 23 has existing auto-saved data. Please use the UI to publish it or discard it."
+                "occupied target language":
+                  value:
+                    error: "This page already has a fr translation. Delete that translation before making fr the default language."
+                "pending auto-save drafts":
+                  value:
+                    error: "This page has unpublished changes. Publish or discard them before changing its default language."
+        '422':
+          description: A language change targeted a non-default translation.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+              examples:
+                "non-default translation":
+                  value:
+                    error: "The original language can only be changed on the default translation. This request targeted the fr translation."
     delete:
       summary: Deletes a content entity.
       parameters:
@@ -2766,6 +2798,7 @@ paths:
                       'revision_log[0][value]': ''
                     translations:
                       available: [en, fr]
+                      defaultLangcode: en
                     isNew: false
                     isPublished: true
               schema:
@@ -2805,6 +2838,11 @@ paths:
                         description: Language codes with existing translations.
                         items:
                           type: string
+                      defaultLangcode:
+                        type: string
+                        description: >
+                          The entity's original (default) language. Clients
+                          must not infer it from the order of `available`.
                   isNew:
                     type: boolean
                     # @see \Drupal\canvas\AutoSave\AutoSaveManager::entityIsConsideredNew()
@@ -4579,6 +4617,11 @@ components:
               description: Language codes with existing translations.
               items:
                 type: string
+            defaultLangcode:
+              type: string
+              description: >
+                The entity's original (default) language. Clients must not
+                infer it from the order of `available`.
         isNew:
           type: boolean
         isPublished:
@@ -5784,6 +5827,12 @@ components:
         entity_id:
           type: string
           description: The ID of the entity to duplicate (optional)
+        langcode:
+          type: string
+          description: >
+            Optional original language for a new page created with a minimal
+            body. Ignored when duplicating (entity_id present) — duplicates
+            keep the source entity's language.
         clientInstanceId:
           type: string
           description: Client instance ID for the layout preview
@@ -5816,6 +5865,13 @@ components:
         pageVariant:
           type: [ string, "null" ]
           description: The selected page variant machine name. Null uses the site default.
+        langcode:
+          type: string
+          description: >
+            Optional original language for the new page. Must be one of the
+            configured languages (400 otherwise). If omitted, Drupal core
+            decides, honoring the content language settings' default language
+            when the Language module is installed. Ignored when duplicating.
         components:
           type: array
           description: >
@@ -5823,35 +5879,82 @@ components:
             item references its parent via parent_uuid, matching the
             data shape exposed by JSON:API or GraphQL.
           items:
-            type: object
-            required:
-              - uuid
-              - component_id
-              - component_version
-            properties:
-              uuid:
-                type: string
-                format: uuid
-                description: Unique identifier of this component instance.
-              component_id:
-                type: string
-                description: The component config entity ID (e.g. "sdc.my_theme.hero").
-              component_version:
-                type: string
-                description: The component version hash.
-              parent_uuid:
-                type: [ 'null', string ]
-                format: uuid
-                description: UUID of the parent component (null for root items).
-              slot:
-                type: [ 'null', string ]
-                description: The slot name in the parent component (null for root items).
-              inputs:
-                type: [ 'null', object ]
-                description: The component input values (prop sources).
-              label:
-                type: [ 'null', string ]
-                description: Optional label for the component instance.
+            $ref: '#/components/schemas/ComponentTreeItemInput'
+    PatchContentRequestBody:
+      type: object
+      additionalProperties: false
+      description: >
+        Partial update of a content entity: any subset of the writable fields
+        may be provided. Fields not present are left unchanged.
+      properties:
+        title:
+          type: string
+          description: The page title.
+        status:
+          type: boolean
+          description: The page status.
+        path:
+          type: string
+          format: uri-reference
+          title: The processed path
+        description:
+          type: string
+          description: The meta description.
+        pageVariant:
+          type: [ string, "null" ]
+          description: The selected page variant machine name. Null uses the site default.
+        langcode:
+          type: string
+          description: >
+            Changes the page's original language by delegating to Drupal
+            core's retag semantics. Guards: 422 when the request targets a
+            non-default translation, 400 for an unknown langcode, 409 when a
+            translation already exists in the target language, and 409 while
+            any auto-save drafts exist in the translation group (publish or
+            discard first; auto-save entries are not rekeyed).
+        components:
+          type: array
+          description: >
+            The stored component tree as a flat array of items. Each
+            item references its parent via parent_uuid, matching the
+            data shape exposed by JSON:API or GraphQL.
+          items:
+            $ref: '#/components/schemas/ComponentTreeItemInput'
+        autoSaves:
+          $ref: '#/components/schemas/AutoSaveConcurrencyControl'
+        clientInstanceId:
+          type: string
+          description: Client instance ID for the layout preview
+    ComponentTreeItemInput:
+      type: object
+      required:
+        - uuid
+        - component_id
+        - component_version
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          description: Unique identifier of this component instance.
+        component_id:
+          type: string
+          description: The component config entity ID (e.g. "sdc.my_theme.hero").
+        component_version:
+          type: string
+          description: The component version hash.
+        parent_uuid:
+          type: [ 'null', string ]
+          format: uuid
+          description: UUID of the parent component (null for root items).
+        slot:
+          type: [ 'null', string ]
+          description: The slot name in the parent component (null for root items).
+        inputs:
+          type: [ 'null', object ]
+          description: The component input values (prop sources).
+        label:
+          type: [ 'null', string ]
+          description: Optional label for the component instance.
     DuplicatedContentEntity:
       type: object
       required:
@@ -6251,8 +6354,8 @@ components:
               clientInstanceId:
                 type: string
                 description: Client instance ID for the layout preview
-    NewContentRequest:
+    PatchContentRequest:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NewContentRequestBody'
+                $ref: '#/components/schemas/PatchContentRequestBody'

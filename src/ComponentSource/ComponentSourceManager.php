@@ -7,6 +7,7 @@ namespace Drupal\canvas\ComponentSource;
 use Drupal\canvas\Attribute\ComponentSource;
 use Drupal\canvas\ComponentDoesNotMeetRequirementsException;
 use Drupal\canvas\ComponentIncompatibilityReasonRepository;
+use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
@@ -292,11 +293,13 @@ final class ComponentSourceManager extends DefaultPluginManager {
     // Relies on Canvas's symmetric translation (shared tree structure, incl.
     // component_version), currently enforced by
     // ComponentTreeSymmetricalTranslationConstraint.
-    // @todo When asymmetric translation lands (each translation owns its tree),
-    //   skip this redirect for asymmetrically translated fields. See
-    //   https://git.drupalcode.org/project/canvas/-/work_items/3571130.
+    // A forked translation owns its tree: no redirect (its own tree is
+    // reconciled in place) and no propagation to or from siblings.
+    // @see https://git.drupalcode.org/project/canvas/-/work_items/3571130
     $host = $component_tree->getParent() !== NULL ? $component_tree->getEntity() : NULL;
-    if ($host instanceof ContentEntityInterface && !$host->isDefaultTranslation()) {
+    $host_is_forked = $host instanceof ContentEntityInterface
+      && ComponentTreeTranslationFork::isForkedTranslation($host);
+    if ($host instanceof ContentEntityInterface && !$host->isDefaultTranslation() && !$host_is_forked) {
       $field_name = $component_tree->getName();
       $default = $host->getUntranslated();
       // Only redirect when getUntranslated() resolves to a distinct
@@ -314,14 +317,20 @@ final class ComponentSourceManager extends DefaultPluginManager {
 
     $wasModified = $this->runUpdatersOnComponentTreeItemList($component_tree);
 
-    // Then update each non-default translation.
-    if ($host instanceof ContentEntityInterface) {
+    // Then update each non-default translation. A forked host reconciles only
+    // its own tree; forked siblings are skipped and reconcile when edited or
+    // published in their own language.
+    if ($host instanceof ContentEntityInterface && !$host_is_forked) {
       $field_name = $component_tree->getName();
       \assert(\is_string($field_name));
       foreach ($host->getTranslationLanguages(include_default: FALSE) as $language) {
         $translation = $host->getTranslation($language->getId());
         \assert($translation instanceof FieldableEntityInterface);
         if (!$translation->hasField($field_name)) {
+          continue;
+        }
+        if ($translation instanceof ContentEntityInterface
+          && ComponentTreeTranslationFork::isForkedTranslation($translation)) {
           continue;
         }
         $translation_tree = $translation->get($field_name);

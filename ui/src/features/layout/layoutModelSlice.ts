@@ -82,10 +82,26 @@ export type ComponentModels = Record<
   ComponentModel | EvaluatedComponentModel
 >;
 
+/**
+ * The layout API's `translations` metadata.
+ *
+ * @see \Drupal\canvas\Controller\ApiLayoutController::get()
+ */
+export interface Translations {
+  /** Langcodes with a translation, the original (default) language first. */
+  available?: string[];
+  /** The entity's original (default) language. */
+  defaultLangcode?: string;
+  /** Langcodes whose translation owns an independent (forked) layout. */
+  forked?: string[];
+  /** Per-langcode operation links, keyed by link relation. */
+  links?: Record<string, Record<string, string>>;
+}
+
 export interface LayoutModelSliceState extends RootLayoutModel {
   updatePreview: boolean;
   isInitialized?: boolean;
-  translations?: Record<string, any>;
+  translations?: Translations;
 }
 
 export const initialState: LayoutModelSliceState = {

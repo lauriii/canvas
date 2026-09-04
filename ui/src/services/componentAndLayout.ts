@@ -18,8 +18,12 @@ import { baseQueryWithAutoSaves } from '@/services/baseQuery';
 import { brandKitApi } from '@/services/brandKit';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
+import { recordEntityDefaultLangcode } from '@/utils/entity-language';
 
-import type { RootLayoutModel } from '@/features/layout/layoutModelSlice';
+import type {
+  RootLayoutModel,
+  Translations,
+} from '@/features/layout/layoutModelSlice';
 import type {
   UpdateComponentQueryArg,
   UpdateComponentResultType,
@@ -42,7 +46,7 @@ export type LayoutApiResponse = RootLayoutModel & {
   hasUnsavedStatusChange?: boolean;
   html: string;
   autoSaves: AutoSavesHash;
-  translations?: Record<string, any>;
+  translations?: Translations;
   // For content entities: the page variant rendering this entity, null when
   // core block layout renders the page. Absent for config entities.
   resolvedPageVariant?: string | null;
@@ -189,7 +193,17 @@ export const componentAndLayoutApi = createApi({
     }),
     getPageLayout: builder.query<
       LayoutApiResponse,
-      { entityId: string; entityType: string; language?: string }
+      {
+        entityId: string;
+        entityType: string;
+        language?: string;
+        // The entity's original language, when known. Not part of the URL
+        // (the base query applies its URL prefix centrally); it is part of
+        // the cache key so learning the original language after an
+        // unprefixed first fetch triggers a prefixed refetch.
+        // @see ui/src/utils/entity-language.ts
+        defaultLangcode?: string;
+      }
     >({
       query: ({ entityId, entityType, language }) => {
         // When a language code is provided, request that translation via the
@@ -209,6 +223,15 @@ export const componentAndLayoutApi = createApi({
             data: { entity_form_fields, html, autoSaves, translations },
             meta,
           } = await queryFulfilled;
+          // Remember the entity's original language so subsequent editor
+          // requests carry its URL prefix.
+          if (translations?.defaultLangcode) {
+            recordEntityDefaultLangcode(
+              arg.entityType,
+              arg.entityId,
+              translations.defaultLangcode,
+            );
+          }
           // Only update page data and HTML for the default language. Translation
           // queries (with a language parameter) must not overwrite the editor's
           // active entity form fields or preview HTML — those are managed
@@ -333,6 +356,46 @@ export const componentAndLayoutApi = createApi({
         url,
         method: 'DELETE',
       }),
+      // Refetch the layout so the deleted translation's metadata and links
+      // disappear.
+      invalidatesTags: [{ type: 'Layout' }],
+    }),
+    forkPageTranslation: builder.mutation<void, string>({
+      query: (url) => ({
+        url,
+        method: 'POST',
+      }),
+      // Refetch the layout so the fork badge and unfork action appear.
+      invalidatesTags: [{ type: 'Layout' }],
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        await queryFulfilled;
+        // Forking writes an auto-save draft: surface it in the review panel
+        // immediately instead of waiting for the poll.
+        dispatch(
+          pendingChangesApi.util.invalidateTags([
+            { type: 'PendingChanges', id: 'LIST' },
+          ]),
+        );
+      },
+    }),
+    unforkPageTranslation: builder.mutation<void, string>({
+      query: (url) => ({
+        url,
+        method: 'DELETE',
+      }),
+      // Refetch the layout so the reverted (synced) layout and fork action
+      // replace the forked state.
+      invalidatesTags: [{ type: 'Layout' }],
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        await queryFulfilled;
+        // Unforking writes an auto-save draft: surface it in the review
+        // panel immediately instead of waiting for the poll.
+        dispatch(
+          pendingChangesApi.util.invalidateTags([
+            { type: 'PendingChanges', id: 'LIST' },
+          ]),
+        );
+      },
     }),
     postTemplateLayout: builder.mutation<
       { html: string; autoSaves: AutoSavesHash },
@@ -836,4 +899,6 @@ export const {
   useGetViewModesQuery,
   useGetPreviewContentEntitiesQuery,
   useDeletePageTranslationMutation,
+  useForkPageTranslationMutation,
+  useUnforkPageTranslationMutation,
 } = componentAndLayoutApi;

@@ -33,5 +33,13 @@ class CanvasUriDefinitions {
   // @phpstan-ignore-next-line shipmonk.deadConstant
   const string LINK_REL_USAGE_DETAILS = 'https://drupal.org/project/canvas#link-rel-usage-details';
   const string LINK_REL_TYPED_DATA_BROWSER = 'https://drupal.org/project/canvas#link-rel-typed-data-browser';
+  // Fork/unfork a translation's component tree.
+  // @see \Drupal\canvas\Controller\ApiTranslationControllers::fork()
+  // @see \Drupal\canvas\Controller\ApiTranslationControllers::unfork()
+  const string LINK_REL_FORK = 'https://drupal.org/project/canvas#link-rel-fork';
+  const string LINK_REL_UNFORK = 'https://drupal.org/project/canvas#link-rel-unfork';
+  // Make a language the entity's original (default) language.
+  // @see \Drupal\canvas\Controller\ApiContentControllers::patch()
+  const string LINK_REL_SET_DEFAULT_LANGUAGE = 'https://drupal.org/project/canvas#link-rel-set-default-language';
 
 }
