@@ -29,6 +29,12 @@ export {
 export { getDraftClient, getPublicClient } from './json-api-client';
 export { fetchPage } from './content-api';
 export {
+  fetchRouteInventory,
+  fetchStaticPaths,
+  type RouteInventoryEntry,
+  type RouteInventoryOptions,
+} from './route-inventory';
+export {
   isPageRedirect,
   serializeJsonForHtml,
   type CanvasComponentTreeElement,

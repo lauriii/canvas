@@ -16,6 +16,7 @@ import {
 describe('headless component rendering helpers', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it('normalizes single and multi-value slots', () => {
@@ -154,5 +155,36 @@ describe('headless component rendering helpers', () => {
     expect(error).toHaveBeenCalledWith(
       '[canvas] Canvas component "hello-card" (instance "4af30fe1-3a42-4d69-9926-f38ce5cf3d90") is not registered; omitted subtree at "tree:content:0".',
     );
+  });
+
+  it.each(['1', 'true'])(
+    'throws for omitted subtrees with CANVAS_STRICT_COMPONENTS=%s',
+    (value) => {
+      vi.stubEnv('CANVAS_STRICT_COMPONENTS', value);
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      expect(() =>
+        reportMissingCanvasComponent(
+          { componentName: 'hello-card' },
+          'tree:content:0',
+        ),
+      ).toThrow(
+        '[canvas] Canvas component "hello-card" is not registered; omitted subtree at "tree:content:0".',
+      );
+      expect(error).not.toHaveBeenCalled();
+    },
+  );
+
+  it('keeps warning when CANVAS_STRICT_COMPONENTS is not truthy', () => {
+    vi.stubEnv('CANVAS_STRICT_COMPONENTS', '0');
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    expect(() =>
+      reportMissingCanvasComponent(
+        { componentName: 'hello-card' },
+        'tree:content:0',
+      ),
+    ).not.toThrow();
+    expect(error).toHaveBeenCalledOnce();
   });
 });

@@ -193,7 +193,27 @@ export function reportMissingCanvasComponentUuid(
   );
 }
 
-/** Reports that a component and its subtree were omitted during rendering. */
+/**
+ * Whether the CANVAS_STRICT_COMPONENTS environment variable opts rendering
+ * into strict mode. Read defensively: this module also runs in browsers,
+ * where process does not exist. Set it in build environments — a static
+ * build that silently drops a component subtree ships the hole to every
+ * visitor, so the build should fail instead.
+ */
+function isStrictComponentsMode(): boolean {
+  if (typeof process === 'undefined' || !process.env) {
+    return false;
+  }
+  const value = process.env.CANVAS_STRICT_COMPONENTS;
+  return value === '1' || value === 'true';
+}
+
+/**
+ * Reports that a component and its subtree were omitted during rendering.
+ * A console error by default; with CANVAS_STRICT_COMPONENTS set to `1` or
+ * `true` it throws instead, failing the render (and a static build) rather
+ * than shipping a page with a silently missing subtree.
+ */
 export function reportMissingCanvasComponent(
   data: Pick<CanvasComponentRenderData, 'componentName' | 'componentUuid'>,
   path: string,
@@ -201,7 +221,9 @@ export function reportMissingCanvasComponent(
   const instance = data.componentUuid
     ? ` (instance "${data.componentUuid}")`
     : '';
-  console.error(
-    `[canvas] Canvas component "${data.componentName}"${instance} is not registered; omitted subtree at "${path}".`,
-  );
+  const message = `[canvas] Canvas component "${data.componentName}"${instance} is not registered; omitted subtree at "${path}".`;
+  if (isStrictComponentsMode()) {
+    throw new Error(message);
+  }
+  console.error(message);
 }

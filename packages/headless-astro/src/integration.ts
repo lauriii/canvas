@@ -70,6 +70,17 @@ export interface CanvasIntegrationOptions {
    * The route the component metadata endpoint is injected at.
    */
   componentsRoutePath?: string;
+  /**
+   * Build the static profile: a fully prerendered site with no Canvas
+   * server surface. Skips every injected route (the draft flows, the
+   * component metadata endpoint, and the component preview page) and the
+   * CSP middleware, so `output: 'static'` builds without an SSR adapter.
+   * The environment bridge, the component implementation registry, and
+   * the build-time manifest remain, so `fetchPage()` still renders Canvas
+   * content at build time. Draft preview and the editor integration then
+   * run against a separate server-rendered deployment of the same app.
+   */
+  static?: boolean;
 }
 
 /**
@@ -103,6 +114,12 @@ export interface CanvasIntegrationOptions {
  *   integrations: [canvas()],
  * });
  * ```
+ *
+ * With `static: true` the integration builds the static profile instead:
+ * no routes, no middleware, just build-time rendering (see
+ * CanvasIntegrationOptions). Without it, an `output: 'static'` config
+ * without an adapter is refused, because the injected server routes could
+ * never run.
  */
 export function canvas(
   options: CanvasIntegrationOptions = {},
@@ -162,6 +179,15 @@ export function canvas(
             // policy. The metadata endpoint must answer its own claim-bound
             // CORS contract.
             ...(command === 'dev' ? { server: { cors: false } } : {}),
+            // Whether this build's pages are prerendered. The draft
+            // activation route reads it to refuse a session that pages
+            // baked at build time could never show (see ./routes/draft).
+            // Dev always renders per request, so dev stays false.
+            define: {
+              __CANVAS_STATIC_OUTPUT__: JSON.stringify(
+                command !== 'dev' && config.output === 'static',
+              ),
+            },
             plugins: [
               canvasComponentRegistry(),
               manifestPlugin(() => ({
@@ -177,6 +203,13 @@ export function canvas(
             },
           },
         });
+
+        // The static profile ends here: no per-request server surface
+        // exists, so injecting routes or middleware would only force an
+        // adapter requirement the profile exists to avoid.
+        if (options.static === true) {
+          return;
+        }
 
         addMiddleware({
           entrypoint: '@drupal-canvas/headless-astro/middleware',
@@ -211,6 +244,20 @@ export function canvas(
 
       'astro:config:done': ({ config }) => {
         projectRoot = fileURLToPath(config.root);
+
+        // The default profile injected server routes; a static build
+        // without an adapter has nothing to run them, and Astro's own
+        // failure ("NoAdapterInstalled") would not say what to do about
+        // Canvas. Fail with the two ways out instead.
+        if (
+          options.static !== true &&
+          config.output === 'static' &&
+          !config.adapter
+        ) {
+          throw new Error(
+            "The canvas() integration injects server routes that an `output: 'static'` build without an adapter can never run. Either add an SSR adapter (for example @astrojs/node) or pass `static: true` to the canvas() integration to build the static profile without them.",
+          );
+        }
       },
 
       'astro:build:start': async ({ logger }) => {

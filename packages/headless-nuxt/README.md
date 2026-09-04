@@ -57,6 +57,37 @@ The module supplies a registry of every discovered component implementation, and
 the renderer consumes it automatically. During development the registry updates
 when components are added, removed, or renamed.
 
+## Static generation
+
+`nuxt generate` works: the module keeps the component preview route out of the
+prerender crawl, and in a static build the `<DraftSession>` component skips the
+session fetch, renders nothing, and logs one console notice that draft preview
+is unavailable. Editors preview drafts against the server-rendered deployment of
+the same app instead.
+
+The generate crawler only finds pages something links to, so list the
+Drupal-known paths explicitly until the module wires this up itself —
+`fetchStaticPaths()` from `@drupal-canvas/headless/server` returns them from
+Drupal's route inventory:
+
+```ts
+export default defineNuxtConfig({
+  modules: ['@drupal-canvas/headless-nuxt'],
+  hooks: {
+    async 'nitro:config'(nitroConfig) {
+      const { fetchStaticPaths, resolveDraftConfig } =
+        await import('@drupal-canvas/headless/server');
+      (nitroConfig.prerender ??= {}).routes =
+        await fetchStaticPaths(resolveDraftConfig());
+    },
+  },
+});
+```
+
+Do not put pages behind Nitro's `swr` or `isr` route rules without keying the
+cache off the draft cookies: a response rendered for a draft session and cached
+once would be served to anonymous visitors. Cache public pages only.
+
 ## Data access
 
 Data access happens in Nitro server routes, where the draft session cookies

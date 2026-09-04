@@ -243,6 +243,48 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorMessage'
 
+  /canvas/api/v0/headless/inventory:
+    get:
+      summary: List the paths Canvas renders
+      description: |
+        Enumerates the site-relative paths Canvas renders: published Canvas
+        pages plus published content entities whose bundle is rendered by an
+        enabled full-view content template, one entry per published
+        translation, with the front page emitted as an additional "/" entry
+        when Canvas renders it. Results reflect the requesting account's
+        entity access, so an anonymous request sees the anonymous view.
+        Pagination is a keyset cursor: pass the `cursor.next` value from a
+        response as `cursor` until it is null.
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: |
+            Maximum source entities scanned per page (1-100). One entity can
+            emit several path entries (one per translation, plus the front
+            page), so a page's `paths` count may exceed this.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: cursor
+          in: query
+          required: false
+          description: Opaque keyset cursor from a prior response's cursor.next.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: One page of the path inventory.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RouteInventoryPayload'
+        '400':
+          $ref: '#/components/responses/DrupalErrorResponse'
+      security: []
+
   /canvas/api/v0/headless/components/sync/start:
     post:
       summary: Start external component synchronization
@@ -369,6 +411,51 @@ components:
           $ref: '#/components/schemas/UnheadDocument'
         route:
           $ref: '#/components/schemas/CanvasRouteContext'
+
+    RouteInventoryPayload:
+      type: object
+      additionalProperties: false
+      required: [paths, limit, cursor]
+      properties:
+        paths:
+          type: array
+          items:
+            $ref: '#/components/schemas/RouteInventoryEntry'
+        limit:
+          type: integer
+          minimum: 1
+        cursor:
+          type: object
+          additionalProperties: false
+          required: [next]
+          properties:
+            next:
+              oneOf:
+                - type: string
+                - type: 'null'
+
+    RouteInventoryEntry:
+      type: object
+      additionalProperties: false
+      required: [path, entityType, id, uuid, langcode, changed]
+      properties:
+        path:
+          type: string
+          description: Site-relative canonical path, alias included.
+        entityType:
+          type: string
+        id:
+          type: string
+        uuid:
+          type: string
+          format: uuid
+        langcode:
+          type: string
+        changed:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
 
     CanvasRedirectResult:
       type: object

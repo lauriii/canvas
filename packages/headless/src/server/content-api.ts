@@ -35,9 +35,24 @@ export async function fetchPage(
     draftData?: DraftData | null;
     componentPreviewId?: string;
     fetchImpl?: typeof fetch;
+    /**
+     * The fetch cache mode. Defaults to `'no-store'`: draft preview
+     * correctness depends on every request reaching Drupal, so a stale
+     * cached response never masquerades as the current draft. A static
+     * build passes `'force-cache'` instead — Next.js `output: 'export'`
+     * fails the build on no-store fetches, and at build time there is no
+     * draft session to go stale.
+     */
+    cache?: RequestCache;
   },
 ): Promise<PageResult | null> {
-  const { baseUrl, draftData, componentPreviewId, fetchImpl = fetch } = options;
+  const {
+    baseUrl,
+    draftData,
+    componentPreviewId,
+    fetchImpl = fetch,
+    cache = 'no-store',
+  } = options;
 
   const headers: Record<string, string> = { Accept: 'application/json' };
   let liveDraft = false;
@@ -67,7 +82,7 @@ export async function fetchPage(
   }
   const response = await fetchImpl(url, {
     headers,
-    cache: 'no-store',
+    cache,
   });
 
   if (!response.ok) {

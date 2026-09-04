@@ -107,6 +107,22 @@ export default defineNuxtModule<CanvasModuleOptions>({
     // The Vue build compiles the SDK's raw TypeScript.
     nuxt.options.build.transpile.push(...SDK_PACKAGES);
 
+    // A static generate bakes every page at build time, so no server
+    // exists afterwards to hold a draft session. The flag lets the
+    // <DraftSession> component degrade gracefully instead of fetching a
+    // session route that is not there. `nuxt generate` (and
+    // `nuxt build --prerender`) marks the build with the legacy _generate
+    // flag and Nitro's static mode; neither is part of the public typings.
+    const nitroOptions = (nuxt.options.nitro ?? {}) as {
+      preset?: string;
+      static?: boolean;
+    };
+    const isStaticBuild =
+      (nuxt.options as { _generate?: boolean })._generate === true ||
+      nitroOptions.preset === 'static' ||
+      nitroOptions.static === true;
+    nuxt.options.runtimeConfig.public.canvasStaticBuild ??= isStaticBuild;
+
     // The Nitro build externalizes node_modules by default, which would
     // ask Node to load the packages' raw TypeScript at runtime — inline
     // them into the server bundle instead, where they are compiled.
@@ -114,6 +130,15 @@ export default defineNuxtModule<CanvasModuleOptions>({
       nitroConfig.externals ??= {};
       nitroConfig.externals.inline ??= [];
       nitroConfig.externals.inline.push(...SDK_PACKAGES);
+
+      // The component preview page 404s without its query parameter, and
+      // the generate crawler visits every page route bare — that 404
+      // aborts the whole generate. Unconditional: the route must never be
+      // prerendered, because previews exist only inside a live draft
+      // session.
+      nitroConfig.prerender ??= {};
+      nitroConfig.prerender.ignore ??= [];
+      nitroConfig.prerender.ignore.push(CANVAS_COMPONENT_PREVIEW_PATH);
 
       // The production manifest, inlined into the server bundle as a
       // virtual module (the build:before hook below wrote the file before
@@ -210,3 +235,14 @@ export default defineNuxtModule<CanvasModuleOptions>({
     }
   },
 });
+
+declare module '@nuxt/schema' {
+  interface PublicRuntimeConfig {
+    /**
+     * True while the app is being statically generated. Set by the module
+     * from the build flags; the <DraftSession> component reads it to
+     * degrade gracefully where no server holds a draft session.
+     */
+    canvasStaticBuild?: boolean;
+  }
+}
