@@ -30,6 +30,7 @@ describe('isPageRedirect', () => {
             langcode: 'en',
           },
         },
+        cacheability: { tags: [] },
       }),
     ).toBe(false);
     expect(
@@ -43,6 +44,7 @@ describe('isPageRedirect', () => {
           managedByCanvas: false,
           entity: null,
         },
+        cacheability: { tags: [] },
       }),
     ).toBe(false);
   });

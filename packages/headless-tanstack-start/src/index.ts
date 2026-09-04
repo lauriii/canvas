@@ -18,6 +18,11 @@ export {
   createDraftRouteHandlers,
   type DraftRouteHandlers,
 } from './route-handlers';
+export {
+  createRevalidateRouteHandler,
+  type RevalidateRouteHandler,
+  type RevalidateRouteHandlerOptions,
+} from './revalidate';
 export { createComponentMetadataHandlers } from './component-metadata';
 export { toTanStackHead, type TanStackHead } from './head';
 export {

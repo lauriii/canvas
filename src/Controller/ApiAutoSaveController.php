@@ -14,6 +14,7 @@ use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
 use Drupal\canvas\Entity\EntityConstraintViolationList;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Event\PublishedEvent;
 use Drupal\canvas\Exception\ConstraintViolationException;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Validation\Constraint\AutoSaveEntityConflictConstraint;
@@ -51,6 +52,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Handles retrieval and publication of auto-saved changes.
@@ -77,6 +79,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
     private readonly ComponentSourceManager $componentSourceManager,
     private readonly ComponentTreeLoader $componentTreeLoader,
     private readonly ModuleHandlerInterface $moduleHandler,
+    private readonly EventDispatcherInterface $eventDispatcher,
     // The synchronizer belongs to content_translation, an optional dependency,
     // so it is NULL when that module is not installed.
     // @see \Drupal\canvas\CanvasServiceProvider
@@ -534,6 +537,22 @@ final class ApiAutoSaveController extends ApiControllerBase {
           ],
         ],
       ], status: 500);
+    }
+
+    // Release the transaction so it commits before subscribers run: the
+    // event contract is that they observe persisted state. A subscriber that
+    // throws must not undo a successful publish, so failures are logged and
+    // swallowed here rather than bubbling into a rolled-back-looking 500.
+    // Auto-saving never reaches this point; only publishing dispatches.
+    unset($transaction);
+    try {
+      $this->eventDispatcher->dispatch(new PublishedEvent($entities));
+    }
+    catch (\Throwable $e) {
+      // A subscriber that throws, including a TypeError or other Error that
+      // does not extend Exception, must not turn a committed publish into a
+      // 500. Log and swallow.
+      Error::logException($this->logger, $e);
     }
 
     return new JsonResponse(data: ['message' => new PluralTranslatableMarkup($published_item_count, 'Successfully published 1 item.', 'Successfully published @count items.')], status: 200);

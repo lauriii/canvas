@@ -100,3 +100,32 @@ server-only — call them inside `createServerFn` handlers, never in isomorphic
 loaders directly. Render `page.content` directly and return
 `toTanStackHead(page.head)` from the route's `head` callback. Handle
 `PageRedirect` in the loader with TanStack Router's `redirect()`.
+
+## Content invalidation
+
+Mount the revalidation route handler to keep cached content fresh when Canvas
+publishes. It verifies the publish webhook and hands you the payload; TanStack
+Start has no framework-native tag revalidation, so you supply the invalidation
+(clear the Nitro cache for the affected tags, purge a CDN by surrogate key, or
+trigger a rebuild):
+
+```ts
+// src/routes/api/canvas/revalidate.ts
+import { createRevalidateRouteHandler } from '@drupal-canvas/headless-tanstack-start';
+import { createFileRoute } from '@tanstack/react-router';
+
+const { POST } = createRevalidateRouteHandler({
+  // Reads CANVAS_PUBLISH_WEBHOOK_SECRET; verifies the X-Canvas-Signature HMAC.
+  revalidate: async ({ tags }) => {
+    // Invalidate the Nitro cache entries or purge the CDN for these tags.
+  },
+});
+export const Route = createFileRoute('/api/canvas/revalidate')({
+  server: { handlers: { POST } },
+});
+```
+
+The payload's `tags` are the Drupal cache tags the publish invalidated, indirect
+dependencies included. Set a `Surrogate-Key` header from
+`surrogateKeyHeader(page)` on your page responses so a CDN-fronted deployment
+can purge by the same keys.

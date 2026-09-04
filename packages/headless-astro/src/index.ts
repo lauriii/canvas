@@ -23,11 +23,21 @@ export {
   isDraftSessionExpired,
 } from './server';
 
+// The publish-webhook revalidation endpoint. Astro has no native cache-tag
+// API, so the app supplies a host-specific `revalidate` callback (see the
+// route's JSDoc and the README).
+export {
+  createRevalidateApiRoute,
+  type RevalidateApiRoute,
+  type RevalidateApiRouteOptions,
+} from './routes/revalidate';
+
 // Core helpers and types app code commonly needs alongside the adapter.
 export {
   getDraftEditorOrigin,
   getSessionToken,
   isPageRedirect,
+  surrogateKeyHeader,
   type AccessToken,
   type CanvasComponentTreeElement,
   type CanvasComponentTreeSlot,
@@ -35,6 +45,7 @@ export {
   type DrupalRouteEntity,
   type DraftData,
   type Page,
+  type PageCacheability,
   type PageHead,
   type PageRedirect,
   type PageResult,

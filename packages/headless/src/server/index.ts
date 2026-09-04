@@ -29,8 +29,17 @@ export {
 export { getDraftClient, getPublicClient } from './json-api-client';
 export { fetchPage } from './content-api';
 export {
+  parsePublishPayload,
+  readPublishWebhook,
+  verifyPublishSignature,
+  type PublishedEntityReference,
+  type PublishPayload,
+  type PublishWebhookResult,
+} from './webhook';
+export {
   isPageRedirect,
   serializeJsonForHtml,
+  surrogateKeyHeader,
   type CanvasComponentTreeElement,
   type CanvasComponentTreeSlot,
   type DrupalRoute,

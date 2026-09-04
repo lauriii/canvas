@@ -140,6 +140,80 @@ Errors use RFC 9457 Problem Details and the `application/problem+json` media typ
 
 `detail` is included when an additional explanation is available.
 
+## Content invalidation
+
+A decoupled frontend that caches or pre-renders published content needs two
+things to keep it fresh without polling: to know what each page depends on,
+and to be told when something is published. Both are useful for full static
+rebuilds and for on-demand ISR revalidation alike.
+
+### Per-page cacheability
+
+Every content response carries a `cacheability` object with the cache tags the
+rendered page depended on. A consumer records each path's tags, and on publish
+maps an invalidated tag back to the pages to rebuild or revalidate. The tags
+are already computed for the response and are small, so they are always
+present; the SDK surfaces them on the page result (`page.cacheability.tags`).
+
+### Publish webhook
+
+Configure a target under `canvas_headless.settings` (`publish_webhook.url`) to
+receive a POST on every publish. For a signed delivery, set the shared secret
+in State, which is kept out of config so a config export never carries it into
+version control, and works where `settings.php` is not editable:
+
+```sh
+drush state:set canvas_headless.publish_webhook_secret 'your-shared-secret'
+```
+
+A `settings.php` override (`$settings['canvas_headless_publish_webhook_secret']`)
+takes precedence for environments that prefer an immutable secret. When a
+secret is set either way, requests carry an `X-Canvas-Signature` HMAC-SHA256
+header. The payload references the published entities and the cache tags the
+publish invalidated:
+
+```json
+{
+  "event": "publish",
+  "entities": [{ "entityType": "canvas_page", "id": "1", "uuid": "...", "langcode": "en" }],
+  "tags": ["canvas_page:1", "config:canvas.component.js.header"]
+}
+```
+
+The `tags` are the union of each published entity's cache tags, so they carry
+indirect dependencies: publishing a component publishes its config entity,
+whose tag every dependent page already declares in its own `cacheability`.
+Delivery is best effort: a failure is logged and never blocks the publish.
+Auto-saving does not fire the webhook; only publishing does.
+
+### Revalidation tooling
+
+The SDK turns the webhook into cache revalidation. The core exposes the shared
+spine — `readPublishWebhook()` (and `verifyPublishSignature()` /
+`parsePublishPayload()`) from `@drupal-canvas/headless/server` — so a route
+handler in any framework verifies the HMAC and reads the payload without
+hand-rolling either. Each adapter ships a revalidation handler on top:
+
+- **Next.js** maps the invalidated tags to `revalidateTag()`, so it is
+  turnkey: `export const { POST } = createRevalidateRouteHandler()` at
+  `app/api/canvas/revalidate/route.ts`. Tag each cached page fetch with its
+  `page.cacheability.tags` (for example inside a `use cache` function via
+  `cacheTag(...page.cacheability.tags)`), and a publish revalidates exactly the
+  pages it touched, indirect dependencies included.
+- **Nuxt** invalidates the Nitro cache (`createRevalidateEventHandler`).
+- **TanStack Start** and **Astro** verify the webhook and hand the payload to
+  an app-supplied `revalidate` callback, because those frameworks have no
+  native tag revalidation (Astro's is host-specific: Vercel, Netlify, the Bun
+  adapter, or a rebuild trigger for static output).
+
+The payload carries the Drupal cache tags the publish invalidated, so
+revalidation covers indirect dependencies (a shared component or menu edit),
+not just the changed entity's own pages. The tags map 1:1 to CDN surrogate
+keys, so any adapter can set `Surrogate-Key` from `surrogateKeyHeader(page)` on
+its page responses and a CDN-fronted deployment purges by the same key set. See
+each adapter's README for specifics. When no runtime revalidation fits (pure
+static output on any framework), point the webhook at a CI rebuild instead.
+
 ## Known limitations
 
 - The rendered-content endpoint serves the default revision: an unpublished entity previews fully, but a published entity's forward
