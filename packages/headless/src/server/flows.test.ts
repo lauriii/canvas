@@ -501,6 +501,18 @@ describe('fetchPage', () => {
     );
   });
 
+  it('lets a static build override the no-store cache mode', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(Response.json(page));
+    const { server } = makeServer(fetchImpl as unknown as typeof fetch);
+
+    await server.fetchPage('/example', { cache: 'force-cache' });
+
+    expect(fetchImpl).toHaveBeenCalledWith(
+      expect.any(URL),
+      expect.objectContaining({ cache: 'force-cache' }),
+    );
+  });
+
   it('returns public responses without Canvas content unchanged', async () => {
     const emptyPage = { ...page, content: null };
     const fetchImpl = vi.fn().mockResolvedValue(Response.json(emptyPage));

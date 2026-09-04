@@ -140,6 +140,43 @@ Errors use RFC 9457 Problem Details and the `application/problem+json` media typ
 
 `detail` is included when an additional explanation is available.
 
+## Static site generation
+
+A site whose public content is published and anonymous-readable can be built to
+static files and served from a Node-free host, while the editor keeps its
+request-time preview. The route inventory below is generic enough for any
+client that walks the site (sitemap generators, cache warmers, search
+indexers), not only static builds.
+
+### Route inventory
+
+`GET /canvas/api/v0/headless/inventory` lists the site-relative paths Canvas
+renders: published Canvas pages plus published content entities whose bundle
+has an enabled full-view content template, one entry per published translation,
+with the front page emitted as an extra `/` entry. Each entry carries the
+canonical path, entity type, id, uuid, langcode, and last-changed timestamp.
+The endpoint is public, but results reflect the requesting account's entity
+access, so an anonymous request sees exactly the anonymous view. Pagination is
+a keyset cursor: pass `cursor.next` from a response back as `cursor` until it is
+null (`limit` caps a page at 100). The SDK's `fetchRouteInventory()` and
+`fetchStaticPaths()` helpers walk it to completion for `getStaticPaths`,
+`generateStaticParams`, and `nitro.prerender.routes`.
+
+Keeping a static site fresh after content changes (per-page cacheability
+exposure and a publish webhook) is tracked separately as the content
+invalidation primitives.
+
+### Two modes in one codebase
+
+Editor preview is inherently request-time and cannot be served from static
+files. Next.js can serve both from one deployment (its draft-mode bypass
+switches editors to request-time rendering on prerendered routes); Astro and
+Nuxt use a second, server-rendered deployment for the editor, with the frontend
+list pointing at that deployment while public DNS points at the static
+artifact. Media is serialized as absolute URLs on the Drupal origin, so a
+static artifact hot-links the backend for files and must be built against the
+public site URL. See the adapter READMEs for per-framework build configuration.
+
 ## Known limitations
 
 - The rendered-content endpoint serves the default revision: an unpublished entity previews fully, but a published entity's forward

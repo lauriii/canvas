@@ -1,3 +1,9 @@
+<script lang="ts">
+// Session-wide, not per component instance: one informational line about
+// the static build is enough no matter how often the banner mounts.
+let staticBuildNoticeShown = false;
+</script>
+
 <script setup lang="ts">
 /**
  * The Nuxt lifecycle around the draft session: fetches the session state
@@ -21,8 +27,8 @@
  * headless page that only needs the renewal protocol leaves the slot
  * empty.
  */
-import { onMounted } from 'vue';
-import { useFetch, useRoute } from 'nuxt/app';
+import { onMounted, shallowRef } from 'vue';
+import { useFetch, useRoute, useRuntimeConfig } from 'nuxt/app';
 import {
   defineDraftSessionElement,
 } from '@drupal-canvas/headless/client';
@@ -46,11 +52,28 @@ const props = withDefaults(
 );
 
 const route = useRoute();
-const { data: session } = await useFetch<DraftSessionState>(
-  props.sessionEndpoint,
-);
+
+// A statically generated build has no server to hold a draft session, so
+// the session route does not exist: skip the fetch entirely and render
+// nothing, instead of leaving 404 noise or baking an inert session
+// payload into every page. The flag is set at build time by the module,
+// so server and client agree and hydration stays consistent.
+const isStaticBuild = useRuntimeConfig().public.canvasStaticBuild === true;
+
+const { data: session } = isStaticBuild
+  ? { data: shallowRef<DraftSessionState | null>(null) }
+  : await useFetch<DraftSessionState>(props.sessionEndpoint);
 
 onMounted(() => {
+  if (isStaticBuild) {
+    if (!staticBuildNoticeShown) {
+      staticBuildNoticeShown = true;
+      console.info(
+        '[canvas] Draft preview is unavailable in a statically generated build; deploy the server-rendered app to preview drafts.',
+      );
+    }
+    return;
+  }
   defineDraftSessionElement();
 });
 </script>

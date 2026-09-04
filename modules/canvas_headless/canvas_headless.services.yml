@@ -31,5 +31,9 @@ services:
     decorates: custom_elements.canvas_render_converter
     decoration_on_invalid: ignore
   Drupal\canvas_headless\Controller\CanvasContentController: {}
+  Drupal\canvas_headless\Controller\RouteInventoryController:
+    arguments:
+      # path_alias is optional; '?' keeps the controller buildable without it.
+      $aliasManager: '@?path_alias.manager'
   Drupal\canvas_headless\File\CanvasContentFileUrlGenerator:
     decorates: file_url_generator

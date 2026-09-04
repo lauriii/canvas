@@ -73,6 +73,35 @@ The integration supplies a registry of every discovered component
 implementation, and the renderer consumes it automatically. During development
 the registry updates when components are added, removed, or renamed.
 
+## Static and hybrid builds
+
+For a fully static site, pass `static: true` — the integration then injects no
+routes and no middleware, so the build needs no SSR adapter:
+
+```js
+import { defineConfig } from 'astro/config';
+import canvas from '@drupal-canvas/headless-astro/integration';
+
+export default defineConfig({
+  output: 'static',
+  integrations: [canvas({ static: true })],
+});
+```
+
+Pages render Canvas content at build time through `fetchPage()`; enumerate the
+paths to build in `getStaticPaths()` with `fetchStaticPaths()` from
+`@drupal-canvas/headless/server`. Draft preview and the editor integration are
+not part of a static build — they run against a separate server-rendered
+deployment (`output: 'server'`) of the same app, which is where Drupal's preview
+URL and component registration should point.
+
+In a hybrid build (`output: 'static'` with an adapter, without `static: true`)
+the draft routes exist, but the pages were prerendered with published content,
+so a draft session could never show drafts. Draft activation answers 501 with an
+explanation instead of activating. Without an adapter and without
+`static: true`, the integration refuses the config at startup and names both
+ways out.
+
 ## Data access
 
 `getClient(Astro)` returns the draft-aware JSON:API client;

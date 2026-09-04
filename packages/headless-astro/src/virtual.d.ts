@@ -15,4 +15,13 @@ declare module 'virtual:@drupal-canvas/headless/components' {
   export default components;
 }
 
+/**
+ * Whether this build's pages are prerendered, injected as a Vite define by
+ * the canvas() integration (see ./integration.ts). True when the build's
+ * Astro `output` option was 'static'; the draft activation route reads it
+ * to refuse a session that prerendered pages could never show. Undefined
+ * where no define ran (unit tests), so reads go through a typeof guard.
+ */
+declare const __CANVAS_STATIC_OUTPUT__: boolean;
+
 declare module 'virtual:@drupal-canvas/headless/global.css' {}

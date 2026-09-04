@@ -19,6 +19,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\jsonapi\JsonApiFilter;
 use Drupal\pathauto\PathautoItem;
 use Drupal\pathauto\PathautoState;
 
@@ -28,6 +29,8 @@ use Drupal\pathauto\PathautoState;
  *
  * @see https://www.drupal.org/project/issues/canvas?component=Page
  * @see docs/adr/0004-page-entity-type.md
+ *
+ * @drupalOptionalDependency jsonapi
  */
 final class PageHooks {
 
@@ -134,6 +137,33 @@ final class PageHooks {
       \assert($pathauto_item instanceof PathautoItem);
       $pathauto_item->set('pathauto', PathautoState::SKIP);
     }
+  }
+
+  /**
+   * Implements hook_jsonapi_ENTITY_TYPE_filter_access() for 'canvas_page'.
+   *
+   * Without this hook, JSON:API's TemporaryQueryGuard cannot determine which
+   * subset of pages the current user may filter among, so it secures every
+   * filtered collection query with an always-false condition, silently
+   * returning an empty result set.
+   *
+   * The subsets below mirror the 'view' operation logic of the access control
+   * handler: users with any Canvas page permission can view all pages, and
+   * users with the 'access content' permission can view published pages.
+   *
+   * @see \Drupal\canvas\Entity\PageAccessControlHandler::checkAccess()
+   * @see \Drupal\jsonapi\Access\TemporaryQueryGuard::getAccessConditionForKnownSubsets()
+   */
+  #[Hook('jsonapi_canvas_page_filter_access')]
+  public static function jsonapiPageFilterAccess(EntityTypeInterface $entity_type, AccountInterface $account): array {
+    return [
+      JsonApiFilter::AMONG_ALL => AccessResult::allowedIfHasPermissions(
+        $account,
+        [Page::CREATE_PERMISSION, Page::EDIT_PERMISSION, Page::DELETE_PERMISSION],
+        'OR'
+      ),
+      JsonApiFilter::AMONG_PUBLISHED => AccessResult::allowedIfHasPermission($account, 'access content'),
+    ];
   }
 
   /**

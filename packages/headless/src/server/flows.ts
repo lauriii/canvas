@@ -213,9 +213,15 @@ export interface DraftServer {
   getClient(): Promise<JsonApiClient>;
   /**
    * Fetches a page by its Drupal path (see ./content-api), carrying the
-   * live draft session's bearer token when there is one.
+   * live draft session's bearer token when there is one. The default
+   * `cache: 'no-store'` keeps draft previews correct; a static build
+   * passes `cache: 'force-cache'` (Next.js `output: 'export'` fails on
+   * no-store fetches).
    */
-  fetchPage(path: string): Promise<PageResult | null>;
+  fetchPage(
+    path: string,
+    options?: { cache?: RequestCache },
+  ): Promise<PageResult | null>;
   /**
    * Fetches one component preview through the current draft session without
    * changing that session's entry path.
@@ -426,12 +432,16 @@ export function createDraftServer(options: DraftServerOptions): DraftServer {
         : getPublicClient(getConfig());
     },
 
-    async fetchPage(path: string): Promise<PageResult | null> {
+    async fetchPage(
+      path: string,
+      options?: { cache?: RequestCache },
+    ): Promise<PageResult | null> {
       const draftData = await getDraftData();
       return fetchPage(path, {
         baseUrl: getConfig().baseUrl,
         draftData,
         fetchImpl,
+        ...(options?.cache && { cache: options.cache }),
       });
     },
 

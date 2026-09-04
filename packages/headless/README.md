@@ -57,6 +57,40 @@ empty managed tree also has `content` set to `null`, but keeps
 `route.managedByCanvas` set to `true`. Route-not-found and access-denied
 responses make `fetchPage()` return `null`.
 
+`fetchPage()` requests are `cache: 'no-store'` by default, which draft preview
+correctness depends on. A static build can override that through the options —
+`fetchPage(path, { cache: 'force-cache' })` — because Next.js `output: 'export'`
+fails the build on no-store fetches, and at build time there is no draft session
+to go stale.
+
+## Route enumeration
+
+A static build needs to know every path to prerender. `fetchRouteInventory()`
+from `@drupal-canvas/headless/server` walks Drupal's route inventory to
+completion and returns every published path with the identity of the entity
+behind it; `fetchStaticPaths()` reduces that to the path strings. Both are
+shaped for `getStaticPaths` (Astro), `generateStaticParams` (Next.js), and
+`nitro.prerender.routes` (Nuxt):
+
+```ts
+import {
+  fetchStaticPaths,
+  resolveDraftConfig,
+} from '@drupal-canvas/headless/server';
+
+const paths = await fetchStaticPaths(resolveDraftConfig());
+```
+
+A non-200 answer throws, naming the status and URL: a truncated inventory would
+silently drop pages from the build.
+
+## Strict component rendering
+
+An unregistered Canvas component is normally reported to the console and its
+subtree omitted. Set the `CANVAS_STRICT_COMPONENTS` environment variable to `1`
+or `true` to throw instead — in a static build, a silently omitted subtree ships
+the hole to every visitor, so the build should fail.
+
 ## Installation
 
 ```bash

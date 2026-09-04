@@ -81,6 +81,31 @@ import { CanvasComponentTree } from '@drupal-canvas/headless-next/CanvasComponen
 implementation, and the renderer consumes it automatically. During development
 the registry updates when components are added, removed, or renamed.
 
+## Static and hybrid builds
+
+For a hybrid build where the Canvas-routed pages are prerendered while the draft
+and editor routes stay server-rendered, edit the catch-all page in two places:
+remove its `export const dynamic = 'force-dynamic'`, and add
+`generateStaticParams()` fed by the enumeration helper:
+
+```ts
+import {
+  fetchStaticPaths,
+  resolveDraftConfig,
+} from '@drupal-canvas/headless/server';
+
+export async function generateStaticParams() {
+  const paths = await fetchStaticPaths(resolveDraftConfig());
+  return paths.map((path) => ({ slug: path.split('/').filter(Boolean) }));
+}
+```
+
+A fully static `output: 'export'` build additionally requires passing
+`cache: 'force-cache'` to `fetchPage()` (the default `no-store` fails the export
+build) and removing the editor integration routes — the draft flows, the
+component metadata endpoint, and the component preview page. Draft preview then
+runs against a server-rendered deployment of the same app.
+
 ## Data access
 
 `getClient()` returns the draft-aware JSON:API client; `fetchPage()` fetches

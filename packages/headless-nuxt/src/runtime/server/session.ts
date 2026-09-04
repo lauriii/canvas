@@ -72,13 +72,17 @@ export function getClient(
 
 /**
  * Fetches a page by its Drupal path, resolved through Drupal's routing,
- * carrying the live draft session's bearer token when there is one.
+ * carrying the live draft session's bearer token when there is one. The
+ * default `cache: 'no-store'` keeps draft previews correct; a static
+ * build may pass `cache: 'force-cache'` to let the build cache reuse
+ * published responses.
  */
 export function fetchPage(
   event: H3Event,
   path: string,
+  options?: { cache?: RequestCache },
 ): Promise<PageResult | null> {
-  return getDraftServer(event).fetchPage(path);
+  return getDraftServer(event).fetchPage(path, options);
 }
 
 /** Fetches one component preview through the current draft session. */

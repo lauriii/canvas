@@ -77,6 +77,19 @@ canvas_headless.frontends.patch:
     no_cache: TRUE
     _auth: ['cookie']
 
+# Public route inventory: the paths Canvas renders, for clients that must
+# walk the site without crawling it (static builds, sitemap generators, cache
+# warmers, search indexers). Open access like the content endpoint above; the
+# response reflects the requesting account's entity access, so an anonymous
+# request sees exactly the anonymous view.
+canvas_headless.inventory:
+  path: '/canvas/api/v0/headless/inventory'
+  defaults:
+    _controller: 'Drupal\canvas_headless\Controller\RouteInventoryController::get'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+
 # The browser coordinates component synchronization because it can reach the
 # same frontend URL it embeds. Drupal issues the proof-by-redemption assertion,
 # validates and persists the returned metadata, and records lifecycle
