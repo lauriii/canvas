@@ -8,6 +8,8 @@ use Drupal\ai_agents\PluginBase\AiAgentEntityWrapper;
 use Drupal\canvas_ai\CanvasAiPermissions;
 use Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder;
 use Drupal\Component\Plugin\PluginManagerInterface;
+use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\canvas_ai\Kernel\Traits\CanvasAiDevHopTrait;
@@ -43,7 +45,6 @@ final class CanvasDevAiAgentRoutingTest extends CanvasKernelTestBase {
    */
   protected static $modules = [
     'canvas_ai',
-    'canvas_dev_ai',
     'key',
     'ai',
     'ai_agents',
@@ -55,19 +56,25 @@ final class CanvasDevAiAgentRoutingTest extends CanvasKernelTestBase {
   protected function setUp(): void {
     parent::setUp();
 
-    $this->installConfig(['canvas_ai', 'canvas_dev_ai', 'ai', 'ai_agents']);
+    $this->installConfig(['canvas_ai', 'ai', 'ai_agents']);
     $this->installEntitySchema('path_alias');
+    // Installed separately to trigger canvas_dev_ai_install().
+    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
+    $container = \Drupal::getContainer();
+    \assert($container instanceof ContainerBuilder);
+    $this->container = $container;
     $this->setUpCurrentUser(permissions: [CanvasAiPermissions::USE_CANVAS_AI]);
     $this->setUpAiDevHops();
 
     $stub = $this->createMock(AiAgentEntityWrapper::class);
     $agent_manager = $this->createMock(PluginManagerInterface::class);
-    // Reports TRUE only for these three agent IDs; every other ID is FALSE.
+    // Reports TRUE only for the three selectable agent IDs; every other ID is
+    // FALSE.
     $agent_manager->method('hasDefinition')->willReturnCallback(
       static fn (string $agent_id): bool => \in_array($agent_id, [
+        'canvas_agent',
         'canvas_component_agent',
-        'canvas_page_builder_agent',
-        'canvas_ai_orchestrator',
+        'canvas_dev_page_builder_agent',
       ], TRUE),
     );
     // Records the agent ID the controller resolved; the stub stands in for it.
@@ -81,14 +88,15 @@ final class CanvasDevAiAgentRoutingTest extends CanvasKernelTestBase {
   }
 
   /**
-   * Tests the shipped configuration invokes the component agent.
+   * Tests the shipped configuration invokes the Canvas agent.
    *
-   * @todo Update this test once the Drupal Canvas agent becomes the configured main agent, in https://git.drupalcode.org/project/canvas/-/work_items/3591995
+   * A turn that selects no Tool goes to the agent that answers questions and
+   * names the Tool to use, rather than to any agent that performs work.
    */
   public function testDefaultConfiguration(): void {
     $this->hop(['messages' => [['role' => 'user', 'text' => 'Routing test.']]]);
 
-    $this->assertSame('canvas_component_agent', $this->requestedAgentId);
+    $this->assertSame('canvas_agent', $this->requestedAgentId);
   }
 
   /**
@@ -96,12 +104,12 @@ final class CanvasDevAiAgentRoutingTest extends CanvasKernelTestBase {
    */
   public function testCustomMainAgentIsInvoked(): void {
     $this->config('canvas_dev_ai.settings')
-      ->set('main_agent', 'canvas_ai_orchestrator')
+      ->set('main_agent', 'canvas_dev_page_builder_agent')
       ->save();
 
     $this->hop(['messages' => [['role' => 'user', 'text' => 'Routing test.']]]);
 
-    $this->assertSame('canvas_ai_orchestrator', $this->requestedAgentId);
+    $this->assertSame('canvas_dev_page_builder_agent', $this->requestedAgentId);
   }
 
   /**
@@ -113,22 +121,22 @@ final class CanvasDevAiAgentRoutingTest extends CanvasKernelTestBase {
   public function testToolIsInvoked(): void {
     $this->hop([
       'messages' => [['role' => 'user', 'text' => 'Routing test.']],
-      'selected_tool' => 'canvas_ai_orchestrator',
+      'selected_tool' => 'canvas_dev_page_builder_agent',
     ]);
 
-    $this->assertSame('canvas_ai_orchestrator', $this->requestedAgentId);
+    $this->assertSame('canvas_dev_page_builder_agent', $this->requestedAgentId);
 
     $this->config('canvas_dev_ai.settings')
-      ->set('main_agent', 'canvas_page_builder_agent')
+      ->set('main_agent', 'canvas_component_agent')
       ->save();
     $this->requestedAgentId = NULL;
 
     $this->hop([
       'messages' => [['role' => 'user', 'text' => 'Routing test.']],
-      'selected_tool' => 'canvas_ai_orchestrator',
+      'selected_tool' => 'canvas_dev_page_builder_agent',
     ]);
 
-    $this->assertSame('canvas_ai_orchestrator', $this->requestedAgentId);
+    $this->assertSame('canvas_dev_page_builder_agent', $this->requestedAgentId);
   }
 
   /**
@@ -137,7 +145,7 @@ final class CanvasDevAiAgentRoutingTest extends CanvasKernelTestBase {
   public function testMainAgentAsToolIsNotAllowed(): void {
     $response = $this->hop([
       'messages' => [['role' => 'user', 'text' => 'Routing test.']],
-      'selected_tool' => 'canvas_component_agent',
+      'selected_tool' => 'canvas_agent',
     ]);
 
     $this->assertNull($this->requestedAgentId);

@@ -58,6 +58,13 @@ final class CanvasComponentAgentEndToEndTest extends CanvasKernelTestBase {
     parent::setUp();
 
     $this->installConfig(['canvas_ai', 'canvas_dev_ai', 'ai', 'ai_agents', 'ai_test']);
+    // The component agent is not the shipped main agent; sites select it on
+    // the Agents & Tools form. The controller reads this setting, and these
+    // turns select no Tool, so they run whichever agent it names.
+    $this->config('canvas_dev_ai.settings')
+      ->set('main_agent', 'canvas_component_agent')
+      ->set('tools', ['canvas_dev_page_builder_agent'])
+      ->save();
     // The echoai provider reads the ai_mock_provider_result table before the
     // file fixtures this test drives it from.
     $this->installEntitySchema('ai_mock_provider_result');
@@ -264,7 +271,7 @@ final class CanvasComponentAgentEndToEndTest extends CanvasKernelTestBase {
   public function testSelectedToolAgentRunsEveryHop(): void {
     // Set another agent as the main agent.
     $this->config('canvas_dev_ai.settings')
-      ->set('main_agent', 'canvas_ai_orchestrator')
+      ->set('main_agent', 'canvas_dev_page_builder_agent')
       ->set('tools', ['canvas_component_agent'])
       ->save();
     JavaScriptComponent::create([

@@ -61,7 +61,7 @@ final class CanvasDevAiAgentSelectionTest extends CanvasKernelTestBase {
     $this->refreshContainer();
 
     $this->config('canvas_dev_ai.settings')
-      ->set('tools', ['canvas_component_agent', 'canvas_page_builder_agent'])
+      ->set('tools', ['canvas_component_agent', 'canvas_dev_page_builder_agent'])
       ->save();
 
     $settings = $this->alterJsSettings();
@@ -73,7 +73,7 @@ final class CanvasDevAiAgentSelectionTest extends CanvasKernelTestBase {
     // from config. Compare against the entities rather than hard-coded strings,
     // otherwise this would still pass if they had been copied into config.
     $storage = $this->agentStorage();
-    $expected_ids = ['canvas_component_agent', 'canvas_page_builder_agent'];
+    $expected_ids = ['canvas_component_agent', 'canvas_dev_page_builder_agent'];
 
     foreach ($expected_ids as $index => $id) {
       $agent = $storage->load($id);
@@ -163,6 +163,30 @@ final class CanvasDevAiAgentSelectionTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Tests that the Canvas agent ships as the main agent.
+   *
+   * The main agent must also be selectable, otherwise the form would replace
+   * the shipped value the first time it is saved. The component agent, no
+   * longer the main agent, ships as a Tool so the prompt can name it.
+   */
+  public function testCanvasAgentShipsAsMainAgent(): void {
+    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
+    $this->refreshContainer();
+
+    $settings = $this->config('canvas_dev_ai.settings');
+    $this->assertSame('canvas_agent', $settings->get('main_agent'));
+    $this->assertContains('canvas_agent', CanvasDevAiAgentSelectionForm::SELECTABLE_AGENTS);
+    $this->assertSame(
+      ['canvas_component_agent', 'canvas_dev_page_builder_agent'],
+      $settings->get('tools'),
+    );
+    // Every shipped Tool is selectable, for the same reason as the main agent.
+    foreach ($settings->get('tools') as $id) {
+      $this->assertContains($id, CanvasDevAiAgentSelectionForm::SELECTABLE_AGENTS);
+    }
+  }
+
+  /**
    * Tests that the token renders the configured Tools.
    */
   public function testAvailableToolsToken(): void {
@@ -186,7 +210,7 @@ final class CanvasDevAiAgentSelectionTest extends CanvasKernelTestBase {
     );
     // An available Tool the site has not enabled is still described, so the
     // agent can tell the user to enable it rather than deny the task.
-    $disabled = $this->agentStorage()->load('canvas_page_builder_agent');
+    $disabled = $this->agentStorage()->load('canvas_dev_page_builder_agent');
     $this->assertInstanceOf(ConfigEntityInterface::class, $disabled);
     $this->assertStringContainsString(
       \sprintf('* **%s** (disabled): %s', $disabled->label(), $disabled->get('description')),
@@ -279,7 +303,7 @@ final class CanvasDevAiAgentSelectionTest extends CanvasKernelTestBase {
     $this->refreshContainer();
 
     $this->config('canvas_dev_ai.settings')
-      ->set('tools', ['canvas_component_agent', 'canvas_page_builder_agent'])
+      ->set('tools', ['canvas_component_agent', 'canvas_dev_page_builder_agent'])
       ->save();
     $stale = $this->agentStorage()->load('canvas_component_agent');
     $this->assertInstanceOf(ConfigEntityInterface::class, $stale);
@@ -291,7 +315,7 @@ final class CanvasDevAiAgentSelectionTest extends CanvasKernelTestBase {
     $rendered = $this->replaceToolsToken();
     $this->assertStringNotContainsString($stale_label, $rendered);
 
-    $survivor = $this->agentStorage()->load('canvas_page_builder_agent');
+    $survivor = $this->agentStorage()->load('canvas_dev_page_builder_agent');
     $this->assertInstanceOf(ConfigEntityInterface::class, $survivor);
     $this->assertStringContainsString(
       \sprintf('* **%s** (enabled): %s', $survivor->label(), $survivor->get('description')),
@@ -300,7 +324,7 @@ final class CanvasDevAiAgentSelectionTest extends CanvasKernelTestBase {
 
     $tools = $this->alterJsSettings()['canvas']['ai']['tools'];
     $this->assertCount(1, $tools);
-    $this->assertSame('canvas_page_builder_agent', $tools[0]['id']);
+    $this->assertSame('canvas_dev_page_builder_agent', $tools[0]['id']);
   }
 
   /**

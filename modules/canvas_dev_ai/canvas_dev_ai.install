@@ -1,0 +1,27 @@
+<?php
+
+/**
+ * @file
+ * Install hooks for the Drupal Canvas Dev AI module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_install().
+ */
+function canvas_dev_ai_install(bool $is_syncing): void {
+  if ($is_syncing) {
+    return;
+  }
+  // These IDs name ai_agent config entities, two of them shipped by this
+  // module. A module's simple config is saved before its config entities are
+  // created, so shipping these values in config/install would save settings
+  // whose `ConfigExists` constraints cannot yet hold.
+  // @see \Drupal\Core\Extension\ModuleInstaller::doInstall()
+  // @see https://www.drupal.org/project/drupal/issues/3425992
+  \Drupal::configFactory()->getEditable('canvas_dev_ai.settings')
+    ->set('main_agent', 'canvas_agent')
+    ->set('tools', ['canvas_component_agent', 'canvas_dev_page_builder_agent'])
+    ->save();
+}

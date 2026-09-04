@@ -53,9 +53,9 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    // canvas_dev_ai's shipped settings reference ai_agent entities from
-    // canvas_ai's config/install, and its schema constraints require them to
-    // exist, so they must be installed before canvas_dev_ai is.
+    // canvas_dev_ai_install() offers an ai_agent entity from canvas_ai's
+    // config/install as a Tool, so that must be installed before
+    // canvas_dev_ai is.
     $this->installConfig(['canvas_ai', 'ai', 'ai_agents', 'ai_test']);
     $this->installEntitySchema('user');
     // Uninstalling any module fires user_module_uninstall(), which deletes from
@@ -122,12 +122,13 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
     $agent = $this->createMock(AiAgentEntityWrapper::class);
     $agent->method('determineSolvability')
       ->willThrowException(new \Exception('The provider exploded.'));
+    // The turn selects no Tool, so the shipped main agent is the one invoked.
     $agent_manager = $this->createMock(AiAgentManager::class);
     $agent_manager->method('hasDefinition')
-      ->with('canvas_component_agent')
+      ->with('canvas_agent')
       ->willReturn(TRUE);
     $agent_manager->method('createInstance')
-      ->with('canvas_component_agent')
+      ->with('canvas_agent')
       ->willReturn($agent);
     $this->container->set('plugin.manager.ai_agents', $agent_manager);
 
