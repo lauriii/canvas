@@ -35,4 +35,24 @@ final class MultiFrontendTestHooks {
     return AccessResult::neutral();
   }
 
+  /**
+   * Implements hook_multi_frontend_form_info().
+   */
+  #[Hook('multi_frontend_form_info')]
+  public function formInfo(): array {
+    return [
+      'test.describable' => [
+        'class' => '\\Drupal\\multi_frontend_test\\Form\\DescribableTestForm',
+        'label' => 'Describable test form',
+        'permission' => NULL,
+      ],
+      // Exposed with a permission, to prove the registry gates on it.
+      'test.restricted' => [
+        'class' => '\\Drupal\\multi_frontend_test\\Form\\DescribableTestForm',
+        'label' => 'Restricted test form',
+        'permission' => 'administer site configuration',
+      ],
+    ];
+  }
+
 }

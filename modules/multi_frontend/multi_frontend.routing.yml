@@ -28,3 +28,29 @@ multi_frontend.schema.component:
 
 route_callbacks:
   - 'Drupal\multi_frontend\Routing\ComponentApiRoutes::routes'
+
+multi_frontend.form.catalog:
+  path: '/form-api'
+  defaults:
+    _controller: '\Drupal\multi_frontend\Controller\FormApiController::catalog'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+
+multi_frontend.form.describe:
+  path: '/form-api/{form}'
+  defaults:
+    _controller: '\Drupal\multi_frontend\Controller\FormApiController::describe'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+
+multi_frontend.form.submit:
+  path: '/form-api/{form}'
+  defaults:
+    _controller: '\Drupal\multi_frontend\Controller\FormApiController::submit'
+  methods: [POST]
+  requirements:
+    # Core's own decoupled CSRF check, the same one REST uses. The client
+    # fetches the token from /session/token, which already exists.
+    _csrf_request_header_token: 'TRUE'

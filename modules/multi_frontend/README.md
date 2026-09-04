@@ -183,6 +183,131 @@ on:
   Canvas controller directory on its own produces identical findings, so this
   is an artifact of analyzing a narrow path rather than a defect.
 
+## Forms
+
+A form is not a component and does not pretend to be one. A component
+renders; a form is a resource with a submit endpoint, so it gets a value
+schema, a separate presentation map, and an endpoint that validates.
+
+Exposure is **opt-in per form**, the opposite of the choice made for
+components. Producing props is a read; a form endpoint writes, and Drupal has
+hundreds of form classes of which most are administrative.
+
+```php
+#[Hook('multi_frontend_form_info')]
+public function formInfo(): array {
+  return [
+    'album.signup' => [
+      'class' => '\Drupal\album\Form\SignupForm',
+      'label' => 'Newsletter signup',
+      'permission' => NULL,
+    ],
+  ];
+}
+```
+
+`GET /form-api/album.signup`:
+
+```json
+{
+  "id": "album_signup_form",
+  "schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "email": {"type": "string", "format": "email", "maxLength": 254},
+      "frequency": {"type": "string", "enum": ["monthly", "quarterly"],
+                    "meta:enum": {"monthly": "Monthly", "quarterly": "Quarterly"}},
+      "name": {"type": "string", "maxLength": 64}
+    },
+    "required": ["email", "frequency"],
+    "additionalProperties": false
+  },
+  "ui": {
+    "email": {"widget": "email", "label": "Email address",
+              "description": "We send one update a month.",
+              "placeholder": "you@example.com", "weight": 0}
+  },
+  "unsupported": ["avatar (managed_file)"]
+}
+```
+
+`POST /form-api/album.signup` with `{"values": {...}}` returns violations as
+JSON pointers:
+
+```json
+{"status": "invalid",
+ "violations": [{"path": "/email", "message": "That domain is not accepted."}],
+ "messages": []}
+```
+
+Four things here are deliberate.
+
+**`unsupported` names what the contract cannot express.** Every prior attempt
+dropped those elements silently and handed the client a form that rendered
+completely and could not work. A client seeing `managed_file` in that list can
+render natively, fall back to a server-rendered form, or refuse.
+
+`unsupported` covers three kinds of gap, not just unknown element types:
+
+| Reported as | When |
+| --- | --- |
+| `avatar (managed_file)` | the element type has no schema projection |
+| `note (duplicate element name)` | two elements at different depths share a name. Values are flat, so the second would overwrite the first and the schema would describe only one of them |
+| `nested (nested #tree values)` | a `#tree` subtree nests its values, which a flat schema cannot describe, so its fields are not published |
+
+The last two are the ones that would otherwise be silent: nothing errors, the
+form renders, and the payload the client builds is simply not the payload the
+form reads.
+
+**Elements describe themselves.** `FormDescriber` holds a map for core's own
+element types, but it is only a fallback. Any element plugin implementing
+`JsonSchemaFormElementInterface` answers for itself, so contrib extends the
+contract without patching it. This is the inversion core asked for on issue
+2913372 in 2017 and nobody built. With 78 element types registered on this
+site — 58 from `Drupal\Core`, 20 declared by modules, nine of those contrib —
+the central mapping every previous attempt used is unmaintainable by
+construction.
+
+**Submission runs the form's own handlers**, through
+`FormBuilder::submitForm()`. Validation is neither re-implemented here nor
+pushed onto the client, and the business logic in submit handlers runs — the
+trap that makes a contact form submitted through the entity API never send its
+email.
+
+**Element access is enforced, against core's default.**
+`FormState::$programmed_bypass_access_check` defaults to TRUE, so the obvious
+implementation of this endpoint lets any client set values for elements hidden
+behind `#access` — core's own comment on that branch warns such submissions
+"may bypass access restriction and be treated as high-privilege users". The
+submitter turns it off, and the describer does not publish inaccessible
+elements. Both are tested.
+
+**CSRF is core's existing header check**, `_csrf_request_header_token`, with
+the token from `/session/token`. Verified: authenticated POST without the
+header is 403; with it, validation runs. Anonymous needs no token, which is
+correct and is what lets a public signup form work.
+
+`#states` is not emitted. It is fully serializable, but its keys are jQuery
+selectors against a DOM the client did not render, and it is presentation-only,
+so omitting it costs no correctness. The one shipped implementation of this
+contract, `webform_jsonschema`, supported roughly a twentieth of what `#states`
+expresses and is now unmaintained.
+
+### Rate limiting is the form's job, and that is an argument for this design
+
+Nothing in the endpoint throttles submissions. That is deliberate rather than
+overlooked: because submission runs the form's own validation, a form that
+uses core's flood service is protected over HTTP exactly as it is in a browser.
+`UserLoginForm` is the demonstration — exposed through this contract, it still
+gets core's login flood control, because `validateAuthentication()` runs.
+
+The corollary is the honest one: a form with no flood control of its own has
+none here either, and a public write endpoint is a more attractive target than
+a page with a form on it. A form exposed this way should carry its own flood
+or captcha handling, and that is the same advice as for any Drupal form
+reachable by anonymous users.
+
 ## What is not implemented here
 
 Honest scope. This is the vertical slice, not the whole plan.
@@ -200,6 +325,12 @@ Honest scope. This is the vertical slice, not the whole plan.
 | `#attached` on a fallback node | **dropped.** An `html` node is `{type, markup, cacheability}`, with nowhere to put libraries or `drupalSettings`, so markup that needed JavaScript to work arrives inert. Cacheability does survive. This is the practical ceiling on "unconverted modules keep working" |
 | Error responses in envelope format | **not done.** A 403 or 404 through `/page-api` is core's `text/plain`, so a client calling `res.json()` throws. The published envelope schema describes 200 responses only |
 | `Vary` and `Cache-Control` from `CacheabilityHeaders` | **partly.** `Surrogate-Key` crosses. On a site with the internal page cache disabled, core's `FinishResponseSubscriber` marks responses not cacheable and strips `Vary`, so only the body's `varies` survives. Read the body, not the headers, for variation |
+| Form contract: schema, UI hints, submission, CSRF, `unsupported` | done |
+| Self-describing form elements (`JsonSchemaFormElementInterface`) | done |
+| Multi-step form wizards | **not done.** Core's `FormCache` is session-bound and CSRF-stamped, so a stateless wizard needs an explicit page protocol |
+| File uploads, `#ajax`, entity autocompletes in forms | **not done**, reported through `unsupported` |
+| Entity forms (node add/edit) | **not done.** They need `EntityFormBuilder` and an entity to build against, so `FormBuilder` cannot reach them. A definition naming one fails 422, not 500 |
+| Block producers without a page envelope | **partly.** `subject: 'block:*'` works inside a page, but gets no derived route: a block is a singleton per configuration, not an addressable entity |
 | The `front_end` extension type | **not done**, a separate milestone |
 | `typegen` and framework adapters | **not done**, and not core's to ship |
 

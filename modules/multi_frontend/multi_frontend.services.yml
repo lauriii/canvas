@@ -44,3 +44,12 @@ services:
 
   Drupal\multi_frontend\Routing\ComponentApiRoutes:
     arguments: ['@plugin.manager.component_producer']
+
+  Drupal\multi_frontend\Form\FormRegistry:
+    arguments: ['@module_handler']
+
+  Drupal\multi_frontend\Form\FormDescriber:
+    arguments: ['@form_builder', '@plugin.manager.element_info']
+
+  Drupal\multi_frontend\Form\FormSubmitter:
+    arguments: ['@form_builder', '@messenger']
