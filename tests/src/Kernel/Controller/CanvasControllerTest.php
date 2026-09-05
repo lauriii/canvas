@@ -138,6 +138,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
       'entity_bundles',
       'entity_types',
       'config:configurable_language_list',
+      'config:language.entity.en',
       'http_response',
     ], $response->getCacheableMetadata()->getCacheTags());
 
@@ -199,6 +200,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
       'entity_bundles',
       'entity_types',
       'config:configurable_language_list',
+      'config:language.entity.en',
       'http_response',
     ], $response->getCacheableMetadata()->getCacheTags());
   }
@@ -218,6 +220,37 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
 
     self::assertSame('Canvas test site', $this->drupalSettings['canvas']['siteName']);
     self::assertSame('http://localhost', $this->drupalSettings['canvas']['siteUrl']);
+  }
+
+  /**
+   * Tests that no language config cache tags are emitted without Language.
+   *
+   * The `language.entity.*` config entities (and the list tag) exist only when
+   * the Language module is installed. Without it, nothing could ever invalidate
+   * those tags.
+   */
+  public function testNoLanguageCacheTagsWithoutLanguageModule(): void {
+    $this->disableModules(['language']);
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+    $this->setUpCurrentUser([], ['access content', Page::CREATE_PERMISSION, Page::EDIT_PERMISSION]);
+
+    /** @var \Drupal\Core\Render\HtmlResponse $response */
+    $response = $this->request(Request::create(Url::fromRoute('canvas.boot.empty', [
+      'entity_type' => '',
+      'entity' => '',
+    ])->toString()));
+
+    // The site default language is still exposed to the UI.
+    self::assertSame(['en'], array_column($this->drupalSettings['canvas']['languages'], 'id'));
+    self::assertCanvasControllerCacheContexts($response);
+    self::assertSame([
+      'config:system.site',
+      'test_create_access_cache_tag',
+      'entity_field_info',
+      'entity_bundles',
+      'entity_types',
+      'http_response',
+    ], $response->getCacheableMetadata()->getCacheTags());
   }
 
   public static function permissionsData(): array {
@@ -354,6 +387,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
       'entity_bundles',
       'entity_types',
       'config:configurable_language_list',
+      'config:language.entity.en',
       'http_response',
     ], $response->getCacheableMetadata()->getCacheTags());
   }
@@ -433,6 +467,7 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
       'entity_bundles',
       'entity_types',
       'config:configurable_language_list',
+      'config:language.entity.en',
       'http_response',
     ], $response->getCacheableMetadata()->getCacheTags());
 

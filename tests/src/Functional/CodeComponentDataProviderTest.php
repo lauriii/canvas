@@ -189,6 +189,10 @@ class CodeComponentDataProviderTest extends FunctionalTestBase {
     // language list and URL negotiation config the translation data depends on.
     $this->assertSession()->responseHeaderContains('X-Drupal-Cache-Tags', 'config:configurable_language_list');
     $this->assertSession()->responseHeaderContains('X-Drupal-Cache-Tags', 'config:language.negotiation');
+    // Plus each language's own config tag, for its name.
+    foreach (['en', 'fr', 'de'] as $langcode) {
+      $this->assertSession()->responseHeaderContains('X-Drupal-Cache-Tags', "config:language.entity.$langcode");
+    }
     // It also carries the cacheability of the per-translation view access
     // results embedded in the translation data.
     // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::renderComponent()
