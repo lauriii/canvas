@@ -127,11 +127,20 @@ final class SchemaPublisher {
   /**
    * Returns the schema of the envelope itself.
    *
+   * The component node is published as a union discriminated on `component`,
+   * one variant per component a producer can emit, each carrying that
+   * component's props schema inline. Without it `props` is an open object,
+   * so a generated client has to cast at the one point it most wants a type,
+   * which is the weakest part of the experience this contract offers.
+   *
    * @return array<string, mixed>
    *   A JSON Schema.
    */
-  public static function envelopeSchema(?CacheableMetadata $cacheability = NULL): array {
-    $cacheability = [
+  public function envelopeSchema(?CacheableMetadata $cacheability = NULL): array {
+    // Named apart from the $cacheability parameter deliberately: this is the
+    // schema describing a cacheability object, not the collector the URLs
+    // below record themselves into.
+    $cacheability_schema = [
       'type' => 'object',
       'required' => ['tags', 'maxAge', 'contexts', 'varies'],
       'additionalProperties' => FALSE,
@@ -187,11 +196,99 @@ final class SchemaPublisher {
           'type' => 'object',
           'additionalProperties' => ['type' => 'array', 'items' => $node],
         ],
-        'cacheability' => $cacheability,
+        'cacheability' => $cacheability_schema,
+        'error' => [
+          'type' => 'object',
+          'description' => 'Present only on an error response, whose HTTP status is the same as "status". The envelope is otherwise well-formed, so one parse handles both outcomes.',
+          'required' => ['status', 'message'],
+          'additionalProperties' => FALSE,
+          'properties' => [
+            'status' => ['type' => 'integer'],
+            'message' => ['type' => 'string'],
+          ],
+        ],
       ],
-      'definitions' => [
-        'cacheability' => $cacheability,
-        'node' => $node,
+      'definitions' => \array_merge(
+        [
+          'cacheability' => $cacheability_schema,
+          'node' => $node,
+        ],
+        $this->componentNodeDefinitions($node, $cacheability),
+        [
+          'htmlNode' => [
+            'type' => 'object',
+            'required' => ['type', 'markup', 'cacheability'],
+            'properties' => [
+              'type' => ['const' => 'html'],
+              'markup' => ['type' => 'string'],
+              'cacheability' => ['$ref' => '#/definitions/cacheability'],
+            ],
+          ],
+        ],
+      ),
+    ];
+  }
+
+  /**
+   * The component node, as a union discriminated on the component id.
+   *
+   * One variant per component, so a consumer that narrows on `component`
+   * gets that component's props typed rather than an open object.
+   *
+   * @param array<string, mixed> $node
+   *   The node reference used for slot contents.
+   * @param \Drupal\Core\Cache\CacheableMetadata|null $cacheability
+   *   Collector for the URLs the props schemas generate.
+   *
+   * @return array<string, mixed>
+   *   The `componentNode` definition, followed by one definition per variant.
+   */
+  private function componentNodeDefinitions(array $node, ?CacheableMetadata $cacheability): array {
+    // Keyed by component rather than by producer: two producers may serve one
+    // component, and a node names the component, not the producer that made
+    // it. A variant per producer would give a card node two matching branches,
+    // and `oneOf` demands exactly one.
+    $producer_by_component = [];
+    foreach ($this->producerManager->getDefinitions() as $producer_id => $definition) {
+      $producer_by_component[$definition['component']] ??= $producer_id;
+    }
+
+    $variants = [];
+    $refs = [];
+    foreach ($producer_by_component as $component_id => $producer_id) {
+      $props = $this->componentSchema($producer_id, $cacheability);
+      // The published props schema is reused verbatim rather than rebuilt, so
+      // the two documents cannot drift. Its title is dropped with the keys
+      // that only mean something on a standalone document: the standalone
+      // schema already generates a named type, and repeating the name here
+      // would declare it twice in one generated file.
+      $title = (string) ($props['title'] ?? $component_id);
+      unset($props['$schema'], $props['$id'], $props['title']);
+
+      $key = 'componentNode.' . $component_id;
+      $variants[$key] = [
+        'type' => 'object',
+        'title' => $title . ' node',
+        'required' => ['type', 'component', 'props', 'slots', 'attributes', 'cacheability'],
+        'properties' => [
+          'type' => ['const' => 'component'],
+          'component' => ['const' => $component_id],
+          'props' => $props,
+          'slots' => [
+            'type' => 'object',
+            'additionalProperties' => ['type' => 'array', 'items' => $node],
+          ],
+          'attributes' => ['type' => 'object', 'additionalProperties' => ['type' => 'string']],
+          'cacheability' => ['$ref' => '#/definitions/cacheability'],
+        ],
+      ];
+      $refs[] = ['$ref' => '#/definitions/' . self::escapePointerSegment($key)];
+    }
+
+    if ($variants === []) {
+      // A site with no producers installed still has to publish a usable
+      // schema, and an empty `oneOf` is one no validator accepts.
+      return [
         'componentNode' => [
           'type' => 'object',
           'required' => ['type', 'component', 'props', 'slots', 'attributes', 'cacheability'],
@@ -207,17 +304,21 @@ final class SchemaPublisher {
             'cacheability' => ['$ref' => '#/definitions/cacheability'],
           ],
         ],
-        'htmlNode' => [
-          'type' => 'object',
-          'required' => ['type', 'markup', 'cacheability'],
-          'properties' => [
-            'type' => ['const' => 'html'],
-            'markup' => ['type' => 'string'],
-            'cacheability' => ['$ref' => '#/definitions/cacheability'],
-          ],
-        ],
-      ],
-    ];
+      ];
+    }
+
+    return ['componentNode' => ['oneOf' => $refs]] + $variants;
+  }
+
+  /**
+   * Escapes one JSON Pointer segment.
+   *
+   * Producer ids are plugin ids and carry no guarantee about `/` or `~`.
+   * Replacing them with a safe character instead would not be injective, so
+   * two producers could claim one definition.
+   */
+  private static function escapePointerSegment(string $segment): string {
+    return \str_replace(['~', '/'], ['~0', '~1'], $segment);
   }
 
 }

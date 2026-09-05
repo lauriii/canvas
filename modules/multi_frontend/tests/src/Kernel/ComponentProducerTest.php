@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\multi_frontend\Kernel;
 
+use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Render\Component\Exception\InvalidComponentException;
 use Drupal\field\Entity\FieldConfig;
@@ -14,6 +15,7 @@ use Drupal\multi_frontend\Element\ProducedComponent;
 use Drupal\multi_frontend\Envelope\ComponentNode;
 use Drupal\multi_frontend\Envelope\EnvelopeBuilder;
 use Drupal\multi_frontend\Envelope\HtmlNode;
+use Drupal\multi_frontend\EventSubscriber\EnvelopeExceptionSubscriber;
 use Drupal\multi_frontend\ProducerInvoker;
 use Drupal\multi_frontend\Schema\SchemaPublisher;
 use Drupal\multi_frontend_test\AccessCallbacks;
@@ -22,6 +24,11 @@ use Drupal\node\Entity\NodeType;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Event\ExceptionEvent;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\HttpKernelInterface;
 
 /**
  * Tests the component producer contract.
@@ -468,6 +475,110 @@ final class ComponentProducerTest extends KernelTestBase {
     $catalog = $this->container->get(SchemaPublisher::class)->catalog();
     $ids = array_column($catalog['producers'], 'producer');
     $this->assertContains('multi_frontend_test.card', $ids);
+  }
+
+  /**
+   * The envelope schema is served at all, and types props per component.
+   *
+   * The first two assertions are the regression: a parameter shadowed by a
+   * local made this method raise a TypeError on every request, and no test
+   * called it, so eight green checks reported a route that never answered.
+   */
+  public function testEnvelopeSchemaDiscriminatesOnComponent(): void {
+    $schema = $this->container->get(SchemaPublisher::class)->envelopeSchema();
+
+    $this->assertSame('PageEnvelope', $schema['title']);
+    $this->assertStringContainsString('/component-api/schema/_envelope', $schema['$id']);
+
+    $definitions = $schema['definitions'];
+    $refs = array_column($definitions['componentNode']['oneOf'], '$ref');
+    $this->assertContains('#/definitions/componentNode.multi_frontend_test:card', $refs);
+    $this->assertContains('#/definitions/componentNode.multi_frontend_test:byline', $refs);
+
+    // Two producers serve multi_frontend_test:card. One variant, or a card
+    // node matches two branches of a oneOf and validates against neither.
+    $this->assertCount(\count($refs), \array_unique($refs));
+
+    $variant = $definitions['componentNode.multi_frontend_test:card'];
+    $this->assertSame(['const' => 'multi_frontend_test:card'], $variant['properties']['component']);
+
+    // The point of the whole union: props is the component's own schema, not
+    // an open object a generated client has to cast its way out of.
+    $props = $variant['properties']['props'];
+    $this->assertArrayHasKey('title', $props['properties']);
+    $this->assertSame(['title'], $props['required']);
+    // The standalone schema already generates a named type from these keys.
+    // Repeating them would declare that type twice in one generated file.
+    $this->assertArrayNotHasKey('title', $props);
+    $this->assertArrayNotHasKey('$id', $props);
+    $this->assertArrayNotHasKey('$schema', $props);
+  }
+
+  /**
+   * An error on the envelope format is an envelope, with its status intact.
+   */
+  public function testEnvelopeErrorsAreEnvelopeShaped(): void {
+    $event = self::exceptionEvent(
+      new AccessDeniedHttpException('The "view test" permission is required.'),
+      ['_wrapper_format' => 'envelope'],
+    );
+    $this->container->get(EnvelopeExceptionSubscriber::class)->onException($event);
+
+    $response = $event->getResponse();
+    $this->assertInstanceOf(CacheableJsonResponse::class, $response);
+    // A 403 stays a 403, rather than becoming a 200 with an error key.
+    $this->assertSame(403, $response->getStatusCode());
+
+    $body = json_decode((string) $response->getContent(), TRUE);
+    // Well-formed envelope plus one extra key, so a client parses one shape
+    // whether the page existed or not.
+    $this->assertSame(['page', 'regions', 'cacheability', 'error'], \array_keys($body));
+    $this->assertSame('Forbidden', $body['page']['title']);
+    $this->assertSame([], $body['regions']['content']);
+    $this->assertSame(403, $body['error']['status']);
+    $this->assertSame('The "view test" permission is required.', $body['error']['message']);
+  }
+
+  /**
+   * Nothing else is reshaped: not other formats, not non-HTTP failures.
+   */
+  public function testOnlyHttpErrorsOnTheEnvelopeFormatAreConverted(): void {
+    $subscriber = $this->container->get(EnvelopeExceptionSubscriber::class);
+
+    // An ordinary HTML request keeps core's error page.
+    $html = self::exceptionEvent(new AccessDeniedHttpException('Nope.'), []);
+    $subscriber->onException($html);
+    $this->assertFalse($html->hasResponse());
+
+    // A programming or service failure keeps core's handling rather than
+    // being reshaped into a tidy response that publishes its message.
+    $fatal = self::exceptionEvent(new \RuntimeException('Database is on fire.'), ['_wrapper_format' => 'envelope']);
+    $subscriber->onException($fatal);
+    $this->assertFalse($fatal->hasResponse());
+  }
+
+  /**
+   * Builds an exception event for a request with the given query.
+   *
+   * @param array<string, string> $query
+   *   Query parameters.
+   */
+  private static function exceptionEvent(\Throwable $exception, array $query): ExceptionEvent {
+    // The event carries a kernel it never calls, so a stub keeps this test
+    // off the real one rather than booting it to be ignored.
+    $kernel = new class implements HttpKernelInterface {
+
+      public function handle(Request $request, int $type = self::MAIN_REQUEST, bool $catch = TRUE): Response {
+        throw new \LogicException('The subscriber must not invoke the kernel.');
+      }
+
+    };
+    return new ExceptionEvent(
+      $kernel,
+      Request::create('/anything', 'GET', $query),
+      HttpKernelInterface::MAIN_REQUEST,
+      $exception,
+    );
   }
 
 }

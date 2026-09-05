@@ -106,9 +106,9 @@ final class ComponentApiController extends ControllerBase {
   /**
    * Serves the envelope's own schema.
    */
-  public static function envelopeSchema(): CacheableJsonResponse {
+  public function envelopeSchema(): CacheableJsonResponse {
     $cacheability = self::schemaCacheability()->setCacheMaxAge(3600);
-    $response = new CacheableJsonResponse(SchemaPublisher::envelopeSchema($cacheability));
+    $response = new CacheableJsonResponse($this->schemaPublisher->envelopeSchema($cacheability));
     $response->addCacheableDependency($cacheability);
     return $response;
   }

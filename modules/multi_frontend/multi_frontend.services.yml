@@ -37,6 +37,9 @@ services:
     tags:
       - { name: render.main_content_renderer, format: envelope }
 
+  Drupal\multi_frontend\EventSubscriber\EnvelopeExceptionSubscriber:
+    arguments: ['@language_manager']
+
   multi_frontend.page_api_middleware:
     class: Drupal\multi_frontend\StackMiddleware\PageApiMiddleware
     tags:

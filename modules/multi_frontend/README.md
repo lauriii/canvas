@@ -79,6 +79,23 @@ therefore not reimplemented; they are the same request. `/page-api/{path}` is a
 middleware alias that rewrites and re-dispatches, the way
 `lupus_decoupled_ce_api` implements `/ce-api`.
 
+Errors on the envelope format answer in the envelope format. A 403 or 404 keeps
+its status and its body is a well-formed envelope with an additional `error`
+object, so a client parses one shape whether the page existed or not, and the
+first missing page a real integration meets does not make `res.json()` throw.
+Only exceptions already carrying an HTTP status are converted: a programming or
+service failure keeps core's own handling rather than being reshaped into a
+tidy response that publishes its message.
+
+The envelope's published schema describes the component node as a union
+discriminated on `component`, one branch per component a producer can emit,
+each carrying that component's props schema. Generated types therefore narrow:
+`node.component === 'album:photo'` gives you `PhotoCard` props with no cast,
+where an open `props` object would have forced one at the single point a
+consumer most wants a type. Branches are keyed by component rather than by
+producer, because two producers may serve one component and `oneOf` admits
+exactly one match.
+
 ## Two things this does differently from core
 
 **Validation is unconditional on the data path.** Core validates SDC props
@@ -108,24 +125,30 @@ on:
   cache keys computable before the producer runs, a render cache hit never
   reaching the producer, per-field access, text-format filtering, unconditional
   prop validation, the two-node union, slots holding nodes, byte-identity
-  between a component fetched alone and the same node read from a page, and the
-  published schema.
+  between a component fetched alone and the same node read from a page, the
+  published schema, the published envelope schema and its component union, and
+  errors on the envelope format keeping both their status and their shape.
 
-  All 56 pass on Drupal core 11.4.4, in 484 assertions:
+  Measured on Drupal core 11.4.4, and split by when each row was last actually
+  run rather than summed into one number:
 
-  | File | Tests | Assertions |
-  | --- | --- | --- |
-  | `ComponentProducerTest` + `CacheabilityNormalizerTest` | 28 | 320 |
-  | `FormContractTest` | 28 | 164 |
+  | File | Tests | Assertions | Last measured |
+  | --- | --- | --- | --- |
+  | `ComponentProducerTest`, envelope schema and error cases | 3 | 56 | this change |
+  | `ComponentProducerTest` + `CacheabilityNormalizerTest`, the rest | 28 | 320 | previous change |
+  | `FormContractTest` | 28 | 164 | previous change |
 
-  `ComponentProducerTest` is run in three batches of 6, 7 and 7 for the memory
-  reason below; every method in every file was executed. The only reported
-  issues are deprecations from core's own `TwigSandboxPolicy` against twig
-  3.28, which any Twig render triggers.
+  The three rows are **not** added together here on purpose. Only the first was
+  re-run for this change: a pass over this directory costs roughly four minutes
+  per test under `RunTestsInSeparateProcesses` on the container described below,
+  so the other two rows are carried forward and are stale by exactly the amount
+  the previous run was right. Re-run them and re-count rather than trusting any
+  number here, including this one — the earlier single total went stale three
+  times, once in the same commit that added the tests it was counting.
 
-  This count has gone stale three times, once in the same commit that added
-  the tests it was counting. Re-run them and re-count rather than trusting the
-  number here.
+  `ComponentProducerTest` is run in batches for the memory reason below; the
+  only reported issues are deprecations from core's own `TwigSandboxPolicy`
+  against twig 3.28, which any Twig render triggers.
 
   Note that Canvas CI does **not** run them: its Kernel job is scoped to
   `tests/src/Kernel/Config` on purpose, to prove the suite executes without a
@@ -150,6 +173,13 @@ on:
   `/page-api/node/1`. The last returns a page envelope whose single region
   holds one `html` node, which is exactly what an unconverted site should
   return and is the number the on-ramp has to move.
+  `/component-api/schema/_envelope` was returning 500 to every request until
+  this change; it is in this list because it was re-checked, not because the
+  list said so.
+- **Error responses**, checked against the HTML responses for the same paths:
+  `/page-api/no-such-page` is a 404 and `/page-api/admin/modules` a 403, both
+  `application/json`, both carrying a well-formed envelope plus `error`, and
+  both with the same `Cache-Control` the HTML response sends.
 - **Cacheability on the wire**: `/component-api/album.photo/1` emits
   `Surrogate-Key: config:filter.format.basic_html file:1 media:1`, and
   `/page-api/node/1` reports
