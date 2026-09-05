@@ -247,6 +247,12 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
     foreach ($populated_content_entity_reference_props as $prop_name) {
       \assert(isset($explicit_input['resolved']) && \is_array($explicit_input['resolved']));
       $referenced_entity = $explicit_input['resolved'][$prop_name] ?? NULL;
+      // The parent may have ignored this stored input, e.g. when its prop name
+      // is unknown to the component version being rendered; then there is
+      // nothing to resolve a reference payload for.
+      if ($referenced_entity === NULL) {
+        continue;
+      }
 
       // Evaluate every entity field expression declared for this prop against
       // the resolved entity, and assemble a nested payload that mirrors the

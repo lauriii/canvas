@@ -1516,30 +1516,31 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
 
     // Garbage (non-existent) prop should result in:
     // - validation error (since 1.1.0)
-    // - hydration failing (`::getExplicitInput()` throwing an exception)
+    // - the stored input being ignored during hydration (a warning is logged)
     // TRICKY: This did not trigger a validation error before 1.1.0. Component
     // instances created before 1.1.0 may still exist (they are not
-    // automatically updated), so expect the exception that occurs during
-    // hydration to appear similar to a rendering exception.
+    // automatically updated). The same storage state also occurs when a
+    // component's prop is renamed outside the editor (e.g. via the CLI) after
+    // component trees stored inputs under the old name. Such stored inputs are
+    // ignored during hydration, so that the component instance still renders
+    // and the editor keeps working.
     // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::getExplicitInput()
     // @see https://www.drupal.org/project/canvas/issues/3524401
-    yield "JS Component with extraneous prop, validation error (since 1.1.0), with hydration exception visible similar to rendering exception" => [
+    // @see https://www.drupal.org/project/canvas/issues/3538859
+    yield "JS Component with extraneous prop, validation error (since 1.1.0), extraneous stored input ignored during hydration" => [
       'component_id' => $component_id,
       'inputs' => [
         'age' => 19,
         'name' => 'Tilly',
-        // But instead trigger a crash during hydration.
+        // This extraneous stored input is ignored during hydration.
         // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::getExplicitInput()
         'hydration_should_fail_on_this_non_existent_value' => TRUE,
       ],
       'expected_validation_errors' => [
         '2.inputs.3204a711-a1bd-401d-9ce0-895665487eaa.hydration_should_fail_on_this_non_existent_value' => 'Component `3204a711-a1bd-401d-9ce0-895665487eaa`: the `hydration_should_fail_on_this_non_existent_value` prop is not defined.',
       ],
-      'expected_exception' => [
-        'class' => \OutOfRangeException::class,
-        'message' => '\'hydration_should_fail_on_this_non_existent_value\' is not a prop on this version of the Component \'Code component: <em class="placeholder">With props</em>\'.',
-      ],
-      'expected_output_selector' => NULL,
+      'expected_exception' => NULL,
+      'expected_output_selector' => \sprintf('canvas-island[uid="%s"][props*="Tilly"][props*="19"]', self::UUID_CRASH_TEST_DUMMY),
     ];
 
     yield "JS Component with valid props, JSON encoding exception" => [
