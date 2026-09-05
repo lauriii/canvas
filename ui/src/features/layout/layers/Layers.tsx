@@ -36,20 +36,25 @@ const Layers: React.FC<LayersProps> = () => {
   if (isPerContentMode) {
     return (
       <Box>
-        {contentTemplate && (
-          <PermissionCheck hasPermission="contentTemplates">
-            <SidebarNode
-              variant="template"
-              title={`${contentTemplate.viewModeLabel} template`}
-              to={urlForTemplateEditor(contentTemplate)}
-              data-testid="layers-content-template"
-            />
-            <Separator orientation="horizontal" size="4" my="2" />
-          </PermissionCheck>
-        )}
-        {regions.map((region) => (
-          <RegionLayer key={region.id} region={region} />
-        ))}
+        {/* The page variant renders the chrome around the whole page and the
+            content template renders the chrome around this entity; both are
+            locked here and edited separately. */}
+        <PageVariantLayer>
+          {contentTemplate && (
+            <PermissionCheck hasPermission="contentTemplates">
+              <SidebarNode
+                variant="template"
+                title={`${contentTemplate.viewModeLabel} template`}
+                to={urlForTemplateEditor(contentTemplate)}
+                data-testid="layers-content-template"
+              />
+              <Separator orientation="horizontal" size="4" my="2" />
+            </PermissionCheck>
+          )}
+          {regions.map((region) => (
+            <RegionLayer key={region.id} region={region} />
+          ))}
+        </PageVariantLayer>
       </Box>
     );
   }

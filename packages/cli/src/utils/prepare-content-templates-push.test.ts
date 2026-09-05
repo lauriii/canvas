@@ -62,6 +62,7 @@ describe('pushContentTemplates', () => {
       {
         createContentTemplate,
         updateContentTemplate: vi.fn(),
+        createSlotField: vi.fn(),
       },
     );
 
@@ -137,6 +138,7 @@ describe('pushContentTemplates', () => {
     await pushContentTemplates([{ index: 0, result: prepared }], new Map(), {
       createContentTemplate,
       updateContentTemplate,
+      createSlotField: vi.fn(),
     });
     expect(createContentTemplate).toHaveBeenCalledWith(
       expect.objectContaining({ pageVariant: 'marketing' }),
@@ -157,7 +159,11 @@ describe('pushContentTemplates', () => {
           },
         ],
       ]),
-      { createContentTemplate, updateContentTemplate },
+      {
+        createContentTemplate,
+        updateContentTemplate,
+        createSlotField: vi.fn(),
+      },
     );
     expect(updateContentTemplate).toHaveBeenCalledWith(
       'node.article.full',
@@ -198,7 +204,11 @@ describe('pushContentTemplates', () => {
           },
         ],
       ]),
-      { createContentTemplate: vi.fn(), updateContentTemplate },
+      {
+        createContentTemplate: vi.fn(),
+        updateContentTemplate,
+        createSlotField: vi.fn(),
+      },
     );
 
     expect(updateContentTemplate).toHaveBeenCalledWith(
@@ -413,6 +423,7 @@ describe('exposed_slots round-trip', () => {
             bundle: serverTemplate.bundle,
             viewMode: serverTemplate.viewMode,
             components: [] satisfies CanvasComponentTree,
+            pageVariant: null,
             exposedSlots: authored.exposedSlots,
             filePath: '/tmp/content-templates/node.article.full.json',
           },
@@ -471,6 +482,7 @@ describe('exposed_slots round-trip', () => {
             bundle: serverTemplate.bundle,
             viewMode: serverTemplate.viewMode,
             components: [] satisfies CanvasComponentTree,
+            pageVariant: null,
             exposedSlots: authored.exposedSlots,
             filePath: '/tmp/content-templates/node.article.full.json',
           },
@@ -514,6 +526,7 @@ describe('exposed_slots round-trip', () => {
             bundle: serverTemplate.bundle,
             viewMode: serverTemplate.viewMode,
             components: [] satisfies CanvasComponentTree,
+            pageVariant: null,
             exposedSlots: authored.exposedSlots,
             filePath: '/tmp/content-templates/node.article.full.json',
           },
@@ -562,6 +575,7 @@ describe('exposed_slots round-trip', () => {
             bundle: serverTemplate.bundle,
             viewMode: serverTemplate.viewMode,
             components: [] satisfies CanvasComponentTree,
+            pageVariant: null,
             exposedSlots: undefined,
             filePath: '/tmp/content-templates/node.article.full.json',
           },

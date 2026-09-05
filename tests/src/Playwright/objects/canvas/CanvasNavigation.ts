@@ -204,6 +204,11 @@ export function CanvasNavigationMixin<TBase extends Constructor<CanvasBase>>(
       } catch (error) {
         throw new Error(
           'openBrandKitPanel: Brand Kit panel did not open - was it already open?\n' +
+            (error instanceof Error ? error.message : String(error)),
+        );
+      }
+    }
+
     async openContentPanel() {
       await this.page
         .getByTestId('canvas-side-menu')

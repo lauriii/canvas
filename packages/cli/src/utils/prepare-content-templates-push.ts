@@ -258,6 +258,9 @@ export async function pushContentTemplates(
       // The server payload key is snake_case `exposed_slots`.
       await apiService.updateContentTemplate(template.id, {
         status: true,
+        // Re-sent unchanged: the PATCH replaces the whole config payload, so
+        // omitting the selection would clear it.
+        pageVariant: template.pageVariant,
         exposed_slots: template.exposedSlots,
       });
     }
