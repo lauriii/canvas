@@ -245,12 +245,17 @@ export async function pushContentTemplates(
       };
     }
 
+    // A template that exposes slots is created disabled and enabled only once
+    // its backing fields exist and its slots are attached: creating it live
+    // first would leave a rendering, slot-less template behind if either
+    // follow-up step failed.
+    const hasExposedSlots = !!template.exposedSlots;
     await apiService.createContentTemplate({
       entityType: template.entityTypeId,
       bundle: template.bundle,
       viewMode: template.viewMode,
       pageVariant: template.pageVariant,
-      status: true,
+      status: !hasExposedSlots,
       component_tree,
     });
     if (template.exposedSlots) {

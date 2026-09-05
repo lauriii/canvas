@@ -89,8 +89,17 @@ final class ValidExposedSlotConstraintValidator extends ConstraintValidator impl
     // content) would orphan the inner slot's target and leave its per-entity
     // content unrenderable. Collect every (parent, slot) pair on the host's
     // ancestry, then reject if any other exposed slot targets one of them.
+    // TRICKY: a cyclic tree is reported by the structure constraint, but
+    // validation still runs this one, so the walk must terminate on its own
+    // rather than follow the cycle forever.
+    // @see \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator::isPartOfParentCycle()
     $ancestor_slots = [];
+    $seen = [];
     for ($ancestor = $item; $ancestor !== NULL && $ancestor->getParentUuid() !== NULL; $ancestor = $component_tree_item_list->getComponentTreeItemByUuid($ancestor->getParentUuid())) {
+      if (isset($seen[$ancestor->getUuid()])) {
+        break;
+      }
+      $seen[$ancestor->getUuid()] = TRUE;
       $ancestor_slots[$ancestor->getParentUuid() . ':' . $ancestor->getSlot()] = TRUE;
     }
     foreach ($template->getExposedSlots() as $alias => $definition) {

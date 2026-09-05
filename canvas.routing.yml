@@ -426,6 +426,11 @@ canvas.api.content_template.slot_field.create:
     parameters:
       content_template:
         type: entity:content_template
+    _format: 'json'
+    # The CLI provisions slot fields when pushing a template that exposes slots.
+    # Indicate that external applications may use this route. For authentication, see `modules/canvas_oauth/README.md`.
+    # @see \Drupal\canvas\Controller\ApiContentTemplateSlotFieldController::create()
+    canvas_external_api: true
   methods: [POST]
 
 canvas.api.content_template.slot_field.list:

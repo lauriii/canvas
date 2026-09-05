@@ -701,6 +701,65 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
     ]);
   }
 
+  /**
+   * A cyclic tree must not hang the exposed-slot ancestry walk.
+   *
+   * The structure constraint reports the cycle, but validation still runs this
+   * constraint, whose walk up the parent chain would otherwise never
+   * terminate. This test asserts termination: without the guard it hangs
+   * rather than fails.
+   *
+   * @see \Drupal\canvas\Plugin\Validation\Constraint\ValidExposedSlotConstraintValidator
+   */
+  public function testCyclicTreeDoesNotHangExposedSlotValidation(): void {
+    \assert($this->entity instanceof ContentTemplate);
+    $template = $this->entity;
+
+    $this->createComponentTreeField('node', 'alpha', 'cyclic_slot');
+
+    // Two slotted components that each claim the other as their parent.
+    $a = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa';
+    $b = 'bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb';
+    $items = $template->getComponentTree();
+    $items->appendItem([
+      'uuid' => $a,
+      'parent_uuid' => $b,
+      'slot' => 'the_body',
+      'component_id' => 'sdc.canvas_test_sdc.props-slots',
+      'component_version' => '0e79e884426a53ae',
+      'inputs' => ['heading' => 'A'],
+    ]);
+    $items->appendItem([
+      'uuid' => $b,
+      'parent_uuid' => $a,
+      'slot' => 'the_body',
+      'component_id' => 'sdc.canvas_test_sdc.props-slots',
+      'component_version' => '0e79e884426a53ae',
+      'inputs' => ['heading' => 'B'],
+    ]);
+    $template->setComponentTree($items->getValue());
+    $template->set('exposed_slots', [
+      'cyclic_slot' => [
+        'component_uuid' => $a,
+        'slot_name' => 'the_footer',
+        'label' => 'Cyclic',
+      ],
+    ]);
+
+    // The assertion that matters is that validate() returns at all; the cycle
+    // itself is reported by the structure constraint.
+    $violations = $template->getTypedData()->validate();
+    $messages = [];
+    foreach ($violations as $violation) {
+      $messages[] = (string) $violation->getMessage();
+    }
+    self::assertNotEmpty($messages);
+    self::assertTrue(
+      (bool) \array_filter($messages, static fn (string $m): bool => \str_contains($m, 'is part of a cycle')),
+      'Expected the structure constraint to report the parent cycle, got: ' . \implode(' | ', $messages),
+    );
+  }
+
   public function testDuplicateExposedSlotTargetIsRejected(): void {
     \assert($this->entity instanceof ContentTemplate);
 

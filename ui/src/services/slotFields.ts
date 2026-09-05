@@ -32,6 +32,17 @@ interface CandidatesResponse {
   fields: SlotFieldCandidate[];
 }
 
+/**
+ * What creating a slot field returns: the created field's identity only.
+ *
+ * Narrower than `SlotFieldCandidate` on purpose — `onThisBundle` and
+ * `contentCount` describe a *candidate* for reuse and are meaningless for a
+ * field that was just created on this bundle with no content.
+ *
+ * @see \Drupal\canvas\Controller\ApiContentTemplateSlotFieldController::create()
+ */
+export type CreatedSlotField = Pick<SlotFieldCandidate, 'fieldName' | 'label'>;
+
 interface CreateSlotFieldRequest {
   /** Content template config id, e.g. `node.article.full`. */
   contentTemplateId: string;
@@ -59,19 +70,18 @@ export const slotFieldsApi = createApi({
         { type: 'SlotFields', id: contentTemplateId },
       ],
     }),
-    createSlotField: builder.mutation<
-      SlotFieldCandidate,
-      CreateSlotFieldRequest
-    >({
-      query: ({ contentTemplateId, fieldName, label }) => ({
-        url: `/canvas/api/v0/config/content_template/${contentTemplateId}/slot-fields`,
-        method: 'POST',
-        body: { fieldName, label },
-      }),
-      invalidatesTags: (_result, _error, { contentTemplateId }) => [
-        { type: 'SlotFields', id: contentTemplateId },
-      ],
-    }),
+    createSlotField: builder.mutation<CreatedSlotField, CreateSlotFieldRequest>(
+      {
+        query: ({ contentTemplateId, fieldName, label }) => ({
+          url: `/canvas/api/v0/config/content_template/${contentTemplateId}/slot-fields`,
+          method: 'POST',
+          body: { fieldName, label },
+        }),
+        invalidatesTags: (_result, _error, { contentTemplateId }) => [
+          { type: 'SlotFields', id: contentTemplateId },
+        ],
+      },
+    ),
     getSlotFieldUsage: builder.query<
       SlotUsage,
       { contentTemplateId: string; fieldName: string }
