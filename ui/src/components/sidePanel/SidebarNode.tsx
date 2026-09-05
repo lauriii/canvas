@@ -42,7 +42,7 @@ const VARIANTS = {
 export type SideBarNodeVariant = keyof typeof VARIANTS;
 
 const SidebarNode = React.forwardRef<
-  HTMLDivElement | HTMLAnchorElement,
+  HTMLDivElement,
   {
     title: string;
     variant: SideBarNodeVariant;
@@ -117,6 +117,7 @@ const SidebarNode = React.forwardRef<
 
     return (
       <Flex
+        ref={ref}
         align="center"
         pr="2"
         maxWidth="100%"
