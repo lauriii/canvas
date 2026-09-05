@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Controller;
 
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\language\ConfigurableLanguageManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -21,7 +24,95 @@ final class ApiTranslationControllers extends ApiControllerBase {
 
   public function __construct(
     private readonly LanguageManagerInterface $languageManager,
+    private readonly AutoSaveManager $autoSaveManager,
   ) {}
+
+  /**
+   * Forks a translation: it starts owning an independent component tree.
+   *
+   * Only the `canvas_component_tree_fork` flag flips on the translation's
+   * auto-save draft: symmetric mode already stores identical tree rows plus
+   * the translation's own translated inputs, so the current state is the fork
+   * seed and no tree copy is needed. The fork becomes permanent only when the
+   * draft is published; discarding the draft reverts it.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityInterface $canvas_page
+   *   The translation to fork, resolved from the `?language=` query parameter.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   204 No Content on success (idempotent), 400 when targeting the default
+   *   translation.
+   */
+  public function fork(ContentEntityInterface $canvas_page): JsonResponse {
+    return $this->setForkState($canvas_page, forked: TRUE);
+  }
+
+  /**
+   * Unforks a translation: destructively re-syncs it from the default one.
+   *
+   * On the translation's auto-save draft, the flag flips back and the
+   * translation's component trees are replaced by the default translation's
+   * current draft trees, re-applying the translation's translatable input
+   * values for component instances that survive. Fork-only components are
+   * discarded. Like fork, this lives in the draft until published.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityInterface $canvas_page
+   *   The translation to unfork, resolved from the `?language=` query
+   *   parameter.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   204 No Content on success (idempotent), 400 when targeting the default
+   *   translation.
+   */
+  public function unfork(ContentEntityInterface $canvas_page): JsonResponse {
+    return $this->setForkState($canvas_page, forked: FALSE);
+  }
+
+  /**
+   * Applies a fork state change to a translation's auto-save draft.
+   */
+  private function setForkState(ContentEntityInterface $canvas_page, bool $forked): JsonResponse {
+    // Entity upcasting resolves the translation through the language fallback
+    // chain, so a request naming a language with no stored translation can
+    // silently hand this controller a *different* existing translation.
+    // Refuse instead of destructively operating on a translation the client
+    // never named.
+    // @see \Drupal\Core\Entity\EntityRepository::getTranslationFromContext()
+    $negotiated_langcode = $this->languageManager->getCurrentLanguage(LanguageInterface::TYPE_CONTENT)->getId();
+    if ($canvas_page->language()->getId() !== $negotiated_langcode) {
+      return new JsonResponse(
+        ['message' => \sprintf('%s %s has no %s translation.', $canvas_page->getEntityTypeId(), $canvas_page->id(), $negotiated_langcode)],
+        Response::HTTP_NOT_FOUND,
+      );
+    }
+    if ($canvas_page->isDefaultTranslation()) {
+      return new JsonResponse(
+        ['message' => \sprintf('Cannot change the component tree fork state of the default translation for %s %s.', $canvas_page->getEntityTypeId(), $canvas_page->id())],
+        Response::HTTP_BAD_REQUEST,
+      );
+    }
+    if (!$canvas_page->hasField(ComponentTreeTranslationFork::FIELD_NAME)) {
+      return new JsonResponse(
+        ['message' => \sprintf('Translation forks are not enabled for %s entities.', $canvas_page->getEntityTypeId())],
+        Response::HTTP_BAD_REQUEST,
+      );
+    }
+    $draft = $this->autoSaveManager->getAutoSaveEntityForPreview($canvas_page);
+    // Clone when falling back to the stored entity: it is the statically
+    // cached route parameter, and the mutations below must not leak into
+    // later loads within this request.
+    // @see \Drupal\canvas\AutoSave\AutoSaveManager::getAutoSaveEntityForPreview()
+    $translation = $draft->isEmpty()
+      ? (clone $canvas_page->getUntranslated())->getTranslation($canvas_page->language()->getId())
+      : $draft->entity;
+    \assert($translation instanceof ContentEntityInterface);
+    $translation->set(ComponentTreeTranslationFork::FIELD_NAME, $forked);
+    if (!$forked) {
+      ComponentTreeTranslationFork::resyncFromDefaultTranslation($translation);
+    }
+    $this->autoSaveManager->saveEntity($translation);
+    return new JsonResponse(status: Response::HTTP_NO_CONTENT);
+  }
 
   /**
    * Deletes a single translation of a canvas_page entity.

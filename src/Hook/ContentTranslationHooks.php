@@ -5,10 +5,18 @@ declare(strict_types=1);
 namespace Drupal\canvas\Hook;
 
 use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer;
+use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeSymmetricalTranslationConstraint;
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\ContentEntityTypeInterface;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Hook\Attribute\Hook;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
  * Hook implementations for content_translation integration.
@@ -18,6 +26,218 @@ final readonly class ContentTranslationHooks {
   public function __construct(
     private ModuleHandlerInterface $moduleHandler,
   ) {}
+
+  /**
+   * Whether per-translation component tree forks are enabled on this site.
+   *
+   * All fork behavior ships gated behind the canvas_dev_translation
+   * experimental module (in addition to content_translation), following the
+   * existing translation gating pattern. It moves into canvas proper when
+   * that flag module is removed.
+   *
+   * @see https://git.drupalcode.org/project/canvas/-/work_items/3571130
+   */
+  public static function translationForksEnabled(): bool {
+    $module_handler = \Drupal::moduleHandler();
+    return $module_handler->moduleExists('content_translation')
+      && $module_handler->moduleExists('canvas_dev_translation');
+  }
+
+  /**
+   * The definition of the per-translation component tree fork base field.
+   *
+   * Translatable so each translation carries its own fork state, revisionable
+   * so fork state follows the entity's revision history, and without form or
+   * view displays: it is toggled only through the fork/unfork HTTP API.
+   */
+  public static function forkBaseFieldDefinition(): BaseFieldDefinition {
+    return BaseFieldDefinition::create('boolean')
+      ->setLabel(new TranslatableMarkup('Component tree translation is forked'))
+      ->setDescription(new TranslatableMarkup('Whether this translation owns an independent Canvas component tree, excluded from symmetric translation synchronization.'))
+      ->setTranslatable(TRUE)
+      ->setRevisionable(TRUE)
+      ->setDefaultValue(FALSE);
+  }
+
+  /**
+   * Implements hook_entity_base_field_info().
+   *
+   * Adds the `canvas_component_tree_fork` base field to every translatable
+   * content entity type, so any entity with a component tree field can fork
+   * individual translations. One flag covers all component tree fields on the
+   * entity. The flag on the default translation is ignored.
+   *
+   * @see \Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork::isForkedTranslation()
+   */
+  #[Hook('entity_base_field_info')]
+  public function entityBaseFieldInfo(EntityTypeInterface $entity_type): array {
+    if (!$this->moduleHandler->moduleExists('content_translation')
+      || !$this->moduleHandler->moduleExists('canvas_dev_translation')) {
+      return [];
+    }
+    if (!$entity_type instanceof ContentEntityTypeInterface || !$entity_type->isTranslatable()) {
+      return [];
+    }
+    return [
+      ComponentTreeTranslationFork::FIELD_NAME => self::forkBaseFieldDefinition(),
+    ];
+  }
+
+  /**
+   * Installs the fork field's storage definitions on all eligible types.
+   *
+   * Needed when content_translation or canvas_dev_translation get installed
+   * after canvas (entity schema for already-installed entity types does not
+   * pick up new base fields automatically), and by the update hook enabling
+   * fork support on existing sites.
+   *
+   * Must only be called when ::translationForksEnabled() is TRUE.
+   *
+   * @see canvas_update_11201()
+   */
+  public static function installForkFieldStorageDefinitions(): void {
+    $definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+    $field_name = ComponentTreeTranslationFork::FIELD_NAME;
+    foreach (\Drupal::entityTypeManager()->getDefinitions() as $entity_type_id => $entity_type) {
+      if (!$entity_type instanceof ContentEntityTypeInterface || !$entity_type->isTranslatable()) {
+        continue;
+      }
+      if ($definition_update_manager->getFieldStorageDefinition($field_name, $entity_type_id) !== NULL) {
+        continue;
+      }
+      $definition_update_manager->installFieldStorageDefinition(
+        $field_name,
+        $entity_type_id,
+        'canvas',
+        self::forkBaseFieldDefinition(),
+      );
+    }
+  }
+
+  /**
+   * Uninstalls the fork field's storage definitions from all entity types.
+   *
+   * The counterpart of ::installForkFieldStorageDefinitions(): when one of the
+   * gating modules is uninstalled, hook_entity_base_field_info() stops
+   * providing the field, so its storage definitions must be uninstalled or
+   * every translatable entity type would report mismatched entity and field
+   * definitions.
+   */
+  public static function uninstallForkFieldStorageDefinitions(): void {
+    $definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+    $field_name = ComponentTreeTranslationFork::FIELD_NAME;
+    foreach (\array_keys(\Drupal::entityTypeManager()->getDefinitions()) as $entity_type_id) {
+      $definition = $definition_update_manager->getFieldStorageDefinition($field_name, $entity_type_id);
+      if ($definition === NULL || $definition->getProvider() !== 'canvas') {
+        continue;
+      }
+      try {
+        $definition_update_manager->uninstallFieldStorageDefinition($definition);
+      }
+      catch (\Exception $e) {
+        // A rapid enable → disable → enable → disable cycle can hit the
+        // deterministic deleted-data table from the previous cycle before
+        // cron purged it; skip this entity type rather than aborting the
+        // uninstall reaction chain mid-flight.
+        // @see \Drupal\Core\Entity\Sql\SqlContentEntityStorageSchema::onFieldStorageDefinitionDelete()
+        \Drupal::logger('canvas')->warning('Could not uninstall the %field field storage definition for %entity_type: @message', [
+          '%field' => $field_name,
+          '%entity_type' => $entity_type_id,
+          '@message' => $e->getMessage(),
+        ]);
+      }
+    }
+  }
+
+  /**
+   * Implements hook_module_preuninstall().
+   *
+   * Runs while every module's hooks are still registered. A plain
+   * hook_modules_uninstalled() implementation would never fire when canvas is
+   * uninstalled together with canvas_dev_translation in one batch (dependents
+   * are processed first and canvas's hooks are deregistered before the final
+   * hook invocation), permanently orphaning the fork field's installed
+   * storage definitions on non-canvas entity types.
+   */
+  #[Hook('module_preuninstall')]
+  public static function modulePreuninstall(string $module, bool $is_syncing): void {
+    if (\in_array($module, ['canvas', 'content_translation', 'canvas_dev_translation'], TRUE)) {
+      self::uninstallForkFieldStorageDefinitions();
+    }
+  }
+
+  /**
+   * Marks translations whose component trees already diverged as forked.
+   *
+   * Before symmetric synchronization was guaranteed, sites that translated
+   * Canvas fields without `translation_sync` settings could accumulate
+   * divergent trees; marking those translations forked protects them from
+   * being overwritten by the now-enforced synchronization. Idempotent:
+   * already-forked translations are skipped and only actual divergence is
+   * marked. Only tree-structure divergence is detected: translations whose
+   * structure matches but whose non-translatable input values diverge are
+   * not marked, and those values are (and already were, before forks
+   * existed) overwritten by the input synchronization on the next save.
+   *
+   * Must only be called when ::translationForksEnabled() is TRUE.
+   *
+   * @see canvas_post_update_0023_mark_divergent_component_tree_translations_forked()
+   */
+  public static function markDivergentComponentTreeTranslationsForked(): void {
+    $entity_type_manager = \Drupal::entityTypeManager();
+    $entity_field_manager = \Drupal::service(EntityFieldManagerInterface::class);
+    \assert($entity_field_manager instanceof EntityFieldManagerInterface);
+    $fork_field_name = ComponentTreeTranslationFork::FIELD_NAME;
+
+    // The raw values of the columns shared across symmetric translations.
+    // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem::propertyDefinitions()
+    $tree_columns = \array_flip(['uuid', 'parent_uuid', 'slot', 'component_id', 'component_version']);
+    $extract_tree = static fn (FieldItemListInterface $items): array => \array_map(
+      static fn (array $item): array => \array_intersect_key($item, $tree_columns),
+      $items->getValue(),
+    );
+
+    // ponytail: unbatched full scan; sites carrying the experimental flag
+    // module are dev-scale today. Batch per entity type if that changes.
+    $field_map = $entity_field_manager->getFieldMapByFieldType(ComponentTreeItem::PLUGIN_ID);
+    foreach ($field_map as $entity_type_id => $fields) {
+      $entity_type = $entity_type_manager->getDefinition($entity_type_id);
+      if (!$entity_type instanceof ContentEntityTypeInterface || !$entity_type->isTranslatable()) {
+        continue;
+      }
+      $storage = $entity_type_manager->getStorage($entity_type_id);
+      $ids = $storage->getQuery()->accessCheck(FALSE)->execute();
+      foreach ($storage->loadMultiple($ids) as $entity) {
+        if (!$entity instanceof ContentEntityInterface || !$entity->hasField($fork_field_name)) {
+          continue;
+        }
+        $default_translation = $entity->getUntranslated();
+        $changed = FALSE;
+        foreach ($entity->getTranslationLanguages(FALSE) as $langcode => $language) {
+          $translation = $entity->getTranslation($langcode);
+          if (ComponentTreeTranslationFork::isForkedTranslation($translation)) {
+            continue;
+          }
+          foreach (\array_keys($fields) as $field_name) {
+            $field_name = (string) $field_name;
+            if (!$translation->hasField($field_name)) {
+              continue;
+            }
+            if ($extract_tree($translation->get($field_name)) !== $extract_tree($default_translation->get($field_name))) {
+              $translation->set($fork_field_name, TRUE);
+              $changed = TRUE;
+              break;
+            }
+          }
+        }
+        if ($changed) {
+          // The just-set fork flags shield the divergent trees from the
+          // synchronization this save would otherwise apply.
+          $entity->save();
+        }
+      }
+    }
+  }
 
   /**
    * Implements hook_entity_type_alter().
@@ -59,6 +279,18 @@ final readonly class ContentTranslationHooks {
    */
   #[Hook('modules_installed')]
   public function modulesInstalled(array $modules, bool $is_syncing): void {
+    // Fork support activates when the last of the gating modules arrives; the
+    // fork base field's storage definitions must then be installed for entity
+    // types whose schema already exists, and translations that already
+    // diverged (from the era before symmetric synchronization was guaranteed)
+    // must be marked forked before the sync can overwrite them. Not skipped
+    // during config sync: the field is content (entity schema), not config.
+    if (\array_intersect(['canvas', 'content_translation', 'canvas_dev_translation'], $modules) !== []
+      && self::translationForksEnabled()) {
+      self::installForkFieldStorageDefinitions();
+      self::markDivergentComponentTreeTranslationsForked();
+    }
+
     // During config sync, the override comes from the synced config itself.
     if ($is_syncing) {
       return;

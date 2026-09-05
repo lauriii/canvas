@@ -14,6 +14,7 @@ use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Entity\StagedLanguageConfigOverride;
+use Drupal\canvas\Hook\ContentTranslationHooks;
 use Drupal\canvas\PageVariantMigration;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
@@ -794,4 +795,23 @@ function canvas_post_update_0030_page_variant_selection_options(): void {
   // varchar column); only the field type and its settings change.
   $storage_definitions = \Drupal::service(EntityFieldManagerInterface::class)->getFieldStorageDefinitions('canvas_page');
   $update_manager->updateFieldStorageDefinition($storage_definitions['page_variant']);
+}
+
+/**
+ * Mark translations whose component trees already diverged as forked.
+ *
+ * Before symmetric synchronization was guaranteed, sites that translated
+ * Canvas fields without `translation_sync` settings could accumulate
+ * divergent trees; marking them forked protects them from being overwritten
+ * by the now-enforced synchronization. Only runs on sites opted into
+ * experimental translation forks (canvas_dev_translation); sites opting in
+ * later get the same marking when the flag module is installed.
+ *
+ * @see \Drupal\canvas\Hook\ContentTranslationHooks::modulesInstalled()
+ */
+function canvas_post_update_0031_mark_divergent_component_tree_translations_forked(array &$sandbox): void {
+  if (!ContentTranslationHooks::translationForksEnabled()) {
+    return;
+  }
+  ContentTranslationHooks::markDivergentComponentTreeTranslationsForked();
 }

@@ -1,0 +1,38 @@
+# Translation fork routes ship in this feature-flag module so all fork
+# behavior is gated on it being installed; they move to canvas.routing.yml
+# when translation support is promoted into canvas.
+# The target translation is resolved from the `?language=` query parameter,
+# like canvas.api.content.translation.delete.
+# The `canvas.api.` route-name prefix is load-bearing: it is what grants
+# these POST/DELETE routes the `_csrf_request_header_token` requirement.
+# @see \Drupal\canvas\EventSubscriber\CanvasRouteOptionsEventSubscriber::addCsrfToken()
+# @see https://git.drupalcode.org/project/canvas/-/work_items/3571130
+canvas.api.content.translation.fork:
+  path: '/canvas/api/v0/content/canvas_page/{canvas_page}/translations/fork'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiTranslationControllers::fork'
+  requirements:
+    _canvas_authentication_required: TRUE
+    # Forking changes how the translation's layout is edited and stored, so
+    # entity update access is the correct check.
+    _entity_access: 'canvas_page.update'
+  options:
+    parameters:
+      canvas_page:
+        type: entity:canvas_page
+    _format: 'json'
+  methods: [POST]
+
+canvas.api.content.translation.unfork:
+  path: '/canvas/api/v0/content/canvas_page/{canvas_page}/translations/fork'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiTranslationControllers::unfork'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _entity_access: 'canvas_page.update'
+  options:
+    parameters:
+      canvas_page:
+        type: entity:canvas_page
+    _format: 'json'
+  methods: [DELETE]

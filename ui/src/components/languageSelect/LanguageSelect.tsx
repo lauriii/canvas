@@ -7,9 +7,12 @@ import {
   DotsVerticalIcon,
   ExternalLinkIcon,
   GlobeIcon,
+  Link2Icon,
+  LinkBreak2Icon,
   TrashIcon,
 } from '@radix-ui/react-icons';
 import {
+  Badge,
   Box,
   Button,
   DropdownMenu,
@@ -19,6 +22,7 @@ import {
   Text,
   TextField,
 } from '@radix-ui/themes';
+import { skipToken } from '@reduxjs/toolkit/query';
 
 import { useAppSelector } from '@/app/hooks';
 import Dialog from '@/components/Dialog';
@@ -27,11 +31,21 @@ import { selectPageData } from '@/features/pageData/pageDataSlice';
 import { selectSnapshotTitle } from '@/features/pagePreview/previewSlice';
 import { useTemplateCaption } from '@/hooks/useTemplateCaption';
 import { useTemplateRef } from '@/hooks/useTemplateRef';
-import { useDeletePageTranslationMutation } from '@/services/componentAndLayout';
+import {
+  useDeletePageTranslationMutation,
+  useForkPageTranslationMutation,
+  useGetPageLayoutQuery,
+  useUnforkPageTranslationMutation,
+} from '@/services/componentAndLayout';
 import { getCanvasPermissions, getLanguages } from '@/utils/drupal-globals';
 import { getEntityTitle } from '@/utils/entityTitle';
 
 import styles from './LanguageSelect.module.css';
+
+// Link relations emitted by the layout API for translation fork state.
+// @see \Drupal\canvas\CanvasUriDefinitions
+const FORK_LINK_REL = 'https://drupal.org/project/canvas#link-rel-fork';
+const UNFORK_LINK_REL = 'https://drupal.org/project/canvas#link-rel-unfork';
 
 interface DeleteTranslationDialogProps {
   languageId: string | null;
@@ -113,14 +127,180 @@ const DeleteTranslationDialog = ({
   );
 };
 
+interface ForkTranslationDialogProps {
+  languageId: string | null;
+  languageName: string | undefined;
+  url: string | undefined;
+  onClose: () => void;
+}
+
+const ForkTranslationDialog = ({
+  languageId,
+  languageName,
+  url,
+  onClose,
+}: ForkTranslationDialogProps) => {
+  const [forkError, setForkError] = useState<string | null>(null);
+  const [forkPageTranslation, { isLoading: isForkLoading }] =
+    useForkPageTranslationMutation();
+
+  // Reset on every open and close, so a late failure from a dismissed dialog
+  // never leaks into the next one.
+  useEffect(() => {
+    setForkError(null);
+  }, [languageId]);
+
+  const handleConfirmFork = async () => {
+    if (!languageId) {
+      onClose();
+      return;
+    }
+    if (!url) {
+      // The layout refetched while the dialog was open and the fork link is
+      // gone (e.g. another session already forked this translation).
+      setForkError(
+        'The translation state changed while this dialog was open. Close it and check the language menu again.',
+      );
+      return;
+    }
+    try {
+      await forkPageTranslation(url).unwrap();
+      onClose();
+    } catch (error) {
+      console.error('Failed to fork translation:', error);
+      setForkError('Failed to fork the layout. Please try again.');
+    }
+  };
+
+  return (
+    <Dialog
+      open={!!languageId}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title="Fork layout"
+      description={`The ${languageName ?? ''} translation will get its own forked copy of the layout. Changes to the original layout will no longer apply to it. You can revert to the synced layout later, but any changes to the forked layout will then be lost.`}
+      error={
+        forkError
+          ? {
+              title: 'Failed to fork layout',
+              message: forkError,
+            }
+          : undefined
+      }
+      footer={{
+        cancelText: 'Cancel',
+        confirmText: 'Fork layout',
+        onConfirm: handleConfirmFork,
+        onCancel: onClose,
+        isConfirmLoading: isForkLoading,
+        isConfirmDisabled: isForkLoading,
+      }}
+    />
+  );
+};
+
+interface UnforkTranslationDialogProps {
+  languageId: string | null;
+  languageName: string | undefined;
+  url: string | undefined;
+  onClose: () => void;
+}
+
+const UnforkTranslationDialog = ({
+  languageId,
+  languageName,
+  url,
+  onClose,
+}: UnforkTranslationDialogProps) => {
+  const [confirmText, setConfirmText] = useState('');
+  const [unforkError, setUnforkError] = useState<string | null>(null);
+  const [unforkPageTranslation, { isLoading: isUnforkLoading }] =
+    useUnforkPageTranslationMutation();
+
+  // Reset on every open and close, so a late failure from a dismissed dialog
+  // never leaks into the next one.
+  useEffect(() => {
+    setConfirmText('');
+    setUnforkError(null);
+  }, [languageId]);
+
+  const handleConfirmUnfork = async () => {
+    if (!languageId) {
+      onClose();
+      return;
+    }
+    if (!url) {
+      // The layout refetched while the dialog was open and the unfork link is
+      // gone (e.g. another session already reverted this translation).
+      setUnforkError(
+        'The translation state changed while this dialog was open. Close it and check the language menu again.',
+      );
+      return;
+    }
+    try {
+      await unforkPageTranslation(url).unwrap();
+      onClose();
+    } catch (error) {
+      console.error('Failed to revert to synced layout:', error);
+      setUnforkError(
+        'Failed to revert to the synced layout. Please try again.',
+      );
+    }
+  };
+
+  return (
+    <Dialog
+      open={!!languageId}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title="Revert to synced layout"
+      description={`The forked ${languageName ?? ''} layout will be replaced by the synced layout. Translated text is kept for components that exist in the synced layout; everything else will be permanently lost when published.`}
+      error={
+        unforkError
+          ? {
+              title: 'Failed to revert to synced layout',
+              message: unforkError,
+            }
+          : undefined
+      }
+      footer={{
+        cancelText: 'Cancel',
+        confirmText: 'Revert to synced layout',
+        onConfirm: handleConfirmUnfork,
+        onCancel: onClose,
+        isConfirmDisabled: confirmText !== 'REVERT' || isUnforkLoading,
+        isConfirmLoading: isUnforkLoading,
+        isDanger: true,
+      }}
+    >
+      <Flex direction="column" gap="2">
+        <Text size="2">
+          To confirm this, type '<Text weight="bold">REVERT</Text>'
+          <Text color="red">*</Text>
+        </Text>
+        <TextField.Root
+          data-testid="unfork-translation-confirm-input"
+          value={confirmText}
+          onChange={(e) => setConfirmText(e.target.value)}
+        />
+      </Flex>
+    </Dialog>
+  );
+};
+
 const LanguageSelect = () => {
   const languages = getLanguages();
   const permissions = getCanvasPermissions();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [openPopoverId, setOpenPopoverId] = useState<string | null>(null);
   const [deleteLanguageId, setDeleteLanguageId] = useState<string | null>(null);
+  const [forkLanguageId, setForkLanguageId] = useState<string | null>(null);
+  const [unforkLanguageId, setUnforkLanguageId] = useState<string | null>(null);
   // Languages whose translation was deleted in-session. Used to hide their
-  // check mark and options trigger without re-fetching the layout.
+  // check mark and options trigger until the layout refetch lands; reset
+  // below whenever fresh translations metadata arrives.
   const [removedLanguages, setRemovedLanguages] = useState<string[]>([]);
   const popoverOffsetsRef = useRef<Record<string, number>>({});
   const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -141,8 +321,25 @@ const LanguageSelect = () => {
   const { entityType, entityId, width, previewEntityId, bundle, viewMode } =
     useParams();
   const { isTemplateContext, isTemplatePreviewRoute } = useTemplateRef();
-  const translations = useAppSelector(selectTranslations);
   const isTemplateRoute = isTemplateContext || isTemplatePreviewRoute;
+  const sliceTranslations = useAppSelector(selectTranslations);
+  // The slice's translations only update on initial layout load, so prefer
+  // the layout query's own (cache-shared, no extra request) result: it stays
+  // fresh across the Layout-tag refetches that fork/unfork/delete trigger.
+  // Template routes have no page layout query and keep using the slice.
+  const { translations: queryTranslations } = useGetPageLayoutQuery(
+    entityId && entityType && !isTemplateRoute
+      ? { entityId, entityType }
+      : skipToken,
+    { selectFromResult: ({ data }) => ({ translations: data?.translations }) },
+  );
+  const translations = queryTranslations ?? sliceTranslations;
+
+  // Fresh translations metadata (a layout refetch) supersedes the in-session
+  // deletion bookkeeping: rows are hidden or shown by the data itself again.
+  useEffect(() => {
+    setRemovedLanguages([]);
+  }, [translations]);
   const templateCaption = useTemplateCaption();
   const pageData = useAppSelector(selectPageData);
   const snapshotTitle = useAppSelector(selectSnapshotTitle);
@@ -203,6 +400,20 @@ const LanguageSelect = () => {
     setOpenPopoverId(null);
   };
 
+  const handleForkTranslation = (languageId: string) => {
+    setForkLanguageId(languageId);
+    setOpenPopoverId(null);
+  };
+
+  const handleUnforkTranslation = (languageId: string) => {
+    setUnforkLanguageId(languageId);
+    setOpenPopoverId(null);
+  };
+
+  // A language whose translation owns a forked layout.
+  const isForked = (languageId: string) =>
+    Boolean(translations?.forked?.includes(languageId));
+
   const handleConfigureLanguages = () => {
     window.open(
       '/admin/config/regional/language',
@@ -229,8 +440,9 @@ const LanguageSelect = () => {
       <DropdownMenu.Root
         open={dropdownOpen}
         onOpenChange={(open) => {
-          // Keep the dropdown open while the delete-confirmation dialog is showing.
-          if (!open && deleteLanguageId) return;
+          // Keep the dropdown open while a confirmation dialog is showing.
+          if (!open && (deleteLanguageId || forkLanguageId || unforkLanguageId))
+            return;
           setDropdownOpen(open);
         }}
       >
@@ -269,6 +481,16 @@ const LanguageSelect = () => {
                     {language.name}
                     {language.isDefault && ' (Default)'}
                   </Text>
+                  {isForked(language.id) && (
+                    <Badge
+                      color="amber"
+                      size="1"
+                      ml="1"
+                      data-testid={`language-forked-badge-${language.id}`}
+                    >
+                      Forked
+                    </Badge>
+                  )}
                 </Flex>
               </DropdownMenu.Item>
               {translations?.links?.[language.id] &&
@@ -338,6 +560,33 @@ const LanguageSelect = () => {
                           </button>
                         )}
                         {translations?.links?.[language.id]?.[
+                          FORK_LINK_REL
+                        ] && (
+                          <button
+                            className={styles.popoverItem}
+                            data-testid="language-options-fork"
+                            onClick={() => handleForkTranslation(language.id)}
+                          >
+                            <LinkBreak2Icon width="14" height="14" />
+                            <Text size="2">Fork layout</Text>
+                          </button>
+                        )}
+                        {translations?.links?.[language.id]?.[
+                          UNFORK_LINK_REL
+                        ] && (
+                          <button
+                            className={clsx(
+                              styles.popoverItem,
+                              styles.popoverItemRed,
+                            )}
+                            data-testid="language-options-unfork"
+                            onClick={() => handleUnforkTranslation(language.id)}
+                          >
+                            <Link2Icon width="14" height="14" />
+                            <Text size="2">Revert to synced layout</Text>
+                          </button>
+                        )}
+                        {translations?.links?.[language.id]?.[
                           'delete-form'
                         ] && (
                           <button
@@ -386,6 +635,30 @@ const LanguageSelect = () => {
           setDeleteLanguageId(null);
         }}
         onClose={() => setDeleteLanguageId(null)}
+      />
+      <ForkTranslationDialog
+        languageId={forkLanguageId}
+        languageName={
+          languages.find((lang) => lang.id === forkLanguageId)?.name
+        }
+        url={
+          forkLanguageId
+            ? translations?.links?.[forkLanguageId]?.[FORK_LINK_REL]
+            : undefined
+        }
+        onClose={() => setForkLanguageId(null)}
+      />
+      <UnforkTranslationDialog
+        languageId={unforkLanguageId}
+        languageName={
+          languages.find((lang) => lang.id === unforkLanguageId)?.name
+        }
+        url={
+          unforkLanguageId
+            ? translations?.links?.[unforkLanguageId]?.[UNFORK_LINK_REL]
+            : undefined
+        }
+        onClose={() => setUnforkLanguageId(null)}
       />
     </>
   );
