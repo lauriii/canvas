@@ -585,6 +585,90 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
 
   }
 
+  /**
+   * Tests that stored date and time prop values are rendered unmodified.
+   *
+   * Canvas stores exactly what the Content Creator entered, without applying
+   * any time zone conversion. The generated field widget must therefore also
+   * render the stored value as-is, no matter which time zone the site is in.
+   *
+   * Both accepted storage shapes are covered: Drupal's
+   * `DateTimeItemInterface::DATETIME_STORAGE_FORMAT` (no trailing `Z`) and the
+   * ISO 8601 form with a trailing `Z` that the client writes.
+   *
+   * @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::evaluate()
+   * @see https://www.drupal.org/i/3587862
+   */
+  public function testDateTimePropIsRenderedInStorageTimeZone(): void {
+    // Use a site time zone with a non-zero UTC offset, otherwise a time zone
+    // conversion of the stored value would be invisible.
+    $this->config('system.date')
+      ->set('timezone.default', 'Asia/Kolkata')
+      ->set('timezone.user.configurable', FALSE)
+      ->save();
+
+    $node = $this->createNode(['type' => 'article', 'title' => 'Test node']);
+    $node->save();
+
+    $component_id = 'sdc.canvas_test_sdc.multivalue-props';
+    $form_canvas_props = $this->getFormCanvasPropsForComponent($component_id);
+    $form_canvas_props['source']['datetime']['value'] = [
+      ['value' => '2026-04-30T12:00:00'],
+      ['value' => '2026-05-01T08:30:00.000Z'],
+    ];
+    $form_canvas_props['source']['date']['value'] = [
+      ['value' => '2026-04-30'],
+    ];
+    $component_entity = Component::load($component_id);
+    \assert($component_entity instanceof ComponentInterface);
+    $crawler = $this->getCrawlerForFormRequest(
+      '/canvas/api/v0/form/component-instance/node/' . $node->id(),
+      $component_entity,
+      $form_canvas_props,
+    );
+
+    self::assertSame(
+      [['2026-04-30', '12:00:00'], ['2026-05-01', '08:30:00']],
+      self::getDateAndTimeInputValues($crawler, 'datetime'),
+    );
+    self::assertSame(
+      [['2026-04-30', NULL]],
+      self::getDateAndTimeInputValues($crawler, 'date'),
+    );
+  }
+
+  /**
+   * Reads the rendered date and time input values for a multivalue prop.
+   *
+   * @return list<array{string|null, string|null}>
+   *   A date and time input value pair per rendered widget row.
+   */
+  private static function getDateAndTimeInputValues(Crawler $crawler, string $sdc_prop_name): array {
+    $rows = [];
+    $inputs = $crawler->filter(\sprintf('input[name*="[%s]["]', $sdc_prop_name));
+    foreach ($inputs as $input) {
+      \assert($input instanceof \DOMElement);
+      $type = $input->getAttribute('type');
+      if (!\in_array($type, ['date', 'time'], TRUE)) {
+        continue;
+      }
+      $delta_pattern = \sprintf('/\\[%s\\]\\[(\\d+)\\]/', \preg_quote($sdc_prop_name, '/'));
+      self::assertSame(1, \preg_match($delta_pattern, $input->getAttribute('name'), $matches));
+      $rows[(int) $matches[1]][$type === 'date' ? 0 : 1] = $input->getAttribute('value');
+    }
+    \ksort($rows);
+    return \array_values(\array_map(
+      static function (array $row): array {
+        // A date-only widget renders no time input; report it as NULL. Sort so
+        // the returned pair is always [date, time], regardless of DOM order.
+        $row += [0 => NULL, 1 => NULL];
+        \ksort($row);
+        return $row;
+      },
+      $rows,
+    ));
+  }
+
   private function getCrawlerForFormRequest(string $form_url, ComponentInterface $component_entity, ?array $form_canvas_props): Crawler {
     // `$form_canvas_props` is nullable, so we can simulate the request having
     // `undefined` as value, which happens when the inputs are empty on a

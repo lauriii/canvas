@@ -602,17 +602,17 @@ final class StaticPropSource extends PropSourceBase {
         // as a delete AJAX request, the widget item might not exist despite it
         // still being present in the fieldItemList.
         if (isset($widget_form['widget'][$i])) {
+          // No timezone adjusting takes place when entering or storing date
+          // values. It assumes the date time selected is literally the date
+          // time stored. Because of that, both the parsing of the stored value
+          // and the form render need to assume UTC, otherwise the input values
+          // will be different upon reloading the form.
+          // @see \Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface::STORAGE_TIMEZONE
+          // @see https://drupal.org/i/3501281
           // @see \Drupal\Core\Field\FieldItemList::__get()
           // @see \Drupal\datetime\Plugin\Field\FieldType\DateTimeItem::propertyDefinitions()
           // @phpstan-ignore property.notFound
-          $widget_form['widget'][$i]['value']['#default_value'] = new DrupalDateTime($this->fieldItemList[$i]->value);
-
-          // No timezone adjusting takes place when entering or storing date
-          // values. It assumes the date time selected is literally the date
-          // time stored. Because of that, the form render needs to assume UTC
-          // as well, otherwise the input values will be different upon
-          // reloading the form.
-          // @see https://drupal.org/i/3501281
+          $widget_form['widget'][$i]['value']['#default_value'] = new DrupalDateTime($this->fieldItemList[$i]->value, 'UTC');
           $widget_form['widget'][$i]['value']['#date_timezone'] = 'UTC';
         }
       }
