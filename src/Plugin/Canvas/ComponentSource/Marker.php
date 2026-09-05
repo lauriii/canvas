@@ -108,10 +108,12 @@ final class Marker extends ComponentSourceBase {
    */
   public function renderComponent(array $inputs, array $slot_definitions, string $componentUuid, bool $isPreview): array {
     // Only the page content marker takes part in the page variant's content
-    // injection. Any other marker (the empty slot marker, for one) renders
-    // nothing anywhere: suspending its fiber would make the variant renderer
-    // inject the route's main content in its place, because that renderer
-    // recognizes the marker by its source.
+    // injection, and only it gets a visible editor placeholder. Any other
+    // marker (the empty slot marker, for one) renders nothing anywhere: it
+    // stands for the absence of content, so a placeholder card would be
+    // wrong, and suspending its fiber would make the variant renderer inject
+    // the route's main content in its place, because that renderer recognizes
+    // the marker by its source rather than by its id.
     // @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant::renderComponentTree()
     if ($this->getLocalId() !== self::PAGE_CONTENT_LOCAL_ID) {
       return [];
