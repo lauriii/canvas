@@ -313,9 +313,9 @@ final class SchemaPublisher {
   /**
    * Escapes one JSON Pointer segment.
    *
-   * Producer ids are plugin ids and carry no guarantee about `/` or `~`.
-   * Replacing them with a safe character instead would not be injective, so
-   * two producers could claim one definition.
+   * Component ids carry no guarantee about `/` or `~`. Replacing them with a
+   * safe character instead would let two different ids collapse onto one
+   * definition, so one component would claim another's branch.
    */
   private static function escapePointerSegment(string $segment): string {
     return \str_replace(['~', '/'], ['~0', '~1'], $segment);
