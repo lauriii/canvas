@@ -39,6 +39,11 @@
       "types": "./src/config/index.ts",
       "default": "./src/config/index.ts"
     },
+    "./middleware": {
+      "import": "./src/middleware.ts",
+      "types": "./src/middleware.ts",
+      "default": "./src/middleware.ts"
+    },
     "./CanvasComponentTree": {
       "import": "./src/canvas-component-tree.tsx",
       "types": "./src/canvas-component-tree.tsx",

@@ -17,8 +17,7 @@ Set the `CANVAS_SITE_URL` environment variable to your Drupal site URL.
 ## Usage
 
 **1. next.config.ts** — the config wrapper generates the component manifest at
-build time, adds the SDK packages to `transpilePackages`, and sends a
-session-aware CSP `frame-ancestors` header:
+build time and adds the SDK packages to `transpilePackages`:
 
 ```ts
 import { withCanvas } from '@drupal-canvas/headless-next/config';
@@ -26,7 +25,45 @@ import { withCanvas } from '@drupal-canvas/headless-next/config';
 export default withCanvas();
 ```
 
-**2. Route files** — mount the handlers, one file per route:
+**2. proxy.ts** — sends the CSP `frame-ancestors` header that admits the Canvas
+editor. Next.js allows one per project, so the app owns the file; put it at the
+project root, or in `src/`. Before Next.js 16 the file is `middleware.ts` and
+the export is `middleware`; Next.js resolves each convention by its own name.
+The build warns when nothing mounts it.
+
+```ts
+// proxy.ts
+export { canvasMiddleware as proxy } from '@drupal-canvas/headless-next/middleware';
+
+export const config = {
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+};
+```
+
+Responses are `frame-ancestors 'self'`; a request carrying a draft session also
+admits that session's editor origin. Set the app's own CSP directives on the
+response and hand it over — they are merged, and a `frame-ancestors` directive
+you set yourself stays authoritative. Configuring Content-Security-Policy in
+`next.config`'s `headers()` instead is refused at build time, because hosting
+platforms apply those rules after the proxy runs and replace the whole header.
+Make sure `config.matcher` covers your document routes: Next.js skips the proxy
+for anything it excludes, and those responses carry no policy.
+
+```ts
+// proxy.ts
+import { NextResponse } from 'next/server';
+import { applyCanvasHeaders } from '@drupal-canvas/headless-next/middleware';
+
+import type { NextRequest } from 'next/server';
+
+export function proxy(request: NextRequest) {
+  const response = NextResponse.next();
+  response.headers.set('Content-Security-Policy', "default-src 'self'");
+  return applyCanvasHeaders(request, response);
+}
+```
+
+**3. Route files** — mount the handlers, one file per route:
 
 ```ts
 // app/api/draft/route.ts
@@ -63,12 +100,12 @@ export const { GET, OPTIONS } = createComponentMetadataHandler();
 export { default } from '@drupal-canvas/headless-next/ComponentPreviewPage';
 ```
 
-**3. Session banner** — a server component gathers the session state
+**4. Session banner** — a server component gathers the session state
 (`getDraftData()`, `getDraftEditorOrigin()`, `isDraftSessionExpired()`) and
 renders `<DraftSession>` from `@drupal-canvas/headless-next/client` with a
 render prop that owns the banner markup.
 
-**4. Component tree** — pass the structured content returned by `fetchPage()` to
+**5. Component tree** — pass the structured content returned by `fetchPage()` to
 `<CanvasComponentTree>`:
 
 ```tsx

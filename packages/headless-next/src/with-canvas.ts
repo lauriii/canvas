@@ -1,12 +1,7 @@
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { DRAFT_DATA_COOKIE_NAME } from '@drupal-canvas/headless';
 import { writeComponentManifest } from '@drupal-canvas/headless/components-endpoint';
-import {
-  hasFrameAncestors,
-  mergeFrameAncestors,
-  resolveDraftConfig,
-  resolveFrameAncestors,
-} from '@drupal-canvas/headless/server';
+import { resolveDraftConfig } from '@drupal-canvas/headless/server';
 
 import { writeComponentRegistryModule } from './component-registry';
 import { watchComponentRegistry } from './component-registry-watcher';
@@ -20,13 +15,24 @@ const PHASE_PRODUCTION_BUILD = 'phase-production-build';
 const PHASE_DEVELOPMENT_SERVER = 'phase-development-server';
 const COMPONENTS_MODULE_ID =
   '@drupal-canvas/headless-next-generated-components';
-const CSP_HEADER = 'content-security-policy';
 
-// Next.js header rules can capture a named group from a cookie and insert it
-// into a header value. The cookie parser has already URL-decoded the JSON.
-// Capture only a URL-serialized HTTP(S) origin from the signed renewal URL;
-// the restricted host and port grammar cannot inject CSP delimiters.
-const DRAFT_EDITOR_ORIGIN_COOKIE_PATTERN = String.raw`.*"renewUrl":"(?<editorOrigin>https?://(?:[A-Za-z0-9.-]+|\[[0-9A-Fa-f:.]+\])(?::[0-9]{1,5})?)(?:/[^"\\]*)?".*`;
+/** The middleware entry point the app must mount, and where Next.js looks. */
+const MIDDLEWARE_SPECIFIER = '@drupal-canvas/headless-next/middleware';
+const MIDDLEWARE_DIRECTORIES = ['.', 'src'];
+// Next.js 16 renamed the convention from `middleware` to `proxy`; 15 knows
+// only the old name. Each is resolved by its own export name.
+const MIDDLEWARE_FILE_NAMES = ['proxy', 'middleware'];
+const CSP_HEADER = 'content-security-policy';
+/** Print-once marker for the missing-middleware warning. */
+const WARNED_ENV_VARIABLE = 'CANVAS_MIDDLEWARE_WARNING_SHOWN';
+
+const MOUNT_INSTRUCTIONS =
+  'Create proxy.ts (middleware.ts, exporting `middleware`, before Next.js 16) ' +
+  'in the project root, or in src/, containing:\n\n' +
+  `  export { canvasMiddleware as proxy } from '${MIDDLEWARE_SPECIFIER}';\n\n` +
+  '  export const config = {\n' +
+  "    matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],\n" +
+  '  };\n';
 
 type NextConfigInput =
   | NextConfig
@@ -35,38 +41,85 @@ type NextConfigInput =
       context: { defaultConfig: NextConfig },
     ) => NextConfig | Promise<NextConfig>);
 
-type HeaderRule = Awaited<
-  ReturnType<NonNullable<NextConfig['headers']>>
->[number];
-
-const draftSessionCookieMatch = {
-  type: 'cookie' as const,
-  key: DRAFT_DATA_COOKIE_NAME,
-  value: DRAFT_EDITOR_ORIGIN_COOKIE_PATTERN,
-};
-
-function mergeRuleFrameAncestors(
-  rule: HeaderRule,
-  frameAncestors: string,
-): HeaderRule {
-  return {
-    ...rule,
-    headers: rule.headers.map((header) =>
-      header.key.toLowerCase() === CSP_HEADER
-        ? {
-            ...header,
-            value: mergeFrameAncestors(header.value, frameAncestors).join(', '),
-          }
-        : header,
-    ),
-  };
+/**
+ * Warns when no file that could be the app's middleware mentions this
+ * package. The `frame-ancestors` policy is sent from middleware, and Next.js
+ * allows one per project, so only the app can install it: an upgrade that
+ * skipped that step would leave the app framable by anyone, while previews
+ * kept working, which is the one failure nothing else surfaces.
+ *
+ * ponytail: a warning, not a build gate, and deliberately a shallow one. What
+ * the app needs is not a file but a handler that actually runs on document
+ * responses, and that depends on the export name, the `config.matcher`, and
+ * the module graph — none of which a static check can settle. Proving it
+ * needs the running app, so this only catches the common case (no file at
+ * all) and never blocks a build it cannot reason about.
+ */
+async function warnWhenMiddlewareMissing(
+  projectRoot: string,
+  pageExtensions: string[],
+): Promise<void> {
+  // Next.js evaluates the config several times, including from worker
+  // processes that inherit this variable, so the warning is printed once.
+  if (process.env[WARNED_ENV_VARIABLE]) {
+    return;
+  }
+  for (const directory of MIDDLEWARE_DIRECTORIES) {
+    for (const fileName of MIDDLEWARE_FILE_NAMES) {
+      for (const extension of pageExtensions) {
+        const file = path.join(
+          projectRoot,
+          directory,
+          `${fileName}.${extension}`,
+        );
+        const source = await readFile(file, 'utf8').catch(() => null);
+        if (source?.includes(MIDDLEWARE_SPECIFIER)) {
+          return;
+        }
+      }
+    }
+  }
+  process.env[WARNED_ENV_VARIABLE] = '1';
+  console.warn(
+    `[canvas] No middleware mounting ${MIDDLEWARE_SPECIFIER} was found, so ` +
+      'this build sends no Content-Security-Policy frame-ancestors header ' +
+      `and anyone may embed the app. ${MOUNT_INSTRUCTIONS}`,
+  );
 }
 
-function ruleNeedsDraftEditorOrigin(rule: HeaderRule): boolean {
-  return rule.headers.some(
-    (header) =>
-      header.key.toLowerCase() === CSP_HEADER &&
-      !hasFrameAncestors(header.value),
+/**
+ * Fails the build when the app configures Content-Security-Policy through
+ * `next.config`'s `headers()`.
+ *
+ * Those rules are applied by the hosting platform's routing layer, after
+ * the middleware has run, and they replace rather than merge — so an app
+ * CSP configured there silently overwrites the session-aware policy for
+ * every path it matches, and the Canvas editor's iframe is refused again.
+ * The app's own directives belong on the response handed to
+ * applyCanvasHeaders(), where they are merged.
+ */
+async function assertNoConfiguredCsp(config: NextConfig): Promise<void> {
+  const rules = config.headers ? await config.headers() : [];
+  const offending = rules.find((rule) =>
+    rule.headers.some((header) => header.key.toLowerCase() === CSP_HEADER),
+  );
+  if (!offending) {
+    return;
+  }
+  throw new Error(
+    `[canvas] The headers() rule for "${offending.source}" sets a ` +
+      'Content-Security-Policy. Hosting platforms apply next.config header ' +
+      'rules after the middleware runs and replace the whole value, so this ' +
+      'would drop the frame-ancestors directive that admits the Canvas ' +
+      'editor. Set the policy on the response instead, in the middleware:\n\n' +
+      `  import { applyCanvasHeaders } from '${MIDDLEWARE_SPECIFIER}';\n` +
+      "  import { NextResponse } from 'next/server';\n\n" +
+      "  import type { NextRequest } from 'next/server';\n\n" +
+      '  export function proxy(request: NextRequest) {\n' +
+      '    const response = NextResponse.next();\n' +
+      "    response.headers.set('Content-Security-Policy', \"default-src 'self'\");\n" +
+      '    return applyCanvasHeaders(request, response);\n' +
+      '  }\n',
   );
 }
 
@@ -104,10 +157,10 @@ export const MANIFEST_ENV_VARIABLE = 'CANVAS_COMPONENT_MANIFEST_JSON';
  *   generated implementation registry when components are added or removed.
  * - Adds the SDK packages to `transpilePackages` (the adapter packages
  *   ship TypeScript source).
- * - Sends a `Content-Security-Policy: frame-ancestors` header. Responses
- *   are 'self'-only by default; a draft session also admits the exact
- *   editor origin carried by its signed renewal URL. An application-owned
- *   frame-ancestors directive remains authoritative.
+ * - Refuses a `Content-Security-Policy` configured through `headers()`, and
+ *   warns when nothing looks like it mounts this package's middleware. The
+ *   header is sent from middleware (see ./middleware.ts), which only the app
+ *   can install.
  *
  * ```ts
  * // next.config.ts
@@ -128,6 +181,16 @@ export function withCanvas(
         ? await nextConfig(phase, context)
         : nextConfig;
     const projectRoot = path.resolve(options.projectRoot ?? process.cwd());
+    if (
+      phase === PHASE_DEVELOPMENT_SERVER ||
+      phase === PHASE_PRODUCTION_BUILD
+    ) {
+      await assertNoConfiguredCsp(config);
+      await warnWhenMiddlewareMissing(
+        projectRoot,
+        config.pageExtensions ?? context.defaultConfig.pageExtensions ?? [],
+      );
+    }
     if (phase === PHASE_DEVELOPMENT_SERVER) {
       resolveDraftConfig();
     }
@@ -168,58 +231,6 @@ export function withCanvas(
       ]),
     ];
 
-    const userHeaders = config.headers;
-    const headers: NonNullable<NextConfig['headers']> = async () => {
-      // When several header rules match a path and set the same key,
-      // Next.js keeps the LAST value — it does not emit repeated fields.
-      // So the SDK's catch-all rule goes first, and every user rule that
-      // sets a Content-Security-Policy gets the frame-ancestors directive
-      // merged into its value: on paths the app's own CSP rules match,
-      // the app's (merged) value wins; everywhere else the catch-all
-      // applies. A second cookie-matched rule admits the signed editor
-      // origin only for requests carrying a draft session. Either way no
-      // app directive is discarded.
-      const frameAncestors = resolveFrameAncestors();
-      const userRules = userHeaders ? await userHeaders() : [];
-      const mergedUserRules = userRules.flatMap((rule) => {
-        const fallback = mergeRuleFrameAncestors(rule, frameAncestors);
-        if (!ruleNeedsDraftEditorOrigin(rule)) {
-          return [fallback];
-        }
-        return [
-          fallback,
-          mergeRuleFrameAncestors(
-            {
-              ...rule,
-              has: [...(rule.has ?? []), draftSessionCookieMatch],
-            },
-            "'self' :editorOrigin",
-          ),
-        ];
-      });
-      return [
-        {
-          source: '/:path*',
-          headers: [
-            {
-              key: 'Content-Security-Policy',
-              value: mergeFrameAncestors(null, frameAncestors).join(', '),
-            },
-          ],
-        },
-        {
-          source: '/:path*',
-          has: [draftSessionCookieMatch],
-          headers: [
-            {
-              key: 'Content-Security-Policy',
-              value: "frame-ancestors 'self' :editorOrigin",
-            },
-          ],
-        },
-        ...mergedUserRules,
-      ];
-    };
     const userWebpack = config.webpack;
     const webpack: NonNullable<NextConfig['webpack']> = (
       webpackConfig,
@@ -254,7 +265,6 @@ export function withCanvas(
           ? { [MANIFEST_ENV_VARIABLE]: process.env[MANIFEST_ENV_VARIABLE] }
           : {}),
       },
-      headers,
       webpack,
     };
   };
