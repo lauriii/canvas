@@ -184,6 +184,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'type' => 'component',
       'weight' => 0,
       'items' => [
+        'marker.empty_slot',
         'marker.page_content',
         'sdc.canvas_broken_sdcs.invalid-filter',
         'sdc.canvas_broken_sdcs.malformed-image',
@@ -2649,6 +2650,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'suggestedPreviewEntityId' => NULL,
       'pageVariant' => NULL,
       'component_tree' => [],
+      'exposed_slots' => [],
     ];
 
     // The list response MUST contain unpublished ContentTemplates.
@@ -2733,6 +2735,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'suggestedPreviewEntityId' => NULL,
       'pageVariant' => NULL,
       'component_tree' => [],
+      'exposed_slots' => [],
     ];
     $this->assertSame($expected_full_llama_normalization, $body);
     // The same normalization should be present when GETting the `Location`.

@@ -25,7 +25,6 @@
   }
 }
 
-
 .regionOverlay,
 .pageOverlay {
   position: absolute;
@@ -60,7 +59,9 @@
 
 .componentOverlay {
   position: absolute;
-  transition: backdrop-filter 0.2s ease-in-out;
+  transition:
+    opacity 0.1s ease-in-out,
+    backdrop-filter 0.2s ease-in-out;
   pointer-events: all;
   outline: 1px solid transparent;
 
@@ -94,10 +95,43 @@
   &.updating {
     animation: 1.5s shine linear infinite;
     border-radius: 5px;
-    background: linear-gradient(110deg, rgb(255,255,255,0.2) 8%, rgb(255,255,255,0.8) 18%, rgb(255,255,255,0.2) 33%);
+    background: linear-gradient(110deg, rgb(255, 255, 255, 0.2) 8%, rgb(255, 255, 255, 0.8) 18%, rgb(255, 255, 255, 0.2) 33%);
     background-size: 200% 200%;
-    backdrop-filter: grayscale(100%)  opacity(40%);
+    backdrop-filter: grayscale(100%) opacity(40%);
   }
+
+  /* Per-content editing: locked template chrome. A dashed gray outline on
+     hover/selection (distinct from the editable purple) marks it read-only,
+     without a stacked overlay div. */
+  &.locked {
+    cursor: not-allowed;
+
+    &.hovered,
+    &.selected {
+      outline: 1px dashed var(--gray-8);
+    }
+  }
+}
+
+/* Per-content editing: a small lock badge shown on a locked component when it is
+   hovered or selected. mix-blend-mode keeps it legible over any content. */
+.lockBadge {
+  position: absolute;
+  z-index: 1;
+  top: 2px;
+  right: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 4px;
+  pointer-events: none;
+  color: var(--gray-12);
+  border-radius: var(--radius-1);
+  background: var(--gray-3);
+  font-size: 11px;
+  line-height: 1.4;
+  gap: var(--space-1);
+  mix-blend-mode: multiply;
 }
 @keyframes shine {
   to {
@@ -107,6 +141,10 @@
 
 .slotOverlay {
   position: absolute;
+  /* Per-content editing: an exposed slot lives inside locked template chrome,
+     which sets cursor:not-allowed. Reset it here so the editable slot (and its
+     entity-owned contents) don't inherit the "forbidden" cursor. */
+  cursor: auto;
   outline: 1px solid transparent;
 
   &.dropTarget {
@@ -116,6 +154,82 @@
 
   &.hovered {
     outline: 1px solid var(--purple-9);
+  }
+
+  /* Template editor: an exposed slot stays highlighted, using the same
+     outline as a hovered slot. */
+  &.exposed {
+    outline: 1px solid var(--purple-9);
+    outline-offset: -1px;
+  }
+
+  /* A selected slot (an exposed slot in the template editor, or a locked
+     exposed slot in per-content editing) is clearly distinct from a hovered or
+     merely-exposed one: a thicker outline plus a subtle fill. Declared last so
+     it wins over .hovered / .exposed at equal specificity. */
+  &.selected {
+    outline: 2px solid var(--purple-9);
+    outline-offset: -2px;
+    background-color: var(--purple-a3);
+  }
+
+  /* Per-content editing: a locked exposed slot reads as one selectable,
+     read-only unit. */
+  &.locked {
+    cursor: pointer;
+  }
+}
+
+/* Per-content editing: full-cover click/hover target that makes a locked
+   exposed slot selectable as a single unit. Overrides the slot container's
+   pointer-events:none so the whole slot area is clickable. */
+.lockedSlotTrigger {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  pointer-events: auto;
+  border: none;
+  background: transparent;
+  inset: 0;
+}
+
+/* Template editor: full-cover right-click target for the slot context menu.
+   Overrides the slot overlay container's pointer-events:none so right-clicks
+   on empty slot area open the menu; drop zones/child overlays paint on top. */
+.slotContextTrigger {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  cursor: pointer;
+  pointer-events: auto;
+  border: none;
+  background: transparent;
+  inset: 0;
+}
+
+/* Template editor: the exposed-slot marker chip / expose affordance. */
+.slotExposeChip {
+  z-index: 1;
+  pointer-events: auto;
+}
+
+.slotExposeChipButton {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  cursor: pointer;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-2);
+  background: var(--gray-9);
+  font-size: 11px;
+  line-height: 1.4;
+  gap: var(--space-1);
+
+  &.slotExposeChipButtonExposed {
+    background: var(--purple-9);
   }
 }
 
@@ -156,7 +270,6 @@
 .emptySlotContainer {
   color: var(--purple-9);
   border: 1px solid var(--purple-9);
-
 }
 
 .emptyRegionContainer {
@@ -241,7 +354,7 @@
     &::after {
       position: absolute;
       display: block;
-      content: '';
+      content: "";
       border-radius: 4px;
       outline: 1px solid #fff;
       background-color: var(--purple-9);
@@ -312,7 +425,7 @@
     &::after {
       position: absolute;
       display: block;
-      content: '';
+      content: "";
       border-radius: 4px;
       outline: 1px solid #fff;
       background-color: var(--orange-9);
@@ -353,7 +466,7 @@
     &::after {
       position: absolute;
       display: block;
-      content: '';
+      content: "";
       border-radius: 4px;
       outline: 1px solid #fff;
       background-color: var(--purple-9);

@@ -14,6 +14,10 @@ import {
 } from '@/utils/drupal-globals';
 
 import {
+  CANVAS_SLOT_EMPTY_MARKER_TYPE,
+  isEmptySlotMarkerNode,
+} from './exposedSlots';
+import {
   findComponentByUuid,
   findNodePathByUuid,
   insertNodeAtPath,
@@ -82,10 +86,58 @@ export type ComponentModels = Record<
   ComponentModel | EvaluatedComponentModel
 >;
 
+/**
+ * A content template's exposed slot definition, keyed by machine-name alias.
+ */
+export interface ExposedSlotDefinition {
+  label: string;
+  slotName: string;
+  componentUuid: UUID;
+}
+
+/**
+ * An exposed slot's template default content, supplied by the server as data.
+ *
+ * Not part of the editable layout: the client materializes an entity-owned
+ * copy of it (fresh UUIDs) when the slot is unlocked. NULL when the slot has
+ * no default content (and therefore no lock).
+ */
+export interface SlotDefaultContent {
+  layout: ComponentNode[];
+  model: ComponentModels;
+}
+
+/**
+ * Per-entity override state for one exposed slot, in per-content editing.
+ */
+export interface SlotOverrideState {
+  /** The entity has its own content for this slot (vs. inheriting the default). */
+  overridden: boolean;
+  /** The override is deliberately empty (renders nothing). */
+  empty: boolean;
+}
+
+/**
+ * The identity of the content template a per-content entity follows.
+ */
+export interface PerContentTemplateInfo {
+  entityType: string;
+  bundle: string;
+  viewMode: string;
+}
+
 export interface LayoutModelSliceState extends RootLayoutModel {
   updatePreview: boolean;
   isInitialized?: boolean;
   translations?: Record<string, any>;
+  // Per-content editing (templated entity with exposed slots): the template's
+  // exposed slot definitions and each slot's override state. Set only via
+  // setInitialLayoutModel (non-undoable metadata, like translations).
+  exposedSlots?: Record<string, ExposedSlotDefinition>;
+  slotOverrides?: Record<string, SlotOverrideState>;
+  slotDefaults?: Record<string, SlotDefaultContent | null>;
+  contentTemplate?: PerContentTemplateInfo;
+  perContentMode?: boolean;
 }
 
 export const initialState: LayoutModelSliceState = {
@@ -145,6 +197,23 @@ type AddNewPatternPayload = {
 type SortNodePayload = {
   uuid: string | undefined;
   to: number | undefined;
+};
+
+type AddExposedSlotPayload = {
+  alias: string;
+  label: string;
+  slotName: string;
+  componentUuid: UUID;
+};
+
+type UpdateExposedSlotLabelPayload = {
+  alias: string;
+  label: string;
+};
+
+type DeleteComponentAndExposedSlotsPayload = {
+  uuid: string;
+  aliases: string[];
 };
 
 type AnyValue = string | boolean | [] | number | {} | null;
@@ -285,6 +354,123 @@ export const syncPropSourcesToResolvedValues = (
   );
 };
 
+// --- Per-content editing: exposed-slot override helpers -------------------
+//
+// These mutate the (Immer draft) layout slice state. They centralize the
+// "fork the template default to an entity-owned copy on first edit" step (the
+// exposed-slots design, decision 4) so it is not duplicated across every
+// mutating reducer, plus the empty-override marker bookkeeping. All are no-ops
+// outside per-content mode, so page and template editing are unaffected.
+
+/**
+ * The single override-fork step: materialize an entity-owned copy of the
+ * exposed slot's template default (supplied by the server as data in
+ * `slotDefaults`) with fresh UUIDs, models included, and mark the slot
+ * overridden. Applied in one synchronous reducer so no follow-up edit ever
+ * addresses a UUID the server has not stored.
+ */
+function forkSlotToOverride(
+  state: LayoutModelSliceState,
+  region: RegionNode,
+  alias: string,
+): void {
+  const defaultContent = state.slotDefaults?.[alias];
+  const forked: ComponentNode[] = [];
+  if (defaultContent) {
+    for (const child of defaultContent.layout) {
+      const { updatedNode, updatedModel } = replaceUUIDsAndUpdateModel(
+        child,
+        defaultContent.model,
+      );
+      Object.assign(state.model, updatedModel);
+      forked.push(updatedNode);
+    }
+  }
+  region.components = forked;
+  if (!state.slotOverrides) {
+    state.slotOverrides = {};
+  }
+  state.slotOverrides[alias] = { overridden: true, empty: false };
+}
+
+/**
+ * Fork the exposed slot at a destination path, if it is not yet overridden.
+ * Invoked by insert/move reducers so dropping into a still-defaulted exposed
+ * slot materializes the override before the new content lands.
+ */
+function ensureOverriddenForPath(
+  state: LayoutModelSliceState,
+  path: number[] | undefined,
+): void {
+  if (!state.perContentMode || !Array.isArray(path) || path.length < 1) {
+    return;
+  }
+  const region = state.layout[path[0]];
+  if (!region || !state.exposedSlots?.[region.id]) {
+    return;
+  }
+  const alias = region.id;
+  if (state.slotOverrides?.[alias]?.overridden) {
+    return;
+  }
+  forkSlotToOverride(state, region, alias);
+}
+
+/**
+ * Normalize the empty-override marker for every overridden exposed slot after a
+ * mutation: an overridden slot with no real content holds exactly one
+ * `canvas_slot_empty.marker` node (empty override); one with real content holds
+ * no marker. A non-overridden slot is left untouched (its emptiness means
+ * "inherit the default").
+ */
+function syncOverriddenSlotEmptiness(state: LayoutModelSliceState): void {
+  if (!state.perContentMode || !state.exposedSlots || !state.slotOverrides) {
+    return;
+  }
+  for (const alias of Object.keys(state.exposedSlots)) {
+    const override = state.slotOverrides[alias];
+    if (!override?.overridden) {
+      continue;
+    }
+    const slot = state.layout.find((region) => region.id === alias);
+    if (!slot) {
+      continue;
+    }
+    const markers = slot.components.filter((c) => isEmptySlotMarkerNode(c));
+    const real = slot.components.filter((c) => !isEmptySlotMarkerNode(c));
+    if (real.length > 0) {
+      // Real content present: drop any stray markers.
+      if (markers.length > 0) {
+        for (const marker of markers) {
+          delete state.model[marker.uuid];
+        }
+        slot.components = real;
+      }
+      override.empty = false;
+      continue;
+    }
+    // Overridden but empty: ensure exactly one marker as the sole content.
+    const alreadyJustMarker =
+      slot.components.length === 1 && markers.length === 1;
+    if (!alreadyJustMarker) {
+      for (const marker of markers) {
+        delete state.model[marker.uuid];
+      }
+      const markerUuid = uuidv4();
+      slot.components = [
+        {
+          nodeType: NodeType.Component,
+          uuid: markerUuid,
+          type: CANVAS_SLOT_EMPTY_MARKER_TYPE,
+          slots: [],
+        },
+      ];
+      state.model[markerUuid] = { resolved: {} };
+    }
+    override.empty = true;
+  }
+}
+
 export const layoutModelSlice = createSlice({
   name: 'layoutModel',
   initialState,
@@ -312,6 +498,9 @@ export const layoutModelSlice = createSlice({
       }
 
       state.layout = removeComponentByUuid(state.layout, action.payload);
+      // Per-content editing: emptying an overridden slot keeps it overridden but
+      // empty (represented by the marker), not reverted.
+      syncOverriddenSlotEmptiness(state);
       // Flag a preview update.
       state.updatePreview = true;
     }),
@@ -376,8 +565,13 @@ export const layoutModelSlice = createSlice({
           return;
         }
 
+        // Per-content editing: fork the destination exposed slot's default
+        // before content lands in it (no-op if already overridden).
+        ensureOverriddenForPath(state, [...to]);
         // Create a mutable copy of the path array since action payloads are frozen.
         state.layout = moveNodeToPath(state.layout, uuid, [...to]);
+        // Per-content editing: a move can empty the source exposed slot.
+        syncOverriddenSlotEmptiness(state);
         // Flag a preview update.
         state.updatePreview = true;
       },
@@ -392,6 +586,11 @@ export const layoutModelSlice = createSlice({
           );
           return;
         }
+
+        // Per-content editing: fork the destination exposed slot's default
+        // before inserting (no-op if already overridden). Must run before the
+        // layout/model snapshots below so the forked copy is carried through.
+        ensureOverriddenForPath(state, [...to]);
 
         let updatedModel: ComponentModels = { ...state.model };
         const newLayout: Array<RegionNode> = JSON.parse(
@@ -427,6 +626,8 @@ export const layoutModelSlice = createSlice({
 
         state.model = updatedModel;
         state.layout[rootIndex] = regionRoot;
+        // Per-content editing: filling an empty override removes its marker.
+        syncOverriddenSlotEmptiness(state);
         // Flag a preview update.
         state.updatePreview = true;
       },
@@ -503,6 +704,120 @@ export const layoutModelSlice = createSlice({
         }
       },
     ),
+    // Template editor: expose a slot. Keyed by machine-name alias; the host
+    // component UUID + slot machine name identify the slot in the tree.
+    addExposedSlot: create.reducer(
+      (state, action: PayloadAction<AddExposedSlotPayload>) => {
+        const { alias, label, slotName, componentUuid } = action.payload;
+        if (!state.exposedSlots || Array.isArray(state.exposedSlots)) {
+          state.exposedSlots = {};
+        }
+        state.exposedSlots[alias] = {
+          label,
+          slotName,
+          componentUuid,
+        };
+        // Persist the working set with the next template save.
+        state.updatePreview = true;
+      },
+    ),
+    // Template editor: relabel an exposed slot (alias stays immutable).
+    updateExposedSlotLabel: create.reducer(
+      (state, action: PayloadAction<UpdateExposedSlotLabelPayload>) => {
+        const { alias, label } = action.payload;
+        const existing = state.exposedSlots?.[alias];
+        if (existing) {
+          existing.label = label;
+          state.updatePreview = true;
+        }
+      },
+    ),
+    // Template editor: detach an exposed slot definition. The backing field and
+    // any per-entity content survive; re-exposing the field restores them.
+    removeExposedSlot: create.reducer(
+      (state, action: PayloadAction<string>) => {
+        if (state.exposedSlots) {
+          delete state.exposedSlots[action.payload];
+          state.updatePreview = true;
+        }
+      },
+    ),
+    // Template editor delete protection: remove a component subtree together
+    // with the exposed slot definitions it hosts, in a single (undoable) step.
+    deleteComponentAndExposedSlots: create.reducer(
+      (state, action: PayloadAction<DeleteComponentAndExposedSlotsPayload>) => {
+        const { uuid, aliases } = action.payload;
+        const deletedComponent = findComponentByUuid(state.layout, uuid);
+
+        const removableModelsUuids = [uuid];
+        if (deletedComponent) {
+          recurseNodes(deletedComponent, (node: ComponentNode) => {
+            removableModelsUuids.push(node.uuid);
+          });
+        }
+        for (const removableUuid of removableModelsUuids) {
+          if (state.model[removableUuid]) delete state.model[removableUuid];
+        }
+
+        state.layout = removeComponentByUuid(state.layout, uuid);
+        if (state.exposedSlots) {
+          for (const alias of aliases) {
+            delete state.exposedSlots[alias];
+          }
+        }
+        state.updatePreview = true;
+      },
+    ),
+    // Per-content editing: unlock a locked exposed slot. Materializes an
+    // entity-owned, editable copy of the slot's template default content (fresh
+    // UUIDs) and marks the slot overridden, so it becomes ordinary editable
+    // content. The fork is applied in a single reducer and selection stays on
+    // the slot, so no follow-up edit ever addresses a pre-fork UUID the server
+    // has not stored (@see decision 4, task 11.4). No-op if already overridden.
+    overrideSlotDefaultContent: create.reducer(
+      (state, action: PayloadAction<string>) => {
+        const alias = action.payload;
+        if (!state.exposedSlots?.[alias]) {
+          return;
+        }
+        if (state.slotOverrides?.[alias]?.overridden) {
+          return;
+        }
+        const region = state.layout.find((r) => r.id === alias);
+        if (!region) {
+          return;
+        }
+        forkSlotToOverride(state, region, alias);
+        // An override of an empty default becomes an empty override (marker).
+        syncOverriddenSlotEmptiness(state);
+        state.updatePreview = true;
+      },
+    ),
+    // Per-content editing: discard an entity override so the template default
+    // returns. Clearing the slot to empty (no marker) means "inherit" on save,
+    // distinct from an empty override (which keeps the marker). @see decision 4.
+    revertSlotOverride: create.reducer(
+      (state, action: PayloadAction<string>) => {
+        const alias = action.payload;
+        if (!state.exposedSlots?.[alias]) {
+          return;
+        }
+        const slot = state.layout.find((r) => r.id === alias);
+        if (slot) {
+          for (const child of slot.components) {
+            if (state.model[child.uuid]) delete state.model[child.uuid];
+            recurseNodes(child, (node: ComponentNode) => {
+              if (state.model[node.uuid]) delete state.model[node.uuid];
+            });
+          }
+          slot.components = [];
+        }
+        if (state.slotOverrides) {
+          state.slotOverrides[alias] = { overridden: false, empty: false };
+        }
+        state.updatePreview = true;
+      },
+    ),
     setInitialized: create.reducer((state, action: PayloadAction<boolean>) => {
       state.isInitialized = action.payload;
       if (!action.payload) {
@@ -527,12 +842,25 @@ export const layoutModelSlice = createSlice({
           updatePreview,
           isInitialized = true,
           translations,
+          exposedSlots,
+          slotOverrides,
+          slotDefaults,
+          contentTemplate,
         } = action.payload;
         state.layout = layout;
         state.model = model;
         state.updatePreview = updatePreview;
         state.isInitialized = isInitialized;
         state.translations = translations || {};
+        // PHP serializes an empty `exposed_slots: {}` / override map as a JSON
+        // array `[]`; coerce to an object so alias-keyed writes work.
+        state.exposedSlots = Array.isArray(exposedSlots) ? {} : exposedSlots;
+        state.slotOverrides = Array.isArray(slotOverrides) ? {} : slotOverrides;
+        state.slotDefaults = Array.isArray(slotDefaults) ? {} : slotDefaults;
+        state.contentTemplate = contentTemplate;
+        // Per-content mode is signalled by the server emitting per-slot override
+        // state (only the per-content merged GET does).
+        state.perContentMode = slotOverrides !== undefined;
       },
     ),
     setTranslations: create.reducer(
@@ -909,6 +1237,12 @@ export const {
   sortNode,
   setUpdatePreview,
   insertNodes,
+  addExposedSlot,
+  updateExposedSlotLabel,
+  removeExposedSlot,
+  deleteComponentAndExposedSlots,
+  overrideSlotDefaultContent,
+  revertSlotOverride,
 } = layoutModelSlice.actions;
 
 export const layoutModelReducer = layoutModelSlice.reducer;
@@ -928,6 +1262,17 @@ export const selectIsInitialized = (state: StateWithHistoryWrapper) =>
   state.layoutModel.present.isInitialized;
 export const selectTranslations = (state: StateWithHistoryWrapper) =>
   state.layoutModel.present.translations;
+export const selectExposedSlots = (state: StateWithHistoryWrapper) =>
+  state.layoutModel.present.exposedSlots;
+export const selectSlotOverrides = (state: StateWithHistoryWrapper) =>
+  state.layoutModel.present.slotOverrides;
+export const selectSlotDefaults = (state: StateWithHistoryWrapper) =>
+  state.layoutModel.present.slotDefaults;
+export const selectPerContentTemplateInfo = (state: StateWithHistoryWrapper) =>
+  state.layoutModel.present.contentTemplate;
+export const selectIsPerContentMode = (state: StateWithHistoryWrapper) =>
+  Boolean(state.layoutModel.present.perContentMode);
+const selectRegion = (state: RootState, regionName: string) => regionName;
 
 // The editor edits a single content region (the page's, or a variant's, tree).
 // This selector returns that content region, synthesizing an empty one as a

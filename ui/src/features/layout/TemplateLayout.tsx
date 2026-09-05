@@ -1,10 +1,14 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import { useParams } from 'react-router';
 import { skipToken } from '@reduxjs/toolkit/query';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { useGetTemplateLayoutQuery } from '@/services/componentAndLayout';
+import { exposedSlotsFromServer } from '@/features/layout/exposedSlots';
+import {
+  useGetContentTemplatesQuery,
+  useGetTemplateLayoutQuery,
+} from '@/services/componentAndLayout';
 
 import {
   selectIsInitialized,
@@ -32,9 +36,23 @@ const TemplateLayout = () => {
     { refetchOnMountOrArgChange: true },
   );
 
+  // The template layout GET does not (yet) emit the template's own exposed
+  // slots, so fall back to the persisted set from the content-template config
+  // list.
+  // @todo Remove the fallback once ApiLayoutController::get() emits `exposedSlots` for the ContentTemplate branch.
+  const { data: templates, isLoading: isTemplatesLoading } =
+    useGetContentTemplatesQuery();
+  const configExposedSlots = useMemo(() => {
+    if (!entityType || !bundle || !viewMode) {
+      return undefined;
+    }
+    return templates?.[entityType]?.bundles?.[bundle]?.viewModes?.[viewMode]
+      ?.exposed_slots;
+  }, [templates, entityType, bundle, viewMode]);
+
   const { showBoundary, resetBoundary } = useErrorBoundary();
 
-  const { layout, model, translations } = fetchedLayout || {};
+  const { layout, model, translations, exposedSlots } = fetchedLayout || {};
 
   useEffect(() => {
     dispatch(setInitialized(false));
@@ -54,12 +72,27 @@ const TemplateLayout = () => {
     // allow the page to render.
     resetBoundary();
 
-    if (layout && model && !isInitialized && !isFetching) {
+    // Wait for the fallback exposed-slot source before initializing so the
+    // editor's working set is complete on first render.
+    const exposedSlotsResolved =
+      exposedSlots !== undefined || !isTemplatesLoading;
+
+    if (
+      layout &&
+      model &&
+      !isInitialized &&
+      !isFetching &&
+      exposedSlotsResolved
+    ) {
       dispatch(
         setInitialLayoutModel({
           layout,
           model,
           translations: translations || {},
+          // The template editor's working set of exposed slots. Omit
+          // slotOverrides so this stays out of per-content mode.
+          exposedSlots:
+            exposedSlots ?? exposedSlotsFromServer(configExposedSlots),
           // We don't need to update the preview here - it is done in the layout
           // api's onQueryStarted method - @see componentAndLayout.ts
           updatePreview: false,
@@ -70,6 +103,9 @@ const TemplateLayout = () => {
     layout,
     model,
     translations,
+    exposedSlots,
+    configExposedSlots,
+    isTemplatesLoading,
     isInitialized,
     error,
     showBoundary,

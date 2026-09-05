@@ -8,6 +8,7 @@ use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
@@ -52,6 +53,33 @@ class ComponentTreeLoaderTest extends KernelTestBase {
       'title' => 'My page',
     ]);
     $this->assertEquals('components', $loader->load($page)->getFieldDefinition()->getName());
+  }
+
+  public function testLoadAll(): void {
+    $loader = $this->container->get(ComponentTreeLoader::class);
+    \assert($loader instanceof ComponentTreeLoader);
+
+    // canvas_page and a single-field bundle each resolve to one tree.
+    self::assertCount(1, $loader->loadAll(Page::create(['title' => 'My page'])));
+    $node = Node::create(['type' => 'article', 'title' => 'One field']);
+    $lists = $loader->loadAll($node);
+    self::assertCount(1, $lists);
+    self::assertSame('field_canvas_demo', $lists[0]->getFieldDefinition()->getName());
+    // findItemListContaining returns NULL when no field holds the instance.
+    self::assertNull($loader->findItemListContaining($node, 'e2b3c4d5-0000-4000-8000-000000000000'));
+
+    // A bundle with more than one component_tree field (the templated /
+    // per-slot-field shape) resolves to one tree per field.
+    $storage = FieldStorageConfig::create([
+      'field_name' => 'canvas_slot_extra',
+      'entity_type' => 'node',
+      'type' => 'component_tree',
+    ]);
+    $storage->save();
+    FieldConfig::create(['field_storage' => $storage, 'bundle' => 'article'])->save();
+    $this->container->get('entity_field.manager')->clearCachedFieldDefinitions();
+    $multiField = Node::create(['type' => 'article', 'title' => 'Two fields']);
+    self::assertCount(2, $loader->loadAll($multiField));
   }
 
   public function testEntityBundleRestriction(): void {

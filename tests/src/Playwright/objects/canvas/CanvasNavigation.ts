@@ -204,6 +204,21 @@ export function CanvasNavigationMixin<TBase extends Constructor<CanvasBase>>(
       } catch (error) {
         throw new Error(
           'openBrandKitPanel: Brand Kit panel did not open - was it already open?\n' +
+    async openContentPanel() {
+      await this.page
+        .getByTestId('canvas-side-menu')
+        .getByLabel('Content')
+        .click();
+      try {
+        await expect(
+          this.page.getByRole('heading', { name: 'Content' }),
+        ).toBeVisible();
+        await expect(
+          this.page.locator('[data-testid="canvas-content-panel"]'),
+        ).toBeVisible();
+      } catch (error) {
+        throw new Error(
+          'openContentPanel: Content panel did not open - was it already open?\n' +
             (error instanceof Error ? error.message : String(error)),
         );
       }

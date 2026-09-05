@@ -98,12 +98,13 @@ abstract class ComponentSourceTestBase extends CanvasKernelTestBase implements L
    *
    * - 14 Component config entities for the `block` ComponentSource. Due to
    *   BlockManagerDecorator.
-   * - 1 for the `marker` ComponentSource: the shipped "Page content" marker.
+   * - 2 for the `marker` ComponentSource: the shipped "Page content" and
+   *   "Empty slot" markers.
    *
    * @see \Drupal\canvas\Block\BlockManagerDecorator
    * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
    */
-  protected const int DEFAULT_COMPONENT_INSTALL_COUNT = 15;
+  protected const int DEFAULT_COMPONENT_INSTALL_COUNT = 16;
 
   protected array $logMessages = [];
 

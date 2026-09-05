@@ -6,11 +6,13 @@ namespace Drupal\canvas\Controller;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CanvasUriDefinitions;
+use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Resource\CanvasResourceLink;
 use Drupal\canvas\Resource\CanvasResourceLinkCollection;
 use Drupal\canvas\Resource\OffsetPage;
+use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\canvas\Utility\HomePageHelper;
 use Drupal\Component\Transliteration\TransliterationInterface;
 use Drupal\Component\Utility\NestedArray;
@@ -70,6 +72,7 @@ final class ApiContentControllers extends ApiControllerBase {
     #[Autowire(service: 'transliteration')]
     private readonly TransliterationInterface $transliteration,
     private readonly HomePageHelper $homePageHelper,
+    private readonly ComponentTreeLoader $componentTreeLoader,
   ) {}
 
   /**
@@ -235,14 +238,28 @@ final class ApiContentControllers extends ApiControllerBase {
    * @see https://www.drupal.org/project/canvas/issues/3500052#comment-15966496
    */
   public function list(string $entity_type, Request $request): CacheableJsonResponse {
-    if ($entity_type !== Page::ENTITY_TYPE_ID) {
-      throw new BadRequestHttpException('Only the `canvas_page` content entity type is supported right now, will be generalized in a child issue of https://www.drupal.org/project/canvas/issues/3498525.');
+    // Beyond Canvas pages, the navigator lists entities of templated bundles
+    // with active exposed slots so they can be opened in the per-content editor
+    // (decision 6). Only bundles whose content template exposes at least one
+    // active slot are listable; other bundles of the same entity type are
+    // excluded. Entity access is enforced by the queries below, never by
+    // permission-string heuristics.
+    $active_bundles = $entity_type === Page::ENTITY_TYPE_ID
+      ? []
+      : $this->componentTreeLoader->getBundlesWithExposedSlots($entity_type);
+    if ($entity_type !== Page::ENTITY_TYPE_ID && $active_bundles === []) {
+      throw new BadRequestHttpException('Only the `canvas_page` content entity type and bundles with active exposed slots are supported right now, will be generalized in a child issue of https://www.drupal.org/project/canvas/issues/3498525.');
     }
     $storage = $this->entityTypeManager->getStorage($entity_type);
 
     $query_cacheability = (new CacheableMetadata())
       ->addCacheContexts($storage->getEntityType()->getListCacheContexts())
       ->addCacheTags($storage->getEntityType()->getListCacheTags());
+    // The listable set changes when a template starts or stops exposing slots.
+    if ($entity_type !== Page::ENTITY_TYPE_ID) {
+      $query_cacheability->addCacheTags([ContentTemplate::ENTITY_TYPE_ID . '_list']);
+    }
+    $bundle_key = $storage->getEntityType()->getKey('bundle');
 
     // Prepare search term and determine if we're performing a search
     $search = $request->query->get('search', default: NULL);
@@ -267,8 +284,12 @@ final class ApiContentControllers extends ApiControllerBase {
       $id_key = $content_entity_type->getKey('id');
       \assert(\is_string($id_key));
 
+      $count_query = $storage->getQuery()->accessCheck(TRUE)->count();
+      if ($active_bundles !== [] && \is_string($bundle_key)) {
+        $count_query->condition($bundle_key, $active_bundles, 'IN');
+      }
       $total_count = (int) $this->executeQueryInRenderContext(
-        $storage->getQuery()->accessCheck(TRUE)->count(),
+        $count_query,
         $query_cacheability
       );
 
@@ -281,6 +302,9 @@ final class ApiContentControllers extends ApiControllerBase {
         // paginated requests, causing duplicates or missing items.
         ->sort($id_key)
         ->range($offset, $limit);
+      if ($active_bundles !== [] && \is_string($bundle_key)) {
+        $entity_query->condition($bundle_key, $active_bundles, 'IN');
+      }
 
       $ids = $this->executeQueryInRenderContext($entity_query, $query_cacheability);
       \assert(\is_array($ids));
@@ -295,8 +319,8 @@ final class ApiContentControllers extends ApiControllerBase {
       $search = trim($search);
       $ids = $this->filterAndMergeIds(
         // TRICKY: covered by the "list cacheability" at the top.
-        $this->getMatchingStoredEntityIds($entity_type, $search),
-        $this->getMatchingAutoSavedEntityIds($entity_type, $search, $query_cacheability)
+        $this->getMatchingStoredEntityIds($entity_type, $search, $active_bundles),
+        $this->getMatchingAutoSavedEntityIds($entity_type, $search, $query_cacheability, $active_bundles)
       );
       $total_count = NULL;
     }
@@ -529,16 +553,22 @@ final class ApiContentControllers extends ApiControllerBase {
    *   The entity type ID.
    * @param string $search
    *   The (transliterated) search term to match against entities.
+   * @param string[] $bundles
+   *   Restrict matches to these bundles. Empty means all bundles.
    *
    * @return array
    *   An array of entity IDs that match the search term.
    */
-  private function getMatchingStoredEntityIds(string $entity_type_id, string $search): array {
-    /** @var \Drupal\Core\Entity\EntityReferenceSelection\SelectionInterface $selection_handler */
-    $selection_handler = $this->selectionManager->getInstance([
+  private function getMatchingStoredEntityIds(string $entity_type_id, string $search, array $bundles = []): array {
+    $configuration = [
       'target_type' => $entity_type_id,
       'handler' => 'default',
-    ]);
+    ];
+    if ($bundles !== []) {
+      $configuration['target_bundles'] = \array_combine($bundles, $bundles);
+    }
+    /** @var \Drupal\Core\Entity\EntityReferenceSelection\SelectionInterface $selection_handler */
+    $selection_handler = $this->selectionManager->getInstance($configuration);
     \assert($selection_handler instanceof SelectionInterface);
     $matching_data = $selection_handler->getReferenceableEntities(
       $search,
@@ -559,11 +589,13 @@ final class ApiContentControllers extends ApiControllerBase {
    * @param \Drupal\Core\Cache\RefinableCacheableDependencyInterface $cacheability
    *   The cacheability of the given query, to be refined to match the
    *   refinements made to the query.
+   * @param string[] $bundles
+   *   Restrict matches to these bundles. Empty means all bundles.
    *
    * @return array
    *   An array of entity IDs that match the search criteria.
    */
-  private function getMatchingAutoSavedEntityIds(string $entity_type_id, string $search, RefinableCacheableDependencyInterface $cacheability): array {
+  private function getMatchingAutoSavedEntityIds(string $entity_type_id, string $search, RefinableCacheableDependencyInterface $cacheability, array $bundles = []): array {
     $cacheability->addCacheTags([AutoSaveManager::CACHE_TAG]);
     $auto_saved_entities_of_type = \array_filter($this->autoSaveManager->getAllAutoSaveList(with_entities: TRUE, with_conflicts: FALSE), static fn (array $entry): bool => $entry['entity_type'] === $entity_type_id);
 
@@ -577,6 +609,17 @@ final class ApiContentControllers extends ApiControllerBase {
     $matching_unsaved_ids = [];
     foreach ($auto_saved_entities_of_type as ['entity' => $entity]) {
       \assert($entity instanceof EntityInterface);
+      if ($bundles !== [] && !\in_array($entity->bundle(), $bundles, TRUE)) {
+        continue;
+      }
+      // Respect entity access: an auto-saved draft must not leak to a user who
+      // cannot view the entity. The browse path applies accessCheck(TRUE);
+      // the search path must filter these auto-save matches equivalently.
+      $access = $entity->access('view', return_as_object: TRUE);
+      $cacheability->addCacheableDependency($access);
+      if (!$access->isAllowed()) {
+        continue;
+      }
       $transliterated_label = $this->transliteration->transliterate(mb_strtolower((string) $entity->label()), $langcode);
       if (str_contains($transliterated_label, $transliterated_search)) {
         $matching_unsaved_ids[] = $entity->id();
@@ -680,6 +723,26 @@ final class ApiContentControllers extends ApiControllerBase {
       $links->addCacheableDependency($autoSaveEntity);
     }
 
+    // For templated content entities (everything but Canvas pages) the only
+    // operation is opening the entity in the Canvas editor. Publish, unpublish,
+    // set-as-homepage, duplicate and delete rely on canvas_page-only routes.
+    // @todo Standardize these routes across entity types in https://www.drupal.org/i/3498525.
+    if (!$content_entity instanceof Page) {
+      \assert($content_entity instanceof ContentEntityInterface);
+      $edit_access = $content_entity->access(operation: 'update', account: $this->currentUser, return_as_object: TRUE);
+      \assert($edit_access instanceof AccessResult);
+      if ($edit_access->isAllowed()) {
+        $links = $links->withLink(
+          CanvasUriDefinitions::LINK_REL_EDIT,
+          new CanvasResourceLink($edit_access, $this->getUrlFromRoute($content_entity, 'canvas.boot.entity'), CanvasUriDefinitions::LINK_REL_EDIT)
+        );
+      }
+      else {
+        $links->addCacheableDependency($edit_access);
+      }
+      return $links;
+    }
+
     // Helper to create forbidden access result with auto-save cache dependency.
     $createForbiddenAccess = function (string $reason) use ($autoSaveEntity): AccessResult {
       $access = AccessResult::forbidden($reason);
@@ -722,8 +785,8 @@ final class ApiContentControllers extends ApiControllerBase {
     // otherwise use original.
     $effective_is_published = $auto_save_is_published ?? $original_is_published;
 
-    // Check if this is a draft (never been published).
-    \assert($content_entity instanceof ContentEntityInterface);
+    // Check if this is a draft (never been published). $content_entity is a
+    // Page here (the non-Page branch returned above).
     $is_draft = AutoSaveManager::entityIsConsideredNew($content_entity);
 
     // Determine which actions to show based on state.

@@ -614,6 +614,12 @@ final class Component extends VersionedConfigEntityBase implements ComponentInte
   }
 
   public function preSave(EntityStorageInterface $storage): void {
+    // Keep the internal empty-slot marker disabled (i.e. never placeable),
+    // even when a bulk operation such as a recipe config action enables it.
+    // @see config/install/canvas.component.canvas_slot_empty.marker.yml
+    if ($this->id() === self::EMPTY_SLOT_MARKER_ID) {
+      $this->setStatus(FALSE);
+    }
     if (!$this->isSyncing()) {
       $this->getConfigUpdater()->updatePropFieldDefinitionsWithRequiredFlag($this);
       $this->getConfigUpdater()->updatePropFieldDefinitionsUsingTextValue($this);

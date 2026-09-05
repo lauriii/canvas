@@ -2,7 +2,7 @@ import { componentTreeToAuthoredElementMap } from './authored-elements';
 import { isRecord } from './utils';
 
 import type { AuthoredSpecElementMap } from 'drupal-canvas/json-render-utils';
-import type { ContentTemplate } from '../types/ContentTemplate';
+import type { ContentTemplate, ExposedSlots } from '../types/ContentTemplate';
 
 /**
  * Returns the prefix (e.g. "static", "entity-field", "adapter") of a server
@@ -69,6 +69,9 @@ export interface AuthoredContentTemplateFile {
    */
   pageVariant?: string;
   elements: AuthoredSpecElementMap;
+  // The authored file uses camelCase keys; the inner definition shape is kept
+  // identical to the server `exposed_slots` payload so it round-trips verbatim.
+  exposedSlots?: ExposedSlots;
 }
 
 /**
@@ -81,7 +84,7 @@ export function contentTemplateToAuthored(
     template.component_tree ?? [],
     translateInputsFromServer,
   );
-  return {
+  const authored: AuthoredContentTemplateFile = {
     label: template.label,
     entityType: template.entityType,
     bundle: template.bundle,
@@ -89,4 +92,13 @@ export function contentTemplateToAuthored(
     ...(template.pageVariant ? { pageVariant: template.pageVariant } : {}),
     elements,
   };
+  // Only persist exposed slots when the server actually has some, keeping the
+  // authored file free of an empty `exposedSlots: {}` key.
+  if (
+    template.exposed_slots &&
+    Object.keys(template.exposed_slots).length > 0
+  ) {
+    authored.exposedSlots = template.exposed_slots;
+  }
+  return authored;
 }
