@@ -1,0 +1,30 @@
+{#
+/**
+ * @file
+ * Default theme implementation for an entity rendered by a content template.
+ *
+ * Canvas' content templates take full control of an entity's markup, so unlike
+ * the entity's own template (such as `node.html.twig`) this template renders no
+ * title and no field markup: the component tree already produced all of it. The
+ * theme hook exists so that the theme layer still runs for these entities,
+ * which is what lets modules decorate them during preprocessing. Contextual
+ * links, for example, are added as a `contextual-region` class on `attributes`
+ * and a placeholder in `title_suffix`.
+ *
+ * Available variables:
+ * - attributes: HTML attributes for the wrapper element.
+ * - title_prefix: Additional output populated by modules.
+ * - title_suffix: Additional output populated by modules.
+ * - content: The entity as rendered by its content template.
+ *
+ * @see \Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder::getBuildDefaults()
+ * @see \Drupal\canvas\Hook\ModuleHooks::preprocessCanvasEntityWithContentTemplate()
+ *
+ * @ingroup themeable
+ */
+#}
+<div{{ attributes }}>
+  {{ title_prefix }}
+  {{ title_suffix }}
+  {{ content }}
+</div>
