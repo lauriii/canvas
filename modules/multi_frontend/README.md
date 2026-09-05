@@ -134,7 +134,7 @@ on:
 
   | File | Tests | Assertions | Last measured |
   | --- | --- | --- | --- |
-  | `ComponentProducerTest`, envelope schema and error cases | 3 | 56 | this change |
+  | `ComponentProducerTest`, envelope schema and error cases | 3 | 57 | this change |
   | `ComponentProducerTest` + `CacheabilityNormalizerTest`, the rest | 28 | 320 | previous change |
   | `FormContractTest` | 28 | 164 | previous change |
 
@@ -357,7 +357,7 @@ Honest scope. This is the vertical slice, not the whole plan.
 | Regions other than `content` | **not done**. They come from the active theme's block layout, which is theme-scoped config |
 | `#lazy_builder` over the data path | **not done**, and out of scope by design |
 | `#attached` on a fallback node | **dropped.** An `html` node is `{type, markup, cacheability}`, with nowhere to put libraries or `drupalSettings`, so markup that needed JavaScript to work arrives inert. Cacheability does survive. This is the practical ceiling on "unconverted modules keep working" |
-| Error responses in envelope format | **not done.** A 403 or 404 through `/page-api` is core's `text/plain`, so a client calling `res.json()` throws. The published envelope schema describes 200 responses only |
+| Error responses in envelope format | done. A 403 or 404 keeps its status and answers with a well-formed envelope carrying an `error` object, which the published schema describes. Only exceptions already carrying an HTTP status are converted, so a programming or service failure keeps core's handling |
 | `Vary` and `Cache-Control` from `CacheabilityHeaders` | **partly.** `Surrogate-Key` crosses. On a site with the internal page cache disabled, core's `FinishResponseSubscriber` marks responses not cacheable and strips `Vary`, so only the body's `varies` survives. Read the body, not the headers, for variation |
 | Form contract: schema, UI hints, submission, CSRF, `unsupported` | done |
 | Self-describing form elements (`JsonSchemaFormElementInterface`) | done |

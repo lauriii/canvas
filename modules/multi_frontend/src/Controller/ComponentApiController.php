@@ -8,6 +8,7 @@ use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\multi_frontend\ComponentProducerManager;
 use Drupal\multi_frontend\Envelope\CacheabilityHeaders;
@@ -120,11 +121,16 @@ final class ComponentApiController extends ControllerBase {
    * host, so they vary on it. Without `url.site` one request can poison the
    * cached catalog for everyone with whatever Host header it sent, and the
    * catalog is precisely the document a build toolchain follows.
+   *
+   * They also carry component names as schema titles, and a component name is
+   * translatable, so they vary on the interface language too. The envelope
+   * schema inherits that through the props schemas its component union
+   * inlines.
    */
   private static function schemaCacheability(): CacheableMetadata {
     return (new CacheableMetadata())
       ->addCacheTags(['component_producer_plugins', 'component_plugins'])
-      ->addCacheContexts(['url.site']);
+      ->addCacheContexts(['url.site', 'languages:' . LanguageInterface::TYPE_INTERFACE]);
   }
 
 }

@@ -73,6 +73,10 @@ final class EnvelopeExceptionSubscriber implements EventSubscriberInterface {
       // An error whose cacheability nobody described is not one to store.
       $cacheability->setCacheMaxAge(0);
     }
+    // The body carries the negotiated content language, and a cacheable
+    // exception carries no language context of its own, so without this one
+    // language's error envelope can be served for another.
+    $cacheability->addCacheContexts(['languages:' . LanguageInterface::TYPE_CONTENT]);
 
     $envelope = new PageEnvelope(
       [

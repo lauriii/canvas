@@ -528,6 +528,13 @@ final class ComponentProducerTest extends KernelTestBase {
     $this->assertInstanceOf(CacheableJsonResponse::class, $response);
     // A 403 stays a 403, rather than becoming a 200 with an error key.
     $this->assertSame(403, $response->getStatusCode());
+    // The body names a language, so the response varies on the one it named.
+    // A cacheable exception carries no language context of its own, so without
+    // this one language's error envelope is served for another.
+    $this->assertContains(
+      'languages:language_content',
+      $response->getCacheableMetadata()->getCacheContexts(),
+    );
 
     $body = json_decode((string) $response->getContent(), TRUE);
     // Well-formed envelope plus one extra key, so a client parses one shape
