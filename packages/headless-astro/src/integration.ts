@@ -52,12 +52,13 @@ function manifestPlugin(
 }
 
 /**
- * The environment variables the SDK reads through process.env (see
- * resolveDraftConfig()). Astro's own .env loading
- * targets import.meta.env, which the framework-agnostic core cannot read,
- * so the integration bridges these keys across.
+ * The environment variables the SDK reads through process.env: the draft
+ * configuration keys resolveDraftConfig() needs, plus the publish webhook
+ * secret the revalidate route reads. Astro's own .env loading targets
+ * import.meta.env, which the framework-agnostic core cannot read, so the
+ * integration bridges these keys across.
  */
-const ENV_KEYS = ['CANVAS_SITE_URL'] as const;
+const ENV_KEYS = ['CANVAS_SITE_URL', 'CANVAS_PUBLISH_WEBHOOK_SECRET'] as const;
 
 export interface CanvasIntegrationOptions {
   /**

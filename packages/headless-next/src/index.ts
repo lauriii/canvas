@@ -13,6 +13,11 @@ export {
   type DraftRouteHandlers,
 } from './route-handlers';
 export {
+  createRevalidateRouteHandler,
+  type RevalidateRouteHandler,
+  type RevalidateRouteHandlerOptions,
+} from './revalidate';
+export {
   createComponentMetadataHandler,
   type ComponentMetadataHandlerOptions,
 } from './component-metadata';
@@ -35,6 +40,7 @@ export {
   getSessionToken,
   isDraftSessionExpired,
   isPageRedirect,
+  surrogateKeyHeader,
   type AccessToken,
   type CanvasComponentTreeElement,
   type CanvasComponentTreeSlot,
@@ -42,6 +48,7 @@ export {
   type DrupalRouteEntity,
   type DraftData,
   type Page,
+  type PageCacheability,
   type PageHead,
   type PageRedirect,
   type PageResult,

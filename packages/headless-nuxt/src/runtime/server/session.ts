@@ -89,11 +89,15 @@ export function fetchComponentPreview(
   return getDraftServer(event).fetchComponentPreview(componentId);
 }
 
+export { CANVAS_CACHE_GROUP, createRevalidateEventHandler } from './revalidate';
+export type { RevalidateEventHandlerOptions } from './revalidate';
+export { surrogateKeyHeader } from '@drupal-canvas/headless';
 export { isDraftSessionExpired, isPageRedirect, NUXT_DRAFT_FLAG_COOKIE_NAME };
 export type {
   DrupalRoute,
   DrupalRouteEntity,
   Page,
+  PageCacheability,
   PageHead,
   PageRedirect,
   PageResult,

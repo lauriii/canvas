@@ -66,3 +66,72 @@ live: `getClient(event)` returns the draft-aware JSON:API client and
 `useFetch()`, which forwards the request's cookies during SSR. Render
 `page.content` directly and pass the complete `page.head` object reactively to
 `useHead()`. Handle `PageRedirect` before page rendering with `navigateTo()`.
+
+## Content invalidation
+
+When an editor publishes in Drupal, Canvas calls a webhook so the Nuxt app can
+drop its cached copies of the affected pages. Mount the revalidation handler at
+a server route and set the shared secret.
+
+**1. Mount the handler** — create `server/routes/api/canvas/revalidate.post.ts`:
+
+```ts
+import { createRevalidateEventHandler } from '@drupal-canvas/headless-nuxt/server';
+
+export default createRevalidateEventHandler();
+```
+
+**2. Set the secret** — `CANVAS_PUBLISH_WEBHOOK_SECRET` must match the site's
+`$settings['canvas_headless_publish_webhook_secret']`. The handler verifies the
+`X-Canvas-Signature` HMAC on every request: it answers 401 when the signature
+does not match and 500 when the secret is not configured.
+
+**3. Cache pages under the `canvas` group** — Nitro's cache is key-based, not
+tag-based, so there is no direct equivalent of Next's tag revalidation. The
+default handler clears one documented cache group instead, so tag your Canvas
+page caches with `group: 'canvas'`:
+
+```ts
+export default defineCachedEventHandler(handler, {
+  group: 'canvas',
+  swr: true,
+});
+```
+
+A publish then clears every Canvas page cache at once, and only those; unrelated
+Nitro caches are left untouched. With stale-while-revalidate (a `swr: true`
+cached handler, or `routeRules: { '/**': { swr: true } }` in `nuxt.config.ts`)
+the last render keeps serving while the next request regenerates the page, so a
+publish never blocks a visitor.
+
+This is coarser than the Next.js adapter, which revalidates the exact tags a
+publish touched. For precise invalidation, pass a `revalidate` callback and map
+the payload's Drupal cache tags to your own cache keys:
+
+```ts
+export default createRevalidateEventHandler({
+  revalidate: async ({ tags }) => {
+    // Invalidate exactly the cache keys these tags map to.
+  },
+});
+```
+
+### Purging a CDN by surrogate key
+
+A CDN-fronted deploy can purge by cache tag instead. Set the `Surrogate-Key`
+response header from a page's cacheability tags when you render it, and the CDN
+keys its cached objects by the same tags the publish webhook carries:
+
+```ts
+import { setResponseHeader } from 'h3';
+import { surrogateKeyHeader } from '@drupal-canvas/headless-nuxt/server';
+
+// In the server route that renders the page, after handling any redirect:
+const key = surrogateKeyHeader(page);
+if (key) {
+  setResponseHeader(event, 'Surrogate-Key', key);
+}
+```
+
+`surrogateKeyHeader()` returns an empty string when the page has no tags, so the
+guard skips the header in that case.

@@ -358,7 +358,7 @@ components:
     CanvasContentResult:
       type: object
       additionalProperties: false
-      required: [content, head, route]
+      required: [content, head, route, cacheability]
       properties:
         content:
           oneOf:
@@ -369,6 +369,19 @@ components:
           $ref: '#/components/schemas/UnheadDocument'
         route:
           $ref: '#/components/schemas/CanvasRouteContext'
+        cacheability:
+          description: |
+            The cache tags the rendered content depended on, so a consumer can
+            map a later tag invalidation to the pages that must be rebuilt or
+            revalidated.
+          type: object
+          additionalProperties: false
+          required: [tags]
+          properties:
+            tags:
+              type: array
+              items:
+                type: string
 
     CanvasRedirectResult:
       type: object

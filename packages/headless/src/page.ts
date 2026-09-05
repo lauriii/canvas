@@ -63,12 +63,23 @@ export interface DrupalRoute {
 }
 
 /**
+ * The cacheability of a rendered page: the cache tags its content depended
+ * on. A consumer that records these per path can, on a publish notification,
+ * map an invalidated tag back to the pages that must be rebuilt or
+ * revalidated (for example an incremental static regeneration trigger).
+ */
+export interface PageCacheability {
+  tags: string[];
+}
+
+/**
  * Drupal's resolved-and-rendered answer for a request URI.
  */
 export interface Page {
   content: CanvasComponentTreeElement | null;
   head: PageHead;
   route: DrupalRoute;
+  cacheability: PageCacheability;
 }
 
 /** A redirect Drupal resolved before routed content. */
@@ -82,6 +93,20 @@ export interface PageRedirect {
 
 /** Drupal's content or redirect result for one frontend request URI. */
 export type PageResult = Page | PageRedirect;
+
+/**
+ * The `Surrogate-Key` header value for a page: its cache tags joined by
+ * spaces, the format a CDN keys cached objects by for surrogate-key purging.
+ * An adapter sets this on the page response so the CDN can later
+ * purge exactly the objects a publish invalidated, by the same tags the
+ * publish webhook carries. Returns an empty string when there are no tags,
+ * so callers can skip setting the header.
+ *
+ * Cache tag names contain no spaces, so no escaping is needed.
+ */
+export function surrogateKeyHeader(page: Page): string {
+  return page.cacheability.tags.join(' ');
+}
 
 /** Distinguishes redirect results without inspecting framework state. */
 export function isPageRedirect(result: PageResult): result is PageRedirect {

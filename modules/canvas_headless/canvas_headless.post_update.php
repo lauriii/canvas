@@ -48,3 +48,13 @@ function canvas_headless_post_update_0001_assign_existing_external_components():
     $settings->set('frontends', $frontends)->save();
   }
 }
+
+/**
+ * Adds the publish webhook settings with their disabled defaults.
+ */
+function canvas_headless_post_update_0002_add_publish_webhook_settings(): void {
+  $settings = \Drupal::configFactory()->getEditable('canvas_headless.settings');
+  if ($settings->get('publish_webhook') === NULL) {
+    $settings->set('publish_webhook', ['url' => ''])->save();
+  }
+}
