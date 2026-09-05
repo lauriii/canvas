@@ -98,6 +98,44 @@ abstract class JsonSchemaPropsComponentSourceBaseTestBase extends ComponentSourc
   #[DataProvider('providerHydrationAndRenderingEdgeCases')]
   public function testHydrationAndRenderingEdgeCases(?array $resolved_explicit_input_values_for_object_prop, bool $is_object_prop_present_in_hydration, string $expected_html): void {
     $this->generateComponentConfig();
+    $this->doTestHydrationAndRenderingEdgeCases($resolved_explicit_input_values_for_object_prop, $is_object_prop_present_in_hydration, $expected_html);
+  }
+
+  /**
+   * Same, but with the optional image prop stored as a Media reference.
+   *
+   * Without an Image media type, an image-shaped prop is stored in a plain
+   * image field, whose expression is object-shaped. With one — which the
+   * Standard install profile, and hence virtually every real site, has — it is
+   * stored as a reference to a Media entity, whose expression is not. Hydration
+   * must omit an optional object-shaped prop that evaluated to all-NULL either
+   * way: it is the prop that is object-shaped, not its storage.
+   *
+   * @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter()
+   * @see https://www.drupal.org/project/canvas/issues/3564392
+   */
+  #[DataProvider('providerHydrationAndRenderingEdgeCases')]
+  public function testHydrationAndRenderingEdgeCasesWithMediaBackedImageProp(?array $resolved_explicit_input_values_for_object_prop, bool $is_object_prop_present_in_hydration, string $expected_html): void {
+    $this->createMediaType('image', ['id' => 'image', 'label' => 'Image']);
+    $this->generateComponentConfig();
+
+    // Confirm the premise of this test: the image prop is now stored as a
+    // reference to a Media entity.
+    // @phpstan-ignore-next-line property.notFound
+    $component = Component::load($this->componentWithOptionalImageProp);
+    self::assertInstanceOf(ComponentInterface::class, $component);
+    self::assertStringStartsWith('ℹ︎entity_reference␟entity', $component->getSettings()['prop_field_definitions']['image']['expression']);
+
+    $this->doTestHydrationAndRenderingEdgeCases($resolved_explicit_input_values_for_object_prop, $is_object_prop_present_in_hydration, $expected_html);
+  }
+
+  /**
+   * Asserts one hydration and rendering edge case.
+   *
+   * @see ::testHydrationAndRenderingEdgeCases()
+   * @see ::testHydrationAndRenderingEdgeCasesWithMediaBackedImageProp()
+   */
+  private function doTestHydrationAndRenderingEdgeCases(?array $resolved_explicit_input_values_for_object_prop, bool $is_object_prop_present_in_hydration, string $expected_html): void {
     // @phpstan-ignore-next-line property.notFound
     $component_with_optional_image_object_shape = Component::load($this->componentWithOptionalImageProp);
     self::assertNotNull($component_with_optional_image_object_shape);

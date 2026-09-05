@@ -18,7 +18,6 @@ use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ObjectPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\ReferencePropExpressionInterface;
-use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
 use Drupal\canvas\PropShape\StorablePropShape;
@@ -539,8 +538,26 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       // Special case: optional `type: object`-shaped props if all key-value
       // pairs evaluated to NULL (which is only possible/allowed because the
       // entire object is optional).
-      $prop_expression = StructuredDataPropExpression::fromString($prop_field_definitions[$prop]['expression']);
-      if (!$is_required && $prop_expression instanceof ObjectPropExpressionInterface && empty(array_filter($resolved_value->value))) {
+      // TRICKY: whether this prop is `type: object`-shaped is determined from
+      // the resolved value, not from
+      // `prop_field_definitions[$prop]['expression']`. That expression can only
+      // ever describe the conjured field storing a *static* value for this
+      // prop, and for image and video props that field is a reference to a
+      // Media entity on every site that has Media Library installed — so it is
+      // not an object expression there, even though the prop is object-shaped.
+      // A JSON object resolves to a keyed array, whereas a multiple-cardinality
+      // prop resolves to a list, which must be retained even when it is empty.
+      // Both conditions are needed: an evaluated multiple-cardinality prop can
+      // have gaps in its deltas, which makes it a keyed array rather than a
+      // list.
+      // @see ::getExplicitInput()
+      // @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::evaluate()
+      // @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter()
+      $cardinality = $prop_field_definitions[$prop]['cardinality'] ?? 1;
+      $resolved_object = $cardinality === 1 && \is_array($resolved_value->value) && !\array_is_list($resolved_value->value)
+        ? $resolved_value->value
+        : NULL;
+      if (!$is_required && $resolved_object !== NULL && empty(array_filter($resolved_object))) {
         unset($hydrated[self::EXPLICIT_INPUT_NAME][$prop]);
       }
     }
