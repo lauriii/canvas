@@ -1,0 +1,35 @@
+# The empty slot marker: an intrinsic placeholder representing an *empty
+# override* of an exposed slot. An exposed slot's per-entity `component_tree`
+# field is in one of exactly three states:
+# 1. Empty field (no rows): NOT overridden — the content template's default
+#    content for the slot renders.
+# 2. A tree whose sole row references this marker: overridden to be empty —
+#    "this entity's slot renders nothing".
+# 3. A tree of one or more ordinary component instances: overridden — that
+#    per-entity content renders.
+# Like the page content marker it is provided (not discovered) by the marker
+# ComponentSource, so it ships as enforced-dependency config, and the editor
+# keeps every `marker.*` component out of the component library rather than
+# relying on `status: false`.
+# @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
+# @see ui/src/services/pageVariants.ts (isMarkerComponentType)
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - canvas
+# 💡The active version can only change due to changes to the logic in the ComponentSource plugin, because markers have
+# no settings and no logic-defined explicit inputs. Every marker therefore shares this hash.
+# @see ::generateVersionHash()
+active_version: 3b12c0b99a6caecc
+versioned_properties:
+  active:
+    settings: {  }
+    fallback_metadata:
+      slot_definitions: {  }
+label: 'Empty slot'
+id: marker.empty_slot
+provider: canvas
+source: marker
+source_local_id: empty_slot

@@ -419,7 +419,7 @@ function ensureOverriddenForPath(
 /**
  * Normalize the empty-override marker for every overridden exposed slot after a
  * mutation: an overridden slot with no real content holds exactly one
- * `canvas_slot_empty.marker` node (empty override); one with real content holds
+ * `marker.empty_slot` node (empty override); one with real content holds
  * no marker. A non-overridden slot is left untouched (its emptiness means
  * "inherit the default").
  */

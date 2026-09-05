@@ -9,7 +9,6 @@ use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\canvas\ClientDataToEntityConverter;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
-use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\ContentTemplate;
@@ -1216,7 +1215,7 @@ final class ApiLayoutController {
       }
       $overrides[$field_name] = [
         'overridden' => \count($roots) > 0,
-        'empty' => \count($roots) === 1 && $roots[0]->getComponentId() === ComponentInterface::EMPTY_SLOT_MARKER_ID,
+        'empty' => \count($roots) === 1 && $roots[0]->getComponentId() === Marker::EMPTY_SLOT_COMPONENT_ID,
       ];
     }
     return $overrides;

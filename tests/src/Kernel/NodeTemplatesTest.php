@@ -526,7 +526,7 @@ HTML;
       'canvas_slot_custom' => [
         [
           'uuid' => 'dddddddd-0000-4000-8000-000000000004',
-          'component_id' => 'canvas_slot_empty.marker',
+          'component_id' => 'marker.empty_slot',
         ],
       ],
     ]);
@@ -787,7 +787,7 @@ HTML;
       'canvas_slot_custom' => [
         [
           'uuid' => 'dddddddd-0000-4000-8000-000000000004',
-          'component_id' => 'canvas_slot_empty.marker',
+          'component_id' => 'marker.empty_slot',
         ],
       ],
     ]);
@@ -796,13 +796,13 @@ HTML;
     // The marker alongside a second row (no longer the sole row) is rejected.
     $node->get('canvas_slot_custom')->appendItem([
       'uuid' => 'eeeeeeee-0000-4000-8000-000000000005',
-      'component_id' => 'canvas_slot_empty.marker',
+      'component_id' => 'marker.empty_slot',
     ]);
     $messages = \array_map(
       static fn ($violation): string => \strip_tags((string) $violation->getMessage()),
       \iterator_to_array($node->validate()),
     );
-    self::assertContains('The canvas_slot_empty.marker component may only be used as the sole, empty override of an exposed slot.', $messages);
+    self::assertContains('The marker.empty_slot component may only be used as the sole, empty override of an exposed slot.', $messages);
   }
 
   /**

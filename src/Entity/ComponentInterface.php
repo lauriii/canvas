@@ -17,18 +17,6 @@ interface ComponentInterface extends VersionedConfigEntityInterface, EntityWithP
   public const string FALLBACK_VERSION = 'fallback';
 
   /**
-   * The ID of the "empty slot marker" Component config entity.
-   *
-   * A `status: false` (hence non-placeable) Component that renders nothing. As
-   * the sole root row of an exposed slot's backing field it represents an
-   * *empty override*: "this entity's slot renders nothing" (vs. empty field =
-   * inherit the template default).
-   *
-   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\EmptySlotMarker
-   */
-  public const string EMPTY_SLOT_MARKER_ID = 'canvas_slot_empty.marker';
-
-  /**
    * Gets the component source plugin.
    *
    * @return \Drupal\canvas\ComponentSource\ComponentSourceInterface

@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas\Kernel\Config;
 
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\VersionedConfigEntityInterface;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
@@ -385,23 +386,27 @@ class ComponentTest extends CanvasKernelTestBase {
   }
 
   /**
-   * The empty-slot marker Component can never become enabled (placeable).
+   * The empty-slot marker is an ordinary marker Component, hidden by the editor.
    *
-   * @see \Drupal\canvas\Entity\Component::preSave()
+   * Markers are intrinsic placeholders: the editor filters every `marker.*`
+   * component out of the component library, so the empty-slot marker needs no
+   * bespoke source, no `status: false`, and no preSave() guard to stay
+   * non-placeable — exactly like the page content marker.
+   *
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
+   * @see ui/src/services/pageVariants.ts (isMarkerComponentType)
    */
-  public function testEmptySlotMarkerCannotBeEnabled(): void {
-    $marker = Component::load(ComponentInterface::EMPTY_SLOT_MARKER_ID);
+  public function testEmptySlotMarkerIsAMarkerComponent(): void {
+    $marker = Component::load(Marker::EMPTY_SLOT_COMPONENT_ID);
     \assert($marker instanceof ComponentInterface);
-    self::assertFalse($marker->status());
-
-    // Even an explicit enable — for example, a recipe config action enabling
-    // every `canvas.component.*.*` — must not make the marker placeable.
-    $marker->enable()->save();
-    self::assertFalse($marker->status());
-
-    $reloaded = Component::load(ComponentInterface::EMPTY_SLOT_MARKER_ID);
-    \assert($reloaded instanceof ComponentInterface);
-    self::assertFalse($reloaded->status());
+    self::assertSame(Marker::SOURCE_PLUGIN_ID, $marker->get('source'));
+    self::assertSame(Marker::EMPTY_SLOT_LOCAL_ID, $marker->get('source_local_id'));
+    self::assertInstanceOf(Marker::class, $marker->getComponentSource());
+    // Both shipped markers share one version hash: markers have no settings
+    // and no explicit inputs.
+    $page_content = Component::load(Marker::PAGE_CONTENT_COMPONENT_ID);
+    \assert($page_content instanceof ComponentInterface);
+    self::assertSame($page_content->getActiveVersion(), $marker->getActiveVersion());
   }
 
 }

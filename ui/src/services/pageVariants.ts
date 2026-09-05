@@ -43,6 +43,12 @@ export const PAGE_VARIANT_ENTITY_TYPE = 'page_variant';
 // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker::PAGE_CONTENT_COMPONENT_ID
 export const PAGE_CONTENT_MARKER_ID = 'marker.page_content';
 
+// The intrinsic "Empty slot" marker. As the sole content of an exposed slot it
+// means "this entity's slot renders nothing", as opposed to no content at all,
+// which inherits the content template's default.
+// @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker::EMPTY_SLOT_COMPONENT_ID
+export const EMPTY_SLOT_MARKER_ID = 'marker.empty_slot';
+
 // Resolves the page variant shown in the Layers panel. The page data form can
 // contain an unsaved selection that is newer than the layout GET response.
 // Empty values mean "Site default"; while that setting is loading, retain the
@@ -76,12 +82,17 @@ export const resolvePageVariantSelection = (
 export const isMarkerComponentType = (type?: string): boolean =>
   !!type?.startsWith('marker.');
 
-// Reads the active version hash of the "Page content" marker from the component
-// library. The version is a backend detail (it changes only if the marker's
-// settings change), so it is looked up at runtime rather than hard-coded.
+// Reads a marker's active version hash from the component library. The version
+// is a backend detail (it changes only if the marker's definition changes), so
+// it is looked up at runtime rather than hard-coded.
+export const getMarkerVersion = (
+  markerId: string,
+  components?: ComponentsList,
+): string | undefined => components?.[markerId]?.version;
+
 export const getPageContentMarkerVersion = (
   components?: ComponentsList,
-): string | undefined => components?.[PAGE_CONTENT_MARKER_ID]?.version;
+): string | undefined => getMarkerVersion(PAGE_CONTENT_MARKER_ID, components);
 
 // Derives a config-entity-safe machine name from a human label. Config entity
 // ids allow lowercase letters, digits and underscores.
@@ -112,13 +123,15 @@ export const generateUniqueVariantId = (
   return `${base}_${suffix}`;
 };
 
-// Builds the "Page content" marker instance that seeds every new variant.
+// Builds a marker instance: the "Page content" one seeds every new variant, the
+// "Empty slot" one records an empty per-entity override of an exposed slot.
 export const buildMarkerTreeItem = (
   markerVersion: string,
   uuid: string = uuidv4(),
+  componentId: string = PAGE_CONTENT_MARKER_ID,
 ): PageVariantComponentTreeItem => ({
   uuid,
-  component_id: PAGE_CONTENT_MARKER_ID,
+  component_id: componentId,
   component_version: markerVersion,
   inputs: [],
 });

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Drupal\canvas\Plugin\Validation\Constraint;
 
 use Drupal\canvas\Entity\Component;
-use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Core\Config\Plugin\Validation\Constraint\ConfigExistsConstraint;
 use Drupal\Core\Config\Schema\Sequence;
@@ -255,13 +255,13 @@ final class ComponentTreeStructureConstraintValidator extends ConstraintValidato
     // The check is deliberately structural, not tied to the active template's
     // exposed slots: a detached slot field keeps its content, marker included,
     // and becomes meaningful again when the slot is re-exposed.
-    if (($component_instance['component_id'] ?? NULL) === ComponentInterface::EMPTY_SLOT_MARKER_ID) {
+    if (($component_instance['component_id'] ?? NULL) === Marker::EMPTY_SLOT_COMPONENT_ID) {
       $host = $root instanceof EntityAdapter ? $root->getValue() : NULL;
       $is_entity_host = $host instanceof FieldableEntityInterface && !($host instanceof ComponentTreeEntityInterface);
       $is_sole_root = \count($tree) === 1 && empty($component_instance['parent_uuid']) && empty($component_instance['slot']);
       if (!$is_entity_host || !$is_sole_root) {
         $context->buildViolation('The %component component may only be used as the sole, empty override of an exposed slot.', [
-          '%component' => ComponentInterface::EMPTY_SLOT_MARKER_ID,
+          '%component' => Marker::EMPTY_SLOT_COMPONENT_ID,
         ])
           ->atPath('component_id')
           ->addViolation();

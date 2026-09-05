@@ -12,6 +12,7 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\PageRegion;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Plugin\Menu\ContentTemplateLayoutTask;
@@ -390,7 +391,7 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
     $node = self::createTemplatedNode();
     $url = $this->getLayoutUrl($node)->toString();
 
-    $marker = Component::load(ComponentInterface::EMPTY_SLOT_MARKER_ID);
+    $marker = Component::load(Marker::EMPTY_SLOT_COMPONENT_ID);
     self::assertInstanceOf(ComponentInterface::class, $marker);
     $marker_uuid = '44444444-4444-4444-8444-444444444444';
 
@@ -398,7 +399,7 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
     $post['layout'][0]['components'][] = [
       'nodeType' => 'component',
       'uuid' => $marker_uuid,
-      'type' => ComponentInterface::EMPTY_SLOT_MARKER_ID . '@' . $marker->getActiveVersion(),
+      'type' => Marker::EMPTY_SLOT_COMPONENT_ID . '@' . $marker->getActiveVersion(),
       'slots' => [],
     ];
     $this->request(Request::create($url, method: 'POST', content: \json_encode($post, JSON_THROW_ON_ERROR)));
@@ -408,7 +409,7 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
     self::assertCount(1, $field);
     $item = $field->get(0);
     self::assertInstanceOf(ComponentTreeItem::class, $item);
-    self::assertSame(ComponentInterface::EMPTY_SLOT_MARKER_ID, $item->getComponentId());
+    self::assertSame(Marker::EMPTY_SLOT_COMPONENT_ID, $item->getComponentId());
     self::assertNull($item->getParentUuid());
     self::assertNull($item->getSlot());
 

@@ -799,6 +799,8 @@ canvas.component_source_local_id.marker:
     FullyValidatable: ~
     Choice:
       - page_content
+      # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker::EMPTY_SLOT_LOCAL_ID
+      - empty_slot
 canvas.component_source_settings.marker:
   type: canvas.component_source_settings.*
   label: 'Marker component settings'
@@ -835,21 +837,6 @@ canvas.component_source_settings.fallback:
     # @see `canvas.component.*:source`
     last_active_version:
       type: string
-
-# The `canvas_slot_empty` plugin ID provides a single, non-placeable Component that renders nothing.
-# @see \Drupal\canvas\Plugin\Canvas\ComponentSource\EmptySlotMarker
-canvas.component_source_local_id.canvas_slot_empty:
-  type: canvas.component_source_local_id.*
-  label: 'Empty slot marker component ID'
-  constraints:
-    FullyValidatable: ~
-    IdenticalTo:
-      value: marker
-canvas.component_source_settings.canvas_slot_empty:
-  type: canvas.component_source_settings.*
-  label: 'Empty slot marker component settings'
-  constraints:
-    FullyValidatable: ~
 
 field.value.component_tree:
   # TRICKY: `field_config_base:default_value` defines the default value as a sequence of field item values. Hence this

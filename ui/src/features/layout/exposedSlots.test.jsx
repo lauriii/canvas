@@ -7,7 +7,6 @@ import userEvent from '@testing-library/user-event';
 
 import { makeStore } from '@/app/store';
 import {
-  CANVAS_SLOT_EMPTY_MARKER_ID,
   CANVAS_SLOT_EMPTY_MARKER_TYPE,
   countExposedSlots,
   exposedSlotsFromServer,
@@ -42,6 +41,7 @@ import {
   deriveSlotFieldName,
   validateSlotFieldName,
 } from '@/features/validation/validation';
+import { EMPTY_SLOT_MARKER_ID } from '@/services/pageVariants';
 
 // The expose/detach *dialog* UI coverage (the single "Slot field" Select that
 // defaults to reusing an existing field, the "Add new slot…" create path, and
@@ -515,8 +515,7 @@ describe('per-content mode helpers', () => {
 
   it('recognizes and filters the empty-slot marker', () => {
     expect(CANVAS_SLOT_EMPTY_MARKER_TYPE.split('@')[0]).toBe(
-      CANVAS_SLOT_EMPTY_MARKER_ID,
-    );
+        );
     const marker = {
       nodeType: 'component',
       uuid: 'm',

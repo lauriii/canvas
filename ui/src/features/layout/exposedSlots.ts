@@ -12,6 +12,10 @@ import {
   findComponentByUuid,
   recurseNodes,
 } from '@/features/layout/layoutUtils';
+import {
+  EMPTY_SLOT_MARKER_ID,
+  isMarkerComponentType,
+} from '@/services/pageVariants';
 
 import type {
   ComponentNode,
@@ -23,27 +27,36 @@ import type {
 } from '@/features/layout/layoutModelSlice';
 
 /**
- * The shipped, render-nothing Component that represents an *empty override* of
- * an exposed slot: a single instance of it, as a slot's sole content, tells the
- * server the entity deliberately renders nothing there (distinct from an absent
- * slot, which inherits the template default).
+ * The empty-slot marker's `type` (`id@version`), used to seed an empty override.
  *
- * It is excluded from the component library (config `status: false`), so its
- * active version is not discoverable via the components API and must be pinned
- * here. Keep the version in sync with the config file if the plugin changes.
+ * The version is pinned rather than read from the component library because the
+ * marker node is built inside a Redux reducer, which cannot query it. Every
+ * marker shares one hash: markers have no settings and no explicit inputs, so
+ * the hash can only change when the `Marker` source's logic changes, and the
+ * shipped config file changes in the same commit. Runtime lookups elsewhere use
+ * the shared helper instead.
  *
- * @see \Drupal\canvas\Entity\ComponentInterface::EMPTY_SLOT_MARKER_ID
- * @see config/install/canvas.component.canvas_slot_empty.marker.yml (active_version)
+ * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker::EMPTY_SLOT_COMPONENT_ID
+ * @see getMarkerVersion in @/services/pageVariants
+ * @see config/install/canvas.component.marker.empty_slot.yml (active_version)
  */
-export const CANVAS_SLOT_EMPTY_MARKER_ID = 'canvas_slot_empty.marker';
 export const CANVAS_SLOT_EMPTY_MARKER_VERSION = '3b12c0b99a6caecc';
-export const CANVAS_SLOT_EMPTY_MARKER_TYPE = `${CANVAS_SLOT_EMPTY_MARKER_ID}@${CANVAS_SLOT_EMPTY_MARKER_VERSION}`;
+export const CANVAS_SLOT_EMPTY_MARKER_TYPE = `${EMPTY_SLOT_MARKER_ID}@${CANVAS_SLOT_EMPTY_MARKER_VERSION}`;
 
 /**
  * Whether a component node is the empty-slot marker.
+ *
+ * Markers are recognized by the shared `marker.` namespace check; only the
+ * empty-slot one can appear in an entity's slot field, so the namespace check
+ * plus the id comparison are equivalent here — the shared helper is used so a
+ * future marker is not silently treated as ordinary content.
+ *
+ * @see isMarkerComponentType
  */
-export const isEmptySlotMarkerNode = (node: ComponentNode): boolean =>
-  node.type.split('@')[0] === CANVAS_SLOT_EMPTY_MARKER_ID;
+export const isEmptySlotMarkerNode = (node: ComponentNode): boolean => {
+  const id = node.type.split('@')[0];
+  return isMarkerComponentType(id) && id === EMPTY_SLOT_MARKER_ID;
+};
 
 /**
  * The components of a slot excluding any empty-slot marker.
