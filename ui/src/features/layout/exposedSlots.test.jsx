@@ -515,7 +515,8 @@ describe('per-content mode helpers', () => {
 
   it('recognizes and filters the empty-slot marker', () => {
     expect(CANVAS_SLOT_EMPTY_MARKER_TYPE.split('@')[0]).toBe(
-        );
+      EMPTY_SLOT_MARKER_ID,
+    );
     const marker = {
       nodeType: 'component',
       uuid: 'm',

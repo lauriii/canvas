@@ -11,7 +11,9 @@ use Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\DependencyInjection\ClassResolverInterface;
 use Drupal\Core\Entity\Entity\EntityViewMode;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\field\Entity\FieldConfig;
@@ -540,7 +542,7 @@ HTML;
 
     $template = ContentTemplate::load('node.article.full');
     self::assertInstanceOf(ContentTemplate::class, $template);
-    $controller = $this->container->get('class_resolver')
+    $controller = $this->container->get(ClassResolverInterface::class)
       ->getInstanceFromDefinition(ApiContentTemplateSlotFieldController::class);
     // Three articles override the slot (two filled, one empty marker); the two
     // inheriting articles and the page node (different bundle, same field) are
@@ -595,7 +597,7 @@ HTML;
     $template = ContentTemplate::load('node.article.full');
     self::assertInstanceOf(ContentTemplate::class, $template);
 
-    $controller = $this->container->get('class_resolver')
+    $controller = $this->container->get(ClassResolverInterface::class)
       ->getInstanceFromDefinition(ApiContentTemplateSlotFieldController::class);
     $request = Request::create('/', 'POST', content: (string) \json_encode(['fieldName' => 'canvas_slot_taken', 'label' => 'Taken']));
     $this->expectException(ConflictHttpException::class);
@@ -641,7 +643,7 @@ HTML;
       'content_entity_type_bundle' => 'page',
       'content_entity_type_view_mode' => 'full',
     ]);
-    $controller = $this->container->get('class_resolver')
+    $controller = $this->container->get(ClassResolverInterface::class)
       ->getInstanceFromDefinition(ApiContentTemplateSlotFieldController::class);
     $data = \json_decode((string) $controller->candidates($page_template)->getContent(), TRUE);
     $by_name = \array_column($data['fields'], NULL, 'fieldName');
@@ -847,7 +849,7 @@ HTML;
 
     // Deleting the backing field detaches the slot from the template.
     FieldStorageConfig::loadByName('node', 'canvas_slot_custom')?->delete();
-    $this->container->get('entity_field.manager')->clearCachedFieldDefinitions();
+    $this->container->get(EntityFieldManagerInterface::class)->clearCachedFieldDefinitions();
     $template = ContentTemplate::load('node.article.full');
     self::assertInstanceOf(ContentTemplate::class, $template);
     self::assertSame([], $template->getExposedSlots());

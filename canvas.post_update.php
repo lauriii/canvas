@@ -800,7 +800,7 @@ function canvas_post_update_0030_page_variant_selection_options(): void {
 /**
  * Installs the empty-slot marker component on existing sites.
  *
- * config/install is only processed at module install time, but exposed slots
+ * Config/install is only processed at module install time, but exposed slots
  * need the empty-slot marker to represent empty overrides. Create it the same
  * way the page content marker is created for existing sites.
  *

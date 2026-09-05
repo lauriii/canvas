@@ -12,7 +12,7 @@
 # keeps every `marker.*` component out of the component library rather than
 # relying on `status: false`.
 # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
-# @see ui/src/services/pageVariants.ts (isMarkerComponentType)
+# @see ui/src/services/pageVariants.ts
 langcode: en
 status: true
 dependencies:

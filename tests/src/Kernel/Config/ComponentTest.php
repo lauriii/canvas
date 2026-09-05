@@ -6,10 +6,10 @@ namespace Drupal\Tests\canvas\Kernel\Config;
 
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
-use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\VersionedConfigEntityInterface;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\ConfigInstallerInterface;
 use Drupal\Core\Config\StorageCacheInterface;
@@ -394,7 +394,7 @@ class ComponentTest extends CanvasKernelTestBase {
    * non-placeable — exactly like the page content marker.
    *
    * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
-   * @see ui/src/services/pageVariants.ts (isMarkerComponentType)
+   * @see ui/src/services/pageVariants.ts
    */
   public function testEmptySlotMarkerIsAMarkerComponent(): void {
     $marker = Component::load(Marker::EMPTY_SLOT_COMPONENT_ID);

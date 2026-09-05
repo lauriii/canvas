@@ -40,6 +40,7 @@ use Drupal\language\ConfigurableLanguageManagerInterface;
 use GuzzleHttp\Psr7\Query;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -160,7 +161,7 @@ final class ApiLayoutController {
       'isNew' => $is_new,
       'autoSaves' => $this->getAutoSaveHashes(array_merge(
         [$entity],
-        $this->getEditableRegions($entity),
+        self::getEditableRegions($entity),
       )),
     ];
     $available_translations = [];
@@ -432,7 +433,7 @@ final class ApiLayoutController {
     }
 
     $this->validateAutoSaves(
-      array_merge([$entity], $this->getEditableRegions($entity)),
+      array_merge([$entity], self::getEditableRegions($entity)),
       $autoSaves,
       $clientInstanceId,
     );
@@ -484,7 +485,7 @@ final class ApiLayoutController {
     }
     $data['autoSaves'] = $this->getAutoSaveHashes(array_merge(
       [$entity],
-      $this->getEditableRegions($entity),
+      self::getEditableRegions($entity),
     ));
     return new PreviewEnvelope(
       $this->buildPreviewRenderable($entity, $preview_entity),
@@ -530,7 +531,7 @@ final class ApiLayoutController {
     }
 
     $this->validateAutoSaves(
-      array_merge([$entity], $this->getEditableRegions($entity)),
+      array_merge([$entity], self::getEditableRegions($entity)),
       $autoSaves,
       $clientInstanceId,
     );
@@ -547,7 +548,7 @@ final class ApiLayoutController {
       if ($unknown !== []) {
         throw new AccessDeniedHttpException('Only exposed slots can be edited per-entity. Unknown nodes: ' . \implode(', ', \array_keys($unknown)));
       }
-      $entity = $this->getAutoSavedVersionIfAvailable([$entity])[$entity->id()];
+      $entity = $this->getAutoSavedVersionIfAvailable([$entity])[(string) $entity->id()];
       \assert($entity instanceof FieldableEntityInterface);
       $this->writeSlotRegions($entity, $slot_layouts, (array) $model, $entity_form_fields, $per_content_template);
       $this->autoSaveManager->saveEntity($entity, $clientInstanceId);
@@ -614,7 +615,7 @@ final class ApiLayoutController {
       additionalData: [
         'autoSaves' => $this->getAutoSaveHashes(array_merge(
           [$entity],
-          $this->getEditableRegions($entity),
+          self::getEditableRegions($entity),
         )),
       ],
     );

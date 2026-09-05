@@ -621,7 +621,6 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
     ]);
   }
 
-  public function testExposedSlotMustBeEmpty(): void {
   public function testExposedSlotWithDefaultContentIsAllowed(): void {
     \assert($this->entity instanceof ContentTemplate);
     $template = $this->entity;

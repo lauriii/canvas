@@ -1272,7 +1272,6 @@ export const selectPerContentTemplateInfo = (state: StateWithHistoryWrapper) =>
   state.layoutModel.present.contentTemplate;
 export const selectIsPerContentMode = (state: StateWithHistoryWrapper) =>
   Boolean(state.layoutModel.present.perContentMode);
-const selectRegion = (state: RootState, regionName: string) => regionName;
 
 // The editor edits a single content region (the page's, or a variant's, tree).
 // This selector returns that content region, synthesizing an empty one as a

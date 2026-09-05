@@ -37,7 +37,7 @@ final class EmptySlotMarkerPostUpdateTest extends CanvasKernelTestBase {
     self::assertSame('3b12c0b99a6caecc', $marker->getActiveVersion());
     // Markers are hidden from the component library by the editor, not by
     // their status, exactly like the page content marker.
-    // @see ui/src/services/pageVariants.ts (isMarkerComponentType)
+    // @see ui/src/services/pageVariants.ts
     self::assertTrue($marker->status());
 
     // Idempotent: a site that already has it is untouched.

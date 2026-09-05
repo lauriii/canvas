@@ -18,8 +18,12 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Plugin\Menu\ContentTemplateLayoutTask;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Access\AccessManagerInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\Routing\RouteMatch;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\node\NodeInterface;
@@ -75,9 +79,9 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->container->get('module_installer')->install(['system', 'block', 'user']);
-    $this->container->get('theme_installer')->install(['stark']);
-    $this->container->get('config.factory')->getEditable('system.theme')->set('default', 'stark')->save();
+    $this->container->get(ModuleInstallerInterface::class)->install(['system', 'block', 'user']);
+    $this->container->get(ThemeInstallerInterface::class)->install(['stark']);
+    $this->container->get(ConfigFactoryInterface::class)->getEditable('system.theme')->set('default', 'stark')->save();
 
     // @todo Refactor this away in https://www.drupal.org/project/canvas/issues/3531679
     (new CanvasTestSetup())->setup(TRUE);
@@ -632,7 +636,7 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
    * @see canvas_test_field_access_entity_field_access()
    */
   public function testSlotFieldAccessIsHonored(): void {
-    $this->container->get('module_installer')->install(['canvas_test_field_access']);
+    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_test_field_access']);
 
     // Two more exposed slots: one fully restricted (view and edit denied),
     // one read-only (view allowed, edit denied), both gated on a permission
@@ -761,7 +765,7 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
   public function testPerContentEditAccessPredicate(): void {
     $access = $this->container->get(ComponentTreeEditAccessCheck::class);
     self::assertInstanceOf(ComponentTreeEditAccessCheck::class, $access);
-    $account = $this->container->get('current_user')->getAccount();
+    $account = $this->container->get(AccountProxyInterface::class)->getAccount();
 
     // A templated node with active exposed slots that the user can update: the
     // per-content editor is offered.
@@ -785,9 +789,9 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
    * @legacy-covers \Drupal\canvas\Plugin\Menu\ContentTemplateLayoutTask::getRouteParameters
    */
   public function testLayoutEntryPointVisibility(): void {
-    $accessManager = $this->container->get('access_manager');
+    $accessManager = $this->container->get(AccessManagerInterface::class);
     self::assertInstanceOf(AccessManagerInterface::class, $accessManager);
-    $account = $this->container->get('current_user')->getAccount();
+    $account = $this->container->get(AccountProxyInterface::class)->getAccount();
 
     $templated = self::createTemplatedNode();
     NodeType::create(['type' => 'plain', 'name' => 'Plain'])->save();
@@ -808,7 +812,7 @@ final class ApiLayoutControllerPerContentTest extends ApiLayoutControllerTestBas
 
     // Hidden even for a templated node when the user cannot update it.
     $this->setUpCurrentUser([], ['access content']);
-    $unprivileged = $this->container->get('current_user')->getAccount();
+    $unprivileged = $this->container->get(AccountProxyInterface::class)->getAccount();
     self::assertInstanceOf(AccountInterface::class, $unprivileged);
     self::assertFalse($accessManager->checkNamedRoute('canvas.boot.entity', [
       'entity_type' => 'node',

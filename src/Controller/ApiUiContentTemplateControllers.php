@@ -138,7 +138,7 @@ final class ApiUiContentTemplateControllers extends ApiControllerBase {
 
     $entities_data = [];
     foreach ($entities as $entity) {
-      $entities_data[$entity->id()] = [
+      $entities_data[(string) $entity->id()] = [
         'id' => $entity->id(),
         'label' => $entity->label(),
         // Present only when the user may update this entity; gates both the

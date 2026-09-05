@@ -77,7 +77,7 @@ class ComponentTreeLoaderTest extends KernelTestBase {
     ]);
     $storage->save();
     FieldConfig::create(['field_storage' => $storage, 'bundle' => 'article'])->save();
-    $this->container->get('entity_field.manager')->clearCachedFieldDefinitions();
+    $this->container->get(EntityFieldManagerInterface::class)->clearCachedFieldDefinitions();
     $multiField = Node::create(['type' => 'article', 'title' => 'Two fields']);
     self::assertCount(2, $loader->loadAll($multiField));
   }
