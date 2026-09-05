@@ -44,19 +44,19 @@ export const CANVAS_SLOT_EMPTY_MARKER_VERSION = '3b12c0b99a6caecc';
 export const CANVAS_SLOT_EMPTY_MARKER_TYPE = `${EMPTY_SLOT_MARKER_ID}@${CANVAS_SLOT_EMPTY_MARKER_VERSION}`;
 
 /**
- * Whether a component node is the empty-slot marker.
+ * Whether a component node is a marker rather than entity-owned content.
  *
- * Markers are recognized by the shared `marker.` namespace check; only the
- * empty-slot one can appear in an entity's slot field, so the namespace check
- * plus the id comparison are equivalent here — the shared helper is used so a
- * future marker is not silently treated as ordinary content.
+ * Uses the shared namespace check rather than comparing against the empty-slot
+ * marker's id: the empty-slot marker is the only marker a slot field may hold
+ * (the others are banned from content trees, and this one is validated to be a
+ * slot field's sole root), so any marker found here is that marker, and a
+ * future one would be treated as a marker too rather than as content.
  *
  * @see isMarkerComponentType
+ * @see \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
  */
-export const isEmptySlotMarkerNode = (node: ComponentNode): boolean => {
-  const id = node.type.split('@')[0];
-  return isMarkerComponentType(id) && id === EMPTY_SLOT_MARKER_ID;
-};
+export const isEmptySlotMarkerNode = (node: ComponentNode): boolean =>
+  isMarkerComponentType(node.type.split('@')[0]);
 
 /**
  * The components of a slot excluding any empty-slot marker.
