@@ -12,6 +12,7 @@ export interface VhSignatureCacheEntry {
 
 interface StyleSnapshot {
   element: HTMLElement;
+  hadStyleAttribute: boolean;
   height: string;
   heightPriority: string;
   minHeight: string;
@@ -53,6 +54,7 @@ export interface StabilizeViewportHeightsResult {
 function snapshotStyles(elements: HTMLElement[]): StyleSnapshot[] {
   const snapshots = elements.map((element) => ({
     element,
+    hadStyleAttribute: element.hasAttribute('style'),
     height: element.style.getPropertyValue('height'),
     heightPriority: element.style.getPropertyPriority('height'),
     minHeight: element.style.getPropertyValue('min-height'),
@@ -75,6 +77,7 @@ function resetRootHeights(elements: HTMLElement[]): void {
 function restore(snapshots: StyleSnapshot[]): void {
   for (const {
     element,
+    hadStyleAttribute,
     height,
     heightPriority,
     minHeight,
@@ -105,6 +108,13 @@ function restore(snapshots: StyleSnapshot[]): void {
       element.removeAttribute(STABLE_HEIGHT_ATTRIBUTE);
     } else {
       element.setAttribute(STABLE_HEIGHT_ATTRIBUTE, stableHeight);
+    }
+
+    // Property removal on an element that had no style attribute leaves an
+    // empty style="" behind, which would keep matching attribute selectors
+    // such as html[style]. Drop it again in that case.
+    if (!hadStyleAttribute && element.getAttribute('style') === '') {
+      element.removeAttribute('style');
     }
   }
 }
@@ -140,6 +150,32 @@ export function collectElementsUnderRoots(roots: HTMLElement[]): HTMLElement[] {
   }
 
   return elements;
+}
+
+/**
+ * Measures the document's natural content height. A page styling html or body
+ * with height/block-size 100% makes their boxes track the viewport — inside a
+ * preview iframe, whatever height the host last applied — so those rules are
+ * neutralized for the measurement and restored afterwards. The style writes
+ * and the measurement happen in one synchronous block, so no intermediate
+ * state is painted.
+ */
+export function measureNaturalDocumentHeight(document: Document): number {
+  // No instanceof check: when a host window measures an iframe's document,
+  // its elements belong to the iframe's realm, where instanceof HTMLElement
+  // against the host's constructor is always false.
+  const rootElements = [document.documentElement, document.body].filter(
+    (element): element is HTMLElement => element != null,
+  );
+  const snapshots = snapshotStyles(rootElements);
+  try {
+    resetRootHeights(rootElements);
+    // documentElement can be null while a document is being replaced, for
+    // example during an iframe srcdoc navigation.
+    return document.documentElement?.offsetHeight ?? 0;
+  } finally {
+    restore(snapshots);
+  }
 }
 
 function isHeightExplicitlyConstrained(element: HTMLElement): boolean {
@@ -275,26 +311,17 @@ export class StableHeightReader {
       'roots' | 'effectiveViewportHeight'
     > = {},
   ): Promise<number> {
-    const { body, documentElement } = document;
+    const { documentElement } = document;
     const effectiveViewportHeight =
       document.defaultView?.innerHeight ?? documentElement.clientHeight;
 
-    const rootElements = [documentElement, body].filter(
-      (element): element is HTMLElement => element instanceof HTMLElement,
-    );
     await this.stabilize({
       ...options,
       roots: [documentElement],
       effectiveViewportHeight,
     });
 
-    const snapshots = snapshotStyles(rootElements);
-    try {
-      resetRootHeights(rootElements);
-      return documentElement.offsetHeight;
-    } finally {
-      restore(snapshots);
-    }
+    return measureNaturalDocumentHeight(document);
   }
 
   async #confirmByProbe(
