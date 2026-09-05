@@ -8,7 +8,17 @@ import {
   discoverCanvasProject,
 } from '@drupal-canvas/discovery';
 
-import { ensureConfig, getConfig, parseBooleanSetting } from '../config.js';
+import {
+  ensureBrandKitFileReadable,
+  ensureConfig,
+  getConfig,
+  parseBooleanSetting,
+} from '../config.js';
+import {
+  buildColorPushPlannedResults,
+  pushColors,
+} from '../lib/colors/color-push.js';
+import { validateColorsConfig } from '../lib/colors/color-validate.js';
 import {
   buildFontPushPlannedResults,
   pushFonts,
@@ -61,9 +71,11 @@ import { validatePageTemplates } from '../utils/validate-page-variant';
 
 import type { DiscoveryWarning } from '@drupal-canvas/discovery';
 import type { Command } from 'commander';
+import type { ColorPushOutcome } from '../lib/colors/color-push.js';
 import type { ApiService } from '../services/api.js';
 import type {
   AssetLibrary,
+  BrandKitColorEntry,
   BrandKitFontEntry,
   BuildManifest,
   UploadedArtifact,
@@ -85,6 +97,7 @@ interface PushOptions {
   contentTemplates?: boolean;
   pageTemplates?: boolean;
   includeBrandKit?: boolean;
+  pruneColors?: boolean;
   dir?: string;
   yes?: boolean;
 }
@@ -94,7 +107,8 @@ type PlannedPushResourceKey =
   | 'pages'
   | 'content-templates'
   | 'page-templates'
-  | 'brand-kit';
+  | 'brand-kit'
+  | 'brand-kit-colors';
 
 interface NotStartedPushResource {
   key: PlannedPushResourceKey;
@@ -172,6 +186,11 @@ function buildNotStartedResources(
       itemType: 'Page template',
     },
     { key: 'brand-kit', label: 'brand kit', itemType: 'Font variant' },
+    {
+      key: 'brand-kit-colors',
+      label: 'brand kit colors',
+      itemType: 'Color',
+    },
   ];
 
   return resourceDefinitions
@@ -709,11 +728,15 @@ export function pushCommand(program: Command): void {
     .addOption(
       new Option(
         '--include-brand-kit [enabled]',
-        'Include brand kit (fonts) in the push operation',
+        'Include brand kit (fonts and colors) in the push operation',
       )
         .preset('true')
         .argParser(parseBooleanOption)
         .default(undefined),
+    )
+    .option(
+      '--prune-colors',
+      'Delete colors from the site that are absent from canvas.brand-kit.json',
     )
     .option('-d, --dir <directory>', 'Component directory')
     .option('-y, --yes', 'Skip confirmation prompts')
@@ -727,6 +750,19 @@ export function pushCommand(program: Command): void {
         applySyncOptionAliasesAndWarnings(options);
         updateConfigFromOptions(options);
 
+        // Validate the brand kit file at command start — before
+        // authentication (which can prompt), discovery, and any request —
+        // so a malformed file cannot cause a partial push.
+        {
+          const earlyConfig = getConfig();
+          if (earlyConfig.includeBrandKit) {
+            ensureBrandKitFileReadable();
+            if (earlyConfig.colors !== undefined) {
+              validateColorsConfig(earlyConfig.colors);
+            }
+          }
+        }
+
         await ensureAuthConfig();
         await ensureConfig(['componentDir']);
         const config = getConfig();
@@ -736,6 +772,9 @@ export function pushCommand(program: Command): void {
         const includesPageTemplates = config.includePageTemplates;
         const includesBrandKit = config.includeBrandKit;
         const hasBrandKitFontsConfig = config.fonts !== undefined;
+        const hasBrandKitColorsConfig = config.colors !== undefined;
+        const hasBrandKitConfig =
+          hasBrandKitFontsConfig || hasBrandKitColorsConfig;
         // When the Canvas Headless SDK is installed, components are pushed as
         // external components (metadata only): the headless app renders them.
         // The app's entries may be framework single-file components (.vue,
@@ -835,7 +874,7 @@ export function pushCommand(program: Command): void {
           discoveredPages.length === 0 &&
           discoveredContentTemplates.length === 0 &&
           discoveredPageTemplates.length === 0 &&
-          !(includesBrandKit && hasBrandKitFontsConfig)
+          !(includesBrandKit && hasBrandKitConfig)
         ) {
           logIgnoredLocalResources();
           p.log.warn(
@@ -851,10 +890,10 @@ export function pushCommand(program: Command): void {
           discoveredContentTemplates.length === 0 &&
           discoveredPageTemplates.length === 0 &&
           includesBrandKit &&
-          hasBrandKitFontsConfig
+          hasBrandKitConfig
         ) {
           p.log.info(
-            'No components, pages, content templates, or page templates found; syncing brand kit fonts from canvas.brand-kit.json.',
+            'No components, pages, content templates, or page templates found; syncing brand kit from canvas.brand-kit.json.',
           );
         }
 
@@ -874,12 +913,15 @@ export function pushCommand(program: Command): void {
         const localNames = new Set(components.map((c) => c.name));
 
         let remoteBrandKitFonts: BrandKitFontEntry[] = [];
-        if (includesBrandKit && config.fonts !== undefined) {
+        let remoteBrandKitColors: BrandKitColorEntry[] = [];
+        if (includesBrandKit && hasBrandKitConfig) {
           try {
             const brandKit = await apiService.getBrandKit();
             remoteBrandKitFonts = brandKit.fonts ?? [];
+            remoteBrandKitColors = brandKit.colors ?? [];
           } catch {
             remoteBrandKitFonts = [];
+            remoteBrandKitColors = [];
           }
         }
 
@@ -1020,6 +1062,18 @@ export function pushCommand(program: Command): void {
                 delete: operationLabels.delete,
               })
             : []),
+          ...(includesBrandKit && config.colors !== undefined
+            ? buildColorPushPlannedResults(
+                config.colors,
+                remoteBrandKitColors,
+                {
+                  create: operationLabels.create,
+                  update: operationLabels.update,
+                  delete: operationLabels.delete,
+                },
+                options.pruneColors ?? false,
+              )
+            : []),
         ];
         if (plannedResults.length > 0) {
           notStartedResources.push(...buildNotStartedResources(plannedResults));
@@ -1055,8 +1109,14 @@ export function pushCommand(program: Command): void {
               `${discoveredPageTemplates.length} page ${pluralize(discoveredPageTemplates.length, 'template')}`,
             );
           }
-          if (includesBrandKit && hasBrandKitFontsConfig) {
-            parts.push('brand kit fonts (canvas.brand-kit.json)');
+          if (includesBrandKit && hasBrandKitConfig) {
+            const brandKitParts = [
+              ...(hasBrandKitFontsConfig ? ['fonts'] : []),
+              ...(hasBrandKitColorsConfig ? ['colors'] : []),
+            ];
+            parts.push(
+              `brand kit ${brandKitParts.join(' and ')} (canvas.brand-kit.json)`,
+            );
           }
           const confirmed = await p.confirm({
             message: `Push these changes to ${config.siteUrl}?`,
@@ -1074,6 +1134,7 @@ export function pushCommand(program: Command): void {
         let globalCssResult: Result | undefined;
         let globalAssetLibraryUpdate: Partial<AssetLibrary> | undefined;
         let fontCount = 0;
+        let colorPruneFailures: ColorPushOutcome[] = [];
 
         if (components.length > 0) {
           removeNotStartedResource(notStartedResources, 'components');
@@ -1301,6 +1362,83 @@ export function pushCommand(program: Command): void {
             fontSpinner.stop('Brand kit push failed', 2);
             throw new PushPhaseError(
               'Brand kit push failed',
+              formatErrorMessage(err),
+            );
+          }
+        }
+
+        // Step 4c: Push colors from canvas.brand-kit.json (when the file has
+        // a colors key; an absent key leaves the site's colors unmanaged).
+        if (includesBrandKit && config.colors !== undefined) {
+          removeNotStartedResource(notStartedResources, 'brand-kit-colors');
+          const colorOutcomeLabels: Record<string, string> = {
+            create: chalk.green('Created'),
+            update: chalk.cyan('Updated'),
+            delete: chalk.red('Deleted'),
+            unchanged: chalk.dim('Unchanged'),
+          };
+          const colorSpinner = p.spinner();
+          colorSpinner.start('Pushing brand kit colors');
+          try {
+            const result = await pushColors(config.colors, apiService, {
+              pruneColors: options.pruneColors ?? false,
+            });
+            if (result !== null) {
+              const changedCount =
+                result.created + result.updated + result.deleted;
+              colorSpinner.stop(
+                changedCount > 0
+                  ? 'Pushed brand kit colors'
+                  : 'No brand kit colors to update',
+                0,
+              );
+              if (result.outcomes.length > 0) {
+                reportResults(
+                  result.outcomes.map((outcome) => ({
+                    itemName: outcome.itemName,
+                    success: outcome.success,
+                    details: [
+                      {
+                        content: outcome.success
+                          ? colorOutcomeLabels[outcome.operation]
+                          : (outcome.detail ?? 'Failed'),
+                      },
+                    ],
+                  })),
+                  'Pushed brand kit colors',
+                  'Color',
+                  PUSH_REPORT_OPTIONS,
+                );
+              }
+              if (result.serverOnly.length > 0) {
+                const count = result.serverOnly.length;
+                p.log.info(
+                  [
+                    `${count} ${pluralize(count, 'color')} on the site ${count === 1 ? 'is' : 'are'} not in canvas.brand-kit.json and ${count === 1 ? 'was' : 'were'} left unchanged:`,
+                    ...result.serverOnly.map((name) => `  ${name}`),
+                    'Run `canvas pull` to add them to the file, or `canvas push --prune-colors` to delete them from the site.',
+                  ].join('\n'),
+                );
+              }
+              const pushedCount = changedCount + result.unchanged;
+              if (pushedCount > 0) {
+                completedResources.push({
+                  label: 'brand kit colors',
+                  count: pushedCount,
+                  unit: 'color',
+                  action: 'pushed',
+                });
+              }
+              // Refused prune deletions must fail the command at the end,
+              // after the remaining resources have pushed.
+              colorPruneFailures = result.outcomes.filter(
+                (outcome) => !outcome.success,
+              );
+            }
+          } catch (err) {
+            colorSpinner.stop('Brand kit colors push failed', 2);
+            throw new PushPhaseError(
+              'Brand kit colors push failed',
               formatErrorMessage(err),
             );
           }
@@ -1557,6 +1695,19 @@ export function pushCommand(program: Command): void {
           if (contentTemplateSummary) {
             completedResources.push(contentTemplateSummary);
           }
+        }
+
+        if (colorPruneFailures.length > 0) {
+          throw new PushPhaseError(
+            'Brand kit color prune incomplete',
+            [
+              `${colorPruneFailures.length} ${pluralize(colorPruneFailures.length, 'color')} could not be deleted:`,
+              ...colorPruneFailures.map(
+                (outcome) =>
+                  `  ${outcome.itemName}: ${outcome.detail ?? 'deletion refused'}`,
+              ),
+            ].join('\n'),
+          );
         }
 
         await apiService.signalPushComplete();

@@ -9,6 +9,11 @@ import { resolveHostGlobalCssPath } from '@drupal-canvas/vite-compat';
 
 import { ensureConfig, getConfig } from '../config';
 import {
+  planColorPull,
+  readBrandKitColorsFile,
+  writeBrandKitColorsConfig,
+} from '../lib/colors/color-pull.js';
+import {
   buildExistingVariantKeys,
   pullFonts,
   readBrandKitConfig,
@@ -46,7 +51,7 @@ import type {
 } from '@drupal-canvas/ui/types/CodeComponent';
 import type { Command } from 'commander';
 import type { ApiService } from '../services/api';
-import type { Component } from '../types/Component';
+import type { BrandKitColorEntry, Component } from '../types/Component';
 import type { ContentTemplateListItem } from '../types/ContentTemplate';
 import type { Metadata } from '../types/Metadata';
 import type { PageListItem } from '../types/Page';
@@ -1005,13 +1010,15 @@ export function createAssetsPullTask(
   };
 }
 
-export function createFontsPullTask(
+export function createBrandKitPullTask(
   apiService: ApiService,
   projectRoot: string,
+  skipOverwrite: boolean = false,
 ): PullTask {
   let totalFontVariants = 0;
   let newCount = 0;
   let existingCount = 0;
+  let remoteColors: BrandKitColorEntry[] = [];
 
   return {
     startLabel: 'Pulling brand kit',
@@ -1023,38 +1030,68 @@ export function createFontsPullTask(
         readBrandKitConfig(projectRoot),
       ]);
 
+      const summaryLines: string[] = [];
       const remoteFonts = brandKit.fonts ?? [];
       totalFontVariants = remoteFonts.length;
-      if (totalFontVariants === 0) {
-        return { summaryLines: [], localOnlyCount: 0 };
-      }
+      if (totalFontVariants > 0) {
+        const existingKeys = buildExistingVariantKeys(
+          brandKitConfig?.families ?? [],
+        );
 
-      const existingKeys = buildExistingVariantKeys(
-        brandKitConfig?.families ?? [],
-      );
-
-      existingCount = remoteFonts.filter((e) =>
-        existingKeys.has(
-          variantKey(e.family, e.weight ?? '400', e.style ?? 'normal'),
-        ),
-      ).length;
-      newCount = remoteFonts.filter(
-        (e) =>
-          e.url &&
-          !existingKeys.has(
+        existingCount = remoteFonts.filter((e) =>
+          existingKeys.has(
             variantKey(e.family, e.weight ?? '400', e.style ?? 'normal'),
           ),
-      ).length;
+        ).length;
+        newCount = remoteFonts.filter(
+          (e) =>
+            e.url &&
+            !existingKeys.has(
+              variantKey(e.family, e.weight ?? '400', e.style ?? 'normal'),
+            ),
+        ).length;
 
-      const fontVariantSummary = formatSummaryLine(
-        'brand kit',
-        totalFontVariants,
-        newCount,
-        existingCount,
-        'font variant',
+        summaryLines.push(
+          formatSummaryLine(
+            'brand kit',
+            totalFontVariants,
+            newCount,
+            existingCount,
+            'font variant',
+          ),
+        );
+      }
+
+      remoteColors = brandKit.colors ?? [];
+      const colorPlan = planColorPull(
+        remoteColors,
+        await readBrandKitColorsFile(projectRoot),
+        { skipOverwrite },
       );
+      if (remoteColors.length > 0) {
+        summaryLines.push(
+          formatSummaryLine(
+            'brand kit colors',
+            remoteColors.length,
+            colorPlan.added.length,
+            colorPlan.unchanged + colorPlan.updated.length,
+            'color',
+          ),
+        );
+      } else if (
+        colorPlan.changed ||
+        colorPlan.localOnly.length > 0 ||
+        colorPlan.duplicates.length > 0
+      ) {
+        // No colors to pull, but the local file still has color entries to
+        // report or tidy — schedule the task so that work happens.
+        summaryLines.push(
+          `brand kit colors: 0 pull (${colorPlan.localOnly.length + colorPlan.duplicates.length} local-only)`,
+        );
+      }
+
       return {
-        summaryLines: [fontVariantSummary],
+        summaryLines,
         localOnlyCount: 0,
       };
     },
@@ -1064,6 +1101,7 @@ export function createFontsPullTask(
       const result = await pullFonts(apiService, projectRoot, config.fonts);
 
       const results: Result[] = [];
+      const notes: string[] = [];
 
       for (const entry of result.downloaded) {
         results.push({
@@ -1088,10 +1126,55 @@ export function createFontsPullTask(
         await updateBrandKitConfig(projectRoot, result.downloaded);
       }
 
+      // Colors: server colors in palette order, hand-formatted entries kept
+      // verbatim, local-only entries preserved and reported.
+      const colorPlan = planColorPull(
+        remoteColors,
+        await readBrandKitColorsFile(projectRoot),
+        { skipOverwrite },
+      );
+      for (const itemName of colorPlan.added) {
+        results.push({
+          itemName,
+          success: true,
+          details: [{ content: 'Added' }],
+        });
+      }
+      for (const itemName of colorPlan.updated) {
+        results.push({
+          itemName,
+          success: true,
+          details: [{ content: 'Updated' }],
+        });
+      }
+      if (colorPlan.unchanged > 0) {
+        results.push({
+          itemName: 'colors',
+          success: true,
+          details: [
+            { content: `Skipped ${colorPlan.unchanged} (already in file)` },
+          ],
+        });
+      }
+      if (colorPlan.changed) {
+        await writeBrandKitColorsConfig(projectRoot, colorPlan.colors);
+      }
+      if (colorPlan.localOnly.length > 0) {
+        notes.push(
+          `${colorPlan.localOnly.length} ${pluralizeLabel(colorPlan.localOnly.length, 'color')} in canvas.brand-kit.json ${colorPlan.localOnly.length === 1 ? 'is' : 'are'} not on the site and ${colorPlan.localOnly.length === 1 ? 'was' : 'were'} kept: ${colorPlan.localOnly.join(', ')}. Run \`canvas push\` to create them.`,
+        );
+      }
+      if (colorPlan.duplicates.length > 0) {
+        notes.push(
+          `Removed ${colorPlan.duplicates.length} duplicate color ${pluralizeLabel(colorPlan.duplicates.length, 'entry', 'entries')} from canvas.brand-kit.json (the first entry for each variable was kept): ${colorPlan.duplicates.map((key) => `"${key}"`).join(', ')}.`,
+        );
+      }
+
       return {
         results,
         title: 'Pulled brand kit',
-        label: 'Font variant',
+        label: 'Item',
+        notes: notes.length > 0 ? notes : undefined,
       };
     },
   };
@@ -1137,7 +1220,7 @@ export function pullCommand(program: Command): void {
     .addOption(
       new Option(
         '--include-brand-kit [enabled]',
-        'Include brand kit (fonts) in the pull operation',
+        'Include brand kit (fonts and colors) in the pull operation',
       )
         .preset('true')
         .argParser(parseBooleanOption)
@@ -1183,7 +1266,13 @@ export function pullCommand(program: Command): void {
         ];
 
         if (includesBrandKit) {
-          tasks.push(createFontsPullTask(apiService, projectRoot));
+          tasks.push(
+            createBrandKitPullTask(
+              apiService,
+              projectRoot,
+              options.skipOverwrite ?? false,
+            ),
+          );
         }
 
         if (includesPages) {

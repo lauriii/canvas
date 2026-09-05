@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas_oauth\Kernel;
 
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\BrandKit;
+use Drupal\canvas\Entity\Color;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
@@ -60,6 +61,14 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
   private string $testImagePath;
 
   /**
+   * The UUID of the test Color entity, which is also its entity ID.
+   *
+   * A fixed value so the static data providers can reference the entity that
+   * setUp() creates.
+   */
+  private const string COLOR_UUID = 'f8bd61eb-fd5c-411f-b3c8-1c8825e468d0';
+
+  /**
    * {@inheritdoc}
    */
   protected function setUp(): void {
@@ -83,6 +92,17 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
       'id' => BrandKit::GLOBAL_ID,
       'label' => 'Global brand kit',
       'fonts' => NULL,
+    ])->save();
+    Color::create([
+      'uuid' => self::COLOR_UUID,
+      'name' => 'Test red',
+      'cssVariable' => '--color-test-red',
+      'value' => [
+        'colorSpace' => 'srgb',
+        'components' => [0.8, 0.0, 0.0],
+        'hex' => '#cc0000',
+      ],
+      'weight' => 0,
     ])->save();
     Pattern::create([
       'id' => 'test-pattern',
@@ -159,6 +179,7 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
       'GET js component' => ['canvas.api.config.get', ['canvas_config_entity_type_id' => JavaScriptComponent::ENTITY_TYPE_ID, 'canvas_config_entity' => 'test-code-component'], [], 'GET', []],
       'GET asset library' => ['canvas.api.config.get', ['canvas_config_entity_type_id' => AssetLibrary::ENTITY_TYPE_ID, 'canvas_config_entity' => AssetLibrary::GLOBAL_ID], [], 'GET', []],
       'GET brand kit' => ['canvas.api.config.get', ['canvas_config_entity_type_id' => BrandKit::ENTITY_TYPE_ID, 'canvas_config_entity' => BrandKit::GLOBAL_ID], [], 'GET', []],
+      'GET color' => ['canvas.api.config.get', ['canvas_config_entity_type_id' => Color::ENTITY_TYPE_ID, 'canvas_config_entity' => self::COLOR_UUID], [], 'GET', []],
       'POST code component validation' => [
         'canvas.api.code_component.validate',
         [],
@@ -223,6 +244,37 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
         ['administer brand kit'],
         'PATCH',
         ['label' => 'Global brand kit'],
+      ],
+      'PATCH color' => [
+        'canvas.api.config.patch',
+        ['canvas_config_entity_type_id' => Color::ENTITY_TYPE_ID, 'canvas_config_entity' => self::COLOR_UUID],
+        ['administer brand kit'],
+        'PATCH',
+        ['name' => 'Updated test red'],
+      ],
+      'POST color' => [
+        'canvas.api.config.post',
+        ['canvas_config_entity_type_id' => Color::ENTITY_TYPE_ID],
+        ['administer brand kit'],
+        'POST',
+        [
+          'name' => 'Test blue',
+          'cssVariable' => '--color-test-blue',
+          'value' => [
+            'colorSpace' => 'srgb',
+            'components' => [0.0, 0.0, 0.8],
+            'alpha' => NULL,
+            'hex' => '#0000cc',
+          ],
+          'weight' => 1,
+        ],
+      ],
+      'DELETE color' => [
+        'canvas.api.config.delete',
+        ['canvas_config_entity_type_id' => Color::ENTITY_TYPE_ID, 'canvas_config_entity' => self::COLOR_UUID],
+        ['administer brand kit'],
+        'DELETE',
+        [],
       ],
       'DELETE js component' => [
         'canvas.api.config.delete',

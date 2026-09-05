@@ -7,6 +7,7 @@ import {
   buildPreviewPayload,
   buildPreviewRuntimeEntrySource,
   bundleInteractivePreview,
+  withBrandKitColorCss,
 } from './preview-payload';
 
 import type { Spec } from '@json-render/core';
@@ -606,5 +607,28 @@ describe('preview-payload', () => {
 
     expect(bundled.js).toContain('jsxDEV');
     expect(bundled.js).not.toContain('React.createElement("section"');
+  });
+
+  describe('withBrandKitColorCss', () => {
+    it('prepends the brand kit color block to bundled CSS', async () => {
+      const projectRoot = await makeTemporaryDirectory();
+      await writeFile(
+        path.join(projectRoot, 'canvas.brand-kit.json'),
+        JSON.stringify({
+          colors: { 'brand-red': '#cc0000' },
+        }),
+      );
+
+      expect(withBrandKitColorCss(projectRoot, 'body { margin: 0; }')).toBe(
+        ':root {\n  --brand-red: #cc0000;\n}\n\nbody { margin: 0; }',
+      );
+    });
+
+    it('returns the CSS unchanged when the project has no brand kit colors', async () => {
+      const projectRoot = await makeTemporaryDirectory();
+      expect(withBrandKitColorCss(projectRoot, 'body { margin: 0; }')).toBe(
+        'body { margin: 0; }',
+      );
+    });
   });
 });

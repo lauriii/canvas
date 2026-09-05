@@ -8,8 +8,8 @@ import { setConfig } from '../config';
 import { readValidatedComponentMetadata } from '../utils/component-metadata';
 import {
   createAssetsPullTask,
+  createBrandKitPullTask,
   createComponentsPullTask,
-  createFontsPullTask,
   createPagesPullTask,
 } from './pull';
 
@@ -1347,7 +1347,7 @@ describe('Pull Command', () => {
     });
   });
 
-  describe('createFontsPullTask', () => {
+  describe('createBrandKitPullTask', () => {
     let tmpDir: string;
 
     beforeEach(async () => {
@@ -1388,7 +1388,7 @@ describe('Pull Command', () => {
       const api = mockApiService([
         { family: 'Inter', weight: '400', style: 'normal' },
       ]);
-      const task = createFontsPullTask(api, tmpDir);
+      const task = createBrandKitPullTask(api, tmpDir);
 
       const { summaryLines } = await task.prepare();
       expect(summaryLines).toEqual(['brand kit: 1 font variant pull (1 new)']);
@@ -1396,7 +1396,7 @@ describe('Pull Command', () => {
 
     it('should return empty summary when no fonts on brand kit', async () => {
       const api = mockApiService([]);
-      const task = createFontsPullTask(api, tmpDir);
+      const task = createBrandKitPullTask(api, tmpDir);
 
       const { summaryLines } = await task.prepare();
       expect(summaryLines).toEqual([]);
@@ -1406,13 +1406,13 @@ describe('Pull Command', () => {
       const api = mockApiService([
         { family: 'My Font', weight: '400', style: 'normal' },
       ]);
-      const task = createFontsPullTask(api, tmpDir);
+      const task = createBrandKitPullTask(api, tmpDir);
 
       await task.prepare();
       const results = await task.execute();
 
       expect(results.title).toBe('Pulled brand kit');
-      expect(results.label).toBe('Font variant');
+      expect(results.label).toBe('Item');
       expect(results.results.length).toBeGreaterThanOrEqual(1);
       expect(results.results[0].success).toBe(true);
       expect(results.results[0].itemName).toContain('My Font');
@@ -1429,6 +1429,111 @@ describe('Pull Command', () => {
       const fontsDir = path.join(tmpDir, 'fonts');
       const files = await fs.readdir(fontsDir);
       expect(files.length).toBe(1);
+    });
+
+    function mockApiServiceWithColors(
+      colors: Array<{
+        id: string;
+        name: string;
+        cssVariable: string;
+        value: {
+          colorSpace: 'srgb' | 'hsl';
+          components: number[];
+          alpha?: number | null;
+          hex?: string | null;
+        };
+        weight: number;
+      }>,
+    ): ApiService {
+      return {
+        getBrandKit: vi.fn().mockResolvedValue({
+          id: 'global',
+          fonts: [],
+          colors,
+        }),
+        downloadFile: vi.fn(),
+      } as unknown as ApiService;
+    }
+
+    it('should include colors in the summary', async () => {
+      const api = mockApiServiceWithColors([
+        {
+          id: 'uuid-1',
+          name: 'Brand Red',
+          cssVariable: '--brand-red',
+          value: {
+            colorSpace: 'srgb',
+            components: [0.8, 0, 0],
+            alpha: null,
+            hex: '#cc0000',
+          },
+          weight: 0,
+        },
+      ]);
+      const task = createBrandKitPullTask(api, tmpDir);
+
+      const { summaryLines } = await task.prepare();
+      expect(summaryLines).toEqual(['brand kit colors: 1 color pull (1 new)']);
+    });
+
+    it('should write pulled colors to canvas.brand-kit.json on execute', async () => {
+      const api = mockApiServiceWithColors([
+        {
+          id: 'uuid-1',
+          name: 'Brand Red',
+          cssVariable: '--brand-red',
+          value: {
+            colorSpace: 'srgb',
+            components: [204 / 255, 0, 0],
+            alpha: null,
+            hex: '#cc0000',
+          },
+          weight: 0,
+        },
+      ]);
+      const task = createBrandKitPullTask(api, tmpDir);
+
+      await task.prepare();
+      const results = await task.execute();
+
+      expect(results.results).toEqual([
+        {
+          itemName: 'Brand Red (--brand-red)',
+          success: true,
+          details: [{ content: 'Added' }],
+        },
+      ]);
+
+      const raw = await fs.readFile(
+        path.join(tmpDir, 'canvas.brand-kit.json'),
+        'utf-8',
+      );
+      expect(JSON.parse(raw)).toEqual({
+        $schema:
+          'https://unpkg.com/@drupal-canvas/workbench/dist/client/src/lib/schemas/brand-kit.schema.json',
+        colors: { 'brand-red': '#cc0000' },
+      });
+    });
+
+    it('should keep local-only colors and report them as notes', async () => {
+      await fs.writeFile(
+        path.join(tmpDir, 'canvas.brand-kit.json'),
+        `${JSON.stringify({ colors: { local: '#123456' } }, null, 2)}\n`,
+        'utf-8',
+      );
+      const api = mockApiServiceWithColors([]);
+      const task = createBrandKitPullTask(api, tmpDir);
+
+      const { summaryLines } = await task.prepare();
+      expect(summaryLines).toEqual(['brand kit colors: 0 pull (1 local-only)']);
+      const results = await task.execute();
+
+      expect(results.notes?.[0]).toContain('Local (--local)');
+      const raw = await fs.readFile(
+        path.join(tmpDir, 'canvas.brand-kit.json'),
+        'utf-8',
+      );
+      expect(JSON.parse(raw).colors).toEqual({ local: '#123456' });
     });
   });
 });

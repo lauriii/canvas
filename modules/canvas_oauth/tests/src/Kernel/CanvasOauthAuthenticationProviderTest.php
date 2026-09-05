@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas_oauth\Kernel;
 
 use Drupal\canvas\Entity\AssetLibrary;
+use Drupal\canvas\Entity\Color;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\Folder;
 use Drupal\canvas\Entity\JavaScriptComponent;
@@ -99,6 +100,7 @@ class CanvasOauthAuthenticationProviderTest extends CanvasKernelTestBase {
       ...$generate_per_config_entity_type_test_case(Folder::ENTITY_TYPE_ID, FALSE),
       ...$generate_per_config_entity_type_test_case(Folder::ENTITY_TYPE_ID, FALSE),
       ...$generate_per_config_entity_type_test_case(AssetLibrary::ENTITY_TYPE_ID, TRUE),
+      ...$generate_per_config_entity_type_test_case(Color::ENTITY_TYPE_ID, TRUE),
       ...$generate_per_config_entity_type_test_case('non-existent', FALSE),
       ['canvas.api.content.auto-save.patch', [], FALSE],
       ['canvas.api.content.create', [], TRUE],

@@ -32,9 +32,10 @@ The Canvas CLI uses three types of configuration:
 
 - **canvas.config.json** - Repository-committed configuration for values tied to
   your codebase structure (where files are stored, build output locations)
-- **canvas.brand-kit.json** - Optional Brand Kit (font) configuration. When
-  Brand Kit sync is enabled, `canvas push` and `canvas pull` use it to sync
-  fonts with the global Brand Kit. See
+- **canvas.brand-kit.json** - Optional Brand Kit configuration: fonts and
+  colors. When Brand Kit sync is enabled, `canvas push` and `canvas pull` use it
+  to sync both with the global Brand Kit. See
+  [Colors (Brand Kit)](#colors-brand-kit) and
   [Font push (Brand Kit)](#font-push-brand-kit).
 - **.env** - Environmental configuration and secrets that should not be tracked
   in version control (site URLs, OAuth credentials)
@@ -87,9 +88,9 @@ shown above. For existing projects, if `globalCssPath` is not set and
 
 #### canvas.brand-kit.json (Optional)
 
-Brand Kit (font) configuration lives in `canvas.brand-kit.json` in the project
-root. When Brand Kit sync is enabled, `canvas push` and `canvas pull` use it to
-sync fonts with the global Brand Kit. Example:
+Brand Kit configuration — fonts and colors — lives in `canvas.brand-kit.json` in
+the project root. When Brand Kit sync is enabled, `canvas push` and
+`canvas pull` use it to sync both with the global Brand Kit. Example:
 
 ```json
 {
@@ -113,12 +114,37 @@ sync fonts with the global Brand Kit. Example:
         "styles": ["normal"]
       }
     ]
+  },
+  "colors": {
+    "brand-red": "#cc0000",
+    "overlay": "hsla(220, 60%, 50%, 0.5)"
   }
 }
 ```
 
-Font configuration lives in `canvas.brand-kit.json`. See
-[Font push (Brand Kit)](#font-push-brand-kit) for the full schema.
+Files the CLI creates carry a `$schema` reference so editors validate and
+autocomplete them, and `canvas validate` checks the whole file offline. See
+[Colors (Brand Kit)](#colors-brand-kit) and
+[Font push (Brand Kit)](#font-push-brand-kit).
+
+#### Colors (Brand Kit)
+
+The `colors` key is a map from color key to CSS color value, in the shape of a
+Tailwind theme: the key is the CSS custom property name without its `--` prefix
+(`"brand-red"` becomes `--brand-red`), and map order is the palette order.
+Values are CSS color strings (`#rrggbb`, `#rrggbbaa`, `rgb()`, `rgba()`,
+`hsl()`, `hsla()`), a W3C design token object for exact component values, or a
+`{ "value": …, "name": …, "displayFormat": … }` wrapper when an entry needs more
+than its value. The display name derives from the key (`"brand-red"` becomes
+"Brand Red") unless the wrapper asserts one; the site requires color names to be
+unique.
+
+`canvas pull` writes the site's colors into the map (keeping semantically equal
+entries byte-for-byte) and `canvas push` creates and updates colors on the site,
+matched by the variable the key names. A color that exists on the site but not
+in the file is never deleted by default — push reports it and continues. Pass
+`--prune-colors` to `canvas push` to delete such colors; a color that is in use
+cannot be deleted, and push reports the site's reason and fails at the end.
 
 #### Font push (Brand Kit)
 

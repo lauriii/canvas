@@ -1,10 +1,13 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import {
+  BRAND_KIT_CONFIG_FILENAME,
+  buildBrandKitColorCss,
   ComponentMetadataValidationError,
   discoverCanvasProject,
   loadComponentMetadata,
   loadComponentsMetadata,
+  readBrandKitColors,
 } from '@drupal-canvas/discovery';
 import {
   ensureHostGlobalCssExists,
@@ -571,6 +574,9 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
   let hostGlobalCssPath: string | null = null;
   const virtualHostGlobalCssId = 'virtual:canvas-host-global.css';
   const resolvedVirtualHostGlobalCssId = '\0virtual:canvas-host-global.css';
+  const virtualBrandKitCssId = 'virtual:canvas-brand-kit.css';
+  const resolvedVirtualBrandKitCssId = '\0virtual:canvas-brand-kit.css';
+  const brandKitCssVirtualUrl = '/@id/virtual:canvas-brand-kit.css';
 
   const refresh = async () => {
     if (refreshTask) {
@@ -603,9 +609,19 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
         return resolvedVirtualHostGlobalCssId;
       }
 
+      if (source === virtualBrandKitCssId) {
+        return resolvedVirtualBrandKitCssId;
+      }
+
       return null;
     },
     load(id) {
+      if (id === resolvedVirtualBrandKitCssId) {
+        // Lenient by design: a missing or malformed brand kit file yields an
+        // empty stylesheet rather than a dev-server error.
+        return buildBrandKitColorCss(readBrandKitColors(paths.hostProjectRoot));
+      }
+
       if (id !== resolvedVirtualHostGlobalCssId || !hostGlobalCssPath) {
         return null;
       }
@@ -739,6 +755,7 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
               globalCssUrl: hostGlobalCssPath
                 ? getWorkbenchHostGlobalCssVirtualUrl()
                 : null,
+              brandKitCssUrl: brandKitCssVirtualUrl,
             }),
           );
         })().catch((error) => {
@@ -901,6 +918,20 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
 
       server.watcher.on('all', (event, filePath) => {
         if (!['add', 'change', 'unlink'].includes(event)) {
+          return;
+        }
+
+        if (path.basename(filePath) === BRAND_KIT_CONFIG_FILENAME) {
+          // A brand kit edit only affects the generated stylesheet. Vite does
+          // not know the virtual module reads this file, so reload it by hand:
+          // reloadModule() invalidates it and pushes an HMR update, and the
+          // self-accepting CSS module hot-swaps its style in the open preview.
+          const brandKitModule = server.moduleGraph.getModuleById(
+            resolvedVirtualBrandKitCssId,
+          );
+          if (brandKitModule) {
+            void server.reloadModule(brandKitModule);
+          }
           return;
         }
 

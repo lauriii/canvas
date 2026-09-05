@@ -6,7 +6,9 @@ import { fileURLToPath } from 'node:url';
 import { canvasTreeToSpec } from 'drupal-canvas/json-render-utils';
 import { loadEnv, build as viteBuild } from 'vite';
 import {
+  buildBrandKitColorCss,
   discoverCanvasProject,
+  readBrandKitColors,
   resolveCanvasConfig,
 } from '@drupal-canvas/discovery';
 import {
@@ -291,6 +293,16 @@ function buildPreviewBootstrapScript(
   }
 
   return bootstrapStatements.join('').replaceAll('</script>', '<\\/script>');
+}
+
+/**
+ * Prepends the brand kit color custom property block from the project's
+ * canvas.brand-kit.json to bundled preview CSS, matching the dev server's
+ * ordering (brand kit colors before the host global CSS).
+ */
+export function withBrandKitColorCss(projectRoot: string, css: string): string {
+  const brandKitCss = buildBrandKitColorCss(readBrandKitColors(projectRoot));
+  return brandKitCss ? `${brandKitCss}\n\n${css}` : css;
 }
 
 export function buildIframeHtml(
@@ -926,7 +938,7 @@ export async function buildPreviewPayload(
 
     const iframeHtml = buildIframeHtml(
       bundleResult.js,
-      bundleResult.css,
+      withBrandKitColorCss(options.projectRoot, bundleResult.css),
       runtimeSettings,
     );
 

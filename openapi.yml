@@ -4907,6 +4907,12 @@ components:
                               type: number
                               format: float
                               description: Default axis value
+        colors:
+          type: array
+          readOnly: true
+          items:
+            $ref: '#/components/schemas/Color'
+          description: Colors available to the Brand Kit, derived server-side from the site's Color entities and ignored on writes. Only present when at least one color exists.
     NewBrandKit:
       type: object
       allOf:

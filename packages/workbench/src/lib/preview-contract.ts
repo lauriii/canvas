@@ -64,6 +64,7 @@ export interface PreviewManifest {
   components: PreviewManifestComponent[];
   warnings: PreviewWarning[];
   globalCssUrl: string | null;
+  brandKitCssUrl: string | null;
 }
 
 /** Parent tells the preview iframe to refetch discovery/manifest without remounting (e.g. after page JSON save). */
@@ -244,6 +245,7 @@ export function buildPreviewManifest(
     components: discoveryResult.components.map(toPreviewManifestComponent),
     warnings: discoveryResult.warnings,
     globalCssUrl: null,
+    brandKitCssUrl: null,
   };
 }
 

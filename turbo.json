@@ -40,6 +40,7 @@
         "!**/*.test.*",
         "$TURBO_ROOT$/component-metadata.schema.json",
         "$TURBO_ROOT$/schema.json",
+        "$TURBO_ROOT$/packages/workbench/src/lib/schemas/brand-kit.schema.json",
         "$TURBO_ROOT$/packages/workbench/src/lib/schemas/content-template-spec.schema.json",
         "$TURBO_ROOT$/packages/workbench/src/lib/schemas/page-spec.schema.json",
         "$TURBO_ROOT$/packages/workbench/src/lib/schemas/page-template-spec.schema.json"

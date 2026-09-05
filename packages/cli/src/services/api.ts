@@ -17,6 +17,8 @@ import type { CanvasComponentTree } from 'drupal-canvas/json-render-utils';
 import type {
   AssetLibrary,
   BrandKit,
+  BrandKitColorEntry,
+  BrandKitColorPayload,
   BrandKitFontEntry,
   Component,
   UploadedArtifact,
@@ -1140,6 +1142,46 @@ export class ApiService {
         data,
       );
       return response.data;
+    } catch (error) {
+      this.handleApiError(error);
+    }
+  }
+
+  /** Create a brand kit color; the server assigns the id. */
+  async createColor(color: BrandKitColorPayload): Promise<BrandKitColorEntry> {
+    try {
+      const response = await this.client.post(
+        '/canvas/api/v0/config/color',
+        color,
+      );
+      return response.data;
+    } catch (error) {
+      this.handleApiError(error);
+    }
+  }
+
+  /** Update a brand kit color by its server-assigned id. */
+  async updateColor(
+    id: string,
+    color: Partial<BrandKitColorPayload>,
+  ): Promise<BrandKitColorEntry> {
+    try {
+      const response = await this.client.patch(
+        `/canvas/api/v0/config/color/${encodeURIComponent(id)}`,
+        color,
+      );
+      return response.data;
+    } catch (error) {
+      this.handleApiError(error);
+    }
+  }
+
+  /** Delete a brand kit color by id; the server refuses one in use. */
+  async deleteColor(id: string): Promise<void> {
+    try {
+      await this.client.delete(
+        `/canvas/api/v0/config/color/${encodeURIComponent(id)}`,
+      );
     } catch (error) {
       this.handleApiError(error);
     }

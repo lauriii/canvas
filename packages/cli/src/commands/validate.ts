@@ -14,6 +14,7 @@ import {
   reportResults,
   splitFailedResultsByFile,
 } from '../utils/report-results.js';
+import { validateBrandKit } from '../utils/validate-brand-kit.js';
 import { validateContentTemplates } from '../utils/validate-content-template.js';
 import { validatePageTemplates } from '../utils/validate-page-variant.js';
 import { validatePages } from '../utils/validate-page.js';
@@ -56,7 +57,7 @@ async function createOptionalValidationApiService(): Promise<
 export function validateCommand(program: Command): void {
   program
     .command('validate')
-    .description('validate local components and pages')
+    .description('validate local components, pages, and the brand kit file')
     .option(
       '-d, --dir <directory>',
       'Component directory to validate the components in',
@@ -160,6 +161,18 @@ export function validateCommand(program: Command): void {
           }
 
           pageTemplateSpinner.stop('Validated page templates', 0);
+        }
+
+        const { results: brandKitResults } = await validateBrandKit(
+          process.cwd(),
+        );
+        if (brandKitResults.length > 0) {
+          const brandKitSpinner = p.spinner();
+          brandKitSpinner.start('Validating brand kit');
+          for (const result of brandKitResults) {
+            results.push({ ...result, itemType: 'Brand kit' });
+          }
+          brandKitSpinner.stop('Validated brand kit', 0);
         }
 
         reportResults(

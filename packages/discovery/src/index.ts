@@ -7,6 +7,33 @@ export {
   SVG_EXTENSIONS,
   VIDEO_EXTENSIONS,
 } from './asset-extensions';
+export {
+  BRAND_KIT_CONFIG_FILENAME,
+  BRAND_KIT_SCHEMA_URL,
+  COLOR_KEY_PATTERN,
+  CSS_VARIABLE_PATTERN,
+  HEX_COLOR_PATTERN,
+  buildBrandKitColorCss,
+  colorTokenToCss,
+  colorTokenValuesEqual,
+  deriveColorName,
+  keyToCssVariable,
+  normalizeBrandKitColors,
+  normalizeColorKey,
+  normalizeColorValue,
+  parseCssColorString,
+  parseHexColor,
+  readBrandKitColors,
+  serializeColorValue,
+} from './brand-kit-colors';
+export type {
+  BrandKitColorFileObject,
+  BrandKitColorFileValue,
+  BrandKitColorsFileMap,
+  ColorDisplayFormat,
+  ColorTokenValue,
+  NormalizedBrandKitColor,
+} from './brand-kit-colors';
 export { DEFAULT_CANVAS_CONFIG, resolveCanvasConfig } from './config';
 export type { CanvasConfigWarning } from './config';
 export { detectHeadlessSdk } from './detect-headless-sdk';
