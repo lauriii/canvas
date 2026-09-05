@@ -4,11 +4,7 @@ import { ContextMenu } from '@radix-ui/themes';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import PermissionCheck from '@/components/PermissionCheck';
 import { UnifiedMenu } from '@/components/UnifiedMenu';
-import {
-  deleteNode,
-  duplicateNode,
-  shiftNode,
-} from '@/features/layout/layoutModelSlice';
+import { duplicateNode, shiftNode } from '@/features/layout/layoutModelSlice';
 import { componentSubtreeMatchesType } from '@/features/layout/layoutUtils';
 import ComponentContextMenuMoveInto from '@/features/layout/preview/ComponentContextMenuMoveInto';
 import { setDialogOpen } from '@/features/ui/dialogSlice';
@@ -21,6 +17,7 @@ import useComponentSelection from '@/hooks/useComponentSelection';
 import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import useGetComponentName from '@/hooks/useGetComponentName';
+import useProtectedDeleteNode from '@/hooks/useProtectedDeleteNode';
 import { useGetComponentsQuery } from '@/services/componentAndLayout';
 import { isMarkerComponentType } from '@/services/pageVariants';
 
@@ -46,6 +43,7 @@ export const ComponentContextMenuContent: React.FC<
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const { setSelectedComponent, unsetSelectedComponent } =
     useComponentSelection();
+  const protectedDeleteNode = useProtectedDeleteNode();
   const componentUuid = component.uuid;
   const { copySelectedComponent, pasteAfterSelectedComponent } =
     useCopyPasteComponents();
@@ -76,12 +74,16 @@ export const ComponentContextMenuContent: React.FC<
     (ev: React.MouseEvent<HTMLElement>) => {
       ev.stopPropagation();
       if (componentUuid) {
-        dispatch(deleteNode(componentUuid));
-        unsetSelectedComponent();
+        // Shared delete protection: the exposed-slot confirmation dialog owns
+        // the deletion (and alias cleanup) when this component hosts one.
+        const deferredToDialog = protectedDeleteNode(componentUuid);
+        if (!deferredToDialog) {
+          unsetSelectedComponent();
+        }
       }
       dispatch(unsetHoveredComponent());
     },
-    [componentUuid, dispatch, unsetSelectedComponent],
+    [componentUuid, dispatch, unsetSelectedComponent, protectedDeleteNode],
   );
 
   const handleDuplicateClick = useCallback(

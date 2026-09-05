@@ -7,7 +7,11 @@ import { FileTextIcon } from '@radix-ui/react-icons';
 import { Text } from '@radix-ui/themes';
 
 import { useAppSelector } from '@/app/hooks';
-import { selectLayout } from '@/features/layout/layoutModelSlice';
+import {
+  selectExposedSlots,
+  selectIsPerContentMode,
+  selectLayout,
+} from '@/features/layout/layoutModelSlice';
 import { selectEditorFrameContext } from '@/features/ui/uiSlice';
 import { useTemplateCaption } from '@/hooks/useTemplateCaption';
 
@@ -26,6 +30,11 @@ const EmptyRegionDropZone: React.FC<EmptyRegionDropZoneProps> = (props) => {
   const [activeOrigin, setActiveOrigin] = useState('');
   const isTemplateRoute =
     useAppSelector(selectEditorFrameContext) === 'template';
+  // Per-content editing: an exposed slot's drop zone is captioned with the
+  // slot's label, not the page caption.
+  const perContentMode = useAppSelector(selectIsPerContentMode);
+  const exposedSlots = useAppSelector(selectExposedSlots);
+  const isSlotRegion = perContentMode && !!exposedSlots?.[region.id];
 
   const regionIndex = layout.findIndex((r) => r.id === region.id);
   const regionPath = [regionIndex, 0];
@@ -78,7 +87,11 @@ const EmptyRegionDropZone: React.FC<EmptyRegionDropZoneProps> = (props) => {
           <>
             {isTemplateRoute ? <TemplateIcon /> : <FileTextIcon />}
             <Text weight={'medium'} mt="2" trim="start">
-              {isTemplateRoute ? templateCaption || 'Template' : 'Page content'}
+              {isTemplateRoute
+                ? templateCaption || 'Template'
+                : isSlotRegion
+                  ? region.name
+                  : 'Page content'}
             </Text>
             <div className={styles.regionMessage}>Place items here</div>
           </>

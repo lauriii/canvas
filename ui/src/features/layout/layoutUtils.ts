@@ -271,6 +271,34 @@ export function findSlotById(
 }
 
 /**
+ * Resolve the node at a given layout path.
+ *
+ * Paths index regions at the root, then alternate through each node's children
+ * (a component's slots, a slot's / region's components), matching the convention
+ * used by {@link insertNodeAtPath} and {@link findNodePathByUuid}.
+ * @param nodes - The root region nodes.
+ * @param path - The path of indices to follow.
+ * @returns The node at the path, or null if the path does not resolve.
+ */
+export function getNodeAtPath(
+  nodes: Array<LayoutNode>,
+  path: number[],
+): LayoutNode | null {
+  if (path.length === 0) {
+    return null;
+  }
+  let node: LayoutNode | undefined = nodes[path[0]];
+  for (let i = 1; i < path.length; i++) {
+    if (!node) {
+      return null;
+    }
+    const children: LayoutChildNode[] = getChildrenFromNode(node);
+    node = children[path[i]];
+  }
+  return node ?? null;
+}
+
+/**
  * Find the path to a node by its UUID.
  * @param nodes - The nodes to search through.
  * @param id - The UUID of the node to find.
@@ -796,6 +824,7 @@ const layoutUtils = {
   recurseNodes,
   findComponentByUuid,
   findSlotById,
+  getNodeAtPath,
   removeComponentByUuid,
   findNodePathByUuid,
   findNodeParents,

@@ -3,7 +3,11 @@ import clsx from 'clsx';
 import ReactDOM from 'react-dom';
 
 import { useAppSelector } from '@/app/hooks';
-import { selectContentRegion } from '@/features/layout/layoutModelSlice';
+import {
+  selectContentRegion,
+  selectIsPerContentMode,
+  selectLayout,
+} from '@/features/layout/layoutModelSlice';
 import RegionOverlay from '@/features/layout/previewOverlay/RegionOverlay';
 import {
   selectDragging,
@@ -36,6 +40,13 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
   const [rect, setRect] = useState<Rect | null>(null);
   const { treeDragging } = useAppSelector(selectDragging);
   const isZooming = useAppSelector(selectZooming);
+  // Per-content editing: the layout is one region per exposed slot, and every
+  // one renders even when empty (it is a drop target, or a locked unit
+  // anchored over the template default). Otherwise there is a single content
+  // region.
+  const perContentMode = useAppSelector(selectIsPerContentMode);
+  const layout = useAppSelector(selectLayout);
+  const displayedRegions = perContentMode ? layout : [contentRegion];
 
   const updateRect = useCallback(() => {
     // The top and left must equal the distance from the parent (positionAnchor, which is always static) to the iFrame.
@@ -107,7 +118,9 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
         height: `${rect.height}px`,
       }}
     >
-      <RegionOverlay region={contentRegion} />
+      {displayedRegions.map((region) => (
+        <RegionOverlay key={region.id} region={region} />
+      ))}
     </div>,
     portalRoot,
   );

@@ -1008,6 +1008,44 @@ paths:
       responses:
         '204':
           description: Deleted individual ContentTemplate entity.
+  '/canvas/api/v0/config/content_template/{content_template}/slot-fields':
+    description: The `component_tree` fields backing a content template's exposed slots.
+    get:
+      summary: Lists the entity type's reusable slot fields for a content template.
+      parameters:
+        - name: content_template
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The reusable slot fields, each flagged with onThisBundle and contentCount, sorted content-first.
+          content:
+            application/json:
+              schema:
+                type: object
+    post:
+      summary: Creates a `component_tree` slot field on the content template's bundle.
+      parameters:
+        - name: content_template
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: The slot field machine name and label.
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: The created slot field.
+          content:
+            application/json:
+              schema:
+                type: object
   '/canvas/api/v0/config/content_template/{configEntityId}/translations':
     description: Endpoint for deleting a specific translation of a Content Template. Note that the path can be prefixed with a langcode to negotiate deleting that particular translation.
     delete:
@@ -1019,6 +1057,28 @@ paths:
           description: Translation deleted successfully.
         '400':
           description: No translation exists for the current language.
+  '/canvas/api/v0/config/content_template/{content_template}/slot-fields/{field_name}/usage':
+    description: Usage statistics for one exposed slot's backing field.
+    get:
+      summary: Reports how many of the bundle's entities have overridden a slot.
+      parameters:
+        - name: content_template
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: field_name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The number of overriding entities.
+          content:
+            application/json:
+              schema:
+                type: object
   /canvas/api/v0/config/folder:
     description: TODO
     get:
@@ -4568,6 +4628,9 @@ components:
           description: Client instance ID for the layout preview
         entity_form_fields:
           type: object
+        exposed_slots:
+          $ref: '#/components/schemas/ExposedSlots'
+          description: The template editor's working set of exposed slots, sent with the template layout so they persist alongside the tree.
         translations:
           type: object
           description: Translation metadata for the entity.
@@ -5580,6 +5643,9 @@ components:
         component_tree:
           $ref: '#/components/schemas/ComponentTree'
           description: Initial component tree. Defaults to an empty tree when omitted.
+        exposed_slots:
+          $ref: '#/components/schemas/ExposedSlots'
+          description: Exposed slot definitions keyed by alias. Defaults to none when omitted.
     UpdateContentTemplate:
       title: ContentTemplate fields the client may PATCH on the server side.
       type: object
@@ -5594,6 +5660,9 @@ components:
         component_tree:
           $ref: '#/components/schemas/ComponentTree'
           description: Replacement component tree.
+        exposed_slots:
+          $ref: '#/components/schemas/ExposedSlots'
+          description: Replacement exposed slot definitions keyed by alias.
     Extension:
       title: Canvas Extension metadata
       description: Canvas Extension metadata
@@ -5887,6 +5956,7 @@ components:
         - viewModeLabel
         - pageVariant
         - component_tree
+        - exposed_slots
       properties:
         entityType:
           type: string
@@ -5918,6 +5988,34 @@ components:
         component_tree:
           $ref: '#/components/schemas/ComponentTree'
           description: The persisted component tree.
+        exposed_slots:
+          $ref: '#/components/schemas/ExposedSlots'
+          description: The persisted exposed slot definitions keyed by alias.
+    ExposedSlots:
+      title: Exposed slot definitions keyed by backing field machine name.
+      description: >
+        A map of exposed slot definitions. For content templates each key is the
+        machine name of a `component_tree` field on the bundle: that field is the
+        slot's storage and stable identity, holding each entity's per-entity slot
+        content.
+      type: object
+      additionalProperties:
+        type: object
+        additionalProperties: false
+        required:
+          - component_uuid
+          - slot_name
+          - label
+        properties:
+          component_uuid:
+            type: string
+            description: UUID of the template component instance that contains the exposed slot.
+          slot_name:
+            type: string
+            description: Machine name of the component slot being exposed.
+          label:
+            type: string
+            description: Human-readable label for the exposed slot.
     ComponentTree:
       title: A flat array of component tree items.
       description: >

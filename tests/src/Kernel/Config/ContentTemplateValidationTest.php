@@ -14,6 +14,7 @@ use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Tests\canvas\Traits\BetterConfigDependencyManagerTrait;
+use Drupal\Tests\canvas\Traits\CanvasFieldCreationTrait;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait;
 use Drupal\Tests\canvas\Traits\DataProviderWithComponentTreeTrait;
@@ -43,6 +44,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
   ];
 
   use BetterConfigDependencyManagerTrait;
+  use CanvasFieldCreationTrait;
   use DataProviderWithComponentTreeTrait;
   use ContentTypeCreationTrait;
   use ContribStrictConfigSchemaTestTrait;
@@ -619,11 +621,16 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
     ]);
   }
 
-  public function testExposedSlotMustBeEmpty(): void {
+  public function testExposedSlotWithDefaultContentIsAllowed(): void {
     \assert($this->entity instanceof ContentTemplate);
+    $template = $this->entity;
+
+    // The exposed slot must be backed by a `component_tree` field of the same
+    // machine name on the bundle.
+    $this->createComponentTreeField('node', 'alpha', 'filled_footer');
 
     // Add a component in one of the open slots.
-    $items = $this->entity->getComponentTree();
+    $items = $template->getComponentTree();
     $items->appendItem([
       'uuid' => '91f6e215-49f4-47c1-a1ac-dcc151876842',
       'parent_uuid' => 'b4937e35-ddc2-4f36-8d4c-b1cc14aaefef',
@@ -636,7 +643,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
         ],
       ],
     ]);
-    $this->entity->setComponentTree($items->getValue());
+    $template->setComponentTree($items->getValue());
 
     $this->entity->set('exposed_slots', [
       'filled_footer' => [
@@ -645,8 +652,138 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
         'label' => "Something's already here!",
       ],
     ]);
+    // Template content in an exposed slot is allowed for content templates: it
+    // becomes the slot's per-entity-overridable default. (The slot-must-be-empty
+    // check remains available via the ValidExposedSlot `requireEmpty` option for
+    // consumers such as page variants.)
+    $this->assertValidationErrors([]);
+  }
+
+  public function testNestedExposedSlotIsRejected(): void {
+    \assert($this->entity instanceof ContentTemplate);
+    $template = $this->entity;
+
+    $this->createComponentTreeField('node', 'alpha', 'outer_slot');
+    $this->createComponentTreeField('node', 'alpha', 'inner_slot');
+
+    // A second slotted component nested inside the host's exposed footer slot,
+    // i.e. part of the outer slot's replaceable default content.
+    $items = $template->getComponentTree();
+    $items->appendItem([
+      'uuid' => '0aa7b525-1ae1-4bfc-b342-0a8246bd19c1',
+      'parent_uuid' => 'b4937e35-ddc2-4f36-8d4c-b1cc14aaefef',
+      'slot' => 'the_footer',
+      'component_id' => 'sdc.canvas_test_sdc.props-slots',
+      'component_version' => '0e79e884426a53ae',
+      'inputs' => [
+        'heading' => 'Nested host',
+      ],
+    ]);
+    $template->setComponentTree($items->getValue());
+
+    // Exposing a slot of the nested component is rejected: a per-entity
+    // override of the outer slot replaces the default subtree the nested
+    // component lives in, orphaning the inner slot's per-entity content.
+    $template->set('exposed_slots', [
+      'outer_slot' => [
+        'component_uuid' => 'b4937e35-ddc2-4f36-8d4c-b1cc14aaefef',
+        'slot_name' => 'the_footer',
+        'label' => 'Outer',
+      ],
+      'inner_slot' => [
+        'component_uuid' => '0aa7b525-1ae1-4bfc-b342-0a8246bd19c1',
+        'slot_name' => 'the_body',
+        'label' => 'Inner',
+      ],
+    ]);
     $this->assertValidationErrors([
-      'exposed_slots.filled_footer' => 'The <em class="placeholder">the_footer</em> slot must be empty.',
+      'exposed_slots.inner_slot' => 'The <em class="placeholder">the_body</em> slot of component <em class="placeholder">0aa7b525-1ae1-4bfc-b342-0a8246bd19c1</em> cannot be exposed because that component is inside another exposed slot.',
+    ]);
+  }
+
+  /**
+   * A cyclic tree must not hang the exposed-slot ancestry walk.
+   *
+   * The structure constraint reports the cycle, but validation still runs this
+   * constraint, whose walk up the parent chain would otherwise never
+   * terminate. This test asserts termination: without the guard it hangs
+   * rather than fails.
+   *
+   * @see \Drupal\canvas\Plugin\Validation\Constraint\ValidExposedSlotConstraintValidator
+   */
+  public function testCyclicTreeDoesNotHangExposedSlotValidation(): void {
+    \assert($this->entity instanceof ContentTemplate);
+    $template = $this->entity;
+
+    $this->createComponentTreeField('node', 'alpha', 'cyclic_slot');
+
+    // Two slotted components that each claim the other as their parent.
+    $a = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa';
+    $b = 'bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb';
+    $items = $template->getComponentTree();
+    $items->appendItem([
+      'uuid' => $a,
+      'parent_uuid' => $b,
+      'slot' => 'the_body',
+      'component_id' => 'sdc.canvas_test_sdc.props-slots',
+      'component_version' => '0e79e884426a53ae',
+      'inputs' => ['heading' => 'A'],
+    ]);
+    $items->appendItem([
+      'uuid' => $b,
+      'parent_uuid' => $a,
+      'slot' => 'the_body',
+      'component_id' => 'sdc.canvas_test_sdc.props-slots',
+      'component_version' => '0e79e884426a53ae',
+      'inputs' => ['heading' => 'B'],
+    ]);
+    $template->setComponentTree($items->getValue());
+    $template->set('exposed_slots', [
+      'cyclic_slot' => [
+        'component_uuid' => $a,
+        'slot_name' => 'the_footer',
+        'label' => 'Cyclic',
+      ],
+    ]);
+
+    // The assertion that matters is that validate() returns at all; the cycle
+    // itself is reported by the structure constraint.
+    $violations = $template->getTypedData()->validate();
+    $messages = [];
+    foreach ($violations as $violation) {
+      $messages[] = (string) $violation->getMessage();
+    }
+    self::assertNotEmpty($messages);
+    self::assertTrue(
+      (bool) \array_filter($messages, static fn (string $m): bool => \str_contains($m, 'is part of a cycle')),
+      'Expected the structure constraint to report the parent cycle, got: ' . \implode(' | ', $messages),
+    );
+  }
+
+  public function testDuplicateExposedSlotTargetIsRejected(): void {
+    \assert($this->entity instanceof ContentTemplate);
+
+    $this->createComponentTreeField('node', 'alpha', 'canvas_slot_first');
+    $this->createComponentTreeField('node', 'alpha', 'canvas_slot_second');
+
+    // Two aliases exposing the same physical slot: the Layout API would offer
+    // two editable regions for one target, and rendering would merge one
+    // backing field over the other.
+    $this->entity->set('exposed_slots', [
+      'canvas_slot_first' => [
+        'component_uuid' => 'b4937e35-ddc2-4f36-8d4c-b1cc14aaefef',
+        'slot_name' => 'the_footer',
+        'label' => 'First',
+      ],
+      'canvas_slot_second' => [
+        'component_uuid' => 'b4937e35-ddc2-4f36-8d4c-b1cc14aaefef',
+        'slot_name' => 'the_footer',
+        'label' => 'Second',
+      ],
+    ]);
+    $this->assertValidationErrors([
+      'exposed_slots.canvas_slot_first' => 'The <em class="placeholder">the_footer</em> slot of component <em class="placeholder">b4937e35-ddc2-4f36-8d4c-b1cc14aaefef</em> is already exposed as <em class="placeholder">canvas_slot_second</em>.',
+      'exposed_slots.canvas_slot_second' => 'The <em class="placeholder">the_footer</em> slot of component <em class="placeholder">b4937e35-ddc2-4f36-8d4c-b1cc14aaefef</em> is already exposed as <em class="placeholder">canvas_slot_first</em>.',
     ]);
   }
 
@@ -687,6 +824,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
       ],
       [
         'exposed_slots' => '<em class="placeholder">&quot;not a valid exposed slot name&quot;</em> is not a valid exposed slot name.',
+        'exposed_slots.not a valid exposed slot name' => 'The exposed slot <em class="placeholder">not a valid exposed slot name</em> must be backed by a component tree field of that machine name on the bundle.',
       ],
     ];
 
@@ -700,6 +838,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
       ],
       [
         'exposed_slots' => '<em class="placeholder">&quot;_neither&quot;</em> is not a valid exposed slot name.',
+        'exposed_slots._neither' => 'The exposed slot <em class="placeholder">_neither</em> must be backed by a component tree field of that machine name on the bundle.',
       ],
     ];
   }
@@ -744,6 +883,7 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
 
     $this->assertValidationErrors([
       'exposed_slots.valid_alias.slot_name' => '<em class="placeholder">&quot;invalid sl😈t&quot;</em> is not a valid slot name.',
+      'exposed_slots.valid_alias' => 'The exposed slot <em class="placeholder">valid_alias</em> must be backed by a component tree field of that machine name on the bundle.',
     ]);
   }
 
@@ -759,7 +899,10 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
       ],
     ]);
     $this->assertValidationErrors([
-      'exposed_slots.footer_for_you' => 'Exposed slots are only allowed in the <em class="placeholder">full</em> view mode.',
+      'exposed_slots.footer_for_you' => [
+        'Exposed slots are only allowed in the <em class="placeholder">full</em> view mode.',
+        'The exposed slot <em class="placeholder">footer_for_you</em> must be backed by a component tree field of that machine name on the bundle.',
+      ],
     ]);
   }
 

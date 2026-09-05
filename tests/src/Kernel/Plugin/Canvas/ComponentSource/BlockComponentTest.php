@@ -126,8 +126,9 @@ final class BlockComponentTest extends ComponentSourceTestBase {
     // Due to BlockManagerDecorator, this should result in zero extra Block
     // Components being discovered.
     $this->generateComponentConfig();
-    // Minus one: the shipped "Page content" marker is not a block component.
-    $this->assertCount($this->expectedDefaultComponentInstallCount - 1, \array_filter(
+    // Minus two: the shipped "Page content" and "Empty slot" markers are not
+    // block components.
+    $this->assertCount($this->expectedDefaultComponentInstallCount - 2, \array_filter(
       $this->componentStorage->loadMultiple(),
       static function (EntityInterface $component) {
         \assert($component instanceof Component);

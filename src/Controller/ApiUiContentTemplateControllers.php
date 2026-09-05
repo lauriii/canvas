@@ -15,10 +15,12 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
+use Drupal\Core\Url;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 /**
  * Controllers exposing HTTP API for powering Content Template editor UI.
@@ -124,13 +126,79 @@ final class ApiUiContentTemplateControllers extends ApiControllerBase {
       return $access->isAllowed();
     });
 
-    $entities_data = \array_map(fn (EntityInterface $entity) => [
-      'id' => $entity->id(),
-      'label' => $entity->label(),
-    ], $entities);
+    // The bundle's Field UI "Manage fields" URL, resolved generically from the
+    // entity type (never a hardcoded per-entity-type route), gated on the
+    // user's field-administration access. Shared across the bundle's entities.
+    $manage_fields_url = self::manageFieldsUrl(
+      $entity_definition->id(),
+      $entity_definition->getBundleEntityType(),
+      $bundle,
+      $entity_query_cacheability,
+    );
+
+    $entities_data = [];
+    foreach ($entities as $entity) {
+      $entities_data[(string) $entity->id()] = [
+        'id' => $entity->id(),
+        'label' => $entity->label(),
+        // Present only when the user may update this entity; gates both the
+        // in-Canvas "Edit exposed slots" jump and the "Edit content" edit form.
+        'editUrl' => self::entityEditFormUrl($entity, $entity_query_cacheability),
+        'manageFieldsUrl' => $manage_fields_url,
+      ];
+    }
     $response = new CacheableJsonResponse($entities_data);
     $response->addCacheableDependency($entity_query_cacheability);
     return $response;
+  }
+
+  /**
+   * The entity's edit-form URL, or NULL when it has none or is not updatable.
+   */
+  private static function entityEditFormUrl(EntityInterface $entity, CacheableMetadata $cacheability): ?string {
+    if (!$entity->hasLinkTemplate('edit-form')) {
+      return NULL;
+    }
+    $access = $entity->access('update', return_as_object: TRUE);
+    $cacheability->addCacheableDependency($access);
+    if (!$access->isAllowed()) {
+      return NULL;
+    }
+    $generated = $entity->toUrl('edit-form')->toString(TRUE);
+    $cacheability->addCacheableDependency($generated);
+    return $generated->getGeneratedUrl();
+  }
+
+  /**
+   * The bundle's Field UI "Manage fields" URL, or NULL when unavailable.
+   *
+   * Resolved from the entity type's own Field UI route (Field UI registers
+   * `entity.{entity_type_id}.field_ui_fields` per fieldable entity type), so no
+   * entity-type-specific route is hardcoded. NULL when Field UI is not enabled
+   * for the entity type or the user lacks field-administration access.
+   */
+  private static function manageFieldsUrl(string $entity_type_id, ?string $bundle_entity_type, string $bundle, CacheableMetadata $cacheability): ?string {
+    try {
+      $url = Url::fromRoute(
+        "entity.$entity_type_id.field_ui_fields",
+        [$bundle_entity_type ?? 'bundle' => $bundle],
+      );
+      $access = $url->access(return_as_object: TRUE);
+      $cacheability->addCacheableDependency($access);
+      if (!$access->isAllowed()) {
+        return NULL;
+      }
+      $generated = $url->toString(TRUE);
+      $cacheability->addCacheableDependency($generated);
+      return $generated->getGeneratedUrl();
+    }
+    catch (RouteNotFoundException) {
+      // Field UI is not enabled, or the entity type has no manage-fields
+      // route. The response must re-evaluate when modules are (un)installed,
+      // since enabling field_ui makes the route appear.
+      $cacheability->addCacheTags(['config:core.extension']);
+      return NULL;
+    }
   }
 
   public function listViewModes(): JsonResponse {

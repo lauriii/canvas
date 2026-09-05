@@ -28,12 +28,27 @@
   .chevron {
     cursor: pointer;
     &:hover {
-        color: var(--blue-9);
+      color: var(--blue-9);
     }
   }
   .folderCount {
     background-color: var(--gray-3);
   }
+}
+
+/* A full-row native button trigger for collapsible folders: reset to look
+   like the surrounding row while staying keyboard focusable. */
+.folderButton {
+  display: flex;
+  overflow: hidden;
+  flex-grow: 1;
+  align-items: center;
+  min-width: 0;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  border: none;
+  background: transparent;
 }
 
 .folderIcon {
@@ -43,7 +58,7 @@
 .chevron {
   transition: transform 300ms ease-in-out;
   color: var(--slate-12);
- &.isOpen {
+  &.isOpen {
     transform: rotate(90deg);
   }
 }
@@ -76,7 +91,7 @@
   right: 0;
   left: 0;
   height: 2px;
-  content: '';
+  content: "";
   border-radius: 1px;
   background-color: var(--blue-9);
 }
@@ -92,7 +107,7 @@
   bottom: -4px;
   left: 0;
   height: 2px;
-  content: '';
+  content: "";
   border-radius: 1px;
   background-color: var(--blue-9);
 }
