@@ -1535,6 +1535,163 @@ describe('props in code editor', () => {
         });
       });
     });
+
+    it('text list prop does not apply numeric validation to its options', async () => {
+      await addProp('List: text', 'Variant');
+      await userEvent.click(screen.getByRole('button', { name: 'Add value' }));
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+      const valueInput = screen.getByTestId(
+        `canvas-prop-enum-value-${propId}-0`,
+      );
+
+      await userEvent.type(valueInput, 'Alpha');
+
+      await waitFor(() => {
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0].enum,
+        ).toEqual([{ label: 'Alpha', value: 'Alpha' }]);
+      });
+      expect(
+        screen.queryByText(/valid integer|decimal values/),
+      ).not.toBeInTheDocument();
+      expect(valueInput).not.toHaveAttribute('data-invalid-prop-value');
+    });
+
+    it('integer list prop flags a decimal enum value as invalid', async () => {
+      await addProp('List: integer', 'Level');
+      await userEvent.click(screen.getByRole('button', { name: 'Add value' }));
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+      const valueInput = screen.getByTestId(
+        `canvas-prop-enum-value-${propId}-0`,
+      );
+
+      await userEvent.type(valueInput, '12.5');
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Integers cannot have decimal values.'),
+        ).toBeInTheDocument();
+      });
+      // The field keeps showing what was typed, and is marked invalid.
+      expect(valueInput).toHaveValue(12.5);
+      expect(valueInput).toHaveAttribute('data-invalid-prop-value');
+      expect(valueInput).toHaveAttribute('aria-invalid', 'true');
+      // The value and its auto-filled label stay in sync with the field.
+      expect(
+        selectCodeComponentProperty('props')(store.getState())[0].enum,
+      ).toEqual([{ label: '12.5', value: '12.5' }]);
+    });
+
+    it('integer list prop clears the decimal error after a valid value', async () => {
+      await addProp('List: integer', 'Level');
+      await userEvent.click(screen.getByRole('button', { name: 'Add value' }));
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+      const valueInput = screen.getByTestId(
+        `canvas-prop-enum-value-${propId}-0`,
+      );
+
+      await userEvent.type(valueInput, '12.5');
+      await waitFor(() => {
+        expect(
+          screen.getByText('Integers cannot have decimal values.'),
+        ).toBeInTheDocument();
+      });
+
+      await userEvent.clear(valueInput);
+      await userEvent.type(valueInput, '13');
+      await waitFor(() => {
+        expect(
+          screen.queryByText('Integers cannot have decimal values.'),
+        ).not.toBeInTheDocument();
+      });
+      expect(valueInput).not.toHaveAttribute('data-invalid-prop-value');
+      expect(valueInput).toHaveAttribute('aria-invalid', 'false');
+      await waitFor(() => {
+        expect(
+          selectCodeComponentProperty('props')(store.getState())[0].enum,
+        ).toEqual([{ label: '13', value: '13' }]);
+      });
+    });
+
+    it('integer list prop keeps a decimal error with its own option when another is removed', async () => {
+      await addProp('List: integer', 'Level');
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+
+      await userEvent.click(screen.getByRole('button', { name: 'Add value' }));
+      await userEvent.type(
+        screen.getByTestId(`canvas-prop-enum-value-${propId}-0`),
+        '2',
+      );
+      await userEvent.click(screen.getByRole('button', { name: 'Add value' }));
+      await userEvent.type(
+        screen.getByTestId(`canvas-prop-enum-value-${propId}-1`),
+        '1.5',
+      );
+      await waitFor(() => {
+        expect(
+          screen.getByTestId(`canvas-prop-enum-value-${propId}-1`),
+        ).toHaveAttribute('data-invalid-prop-value');
+      });
+      expect(
+        screen.getByTestId(`canvas-prop-enum-value-${propId}-0`),
+      ).not.toHaveAttribute('data-invalid-prop-value');
+
+      // Removing the valid option shifts the invalid one up. The error has to
+      // travel with it instead of staying on the row it used to occupy.
+      await userEvent.click(
+        screen.getByTestId(`canvas-prop-enum-value-delete-${propId}-0`),
+      );
+      await waitFor(() => {
+        expect(
+          screen.getByTestId(`canvas-prop-enum-value-${propId}-0`),
+        ).toHaveValue(1.5);
+      });
+      expect(
+        screen.getByTestId(`canvas-prop-enum-value-${propId}-0`),
+      ).toHaveAttribute('data-invalid-prop-value');
+      expect(
+        screen.getByText('Integers cannot have decimal values.'),
+      ).toBeInTheDocument();
+
+      // Removing the invalid option takes its error with it.
+      await userEvent.click(
+        screen.getByTestId(`canvas-prop-enum-value-delete-${propId}-0`),
+      );
+      await waitFor(() => {
+        expect(
+          screen.queryByText('Integers cannot have decimal values.'),
+        ).not.toBeInTheDocument();
+      });
+    });
+
+    it('integer list prop flags a decimal enum value that was already stored', async () => {
+      await addProp('List: integer', 'Level');
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
+
+      // Simulates loading a component whose options were saved elsewhere: the
+      // error is not tied to the keystroke that introduced the value.
+      act(() => {
+        store.dispatch(
+          updateProp({
+            id: propId,
+            // Deserialized integer options hold numbers, not strings.
+            updates: { enum: [{ label: 'Twelve and a half', value: 12.5 }] },
+          }),
+        );
+      });
+
+      expect(
+        await screen.findByText('Integers cannot have decimal values.'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId(`canvas-prop-enum-value-${propId}-0`),
+      ).toHaveAttribute('data-invalid-prop-value');
+    });
   });
 
   describe('prop type switching', () => {
