@@ -339,6 +339,18 @@ let pendingPreviewArg: PostPreviewArg | null = null;
 let previewSuccessCount = 0;
 
 /**
+ * Waits for all active or queued preview requests to complete.
+ *
+ * Required before operations that move the auto-save entry (like changing the
+ * langcode) to ensure requests-in-progress aren't written to the old key.
+ */
+export async function waitForPreviewRequests(): Promise<void> {
+  while (activePreviewRequest) {
+    await activePreviewRequest.catch(() => {});
+  }
+}
+
+/**
  * Queued version of usePostPreviewMutation that prevents parallel requests.
  *
  * When a request is in flight, subsequent calls are queued. Only the most

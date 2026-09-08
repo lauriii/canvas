@@ -1920,6 +1920,88 @@ paths:
       responses:
         '204':
           description: Content deleted successfully
+  '/canvas/api/v0/content/canvas_page/{entityId}/langcode':
+    description: Endpoint for changing the primary language of a canvas_page that has never been published.
+    patch:
+      summary: Changes the langcode of a never-published canvas_page and migrates its auto-save entry.
+      parameters:
+        - $ref: '#/components/parameters/entityId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - langcode
+              properties:
+                langcode:
+                  type: string
+                  description: The new langcode. Must be an enabled language.
+            examples:
+              "switch to German":
+                value:
+                  langcode: de
+      responses:
+        '200':
+          description: Langcode updated successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - langcode
+                properties:
+                  langcode:
+                    type: string
+              examples:
+                "switched":
+                  value:
+                    langcode: de
+        '400':
+          description: Missing, empty or unknown langcode.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Error'
+                additionalProperties: false
+              examples:
+                unknownLanguage:
+                  value:
+                    errors:
+                      - detail: 'Unknown language: xx.'
+                        source:
+                          pointer: langcode
+        '404':
+          description: Content entity not found.
+        '422':
+          description: The page has been published before, or already has translations.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Error'
+                additionalProperties: false
+              examples:
+                publishedBefore:
+                  value:
+                    errors:
+                      - detail: Language can only be changed on a draft page that has never been published.
+                        source:
+                          pointer: '1'
   '/canvas/api/v0/content/canvas_page/{entityId}/translations':
     description: Endpoint for deleting a specific translation of a Page content entity. Note that the path can be prefixed with a langcode to negotiate deleting that particular translation.
     delete:
@@ -2802,7 +2884,7 @@ paths:
                     properties:
                       available:
                         type: array
-                        description: Language codes with existing translations.
+                        description: Language codes the entity exists in. The first entry is always the entity's own (primary) language, followed by its translations.
                         items:
                           type: string
                   isNew:

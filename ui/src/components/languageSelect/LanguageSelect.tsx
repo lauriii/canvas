@@ -19,15 +19,26 @@ import {
   Text,
   TextField,
 } from '@radix-ui/themes';
+import { skipToken } from '@reduxjs/toolkit/query';
 
-import { useAppSelector } from '@/app/hooks';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import Dialog from '@/components/Dialog';
-import { selectTranslations } from '@/features/layout/layoutModelSlice';
+import { extractErrorMessageFromApiResponse } from '@/features/error-handling/error-handling';
+import {
+  selectTranslations,
+  setInitialized,
+} from '@/features/layout/layoutModelSlice';
 import { selectPageData } from '@/features/pageData/pageDataSlice';
 import { selectSnapshotTitle } from '@/features/pagePreview/previewSlice';
 import { useTemplateCaption } from '@/hooks/useTemplateCaption';
 import { useTemplateRef } from '@/hooks/useTemplateRef';
-import { useDeletePageTranslationMutation } from '@/services/componentAndLayout';
+import {
+  componentAndLayoutApi,
+  useDeletePageTranslationMutation,
+  useGetPageLayoutQuery,
+} from '@/services/componentAndLayout';
+import { useSetLangcodeMutation } from '@/services/content';
+import { waitForPreviewRequests } from '@/services/preview';
 import { getCanvasPermissions, getLanguages } from '@/utils/drupal-globals';
 import { getEntityTitle } from '@/utils/entityTitle';
 
@@ -119,6 +130,7 @@ const LanguageSelect = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [openPopoverId, setOpenPopoverId] = useState<string | null>(null);
   const [deleteLanguageId, setDeleteLanguageId] = useState<string | null>(null);
+  const [switchError, setSwitchError] = useState<string | null>(null);
   // Languages whose translation was deleted in-session. Used to hide their
   // check mark and options trigger without re-fetching the layout.
   const [removedLanguages, setRemovedLanguages] = useState<string[]>([]);
@@ -152,13 +164,59 @@ const LanguageSelect = () => {
     getEntityTitle(entityType, pageData) ||
     pageData?.['title[0][value]'];
 
-  // Derive the active language directly from the URL.
+  const [setLangcode, { isLoading: isPatching }] = useSetLangcodeMutation();
+  const dispatch = useAppDispatch();
+
+  // Derive the active language: prefer the ?language= URL param, falling
+  // back to the entity's primary language, and finally the site default.
+  const entityDefaultLangcode = translations?.available?.[0];
   const activeLanguageId = searchParams.get('language') ?? '';
+  const { data: fetchedLayout, isFetching: isLayoutFetching } =
+    useGetPageLayoutQuery(
+      !isTemplateRoute && entityId && entityType
+        ? { entityId, entityType, language: activeLanguageId || undefined }
+        : skipToken,
+    );
+  const isNew = Boolean(fetchedLayout?.isNew);
+  // The langcode endpoint only exists for canvas_page; `isNew` is reported for
+  // every entity type.
+  // @see canvas.api.content.langcode.patch in canvas.routing.yml
+  const canSwitchLanguage = isNew && entityType === 'canvas_page';
   const defaultLanguage = languages.find((lang) => lang.isDefault);
   const currentLanguage =
-    activeLanguageId || defaultLanguage?.id || languages[0]?.id || '';
+    activeLanguageId ||
+    entityDefaultLangcode ||
+    defaultLanguage?.id ||
+    languages[0]?.id ||
+    '';
 
-  const handleLanguageChange = (languageId: string) => {
+  // Switches the draft's primary language server-side and reloads.
+  // Intentionally drops the ?language= param during navigation to prevent
+  // the Drupal backend from 404ing on a non-existent translation.
+  const handleSwitchLanguage = async (languageId: string) => {
+    setDropdownOpen(false);
+    if (!canSwitchLanguage || !entityId || languageId === currentLanguage) {
+      return;
+    }
+    try {
+      await waitForPreviewRequests();
+      await setLangcode({
+        entityId,
+        langcode: languageId,
+      }).unwrap();
+      // Reset isInitialized so LayoutLoader treats the next getPageLayout response
+      // as fresh and re-seeds the form via setInitialLayoutModel (see LayoutLoader.tsx).
+      dispatch(setInitialized(false));
+      dispatch(componentAndLayoutApi.util.invalidateTags([{ type: 'Layout' }]));
+    } catch (error) {
+      console.error('Failed to switch the language:', error);
+      setSwitchError(extractErrorMessageFromApiResponse(error));
+      return;
+    }
+    navigate(`/editor/${entityType}/${entityId}`);
+  };
+
+  const handleLanguageChange = async (languageId: string) => {
     setDropdownOpen(false);
     const selectedLang = languages.find((lang) => lang.id === languageId);
 
@@ -235,7 +293,13 @@ const LanguageSelect = () => {
         }}
       >
         <DropdownMenu.Trigger>
-          <Button size="2" variant="soft" data-testid="language-select-trigger">
+          <Button
+            size="2"
+            variant="soft"
+            data-testid="language-select-trigger"
+            // Stays disabled until the layout re-fetches after a switch.
+            disabled={isPatching || isLayoutFetching}
+          >
             <GlobeIcon />
             <Text>{currentLangObj?.name || 'Select Language'}</Text>
             <ChevronDownIcon width="16" height="16" />
@@ -271,7 +335,8 @@ const LanguageSelect = () => {
                   </Text>
                 </Flex>
               </DropdownMenu.Item>
-              {translations?.links?.[language.id] &&
+              {(translations?.links?.[language.id] ||
+                (canSwitchLanguage && language.id !== currentLanguage)) &&
                 !removedLanguages.includes(language.id) && (
                   <Popover.Root
                     open={openPopoverId === language.id}
@@ -323,35 +388,55 @@ const LanguageSelect = () => {
                           {pageTitle || 'Untitled'} ({language.name})
                         </Text>
                         <Separator size="4" my="1" />
-                        {(translations?.links?.[language.id]?.['edit-form'] ||
-                          translations?.links?.[language.id]?.['create']) && (
-                          <button
-                            className={styles.popoverItem}
-                            onClick={() => handleTranslate(language.id)}
-                          >
-                            <ExternalLinkIcon width="14" height="14" />
-                            <Text size="2">
-                              {translations?.links?.[language.id]?.['edit-form']
-                                ? 'Edit translation'
-                                : 'Add translation'}
-                            </Text>
-                          </button>
-                        )}
-                        {translations?.links?.[language.id]?.[
-                          'delete-form'
-                        ] && (
-                          <button
-                            className={clsx(
-                              styles.popoverItem,
-                              styles.popoverItemRed,
-                            )}
-                            data-testid="language-options-delete"
-                            onClick={() => handleDeleteTranslation(language.id)}
-                          >
-                            <TrashIcon width="14" height="14" />
-                            <Text size="2">Delete translation</Text>
-                          </button>
-                        )}
+                        {canSwitchLanguage &&
+                          language.id !== currentLanguage && (
+                            <button
+                              className={styles.popoverItem}
+                              data-testid="language-switch"
+                              onClick={() => {
+                                setOpenPopoverId(null);
+                                handleSwitchLanguage(language.id);
+                              }}
+                            >
+                              <GlobeIcon width="14" height="14" />
+                              <Text size="2">Switch language</Text>
+                            </button>
+                          )}
+                        {!isNew &&
+                          (translations?.links?.[language.id]?.['edit-form'] ||
+                            translations?.links?.[language.id]?.['create']) && (
+                            <button
+                              className={styles.popoverItem}
+                              onClick={() => handleTranslate(language.id)}
+                            >
+                              <ExternalLinkIcon width="14" height="14" />
+                              <Text size="2">
+                                {translations?.links?.[language.id]?.[
+                                  'edit-form'
+                                ]
+                                  ? 'Edit translation'
+                                  : 'Add translation'}
+                              </Text>
+                            </button>
+                          )}
+                        {!isNew &&
+                          translations?.links?.[language.id]?.[
+                            'delete-form'
+                          ] && (
+                            <button
+                              className={clsx(
+                                styles.popoverItem,
+                                styles.popoverItemRed,
+                              )}
+                              data-testid="language-options-delete"
+                              onClick={() =>
+                                handleDeleteTranslation(language.id)
+                              }
+                            >
+                              <TrashIcon width="14" height="14" />
+                              <Text size="2">Delete translation</Text>
+                            </button>
+                          )}
                       </Flex>
                     </Popover.Content>
                   </Popover.Root>
@@ -386,6 +471,19 @@ const LanguageSelect = () => {
           setDeleteLanguageId(null);
         }}
         onClose={() => setDeleteLanguageId(null)}
+      />
+      <Dialog
+        open={switchError !== null}
+        onOpenChange={(open) => {
+          if (!open) setSwitchError(null);
+        }}
+        title="Switch language"
+        error={
+          switchError
+            ? { title: 'Failed to switch language', message: switchError }
+            : undefined
+        }
+        footer={{ hidden: true }}
       />
     </>
   );

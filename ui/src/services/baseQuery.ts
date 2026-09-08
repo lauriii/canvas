@@ -198,6 +198,7 @@ export const withAutoSavesInjection: (
           'createColor',
           'updateColor',
           'deleteColor',
+          'setLangcode',
         ].includes(api.endpoint)
       ) {
         const state = api.getState() as RootState;

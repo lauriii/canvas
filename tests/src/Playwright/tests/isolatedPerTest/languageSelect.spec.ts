@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 
 import { isolatedPerTest as test } from '../../fixtures/test.js';
 
-// cspell:ignore région languageswitcher
+// cspell:ignore région languageswitcher Brouillon
 /**
  * Tests language switching functionality and URL query parameters.
  */
@@ -658,5 +658,148 @@ test.describe('Language Select', () => {
     await expect(
       page.locator('[data-testid="canvas-navigation-button"]'),
     ).toContainText('Canvas Translation Test Page');
+  });
+
+  test('Switching a never-published draft to another language keeps its content and is not offered after publishing', async ({
+    page,
+    canvas,
+    drupal,
+  }) => {
+    await login({ username: 'editor', password: 'editor', drupal });
+    const canvasPage = await canvas.createCanvas({ title: 'Brouillon' });
+    const topbar = page.locator('[data-testid="canvas-topbar"]');
+    await expect(topbar.getByText('Draft')).toBeVisible();
+
+    const languageButton = topbar.locator(
+      '[data-testid="language-select-trigger"]',
+    );
+    await expect(languageButton).toContainText('English');
+    await languageButton.click();
+
+    // A never-published draft offers "Switch language" for every non-default
+    // language, and no translation actions.
+    await page.locator('[aria-label="More options for French"]').click();
+    const switchButton = page.locator('[data-testid="language-switch"]');
+    await expect(switchButton).toBeVisible();
+    await expect(
+      page.locator('[data-testid="language-options-delete"]'),
+    ).toHaveCount(0);
+    await switchButton.click();
+
+    // The editor stays on the plain editor URL: the draft now *is* French,
+    // it is not a translation.
+    await page.waitForURL(
+      new RegExp(`/editor/canvas_page/${canvasPage.entity_id}$`),
+      { timeout: 10000 },
+    );
+    await canvas.waitForEditorUi();
+    await expect(languageButton).toContainText('French');
+    await expect(topbar.getByText('Draft')).toBeVisible();
+    await expect(
+      page.locator('[data-drupal-selector="edit-title-0-value"]'),
+    ).toHaveValue('Brouillon');
+
+    // Content typed before the switch survives a reload.
+    await page.reload();
+    await canvas.waitForEditorUi();
+    await expect(languageButton).toContainText('French');
+    await expect(
+      page.locator('[data-drupal-selector="edit-title-0-value"]'),
+    ).toHaveValue('Brouillon');
+
+    // Switching back to the site default language is offered too: the menu
+    // gates on the draft's current language, not the site default.
+    await languageButton.click();
+    await expect(
+      page.locator('[aria-label="More options for French"]'),
+    ).toHaveCount(0);
+    await page.locator('[aria-label="More options for English"]').click();
+    await switchButton.click();
+    await page.waitForURL(
+      new RegExp(`/editor/canvas_page/${canvasPage.entity_id}$`),
+      { timeout: 10000 },
+    );
+    await canvas.waitForEditorUi();
+    await expect(languageButton).toContainText('English');
+    await expect(
+      page.locator('[data-drupal-selector="edit-title-0-value"]'),
+    ).toHaveValue('Brouillon');
+
+    // And forward again, so the published page below is French.
+    await languageButton.click();
+    await page.locator('[aria-label="More options for French"]').click();
+    await switchButton.click();
+    await page.waitForURL(
+      new RegExp(`/editor/canvas_page/${canvasPage.entity_id}$`),
+      { timeout: 10000 },
+    );
+    await canvas.waitForEditorUi();
+    await expect(languageButton).toContainText('French');
+
+    // Once published, the page is no longer a draft: no "Switch language".
+    await canvas.publishAllChanges(['Brouillon']);
+    await expect(topbar.getByText('Draft')).toHaveCount(0);
+    await languageButton.click();
+    await expect(
+      page.locator('[data-testid="language-option-fr"]'),
+    ).toBeVisible();
+    await expect(page.locator('[data-testid="language-switch"]')).toHaveCount(
+      0,
+    );
+  });
+
+  test('Switching language is not offered for a disabled page variant', async ({
+    page,
+    canvas,
+    drupal,
+  }) => {
+    await login({ username: 'editor', password: 'editor', drupal });
+    await canvas.createCanvas();
+
+    // Create a page variant through the Templates panel, disable it and open
+    // it. A disabled variant is reported as new by the layout API, but the
+    // langcode endpoint only exists for canvas_page.
+    await page
+      .getByTestId('canvas-side-menu')
+      .getByRole('button', { name: 'Templates' })
+      .click();
+    await page.getByTestId('canvas-page-variant-new-button').click();
+    await page.getByTestId('canvas-page-variant-label-input').fill('Marketing');
+    await page.getByRole('button', { name: 'Create template' }).click();
+    const row = page.getByTestId('canvas-page-variant-marketing');
+    await expect(row).toBeVisible();
+    await row.hover();
+    await row.getByLabel('Open contextual menu').click();
+    const disableResponse = page.waitForResponse(
+      (response) =>
+        response
+          .url()
+          .includes('/canvas/api/v0/config/page_variant/marketing') &&
+        response.request().method() === 'PATCH',
+    );
+    await page.getByRole('menuitem', { name: 'Disable' }).click();
+    await disableResponse;
+    await expect(row.getByText('Disabled')).toBeVisible();
+    await row.click();
+    await expect(page).toHaveURL(/\/canvas\/editor\/page_variant\/marketing/);
+    await canvas.waitForEditorFrame();
+    const layout = await page.evaluate(() =>
+      fetch('/canvas/api/v0/layout/page_variant/marketing').then((response) =>
+        response.json(),
+      ),
+    );
+    expect(layout.isNew).toBe(true);
+
+    const topbar = page.locator('[data-testid="canvas-topbar"]');
+    await topbar.locator('[data-testid="language-select-trigger"]').click();
+    await expect(
+      page.locator('[data-testid="language-option-fr"]'),
+    ).toBeVisible();
+    await expect(
+      page.locator('[data-testid="language-options-popover-trigger"]'),
+    ).toHaveCount(0);
+    await expect(page.locator('[data-testid="language-switch"]')).toHaveCount(
+      0,
+    );
   });
 });
