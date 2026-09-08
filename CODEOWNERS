@@ -1,8 +1,13 @@
 # Maintainers of the main module can approve any changes.
 * @amangrover90 @balintbrews @bnjmnm @effulgentsia @f.mazeikis @hooroomoo @isholgueras @jessebaker @jptaranto @justafish @larowlan @longwave @mglaman @narendrar @penyaskito @phenaproxima @tedbow @thoward216 @tim.plunkett @wimleers @wotnak @lauriii
+
 !/modules/canvas_ai/
 !/modules/canvas_dev_ai/
 !/ui/src/components/aiExtension/
+
+# Playwright isolated tests have a separate section so one approval from
+# either a general maintainer or a Canvas AI owner is sufficient.
+!/tests/src/Playwright/tests/isolatedPerTest/
 
 # Relevant configuration in GitLab:
 # https://git.drupalcode.org/project/canvas/-/settings/merge_requests
@@ -33,3 +38,6 @@
 /modules/canvas_ai/
 /modules/canvas_dev_ai/
 /ui/src/components/aiExtension/
+
+[Playwright tests]
+/tests/src/Playwright/tests/isolatedPerTest/ @amangrover90 @balintbrews @bnjmnm @effulgentsia @f.mazeikis @hooroomoo @isholgueras @jessebaker @jptaranto @justafish @larowlan @longwave @mglaman @narendrar @penyaskito @phenaproxima @tedbow @thoward216 @tim.plunkett @wimleers @wotnak @lauriii @Marcus_Johansson @NarendraR @Utkarsh_33 @kunal.sachdev @AkhilBabu
