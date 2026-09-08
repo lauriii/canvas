@@ -270,6 +270,11 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
     $build = [];
     foreach ($hydrated as $component_subtree_uuid => $component_instances) {
       foreach ($component_instances as $component_instance_uuid => $component_instance) {
+        // Load the Component before anything can throw: the catch block below
+        // derives the fallback's cacheability from this, so loading it later
+        // would leave a fallback either uncacheable or — worse — carrying the
+        // previously rendered component instance's cacheability.
+        $component = Component::load($component_instance['component']);
         try {
           // If an exception occurred during hydration, re-throw it. (Such an
           // exception results in explicit input not being available, and hence
@@ -280,7 +285,6 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
             throw $component_instance[self::HYDRATION_EXCEPTION_KEY];
           }
 
-          $component = Component::load($component_instance['component']);
           \assert($component instanceof Component);
           $source = $component->getComponentSource();
           $element = $source->renderComponent($component_instance, $component->getSlotDefinitions(), $component_instance_uuid, $isPreview);
@@ -368,7 +372,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
             $componentRenderingContext,
             $isPreview,
             $component_instance_uuid,
-            CacheableMetadata::createFromObject($component ?? NULL),
+            CacheableMetadata::createFromObject($component),
           );
         }
       }
@@ -508,19 +512,28 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       $uuid = $item->getUuid();
       $component = $components[$component_id];
       \assert($component instanceof Component);
-      $component->loadVersion($item->getComponentVersion());
-
-      // Rendering always happens using the live implementation of a component,
-      // so load the active version to determine the required props.
-      $required_props_with_default_values_in_current_implementation = $component
-        ->loadVersion($component->getActiveVersion())
-        ->getComponentSource()
-        ->getDefaultExplicitInput(only_required: TRUE);
-      // Avoid side effects.
-      $component->loadVersion($item->getComponentVersion());
-
-      $source = $component->getComponentSource();
       try {
+        // A component tree can reference a version that the referenced
+        // Component config entity does not have: content templates are shipped
+        // as config, and the stored version is a hash of the component's
+        // definition, so any change to that component invalidates the stored
+        // version. ::loadVersion() then throws, so it must happen inside this
+        // try block, to keep an unavailable version from taking down the
+        // rendering of the entire component tree.
+        // @see https://www.drupal.org/i/3547297
+        $component->loadVersion($item->getComponentVersion());
+
+        // Rendering always happens using the live implementation of a
+        // component, so load the active version to determine the required
+        // props.
+        $required_props_with_default_values_in_current_implementation = $component
+          ->loadVersion($component->getActiveVersion())
+          ->getComponentSource()
+          ->getDefaultExplicitInput(only_required: TRUE);
+        // Avoid side effects.
+        $component->loadVersion($item->getComponentVersion());
+
+        $source = $component->getComponentSource();
         $explicit_input = $source->getExplicitInput($uuid, $item);
       }
       catch (\Throwable $e) {

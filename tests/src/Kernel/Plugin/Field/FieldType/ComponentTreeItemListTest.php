@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\Plugin\Field\FieldType;
 
-// cspell:ignore vlaquxuup
+// cspell:ignore vlaquxuup deadbeefdeadbeef
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Element\RenderSafeComponentContainer;
@@ -2224,6 +2224,100 @@ HTML,
       NULL,
       [$child_uuid],
     ];
+  }
+
+  /**
+   * Tests rendering a component instance whose stored version does not exist.
+   *
+   * A component tree can reference a version of a component that the site's
+   * copy of that component does not have: content templates are shipped as
+   * config, and the stored version is a hash of the component's definition, so
+   * any upstream change to the component invalidates the stored version. That
+   * must not take down the rendering of the entire component tree.
+   *
+   * @see https://www.drupal.org/i/3547297
+   */
+  public function testHydrationWithNonExistentComponentVersion(): void {
+    $this->config('system.logging')->set('error_level', ERROR_REPORTING_DISPLAY_VERBOSE)->save();
+
+    $item_list = self::staticallyCreateDanglingComponentTreeItemList(\Drupal::typedDataManager());
+    $container_uuid = (new Php())->generate();
+    $child_uuid = (new Php())->generate();
+    $grandchild_uuid = (new Php())->generate();
+    $sibling_uuid = (new Php())->generate();
+    $item_list->setValue([
+      // A container component instance storing a version that this component
+      // does not have.
+      [
+        'uuid' => $container_uuid,
+        'component_id' => 'sdc.canvas_test_sdc.props-slots',
+        'component_version' => 'deadbeefdeadbeef',
+        'inputs' => [
+          'heading' => 'Broken container',
+        ],
+      ],
+      // A child of that container, which hence cannot be rendered either…
+      [
+        'uuid' => $child_uuid,
+        'component_id' => 'sdc.canvas_test_sdc.props-slots',
+        'inputs' => [
+          'heading' => 'Child of the broken container',
+        ],
+        'parent_uuid' => $container_uuid,
+        'slot' => 'the_body',
+      ],
+      // … and neither can its own child.
+      [
+        'uuid' => $grandchild_uuid,
+        'component_id' => 'sdc.canvas_test_sdc.my-cta',
+        'inputs' => [
+          'text' => 'Grandchild of the broken container',
+          'href' => 'https://example.com/grandchild',
+        ],
+        'parent_uuid' => $child_uuid,
+        'slot' => 'the_body',
+      ],
+      // A sibling at the root, which must still render.
+      [
+        'uuid' => $sibling_uuid,
+        'component_id' => 'sdc.canvas_test_sdc.my-cta',
+        'inputs' => [
+          'text' => 'Unaffected sibling',
+          'href' => 'https://example.com/sibling',
+        ],
+      ],
+    ]);
+
+    // The component instance with the unavailable version is the only one left
+    // at the root, next to its unaffected sibling: the subtree nested in its
+    // slots is dropped rather than promoted to the root.
+    $tree = \Closure::bind(fn () => $this->getHydratedTree(), $item_list, $item_list)()->getTree();
+    $this->assertSame(
+      [$container_uuid, $sibling_uuid],
+      \array_keys($tree[ComponentTreeItemList::ROOT_UUID]),
+    );
+
+    $entity = Page::create([])->enforceIsNew(FALSE);
+    $build = $item_list->toRenderable($entity);
+
+    // The fallback carries the failing component's cache tag, so that fixing
+    // that component invalidates the fallback rather than leaving it stale.
+    $this->assertContains(
+      'config:canvas.component.sdc.canvas_test_sdc.props-slots',
+      CacheableMetadata::createFromRenderArray($build[ComponentTreeItemList::ROOT_UUID][$container_uuid])->getCacheTags(),
+    );
+
+    $this->render($build);
+
+    // The component instance with the unavailable version degrades to the
+    // standard per-component fallback…
+    $this->assertText('OutOfRangeException occurred during rendering of component ' . $container_uuid);
+    $this->assertText('The requested version `deadbeefdeadbeef` is not available.');
+    // … nothing of its dropped subtree is rendered…
+    $this->assertNoText('Child of the broken container');
+    $this->assertNoText('Grandchild of the broken container');
+    // … and the rest of the component tree renders unaffected.
+    $this->assertText('Unaffected sibling');
   }
 
 }
