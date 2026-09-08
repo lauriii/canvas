@@ -1113,6 +1113,75 @@ class AutoSaveManager implements EventSubscriberInterface {
     return $events;
   }
 
+  /**
+   * Moves an auto-save entry from one langcode key to another.
+   *
+   * Called after a new-draft entity's langcode is changed so the auto-save
+   * entry — which is keyed by entity type, ID, and langcode — follows the
+   * entity's updated language. Any existing entry stored under the old key is
+   * re-stored under the new key with its langcode metadata updated, and the
+   * old key is deleted.
+   *
+   * The memoized entry under the old key is dropped and the auto-save cache
+   * tag is invalidated so subsequent reads pick up the migrated entry. Nothing
+   * is memoized under the new key: ::getAutoSaveEntity() only caches keys that
+   * have a stored entry, and the new key had none.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+   *   The entity after its langcode has been updated and saved.
+   * @param string $old_langcode
+   *   The langcode the entity held before the change.
+   */
+  public function migrateLangcode(ContentEntityInterface $entity, string $old_langcode): void {
+    $old_key = $entity->getEntityTypeId() . ':' . $entity->id() . ':' . $old_langcode;
+    $new_key = self::getAutoSaveKey($entity);
+
+    if ($old_key === $new_key) {
+      return;
+    }
+
+    $existing = $this->autoSaveStore->get($old_key);
+    if (!\is_array($existing)) {
+      return;
+    }
+
+    \assert(!empty($existing));
+    $langcode_field = $entity->getEntityType()->getKey('langcode');
+    $existing['langcode'] = $entity->language()->getId();
+    // Update the serialized field data so the reconstructed entity carries
+    // the correct langcode. The data uses the field-items format produced by
+    // toStorableArray() / TypedDataHelper::castRawPhpTypes() — a plain list
+    // of field item arrays, without a per-langcode wrapper key.
+    if (\is_string($langcode_field) && isset($existing['data'][$langcode_field])) {
+      $existing['data'][$langcode_field] = [['value' => $entity->language()->getId()]];
+    }
+    // Saving the stored entity with a new langcode deletes the old path alias
+    // entity and creates a new one for the new language; the alias text itself
+    // is not lost. Drop the alias ID and language from auto-saved item 'path'
+    // so publishing creates a new alias entity using the alias text stored in
+    // auto-save item instead of trying to update the deleted one.
+    // @see \Drupal\path\Plugin\Field\FieldType\PathItem::postSave()
+    foreach ($entity->getFieldDefinitions() as $field_name => $field_definition) {
+      if ($field_definition->getType() !== 'path' || !isset($existing['data'][$field_name])) {
+        continue;
+      }
+      foreach ($existing['data'][$field_name] as &$path_item) {
+        unset($path_item['pid'], $path_item['langcode']);
+      }
+      unset($path_item);
+    }
+    // The stored entity was just saved with the new langcode, so its hash no
+    // longer matches the one recorded when the auto-save entry was written.
+    // Advance it, otherwise the migrated entry is reported as a conflict.
+    // @see ::getConflictId()
+    $existing[self::AUTO_SAVE_STORED_ENTITY_HASH_KEY] = $this->getUnchangedHash($entity);
+    $this->autoSaveStore->set($new_key, $existing);
+    $this->autoSaveStore->delete($old_key);
+
+    $this->cache->delete($old_key);
+    $this->cacheTagsInvalidator->invalidateTags([self::CACHE_TAG]);
+  }
+
   public static function entityIsConsideredNew(ContentEntityInterface|ComponentTreeConfigEntityBase $entity): bool {
     if ($entity instanceof ContentTemplate || $entity instanceof PageVariant) {
       return !$entity->status();

@@ -90,4 +90,35 @@ class ApiControllerBase {
     );
   }
 
+  /**
+   * Creates a JSON:API-style error response containing a single error object.
+   *
+   * @param string $detail
+   *   The human-readable error description.
+   * @param string $pointer
+   *   The pointer to the source of the error: a request body member, or the
+   *   ID of the entity the request acts on.
+   * @param int $status
+   *   The HTTP status code.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   A JSON:API-style error response, with a top-level `errors` member that
+   *   contains a single `error` object.
+   *
+   * @see https://jsonapi.org/format/#error-objects
+   */
+  protected static function createJsonApiStyleErrorResponse(string $detail, string $pointer, int $status): JsonResponse {
+    return new JsonResponse(
+      data: [
+        'errors' => [
+          [
+            'detail' => $detail,
+            'source' => ['pointer' => $pointer],
+          ],
+        ],
+      ],
+      status: $status,
+    );
+  }
+
 }

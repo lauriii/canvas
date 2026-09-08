@@ -142,6 +142,76 @@ final class ApiContentControllers extends ApiControllerBase {
     return new JsonResponse($data, Response::HTTP_OK);
   }
 
+  /**
+   * Updates the primary langcode of a never-published draft.
+   *
+   * This is restricted to never-published drafts.
+   *
+   * Because the auto-save key relies on the langcode, this change must be
+   * written directly to the stored entity rather than the auto-save entry.
+   * Any existing auto-save data is then migrated to the new langcode key
+   * to preserve unsaved edits and prevent conflict errors.
+   *
+   * @see \Drupal\canvas\AutoSave\AutoSaveManager::entityIsConsideredNew()
+   * @see \Drupal\canvas\AutoSave\AutoSaveManager::migrateLangcode()
+   */
+  public function patchLangcode(Request $request, ContentEntityInterface $canvas_page): JsonResponse {
+    \assert($canvas_page instanceof Page);
+
+    if (!AutoSaveManager::entityIsConsideredNew($canvas_page)) {
+      return self::createJsonApiStyleErrorResponse(
+        'Language can only be changed on a draft page that has never been published.',
+        (string) $canvas_page->id(),
+        Response::HTTP_UNPROCESSABLE_ENTITY,
+      );
+    }
+    // Before its first publish all edits to a draft live in its auto-save
+    // entry, so a draft with stored translations is not a supported state, and
+    // changing the primary langcode could collide with one of them.
+    if (\count($canvas_page->getTranslationLanguages()) > 1) {
+      return self::createJsonApiStyleErrorResponse(
+        'Language cannot be changed on a page that already has translations.',
+        (string) $canvas_page->id(),
+        Response::HTTP_UNPROCESSABLE_ENTITY,
+      );
+    }
+
+    $body = \json_decode($request->getContent(), TRUE);
+    $new_langcode = $body['langcode'] ?? NULL;
+
+    if (!\is_string($new_langcode) || $new_langcode === '') {
+      return self::createJsonApiStyleErrorResponse(
+        'Missing or invalid langcode.',
+        'langcode',
+        Response::HTTP_BAD_REQUEST,
+      );
+    }
+
+    $languages = $this->languageManager->getLanguages();
+    if (!isset($languages[$new_langcode])) {
+      return self::createJsonApiStyleErrorResponse(
+        \sprintf('Unknown language: %s.', $new_langcode),
+        'langcode',
+        Response::HTTP_BAD_REQUEST,
+      );
+    }
+
+    $old_langcode = $canvas_page->language()->getId();
+    if ($old_langcode === $new_langcode) {
+      return new JsonResponse(['langcode' => $new_langcode], Response::HTTP_OK);
+    }
+
+    $canvas_page->set('langcode', $new_langcode);
+    if ($validation_errors_response = self::createJsonResponseFromViolationSets($canvas_page->get('langcode')->validate())) {
+      return $validation_errors_response;
+    }
+    $canvas_page->save();
+
+    $this->autoSaveManager->migrateLangcode($canvas_page, $old_langcode);
+
+    return new JsonResponse(['langcode' => $new_langcode], Response::HTTP_OK);
+  }
+
   public function post(Request $request, string $entity_type): JsonResponse {
     // Get the request body content
     $content = $request->getContent();
