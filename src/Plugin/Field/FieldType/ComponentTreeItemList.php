@@ -270,11 +270,11 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
     $build = [];
     foreach ($hydrated as $component_subtree_uuid => $component_instances) {
       foreach ($component_instances as $component_instance_uuid => $component_instance) {
-        // Reset per component instance: the catch block below reads this to
-        // determine the cacheability of the fallback, and an instance that
-        // fails before it is loaded must not inherit the previously rendered
-        // instance's cacheability.
-        $component = NULL;
+        // Load the Component before anything can throw: the catch block below
+        // derives the fallback's cacheability from this, so loading it later
+        // would leave a fallback either uncacheable or — worse — carrying the
+        // previously rendered component instance's cacheability.
+        $component = Component::load($component_instance['component']);
         try {
           // If an exception occurred during hydration, re-throw it. (Such an
           // exception results in explicit input not being available, and hence
@@ -285,7 +285,6 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
             throw $component_instance[self::HYDRATION_EXCEPTION_KEY];
           }
 
-          $component = Component::load($component_instance['component']);
           \assert($component instanceof Component);
           $source = $component->getComponentSource();
           $element = $source->renderComponent($component_instance, $component->getSlotDefinitions(), $component_instance_uuid, $isPreview);

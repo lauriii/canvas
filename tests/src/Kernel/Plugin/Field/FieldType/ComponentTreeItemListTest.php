@@ -2299,6 +2299,14 @@ HTML,
 
     $entity = Page::create([])->enforceIsNew(FALSE);
     $build = $item_list->toRenderable($entity);
+
+    // The fallback carries the failing component's cache tag, so that fixing
+    // that component invalidates the fallback rather than leaving it stale.
+    $this->assertContains(
+      'config:canvas.component.sdc.canvas_test_sdc.props-slots',
+      CacheableMetadata::createFromRenderArray($build[ComponentTreeItemList::ROOT_UUID][$container_uuid])->getCacheTags(),
+    );
+
     $this->render($build);
 
     // The component instance with the unavailable version degrades to the
