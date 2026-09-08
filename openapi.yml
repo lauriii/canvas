@@ -1025,6 +1025,13 @@ paths:
             application/json:
               schema:
                 type: object
+                required: [fields]
+                additionalProperties: false
+                properties:
+                  fields:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SlotFieldCandidate'
     post:
       summary: Creates a `component_tree` slot field on the content template's bundle.
       parameters:
@@ -1034,18 +1041,35 @@ paths:
           schema:
             type: string
       requestBody:
+        required: true
         description: The slot field machine name and label.
         content:
           application/json:
             schema:
               type: object
+              required: [fieldName, label]
+              additionalProperties: false
+              properties:
+                fieldName:
+                  type: string
+                  description: The field machine name. Must start with `canvas_slot_` and be at most 32 characters.
+                  pattern: '^canvas_slot_[a-z0-9_]*[a-z0-9]$'
+                  maxLength: 32
+                label:
+                  type: string
+                  description: The human-readable slot label. Must not be empty after trimming.
+                  minLength: 1
       responses:
         '201':
           description: The created slot field.
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/CreatedSlotField'
+        '400':
+          description: The `fieldName` is not a valid slot field machine name, or the `label` is missing or empty.
+        '409':
+          description: The bundle already has this field, or a same-named field of another type exists.
   '/canvas/api/v0/config/content_template/{configEntityId}/translations':
     description: Endpoint for deleting a specific translation of a Content Template. Note that the path can be prefixed with a langcode to negotiate deleting that particular translation.
     delete:
@@ -1079,6 +1103,15 @@ paths:
             application/json:
               schema:
                 type: object
+                required: [overridden]
+                additionalProperties: false
+                properties:
+                  overridden:
+                    type: integer
+                    minimum: 0
+                    description: Entities whose backing field holds content, including the deliberate empty-slot marker.
+        '404':
+          description: The bundle has no such slot field.
   /canvas/api/v0/config/folder:
     description: TODO
     get:
@@ -4162,6 +4195,43 @@ paths:
 components:
   # @see https://spec.openapis.org/oas/v3.1.0.html#schema-object
   schemas:
+    CreatedSlotField:
+      type: object
+      description: The `component_tree` slot field just created on a content template's bundle.
+      required:
+        - fieldName
+        - label
+      additionalProperties: false
+      properties:
+        fieldName:
+          type: string
+          description: The created field's machine name.
+        label:
+          type: string
+          description: The created field's human-readable label.
+    SlotFieldCandidate:
+      type: object
+      description: A `component_tree` field on the entity type that an exposed slot may be backed by.
+      required:
+        - fieldName
+        - label
+        - onThisBundle
+        - contentCount
+      additionalProperties: false
+      properties:
+        fieldName:
+          type: string
+          description: The field's machine name.
+        label:
+          type: string
+          description: The field's label on this bundle, or on the first bundle that defines it.
+        onThisBundle:
+          type: boolean
+          description: Whether the field already has a config on this template's bundle. When false, the storage exists on another bundle and selecting it attaches the storage here first.
+        contentCount:
+          type: integer
+          minimum: 0
+          description: How many of this bundle's entities already hold content in the field, i.e. what reusing it would restore.
     ColorComponentUsage:
       type: object
       description: Detailed information about a specific component instance using the color.

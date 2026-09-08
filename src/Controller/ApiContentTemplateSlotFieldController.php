@@ -7,6 +7,7 @@ namespace Drupal\canvas\Controller;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\field\Entity\FieldConfig;
@@ -135,12 +136,28 @@ final class ApiContentTemplateSlotFieldController extends ApiControllerBase {
       throw new ConflictHttpException(\sprintf('The %s field exists but is not a %s field.', $field_name, ComponentTreeItem::PLUGIN_ID));
     }
     if ($field_storage === NULL) {
-      $field_storage = FieldStorageConfig::create([
+      $new_storage = FieldStorageConfig::create([
         'field_name' => $field_name,
         'entity_type' => $entity_type_id,
         'type' => ComponentTreeItem::PLUGIN_ID,
       ]);
-      $field_storage->save();
+      try {
+        $new_storage->save();
+        $field_storage = $new_storage;
+      }
+      catch (EntityStorageException) {
+        // Field storage is per (entity type, field name), so two bundles of
+        // one entity type can want the same slot field. The CLI pushes
+        // templates in parallel, so a sibling request may have created this
+        // storage between the load above and this save. Reload rather than
+        // fail: creating the per-bundle FieldConfig below is what actually
+        // has to be unique, and it is guarded separately.
+        // @see \Drupal\canvas\Controller\ApiContentTemplateSlotFieldController::create()
+        $field_storage = FieldStorageConfig::loadByName($entity_type_id, $field_name);
+        if ($field_storage === NULL || $field_storage->getType() !== ComponentTreeItem::PLUGIN_ID) {
+          throw new ConflictHttpException(\sprintf('The %s field storage could not be created.', $field_name));
+        }
+      }
     }
 
     $field_config = FieldConfig::create([
