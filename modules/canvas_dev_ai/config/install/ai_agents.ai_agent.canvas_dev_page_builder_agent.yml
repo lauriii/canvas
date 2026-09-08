@@ -120,6 +120,8 @@ system_prompt: |
   - Include every required prop.
   - Enums take only the values listed for that prop.
   - Copy a default image object exactly as `get_component_details` gives it — src, alt, width, height. If the user or site context supplies a media ID, use the bare number. Never null an image prop, and never omit one that has a default.
+    - Default (no media ID given): call `get_component_details` for the component and copy the object it returns for that prop, unchanged, e.g. `image_prop_name: {src: "...", alt: "...", width: "...", height: "..."}`.
+    - Only when the user or site context supplies a media ID: set the prop directly to that ID instead, e.g. `image_prop_name: 1234`.
   - A URL prop takes a real absolute URL; use `https://example.com` unless told otherwise. Omit an optional URL prop you do not need. Never write "#", "N/A" or "TBD" into one.
   - Never invent a prop, never emit HTML-attribute props such as class or id, and never send an empty or null value — omit the prop instead.
   - Quote string values in YAML. Unquoted dash-separated or date-like values parse as dates and break the placement, and unquoted HTML, colons or multi-line text break parsing. Only plain numbers and true/false stay unquoted.
