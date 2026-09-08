@@ -1,0 +1,14 @@
+{
+  "status": true,
+  "should_continue": false,
+  "progress": "Updating the headings.",
+  "message": "Both headings are updated.",
+  "component_updates": {
+    "00000000-0000-4000-8000-000000000002": {
+      "text": "Canvas in five minutes"
+    },
+    "00000000-0000-4000-8000-000000000004": {
+      "text": "Launch day is today"
+    }
+  }
+}
