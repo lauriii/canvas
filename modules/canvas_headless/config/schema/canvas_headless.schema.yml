@@ -53,6 +53,22 @@ canvas_headless.settings:
                   # components, for example `js.hero-banner`.
                   pattern: '/^js\.[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*$/'
                   message: 'The %value component ID is not valid. It must be a code component ID, such as js.hero-banner.'
+    publish_webhook:
+      type: mapping
+      label: 'Publish webhook'
+      mapping:
+        url:
+          type: string
+          label: 'Webhook target URL'
+          constraints:
+            # Empty disables the webhook; otherwise only an absolute http(s)
+            # URL is acceptable, because the publish payload is POSTed there.
+            Regex:
+              pattern: '~^$|^https?://\S+$~'
+              message: 'The publish webhook URL must be empty or an absolute http:// or https:// URL.'
+      # The optional signing secret is intentionally not stored here: it is read
+      # from settings.php ($settings['canvas_headless_publish_webhook_secret']),
+      # so a config export never carries the secret into version control.
     assertion_expiration:
       type: integer
       label: 'Preview assertion expiration time in seconds'

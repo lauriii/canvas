@@ -1152,6 +1152,22 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Tests that every content response exposes its cacheability tags.
+   */
+  public function testCacheabilityExposure(): void {
+    $page = $this->createPage();
+    $this->setCurrentAccount($this->editor);
+
+    $response = $this->renderPage($page);
+    $data = self::responseData($response);
+    self::assertArrayHasKey('cacheability', $data);
+    self::assertContains('canvas_page:' . $page->id(), $data['cacheability']['tags']);
+    $expected_tags = $response->getCacheableMetadata()->getCacheTags();
+    \sort($expected_tags);
+    self::assertSame($expected_tags, $data['cacheability']['tags']);
+  }
+
+  /**
    * Renders a page through the public kernel boundary.
    */
   private function renderPage(Page $page): CacheableJsonResponse {

@@ -85,3 +85,86 @@ with `Astro.redirect(redirect.url, redirect.statusCode)`. Every accessor takes
 the `Astro` global (pages, components) or the APIContext (endpoints,
 middleware), because Astro exposes cookies per request rather than through
 request-scoped globals.
+
+## Content invalidation
+
+When an editor publishes in Drupal, the site sends a signed publish webhook
+carrying the Drupal cache tags the publish invalidated, indirect dependencies
+included. The adapter ships the verified webhook plumbing so the app can turn a
+publish into cache invalidation.
+
+Astro is different from Next.js here, and the difference matters. Astro has no
+framework-native cache-tag or revalidation API. On-demand revalidation is
+entirely host-specific, so the adapter cannot ship a turnkey portable
+revalidation route. What it ships is `createRevalidateApiRoute`, which verifies
+the webhook and hands the parsed payload to a `revalidate` callback you supply.
+That callback is where the host wiring goes.
+
+**1. Mount the route** at `src/pages/api/canvas/revalidate.ts`:
+
+```ts
+import { createRevalidateApiRoute } from '@drupal-canvas/headless-astro';
+
+export const prerender = false;
+export const { POST } = createRevalidateApiRoute({
+  revalidate: async (payload) => {
+    // Host-specific invalidation, keyed off payload.tags.
+  },
+});
+```
+
+The `prerender = false` export is required. The route must run per request.
+
+**2. Set the secret.** The handler verifies the `X-Canvas-Signature` HMAC
+against `CANVAS_PUBLISH_WEBHOOK_SECRET`, which must match the site's
+`$settings['canvas_headless_publish_webhook_secret']`. Set it in your `.env`
+(the integration bridges it into `process.env`) or in the deployment
+environment, or pass it explicitly as the `secret` option. A missing signature
+answers 401; a missing secret answers 500. If no `revalidate` callback is
+supplied the route answers 501, because there is nothing portable to fall back
+on.
+
+**3. Wire the `revalidate` callback to your host.** `payload.tags` holds the
+Drupal cache tags the publish invalidated. Map them to whatever your host
+exposes:
+
+- **Vercel** (`@astrojs/vercel`): purge with a bypass token, or fetch the
+  affected paths with the bypass header set so the edge cache refreshes.
+- **Netlify** (`@astrojs/netlify`): use Netlify's on-demand purge for the
+  affected paths or tags.
+- **Bun** (`@astrojs/bun`): call the adapter's `unstable_expirePath` for each
+  affected path.
+- **Pure-static output**: there is no runtime cache to purge, so invalidation
+  means a rebuild. Trigger your CI deploy hook from the callback (for example
+  `await fetch(process.env.DEPLOY_HOOK_URL, { method: 'POST' })`). The rebuild
+  fetches fresh content from Drupal and redeploys.
+
+### Purging a CDN by surrogate key
+
+If a CDN fronts the deploy, emit a `Surrogate-Key` header on each page response
+from the page's cacheability, so the CDN can purge by key when the webhook
+arrives. In the catch-all page, once you have a rendered page (a `PageResult`
+that is not a redirect):
+
+```astro
+---
+import {
+  fetchPage,
+  isPageRedirect,
+  surrogateKeyHeader,
+} from '@drupal-canvas/headless-astro';
+
+const result = await fetchPage(Astro, Astro.url.pathname);
+if (result && isPageRedirect(result)) {
+  return Astro.redirect(result.redirect.url, result.redirect.statusCode);
+}
+if (result) {
+  Astro.response.headers.set('Surrogate-Key', surrogateKeyHeader(result));
+}
+---
+```
+
+`surrogateKeyHeader(page)` is the space-joined `page.cacheability.tags`. The
+publish webhook's `payload.tags` are the same Drupal cache tags, so the
+`revalidate` callback can issue a key-based purge for exactly the pages a
+publish touched.

@@ -155,7 +155,14 @@ final class CanvasContentController {
       };
     }
 
-    $response = new CacheableJsonResponse([
+    // Every response exposes its cacheability tags: a consumer that records
+    // which cache tags a page depended on can later map a tag invalidation to
+    // the pages needing a rebuild or revalidation. The tags are already
+    // computed for the response, and are small, so they are always included
+    // rather than gated behind a flag.
+    $tags = $cacheability->getCacheTags();
+    \sort($tags);
+    $payload = [
       'content' => $content,
       'head' => $head_result['head'],
       'route' => self::normalizeRoute(
@@ -164,7 +171,10 @@ final class CanvasContentController {
         $rendered_entity,
         $managed_by_canvas,
       ),
-    ]);
+      'cacheability' => ['tags' => $tags],
+    ];
+
+    $response = new CacheableJsonResponse($payload);
     $response->addCacheableDependency($cacheability);
     return $response;
   }

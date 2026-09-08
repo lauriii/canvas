@@ -1,2 +1,4 @@
 frontends: {  }
 assertion_expiration: 60
+publish_webhook:
+  url: ''

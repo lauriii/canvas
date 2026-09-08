@@ -94,3 +94,25 @@ before page rendering with `permanentRedirect()` for permanent redirects and
 `toNextMetadata()` maps the Canvas head entries that Next.js Metadata can
 represent. It omits entries that Next.js Metadata cannot represent. Render
 omitted entries as native head elements in the page or layout.
+
+## Content invalidation
+
+Mount the revalidation route handler to keep cached content fresh when Canvas
+publishes. Next.js maps the invalidated cache tags directly to `revalidateTag`,
+so this is turnkey:
+
+```ts
+// app/api/canvas/revalidate/route.ts
+import { createRevalidateRouteHandler } from '@drupal-canvas/headless-next';
+
+// Reads CANVAS_PUBLISH_WEBHOOK_SECRET; verifies the X-Canvas-Signature HMAC and
+// calls revalidateTag() for each invalidated tag.
+export const { POST } = createRevalidateRouteHandler();
+```
+
+Tag each cached page fetch with its `page.cacheability.tags` (for example inside
+a `use cache` function via `cacheTag(...page.cacheability.tags)`), and a publish
+revalidates exactly the pages it touched, indirect dependencies included,
+because the webhook carries the same Drupal cache tags the pages depend on. Set
+a `Surrogate-Key` header from `surrogateKeyHeader(page)` on page responses so a
+CDN-fronted deployment can purge by the same keys.

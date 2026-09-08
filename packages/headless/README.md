@@ -91,6 +91,28 @@ The subpaths keep browser bundles free of Node-only code and vice versa:
   for HTTPS requests to services using certificates trusted by the operating
   system, including local DDEV sites.
 
+## Content invalidation
+
+The core provides the framework-agnostic spine for turning the Canvas publish
+webhook into cache revalidation, so each adapter's route handler shares one
+implementation:
+
+- `readPublishWebhook({ rawBody, signature, secret })` verifies the
+  `X-Canvas-Signature` HMAC and parses the payload, returning
+  `{ ok: true, payload }` or `{ ok: false, status, message }` for the adapter to
+  map to a Response. `verifyPublishSignature()` and `parsePublishPayload()` are
+  exposed separately for finer control. All use the Web Crypto API and are
+  edge-safe.
+- The payload is `{ event: 'publish', entities, tags }`, where `tags` are the
+  Drupal cache tags the publish invalidated, indirect dependencies included.
+- `surrogateKeyHeader(page)` returns a page's cache tags joined for a
+  `Surrogate-Key` response header, so a CDN-fronted deployment can purge by the
+  same tags the webhook carries.
+
+Each adapter ships a revalidation handler on top of these: Next.js maps the tags
+to `revalidateTag()`, while Nuxt, TanStack Start, and Astro invalidate through
+their own (Nitro or host-specific) mechanisms. See each adapter's README.
+
 ## System certificates (Node.js only)
 
 To trust DDEV and other system certificates, call the `trustSystemCertificates`
