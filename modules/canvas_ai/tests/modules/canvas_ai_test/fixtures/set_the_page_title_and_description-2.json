@@ -1,0 +1,10 @@
+{
+  "status": true,
+  "should_continue": false,
+  "progress": "Setting the page title and description.",
+  "message": "The title and description are set.",
+  "canvas_page_data": {
+    "title[0][value]": "Canvas Campus",
+    "description[0][value]": "Visit the Canvas campus and see the builder in action."
+  }
+}

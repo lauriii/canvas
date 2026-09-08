@@ -19,7 +19,9 @@ import { isolatedPerTest as test } from '../../fixtures/test.js';
  */
 
 test.use({
-  modules: ['canvas_ai_test'],
+  // canvas_test_sdc provides the components the page builder agent's
+  // placement fixtures reference by id.
+  modules: ['canvas_ai_test', 'canvas_test_sdc'],
   enableTestExtensions: true,
 });
 
@@ -178,5 +180,130 @@ test.describe('AI dev chat', () => {
     await expect(page.getByLabel('Prop name')).toHaveValue('Button Text');
     await page.getByRole('tab', { name: 'Slots' }).click();
     await expect(page.getByLabel('Slot name')).toHaveValue('Icon');
+  });
+
+  test('Page builder agent turns', async ({ page, drupal, canvas, ai }) => {
+    // Count the requests to hold each turn to the number of hops it should
+    // have sent to the backend.
+    let requests = 0;
+    await page.route('**/admin/api/canvas/ai-dev', async (route) => {
+      requests += 1;
+      await route.continue();
+    });
+
+    await drupal.login({ username: 'ai_editor', password: 'ai_editor' });
+    await canvas.createCanvas();
+    await ai.openPanel();
+
+    const chat = page.getByTestId('canvas-ai-panel').locator('deep-chat');
+    const progressMessage = chat.locator('.html-message');
+    const answer = chat.locator('.text-message.ai-message-text');
+
+    // The user asks for a whole page. The fixture answers with the plan as the
+    // turn's message and no tool call, so the turn ends after one request: the
+    // plan renders as the answer, there is no progress message, and nothing is
+    // placed.
+    // @see modules/canvas_ai/tests/modules/canvas_ai_test/fixtures/build_me_a_landing_page.json
+    await ai.submitQuery('Build me a landing page');
+    await expect(answer.last()).toHaveText(
+      'Here is the plan: 1) Hero with the main call to action. 2) Heading on why teams choose Canvas, with a call to action. 3) Closing heading with a call to action. Reply Approved and I will build it.',
+    );
+    await expect(progressMessage).toHaveCount(0);
+    expect(requests).toBe(1);
+    await canvas.testInPreviewFrame(
+      '[data-component-id^="canvas_test_sdc:"]',
+      async (components) => {
+        await expect(components).toHaveCount(0);
+      },
+    );
+
+    // The user approves. The turn hops three times: the first hop narrates,
+    // the second carries the first `operations` batch (hero, heading, CTA) and
+    // the third the batch below it (heading, CTA) plus the answer. Each batch
+    // is applied with the exact uuid, nodePath and fieldValues the fixture
+    // specifies.
+    // @see modules/canvas_ai/tests/modules/canvas_ai_test/fixtures/approved.json
+    // @see modules/canvas_ai/tests/modules/canvas_ai_test/fixtures/approved-2.json
+    // @see modules/canvas_ai/tests/modules/canvas_ai_test/fixtures/approved-3.json
+    await ai.submitQuery('Approved');
+    await expect(progressMessage.last()).toContainText(
+      'Placing the hero section.',
+    );
+    await expect(answer.last()).toHaveText(
+      'The landing page sections are in place.',
+    );
+    await expect(progressMessage.last()).toContainText(
+      'Placing the closing section.',
+    );
+    await expect(
+      progressMessage.last().locator('.aiCompletedIcon'),
+    ).toBeVisible();
+    expect(requests).toBe(4);
+
+    // Both batches landed on the canvas in the fixtures' order.
+    await canvas.testInPreviewFrame(
+      '[data-component-id^="canvas_test_sdc:"]',
+      async (components) => {
+        await expect(components).toHaveCount(5);
+        await expect(components.nth(0)).toHaveAttribute(
+          'data-component-id',
+          'canvas_test_sdc:my-hero',
+        );
+        await expect(components.nth(0)).toContainText(
+          'Build Faster with Canvas',
+        );
+        await expect(components.nth(1)).toHaveText('Why teams choose Canvas');
+        await expect(components.nth(2)).toHaveText('Start a free trial');
+        await expect(components.nth(3)).toHaveText(
+          'Ready to launch your page?',
+        );
+        await expect(components.nth(4)).toHaveText('Contact the Canvas team');
+      },
+    );
+
+    // The same order shows in the layers panel, by component name.
+    await canvas.openLayersPanel();
+    await expect(
+      page.getByTestId('canvas-primary-panel').getByRole('treeitem'),
+    ).toHaveText([
+      /Hero/,
+      /Heading/,
+      /Call to Absolute Action/,
+      /Heading/,
+      /Call to Absolute Action/,
+    ]);
+
+    // The user asks for an edit. Hop 1 narrates and hop 2 returns
+    // `component_updates` keyed by the placed headings' UUIDs; the new text
+    // renders in the preview.
+    // @see modules/canvas_ai/tests/modules/canvas_ai_test/fixtures/update_the_headings.json
+    // @see modules/canvas_ai/tests/modules/canvas_ai_test/fixtures/update_the_headings-2.json
+    await ai.submitQuery('Update the headings');
+    await expect(answer.last()).toHaveText('Both headings are updated.');
+    expect(requests).toBe(6);
+    await canvas.testInPreviewFrame(
+      '[data-component-id="canvas_test_sdc:heading"]',
+      async (headings) => {
+        await expect(headings).toHaveCount(2);
+        await expect(headings.nth(0)).toHaveText('Canvas in five minutes');
+        await expect(headings.nth(1)).toHaveText('Launch day is today');
+      },
+    );
+
+    // The user asks for the page metadata. Hop 2 returns `canvas_page_data`
+    // with the title and meta description, which reach the page-data form.
+    // @see modules/canvas_ai/tests/modules/canvas_ai_test/fixtures/set_the_page_title_and_description.json
+    // @see modules/canvas_ai/tests/modules/canvas_ai_test/fixtures/set_the_page_title_and_description-2.json
+    await ai.submitQuery('Set the page title and description');
+    await expect(answer.last()).toHaveText(
+      'The title and description are set.',
+    );
+    expect(requests).toBe(8);
+    await expect(page.getByRole('textbox', { name: 'Title*' })).toHaveValue(
+      'Canvas Campus',
+    );
+    await expect(
+      page.getByRole('textbox', { name: 'Meta description' }),
+    ).toHaveValue('Visit the Canvas campus and see the builder in action.');
   });
 });

@@ -1,0 +1,43 @@
+{
+  "status": true,
+  "should_continue": true,
+  "progress": "Placing the hero section.\n\nPlacing the closing section.",
+  "operations": [
+    {
+      "operation": "ADD",
+      "components": [
+        {
+          "id": "sdc.canvas_test_sdc.my-hero",
+          "uuid": "00000000-0000-4000-8000-000000000001",
+          "nodePath": [0, 0],
+          "fieldValues": {
+            "heading": "Build Faster with Canvas",
+            "subheading": "Everything you need to launch a page.",
+            "cta1": "Get started",
+            "cta1href": "https://example.com",
+            "cta2": "Learn more"
+          }
+        },
+        {
+          "id": "sdc.canvas_test_sdc.heading",
+          "uuid": "00000000-0000-4000-8000-000000000002",
+          "nodePath": [0, 1],
+          "fieldValues": {
+            "text": "Why teams choose Canvas",
+            "element": "h2",
+            "style": "primary"
+          }
+        },
+        {
+          "id": "sdc.canvas_test_sdc.my-cta",
+          "uuid": "00000000-0000-4000-8000-000000000003",
+          "nodePath": [0, 2],
+          "fieldValues": {
+            "text": "Start a free trial",
+            "href": "https://example.com/trial"
+          }
+        }
+      ]
+    }
+  ]
+}
