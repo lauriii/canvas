@@ -417,7 +417,10 @@ const dateRange: Transformer<
     dateTimeOptions,
     propSource,
   );
-  if (start === null || end === null) {
+  // A range needs both ends: an empty one means the author is mid-input, and
+  // emitting a half-filled range would violate the prop's JSON schema.
+  // @see https://www.drupal.org/i/3546401
+  if (!start || !end) {
     return null;
   }
   return {

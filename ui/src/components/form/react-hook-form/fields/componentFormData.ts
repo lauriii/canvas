@@ -266,13 +266,21 @@ export function getPropsValues(
           cast: { to: propType },
         };
       }
-      // Apply each transform in sequence.
+      // Apply each transform in sequence. A prop with an empty value has no
+      // source entry in the model, so fall back to the component's prop source
+      // defaults: transforms that read source metadata (such as a date field's
+      // `datetime_type`) must keep working once the author starts filling the
+      // prop in again.
+      // @see syncPropSourcesToResolvedValues
+      const propSource =
+        (selectedModel as EvaluatedComponentModel).source?.[key] ??
+        fieldData[key];
       const transformed = Object.entries(fieldTransforms).reduce(
         (transformed: any, [transformer, config]) => {
           return transformsList[transformer as keyof Transforms](
             transformed,
             config as any,
-            (selectedModel as EvaluatedComponentModel).source[key] as any,
+            propSource as any,
           );
         },
         value,

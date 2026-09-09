@@ -709,4 +709,52 @@ describe('Transforms - dateRange', () => {
       end_value: '2026-06-02T09:45:12.000Z',
     });
   });
+
+  // A half-filled range is not a value: emitting one would produce a resolved
+  // value that violates the prop's JSON schema and crash the preview render.
+  // @see https://www.drupal.org/i/3546401
+  it('should return null when only the start date is filled in', () => {
+    expect(
+      transforms.dateRange(
+        [
+          {
+            value: { date: '2026-05-02' },
+            end_value: { date: '' },
+          },
+        ],
+        {},
+        fieldData,
+      ),
+    ).to.equal(null);
+  });
+
+  it('should return null when only the end date is filled in', () => {
+    expect(
+      transforms.dateRange(
+        [
+          {
+            value: { date: '' },
+            end_value: { date: '2026-06-02' },
+          },
+        ],
+        {},
+        fieldData,
+      ),
+    ).to.equal(null);
+  });
+
+  it('should return null when neither date is filled in', () => {
+    expect(
+      transforms.dateRange(
+        [
+          {
+            value: { date: '' },
+            end_value: { date: '' },
+          },
+        ],
+        {},
+        fieldData,
+      ),
+    ).to.equal(null);
+  });
 });

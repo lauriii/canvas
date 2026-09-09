@@ -422,6 +422,51 @@ Value`,
     });
   });
 
+  // A prop whose value is empty has no entry in the model's `source`, so
+  // transforms that read source metadata must fall back to the component's
+  // prop source defaults. Without that fallback an emptied date can never be
+  // filled in again.
+  // @see https://www.drupal.org/i/3546401
+  it('Should transform values for a prop that has no source entry yet', () => {
+    const withoutDateSource = {
+      ...inputAndUiData,
+      model: {
+        'all-props': {
+          ...inputAndUiData.model['all-props'],
+          source: { ...inputAndUiData.model['all-props'].source },
+        },
+      },
+    };
+    delete withoutDateSource.model['all-props'].source.date;
+
+    const { propsValues } = getPropsValues(
+      formState,
+      withoutDateSource,
+      transformConfig,
+    );
+
+    expect(propsValues.date).to.equal('2025-02-02');
+  });
+
+  it('Should transform values for a model that has no source at all', () => {
+    const withoutSource = {
+      ...inputAndUiData,
+      model: {
+        'all-props': { ...inputAndUiData.model['all-props'] },
+      },
+    };
+    delete withoutSource.model['all-props'].source;
+
+    const { propsValues } = getPropsValues(
+      formState,
+      withoutSource,
+      transformConfig,
+    );
+
+    expect(propsValues.date).to.equal('2025-02-02');
+    expect(propsValues.options_select).to.equal('fine thx');
+  });
+
   it('Should transform multiple entity autocomplete values', () => {
     const multiCardinalityFormState = {
       ...formState,
