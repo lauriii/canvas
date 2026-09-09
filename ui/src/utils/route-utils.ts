@@ -61,3 +61,17 @@ export function setPreviewEntityIdInPathname(
 
   return `${baseRoute}${entitySegment}${trailingSegments}`;
 }
+
+// Utility to detect the routes that encode a component selection in their
+// pathname: the entity editor, the template editor, and the pattern editor,
+// each addressing the thing whose component tree is being edited. The helpers
+// above must not be applied to any other route, because a route without a
+// component tree has nowhere to put a selection, and because the same segment
+// name means something else elsewhere — /code-editor/component/:codeComponentId
+// identifies a code component, not a component instance.
+// @see ui/src/app/AppRoutes.tsx
+export function isLayoutEditorPathname(pathname: string): boolean {
+  return /^\/(editor\/[^/]+\/[^/]+|template(\/[^/]+){4}|pattern\/[^/]+)(\/|$)/.test(
+    pathname,
+  );
+}

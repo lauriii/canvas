@@ -1,4 +1,5 @@
 import {
+  isLayoutEditorPathname,
   removeComponentFromPathname,
   setComponentInPathname,
   setPreviewEntityIdInPathname,
@@ -161,5 +162,35 @@ describe('setPreviewEntityIdInPathname', () => {
       const result = setPreviewEntityIdInPathname(pathname, 10);
       expect(result).to.equal('/template/node/article_type/full_display/10');
     });
+  });
+});
+
+describe('isLayoutEditorPathname', () => {
+  it.each([
+    '/editor/canvas_page/1',
+    '/editor/canvas_page/1/component/97842c37-a3f2-4a04-b304-fdc2dd69a4f9',
+    '/template/node/article/full/2',
+    '/template/node/article/full/2/component/97842c37-a3f2-4a04-b304-fdc2dd69a4f9',
+    '/pattern/my_pattern',
+    '/pattern/my_pattern/component/97842c37-a3f2-4a04-b304-fdc2dd69a4f9',
+  ])('should accept the layout editor route %s', (pathname) => {
+    expect(isLayoutEditorPathname(pathname)).to.equal(true);
+  });
+
+  it.each([
+    // Routes that have no component tree to select in.
+    '/',
+    '/editor',
+    '/editor/',
+    '/template/node/article/full',
+    '/pattern',
+    // Routes that reuse the layout editor's segment names for something else.
+    '/code-editor',
+    '/code-editor/component/my_code',
+    '/review/canvas_page/1',
+    // A route that merely starts with the same characters.
+    '/editorial/1',
+  ])('should reject %s', (pathname) => {
+    expect(isLayoutEditorPathname(pathname)).to.equal(false);
   });
 });

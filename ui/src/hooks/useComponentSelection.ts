@@ -16,6 +16,7 @@ import {
 } from '@/features/ui/uiSlice';
 import { getCanvasSettings } from '@/utils/drupal-globals';
 import {
+  isLayoutEditorPathname,
   removeComponentFromPathname,
   setComponentInPathname,
 } from '@/utils/route-utils';
@@ -91,6 +92,10 @@ export function useComponentSelection() {
 
   // Remove the /component/:componentId from the URL, keeping other parts intact
   const updateUrlToNoSelection = useCallback(() => {
+    // Only the layout editor routes carry the selection in their pathname.
+    if (!isLayoutEditorPathname(location.pathname)) {
+      return;
+    }
     // Remove /component/:componentId
     const cleanPath = removeComponentFromPathname(location.pathname);
 
@@ -111,6 +116,8 @@ export function useComponentSelection() {
   const updateUrlToSelectedComponent = useCallback(
     (componentId?: string) => {
       if (!componentId) return;
+      // Only the layout editor routes carry the selection in their pathname.
+      if (!isLayoutEditorPathname(location.pathname)) return;
       const { pathname, search, hash } = location;
       const newPath = setComponentInPathname(pathname, componentId);
       navigate({
