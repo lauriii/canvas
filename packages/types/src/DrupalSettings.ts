@@ -58,6 +58,8 @@ export interface DrupalSettings {
       css: string;
       jsHeader: string;
       jsFooter: string;
+      // The active front-end theme's <html> attributes, as a rendered string.
+      htmlAttributes: string;
     };
     viewports?: {
       [viewportId: string]: number | string;
