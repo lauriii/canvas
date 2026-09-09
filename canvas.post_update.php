@@ -795,3 +795,14 @@ function canvas_post_update_0030_page_variant_selection_options(): void {
   $storage_definitions = \Drupal::service(EntityFieldManagerInterface::class)->getFieldStorageDefinitions('canvas_page');
   $update_manager->updateFieldStorageDefinition($storage_definitions['page_variant']);
 }
+
+/**
+ * Recompute version hashes of components that have slots.
+ */
+function canvas_post_update_0031_recompute_slotted_component_version_hashes(array &$sandbox): void {
+  $canvasConfigUpdater = \Drupal::service(CanvasConfigUpdater::class);
+  \assert($canvasConfigUpdater instanceof CanvasConfigUpdater);
+  $canvasConfigUpdater->setDeprecationsEnabled(FALSE);
+  \Drupal::classResolver(ConfigEntityUpdater::class)
+    ->update($sandbox, Component::ENTITY_TYPE_ID, static fn(Component $component): bool => $canvasConfigUpdater->updateSlottedComponentVersionHash($component));
+}

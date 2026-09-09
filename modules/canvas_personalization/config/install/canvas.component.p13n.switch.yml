@@ -10,7 +10,7 @@ dependencies:
 # settings, only logic-defined explicit inputs.
 # @see ::getExplicitInputDefinitions()
 # @see `type: canvas.component_source_settings.*`
-active_version: 9e50a118dd93207f
+active_version: 14a59c864ea3afed
 versioned_properties:
   active:
     settings: {  }

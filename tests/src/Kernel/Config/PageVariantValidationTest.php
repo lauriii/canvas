@@ -73,7 +73,7 @@ class PageVariantValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => '4f785025-9bd9-4752-9dd6-068b957b03ee',
           'component_id' => 'sdc.canvas_test_sdc.props-slots',
-          'component_version' => '0e79e884426a53ae',
+          'component_version' => 'cc56dff72ca26013',
           'inputs' => [
             'heading' => 'Hello, world!',
           ],

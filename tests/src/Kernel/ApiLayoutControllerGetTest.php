@@ -104,7 +104,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
       [
         'uuid' => $top_level_component_uuid,
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '0e79e884426a53ae',
+        'component_version' => 'cc56dff72ca26013',
         'inputs' => [
           'heading' => [
             'sourceType' => PropSource::EntityField->value,
@@ -269,7 +269,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
       [
         'uuid' => CanvasTestSetup::UUID_TWO_COLUMN_UUID,
         'nodeType' => 'component',
-        'type' => 'sdc.canvas_test_sdc.two_column@f90c1f6cfb2fc04a',
+        'type' => 'sdc.canvas_test_sdc.two_column@91131304199dda6d',
         'name' => NULL,
         'slots' => [
           [
@@ -301,7 +301,7 @@ class ApiLayoutControllerGetTest extends ApiLayoutControllerTestBase {
               [
                 'uuid' => CanvasTestSetup::UUID_ALL_SLOTS_EMPTY,
                 'nodeType' => 'component',
-                'type' => 'sdc.canvas_test_sdc.one_column@80cc82f44d0a94f2',
+                'type' => 'sdc.canvas_test_sdc.one_column@5302af03e7cee93e',
                 'name' => NULL,
                 'slots' => [
                   [

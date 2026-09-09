@@ -123,7 +123,7 @@ final class ComponentTreeStructureConstraintValidatorTest extends CanvasKernelTe
           [
             'uuid' => '2886421e-4ede-4bfb-956c-8afcd4ee8103',
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
           ],
         ],
         [],
@@ -133,7 +133,7 @@ final class ComponentTreeStructureConstraintValidatorTest extends CanvasKernelTe
           [
             'uuid' => '2886421e-4ede-4bfb-956c-8afcd4ee8103',
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
           ],
           [
             'parent_uuid' => '2886421e-4ede-4bfb-956c-8afcd4ee8103',
@@ -150,12 +150,12 @@ final class ComponentTreeStructureConstraintValidatorTest extends CanvasKernelTe
           [
             'uuid' => '80bf49ec-3d3f-4e76-98ed-2ce147397643',
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
           ],
           [
             'uuid' => 'bcf003b2-a81b-48b6-bb4c-772814edaa2a',
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
           ],
 
           [
@@ -163,7 +163,7 @@ final class ComponentTreeStructureConstraintValidatorTest extends CanvasKernelTe
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
             'parent_uuid' => '50330afa-a840-4527-bc37-5921d99addf1',
             'slot' => 'the_body',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
           ],
           [
             'uuid' => '9b654898-2e58-4d3a-a160-bfde52796a11',
@@ -213,7 +213,7 @@ final class ComponentTreeStructureConstraintValidatorTest extends CanvasKernelTe
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
             'parent_uuid' => 'f67147cb-be50-459a-915d-34d8646012f4',
             'slot' => 'the_body',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
           ],
         ],
         [
@@ -225,7 +225,7 @@ final class ComponentTreeStructureConstraintValidatorTest extends CanvasKernelTe
           [
             'uuid' => '2886421E-4EDE-4BFB-956C-8AFCD4EE8103',
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
           ],
         ],
         [
@@ -237,7 +237,7 @@ final class ComponentTreeStructureConstraintValidatorTest extends CanvasKernelTe
           [
             'uuid' => '2886421e-4ede-4bfb-956c-8afcd4ee8103',
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
           ],
           [
             'uuid' => '80bf49ec-3d3f-4e76-98ed-2ce147397643',
@@ -269,14 +269,14 @@ final class ComponentTreeStructureConstraintValidatorTest extends CanvasKernelTe
           [
             'uuid' => '585b6cbc-0f17-4a37-a89f-92b0716087b7',
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
             'parent_uuid' => 'ca6ed05b-2ffd-4462-9497-922e2c30d0f9',
             'slot' => 'the_body',
           ],
           [
             'uuid' => 'ca6ed05b-2ffd-4462-9497-922e2c30d0f9',
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
             'parent_uuid' => '585b6cbc-0f17-4a37-a89f-92b0716087b7',
             'slot' => 'the_body',
           ],
@@ -291,21 +291,21 @@ final class ComponentTreeStructureConstraintValidatorTest extends CanvasKernelTe
           [
             'uuid' => 'b7fbf5ef-fee9-4b09-bd35-4ef1ba52b16d',
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
             'parent_uuid' => 'e63661e8-a875-4c4c-a25b-3f37bf2926de',
             'slot' => 'the_body',
           ],
           [
             'uuid' => 'e63661e8-a875-4c4c-a25b-3f37bf2926de',
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
             'parent_uuid' => '30a0356d-e35d-4b5c-a5eb-fcbc417f43ac',
             'slot' => 'the_footer',
           ],
           [
             'uuid' => '30a0356d-e35d-4b5c-a5eb-fcbc417f43ac',
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
             'parent_uuid' => 'b7fbf5ef-fee9-4b09-bd35-4ef1ba52b16d',
             'slot' => 'the_colophon',
           ],
@@ -331,14 +331,14 @@ final class ComponentTreeStructureConstraintValidatorTest extends CanvasKernelTe
           [
             'uuid' => '8d2e68e5-fd4a-47dc-a641-06062723525d',
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
           ],
           [
             'uuid' => 'a022682d-d94b-4f66-bfad-034f0eba5906',
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
             'parent_uuid' => '8d2e68e5-fd4a-47dc-a641-06062723525d',
             'slot' => 'the_body',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
           ],
           [
             'uuid' => 'ffa4aa03-2bba-4d9b-81d7-37a412836838',
@@ -355,12 +355,12 @@ final class ComponentTreeStructureConstraintValidatorTest extends CanvasKernelTe
           [
             'uuid' => '8d2e68e5-fd4a-47dc-a641-06062723525d',
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
           ],
           [
             'uuid' => '8d2e68e5-fd4a-47dc-a641-06062723525d',
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
           ],
         ],
         [
@@ -378,14 +378,14 @@ final class ComponentTreeStructureConstraintValidatorTest extends CanvasKernelTe
           [
             'uuid' => 'cffc81cb-df7e-4481-83eb-d3ea71bba987',
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
           ],
           [
             'uuid' => 'd823d3c9-be9f-4053-8bc9-ad36914c345c',
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
             'parent_uuid' => 'cffc81cb-df7e-4481-83eb-d3ea71bba987',
             'slot' => 'the_body',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
           ],
           [
             'uuid' => '357963ff-2eed-4e34-b768-0517cfb52207',
@@ -417,7 +417,7 @@ final class ComponentTreeStructureConstraintValidatorTest extends CanvasKernelTe
             'uuid' => 'd823d3c9-be9f-4053-8bc9-ad36914c345c',
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
             'parent_uuid' => '01703ce1-3eaa-4171-91d9-5b6fe22da2af',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
           ],
         ],
         [
@@ -448,7 +448,7 @@ final class ComponentTreeStructureConstraintValidatorTest extends CanvasKernelTe
           ],
         ],
         [
-          'layout.0.component_version' => "'bad-version' is not a version that exists on component config entity 'sdc.canvas_test_sdc.props-slots'. Available versions: '0e79e884426a53ae'.",
+          'layout.0.component_version' => "'bad-version' is not a version that exists on component config entity 'sdc.canvas_test_sdc.props-slots'. Available versions: 'cc56dff72ca26013'.",
         ],
       ],
       'INVALID: valid tree, with unknown components' => [
@@ -536,7 +536,7 @@ final class ComponentTreeStructureConstraintValidatorTest extends CanvasKernelTe
           [
             'uuid' => '7f4c4a09-3013-4b86-9d4f-27dbcd0078b4',
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
           ],
           [
             'uuid' => '0f7dbcc5-0ea7-4b3d-96eb-b322b1f95522',

@@ -107,23 +107,18 @@ abstract class ComponentSourceBase extends PluginBase implements ComponentSource
     return $settings;
   }
 
+  /**
+   * Normalizes slot definitions down to what affects the version hash.
+   *
+   * Only the set of slot names matters: adding, removing or renaming a slot
+   * changes the data that can be stored for a component instance. A slot's
+   * metadata (title, description, examples) cannot, so it must not trigger a
+   * new version.
+   *
+   * @see ::generateVersionHash()
+   */
   private static function normalizeSlotDefinitions(array $slot_definitions): array {
-    \array_walk($slot_definitions, function (&$slot_definition) {
-      \reset($slot_definition);
-    });
-    return \array_reduce(
-      \array_keys(\array_filter($slot_definitions, \is_array(...))),
-      static function (array $carry, string $slot_name) use ($slot_definitions): array {
-        $slot_examples = $slot_definitions[$slot_name]['examples'] ?? [];
-        return $carry + [
-          $slot_name => [
-            'title' => $slot_definitions[$slot_name]['title'],
-            'example' => $slot_examples === [] ? '' : \current($slot_examples),
-          ],
-        ];
-      },
-      []
-    );
+    return \array_fill_keys(\array_keys(\array_filter($slot_definitions, \is_array(...))), NULL);
   }
 
   /**

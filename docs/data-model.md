@@ -204,7 +204,7 @@ Example: A simple tree showing a root item (`41595148-e5c1-4873-b373-be3ae6e2134
 [
   'uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
   'component_id' => 'sdc.canvas_test_sdc.props-slots',
-  'component_version' => '0e79e884426a53ae',
+  'component_version' => 'cc56dff72ca26013',
   'inputs' => [
     'heading' => [
       'sourceType' => 'static:field_item:string',
@@ -257,7 +257,7 @@ optimize the stored data. For example:
 [
   'uuid' => '41595148-e5c1-4873-b373-be3ae6e21340',
   'component_id' => 'sdc.canvas_test_sdc.props-slots',
-  'component_version' => '0e79e884426a53ae',
+  'component_version' => 'cc56dff72ca26013',
   'inputs' => [
     // Note how much simpler this is compared to the runtime representation above.
     'heading' => "Hello, world!",

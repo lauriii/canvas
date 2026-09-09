@@ -2596,7 +2596,9 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     $versions = [$original_version];
     self::assertCount(1, array_unique($versions));
 
-    // Change the slot example.
+    // Changing the slot example must NOT trigger a new version: a slot's
+    // metadata does not affect the data stored for a component instance.
+    // @see https://www.drupal.org/i/3565755
     $js_component->set('slots', [
       'joy' => [
         'title' => 'Joy',
@@ -2610,9 +2612,25 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     \assert($second_version_component instanceof Component);
 
     $second_version = $second_version_component->getActiveVersion();
-    self::assertNotEquals($original_version, $second_version);
+    self::assertSame($original_version, $second_version);
     $versions[] = $second_version;
-    self::assertCount(2, array_unique($versions));
+    self::assertCount(1, array_unique($versions));
+
+    // Nor does changing the slot title.
+    $js_component->set('slots', [
+      'joy' => [
+        'title' => 'Elation',
+        'description' => "I see eyes like sunken ships, falling slowly in the waters.",
+        'examples' => [
+          'A pilot light of hope spins around, it illuminates the strobe',
+        ],
+      ],
+    ])->save();
+    $third_version_component = Component::load(JsComponent::SOURCE_PLUGIN_ID . '.joy_is_everything');
+    \assert($third_version_component instanceof Component);
+
+    $versions[] = $third_version_component->getActiveVersion();
+    self::assertCount(1, array_unique($versions));
 
     // Add a slot.
     $js_component->set('slots', [
@@ -2632,12 +2650,12 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       ],
     ])->save();
 
-    $third_version_component = Component::load(JsComponent::SOURCE_PLUGIN_ID . '.joy_is_everything');
-    \assert($third_version_component instanceof Component);
+    $fourth_version_component = Component::load(JsComponent::SOURCE_PLUGIN_ID . '.joy_is_everything');
+    \assert($fourth_version_component instanceof Component);
 
-    $third_version = $third_version_component->getActiveVersion();
-    $versions[] = $third_version;
-    self::assertCount(3, array_unique($versions));
+    $fourth_version = $fourth_version_component->getActiveVersion();
+    $versions[] = $fourth_version;
+    self::assertCount(2, array_unique($versions));
 
     // Changing the slot description should not trigger a new version.
     $js_component->set('slots', [
@@ -2657,12 +2675,37 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       ],
     ])->save();
 
-    $fourth_version_component = Component::load(JsComponent::SOURCE_PLUGIN_ID . '.joy_is_everything');
-    \assert($fourth_version_component instanceof Component);
+    $fifth_version_component = Component::load(JsComponent::SOURCE_PLUGIN_ID . '.joy_is_everything');
+    \assert($fifth_version_component instanceof Component);
 
-    $fourth_version = $fourth_version_component->getActiveVersion();
-    self::assertEquals($fourth_version, $third_version);
-    $versions[] = $fourth_version;
+    $fifth_version = $fifth_version_component->getActiveVersion();
+    self::assertSame($fourth_version, $fifth_version);
+    $versions[] = $fifth_version;
+    self::assertCount(2, array_unique($versions));
+
+    // Renaming a slot DOES trigger a new version: the slot name determines
+    // where a component instance's slot content is stored.
+    $js_component->set('slots', [
+      'joy' => [
+        'title' => 'Elation',
+        'description' => "I see eyes like sunken ships, falling slowly in the waters.",
+        'examples' => [
+          'A pilot light of hope spins around, it illuminates the strobe',
+        ],
+      ],
+      'path' => [
+        'title' => 'Road ahead',
+        'description' => "A woven maze that can even catch the spider within",
+        'examples' => [
+          "There's a road that could change everything",
+        ],
+      ],
+    ])->save();
+
+    $sixth_version_component = Component::load(JsComponent::SOURCE_PLUGIN_ID . '.joy_is_everything');
+    \assert($sixth_version_component instanceof Component);
+
+    $versions[] = $sixth_version_component->getActiveVersion();
     self::assertCount(3, array_unique($versions));
 
     // Add a prop.
@@ -2673,11 +2716,10 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       ],
     ])->save();
 
-    $fifth_version_component = Component::load(JsComponent::SOURCE_PLUGIN_ID . '.joy_is_everything');
-    \assert($fifth_version_component instanceof Component);
+    $seventh_version_component = Component::load(JsComponent::SOURCE_PLUGIN_ID . '.joy_is_everything');
+    \assert($seventh_version_component instanceof Component);
 
-    $fifth_version = $fifth_version_component->getActiveVersion();
-    $versions[] = $fifth_version;
+    $versions[] = $seventh_version_component->getActiveVersion();
     self::assertCount(4, array_unique($versions));
   }
 

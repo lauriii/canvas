@@ -22,7 +22,7 @@ translatable: false
 default_value:
   - uuid: 16176e0b-8197-40e3-ad49-48f1b6e9a7f9
     component_id: sdc.canvas_test_sdc.two_column
-    component_version: f90c1f6cfb2fc04a
+    component_version: 91131304199dda6d
     inputs:
       width: 50
   - uuid: 208452de-10d6-4fb8-89a1-10e340b3744c

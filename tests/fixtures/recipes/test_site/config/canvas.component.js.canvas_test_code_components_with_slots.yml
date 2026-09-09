@@ -9,7 +9,7 @@ id: js.canvas_test_code_components_with_slots
 provider: null
 source: js
 source_local_id: canvas_test_code_components_with_slots
-active_version: d5c6ab208aeca9cf
+active_version: 34a6479078d19a9e
 versioned_properties:
   active:
     settings:
