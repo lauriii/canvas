@@ -37,10 +37,9 @@ import type {
  * the shared helper instead.
  *
  * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker::EMPTY_SLOT_COMPONENT_ID
- * @see getMarkerVersion in @/services/pageVariants
  * @see config/install/canvas.component.marker.empty_slot.yml (active_version)
  */
-export const CANVAS_SLOT_EMPTY_MARKER_VERSION = '3b12c0b99a6caecc';
+const CANVAS_SLOT_EMPTY_MARKER_VERSION = '3b12c0b99a6caecc';
 export const CANVAS_SLOT_EMPTY_MARKER_TYPE = `${EMPTY_SLOT_MARKER_ID}@${CANVAS_SLOT_EMPTY_MARKER_VERSION}`;
 
 /**
@@ -139,7 +138,7 @@ export const isLockedSlotRegion = (
 /**
  * Collects the UUIDs of a component and all of its descendant components.
  */
-export const collectComponentUuids = (component: ComponentNode): string[] => {
+const collectComponentUuids = (component: ComponentNode): string[] => {
   const uuids: string[] = [component.uuid];
   recurseNodes(component, (node: ComponentNode) => {
     uuids.push(node.uuid);

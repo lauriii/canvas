@@ -23,7 +23,6 @@ import {
   addExposedSlot,
   deleteComponentAndExposedSlots,
   deleteNode,
-  duplicateNode,
   insertNodes,
   overrideSlotDefaultContent,
   removeExposedSlot,
@@ -35,7 +34,6 @@ import {
   setInitialLayoutModel,
   updateExposedSlotLabel,
 } from '@/features/layout/layoutModelSlice';
-import { getNodeAtPath } from '@/features/layout/layoutUtils';
 import { setDialogWithDataOpen } from '@/features/ui/dialogSlice';
 import {
   deriveSlotFieldName,
@@ -491,26 +489,6 @@ describe('per-content mode helpers', () => {
     expect(
       isLockedSlotRegion('content', exposedSlots, slotOverrides, slotDefaults),
     ).toBe(false);
-  });
-
-  it('resolves a node at a layout path', () => {
-    const layout = [
-      {
-        name: 'Hero',
-        id: 'hero',
-        nodeType: 'region',
-        components: [
-          {
-            nodeType: 'component',
-            uuid: 'c-1',
-            type: 'sdc.canvas_test_all_props@1',
-            slots: [],
-          },
-        ],
-      },
-    ];
-    expect(getNodeAtPath(layout, [0, 0]).uuid).toBe('c-1');
-    expect(getNodeAtPath(layout, [0, 5])).toBe(null);
   });
 
   it('recognizes and filters the empty-slot marker', () => {

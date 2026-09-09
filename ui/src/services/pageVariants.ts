@@ -82,17 +82,12 @@ export const resolvePageVariantSelection = (
 export const isMarkerComponentType = (type?: string): boolean =>
   !!type?.startsWith('marker.');
 
-// Reads a marker's active version hash from the component library. The version
-// is a backend detail (it changes only if the marker's definition changes), so
-// it is looked up at runtime rather than hard-coded.
-export const getMarkerVersion = (
-  markerId: string,
-  components?: ComponentsList,
-): string | undefined => components?.[markerId]?.version;
-
+// Reads the active version hash of the "Page content" marker from the component
+// library. The version is a backend detail (it changes only if the marker's
+// settings change), so it is looked up at runtime rather than hard-coded.
 export const getPageContentMarkerVersion = (
   components?: ComponentsList,
-): string | undefined => getMarkerVersion(PAGE_CONTENT_MARKER_ID, components);
+): string | undefined => components?.[PAGE_CONTENT_MARKER_ID]?.version;
 
 // Derives a config-entity-safe machine name from a human label. Config entity
 // ids allow lowercase letters, digits and underscores.
@@ -123,15 +118,13 @@ export const generateUniqueVariantId = (
   return `${base}_${suffix}`;
 };
 
-// Builds a marker instance: the "Page content" one seeds every new variant, the
-// "Empty slot" one records an empty per-entity override of an exposed slot.
+// Builds the "Page content" marker instance that seeds every new variant.
 export const buildMarkerTreeItem = (
   markerVersion: string,
   uuid: string = uuidv4(),
-  componentId: string = PAGE_CONTENT_MARKER_ID,
 ): PageVariantComponentTreeItem => ({
   uuid,
-  component_id: componentId,
+  component_id: PAGE_CONTENT_MARKER_ID,
   component_version: markerVersion,
   inputs: [],
 });

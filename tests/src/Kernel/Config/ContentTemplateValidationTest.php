@@ -652,10 +652,8 @@ final class ContentTemplateValidationTest extends BetterConfigEntityValidationTe
         'label' => "Something's already here!",
       ],
     ]);
-    // Template content in an exposed slot is allowed for content templates: it
-    // becomes the slot's per-entity-overridable default. (The slot-must-be-empty
-    // check remains available via the ValidExposedSlot `requireEmpty` option for
-    // consumers such as page variants.)
+    // Template content in an exposed slot is allowed: it becomes the slot's
+    // per-entity-overridable default.
     $this->assertValidationErrors([]);
   }
 

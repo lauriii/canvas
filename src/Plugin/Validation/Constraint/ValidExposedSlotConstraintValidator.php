@@ -7,7 +7,6 @@ namespace Drupal\canvas\Plugin\Validation\Constraint;
 use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\Core\Config\ConfigManagerInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
@@ -126,21 +125,6 @@ final class ValidExposedSlotConstraintValidator extends ConstraintValidator impl
       }
     }
 
-    // The exposed slot has to be empty only when the consumer requires it (for
-    // example page variants); content templates allow template content in an
-    // exposed slot to become that slot's per-entity-overridable default.
-    if ($constraint->requireEmpty) {
-      $items_in_exposed_slot = $component_tree_item_list->componentTreeItemsIterator(
-        ComponentTreeItemList::isChildOfComponentTreeItemSlot($value['component_uuid'], $value['slot_name']),
-      );
-      if (\iterator_count($items_in_exposed_slot) > 0) {
-        $this->context->addViolation($constraint->slotNotEmptyMessage, [
-          '%slot' => $value['slot_name'],
-        ]);
-        return;
-      }
-    }
-
     if ($template->getMode() !== $constraint->viewMode) {
       $this->context->addViolation($constraint->viewModeMismatchMessage, [
         '%mode' => $constraint->viewMode,
@@ -159,16 +143,14 @@ final class ValidExposedSlotConstraintValidator extends ConstraintValidator impl
     // translation override changes the translatable `label`, so the merged
     // value being validated here no longer equals any base value and a
     // value-based lookup would fail.
-    if ($constraint->requireFieldBacked) {
-      $field_name = $own_alias;
-      $field_config = $field_name !== ''
-        ? FieldConfig::loadByName($template->getTargetEntityTypeId(), $template->getTargetBundle(), $field_name)
-        : NULL;
-      if ($field_config?->getType() !== ComponentTreeItem::PLUGIN_ID) {
-        $this->context->addViolation($constraint->missingFieldMessage, [
-          '%field' => $field_name,
-        ]);
-      }
+    $field_name = $own_alias;
+    $field_config = $field_name !== ''
+      ? FieldConfig::loadByName($template->getTargetEntityTypeId(), $template->getTargetBundle(), $field_name)
+      : NULL;
+    if ($field_config?->getType() !== ComponentTreeItem::PLUGIN_ID) {
+      $this->context->addViolation($constraint->missingFieldMessage, [
+        '%field' => $field_name,
+      ]);
     }
   }
 

@@ -18,7 +18,7 @@ import { countExposedSlots } from '@/features/layout/exposedSlots';
 import type { TemplateList } from '@/services/componentAndLayout';
 
 /** The Canvas page entity type, which is listed separately (not templated). */
-export const PAGE_ENTITY_TYPE = 'canvas_page';
+const PAGE_ENTITY_TYPE = 'canvas_page';
 
 /** One active templated bundle: its machine name and human label. */
 export interface TemplatedBundle {
