@@ -175,8 +175,6 @@ Slugifies
 pasteable
 Prebundle
 prebundling
-preflight
-preflights
 previewable
 propless
 propsify
@@ -198,7 +196,6 @@ renderify
 renderless
 reparse
 reparsed
-replayable
 replit
 requiredness
 rerooted
@@ -221,9 +218,6 @@ shadcn
 shipmonk
 skypack
 slnt
-slugified
-slugifies
-Slugifies
 sonner
 sparkline
 STACKLIMIT
@@ -265,7 +259,6 @@ unloadable
 unmixable
 unmodeled
 unparseable
-unrenderable
 unpartitioned
 unrooted
 unstorable
@@ -292,42 +285,7 @@ xmdi
 ymls
 
 # Coding agent list maintained in packages/create/src/lib/agents.ts
-adal
-catbro
-codearts
-codeartsdoer
-codebuddy
-codemaker
-codestudio
-commandcode
-deepagents
-dexto
-firebender
-forgecode
-iflow
-Junie
-junie
-kilocode
-kimi
-kiro
-kode
-mcpjam
-minibro
-neovate
-openclaw
-opencode
-openhands
-PKCE
-pochi
-qoder
-qwen
-replit
-rovo
-rovodev
-tabnine
-trae
 unwindowed
-videomedia
 wrappable
 xclip
 xsel
