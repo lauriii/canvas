@@ -42,6 +42,7 @@ const mocks = vi.hoisted(() => {
     invalidateBrandKitTags: vi.fn(),
     invalidateContentTags: vi.fn(),
     invalidateLayoutTags: vi.fn(),
+    invalidatePageDataFormTags: vi.fn(),
     updateLayoutQueryData: vi.fn(),
   };
 });
@@ -130,6 +131,14 @@ vi.mock('@/services/content', () => ({
   }),
 }));
 
+vi.mock('@/services/pageDataForm', () => ({
+  pageDataFormApi: {
+    util: {
+      invalidateTags: mocks.invalidatePageDataFormTags,
+    },
+  },
+}));
+
 vi.mock('@/services/pendingChangesApi', () => ({
   useDiscardPendingChangeMutation: () => [
     mocks.discardChange,
@@ -205,6 +214,7 @@ describe('UnpublishedChanges', () => {
     expect(mocks.updateLayoutQueryData).not.toHaveBeenCalled();
     expect(mocks.invalidateContentTags).not.toHaveBeenCalled();
     expect(mocks.invalidateLayoutTags).not.toHaveBeenCalled();
+    expect(mocks.invalidatePageDataFormTags).not.toHaveBeenCalled();
     expect(mocks.dispatch).not.toHaveBeenCalled();
   });
 
@@ -244,5 +254,24 @@ describe('UnpublishedChanges', () => {
     expect(mocks.publishReviewProps.onReviewSelectedChanges).toBeUndefined();
     expect(mocks.publishReviewProps.onViewClick).toBeUndefined();
     expect(mocks.publishReviewProps.isViewChangeAvailable).toBeUndefined();
+  });
+
+  it('refreshes the current page data form after publishing', async () => {
+    mocks.publishUnwrap.mockResolvedValue({ message: 'Published' });
+    render(<UnpublishedChanges />);
+
+    const selectedChange: UnpublishedChange = {
+      ...mocks.pendingChange,
+      entity_id: 1,
+      pointer: 'canvas_page:1:en',
+    };
+
+    await act(async () => {
+      await mocks.publishReviewProps.onPublishClick([selectedChange]);
+    });
+
+    expect(mocks.invalidatePageDataFormTags).toHaveBeenCalledWith([
+      { type: 'PageDataForm', id: 'FORM' },
+    ]);
   });
 });

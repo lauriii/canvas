@@ -6,6 +6,7 @@ import { setInitialPageData } from '@/features/pageData/pageDataSlice';
 import { brandKitApi } from '@/services/brandKit';
 import { componentAndLayoutApi } from '@/services/componentAndLayout';
 import { contentApi } from '@/services/content';
+import { pageDataFormApi } from '@/services/pageDataForm';
 import { usePublishAllPendingChangesMutation } from '@/services/pendingChangesApi';
 import { findInChanges } from '@/utils/function-utils';
 
@@ -102,6 +103,13 @@ export const usePublishPendingChanges = ({
             }),
           );
         }
+
+        // Refetch the form for the newly published revision.
+        dispatch(
+          pageDataFormApi.util.invalidateTags([
+            { type: 'PageDataForm', id: 'FORM' },
+          ]),
+        );
       }
 
       dispatch(
