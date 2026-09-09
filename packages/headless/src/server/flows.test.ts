@@ -649,3 +649,66 @@ describe('fetchPage', () => {
     await expect(server.fetchPage('/example')).resolves.toEqual(unmanagedPage);
   });
 });
+
+describe('fetchEntity', () => {
+  const entity = {
+    content: { element: 'js-article-card' },
+    managedByCanvas: true,
+    entity: {
+      entityType: 'node',
+      bundle: 'article',
+      id: '2',
+      uuid: 'node-uuid',
+      langcode: 'en',
+    },
+  };
+
+  it('fetches one public entity in a specific view mode', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(Response.json(entity));
+    const { server } = makeServer(fetchImpl as unknown as typeof fetch);
+
+    await expect(
+      server.fetchEntity({ type: 'node', id: '2', viewMode: 'teaser' }),
+    ).resolves.toEqual(entity);
+    expect(fetchImpl).toHaveBeenCalledWith(
+      new URL(
+        'https://drupal.example/canvas/content-api/entity?type=node&id=2&viewMode=teaser',
+      ),
+      expect.objectContaining({
+        cache: 'no-store',
+        headers: { Accept: 'application/json' },
+      }),
+    );
+  });
+
+  it('marks a managed draft entity render as editor-renderable', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(Response.json(entity));
+    const { server, seedSession } = makeServer(
+      fetchImpl as unknown as typeof fetch,
+    );
+    seedSession(liveDraftData());
+
+    await expect(
+      server.fetchEntity({ type: 'node', id: '2' }),
+    ).resolves.toEqual({
+      ...entity,
+      content: { element: 'js-article-card', canvasDraftMode: true },
+    });
+  });
+
+  it('returns unmanaged draft content unchanged', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(
+        Response.json({ ...entity, content: null, managedByCanvas: false }),
+      );
+    const { server, seedSession } = makeServer(
+      fetchImpl as unknown as typeof fetch,
+    );
+    seedSession(liveDraftData());
+
+    await expect(
+      server.fetchEntity({ type: 'node', id: '2' }),
+    ).resolves.toEqual({ ...entity, content: null, managedByCanvas: false });
+  });
+});

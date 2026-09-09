@@ -7,6 +7,7 @@ namespace Drupal\canvas_headless\EventSubscriber;
 // cspell:ignore Repr
 
 use Drupal\canvas_headless\CanvasContentProblemResponse;
+use Drupal\canvas_headless\Controller\CanvasEntityController;
 use Drupal\canvas_headless\StackMiddleware\CanvasContentApiRequest;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Cache\CacheableJsonResponse;
@@ -252,7 +253,10 @@ final class CanvasContentResponseSubscriber implements EventSubscriberInterface 
     Request $request,
   ): bool {
     return \is_string($request->attributes->get(CanvasContentApiRequest::REQUESTED_URI_ATTRIBUTE)) ||
-      $request->getPathInfo() === CanvasContentApiRequest::API_PATH;
+      \in_array($request->getPathInfo(), [
+        CanvasContentApiRequest::API_PATH,
+        CanvasEntityController::API_PATH,
+      ], TRUE);
   }
 
 }

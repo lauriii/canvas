@@ -58,6 +58,32 @@ hook documentation, including the site-policy `_alter` hook.
 are supported; fragments are rejected. File URLs in content responses are absolute so they resolve from the
 headless frontend rather than from the Drupal origin implicitly.
 
+## Canvas entity endpoint
+
+`GET /canvas/content-api/entity?type={entityType}&id={id}` renders one
+content entity directly. Pass `viewMode={viewMode}` to render a specific
+content-template view mode, for example
+`/canvas/content-api/entity?type=node&id=1&viewMode=teaser`.
+
+### Entity response
+
+```text
+{
+  "content": {...},
+  "managedByCanvas": true,
+  "entity": {
+    "entityType": "node",
+    "bundle": "article",
+    "id": "1",
+    "uuid": "773942c6-3660-4c50-9a8d-e25966a69bff",
+    "langcode": "en"
+  }
+}
+```
+
+`content` is one structured root or `null`. `managedByCanvas` is `false` when
+Canvas does not manage the requested entity and view mode.
+
 ### Content response
 
 ```text

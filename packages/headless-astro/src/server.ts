@@ -13,6 +13,7 @@ import type { DraftData } from '@drupal-canvas/headless';
 import type {
   DraftConfig,
   DraftServer,
+  EntityResult,
   PageResult,
 } from '@drupal-canvas/headless/server';
 import type { AstroDraftContext } from './adapter';
@@ -79,6 +80,18 @@ export function getClient(
   context: AstroDraftContext,
 ): ReturnType<DraftServer['getClient']> {
   return getDraftServer(context).getClient();
+}
+
+/** Fetches one entity by type and ID through the current draft session. */
+export function fetchEntity(
+  context: AstroDraftContext,
+  options: {
+    type: string;
+    id: string;
+    viewMode?: string;
+  },
+): Promise<EntityResult | null> {
+  return getDraftServer(context).fetchEntity(options);
 }
 
 /**

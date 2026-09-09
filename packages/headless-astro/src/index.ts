@@ -14,6 +14,7 @@ export {
   type AstroDraftContext,
 } from './adapter';
 export {
+  fetchEntity,
   fetchPage,
   getClient,
   getDraftConfig,
@@ -34,6 +35,7 @@ export {
   type DrupalRoute,
   type DrupalRouteEntity,
   type DraftData,
+  type EntityResult,
   type Page,
   type PageHead,
   type PageRedirect,
