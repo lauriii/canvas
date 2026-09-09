@@ -1,5 +1,25 @@
 # @drupal-canvas/headless-nuxt
 
+## 0.5.0
+
+### Minor Changes
+
+- 24800cb: Add `fetchEntity()` for rendering a single entity through Canvas,
+  including explicit view modes.
+  - Add a dedicated `/canvas/content-api/entity` endpoint for entity-scoped
+    Canvas renders.
+  - Support rendering a specific content-template view mode via the `viewMode`
+    query parameter.
+
+- e6a9c66: Add support for page variants.
+
+### Patch Changes
+
+- Updated dependencies [24800cb]
+- Updated dependencies [e6a9c66]
+- Updated dependencies [78e3ff2]
+  - @drupal-canvas/headless@0.6.0
+
 ## 0.4.0
 
 ### Minor Changes

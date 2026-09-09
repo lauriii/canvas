@@ -1,5 +1,18 @@
 # @drupal-canvas/headless-react
 
+## 0.4.0
+
+### Minor Changes
+
+- e6a9c66: Add support for page variants.
+
+### Patch Changes
+
+- Updated dependencies [24800cb]
+- Updated dependencies [e6a9c66]
+- Updated dependencies [78e3ff2]
+  - @drupal-canvas/headless@0.6.0
+
 ## 0.3.1
 
 ### Patch Changes

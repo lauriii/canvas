@@ -1,5 +1,28 @@
 # @drupal-canvas/workbench
 
+## 0.11.0
+
+### Minor Changes
+
+- da4015e: Add page template discovery and preview support.
+  - Replace global region discovery and preview rendering with page templates.
+  - Load page templates from the configured directory, `page-templates/` by
+    default, and refresh previews when their files change.
+  - Use discovered page templates in page and full content template previews.
+  - Accept the `pageVariant` field in page and content template specs.
+
+### Patch Changes
+
+- 78e3ff2: Validate authored Code Component metadata against the shared Canvas
+  JSON Schema.
+  - Surface source-located metadata errors without stopping Workbench discovery
+    or file watching.
+  - Derive content entity reference preview targets from
+    `dataDependencies.entityFields`.
+
+- Updated dependencies [108e9d4]
+  - drupal-canvas@0.5.1
+
 ## 0.10.0
 
 ### Minor Changes
