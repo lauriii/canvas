@@ -28,6 +28,7 @@ vi.mock('@/utils/drupal-globals', () => ({
   getCanvasSettings: () => mockDrupalSettings.canvas,
   getCanvasHeadlessSettings: () => mockDrupalSettings.canvas.headless,
   getBasePath: () => mockDrupalSettings.path.baseUrl,
+  getBaseUrl: () => mockDrupalSettings.path.baseUrl,
   CANVAS_HEADLESS_SETTINGS_CHANGE: 'canvas:headless-settings-change',
   CANVAS_HEADLESS_FRONTEND_STORAGE_KEY: 'canvas-headless-active-frontend',
   setCanvasHeadlessFrontend: (frontendUrl, configuredFrontends) => {

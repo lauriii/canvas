@@ -12,6 +12,7 @@ use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Render\HtmlResponse;
 use Drupal\Core\Url;
@@ -218,6 +219,50 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
 
     self::assertSame('Canvas test site', $this->drupalSettings['canvas']['siteName']);
     self::assertSame('http://localhost', $this->drupalSettings['canvas']['siteUrl']);
+  }
+
+  /**
+   * Tests that component previews get the front-end theme's <html> attributes.
+   *
+   * @see https://git.drupalcode.org/project/canvas/-/issues/3504925
+   */
+  public function testControllerExposedPreviewHtmlAttributes(): void {
+    $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+    $this->setUpCurrentUser([], ['access content', Page::CREATE_PERMISSION, Page::EDIT_PERMISSION]);
+
+    // Olivero exposes its configured brand color as CSS custom properties on
+    // the <html> element only. A component preview that omits them silently
+    // falls back to Olivero's default blue.
+    // @see \Drupal\olivero\Hook\OliveroPagePreprocessHooks::preprocessHtml()
+    $this->container->get(ThemeInstallerInterface::class)->install(['olivero', 'claro']);
+    // The admin theme must differ from the front-end theme: previews are styled
+    // with the front-end theme, while the Canvas UI shell itself uses the admin
+    // theme. Without this the two are the same theme and the assertions below
+    // could not tell them apart.
+    $this->config('system.theme')
+      ->set('default', 'olivero')
+      ->set('admin', 'claro')
+      ->save();
+    $this->config('olivero.settings')->set('base_primary_color', '#c0392b')->save();
+
+    $response = $this->request(Request::create(Url::fromRoute('canvas.boot.empty', [
+      'entity_type' => '',
+      'entity' => '',
+    ])->toString()));
+
+    // The preview attributes are Olivero's, carrying the configured brand color
+    // rather than Olivero's default hue of 202.
+    $html_attributes = $this->drupalSettings['canvas']['globalAssets']['htmlAttributes'];
+    self::assertStringContainsString('lang="en"', $html_attributes);
+    self::assertStringContainsString('dir="ltr"', $html_attributes);
+    self::assertStringContainsString('style="--color--primary-hue:6;--color--primary-saturation:63%;--color--primary-lightness:46"', $html_attributes);
+
+    // The Canvas UI shell's own <html> element still gets Claro's attributes,
+    // which carry no brand color: the preview attributes are not simply a copy
+    // of the shell's.
+    self::assertSame(1, \preg_match('#<html[^>]*>#', (string) $response->getContent(), $shell_html_tag));
+    self::assertStringContainsString('lang="en"', $shell_html_tag[0]);
+    self::assertStringNotContainsString('--color--primary-hue', $shell_html_tag[0]);
   }
 
   public static function permissionsData(): array {

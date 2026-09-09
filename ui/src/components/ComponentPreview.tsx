@@ -69,6 +69,11 @@ const ComponentPreview: React.FC<ComponentPreviewProps> = ({
     drupalSettings?.canvas.globalAssets.jsFooter + component.js_footer;
   const js_header =
     drupalSettings?.canvas.globalAssets.jsHeader + component.js_header;
+  // Themes put presentational information on the <html> element itself, such as
+  // Olivero's brand color CSS custom properties. Without them the preview does
+  // not match the rendered page.
+  const htmlAttributes =
+    drupalSettings?.canvas.globalAssets.htmlAttributes ?? '';
 
   const markup = component.default_markup;
   const base_url = window.location.origin + baseUrl;
@@ -109,7 +114,9 @@ const ComponentPreview: React.FC<ComponentPreviewProps> = ({
   // We need to convert asset paths to absolute URLs so that they load correctly
   // in the srcDoc-using iframe.
   makeAssetPathsAbsolute(template, baseUrl);
-  html = template.innerHTML;
+  // Parsing into a <template> drops the <html>, <head> and <body> tags, so the
+  // <html> element carrying the theme's attributes is re-added afterwards.
+  html = `<html${htmlAttributes}>${template.innerHTML}</html>`;
 
   // If there are <canvas-island> nodes, we use an interval to watch for size
   // changes after hydration. The refs below are for managing the interval and

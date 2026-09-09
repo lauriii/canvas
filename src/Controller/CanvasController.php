@@ -122,6 +122,15 @@ HTML;
     // @see ui/src/components/ComponentPreview.tsx
     $preview_assets = (new AttachedAssets())->setLibraries($preview_libraries);
 
+    // The <html> attributes the active (front-end) theme renders. Component
+    // previews are assembled client side rather than rendered by the theme, so
+    // without these they miss e.g. Olivero's brand color CSS custom properties.
+    // Only the <html> attributes are forwarded: a theme's <body> classes are
+    // assembled in its own html.html.twig from the current route, so forwarding
+    // them would stamp every preview with this route's classes.
+    // @see ui/src/components/ComponentPreview.tsx
+    [$preview_html_attributes] = $this->getThemeDocumentAttributes();
+
     $canvas_module_path = $this->moduleHandler->getModule('canvas')->getPath();
     $dev_mode = $this->moduleHandler->moduleExists('canvas_dev_mode');
     // @todo Remove the use of 'canvas_dev_cd' flag in https://git.drupalcode.org/project/canvas/-/work_items/3591732
@@ -255,6 +264,7 @@ HTML;
               'css' => $this->assetRenderer->renderCssAssets($preview_assets),
               'jsHeader' => $this->assetRenderer->renderJsHeaderAssets($preview_assets),
               'jsFooter' => $this->assetRenderer->renderJsFooterAssets($preview_assets),
+              'htmlAttributes' => (string) $preview_html_attributes,
             ],
             'canvasModulePath' => $canvas_module_path,
             'permissions' => [
@@ -310,30 +320,23 @@ HTML;
   }
 
   /**
-   * Sets the <html> and <body> attributes on the static HTML.
+   * Gets the <html> and <body> attributes the active theme would render.
    *
-   * Replaces:
-   * - `{{ html_attributes }}`
-   * - `{{ body_attributes }}`
+   * Themes add crucial presentational information to these elements. Olivero,
+   * for example, exposes the configured brand color as CSS custom properties in
+   * the <html> element's `style` attribute, so anything rendered without them
+   * falls back to Olivero's default blue.
    *
-   * Does not replace (handled by HtmlResponseAttachmentsProcessor):
-   * - `<css-placeholder token="CSS-HERE-PLEASE">`
-   * - `<js-placeholder token="JS-HERE-PLEASE">`
+   * @return array{\Drupal\Core\Template\Attribute, \Drupal\Core\Template\Attribute}
+   *   The <html> attributes, followed by the <body> attributes.
    *
-   * @see \Drupal\Core\Render\HtmlResponseAttachmentsProcessor
+   * @see template_preprocess_html()
+   * @see hook_preprocess_html()
    */
-  private function buildHtml(): string {
-    $theme_config = $this->configFactory->get('system.theme');
-    $admin = (string) $theme_config->get('admin');
-    $admin_theme_name = $admin !== '' ? $admin : $theme_config->get('default');
-    $active_admin_theme = $this->themeInitialization->getActiveThemeByName($admin_theme_name);
-    $actual_active_theme = $this->themeManager->getActiveTheme();
-    $this->themeManager->setActiveTheme($active_admin_theme);
-    // Create a temporary rendered html element so we can extract the attributes
-    // and add them to this response. This ensures things like langcode and text
-    // direction are added to the html tag as expected.
-    // @see template_preprocess_html()
-    // @see hook_preprocess_html()
+  private function getThemeDocumentAttributes(): array {
+    // Create a temporary rendered html element so we can extract the
+    // attributes. This ensures things like langcode and text direction are
+    // added to the html tag as expected.
     $html_stub = [
       '#theme' => 'html',
       'page' => [],
@@ -358,6 +361,31 @@ HTML;
         $body_attributes->setAttribute($attribute->name, $attribute->value);
       }
     }
+
+    return [$html_attributes, $body_attributes];
+  }
+
+  /**
+   * Sets the <html> and <body> attributes on the static HTML.
+   *
+   * Replaces:
+   * - `{{ html_attributes }}`
+   * - `{{ body_attributes }}`
+   *
+   * Does not replace (handled by HtmlResponseAttachmentsProcessor):
+   * - `<css-placeholder token="CSS-HERE-PLEASE">`
+   * - `<js-placeholder token="JS-HERE-PLEASE">`
+   *
+   * @see \Drupal\Core\Render\HtmlResponseAttachmentsProcessor
+   */
+  private function buildHtml(): string {
+    $theme_config = $this->configFactory->get('system.theme');
+    $admin = (string) $theme_config->get('admin');
+    $admin_theme_name = $admin !== '' ? $admin : $theme_config->get('default');
+    $active_admin_theme = $this->themeInitialization->getActiveThemeByName($admin_theme_name);
+    $actual_active_theme = $this->themeManager->getActiveTheme();
+    $this->themeManager->setActiveTheme($active_admin_theme);
+    [$html_attributes, $body_attributes] = $this->getThemeDocumentAttributes();
     $this->themeManager->setActiveTheme($actual_active_theme);
     // TRICKY: don't use core/modules/system/templates/html.html.twig nor that
     // of a theme, because those include the skip link, which assumes the
