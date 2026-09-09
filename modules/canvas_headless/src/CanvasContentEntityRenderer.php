@@ -43,59 +43,11 @@ final class CanvasContentEntityRenderer {
     string $view_mode,
     bool $is_preview,
   ): array {
-    $template = NULL;
-    $view_builder = NULL;
-    $cacheability = (new CacheableMetadata())
-      // A previously unmanaged route can become managed when a headless-
-      // compatible site default is selected, so invalidate negative results.
-      ->addCacheableDependency($this->configFactory->get('canvas.settings'));
-    if ($is_preview) {
-      $cacheability->addCacheTags([AutoSaveManager::CACHE_TAG]);
-    }
-
-    if ($entity instanceof ComponentTreeEntityInterface) {
-      $build = $entity
-        ->getComponentTree()
-        ->toRenderable($entity, $is_preview);
-    }
-    else {
-      $entity_type = $this->entityTypeManager
-        ->getDefinition($entity->getEntityTypeId());
-      if ($entity_type->hasHandlerClass('view_builder')) {
-        $candidate = $this->entityTypeManager
-          ->getViewBuilder($entity->getEntityTypeId());
-        if ($candidate instanceof ContentTemplateAwareViewBuilder) {
-          $view_builder = $candidate;
-        }
-      }
-
-      $template = ContentTemplate::loadForEntity($entity, $view_mode);
-      $cacheability->addCacheTags(
-        $this->entityTypeManager
-          ->getDefinition(ContentTemplate::ENTITY_TYPE_ID)
-          ->getListCacheTags(),
-      );
-      if ($is_preview) {
-        if ($template !== NULL) {
-          $auto_save = $this->autoSaveManager->getAutoSaveEntity($template);
-          $cacheability->addCacheableDependency($auto_save);
-          if ($auto_save->entity instanceof ContentTemplate) {
-            $template = $auto_save->entity;
-            $template->setStatus(TRUE);
-          }
-          elseif (!$template->status()) {
-            $template = clone $template;
-            $template->setStatus(TRUE);
-          }
-        }
-      }
-      if ($template !== NULL) {
-        $cacheability->addCacheableDependency($template);
-      }
-      $build = $view_builder !== NULL && $template !== NULL && ($is_preview || $template->status())
-        ? $view_builder->build($view_builder->view($entity, $view_mode))
-        : NULL;
-    }
+    [$build, $template, $view_builder, $cacheability] = $this->buildEntityContent(
+      $entity,
+      $view_mode,
+      $is_preview,
+    );
 
     // Page variants provide the chrome for a canonical page. Other view modes
     // render only their content template, matching the coupled preview.
@@ -161,6 +113,99 @@ final class CanvasContentEntityRenderer {
       'build' => $build,
       'cacheability' => $cacheability,
     ];
+  }
+
+  /**
+   * Builds only the entity's Canvas-managed content, without page chrome.
+   *
+   * @return array{build: ?array, cacheability: \Drupal\Core\Cache\CacheableMetadata}
+   *   The Canvas render array, or NULL when Canvas does not render the entity,
+   *   plus dependencies that determined the result.
+   */
+  public function buildEntity(
+    ContentEntityInterface $entity,
+    string $view_mode,
+    bool $is_preview,
+  ): array {
+    [$build, , , $cacheability] = $this->buildEntityContent(
+      $entity,
+      $view_mode,
+      $is_preview,
+    );
+
+    return [
+      'build' => $build,
+      'cacheability' => $cacheability,
+    ];
+  }
+
+  /**
+   * Builds the entity-scoped Canvas renderable before page-level chrome.
+   *
+   * @return array{?array, ?ContentTemplate, ?ContentTemplateAwareViewBuilder, \Drupal\Core\Cache\CacheableMetadata}
+   *   The entity render array, resolved content template, matching view
+   *   builder, and the dependencies that determined that result.
+   */
+  private function buildEntityContent(
+    ContentEntityInterface $entity,
+    string $view_mode,
+    bool $is_preview,
+  ): array {
+    $template = NULL;
+    $view_builder = NULL;
+    $cacheability = (new CacheableMetadata())
+      // A previously unmanaged route can become managed when a headless-
+      // compatible site default is selected, so invalidate negative results.
+      ->addCacheableDependency($this->configFactory->get('canvas.settings'));
+    if ($is_preview) {
+      $cacheability->addCacheTags([AutoSaveManager::CACHE_TAG]);
+    }
+
+    if ($entity instanceof ComponentTreeEntityInterface) {
+      $build = $entity
+        ->getComponentTree()
+        ->toRenderable($entity, $is_preview);
+    }
+    else {
+      $entity_type = $this->entityTypeManager
+        ->getDefinition($entity->getEntityTypeId());
+      if ($entity_type->hasHandlerClass('view_builder')) {
+        $candidate = $this->entityTypeManager
+          ->getViewBuilder($entity->getEntityTypeId());
+        if ($candidate instanceof ContentTemplateAwareViewBuilder) {
+          $view_builder = $candidate;
+        }
+      }
+
+      $template = ContentTemplate::loadForEntity($entity, $view_mode);
+      $cacheability->addCacheTags(
+        $this->entityTypeManager
+          ->getDefinition(ContentTemplate::ENTITY_TYPE_ID)
+          ->getListCacheTags(),
+      );
+      if ($is_preview) {
+        if ($template !== NULL) {
+          $auto_save = $this->autoSaveManager->getAutoSaveEntity($template);
+          $cacheability->addCacheableDependency($auto_save);
+          if ($auto_save->entity instanceof ContentTemplate) {
+            $template = $auto_save->entity;
+            $template->setStatus(TRUE);
+          }
+          elseif (!$template->status()) {
+            $template = clone $template;
+            $template->setStatus(TRUE);
+          }
+        }
+      }
+      if ($template !== NULL) {
+        $cacheability->addCacheableDependency($template);
+      }
+      $build = $view_builder !== NULL && $template !== NULL && ($is_preview || $template->status())
+        ? $view_builder->build($view_builder->view($entity, $view_mode))
+        : NULL;
+    }
+
+    return [$build, $template, $view_builder, $cacheability];
   }
 
   /**

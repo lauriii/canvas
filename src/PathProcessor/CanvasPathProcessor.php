@@ -23,11 +23,15 @@ class CanvasPathProcessor implements InboundPathProcessorInterface {
    * {@inheritdoc}
    */
   public function processInbound($path, Request $request): string {
-    // Only rewrite if not /canvas/api and starts with /canvas/.
-    // For this to work, our routes require that no route normalization happens
-    // when the redirect module is enabled.
+    // Only rewrite if not /canvas/api or /canvas/content-api and starts with
+    // /canvas/. For this to work, our routes require that no route
+    // normalization happens when the redirect module is enabled.
     // @see \Drupal\canvas\EventSubscriber\CanvasRouteOptionsEventSubscriber::preventRouteNormalization.
-    if (str_starts_with($path, '/canvas/') && !str_starts_with($path, '/canvas/api')) {
+    if (
+      str_starts_with($path, '/canvas/') &&
+      !str_starts_with($path, '/canvas/api') &&
+      !str_starts_with($path, '/canvas/content-api/')
+    ) {
       // Page extension paths must reach their own route so per-extension
       // access checking applies. Strip any extension-internal subpath
       // (/canvas/app/foo/some/page → /canvas/app/foo): Drupal's router cannot

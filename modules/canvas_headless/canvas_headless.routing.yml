@@ -8,6 +8,15 @@ canvas_headless.content:
   requirements:
     _access: 'TRUE'
 
+canvas_headless.entity:
+  path: '/canvas/content-api/entity'
+  defaults:
+    _controller: 'Drupal\canvas_headless\Controller\CanvasEntityController::get'
+    _format: 'json'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+
 # Session renewal. Same-origin JSON endpoint for the Canvas editor's
 # JavaScript: it fetches a fresh assertion here and relays it into the
 # embedded app via postMessage. POST with header-based CSRF protection,

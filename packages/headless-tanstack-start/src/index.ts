@@ -23,6 +23,7 @@ export { toTanStackHead, type TanStackHead } from './head';
 export {
   disableDraftMode,
   enableDraftMode,
+  fetchEntity,
   fetchPage,
   getClient,
   getDraftClient,
@@ -43,6 +44,7 @@ export {
   type CanvasComponentTreeElement,
   type CanvasComponentTreeSlot,
   type DraftData,
+  type EntityResult,
   type DrupalRoute,
   type DrupalRouteEntity,
   type Page,

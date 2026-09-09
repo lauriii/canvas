@@ -30,13 +30,6 @@ paths:
             examples:
               - /page/1
               - /node/12?language=fr
-        - name: viewMode
-          in: query
-          required: false
-          description: Optional preview view mode context.
-          schema:
-            type: string
-            pattern: '^[a-z0-9_]+$'
         - name: componentId
           in: query
           required: false
@@ -85,6 +78,69 @@ paths:
                       external: false
                       url: /new-path
                       statusCode: 301
+        '400':
+          $ref: '#/components/responses/ProblemDetailsResponse'
+        '401':
+          $ref: '#/components/responses/ProblemDetailsResponse'
+        '403':
+          $ref: '#/components/responses/ProblemDetailsResponse'
+        '404':
+          $ref: '#/components/responses/ProblemDetailsResponse'
+        '500':
+          $ref: '#/components/responses/ProblemDetailsResponse'
+      security: []
+
+  /canvas/content-api/entity:
+    get:
+      summary: Render one Canvas-managed content entity
+      description: |
+        Accepts one content entity target and returns its rendered Canvas
+        content when Canvas manages the requested entity and view mode.
+      parameters:
+        - name: type
+          in: query
+          required: true
+          description: Content entity type ID.
+          schema:
+            type: string
+            examples:
+              - node
+        - name: id
+          in: query
+          required: true
+          description: Content entity ID.
+          schema:
+            oneOf:
+              - type: string
+              - type: integer
+        - name: viewMode
+          in: query
+          required: false
+          description: Optional content-template view mode.
+          schema:
+            type: string
+            pattern: '^[a-z0-9_]+$'
+      responses:
+        '200':
+          description: Entity render result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CanvasEntityResult'
+              examples:
+                entity:
+                  value:
+                    content:
+                      element: js-example-card
+                      props:
+                        heading: Example heading
+                    managedByCanvas: true
+                    entity:
+                      entityType: node
+                      bundle: article
+                      id: '12'
+                      uuid: 773942c6-3660-4c50-9a8d-e25966a69bff
+                      langcode: en
         '400':
           $ref: '#/components/responses/ProblemDetailsResponse'
         '401':
@@ -386,6 +442,21 @@ components:
               type: string
             statusCode:
               type: integer
+
+    CanvasEntityResult:
+      type: object
+      additionalProperties: false
+      required: [content, managedByCanvas, entity]
+      properties:
+        content:
+          oneOf:
+            - type: object
+              additionalProperties: true
+            - type: 'null'
+        managedByCanvas:
+          type: boolean
+        entity:
+          $ref: '#/components/schemas/RoutedEntityRef'
 
     UnheadDocument:
       type: object

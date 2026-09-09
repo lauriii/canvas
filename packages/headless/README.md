@@ -51,6 +51,10 @@ framework's redirect primitive.
 During an authorized draft session, the same call uses available content drafts.
 Public calls use stored content.
 
+Use `fetchEntity({ type, id, viewMode })` when the current request should render
+one specific content entity in a specific content-template view mode, such as
+`server.fetchEntity({ type: 'node', id: '1', viewMode: 'teaser' })`.
+
 Routes that Canvas does not render still return their document-head and route
 data with `content` set to `null` and `route.managedByCanvas` set to `false`. An
 empty managed tree also has `content` set to `null`, but keeps
