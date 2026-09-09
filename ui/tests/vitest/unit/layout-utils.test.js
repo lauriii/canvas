@@ -98,7 +98,7 @@ describe('replaceUUIDsAndUpdateModel', () => {
     // Check if node types and component types are preserved
     expect(updatedNode.type).to.equal('sdc.foo-bar');
     expect(updatedNode.slots[0].components[0].type).to.equal(
-      'sdc.canvas_test_sdc.two_column@f90c1f6cfb2fc04a',
+      'sdc.canvas_test_sdc.two_column@91131304199dda6d',
     );
     expect(updatedNode.slots[0].components[1].type).to.equal(
       'sdc.canvas_test_sdc.my-cta@e5ef92acda2ee2d1',

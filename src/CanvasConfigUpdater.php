@@ -7,6 +7,7 @@ namespace Drupal\canvas;
 use Drupal\canvas\Attribute\ComponentPreSaveUpdate;
 use Drupal\canvas\ComponentSource\ComponentSourceInterface;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
+use Drupal\canvas\ComponentSource\ComponentSourceWithSlotsInterface;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
@@ -1116,6 +1117,63 @@ class CanvasConfigUpdater {
   #[ComponentPreSaveUpdate(postUpdate: 'canvas_post_update_0019_recompute_list_float_component_version_hashes')]
   public function updateListFloatComponentVersionHash(Component $component): bool {
     if (!self::needsComponentVersionHashRecomputationForListFloatDefaultValue($component)) {
+      return FALSE;
+    }
+    $this->recomputeActiveVersionHash($component);
+    return TRUE;
+  }
+
+  /**
+   * Whether a Component's slot metadata broke its active version hash.
+   *
+   * Slot metadata (title, examples) used to be part of the version hash, so
+   * every Component with at least one slot carries a hash that no longer
+   * matches the one its (unchanged) settings now generate.
+   *
+   * Deliberately narrow — a hash mismatch is only acted upon for components
+   * that actually have slots: other mismatches are distinct bugs that each
+   * need their own update path, and a post-update never runs twice to apply
+   * one.
+   *
+   * @see \canvas_post_update_0031_recompute_slotted_component_version_hashes()
+   * @see \Drupal\canvas\ComponentSource\ComponentSourceBase::generateVersionHash()
+   */
+  public static function needsComponentVersionHashRecomputationForSlotMetadata(Component $component): bool {
+    // The fallback version is never hash-validated.
+    // @see \Drupal\canvas\Entity\Component::validateActiveVersion()
+    if ($component->getActiveVersion() === ComponentInterface::FALLBACK_VERSION) {
+      return FALSE;
+    }
+    $component->resetToActiveVersion();
+    try {
+      $source = $component->getComponentSource();
+      // Only components with at least one slot can be affected by this bug.
+      if (!$source instanceof ComponentSourceWithSlotsInterface || $source->getSlotDefinitions() === []) {
+        return FALSE;
+      }
+      $expected_version = $source->generateVersionHash();
+    }
+    catch (\Exception) {
+      // Something more serious is wrong with this component (e.g. a missing
+      // SDC); leave it to existing validation to surface.
+      return FALSE;
+    }
+    return $component->getActiveVersion() !== $expected_version;
+  }
+
+  /**
+   * Recomputes the active version hash of a Component that has slots.
+   *
+   * Thin, slot-specific entry point: it only decides *whether* this is the
+   * known slot metadata bug, then delegates the actual recomputation to the
+   * generic ::recomputeActiveVersionHash().
+   *
+   * @see ::needsComponentVersionHashRecomputationForSlotMetadata()
+   * @see ::recomputeActiveVersionHash()
+   */
+  #[ComponentPreSaveUpdate(postUpdate: 'canvas_post_update_0031_recompute_slotted_component_version_hashes')]
+  public function updateSlottedComponentVersionHash(Component $component): bool {
+    if (!self::needsComponentVersionHashRecomputationForSlotMetadata($component)) {
       return FALSE;
     }
     $this->recomputeActiveVersionHash($component);

@@ -225,7 +225,7 @@ class ComponentTreeItemTest extends CanvasKernelTestBase {
     $this->assertCount(2, $item_list);
     $violations = $item_list->validate();
     $this->assertSame([
-      '0.component_version' => "'lol' is not a version that exists on component config entity 'sdc.canvas_test_sdc.props-slots'. Available versions: '0e79e884426a53ae'.",
+      '0.component_version' => "'lol' is not a version that exists on component config entity 'sdc.canvas_test_sdc.props-slots'. Available versions: 'cc56dff72ca26013'.",
       '1.component_version' => "'active' is not a version that exists on component config entity 'sdc.canvas_test_sdc.props-no-slots'. Available versions: 'd34b93534777207a'.",
     ], self::violationsToArray($violations));
   }

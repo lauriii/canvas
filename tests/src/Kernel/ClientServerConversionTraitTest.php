@@ -65,7 +65,7 @@ class ClientServerConversionTraitTest extends KernelTestBase {
     $createComponentWithSlots = fn(string $uuid, array $body_component = []) => [
       'nodeType' => 'component',
       'uuid' => $uuid,
-      'type' => 'sdc.canvas_test_sdc.props-slots@0e79e884426a53ae',
+      'type' => 'sdc.canvas_test_sdc.props-slots@cc56dff72ca26013',
       'slots' => [
         [
           'id' => "$uuid/the_body",
@@ -161,12 +161,12 @@ class ClientServerConversionTraitTest extends KernelTestBase {
       [
         'uuid' => self::TOP_LEVEL_SLOT_COMPONENT_UUID,
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '0e79e884426a53ae',
+        'component_version' => 'cc56dff72ca26013',
       ],
       [
         'uuid' => self::NESTED_SLOT_COMPONENT_UUID,
         'component_id' => 'sdc.canvas_test_sdc.props-slots',
-        'component_version' => '0e79e884426a53ae',
+        'component_version' => 'cc56dff72ca26013',
         'slot' => 'the_body',
         'parent_uuid' => self::TOP_LEVEL_SLOT_COMPONENT_UUID,
       ],

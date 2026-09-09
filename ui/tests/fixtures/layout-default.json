@@ -8,7 +8,7 @@
         {
           "nodeType": "component",
           "uuid": "a7470350-deb2-4d9f-982c-464d356403d4",
-          "type": "sdc.canvas_test_sdc.two_column@f90c1f6cfb2fc04a",
+          "type": "sdc.canvas_test_sdc.two_column@91131304199dda6d",
           "slots": [
             {
               "nodeType": "slot",
@@ -52,7 +52,7 @@
         {
           "nodeType": "component",
           "uuid": "ee07d472-a754-4427-b6d4-acfc6f92bbdc",
-          "type": "sdc.canvas_test_sdc.two_column@f90c1f6cfb2fc04a",
+          "type": "sdc.canvas_test_sdc.two_column@91131304199dda6d",
           "slots": [
             {
               "nodeType": "slot",

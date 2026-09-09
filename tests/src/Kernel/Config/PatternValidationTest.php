@@ -341,7 +341,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
           'component_id' => 'sdc.canvas_test_sdc.props-slots',
-          'component_version' => '0e79e884426a53ae',
+          'component_version' => 'cc56dff72ca26013',
           'inputs' => [
             'heading' => 'And we laugh like soft, mad children',
           ],
@@ -351,7 +351,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
           'slot' => 'the_body',
           'parent_uuid' => '6381352f-5b0a-4ca1-960d-a5505b37b27c',
           'component_id' => 'sdc.canvas_test_sdc.props-slots',
-          'component_version' => '0e79e884426a53ae',
+          'component_version' => 'cc56dff72ca26013',
           'inputs' => [
             'heading' => ' Smug in the wooly cotton brains of infancy',
           ],
@@ -367,7 +367,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => ComponentTreeItemList::ROOT_UUID,
           'component_id' => 'sdc.canvas_test_sdc.props-slots',
-          'component_version' => '0e79e884426a53ae',
+          'component_version' => 'cc56dff72ca26013',
           'inputs' => [
             'heading' => 'And we laugh like soft, mad children',
           ],
@@ -377,7 +377,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
           'slot' => 'the_body',
           'parent_uuid' => ComponentTreeItemList::ROOT_UUID,
           'component_id' => 'sdc.canvas_test_sdc.props-slots',
-          'component_version' => '0e79e884426a53ae',
+          'component_version' => 'cc56dff72ca26013',
           'inputs' => [
             'heading' => ' Smug in the wooly cotton brains of infancy',
           ],
@@ -394,7 +394,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
           'component_id' => 'sdc.canvas_test_sdc.props-slots',
-          'component_version' => '0e79e884426a53ae',
+          'component_version' => 'cc56dff72ca26013',
           'inputs' => [
             'heading' => 'And we laugh like soft, mad children',
           ],
@@ -404,7 +404,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
           'slot' => 'banana',
           'parent_uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
           'component_id' => 'sdc.canvas_test_sdc.props-slots',
-          'component_version' => '0e79e884426a53ae',
+          'component_version' => 'cc56dff72ca26013',
           'inputs' => [
             'heading' => ' Smug in the wooly cotton brains of infancy',
           ],
@@ -420,7 +420,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         'fa9ff0a8-e23a-492a-ab14-5460611fa2c1' => [
           'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
           'component_id' => 'sdc.canvas_test_sdc.props-slots',
-          'component_version' => '0e79e884426a53ae',
+          'component_version' => 'cc56dff72ca26013',
           'inputs' => [
             'heading' => 'And we laugh like soft, mad children',
           ],
@@ -430,7 +430,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
           'slot' => 'banana',
           'parent_uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
           'component_id' => 'sdc.canvas_test_sdc.props-slots',
-          'component_version' => '0e79e884426a53ae',
+          'component_version' => 'cc56dff72ca26013',
           'inputs' => [
             'heading' => ' Smug in the wooly cotton brains of infancy',
           ],
@@ -446,7 +446,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => 'e303dd88-9409-4dc7-8a8b-a31602884a94',
           'component_id' => 'sdc.canvas_test_sdc.props-slots',
-          'component_version' => '0e79e884426a53ae',
+          'component_version' => 'cc56dff72ca26013',
           'inputs' => [
             'heading' => 'And we laugh like soft, mad children',
           ],
@@ -463,7 +463,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         [
           'uuid' => 'e303dd88-9409-4dc7-8a8b-a31602884a94',
           'component_id' => 'sdc.canvas_test_sdc.props-slots',
-          'component_version' => '0e79e884426a53ae',
+          'component_version' => 'cc56dff72ca26013',
           'inputs' => [
             'heading' => [
               'sourceType' => 'static:field_item:string',
@@ -490,7 +490,7 @@ class PatternValidationTest extends BetterConfigEntityValidationTestBase {
         ],
       ],
       'expected_messages' => [
-        'component_tree.0.component_version' => "'abc' is not a version that exists on component config entity 'sdc.canvas_test_sdc.props-slots'. Available versions: '0e79e884426a53ae'.",
+        'component_tree.0.component_version' => "'abc' is not a version that exists on component config entity 'sdc.canvas_test_sdc.props-slots'. Available versions: 'cc56dff72ca26013'.",
       ],
     ];
   }

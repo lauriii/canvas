@@ -23,7 +23,7 @@ trait SingleDirectoryComponentTreeTestTrait {
           [
             'uuid' => self::UUID_DYNAMIC_STATIC_CARD_2,
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
             'inputs' => [
               'heading' => 'They say I am static, but I want to believe I can change!',
             ],
@@ -87,7 +87,7 @@ trait SingleDirectoryComponentTreeTestTrait {
           [
             'uuid' => 'd0aee529-89d9-4a47-8d59-7deb1817f952',
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
             'inputs' => [
               'heading' => [
                 'sourceType' => PropSource::EntityField->value,
@@ -129,7 +129,7 @@ trait SingleDirectoryComponentTreeTestTrait {
           [
             'uuid' => self::UUID_DYNAMIC_STATIC_CARD_4,
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
             'inputs' => [
               'heading' => [
                 'sourceType' => PropSource::EntityField->value,
@@ -164,7 +164,7 @@ trait SingleDirectoryComponentTreeTestTrait {
           [
             'uuid' => self::UUID_DYNAMIC_STATIC_CARD_2,
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
             'inputs' => [
               'heading-2' => [
                 'sourceType' => PropSource::EntityField->value,
@@ -175,7 +175,7 @@ trait SingleDirectoryComponentTreeTestTrait {
           [
             'uuid' => self::UUID_DYNAMIC_STATIC_CARD_3,
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
             'inputs' => [
               'heading-1' => [
                 'sourceType' => PropSource::EntityField->value,
@@ -186,7 +186,7 @@ trait SingleDirectoryComponentTreeTestTrait {
           [
             'uuid' => self::UUID_DYNAMIC_STATIC_CARD_4,
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
             'inputs' => [
               'heading' => [
                 'sourceType' => PropSource::EntityField->value,
@@ -242,17 +242,17 @@ trait SingleDirectoryComponentTreeTestTrait {
           [
             'uuid' => self::UUID_DYNAMIC_STATIC_CARD_2,
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
           ],
           [
             'uuid' => self::UUID_DYNAMIC_STATIC_CARD_3,
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
           ],
           [
             'uuid' => self::UUID_DYNAMIC_STATIC_CARD_4,
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
           ],
         ],
       ],
@@ -261,7 +261,7 @@ trait SingleDirectoryComponentTreeTestTrait {
           [
             'uuid' => self::UUID_DYNAMIC_STATIC_CARD_4,
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
             'inputs' => [
               'heading' => 'Shake dreams from your hair, my pretty child',
             ],
@@ -269,7 +269,7 @@ trait SingleDirectoryComponentTreeTestTrait {
           [
             'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
             'inputs' => [
               'heading' => 'And we laugh like soft, mad children',
             ],
@@ -277,7 +277,7 @@ trait SingleDirectoryComponentTreeTestTrait {
           [
             'uuid' => self::UUID_DYNAMIC_STATIC_CARD_4,
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
             'inputs' => [
               'heading' => 'A vast radiant beach and cooled jewelled moon',
             ],
@@ -289,7 +289,7 @@ trait SingleDirectoryComponentTreeTestTrait {
           [
             'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
             'inputs' => [
               'heading' => 'And we laugh like soft, mad children',
             ],
@@ -299,7 +299,7 @@ trait SingleDirectoryComponentTreeTestTrait {
             'slot' => 'the_body',
             'parent_uuid' => '6381352f-5b0a-4ca1-960d-a5505b37b27c',
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
             'inputs' => [
               'heading' => ' Smug in the wooly cotton brains of infancy',
             ],
@@ -311,7 +311,7 @@ trait SingleDirectoryComponentTreeTestTrait {
           [
             'uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
             'inputs' => [
               'heading' => 'And we laugh like soft, mad children',
             ],
@@ -320,7 +320,7 @@ trait SingleDirectoryComponentTreeTestTrait {
             'uuid' => 'e303dd88-9409-4dc7-8a8b-a31602884a94',
             'slot' => 'banana',
             'parent_uuid' => 'fa9ff0a8-e23a-492a-ab14-5460611fa2c1',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
             'inputs' => [
               'heading' => ' Smug in the wooly cotton brains of infancy',
@@ -333,7 +333,7 @@ trait SingleDirectoryComponentTreeTestTrait {
           [
             'uuid' => ComponentTreeItemList::ROOT_UUID,
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
             'inputs' => [
               'heading' => 'And we laugh like soft, mad children',
             ],
@@ -342,7 +342,7 @@ trait SingleDirectoryComponentTreeTestTrait {
             'uuid' => 'e303dd88-9409-4dc7-8a8b-a31602884a94',
             'slot' => 'the_body',
             'parent_uuid' => ComponentTreeItemList::ROOT_UUID,
-            'component_version' => '0e79e884426a53ae',
+            'component_version' => 'cc56dff72ca26013',
             'component_id' => 'sdc.canvas_test_sdc.props-slots',
             'inputs' => [
               'heading' => ' Smug in the wooly cotton brains of infancy',

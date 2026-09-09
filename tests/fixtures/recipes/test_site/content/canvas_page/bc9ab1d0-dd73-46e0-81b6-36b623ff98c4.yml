@@ -22,7 +22,7 @@ default:
       slot: null
       uuid: b3f99df1-6f89-4cec-b57c-a29279ac4620
       component_id: js.canvas_test_code_components_with_slots
-      component_version: d5c6ab208aeca9cf
+      component_version: 34a6479078d19a9e
       inputs:
         name: Sir Gablethorp
     -
@@ -30,7 +30,7 @@ default:
       slot: description
       uuid: 2c6e91ae-23ac-433d-9bb8-687144464b34
       component_id: sdc.canvas_test_sdc.props-slots
-      component_version: 0e79e884426a53ae
+      component_version: cc56dff72ca26013
       inputs:
         heading: Welcome to the site!
     -

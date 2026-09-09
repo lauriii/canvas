@@ -562,7 +562,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
             'nodeType' => 'slot',
           ],
         ],
-        'type' => 'sdc.canvas_test_sdc.one_column@80cc82f44d0a94f2',
+        'type' => 'sdc.canvas_test_sdc.one_column@5302af03e7cee93e',
         'uuid' => 'c4074d1f-149a-4662-aaf3-615151531cf6',
       ],
     ];
