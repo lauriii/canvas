@@ -150,6 +150,16 @@ final class CanvasPropVisitor implements NodeVisitorInterface {
         return new PrintNode($filtered, $line_number);
       }
 
+      // Canvas renders components with single-directory component templates
+      // and with the inline templates it generates for their slots. Wrapping
+      // prints in any other template compiles the wrapper's context checks
+      // into every template on the site for a context they are not rendered
+      // with.
+      // @see https://www.drupal.org/i/3569796
+      if (!self::canReceiveCanvasContext($node->getSourceContext()->getName())) {
+        return $node;
+      }
+
       // Try to parse the current buffer to ascertain if we're in a context
       // where HTML comments are allowed.
       $html5 = new HTML5(['disable_html_ns' => TRUE, 'encoding' => 'UTF-8']);
@@ -204,6 +214,44 @@ final class CanvasPropVisitor implements NodeVisitorInterface {
   public function getPriority(): int {
     // Runs before the EscapeNodeVisitor, which has priority 0.
     return -1;
+  }
+
+  /**
+   * Determines if Canvas renders components with a template.
+   *
+   * Canvas adds the `canvas_uuid`, `canvas_slot_ids` and `canvas_is_preview`
+   * context only when it renders a component instance: props are printed by
+   * the single-directory component's own template, slots by the inline
+   * templates that the component render element, the astro island render
+   * element and the fallback component source generate.
+   *
+   * Twig compiles and caches each template on its own, so a template that a
+   * component template pulls in with `{% include %}`, `{% extends %}` or
+   * `{% use %}` is not recognized here even though the context does reach it
+   * at runtime. Prints in such a template do not get boundary markers.
+   *
+   * @param string $template_name
+   *   The name Twig loaded the template under.
+   *
+   * @return bool
+   *   TRUE if Canvas renders component instances with this template.
+   *
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent::renderComponent()
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Fallback::renderComponent()
+   * @see \Drupal\canvas\Element\AstroIsland::preRenderIsland()
+   */
+  protected static function canReceiveCanvasContext(string $template_name): bool {
+    // Inline templates, which Twig names after a hash of their source.
+    // @see \Twig\Environment::createTemplate()
+    if (\str_starts_with($template_name, '__string_template__')) {
+      return TRUE;
+    }
+    // Single-directory components, which are loaded by their plugin ID. This
+    // is the pattern core matches component IDs with, and no other Twig loader
+    // in Drupal uses a colon in a template name.
+    // @see \Drupal\Core\Template\ComponentNodeVisitor::getComponent()
+    // @see \Drupal\Core\Template\Loader\ComponentLoader::getSourceContext()
+    return \preg_match('/^[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*:[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*$/', $template_name) === 1;
   }
 
   /**
