@@ -201,7 +201,17 @@ class AutoSaveManager implements EventSubscriberInterface {
     return $entity->toArray();
   }
 
-  public function saveEntity(EntityInterface $entity, ?string $clientId = NULL): void {
+  /**
+   * Stores an entity's pending changes.
+   *
+   * @param bool $even_if_unchanged
+   *   Store an entry even when the entity's data matches what is stored. Set
+   *   this when the pending change is not expressed by the data: a content
+   *   template that has never been published is pending its publication.
+   *
+   * @see \Drupal\canvas\Controller\ApiConfigControllers::post()
+   */
+  public function saveEntity(EntityInterface $entity, ?string $clientId = NULL, bool $even_if_unchanged = FALSE): void {
     $key = $this->getAutoSaveKey($entity);
     $data = self::normalizeEntity($entity);
     $data_hash = self::generateHash($data);
@@ -211,6 +221,7 @@ class AutoSaveManager implements EventSubscriberInterface {
     if ($entity instanceof FieldableEntityInterface) {
       $has_form_violations = $this->getEntityFormViolations($entity)->count() > 0;
     }
+    $existing_entry = $this->autoSaveStore->get($key);
     // 💡 If you are debugging why an entry is being created, but you didn't
     // expect one to be, the code below can be evaluated in a debugger and will
     // show you which field varies.
@@ -221,7 +232,20 @@ class AutoSaveManager implements EventSubscriberInterface {
     // \array_diff($data_hash, $original_hash)
     // \array_diff($original_hash, $data_hash)
     // @endcode
-    if ($original_hash !== NULL && \hash_equals($original_hash, $data_hash) && !$has_form_violations) {
+
+    // A content template that has never been published is disabled, and its
+    // pending change is the publication itself: `status` FALSE to TRUE, which
+    // is applied at publish time and so is absent from the entry's data. Keep
+    // such an entry even when the data matches what is stored, or an editor who
+    // adds a component and then removes it again would no longer be able to
+    // publish the template.
+    // @see \Drupal\canvas\Entity\ContentTemplate::autoSavePublish()
+    // @see https://www.drupal.org/i/3567419
+    $publication_is_pending = $entity instanceof ContentTemplate
+      && !$entity->status()
+      && ($even_if_unchanged || $existing_entry !== NULL);
+
+    if (!$publication_is_pending && $original_hash !== NULL && \hash_equals($original_hash, $data_hash) && !$has_form_violations) {
       // We've reset back to the original values. Clear the auto-save entry but
       // keep the hash.
       $this->delete($entity);
@@ -229,7 +253,6 @@ class AutoSaveManager implements EventSubscriberInterface {
     }
 
     // Avoid overwriting the original hash; it would break conflict detection.
-    $existing_entry = $this->autoSaveStore->get($key);
     if (\is_array($existing_entry) && \array_key_exists(self::AUTO_SAVE_STORED_ENTITY_HASH_KEY, $existing_entry)) {
       $original_hash = $existing_entry[self::AUTO_SAVE_STORED_ENTITY_HASH_KEY];
     }

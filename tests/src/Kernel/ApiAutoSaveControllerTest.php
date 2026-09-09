@@ -2128,6 +2128,75 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
     }
   }
 
+  /**
+   * A content template is publishable as soon as it is created, while empty.
+   *
+   * @see https://www.drupal.org/i/3567419
+   */
+  public function testNewContentTemplateIsImmediatelyPublishable(): void {
+    $this->setUpCurrentUser(permissions: [
+      ContentTemplate::ADMIN_PERMISSION,
+      AutoSaveManager::PUBLISH_PERMISSION,
+    ]);
+    $this->assertNoAutoSaveData();
+
+    $create_request = Request::create(
+      Url::fromRoute('canvas.api.config.post', [
+        'canvas_config_entity_type_id' => ContentTemplate::ENTITY_TYPE_ID,
+      ])->toString(),
+      'POST',
+      content: (string) json_encode([
+        'entityType' => 'node',
+        'bundle' => 'article',
+        'viewMode' => 'full',
+      ], JSON_THROW_ON_ERROR),
+    );
+    $create_request->headers->set('Content-Type', 'application/json');
+    self::assertSame(Response::HTTP_CREATED, $this->request($create_request)->getStatusCode());
+
+    $template = ContentTemplate::load('node.article.full');
+    self::assertInstanceOf(ContentTemplate::class, $template);
+    // A newly created content template is not yet used to render content …
+    self::assertFalse($template->status());
+    self::assertSame([], $template->getComponentTree()->getValue());
+
+    // … but it is listed as a pending change, even though it is still empty.
+    $pending = $this->getAutoSaveStatesFromServer();
+    self::assertSame([ContentTemplate::ENTITY_TYPE_ID], \array_column($pending, 'entity_type'));
+    self::assertSame(['node.article.full'], \array_column($pending, 'entity_id'));
+
+    // An editor who adds something and removes it again must still be able to
+    // publish: a save whose data matches what is stored keeps the entry.
+    $auto_save = \Drupal::service(AutoSaveManager::class);
+    \assert($auto_save instanceof AutoSaveManager);
+    $auto_save->saveEntity($template);
+    self::assertFalse($auto_save->getAutoSaveEntity($template)->isEmpty());
+
+    // A disabled content template that has no entry does not gain one from such
+    // a save: only creating one through the HTTP API records the publication as
+    // pending.
+    $untouched_template = ContentTemplate::create([
+      'id' => 'node.article.teaser',
+      'content_entity_type_id' => 'node',
+      'content_entity_type_bundle' => 'article',
+      'content_entity_type_view_mode' => 'teaser',
+    ]);
+    $untouched_template->save();
+    self::assertFalse($untouched_template->status());
+    $auto_save->saveEntity($untouched_template);
+    self::assertTrue($auto_save->getAutoSaveEntity($untouched_template)->isEmpty());
+
+    // Publishing it enables the template and clears the pending change.
+    $publish_response = $this->makePublishAllRequest();
+    self::assertSame(Response::HTTP_OK, $publish_response->getStatusCode(), (string) $publish_response->getContent());
+    self::assertSame(['message' => 'Successfully published 1 item.'], json_decode((string) $publish_response->getContent(), TRUE));
+
+    $published_template = ContentTemplate::load('node.article.full');
+    self::assertInstanceOf(ContentTemplate::class, $published_template);
+    self::assertTrue($published_template->status());
+    $this->assertNoAutoSaveData();
+  }
+
   private function assertSiteHomepage(string $path): void {
     self::assertEquals($path, $this->config('system.site')->get('page.front'));
   }
