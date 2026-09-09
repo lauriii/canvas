@@ -7,10 +7,10 @@
     var(--radix-popover-content-available-height, 100vh)
   );
   padding: 0;
-  border: 1px solid var(--gray-6);
-  border-radius: 4px;
+  border: 1px solid var(--gray-4);
+  border-radius: 8px;
   background-color: white;
-  box-shadow: var(--shadow-4);
+  box-shadow: 4px 4px 60px 0 rgb(34, 34, 34, 0.15);
 }
 
 /* Header with title and close button */
