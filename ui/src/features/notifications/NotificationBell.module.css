@@ -7,14 +7,14 @@
   height: var(--space-6);
   padding: 0;
   cursor: pointer;
-  color: var(--gray-11);
+  color: var(--blue-11);
   border: none;
   border-radius: var(--radius-2);
   background: none;
 
   &:hover {
-    color: var(--gray-12);
-    background: var(--gray-3);
+    color: var(--blue-12);
+    background: var(--blue-3);
   }
 }
 
