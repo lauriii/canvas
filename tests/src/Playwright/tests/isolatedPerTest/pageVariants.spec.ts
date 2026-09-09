@@ -202,7 +202,24 @@ test.describe('Page variants', () => {
     );
     await variantSelect.selectOption('marketing');
     await publishedSelectionSaved;
+    const publishedFormRefreshed = page.waitForResponse(
+      (response) =>
+        response
+          .url()
+          .includes(
+            `/canvas/api/v0/form/content-entity/${canvasPage.entity_type}/${canvasPage.entity_id}/default`,
+          ) &&
+        response.request().method() === 'GET' &&
+        response.ok(),
+    );
     await canvas.publishAllChanges();
+    await publishedFormRefreshed;
+    await page.getByLabel('Close').click();
+    await pageDataForm
+      .locator('button')
+      .filter({ hasText: 'Page template' })
+      .click();
+    await expect(variantSelect).toHaveValue('marketing');
 
     menu = await openVariantMenu(page, 'marketing');
     patch = waitForVariantMutation(page, 'marketing', 'PATCH');
