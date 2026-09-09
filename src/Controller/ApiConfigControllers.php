@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Controller;
 
 use Drupal\canvas\AssetRenderer;
+use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\ClientSideRepresentation;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
@@ -59,6 +60,7 @@ final class ApiConfigControllers extends ApiControllerBase {
     private readonly AccessManagerInterface $accessManager,
     private readonly AccountProxyInterface $currentUser,
     private readonly ComponentSourceManager $componentSourceManager,
+    private readonly AutoSaveManager $autoSaveManager,
   ) {}
 
   /**
@@ -306,6 +308,16 @@ final class ApiConfigControllers extends ApiControllerBase {
     }
     catch (EntityStorageException $e) {
       throw new ConflictHttpException($e->getMessage());
+    }
+
+    // A content template created through the UI starts out disabled: it does
+    // not render content until it is published. Record an auto-save entry right
+    // away so the review changes panel offers it for publishing immediately,
+    // rather than only once a component has been added to it. The entry holds
+    // no changes of its own, hence `even_if_unchanged`.
+    // @see https://www.drupal.org/i/3567419
+    if ($canvas_config_entity instanceof ContentTemplate && !$canvas_config_entity->status()) {
+      $this->autoSaveManager->saveEntity($canvas_config_entity, even_if_unchanged: TRUE);
     }
 
     $representation = $this->normalize($canvas_config_entity);

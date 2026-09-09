@@ -751,6 +751,17 @@ export const componentAndLayoutApi = createApi({
         method: 'POST',
         body,
       }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        await queryFulfilled;
+        // Creating a template is itself a pending change: it is created
+        // unpublished, and publishing it is what makes it render content.
+        // @see https://www.drupal.org/i/3567419
+        dispatch(
+          pendingChangesApi.util.invalidateTags([
+            { type: 'PendingChanges', id: 'LIST' },
+          ]),
+        );
+      },
       invalidatesTags: [
         { type: 'ContentTemplates', id: 'LIST' },
         { type: 'ViewModes', id: 'LIST' },
