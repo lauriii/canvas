@@ -461,7 +461,7 @@ test.describe('Language Select', () => {
     await expect(frenchPopover).toBeAttached();
     await expect(
       page.locator('[data-testid="language-options-popover-title"]').first(),
-    ).toContainText('French');
+    ).toContainText('Test Page (French)');
     await expect(
       page.locator('[data-testid="language-options-delete"]').first(),
     ).toBeAttached();
@@ -673,7 +673,7 @@ test.describe('Language Select', () => {
     const languageButton = topbar.locator(
       '[data-testid="language-select-trigger"]',
     );
-    await expect(languageButton).toContainText('English');
+    await expect(languageButton).toContainText('EN');
     await languageButton.click();
 
     // A never-published draft offers "Switch language" for every non-default
@@ -693,7 +693,7 @@ test.describe('Language Select', () => {
       { timeout: 10000 },
     );
     await canvas.waitForEditorUi();
-    await expect(languageButton).toContainText('French');
+    await expect(languageButton).toContainText('FR');
     await expect(topbar.getByText('Draft')).toBeVisible();
     await expect(
       page.locator('[data-drupal-selector="edit-title-0-value"]'),
@@ -702,7 +702,7 @@ test.describe('Language Select', () => {
     // Content typed before the switch survives a reload.
     await page.reload();
     await canvas.waitForEditorUi();
-    await expect(languageButton).toContainText('French');
+    await expect(languageButton).toContainText('FR');
     await expect(
       page.locator('[data-drupal-selector="edit-title-0-value"]'),
     ).toHaveValue('Brouillon');
@@ -720,7 +720,7 @@ test.describe('Language Select', () => {
       { timeout: 10000 },
     );
     await canvas.waitForEditorUi();
-    await expect(languageButton).toContainText('English');
+    await expect(languageButton).toContainText('EN');
     await expect(
       page.locator('[data-drupal-selector="edit-title-0-value"]'),
     ).toHaveValue('Brouillon');
@@ -734,7 +734,7 @@ test.describe('Language Select', () => {
       { timeout: 10000 },
     );
     await canvas.waitForEditorUi();
-    await expect(languageButton).toContainText('French');
+    await expect(languageButton).toContainText('FR');
 
     // Once published, the page is no longer a draft: no "Switch language".
     await canvas.publishAllChanges(['Brouillon']);

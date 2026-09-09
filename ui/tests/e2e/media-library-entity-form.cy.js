@@ -103,8 +103,8 @@ const testMediaLibraryInEntityForm = (cy, loadOptions = {}, title) => {
     .should('exist');
 
   // Switch to full screen preview.
-  cy.findByText('Preview').click();
-  cy.findByText('Exit Preview').click();
+  cy.findByRole('button', { name: 'Preview' }).click();
+  cy.findByRole('button', { name: 'Exit Preview' }).click();
   cy.get('@entityForm')
     .findByAltText(lastStep.expectedAlt, { timeout: 10000 })
     .should('exist');

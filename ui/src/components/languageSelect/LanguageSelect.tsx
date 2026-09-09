@@ -301,7 +301,11 @@ const LanguageSelect = () => {
             disabled={isPatching || isLayoutFetching}
           >
             <GlobeIcon />
-            <Text>{currentLangObj?.name || 'Select Language'}</Text>
+            <Text
+              title={currentLangObj?.id?.toUpperCase() || 'Select Language'}
+            >
+              {currentLangObj?.id?.toUpperCase() || 'Select Language'}
+            </Text>
             <ChevronDownIcon width="16" height="16" />
           </Button>
         </DropdownMenu.Trigger>
