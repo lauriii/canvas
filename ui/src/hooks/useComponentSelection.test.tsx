@@ -106,5 +106,6 @@ describe('useComponentSelection', () => {
     });
 
     expect(mockNavigate).not.toHaveBeenCalled();
+    expect(store.getState().ui.selection.items).toEqual(['a-component-uuid']);
   });
 });
