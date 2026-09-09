@@ -1,5 +1,23 @@
 # @drupal-canvas/headless
 
+## 0.6.0
+
+### Minor Changes
+
+- 24800cb: Add `fetchEntity()` for rendering a single entity through Canvas,
+  including explicit view modes.
+  - Add a dedicated `/canvas/content-api/entity` endpoint for entity-scoped
+    Canvas renders.
+  - Support rendering a specific content-template view mode via the `viewMode`
+    query parameter.
+
+- e6a9c66: Add page variant support to headless draft previews.
+
+### Patch Changes
+
+- 78e3ff2: Validate authored Code Component metadata against the shared Canvas
+  JSON Schema when building component registries and metadata payloads.
+
 ## 0.5.0
 
 ### Minor Changes

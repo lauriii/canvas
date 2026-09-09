@@ -1,6 +1,6 @@
 {
   "name": "@drupal-canvas/cli",
-  "version": "0.23.1",
+  "version": "0.24.0",
   "description": "CLI tool for managing Drupal Canvas code components",
   "license": "GPL-2.0-or-later",
   "repository": {
@@ -50,13 +50,13 @@
   "dependencies": {
     "@babel/parser": "^7.26.9",
     "@clack/prompts": "^0.11.0",
-    "@drupal-canvas/eslint-config": "^0.9.0",
+    "@drupal-canvas/eslint-config": "^0.10.0",
     "@swc/wasm": "^1.12.1",
     "axios": "^1.16.1",
     "chalk": "^5.4.1",
     "commander": "^14.0.0",
     "dotenv": "^16.5.0",
-    "drupal-canvas": "^0.5.0",
+    "drupal-canvas": "^0.5.1",
     "eslint": "^9.22.0",
     "js-yaml": "^4.1.0",
     "lightningcss": "^1.30.1",
