@@ -186,6 +186,19 @@ export function useComponentSelection() {
     updateSelectionInRedux(undefined);
   }, [updateSelectionInRedux]);
 
+  // Select a node whose id is not addressable as a /component/:componentId URL
+  // segment. Slot ids follow `${hostUuid}/${slotName}` and contain a slash, so
+  // they cannot be routed like a component uuid; per-content editing selects a
+  // locked exposed slot this way (redux only, URL cleared) to open its panel
+  // without breaking the route match.
+  const setNonRoutedSelection = useCallback(
+    (id: string) => {
+      dispatch(setSelection({ items: [id], consecutive: true }));
+      updateUrlToNoSelection();
+    },
+    [dispatch, updateUrlToNoSelection],
+  );
+
   // Handle component selection with support for cmd+click (multi-selection)
   // and preventing parent-child selection
   const handleComponentSelection = useCallback(
@@ -260,6 +273,7 @@ export function useComponentSelection() {
   const componentSelectionUtils = {
     setSelectedComponent,
     unsetSelectedComponent,
+    setNonRoutedSelection,
     updateUrlToNoSelection,
     updateUrlToSelectedComponent,
     handleComponentSelection,

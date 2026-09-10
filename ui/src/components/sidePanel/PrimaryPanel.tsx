@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import ExtensionsList from '@/components/extensions/ExtensionsList';
 import Code from '@/components/sidePanel/Code';
+import Content from '@/components/sidePanel/Content';
 import Library from '@/components/sidePanel/Library';
 import Pages from '@/components/sidePanel/Pages';
 import Templates from '@/components/sidePanel/Templates';
@@ -55,6 +56,7 @@ export const PrimaryPanel = () => {
     aiWizard: 'AI',
     templates: 'Templates',
     pages: 'Pages',
+    content: 'Content',
   };
 
   return (
@@ -110,6 +112,11 @@ export const PrimaryPanel = () => {
                 {activePanel === 'pages' && (
                   <ErrorBoundary>
                     <Pages />
+                  </ErrorBoundary>
+                )}
+                {activePanel === 'content' && (
+                  <ErrorBoundary>
+                    <Content />
                   </ErrorBoundary>
                 )}
                 {activePanel === 'extensions' && (

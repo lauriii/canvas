@@ -37,9 +37,15 @@ final readonly class ComponentTreeInputExtractor {
    *   The input extracted from the component tree.
    */
   public function extract(ComponentTreeEntityInterface|FieldableEntityInterface $entity, array $ignored_prop_names): array {
-    // Extracts the component tree input from the entity.
-    $tree = $this->componentTreeLoader->load($entity);
-    return self::extractFromTree($tree, $ignored_prop_names);
+    // Extracts inputs from every component tree the entity stores: one field
+    // for canvas_page, one per exposed slot for a templated bundle.
+    $extracted = [];
+    foreach ($this->componentTreeLoader->loadAll($entity) as $tree) {
+      foreach (self::extractFromTree($tree, $ignored_prop_names) as $prop_name => $values) {
+        $extracted[$prop_name] = \array_merge($extracted[$prop_name] ?? [], $values);
+      }
+    }
+    return $extracted;
   }
 
   /**

@@ -19,7 +19,14 @@ import { brandKitApi } from '@/services/brandKit';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
 
-import type { RootLayoutModel } from '@/features/layout/layoutModelSlice';
+import type { ExposedSlotServerDefinition } from '@/features/layout/exposedSlots';
+import type {
+  ExposedSlotDefinition,
+  PerContentTemplateInfo,
+  RootLayoutModel,
+  SlotDefaultContent,
+  SlotOverrideState,
+} from '@/features/layout/layoutModelSlice';
 import type {
   UpdateComponentQueryArg,
   UpdateComponentResultType,
@@ -46,6 +53,12 @@ export type LayoutApiResponse = RootLayoutModel & {
   // For content entities: the page variant rendering this entity, null when
   // core block layout renders the page. Absent for config entities.
   resolvedPageVariant?: string | null;
+  // Per-content editing (templated entity with exposed slots), emitted by the
+  // slot-scoped Layout API GET. @see ApiLayoutController per-content mode.
+  exposedSlots?: Record<string, ExposedSlotDefinition>;
+  slotOverrides?: Record<string, SlotOverrideState>;
+  slotDefaults?: Record<string, SlotDefaultContent | null>;
+  contentTemplate?: PerContentTemplateInfo;
 };
 
 export type TemplateViewMode = {
@@ -58,6 +71,9 @@ export type TemplateViewMode = {
   id: string;
   suggestedPreviewEntityId?: number;
   pageVariant?: string | null;
+  // The template's exposed slots (alias-keyed), from normalizeForClientSide().
+  // Used for the template-editor initial working set and the list count badge.
+  exposed_slots?: Record<string, ExposedSlotServerDefinition>;
 };
 
 export type TemplateInBundle = {
@@ -73,7 +89,7 @@ export type TemplatesInBundle = {
   [key: string]: TemplateInBundle;
 };
 
-type TemplateList = {
+export type TemplateList = {
   [key: string]: {
     label: string;
     bundles: TemplatesInBundle;
@@ -96,6 +112,12 @@ export type ViewModesList = {
 export type PreviewContentEntity = {
   id: string;
   label: string;
+  // Present only when the current user may update this entity: the entity's
+  // edit-form URL. Gates the "Edit exposed slots" jump and "Edit content" link.
+  editUrl?: string | null;
+  // Present only when the user may administer this bundle's fields: the Field
+  // UI "Manage fields" URL. Gates the "Edit fields" link.
+  manageFieldsUrl?: string | null;
 };
 
 export type PreviewContentEntitiesResponse = {
@@ -336,7 +358,13 @@ export const componentAndLayoutApi = createApi({
     }),
     postTemplateLayout: builder.mutation<
       { html: string; autoSaves: AutoSavesHash },
-      { layout: any; model: any; entity_form_fields: any }
+      {
+        layout: any;
+        model: any;
+        entity_form_fields: any;
+        // Template editor's exposed-slot working set, persisted with the layout.
+        exposed_slots?: Record<string, ExposedSlotServerDefinition>;
+      }
     >({
       query: (body) => ({
         url: 'canvas/api/v0/layout-content-template/{entity_type}.{template_bundle}.{template_view_mode}/{entity_id}',

@@ -64,14 +64,22 @@ test.describe('Views contextual filter in Canvas preview', () => {
     await canvas.addComponent({ name: 'Author Display' });
 
     await page.getByTestId('select-content-preview-item').click();
-    await page.getByRole('menuitem', { name: 'Article One' }).click();
+    // The content-preview selector now renders each item as a button in a
+    // popover (with a per-item edit-actions menu), not a role="menuitem".
+    await page
+      .locator('[data-testid^="preview-item-"]')
+      .filter({ hasText: 'Article One' })
+      .click();
     const previewFrameOne = await canvas.getActivePreviewFrame();
     await expect(
       previewFrameOne.locator('[data-canvas-uuid] .views-field-name'),
     ).toContainText('author');
 
     await page.getByTestId('select-content-preview-item').click();
-    await page.getByRole('menuitem', { name: 'Article Two' }).click();
+    await page
+      .locator('[data-testid^="preview-item-"]')
+      .filter({ hasText: 'Article Two' })
+      .click();
     const previewFrameTwo = await canvas.getActivePreviewFrame();
     await expect(
       previewFrameTwo.locator('[data-canvas-uuid] .views-field-name'),

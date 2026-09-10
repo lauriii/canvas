@@ -32,13 +32,14 @@ import {
 } from '@/features/ui/uiSlice';
 import useComponentSelection from '@/hooks/useComponentSelection';
 import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
+import useProtectedDeleteNode from '@/hooks/useProtectedDeleteNode';
 import useResizeObserver from '@/hooks/useResizeObserver';
 import useSyncParamsToState from '@/hooks/useSyncParamsToState';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { isMarkerComponentType } from '@/services/pageVariants';
 import { getHalfwayScrollPosition } from '@/utils/function-utils';
 
-import { deleteNode, selectLayout } from '../layout/layoutModelSlice';
+import { selectLayout } from '../layout/layoutModelSlice';
 import {
   componentSubtreeMatchesType,
   findComponentByUuid,
@@ -97,6 +98,7 @@ const EditorFrame: React.FC = () => {
   const { componentId: selectedComponent } = useParams();
   const { unsetSelectedComponent } = useComponentSelection();
   const layout = useAppSelector(selectLayout);
+  const protectedDeleteNode = useProtectedDeleteNode();
   // Markers can be repositioned but never deleted or copied. The same applies
   // to any ancestor whose slots contain a marker: deleting or copying it would
   // take the marker with it.
@@ -170,8 +172,13 @@ const EditorFrame: React.FC = () => {
   });
   useHotkeys(['Backspace', 'Delete'], () => {
     if (selectedComponent && !selectedComponentIsMarker) {
-      dispatch(deleteNode(selectedComponent));
-      unsetSelectedComponent();
+      // Route through the exposed-slot delete protection: in the template
+      // editor the confirmation dialog owns the deletion (and alias cleanup)
+      // when the component hosts exposed slots.
+      const deferredToDialog = protectedDeleteNode(selectedComponent);
+      if (!deferredToDialog) {
+        unsetSelectedComponent();
+      }
     }
   });
   useHotkeys('mod+c', () => {

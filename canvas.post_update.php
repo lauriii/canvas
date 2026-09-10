@@ -16,6 +16,7 @@ use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\Entity\StagedLanguageConfigOverride;
 use Drupal\canvas\PageVariantMigration;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
@@ -794,4 +795,38 @@ function canvas_post_update_0030_page_variant_selection_options(): void {
   // varchar column); only the field type and its settings change.
   $storage_definitions = \Drupal::service(EntityFieldManagerInterface::class)->getFieldStorageDefinitions('canvas_page');
   $update_manager->updateFieldStorageDefinition($storage_definitions['page_variant']);
+}
+
+/**
+ * Installs the empty-slot marker component on existing sites.
+ *
+ * Config/install is only processed at module install time, but exposed slots
+ * need the empty-slot marker to represent empty overrides. Create it the same
+ * way the page content marker is created for existing sites.
+ *
+ * @see \Drupal\canvas\PageVariantMigration::ensurePageContentMarker()
+ */
+function canvas_post_update_0031_install_empty_slot_marker(): void {
+  if (Component::load(Marker::EMPTY_SLOT_COMPONENT_ID) !== NULL) {
+    return;
+  }
+  Component::create([
+    'id' => Marker::EMPTY_SLOT_COMPONENT_ID,
+    'label' => 'Empty slot',
+    'provider' => 'canvas',
+    'source' => Marker::SOURCE_PLUGIN_ID,
+    'source_local_id' => Marker::EMPTY_SLOT_LOCAL_ID,
+    'status' => TRUE,
+    // A marker has no settings and no explicit inputs, so every marker shares
+    // this hash.
+    // @see \Drupal\canvas\ComponentSource\ComponentSourceBase::generateVersionHash()
+    'active_version' => '3b12c0b99a6caecc',
+    'versioned_properties' => [
+      'active' => [
+        'settings' => [],
+        'fallback_metadata' => ['slot_definitions' => []],
+      ],
+    ],
+    'dependencies' => ['enforced' => ['module' => ['canvas']]],
+  ])->save();
 }

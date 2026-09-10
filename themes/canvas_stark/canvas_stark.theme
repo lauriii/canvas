@@ -180,10 +180,19 @@ function canvas_stark_form_node_form_alter(array &$form, FormStateInterface $for
   // Inspired by Claro to render the sidebar details as accordions.
   $form['#theme'] = ['node_edit_form'];
   $form['advanced']['#accordion'] = TRUE;
-  $form['meta']['#type'] = 'container';
-  $form['meta']['#access'] = TRUE;
-  $form['revision_information']['#type'] = 'container';
-  $form['revision_information']['#group'] = 'meta';
+  // Module-level alters may have removed these elements (the revision
+  // elements always, the meta block for templated entities in per-content
+  // mode); writing through unconditionally would re-create them as empty
+  // containers, because theme-level form alters run after module-level ones.
+  // @see \Drupal\canvas\Hook\ModuleHooks::formAlter()
+  // @see \Drupal\canvas\Hook\ContentTemplateHooks::formAlter()
+  if (isset($form['meta'])) {
+    $form['meta']['#type'] = 'container';
+  }
+  if (isset($form['revision_information'])) {
+    $form['revision_information']['#type'] = 'container';
+    $form['revision_information']['#group'] = 'meta';
+  }
 }
 
 function canvas_stark_preprocess_field_multiple_value_form(array &$variables): void {

@@ -24,15 +24,19 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  * offered in the component library and are managed intrinsically by Canvas.
  *
  * The first marker is the page content marker (`marker.page_content`), which
- * designates where a page variant injects the route's main content. Future
- * markers (for example an exposed-slot marker) are additional local ids of this
- * same source, so the "hide from the library" and intrinsic handling key on the
- * source, not on each marker.
+ * designates where a page variant injects the route's main content. The second
+ * is the empty slot marker (`marker.empty_slot`), which as the sole root row of
+ * an exposed slot's backing field means "this entity's slot renders nothing"
+ * (as opposed to an empty field, which means "inherit the template default").
+ * Further markers are additional local ids of this same source, so the "hide
+ * from the library" and intrinsic handling key on the source, not on each
+ * marker.
  *
  * Markers have no settings and no explicit inputs.
  *
  * @see \Drupal\canvas\Entity\PageVariant
  * @see \Drupal\canvas\Plugin\Validation\Constraint\PageVariantHasContentMarkerConstraint
+ * @see \Drupal\canvas\Plugin\Validation\Constraint\ComponentTreeStructureConstraintValidator
  */
 #[ComponentSource(
   id: self::SOURCE_PLUGIN_ID,
@@ -53,6 +57,16 @@ final class Marker extends ComponentSourceBase {
    * The full Component config entity id of the page content marker.
    */
   public const string PAGE_CONTENT_COMPONENT_ID = self::SOURCE_PLUGIN_ID . '.' . self::PAGE_CONTENT_LOCAL_ID;
+
+  /**
+   * The local source id of the empty slot marker.
+   */
+  public const string EMPTY_SLOT_LOCAL_ID = 'empty_slot';
+
+  /**
+   * The full Component config entity id of the empty slot marker.
+   */
+  public const string EMPTY_SLOT_COMPONENT_ID = self::SOURCE_PLUGIN_ID . '.' . self::EMPTY_SLOT_LOCAL_ID;
 
   /**
    * The marker's local source id (which marker this is).
@@ -84,6 +98,7 @@ final class Marker extends ComponentSourceBase {
   public function getComponentDescription(): TranslatableMarkup {
     return match ($this->getLocalId()) {
       self::PAGE_CONTENT_LOCAL_ID => new TranslatableMarkup('Page content'),
+      self::EMPTY_SLOT_LOCAL_ID => new TranslatableMarkup('Empty slot'),
       default => new TranslatableMarkup('Marker'),
     };
   }
@@ -92,6 +107,18 @@ final class Marker extends ComponentSourceBase {
    * {@inheritdoc}
    */
   public function renderComponent(array $inputs, array $slot_definitions, string $componentUuid, bool $isPreview): array {
+    // Only the page content marker takes part in the page variant's content
+    // injection, and only it gets a visible editor placeholder. Any other
+    // marker (the empty slot marker, for one) renders nothing anywhere: it
+    // stands for the absence of content, so a placeholder card would be
+    // wrong, and suspending its fiber would make the variant renderer inject
+    // the route's main content in its place, because that renderer recognizes
+    // the marker by its source rather than by its id.
+    // @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant::renderComponentTree()
+    if ($this->getLocalId() !== self::PAGE_CONTENT_LOCAL_ID) {
+      return [];
+    }
+
     // A marker renders nothing on its own. In a page variant, the renderer
     // injects the route's main content in its place by resuming the fiber with
     // that content: suspending yields this source so the variant can recognize

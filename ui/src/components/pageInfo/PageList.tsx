@@ -179,8 +179,12 @@ const createPageMenuContent = (
   );
 };
 
-// Component for individual page item to manage menu state
-const PageListItem = ({
+// Component for individual page item to manage menu state.
+// Exported so the navigator's templated-entity groups can reuse the exact same
+// row (icon, title, unpublished badges, selection, context menu). Templated
+// items carry only an `edit-form` link, so the operation props stay undefined
+// and no dropdown/context menu is rendered.
+export const PageListItem = ({
   item,
   isSelected,
   isHomepage,

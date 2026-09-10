@@ -457,6 +457,11 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
     );
   }
 
+  // Per-content editing: locked template chrome is a non-interactive
+  // pass-through and a locked exposed slot is selected as a whole (its panel is
+  // the ContextualPanel's LockedSlotPanel, not this component form), so no
+  // locked component ever reaches this form.
+
   return (
     formQueryString &&
     renderComponentId === selectedComponent && (

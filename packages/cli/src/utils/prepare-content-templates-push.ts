@@ -2,7 +2,10 @@ import fs from 'fs/promises';
 import chalk from 'chalk';
 import { loadComponentsMetadata } from '@drupal-canvas/discovery';
 
-import { authoredElementMapToComponentTree } from './authored-elements';
+import {
+  authoredElementMapToComponentTree,
+  buildElementKeyToUuidMap,
+} from './authored-elements';
 import { stripNullableKeysForConfigComponentTree } from './component-tree-payload';
 import { contentTemplateResultName } from './content-template-result-name';
 import { serializeElementMapForServer } from './prop-transforms';
@@ -19,7 +22,10 @@ import type {
   CanvasComponentTree,
 } from 'drupal-canvas/json-render-utils';
 import type { ApiService } from '../services/api';
-import type { ContentTemplateListItem } from '../types/ContentTemplate';
+import type {
+  ContentTemplateListItem,
+  ExposedSlots,
+} from '../types/ContentTemplate';
 import type { Result } from '../types/Result';
 
 export interface ContentTemplatePushResult {
@@ -43,6 +49,7 @@ export interface PreparedContentTemplate {
   viewMode: string;
   pageVariant: string | null;
   components: CanvasComponentTree;
+  exposedSlots?: ExposedSlots;
   filePath: string;
 }
 
@@ -101,6 +108,7 @@ export async function prepareContentTemplates(
       viewMode: string;
       pageVariant?: unknown;
       elements: AuthoredSpecElementMap;
+      exposedSlots?: ExposedSlots;
     };
 
     if (!spec.entityType || !spec.bundle || !spec.viewMode) {
@@ -125,10 +133,28 @@ export async function prepareContentTemplates(
       spec.elements ?? {},
       componentMetadata,
     );
+    // Authored element keys may be friendly aliases; the tree builder mints
+    // real UUIDs for those. Build the key→UUID map here and share it, so
+    // exposed slots' component_uuid references translate to the same UUIDs
+    // the pushed tree carries (a valid-UUID key maps to itself).
+    const keyToUuid = buildElementKeyToUuidMap(Object.keys(serializedElements));
     const tree = authoredElementMapToComponentTree(
       serializedElements,
       componentVersions,
+      keyToUuid,
     );
+    const exposedSlots = spec.exposedSlots
+      ? Object.fromEntries(
+          Object.entries(spec.exposedSlots).map(([alias, slot]) => [
+            alias,
+            {
+              ...slot,
+              component_uuid:
+                keyToUuid.get(slot.component_uuid) ?? slot.component_uuid,
+            },
+          ]),
+        )
+      : undefined;
 
     return {
       id: deriveId(spec),
@@ -143,6 +169,7 @@ export async function prepareContentTemplates(
           : null,
       viewMode: spec.viewMode,
       components: tree,
+      exposedSlots,
       filePath: localTemplate.path,
     };
   });
@@ -166,7 +193,7 @@ export async function pushContentTemplates(
   remoteById: Map<string, ContentTemplateListItem>,
   apiService: Pick<
     ApiService,
-    'createContentTemplate' | 'updateContentTemplate'
+    'createContentTemplate' | 'updateContentTemplate' | 'createSlotField'
   >,
 ): Promise<ContentTemplatePushOperationResult[]> {
   const results = await processInPool(prepared, async (entry) => {
@@ -176,12 +203,40 @@ export async function pushContentTemplates(
     const component_tree = stripNullableKeysForConfigComponentTree(
       template.components,
     );
+    // A template referencing exposed slots only validates when each slot's
+    // backing `component_tree` field exists on the target bundle. The
+    // slot-field endpoint requires an existing template, so a fresh-site
+    // create sequences: create without slots, provision the fields, then
+    // update with the slots. Provisioning is create-if-missing (409 is fine),
+    // so the update path runs it too: the authored file may reference slots
+    // the target site has never seen.
+    const provisionSlotFields = async () => {
+      for (const [fieldName, slot] of Object.entries(
+        template.exposedSlots ?? {},
+      )) {
+        // The slot-field endpoint only creates canvas_slot_-prefixed fields
+        // (@see ApiContentTemplateSlotFieldController::FIELD_NAME_PREFIX); a
+        // reused pre-existing component_tree field with another name cannot
+        // be provisioned here and must already exist on the target — if it
+        // does not, the template update fails its ValidExposedSlot check.
+        if (!fieldName.startsWith('canvas_slot_')) {
+          continue;
+        }
+        await apiService.createSlotField(template.id, fieldName, slot.label);
+      }
+    };
 
     if (remote) {
+      await provisionSlotFields();
+      // The update always carries exposed_slots: pull represents a slot-free
+      // template by omitting the property from the authored file, so an
+      // update must send the empty map to detach slots still present on the
+      // target (the backing fields and their content are retained).
       await apiService.updateContentTemplate(template.id, {
         status: true,
         pageVariant: template.pageVariant,
         component_tree,
+        exposed_slots: template.exposedSlots ?? {},
       });
       return {
         label: template.label,
@@ -190,14 +245,30 @@ export async function pushContentTemplates(
       };
     }
 
+    // A template that exposes slots is created disabled and enabled only once
+    // its backing fields exist and its slots are attached: creating it live
+    // first would leave a rendering, slot-less template behind if either
+    // follow-up step failed.
+    const hasExposedSlots = !!template.exposedSlots;
     await apiService.createContentTemplate({
       entityType: template.entityTypeId,
       bundle: template.bundle,
       viewMode: template.viewMode,
       pageVariant: template.pageVariant,
-      status: true,
+      status: !hasExposedSlots,
       component_tree,
     });
+    if (template.exposedSlots) {
+      await provisionSlotFields();
+      // The server payload key is snake_case `exposed_slots`.
+      await apiService.updateContentTemplate(template.id, {
+        status: true,
+        // Re-sent unchanged: the PATCH replaces the whole config payload, so
+        // omitting the selection would clear it.
+        pageVariant: template.pageVariant,
+        exposed_slots: template.exposedSlots,
+      });
+    }
     return {
       label: template.label,
       id: template.id,

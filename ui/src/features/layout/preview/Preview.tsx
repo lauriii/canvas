@@ -5,7 +5,9 @@ import { skipToken } from '@reduxjs/toolkit/query';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { selectAutoSavesHash } from '@/components/review/PublishReview.slice';
+import { exposedSlotsToServer } from '@/features/layout/exposedSlots';
 import {
+  selectExposedSlots,
   selectIsInitialized,
   selectLayout,
   selectModel,
@@ -47,6 +49,7 @@ const Preview: React.FC = () => {
   const layout = useAppSelector(selectLayout);
   const updatePreview = useAppSelector(selectUpdatePreview);
   const model = useAppSelector(selectModel);
+  const exposedSlots = useAppSelector(selectExposedSlots);
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const backgroundUpdate = useAppSelector(selectPreviewBackgroundUpdate);
   const entity_form_fields = useAppSelector(selectPageData);
@@ -127,6 +130,8 @@ const Preview: React.FC = () => {
             layout,
             model,
             entity_form_fields,
+            // Persist the exposed-slot working set alongside the layout.
+            exposed_slots: exposedSlotsToServer(exposedSlots),
           }).unwrap();
         } else if (context === 'pattern') {
           await postPatternPreview({
@@ -143,6 +148,7 @@ const Preview: React.FC = () => {
       layout,
       model,
       entity_form_fields,
+      exposedSlots,
       entityId,
       entityType,
       postPreview,

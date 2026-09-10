@@ -43,6 +43,12 @@ export const PAGE_VARIANT_ENTITY_TYPE = 'page_variant';
 // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker::PAGE_CONTENT_COMPONENT_ID
 export const PAGE_CONTENT_MARKER_ID = 'marker.page_content';
 
+// The intrinsic "Empty slot" marker. As the sole content of an exposed slot it
+// means "this entity's slot renders nothing", as opposed to no content at all,
+// which inherits the content template's default.
+// @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker::EMPTY_SLOT_COMPONENT_ID
+export const EMPTY_SLOT_MARKER_ID = 'marker.empty_slot';
+
 // Resolves the page variant shown in the Layers panel. The page data form can
 // contain an unsaved selection that is newer than the layout GET response.
 // Empty values mean "Site default"; while that setting is loading, retain the

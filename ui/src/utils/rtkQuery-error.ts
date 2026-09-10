@@ -103,6 +103,14 @@ export const normalizeError = (
 };
 
 /**
+ * Endpoints whose callers handle failures inline (e.g. a dialog-local error
+ * message). Their rejections are expected flow control — a 409 for a taken
+ * slot-field name, say — and must not reach the global error screen, which
+ * would replace the editor while the dialog is open.
+ */
+const LOCALLY_HANDLED_ENDPOINTS = new Set(['createSlotField']);
+
+/**
  * Middleware to handle RTK Query errors
  * - Normalizes errors into a standard format
  * - Dispatches to the error slice
@@ -111,6 +119,12 @@ export const rtkQueryErrorHandler: Middleware =
   (api: MiddlewareAPI) => (next) => (action) => {
     // RTK Query uses `createAsyncThunk` from redux-toolkit under the hood, so we're able to utilize these matchers.
     if (isRejectedWithValue(action)) {
+      const endpointName = (
+        action.meta as { arg?: { endpointName?: string } } | undefined
+      )?.arg?.endpointName;
+      if (endpointName && LOCALLY_HANDLED_ENDPOINTS.has(endpointName)) {
+        return next(action);
+      }
       const rawError = action.payload as FetchBaseQueryError | SerializedError;
       const normalizedError = normalizeError(rawError);
 

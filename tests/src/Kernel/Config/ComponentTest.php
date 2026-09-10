@@ -9,6 +9,7 @@ use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\VersionedConfigEntityInterface;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\ConfigInstallerInterface;
 use Drupal\Core\Config\StorageCacheInterface;
@@ -382,6 +383,30 @@ class ComponentTest extends CanvasKernelTestBase {
     self::assertArrayNotHasKey('disable', $operations);
     self::assertArrayHasKey('enable', $operations);
     self::assertArrayNotHasKey('delete', $operations);
+  }
+
+  /**
+   * The empty-slot marker is an ordinary marker Component, hidden by the editor.
+   *
+   * Markers are intrinsic placeholders: the editor filters every `marker.*`
+   * component out of the component library, so the empty-slot marker needs no
+   * bespoke source, no `status: false`, and no preSave() guard to stay
+   * non-placeable — exactly like the page content marker.
+   *
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker
+   * @see ui/src/services/pageVariants.ts
+   */
+  public function testEmptySlotMarkerIsAMarkerComponent(): void {
+    $marker = Component::load(Marker::EMPTY_SLOT_COMPONENT_ID);
+    \assert($marker instanceof ComponentInterface);
+    self::assertSame(Marker::SOURCE_PLUGIN_ID, $marker->get('source'));
+    self::assertSame(Marker::EMPTY_SLOT_LOCAL_ID, $marker->get('source_local_id'));
+    self::assertInstanceOf(Marker::class, $marker->getComponentSource());
+    // Both shipped markers share one version hash: markers have no settings
+    // and no explicit inputs.
+    $page_content = Component::load(Marker::PAGE_CONTENT_COMPONENT_ID);
+    \assert($page_content instanceof ComponentInterface);
+    self::assertSame($page_content->getActiveVersion(), $marker->getActiveVersion());
   }
 
 }

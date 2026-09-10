@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { Outlet, useParams } from 'react-router-dom';
-import { InfoCircledIcon } from '@radix-ui/react-icons';
+import { ExternalLinkIcon, InfoCircledIcon } from '@radix-ui/react-icons';
 import {
   Box,
   Button,
@@ -15,7 +15,27 @@ import {
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import PageDataForm from '@/components/PageDataForm';
+import LockedSlotPanel from '@/components/panel/LockedSlotPanel';
+import SlotExposePanel from '@/components/panel/SlotExposePanel';
+import SlotUsagePanel from '@/components/panel/SlotUsagePanel';
 import { setCurrentComponent } from '@/features/form/formStateSlice';
+import {
+  findExposedSlotEntry,
+  getSlotHostComponentUuid,
+  isLockedSlotRegion,
+} from '@/features/layout/exposedSlots';
+import {
+  selectExposedSlots,
+  selectIsPerContentMode,
+  selectLayout,
+  selectSlotDefaults,
+  selectSlotOverrides,
+} from '@/features/layout/layoutModelSlice';
+import {
+  findComponentByUuid,
+  findSlotById,
+} from '@/features/layout/layoutUtils';
+import { buildEntityEditFormUrl } from '@/features/navigator/templatedContent';
 import {
   EditorFrameContext,
   selectEditorFrameContext,
@@ -23,8 +43,10 @@ import {
   selectSelectedComponentUuid,
   selectSelection,
 } from '@/features/ui/uiSlice';
+import useGetComponentName from '@/hooks/useGetComponentName';
 import useHidePanelClasses from '@/hooks/useHidePanelClasses';
 import { PAGE_VARIANT_ENTITY_TYPE } from '@/services/pageVariants';
+import { getBaseUrl } from '@/utils/drupal-globals';
 
 import type React from 'react';
 
@@ -36,7 +58,7 @@ const ContextualPanel: React.FC = () => {
   const selection = useAppSelector(selectSelection);
   const dispatch = useAppDispatch();
   const editorFrameContext = useAppSelector(selectEditorFrameContext);
-  const { entityId, entityType } = useParams();
+  const { entityId, entityType, bundle, viewMode } = useParams();
   const isTemplateContext = editorFrameContext === EditorFrameContext.TEMPLATE;
   // Page variants are config entities without entity form fields, so like
   // templates they have no "Page data" tab: the panel only shows component
@@ -44,6 +66,84 @@ const ContextualPanel: React.FC = () => {
   const hasPageDataTab =
     !isTemplateContext && entityType !== PAGE_VARIANT_ENTITY_TYPE;
   const mainTabText = isTemplateContext ? 'Template data' : 'Page data';
+
+  // Per-content mode (a templated entity with exposed slots): the panel gains
+  // a Content tab next to Page data. Phase 1 links out to Drupal's own edit
+  // form for the entity's content fields; Page data carries only page-level
+  // metadata (the server trims the entity form).
+  const isPerContentMode = useAppSelector(selectIsPerContentMode);
+  const editFormUrl =
+    isPerContentMode && entityType && entityId
+      ? buildEntityEditFormUrl(getBaseUrl(), entityType, entityId)
+      : null;
+  const contentTemplateId =
+    isTemplateContext && entityType && bundle && viewMode
+      ? `${entityType}.${bundle}.${viewMode}`
+      : undefined;
+
+  // Per-content editing: a locked exposed slot is selected as a whole (its id,
+  // which contains a slash, is not a routable component uuid, so it is held in
+  // redux only). When that is the selection, the Settings tab shows the
+  // LockedSlot panel (Unlock + template jump) instead of a component form.
+  const layout = useAppSelector(selectLayout);
+  const exposedSlots = useAppSelector(selectExposedSlots);
+  const slotOverrides = useAppSelector(selectSlotOverrides);
+  const slotDefaults = useAppSelector(selectSlotDefaults);
+  const lockedSlotAlias = useMemo(() => {
+    if (!isPerContentMode || !selectedComponent || !exposedSlots) {
+      return undefined;
+    }
+    // A locked slot region is selected under its `${hostUuid}/${slotName}`
+    // identity (slash-bearing, so held in redux only, not routable).
+    const entry = Object.entries(exposedSlots).find(
+      ([, definition]) =>
+        `${definition.componentUuid}/${definition.slotName}` ===
+        selectedComponent,
+    );
+    if (
+      !entry ||
+      !isLockedSlotRegion(entry[0], exposedSlots, slotOverrides, slotDefaults)
+    ) {
+      return undefined;
+    }
+    return entry[0];
+  }, [
+    isPerContentMode,
+    selectedComponent,
+    exposedSlots,
+    slotOverrides,
+    slotDefaults,
+  ]);
+
+  // Template editor: the selected slot node, if a slot is selected (its id
+  // contains a slash, so it is held in redux only, not routable). A selected
+  // slot's Settings tab replaces the component form with slot controls: usage
+  // statistics if it is exposed, or an Expose slot action if it is not.
+  const templateSlot = useMemo(
+    () =>
+      isTemplateContext && selectedComponent
+        ? (findSlotById(layout, selectedComponent) ?? undefined)
+        : undefined,
+    [isTemplateContext, selectedComponent, layout],
+  );
+  const templateSlotEntry = useMemo(
+    () =>
+      templateSlot
+        ? (findExposedSlotEntry(
+            exposedSlots,
+            getSlotHostComponentUuid(templateSlot),
+            templateSlot.name,
+          ) ?? undefined)
+        : undefined,
+    [templateSlot, exposedSlots],
+  );
+  const templateSlotHost = templateSlot
+    ? findComponentByUuid(layout, getSlotHostComponentUuid(templateSlot))
+    : null;
+  const templateSlotTitle = useGetComponentName(
+    templateSlot ?? null,
+    templateSlotHost,
+  );
 
   const [activePanel, setActivePanel] = useState('pageData');
   const offRightClasses = useHidePanelClasses('right');
@@ -72,6 +172,16 @@ const ContextualPanel: React.FC = () => {
       setHidePanel(false);
     }
   }, [selectedComponent, isMultiSelect, hasPageDataTab]);
+
+  // Leaving per-content mode removes the Content tab; if it was the active
+  // one, fall back to the default tab so the panel body is not left empty.
+  useEffect(() => {
+    if (!isPerContentMode) {
+      setActivePanel((current) =>
+        current === 'content' ? 'pageData' : current,
+      );
+    }
+  }, [isPerContentMode]);
 
   return (
     <Box
@@ -103,6 +213,14 @@ const ContextualPanel: React.FC = () => {
                   data-testid="canvas-contextual-panel--page-data"
                 >
                   {mainTabText}
+                </Tabs.Trigger>
+              )}
+              {isPerContentMode && (
+                <Tabs.Trigger
+                  value="content"
+                  data-testid="canvas-contextual-panel--content"
+                >
+                  Content
                 </Tabs.Trigger>
               )}
               {(selectedComponent || isMultiSelect) && (
@@ -172,10 +290,48 @@ const ContextualPanel: React.FC = () => {
                       </Flex>
                     </Box>
                   )}
-                  <ErrorBoundary title="An unexpected error has occurred while rendering the component's form.">
-                    <Outlet />
-                  </ErrorBoundary>
+                  {lockedSlotAlias ? (
+                    <LockedSlotPanel alias={lockedSlotAlias} />
+                  ) : templateSlot ? (
+                    templateSlotEntry && contentTemplateId ? (
+                      <SlotUsagePanel
+                        contentTemplateId={contentTemplateId}
+                        fieldName={templateSlotEntry.alias}
+                      />
+                    ) : (
+                      <SlotExposePanel
+                        slot={templateSlot}
+                        slotTitle={templateSlotTitle}
+                      />
+                    )
+                  ) : (
+                    <ErrorBoundary title="An unexpected error has occurred while rendering the component's form.">
+                      <Outlet />
+                    </ErrorBoundary>
+                  )}
                 </Tabs.Content>
+                {isPerContentMode && (
+                  <Tabs.Content value={'content'}>
+                    <Flex direction="column" gap="2" my="2" align="start">
+                      <Text size="1" color="gray">
+                        Content fields are edited in the Drupal edit form.
+                      </Text>
+                      {editFormUrl && (
+                        <Button asChild size="1" className="canvas-button">
+                          <a
+                            href={editFormUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            data-testid="canvas-content-tab-edit-form-link"
+                          >
+                            Edit content
+                            <ExternalLinkIcon />
+                          </a>
+                        </Button>
+                      )}
+                    </Flex>
+                  </Tabs.Content>
+                )}
                 {hasPageDataTab && (
                   <Tabs.Content
                     value={'pageData'}

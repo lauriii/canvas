@@ -59,11 +59,13 @@ final class ContentTemplateSymmetricalTranslationPropagationTest extends ConfigE
     $this->installConfig(['node', 'user']);
 
     // Use the `article` bundle: previewing a ContentTemplate goes through a
-    // preview entity whose bundle the route validates against the template's,
-    // and only canvas_page and article nodes may carry the Canvas field that the
-    // exposed-slot fixture makes ContentTemplate::build() inject.
+    // preview entity whose bundle the route validates against the template's.
+    // Each exposed slot is backed by a `component_tree` field on the bundle
+    // whose machine name equals the exposed slot's key; the `test_slot` field
+    // below backs the `test_slot` exposed slot, and ContentTemplate::build()
+    // merges that field's per-entity content into the template's target slot.
     NodeType::create(['type' => 'article', 'name' => 'Article'])->save();
-    $this->createComponentTreeField('node', 'article', 'field_canvas');
+    $this->createComponentTreeField('node', 'article', 'test_slot');
 
     $this->entity = ContentTemplate::create([
       'content_entity_type_id' => 'node',

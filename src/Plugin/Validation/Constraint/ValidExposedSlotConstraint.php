@@ -25,9 +25,13 @@ final class ValidExposedSlotConstraint extends SymfonyConstraint {
 
   public string $unknownComponentMessage = 'The component %id does not exist in the tree.';
 
-  public string $slotNotEmptyMessage = 'The %slot slot must be empty.';
+  public string $missingFieldMessage = 'The exposed slot %field must be backed by a component tree field of that machine name on the bundle.';
 
   public string $undefinedSlotMessage = 'The component %id does not have a %slot slot.';
+
+  public string $nestedSlotMessage = 'The %slot slot of component %id cannot be exposed because that component is inside another exposed slot.';
+
+  public string $duplicateTargetMessage = 'The %slot slot of component %id is already exposed as %alias.';
 
   public string $viewModeMismatchMessage = 'Exposed slots are only allowed in the %mode view mode.';
 

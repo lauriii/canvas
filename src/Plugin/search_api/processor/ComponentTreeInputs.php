@@ -187,7 +187,10 @@ final class ComponentTreeInputs extends ProcessorPluginBase implements PluginFor
           // Intentionally accepted behavior: if linked content has no
           // translation for the indexed langcode, Drupal resolves a fallback,
           // which can inject source-language tokens into this item.
-          $tree = $template->getComponentTree($entity);
+          // The merged tree includes the entity's own exposed-slot content in
+          // place of the template defaults it overrides, so what is indexed
+          // matches what renders.
+          $tree = $template->getMergedComponentTree($entity);
           $inputs = ComponentTreeInputExtractor::extractFromTree($tree, $ignored_prop_names);
         }
       }
