@@ -11,8 +11,10 @@ import {
 import {
   formatDiscoveryWarning,
   formatDiscoveryWarningReport,
+  getBrandKitOnlyPushMessage,
   getSyncExclusionMessage,
   getSyncExclusionSource,
+  hasPushableResources,
   syncManifestArtifacts,
   updateGlobalAssetLibraryForPush,
   uploadManifestArtifacts,
@@ -99,6 +101,74 @@ describe('push sync exclusion messages', () => {
     expect(getSyncExclusionSource(undefined, false, 'false')).toBe(
       'deprecated-flag',
     );
+  });
+});
+
+describe('push nothing-to-push guard', () => {
+  const nothing = {
+    componentCount: 0,
+    pageCount: 0,
+    contentTemplateCount: 0,
+    pageTemplateCount: 0,
+    iconLibraryCount: 0,
+    pushesBrandKitFonts: false,
+    pushesIconLibraries: false,
+  };
+
+  it('reports no work when nothing is discovered and no brand kit is declared', () => {
+    expect(hasPushableResources(nothing)).toBe(false);
+  });
+
+  it('treats an authoritative icons declaration as work even with no libraries', () => {
+    // An explicitly empty `icons.libraries` list deletes every remote
+    // canvas-managed library, so the push must not return early.
+    expect(
+      hasPushableResources({ ...nothing, pushesIconLibraries: true }),
+    ).toBe(true);
+  });
+
+  it('treats a declared brand kit fonts config as work on its own', () => {
+    expect(
+      hasPushableResources({ ...nothing, pushesBrandKitFonts: true }),
+    ).toBe(true);
+  });
+
+  it('treats any discovered local resource as work', () => {
+    expect(hasPushableResources({ ...nothing, componentCount: 1 })).toBe(true);
+    expect(hasPushableResources({ ...nothing, pageCount: 1 })).toBe(true);
+    expect(hasPushableResources({ ...nothing, contentTemplateCount: 1 })).toBe(
+      true,
+    );
+    expect(hasPushableResources({ ...nothing, pageTemplateCount: 1 })).toBe(
+      true,
+    );
+    expect(hasPushableResources({ ...nothing, iconLibraryCount: 1 })).toBe(
+      true,
+    );
+  });
+});
+
+describe('push brand-kit-only message', () => {
+  it('announces a fonts-only push', () => {
+    expect(getBrandKitOnlyPushMessage(true, false)).toBe(
+      'No components, pages, content templates, or page templates found; syncing brand kit fonts from canvas.brand-kit.json.',
+    );
+  });
+
+  it('announces an icons-only push', () => {
+    expect(getBrandKitOnlyPushMessage(false, true)).toBe(
+      'No components, pages, content templates, or page templates found; syncing icon libraries from canvas.brand-kit.json.',
+    );
+  });
+
+  it('announces fonts and icons together', () => {
+    expect(getBrandKitOnlyPushMessage(true, true)).toBe(
+      'No components, pages, content templates, or page templates found; syncing brand kit fonts and icon libraries from canvas.brand-kit.json.',
+    );
+  });
+
+  it('announces nothing when no brand kit configuration is declared', () => {
+    expect(getBrandKitOnlyPushMessage(false, false)).toBeUndefined();
   });
 });
 

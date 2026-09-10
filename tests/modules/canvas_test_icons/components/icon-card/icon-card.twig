@@ -1,0 +1,16 @@
+{#
+/**
+ * @file
+ * Renders an icon card.
+ *
+ * The `icon` prop is an icon-shaped prop: Canvas resolves the stored icon id
+ * into a render array (inline SVG or an image), so the template renders it
+ * directly without the author managing SVG sources.
+ */
+#}
+<div class="icon-card">
+  {% if icon %}
+    <span class="icon-card__icon">{{ icon }}</span>
+  {% endif %}
+  <span class="icon-card__label">{{ label }}</span>
+</div>

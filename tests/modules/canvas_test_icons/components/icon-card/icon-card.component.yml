@@ -1,0 +1,13 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: 'Icon card'
+description: 'An SDC with an icon-shaped prop, proving icon props resolve for any component source, not just code components.'
+props:
+  type: object
+  properties:
+    label:
+      title: Label
+      type: string
+    icon:
+      title: Icon
+      type: string
+      $ref: json-schema-definitions://canvas.module/icon

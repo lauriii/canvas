@@ -97,7 +97,10 @@ describe('runPushResourcePipeline', () => {
 
     expect(error).toBeInstanceOf(ReportedPushError);
     expect((error as ReportedPushError).phase).toBe(phases.push);
-    expect(push).toHaveBeenCalledWith([{ index: 0, result: 'valid-resource' }]);
+    expect(push).toHaveBeenCalledWith(
+      [{ index: 0, result: 'valid-resource' }],
+      { updateMessage: expect.any(Function) },
+    );
     expect(promptMocks.spinner.stop).toHaveBeenCalledWith(
       'Pushed resources',
       2,

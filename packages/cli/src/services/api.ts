@@ -26,6 +26,11 @@ import type {
   ContentTemplate,
   ContentTemplateListItem,
 } from '../types/ContentTemplate';
+import type {
+  IconLibrary,
+  IconLibraryAssetInput,
+  IconPack,
+} from '../types/IconLibrary';
 import type { Page, PageListItem } from '../types/Page';
 import type { PageVariant } from '../types/PageVariant';
 import type { ConfigComponentTreePayload } from '../utils/component-tree-payload';
@@ -1138,6 +1143,122 @@ export class ApiService {
       const response = await this.client.patch(
         `/canvas/api/v0/config/brand_kit/${BRAND_KIT_GLOBAL_ID}`,
         data,
+      );
+      return response.data;
+    } catch (error) {
+      this.handleApiError(error);
+    }
+  }
+
+  /**
+   * List all installed icon packs (module-provided and canvas-managed).
+   *
+   * Requests scope=all so pulls see the complete catalog even when the site
+   * restricts the packs offered to content authors.
+   */
+  async getIconPacks(): Promise<Record<string, IconPack>> {
+    try {
+      const response = await this.client.get('/canvas/api/v0/icons?scope=all');
+      return response.data.packs;
+    } catch (error) {
+      this.handleApiError(error);
+    }
+  }
+
+  /**
+   * List all canvas-managed icon library config entities.
+   */
+  async getIconLibraries(): Promise<Record<string, IconLibrary>> {
+    try {
+      const response = await this.client.get(
+        '/canvas/api/v0/config/icon_library',
+      );
+      return response.data;
+    } catch (error) {
+      this.handleApiError(error);
+    }
+  }
+
+  /**
+   * Create a new icon library.
+   */
+  async createIconLibrary(data: {
+    id: string;
+    label: string;
+    description?: string | null;
+    template?: string | null;
+    assets: IconLibraryAssetInput[] | null;
+  }): Promise<IconLibrary> {
+    try {
+      const response = await this.client.post(
+        '/canvas/api/v0/config/icon_library',
+        data,
+      );
+      return response.data;
+    } catch (error) {
+      this.handleApiError(error);
+    }
+  }
+
+  /**
+   * Update an existing icon library.
+   */
+  /**
+   * Deletes a canvas-managed icon library.
+   */
+  async deleteIconLibrary(id: string): Promise<void> {
+    try {
+      await this.client.delete(
+        `/canvas/api/v0/config/icon_library/${encodeURIComponent(id)}`,
+      );
+    } catch (error) {
+      this.handleApiError(error);
+    }
+  }
+
+  async updateIconLibrary(
+    id: string,
+    data: {
+      label?: string;
+      description?: string | null;
+      template?: string | null;
+      assets?: IconLibraryAssetInput[];
+    },
+  ): Promise<IconLibrary> {
+    try {
+      const response = await this.client.patch(
+        `/canvas/api/v0/config/icon_library/${encodeURIComponent(id)}`,
+        data,
+      );
+      return response.data;
+    } catch (error) {
+      this.handleApiError(error);
+    }
+  }
+
+  /**
+   * Upload a single icon SVG asset to an icon library.
+   * Returns uri, fid, and url for building the library assets list. Server-side
+   * SVG sanitization failures (422) surface their error strings in the thrown
+   * error message.
+   */
+  async uploadIconAsset(
+    libraryId: string,
+    filename: string,
+    fileBuffer: Buffer,
+  ): Promise<UploadedArtifactResult & { hash?: string }> {
+    try {
+      const response = await this.client.post(
+        `/canvas/api/v0/icon-libraries/${encodeURIComponent(libraryId)}/assets`,
+        fileBuffer,
+        {
+          headers: {
+            'Content-Type': 'application/octet-stream',
+            'Content-Disposition': `file; filename="${filename}"`,
+          },
+          maxBodyLength: Infinity,
+          maxContentLength: Infinity,
+        },
       );
       return response.data;
     } catch (error) {

@@ -104,9 +104,29 @@ export const BRAND_KIT_CONFIG_FILENAME = 'canvas.brand-kit.json';
 /** Global brand kit id used by the CLI for font sync (single site-wide kit). */
 export const BRAND_KIT_GLOBAL_ID = 'global';
 
-/** Top-level shape of canvas.brand-kit.json (fonts and future brand kit keys). */
+/** A single icon library entry in canvas.brand-kit.json libraries. */
+export interface IconLibraryEntry {
+  id: string;
+  /** Human-readable label; required, mirroring a font family's name. */
+  label: string;
+  description?: string;
+  /** Twig template override; omit to use the server default. */
+  template?: string;
+  /**
+   * Directory the SVG files are read from, relative to the project root
+   * (e.g. `node_modules/lucide-static/icons`). Defaults to `icons/<id>`.
+   */
+  source?: string;
+}
+
+export interface IconsConfig {
+  libraries: IconLibraryEntry[];
+}
+
+/** Top-level shape of canvas.brand-kit.json (fonts, icons, and future keys). */
 export interface BrandKitConfigFile {
   fonts?: FontsConfig;
+  icons?: IconsConfig;
 }
 
 function loadFontsFromBrandKitFile(hostRoot: string): FontsConfig | undefined {
@@ -169,6 +189,8 @@ export function getDefaultScope(
   if (includePages) parts.push(PAGE_SCOPES);
   if (includeContentTemplates) parts.push(CONTENT_TEMPLATE_SCOPES);
   if (includePageTemplates) parts.push(PAGE_TEMPLATE_SCOPES);
+  // Icon libraries are part of the brand kit workflow and are covered by the
+  // brand kit scope.
   if (includeBrandKit) parts.push(BRAND_KIT_SCOPES);
   return parts.join(' ');
 }

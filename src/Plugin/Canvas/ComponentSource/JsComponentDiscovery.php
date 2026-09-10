@@ -8,6 +8,7 @@ use Drupal\canvas\ComponentDoesNotMeetRequirementsException;
 use Drupal\canvas\ComponentSource\ComponentCandidatesDiscoveryInterface;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Icon\IconPropShape;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
@@ -167,6 +168,13 @@ final class JsComponentDiscovery extends JsonSchemaPropsComponentDiscoveryBase i
    */
   public static function buildEphemeralSdcPluginInstance(JavaScriptComponent $component, ?array $prop_field_definitions = NULL): ComponentPlugin {
     $definition = $component->toSdcDefinition();
+    // JSON Schema validators ignore keywords that are siblings of `$ref`, so
+    // an icon prop's pack-scope `pattern` would not be enforced. Dereference
+    // the icon shape so validation of this ephemeral plugin enforces it.
+    // (Client-side representations keep the raw `$ref`; only this
+    // validation/rendering plugin gets the dereferenced schema.)
+    // @see \Drupal\canvas\Icon\IconPropShape::dereference()
+    $definition['props']['properties'] = \array_map(IconPropShape::dereference(...), $definition['props']['properties']);
     // Existing instances of this code component may use a prior Component
     // config entity version, at which point this code component may have had a
     // different set of required props. Ensure the set of required props at the

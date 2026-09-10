@@ -4,6 +4,7 @@ import { Flex, ScrollArea, Spinner } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ErrorCard from '@/components/error/ErrorCard';
+import { resolveIconValue } from '@/components/icons/iconScope';
 import { buildColorStyles } from '@/features/brandKit/colorCss';
 import {
   buildFontFaceStyles,
@@ -23,10 +24,12 @@ import {
   getImportsFromAst,
 } from '@/features/code-editor/utils/ast-utils';
 import {
+  getPropMachineName,
   getPropValuesForPreview,
   getSlotNamesForPreview,
 } from '@/features/code-editor/utils/utils';
 import { useGetCodeComponentsQuery } from '@/services/componentAndLayout';
+import { useGetIconPacksQuery } from '@/services/icons';
 import {
   getBaseUrl,
   getCanvasSettings,
@@ -83,6 +86,10 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
   const parentRef = useRef<HTMLDivElement>(null);
   const [isJsImportError, setIsJsImportError] = useState(false);
   const { data: codeComponents } = useGetCodeComponentsQuery();
+  // Only fetch the installed icon packs when an icon prop needs resolving.
+  const { data: iconPacks } = useGetIconPacksQuery(undefined, {
+    skip: !props.some((prop) => prop.derivedType === 'icon'),
+  });
   const [jsImportNameWithError, setJsImportNameWithError] = useState('');
 
   const [iframeSrcDoc, setIframeSrcDoc] = useState('');
@@ -249,6 +256,19 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
     // restrictions.
     // @see ui/lib/code-editor-preview.js
     const propValues = getPropValuesForPreview(props, brandKitColors);
+    // Resolve icon props into renderable values (inline SVG or URL) using the
+    // installed icon packs, mirroring the server-side resolution at render
+    // time. An empty or unresolvable value becomes null.
+    // @see \Drupal\canvas\Icon\IconResolver
+    props
+      .filter((prop) => prop.name && prop.derivedType === 'icon')
+      .forEach((prop) => {
+        const machineName = getPropMachineName(prop.name);
+        propValues[machineName] = resolveIconValue(
+          propValues[machineName],
+          iconPacks,
+        );
+      });
     const slotNames = getSlotNamesForPreview(slots);
     const previewGlobalColorCss = buildColorStyles(brandKitColors ?? []);
     const previewGlobalFontCss = buildFontFaceStyles(brandKitFonts ?? []);
@@ -291,6 +311,7 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
     compiledJs,
     getIframeSrc,
     brandKitFonts,
+    iconPacks,
     brandKitColors,
     previewCompiledJsForSlots,
     props,

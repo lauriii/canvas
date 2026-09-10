@@ -136,6 +136,8 @@ placehold
 Postel
 preflight
 preflights
+pushable
+recents
 replayable
 sindresorhus
 slugified
@@ -184,6 +186,7 @@ slnt
 sonner
 sparkline
 STACKLIMIT
+starpack
 Starshot
 subcontent
 subresource
@@ -221,6 +224,7 @@ unparseable
 unrenderable
 unpartitioned
 unrooted
+unstarred
 unstorable
 unstub
 untampered
