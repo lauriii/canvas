@@ -47,6 +47,7 @@ import AiToolSelector from './AiToolSelector';
 import { buildCurrentLayout } from './currentLayout';
 import { progressToHtml, removeMediaFields } from './placementUtils';
 
+import type { CustomButton } from 'deep-chat/dist/types/customButton';
 import type { LayoutModelSliceState } from '@/features/layout/layoutModelSlice';
 import type { CodeComponent } from '@/types/CodeComponent';
 import type { CanvasComponent } from '@/types/Component';
@@ -540,25 +541,30 @@ const DEEP_CHAT_AUXILIARY_STYLE = `
     margin-left: 40px;
   }
   /* Clears deep-chat's default gray filter on custom button icons. */
-  .custom-button-container-default > svg {
+  .custom-button-container-default > svg,
+  .custom-button-container-disabled > svg {
     filter: none;
   }
 
 ` as const;
+
+// Layout of the Tools menu trigger, shared by its states: deep-chat unsets
+// one state's container styles before applying the next state's.
+const DEEP_CHAT_TOOL_BUTTON_CONTAINER = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginRight: '8px',
+  marginBottom: '12px',
+  backgroundColor: 'var(--blue-9)',
+} as const;
 
 // Tool popup menu trigger icon: Radix's MixerHorizontalIcon
 // (@radix-ui/react-icons), white on a blue-9 background. Static regardless of
 // hover or whether a tool is selected.
 const DEEP_CHAT_TOOL_BUTTON_STYLES = {
   container: {
-    default: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginRight: '8px',
-      marginBottom: '12px',
-      backgroundColor: 'var(--blue-9)',
-    },
+    default: DEEP_CHAT_TOOL_BUTTON_CONTAINER,
   },
   svg: {
     content: `
@@ -566,6 +572,18 @@ const DEEP_CHAT_TOOL_BUTTON_STYLES = {
     <path fill-rule="evenodd" clip-rule="evenodd" d="M5.5 3C4.67157 3 4 3.67157 4 4.5C4 5.32843 4.67157 6 5.5 6C6.32843 6 7 5.32843 7 4.5C7 3.67157 6.32843 3 5.5 3ZM3 5C3.01671 5 3.03323 4.99918 3.04952 4.99758C3.28022 6.1399 4.28967 7 5.5 7C6.71033 7 7.71978 6.1399 7.95048 4.99758C7.96677 4.99918 7.98329 5 8 5H13.5C13.7761 5 14 4.77614 14 4.5C14 4.22386 13.7761 4 13.5 4H8C7.98329 4 7.96677 4.00082 7.95048 4.00242C7.71978 2.86009 6.71033 2 5.5 2C4.28967 2 3.28022 2.86009 3.04952 4.00242C3.03323 4.00082 3.01671 4 3 4H1.5C1.22386 4 1 4.22386 1 4.5C1 4.77614 1.22386 5 1.5 5H3ZM11.9505 10.9976C11.7198 12.1399 10.7103 13 9.5 13C8.28967 13 7.28022 12.1399 7.04952 10.9976C7.03323 10.9992 7.01671 11 7 11H1.5C1.22386 11 1 10.7761 1 10.5C1 10.2239 1.22386 10 1.5 10H7C7.01671 10 7.03323 10.0008 7.04952 10.0024C7.28022 8.8601 8.28967 8 9.5 8C10.7103 8 11.7198 8.8601 11.9505 10.0024C11.9668 10.0008 11.9833 10 12 10H13.5C13.7761 10 14 10.2239 14 10.5C14 10.7761 13.7761 11 13.5 11H12C11.9833 11 11.9668 10.9992 11.9505 10.9976ZM8 10.5C8 9.67157 8.67157 9 9.5 9C10.3284 9 11 9.67157 11 10.5C11 11.3284 10.3284 12 9.5 12C8.67157 12 8 11.3284 8 10.5Z" fill="white"/>
     </svg>
   `,
+  },
+} as const;
+
+// The trigger while a turn is in progress: dimmed, and the cursor says it
+// cannot be activated. The icon is inherited from the default state.
+const DEEP_CHAT_TOOL_BUTTON_DISABLED_STYLES = {
+  container: {
+    default: {
+      ...DEEP_CHAT_TOOL_BUTTON_CONTAINER,
+      opacity: '0.5',
+      cursor: 'not-allowed',
+    },
   },
 } as const;
 
@@ -587,6 +605,13 @@ const AiWizardDev = () => {
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
   const selectedToolRef = useRef(selectedTool);
   const [isToolSelectorOpen, setIsToolSelectorOpen] = useState(false);
+  // Whether a turn is running. The Tool is fixed for the whole turn (the
+  // controller rejects a hop that resolves another agent), so the Tools menu
+  // trigger and the active Tool pill are disabled while this is set. Mirrored
+  // into a ref for the trigger's click handler, whose identity must not
+  // change (see customButtons below).
+  const [isTurnInProgress, setIsTurnInProgress] = useState(false);
+  const isTurnInProgressRef = useRef(isTurnInProgress);
   const [createCodeComponent] = useCreateCodeComponentMutation();
   const navigate = useNavigate();
   const params = useParams();
@@ -752,11 +777,15 @@ const AiWizardDev = () => {
     selectedToolRef.current = selectedTool;
   }, [receiveMessage, csrfToken, selectedTool]);
 
-  // Stable handler identities for the customButtons array below.
-  const toggleToolSelector = useCallback(
-    () => setIsToolSelectorOpen((open) => !open),
-    [],
-  );
+  // Stable handler identities for the customButtons array below. deep-chat
+  // fires a custom button's onClick in its disabled state too, so the trigger
+  // ignores clicks itself while a turn is in progress.
+  const toggleToolSelector = useCallback(() => {
+    if (isTurnInProgressRef.current) {
+      return;
+    }
+    setIsToolSelectorOpen((open) => !open);
+  }, []);
   const dismissSelectedTool = useCallback(() => setSelectedTool(null), []);
 
   const activeTool = useMemo(
@@ -768,18 +797,35 @@ const AiWizardDev = () => {
   // dependencies are fixed for the life of the chat, so the array keeps a
   // stable identity and never re-renders MemoDeepChat.
   const customButtons = useMemo(
-    () =>
+    (): CustomButton[] | undefined =>
       tools.length > 0
         ? [
             {
-              position: 'inside-start' as const,
-              styles: { button: { default: DEEP_CHAT_TOOL_BUTTON_STYLES } },
+              position: 'inside-start',
+              styles: {
+                button: {
+                  default: DEEP_CHAT_TOOL_BUTTON_STYLES,
+                  disabled: DEEP_CHAT_TOOL_BUTTON_DISABLED_STYLES,
+                },
+              },
               onClick: toggleToolSelector,
             },
           ]
         : undefined,
     [tools.length, toggleToolSelector],
   );
+
+  // Locks and unlocks the trigger with the turn. deep-chat adds `setState` to
+  // the button it was handed when it renders, so this switches the trigger's
+  // state without a new customButtons identity, which would re-render
+  // MemoDeepChat. A menu that is open when the turn starts is closed.
+  useEffect(() => {
+    isTurnInProgressRef.current = isTurnInProgress;
+    customButtons?.[0]?.setState?.(isTurnInProgress ? 'disabled' : 'default');
+    if (isTurnInProgress) {
+      setIsToolSelectorOpen(false);
+    }
+  }, [isTurnInProgress, customButtons]);
 
   // Stable handler for DeepChat's connect prop. It reads up-to-date data via
   // refs (currentValuesRef, receiveMessageRef, csrfTokenRef, chatElementRef,
@@ -840,12 +886,16 @@ const AiWizardDev = () => {
         abortControllerRef.current = abortController;
         const turn = { stopped: false, placed: false };
         turnRef.current = turn;
+        setIsTurnInProgress(true);
         // The component the user had selected when they sent the message is
         // the scope of the request for the whole turn. Placing a component
         // selects it, so reading the selection again on later hops would tell
         // the agent the user narrowed the request to what it just placed.
         const activeComponentUuid =
           store.getState().ui.selection.items[0] ?? '';
+        // The Tool is fixed for the turn as well: every hop must resolve the
+        // agent that parked the state, or the controller rejects it.
+        const selectedTool = selectedToolRef.current;
 
         // With attachments deep-chat sends one `message<n>` JSON string per
         // message instead of a `messages` array. Later hops send JSON, so read
@@ -885,9 +935,7 @@ const AiWizardDev = () => {
             page_title: pageData['title[0][value]'],
             page_description: pageData['description[0][value]'],
             // Omitted while no Tool is selected.
-            ...(selectedToolRef.current
-              ? { selected_tool: selectedToolRef.current }
-              : {}),
+            ...(selectedTool ? { selected_tool: selectedTool } : {}),
           };
         };
 
@@ -982,6 +1030,10 @@ const AiWizardDev = () => {
             : 'An error occurred while processing your request. Please try again.',
           role: 'error',
         });
+      } finally {
+        // Also runs on the AbortError return above, so an unmounting turn
+        // cannot leave the selection locked.
+        setIsTurnInProgress(false);
       }
       setTimeout(() => {
         chatElementRef.current?.disableSubmitButton();
@@ -1082,7 +1134,11 @@ const AiWizardDev = () => {
           </Text>
         </Flex>
         {activeTool && (
-          <ActiveToolPill tool={activeTool} onDismiss={dismissSelectedTool} />
+          <ActiveToolPill
+            tool={activeTool}
+            onDismiss={dismissSelectedTool}
+            disabled={isTurnInProgress}
+          />
         )}
         <MemoDeepChat
           ref={chatElementRef}

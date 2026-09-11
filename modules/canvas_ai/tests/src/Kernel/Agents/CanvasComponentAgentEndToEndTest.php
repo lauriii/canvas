@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas_ai\Kernel\Agents;
 
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas_ai\CanvasAiPermissions;
+use Drupal\canvas_ai\CanvasAiTempStore;
 use Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
@@ -274,22 +275,7 @@ final class CanvasComponentAgentEndToEndTest extends CanvasKernelTestBase {
       ->set('main_agent', 'canvas_dev_page_builder_agent')
       ->set('tools', ['canvas_component_agent'])
       ->save();
-    JavaScriptComponent::create([
-      'machineName' => 'red_button',
-      'name' => 'Red Button',
-      'status' => FALSE,
-      'props' => [
-        'buttonText' => [
-          'title' => 'Button Text',
-          'type' => 'string',
-          'examples' => ['Click me'],
-        ],
-      ],
-      'required' => [],
-      'slots' => [],
-      'js' => ['original' => "export default function RedButton({ buttonText }) {\n  return <button className=\"bg-red-600 text-white\">{buttonText}</button>;\n}\n", 'compiled' => ''],
-      'css' => ['original' => '', 'compiled' => ''],
-    ])->save();
+    self::createRedButtonComponent();
 
     // fixtures: tests/resources/ai_test/requests/chat/component-agent-edit-button-hop-{1,2,3}.yml.
     // Send a request with canvas_component_agent as the selected tool.
@@ -308,6 +294,66 @@ final class CanvasComponentAgentEndToEndTest extends CanvasKernelTestBase {
       "I am loading the Red Button component to make its text uppercase.\n\nI am updating the Red Button component to render its text in uppercase.",
       $hops[1]['progress'],
     );
+  }
+
+  /**
+   * Dropping the Tool mid-turn is rejected and the parked state is deleted.
+   *
+   * The first hop is the one testSelectedToolAgentRunsEveryHop() sends, so the
+   * provider answers it from the same hop-1 fixture and the component agent
+   * parks its state. The second hop sends no Tool and so resolves the main
+   * agent, which is not the agent that parked the state.
+   */
+  public function testToolCannotChangeDuringTurn(): void {
+    $this->config('canvas_dev_ai.settings')
+      ->set('main_agent', 'canvas_agent')
+      ->set('tools', ['canvas_component_agent'])
+      ->save();
+    self::createRedButtonComponent();
+    $temp_store = $this->container->get(CanvasAiTempStore::class);
+    $prompt = [
+      'messages' => [['role' => 'user', 'text' => 'Change button text to uppercase']],
+      'selected_component' => 'red_button',
+      'selected_component_required_props' => [],
+    ];
+
+    // Hop 1 sends the component agent as the Tool, so it is the agent that
+    // parks the state.
+    // fixture: tests/resources/ai_test/requests/chat/component-agent-edit-button-hop-1.yml.
+    $hop = $this->hop($prompt + ['selected_tool' => 'canvas_component_agent']);
+    $this->assertTrue($hop['should_continue']);
+    $this->assertSame('canvas_component_agent', $temp_store->getStoredAgentState('test-request')['agent_id'] ?? NULL);
+
+    // Hop 2 sends no Tool, so it resolves the main agent (canvas_agent), which
+    // is not the agent that parked the state. The rejected hop never reaches
+    // the provider, so it needs no fixture.
+    $hop = $this->hop($prompt);
+    $this->assertFalse($hop['status']);
+    $this->assertFalse($hop['should_continue']);
+    $this->assertSame('The selected tool cannot change during a turn.', $hop['message']);
+    $this->assertNull($temp_store->getStoredAgentState('test-request'));
+  }
+
+  /**
+   * Creates the Red Button code component the component agent edits.
+   */
+  private static function createRedButtonComponent(): void {
+    JavaScriptComponent::create([
+      'machineName' => 'red_button',
+      'name' => 'Red Button',
+      'status' => FALSE,
+      'props' => [
+        'buttonText' => [
+          'title' => 'Button Text',
+          'type' => 'string',
+          'examples' => ['Click me'],
+        ],
+      ],
+      'required' => [],
+      'slots' => [],
+      'js' => ['original' => "export default function RedButton({ buttonText }) {\n  return <button className=\"bg-red-600 text-white\">{buttonText}</button>;\n}\n", 'compiled' => ''],
+      'css' => ['original' => '', 'compiled' => ''],
+    ])->save();
   }
 
   /**

@@ -115,8 +115,10 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
 
     // Seed the state a previous hop would have parked, so deletion is
     // observable. The controller resumes it through the agent's fromArray().
+    // It is parked under the main agent, which the tool-less hop below
+    // resolves; any other agent would be rejected before the agent runs.
     $temp_store = $this->container->get(CanvasAiTempStore::class);
-    $temp_store->setStoredAgentState('test-request', ['looped' => FALSE]);
+    $temp_store->setStoredAgentState('test-request', 'canvas_agent', ['looped' => FALSE]);
     self::assertNotNull($temp_store->getStoredAgentState('test-request'));
 
     $agent = $this->createMock(AiAgentEntityWrapper::class);

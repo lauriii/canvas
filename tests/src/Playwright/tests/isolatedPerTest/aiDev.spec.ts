@@ -184,10 +184,21 @@ test.describe('AI dev chat', () => {
 
   test('Page builder agent turns', async ({ page, drupal, canvas, ai }) => {
     // Count the requests to hold each turn to the number of hops it should
-    // have sent to the backend.
+    // have sent to the backend. Request 3, the second hop of the "Approved"
+    // turn below, is held until the test releases it: Playwright waits for a
+    // state to arrive and cannot catch one that has already flipped, so
+    // without the hold the turn could end before its in-progress state is
+    // asserted on.
     let requests = 0;
+    let releaseSecondPlacementHop!: () => void;
+    const secondPlacementHop = new Promise<void>((resolve) => {
+      releaseSecondPlacementHop = resolve;
+    });
     await page.route('**/admin/api/canvas/ai-dev', async (route) => {
       requests += 1;
+      if (requests === 3) {
+        await secondPlacementHop;
+      }
       await route.continue();
     });
 
@@ -198,6 +209,26 @@ test.describe('AI dev chat', () => {
     const chat = page.getByTestId('canvas-ai-panel').locator('deep-chat');
     const progressMessage = chat.locator('.html-message');
     const answer = chat.locator('.text-message.ai-message-text');
+    // The Tools menu trigger is a deep-chat custom button inside its shadow
+    // DOM, which CSS locators pierce.
+    const toolsTrigger = chat.locator('.custom-button');
+    const menu = page.getByTestId('canvas-ai-tool-selector');
+    const builderRow = menu.getByRole('button', {
+      name: /Dev Page Builder Agent/,
+    });
+    const pill = page.getByTestId('canvas-ai-active-tool');
+    const removeButton = pill.getByRole('button', {
+      name: 'Remove the selected tool',
+    });
+
+    // The user selects the page builder agent as the Tool. Selecting it closes
+    // the menu and shows it in the pill.
+    await toolsTrigger.click();
+    await builderRow.click();
+    await expect(menu).toBeHidden();
+    await expect(pill).toContainText('Drupal Canvas Dev Page Builder Agent');
+    await expect(removeButton).toBeEnabled();
+    await expect(toolsTrigger).toBeEnabled();
 
     // The user asks for a whole page. The fixture answers with the plan as the
     // turn's message and no tool call, so the turn ends after one request: the
@@ -229,6 +260,20 @@ test.describe('AI dev chat', () => {
     await expect(progressMessage.last()).toContainText(
       'Placing the hero section.',
     );
+
+    // The Tool is fixed for the turn. While it runs, the pill is locked and
+    // cannot be removed, and the Tools trigger is disabled: deep-chat marks it
+    // with its disabled class and aria-disabled. deep-chat still fires the
+    // trigger's click handler in that state, so a click event is dispatched
+    // past Playwright's actionability check to show the handler ignores it.
+    await expect(pill).toHaveClass(/locked/);
+    await expect(removeButton).toBeDisabled();
+    await expect(toolsTrigger).toHaveClass(/custom-button-container-disabled/);
+    await expect(toolsTrigger).toBeDisabled();
+    await toolsTrigger.dispatchEvent('click');
+    await expect(menu).toBeHidden();
+
+    releaseSecondPlacementHop();
     await expect(answer.last()).toHaveText(
       'The landing page sections are in place.',
     );
@@ -239,6 +284,21 @@ test.describe('AI dev chat', () => {
       progressMessage.last().locator('.aiCompletedIcon'),
     ).toBeVisible();
     expect(requests).toBe(4);
+
+    // The turn has ended: the pill and the Tools trigger are usable again. The
+    // menu opens, and the Tool can be cleared.
+    await expect(pill).not.toHaveClass(/locked/);
+    await expect(removeButton).toBeEnabled();
+    await expect(toolsTrigger).not.toHaveClass(
+      /custom-button-container-disabled/,
+    );
+    await expect(toolsTrigger).toBeEnabled();
+    await toolsTrigger.click();
+    await expect(menu).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(menu).toBeHidden();
+    await removeButton.click();
+    await expect(pill).toBeHidden();
 
     // Both batches landed on the canvas in the fixtures' order.
     await canvas.testInPreviewFrame(
