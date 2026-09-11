@@ -1,0 +1,29 @@
+# Dependabot configuration for the GitHub fork.
+#
+# This repository uses Renovate (see `renovate.json`) for version updates, so
+# Dependabot is limited to security updates: `open-pull-requests-limit: 0`
+# disables version updates only and leaves security updates unrestricted.
+version: 2
+
+updates:
+  - package-ecosystem: "npm"
+    # `ui`, `docs/user` and `packages/*` are npm workspace members (see the root
+    # `package.json` `workspaces` key), and the workspace has a single lockfile
+    # at the root. Several members depend on internal `@drupal-canvas/*`
+    # packages that are `"private": true` and never published, so resolving a
+    # member directory on its own makes npm fetch them from registry.npmjs.org
+    # and get a 404, which fails the whole update job. Scoping npm to the
+    # workspace root keeps every member covered through the root lockfile.
+    #
+    # The remaining entries are standalone projects that the root lockfile does
+    # not cover, each with its own lockfile, so they are listed separately.
+    # `ui/src/local_packages/hyperscriptify` is omitted on purpose: it declares
+    # no dependencies, so there is nothing there to update.
+    directories:
+      - "/"
+      - "/modules/canvas_headless/examples/*"
+      - "/tests/modules/canvas_test_extension_legacy/ui"
+      - "/ui/src/local_packages/hyperscriptify/propsify/standard"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0
