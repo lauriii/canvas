@@ -1,0 +1,13 @@
+# SPIKE. A page extension, because that is the only extension type that gets a
+# full-viewport surface and its own URL. The `code-editor` type is a dialog
+# opened *from* the core code editor, which is the thing being replaced.
+# @see \Drupal\canvas\Extension\CanvasExtensionTypeEnum
+canvas_code_editor_spike:
+  name: 'Code editor (spike)'
+  description: 'Feasibility spike: the code editor hosted as a Canvas page extension.'
+  url: extension/index.html
+  icon: extension/icon.svg
+  type: 'page'
+  api_version: '1.0'
+  permissions:
+    - administer code components

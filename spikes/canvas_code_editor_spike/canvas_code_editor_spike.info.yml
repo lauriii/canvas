@@ -1,0 +1,7 @@
+name: 'Canvas code editor SPIKE'
+type: module
+description: 'SPIKE / DO NOT SHIP. Proves how much of the Canvas in-browser code editor a page extension can host. See FINDINGS.md.'
+package: 'Canvas (spike)'
+core_version_requirement: ^11.3
+dependencies:
+  - canvas:canvas
