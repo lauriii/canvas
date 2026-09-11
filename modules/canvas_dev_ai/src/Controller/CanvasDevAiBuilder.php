@@ -113,6 +113,8 @@ final class CanvasDevAiBuilder extends ControllerBase {
       ], Response::HTTP_BAD_REQUEST);
     }
     $job_id = $prompt['request_id'];
+    // The state a previous hop of this turn parked, if any.
+    $stored = $this->canvasAiTempStore->getStoredAgentState($job_id);
 
     try {
       $agent_to_call = $this->resolveAgentId($prompt);
@@ -120,9 +122,16 @@ final class CanvasDevAiBuilder extends ControllerBase {
     catch (\RuntimeException $e) {
       return $this->buildErrorResponse($e->getMessage(), $job_id);
     }
+    // The Tool is fixed for the turn: resuming the state in another agent
+    // would hand it a chat history it did not write. Clearing the Tool
+    // mid-turn resolves the main agent, so it is caught here too.
+    if ($stored !== NULL && $stored['agent_id'] !== $agent_to_call) {
+      $this->canvasAiTempStore->deleteStoredAgentState($job_id);
+      return $this->buildErrorResponse('The selected tool cannot change during a turn.', $job_id);
+    }
     $agent = $this->agentManager->createInstance($agent_to_call);
     \assert($agent instanceof AiAgentEntityWrapper);
-    $this->prepareAgent($agent, $prompt, $image_files);
+    $this->prepareAgent($agent, $prompt, $image_files, $stored === NULL ? NULL : $stored['state']);
 
     // Store the current layout in the temp store. This will be later used by
     // the ai agents.
@@ -173,7 +182,7 @@ final class CanvasDevAiBuilder extends ControllerBase {
     // it. should_continue tells the frontend whether to send that next hop.
     $should_continue = !$agent->isFinished();
     if ($should_continue) {
-      $this->canvasAiTempStore->setStoredAgentState($job_id, $agent->toArray());
+      $this->canvasAiTempStore->setStoredAgentState($job_id, $agent_to_call, $agent->toArray());
     }
     else {
       $this->canvasAiTempStore->deleteStoredAgentState($job_id);
@@ -387,12 +396,11 @@ final class CanvasDevAiBuilder extends ControllerBase {
    *   The decoded prompt.
    * @param \Drupal\ai\OperationType\GenericType\ImageFile[] $image_files
    *   The images the user attached to the message.
+   * @param array|null $state
+   *   The state a previous hop of this turn parked, as written by the agent's
+   *   ::toArray(), or NULL for a new turn.
    */
-  private function prepareAgent(AiAgentEntityWrapper $agent, array $prompt, array $image_files): void {
-    // The state carries no agent ID, so a hop selecting a different agent
-    // mid-turn restores the previous agent's chat history into it.
-    // @todo Store the agent ID with the state and error when a later hop of the same turn resolves a different one, in https://git.drupalcode.org/project/canvas/-/work_items/3591952
-    $state = $this->canvasAiTempStore->getStoredAgentState($prompt['request_id']);
+  private function prepareAgent(AiAgentEntityWrapper $agent, array $prompt, array $image_files, ?array $state): void {
     if ($state !== NULL) {
       // ::fromArray() restores the chat history, which already holds the user
       // message, so seeding the chat input again would duplicate it.
