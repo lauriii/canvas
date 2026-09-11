@@ -141,7 +141,8 @@ These config entities are therefore the foundations that enable Canvas to work r
   `settings` — see [`Canvas Data model`, section 3.1.2.a](./data-model#3.1.2.a))
 - dependency-checking (this config entity's dependencies on other modules, as well as other config entities depending on
   this config entity, but also ensuring the necessary code is present, such as `field type` and `field widget` plugins)
-- exporting, importing, synchronizing from one environment or site to another
+- exporting, importing, synchronizing from one environment or site to another (shipping them in an extension's
+  `config` directory is another matter — see [`Canvas Recipes` doc](recipes.md))
 - validating: the ability to be 100% confident that all dependencies are satisfied, and all criteria are still met (see
   [`Canvas Components` doc, section 3.1.1](components.md#3.1.1)).
 
