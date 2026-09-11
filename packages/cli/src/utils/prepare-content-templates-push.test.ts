@@ -158,6 +158,38 @@ describe('pushContentTemplates', () => {
     );
   });
 
+  it('omits page variants when the site does not support them', async () => {
+    const createContentTemplate = vi.fn().mockResolvedValue({});
+    const prepared = {
+      id: 'node.article.full',
+      label: 'Article full',
+      entityTypeId: 'node',
+      bundle: 'article',
+      viewMode: 'full',
+      pageVariant: 'marketing',
+      components: [] satisfies CanvasComponentTree,
+      filePath: '/tmp/content-templates/node.article.full.json',
+    };
+
+    await pushContentTemplates(
+      [{ index: 0, result: prepared }],
+      new Map(),
+      {
+        createContentTemplate,
+        updateContentTemplate: vi.fn(),
+      },
+      false,
+    );
+
+    expect(createContentTemplate).toHaveBeenCalledWith({
+      entityType: 'node',
+      bundle: 'article',
+      viewMode: 'full',
+      status: true,
+      component_tree: [],
+    });
+  });
+
   it('clears an existing page variant selection when the authored file has none', async () => {
     const updateContentTemplate = vi.fn().mockResolvedValue({});
 

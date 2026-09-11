@@ -6,7 +6,12 @@ import {
 } from '@drupal-canvas/discovery';
 
 import { getConfig } from '../config.js';
-import { createApiService, isUserAuthenticated } from '../services/api.js';
+import {
+  applyPageVariantCompatibility,
+  createApiService,
+  isUserAuthenticated,
+  supportsPageVariants,
+} from '../services/api.js';
 import { updateConfigFromOptions } from '../utils/command-helpers';
 import { printCommandIntro } from '../utils/command-intro.js';
 import {
@@ -43,6 +48,7 @@ async function createOptionalValidationApiService(): Promise<
   if (!isUserAuthenticated(config.siteUrl) && !hasClientCredentials) {
     return undefined;
   }
+  await applyPageVariantCompatibility(config.siteUrl);
   try {
     return await createApiService();
   } catch {
@@ -88,8 +94,11 @@ export function validateCommand(program: Command): void {
         }
         const results: Result[] = [];
         const apiService = await createOptionalValidationApiService();
+        const pageVariantsSupported = await supportsPageVariants(
+          config.siteUrl,
+        );
         let availablePageVariantIds: Set<string> | undefined;
-        if (apiService) {
+        if (apiService && pageVariantsSupported) {
           try {
             const remotePageVariants = await apiService.listPageVariants();
             availablePageVariantIds = new Set([
