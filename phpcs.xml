@@ -87,4 +87,11 @@ core.phpcs.xml.dist -> /PATH/TO/DRUPAL/ROOT/core/phpcs.xml.dist
     </properties>
   </rule>
   <rule ref="./coding_standards/Canvas" />
+  <!-- multi_frontend is written to be proposed to Drupal core and depends on
+       nothing but core, so its kernel tests cannot extend Canvas' test base
+       class without introducing exactly the dependency the module exists to
+       avoid. -->
+  <rule ref="Canvas.Tests.KernelTestBase">
+    <exclude-pattern>*/modules/multi_frontend/*</exclude-pattern>
+  </rule>
 </ruleset>

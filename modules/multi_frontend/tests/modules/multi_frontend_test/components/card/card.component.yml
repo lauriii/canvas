@@ -1,0 +1,32 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Card
+status: experimental
+props:
+  type: object
+  required: [title]
+  properties:
+    title:
+      type: string
+      title: Title
+      minLength: 1
+      examples: ['A node title']
+    url:
+      type: string
+      title: Link target
+      format: uri-reference
+      examples: ['/node/1']
+    createdAt:
+      type: string
+      title: Created
+      format: date-time
+      examples: ['2026-02-14T09:30:00+00:00']
+    summary:
+      type: string
+      title: Summary
+      contentMediaType: text/html
+      x-formatting-context: block
+      examples: ['<p>A summary.</p>']
+slots:
+  footer:
+    title: Footer
+    description: Anything rendered under the card.

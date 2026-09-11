@@ -1,0 +1,6 @@
+<article{{ attributes.addClass('card') }}>
+  <h3><a href="{{ url }}">{{ title }}</a></h3>
+  {% if createdAt %}<time datetime="{{ createdAt }}">{{ createdAt|date('F Y') }}</time>{% endif %}
+  {% if summary %}<div class="card__summary">{{ summary|raw }}</div>{% endif %}
+  {% block footer %}{% endblock %}
+</article>
