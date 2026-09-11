@@ -399,7 +399,16 @@ YAML;
           'page_title' => 'Untitled page',
           'page_description' => '',
         ],
-        'The user is currently working on a canvas_page entity. User has selected a component in the page with uuid f47ac10b-58cc-4372-a567-0e02b2c3d479. Page title is empty. GENERATE THE TITLE FOR THE PAGE using canvas_title_generation_agent. This is a **CRITICAL** step to ensure that request is successful. Page description is empty. GENERATE THE DESCRIPTION FOR THE PAGE using canvas_metadata_generation_agent. This is a **CRITICAL** step to ensure that request is successful.',
+        'The user is currently working on a canvas_page entity. User has selected a component in the page with uuid f47ac10b-58cc-4372-a567-0e02b2c3d479. Page title is empty. Page description is empty.',
+      ],
+      'canvas page with empty fields and no selected component' => [
+        [
+          'entity_type' => 'canvas_page',
+          'selected_component' => '',
+          'page_title' => '',
+          'page_description' => '',
+        ],
+        'The user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. Page description is empty.',
       ],
     ];
   }
@@ -411,6 +420,30 @@ YAML;
   public function testGenerateVerboseContextForOrchestrator(array $prompt, string $expected): void {
     $result = $this->canvasAiPageBuilderHelper->generateVerboseContextForOrchestrator($prompt);
     $this->assertEquals($expected, $result);
+  }
+
+  /**
+   * Tests that the context reports empty page fields without ordering work.
+   *
+   * The context describes the state of the page. Telling the orchestrator to
+   * call the title and metadata agents from here overrides its own routing
+   * rules, so it generated a title and description even for messages that did
+   * not ask for any page content.
+   *
+   * @see https://git.drupalcode.org/project/canvas/-/issues/3591718
+   */
+  public function testEmptyPageFieldsDoNotInstructAgentCalls(): void {
+    $result = $this->canvasAiPageBuilderHelper->generateVerboseContextForOrchestrator([
+      'entity_type' => 'canvas_page',
+      'selected_component' => '',
+      'page_title' => 'Untitled page',
+      'page_description' => '',
+    ]);
+
+    $this->assertStringContainsString('Page title is empty.', $result);
+    $this->assertStringContainsString('Page description is empty.', $result);
+    $this->assertStringNotContainsStringIgnoringCase('canvas_title_generation_agent', $result);
+    $this->assertStringNotContainsStringIgnoringCase('canvas_metadata_generation_agent', $result);
   }
 
   /**

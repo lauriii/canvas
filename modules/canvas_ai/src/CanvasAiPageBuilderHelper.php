@@ -1672,7 +1672,7 @@ class CanvasAiPageBuilderHelper {
 
       // Add page title.
       if (empty($prompt['page_title']) || $prompt['page_title'] === 'Untitled page') {
-        $base_message .= 'Page title is empty. GENERATE THE TITLE FOR THE PAGE using canvas_title_generation_agent. This is a **CRITICAL** step to ensure that request is successful. ';
+        $base_message .= 'Page title is empty. ';
       }
       else {
         $base_message .= 'Page title: ' . $prompt['page_title'] . '. ';
@@ -1683,7 +1683,7 @@ class CanvasAiPageBuilderHelper {
         $base_message .= 'Page description: ' . $prompt['page_description'];
       }
       else {
-        $base_message .= 'Page description is empty. GENERATE THE DESCRIPTION FOR THE PAGE using canvas_metadata_generation_agent. This is a **CRITICAL** step to ensure that request is successful.';
+        $base_message .= 'Page description is empty.';
       }
 
       return $base_message;

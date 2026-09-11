@@ -910,7 +910,7 @@ tests:
         value: |
           -
             role: user
-            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. GENERATE THE TITLE FOR THE PAGE using canvas_title_generation_agent. This is a **CRITICAL** step to ensure that request is successful. Page description is empty. GENERATE THE DESCRIPTION FOR THE PAGE using canvas_metadata_generation_agent. This is a **CRITICAL** step to ensure that request is successful.\r\n</context>\r\n\r\n<user_message>\r\nCreate a plans section showing plans available for an ai coding agent\r\n</user_message>"
+            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. Page description is empty.\r\n</context>\r\n\r\n<user_message>\r\nCreate a plans section showing plans available for an ai coding agent\r\n</user_message>"
     triggering_instructions:
       -
         value: 'Test that when creating a plans section on a canvas page with no title or description, the orchestrator calls the page builder, title, and metadata agents but not the component or template agents.'
@@ -1075,7 +1075,7 @@ tests:
         value: |
           -
             role: user
-            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title: Pricing Plans for AI Coding Agents. Page description is empty. GENERATE THE DESCRIPTION FOR THE PAGE using canvas_metadata_generation_agent. This is a **CRITICAL** step to ensure that request is successful.\r\n</context>\r\n\r\n<user_message>\r\nCreate a plans section showing plans available for an ai coding agent\r\n</user_message>"
+            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title: Pricing Plans for AI Coding Agents. Page description is empty.\r\n</context>\r\n\r\n<user_message>\r\nCreate a plans section showing plans available for an ai coding agent\r\n</user_message>"
     triggering_instructions:
       -
         value: 'Test that when creating a plans section on a canvas page with a title but no description, the orchestrator calls the page builder and metadata agents but not the title, component, or template agents.'
@@ -1240,7 +1240,7 @@ tests:
         value: |
           -
             role: user
-            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. GENERATE THE TITLE FOR THE PAGE using canvas_title_generation_agent. This is a **CRITICAL** step to ensure that request is successful. Page description: Explore our AI pricing plans for coding agents.\r\n</context>\r\n\r\n<user_message>\r\nCreate a plans section showing plans available for an ai coding agent\r\n</user_message>"
+            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. Page description: Explore our AI pricing plans for coding agents.\r\n</context>\r\n\r\n<user_message>\r\nCreate a plans section showing plans available for an ai coding agent\r\n</user_message>"
     triggering_instructions:
       -
         value: 'Test that when creating a plans section on a canvas page with no title but a description, the orchestrator calls the page builder and title agents but not the metadata, component, or template agents.'
@@ -1588,7 +1588,7 @@ tests:
             content: 'I have added a testimonials component at the top of the page.'
           -
             role: user
-            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. GENERATE THE TITLE FOR THE PAGE using canvas_title_generation_agent. This is a **CRITICAL** step to ensure that request is successful. Page description is empty. GENERATE THE DESCRIPTION FOR THE PAGE using canvas_metadata_generation_agent. This is a **CRITICAL** step to ensure that request is successful.\r\n</context>\r\n\r\n<user_message>\r\nGenerate pricing cards for our AI coding agents\r\n</user_message>"
+            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. Page description is empty.\r\n</context>\r\n\r\n<user_message>\r\nGenerate pricing cards for our AI coding agents\r\n</user_message>"
     triggering_instructions:
       -
         value: 'Test orchestrator routing with multi-turn chat history where user adds components then asks to generate pricing cards with no title or description set.'
@@ -1771,7 +1771,7 @@ tests:
             content: 'I have added a testimonials component at the top of the page.'
           -
             role: user
-            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title: AI Coding Agent Pricing. Page description is empty. GENERATE THE DESCRIPTION FOR THE PAGE using canvas_metadata_generation_agent. This is a **CRITICAL** step to ensure that request is successful.\r\n</context>\r\n\r\n<user_message>\r\nGenerate pricing cards for our AI coding agents\r\n</user_message>"
+            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title: AI Coding Agent Pricing. Page description is empty.\r\n</context>\r\n\r\n<user_message>\r\nGenerate pricing cards for our AI coding agents\r\n</user_message>"
     triggering_instructions:
       -
         value: 'Test orchestrator routing with multi-turn chat history where user adds components then asks to generate pricing cards with title set but no description.'
@@ -1954,7 +1954,7 @@ tests:
             content: 'I have added a testimonials component at the top of the page.'
           -
             role: user
-            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. GENERATE THE TITLE FOR THE PAGE using canvas_title_generation_agent. This is a **CRITICAL** step to ensure that request is successful. Page description: Explore pricing plans for AI coding agents.\r\n</context>\r\n\r\n<user_message>\r\nGenerate pricing cards for our AI coding agents\r\n</user_message>"
+            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. Page description: Explore pricing plans for AI coding agents.\r\n</context>\r\n\r\n<user_message>\r\nGenerate pricing cards for our AI coding agents\r\n</user_message>"
     triggering_instructions:
       -
         value: 'Test orchestrator routing with multi-turn chat history where user adds components then asks to generate pricing cards with description set but no title.'
@@ -2302,7 +2302,7 @@ tests:
         value: |
           -
             role: user
-            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. GENERATE THE TITLE FOR THE PAGE using canvas_title_generation_agent. This is a **CRITICAL** step to ensure that request is successful. Page description: The best chocolate cake recipe with step-by-step instructions.\r\n</context>\r\n\r\n<user_message>\r\nCreate a section explaining the features of Drupal.\r\n</user_message>"
+            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. Page description: The best chocolate cake recipe with step-by-step instructions.\r\n</context>\r\n\r\n<user_message>\r\nCreate a section explaining the features of Drupal.\r\n</user_message>"
     triggering_instructions:
       -
         value: 'Orchestrator calls page builder and title agents but NOT metadata when description exists but is about different topic'
@@ -2467,7 +2467,7 @@ tests:
         value: |
           -
             role: user
-            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title: The best chocolate cake recipe with step-by-step instructions. Page description is empty. GENERATE THE DESCRIPTION FOR THE PAGE using canvas_metadata_generation_agent. This is a **CRITICAL** step to ensure that request is successful.\r\n</context>\r\n\r\n<user_message>\r\nCreate a section explaining the features of Drupal.\r\n</user_message>"
+            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title: The best chocolate cake recipe with step-by-step instructions. Page description is empty.\r\n</context>\r\n\r\n<user_message>\r\nCreate a section explaining the features of Drupal.\r\n</user_message>"
     triggering_instructions:
       -
         value: 'Orchestrator calls page builder and metadata agents but NOT title when title exists but is about different topic'
@@ -2632,7 +2632,7 @@ tests:
         value: |
           -
             role: user
-            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. GENERATE THE TITLE FOR THE PAGE using canvas_title_generation_agent. This is a **CRITICAL** step to ensure that request is successful. Page description is empty. GENERATE THE DESCRIPTION FOR THE PAGE using canvas_metadata_generation_agent. This is a **CRITICAL** step to ensure that request is successful.\r\n</context>\r\n\r\n<user_message>\r\nAdd a pricing table to this page. Don't generate a new title or description since we will add those later.\r\n</user_message>"
+            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. Page description is empty.\r\n</context>\r\n\r\n<user_message>\r\nAdd a pricing table to this page. Don't generate a new title or description since we will add those later.\r\n</user_message>"
     triggering_instructions:
       -
         value: 'Orchestrator calls page builder when title/description are empty but user explicitly says not to generate them'
@@ -3511,7 +3511,7 @@ tests:
         value: |
           -
             role: user
-            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. GENERATE THE TITLE FOR THE PAGE using canvas_title_generation_agent. This is a **CRITICAL** step to ensure that request is successful. Page description: Explore our curated collection of premium timepieces and handcrafted clocks, perfect for every style and occasion.\r\n</context>\r\n\r\n<user_message>\r\nGenerate a landing page for my clock shop. Include a hero section with a tagline, a featured collections section showcasing our best timepieces, an about us section, and a contact section.\r\n</user_message>"
+            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. Page description: Explore our curated collection of premium timepieces and handcrafted clocks, perfect for every style and occasion.\r\n</context>\r\n\r\n<user_message>\r\nGenerate a landing page for my clock shop. Include a hero section with a tagline, a featured collections section showcasing our best timepieces, an about us section, and a contact section.\r\n</user_message>"
     triggering_instructions:
       -
         value: 'Validates that template builder and title generation agents are called but metadata generation is skipped when the page already has a description set.'
@@ -3676,7 +3676,7 @@ tests:
         value: |
           -
             role: user
-            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title: The Clock Shop. Page description is empty. GENERATE THE DESCRIPTION FOR THE PAGE using canvas_metadata_generation_agent. This is a **CRITICAL** step to ensure that request is successful.\r\n</context>\r\n\r\n<user_message>\r\nGenerate a landing page for my clock shop. Include a hero section with a tagline, a featured collections section showcasing our best timepieces, an about us section, and a contact section.\r\n</user_message>"
+            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title: The Clock Shop. Page description is empty.\r\n</context>\r\n\r\n<user_message>\r\nGenerate a landing page for my clock shop. Include a hero section with a tagline, a featured collections section showcasing our best timepieces, an about us section, and a contact section.\r\n</user_message>"
     triggering_instructions:
       -
         value: 'Validates that template builder and metadata generation agents are called but title generation is skipped when the page already has a title set.'
@@ -3841,7 +3841,7 @@ tests:
         value: |
           -
             role: user
-            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. GENERATE THE TITLE FOR THE PAGE using canvas_title_generation_agent. This is a **CRITICAL** step to ensure that request is successful. Page description is empty. GENERATE THE DESCRIPTION FOR THE PAGE using canvas_metadata_generation_agent. This is a **CRITICAL** step to ensure that request is successful.\r\n</context>\r\n\r\n<user_message>\r\nGenerate a landing page for my clock shop. Include a hero section with a tagline, a featured collections section showcasing our best timepieces, an about us section, and a contact section.\r\n</user_message>"
+            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. Page description is empty.\r\n</context>\r\n\r\n<user_message>\r\nGenerate a landing page for my clock shop. Include a hero section with a tagline, a featured collections section showcasing our best timepieces, an about us section, and a contact section.\r\n</user_message>"
     triggering_instructions:
       -
         value: 'Validates that template builder, title generation, and metadata generation agents are called when the user requests a full landing page and both page title and description are empty.'
@@ -4585,6 +4585,179 @@ tests:
               files:
                 type_of_check: empty
                 value: ''
+            remove: null
+          add_rule: null
+          response_rule: ''
+    config_reset:
+      -
+        value: '0'
+    ai_agents_test_group:
+      -
+        target_id: '1'
+    tokens: {  }
+    metatag:
+      -
+        tag: meta
+        attributes:
+          name: title
+          content: 'Export Agent Test | Drush Site-Install'
+      -
+        tag: link
+        attributes:
+          rel: canonical
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: link
+        attributes:
+          rel: shortlink
+          href: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: rights
+          content: 'Copyright © All rights reserved.'
+      -
+        tag: meta
+        attributes:
+          name: referrer
+          content: unsafe-url
+      -
+        tag: meta
+        attributes:
+          property: 'og:site_name'
+          content: 'Drush Site-Install'
+      -
+        tag: meta
+        attributes:
+          property: 'og:url'
+          content: 'https://dcms2-canvas-contribution.ddev.site/admin/config/ai/agents-test/group/export/1'
+      -
+        tag: meta
+        attributes:
+          name: 'twitter:card'
+          content: summary
+  -
+    id:
+      -
+        value: '28'
+    uuid:
+      -
+        value: 9c1d4b6a-5e27-4a0f-9d31-6b8f2e70a4c5
+    label:
+      -
+        value: 'No title or description generation for a message that requests no work'
+    status:
+      -
+        value: '1'
+    description:
+      -
+        value: 'Agent should not invoke any sub agents when the user only greets it, even though the page title and description are both empty.'
+    uid:
+      -
+        target_id: '1'
+    created:
+      -
+        value: '1776940100'
+    changed:
+      -
+        value: '1776940100'
+    messages:
+      -
+        value: |
+          -
+            role: user
+            content: "<context>\r\nThe user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. Page description is empty.\r\n</context>\r\n\r\n<user_message>\r\nHi\r\n</user_message>"
+    triggering_instructions:
+      -
+        value: 'Agent should not invoke any sub agents when the user only greets it, even though the page title and description are both empty.'
+    ai_agent:
+      -
+        target_id: canvas_ai_orchestrator
+    rules:
+      -
+        value: |
+          rule_1:
+            tool: 'ai_agents::ai_agent::canvas_component_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_2:
+            tool: 'ai_agents::ai_agent::canvas_metadata_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_3:
+            tool: 'ai_agents::ai_agent::canvas_page_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_4:
+            tool: 'ai_agents::ai_agent::canvas_template_builder_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_5:
+            tool: 'ai_agents::ai_agent::canvas_title_generation_agent'
+            label: 'Sub agent not called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
+            parameters:
+              prompt:
+                type_of_check: empty
+                value: ''
+              files:
+                type_of_check: empty
+                value: ''
+            remove: null
+          rule_6:
+            tool: 'ai_agent:verify_task_completion'
+            label: 'No tools should be called'
+            tool_rules: should_not_be_run
+            tool_order: any
+            tool_loop_order: ''
+            tool_other_tool_order: 'ai_agents::ai_agent::canvas_component_agent'
             remove: null
           add_rule: null
           response_rule: ''
