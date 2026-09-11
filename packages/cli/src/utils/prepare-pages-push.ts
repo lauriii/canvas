@@ -123,6 +123,7 @@ export async function pushPages(
   preparedPages: Array<{ index: number; result: PreparedPage }>,
   remotePageByUuid: Map<string, PageListItem>,
   apiService: Pick<ApiService, 'createPage' | 'updatePage'>,
+  includePageVariant: boolean = true,
 ): Promise<PagePushOperationResult[]> {
   const results = await processInPool(preparedPages, async (entry) => {
     const page = entry.result;
@@ -138,7 +139,7 @@ export async function pushPages(
       await apiService.updatePage(remotePage.id, {
         title: page.title,
         description: page.description,
-        pageVariant: page.pageVariant,
+        ...(includePageVariant ? { pageVariant: page.pageVariant } : {}),
         status: remotePage.status,
         path: normalizePathAlias(page.path),
         components: page.components,
@@ -148,7 +149,7 @@ export async function pushPages(
       const created = await apiService.createPage({
         title: page.title,
         description: page.description,
-        pageVariant: page.pageVariant,
+        ...(includePageVariant ? { pageVariant: page.pageVariant } : {}),
         status: false,
         path: page.path,
         components: page.components,

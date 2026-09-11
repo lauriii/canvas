@@ -1,3 +1,4 @@
+import { http, HttpResponse } from 'msw';
 import {
   afterAll,
   afterEach,
@@ -7,11 +8,17 @@ import {
   it,
   vi,
 } from 'vitest';
+import * as p from '@clack/prompts';
 
-import { setConfig } from '../config';
+import { getConfig, setConfig } from '../config';
 // eslint-disable-next-line vitest/no-mocks-import
 import { server } from './__mocks__/server';
-import { ApiService, createApiService } from './api';
+import {
+  ApiService,
+  applyPageVariantCompatibility,
+  createApiService,
+  supportsPageVariants,
+} from './api';
 
 describe('api service', () => {
   const mockConfig = {
@@ -184,6 +191,137 @@ describe('api service', () => {
 
       // @ts-expect-error - accessing private property for testing
       expect(client.refreshPromise).toBe(null);
+    });
+  });
+
+  describe('page variant compatibility', () => {
+    beforeAll(() => {
+      server.listen();
+    });
+
+    afterAll(() => {
+      server.close();
+    });
+
+    it('does not check page variant support without a site URL', async () => {
+      await expect(supportsPageVariants()).resolves.toBe(false);
+    });
+
+    it('detects a site whose router does not recognize page variants', async () => {
+      const siteUrl = `${mockConfig.siteUrl}/unsupported`;
+      let authorizationHeader: string | null = null;
+      server.use(
+        http.get(
+          `${siteUrl}/canvas/api/v0/config/page_variant`,
+          ({ request }) => {
+            authorizationHeader = request.headers.get('Authorization');
+            return HttpResponse.json({}, { status: 404 });
+          },
+        ),
+      );
+
+      await expect(supportsPageVariants(siteUrl)).resolves.toBe(false);
+      expect(authorizationHeader).toBeNull();
+    });
+
+    it.each([401, 403])(
+      'treats an HTTP %i response as an existing protected route',
+      async (status) => {
+        const siteUrl = `${mockConfig.siteUrl}/protected-${status}`;
+        server.use(
+          http.get(`${siteUrl}/canvas/api/v0/config/page_variant`, () =>
+            HttpResponse.json({}, { status }),
+          ),
+        );
+
+        await expect(supportsPageVariants(siteUrl)).resolves.toBe(true);
+      },
+    );
+
+    it('leaves server failures to the authenticated API request', async () => {
+      const siteUrl = `${mockConfig.siteUrl}/server-error`;
+      server.use(
+        http.get(`${siteUrl}/canvas/api/v0/config/page_variant`, () =>
+          HttpResponse.json({}, { status: 500 }),
+        ),
+      );
+
+      await expect(supportsPageVariants(siteUrl)).resolves.toBe(true);
+    });
+
+    it('caches page variant support by normalized site URL', async () => {
+      const siteUrl = `${mockConfig.siteUrl}/cached`;
+      let requestCount = 0;
+      server.use(
+        http.get(`${siteUrl}/canvas/api/v0/config/page_variant`, () => {
+          requestCount += 1;
+          return HttpResponse.json({}, { status: 401 });
+        }),
+      );
+
+      await expect(supportsPageVariants(siteUrl)).resolves.toBe(true);
+      await expect(supportsPageVariants(`${siteUrl}/`)).resolves.toBe(true);
+      expect(requestCount).toBe(1);
+    });
+
+    it('disables page templates, removes unsupported scopes, and warns', async () => {
+      const originalConfig = { ...getConfig() };
+      const warn = vi.spyOn(p.log, 'warn').mockImplementation(() => {});
+      const siteUrl = `${mockConfig.siteUrl}/compatibility`;
+      server.use(
+        http.get(`${siteUrl}/canvas/api/v0/config/page_variant`, () =>
+          HttpResponse.json({}, { status: 404 }),
+        ),
+      );
+      setConfig({
+        includePageTemplates: true,
+        scope:
+          'canvas:js_component canvas:page_variant canvas:media:document:create canvas:asset_library',
+      });
+
+      await applyPageVariantCompatibility(siteUrl);
+
+      expect(getConfig().includePageTemplates).toBe(false);
+      expect(getConfig().scope).toBe(
+        'canvas:js_component canvas:asset_library',
+      );
+      expect(warn).toHaveBeenCalledWith(
+        "The site at https://canvas-mock/compatibility does not serve page templates yet. Page template syncing will be skipped until the site's Drupal Canvas module is updated to 1.11 or later. Ask a site administrator if you cannot do this yourself. Alternatively, use Canvas CLI 0.23 with this site.",
+      );
+
+      warn.mockClear();
+      setConfig({
+        includePageTemplates: false,
+        scope:
+          'canvas:js_component canvas:page_variant canvas:media:document:create',
+      });
+      await applyPageVariantCompatibility(siteUrl);
+      expect(warn).not.toHaveBeenCalled();
+
+      warn.mockRestore();
+      setConfig(originalConfig);
+    });
+
+    it('reports unsupported page template API calls', async () => {
+      server.use(
+        http.get(
+          `${mockConfig.siteUrl}/canvas/api/v0/config/page_variant`,
+          () => HttpResponse.json({}, { status: 404 }),
+        ),
+        http.get(
+          `${mockConfig.siteUrl}/canvas/api/v0/settings/default-page-variant`,
+          () => HttpResponse.json({}, { status: 404 }),
+        ),
+      );
+      const client = await ApiService.create({
+        ...mockConfig,
+        accessToken: 'test-static-token',
+      });
+      const message =
+        'The site at https://canvas-mock does not serve page templates yet. Its Drupal Canvas module must be updated to 1.11 or later. Ask a site administrator if you cannot do this yourself. Alternatively, use Canvas CLI 0.23 with this site.';
+
+      await expect(client.listPageVariants()).rejects.toThrow(message);
+      await expect(client.getDefaultPageVariant()).rejects.toThrow(message);
     });
   });
 

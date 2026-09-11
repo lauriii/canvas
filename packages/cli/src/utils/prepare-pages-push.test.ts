@@ -200,6 +200,48 @@ describe('pushPages', () => {
     expect(api.createPage).not.toHaveBeenCalled();
   });
 
+  it('omits page variants when the site does not support them', async () => {
+    const filePath = path.join(tmpDir, 'home.json');
+    await fs.writeFile(
+      filePath,
+      JSON.stringify({ uuid: 'page-uuid-1', title: 'Home', elements: {} }),
+      'utf-8',
+    );
+    const prepared = [
+      {
+        index: 0,
+        result: {
+          uuid: 'page-uuid-1',
+          title: 'Home',
+          description: '',
+          pageVariant: 'marketing',
+          path: '/home',
+          components: [],
+          filePath,
+        },
+      },
+    ];
+    const remoteByUuid = new Map([
+      ['page-uuid-1', mockPageListItem(1, 'page-uuid-1', 'Home', '/home')],
+    ]);
+    const updatePage = vi.fn().mockResolvedValue({});
+
+    await pushPages(
+      prepared,
+      remoteByUuid,
+      { updatePage, createPage: vi.fn() },
+      false,
+    );
+
+    expect(updatePage).toHaveBeenCalledWith(1, {
+      title: 'Home',
+      description: '',
+      status: true,
+      path: '/home',
+      components: [],
+    });
+  });
+
   it('should reject path alias changes for existing pages', async () => {
     const filePath = path.join(tmpDir, 'home.json');
     await fs.writeFile(

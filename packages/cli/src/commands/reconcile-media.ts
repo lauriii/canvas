@@ -499,6 +499,7 @@ export function reconcileMediaCommand(program: Command): void {
         applySyncOptionAliasesAndWarnings(options);
         updateConfigFromOptions(options);
 
+        await ensureAuthConfig();
         const currentConfig = getConfig();
         const syncConfig = {
           includePages: currentConfig.includePages,
@@ -513,7 +514,6 @@ export function reconcileMediaCommand(program: Command): void {
           return;
         }
 
-        await ensureAuthConfig();
         await ensureConfig(['componentDir']);
 
         const nextConfig = getConfig();

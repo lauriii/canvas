@@ -168,6 +168,7 @@ export async function pushContentTemplates(
     ApiService,
     'createContentTemplate' | 'updateContentTemplate'
   >,
+  includePageVariant: boolean = true,
 ): Promise<ContentTemplatePushOperationResult[]> {
   const results = await processInPool(prepared, async (entry) => {
     const template = entry.result;
@@ -180,7 +181,7 @@ export async function pushContentTemplates(
     if (remote) {
       await apiService.updateContentTemplate(template.id, {
         status: true,
-        pageVariant: template.pageVariant,
+        ...(includePageVariant ? { pageVariant: template.pageVariant } : {}),
         component_tree,
       });
       return {
@@ -194,7 +195,7 @@ export async function pushContentTemplates(
       entityType: template.entityTypeId,
       bundle: template.bundle,
       viewMode: template.viewMode,
-      pageVariant: template.pageVariant,
+      ...(includePageVariant ? { pageVariant: template.pageVariant } : {}),
       status: true,
       component_tree,
     });

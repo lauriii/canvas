@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import axios from 'axios';
+import * as p from '@clack/prompts';
 import {
   defaultTokenEndpoint,
   fetchClientCredentialsToken,
@@ -10,7 +11,12 @@ import {
   setTokenEntry,
 } from '@drupal-canvas/auth';
 
-import { BRAND_KIT_GLOBAL_ID, ensureConfig, getConfig } from '../config.js';
+import {
+  BRAND_KIT_GLOBAL_ID,
+  ensureConfig,
+  getConfig,
+  setConfig,
+} from '../config.js';
 
 import type { AxiosError, AxiosInstance } from 'axios';
 import type { CanvasComponentTree } from 'drupal-canvas/json-render-utils';
@@ -44,6 +50,86 @@ export interface ApiOptions {
 export class CodeComponentMetadataOperationUnsupportedError extends Error {}
 
 export class CodeComponentMetadataValidationUnavailableError extends Error {}
+
+const pageVariantSupportCache = new Map<string, Promise<boolean>>();
+
+/**
+ * Check for the page-variant route without authenticating.
+ *
+ * An older site rejects `page_variant` during routing with a 404. A site that
+ * supports page variants reaches authentication and responds with 401 or 403,
+ * unless it permits the request. Ignore all non-404 failures so the normal API
+ * request can report authentication, permission, network, and server errors.
+ */
+export async function supportsPageVariants(siteUrl?: string): Promise<boolean> {
+  if (!siteUrl) {
+    return false;
+  }
+  const normalizedSiteUrl = siteUrl.replace(/\/+$/, '');
+  let support = pageVariantSupportCache.get(normalizedSiteUrl);
+  if (!support) {
+    support = (async () => {
+      try {
+        await axios.get(
+          `${normalizedSiteUrl}/canvas/api/v0/config/page_variant`,
+          {
+            headers: {
+              Accept: 'application/json',
+              'X-Canvas-CLI': '1',
+            },
+            timeout: 10000,
+          },
+        );
+        return true;
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.status === 404) {
+          return false;
+        }
+        return true;
+      }
+    })();
+    pageVariantSupportCache.set(normalizedSiteUrl, support);
+  }
+  return support;
+}
+
+/**
+ * Remove unsupported page-variant behavior from the current command.
+ *
+ * Commands continue after disabling page-template synchronization and removing
+ * OAuth scopes unavailable before Canvas 1.11. Warn when page-template
+ * synchronization was enabled.
+ */
+export async function applyPageVariantCompatibility(
+  siteUrl: string,
+): Promise<void> {
+  if (await supportsPageVariants(siteUrl)) {
+    return;
+  }
+
+  const currentConfig = getConfig();
+  if (currentConfig.includePageTemplates) {
+    const normalizedSiteUrl = siteUrl.replace(/\/+$/, '');
+    p.log.warn(
+      `The site at ${normalizedSiteUrl} does not serve page templates yet. Page template syncing will be skipped until the site's Drupal Canvas module is updated to 1.11 or later. Ask a site administrator if you cannot do this yourself. Alternatively, use Canvas CLI 0.23 with this site.`,
+    );
+  }
+
+  setConfig({
+    includePageTemplates: false,
+    scope: currentConfig.scope
+      .split(/\s+/)
+      .filter(
+        (scope) =>
+          scope &&
+          scope !== 'canvas:page_variant' &&
+          // If page variants aren't supported then the media document also
+          // isn't since both were added in Canvas 1.11.
+          scope !== 'canvas:media:document:create',
+      )
+      .join(' '),
+  });
+}
 
 export interface UploadedMedia<TInputsResolved = unknown> {
   id: number;
@@ -494,7 +580,7 @@ export class ApiService {
   async createPage(page: {
     title: string;
     description: string;
-    pageVariant: string | null;
+    pageVariant?: string | null;
     status: boolean;
     path: string;
     components: CanvasComponentTree;
@@ -518,7 +604,7 @@ export class ApiService {
     page: {
       title: string;
       description: string;
-      pageVariant: string | null;
+      pageVariant?: string | null;
       status: boolean;
       path: string;
       components: CanvasComponentTree;
@@ -600,7 +686,7 @@ export class ApiService {
     entityType: string;
     bundle: string;
     viewMode: string;
-    pageVariant: string | null;
+    pageVariant?: string | null;
     status: boolean;
     component_tree: ConfigComponentTreePayload;
   }): Promise<ContentTemplate> {
@@ -623,7 +709,7 @@ export class ApiService {
     template: {
       label?: string;
       status?: boolean;
-      pageVariant: string | null;
+      pageVariant?: string | null;
       component_tree?: ConfigComponentTreePayload;
     },
   ): Promise<ContentTemplate> {
@@ -800,10 +886,11 @@ export class ApiService {
    * That is a Drupal-side action the CLI user may not be able to perform
    * themselves.
    */
-  private static rethrowPageVariantsUnsupported(error: unknown): void {
+  private rethrowPageVariantsUnsupported(error: unknown): void {
     if (axios.isAxiosError(error) && error.response?.status === 404) {
+      const normalizedSiteUrl = this.siteUrl.replace(/\/+$/, '');
       throw new Error(
-        'This site does not serve page templates yet. Its Drupal Canvas module must be updated and database updates run first — ask a site administrator if you cannot do this yourself.',
+        `The site at ${normalizedSiteUrl} does not serve page templates yet. Its Drupal Canvas module must be updated to 1.11 or later. Ask a site administrator if you cannot do this yourself. Alternatively, use Canvas CLI 0.23 with this site.`,
       );
     }
   }
@@ -818,7 +905,7 @@ export class ApiService {
       );
       return response.data;
     } catch (error) {
-      ApiService.rethrowPageVariantsUnsupported(error);
+      this.rethrowPageVariantsUnsupported(error);
       this.handleApiError(error);
     }
   }
@@ -905,7 +992,7 @@ export class ApiService {
       );
       return response.data;
     } catch (error) {
-      ApiService.rethrowPageVariantsUnsupported(error);
+      this.rethrowPageVariantsUnsupported(error);
       this.handleApiError(error);
     }
   }
@@ -1452,4 +1539,5 @@ export async function ensureAuthConfig(): Promise<void> {
   if (!isUserAuthenticated(getConfig().siteUrl!)) {
     await ensureConfig(['clientId', 'clientSecret', 'scope']);
   }
+  await applyPageVariantCompatibility(getConfig().siteUrl);
 }
