@@ -48,8 +48,10 @@ test.describe('Routing', () => {
 
     await page.goto(`/canvas/preview/canvas_page/${canvasPage.entity_id}/full`);
 
-    // Verify the exit preview button is visible
-    await expect(page.getByText('Exit Preview')).toBeVisible();
+    // Verify the exit preview button is visible.
+    await expect(
+      page.getByRole('button', { name: 'Exit Preview' }),
+    ).toBeVisible();
 
     // Access the preview iframe and verify content
     const previewFrame = page.frameLocator('iframe[title="Page preview"]');

@@ -1,5 +1,25 @@
 # @drupal-canvas/headless-next
 
+## 0.4.0
+
+### Minor Changes
+
+- 24800cb: Add `fetchEntity()` for rendering a single entity through Canvas,
+  including explicit view modes.
+  - Add a dedicated `/canvas/content-api/entity` endpoint for entity-scoped
+    Canvas renders.
+  - Support rendering a specific content-template view mode via the `viewMode`
+    query parameter.
+
+### Patch Changes
+
+- Updated dependencies [24800cb]
+- Updated dependencies [e6a9c66]
+- Updated dependencies [e6a9c66]
+- Updated dependencies [78e3ff2]
+  - @drupal-canvas/headless@0.6.0
+  - @drupal-canvas/headless-react@0.4.0
+
 ## 0.3.0
 
 ### Minor Changes

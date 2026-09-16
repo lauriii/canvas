@@ -10,7 +10,26 @@ export {
 export { DEFAULT_CANVAS_CONFIG, resolveCanvasConfig } from './config';
 export type { CanvasConfigWarning } from './config';
 export { detectHeadlessSdk } from './detect-headless-sdk';
-export { findDuplicateMachineNames, loadComponentsMetadata } from './metadata';
+export { getContentEntityReferenceTarget } from './content-entity-reference';
+export type { ContentEntityReferenceTarget } from './content-entity-reference';
+export {
+  findDuplicateMachineNames,
+  loadComponentMetadata,
+  loadComponentsMetadata,
+} from './metadata';
+export {
+  ComponentMetadataValidationError,
+  componentMetadataDiagnosticFromError,
+  componentMetadataDiagnosticFromParts,
+  formatComponentMetadataDiagnostics,
+  normalizeComponentMetadata,
+  parseComponentMetadata,
+  validateComponentMetadataEnvelope,
+} from './metadata-validation';
+export type {
+  ComponentMetadataDiagnostic,
+  ParsedComponentMetadata,
+} from './metadata-validation';
 export type {
   CanvasConfig,
   CanvasLegacyRegionConfig,

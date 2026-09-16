@@ -1,0 +1,7 @@
+name: Invalid JSON Schema type
+machineName: invalid-json-schema-type
+props:
+  properties:
+    published:
+      title: Published
+      type: date

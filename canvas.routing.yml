@@ -46,6 +46,18 @@ canvas.api.auto-save.post:
   options:
     _format: 'json'
 
+canvas.api.code_component.validate:
+  path: '/canvas/api/v0/code-components/validate'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiCodeComponentMetadataController::validatePayload'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _permission: 'administer code components'
+  options:
+    _format: 'json'
+    canvas_external_api: true
+  methods: [POST]
+
 canvas.api.config.auto-save.get:
   path: '/canvas/api/v0/config/auto-save/{canvas_config_entity_type_id}/{canvas_config_entity}'
   defaults:
@@ -352,6 +364,21 @@ canvas.api.content.get.by_uuid:
     # Indicate that external applications may use this route. For authentication, see `modules/canvas_oauth/README.md`.
     canvas_external_api: true
   methods: [GET]
+# @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
+canvas.api.content.langcode.patch:
+  path: '/canvas/api/v0/content/canvas_page/{canvas_page}/langcode'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiContentControllers::patchLangcode'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _entity_access: 'canvas_page.update'
+  options:
+    parameters:
+      canvas_page:
+        type: entity:canvas_page
+    _format: 'json'
+  methods: [PATCH]
+
 # @todo https://www.drupal.org/i/3498525 should generalize this to all eligible content entity types by using a route callback
 canvas.api.content.list:
   path: '/canvas/api/v0/content/{entity_type}'

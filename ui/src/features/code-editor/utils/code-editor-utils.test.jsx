@@ -184,6 +184,28 @@ describe('Code editor utilities', () => {
         'videoGalleryWithExampleValue',
       ]);
     });
+
+    it('of type document', () => {
+      const result = serializeProps([
+        deserializedPropsFixture[30],
+        deserializedPropsFixture[31],
+      ]);
+      matchSerializedProps(result, [
+        'documentWithNoExampleValue',
+        'documentWithExampleValue',
+      ]);
+    });
+
+    it('of type document library (multi-value)', () => {
+      const result = serializeProps([
+        deserializedPropsFixture[32],
+        deserializedPropsFixture[33],
+      ]);
+      matchSerializedProps(result, [
+        'documentLibraryWithNoExampleValue',
+        'documentLibraryWithExampleValue',
+      ]);
+    });
   });
 
   describe('deserialize props', () => {
@@ -265,6 +287,22 @@ describe('Code editor utilities', () => {
         serializedPropsFixture.videoGalleryWithExampleValue,
       ]);
       matchDeserializedProps(result, [28, 29]);
+    });
+
+    it('of type document', () => {
+      const result = deserializeProps([
+        serializedPropsFixture.documentWithNoExampleValue,
+        serializedPropsFixture.documentWithExampleValue,
+      ]);
+      matchDeserializedProps(result, [30, 31]);
+    });
+
+    it('of type document library (multi-value)', () => {
+      const result = deserializeProps([
+        serializedPropsFixture.documentLibraryWithNoExampleValue,
+        serializedPropsFixture.documentLibraryWithExampleValue,
+      ]);
+      matchDeserializedProps(result, [32, 33]);
     });
 
     it('of type link', () => {
@@ -461,6 +499,25 @@ describe('Code editor preview utilities', () => {
       dateWithExampleValue: '2026-01-15',
       dateTimeWithNoExampleValue: '',
       dateTimeWithExampleValue: '2026-01-15T12:34:56.789Z',
+      documentWithNoExampleValue: '',
+      documentWithExampleValue: {
+        src: '/modules/contrib/canvas/ui/assets/documents/sample.pdf',
+        filename: 'sample.pdf',
+        mimetype: 'application/pdf',
+      },
+      documentLibraryWithNoExampleValue: [],
+      documentLibraryWithExampleValue: [
+        {
+          src: '/modules/contrib/canvas/ui/assets/documents/sample.pdf',
+          filename: 'sample.pdf',
+          mimetype: 'application/pdf',
+        },
+        {
+          src: '/modules/contrib/canvas/ui/assets/documents/sample.pdf',
+          filename: 'sample.pdf',
+          mimetype: 'application/pdf',
+        },
+      ],
       videoGalleryWithNoExampleValue: [],
       videoGalleryWithExampleValue: [
         {

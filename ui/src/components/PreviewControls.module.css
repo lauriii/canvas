@@ -1,0 +1,13 @@
+/* Radix ghost buttons apply a negative margin so the hover surface bleeds
+   into the neighboring controls. Reset it and give the icon its own
+   padded, self-contained hit area. */
+.previewButton.previewButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-6);
+  height: var(--space-6);
+  margin: 0;
+  padding: 0;
+  border-radius: var(--radius-2);
+}

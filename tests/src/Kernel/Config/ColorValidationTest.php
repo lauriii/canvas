@@ -6,7 +6,6 @@ namespace Drupal\Tests\canvas\Kernel\Config;
 
 use Drupal\canvas\Entity\BrandKit;
 use Drupal\canvas\Entity\Color;
-use Drupal\canvas\Entity\Folder;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -15,6 +14,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  * Tests validation of Color config entities.
  *
  * @see \Drupal\canvas\Entity\Color
+ * @see \Drupal\canvas\Plugin\Validation\Constraint\UniqueColorNameConstraint
  * @see \Drupal\canvas\Plugin\Validation\Constraint\UniqueColorCssVariableConstraint
  * @see \Drupal\canvas\Plugin\Validation\Constraint\ColorComponentCountConstraint
  */
@@ -407,28 +407,11 @@ final class ColorValidationTest extends BetterConfigEntityValidationTestBase {
   }
 
   /**
-   * Tests the UniqueNamePerFolderTypeConstraint for Color entities.
-   *
-   * Color implements FolderItemInterface. The UniqueNamePerFolderTypeConstraint
-   * checks if a Folder with the given name exists for that config entity type.
-   * Since Colors don't organize into Folders, the constraint only triggers if
-   * a Folder of type 'color' exists with the same name.
-   *
-   * This test creates a Folder of type 'color' to trigger the constraint.
+   * Tests the UniqueColorNameConstraint.
    */
-  public function testUniqueNamePerFolderTypeConstraint(): void {
-    // Create a Folder of type 'color' with the name we want to duplicate.
-    // This creates the condition where the constraint will trigger.
-    $folder = Folder::create([
-      'name' => 'Unique Color Name',
-      'configEntityTypeId' => Color::ENTITY_TYPE_ID,
-    ]);
-    $folder->save();
-
-    // Now creating a Color with the same name should fail because a Folder
-    // with that name already exists for the 'color' type.
+  public function testUniqueColorNameConstraint(): void {
     $this->entity = Color::create([
-      'name' => 'Unique Color Name',
+      'name' => 'primary blue',
       'cssVariable' => '--color-unique',
       'value' => [
         'colorSpace' => 'srgb',
@@ -438,11 +421,8 @@ final class ColorValidationTest extends BetterConfigEntityValidationTestBase {
       'weight' => 0,
     ]);
     $this->assertValidationErrors([
-      'name' => 'Name <em class="placeholder">Unique Color Name</em> is not unique in Folder type "<em class="placeholder">color</em>"',
+      'name' => 'Color name <em class="placeholder">primary blue</em> is already in use by another color.',
     ]);
-
-    // Clean up the folder.
-    $folder->delete();
   }
 
   /**

@@ -1,0 +1,115 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://git.drupalcode.org/project/canvas/-/raw/1.x/component-metadata.schema.json",
+  "title": "Drupal Canvas Code Component metadata",
+  "description": "The authored component.yml envelope. Prop definitions are JSON Schema; target-site support is validated by Drupal.",
+  "type": "object",
+  "required": ["name", "machineName"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "$ref": "#/definitions/nonEmptyString"
+    },
+    "machineName": {
+      "type": "string",
+      "pattern": "^[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*$"
+    },
+    "status": {
+      "type": "boolean"
+    },
+    "required": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/definitions/nonEmptyString"
+      }
+    },
+    "props": {
+      "type": "object",
+      "required": ["properties"],
+      "additionalProperties": false,
+      "properties": {
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/propDefinition"
+          }
+        }
+      }
+    },
+    "slots": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-zA-Z0-9]+([a-zA-Z0-9_-]+)[a-zA-Z0-9]+$"
+      },
+      "additionalProperties": {
+        "$ref": "#/definitions/slotDefinition"
+      }
+    },
+    "dataDependencies": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "entityFields": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/definitions/nonEmptyString"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "propDefinition": {
+      "allOf": [
+        {
+          "$ref": "http://json-schema.org/draft-07/schema#"
+        },
+        {
+          "type": "object",
+          "required": ["title", "type"],
+          "properties": {
+            "title": {
+              "$ref": "#/definitions/nonEmptyString"
+            },
+            "type": {},
+            "x-allowed-entity-type-id": {
+              "not": {}
+            },
+            "x-allowed-bundle": {
+              "not": {}
+            }
+          }
+        }
+      ]
+    },
+    "slotDefinition": {
+      "type": "object",
+      "required": ["title"],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "$ref": "#/definitions/nonEmptyString"
+        },
+        "description": {
+          "$ref": "#/definitions/nonEmptyString"
+        },
+        "examples": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/nonEmptyString"
+          }
+        }
+      }
+    }
+  }
+}

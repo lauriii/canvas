@@ -1,5 +1,11 @@
-import { promises as fs } from 'node:fs';
-import { load as parseYaml } from 'js-yaml';
+import path from 'node:path';
+
+import {
+  ComponentMetadataValidationError,
+  normalizeComponentMetadata,
+  parseComponentMetadata,
+  validateComponentMetadataEnvelope,
+} from './metadata-validation';
 
 import type {
   ComponentMetadata,
@@ -8,108 +14,52 @@ import type {
   DiscoveryWarning,
 } from './types';
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
+function getAuthoredComponentName(value: unknown): string | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return null;
+  }
+  const name = (value as Record<string, unknown>).name;
+  return typeof name === 'string' && name.length > 0 ? name : null;
 }
 
-function validateRawMetadata(
-  raw: unknown,
-  metadataPath: string,
-): asserts raw is Record<string, unknown> {
-  if (!isRecord(raw)) {
-    throw new Error(
-      `Invalid component metadata in ${metadataPath}: expected an object, got ${typeof raw}.`,
-    );
-  }
+/**
+ * Loads, validates, and normalizes one discovered component's metadata.
+ *
+ * @param component - The discovered component whose metadata should be loaded.
+ * @param projectRoot - Root used to make validation error paths readable.
+ * @returns Parsed and normalized component metadata.
+ */
+export async function loadComponentMetadata(
+  component: DiscoveredComponent,
+  projectRoot?: string,
+): Promise<ComponentMetadata> {
+  const displayPath = projectRoot
+    ? path.relative(projectRoot, component.metadataPath)
+    : component.metadataPath;
 
-  if (raw.name !== undefined && typeof raw.name !== 'string') {
-    throw new Error(
-      `Invalid "name" in ${metadataPath}: expected a string, got ${typeof raw.name}.`,
-    );
-  }
-
-  if (raw.machineName !== undefined && typeof raw.machineName !== 'string') {
-    throw new Error(
-      `Invalid "machineName" in ${metadataPath}: expected a string, got ${typeof raw.machineName}.`,
-    );
-  }
-
-  const isEmptyPropsArray = Array.isArray(raw.props) && raw.props.length === 0;
-  if (raw.props !== undefined && !isRecord(raw.props) && !isEmptyPropsArray) {
-    throw new Error(
-      `Invalid "props" in ${metadataPath}: expected an object or empty array, got ${typeof raw.props}.`,
-    );
-  }
-
-  if (raw.required !== undefined && !Array.isArray(raw.required)) {
-    throw new Error(
-      `Invalid "required" in ${metadataPath}: expected an array, got ${typeof raw.required}.`,
-    );
-  }
-
-  if (raw.status !== undefined && typeof raw.status !== 'boolean') {
-    throw new Error(
-      `Invalid "status" in ${metadataPath}: expected a boolean, got ${typeof raw.status}.`,
-    );
-  }
-
-  if (
-    raw.type !== undefined &&
-    raw.type !== 'react' &&
-    raw.type !== 'external'
-  ) {
-    throw new Error(
-      `Invalid "type" in ${metadataPath}: expected "react" or "external", got ${JSON.stringify(raw.type)}.`,
-    );
-  }
-
-  if (raw.dataDependencies !== undefined && !isRecord(raw.dataDependencies)) {
-    throw new Error(
-      `Invalid "dataDependencies" in ${metadataPath}: expected an object, got ${typeof raw.dataDependencies}.`,
-    );
-  }
-
-  // Allow empty array as equivalent to no slots.
-  const isEmptyArray = Array.isArray(raw.slots) && raw.slots.length === 0;
-  if (raw.slots !== undefined && !isRecord(raw.slots) && !isEmptyArray) {
-    throw new Error(
-      `Invalid "slots" in ${metadataPath}: expected an object, got ${typeof raw.slots}.`,
-    );
-  }
-
-  if (isRecord(raw.slots)) {
-    for (const [slotName, slotValue] of Object.entries(raw.slots)) {
-      if (!isRecord(slotValue)) {
-        throw new Error(
-          `Invalid slot "${slotName}" in ${metadataPath}: expected an object, got ${typeof slotValue}.`,
-        );
-      }
-
-      if (typeof slotValue.title !== 'string') {
-        throw new Error(
-          `Missing or invalid "title" in slot "${slotName}" in ${metadataPath}: expected a string, got ${typeof slotValue.title}.`,
-        );
-      }
-
-      if (
-        slotValue.description !== undefined &&
-        typeof slotValue.description !== 'string'
-      ) {
-        throw new Error(
-          `Invalid "description" in slot "${slotName}" in ${metadataPath}: expected a string, got ${typeof slotValue.description}.`,
-        );
-      }
-
-      if (
-        slotValue.examples !== undefined &&
-        !Array.isArray(slotValue.examples)
-      ) {
-        throw new Error(
-          `Invalid "examples" in slot "${slotName}" in ${metadataPath}: expected an array, got ${typeof slotValue.examples}.`,
-        );
-      }
+  let parsed: Awaited<ReturnType<typeof parseComponentMetadata>>;
+  try {
+    parsed = await parseComponentMetadata(component.metadataPath);
+  } catch (error) {
+    if (error instanceof ComponentMetadataValidationError) {
+      throw new ComponentMetadataValidationError(
+        displayPath,
+        error.diagnostics,
+        error.authoredName,
+      );
     }
+    throw error;
   }
+
+  const diagnostics = validateComponentMetadataEnvelope(parsed);
+  if (diagnostics.length > 0) {
+    throw new ComponentMetadataValidationError(
+      displayPath,
+      diagnostics,
+      getAuthoredComponentName(parsed.value),
+    );
+  }
+  return normalizeComponentMetadata(parsed.value);
 }
 
 /**
@@ -123,42 +73,18 @@ export async function loadComponentsMetadata(
   discoveryResult: DiscoveryResult,
 ): Promise<ComponentMetadata[]> {
   return Promise.all(
-    discoveryResult.components.map(async (component) => {
-      const yamlContent = await fs.readFile(component.metadataPath, 'utf-8');
-      const raw = parseYaml(yamlContent);
-
-      validateRawMetadata(raw, component.metadataPath);
-
-      const rawProps =
-        isRecord(raw.props) && isRecord(raw.props.properties)
-          ? (raw.props.properties as ComponentMetadata['props']['properties'])
-          : {};
-
-      const metadata: ComponentMetadata = {
-        // The display label from the metadata file; the discovered
-        // (directory- or file-derived) name is the fallback.
-        name: (raw.name as string) || component.name,
-        machineName: (raw.machineName as string) ?? component.name,
-        status: (raw.status as boolean) ?? true,
-        type: raw.type as ComponentMetadata['type'],
-        props: { properties: rawProps },
-        required: (raw.required as string[]) ?? [],
-        slots: (raw.slots as ComponentMetadata['slots']) ?? {},
-        dataDependencies:
-          (raw.dataDependencies as ComponentMetadata['dataDependencies']) ?? {},
-      };
-
-      return metadata;
-    }),
+    discoveryResult.components.map((component) =>
+      loadComponentMetadata(component, discoveryResult.projectRoot),
+    ),
   );
 }
 
 /**
  * Detects duplicate machineName values across discovered components.
  *
- * @param components - Array of discovered components (from discovery result)
- * @param metadata - Parallel array of component metadata (from loadComponentsMetadata)
- * @returns Array of warnings for any machineName appearing more than once
+ * @param components - Array of components with valid metadata.
+ * @param metadata - Parallel array of component metadata.
+ * @returns Array of warnings for any machineName appearing more than once.
  */
 export function findDuplicateMachineNames(
   components: DiscoveredComponent[],

@@ -189,6 +189,32 @@ final class PlaceComponentsTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Tests that unparseable components YAML produces an instructive error.
+   *
+   * Unquoted date-like values such as 2233-33-33 make Symfony YAML throw a
+   * cryptic invalid-date ParseException. The raw message gives the model
+   * nothing to act on, so it retries the same payload; the tool must instead
+   * tell it to quote string values.
+   */
+  public function testUnparseableComponentsYamlGetsInstructiveError(): void {
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
+    $this->container->get(CanvasAiTempStore::class)->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout('multi_region_empty'));
+
+    $result = $this->getComponentToolOutput([
+      self::buildOperation(<<<YAML
+        - sdc.canvas_test_sdc.heading:
+            props:
+              text: 2233-33-33
+        YAML),
+    ]);
+
+    $normalized = self::normalizeErrorString($result);
+    $this->assertStringStartsWith('Failed to place components:', $normalized);
+    $this->assertStringContainsString('The components value is not valid YAML:', $normalized);
+    $this->assertStringContainsString('Rewrite it with every string value quoted', $normalized);
+  }
+
+  /**
    * Tests placing components with invalid placement parameters.
    */
   #[DataProvider('invalidPlacementDataProvider')]
@@ -359,6 +385,59 @@ final class PlaceComponentsTest extends CanvasKernelTestBase {
         YAML),
     ]);
     $this->assertSame('Failed to place components: Component validation errors: components.0.[js.test-code-component].props.nonexistent_prop: Component `js.test-code-component`: the `nonexistent_prop` prop is not defined. (code garbage)', self::normalizeErrorString($result));
+  }
+
+  /**
+   * Tests the exact readable output text sent back to the agent.
+   */
+  public function testPredictedLayoutSentBackToAgent(): void {
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
+    $this->container->get(CanvasAiTempStore::class)->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout('multi_region_empty'));
+
+    $tool = $this->functionCallManager->createInstance('canvas_ai:place_components');
+    $this->assertInstanceOf(PlaceComponents::class, $tool);
+    $tool->setContextValue('operations', [
+      self::buildOperation(<<<YAML
+        - sdc.canvas_test_sdc.heading:
+            props:
+              text: "Some text"
+              element: "h1"
+        YAML),
+    ]);
+    $tool->execute();
+
+    $assigned_uuids = self::collectOperationUuids($tool->getStructuredOutput());
+    $this->assertCount(1, $assigned_uuids);
+    $uuid = $assigned_uuids[0];
+
+    $expected = <<<TEXT
+      Components placed successfully.
+      The placed components with their assigned UUIDs:
+      operations:
+        -
+          target: content
+          placement: inside
+          reference_uuid: ''
+          components:
+            -
+              sdc.canvas_test_sdc.heading:
+                props:
+                  text: 'Some text'
+                  element: h1
+                uuid: $uuid
+
+      The expected page layout after placement (UUID tree):
+      header: {  }
+      content:
+        $uuid: {  }
+      footer: {  }
+
+      These UUIDs are valid immediately — use them as reference_uuid for the next section in this same turn. The page layout you were given at the start of this turn does not list them yet and will only do so from your next turn, so for anything placed during this turn this result is authoritative and that layout is not. This is expected, not a sign that the layout is missing or that you should wait.
+
+      This result is a continuation point, not a stopping point: if any section from your approved plan is still unplaced, your next output MUST be the next place_components call — a turn with text and no tool call would freeze the build here. Only once every planned section is on the page do you stop and write the closing confirmation.
+      TEXT;
+
+    $this->assertSame($expected, $tool->getReadableOutput());
   }
 
   /**

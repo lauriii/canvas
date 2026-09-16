@@ -32,7 +32,7 @@ describe('config', () => {
         includeContentTemplates: true,
         includePageTemplates: true,
         scope:
-          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant',
+          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant',
         fonts: undefined,
         componentDir: 'components',
       });
@@ -56,7 +56,7 @@ describe('config', () => {
         pagesDir: 'pages',
         pageTemplatesDir: 'page-templates',
         scope:
-          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant',
+          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant',
         siteUrl: '',
         userAgent: '',
       });
@@ -83,7 +83,7 @@ describe('config', () => {
         pagesDir: 'pages',
         pageTemplatesDir: 'page-templates',
         scope:
-          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant',
+          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant',
         siteUrl: 'https://example.com',
         userAgent: '',
       });
@@ -259,7 +259,7 @@ describe('config', () => {
       vi.stubEnv('CANVAS_CLIENT_SECRET', 'test-secret');
       vi.stubEnv(
         'CANVAS_SCOPE',
-        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:page_variant',
+        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:page_variant',
       );
       vi.stubEnv('CANVAS_INCLUDE_PAGES', 'true');
       vi.stubEnv('CANVAS_USER_AGENT', 'simpletest123456');
@@ -283,7 +283,7 @@ describe('config', () => {
         pagesDir: 'pages',
         pageTemplatesDir: 'page-templates',
         scope:
-          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:page_variant',
+          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:page_variant',
         siteUrl: 'https://test.example.com',
         userAgent: 'simpletest123456',
       });
@@ -309,7 +309,7 @@ describe('config', () => {
       expect(getConfig().includeContentTemplates).toBe(false);
       expect(getConfig().includePageTemplates).toBe(false);
       expect(getConfig().scope).toBe(
-        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view',
+        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view',
       );
     });
 
@@ -329,7 +329,7 @@ describe('config', () => {
       // they stay enabled.
       expect(getConfig().includePageTemplates).toBe(true);
       expect(getConfig().scope).toBe(
-        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page_variant',
+        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:page_variant',
       );
     });
 
@@ -349,7 +349,7 @@ describe('config', () => {
         includePages: true,
         includePageTemplates: true,
         scope:
-          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant',
+          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant',
         componentDir: 'src/components',
         contentTemplatesDir: 'content-templates',
         fonts: undefined,
@@ -368,7 +368,7 @@ describe('config', () => {
 
       expect(getConfig().includePages).toBe(true);
       expect(getConfig().scope).toBe(
-        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant',
+        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant',
       );
     });
 
@@ -382,7 +382,7 @@ describe('config', () => {
 
       expect(getConfig().includePageTemplates).toBe(true);
       expect(getConfig().scope).toBe(
-        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant',
+        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant',
       );
     });
   });

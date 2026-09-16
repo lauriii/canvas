@@ -1,0 +1,32 @@
+{
+  "status": true,
+  "should_continue": false,
+  "progress": "Placing the hero section.\n\nPlacing the closing section.",
+  "message": "The landing page sections are in place.",
+  "operations": [
+    {
+      "operation": "ADD",
+      "components": [
+        {
+          "id": "sdc.canvas_test_sdc.heading",
+          "uuid": "00000000-0000-4000-8000-000000000004",
+          "nodePath": [0, 3],
+          "fieldValues": {
+            "text": "Ready to launch your page?",
+            "element": "h2",
+            "style": "secondary"
+          }
+        },
+        {
+          "id": "sdc.canvas_test_sdc.my-cta",
+          "uuid": "00000000-0000-4000-8000-000000000005",
+          "nodePath": [0, 4],
+          "fieldValues": {
+            "text": "Contact the Canvas team",
+            "href": "https://example.com/contact"
+          }
+        }
+      ]
+    }
+  ]
+}

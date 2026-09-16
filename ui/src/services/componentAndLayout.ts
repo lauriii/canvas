@@ -6,8 +6,8 @@ import {
   setTranslations,
 } from '@/features/layout/layoutModelSlice';
 import {
+  resetPageData,
   setInitialPageData,
-  setPageData,
 } from '@/features/pageData/pageDataSlice';
 import {
   setHtml,
@@ -224,7 +224,15 @@ export const componentAndLayoutApi = createApi({
           // active entity form fields or preview HTML — those are managed
           // separately by the snapshot preview query.
           if (!arg.language) {
-            dispatch(setInitialPageData(entity_form_fields));
+            dispatch(
+              setInitialPageData({
+                values: entity_form_fields,
+                owner: {
+                  entityType: arg.entityType,
+                  entityId: arg.entityId,
+                },
+              }),
+            );
             // Clear any stale snapshot (e.g. from a prior template preview) so
             // selectPreviewHtml returns the fresh html.
             dispatch(setSnapshotHTML(''));
@@ -238,7 +246,7 @@ export const componentAndLayoutApi = createApi({
           // Translated-language query failures should not affect the
           // editor's active entity form fields.
           if (!arg.language) {
-            dispatch(setPageData({}));
+            dispatch(resetPageData());
           }
         }
       },
@@ -284,7 +292,12 @@ export const componentAndLayoutApi = createApi({
             data: { entity_form_fields, html, autoSaves },
             meta,
           } = await queryFulfilled;
-          dispatch(setInitialPageData(entity_form_fields));
+          dispatch(
+            setInitialPageData({
+              values: entity_form_fields,
+              owner: null,
+            }),
+          );
           // Clear any stale snapshot (e.g. from a prior language/template
           // preview) so selectPreviewHtml returns this fresh editor html.
           // Mirrors getPageLayout; without it a leftover preview snapshot masks
@@ -294,7 +307,7 @@ export const componentAndLayoutApi = createApi({
           dispatch(setHtml(html));
           handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         } catch (err) {
-          dispatch(setPageData({}));
+          dispatch(resetPageData());
         }
       },
     }),
@@ -307,7 +320,12 @@ export const componentAndLayoutApi = createApi({
             data: { entity_form_fields, html, autoSaves },
             meta,
           } = await queryFulfilled;
-          dispatch(setInitialPageData(entity_form_fields));
+          dispatch(
+            setInitialPageData({
+              values: entity_form_fields,
+              owner: null,
+            }),
+          );
           // Clear any stale snapshot (e.g. from a prior language/template
           // preview) so selectPreviewHtml returns this fresh editor html.
           // Mirrors getTemplateLayout; without it a leftover preview snapshot
@@ -316,7 +334,7 @@ export const componentAndLayoutApi = createApi({
           dispatch(setHtml(html));
           handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         } catch (err) {
-          dispatch(setPageData({}));
+          dispatch(resetPageData());
         }
       },
     }),

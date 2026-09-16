@@ -1,0 +1,9 @@
+/* Cap the page title so a long title cannot expand the topbar or
+   overlap the surrounding controls. */
+.pageTitle {
+  display: block;
+  overflow: hidden;
+  max-width: 118px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

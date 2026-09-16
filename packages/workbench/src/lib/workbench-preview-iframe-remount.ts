@@ -1,3 +1,4 @@
+import { isComponentMetadataPath } from './component-metadata-path';
 import { isTopLevelContentTemplateSpecPath } from './content-template-spec-path';
 import {
   isTopLevelPageSpecPath,
@@ -5,7 +6,10 @@ import {
 } from './page-spec-path';
 
 import type { DiscoveryResult } from './discovery-client';
-import type { PreviewManifest } from './preview-contract';
+import type {
+  PreviewManifest,
+  PreviewManifestComponent,
+} from './preview-contract';
 
 /**
  * Stable structural fingerprint for discovery + manifest: global CSS URL, sorted
@@ -37,6 +41,21 @@ export function computeWorkbenchStructuralFingerprint(
   return `${globalCss}\n${componentNames}\n${pageSlugs}\n${contentTemplateSlugs}\n${pageTemplateIds}`;
 }
 
+export function shouldHideComponentPreviewFrame(
+  component: Pick<
+    PreviewManifestComponent,
+    'metadataErrors' | 'previewable'
+  > | null,
+  expectedRenderId: string | null,
+  settledRenderId: string | null,
+): boolean {
+  return Boolean(
+    component &&
+    (component.metadataErrors.length > 0 ||
+      (component.previewable && settledRenderId !== expectedRenderId)),
+  );
+}
+
 export interface WorkbenchHotPayload {
   reloadFrameOnly?: boolean;
   filePath?: string;
@@ -45,8 +64,8 @@ export interface WorkbenchHotPayload {
 
 /**
  * When a full manifest refresh runs (`reloadFrameOnly: false`), the shell can
- * skip remounting the preview iframe if the change is an in-place edit to a
- * page spec and discovery structure is unchanged.
+ * skip remounting the preview iframe if the change is an in-place edit to
+ * component metadata or a page spec and discovery structure is unchanged.
  */
 export function shouldSkipWorkbenchIframeRemount(params: {
   payload: WorkbenchHotPayload | undefined;
@@ -64,6 +83,7 @@ export function shouldSkipWorkbenchIframeRemount(params: {
   }
 
   if (
+    !isComponentMetadataPath(payload.filePath) &&
     !isTopLevelPageSpecPath(payload.filePath) &&
     !isTopLevelContentTemplateSpecPath(payload.filePath) &&
     !isTopLevelPageTemplateSpecPath(payload.filePath)

@@ -601,11 +601,13 @@ Upload external media referenced in local page specs, content templates, and
 page templates to Drupal and store provenance metadata so that those resources
 can be pushed.
 
-When page specs, content templates, or page templates contain image props with
-external URLs (e.g. `https://example.com/photo.jpg`), they cannot be pushed
-directly because Drupal expects a media entity reference. This command downloads
-each external image, uploads it to Drupal as a media entity, and updates the
-local spec with the resolved image data and provenance (`target_id`).
+When page specs, content templates, or page templates contain image or document
+props with external URLs (e.g. `https://example.com/photo.jpg` or
+`https://example.com/report.pdf`), they cannot be pushed directly because Drupal
+expects a media entity reference. This command downloads each external file,
+uploads it to Drupal as a media entity of the matching type (`image` or
+`document`), and updates the local spec with the resolved media data and
+provenance (`target_id`).
 
 **Usage:**
 

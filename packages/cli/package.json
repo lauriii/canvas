@@ -1,6 +1,6 @@
 {
   "name": "@drupal-canvas/cli",
-  "version": "0.23.1",
+  "version": "0.24.0",
   "description": "CLI tool for managing Drupal Canvas code components",
   "license": "GPL-2.0-or-later",
   "repository": {
@@ -36,6 +36,7 @@
   "devDependencies": {
     "@drupal-canvas/auth": "*",
     "@drupal-canvas/discovery": "*",
+    "@drupal-canvas/json-schema-validation": "*",
     "@drupal-canvas/vite-compat": "*",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.0.0",
@@ -49,15 +50,13 @@
   "dependencies": {
     "@babel/parser": "^7.26.9",
     "@clack/prompts": "^0.11.0",
-    "@drupal-canvas/eslint-config": "^0.9.0",
+    "@drupal-canvas/eslint-config": "^0.10.0",
     "@swc/wasm": "^1.12.1",
-    "ajv": "^8.18.0",
-    "ajv-formats": "^3.0.1",
     "axios": "^1.16.1",
     "chalk": "^5.4.1",
     "commander": "^14.0.0",
     "dotenv": "^16.5.0",
-    "drupal-canvas": "^0.5.0",
+    "drupal-canvas": "^0.5.1",
     "eslint": "^9.22.0",
     "js-yaml": "^4.1.0",
     "lightningcss": "^1.30.1",
@@ -68,6 +67,7 @@
     "unifont": "^0.7.4",
     "vite": "^6.3.5",
     "vite-plugin-svgr": "^4.5.0",
-    "woff2-encoder": "^2.0.0"
+    "woff2-encoder": "^2.0.0",
+    "yaml": "^2.8.3"
   }
 }

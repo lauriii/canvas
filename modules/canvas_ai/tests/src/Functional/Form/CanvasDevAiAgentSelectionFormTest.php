@@ -78,18 +78,21 @@ final class CanvasDevAiAgentSelectionFormTest extends BrowserTestBase {
     $this->drupalGet(Url::fromRoute(self::ROUTE_NAME));
     $this->assertSession()->statusCodeEquals(200);
     $this->assertSession()->pageTextContains('Agents & Tools');
+    // The shipped main agent must be offered, otherwise saving the form would
+    // silently replace it.
+    $this->assertSession()->optionExists('main_agent', 'canvas_agent');
 
     $this->submitForm([
-      'main_agent' => 'canvas_page_builder_agent',
+      'main_agent' => 'canvas_dev_page_builder_agent',
+      'tools[canvas_agent]' => FALSE,
       'tools[canvas_component_agent]' => TRUE,
-      'tools[canvas_ai_orchestrator]' => FALSE,
-      'tools[canvas_page_builder_agent]' => FALSE,
+      'tools[canvas_dev_page_builder_agent]' => FALSE,
     ], 'Save configuration');
 
     $this->assertSession()->pageTextContains('The configuration options have been saved.');
 
     $config = $this->config('canvas_dev_ai.settings');
-    $this->assertSame('canvas_page_builder_agent', $config->get('main_agent'));
+    $this->assertSame('canvas_dev_page_builder_agent', $config->get('main_agent'));
     $this->assertSame(['canvas_component_agent'], $config->get('tools'));
   }
 
@@ -100,8 +103,8 @@ final class CanvasDevAiAgentSelectionFormTest extends BrowserTestBase {
     $this->drupalGet(Url::fromRoute(self::ROUTE_NAME));
 
     $this->submitForm([
-      'main_agent' => 'canvas_component_agent',
-      'tools[canvas_component_agent]' => TRUE,
+      'main_agent' => 'canvas_agent',
+      'tools[canvas_agent]' => TRUE,
     ], 'Save configuration');
 
     $this->assertSession()->pageTextContains('The main agent cannot also be offered as a Tool.');

@@ -404,6 +404,51 @@ paths:
                       - No auto-save data found for this entity.
         '413':
           $ref: '#/components/responses/ClientErrorResponse'
+  /canvas/api/v0/code-components/validate:
+    post:
+      summary: Validates a normalized Code Component payload without saving it
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/UpdatedCodeComponent'
+              required:
+                - name
+                - machineName
+                - status
+                - required
+                - props
+                - slots
+                - dataDependencies
+            examples:
+              minimal component:
+                value:
+                  machineName: example
+                  name: Example
+                  status: true
+                  required: []
+                  props: {}
+                  slots: {}
+                  sourceCodeJs: 'export default function Example() {}'
+                  sourceCodeCss: ''
+                  compiledJs: 'export default function Example() {}'
+                  compiledCss: ''
+                  importedJsComponents: []
+                  dataDependencies: {}
+      responses:
+        '204':
+          description: The target site accepts the payload metadata.
+        '401':
+          description: Unauthorized (unauthenticated) response.
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          description: Access denied response.
+          $ref: '#/components/responses/AuthenticationErrorResponse'
+        '422':
+          description: The target site rejected the payload.
+          $ref: '#/components/responses/ClientErrorResponse'
   /canvas/api/v0/config/asset_library:
     description: Endpoint for managing asset libraries.
     get:
@@ -1875,6 +1920,88 @@ paths:
       responses:
         '204':
           description: Content deleted successfully
+  '/canvas/api/v0/content/canvas_page/{entityId}/langcode':
+    description: Endpoint for changing the primary language of a canvas_page that has never been published.
+    patch:
+      summary: Changes the langcode of a never-published canvas_page and migrates its auto-save entry.
+      parameters:
+        - $ref: '#/components/parameters/entityId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - langcode
+              properties:
+                langcode:
+                  type: string
+                  description: The new langcode. Must be an enabled language.
+            examples:
+              "switch to German":
+                value:
+                  langcode: de
+      responses:
+        '200':
+          description: Langcode updated successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - langcode
+                properties:
+                  langcode:
+                    type: string
+              examples:
+                "switched":
+                  value:
+                    langcode: de
+        '400':
+          description: Missing, empty or unknown langcode.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Error'
+                additionalProperties: false
+              examples:
+                unknownLanguage:
+                  value:
+                    errors:
+                      - detail: 'Unknown language: xx.'
+                        source:
+                          pointer: langcode
+        '404':
+          description: Content entity not found.
+        '422':
+          description: The page has been published before, or already has translations.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Error'
+                additionalProperties: false
+              examples:
+                publishedBefore:
+                  value:
+                    errors:
+                      - detail: Language can only be changed on a draft page that has never been published.
+                        source:
+                          pointer: '1'
   '/canvas/api/v0/content/canvas_page/{entityId}/translations':
     description: Endpoint for deleting a specific translation of a Page content entity. Note that the path can be prefixed with a langcode to negotiate deleting that particular translation.
     delete:
@@ -2757,7 +2884,7 @@ paths:
                     properties:
                       available:
                         type: array
-                        description: Language codes with existing translations.
+                        description: Language codes the entity exists in. The first entry is always the entity's own (primary) language, followed by its translations.
                         items:
                           type: string
                   isNew:
@@ -2978,10 +3105,13 @@ paths:
                   description: The file to upload
                 title:
                   type: string
-                  description: Title for the media (used for image media types)
+                  description: The media entity name. Image media types also store it as the image field's "title" property.
                 alt:
                   type: string
                   description: Alt text for the media (used for image media types)
+                description:
+                  type: string
+                  description: Stored as the file field's "description" property (used for document media types)
             examples:
               image-upload:
                 summary: Upload an image with alt text
@@ -2989,6 +3119,12 @@ paths:
                   file: (binary content of sunset.jpg)
                   title: Sunset
                   alt: A vibrant sunset over the horizon
+              document-upload:
+                summary: Upload a document
+                value:
+                  file: (binary content of annual-report.pdf)
+                  title: Annual Report
+                  description: Fiscal year 2025 results
       responses:
         '201':
           description: Media entity created successfully
@@ -3009,22 +3145,50 @@ paths:
                     format: uuid
                     description: The media entity UUID
                   inputs_resolved:
-                    type: object
                     description: Resolved input values for use in Canvas components
-                    properties:
-                      src:
-                        type: string
-                        format: uri-reference
-                        description: Image URL with ?alternateWidths query parameter
-                      alt:
-                        type: string
-                        description: Alt text
-                      width:
-                        type: integer
-                        description: Image width in pixels
-                      height:
-                        type: integer
-                        description: Image height in pixels
+                    oneOf:
+                      - type: object
+                        description: Image media types, matching the image object shape
+                        required:
+                          - src
+                          - alt
+                          - width
+                          - height
+                        properties:
+                          src:
+                            type: string
+                            format: uri-reference
+                            description: Image URL with ?alternateWidths query parameter
+                          alt:
+                            type: string
+                            description: Alt text
+                          width:
+                            type: integer
+                            description: Image width in pixels
+                          height:
+                            type: integer
+                            description: Image height in pixels
+                      - type: object
+                        description: Document media types, matching the document object shape
+                        required:
+                          - src
+                          - filename
+                          - filesize
+                          - mimetype
+                        properties:
+                          src:
+                            type: string
+                            format: uri-reference
+                            description: Document file URL
+                          filename:
+                            type: string
+                            description: File name
+                          filesize:
+                            type: integer
+                            description: File size in bytes
+                          mimetype:
+                            type: string
+                            description: MIME type
               examples:
                 image-upload:
                   summary: Successful image upload
@@ -3036,6 +3200,16 @@ paths:
                       alt: A vibrant sunset over the horizon
                       width: 400
                       height: 300
+                document-upload:
+                  summary: Successful document upload
+                  value:
+                    id: 6
+                    uuid: 8f0a3c2d-1e4b-4b6a-9c7d-2e5f8a1b3c4d
+                    inputs_resolved:
+                      src: '/sites/default/files/2026-03/annual-report.pdf'
+                      filename: annual-report.pdf
+                      filesize: 25600
+                      mimetype: application/pdf
         '400':
           $ref: '#/components/responses/ClientErrorResponse'
         '403':

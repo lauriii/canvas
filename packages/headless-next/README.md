@@ -91,6 +91,9 @@ path resolved through Drupal routing. Both are draft-session-aware. Render
 before page rendering with `permanentRedirect()` for permanent redirects and
 `redirect()` for other redirects.
 
+`fetchEntity({ type, id, viewMode })` renders one content entity without
+page-level route or head data. Use it for embedded renders such as teaser cards.
+
 `toNextMetadata()` maps the Canvas head entries that Next.js Metadata can
 represent. It omits entries that Next.js Metadata cannot represent. Render
 omitted entries as native head elements in the page or layout.

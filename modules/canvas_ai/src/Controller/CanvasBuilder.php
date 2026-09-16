@@ -258,6 +258,12 @@ final class CanvasBuilder extends ControllerBase {
     $response = [];
     if ($solvability == AiAgentInterface::JOB_NOT_SOLVABLE) {
       $message = 'Something went wrong';
+      if (method_exists($agent, 'getLastError')) {
+        $error = $agent->getLastError();
+        if (!empty($error)) {
+          $message = $error;
+        }
+      }
     }
     elseif ($solvability == AiAgentInterface::JOB_SHOULD_ANSWER_QUESTION) {
       $message = $agent->answerQuestion();

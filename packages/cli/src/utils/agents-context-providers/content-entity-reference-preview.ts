@@ -1,5 +1,6 @@
 import {
   discoverCanvasProject,
+  getContentEntityReferenceTarget,
   loadComponentsMetadata,
 } from '@drupal-canvas/discovery';
 
@@ -139,14 +140,12 @@ async function resolveContentEntityReferencePreview(
     ) {
       continue;
     }
-    const target = getContentEntityReferencePropTarget(
-      component.props?.[propName],
-    );
-    if (!target) {
+    const target = getContentEntityReferenceTarget(expressions);
+    if (!target?.bundle) {
       props[propName] = {
         entityFields: expressions,
         error:
-          'Missing x-allowed-entity-type-id or x-allowed-bundle on the content-entity-reference prop metadata.',
+          'Unable to derive a bundled entity target from dataDependencies.entityFields.',
       };
       continue;
     }
@@ -183,19 +182,4 @@ async function resolveContentEntityReferencePreview(
     component: component.machineName || component.name || componentKey,
     props,
   };
-}
-
-function getContentEntityReferencePropTarget(
-  prop: unknown,
-): { entityTypeId: string; bundle: string } | null {
-  if (!prop || typeof prop !== 'object' || Array.isArray(prop)) {
-    return null;
-  }
-  const record = prop as Record<string, unknown>;
-  const entityTypeId = record['x-allowed-entity-type-id'];
-  const bundle = record['x-allowed-bundle'];
-  if (typeof entityTypeId !== 'string' || typeof bundle !== 'string') {
-    return null;
-  }
-  return { entityTypeId, bundle };
 }

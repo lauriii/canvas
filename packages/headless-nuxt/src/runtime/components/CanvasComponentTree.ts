@@ -12,9 +12,11 @@ import { createCommentVNode, defineComponent, Fragment, h } from 'vue';
 import {
   CANVAS_EMPTY_REGION_PLACEHOLDER_CLASS,
   CANVAS_EMPTY_SLOT_PLACEHOLDER_CLASS,
+  CANVAS_PREVIEW_CONTENT_REGION_ELEMENT,
   findCanvasComponent,
   formatCanvasCommentMarker,
   getCanvasComponentRenderData,
+  hasCanvasPreviewContentRegion,
   isCanvasComponentTreeDraft,
   isCanvasComponentTreeEmpty,
   isCanvasComponentTreeSlotEmpty,
@@ -47,7 +49,12 @@ export default defineComponent({
   setup(props) {
     return () => {
       const editor = isCanvasComponentTreeDraft(props.tree);
-      const emptyRegion = editor && isCanvasComponentTreeEmpty(props.tree);
+      const previewContentRegion =
+        editor && hasCanvasPreviewContentRegion(props.tree);
+      const emptyRegion =
+        editor &&
+        !previewContentRegion &&
+        isCanvasComponentTreeEmpty(props.tree);
       const content = h(
         Fragment,
         { key: 'tree' },
@@ -62,7 +69,7 @@ export default defineComponent({
             ]
           : [],
       );
-      return editor
+      return editor && !previewContentRegion
         ? h(Fragment, { key: 'region:content' }, [
             marker({ type: 'region', position: 'start', id: 'content' }),
             ...(emptyRegion ? [emptyRegionPlaceholder()] : []),
@@ -94,24 +101,29 @@ function renderElement(
     empty: isCanvasComponentTreeSlotEmpty(value),
   }));
   const componentData = getCanvasComponentRenderData(node);
+  const structuralChildren = slots.flatMap(({ name, children }) =>
+    children.map((child, index) =>
+      typeof child === 'string'
+        ? renderMarkup(child, `${path}:${name}:${index}`)
+        : renderElement(child, components, `${path}:${name}:${index}`, editor),
+    ),
+  );
+
+  if (node.element === CANVAS_PREVIEW_CONTENT_REGION_ELEMENT) {
+    return editor
+      ? h(Fragment, { key: path }, [
+          marker({ type: 'region', position: 'start', id: 'content' }),
+          ...(isCanvasComponentTreeEmpty(node)
+            ? [emptyRegionPlaceholder()]
+            : []),
+          ...structuralChildren,
+          marker({ type: 'region', position: 'end', id: 'content' }),
+        ])
+      : h(Fragment, { key: path }, structuralChildren);
+  }
 
   if (node.element === 'drupal-markup' || !componentData) {
-    return h(
-      Fragment,
-      { key: path },
-      slots.flatMap(({ name, children }) =>
-        children.map((child, index) =>
-          typeof child === 'string'
-            ? renderMarkup(child, `${path}:${name}:${index}`)
-            : renderElement(
-                child,
-                components,
-                `${path}:${name}:${index}`,
-                editor,
-              ),
-        ),
-      ),
-    );
+    return h(Fragment, { key: path }, structuralChildren);
   }
 
   const component = findCanvasComponent(components, componentData);

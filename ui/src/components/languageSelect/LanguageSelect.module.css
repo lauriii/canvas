@@ -7,7 +7,12 @@
 }
 
 .languageName {
+  display: block;
+  overflow: hidden;
+  max-width: 118px;
   padding-inline-start: 4px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .dropdown.dropdown {

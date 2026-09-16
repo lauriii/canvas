@@ -32,24 +32,24 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function getContentEntityReferencePropTarget(
-  prop: unknown,
+function getPreviewTarget(
+  expressions: string[] | undefined,
 ): ContentEntityReferenceTarget | null {
-  if (!isRecord(prop)) {
+  const expression = expressions?.[0];
+  if (typeof expression !== 'string') {
     return null;
   }
-  const entityTypeId = prop['x-allowed-entity-type-id'];
-  const bundle = prop['x-allowed-bundle'];
-  if (typeof entityTypeId !== 'string' || typeof bundle !== 'string') {
+
+  // Drupal authoritatively parses the complete expression. Workbench only
+  // reads the leading bundled host target needed by its preview picker.
+  const match = expression.match(/^[^␜]*␜entity:([^:␝]+):([^␝]+)␝/u);
+  if (!match?.[1] || !match[2]) {
     return null;
   }
-  const resolvedTarget = {
-    entityTypeId,
-    bundle,
-  };
   return {
-    ...resolvedTarget,
-    key: `${resolvedTarget.entityTypeId}:${resolvedTarget.bundle}`,
+    entityTypeId: match[1],
+    bundle: match[2],
+    key: `${match[1]}:${match[2]}`,
   };
 }
 
@@ -69,7 +69,7 @@ export function getContentEntityReferencePropPreviews(
     if (!expressions) {
       continue;
     }
-    const target = getContentEntityReferencePropTarget(props?.[propName]);
+    const target = getPreviewTarget(expressions);
     if (target) {
       previews.push({
         propName,
@@ -83,7 +83,6 @@ export function getContentEntityReferencePropPreviews(
 
 export function groupEntityFieldsByProp(
   entityFields: Record<string, string[]> | undefined,
-  props: Record<string, unknown> | undefined,
   selectedEntityIds: Record<string, string | null>,
 ): Array<{
   propName: string;
@@ -98,7 +97,7 @@ export function groupEntityFieldsByProp(
     entityFields: Record<string, string[]>;
   }> = [];
   for (const [propName, expressions] of Object.entries(entityFields ?? {})) {
-    const target = getContentEntityReferencePropTarget(props?.[propName]);
+    const target = getPreviewTarget(expressions);
     if (!target) {
       continue;
     }
@@ -180,9 +179,7 @@ export function getContentEntityReferenceSpecResolutionJobs(
       if (!entityId) {
         continue;
       }
-      const target = getContentEntityReferencePropTarget(
-        component.props[propName],
-      );
+      const target = getPreviewTarget(expressions);
       if (!target) {
         continue;
       }

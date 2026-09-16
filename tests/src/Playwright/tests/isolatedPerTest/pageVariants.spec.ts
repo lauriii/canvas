@@ -30,6 +30,27 @@ async function createMarketingVariant(page: Page) {
   await expect(page.getByTestId('canvas-page-variant-marketing')).toBeVisible();
 }
 
+async function openVariantMenu(page: Page, id: string) {
+  const row = page.getByTestId(`canvas-page-variant-${id}`);
+  await row.hover();
+  await row.getByLabel('Open contextual menu').click();
+  const menu = page.getByRole('menu');
+  await expect(menu).toBeVisible();
+  return menu;
+}
+
+function waitForVariantMutation(
+  page: Page,
+  id: string,
+  method: 'PATCH' | 'DELETE',
+) {
+  return page.waitForResponse(
+    (response) =>
+      response.url().includes(`/canvas/api/v0/config/page_variant/${id}`) &&
+      response.request().method() === method,
+  );
+}
+
 test.describe('Page variants', () => {
   test('create, edit, and publish a page variant', async ({
     page,
@@ -83,7 +104,7 @@ test.describe('Page variants', () => {
     await canvas.publishAllChanges(['Marketing']);
   });
 
-  test('disable and enable a page variant', async ({
+  test('refresh the Page data form after page template mutations', async ({
     page,
     drupal,
     canvas,
@@ -91,35 +112,7 @@ test.describe('Page variants', () => {
     await drupal.login({ username: 'editor', password: 'editor' });
     const canvasPage = await canvas.createCanvas({ title: 'Disable host' });
     await canvas.openCanvas(canvasPage);
-    await createMarketingVariant(page);
 
-    const row = page.getByTestId('canvas-page-variant-marketing');
-    const openRowMenu = async () => {
-      await row.hover();
-      await row.getByLabel('Open contextual menu').click();
-      const menu = page.getByRole('menu');
-      await expect(menu).toBeVisible();
-      return menu;
-    };
-    const patched = () =>
-      page.waitForResponse(
-        (response) =>
-          response
-            .url()
-            .includes('/canvas/api/v0/config/page_variant/marketing') &&
-          response.request().method() === 'PATCH',
-      );
-
-    // Disable the variant from its row menu; the row shows a badge.
-    let menu = await openRowMenu();
-    let patch = patched();
-    await menu.getByRole('menuitem', { name: 'Disable' }).click();
-    await patch;
-    await expect(row.getByText('Disabled')).toBeVisible();
-
-    // A disabled variant cannot be selected for a page: it is omitted from
-    // the Page data form's "Page template" options.
-    await canvas.openCanvas(canvasPage);
     const pageDataForm = page.getByTestId('canvas-page-data-form');
     await pageDataForm
       .locator('button')
@@ -131,30 +124,23 @@ test.describe('Page variants', () => {
       variantSelect.locator('option', { hasText: 'Marketing' }),
     ).toHaveCount(0);
 
-    // Re-enabling makes the variant selectable again. Open another panel
-    // first: the
-    // templates list can get stuck loading when it mounts with an already
-    // fulfilled variants cache (a pre-existing panel bug); remounting it
-    // through a toggle reliably shows the list.
-    await page
-      .getByTestId('canvas-side-menu')
-      .getByRole('button', { name: 'Templates' })
-      .click();
-    await page
-      .getByTestId('canvas-side-menu')
-      .getByRole('button', { name: 'Pages' })
-      .click();
-    await page
-      .getByTestId('canvas-side-menu')
-      .getByRole('button', { name: 'Templates' })
-      .click();
-    await expect(row).toBeVisible();
-    menu = await openRowMenu();
-    patch = patched();
-    await menu.getByRole('menuitem', { name: 'Enable' }).click();
-    await patch;
-    await expect(row.getByText('Disabled')).toHaveCount(0);
-    await canvas.openCanvas(canvasPage);
+    // Creating a template refreshes the form without navigating. Creation
+    // collapses the Page template section, so open it again to inspect the
+    // refreshed options.
+    const formRefreshed = page.waitForResponse(
+      async (response) =>
+        response
+          .url()
+          .includes(
+            `/canvas/api/v0/form/content-entity/${canvasPage.entity_type}/${canvasPage.entity_id}/default`,
+          ) &&
+        response.request().method() === 'GET' &&
+        response.ok() &&
+        (await response.text()).includes('Marketing'),
+    );
+    await createMarketingVariant(page);
+    await formRefreshed;
+    const row = page.getByTestId('canvas-page-variant-marketing');
     await pageDataForm
       .locator('button')
       .filter({ hasText: 'Page template' })
@@ -163,6 +149,172 @@ test.describe('Page variants', () => {
     await expect(
       variantSelect.locator('option', { hasText: 'Marketing' }),
     ).toHaveCount(1);
+
+    const selectionSaved = page.waitForResponse(
+      (response) =>
+        response.url().includes('/canvas/api/v0/layout/canvas_page/') &&
+        response.request().method() === 'POST' &&
+        (response.request().postData() ?? '').includes('marketing'),
+    );
+    await variantSelect.selectOption('marketing');
+    await selectionSaved;
+
+    // Disable the variant from its row menu. The row and the already-open
+    // page form update without navigating away. Its pending selection is
+    // reset and saved so the page remains publishable.
+    const layoutRefreshed = page.waitForResponse(
+      (response) =>
+        response.url().includes('/canvas/api/v0/layout/canvas_page/') &&
+        response.request().method() === 'GET',
+    );
+    let menu = await openVariantMenu(page, 'marketing');
+    let patch = waitForVariantMutation(page, 'marketing', 'PATCH');
+    await menu.getByRole('menuitem', { name: 'Disable' }).click();
+    await patch;
+    const refreshedLayout = await layoutRefreshed;
+    expect(
+      (await refreshedLayout.json()).entity_form_fields,
+    ).not.toHaveProperty('page_variant');
+    await expect(row.getByText('Disabled')).toBeVisible();
+    await expect(
+      variantSelect.locator('option', { hasText: 'Marketing' }),
+    ).toHaveCount(0);
+    await expect(variantSelect).toHaveValue('_none');
+    await canvas.publishAllChanges();
+
+    // Re-enabling refreshes the same form and makes the option selectable.
+    menu = await openVariantMenu(page, 'marketing');
+    patch = waitForVariantMutation(page, 'marketing', 'PATCH');
+    await menu.getByRole('menuitem', { name: 'Enable' }).click();
+    await patch;
+    await expect(row.getByText('Disabled')).toHaveCount(0);
+    await expect(
+      variantSelect.locator('option', { hasText: 'Marketing' }),
+    ).toHaveCount(1);
+
+    // A disabled template remains selected when it was previously published
+    // for this page.
+    const publishedSelectionSaved = page.waitForResponse(
+      (response) =>
+        response.url().includes('/canvas/api/v0/layout/canvas_page/') &&
+        response.request().method() === 'POST' &&
+        (response.request().postData() ?? '').includes('marketing'),
+    );
+    await variantSelect.selectOption('marketing');
+    await publishedSelectionSaved;
+    const publishedFormRefreshed = page.waitForResponse(
+      (response) =>
+        response
+          .url()
+          .includes(
+            `/canvas/api/v0/form/content-entity/${canvasPage.entity_type}/${canvasPage.entity_id}/default`,
+          ) &&
+        response.request().method() === 'GET' &&
+        response.ok(),
+    );
+    await canvas.publishAllChanges();
+    await publishedFormRefreshed;
+    await page.getByLabel('Close').click();
+    await pageDataForm
+      .locator('button')
+      .filter({ hasText: 'Page template' })
+      .click();
+    await expect(variantSelect).toHaveValue('marketing');
+
+    menu = await openVariantMenu(page, 'marketing');
+    patch = waitForVariantMutation(page, 'marketing', 'PATCH');
+    await menu.getByRole('menuitem', { name: 'Disable' }).click();
+    await patch;
+    await expect(row.getByText('Disabled')).toBeVisible();
+    await expect(
+      variantSelect.locator('option', { hasText: 'Marketing' }),
+    ).toHaveCount(1);
+    await expect(variantSelect).toHaveValue('marketing');
+
+    // Deleting the selected template removes it and restores Site default.
+    menu = await openVariantMenu(page, 'marketing');
+    await menu.getByRole('menuitem', { name: 'Delete' }).click();
+    const deleted = waitForVariantMutation(page, 'marketing', 'DELETE');
+    await page.getByRole('button', { name: 'Delete template' }).click();
+    await deleted;
+    await expect(row).toHaveCount(0);
+    await expect(
+      variantSelect.locator('option', { hasText: 'Marketing' }),
+    ).toHaveCount(0);
+    await expect(variantSelect).toHaveValue('_none');
+  });
+
+  test('re-enabling a template revalidates a pending page selection', async ({
+    page,
+    drupal,
+    canvas,
+  }) => {
+    await drupal.login({ username: 'editor', password: 'editor' });
+    const canvasPage = await canvas.createCanvas({
+      title: 'Re-enable selection host',
+    });
+    await canvas.openCanvas(canvasPage);
+    await createMarketingVariant(page);
+    await canvas.openCanvas(canvasPage);
+
+    const pageDataForm = page.getByTestId('canvas-page-data-form');
+    await pageDataForm
+      .locator('button')
+      .filter({ hasText: 'Page template' })
+      .click();
+    const variantSelect = pageDataForm.getByLabel('Page template');
+    await expect(
+      variantSelect.locator('option', { hasText: 'Marketing' }),
+    ).toHaveCount(1);
+
+    let menu = await openVariantMenu(page, 'marketing');
+    let patch = waitForVariantMutation(page, 'marketing', 'PATCH');
+    await menu.getByRole('menuitem', { name: 'Disable' }).click();
+    await patch;
+    await expect(
+      variantSelect.locator('option', { hasText: 'Marketing' }),
+    ).toHaveCount(0);
+
+    // Reproduce a stale browser form by restoring the option in the DOM. The
+    // backend rejects this selection while the template is disabled and keeps
+    // its form violation with the page's auto-save.
+    await variantSelect.evaluate((select) => {
+      const staleOption = document.createElement('option');
+      staleOption.value = 'marketing';
+      staleOption.textContent = 'Marketing';
+      select.append(staleOption);
+    });
+    const invalidSelectionSaved = page.waitForResponse(
+      (response) =>
+        response.url().includes('/canvas/api/v0/layout/canvas_page/') &&
+        response.request().method() === 'POST' &&
+        (response.request().postData() ?? '').includes('marketing'),
+    );
+    await variantSelect.selectOption('marketing');
+    await invalidSelectionSaved;
+
+    // Enabling the template reprocesses the pending selection against the new
+    // options. Publishing then succeeds without another page-data edit.
+    const revalidatedSelection = page.waitForResponse(
+      (response) =>
+        response.url().includes('/canvas/api/v0/layout/canvas_page/') &&
+        response.request().method() === 'POST' &&
+        (response.request().postData() ?? '').includes('marketing'),
+    );
+    menu = await openVariantMenu(page, 'marketing');
+    patch = waitForVariantMutation(page, 'marketing', 'PATCH');
+    await menu.getByRole('menuitem', { name: 'Enable' }).click();
+    await patch;
+    await revalidatedSelection;
+    await canvas.publishAllChanges();
+
+    await page.reload();
+    await canvas.waitForEditorUi();
+    await pageDataForm
+      .locator('button')
+      .filter({ hasText: 'Page template' })
+      .click();
+    await expect(variantSelect).toHaveValue('marketing');
   });
 
   test('select a page variant for a page', async ({ page, drupal, canvas }) => {
@@ -209,7 +361,160 @@ test.describe('Page variants', () => {
     await expect(page).toHaveURL(/\/canvas\/editor\/page_variant\/marketing/);
   });
 
-  test('selecting a page template updates the preview before publishing', async ({
+  test('page template form state follows SPA page navigation', async ({
+    page,
+    drupal,
+    canvas,
+  }) => {
+    await drupal.login({ username: 'editor', password: 'editor' });
+    const defaultPage = await canvas.createCanvas({
+      title: 'Default template page',
+    });
+    const defaultPageAutoSave = page.waitForResponse(
+      (response) =>
+        response
+          .url()
+          .includes(
+            `/canvas/api/v0/layout/canvas_page/${defaultPage.entity_id}`,
+          ) &&
+        response.request().method() === 'POST' &&
+        response.ok() &&
+        (response.request().postData() ?? '').includes(
+          '/default-template-page',
+        ),
+    );
+    await page
+      .locator('[data-drupal-selector="edit-path-0-alias"]')
+      .fill('/default-template-page');
+    await defaultPageAutoSave;
+    const marketingPage = await canvas.createCanvas({
+      title: 'Marketing template page',
+    });
+    const marketingPageAutoSave = page.waitForResponse(
+      (response) =>
+        response
+          .url()
+          .includes(
+            `/canvas/api/v0/layout/canvas_page/${marketingPage.entity_id}`,
+          ) &&
+        response.request().method() === 'POST' &&
+        response.ok() &&
+        (response.request().postData() ?? '').includes(
+          '/marketing-template-page',
+        ),
+    );
+    await page
+      .locator('[data-drupal-selector="edit-path-0-alias"]')
+      .fill('/marketing-template-page');
+    await marketingPageAutoSave;
+
+    await createMarketingVariant(page);
+    await canvas.openCanvas(marketingPage);
+
+    const openPageTemplateSelect = async () => {
+      const pageDataForm = page.getByTestId('canvas-page-data-form');
+      const select = pageDataForm.getByLabel('Page template');
+      await pageDataForm
+        .locator('button')
+        .filter({ hasText: 'Page template' })
+        .click();
+      await expect(select).toBeVisible();
+      return select;
+    };
+
+    let variantSelect = await openPageTemplateSelect();
+    const marketingAutoSave = page.waitForResponse(
+      (response) =>
+        response
+          .url()
+          .includes(
+            `/canvas/api/v0/layout/canvas_page/${marketingPage.entity_id}`,
+          ) &&
+        response.request().method() === 'POST' &&
+        response.ok() &&
+        (response.request().postData() ?? '').includes('marketing'),
+    );
+    const pendingChangesRefreshed = page.waitForResponse(
+      (response) =>
+        response.url().includes('/canvas/api/v0/auto-saves/pending') &&
+        response.request().method() === 'GET' &&
+        [200, 409].includes(response.status()),
+    );
+    await variantSelect.selectOption({ label: 'Marketing' });
+    await marketingAutoSave;
+    await pendingChangesRefreshed;
+    await canvas.publishAllChanges();
+
+    // Navigate to the default page without reloading the application. Its
+    // template field must not retain the Marketing page's form state.
+    await canvas.openPagesPanel();
+    await page
+      .getByText('Default template page /default-template-page')
+      .click();
+    await expect(page).toHaveURL(
+      new RegExp(`/canvas/editor/canvas_page/${defaultPage.entity_id}$`),
+    );
+    variantSelect = await openPageTemplateSelect();
+    await expect(variantSelect).toHaveValue('_none');
+
+    // Switching in both directions must always show the routed page's value.
+    await page
+      .getByText('Marketing template page /marketing-template-page')
+      .click();
+    variantSelect = await openPageTemplateSelect();
+    await expect(variantSelect).toHaveValue('marketing');
+    await page
+      .getByText('Default template page /default-template-page')
+      .click();
+    variantSelect = await openPageTemplateSelect();
+    await expect(variantSelect).toHaveValue('_none');
+
+    // Changing another field must submit this page's template selection, not
+    // the value retained from the page visited immediately before it.
+    const defaultTitleAutoSave = page.waitForRequest(
+      (request) =>
+        request.url().includes('/canvas/api/v0/layout/canvas_page/') &&
+        request.method() === 'POST' &&
+        (request.postData() ?? '').includes('Renamed default template page'),
+    );
+    await page.getByLabel('Title').fill('Renamed default template page');
+    const defaultTitleFields = (await defaultTitleAutoSave).postDataJSON()
+      .entity_form_fields;
+    expect(
+      Object.entries(defaultTitleFields)
+        .filter(([key]) => key.startsWith('page_variant'))
+        .map(([, value]) => value),
+    ).not.toContain('marketing');
+
+    // A page created through the SPA starts with the site default even when
+    // the previously visited page had an explicit selection.
+    await page
+      .getByText('Marketing template page /marketing-template-page')
+      .click();
+    await page.getByTestId('canvas-navigation-button').click();
+    await page.getByTestId('canvas-navigation-new-button').click();
+    await page.getByTestId('canvas-navigation-new-page-button').click();
+    await canvas.waitForEditorUi();
+    variantSelect = await openPageTemplateSelect();
+    await expect(variantSelect).toHaveValue('_none');
+
+    const newPageTitleAutoSave = page.waitForRequest(
+      (request) =>
+        request.url().includes('/canvas/api/v0/layout/canvas_page/') &&
+        request.method() === 'POST' &&
+        (request.postData() ?? '').includes('Fresh default template page'),
+    );
+    await page.getByLabel('Title').fill('Fresh default template page');
+    const newPageTitleFields = (await newPageTitleAutoSave).postDataJSON()
+      .entity_form_fields;
+    expect(
+      Object.entries(newPageTitleFields)
+        .filter(([key]) => key.startsWith('page_variant'))
+        .map(([, value]) => value),
+    ).not.toContain('marketing');
+  });
+
+  test('selecting and clearing a page template updates the preview before publishing', async ({
     page,
     drupal,
     canvas,
@@ -268,6 +573,40 @@ test.describe('Page variants', () => {
     await canvas.openCanvas(canvasPage);
     await canvas.waitForEditorFrame();
     await expect(previewFrame.getByText('MarketingChrome')).toBeVisible();
+    await canvas.publishAllChanges();
+    await canvas.openCanvas(canvasPage);
+    await canvas.waitForEditorFrame();
+
+    // Clear the explicit selection. The normalized NULL value must reach the
+    // backend so it clears the field and resolves the site default again.
+    await pageDataForm
+      .locator('button')
+      .filter({ hasText: 'Page template' })
+      .click();
+    await expect(variantSelect).toBeVisible();
+    const defaultAutoSave = page.waitForResponse(
+      (response) =>
+        response.url().includes('/canvas/api/v0/layout/canvas_page/') &&
+        response.request().method() === 'POST' &&
+        Object.prototype.hasOwnProperty.call(
+          response.request().postDataJSON().entity_form_fields,
+          'page_variant',
+        ) &&
+        response.request().postDataJSON().entity_form_fields.page_variant ===
+          null,
+    );
+    await variantSelect.selectOption({ label: 'Site default' });
+    await defaultAutoSave;
+    await expect(previewFrame.getByText('MarketingChrome')).toHaveCount(0);
+
+    await canvas.publishAllChanges();
+    await page.reload();
+    await canvas.waitForEditorUi();
+    await pageDataForm
+      .locator('button')
+      .filter({ hasText: 'Page template' })
+      .click();
+    await expect(variantSelect).toHaveValue('_none');
   });
 
   test('changing the site default updates an inherited page preview', async ({

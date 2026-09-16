@@ -688,6 +688,7 @@ export async function buildPreviewArtifact(
         exampleProps: {},
         props: {},
         dataDependencies: {},
+        metadataErrors: [],
         mocks: [],
       };
 

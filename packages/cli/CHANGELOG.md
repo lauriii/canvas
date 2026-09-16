@@ -1,5 +1,56 @@
 # @drupal-canvas/cli
 
+## 0.24.0
+
+### Minor Changes
+
+- da4015e: Add page template synchronization support.
+  - Replace global regions with page templates. Projects using the old global
+    region files or configuration must migrate before running sync commands.
+  - Pull, push, validate, and reconcile media for page templates stored by
+    default in `page-templates/`.
+  - Allow pages and content templates to select a page template with the
+    `pageVariant` field.
+  - Let one page template become the site default with `"default": true`.
+  - Configure page templates with `pageTemplatesDir`, `sync.pageTemplates`, and
+    `--no-page-templates`.
+
+- 2d22d81: Reconcile external document media in push flows.
+  - `reconcile-media` uploads external document URLs (`pdf`, `rtf`, Office,
+    OpenDocument, and iWork formats) referenced by document props as `document`
+    media entities. The document's `title` and `description` are sent along with
+    the file.
+  - The default OAuth scopes now include `canvas:media:document:create`.
+
+- 78e3ff2: Validate authored Code Component metadata against the Canvas
+  contract.
+  - Validate raw `component.yml` envelopes and directly resolvable prop schemas
+    locally.
+  - Use the authenticated target site's non-mutating validation operation when
+    available, and warn when target acceptance was not validated.
+  - Preflight every complete Code Component payload before push mutations when
+    the target supports it.
+  - Derive content entity reference preview targets from
+    `dataDependencies.entityFields`.
+
+### Patch Changes
+
+- 8ba09a5: Fix pushing link props whose value is a relative reference without a
+  leading slash.
+  - `uri-reference` and `iri-reference` values such as `page.html?x=1`, `?x=1`
+    or `#section` are now sent as authored. Previously they were prefixed with
+    `internal:`, which the server rejects because an `internal:` URI requires a
+    leading slash.
+  - Root-relative values such as `/about` are still sent as `internal:/about`,
+    matching what the Canvas UI stores.
+  - URI schemes are now detected case-insensitively, so `HTTPS://…` is no longer
+    treated as a relative path.
+
+- Updated dependencies [108e9d4]
+- Updated dependencies [78e3ff2]
+  - drupal-canvas@0.5.1
+  - @drupal-canvas/eslint-config@0.10.0
+
 ## 0.23.1
 
 ### Patch Changes

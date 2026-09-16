@@ -10,7 +10,7 @@
   background-color: var(--blue-3);
 }
 
-.pill:hover {
+.pill:not(.locked):hover {
   background-color: var(--blue-9);
 }
 
@@ -19,7 +19,7 @@
   color: var(--gray-11);
 }
 
-.pill:hover .toolIcon {
+.pill:not(.locked):hover .toolIcon {
   color: white;
 }
 
@@ -32,7 +32,7 @@
   font-size: var(--font-size-2);
 }
 
-.pill:hover .toolLabel {
+.pill:not(.locked):hover .toolLabel {
   color: white;
 }
 
@@ -47,10 +47,15 @@
   background: transparent;
 }
 
+.dismissButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .dismissIcon {
   color: var(--gray-11);
 }
 
-.pill:hover .dismissIcon {
+.pill:not(.locked):hover .dismissIcon {
   color: white;
 }

@@ -1,0 +1,339 @@
+# The catalog in the first message lists every component the test site
+# generates: the canvas_test_sdc SDCs plus the core block plugins. echoai
+# matches this request byte-for-byte, so adding, renaming or removing one of
+# those components fails the match until this catalog is updated too.
+# Hop 1 of an edit turn: the agent parks an edit_components call.
+request:
+  messages:
+    -
+      role: user
+      text: |+
+        The following is information that is important as context: 
+        -----------------------------------------------
+        Tool processed: get_component_context
+        Values: Available components
+        Description of values: The following is the catalog of components available on this site, each with its id, name, and description only. Scan it to shortlist candidates, then call get_component_details with their ids to get their props and slots before placing. Never use a component that is not listed here:
+        Results: 
+        block.system_branding_block:
+          name: 'Site branding'
+          description: 'Site branding'
+        block.system_breadcrumb_block:
+          name: Breadcrumbs
+          description: Breadcrumbs
+        block.system_menu_block.footer:
+          name: Footer
+          description: Footer
+        block.system_menu_block.main:
+          name: 'Main navigation'
+          description: 'Main navigation'
+        block.system_messages_block:
+          name: Messages
+          description: Messages
+        block.system_powered_by_block:
+          name: 'Powered by Drupal'
+          description: 'Powered by Drupal'
+        sdc.canvas_test_sdc.attributes:
+          name: 'Canvas test SDC for testing type: `Drupal\Core\Template\Attribute` special casing'
+          description: 'Canvas test SDC for testing type: `Drupal\Core\Template\Attribute` special casing'
+        sdc.canvas_test_sdc.banner:
+          name: Banner
+          description: 'A banner element, used for testing html text.'
+        sdc.canvas_test_sdc.card:
+          name: Card
+          description: 'A card element, used for testing responsive images.'
+        sdc.canvas_test_sdc.card-with-local-image:
+          name: 'Card with local image'
+          description: 'A card element with an image that is stored anywhere on the filesystem that is accessible by the browser.'
+        sdc.canvas_test_sdc.card-with-remote-image:
+          name: 'Card with remote image'
+          description: 'A card element with a remote image'
+        sdc.canvas_test_sdc.card-with-stream-wrapper-image:
+          name: 'Card with stream wrapper image'
+          description: 'A card element with a stream wrapper image'
+        sdc.canvas_test_sdc.code-example:
+          name: 'Code Example'
+          description: 'A code block with a selectable language, for testing multi-line plain prose props.'
+        sdc.canvas_test_sdc.color-valid:
+          name: 'Color Valid'
+          description: 'A test component with a valid color prop using canvas.module/color $ref.'
+        sdc.canvas_test_sdc.columns:
+          name: Columns
+          description: Columns
+        sdc.canvas_test_sdc.component-mismatch-meta-enum:
+          name: 'Component mismatch meta:enum, but still operational thanks to https://www.drupal.org/i/3528998'
+          description: 'Component mismatch meta:enum, but still operational thanks to https://www.drupal.org/i/3528998'
+        sdc.canvas_test_sdc.component-mismatch-meta-enum-array-items:
+          name: 'Component mismatch meta:enum for array items'
+          description: 'Component mismatch meta:enum for array items'
+        sdc.canvas_test_sdc.component-no-meta-enum:
+          name: 'Component no meta:enum'
+          description: 'Component no meta:enum'
+        sdc.canvas_test_sdc.crash:
+          name: "Canvas test SDC that crashes when 'crash' prop is TRUE"
+          description: "Canvas test SDC that crashes when 'crash' prop is TRUE"
+        sdc.canvas_test_sdc.date:
+          name: Date
+          description: Date
+        sdc.canvas_test_sdc.deprecated:
+          name: 'Deprecated SDC'
+          description: 'A deprecated SDC component.'
+        sdc.canvas_test_sdc.document:
+          name: Document
+          description: 'A link to a document file'
+        sdc.canvas_test_sdc.druplicon:
+          name: Druplicon
+          description: Druplicon
+        sdc.canvas_test_sdc.experimental:
+          name: 'Experimental SDC'
+          description: 'A experimental SDC component.'
+        sdc.canvas_test_sdc.grid-container:
+          name: 'Grid Container'
+          description: 'Grid Container'
+        sdc.canvas_test_sdc.heading:
+          name: Heading
+          description: 'A heading element'
+        sdc.canvas_test_sdc.image:
+          name: 'Test SDC Image'
+          description: 'Test SDC Image'
+        sdc.canvas_test_sdc.image-gallery:
+          name: 'Canvas test SDC for image gallery (>1 image)'
+          description: 'Canvas test SDC for image gallery (>1 image)'
+        sdc.canvas_test_sdc.image-optional-with-example:
+          name: 'Canvas test SDC with optional image, with example'
+          description: 'Compatible component, the image property is not required and has an example'
+        sdc.canvas_test_sdc.image-optional-with-example-and-additional-prop:
+          name: 'Canvas test SDC with optional image and heading'
+          description: 'Canvas test SDC with optional image and heading'
+        sdc.canvas_test_sdc.image-optional-without-example:
+          name: 'Canvas test SDC with optional image, without example'
+          description: 'Compatible component, the image property is not required and has no example'
+        sdc.canvas_test_sdc.image-required-with-example:
+          name: 'Canvas test SDC with required image, with example'
+          description: 'Compatible component, the image property is required and has an example'
+        sdc.canvas_test_sdc.image-without-ref:
+          name: 'Canvas test SDC with missing image $ref schema'
+          description: 'Demonstrates structural matching without $ref'
+        sdc.canvas_test_sdc.mixed-images-with-example:
+          name: 'Canvas test SDC with mixed optional and required images, all with examples'
+          description: 'Component with two optional and one required image prop, each with a default example value. Used to test that DefaultImagePreview correctly scopes each widget to its own prop when multiple media library widgets appear in the same component form, and that required images cannot have their default removed.'
+        sdc.canvas_test_sdc.multivalue-props:
+          name: 'Multivalue Props Component'
+          description: 'A SDC component for testing all multivalue prop types (text, link, number, relative_link, datetime, date) with both unlimited and limited (maxItems: 3) variants.'
+        sdc.canvas_test_sdc.my-cta:
+          name: 'Call to Absolute Action'
+          description: 'Call to action link (absolute URL, so no internal relative links possible).'
+        sdc.canvas_test_sdc.my-hero:
+          name: Hero
+          description: 'A Hero section with inline styles for testing purposes'
+        sdc.canvas_test_sdc.my-section:
+          name: Section
+          description: 'A text/image section with inline styles for testing purposes'
+        sdc.canvas_test_sdc.one_column:
+          name: 'One Column'
+          description: 'One Column'
+        sdc.canvas_test_sdc.props-no-slots:
+          name: 'Canvas test SDC with props but no slots'
+          description: 'Canvas test SDC with props but no slots'
+        sdc.canvas_test_sdc.props-slots:
+          name: 'Canvas test SDC with props and slots'
+          description: 'Canvas test SDC with props and slots'
+        sdc.canvas_test_sdc.required-formatted-body:
+          name: 'Required formatted body'
+          description: 'Single required HTML body prop for Canvas kernel coverage of empty required formatted text.'
+        sdc.canvas_test_sdc.required-integer:
+          name: 'Canvas test SDC with a required single-cardinality integer prop'
+          description: 'Canvas test SDC with a required single-cardinality integer prop'
+        sdc.canvas_test_sdc.required-plain-string:
+          name: 'Required plain string'
+          description: 'Single required plain string prop for kernel coverage of empty required strings.'
+        sdc.canvas_test_sdc.select-fields:
+          name: 'Select fields'
+          description: 'A component with a single-select and a multi-select field.'
+        sdc.canvas_test_sdc.shoe_badge:
+          name: 'Shoe Badge'
+          description: 'https://shoelace.style/components/badge'
+        sdc.canvas_test_sdc.shoe_tab:
+          name: 'Shoe Tab'
+          description: 'https://shoelace.style/components/tab'
+        sdc.canvas_test_sdc.shoe_tab_group:
+          name: 'Shoe Tab Group'
+          description: 'https://shoelace.style/components/tab-group'
+        sdc.canvas_test_sdc.shoe_tab_panel:
+          name: 'Shoe Tab Panel'
+          description: 'https://shoelace.style/components/tab-panel'
+        sdc.canvas_test_sdc.sparkline:
+          name: 'Canvas test SDC for sparkline (>1 integers between -100 and 100)'
+          description: 'Canvas test SDC for sparkline (>1 integers between -100 and 100)'
+        sdc.canvas_test_sdc.tags:
+          name: 'Canvas test SDC for tags'
+          description: 'Canvas test SDC for tags'
+        sdc.canvas_test_sdc.two_column:
+          name: 'Two Column'
+          description: 'Two Column'
+        sdc.canvas_test_sdc.video:
+          name: Video
+          description: 'A video element'
+
+        -----------------------------------------------
+
+      images: {  }
+      remote_files: {  }
+      tools: null
+      tool_id: null
+    -
+      role: user
+      text: |-
+        <context>
+        The user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. Page description is empty.
+        </context>
+
+        <user_message>
+        Change the hero heading to Hello
+        </user_message>
+      images: {  }
+      remote_files: {  }
+      tools: null
+      tool_id: null
+  debug_data: {  }
+  chat_tools:
+    -
+      type: function
+      function:
+        name: place_components
+        description: 'Places a section of components onto the current page. Call this once per section/row. Each placement operation targets a region or slot and carries the components to place there. Components are not added to the page unless this tool is called. It may return validation errors if a target, placement, or component is invalid.'
+        parameters:
+          type: object
+          properties:
+            operations:
+              name: operations
+              type: array
+              description: 'Placement operations The placements to apply, one entry per target position.'
+              minItems: 1
+              items:
+                type: object
+                properties:
+                  target:
+                    name: target
+                    type: string
+                    description: "Target The region name, such as 'content', or 'parent-uuid/slot_name' to place inside a component's slot."
+                  placement:
+                    name: placement
+                    type: string
+                    description: "Placement Whether to place the components 'inside' a target that has no children yet, or 'above'/'below' the component named by reference_uuid."
+                    enum:
+                      - above
+                      - below
+                      - inside
+                  reference_uuid:
+                    name: reference_uuid
+                    type: string
+                    description: "Reference UUID The UUID of the component to place above or below. Required for 'above' and 'below'; omit it for 'inside'."
+                  components:
+                    name: components
+                    type: string
+                    description: "Components The components to place, as a YAML list starting at the top level. Each entry is a single-key map of the component ID to its 'props' and, when the component has slots, its 'slots'."
+                required:
+                  - target
+                  - placement
+                  - components
+          required:
+            - operations
+    -
+      type: function
+      function:
+        name: edit_components
+        description: "Updates the props of one or more components already on the page. Provide a list of edits; each edit targets one component by its 'component_uuid' and carries a 'props' YAML block of 'prop_name: value' pairs to set on it. Include only the props being changed. May return validation errors if a UUID is not on the page or a prop value is invalid."
+        parameters:
+          type: object
+          properties:
+            component_edits:
+              name: component_edits
+              type: array
+              description: 'Component edits A list of component edits, one entry per component to update.'
+              minItems: 1
+              items:
+                type: object
+                properties:
+                  component_uuid:
+                    name: component_uuid
+                    type: string
+                    description: 'Component UUID The UUID of a component already present on the page.'
+                  props:
+                    name: props
+                    type: string
+                    description: "Prop changes A YAML block of 'prop_name: value' pairs to set on this component. Include only the props being changed; nested values (e.g. an image object) are allowed."
+                required:
+                  - component_uuid
+                  - props
+          required:
+            - component_edits
+    -
+      type: function
+      function:
+        name: get_component_details
+        description: 'Returns the description, props, and slots of specific components identified by id. Use this to get the full metadata of components you have already shortlisted — e.g. after browsing the catalog with get_component_context — so you have the exact props and slots needed to place or configure them.'
+        parameters:
+          type: object
+          properties:
+            component_ids_list:
+              name: component_ids_list
+              type: array
+              description: 'Component IDs The ids of the components to fetch details for, e.g. sdc.canvas_test_sdc.my-hero.'
+              minItems: 1
+              items:
+                name: component_ids_list
+                type: string
+                description: 'Component IDs The ids of the components to fetch details for, e.g. sdc.canvas_test_sdc.my-hero.'
+    -
+      type: function
+      function:
+        name: set_page_value
+        description: 'Sets the title or SEO meta description of the current page. Set "key" to "title" or "description", and "value" to the text to write. Use this whenever the page title or meta description should be created or changed.'
+        parameters:
+          type: object
+          properties:
+            key:
+              name: key
+              type: string
+              description: "Page value key The page value to set. Allowed values: 'title', 'description'."
+              enum:
+                - title
+                - description
+            value:
+              name: value
+              type: string
+              description: 'Value The text value to set for the given key.'
+          required:
+            - key
+            - value
+  chat_structured_json_schema: {  }
+  chat_strict_schema: false
+response:
+  normalized:
+    role: assistant
+    text: 'Changing the hero heading now.'
+    images: {  }
+    remote_files: {  }
+    tools:
+      -
+        id: call_1
+        type: function
+        function:
+          name: edit_components
+          arguments: '{"component_edits":[{"component_uuid":"00000000-0000-4000-8000-000000000001","props":"heading: \u0022Hello\u0022"}]}'
+    tool_id: null
+  rawOutput: null
+  metadata: {  }
+  tokenUsage:
+    input: 0
+    output: 0
+    total: 0
+    reasoning: 0
+    cached: 0
+  rateLimits:
+    rateLimitMaxRequests: null
+    rateLimitMaxTokens: null
+    rateLimitRemainingRequests: null
+    rateLimitRemainingTokens: null
+    rateLimitResetRequests: null
+    rateLimitResetTokens: null

@@ -1,5 +1,19 @@
 # @drupal-canvas/headless-host
 
+## 0.4.0
+
+### Minor Changes
+
+- e6a9c66: Preserve page variant identity when headless preview sessions renew
+  or recover.
+
+### Patch Changes
+
+- Updated dependencies [24800cb]
+- Updated dependencies [e6a9c66]
+- Updated dependencies [78e3ff2]
+  - @drupal-canvas/headless@0.6.0
+
 ## 0.3.0
 
 ### Minor Changes

@@ -66,3 +66,6 @@ live: `getClient(event)` returns the draft-aware JSON:API client and
 `useFetch()`, which forwards the request's cookies during SSR. Render
 `page.content` directly and pass the complete `page.head` object reactively to
 `useHead()`. Handle `PageRedirect` before page rendering with `navigateTo()`.
+
+`fetchEntity(event, { type, id, viewMode })` renders one content entity without
+page-level route or head data. Use it for embedded renders such as teaser cards.

@@ -26,9 +26,8 @@
  *   - `id:<revision-id>` — one exact revision. Inherently per-entity, so it
  *     does not make sense as a session-wide policy; a "view this historical
  *     revision" feature would carry it per fetch, not here.
- * - `previewContext`: optional signed rendering context for content-template
- *   previews. The SDK forwards its view mode only while the user-bound draft
- *   session is live.
+ * - `previewContext`: optional signed rendering context for editor previews.
+ *   The SDK forwards it only while the user-bound draft session is live.
  * - `sub`: the Drupal user id of the editor the session is bound to, from
  *   the assertion's `sub` claim. Renewal is *continuation*, not activation:
  *   a renewal whose assertion names a different editor (the browser's
@@ -56,9 +55,10 @@
 export interface DraftData {
   path: string;
   resourceVersion: string;
-  /** Signed rendering context for a content-template preview. */
+  /** Signed rendering context for an editor preview. */
   previewContext?: {
     viewMode?: string;
+    pageVariant?: string;
   };
   sub: string;
   renewUrl: string;
@@ -123,7 +123,9 @@ export function parseDraftData(
         (typeof data.previewContext !== 'object' ||
           data.previewContext === null ||
           (data.previewContext.viewMode !== undefined &&
-            typeof data.previewContext.viewMode !== 'string'))) ||
+            typeof data.previewContext.viewMode !== 'string') ||
+          (data.previewContext.pageVariant !== undefined &&
+            typeof data.previewContext.pageVariant !== 'string'))) ||
       typeof data.sub !== 'string' ||
       typeof data.renewUrl !== 'string' ||
       typeof data.accessToken !== 'string' ||

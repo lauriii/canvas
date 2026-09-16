@@ -1,0 +1,130 @@
+name: All prop types
+machineName: all-prop-types
+status: true
+required:
+  - text
+props:
+  properties:
+    text:
+      type: string
+      title: Text
+      description: A text value
+      examples:
+        - Example
+      enum:
+        - Example
+        - Alternative
+      meta:enum:
+        Example: Example label
+        Alternative: Alternative label
+      x-translation-context: Component example
+      format: uri-reference
+    formattedText:
+      type: string
+      title: Formatted text
+      contentMediaType: text/html
+      x-formatting-context: block
+      examples:
+        - <p>Formatted</p>
+    color:
+      type: string
+      title: Color
+      $ref: json-schema-definitions://canvas.module/color
+      x-canvas-color-picker: kit-and-free
+      x-canvas-color-folders:
+        - brand
+      examples:
+        - '#336699'
+    count:
+      type: integer
+      title: Count
+      examples:
+        - 3
+      enum:
+        - 1
+        - 3
+      meta:enum:
+        1: One
+        3: Three
+    ratio:
+      type: number
+      title: Ratio
+      examples:
+        - 1.5
+    enabled:
+      type: boolean
+      title: Enabled
+      examples:
+        - true
+    image:
+      type: object
+      title: Image
+      $ref: json-schema-definitions://canvas.module/image
+      examples:
+        - src: https://example.com/image.png
+          alt: Example image
+    referencedContent:
+      type: object
+      title: Referenced content
+      $ref: json-schema-definitions://canvas.module/content-entity-reference
+    tags:
+      type: array
+      title: Tags
+      items:
+        type: string
+        enum:
+          - alpha
+          - beta
+      minItems: 1
+      maxItems: 3
+      examples:
+        -
+          - alpha
+          - beta
+    counts:
+      type: array
+      title: Counts
+      items:
+        type: integer
+      examples:
+        -
+          - 1
+          - 2
+    ratios:
+      type: array
+      title: Ratios
+      items:
+        type: number
+      examples:
+        -
+          - 1.5
+          - 2.5
+    flags:
+      type: array
+      title: Flags
+      items:
+        type: boolean
+      examples:
+        -
+          - true
+          - false
+    images:
+      type: array
+      title: Images
+      items:
+        type: object
+        $ref: json-schema-definitions://canvas.module/image
+      examples:
+        -
+          - src: https://example.com/first.png
+          - src: https://example.com/second.png
+slots:
+  main-content:
+    title: Main content
+    description: Main slot content
+    examples:
+      - <p>Example</p>
+dataDependencies:
+  entityFields:
+    referencedContent:
+      - 'ℹ︎␜entity:node:article␝title␞␟value'

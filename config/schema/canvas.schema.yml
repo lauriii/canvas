@@ -1411,9 +1411,8 @@ canvas.color.*:
       type: required_label
       label: 'Color name'
       constraints:
-        UniqueNamePerFolderTypeConstraint:
+        UniqueColorNameConstraint:
           id: '%parent.uuid'
-          configEntityTypeId: 'color'
     cssVariable:
       type: string
       label: 'CSS variable name'

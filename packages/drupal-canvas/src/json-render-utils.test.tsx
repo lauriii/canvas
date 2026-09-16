@@ -1163,6 +1163,63 @@ describe('defineComponentCatalog', () => {
     expect(catalog.validate(spec).success).toBe(true);
   });
 
+  it('should resolve the Canvas document $ref in metadata and validate document props', () => {
+    const metadata: ComponentMetadata[] = [
+      {
+        name: 'Download',
+        machineName: 'download',
+        status: true,
+        props: {
+          properties: {
+            file: {
+              title: 'File',
+              type: 'object',
+              $ref: 'json-schema-definitions://canvas.module/document',
+            },
+          },
+        },
+        required: ['file'],
+        slots: {},
+      },
+    ];
+
+    const catalog = defineComponentCatalog(metadata);
+    expect(catalog.componentNames).toEqual([
+      'js.download',
+      'canvas:component-tree',
+    ]);
+
+    const specWithFile = (file: Record<string, unknown>) => ({
+      root: 'dl',
+      elements: {
+        dl: {
+          type: 'js.download',
+          props: { file },
+          children: [],
+          slots: {},
+        },
+      },
+    });
+
+    // A reconciled document carries a site-relative `src`, which the
+    // `uri-reference` format must not reject.
+    expect(
+      catalog.validate(
+        specWithFile({
+          src: '/sites/default/files/report.pdf',
+          filename: 'report.pdf',
+          filesize: 25600,
+          mimetype: 'application/pdf',
+        }),
+      ).success,
+    ).toBe(true);
+
+    // `src` is the only required document property.
+    expect(
+      catalog.validate(specWithFile({ filename: 'report.pdf' })).success,
+    ).toBe(false);
+  });
+
   it('should create a catalog from component metadata', () => {
     const metadata: ComponentMetadata[] = [
       {

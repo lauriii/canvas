@@ -48,14 +48,26 @@ describe('parseDraftData', () => {
     );
   });
 
-  it('round-trips optional content-template preview context', () => {
+  it('round-trips optional editor preview context', () => {
     const draftData = {
       ...validDraftData,
       previewContext: {
         viewMode: 'teaser',
+        pageVariant: 'alternate',
       },
     };
     expect(parseDraftData(serializeDraftData(draftData))).toEqual(draftData);
+  });
+
+  it('rejects invalid editor preview context', () => {
+    expect(
+      parseDraftData(
+        JSON.stringify({
+          ...validDraftData,
+          previewContext: { pageVariant: 42 },
+        }),
+      ),
+    ).toBeNull();
   });
 
   it.each([null, undefined, ''])('returns null for %s', (value) => {

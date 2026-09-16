@@ -2,7 +2,8 @@ import { camelCase, isEqual } from 'lodash';
 import { v4 as uuidv4 } from 'uuid';
 
 import derivedPropTypes from '@/features/code-editor/component-data/derivedPropTypes';
-import { CONFIG_EXAMPLE_URLS } from '@/features/code-editor/component-data/forms/FormPropTypeVideo';
+import { CONFIG_EXAMPLE_URLS as DOCUMENT_CONFIG_EXAMPLE_URLS } from '@/features/code-editor/component-data/forms/FormPropTypeDocument';
+import { CONFIG_EXAMPLE_URLS as VIDEO_CONFIG_EXAMPLE_URLS } from '@/features/code-editor/component-data/forms/FormPropTypeVideo';
 import { getCanvasModuleBaseUrl } from '@/utils/drupal-globals';
 
 import type {
@@ -10,6 +11,7 @@ import type {
   BrandKitColorValue,
   CodeComponent,
   CodeComponentProp,
+  CodeComponentPropDocumentExample,
   CodeComponentPropImageExample,
   CodeComponentPropPreviewValue,
   CodeComponentPropSerialized,
@@ -339,9 +341,11 @@ function serializeExample(
     isStringArrayProp: boolean | undefined;
     isVideo: boolean;
     isImage: boolean;
+    isDocument: boolean;
   },
 ) {
-  const { isNumberType, isStringArrayProp, isVideo, isImage } = flags;
+  const { isNumberType, isStringArrayProp, isVideo, isImage, isDocument } =
+    flags;
 
   // Multi-value props (allowMultiple)
   if (Array.isArray(example)) {
@@ -354,12 +358,17 @@ function serializeExample(
     if (isVideo) {
       return (example as CodeComponentPropVideoExample[])
         .filter((v) => v && typeof v === 'object' && v.src && v.src !== '')
-        .map(serializeVideoSrc);
+        .map((v) => serializeExampleSrc(v, VIDEO_EXAMPLE_URLS));
     }
     if (isImage) {
       return (example as CodeComponentPropImageExample[]).filter(
         (v) => v && typeof v === 'object' && v.src && v.src !== '',
       );
+    }
+    if (isDocument) {
+      return (example as CodeComponentPropDocumentExample[])
+        .filter((v) => v && typeof v === 'object' && v.src && v.src !== '')
+        .map((v) => serializeExampleSrc(v, DOCUMENT_EXAMPLE_URLS));
     }
     return example;
   }
@@ -369,7 +378,16 @@ function serializeExample(
     return Number(example);
   }
   if (isVideo && typeof example === 'object') {
-    return serializeVideoSrc(example as CodeComponentPropVideoExample);
+    return serializeExampleSrc(
+      example as CodeComponentPropVideoExample,
+      VIDEO_EXAMPLE_URLS,
+    );
+  }
+  if (isDocument && typeof example === 'object') {
+    return serializeExampleSrc(
+      example as CodeComponentPropDocumentExample,
+      DOCUMENT_EXAMPLE_URLS,
+    );
   }
   return example!;
 }
@@ -411,6 +429,7 @@ export function serializeProps(props: CodeComponentProp[]) {
         const isNumberType = ['integer', 'number'].includes(baseType);
         const isVideo = derivedType === 'video';
         const isImage = derivedType === 'image';
+        const isDocument = derivedType === 'document';
 
         // Determine the actual type for serialization
         const serializedType = allowMultiple && items ? 'array' : type;
@@ -440,6 +459,7 @@ export function serializeProps(props: CodeComponentProp[]) {
                 isStringArrayProp,
                 isVideo,
                 isImage,
+                isDocument,
               }),
             ],
           }),
@@ -583,12 +603,14 @@ export function deserializeProps(
       derivedPropTypes.find((type) => type.derive(propForDerivation))?.type ??
       null;
     const isVideo = derivedType == 'video';
+    const isDocument = derivedType === 'document';
 
     if (examples?.length) {
       if (actualType === 'object') {
         example = examples[0] as unknown as
           | CodeComponentPropImageExample
-          | CodeComponentPropVideoExample;
+          | CodeComponentPropVideoExample
+          | CodeComponentPropDocumentExample;
       } else if (actualType === 'boolean') {
         example = examples[0] as unknown as boolean;
       } else if (allowMultiple && Array.isArray(examples[0])) {
@@ -605,12 +627,24 @@ export function deserializeProps(
       type: actualType,
       example:
         isVideo && Array.isArray(example)
-          ? (example as CodeComponentPropVideoExample[]).map(
-              deserializeVideoSrc,
+          ? (example as CodeComponentPropVideoExample[]).map((v) =>
+              deserializeExampleSrc(v, VIDEO_EXAMPLE_URLS),
             )
           : isVideo && typeof example === 'object'
-            ? deserializeVideoSrc(example as CodeComponentPropVideoExample)
-            : example,
+            ? deserializeExampleSrc(
+                example as CodeComponentPropVideoExample,
+                VIDEO_EXAMPLE_URLS,
+              )
+            : isDocument && Array.isArray(example)
+              ? (example as CodeComponentPropDocumentExample[]).map((v) =>
+                  deserializeExampleSrc(v, DOCUMENT_EXAMPLE_URLS),
+                )
+              : isDocument && typeof example === 'object'
+                ? deserializeExampleSrc(
+                    example as CodeComponentPropDocumentExample,
+                    DOCUMENT_EXAMPLE_URLS,
+                  )
+                : example,
       ...(actualEnumValues && {
         enum: actualEnumValues.map((value) => ({
           value: isNumberType ? Number(value) : value,
@@ -826,25 +860,38 @@ export function detectValidPropOrSlotChange(
   return true;
 }
 
-function serializeVideoSrc(example: CodeComponentPropVideoExample) {
-  const allowedExamplesForServer = Object.values(CONFIG_EXAMPLE_URLS);
-  for (const allowedPath of allowedExamplesForServer) {
-    if (example.src.endsWith(allowedPath as string)) {
-      return { ...example, src: allowedPath as string };
-    }
-  }
-  // If no match, return the original.
-  return example;
+const VIDEO_EXAMPLE_URLS: string[] = Object.values(VIDEO_CONFIG_EXAMPLE_URLS);
+const DOCUMENT_EXAMPLE_URLS: string[] = Object.values(
+  DOCUMENT_CONFIG_EXAMPLE_URLS,
+);
+
+/**
+ * Stores bundled example assets as module-relative paths.
+ *
+ * The preview resolves `src` against the module base URL, so a saved example
+ * must only keep the path inside the module. Any other `src` is left as is.
+ */
+function serializeExampleSrc<T extends { src: string }>(
+  example: T,
+  configExampleUrls: string[],
+): T {
+  const allowedPath = configExampleUrls.find((path) =>
+    example.src.endsWith(path),
+  );
+  return allowedPath ? { ...example, src: allowedPath } : example;
 }
 
-function deserializeVideoSrc(example: CodeComponentPropVideoExample) {
-  const moduleBaseUrl = getCanvasModuleBaseUrl();
-  const configExampleUrls = Object.values(CONFIG_EXAMPLE_URLS);
-  for (const configUrl of configExampleUrls) {
-    if (example.src.includes(configUrl)) {
-      const pathForPreview = `${moduleBaseUrl}${configUrl}`;
-      return { ...example, src: pathForPreview as string };
-    }
-  }
-  return example;
+/**
+ * Prefixes bundled example assets with the module base URL for the preview.
+ */
+function deserializeExampleSrc<T extends { src: string }>(
+  example: T,
+  configExampleUrls: string[],
+): T {
+  const configUrl = configExampleUrls.find((path) =>
+    example.src.includes(path),
+  );
+  return configUrl
+    ? { ...example, src: `${getCanvasModuleBaseUrl()}${configUrl}` }
+    : example;
 }

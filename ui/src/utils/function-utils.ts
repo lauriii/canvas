@@ -107,7 +107,10 @@ export function findInChanges(
   for (const key in changeList) {
     if (Object.prototype.hasOwnProperty.call(changeList, key)) {
       const obj = changeList[key];
-      if (obj.entity_id === entityId && obj.entity_type === entityType) {
+      if (
+        String(obj.entity_id) === entityId &&
+        obj.entity_type === entityType
+      ) {
         return true;
       }
     }

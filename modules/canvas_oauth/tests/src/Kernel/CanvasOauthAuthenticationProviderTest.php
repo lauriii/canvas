@@ -85,6 +85,7 @@ class CanvasOauthAuthenticationProviderTest extends CanvasKernelTestBase {
       ['canvas.api.config.auto-save.get.css', [], FALSE],
       ['canvas.api.config.auto-save.get.js', [], FALSE],
       ['canvas.api.config.auto-save.patch', [], FALSE],
+      ['canvas.api.code_component.validate', [], TRUE],
       ['canvas.api.config.delete', [], FALSE],
       ['canvas.api.config.get', [], FALSE],
       ['canvas.api.config.list', [], FALSE],

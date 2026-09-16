@@ -271,3 +271,51 @@ function canvas_ai_post_update_0010_rename_page_variant_settings(): void {
     }
   }
 }
+
+/**
+ * Reimport default agents to pick up the latest ai_agents schema.
+ *
+ * A drupal/ai_agents upgrade added new per-tool settings
+ * (restrict_multiple_calls, multiple_call_error_message) to every agent's
+ * existing tools, a new guardrail_set key, and a simplified tool_usage_limits
+ * shape. It also carries system prompt refinements for each default agent.
+ * Update only these known keys, leaving the rest of each record (including
+ * uuid and _core) untouched.
+ */
+function canvas_ai_post_update_0011_reimport_default_agents(): void {
+  $module_path = \Drupal::service(ModuleExtensionList::class)->getPath('canvas_ai');
+  $source = new FileStorage($module_path . '/config/install');
+  $config_factory = \Drupal::configFactory();
+
+  $agent_ids = [
+    'canvas_ai_orchestrator',
+    'canvas_metadata_generation_agent',
+    'canvas_page_builder_agent',
+    'canvas_template_builder_agent',
+    'canvas_title_generation_agent',
+    'canvas_component_agent',
+  ];
+
+  foreach ($agent_ids as $agent_id) {
+    $name = "ai_agents.ai_agent.$agent_id";
+    $data = $source->read($name);
+    $config = $config_factory->getEditable($name);
+    if (!$data || $config->isNew()) {
+      continue;
+    }
+
+    $config->set('system_prompt', $data['system_prompt']);
+    $config->set('tool_usage_limits', $data['tool_usage_limits']);
+    $config->set('guardrail_set', $data['guardrail_set'] ?? '');
+
+    foreach (array_keys($config->get('tools') ?? []) as $tool_id) {
+      $config->set("tool_settings.$tool_id.restrict_multiple_calls", $data['tool_settings'][$tool_id]['restrict_multiple_calls'] ?? 0);
+      $config->set("tool_settings.$tool_id.multiple_call_error_message", $data['tool_settings'][$tool_id]['multiple_call_error_message'] ?? '');
+    }
+
+    $config->save(TRUE);
+  }
+
+  $message = 'The Canvas AI default agents have been updated to match latest AI Agent schema updates. If you had customized them directly, those changes have been overwritten. The recommended way to extend or alter agent behavior is through the Context Control Center or custom event subscribers.';
+  \Drupal::logger('canvas_ai')->warning($message);
+}

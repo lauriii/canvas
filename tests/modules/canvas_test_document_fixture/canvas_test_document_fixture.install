@@ -1,0 +1,70 @@
+<?php
+
+declare(strict_types=1);
+
+use Drupal\Core\Extension\ModuleExtensionList;
+use Drupal\Core\File\FileSystemInterface;
+use Drupal\file\Entity\File;
+use Drupal\file\FileInterface;
+use Drupal\media\Entity\Media;
+use Drupal\media\Entity\MediaType;
+
+/**
+ * Implements hook_install().
+ */
+function canvas_test_document_fixture_install(): void {
+  $media_type = MediaType::load('document');
+  if ($media_type === NULL) {
+    $media_type = MediaType::create([
+      'id' => 'document',
+      'label' => 'Document',
+      'source' => 'file',
+    ]);
+    $media_type->save();
+    $source_field = $media_type->getSource()->createSourceField($media_type);
+    // @phpstan-ignore-next-line
+    $source_field->getFieldStorageDefinition()->save();
+    $source_field->save();
+    $media_type
+      ->set('source_configuration', [
+        'source_field' => $source_field->getName(),
+      ])
+      ->save();
+  }
+
+  $module_path = \Drupal::service(ModuleExtensionList::class)->getPath('canvas_test_document_fixture');
+  \Drupal::service(FileSystemInterface::class)->copy($module_path . '/documents/report.pdf', 'public://report.pdf');
+
+  $file_1 = File::create([
+    'uri' => 'public://report.pdf',
+    'status' => FileInterface::STATUS_PERMANENT,
+  ]);
+  $file_1->save();
+
+  \Drupal::service(FileSystemInterface::class)->copy($module_path . '/documents/brochure.pdf', 'public://brochure.pdf');
+
+  $file_2 = File::create([
+    'uri' => 'public://brochure.pdf',
+    'status' => FileInterface::STATUS_PERMANENT,
+  ]);
+  $file_2->save();
+
+  // Create two document media entities.
+  $media_1 = Media::create([
+    'bundle' => 'document',
+    'name' => 'Annual Report',
+    'field_media_file' => [
+      'target_id' => $file_1->id(),
+    ],
+  ]);
+  $media_1->save();
+
+  $media_2 = Media::create([
+    'bundle' => 'document',
+    'name' => 'Product Brochure',
+    'field_media_file' => [
+      'target_id' => $file_2->id(),
+    ],
+  ]);
+  $media_2->save();
+}

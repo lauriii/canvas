@@ -112,6 +112,48 @@ describe('CanvasComponentTree', () => {
     app.unmount();
   });
 
+  it('renders an empty page content region between page variant chrome', () => {
+    const container = document.createElement('div');
+    document.body.append(container);
+    const app = createApp({
+      setup: () => () =>
+        h(CanvasComponentTree, {
+          tree: {
+            element: 'renderless-container',
+            canvasDraftMode: true,
+            slots: {
+              default: [
+                component('js-site-header', 'header-one'),
+                { element: 'canvas-preview-content-region' },
+                component('js-site-footer', 'footer-one'),
+              ],
+            },
+          },
+          components,
+        }),
+    });
+    app.mount(container);
+
+    const html = container.innerHTML;
+    const regionStart = html.indexOf('canvas-region-start-content');
+    const placeholder = html.indexOf('canvas--region-empty-placeholder');
+    const regionEnd = html.indexOf('canvas-region-end-content');
+    expect(html.indexOf('</header>')).toBeLessThan(regionStart);
+    expect(regionStart).toBeLessThan(placeholder);
+    expect(placeholder).toBeLessThan(regionEnd);
+    expect(regionEnd).toBeLessThan(html.indexOf('<footer>'));
+    expect(commentMarkers(container)).toEqual([
+      'canvas-start-header-one',
+      'canvas-end-header-one',
+      'canvas-region-start-content',
+      'canvas-region-end-content',
+      'canvas-start-footer-one',
+      'canvas-end-footer-one',
+    ]);
+
+    app.unmount();
+  });
+
   it('renders children of a synthetic multi-root wrapper in order', () => {
     const container = document.createElement('div');
     document.body.append(container);

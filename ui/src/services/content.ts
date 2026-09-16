@@ -28,6 +28,15 @@ export interface CreateContentRequest {
   entity_type: string;
 }
 
+export interface SetLangcodeRequest {
+  entityId: string;
+  langcode: string;
+}
+
+export interface SetLangcodeResponse {
+  langcode: string;
+}
+
 export interface UpdateContentRequest {
   entityType: string;
   entityId: string;
@@ -287,6 +296,13 @@ export const contentApi = createApi({
         { type: 'Content', id: 'LIST' },
       ],
     }),
+    setLangcode: builder.mutation<SetLangcodeResponse, SetLangcodeRequest>({
+      query: ({ entityId, langcode }) => ({
+        url: `/canvas/api/v0/content/canvas_page/${entityId}/langcode`,
+        method: 'PATCH',
+        body: { langcode },
+      }),
+    }),
   }),
 });
 
@@ -297,4 +313,5 @@ export const {
   useUpdateContentMutation,
   useGetStagedConfigQuery,
   useSetStagedConfigMutation,
+  useSetLangcodeMutation,
 } = contentApi;

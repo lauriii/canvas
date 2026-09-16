@@ -56,6 +56,8 @@ import { getQueryErrorMessage } from '@/utils/error-handling';
 import type { ReactElement } from 'react';
 import type { ContentStub } from '@/types/Content';
 
+import styles from './PageInfo.module.css';
+
 interface PageType {
   [key: string]: ReactElement;
 }
@@ -320,38 +322,61 @@ const PageInfo = () => {
               {isHeadlessFrontends ? (
                 <>
                   <GlobeIcon />
-                  Headless frontends
+                  <span className={styles.pageTitle} title="Headless frontends">
+                    Headless frontends
+                  </span>
                 </>
               ) : isCodeEditor ? (
                 <>
                   <CodeIcon />
-                  {codeComponentName}
+                  <span className={styles.pageTitle} title={codeComponentName}>
+                    {codeComponentName}
+                  </span>
                 </>
               ) : isPatternContext ? (
                 <>
                   {iconMap['GlobalPatternName']}
-                  {patternName}
+                  <span className={styles.pageTitle} title={patternName}>
+                    {patternName}
+                  </span>
                 </>
               ) : isTemplateRoute ? (
                 <>
                   {iconMap['Template']}
-                  {templateCaption || 'Template'}
+                  <span
+                    className={styles.pageTitle}
+                    title={templateCaption || 'Template'}
+                  >
+                    {templateCaption || 'Template'}
+                  </span>
                 </>
               ) : isPageVariantRoute ? (
                 <>
                   {iconMap['PageVariant']}
-                  {pageVariant?.label || entityId}
+                  <span
+                    className={styles.pageTitle}
+                    title={pageVariant?.label || entityId}
+                  >
+                    {pageVariant?.label || entityId}
+                  </span>
                 </>
               ) : (
                 <>
                   {isCurrentPageHomepage
                     ? iconMap['Homepage']
                     : iconMap['Page']}
-                  {title !== undefined
-                    ? title
-                      ? title
-                      : 'Untitled page'
-                    : 'No page selected'}
+                  <span
+                    className={styles.pageTitle}
+                    title={
+                      title !== undefined
+                        ? title || 'Untitled page'
+                        : 'No page selected'
+                    }
+                  >
+                    {title !== undefined
+                      ? title || 'Untitled page'
+                      : 'No page selected'}
+                  </span>
                 </>
               )}
               <ChevronDownIcon />

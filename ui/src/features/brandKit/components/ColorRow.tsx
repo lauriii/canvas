@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
+import parse from 'html-react-parser';
 import { useDraggable } from '@dnd-kit/core';
 import { DotsHorizontalIcon } from '@radix-ui/react-icons';
 import {
@@ -14,6 +15,7 @@ import UnifiedMenu from '@/components/UnifiedMenu';
 import ColorFormPopover from '@/features/brandKit/components/ColorFormPopover';
 import DeleteColorPopover from '@/features/brandKit/components/DeleteColorPopover';
 import FindColorInstancesPopover from '@/features/brandKit/components/FindColorInstancesPopover';
+import { extractErrorMessageFromApiResponse } from '@/features/error-handling/error-handling';
 import { useUpdateColorMutation } from '@/services/brandKit';
 import { getColorHex, getCssColorValue } from '@/utils/brandKitColor';
 
@@ -98,7 +100,7 @@ const ColorRow = ({ color }: ColorRowProps) => {
     }
 
     if (isRenameError && renameError) {
-      setRenameErrorMessage(String(renameError));
+      setRenameErrorMessage(extractErrorMessageFromApiResponse(renameError));
       isSubmittingRef.current = false;
       if (inputRef.current) {
         inputRef.current.focus();
@@ -213,10 +215,13 @@ const ColorRow = ({ color }: ColorRowProps) => {
                   ? true
                   : undefined
               }
+              data-is-renaming={isRenaming ? true : undefined}
+              data-has-inline-error={renameErrorMessage ? true : undefined}
               data-testid={`canvas-color-row-${color.name}`}
             >
               {/* Color swatch */}
               <div
+                className={styles.swatch}
                 style={{
                   width: '16px',
                   height: '16px',
@@ -243,7 +248,7 @@ const ColorRow = ({ color }: ColorRowProps) => {
                     />
                     {renameErrorMessage && (
                       <Text size="1" color="red" style={{ marginTop: '2px' }}>
-                        {renameErrorMessage}
+                        {parse(renameErrorMessage)}
                       </Text>
                     )}
                   </>
@@ -291,28 +296,30 @@ const ColorRow = ({ color }: ColorRowProps) => {
                 </Text>
               )}
 
-              <DropdownMenu.Root onOpenChange={setIsMenuOpen}>
-                <DropdownMenu.Trigger>
-                  <button
-                    ref={dotsButtonRef as React.RefObject<HTMLButtonElement>}
-                    aria-label="Open contextual menu"
-                    className={styles.colorRowDots}
+              {!isRenaming && (
+                <DropdownMenu.Root onOpenChange={setIsMenuOpen}>
+                  <DropdownMenu.Trigger>
+                    <button
+                      ref={dotsButtonRef as React.RefObject<HTMLButtonElement>}
+                      aria-label="Open contextual menu"
+                      className={styles.colorRowDots}
+                    >
+                      <DotsHorizontalIcon />
+                    </button>
+                  </DropdownMenu.Trigger>
+                  <UnifiedMenu.Content
+                    menuType="dropdown"
+                    onCloseAutoFocus={(e: Event) => {
+                      if (openingPopoverRef.current) {
+                        e.preventDefault();
+                        openingPopoverRef.current = false;
+                      }
+                    }}
                   >
-                    <DotsHorizontalIcon />
-                  </button>
-                </DropdownMenu.Trigger>
-                <UnifiedMenu.Content
-                  menuType="dropdown"
-                  onCloseAutoFocus={(e: Event) => {
-                    if (openingPopoverRef.current) {
-                      e.preventDefault();
-                      openingPopoverRef.current = false;
-                    }
-                  }}
-                >
-                  {menuItems}
-                </UnifiedMenu.Content>
-              </DropdownMenu.Root>
+                    {menuItems}
+                  </UnifiedMenu.Content>
+                </DropdownMenu.Root>
+              )}
             </Flex>
           </ContextMenu.Trigger>
           <UnifiedMenu.Content menuType="context" align="start" side="right">

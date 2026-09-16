@@ -39,9 +39,7 @@ const PreviewWidthSelector: React.FC<PreviewWidthSelectorProps> = (props) => {
   };
 
   const currentViewport = getCurrentViewport();
-  const displayText = currentViewport
-    ? `${currentViewport.name} (${currentViewport.width}px)`
-    : 'Full Width';
+  const displayText = currentViewport ? currentViewport.name : 'Full Width';
 
   return (
     <DropdownMenu.Root>

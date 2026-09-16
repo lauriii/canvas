@@ -15,12 +15,52 @@ export interface ElementsValidationContext {
   enabledComponentIds: Set<string>;
 }
 
+/**
+ * Matches the error Zod's `fromJSONSchema` throws when component metadata
+ * references a prop shape the installed drupal-canvas package does not bundle.
+ */
+const MISSING_PROP_SHAPE_PATTERN = /^Reference not found: #\/\$?defs\/(\S+)$/;
+
+/**
+ * Minimum drupal-canvas version bundling each prop shape added after 0.5.0.
+ */
+const PROP_SHAPE_MINIMUM_VERSIONS: Record<string, string> = {
+  document: '0.5.1',
+};
+
+function buildComponentCatalog(
+  metadata: ComponentMetadata[],
+): ReturnType<typeof defineComponentCatalog> {
+  try {
+    return defineComponentCatalog(metadata);
+  } catch (error) {
+    const match =
+      error instanceof Error
+        ? MISSING_PROP_SHAPE_PATTERN.exec(error.message)
+        : null;
+    if (!match) {
+      throw error;
+    }
+    const shape = match[1];
+    const minimumVersion = PROP_SHAPE_MINIMUM_VERSIONS[shape];
+    const versionHint = minimumVersion
+      ? `"${shape}" props require drupal-canvas ${minimumVersion} or later.`
+      : `"${shape}" props require a newer drupal-canvas version.`;
+    throw new Error(
+      `The installed drupal-canvas package does not support "${shape}" props. ` +
+        `${versionHint} ` +
+        'Run `npm install drupal-canvas@latest` in the project, then retry.',
+      { cause: error },
+    );
+  }
+}
+
 export function buildElementsValidationContext(
   metadata: ComponentMetadata[],
 ): ElementsValidationContext {
   const enabledMetadata = metadata.filter((m) => m.status);
   return {
-    catalog: defineComponentCatalog(enabledMetadata),
+    catalog: buildComponentCatalog(enabledMetadata),
     allComponentIds: new Set(metadata.map((m) => `js.${m.machineName}`)),
     enabledComponentIds: new Set(
       enabledMetadata.map((m) => `js.${m.machineName}`),

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\EventSubscriber;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\PageVariantResolver;
@@ -65,6 +66,12 @@ final class PageVariantSelectorSubscriber implements EventSubscriberInterface {
     $is_preview = (bool) $event->getRouteMatch()->getRouteObject()?->getOption('_canvas_use_template_draft');
 
     $route_entity = self::getRouteEntity($event->getRouteMatch());
+    $content_template = self::getRouteContentTemplate($event->getRouteMatch());
+    // View-mode previews such as teasers render only their content template.
+    // Page chrome applies only to full content templates.
+    if ($content_template !== NULL && $content_template->getMode() !== 'full') {
+      return;
+    }
     if ($is_preview && $route_entity !== NULL) {
       // In the editor preview, honor the page's pending (auto-saved) template
       // selection so switching templates updates the preview before it is
@@ -77,8 +84,25 @@ final class PageVariantSelectorSubscriber implements EventSubscriberInterface {
         $route_entity = $auto_save->entity;
       }
     }
+    if ($is_preview && $content_template !== NULL) {
+      // A full content-template preview must use the pending page variant
+      // selection from the template's auto-save. The preview entity above has
+      // no knowledge of that unsaved config change.
+      $auto_save = $this->autoSaveManager->getAutoSaveEntity($content_template);
+      if ($auto_save->entity instanceof ContentTemplate) {
+        $content_template = $auto_save->entity;
+        $content_template->setStatus(TRUE);
+      }
+      elseif (!$content_template->status()) {
+        $content_template = clone $content_template;
+        $content_template->setStatus(TRUE);
+      }
+    }
 
-    $variant = $this->resolver->resolve($route_entity);
+    $variant = $this->resolver->resolve(
+      $route_entity,
+      $content_template,
+    );
 
     // Which variant resolves depends on the default-variant setting (and, for a
     // selection, on the entity or template). Vary the selection on the setting
@@ -117,6 +141,18 @@ final class PageVariantSelectorSubscriber implements EventSubscriberInterface {
   private static function getRouteEntity(RouteMatchInterface $route_match): ?FieldableEntityInterface {
     foreach ($route_match->getParameters() as $parameter) {
       if ($parameter instanceof FieldableEntityInterface) {
+        return $parameter;
+      }
+    }
+    return NULL;
+  }
+
+  /**
+   * Returns the content template being previewed, if any.
+   */
+  private static function getRouteContentTemplate(RouteMatchInterface $route_match): ?ContentTemplate {
+    foreach ($route_match->getParameters() as $parameter) {
+      if ($parameter instanceof ContentTemplate) {
         return $parameter;
       }
     }

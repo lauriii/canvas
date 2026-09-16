@@ -5,6 +5,7 @@ import {
   isPreviewFrameEvent,
   isPreviewRenderRequest,
   isWorkbenchDiscoveryRefreshMessage,
+  markPreviewManifestComponentMetadataInvalid,
   toPreviewManifestComponent,
 } from './preview-contract';
 
@@ -27,7 +28,43 @@ describe('preview-contract', () => {
     expect(component.css.entryPath).toBe('/tmp/src/hero/index.css');
     expect(component.css.url).toBe('/@fs/tmp/src/hero/index.css');
     expect(component.exampleProps).toEqual({});
+    expect(component.metadataErrors).toEqual([]);
     expect(component.mocks).toEqual([]);
+  });
+
+  it('marks metadata-invalid components as non-previewable', () => {
+    const component = markPreviewManifestComponentMetadataInvalid(
+      toPreviewManifestComponent({
+        id: 'abc',
+        name: 'hero',
+        relativeDirectory: 'src/hero',
+        projectRelativeDirectory: 'packages/site/src/hero',
+        metadataPath: '/tmp/src/hero/component.yml',
+        jsEntryPath: '/tmp/src/hero/index.tsx',
+        cssEntryPath: null,
+      }),
+      'packages/site/src/hero/component.yml',
+      [
+        {
+          path: '$.type',
+          line: 3,
+          column: 7,
+          message: "must not contain unknown property 'type'",
+        },
+      ],
+    );
+
+    expect(component.previewable).toBe(false);
+    expect(component.ineligibilityReason).toBe('invalid_metadata');
+    expect(component.metadataErrors).toEqual([
+      {
+        sourcePath: 'packages/site/src/hero/component.yml',
+        path: '$.type',
+        line: 3,
+        column: 7,
+        message: "must not contain unknown property 'type'",
+      },
+    ]);
   });
 
   it('marks components without JS entries as non-previewable', () => {

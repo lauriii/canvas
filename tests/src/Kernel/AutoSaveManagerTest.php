@@ -17,10 +17,12 @@ use Drupal\canvas\Entity\StagedConfigUpdate;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\canvas\Render\PreviewEnvelope;
 use Drupal\Component\Datetime\Time;
+use Drupal\Core\Cache\CacheTagsChecksumInterface;
 use Drupal\Core\Config\ConfigManagerInterface;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\canvas\Traits\CanvasFieldCreationTrait;
@@ -1060,6 +1062,107 @@ class AutoSaveManagerTest extends CanvasKernelTestBase {
     // The 'conflict_id' elements should be present in the auto-save items list
     // if $with_conflicts is set to TRUE.
     self::assertCount($items_with_conflicts, \array_column($list, 'conflict_id'));
+  }
+
+  /**
+   * Tests that migrateLangcode() moves an auto-save entry to the new key.
+   */
+  public function testMigrateLangcodeMovesEntry(): void {
+    $this->installEntitySchema('canvas_page');
+    $this->installEntitySchema('user');
+    $this->installConfig(['language']);
+    \Drupal::service(ModuleInstallerInterface::class)->install(['language', 'content_translation']);
+    ConfigurableLanguage::createFromLangcode('de')->save();
+
+    $page = Page::create([
+      'title' => 'Untitled Page',
+      'status' => FALSE,
+      'components' => [],
+    ]);
+    $page->save();
+
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    \assert($autoSave instanceof AutoSaveManager);
+
+    // Simulate content typed before the switch: create an auto-save entry under
+    // the original (English) key.
+    $page->set('title', 'Draft content');
+    $autoSave->saveEntity($page);
+
+    $old_key = AutoSaveManager::getAutoSaveKey($page);
+    self::assertSame('canvas_page:1:en', $old_key);
+    // Reading the entry memoizes it under the old key.
+    self::assertFalse($autoSave->getAutoSaveEntity($page)->isEmpty(), 'Auto-save exists under old key before migration.');
+
+    // Change the entity langcode and migrate the auto-save.
+    $page->set('langcode', 'de');
+    $page->save();
+    $checksum_provider = $this->container->get(CacheTagsChecksumInterface::class);
+    \assert($checksum_provider instanceof CacheTagsChecksumInterface);
+    $checksum = (int) $checksum_provider->getCurrentChecksum([AutoSaveManager::CACHE_TAG]);
+    $autoSave->migrateLangcode($page, 'en');
+    self::assertFalse($checksum_provider->isValid($checksum, [AutoSaveManager::CACHE_TAG]), 'Migrating an entry invalidates the auto-save cache tag.');
+
+    $new_key = AutoSaveManager::getAutoSaveKey($page);
+    self::assertSame('canvas_page:1:de', $new_key);
+
+    // The memoized entry under the old key must be gone too, not just the
+    // stored one.
+    $old_language_page = clone $page;
+    $old_language_page->set('langcode', 'en');
+    self::assertSame($old_key, AutoSaveManager::getAutoSaveKey($old_language_page));
+    self::assertTrue($autoSave->getAutoSaveEntity($old_language_page)->isEmpty(), 'No auto-save is memoized under the old key after migration.');
+
+    // Old key must be gone.
+    $store = $this->container->get('keyvalue')->get(AutoSaveManager::AUTO_SAVE_STORE);
+    self::assertNull($store->get($old_key), 'Old auto-save key was deleted after migration.');
+
+    // New key must carry the entry with an updated langcode.
+    $migrated = $store->get($new_key);
+    self::assertIsArray($migrated, 'Auto-save entry exists under new key.');
+    self::assertSame('de', $migrated['langcode'], 'Migrated entry langcode is updated to de.');
+    // The serialized langcode field data must also be updated.
+    self::assertSame('de', $migrated['data']['langcode'][0]['value'] ?? NULL, 'Serialized langcode field value is updated to de.');
+
+    // Retrieving through AutoSaveManager must work via the new key.
+    self::assertFalse($autoSave->getAutoSaveEntity($page)->isEmpty(), 'AutoSaveManager finds the entry under the new key.');
+  }
+
+  /**
+   * Tests that migrateLangcode() is a no-op when no auto-save entry exists.
+   */
+  public function testMigrateLangcodeNoOpWithoutEntry(): void {
+    $this->installEntitySchema('canvas_page');
+    $this->installEntitySchema('user');
+    $this->installConfig(['language']);
+    \Drupal::service(ModuleInstallerInterface::class)->install(['language', 'content_translation']);
+    ConfigurableLanguage::createFromLangcode('de')->save();
+
+    $page = Page::create([
+      'title' => 'Untitled Page',
+      'status' => FALSE,
+      'components' => [],
+    ]);
+    $page->save();
+
+    $page->set('langcode', 'de');
+    $page->save();
+
+    $autoSave = $this->container->get(AutoSaveManager::class);
+    \assert($autoSave instanceof AutoSaveManager);
+
+    // Calling migrate when there is no existing auto-save must not throw, must
+    // not create an entry, and must not invalidate the auto-save cache tag.
+    $checksum_provider = $this->container->get(CacheTagsChecksumInterface::class);
+    \assert($checksum_provider instanceof CacheTagsChecksumInterface);
+    $checksum = (int) $checksum_provider->getCurrentChecksum([AutoSaveManager::CACHE_TAG]);
+    $autoSave->migrateLangcode($page, 'en');
+    self::assertTrue($autoSave->getAutoSaveEntity($page)->isEmpty(), 'No auto-save entry is created by a no-op migration.');
+    self::assertTrue($checksum_provider->isValid($checksum, [AutoSaveManager::CACHE_TAG]), 'A no-op migration does not invalidate the auto-save cache tag.');
+
+    // The same holds when the langcode did not change at all.
+    $autoSave->migrateLangcode($page, 'de');
+    self::assertTrue($checksum_provider->isValid($checksum, [AutoSaveManager::CACHE_TAG]), 'Migrating to the same langcode does not invalidate the auto-save cache tag.');
   }
 
 }

@@ -141,6 +141,7 @@ const SEL = {
     curSwatch: `${POP_SEL} [data-testid="canvas-color-current-swatch"]`,
     prevSwatch: `${POP_SEL} [data-testid="canvas-color-preview-swatch"]`,
     info: `${POP_SEL} [data-testid="canvas-color-edit-info"]`,
+    errorCard: `${POP_SEL} [data-testid="color-error-card"]`,
   },
   folderNew: {
     content: '[data-testid="canvas-manage-library-add-folder-content"]',
@@ -321,9 +322,27 @@ test.describe('brand kit colors', () => {
     await expect(page.locator(SEL.form.rgba.b)).toHaveValue('204');
     await expect(page.locator(SEL.form.rgba.a)).toHaveValue('0.9');
 
+    // Confirm duplicate CSS variable prevention in edit mode.
+    await page.locator(SEL.form.variable).fill('brand-green');
+    await page.locator(SEL.form.save).click();
+    await expect(
+      page.locator('[data-testid="color-error-card"]'),
+    ).toBeVisible();
+    await expect(
+      page.locator('[data-testid="color-error-card"]'),
+    ).toContainText('already in use');
+
+    // Set a unique variable name and continue editing.
+    await page.locator(SEL.form.variable).fill('brand-yellow');
+    await page.locator(SEL.form.save).click();
     // - Edit "Brand Blue" so the color is now yellow (255, 255, 0)
     // Color picker is already open from format verification above
 
+    await page.locator(SEL.row('Brand Blue')).hover();
+    await page.locator(SEL.rowMenu('Brand Blue')).click();
+    await page.locator(SEL.menu.edit).click();
+    // The CSS variable error should be hidden.
+    await expect(page.locator('[data-testid="color-error-card"]')).toBeHidden();
     // Test validation: enter out-of-range RGB value should disable save
     await page.locator(SEL.form.rgba.r).fill('999');
     await expect(page.locator(SEL.form.save)).toBeDisabled();
@@ -472,6 +491,43 @@ test.describe('brand kit colors', () => {
       page.locator(SEL.folderRow('Color Pocket', 'New Blue')),
     ).toBeVisible();
     // Folder count should now show 2 (Brand Yellow + New Blue)
+    await expect(page.locator(SEL.folderCount('Color Pocket'))).toHaveText('2');
+
+    // Add a new color via newBtn with an existing name, confirm validation.
+    await page.locator(SEL.newBtn).click();
+    await page.locator(SEL.newColorBtn).click();
+    await page.locator(SEL.form.name).fill('Brand Red');
+    await page.locator(SEL.form.save).click();
+    await expect(page.locator(SEL.form.errorCard)).toBeVisible();
+    await expect(page.locator(SEL.form.name)).toBeVisible();
+    await expect(page.locator(SEL.form.name)).toHaveValue('Brand Red');
+    await page.locator(SEL.form.cancel).click();
+
+    // Delete one folder color, then add another color to the same folder.
+    // This verifies folder updates continue to work without refreshing the page.
+    await page.locator(SEL.folderRow('Color Pocket', 'New Blue')).hover();
+    await page.locator(SEL.folderRowMenu('Color Pocket', 'New Blue')).click();
+    await page.locator(SEL.menu.delete).click();
+    await expect(page.locator(`${SEL.deletePop} .rt-Spinner`)).toBeHidden();
+    await expect(page.locator(SEL.deletePopConfirm)).toBeEnabled();
+    await page.locator(SEL.deletePopConfirm).click();
+    await expect(
+      page.locator(SEL.folderRow('Color Pocket', 'New Blue')),
+    ).toBeHidden();
+    await expect(page.locator(SEL.folderCount('Color Pocket'))).toHaveText('1');
+
+    await page.locator(SEL.folder('Color Pocket')).hover();
+    await page.locator(SEL.folderMenuOpen('Color Pocket')).click();
+    await page.locator(SEL.folderMenu.addColor).click();
+    await page.locator(SEL.form.name).fill('Pocket Cyan');
+    await page.locator(SEL.form.rgba.r).fill('0');
+    await page.locator(SEL.form.rgba.g).fill('255');
+    await page.locator(SEL.form.rgba.b).fill('255');
+    await page.locator(SEL.form.rgba.a).fill('1');
+    await page.locator(SEL.form.save).click();
+    await expect(
+      page.locator(SEL.folderRow('Color Pocket', 'Pocket Cyan')),
+    ).toBeVisible();
     await expect(page.locator(SEL.folderCount('Color Pocket'))).toHaveText('2');
 
     // Add a new color via newBtn, call it "Groovy Gray", make it gray.

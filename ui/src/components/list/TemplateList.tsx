@@ -138,8 +138,9 @@ const TemplateListItem = ({ viewMode }: { viewMode: TemplateViewMode }) => {
   // only "Site default" (hiding the current selection), and clicking it would
   // silently clear the template's assigned variant.
   const canEditVariants = hasPermission('pageVariants');
+  const canSelectVariant = canEditVariants && viewMode.viewMode === 'full';
   const { data: pageVariants } = useGetPageVariantsQuery(undefined, {
-    skip: !canEditVariants,
+    skip: !canSelectVariant,
   });
   const selectedTemplateId = useGetEditedTemplateId();
   const { redirectToNextBestPage } = useSmartRedirect();
@@ -203,7 +204,7 @@ const TemplateListItem = ({ viewMode }: { viewMode: TemplateViewMode }) => {
     <>
       <UnifiedMenu.Label>{viewMode.viewModeLabel}</UnifiedMenu.Label>
       <UnifiedMenu.Separator />
-      {canEditVariants && (
+      {canSelectVariant && (
         <>
           <UnifiedMenu.Sub>
             <UnifiedMenu.SubTrigger>Page template</UnifiedMenu.SubTrigger>

@@ -1,5 +1,5 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Canvas content template spec",
   "description": "Authored Canvas content template format. Workbench normalizes this into an @json-render/react-compatible spec by synthesizing the canvas:component-tree root wrapper. Bindings are expressed as prop-source objects: `{\"sourceType\": \"entity-field\", \"expression\": \"…\"}` for field bindings, `{\"sourceType\": \"host-entity-url\", \"absolute\": false}` for the host entity URL, etc. Plain literal values (strings, numbers, booleans, objects without a `sourceType` key) are sent as-is — Drupal wraps them as static prop sources at resolve time.",
   "type": "object",
@@ -51,15 +51,18 @@
         }
       },
       "additionalProperties": {
-        "$ref": "#/$defs/element"
+        "$ref": "#/definitions/element"
       }
     }
   },
   "additionalProperties": false,
   "not": {
+    "properties": {
+      "root": {}
+    },
     "required": ["root"]
   },
-  "$defs": {
+  "definitions": {
     "element": {
       "type": "object",
       "required": ["type"],
@@ -72,7 +75,7 @@
           "type": "object",
           "description": "Prop values keyed by prop name. Each value is either a literal (string/number/boolean/array/null/object without `sourceType`) or a prop-source object (object containing a string `sourceType` field).",
           "additionalProperties": {
-            "$ref": "#/$defs/propValue"
+            "$ref": "#/definitions/propValue"
           }
         },
         "slots": {
@@ -108,11 +111,14 @@
         {
           "not": {
             "type": "object",
+            "properties": {
+              "sourceType": {}
+            },
             "required": ["sourceType"]
           }
         },
         {
-          "$ref": "#/$defs/propSource"
+          "$ref": "#/definitions/propSource"
         }
       ]
     },

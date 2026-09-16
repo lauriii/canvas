@@ -18,7 +18,7 @@ interface AiToolSelectorProps {
 // ActiveToolPill for the same tool once selected. Keyed by the real
 // ai_agent config entity ids (see canvas_dev_ai.settings.yml).
 export const TOOL_ICONS: Record<string, typeof ReaderIcon> = {
-  canvas_page_builder_agent: ReaderIcon,
+  canvas_dev_page_builder_agent: ReaderIcon,
   canvas_component_agent: CodeIcon,
 };
 

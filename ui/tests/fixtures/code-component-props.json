@@ -306,6 +306,49 @@
       "items": { "type": "object", "$ref": "json-schema-definitions://canvas.module/video" },
       "valueMode": "unlimited",
       "limitedCount": 1
+    },
+    {
+      "name": "Document with no example value",
+      "type": "object",
+      "$ref": "json-schema-definitions://canvas.module/document",
+      "example": "",
+      "id": "0a1b2c3d-4e5f-6789-abcd-ef0123456789",
+      "derivedType": "document"
+    },
+    {
+      "name": "Document with example value",
+      "type": "object",
+      "$ref": "json-schema-definitions://canvas.module/document",
+      "example": { "src": "/modules/contrib/canvas/ui/assets/documents/sample.pdf", "filename": "sample.pdf", "mimetype": "application/pdf" },
+      "id": "1b2c3d4e-5f60-789a-bcde-f01234567890",
+      "derivedType": "document"
+    },
+    {
+      "name": "Document library with no example value",
+      "type": "object",
+      "$ref": "json-schema-definitions://canvas.module/document",
+      "example": [],
+      "id": "2c3d4e5f-6071-89ab-cdef-012345678901",
+      "derivedType": "document",
+      "allowMultiple": true,
+      "items": { "type": "object", "$ref": "json-schema-definitions://canvas.module/document" },
+      "valueMode": "unlimited",
+      "limitedCount": 1
+    },
+    {
+      "name": "Document library with example value",
+      "type": "object",
+      "$ref": "json-schema-definitions://canvas.module/document",
+      "example": [
+        { "src": "/modules/contrib/canvas/ui/assets/documents/sample.pdf", "filename": "sample.pdf", "mimetype": "application/pdf" },
+        { "src": "/modules/contrib/canvas/ui/assets/documents/sample.pdf", "filename": "sample.pdf", "mimetype": "application/pdf" }
+      ],
+      "id": "3d4e5f60-7182-9abc-def0-123456789012",
+      "derivedType": "document",
+      "allowMultiple": true,
+      "items": { "type": "object", "$ref": "json-schema-definitions://canvas.module/document" },
+      "valueMode": "unlimited",
+      "limitedCount": 1
     }
   ],
   "serialized": {
@@ -498,6 +541,31 @@
       "examples": [[
         { "src": "/ui/assets/videos/mountain_wide.mp4", "poster": "https://placehold.co/1920x1080.png?text=Widescreen" },
         { "src": "/ui/assets/videos/bird_vertical.mp4", "poster": "https://placehold.co/1080x1920.png?text=Vertical" }
+      ]]
+    },
+    "documentWithNoExampleValue": {
+      "title": "Document with no example value",
+      "type": "object",
+      "$ref": "json-schema-definitions://canvas.module/document"
+    },
+    "documentWithExampleValue": {
+      "title": "Document with example value",
+      "type": "object",
+      "examples": [{ "src": "/ui/assets/documents/sample.pdf", "filename": "sample.pdf", "mimetype": "application/pdf" }],
+      "$ref": "json-schema-definitions://canvas.module/document"
+    },
+    "documentLibraryWithNoExampleValue": {
+      "title": "Document library with no example value",
+      "type": "array",
+      "items": { "type": "object", "$ref": "json-schema-definitions://canvas.module/document" }
+    },
+    "documentLibraryWithExampleValue": {
+      "title": "Document library with example value",
+      "type": "array",
+      "items": { "type": "object", "$ref": "json-schema-definitions://canvas.module/document" },
+      "examples": [[
+        { "src": "/ui/assets/documents/sample.pdf", "filename": "sample.pdf", "mimetype": "application/pdf" },
+        { "src": "/ui/assets/documents/sample.pdf", "filename": "sample.pdf", "mimetype": "application/pdf" }
       ]]
     }
   }

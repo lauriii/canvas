@@ -11,6 +11,7 @@ use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
 use Drupal\canvas_headless\ExternalComponentSync;
+use Drupal\canvas_headless\FrontendUrl;
 use Drupal\canvas_headless\RenderConverter\JsComponentCanvasRenderConverter;
 use Drupal\Core\Config\ConfigCrudEvent;
 use Drupal\Core\Config\ConfigEvents;
@@ -31,6 +32,9 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 #[Group('canvas_headless')]
 #[RunTestsInSeparateProcesses]
 final class ExternalComponentSyncTest extends CanvasKernelTestBase {
+
+  private const string FRONTEND_URL = 'https://frontend.example';
+  private const string SECOND_FRONTEND_URL = 'https://frontend-b.example';
 
   /**
    * {@inheritdoc}
@@ -60,6 +64,8 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
    */
   public function testSynchronization(): void {
     $this->installConfig(['canvas_headless']);
+    $frontend = FrontendUrl::fromConfig(self::FRONTEND_URL);
+    self::assertInstanceOf(FrontendUrl::class, $frontend);
 
     $dependency = JavaScriptComponent::create([
       'machineName' => 'localDependency',
@@ -126,12 +132,13 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
       },
     );
 
-    $result = $synchronizer->synchronize(self::metadataPayload('Original name', 'integer'));
+    $result = $synchronizer->synchronize($frontend, self::metadataPayload('Original name', 'integer'));
     self::assertSame(1, $result['created']);
     self::assertSame(1, $result['updated']);
     self::assertSame(0, $result['unchanged']);
     self::assertCount(2, $result['warnings']);
     self::assertCount(1, $result['errors']);
+    self::assertSame(['js.heroBanner', 'js.cardWithSlot'], $result['components']);
 
     $component = JavaScriptComponent::load('heroBanner');
     self::assertInstanceOf(JavaScriptComponent::class, $component);
@@ -191,13 +198,26 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
 
     // Configuring a frontend makes the external implementation authoritative.
     $this->config('canvas_headless.settings')
-      ->set('frontends', [['url' => 'https://frontend.example']])
+      ->set('frontends', [['url' => self::FRONTEND_URL, 'components' => []]])
       ->save();
+    self::assertSame([[
+      'url' => self::FRONTEND_URL,
+      'components' => [],
+    ],
+    ], $this->config('canvas_headless.settings')->get('frontends'));
     $external_build = $local_source->renderComponent([
       JsComponent::EXPLICIT_INPUT_NAME => [],
     ], [], 'local-component-uuid');
     self::assertSame('', $external_build['#markup']);
     self::assertArrayHasKey(JsComponent::EXTERNAL_RENDER_METADATA, $external_build);
+
+    $result = $synchronizer->synchronize($frontend, self::metadataPayload('Original name', 'integer'));
+    self::assertSame(['js.heroBanner', 'js.cardWithSlot'], $result['components']);
+    self::assertSame([[
+      'url' => self::FRONTEND_URL,
+      'components' => ['js.heroBanner', 'js.cardWithSlot'],
+    ],
+    ], $this->config('canvas_headless.settings')->get('frontends'));
 
     // Drupal keeps app-owned components renderless, while the headless
     // Custom Elements converter exposes their props, identity, and slots.
@@ -280,7 +300,7 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
     self::assertContains('The component metadata payload reported a warning (duplicate-machine-name): Duplicate machine name heroBanner. [hero-banner-copy]', $logged_messages);
     self::assertContains("Skipped a duplicate definition for the external component 'heroBanner': the first definition in the payload wins.", $logged_messages);
 
-    $result = $synchronizer->synchronize(self::metadataPayload('Updated name', 'number'));
+    $result = $synchronizer->synchronize($frontend, self::metadataPayload('Updated name', 'number'));
     self::assertSame(1, $result['updated']);
     self::assertSame(1, $result['unchanged']);
     $component = JavaScriptComponent::load('heroBanner');
@@ -293,7 +313,7 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
     self::assertSame(2, $code_component_saves->count);
 
     $updated_payload = self::metadataPayload('Updated name', 'number');
-    $result = $synchronizer->synchronize($updated_payload);
+    $result = $synchronizer->synchronize($frontend, $updated_payload);
     self::assertSame(2, $result['unchanged']);
     self::assertSame(2, $code_component_saves->count);
 
@@ -301,7 +321,7 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
     // must still be synchronized to the JavaScript component.
     \assert(isset($updated_payload['components'][0]['props']['anchorId']['meta:enum']));
     $updated_payload['components'][0]['props']['anchorId']['meta:enum']['features'] = 'Featured content';
-    $result = $synchronizer->synchronize($updated_payload);
+    $result = $synchronizer->synchronize($frontend, $updated_payload);
     self::assertSame(1, $result['updated']);
     self::assertSame(1, $result['unchanged']);
     $component = JavaScriptComponent::load('heroBanner');
@@ -314,7 +334,7 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
     self::assertSame($second_version, $canvas_component->getActiveVersion());
     self::assertSame(3, $code_component_saves->count);
 
-    $result = $synchronizer->synchronize($updated_payload);
+    $result = $synchronizer->synchronize($frontend, $updated_payload);
     self::assertSame(2, $result['unchanged']);
     self::assertSame(3, $code_component_saves->count);
 
@@ -323,11 +343,76 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
     $canvas_component = Component::load('js.heroBanner');
     self::assertInstanceOf(Component::class, $canvas_component);
     $canvas_component->delete();
-    $result = $synchronizer->synchronize($updated_payload);
+    $result = $synchronizer->synchronize($frontend, $updated_payload);
     self::assertSame(1, $result['updated']);
     self::assertSame(1, $result['unchanged']);
     self::assertInstanceOf(Component::class, Component::load('js.heroBanner'));
     self::assertSame(4, $code_component_saves->count);
+
+    $removed_payload = $updated_payload;
+    $removed_payload['components'] = [$removed_payload['components'][0]];
+    $result = $synchronizer->synchronize($frontend, $removed_payload);
+    self::assertSame(['js.heroBanner'], $result['components']);
+    self::assertSame([[
+      'url' => self::FRONTEND_URL,
+      'components' => ['js.heroBanner'],
+    ],
+    ], $this->config('canvas_headless.settings')->get('frontends'));
+  }
+
+  /**
+   * Tests that conflicting external definitions across frontends are rejected.
+   */
+  public function testCrossFrontendConflict(): void {
+    $this->installConfig(['canvas_headless']);
+    $frontend_a = FrontendUrl::fromConfig(self::FRONTEND_URL);
+    $frontend_b = FrontendUrl::fromConfig(self::SECOND_FRONTEND_URL);
+    self::assertInstanceOf(FrontendUrl::class, $frontend_a);
+    self::assertInstanceOf(FrontendUrl::class, $frontend_b);
+
+    $this->config('canvas_headless.settings')
+      ->set('frontends', [
+        ['url' => self::FRONTEND_URL, 'components' => []],
+        ['url' => self::SECOND_FRONTEND_URL, 'components' => []],
+      ])
+      ->save();
+
+    $synchronizer = new ExternalComponentSync(
+      $this->container->get(ConfigFactoryInterface::class),
+      $this->container->get(EntityTypeManagerInterface::class),
+      $this->container->get('lock'),
+      $this->container->get(LoggerChannelFactoryInterface::class),
+      $this->container->get(ComponentSourceManager::class),
+      $this->container->get(TypedConfigManagerInterface::class),
+      $this->container->get(PropShapeRepositoryInterface::class),
+    );
+
+    $result = $synchronizer->synchronize($frontend_a, self::conflictMetadataPayload('Original name', 'integer'));
+    self::assertSame([], $result['errors']);
+    self::assertSame([[
+      'url' => self::FRONTEND_URL,
+      'components' => ['js.heroBanner', 'js.cardWithSlot'],
+    ], [
+      'url' => self::SECOND_FRONTEND_URL,
+      'components' => [],
+    ],
+    ], $this->config('canvas_headless.settings')->get('frontends'));
+
+    $result = $synchronizer->synchronize($frontend_b, self::conflictMetadataPayload('Conflicting name', 'number'));
+    self::assertCount(1, $result['errors']);
+    self::assertSame(1, $result['unchanged']);
+    self::assertStringContainsString("External component 'heroBanner'", $result['errors'][0]);
+    self::assertStringContainsString(self::FRONTEND_URL, $result['errors'][0]);
+    self::assertStringContainsString(self::SECOND_FRONTEND_URL, $result['errors'][0]);
+    self::assertSame('Original name', JavaScriptComponent::load('heroBanner')?->label());
+    self::assertSame([[
+      'url' => self::FRONTEND_URL,
+      'components' => ['js.heroBanner', 'js.cardWithSlot'],
+    ], [
+      'url' => self::SECOND_FRONTEND_URL,
+      'components' => ['js.cardWithSlot'],
+    ],
+    ], $this->config('canvas_headless.settings')->get('frontends'));
   }
 
   /**
@@ -413,6 +498,19 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
         ],
       ],
     ];
+  }
+
+  /**
+   * Builds a valid payload fixture for cross-frontend conflict tests.
+   */
+  private static function conflictMetadataPayload(string $name, string $level_type): array {
+    $payload = self::metadataPayload($name, $level_type);
+    $payload['components'] = [
+      $payload['components'][0],
+      $payload['components'][2],
+    ];
+    $payload['warnings'] = [];
+    return $payload;
   }
 
 }

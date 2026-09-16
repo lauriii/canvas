@@ -8,10 +8,13 @@ import ErrorBoundary from '@/components/error/ErrorBoundary';
 import ConflictWarning from '@/features/editor/ConflictWarning';
 import EditorFrame from '@/features/editorFrame/EditorFrame';
 import { selectLatestError } from '@/features/error-handling/queryErrorSlice';
+import { FORM_TYPES } from '@/features/form/constants';
+import { clearFieldValues } from '@/features/form/formStateSlice';
 import LayoutLoader from '@/features/layout/LayoutLoader';
 import { setUpdatePreview } from '@/features/layout/layoutModelSlice';
 import PatternLayout from '@/features/layout/PatternLayout';
 import TemplateLayout from '@/features/layout/TemplateLayout';
+import { resetPageData } from '@/features/pageData/pageDataSlice';
 import {
   selectEditorFrameContext,
   setEditorFrameContext,
@@ -52,6 +55,8 @@ const Editor: React.FC<EditorProps> = ({ context, disable = false }) => {
   useEffect(() => {
     dispatch(setUpdatePreview(false));
     dispatch(setFirstLoadComplete(false));
+    dispatch(resetPageData());
+    dispatch(clearFieldValues(FORM_TYPES.ENTITY_FORM));
   }, [dispatch, entityId, entityType]);
 
   if (latestError) {

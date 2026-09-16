@@ -1,9 +1,17 @@
 import chalk from 'chalk';
 import * as p from '@clack/prompts';
-import { discoverCanvasProject } from '@drupal-canvas/discovery';
+import {
+  detectHeadlessSdk,
+  discoverCanvasProject,
+} from '@drupal-canvas/discovery';
 
 import { getConfig } from '../config.js';
-import { createApiService, isUserAuthenticated } from '../services/api.js';
+import {
+  applyPageVariantCompatibility,
+  createApiService,
+  isUserAuthenticated,
+  supportsPageVariants,
+} from '../services/api.js';
 import { updateConfigFromOptions } from '../utils/command-helpers';
 import { printCommandIntro } from '../utils/command-intro.js';
 import {
@@ -40,6 +48,7 @@ async function createOptionalValidationApiService(): Promise<
   if (!isUserAuthenticated(config.siteUrl) && !hasClientCredentials) {
     return undefined;
   }
+  await applyPageVariantCompatibility(config.siteUrl);
   try {
     return await createApiService();
   } catch {
@@ -71,20 +80,25 @@ export function validateCommand(program: Command): void {
         updateConfigFromOptions(options);
 
         const config = getConfig();
+        const headlessSdkDetected = detectHeadlessSdk(process.cwd());
         const discoveryResult = await discoverCanvasProject({
           componentRoot: config.componentDir,
           pagesRoot: config.pagesDir,
           contentTemplatesRoot: config.contentTemplatesDir,
           pageTemplatesRoot: config.pageTemplatesDir,
           projectRoot: process.cwd(),
+          requireJsEntry: !headlessSdkDetected,
         });
         for (const warning of discoveryResult.warnings) {
           p.log.warn(formatDiscoveryWarning(warning));
         }
         const results: Result[] = [];
         const apiService = await createOptionalValidationApiService();
+        const pageVariantsSupported = await supportsPageVariants(
+          config.siteUrl,
+        );
         let availablePageVariantIds: Set<string> | undefined;
-        if (apiService) {
+        if (apiService && pageVariantsSupported) {
           try {
             const remotePageVariants = await apiService.listPageVariants();
             availablePageVariantIds = new Set([
@@ -99,13 +113,15 @@ export function validateCommand(program: Command): void {
         const s = p.spinner();
         s.start('Validating components');
 
-        const { results: componentResults } = await validateComponents(
-          discoveryResult,
-          {
+        const { results: componentResults, warnings: validationWarnings } =
+          await validateComponents(discoveryResult, {
             fix: options.fix,
             apiService,
-          },
-        );
+            externalComponents: headlessSdkDetected,
+          });
+        for (const warning of validationWarnings) {
+          p.log.warn(warning);
+        }
         for (const result of componentResults) {
           results.push({ ...result, itemType: 'Component' });
         }

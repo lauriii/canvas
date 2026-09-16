@@ -1,13 +1,14 @@
 import { useParams } from 'react-router';
 import { useNavigate } from 'react-router-dom';
 import { EyeNoneIcon, EyeOpenIcon } from '@radix-ui/react-icons';
-import { Button } from '@radix-ui/themes';
+import { Button, Tooltip } from '@radix-ui/themes';
 
 import { useAppDispatch } from '@/app/hooks';
-import PreviewWidthSelector from '@/features/pagePreview/PreviewWidthSelector';
-import { useEditorNavigation } from '@/hooks/useEditorNavigation';
+import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { useTemplateRef } from '@/hooks/useTemplateRef';
 import { pageDataFormApi } from '@/services/pageDataForm';
+
+import styles from './PreviewControls.module.css';
 
 type PreviewControlsProps = {
   isPreview: boolean;
@@ -53,22 +54,34 @@ const PreviewControls = ({ isPreview }: PreviewControlsProps) => {
 
   return (
     <>
-      {isPreview ? (
-        <>
-          <PreviewWidthSelector />
+      {!isPreview ? (
+        <Tooltip content="Preview">
           <Button
-            variant="outline"
-            color="blue"
             onClick={handleChangeModeClick}
+            color="blue"
+            variant="ghost"
+            size="1"
+            className={styles.previewButton}
+            aria-label="Preview"
           >
-            <EyeNoneIcon /> Exit Preview
+            <EyeOpenIcon />
           </Button>
-        </>
-      ) : (
-        <Button variant="outline" color="blue" onClick={handleChangeModeClick}>
-          <EyeOpenIcon /> Preview
-        </Button>
-      )}
+        </Tooltip>
+      ) : null}
+      {isPreview ? (
+        <Tooltip content="Exit Preview">
+          <Button
+            onClick={handleChangeModeClick}
+            color="blue"
+            variant="ghost"
+            size="1"
+            className={styles.previewButton}
+            aria-label="Exit Preview"
+          >
+            <EyeNoneIcon />
+          </Button>
+        </Tooltip>
+      ) : null}
     </>
   );
 };

@@ -1,0 +1,9 @@
+name: Derived keys
+machineName: derived-keys
+type: react
+dataDependencies:
+  urls:
+    - https://example.com/data.json
+  drupalSettings:
+    - v0.baseUrl
+unknown: rejected

@@ -11,13 +11,8 @@ import {
   defineComponentRegistry,
   renderSpec,
 } from 'drupal-canvas/json-render-utils';
-import { CircleAlertIcon } from 'lucide-react';
 import { useNavigate } from 'react-router';
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from '@wb/client/components/ui/alert';
+import { PreviewErrorAlert } from '@wb/client/components/preview-error-alert';
 import { fetchDiscoveryResult } from '@wb/lib/discovery-client';
 import { fetchPreviewManifest } from '@wb/lib/preview-client';
 import {
@@ -59,18 +54,6 @@ function PageContentMarkerPlaceholder() {
     <div className="m-4 rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
       Page content
     </div>
-  );
-}
-
-function PreviewErrorAlert({ message }: { message: string }) {
-  return (
-    <Alert className="max-w-3xl" variant="destructive">
-      <CircleAlertIcon />
-      <AlertTitle>Preview failed to render.</AlertTitle>
-      <AlertDescription className="whitespace-pre-wrap font-mono text-[11px]">
-        {message}
-      </AlertDescription>
-    </Alert>
   );
 }
 

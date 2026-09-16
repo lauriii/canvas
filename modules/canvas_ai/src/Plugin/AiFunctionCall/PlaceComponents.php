@@ -16,14 +16,15 @@ use Drupal\Core\Plugin\Context\ContextDefinition;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\Yaml\Exception\ParseException;
 use Symfony\Component\Yaml\Yaml;
 
 /**
  * Tool that lets the agent place one or more components onto the page.
  *
- * This tool is intentionally not listed in any agent's tool set yet: it ships
- * inert and is wired to the dev agent in a later issue. It will eventually
- * replace \Drupal\canvas_ai\Plugin\AiFunctionCall\SetAIGeneratedComponentStructure.
+ * The canvas_dev_page_builder_agent lists this tool, restricted to one call
+ * per model response. It will eventually replace
+ * \Drupal\canvas_ai\Plugin\AiFunctionCall\SetAIGeneratedComponentStructure.
  *
  * @see \Drupal\canvas_ai\Controller\CanvasBuilder::render()
  * @see \Drupal\canvas_ai\Plugin\AiFunctionCall\GetCurrentLayout
@@ -115,7 +116,15 @@ final class PlaceComponents extends FunctionCallBase implements ExecutableFuncti
       $all_errors = [];
       $current_layout = $this->tempStore->getData(CanvasAiTempStore::CURRENT_LAYOUT_KEY) ?? '';
       foreach ($this->getContextValue('operations') as $index => $operation) {
-        $operation['components'] = Yaml::parse($operation['components'] ?? '');
+        try {
+          $operation['components'] = Yaml::parse($operation['components'] ?? '');
+        }
+        catch (ParseException $e) {
+          // A raw parse error gives the model nothing to act on, so it retries
+          // the same payload; tell it how to fix the YAML instead.
+          $all_errors['Operation ' . $index][] = \sprintf("The components value is not valid YAML: %s Rewrite it with every string value quoted — unquoted dash-separated values such as 2233-33-33 are read as invalid dates, and HTML or multi-line text must be quoted too.", $e->getMessage());
+          continue;
+        }
         $all_errors = array_merge($all_errors, $this->validatePlacementParams($operation, $index, $current_layout));
         if (\is_array($operation['components'])) {
           $this->responseValidator->validateComponentStructure($operation['components']);
@@ -134,10 +143,12 @@ final class PlaceComponents extends FunctionCallBase implements ExecutableFuncti
       $this->setStructuredOutput($placement->operations);
       // Return the backend-assigned UUIDs and the predicted layout in the tool
       // result, so the model knows where the placed components landed and can
-      // reference them when placing the next section. Remind it to call this
-      // tool again while any planned section is still unplaced.
+      // reference them when placing the next section. State that these UUIDs
+      // outrank the layout supplied at the start of the turn, which lists them
+      // only from the next turn. Remind it to call this tool again while any
+      // planned section is still unplaced.
       $output = \sprintf(
-        "Components placed successfully.\nThe placed components with their assigned UUIDs:\n%s\nThe expected page layout after placement (UUID tree):\n%s\n\nThis result is a continuation point, not a stopping point: if any section from your approved plan is still unplaced, your next output MUST be the next place_components call — a turn with text and no tool call would freeze the build here. Only once every planned section is on the page do you stop and write the closing confirmation.",
+        "Components placed successfully.\nThe placed components with their assigned UUIDs:\n%s\nThe expected page layout after placement (UUID tree):\n%s\nThese UUIDs are valid immediately — use them as reference_uuid for the next section in this same turn. The page layout you were given at the start of this turn does not list them yet and will only do so from your next turn, so for anything placed during this turn this result is authoritative and that layout is not. This is expected, not a sign that the layout is missing or that you should wait.\n\nThis result is a continuation point, not a stopping point: if any section from your approved plan is still unplaced, your next output MUST be the next place_components call — a turn with text and no tool call would freeze the build here. Only once every planned section is on the page do you stop and write the closing confirmation.",
         Yaml::dump($placement->componentStructureWithUuids, 10, 2),
         Yaml::dump($placement->predictedLayout, 10, 2),
       );

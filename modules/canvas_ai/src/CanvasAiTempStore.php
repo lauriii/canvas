@@ -82,32 +82,41 @@ class CanvasAiTempStore {
   }
 
   /**
-   * Gets the serialized agent state for a chat turn.
+   * Gets the agent state a paused chat turn parked.
    *
    * @param string $job_id
    *   The job ID identifying the chat turn.
    *
-   * @return array|null
-   *   The state as written by the agent's ::toArray(), or NULL when the turn
-   *   is not paused.
+   * @return array{agent_id: string, state: array}|null
+   *   The ID of the agent that parked the state and the state as written by
+   *   its ::toArray(), or NULL when the turn is not paused.
    */
   public function getStoredAgentState(string $job_id): ?array {
-    $state = $this->tempStore->get(self::AGENT_STATE_KEY_PREFIX . $job_id);
-    return \is_array($state) ? $state : NULL;
+    $record = $this->tempStore->get(self::AGENT_STATE_KEY_PREFIX . $job_id);
+    if (!isset($record['agent_id'], $record['state'])) {
+      return NULL;
+    }
+    return ['agent_id' => $record['agent_id'], 'state' => $record['state']];
   }
 
   /**
-   * Stores the serialized agent state for a chat turn.
+   * Stores the agent state of a paused chat turn.
    *
    * @param string $job_id
    *   The job ID identifying the chat turn.
+   * @param string $agent_id
+   *   The ID of the agent that parked the state. Only that agent can resume
+   *   it: the state carries its chat history.
    * @param array $state
    *   The state, as returned by the agent's ::toArray().
    *
    * @throws \Drupal\Core\TempStore\TempStoreException
    */
-  public function setStoredAgentState(string $job_id, array $state): void {
-    $this->tempStore->set(self::AGENT_STATE_KEY_PREFIX . $job_id, $state);
+  public function setStoredAgentState(string $job_id, string $agent_id, array $state): void {
+    $this->tempStore->set(self::AGENT_STATE_KEY_PREFIX . $job_id, [
+      'agent_id' => $agent_id,
+      'state' => $state,
+    ]);
   }
 
   /**

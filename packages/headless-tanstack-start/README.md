@@ -100,3 +100,6 @@ server-only — call them inside `createServerFn` handlers, never in isomorphic
 loaders directly. Render `page.content` directly and return
 `toTanStackHead(page.head)` from the route's `head` callback. Handle
 `PageRedirect` in the loader with TanStack Router's `redirect()`.
+
+`fetchEntity({ type, id, viewMode })` renders one content entity without
+page-level route or head data. Use it for embedded renders such as teaser cards.

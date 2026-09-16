@@ -2,6 +2,7 @@ import { createApi } from '@reduxjs/toolkit/query/react';
 
 import { baseQuery } from '@/services/baseQuery';
 import { componentAndLayoutApi } from '@/services/componentAndLayout';
+import { headlessFrontendsApi } from '@/services/headlessFrontends';
 import { notificationsApi } from '@/services/notificationsApi';
 
 import type { Dispatch } from '@reduxjs/toolkit';
@@ -98,6 +99,11 @@ export const headlessComponentSyncApi = createApi({
           componentAndLayoutApi.util.invalidateTags([
             { type: 'Components', id: 'LIST' },
             { type: 'CodeComponents', id: 'LIST' },
+          ]),
+        );
+        dispatch(
+          headlessFrontendsApi.util.invalidateTags([
+            { type: 'HeadlessFrontends', id: 'LIST' },
           ]),
         );
         return {

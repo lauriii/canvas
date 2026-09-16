@@ -40,8 +40,7 @@ const HeadlessFrontendsPage = () => {
   // One package manager choice drives every command snippet on the page.
   const [packageManager, setPackageManager] = useState<PackageManager>('npm');
 
-  // The stored list carries only URLs; the URL doubles as the row id since
-  // the API refuses duplicates.
+  // The URL doubles as the row id since the API refuses duplicates.
   const frontends: HeadlessFrontend[] = (storedFrontends ?? []).map(
     (frontend) => ({
       id: frontend.url,
@@ -56,8 +55,14 @@ const HeadlessFrontendsPage = () => {
   const hasFrontends = frontends.length > 0;
 
   const saveList = async (list: HeadlessFrontend[]) => {
+    const storedFrontendsByUrl = new Map(
+      (storedFrontends ?? []).map((frontend) => [frontend.url, frontend]),
+    );
     const savedFrontends = await setFrontends(
-      list.map((frontend) => ({ url: frontend.url })),
+      list.map((frontend) => ({
+        url: frontend.url,
+        components: storedFrontendsByUrl.get(frontend.url)?.components ?? [],
+      })),
     ).unwrap();
     setCanvasHeadlessFrontends(savedFrontends.map((frontend) => frontend.url));
   };

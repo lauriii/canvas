@@ -61,11 +61,13 @@ final class CanvasConfigEntityTranslationsAreValidConstraintValidator extends Co
     // entity instead of the given entity (e.g. an auto-saved one).
     $base_data = $value->toArray();
     if ($value instanceof ComponentTreeConfigEntityBase) {
-      // An auto-save draft's base tree may still be delta-keyed: sequence
-      // keys are only enforced once a translation exists, and reconstructed
-      // drafts bypass ::preSave(). Overrides always target component
-      // instances by UUID sequence key, so re-key the base or the merge
-      // below would emit phantom, instance-less entries.
+      // A LanguageConfigOverride always targets component instances by their
+      // UUID sequence key, but the base component_tree may still be
+      // delta-keyed: e.g. an auto-save draft created before any translation
+      // existed. Re-key the base by UUID so the two align on merge; otherwise
+      // NestedArray::mergeDeepArray() would treat them as disjoint and emit
+      // phantom, instance-less entries (an override's sparse inputs with no
+      // component_id or UUID), which fail config schema validation.
       // @see \Drupal\canvas\Entity\ComponentTreeConfigEntityBase::getTranslatedComponentTree()
       $base_data['component_tree'] = ComponentTreeConfigEntityBase::asDeterministicallyAndTranslatableKeyedComponentTreeSequence(
         \array_values($base_data['component_tree'] ?? []),

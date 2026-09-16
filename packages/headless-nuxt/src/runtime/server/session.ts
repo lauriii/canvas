@@ -7,7 +7,11 @@ import {
 
 import { createNuxtDraftAdapter, NUXT_DRAFT_FLAG_COOKIE_NAME } from './adapter';
 
-import type { DraftData, PageResult } from '@drupal-canvas/headless';
+import type {
+  DraftData,
+  EntityResult,
+  PageResult,
+} from '@drupal-canvas/headless';
 import type { DraftConfig, DraftServer } from '@drupal-canvas/headless/server';
 import type { H3Event } from 'h3';
 
@@ -70,6 +74,18 @@ export function getClient(
   return getDraftServer(event).getClient();
 }
 
+/** Fetches one entity by type and ID through the current draft session. */
+export function fetchEntity(
+  event: H3Event,
+  options: {
+    type: string;
+    id: string;
+    viewMode?: string;
+  },
+): Promise<EntityResult | null> {
+  return getDraftServer(event).fetchEntity(options);
+}
+
 /**
  * Fetches a page by its Drupal path, resolved through Drupal's routing,
  * carrying the live draft session's bearer token when there is one.
@@ -91,6 +107,7 @@ export function fetchComponentPreview(
 
 export { isDraftSessionExpired, isPageRedirect, NUXT_DRAFT_FLAG_COOKIE_NAME };
 export type {
+  EntityResult,
   DrupalRoute,
   DrupalRouteEntity,
   Page,

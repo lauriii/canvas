@@ -172,7 +172,7 @@ class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
       ],
       // The component in `test-slot` slot.
       [
-        'uuid' => 'b1f6e1d4-B3c4-4d5e-8f6a-1234567890ab',
+        'uuid' => 'b1f6e1d4-b3c4-4d5e-8f6a-1234567890ab',
         'component_id' => 'js.test',
         'component_version' => self::ORIGINAL_VERSION_HASH,
         'parent_uuid' => self::COMPONENT_INSTANCE_UUID,
@@ -1030,7 +1030,7 @@ class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
     $current_tree = $component_instance->getParent();
     \assert($current_tree instanceof ComponentTreeItemList);
     self::assertCount(1, $current_tree);
-    self::assertNull($current_tree->getComponentTreeItemByUuid('b1f6e1d4-B3c4-4d5e-8f6a-1234567890ab'));
+    self::assertNull($current_tree->getComponentTreeItemByUuid('b1f6e1d4-b3c4-4d5e-8f6a-1234567890ab'));
     self::assertNotNull($current_tree->getComponentTreeItemByUuid(self::COMPONENT_INSTANCE_UUID));
   }
 

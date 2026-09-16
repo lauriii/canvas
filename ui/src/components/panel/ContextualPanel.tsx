@@ -36,7 +36,7 @@ const ContextualPanel: React.FC = () => {
   const selection = useAppSelector(selectSelection);
   const dispatch = useAppDispatch();
   const editorFrameContext = useAppSelector(selectEditorFrameContext);
-  const { entityType } = useParams();
+  const { entityId, entityType } = useParams();
   const isTemplateContext = editorFrameContext === EditorFrameContext.TEMPLATE;
   // Page variants are config entities without entity form fields, so like
   // templates they have no "Page data" tab: the panel only shows component
@@ -182,7 +182,9 @@ const ContextualPanel: React.FC = () => {
                     forceMount={true}
                     hidden={activePanel !== 'pageData'}
                   >
-                    {editorFrameContext === 'entity' && <PageDataForm />}
+                    {editorFrameContext === 'entity' && (
+                      <PageDataForm key={`${entityType}:${entityId}`} />
+                    )}
                   </Tabs.Content>
                 )}
               </Box>

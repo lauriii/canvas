@@ -28,6 +28,7 @@ import { contentTemplateToAuthored } from '../utils/content-templates';
 import { ensureTailwindImportAtTop } from '../utils/ensure-global-css-tailwind-import';
 import { pageVariantToAuthoredSpec } from '../utils/page-variants';
 import { pageToAuthoredSpec } from '../utils/pages';
+import { stripProjectedContentEntityReferencePropKeys } from '../utils/process-component-files';
 import {
   COMMAND_RESULT_REPORT_OPTIONS,
   reportResults,
@@ -244,16 +245,15 @@ export function createComponentsPullTask(
       status: component.status,
       required: component.required || [],
       props: {
-        properties: component.props || {},
+        properties: stripProjectedContentEntityReferencePropKeys(
+          component.props || {},
+        ),
       },
-      slots: component.slots || {},
+      slots: Array.isArray(component.slots) ? {} : component.slots || {},
+      dataDependencies: component.dataDependencies?.entityFields
+        ? { entityFields: component.dataDependencies.entityFields }
+        : {},
     };
-
-    if (component.dataDependencies?.entityFields) {
-      metadata.dataDependencies = {
-        entityFields: component.dataDependencies.entityFields,
-      };
-    }
 
     return metadata;
   }

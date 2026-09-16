@@ -1,11 +1,26 @@
 .colorRow {
   display: flex;
   align-items: center;
-  height: var(--space-6);
+  min-height: var(--space-6);
   padding: 0 var(--space-2);
   cursor: grab;
   border-radius: var(--radius-2);
   gap: var(--space-2);
+}
+
+.colorRow[data-has-inline-error] {
+  align-items: flex-start;
+  padding-top: var(--space-1);
+  padding-bottom: var(--space-1);
+}
+
+.swatch {
+  align-self: center;
+}
+
+.colorRow[data-has-inline-error] .swatch {
+  align-self: flex-start;
+  margin-top: 2px;
 }
 
 .colorRow:hover {

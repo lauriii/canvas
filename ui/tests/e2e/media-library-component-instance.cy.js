@@ -109,8 +109,8 @@ const testMediaLibraryInComponentInstanceForm = (
   cy.waitForElementInIframe(`img[alt="${lastStep.expectedAlt}"]`);
 
   // Switch to full screen preview.
-  cy.findByText('Preview').click();
-  cy.findByText('Exit Preview').click();
+  cy.findByRole('button', { name: 'Preview' }).click();
+  cy.findByRole('button', { name: 'Exit Preview' }).click();
   cy.clickComponentInPreview('Test SDC Image');
   // Media entity value should persist.
   cy.get(

@@ -57,6 +57,7 @@ final class CanvasColorPickerWidget extends WidgetBase {
       '#type' => 'color',
       '#title' => $this->fieldDefinition->getLabel(),
       '#default_value' => $color_value,
+      '#required' => $element['#required'] ?? FALSE,
       '#attributes' => $attributes,
     ];
 

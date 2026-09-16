@@ -16,11 +16,16 @@ final class CanvasDevAiAgentSelectionForm extends ConfigFormBase {
 
   /**
    * The ai_agent IDs that may be selected.
+   *
+   * CanvasDevAiHooks reads this to decide which Tools are available, so every
+   * ID here except the Canvas agent is described to it whether or not it is
+   * enabled. The shipped canvas_dev_ai.settings must name only IDs from this
+   * list: a stored value outside it is silently replaced when the form saves.
    */
-  private const SELECTABLE_AGENTS = [
-    'canvas_ai_orchestrator',
+  public const SELECTABLE_AGENTS = [
+    'canvas_agent',
     'canvas_component_agent',
-    'canvas_page_builder_agent',
+    'canvas_dev_page_builder_agent',
   ];
 
   /**

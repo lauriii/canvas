@@ -19,5 +19,6 @@ export const getDraftConfig = server.getConfig;
 export const getClient = server.getClient;
 export const getPublicClient = server.getPublicClient;
 export const getDraftClient = server.getDraftClient;
+export const fetchEntity = server.fetchEntity;
 export const fetchPage = server.fetchPage;
 export const fetchComponentPreview = server.fetchComponentPreview;

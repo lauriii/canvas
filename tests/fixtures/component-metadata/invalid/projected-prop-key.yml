@@ -1,0 +1,10 @@
+name: Projected prop key
+machineName: projected-prop-key
+props:
+  properties:
+    reference:
+      type: object
+      title: Reference
+      $ref: json-schema-definitions://canvas.module/content-entity-reference
+      x-allowed-entity-type-id: node
+      x-allowed-bundle: article

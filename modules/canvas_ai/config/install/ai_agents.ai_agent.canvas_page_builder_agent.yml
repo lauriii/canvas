@@ -1,6 +1,8 @@
 langcode: en
 status: true
 dependencies:
+  module:
+    - canvas_ai
   enforced:
     module:
       - canvas_ai
@@ -191,6 +193,8 @@ tool_settings:
   'canvas_ai:set_component_structure':
     return_directly: 0
     require_usage: 0
+    restrict_multiple_calls: 0
+    multiple_call_error_message: ''
     description_override: ''
     progress_message: ''
     use_artifacts: 0
@@ -210,14 +214,10 @@ default_information_tools: |
     tool: 'canvas_ai:get_component_context'
     parameters: {  }
 tool_usage_limits:
-  'canvas_ai:set_component_structure':
-    component_structure:
-      action: ''
-      hide_property: 0
-      not_break: 0
-      values: ''
+  'canvas_ai:set_component_structure': {  }
 exclude_users_role: false
 masquerade_roles: {  }
 structured_output_enabled: false
 structured_output_schema: ''
 hostname_filter_disabled: false
+guardrail_set: ''

@@ -34,11 +34,28 @@ export default defineConfig({
     alwaysBundle: [
       '@drupal-canvas/auth',
       '@drupal-canvas/discovery',
+      '@drupal-canvas/json-schema-validation',
       '@drupal-canvas/vite-compat',
     ],
     // These are pulled in transitively when the published Vite config bundles
     // the discovery and Vite compatibility helpers used by the Workbench server.
-    onlyBundle: ['glob', 'ignore', 'js-yaml'],
+    onlyBundle: [
+      'ajv',
+      'ajv-formats',
+      'ajv-formats-draft2019',
+      'extend',
+      'fast-deep-equal',
+      'fast-uri',
+      'glob',
+      'ignore',
+      'js-yaml',
+      'json-schema-traverse',
+      'nearley',
+      'schemes',
+      'smtp-address-parser',
+      'uri-js',
+      'yaml',
+    ],
     neverBundle: [
       'vite',
       '@vitejs/plugin-react',

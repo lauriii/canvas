@@ -4,8 +4,17 @@ import type { Spec } from '@json-render/core';
 import type { DiscoveryResult, DiscoveryWarning } from './discovery-client';
 
 export type PreviewIneligibilityReason =
+  | 'invalid_metadata'
   | 'missing_js_entry'
   | 'unsupported_js_extension';
+
+export interface PreviewComponentMetadataError {
+  sourcePath: string;
+  path: string;
+  line?: number;
+  column?: number;
+  message: string;
+}
 
 export interface PreviewManifestComponent {
   id: string;
@@ -29,6 +38,7 @@ export interface PreviewManifestComponent {
   dataDependencies: {
     entityFields?: Record<string, string[]>;
   };
+  metadataErrors: PreviewComponentMetadataError[];
   mocks: PreviewManifestComponentMock[];
 }
 
@@ -154,6 +164,7 @@ export function toPreviewManifestComponent(component: {
       exampleProps: {},
       props: {},
       dataDependencies: {},
+      metadataErrors: [],
       mocks: [],
     };
   }
@@ -179,6 +190,7 @@ export function toPreviewManifestComponent(component: {
       exampleProps: {},
       props: {},
       dataDependencies: {},
+      metadataErrors: [],
       mocks: [],
     };
   }
@@ -203,7 +215,24 @@ export function toPreviewManifestComponent(component: {
     exampleProps: {},
     props: {},
     dataDependencies: {},
+    metadataErrors: [],
     mocks: [],
+  };
+}
+
+export function markPreviewManifestComponentMetadataInvalid(
+  component: PreviewManifestComponent,
+  sourcePath: string,
+  diagnostics: Array<Omit<PreviewComponentMetadataError, 'sourcePath'>>,
+): PreviewManifestComponent {
+  return {
+    ...component,
+    previewable: false,
+    ineligibilityReason: 'invalid_metadata',
+    metadataErrors: diagnostics.map((diagnostic) => ({
+      sourcePath,
+      ...diagnostic,
+    })),
   };
 }
 

@@ -1,8 +1,11 @@
 ---
 import {
+  CANVAS_PREVIEW_CONTENT_REGION_ELEMENT,
+  CANVAS_EMPTY_REGION_PLACEHOLDER_CLASS,
   findCanvasComponent,
   formatCanvasCommentMarker,
   getCanvasComponentRenderData,
+  isCanvasComponentTreeEmpty,
   normalizeCanvasComponentTreeSlot,
   reportMissingCanvasComponent,
   reportMissingCanvasComponentUuid,
@@ -82,7 +85,40 @@ RuntimeComponent.isAstroComponentFactory = true;
 ---
 
 {
-  node.element === 'drupal-markup' || !componentData ? (
+  node.element === CANVAS_PREVIEW_CONTENT_REGION_ELEMENT ? (
+    <>
+      {editor && (
+        <Fragment
+          set:html={`<!-- ${formatCanvasCommentMarker({ type: 'region', position: 'start', id: 'content' })} -->`}
+        />
+      )}
+      {editor && isCanvasComponentTreeEmpty(node) && (
+        <div
+          aria-hidden="true"
+          class={CANVAS_EMPTY_REGION_PLACEHOLDER_CLASS}
+        />
+      )}
+      {slots.map(({ name, children }) =>
+        children.map((child, index) =>
+          typeof child === 'string' ? (
+            <Fragment set:html={child} />
+          ) : (
+            <Astro.self
+              node={child}
+              components={components}
+              path={`${path}:${name}:${index}`}
+              editor={editor}
+            />
+          ),
+        ),
+      )}
+      {editor && (
+        <Fragment
+          set:html={`<!-- ${formatCanvasCommentMarker({ type: 'region', position: 'end', id: 'content' })} -->`}
+        />
+      )}
+    </>
+  ) : node.element === 'drupal-markup' || !componentData ? (
     slots.map(({ name, children }) =>
       children.map((child, index) =>
         typeof child === 'string' ? (

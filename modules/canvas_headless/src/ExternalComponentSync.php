@@ -68,13 +68,15 @@ final class ExternalComponentSync {
    * URL it embeds. Drupal remains responsible for validation and persistence.
    * Components omitted from the payload are retained.
    *
+   * @param \Drupal\canvas_headless\FrontendUrl $frontend
+   *   The configured frontend providing the payload.
    * @param array<string, mixed> $payload
    *   The component metadata payload.
    *
-   * @return array{created: int, updated: int, unchanged: int, warnings: list<string>, errors: list<string>}
+   * @return array{created: int, updated: int, unchanged: int, warnings: list<string>, errors: list<string>, components: list<string>}
    *   The synchronization result.
    */
-  public function synchronize(array $payload): array {
+  public function synchronize(FrontendUrl $frontend, array $payload): array {
     if (!isset($payload['components']) || !\is_array($payload['components'])) {
       throw new \UnexpectedValueException('The component metadata payload must contain a components array.');
     }
@@ -95,6 +97,7 @@ final class ExternalComponentSync {
       'unchanged' => 0,
       'warnings' => [],
       'errors' => [],
+      'components' => [],
     ];
 
     try {
@@ -116,9 +119,10 @@ final class ExternalComponentSync {
       $seen_machine_names = [];
       foreach ($payload['components'] as $definition) {
         try {
-          $outcome = $this->synchronizeDefinition($definition, $seen_machine_names, $result['warnings']);
+          $outcome = $this->synchronizeDefinition($frontend, $definition, $seen_machine_names, $result['warnings']);
           if ($outcome !== NULL) {
-            $result[$outcome]++;
+            $result[$outcome['status']]++;
+            $result['components'][] = $outcome['componentId'];
           }
         }
         catch (\Throwable $e) {
@@ -128,6 +132,8 @@ final class ExternalComponentSync {
           ]);
         }
       }
+
+      $this->replaceFrontendComponentList($frontend, $result['components']);
     }
     finally {
       $this->lock->release(self::LOCK_KEY);
@@ -139,6 +145,8 @@ final class ExternalComponentSync {
   /**
    * Creates or updates one external component definition.
    *
+   * @param \Drupal\canvas_headless\FrontendUrl $frontend
+   *   The configured frontend providing this definition.
    * @param mixed $definition
    *   A component definition from the metadata payload.
    * @param array<string, true> $seen_machine_names
@@ -147,10 +155,10 @@ final class ExternalComponentSync {
    * @param list<string> $warnings
    *   Synchronization warnings, updated for skipped duplicates.
    *
-   * @return 'created'|'updated'|'unchanged'|null
+   * @return array{status: 'created'|'updated'|'unchanged', componentId: string}|null
    *   The synchronization outcome, or NULL when skipped.
    */
-  private function synchronizeDefinition(mixed $definition, array &$seen_machine_names, array &$warnings): ?string {
+  private function synchronizeDefinition(FrontendUrl $frontend, mixed $definition, array &$seen_machine_names, array &$warnings): ?array {
     // The entry shape of the SDK's component metadata payload: machineName
     // and name as strings, props as a flat prop-name-to-definition map,
     // required as a top-level list of prop names.
@@ -191,6 +199,7 @@ final class ExternalComponentSync {
 
     $storage = $this->entityTypeManager->getStorage(JavaScriptComponent::ENTITY_TYPE_ID);
     $component = $storage->load($machine_name);
+    $component_id = JsComponent::componentIdFromJavascriptComponentId($machine_name);
 
     $values = [
       'machineName' => $machine_name,
@@ -218,9 +227,24 @@ final class ExternalComponentSync {
       throw new \UnexpectedValueException((string) $violations);
     }
 
-    $canvas_component = Component::load(JsComponent::componentIdFromJavascriptComponentId($machine_name));
+    $conflicting_frontend = $this->findConflictingOwningFrontend(
+      syncing_frontend: $frontend,
+      component_id: $component_id,
+      candidate: $candidate,
+      stored_component: $component,
+    );
+    if ($conflicting_frontend !== NULL) {
+      throw new \UnexpectedValueException(\sprintf(
+        "External component '%s' from %s conflicts with the existing definition synced from %s. Headless frontends can only share a machine name when their component metadata is identical.",
+        $machine_name,
+        $frontend->baseUrl,
+        $conflicting_frontend->baseUrl,
+      ));
+    }
+
+    $canvas_component = Component::load($component_id);
     if ($component !== NULL && $canvas_component !== NULL && $this->matchesStoredComponents($candidate, $component, $canvas_component)) {
-      return 'unchanged';
+      return ['status' => 'unchanged', 'componentId' => $component_id];
     }
 
     $outcome = $component === NULL ? 'created' : 'updated';
@@ -233,7 +257,113 @@ final class ExternalComponentSync {
       }
     }
     $component->save();
-    return $outcome;
+    return ['status' => $outcome, 'componentId' => $component_id];
+  }
+
+  /**
+   * Replaces the synchronized component IDs for one configured frontend.
+   *
+   * @param \Drupal\canvas_headless\FrontendUrl $frontend
+   *   The configured frontend.
+   * @param list<string> $component_ids
+   *   The synchronized Canvas component IDs.
+   */
+  private function replaceFrontendComponentList(FrontendUrl $frontend, array $component_ids): void {
+    $settings = $this->configFactory->getEditable('canvas_headless.settings');
+    $frontends = $settings->get('frontends');
+    if (!\is_array($frontends)) {
+      return;
+    }
+
+    $updated = FALSE;
+    foreach ($frontends as &$stored_frontend) {
+      if (!\is_array($stored_frontend)) {
+        continue;
+      }
+      $stored_url = FrontendUrl::fromConfig((string) ($stored_frontend['url'] ?? ''));
+      if ($stored_url?->baseUrl !== $frontend->baseUrl) {
+        continue;
+      }
+      $stored_frontend['components'] = $component_ids;
+      $updated = TRUE;
+      break;
+    }
+    unset($stored_frontend);
+
+    if ($updated) {
+      $settings->set('frontends', $frontends)->save();
+    }
+  }
+
+  /**
+   * Finds another frontend that owns the component with conflicting metadata.
+   */
+  private function findConflictingOwningFrontend(FrontendUrl $syncing_frontend, string $component_id, JavaScriptComponent $candidate, ?JavaScriptComponent $stored_component): ?FrontendUrl {
+    if (!$stored_component instanceof JavaScriptComponent || !$stored_component->isExternal()) {
+      return NULL;
+    }
+
+    foreach ($this->getConfiguredFrontends() as $configured_frontend) {
+      if ($configured_frontend['frontend']->baseUrl === $syncing_frontend->baseUrl) {
+        continue;
+      }
+      if (!\in_array($component_id, $configured_frontend['components'], TRUE)) {
+        continue;
+      }
+      if ($this->matchesExternalContract($candidate, $stored_component)) {
+        return NULL;
+      }
+      return $configured_frontend['frontend'];
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Gets configured frontends with their owned component IDs.
+   *
+   * @return list<array{frontend: \Drupal\canvas_headless\FrontendUrl, components: list<string>}>
+   *   The configured frontends.
+   */
+  private function getConfiguredFrontends(): array {
+    $configured_frontends = [];
+    $frontends = $this->configFactory->get('canvas_headless.settings')->get('frontends');
+    foreach (\is_array($frontends) ? $frontends : [] as $item) {
+      if (!\is_array($item)) {
+        continue;
+      }
+      $frontend = FrontendUrl::fromConfig((string) ($item['url'] ?? ''));
+      if ($frontend === NULL) {
+        continue;
+      }
+      $configured_frontends[] = [
+        'frontend' => $frontend,
+        'components' => array_values(array_filter($item['components'] ?? [], \is_string(...))),
+      ];
+    }
+    return $configured_frontends;
+  }
+
+  /**
+   * Checks whether two external components have the same frontend contract.
+   */
+  private static function matchesExternalContract(JavaScriptComponent $candidate, JavaScriptComponent $stored_component): bool {
+    $stored_metadata = [
+      'props' => $stored_component->getProps(),
+      'required' => $stored_component->getRequiredProps(),
+      'slots' => $stored_component->get('slots'),
+    ];
+    $candidate_metadata = [
+      'props' => $candidate->getProps(),
+      'required' => $candidate->getRequiredProps(),
+      'slots' => $candidate->get('slots'),
+    ];
+    SortArray::sortByKeyRecursive($stored_metadata);
+    SortArray::sortByKeyRecursive($candidate_metadata);
+
+    return $stored_metadata === $candidate_metadata
+      && $stored_component->label() === $candidate->label()
+      && $stored_component->status() === $candidate->status();
   }
 
   /**

@@ -220,6 +220,112 @@ final class ComponentTreeStructureConstraintValidatorTest extends CanvasKernelTe
           'layout.1.parent_uuid' => 'Invalid component tree item with UUID <em class="placeholder">f67147cb-be50-459a-915d-34d8646012f4</em> claims to be parent of itself.',
         ],
       ],
+      'INVALID: uppercase component instance UUID' => [
+        [
+          [
+            'uuid' => '2886421E-4EDE-4BFB-956C-8AFCD4EE8103',
+            'component_id' => 'sdc.canvas_test_sdc.props-slots',
+            'component_version' => '0e79e884426a53ae',
+          ],
+        ],
+        [
+          'layout.0.uuid' => 'Invalid component tree item with UUID <em class="placeholder">2886421E-4EDE-4BFB-956C-8AFCD4EE8103</em>. UUIDs must be lowercase.',
+        ],
+      ],
+      'INVALID: parent_uuid differing only in case from its parent' => [
+        [
+          [
+            'uuid' => '2886421e-4ede-4bfb-956c-8afcd4ee8103',
+            'component_id' => 'sdc.canvas_test_sdc.props-slots',
+            'component_version' => '0e79e884426a53ae',
+          ],
+          [
+            'uuid' => '80bf49ec-3d3f-4e76-98ed-2ce147397643',
+            'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+            'component_version' => 'd34b93534777207a',
+            'parent_uuid' => '2886421E-4EDE-4BFB-956C-8AFCD4EE8103',
+            'slot' => 'the_body',
+          ],
+        ],
+        [
+          'layout.1.parent_uuid' => 'Invalid component tree item with UUID <em class="placeholder">80bf49ec-3d3f-4e76-98ed-2ce147397643</em>. Its parent_uuid <em class="placeholder">2886421E-4EDE-4BFB-956C-8AFCD4EE8103</em> must be lowercase.',
+        ],
+      ],
+      'INVALID: slot without parent_uuid' => [
+        [
+          [
+            'uuid' => 'ad51078a-d1d5-4385-8693-2beaefcf30bf',
+            'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+            'component_version' => 'd34b93534777207a',
+            'slot' => 'the_body',
+          ],
+        ],
+        [
+          'layout.0.slot' => 'Invalid component tree item with UUID <em class="placeholder">ad51078a-d1d5-4385-8693-2beaefcf30bf</em>. A parent UUID must be present if a slot name is provided.',
+        ],
+      ],
+      'INVALID: parent cycle of length 2' => [
+        [
+          [
+            'uuid' => '585b6cbc-0f17-4a37-a89f-92b0716087b7',
+            'component_id' => 'sdc.canvas_test_sdc.props-slots',
+            'component_version' => '0e79e884426a53ae',
+            'parent_uuid' => 'ca6ed05b-2ffd-4462-9497-922e2c30d0f9',
+            'slot' => 'the_body',
+          ],
+          [
+            'uuid' => 'ca6ed05b-2ffd-4462-9497-922e2c30d0f9',
+            'component_id' => 'sdc.canvas_test_sdc.props-slots',
+            'component_version' => '0e79e884426a53ae',
+            'parent_uuid' => '585b6cbc-0f17-4a37-a89f-92b0716087b7',
+            'slot' => 'the_body',
+          ],
+        ],
+        [
+          'layout.0.parent_uuid' => 'Invalid component tree item with UUID <em class="placeholder">585b6cbc-0f17-4a37-a89f-92b0716087b7</em> is part of a cycle: it is an ancestor of its own parent <em class="placeholder">ca6ed05b-2ffd-4462-9497-922e2c30d0f9</em>.',
+          'layout.1.parent_uuid' => 'Invalid component tree item with UUID <em class="placeholder">ca6ed05b-2ffd-4462-9497-922e2c30d0f9</em> is part of a cycle: it is an ancestor of its own parent <em class="placeholder">585b6cbc-0f17-4a37-a89f-92b0716087b7</em>.',
+        ],
+      ],
+      'INVALID: parent cycle of length 3, with a descendant hanging off the cycle' => [
+        [
+          [
+            'uuid' => 'b7fbf5ef-fee9-4b09-bd35-4ef1ba52b16d',
+            'component_id' => 'sdc.canvas_test_sdc.props-slots',
+            'component_version' => '0e79e884426a53ae',
+            'parent_uuid' => 'e63661e8-a875-4c4c-a25b-3f37bf2926de',
+            'slot' => 'the_body',
+          ],
+          [
+            'uuid' => 'e63661e8-a875-4c4c-a25b-3f37bf2926de',
+            'component_id' => 'sdc.canvas_test_sdc.props-slots',
+            'component_version' => '0e79e884426a53ae',
+            'parent_uuid' => '30a0356d-e35d-4b5c-a5eb-fcbc417f43ac',
+            'slot' => 'the_footer',
+          ],
+          [
+            'uuid' => '30a0356d-e35d-4b5c-a5eb-fcbc417f43ac',
+            'component_id' => 'sdc.canvas_test_sdc.props-slots',
+            'component_version' => '0e79e884426a53ae',
+            'parent_uuid' => 'b7fbf5ef-fee9-4b09-bd35-4ef1ba52b16d',
+            'slot' => 'the_colophon',
+          ],
+          // A descendant of a cycle member, but not part of the cycle itself:
+          // must not be flagged — it becomes renderable once the cycle is
+          // broken.
+          [
+            'uuid' => '80c9e02b-6cd6-4e2c-b28c-a5e33b0323ff',
+            'component_id' => 'sdc.canvas_test_sdc.props-no-slots',
+            'component_version' => 'd34b93534777207a',
+            'parent_uuid' => 'b7fbf5ef-fee9-4b09-bd35-4ef1ba52b16d',
+            'slot' => 'the_body',
+          ],
+        ],
+        [
+          'layout.0.parent_uuid' => 'Invalid component tree item with UUID <em class="placeholder">b7fbf5ef-fee9-4b09-bd35-4ef1ba52b16d</em> is part of a cycle: it is an ancestor of its own parent <em class="placeholder">e63661e8-a875-4c4c-a25b-3f37bf2926de</em>.',
+          'layout.1.parent_uuid' => 'Invalid component tree item with UUID <em class="placeholder">e63661e8-a875-4c4c-a25b-3f37bf2926de</em> is part of a cycle: it is an ancestor of its own parent <em class="placeholder">30a0356d-e35d-4b5c-a5eb-fcbc417f43ac</em>.',
+          'layout.2.parent_uuid' => 'Invalid component tree item with UUID <em class="placeholder">30a0356d-e35d-4b5c-a5eb-fcbc417f43ac</em> is part of a cycle: it is an ancestor of its own parent <em class="placeholder">b7fbf5ef-fee9-4b09-bd35-4ef1ba52b16d</em>.',
+        ],
+      ],
       'VALID: valid tree, multiple levels' => [
         [
           [
@@ -258,7 +364,8 @@ final class ComponentTreeStructureConstraintValidatorTest extends CanvasKernelTe
           ],
         ],
         [
-          'layout' => 'Not all component instance UUIDs in this component tree are unique.',
+          'layout.0.uuid' => 'Invalid component tree item with UUID <em class="placeholder">8d2e68e5-fd4a-47dc-a641-06062723525d</em>. This UUID is used by <em class="placeholder">2</em> component instances in this component tree; each component instance must have a unique UUID.',
+          'layout.1.uuid' => 'Invalid component tree item with UUID <em class="placeholder">8d2e68e5-fd4a-47dc-a641-06062723525d</em>. This UUID is used by <em class="placeholder">2</em> component instances in this component tree; each component instance must have a unique UUID.',
         ],
       ],
       'INVALID: valid tree, with unknown parent' => [

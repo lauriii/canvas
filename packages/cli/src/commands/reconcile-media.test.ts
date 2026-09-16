@@ -3,11 +3,13 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import canvasSchema from '../../../../schema.json';
 import {
   collectReconcileSpecFiles,
   downloadDataUrlMedia,
   hasReconcileMediaSyncEnabled,
   reconcileElementMapMedia,
+  SUPPORTED_MEDIA_MIME_TYPES,
 } from './reconcile-media';
 
 import type { ComponentMetadata } from '@drupal-canvas/discovery';
@@ -26,6 +28,11 @@ const metadata: ComponentMetadata[] = [
           title: 'Image',
           type: 'object',
           $ref: 'json-schema-definitions://canvas.module/image',
+        },
+        attachment: {
+          title: 'Attachment',
+          type: 'object',
+          $ref: 'json-schema-definitions://canvas.module/document',
         },
       },
     },
@@ -479,6 +486,137 @@ describe('reconcileElementMapMedia', () => {
     expect(apiService.uploadMedia).not.toHaveBeenCalled();
   });
 
+  it('uploads external document media with the document media type', async () => {
+    const elements = {
+      hero: {
+        type: 'js.hero',
+        props: {
+          attachment: {
+            src: 'https://example.com/annual-report.pdf',
+            title: 'Annual Report',
+            description: 'Fiscal year 2025 results',
+            filename: 'annual-report.pdf',
+          },
+        },
+      },
+    } as AuthoredSpecElementMap;
+    const apiService = {
+      uploadMedia: vi.fn().mockResolvedValue({
+        id: 77,
+        uuid: 'doc-uuid',
+        inputs_resolved: {
+          src: '/sites/default/files/annual-report.pdf',
+          filename: 'annual-report.pdf',
+          filesize: 25600,
+          mimetype: 'application/pdf',
+        },
+      }),
+    };
+    const downloadMedia = vi.fn().mockResolvedValue({
+      buffer: Buffer.from('pdf-bytes'),
+      filename: 'annual-report.pdf',
+      mimeType: 'application/pdf',
+    });
+
+    const result = await reconcileElementMapMedia(
+      elements,
+      metadata,
+      apiService,
+      downloadMedia,
+    );
+
+    expect(result.reconciled).toBe(1);
+    expect(apiService.uploadMedia).toHaveBeenCalledWith({
+      mediaType: 'document',
+      filename: 'annual-report.pdf',
+      fileBuffer: Buffer.from('pdf-bytes'),
+      data: {
+        title: 'Annual Report',
+        description: 'Fiscal year 2025 results',
+      },
+    });
+    expect(elements.hero.props).toEqual({
+      attachment: {
+        src: '/sites/default/files/annual-report.pdf',
+        filename: 'annual-report.pdf',
+        filesize: 25600,
+        mimetype: 'application/pdf',
+      },
+    });
+    expect(elements.hero._provenance).toEqual({
+      attachment: {
+        target_id: 77,
+        source_url: 'https://example.com/annual-report.pdf',
+      },
+    });
+  });
+
+  it('reports failure for text/plain document media', async () => {
+    // The document shape's x-allowed-file-extensions deliberately excludes
+    // txt, even though core's document media type field accepts it.
+    const elements = {
+      hero: {
+        type: 'js.hero',
+        props: {
+          attachment: {
+            src: 'https://example.com/notes.txt',
+          },
+        },
+      },
+    } as AuthoredSpecElementMap;
+    const apiService = { uploadMedia: vi.fn() };
+    const downloadMedia = vi.fn().mockResolvedValue({
+      buffer: Buffer.from('plain text'),
+      filename: 'notes.txt',
+      mimeType: 'text/plain',
+    });
+
+    const result = await reconcileElementMapMedia(
+      elements,
+      metadata,
+      apiService,
+      downloadMedia,
+    );
+
+    expect(result.reconciled).toBe(0);
+    expect(result.failures).toHaveLength(1);
+    expect(result.failures[0].error).toContain('Unsupported document type');
+    expect(result.failures[0].error).toContain('text/plain');
+    expect(apiService.uploadMedia).not.toHaveBeenCalled();
+  });
+
+  it('reports failure for MIME types outside the document map', async () => {
+    const elements = {
+      hero: {
+        type: 'js.hero',
+        props: {
+          attachment: {
+            src: 'https://example.com/archive.zip',
+          },
+        },
+      },
+    } as AuthoredSpecElementMap;
+    const apiService = { uploadMedia: vi.fn() };
+    const downloadMedia = vi.fn().mockResolvedValue({
+      buffer: Buffer.from('zip-bytes'),
+      filename: 'archive.zip',
+      mimeType: 'application/zip',
+    });
+
+    const result = await reconcileElementMapMedia(
+      elements,
+      metadata,
+      apiService,
+      downloadMedia,
+    );
+
+    expect(result.reconciled).toBe(0);
+    expect(result.failures).toHaveLength(1);
+    expect(result.failures[0].error).toContain('Unsupported document type');
+    expect(result.failures[0].error).toContain('application/zip');
+    expect(apiService.uploadMedia).not.toHaveBeenCalled();
+  });
+
   it('allows supported MIME types through', async () => {
     const elements = {
       hero: {
@@ -543,5 +681,16 @@ describe('downloadDataUrlMedia', () => {
     expect(() => downloadDataUrlMedia('not-a-data-url')).toThrow(
       'Invalid data URL',
     );
+  });
+});
+
+describe('SUPPORTED_MEDIA_MIME_TYPES', () => {
+  it('maps a MIME type for every extension the document shape allows', () => {
+    const allowedExtensions =
+      canvasSchema.$defs.document.properties.src['x-allowed-file-extensions'];
+    const mappedExtensions = Object.values(
+      SUPPORTED_MEDIA_MIME_TYPES.document,
+    ).map((extension) => extension.replace(/^\./, ''));
+    expect(new Set(mappedExtensions)).toEqual(new Set(allowedExtensions));
   });
 });

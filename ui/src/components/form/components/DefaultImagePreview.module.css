@@ -34,6 +34,22 @@
   background: #F0F0F3;
 }
 
+.defaultDocumentThumbnail {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  letter-spacing: 0.05em;
+  color: var(--slate-11);
+  border: 1.125px solid #E0E1E6;
+  border-radius: 8px;
+  background: #F0F0F3;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .removeDefaultButton {
   position: absolute;
   z-index: 1;

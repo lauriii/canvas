@@ -326,8 +326,14 @@ export function createHeadlessPreviewHost(
 
   const activate = async (params: Record<string, string>) => {
     passive = false;
+    const retainedParameterNames = [
+      'view_mode',
+      ...(params.entity_type === 'page_variant'
+        ? ['entity_type', 'entity']
+        : []),
+    ];
     previewContext = Object.fromEntries(
-      ['view_mode']
+      retainedParameterNames
         .filter((name) => params[name] !== undefined)
         .map((name) => [name, params[name]]),
     );

@@ -8,11 +8,21 @@ import type { ComponentsList } from '@/types/Component';
 const queryMocks = vi.hoisted(() => ({
   components: vi.fn(),
   folders: vi.fn(),
+  frontends: vi.fn(),
+  headlessSettings: vi.fn(),
 }));
 
 vi.mock('@/services/componentAndLayout', () => ({
   useGetComponentsQuery: queryMocks.components,
   useGetFoldersQuery: queryMocks.folders,
+}));
+
+vi.mock('@/services/headlessFrontends', () => ({
+  useGetFrontendsQuery: queryMocks.frontends,
+}));
+
+vi.mock('@/hooks/useCanvasHeadlessSettings', () => ({
+  useCanvasHeadlessSettings: queryMocks.headlessSettings,
 }));
 
 vi.mock('react-error-boundary', () => ({
@@ -117,6 +127,12 @@ describe('ComponentList', () => {
       error: undefined,
       isLoading: false,
     });
+    queryMocks.frontends.mockReturnValue({
+      data: undefined,
+      error: undefined,
+      isLoading: false,
+    });
+    queryMocks.headlessSettings.mockReturnValue(undefined);
   });
 
   it('shows all component sources by default', () => {
@@ -135,18 +151,51 @@ describe('ComponentList', () => {
   });
 
   it('shows only external Code Components in configured headless mode', () => {
+    queryMocks.headlessSettings.mockReturnValue({
+      frontendUrl: 'https://frontend.example/app',
+    });
+    queryMocks.frontends.mockReturnValue({
+      data: [
+        {
+          url: 'HTTPS://FRONTEND.EXAMPLE:443/app',
+          components: ['js.external'],
+        },
+      ],
+      error: undefined,
+      isLoading: false,
+    });
     render(<ComponentList searchTerm="" visibility="external-only" />);
 
     expect(
       screen.getByText('Metadata-only external component'),
     ).toBeInTheDocument();
     expect(
-      screen.getByText('Converted external component'),
-    ).toBeInTheDocument();
+      screen.queryByText('Converted external component'),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText('React component')).not.toBeInTheDocument();
     expect(screen.queryByText('SDC component')).not.toBeInTheDocument();
     expect(screen.queryByText('Block component')).not.toBeInTheDocument();
     expect(screen.queryByText('Extension component')).not.toBeInTheDocument();
+  });
+
+  it('shows no external components when the active frontend owns none', () => {
+    queryMocks.headlessSettings.mockReturnValue({
+      frontendUrl: 'https://frontend.example',
+    });
+    queryMocks.frontends.mockReturnValue({
+      data: [{ url: 'https://frontend.example', components: [] }],
+      error: undefined,
+      isLoading: false,
+    });
+
+    render(<ComponentList searchTerm="" visibility="external-only" />);
+
+    expect(
+      screen.queryByText('Metadata-only external component'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Converted external component'),
+    ).not.toBeInTheDocument();
   });
 
   it('shows only standard components without headless preview access', () => {

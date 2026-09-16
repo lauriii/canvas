@@ -66,7 +66,7 @@ class PreviewAssertionFactoryTest extends CanvasKernelTestBase {
       ->save();
 
     $this->config('canvas_headless.settings')
-      ->set('frontends', [['url' => 'http://localhost:3000']])
+      ->set('frontends', [['url' => 'http://localhost:3000', 'components' => []]])
       ->set('assertion_expiration', 60)
       ->save();
     $this->config('system.site')

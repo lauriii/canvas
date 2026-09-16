@@ -29,19 +29,19 @@ export default defineConfig([
 
 ## Rules
 
-The following custom rules are part of the `required` config and validate Drupal
-Canvas Code Components:
+The `required` config checks portable authoring rules and project conventions.
+Metadata structure and target acceptance are validated separately through the
+Canvas Code Component metadata schema and the target Drupal site.
 
 | Rule                                           | Description                                                                                             |
 | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `component-content-entity-reference-props`     | Validates content entity reference props.                                                               |
 | `component-dir-name`                           | Validates that `machineName` matches the directory name (index-style) or filename prefix (named-style). |
 | `component-exports`                            | Validates that component has a default export.                                                          |
 | `component-imports`                            | Validates that component imports only from supported import sources and patterns.                       |
 | `component-no-hierarchy`                       | Validates that component directories are direct children of the configured `componentDir`.              |
-| `component-prop-example-value-image-url`       | Validates that `canvas.module/image` prop examples use fully qualified image URLs.                      |
-| `component-prop-example-value-no-empty-string` | Validates that string prop examples do not contain empty string values.                                 |
+| `component-prop-example-value-no-empty-string` | Validates that string prop examples do not contain empty values.                                        |
 | `component-prop-names`                         | Validates that component prop IDs match the camelCase version of their titles.                          |
+| `component-required-props`                     | Validates that required props are defined and provide a default example.                                |
 
 ## Development
 

@@ -7,6 +7,7 @@ namespace Drupal\canvas_dev_ai\Controller;
 use Drupal\ai\AiProviderPluginManager;
 use Drupal\ai\OperationType\Chat\ChatInput;
 use Drupal\ai\OperationType\Chat\ChatMessage;
+use Drupal\ai\OperationType\Chat\StreamedChatMessageIteratorInterface;
 use Drupal\ai\OperationType\GenericType\ImageFile;
 use Drupal\ai_agents\Enum\AiAgentStatusItemTypes;
 use Drupal\ai_agents\PluginBase\AiAgentEntityWrapper;
@@ -41,6 +42,11 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
  * @internal
  */
 final class CanvasDevAiBuilder extends ControllerBase {
+
+  /**
+   * Asserted alongside every non-canvas_page context.
+   */
+  private const NOT_PLACEABLE = ' Components cannot be placed or edited here, because this is not a Canvas page.';
 
   /**
    * The prompt keys the client must send on every request.
@@ -107,6 +113,8 @@ final class CanvasDevAiBuilder extends ControllerBase {
       ], Response::HTTP_BAD_REQUEST);
     }
     $job_id = $prompt['request_id'];
+    // The state a previous hop of this turn parked, if any.
+    $stored = $this->canvasAiTempStore->getStoredAgentState($job_id);
 
     try {
       $agent_to_call = $this->resolveAgentId($prompt);
@@ -114,9 +122,16 @@ final class CanvasDevAiBuilder extends ControllerBase {
     catch (\RuntimeException $e) {
       return $this->buildErrorResponse($e->getMessage(), $job_id);
     }
+    // The Tool is fixed for the turn: resuming the state in another agent
+    // would hand it a chat history it did not write. Clearing the Tool
+    // mid-turn resolves the main agent, so it is caught here too.
+    if ($stored !== NULL && $stored['agent_id'] !== $agent_to_call) {
+      $this->canvasAiTempStore->deleteStoredAgentState($job_id);
+      return $this->buildErrorResponse('The selected tool cannot change during a turn.', $job_id);
+    }
     $agent = $this->agentManager->createInstance($agent_to_call);
     \assert($agent instanceof AiAgentEntityWrapper);
-    $this->prepareAgent($agent, $prompt, $image_files);
+    $this->prepareAgent($agent, $prompt, $image_files, $stored === NULL ? NULL : $stored['state']);
 
     // Store the current layout in the temp store. This will be later used by
     // the ai agents.
@@ -167,7 +182,7 @@ final class CanvasDevAiBuilder extends ControllerBase {
     // it. should_continue tells the frontend whether to send that next hop.
     $should_continue = !$agent->isFinished();
     if ($should_continue) {
-      $this->canvasAiTempStore->setStoredAgentState($job_id, $agent->toArray());
+      $this->canvasAiTempStore->setStoredAgentState($job_id, $agent_to_call, $agent->toArray());
     }
     else {
       $this->canvasAiTempStore->deleteStoredAgentState($job_id);
@@ -179,6 +194,7 @@ final class CanvasDevAiBuilder extends ControllerBase {
     [$status, $message] = match ($solvability) {
       AiAgentInterface::JOB_SHOULD_ANSWER_QUESTION => [FALSE, $agent->answerQuestion()],
       AiAgentInterface::JOB_INFORMS => [TRUE, $agent->inform()],
+      AiAgentInterface::JOB_NOT_SOLVABLE => [FALSE, self::getNotSolvableMessage($agent)],
       default => [FALSE, 'Something went wrong'],
     };
     return new JsonResponse([
@@ -380,12 +396,11 @@ final class CanvasDevAiBuilder extends ControllerBase {
    *   The decoded prompt.
    * @param \Drupal\ai\OperationType\GenericType\ImageFile[] $image_files
    *   The images the user attached to the message.
+   * @param array|null $state
+   *   The state a previous hop of this turn parked, as written by the agent's
+   *   ::toArray(), or NULL for a new turn.
    */
-  private function prepareAgent(AiAgentEntityWrapper $agent, array $prompt, array $image_files): void {
-    // The state carries no agent ID, so a hop selecting a different agent
-    // mid-turn restores the previous agent's chat history into it.
-    // @todo Store the agent ID with the state and error when a later hop of the same turn resolves a different one, in https://git.drupalcode.org/project/canvas/-/work_items/3591952
-    $state = $this->canvasAiTempStore->getStoredAgentState($prompt['request_id']);
+  private function prepareAgent(AiAgentEntityWrapper $agent, array $prompt, array $image_files, ?array $state): void {
     if ($state !== NULL) {
       // ::fromArray() restores the chat history, which already holds the user
       // message, so seeding the chat input again would duplicate it.
@@ -395,12 +410,88 @@ final class CanvasDevAiBuilder extends ControllerBase {
 
     $messages = $prompt['messages'];
     $task_message = array_pop($messages);
-    $context = $this->canvasAiPageBuilderHelper->generateVerboseContextForOrchestrator($prompt);
+    $context = self::getAgentExtraContext($prompt);
     $message_xml = $this->canvasAiPageBuilderHelper->formatMessageWithContext($context, $task_message['text']);
     $agent->setChatInput(new ChatInput([
       new ChatMessage($task_message['role'], $message_xml, $image_files),
     ]));
     $agent->setChatHistory($this->canvasAiChatHelper->getFilteredChatHistory($messages));
+  }
+
+  /**
+   * Explains why the agent gave up on the turn.
+   *
+   * The agent returns JOB_NOT_SOLVABLE when it ran out of loops or when the
+   * provider call failed. Only the first case has a message worth showing;
+   * anything else in the chat history is the narration of an earlier hop.
+   *
+   * @param \Drupal\ai_agents\PluginBase\AiAgentEntityWrapper $agent
+   *   The agent that gave up.
+   *
+   * @return string
+   *   The configured max-loops message, or a generic failure message.
+   *
+   * @see \Drupal\ai_agents\PluginBase\AiAgentEntityWrapper::getMaxLoopsMessage()
+   */
+  private static function getNotSolvableMessage(AiAgentEntityWrapper $agent): string {
+    $entity = $agent->getAiAgentEntity();
+    if ($agent->toArray()['looped'] > (int) $entity->get('max_loops')) {
+      $message = (string) $entity->get('max_loops_message');
+      return $message !== '' ? $message : 'I was unable to fully answer your question within the allowed number of processing steps. Please try rephrasing or narrowing your question.';
+    }
+    return 'The request could not be completed. Please try again.';
+  }
+
+  /**
+   * Provides extra context about the canvas UI to the active agent.
+   *
+   * Identical to generateVerboseContextForOrchestrator(), except it omits that
+   * method's instructions forcing the model to generate a title and
+   * description. Kept as a separate method so the orchestrator's existing use
+   * of that method stays unaffected.
+   *
+   * @todo Replace generateVerboseContextForOrchestrator() with this method once the orchestrator no longer forces title and description generation, see https://git.drupalcode.org/project/canvas/-/work_items/3591777
+   *
+   * @param array $prompt
+   *   The decoded prompt.
+   *
+   * @return string
+   *   The context string; the caller wraps it into the user message.
+   *
+   * @see \Drupal\canvas_ai\CanvasAiPageBuilderHelper::generateVerboseContextForOrchestrator()
+   * @see \Drupal\canvas_ai\CanvasAiPageBuilderHelper::formatMessageWithContext()
+   */
+  private static function getAgentExtraContext(array $prompt): string {
+    if (!empty($prompt['selected_component'])) {
+      return 'User is now in the code component editor, viewing a code component with id ' . $prompt['selected_component'] . '.' . self::NOT_PLACEABLE;
+    }
+
+    $entity_type = $prompt['entity_type'] ?? '';
+    if ($entity_type === 'node') {
+      return 'The user is currently working on a \'node\' entity.' . self::NOT_PLACEABLE;
+    }
+
+    if ($entity_type !== 'canvas_page') {
+      return 'User has not created any entities.' . self::NOT_PLACEABLE;
+    }
+
+    $has_active_component = !empty($prompt['active_component_uuid'])
+      && $prompt['active_component_uuid'] !== 'None';
+
+    $base_message = 'The user is currently working on a canvas_page entity. ';
+    $base_message .= $has_active_component
+      ? 'User has selected a component in the page with uuid ' . $prompt['active_component_uuid'] . '. '
+      : 'User has not selected any particular component from the page. ';
+
+    $has_title = !empty($prompt['page_title']) && $prompt['page_title'] !== 'Untitled page';
+    $base_message .= $has_title
+      ? 'Page title: ' . $prompt['page_title'] . '. '
+      : 'Page title is empty. ';
+    $base_message .= !empty($prompt['page_description'])
+      ? 'Page description: ' . $prompt['page_description']
+      : 'Page description is empty.';
+
+    return $base_message;
   }
 
   /**
@@ -457,7 +548,12 @@ final class CanvasDevAiBuilder extends ControllerBase {
     ];
     foreach ($agent->getToolResults(TRUE) as $tool) {
       if ($tool instanceof BuilderResponseFunctionCallInterface) {
-        $response = array_merge($response, $tool->getStructuredOutput());
+        $structured_output = $tool->getStructuredOutput();
+        // Combine canvas_page_data across every tool call in this hop.
+        if (isset($response['canvas_page_data'], $structured_output['canvas_page_data'])) {
+          $structured_output['canvas_page_data'] += $response['canvas_page_data'];
+        }
+        $response = array_merge($response, $structured_output);
       }
       // @todo Remove this branch without replacing it: neither agent runs here, and a file-upload turn carries no layout of its own, so deleting the key at turn end would leave the layout-reading tools with nothing. See https://git.drupalcode.org/project/canvas/-/work_items/3591777
       if (\in_array($tool->getPluginId(), [
@@ -472,8 +568,17 @@ final class CanvasDevAiBuilder extends ControllerBase {
       $response['progress'] = $this->getAiProgress($job_id);
     }
     else {
-      $response['message'] = $agent->solve();
-      $response['progress'] = $this->getAiProgressWithoutAnswer($job_id, $response['message']);
+      // ai_agents 1.3.5 widened solve() to also return a streaming iterator,
+      // see https://www.drupal.org/project/ai_agents/issues/3538174. This
+      // controller never calls ::setStreaming(), and its response is JSON, so
+      // a stream here would mean the agent was configured elsewhere: fail
+      // loudly rather than serialize an iterator into the response.
+      $message = $agent->solve();
+      if ($message instanceof StreamedChatMessageIteratorInterface) {
+        throw new \LogicException('Canvas AI agents does not support streaming.');
+      }
+      $response['message'] = $message;
+      $response['progress'] = $this->getAiProgressWithoutAnswer($job_id, $message);
     }
     return new JsonResponse($this->canvasAiPageBuilderHelper->processCanvasPageFields($response));
   }

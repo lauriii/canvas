@@ -58,6 +58,13 @@ export async function fetchPage(
   if (liveDraft && draftData?.previewContext?.viewMode) {
     url.searchParams.set('viewMode', draftData.previewContext.viewMode);
   }
+  if (
+    !componentPreviewId &&
+    liveDraft &&
+    draftData?.previewContext?.pageVariant
+  ) {
+    url.searchParams.set('pageVariant', draftData.previewContext.pageVariant);
+  }
   const response = await fetchImpl(url, {
     headers,
     cache: 'no-store',

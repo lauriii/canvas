@@ -48,7 +48,6 @@ export interface DiscoveredComponent {
   metadataPath: string;
   jsEntryPath: string | null;
   cssEntryPath: string | null;
-  type?: CodeComponentSerialized['type'];
 }
 
 export interface DiscoveredPage {
@@ -96,7 +95,7 @@ export interface DiscoveryResult {
 
 export interface ComponentMetadata extends Pick<
   CodeComponentSerialized,
-  'name' | 'machineName' | 'status' | 'required' | 'slots' | 'type'
+  'name' | 'machineName' | 'status' | 'required' | 'slots'
 > {
   props: {
     properties: CodeComponentSerialized['props'];

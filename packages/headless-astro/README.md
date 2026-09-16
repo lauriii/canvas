@@ -85,3 +85,6 @@ with `Astro.redirect(redirect.url, redirect.statusCode)`. Every accessor takes
 the `Astro` global (pages, components) or the APIContext (endpoints,
 middleware), because Astro exposes cookies per request rather than through
 request-scoped globals.
+
+`fetchEntity(Astro, { type, id, viewMode })` renders one content entity without
+page-level route or head data. Use it for embedded renders such as teaser cards.

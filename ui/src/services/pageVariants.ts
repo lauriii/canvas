@@ -1,9 +1,20 @@
 import { v4 as uuidv4 } from 'uuid';
 import { createApi } from '@reduxjs/toolkit/query/react';
 
+import { FORM_TYPES } from '@/features/form/constants';
+import { clearFieldValues } from '@/features/form/formStateSlice';
+import { setUpdatePreview } from '@/features/layout/layoutModelSlice';
+import {
+  selectPageData,
+  selectPageDataOwner,
+  setInitialPageData,
+} from '@/features/pageData/pageDataSlice';
 import { baseQuery } from '@/services/baseQuery';
 import { componentAndLayoutApi } from '@/services/componentAndLayout';
+import { pageDataFormApi } from '@/services/pageDataForm';
 
+import type { Dispatch } from '@reduxjs/toolkit';
+import type { RootState } from '@/app/store';
 import type { ComponentsList } from '@/types/Component';
 import type {
   CreatePageVariantPayload,
@@ -13,6 +24,13 @@ import type {
   PageVariantsList,
   UpdatePageVariantPayload,
 } from '@/types/PageVariant';
+
+const refreshPageDataForms = (dispatch: Dispatch) => {
+  dispatch(clearFieldValues(FORM_TYPES.ENTITY_FORM));
+  dispatch(
+    pageDataFormApi.util.invalidateTags([{ type: 'PageDataForm', id: 'FORM' }]),
+  );
+};
 
 // The `page_variant` config entity type id, as used in editor routes and the
 // layout API.
@@ -191,6 +209,15 @@ export const pageVariantsApi = createApi({
         method: 'POST',
         body,
       }),
+      async onQueryStarted(_body, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          refreshPageDataForms(dispatch);
+        } catch {
+          // The mutation error is surfaced by its caller. Keep the current
+          // form when the template was not created.
+        }
+      },
       invalidatesTags: () => [{ type: 'PageVariants', id: 'LIST' }],
     }),
     updatePageVariant: builder.mutation<PageVariant, UpdatePageVariantPayload>({
@@ -199,6 +226,42 @@ export const pageVariantsApi = createApi({
         method: 'PATCH',
         body,
       }),
+      async onQueryStarted(
+        { id, status },
+        { dispatch, getState, queryFulfilled },
+      ) {
+        try {
+          await queryFulfilled;
+          refreshPageDataForms(dispatch);
+
+          if (status === false) {
+            dispatch(
+              componentAndLayoutApi.util.invalidateTags([{ type: 'Layout' }]),
+            );
+          }
+
+          // A stale form could submit this selection while the template was
+          // disabled. Drupal stores that form violation until the page data is
+          // processed successfully again. Re-submit a matching active page
+          // selection after enabling the template so publishing can recover
+          // without requiring another field edit.
+          const state = getState() as RootState;
+          const pageData = selectPageData(state);
+          const pageDataOwner = selectPageDataOwner(state);
+          if (status === true && pageData.page_variant === id) {
+            dispatch(
+              setInitialPageData({
+                values: { ...pageData },
+                owner: pageDataOwner,
+              }),
+            );
+            dispatch(setUpdatePreview(true));
+          }
+        } catch {
+          // The mutation error is surfaced by its caller. Keep the current
+          // form and validation state when the template was not updated.
+        }
+      },
       invalidatesTags: (result, error, { id }) => [
         { type: 'PageVariants', id },
         { type: 'PageVariants', id: 'LIST' },
@@ -209,6 +272,18 @@ export const pageVariantsApi = createApi({
         url: `/canvas/api/v0/config/page_variant/${id}`,
         method: 'DELETE',
       }),
+      async onQueryStarted(_id, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          refreshPageDataForms(dispatch);
+          dispatch(
+            componentAndLayoutApi.util.invalidateTags([{ type: 'Layout' }]),
+          );
+        } catch {
+          // The mutation error is surfaced by its caller. Keep the current
+          // form when the template was not deleted.
+        }
+      },
       invalidatesTags: () => [{ type: 'PageVariants', id: 'LIST' }],
     }),
     getDefaultPageVariant: builder.query<DefaultPageVariantResponse, void>({

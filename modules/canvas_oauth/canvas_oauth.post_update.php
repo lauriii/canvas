@@ -183,7 +183,7 @@ function canvas_oauth_post_update_0002_canvas_brand_kit_scope(array &$sandbox): 
  * Install scopes for media types with the image source plugin.
  */
 function canvas_oauth_post_update_0003_media_image_scopes(array &$sandbox): void {
-  \Drupal::classResolver(MediaScopesHelper::class)->ensureMediaImageScopes();
+  \Drupal::classResolver(MediaScopesHelper::class)->ensureMediaScopes();
 }
 
 /**
@@ -348,4 +348,11 @@ function canvas_oauth_post_update_0007_page_variant_scope(array &$sandbox): void
       ],
     ])->save();
   }
+}
+
+/**
+ * Install scopes for media types with the file source plugin.
+ */
+function canvas_oauth_post_update_0008_media_document_scopes(array &$sandbox): void {
+  \Drupal::classResolver(MediaScopesHelper::class)->ensureMediaScopes();
 }

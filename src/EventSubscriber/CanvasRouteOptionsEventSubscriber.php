@@ -41,7 +41,11 @@ final class CanvasRouteOptionsEventSubscriber implements EventSubscriberInterfac
     $path = $request->getPathInfo();
     // Only act on /canvas paths, but not canvas API paths - those handle
     // language negotiation themselves and must not be redirected.
-    if (!preg_match('#^/[^/]+/canvas(/|$)#', $path) || str_contains($path, '/canvas/api/')) {
+    if (
+      !preg_match('#^/[^/]+/canvas(/|$)#', $path) ||
+      str_contains($path, '/canvas/api/') ||
+      str_contains($path, '/canvas/content-api/')
+    ) {
       return;
     }
 

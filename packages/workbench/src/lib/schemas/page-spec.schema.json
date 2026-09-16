@@ -1,5 +1,5 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Canvas page spec",
   "description": "Authored Canvas page format. Workbench normalizes this into an @json-render/react-compatible spec by synthesizing the canvas:component-tree root wrapper.",
   "type": "object",
@@ -42,15 +42,18 @@
         }
       },
       "additionalProperties": {
-        "$ref": "#/$defs/element"
+        "$ref": "#/definitions/element"
       }
     }
   },
   "additionalProperties": false,
   "not": {
+    "properties": {
+      "root": {}
+    },
     "required": ["root"]
   },
-  "$defs": {
+  "definitions": {
     "element": {
       "type": "object",
       "required": ["type"],

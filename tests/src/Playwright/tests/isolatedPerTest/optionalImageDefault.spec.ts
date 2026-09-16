@@ -1,3 +1,5 @@
+import nodePath from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { expect } from '@playwright/test';
 
 import { isolatedPerTest as test } from '../../fixtures/test.js';
@@ -11,6 +13,7 @@ const CAT_IMAGE =
   '../../../../../fixtures/recipes/test_site/content/file/cats-1.jpg';
 const PUB_IMAGE =
   '../../../../../fixtures/recipes/test_site/content/file/PrincesHead.jpg';
+const SVG_IMAGE = '../../../../../fixtures/images/canvas-test.svg';
 
 test.describe('Optional Image Default Management', () => {
   test.beforeEach(async ({ drupal }) => {
@@ -413,5 +416,90 @@ test.describe('Optional Image Default Management', () => {
     await expect(
       fieldsetsAfterReload.nth(1).locator('.js-media-library-item'),
     ).toHaveCount(1);
+  });
+
+  test('SDC: Remove button is visible and functional after selecting an SVG image', async ({
+    page,
+    drupal,
+    canvas,
+  }) => {
+    await drupal.loginAsAdmin();
+    await drupal.applyRecipe(
+      'modules/contrib/canvas/tests/fixtures/recipes/image_media_type_with_svg',
+    );
+    await drupal.logout();
+
+    await drupal.login({ username: 'editor', password: 'editor' });
+    await canvas.openCanvas(await canvas.createCanvas());
+    await canvas.openLibraryPanel();
+    await canvas.addComponent(
+      { id: 'sdc.canvas_test_sdc.image-optional-without-example' },
+      { waitForVisible: false },
+    );
+
+    const imageFieldset = page.locator(
+      '[data-testid="canvas-contextual-panel"] fieldset[data-form-id="component_instance_form"][data-canvas-media-library-fieldset="true"]',
+    );
+    await expect(imageFieldset).toBeVisible();
+
+    const addButton = imageFieldset.locator(
+      '[data-canvas-media-library-open-button="true"]',
+    );
+    await expect(addButton).toBeVisible();
+    await addButton.click();
+
+    await page
+      .locator('form[data-drupal-selector^="media-library-add-form-upload"]')
+      .locator('input[name="files[upload]"], input[name="files[upload][]"]')
+      .setInputFiles(nodePath.join(fileURLToPath(import.meta.url), SVG_IMAGE));
+
+    await page
+      .locator('input[name="media[0][fields][field_media_image][0][alt]"]')
+      .evaluate((el: HTMLInputElement, value) => {
+        el.value = value;
+      }, 'A test SVG');
+
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await page
+      .locator(
+        '.media-library-widget-modal input[data-drupal-selector^="edit-media-library-select-form"]',
+      )
+      .first()
+      // eslint-disable-next-line playwright/no-force-option
+      .setChecked(true, { force: true });
+    await page
+      .getByRole('button', { name: 'Insert selected', exact: true })
+      .click();
+
+    await expect(imageFieldset.locator('.js-media-library-item')).toHaveCount(
+      1,
+    );
+
+    const selectedItem = imageFieldset
+      .locator('.js-media-library-item')
+      .first();
+    await expect(selectedItem).toBeVisible();
+
+    const removeButton = selectedItem.locator(
+      '[data-canvas-media-remove-button]',
+    );
+    await expect(removeButton).toBeVisible();
+
+    const [itemBox, buttonBox] = await Promise.all([
+      selectedItem.boundingBox(),
+      removeButton.boundingBox(),
+    ]);
+    expect(buttonBox).not.toBeNull();
+    expect(itemBox).not.toBeNull();
+    expect(buttonBox!.y).toBeGreaterThanOrEqual(itemBox!.y);
+    expect(buttonBox!.y + buttonBox!.height).toBeLessThanOrEqual(
+      itemBox!.y + itemBox!.height,
+    );
+
+    await removeButton.click();
+
+    await expect(imageFieldset.locator('.js-media-library-item')).toHaveCount(
+      0,
+    );
   });
 });

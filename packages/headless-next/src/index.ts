@@ -20,6 +20,7 @@ export { toNextMetadata } from './head';
 export {
   disableDraftMode,
   enableDraftMode,
+  fetchEntity,
   fetchPage,
   getClient,
   getDraftClient,
@@ -41,6 +42,7 @@ export {
   type DrupalRoute,
   type DrupalRouteEntity,
   type DraftData,
+  type EntityResult,
   type Page,
   type PageHead,
   type PageRedirect,

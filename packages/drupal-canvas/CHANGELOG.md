@@ -1,5 +1,12 @@
 # drupal-canvas
 
+## 0.5.1
+
+### Patch Changes
+
+- 108e9d4: Ship the document schema in `json-render-utils` so `document` prop
+  refs resolve during CLI validation.
+
 ## 0.5.0
 
 ### Minor Changes

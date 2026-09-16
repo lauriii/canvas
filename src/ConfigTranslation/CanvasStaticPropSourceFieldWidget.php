@@ -102,6 +102,16 @@ final class CanvasStaticPropSourceFieldWidget extends FormElementBase {
     if ($default_static_prop_source->getCardinality() !== 1 && \is_array($config_values)) {
       $config_values = \array_filter($config_values, '\is_int', ARRAY_FILTER_USE_KEY);
     }
+    $submitted_static_prop_source = $default_static_prop_source
+      ->withValue($config_values, allow_empty: TRUE);
+    // A translator may leave an optional input empty, including an input that
+    // is empty in the source language. It is not a translation, so remove any
+    // stale override. Do not interpret a partially empty multi-value input as
+    // entirely empty; the strict ::withValue() call below must still reject it.
+    if ($submitted_static_prop_source->isEmpty()) {
+      $config_translation->clear($base_key);
+      return;
+    }
     $optimized_value = $default_static_prop_source
       // Pass the raw values expected by the field type.
       ->withValue($config_values)

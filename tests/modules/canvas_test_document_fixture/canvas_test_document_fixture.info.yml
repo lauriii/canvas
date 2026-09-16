@@ -1,0 +1,7 @@
+name: 'Canvas Test Document Fixture'
+type: module
+description: 'Provides document media entities for automated tests.'
+package: Testing
+dependencies:
+  - drupal:media
+  - drupal:file
