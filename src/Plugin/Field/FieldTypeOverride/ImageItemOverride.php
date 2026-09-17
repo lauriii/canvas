@@ -16,9 +16,11 @@ use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\canvas\TypedData\ImageDerivativeWithParametrizedWidth;
+use Drupal\canvas\Utility\SvgHelper;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\DataDefinition;
+use Drupal\file\FileInterface;
 use Drupal\image\Plugin\Field\FieldType\ImageItem;
 
 /**
@@ -34,6 +36,38 @@ class ImageItemOverride extends ImageItem {
   public static function defaultStorageSettings(): array {
     // @todo Remove once https://drupal.org/i/3513317 is fixed.
     return ['display_default' => TRUE] + parent::defaultStorageSettings();
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * Determines the dimensions of SVG images, which the parent cannot: it relies
+   * on the image toolkit, which only supports raster images. The contrib
+   * `svg_image` module attempts the same, but reads only `width` and `height`,
+   * not `viewBox`, and falls back to 64×64.
+   *
+   * @see \Drupal\canvas\Utility\SvgHelper::getIntrinsicDimensions()
+   * @see https://www.drupal.org/project/svg_image/issues/3227734
+   */
+  public function preSave() {
+    parent::preSave();
+
+    if ($this->get('width')->getValue() !== NULL && $this->get('height')->getValue() !== NULL) {
+      return;
+    }
+    $file = $this->get('entity')->getValue();
+    if (!$file instanceof FileInterface || $file->getMimeType() !== 'image/svg+xml') {
+      return;
+    }
+    $uri = $file->getFileUri();
+    $svg = \is_string($uri) && \is_file($uri) ? \file_get_contents($uri) : FALSE;
+    // An SVG image need not convey intrinsic dimensions: leave them empty
+    // rather than inventing them, so the browser sizes the image itself.
+    $dimensions = $svg === FALSE ? NULL : SvgHelper::getIntrinsicDimensions($svg);
+    if ($dimensions !== NULL) {
+      $this->set('width', $dimensions['width']);
+      $this->set('height', $dimensions['height']);
+    }
   }
 
   public static function defaultFieldSettings() {

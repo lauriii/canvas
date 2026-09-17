@@ -70,7 +70,10 @@ final class ImageAndStyleAdapter extends AdapterBase implements ContainerFactory
     $adaptation_cacheability->addCacheableDependency($image);
 
     $image_style = ImageStyle::load($this->imageStyle);
-    if ($image_style instanceof ImageStyleInterface) {
+    // No derivative image can be generated for a file whose extension the image
+    // toolkit does not support (for example SVG): fall back to the original.
+    // @see \Drupal\image\Entity\ImageStyle::supportsUri()
+    if ($image_style instanceof ImageStyleInterface && $image_style->supportsUri((string) $image->getFileUri())) {
       $src = $image_style->buildUrl((string) $image->getFileUri());
       $dimensions = ['width' => $this->image['width'], 'height' => $this->image['height']];
       $image_style->transformDimensions($dimensions, $this->image['src']);

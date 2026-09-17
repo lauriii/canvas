@@ -20,6 +20,7 @@ use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Render\AttachmentsInterface;
 use Drupal\Core\Render\BubbleableMetadata;
+use Drupal\Core\TypedData\DataReferenceDefinitionInterface;
 use Drupal\Core\TypedData\DataReferenceInterface;
 use Drupal\Core\TypedData\PrimitiveInterface;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeFieldItemList;
@@ -40,6 +41,24 @@ use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
  *   to inaccessible values, so a CacheableAccessDeniedHttpException is thrown.
  */
 final class Evaluator {
+
+  /**
+   * Omits the object props that evaluated to NULL, retaining cacheability.
+   *
+   * An optional field property without a value must be absent from the
+   * evaluated object: `null` does not validate against the prop shape's type.
+   * For example: an SVG image has neither a `width` nor a `height`.
+   *
+   * @param array<string, \Drupal\canvas\PropExpressions\StructuredData\EvaluationResult> $object_props
+   *   The evaluated object props, keyed by object property name.
+   */
+  private static function omitEmptyObjectProps(array $object_props): EvaluationResult {
+    // Hoisting merges the cacheability and attachments of every object prop,
+    // including the ones omitted below.
+    $all = new EvaluationResult($object_props);
+    \assert(\is_array($all->value));
+    return new EvaluationResult(\array_filter($all->value, static fn (mixed $value): bool => $value !== NULL), $all, $all->attachments);
+  }
 
   private static function permanentCacheabilityUnlessSpecified(mixed $value): CacheableDependencyInterface {
     if ($value instanceof CacheableDependencyInterface) {
@@ -196,10 +215,16 @@ final class Evaluator {
     // @see \Drupal\canvas\PropSource\StaticPropSource::evaluate()
     if ($entity_or_field instanceof FieldItemListInterface) {
       return new EvaluationResult(
-        \array_map(
-          fn (FieldItemInterface $item) => self::evaluate($item, $expr, $is_required, $language),
-          iterator_to_array($entity_or_field),
-        ),
+        // Omit empty items (the Canvas UI auto-saves values still being typed)
+        // and reindex: a `type: array` prop shape must not be handed gaps.
+        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::validateComponentInput()
+        \array_values(\array_filter(
+          \array_map(
+            fn (FieldItemInterface $item) => self::evaluate($item, $expr, $is_required, $language),
+            iterator_to_array($entity_or_field),
+          ),
+          static fn (EvaluationResult $result): bool => $result->value !== NULL,
+        )),
         $permanent_cacheability
       );
     }
@@ -210,23 +235,35 @@ final class Evaluator {
       $result = match ($expr::class) {
         FieldTypePropExpression::class => (function () use ($field, $expr) {
           $prop = $field->get($expr->propName);
-          $prop_value = $prop instanceof PrimitiveInterface
+          $raw_prop_value = $prop->getValue();
+          // ⚠️ Do not cast NULL: every primitive data type casts it to its own
+          // zero value (`0`, `''`, `FALSE`), which would turn "this optional
+          // field property has no value" into a false value. For example: an
+          // SVG image has no `width` nor `height`.
+          // @see \Drupal\Core\TypedData\Plugin\DataType\IntegerData::getCastedValue()
+          $prop_value = $prop instanceof PrimitiveInterface && $raw_prop_value !== NULL
             ? $prop->getCastedValue()
-            : $prop->getValue();
+            : $raw_prop_value;
           return new EvaluationResult(
             $prop_value,
             // Use the cacheability carried by the field property (common for
             // computed field properties), otherwise assume permanent
             // cacheability.
-            self::permanentCacheabilityUnlessSpecified($prop->getValue()),
+            // ⚠️ Prefer the field property over the value it computed: a
+            // computed field property that computes NULL still has (and must
+            // bubble) cacheability. For example: an SVG image gets no
+            // derivative image URL, yet that must be recomputed when the image
+            // style changes.
+            // @see \Drupal\canvas\Plugin\DataType\ComputedDataTypeWithCacheabilityTrait
+            self::permanentCacheabilityUnlessSpecified($prop instanceof CacheableDependencyInterface ? $prop : $prop->getValue()),
             // Keep the assets the property needs to render.
             $prop instanceof AttachmentsInterface ? $prop->getAttachments() : [],
           );
         })(),
-        FieldTypeObjectPropsExpression::class => \array_map(
+        FieldTypeObjectPropsExpression::class => self::omitEmptyObjectProps(\array_map(
           fn ((ScalarPropExpressionInterface&FieldTypeBasedPropExpressionInterface)|(ReferencePropExpressionInterface&FieldTypeBasedPropExpressionInterface) $sub_expr) => self::evaluate($field, $sub_expr, $is_required, $language),
           $expr->getObjectExpressions(),
-        ),
+        )),
         ReferenceFieldTypePropExpression::class => (function () use ($field, $expr, $is_required, $language) {
           $reference_property = $field->get($expr->referencer->propName);
           \assert($reference_property instanceof DataReferenceInterface);
@@ -305,7 +342,7 @@ final class Evaluator {
       $field_access = self::validateAccess($field_item_list, $expr);
 
       $result = match ($expr::class) {
-        FieldPropExpression::class => (function () use ($expr, $field_item_list, $is_required, $cardinality) {
+        FieldPropExpression::class => (function () use ($expr, $field_item_list, $field_definition, $is_required, $cardinality) {
           $result = [];
           $raw_result = [];
           $result_cacheability = new CacheableMetadata();
@@ -324,7 +361,8 @@ final class Evaluator {
               if ($raw_result[$delta] === NULL && $prop instanceof EntityReference) {
                 $result_cacheability->addCacheableDependency(TypedDataHelper::getDeletedReferencedEntityCacheability($prop));
               }
-              $result[$delta] = $prop instanceof PrimitiveInterface
+              // ⚠️ Do not cast NULL, see above.
+              $result[$delta] = $prop instanceof PrimitiveInterface && $raw_result[$delta] !== NULL
                 ? $prop->getCastedValue()
                 : $raw_result[$delta];
             }
@@ -353,7 +391,22 @@ final class Evaluator {
             $result = $result[$expr->delta ?? 0] ?? NULL;
             $raw_result = $raw_result[$expr->delta ?? 0] ?? NULL;
           }
-          if (!$is_required) {
+          // The premise below only holds for a field property that cannot
+          // legitimately be empty:
+          // 1. one that Typed Data marks required
+          // 2. a reference property, which core does not mark required even
+          //    though it is: it is computed from `target_id`, which is. Remove
+          //    this condition once core's metadata says so.
+          //    @see \Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem::propertyDefinitions()
+          // A required object may still have optional object props: the `image`
+          // shape requires only `src`; an SVG image may lack `width`/`height`.
+          // @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::omitEmptyObjectProps()
+          $property_definition = $field_definition->getFieldStorageDefinition()
+            ->getPropertyDefinition($expr->getFieldPropertyName());
+          $may_be_empty = $property_definition !== NULL
+            && !$property_definition->isRequired()
+            && !$property_definition instanceof DataReferenceDefinitionInterface;
+          if (!$is_required || $may_be_empty) {
             return new EvaluationResult($result, $result_cacheability, $result_attachments);
           }
 
@@ -448,10 +501,10 @@ final class Evaluator {
           }
           return new EvaluationResult($evaluated_references, $referencer_result);
         })(),
-        FieldObjectPropsExpression::class => \array_map(
+        FieldObjectPropsExpression::class => self::omitEmptyObjectProps(\array_map(
           fn((ScalarPropExpressionInterface&EntityFieldBasedPropExpressionInterface)|(ReferencePropExpressionInterface&EntityFieldBasedPropExpressionInterface) $sub_expr): EvaluationResult => self::evaluate($entity_or_field, $sub_expr, $is_required, $language),
           $expr->getObjectExpressions(),
-        ),
+        )),
         default => throw new \LogicException('Unhandled expression type.'),
       };
       return new EvaluationResult(

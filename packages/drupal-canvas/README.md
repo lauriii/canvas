@@ -379,6 +379,11 @@ export default function MyComponent({ photo }) {
 }
 ```
 
+Drupal generates no derivative images for an image its image toolkit cannot
+process, an SVG image for example. Such an image is rendered as-is, without a
+`srcset`. An SVG image that specifies neither its dimensions nor a `viewBox` is
+rendered without `width` and `height` too, and is then sized by the browser.
+
 ### Region / RegionsProvider
 
 Render Drupal Canvas global regions inside a layout component.

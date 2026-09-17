@@ -196,9 +196,11 @@ final class CanvasContentEntityHttpApiTest extends HttpApiTestBase {
             'loading' => 'lazy',
             'image' => [
               'src' => base_path() . $this->siteDirectory . '/files/balloons.png?alternateWidths=' . base_path() . $this->siteDirectory . '/files/styles/canvas_parametrized_width--%7Bwidth%7D/public/balloons.png.avif',
-              'alt' => '',
-              'width' => 0,
-              'height' => 0,
+              // No `alt`, `width` nor `height`: this image has none. The `image`
+              // shape requires only `src`, so they are omitted rather than
+              // invented as an empty string or a zero.
+              // @see json-schema-definitions://canvas.module/image
+              // @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::omitEmptyObjectProps()
             ],
           ],
         ],

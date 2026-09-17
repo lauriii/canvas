@@ -364,6 +364,61 @@ final class SingleDirectoryComponentTest extends JsonSchemaPropsComponentSourceB
   }
 
   /**
+   * An SVG image renders, even though no image toolkit can process it.
+   *
+   * Neither image candidates nor zeroed dimensions may be generated for it.
+   *
+   * @see \Drupal\canvas\TypedData\ImageDerivativeWithParametrizedWidth::computeValue()
+   * @see \Drupal\canvas\Utility\SvgHelper::getIntrinsicDimensions()
+   * @legacy-covers ::renderComponent
+   */
+  public function testRenderComponentWithSvgImage(): void {
+    // Resolving a file's URL requires access to it.
+    $this->setUpCurrentUser(permissions: ['access content']);
+    $this->generateComponentConfig();
+
+    $file_uri = 'public://canvas-test.svg';
+    \file_put_contents($file_uri, \file_get_contents(__DIR__ . '/../../../../../fixtures/images/canvas-test.svg'));
+    $file = File::create([
+      'uri' => $file_uri,
+      'filemime' => 'image/svg+xml',
+      'status' => 1,
+    ]);
+    $file->save();
+
+    $component = Component::load('sdc.canvas_test_sdc.image');
+    self::assertInstanceOf(ComponentInterface::class, $component);
+    $source = $component->getComponentSource();
+    \assert($source instanceof SingleDirectoryComponent);
+
+    $image = StaticPropSource::parse([
+      'sourceType' => 'static:field_item:image',
+      'expression' => 'ℹ︎image␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+      'value' => [['target_id' => $file->id(), 'alt' => 'A test SVG']],
+    ])->evaluate(NULL, is_required: TRUE);
+
+    $build = $source->renderComponent(
+      [JsonSchemaPropsComponentSourceBase::EXPLICIT_INPUT_NAME => ['image' => $image]],
+      [],
+      'test-uuid',
+    );
+    $html = (string) $this->renderer->renderInIsolation($build);
+
+    // No derivative image can be generated for an SVG image, so the original
+    // image is rendered, without image candidates.
+    self::assertStringContainsString('src="' . \base_path() . $this->siteDirectory . '/files/canvas-test.svg"', $html);
+    self::assertStringNotContainsString('srcset', $html);
+    self::assertStringNotContainsString('canvas_parametrized_width', $html);
+    // This static prop source carries no dimensions, and none can be computed:
+    // \Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride::preSave()
+    // only runs for a saved entity, such as a media item. So `width` and
+    // `height` must be absent, NOT zero.
+    // @see \Drupal\Tests\canvas\Kernel\PropSource\EntityFieldPropSourceTest::testSvgImageObject()
+    self::assertStringNotContainsString('width=', $html);
+    self::assertStringNotContainsString('height=', $html);
+  }
+
+  /**
    * A prop's `#attached` assets reach the rendered component.
    *
    * @see \Drupal\filter_test\Plugin\Filter\FilterTestAssets
@@ -435,6 +490,12 @@ final class SingleDirectoryComponentTest extends JsonSchemaPropsComponentSourceB
     ];
     $default_cacheability = (new CacheableMetadata())
       ->setCacheContexts($default_render_cache_contexts);
+    $formatted_text_cacheability = (new CacheableMetadata())
+      ->setCacheContexts($default_render_cache_contexts)
+      // A processed-text prop bubbles the cacheability of the text format its
+      // filters are configured by.
+      // @see \Drupal\text\TextProcessed::getCacheTags()
+      ->setCacheTags(['config:filter.format.canvas_html_block']);
     $this->assertEquals([
       'sdc.canvas_test_sdc.attributes' => [
         'html' => <<<HTML
@@ -478,7 +539,7 @@ HTML,
 </article>
 
 HTML,
-        'cacheability' => $default_cacheability,
+        'cacheability' => $formatted_text_cacheability,
         'attachments' => [
           'library' => [
             'core/components.canvas_test_sdc--banner',
@@ -812,7 +873,7 @@ HTML,
       'sdc.canvas_test_sdc.required-formatted-body' => [
         'html' => '<div><p>Example</p></div>
 ',
-        'cacheability' => $default_cacheability,
+        'cacheability' => $formatted_text_cacheability,
         'attachments' => [
           'library' => [
             'core/components.canvas_test_sdc--required-formatted-body',
@@ -1012,9 +1073,9 @@ HTML,
   class="image"
   src="::CANVAS_MODULE_PATH::/tests/modules/canvas_test_sdc/components/image/600x400.png"
     alt="Boring placeholder"
-  width="600"
-  height="400"
-  loading="lazy"
+        width="600"
+        height="400"
+    loading="lazy"
 />
 ',
         'cacheability' => $default_cacheability,
@@ -8381,7 +8442,10 @@ HTML
         'loading' => 'lazy',
         'image' => [
           'src' => '::SITE_DIR_BASE_URL::/files/image-test.png?alternateWidths=::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--%7Bwidth%7D/public/image-test.png.avif%3Fitok%3DujSynxBM',
-          'alt' => '',
+          // No `alt`: this image has none. The `image` shape requires only
+          // `src`, so it is omitted rather than invented as an empty string.
+          // @see json-schema-definitions://canvas.module/image
+          // @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::omitEmptyObjectProps()
           'width' => 40,
           'height' => 20,
         ],

@@ -267,7 +267,10 @@ final class JsonapiSupportTest extends CanvasKernelTestBase {
             'loading' => 'lazy',
             'image' => [
               'src' => '/' . $this->siteDirectory . '/files/image-test.png?alternateWidths=/' . ($this->siteDirectory) . '/files/styles/canvas_parametrized_width--%7Bwidth%7D/public/image-test.png.avif%3Fitok%3DujSynxBM',
-              'alt' => '',
+              // No `alt`: this image has none. The `image` shape requires only
+              // `src`, so it is omitted rather than invented as an empty string.
+              // @see json-schema-definitions://canvas.module/image
+              // @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::omitEmptyObjectProps()
               'width' => 40,
               'height' => 20,
             ],

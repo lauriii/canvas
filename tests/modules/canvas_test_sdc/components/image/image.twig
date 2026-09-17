@@ -9,7 +9,12 @@
     sizes="auto {{ containerSize }}vw"
   {% endif %}
   alt="{{ image.alt }}"
-  width="{{ image.width }}"
-  height="{{ image.height }}"
+  {# Absent for an SVG image that specifies neither `width`/`height` nor a `viewBox`: then the browser must size it. #}
+  {% if image.width %}
+    width="{{ image.width }}"
+  {% endif %}
+  {% if image.height %}
+    height="{{ image.height }}"
+  {% endif %}
   loading="lazy"
 />

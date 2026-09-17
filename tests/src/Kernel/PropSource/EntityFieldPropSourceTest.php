@@ -1103,16 +1103,12 @@ class EntityFieldPropSourceTest extends PropSourceTestBase {
   }
 
   /**
-   * A broken reference (deleted target entity) contributes the target's tag.
+   * Creates a node referencing a user that is then deleted.
    *
-   * When a referenced entity is deleted, the field still stores its ID but
-   * EntityReference::getValue() returns NULL. The cached NULL result must
-   * carry the former target's cache tag so that a new entity written at the
-   * same ID correctly busts any cached output.
-   *
-   * @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::doEvaluate()
+   * @return array{\Drupal\node\NodeInterface, int}
+   *   The node, and the deleted user's ID.
    */
-  public function testBrokenReferenceContributesCacheTag(): void {
+  private function createNodeReferencingDeletedUser(): array {
     $this->installEntitySchema('node');
     $this->installEntitySchema('user');
     NodeType::create(['type' => 'page', 'name' => 'Page'])->save();
@@ -1128,23 +1124,47 @@ class EntityFieldPropSourceTest extends PropSourceTestBase {
       'entity_type' => 'node',
       'bundle' => 'page',
       'label' => 'Ref',
-      'settings' => [
-        'handler' => 'default:user',
-        'handler_settings' => [],
-      ],
+      'settings' => ['handler' => 'default:user', 'handler_settings' => []],
     ])->save();
-
     $target_user = User::create(['name' => 'Soon deleted', 'status' => 1]);
     $target_user->save();
-    $target_uid = $target_user->id();
-
-    $node = $this->createNode([
-      'type' => 'page',
-      'field_ref' => $target_uid,
-    ]);
-
+    $target_uid = (int) $target_user->id();
+    $node = $this->createNode(['type' => 'page', 'field_ref' => $target_uid]);
     // Delete the target; the node still stores the ID.
     $target_user->delete();
+    $this->setUpCurrentUser(permissions: ['access content', 'access user profiles']);
+    return [$node, $target_uid];
+  }
+
+  /**
+   * A required reference whose target is gone is treated as inaccessible.
+   *
+   * The `entity` property is not marked required by Typed Data, but its
+   * `target_id` is, so an empty reference is never legitimate. Prevents
+   * regressions of the access-denied inference for references.
+   */
+  public function testRequiredBrokenReferenceIsAccessDenied(): void {
+    [$node] = $this->createNodeReferencingDeletedUser();
+    $prop_source = EntityFieldPropSource::parse([
+      'sourceType' => PropSource::EntityField->value,
+      'expression' => 'ℹ︎␜entity:node:page␝field_ref␞␟entity␜␜entity:user␝name␞␟value',
+    ]);
+    $this->expectException(CacheableAccessDeniedHttpException::class);
+    $prop_source->evaluate($node, is_required: TRUE);
+  }
+
+  /**
+   * A broken reference (deleted target entity) contributes the target's tag.
+   *
+   * When a referenced entity is deleted, the field still stores its ID but
+   * EntityReference::getValue() returns NULL. The cached NULL result must
+   * carry the former target's cache tag so that a new entity written at the
+   * same ID correctly busts any cached output.
+   *
+   * @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::doEvaluate()
+   */
+  public function testBrokenReferenceContributesCacheTag(): void {
+    [$node, $target_uid] = $this->createNodeReferencingDeletedUser();
 
     $this->setUpCurrentUser(permissions: ['access content', 'access user profiles']);
 
@@ -1352,6 +1372,83 @@ class EntityFieldPropSourceTest extends PropSourceTestBase {
       self::assertSame($expected_alt, $result->value, $scenario_name);
       self::assertNotContains('languages:' . LanguageInterface::TYPE_CONTENT, $result->getCacheContexts(), $scenario_name);
     }
+  }
+
+  /**
+   * @param string $svg
+   *   The contents of the SVG file the media item references.
+   * @param array{width?: int, height?: int} $expected_dimensions
+   *   The dimensions expected in the evaluated `image` object, if any.
+   */
+  #[DataProvider('providerSvgImageObject')]
+  public function testSvgImageObject(string $svg, array $expected_dimensions): void {
+    $this->setUpCurrentUser(permissions: ['access content', 'view media']);
+
+    $file_uri = 'public://canvas-test.svg';
+    \file_put_contents($file_uri, $svg);
+    $file = File::create([
+      'uri' => $file_uri,
+      'filemime' => 'image/svg+xml',
+      'status' => 1,
+    ]);
+    $file->save();
+    $media = Media::create([
+      'bundle' => 'image',
+      'name' => 'A test SVG',
+      'field_media_image' => [
+        [
+          'target_id' => $file->id(),
+          'alt' => 'A test SVG',
+        ],
+      ],
+    ]);
+    $media->save();
+
+    $prop_source = EntityFieldPropSource::parse([
+      'sourceType' => PropSource::EntityField->value,
+      'expression' => 'ℹ︎␜entity:media:image␝field_media_image␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+    ]);
+    $result = $prop_source->evaluate($media, is_required: TRUE);
+
+    self::assertSame([
+      // No derivative image can be generated for an SVG image, so no
+      // `alternateWidths` query parameter is present: just the original image.
+      // @see \Drupal\canvas\TypedData\ImageDerivativeWithParametrizedWidth::computeValue()
+      'src' => \base_path() . $this->siteDirectory . '/files/canvas-test.svg',
+      'alt' => 'A test SVG',
+    ] + $expected_dimensions, $result->value);
+
+    // The image style remains a cacheable dependency even though no derivative
+    // image is generated: enabling a toolkit that does support SVG must result
+    // in image candidates being generated after all.
+    self::assertEqualsCanonicalizing([
+      'config:image.style.canvas_parametrized_width',
+      'file:' . $file->id(),
+      'media:' . $media->id(),
+    ], $result->getCacheTags());
+  }
+
+  /**
+   * @return \Generator<string, array{string, array{width?: int, height?: int}}>
+   */
+  public static function providerSvgImageObject(): \Generator {
+    $svg_with_dimensions = \file_get_contents(__DIR__ . '/../../../fixtures/images/canvas-test.svg');
+    \assert(\is_string($svg_with_dimensions));
+    yield 'with width and height' => [
+      $svg_with_dimensions,
+      ['width' => 100, 'height' => 100],
+    ];
+    yield 'with only a viewBox' => [
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>',
+      ['width' => 24, 'height' => 24],
+    ];
+    // An SVG image that conveys no intrinsic dimensions must result in `width`
+    // and `height` being absent, NOT in them being zero.
+    // @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::omitEmptyObjectProps()
+    yield 'without dimensions' => [
+      '<svg xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10"/></svg>',
+      [],
+    ];
   }
 
 }

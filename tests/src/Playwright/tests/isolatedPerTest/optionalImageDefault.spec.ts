@@ -475,6 +475,16 @@ test.describe('Optional Image Default Management', () => {
       1,
     );
 
+    // The SVG image must actually render in the preview: no derivative image
+    // can be generated for it, so it must be rendered as-is.
+    await canvas.testInPreviewFrame('img[alt="A test SVG"]', async (img) => {
+      await expect(img).toBeVisible();
+      expect(
+        await img.evaluate((el: HTMLImageElement) => el.naturalWidth),
+      ).toBeGreaterThan(0);
+      await expect(img).not.toHaveAttribute('srcset');
+    });
+
     const selectedItem = imageFieldset
       .locator('.js-media-library-item')
       .first();
