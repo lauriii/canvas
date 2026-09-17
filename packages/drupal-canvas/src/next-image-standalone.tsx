@@ -22,60 +22,51 @@ export default function Image(
         : src.src;
 
   if (!loader) {
-    //
+    // Example `src` value:
+    // /sites/default/files/2025-07/maple-street.jpg?alternateWidths=/sites/default/files/styles/canvas_parametrized_width--{width}/public/2025-07/maple-street.jpg.webp?itok=…
+    const alternateWidths = new URLSearchParams(
+      srcString.split('?')[1]?.split('#')[0],
+    ).get('alternateWidths');
+
+    // Drupal generates no derivative images for this image (an SVG image, for
+    // example): render it as-is. `unoptimized` omits `srcset` and `sizes`.
+    // ⚠️ `next-image-standalone` does detect `.svg` itself, but only when using
+    // Next.js' own image optimizer; with a custom loader it assumes the loader
+    // knows what it is doing. It requires a loader even when it never calls it.
+    if (!alternateWidths) {
+      return <NextImage {...props} loader={() => srcString} unoptimized />;
+    }
+
     const defaultLoader = ({ width, imageProps }: ImageLoaderParams) => {
-      try {
-        // Parse the `alternateWidths` query string parameter from `src`.
-        // Example `src` value:
-        // /sites/default/files/2025-07/maple-street.jpg?alternateWidths=/sites/default/files/styles/canvas_parametrized_width--{width}/public/2025-07/maple-street.jpg.webp?itok=…
-        // A base URL is passed to the `URL` constructor to handle the relative
-        // path. This is only so we can easily parse the query string; the
-        // base itself is never used.
-        let result = new URL(srcString, 'https://example.com').searchParams.get(
-          'alternateWidths',
-        );
-        if (!result) {
-          throw new Error(
-            'Responsive image generation requires an `alternateWidths` query parameter in the image URL.',
+      let result = alternateWidths.replace('{width}', width.toString());
+
+      if (result.includes('{height}')) {
+        // This loader only needs to deal with the height when the example
+        // image is loaded from https://placehold.co, in which case adding a
+        // height in the URL is required. As a workaround, the code editor adds
+        // "{height}" as part of the `alternateWidths` query string parameter,
+        // so we can do the replacement here.
+        // `next/image` only passes the width to the loader, but
+        // `next-standalone-image` also exposes an `imageProps` parameter,
+        // which gives us access to the intrinsic image dimensions.
+        // Based on those we can also calculate the appropriate height for the
+        // resized placeholder image.
+        // The dimension props admit numeric strings and may be absent.
+        const intrinsicWidth = Number(imageProps.width);
+        const intrinsicHeight = Number(imageProps.height);
+        if (!intrinsicWidth || !intrinsicHeight) {
+          console.error(
+            'Height calculation requires intrinsic image dimensions.',
+            { src },
           );
+          // Fallback to the original `src`.
+          return srcString;
         }
-        result = result.replace('{width}', width.toString());
-
-        if (result.includes('{height}')) {
-          // This loader only needs to deal with the height when the example
-          // image is loaded from https://placehold.co, in which case adding a
-          // height in the URL is required. As a workaround, the code editor adds
-          // "{height}" as part of the `alternateWidths` query string parameter,
-          // so we can do the replacement here.
-          // `next/image` only passes the width to the loader, but
-          // `next-standalone-image` also exposes an `imageProps` parameter,
-          // which gives us access to the intrinsic image dimensions.
-          // Based on those we can also calculate the appropriate height for the
-          // resized placeholder image.
-          // The dimension props admit numeric strings and may be absent.
-          const intrinsicWidth = Number(imageProps.width);
-          const intrinsicHeight = Number(imageProps.height);
-          if (!intrinsicWidth || !intrinsicHeight) {
-            throw new Error(
-              'Height calculation requires intrinsic image dimensions.',
-            );
-          }
-          const height = Math.round(width / (intrinsicWidth / intrinsicHeight));
-          result = result.replace('{height}', height.toString());
-        }
-
-        return result;
-      } catch (error) {
-        console.error(
-          'Responsive image generation failed. To fix this:\n' +
-            '1. Provide a custom `loader` function, or\n' +
-            '2. Ensure your image `src` includes an `alternateWidths` query parameter\n' +
-            '   Example: ?alternateWidths=/path/to/responsive/{width}/image.jpg',
-          { src, error },
-        );
-        // Fallback to original `src` if parsing fails.
-        return srcString;
+        const height = Math.round(width / (intrinsicWidth / intrinsicHeight));
+        result = result.replace('{height}', height.toString());
       }
+
+      return result;
     };
     return (
       <NextImage

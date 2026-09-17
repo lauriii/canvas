@@ -2204,6 +2204,9 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'http_response',
       // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent::rewriteExampleUrl()
       'component_plugins',
+      // A processed-text example prop bubbles its text format's cache tag.
+      // @see \Drupal\text\TextProcessed::getCacheTags()
+      'config:filter.format.canvas_html_block',
     ];
     // If expected adds new components, those components add additional cache tags. If those cache tags are not
     // present, the test will fail. This array is used to add those additional expected cache tags.
@@ -2256,6 +2259,9 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'config:component_list',
       'config:core.extension',
       'config:canvas.js_component.my-cta',
+      // A processed-text example prop bubbles its text format's cache tag.
+      // @see \Drupal\text\TextProcessed::getCacheTags()
+      'config:filter.format.canvas_html_block',
       'config:system.menu.main',
       'config:system.site',
       'config:system.theme',

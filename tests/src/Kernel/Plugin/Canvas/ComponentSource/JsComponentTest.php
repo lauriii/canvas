@@ -2958,7 +2958,10 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       [
         'image' => [
           'src' => '::SITE_DIR_BASE_URL::/files/image-test.png?alternateWidths=::SITE_DIR_BASE_URL::/files/styles/canvas_parametrized_width--%7Bwidth%7D/public/image-test.png.avif%3Fitok%3DujSynxBM',
-          'alt' => '',
+          // No `alt`: this image has none. The `image` shape requires only
+          // `src`, so it is omitted rather than invented as an empty string.
+          // @see json-schema-definitions://canvas.module/image
+          // @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::omitEmptyObjectProps()
           'width' => 40,
           'height' => 20,
         ],

@@ -10,6 +10,7 @@ use Drupal\canvas\Plugin\DataType\UriTemplate;
 use Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride;
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Core\Cache\CacheableDependencyInterface;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\Plugin\DataType\EntityReference;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\GeneratedUrl;
@@ -51,8 +52,24 @@ final class ImageDerivativeWithParametrizedWidth extends UriTemplate implements 
 
   /**
    * {@inheritdoc}
+   *
+   * Returns NULL when no derivative image can be generated for the referenced
+   * file: the image toolkit can only process a limited set of extensions, and
+   * e.g. SVG is not among them.
+   *
+   * @see \Drupal\image\Entity\ImageStyle::supportsUri()
    */
   public function computeValue() : ?GeneratedUrl {
+    // Because this image style is an enforced dependency of the Canvas module,
+    // it is possible to assume it always exists. Because this computed property
+    // is also only present when Canvas is installed.
+    // @see config/install/image.style.canvas_parametrized_width.yml
+    // @see \Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride::propertyDefinitions()
+    $parametrized_image_style = $this->getParametrizedImageStyle();
+    // A `return NULL` must populate cacheability explicitly.
+    // @see \Drupal\canvas\Plugin\DataType\ComputedDataTypeWithCacheabilityTrait::computeIfNeeded()
+    $this->cacheability = CacheableMetadata::createFromObject($parametrized_image_style);
+
     if ($this->getParent() === NULL) {
       return NULL;
     }
@@ -69,12 +86,14 @@ final class ImageDerivativeWithParametrizedWidth extends UriTemplate implements 
     \assert($file instanceof File);
 
     \assert(\is_string($file->getFileUri()));
-    // Because this image style is an enforced dependency of the Canvas module,
-    // it is possible to assume it always exists. Because this computed property
-    // is also only present when Canvas is installed.
-    // @see config/install/image.style.canvas_parametrized_width.yml
-    // @see \Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride::propertyDefinitions()
-    $parametrized_image_style = $this->getParametrizedImageStyle();
+    // No derivative image can be generated for a file whose extension the image
+    // toolkit does not support (for example SVG): requesting one would only
+    // yield an error response. Fall back to just the original image.
+    if (!$parametrized_image_style->supportsUri($file->getFileUri())) {
+      $this->cacheability->addCacheableDependency($file);
+      return NULL;
+    }
+
     $url_template = $parametrized_image_style->buildUrlTemplate($file->getFileUri());
     \assert(str_contains($url_template, '{width}'));
 

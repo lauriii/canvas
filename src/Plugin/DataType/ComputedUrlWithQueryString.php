@@ -104,19 +104,28 @@ class ComputedUrlWithQueryString extends Uri implements DependentPluginInterface
       $query_parameter = Evaluator::evaluate(
         $field_item,
         StructuredDataPropExpression::fromString($query_parameter_instruction),
-        is_required: TRUE,
+        // The URL above is required, but a query parameter is optional. The
+        // Evaluator treats a required expression that evaluates to NULL as
+        // inaccessible and throws. A query parameter may legitimately be NULL:
+        // for an SVG image, no derivative images exist, so the expression that
+        // computes `alternateWidths` yields NULL, and the parameter is omitted.
+        // @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator
+        // @see \Drupal\canvas\TypedData\ImageDerivativeWithParametrizedWidth::computeValue()
+        is_required: FALSE,
         // @todo Use `NegotiatedLanguage::matchEntity($field_item->getRoot()->getEntity())` in https://git.drupalcode.org/project/canvas/-/work_items/3571785 — the `new CacheableMetadata()` here loses the host entity's cache tags.
         language: new NegotiatedLanguage($field_item_language, new CacheableMetadata()),
       );
       $url_with_query_string->addCacheableDependency($query_parameter);
+      if ($query_parameter->value === NULL) {
+        continue;
+      }
       $url_components['query'][$query_parameter_name] = $query_parameter->value;
     }
 
     // Assemble it.
-    $computed_url = \sprintf("%s?%s",
-      $url_components['path'],
-      UrlHelper::buildQuery($url_components['query']),
-    );
+    $computed_url = $url_components['query'] === []
+      ? $url_components['path']
+      : $url_components['path'] . '?' . UrlHelper::buildQuery($url_components['query']);
     if ($url_components['fragment'] !== '') {
       $computed_url .= '#' . $url_components['fragment'];
     }
