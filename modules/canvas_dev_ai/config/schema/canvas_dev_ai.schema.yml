@@ -26,3 +26,7 @@ canvas_dev_ai.settings:
         constraints:
           ConfigExists:
             prefix: 'ai_agents.ai_agent.'
+    keep_tool_calls_in_history:
+      type: boolean
+      label: 'Keep tool calls and results in the chat history'
+      description: "Whether the agent state a turn ends with, tool calls and results included, is kept for the conversation's next turn."

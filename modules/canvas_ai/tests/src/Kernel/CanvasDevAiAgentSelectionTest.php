@@ -184,6 +184,8 @@ final class CanvasDevAiAgentSelectionTest extends CanvasKernelTestBase {
     foreach ($settings->get('tools') as $id) {
       $this->assertContains($id, CanvasDevAiAgentSelectionForm::SELECTABLE_AGENTS);
     }
+    // Keeping the agent's tool calls and results between turns is opt-in.
+    $this->assertFalse($settings->get('keep_tool_calls_in_history'));
   }
 
   /**

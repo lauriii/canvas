@@ -5,9 +5,11 @@
  * (/admin/api/canvas/ai-dev) as a client-side hop loop: the agent pauses after
  * each tool decision, and the turn is re-POSTed under one request_id until it
  * reports it is finished. Each hop's narration is rendered into a single
- * progress message, and the answer follows it on the final hop. Rendered
- * instead of AiWizard when drupalSettings.canvas.aiDevMode is set by the
- * canvas_dev_ai module.
+ * progress message, and the answer follows it on the final hop. Every turn
+ * of one chat session is sent under one conversation_id, under which the
+ * backend keeps the agent's own history between turns. Rendered instead of
+ * AiWizard when drupalSettings.canvas.aiDevMode is set by the canvas_dev_ai
+ * module.
  */
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DeepChat } from 'deep-chat-react';
@@ -612,6 +614,15 @@ const AiWizardDev = () => {
   // change (see customButtons below).
   const [isTurnInProgress, setIsTurnInProgress] = useState(false);
   const isTurnInProgressRef = useRef(isTurnInProgress);
+
+  // Identifies the conversation, sent as `conversation_id` with every turn.
+  // The backend keeps the agent history a turn ends with under it, so the
+  // next turn resumes that history instead of rebuilding it from the
+  // transcript. The chat is cleared when this component mounts (see
+  // handleComponentRender), so a mount is a conversation.
+  const conversationIdRef = useRef(
+    `conv_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+  );
   const [createCodeComponent] = useCreateCodeComponentMutation();
   const navigate = useNavigate();
   const params = useParams();
@@ -919,6 +930,7 @@ const AiWizardDev = () => {
           const pageData = selectPageData(state);
           return {
             request_id: requestId,
+            conversation_id: conversationIdRef.current,
             entity_type: current.params.entityType,
             entity_id: current.params.entityId,
             // Prefer the code-editor route param: it identifies the open

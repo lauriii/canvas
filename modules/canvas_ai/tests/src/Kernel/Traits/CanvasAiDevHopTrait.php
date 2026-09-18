@@ -76,7 +76,9 @@ trait CanvasAiDevHopTrait {
    *
    * Every hop of one turn sends the same request_id, which the controller keys
    * the stored agent state on: a later hop resumes the run the previous one
-   * parked.
+   * parked. Every turn of one conversation sends the same conversation_id,
+   * which the controller keys the finished turn's state on: a later turn
+   * resumes the history the previous one built.
    *
    * @param array $prompt
    *   The prompt values this hop sends, merged over the required keys.
@@ -90,6 +92,7 @@ trait CanvasAiDevHopTrait {
       'POST',
       content: Json::encode($prompt + [
         'request_id' => 'test-request',
+        'conversation_id' => 'test-conversation',
         'entity_type' => 'canvas_page',
         'derived_proptypes' => [],
         'selected_component_required_props' => [],
