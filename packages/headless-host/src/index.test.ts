@@ -136,6 +136,7 @@ describe('headless height probing', () => {
       entity_type: 'node',
       entity: '42',
       view_mode: 'teaser',
+      language: 'fr',
     });
     const postMessage = vi.spyOn(iframe.contentWindow!, 'postMessage');
     iframe.dispatchEvent(new Event('load'));
@@ -160,7 +161,27 @@ describe('headless height probing', () => {
       expect(fetchAssertion).toHaveBeenCalledWith({
         path: '/node/42',
         view_mode: 'teaser',
+        language: 'fr',
         renewal: '1',
+      }),
+    );
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        origin: FRONTEND_ORIGIN,
+        source: iframe.contentWindow,
+        data: {
+          type: HEADLESS_STATUS_MESSAGE,
+          status: 'expired',
+          path: '/node/42',
+          hostSessionId: statusRequest.hostSessionId,
+        },
+      }),
+    );
+    await vi.waitFor(() =>
+      expect(fetchAssertion).toHaveBeenLastCalledWith({
+        path: '/node/42',
+        view_mode: 'teaser',
+        language: 'fr',
       }),
     );
     host.destroy();

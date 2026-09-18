@@ -83,7 +83,7 @@ class AssertionController extends ControllerBase {
     $assertion = $this->previewUrlGenerator->issueForPath(
       $path,
       $renewal,
-      static::previewContext($request),
+      $this->previewContext($request),
     );
     // The route requires the permission the generator checks, so a NULL here
     // means the two got out of sync — fail loudly, not with a broken preview.
@@ -180,11 +180,18 @@ class AssertionController extends ControllerBase {
   /**
    * Reads optional content-template rendering context.
    *
-   * @return array{viewMode?: string, pageVariant?: string}
+   * @return array{viewMode?: string, pageVariant?: string, language?: string}
    *   The context carried by the signed preview assertion.
    */
-  protected static function previewContext(Request $request): array {
+  protected function previewContext(Request $request): array {
     $context = [];
+    $language = $request->query->get('language', '');
+    if ($language !== '') {
+      if (!\is_string($language) || $this->languageManager()->getLanguage($language) === NULL) {
+        throw new BadRequestHttpException('The language query parameter is invalid.');
+      }
+      $context['language'] = $language;
+    }
     $view_mode = (string) $request->query->get('view_mode', '');
     if ($view_mode !== '') {
       if (preg_match('/^[a-z0-9_]+$/', $view_mode) !== 1) {

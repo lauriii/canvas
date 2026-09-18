@@ -27,7 +27,7 @@ interface PreviewAssertionFactoryInterface {
    *   context. The grant requires PKCE proof of the running session to
    *   redeem them; activation assertions (FALSE) travel in URLs and are
    *   redeemed server-side, never touching script context.
-   * @param array{viewMode?: string, pageVariant?: string} $preview_context
+   * @param array{viewMode?: string, pageVariant?: string, language?: string} $preview_context
    *   Optional rendering context for an editor preview.
    *
    * @return string

@@ -60,10 +60,13 @@ test.describe('AI dev chat', () => {
 
   test('Component agent turns', async ({ page, drupal, canvas, ai }) => {
     // Intercept the dev chat's calls. Counting the requests here is what holds
-    // each turn to the number it should have sent to the backend.
+    // each turn to the number it should have sent to the backend, and the
+    // conversation_id each carries is what ties the turns into one chat.
     let requests = 0;
+    const conversationIds = new Set<unknown>();
     await page.route('**/admin/api/canvas/ai-dev', async (route) => {
       requests += 1;
+      conversationIds.add(route.request().postDataJSON().conversation_id);
       // Hold every request briefly. Playwright waits for a state to arrive and
       // cannot catch one that has already flipped, so without a pause the turn
       // can finish before the running state is ever asserted on.
@@ -163,8 +166,11 @@ test.describe('AI dev chat', () => {
       progressMessage.last().locator('.aiCompletedIcon'),
     ).toBeVisible();
 
-    // Three more requests.
+    // Three more requests, all of one conversation: the backend keeps the
+    // agent's history under that id between the two turns.
     expect(requests).toBe(5);
+    expect(conversationIds.size).toBe(1);
+    expect([...conversationIds][0]).toMatch(/^conv_/);
 
     // The final request's `js_structure` rewrote the code of the component
     // already open in the editor instead of creating another one.

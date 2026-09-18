@@ -72,21 +72,25 @@ final class CanvasDevAiAgentSelectionFormTest extends BrowserTestBase {
   }
 
   /**
-   * Tests that the form renders and saves both values.
+   * Tests that the form renders and saves every value.
    */
-  public function testFormSavesBothValues(): void {
+  public function testFormSavesAllValues(): void {
     $this->drupalGet(Url::fromRoute(self::ROUTE_NAME));
     $this->assertSession()->statusCodeEquals(200);
     $this->assertSession()->pageTextContains('Agents & Tools');
     // The shipped main agent must be offered, otherwise saving the form would
     // silently replace it.
     $this->assertSession()->optionExists('main_agent', 'canvas_agent');
+    // Keeping tool calls and results between turns costs tokens, so it is
+    // off until a site turns it on here.
+    $this->assertSession()->checkboxNotChecked('keep_tool_calls_in_history');
 
     $this->submitForm([
       'main_agent' => 'canvas_dev_page_builder_agent',
       'tools[canvas_agent]' => FALSE,
       'tools[canvas_component_agent]' => TRUE,
       'tools[canvas_dev_page_builder_agent]' => FALSE,
+      'keep_tool_calls_in_history' => TRUE,
     ], 'Save configuration');
 
     $this->assertSession()->pageTextContains('The configuration options have been saved.');
@@ -94,6 +98,8 @@ final class CanvasDevAiAgentSelectionFormTest extends BrowserTestBase {
     $config = $this->config('canvas_dev_ai.settings');
     $this->assertSame('canvas_dev_page_builder_agent', $config->get('main_agent'));
     $this->assertSame(['canvas_component_agent'], $config->get('tools'));
+    $this->assertTrue($config->get('keep_tool_calls_in_history'));
+    $this->assertSession()->checkboxChecked('keep_tool_calls_in_history');
   }
 
   /**

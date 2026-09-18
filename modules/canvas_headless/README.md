@@ -58,6 +58,28 @@ hook documentation, including the site-policy `_alter` hook.
 are supported; fragments are rejected. File URLs in content responses are absolute so they resolve from the
 headless frontend rather than from the Drupal origin implicitly.
 
+### Read-only preview language
+
+Canvas's language selector passes the selected language through the embedded
+read-only draft session for pages, content templates, and page templates. The
+SDK's `fetchPage()` forwards it only while the draft session is live. It does
+not change the editable editor iframe or add a public frontend language option.
+
+The content endpoint honors this `language` hint only for preview-scoped tokens.
+When negotiation must change, it sends one private, non-cacheable HTTP 302 back
+to the same-origin content endpoint with the language-specific `requestUri` and
+preview context. `fetchPage()` follows this transport redirect with the same
+credential; it is not a frontend navigation result. A fresh request uses the
+site's language-switch URL/query negotiation before routing and rendering,
+including translation access checks, per-language page auto-saves, and template
+translation overrides merged onto draft trees. If negotiation still does not
+match after that hop, the endpoint returns 404 rather than redirecting again. A configured language
+without a translation retains Drupal's fallback; an unknown language returns 400
+when minting an assertion and 404 from the content endpoint.
+
+As with coupled previews, interface and content negotiation are expected to agree.
+Cross-domain language negotiation is not supported for this internal preview hint.
+
 ## Canvas entity endpoint
 
 `GET /canvas/content-api/entity?type={entityType}&id={id}` renders one

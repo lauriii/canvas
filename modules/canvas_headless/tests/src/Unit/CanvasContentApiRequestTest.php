@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas_headless\Unit;
 
 use Drupal\canvas_headless\EventSubscriber\DetachedPreviewRouteSubscriber;
+use Drupal\canvas_headless\EventSubscriber\PreviewLanguageSubscriber;
 use Drupal\canvas_headless\Grant\PreviewAssertionGrant;
 use Drupal\canvas_headless\Routing\DetachedPreviewRouteProcessor;
 use Drupal\canvas_headless\StackMiddleware\CanvasContentApiRequest;
+use Drupal\Core\Language\Language;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Routing\CacheableRouteProviderInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AccountProxyInterface;
@@ -22,6 +25,7 @@ use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 
 /**
@@ -30,6 +34,7 @@ use Symfony\Component\HttpKernel\HttpKernelInterface;
 #[CoversClass(CanvasContentApiRequest::class)]
 #[CoversClass(DetachedPreviewRouteProcessor::class)]
 #[CoversClass(DetachedPreviewRouteSubscriber::class)]
+#[CoversClass(PreviewLanguageSubscriber::class)]
 #[Group('canvas_headless')]
 final class CanvasContentApiRequestTest extends UnitTestCase {
 
@@ -93,6 +98,22 @@ final class CanvasContentApiRequestTest extends UnitTestCase {
     $request->headers->set('Authorization', 'Bearer preview-token');
 
     $middleware->handle($request);
+  }
+
+  /**
+   * The preview hint cannot replace a route-owned language query parameter.
+   */
+  public function testPreviewLanguageIsNamespaced(): void {
+    $kernel = $this->createMock(HttpKernelInterface::class);
+    $kernel->expects($this->once())->method('handle')->willReturnCallback(static function (Request $request): Response {
+      self::assertSame('route-owned', $request->query->get('language'));
+      self::assertSame(['language' => 'fr'], $request->attributes->get(CanvasContentApiRequest::API_QUERY_PARAMETERS_KEY));
+      return new Response();
+    });
+    (new CanvasContentApiRequest($kernel))->handle(Request::create('/canvas/content-api?' . http_build_query([
+      'requestUri' => '/page/1?language=route-owned',
+      'language' => 'fr',
+    ])));
   }
 
   /**
@@ -223,6 +244,43 @@ final class CanvasContentApiRequestTest extends UnitTestCase {
       $request->attributes->get('_disable_route_normalizer', FALSE),
     );
     self::assertSame($expected_path, $processor->processInbound('/', $request));
+  }
+
+  /**
+   * Missing optional language support never reaches negotiation services.
+   */
+  #[DataProvider('monolingualPreviewLanguageProvider')]
+  public function testPreviewLanguageWithoutLanguageModule(string $langcode, bool $known): void {
+    $language_manager = $this->createMock(LanguageManagerInterface::class);
+    $language_manager->expects($this->once())->method('getLanguage')
+      ->with($langcode)->willReturn($known ? new Language(['id' => 'en']) : NULL);
+    $language_manager->expects($known ? $this->once() : $this->never())
+      ->method('getCurrentLanguage')->willReturn(new Language(['id' => 'en']));
+    $language_manager->expects($this->never())->method('getLanguageSwitchLinks');
+    $current_user = $this->createMock(AccountProxyInterface::class);
+    $current_user->method('getAccount')->willReturn($this->previewTokenAccount());
+    $subscriber = new PreviewLanguageSubscriber(
+      $language_manager,
+      $current_user,
+      NULL,
+    );
+    $request = Request::create('/page/1');
+    $request->attributes->set(CanvasContentApiRequest::REQUESTED_URI_ATTRIBUTE, '/page/1');
+    $request->attributes->set(CanvasContentApiRequest::API_QUERY_PARAMETERS_KEY, ['language' => $langcode]);
+    if (!$known) {
+      $this->expectException(NotFoundHttpException::class);
+    }
+    $subscriber->onRequest(new RequestEvent(
+      $this->createMock(HttpKernelInterface::class),
+      $request,
+      HttpKernelInterface::MAIN_REQUEST,
+    ));
+    self::assertSame('/page/1', $request->getRequestUri());
+  }
+
+  public static function monolingualPreviewLanguageProvider(): iterable {
+    yield 'default language without language module' => ['en', TRUE];
+    yield 'unknown language still rejected' => ['unknown', FALSE];
   }
 
   /**

@@ -30,6 +30,12 @@ paths:
             examples:
               - /page/1
               - /node/12?language=fr
+        - name: language
+          in: query
+          required: false
+          description: Configured language selected in Canvas's read-only preview. Honored only for preview-scoped tokens; an unknown language returns 404. Missing translations use Drupal's configured fallback.
+          schema:
+            type: string
         - name: componentId
           in: query
           required: false
@@ -78,6 +84,17 @@ paths:
                       external: false
                       url: /new-path
                       statusCode: 301
+        '302':
+          description: >-
+            Non-cacheable, same-origin language negotiation transport redirect
+            for a preview-scoped request. Follow Location back to this endpoint
+            with the same authorization. At most one language redirect is issued;
+            unsuccessful negotiation on that hop returns 404.
+          headers:
+            Location:
+              schema:
+                type: string
+              description: Same-origin content API URL retaining preview context.
         '400':
           $ref: '#/components/responses/ProblemDetailsResponse'
         '401':
@@ -195,6 +212,12 @@ paths:
           description: Marks the assertion for in-place renewal flow.
           schema:
             type: boolean
+        - name: language
+          in: query
+          required: false
+          description: Configured language selected in Canvas's read-only preview, retained in signed preview context. An unknown language returns 400.
+          schema:
+            type: string
         - name: view_mode
           in: query
           required: false

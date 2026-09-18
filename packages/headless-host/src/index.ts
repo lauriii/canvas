@@ -328,6 +328,7 @@ export function createHeadlessPreviewHost(
     passive = false;
     const retainedParameterNames = [
       'view_mode',
+      'language',
       ...(params.entity_type === 'page_variant'
         ? ['entity_type', 'entity']
         : []),

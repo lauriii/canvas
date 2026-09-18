@@ -86,6 +86,13 @@ final class CanvasDevAiAgentSelectionForm extends ConfigFormBase {
       '#default_value' => $config->get('tools') ?? [],
     ];
 
+    $form['keep_tool_calls_in_history'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Keep tool calls and results in the chat history'),
+      '#description' => $this->t('The agent normally remembers only the text of past messages. With this on it also remembers which tools it ran and what they returned, so it repeats less work on follow-up requests, at a higher token cost per request. When this is enabled, the <strong>Maximum chat history messages</strong> setting has no effect.'),
+      '#default_value' => (bool) $config->get('keep_tool_calls_in_history'),
+    ];
+
     return parent::buildForm($form, $form_state);
   }
 
@@ -109,6 +116,7 @@ final class CanvasDevAiAgentSelectionForm extends ConfigFormBase {
     $this->config('canvas_dev_ai.settings')
       ->set('main_agent', $form_state->getValue('main_agent'))
       ->set('tools', $tools)
+      ->set('keep_tool_calls_in_history', (bool) $form_state->getValue('keep_tool_calls_in_history'))
       ->save();
     parent::submitForm($form, $form_state);
   }

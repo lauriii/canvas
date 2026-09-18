@@ -100,11 +100,16 @@ export async function redeemAssertion(
       : null;
   const previewContext =
     rawPreviewContext &&
+    (rawPreviewContext.language === undefined ||
+      typeof rawPreviewContext.language === 'string') &&
     (rawPreviewContext.viewMode === undefined ||
       typeof rawPreviewContext.viewMode === 'string') &&
     (rawPreviewContext.pageVariant === undefined ||
       typeof rawPreviewContext.pageVariant === 'string')
       ? {
+          ...(typeof rawPreviewContext.language === 'string' && {
+            language: rawPreviewContext.language,
+          }),
           ...(typeof rawPreviewContext.viewMode === 'string' && {
             viewMode: rawPreviewContext.viewMode,
           }),

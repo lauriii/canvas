@@ -26,6 +26,13 @@ final class CanvasContentApiRequest implements HttpKernelInterface {
 
   public const PREVIEW_VIEW_MODE_QUERY = 'viewMode';
 
+  public const PREVIEW_LANGUAGE_QUERY = 'language';
+
+  /**
+   * Internal one-hop guard; accepting it can only reject failed negotiation.
+   */
+  public const LANGUAGE_REDIRECT_QUERY = '_canvas_headless_language_redirect';
+
   public const PAGE_VARIANT_PREVIEW_QUERY = 'pageVariant';
 
   public const COMPONENT_PREVIEW_QUERY = 'componentId';
@@ -34,6 +41,7 @@ final class CanvasContentApiRequest implements HttpKernelInterface {
     self::PREVIEW_VIEW_MODE_QUERY,
     self::PAGE_VARIANT_PREVIEW_QUERY,
     self::COMPONENT_PREVIEW_QUERY,
+    self::PREVIEW_LANGUAGE_QUERY,
   ];
 
   public function __construct(
@@ -90,6 +98,7 @@ final class CanvasContentApiRequest implements HttpKernelInterface {
         self::REQUESTED_URI_ATTRIBUTE => $request_uri,
         self::API_QUERY_PARAMETERS_KEY => $api_query_parameters,
         self::DETACHED_PREVIEW_ATTRIBUTE => $is_detached_preview,
+        self::LANGUAGE_REDIRECT_QUERY => ($request->query->all()[self::LANGUAGE_REDIRECT_QUERY] ?? NULL) === '1',
       ],
       server: [
         ...$request->server->all(),

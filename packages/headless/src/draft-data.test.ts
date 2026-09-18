@@ -52,6 +52,7 @@ describe('parseDraftData', () => {
     const draftData = {
       ...validDraftData,
       previewContext: {
+        language: 'fr',
         viewMode: 'teaser',
         pageVariant: 'alternate',
       },
@@ -59,16 +60,19 @@ describe('parseDraftData', () => {
     expect(parseDraftData(serializeDraftData(draftData))).toEqual(draftData);
   });
 
-  it('rejects invalid editor preview context', () => {
-    expect(
-      parseDraftData(
-        JSON.stringify({
-          ...validDraftData,
-          previewContext: { pageVariant: 42 },
-        }),
-      ),
-    ).toBeNull();
-  });
+  it.each([{ pageVariant: 42 }, { language: 42 }, { language: null }])(
+    'rejects invalid editor preview context %s',
+    (previewContext) => {
+      expect(
+        parseDraftData(
+          JSON.stringify({
+            ...validDraftData,
+            previewContext,
+          }),
+        ),
+      ).toBeNull();
+    },
+  );
 
   it.each([null, undefined, ''])('returns null for %s', (value) => {
     expect(parseDraftData(value)).toBeNull();
