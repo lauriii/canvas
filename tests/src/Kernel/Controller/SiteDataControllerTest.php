@@ -6,7 +6,6 @@ namespace Drupal\Tests\canvas\Kernel\Controller;
 
 use Drupal\canvas\Controller\SiteDataController;
 use Drupal\canvas\Entity\JavaScriptComponent;
-use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -57,11 +56,17 @@ class SiteDataControllerTest extends CanvasKernelTestBase {
     self::assertArrayNotHasKey('pageTitle', $data);
   }
 
-  public function testGetDeniedForAnonymousUser(): void {
+  public function testGetAllowedForAnonymousUser(): void {
     $this->setUpCurrentUser();
 
-    $this->expectException(CacheableAccessDeniedHttpException::class);
-    $this->request(Request::create(self::URL));
+    $response = $this->request(Request::create(self::URL));
+
+    self::assertSame(200, $response->getStatusCode());
+    $data = static::decodeResponse($response);
+    self::assertIsString($data['baseUrl']);
+    self::assertArrayHasKey('branding', $data);
+    self::assertArrayHasKey('themeAssets', $data);
+    self::assertArrayHasKey('jsonapiSettings', $data);
   }
 
 }

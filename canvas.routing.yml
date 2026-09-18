@@ -783,8 +783,7 @@ canvas.api.site_data:
   defaults:
     _controller: 'Drupal\canvas\Controller\SiteDataController::get'
   requirements:
-    _canvas_authentication_required: TRUE
-    _canvas_ui_access: 'TRUE'
+    _access: 'TRUE'
     _format: 'json'
   methods: [GET]
   options:

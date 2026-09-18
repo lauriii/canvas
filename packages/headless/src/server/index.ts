@@ -27,6 +27,7 @@ export {
   type RedemptionResult,
 } from './flows';
 export { getDraftClient, getPublicClient } from './json-api-client';
+export { createApiPrefixResolver } from './site-data';
 export { fetchPage } from './content-api';
 export {
   isPageRedirect,

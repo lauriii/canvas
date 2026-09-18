@@ -11,11 +11,18 @@ import type { DraftConfig } from './config';
 
 /**
  * A client for public content: unauthenticated, sees only published content.
+ *
+ * The config's apiPrefix (resolved from the site's canvasData.v0 payload by
+ * the draft server) points the client at sites serving JSON:API from a
+ * non-default prefix, e.g. `/api`; when absent, the client's `/jsonapi`
+ * default applies.
  */
 export function getPublicClient(
-  config: Pick<DraftConfig, 'baseUrl'>,
+  config: Pick<DraftConfig, 'baseUrl' | 'apiPrefix'>,
 ): JsonApiClient {
-  return new JsonApiClient(config.baseUrl);
+  return new JsonApiClient(config.baseUrl, {
+    ...(config.apiPrefix && { apiPrefix: config.apiPrefix }),
+  });
 }
 
 /**
@@ -104,7 +111,7 @@ class DraftJsonApiClient extends JsonApiClient {
  * visible indicator instead of silently downgrading.
  */
 export function getDraftClient(
-  config: Pick<DraftConfig, 'baseUrl'>,
+  config: Pick<DraftConfig, 'baseUrl' | 'apiPrefix'>,
   draftData: DraftData,
 ): JsonApiClient {
   const token = getSessionToken(draftData);
@@ -114,6 +121,7 @@ export function getDraftClient(
   return new DraftJsonApiClient(
     config.baseUrl,
     {
+      ...(config.apiPrefix && { apiPrefix: config.apiPrefix }),
       authentication: {
         type: 'Custom',
         credentials: { value: `${token.tokenType} ${token.value}` },
