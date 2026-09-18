@@ -52,15 +52,10 @@ const Topbar = () => {
   const canvasSettings = getCanvasSettings();
   const headlessSettings = useCanvasHeadlessSettings();
   const isPagePreview = location.pathname.startsWith('/preview/');
-  const isTranslatedTemplate =
-    location.pathname.startsWith('/preview/template/') &&
-    new URLSearchParams(location.search).has('language');
   const isFrontendEmbedded =
     headlessSettings !== undefined &&
     Boolean(entityType) &&
-    (isEditor ||
-      isTemplateEditorContext ||
-      (isPagePreview && !isTranslatedTemplate));
+    (isEditor || isTemplateEditorContext || isPagePreview);
 
   const isTranslationEnabled =
     canvasSettings?.contentTranslationEnabled ||

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_headless\Kernel;
 
+// cspell:ignore unroutable francaise Btag
+
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
@@ -13,16 +15,19 @@ use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas_headless\Grant\PreviewAssertionGrant;
 use Drupal\canvas_headless\PreviewAssertionFactory;
+use Drupal\canvas_headless\PreviewLanguageRedirectResponse;
 use Drupal\canvas_headless\StackMiddleware\CanvasContentApiRequest;
 use Drupal\consumers\Entity\Consumer;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Routing\RouteBuilderInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\Core\Session\PermissionCheckerInterface;
+use Drupal\language\ConfigurableLanguageManagerInterface;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
@@ -39,6 +44,8 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Bridge\PsrHttpMessage\HttpMessageFactoryInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Tests routed Canvas content and scoped auto-save previews.
@@ -1019,7 +1026,8 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
   /**
    * Tests translated routes render the corresponding translation auto-save.
    */
-  public function testPreviewRendersTranslatedAutoSave(): void {
+  #[\PHPUnit\Framework\Attributes\DataProvider('previewLanguageNegotiationCases')]
+  public function testPreviewRendersTranslatedAutoSave(string $path_prefix, bool $session): void {
     ConfigurableLanguage::createFromLangcode('fr')->save();
     $page = $this->createPage();
     $page_fr = $page->addTranslation('fr', [
@@ -1036,10 +1044,17 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     $this->config('language.negotiation')
       ->set('url.prefixes', ['en' => '', 'fr' => 'fr'])
       ->save();
+    if ($session) {
+      $this->config('language.negotiation')->set('session.parameter', 'content_language')->save();
+      $this->config('language.types')
+        ->set('negotiation.language_content.enabled', ['language-session' => -10, 'language-selected' => 12])
+        ->set('negotiation.language_interface.enabled', ['language-session' => -10, 'language-selected' => 12])
+        ->save();
+    }
     $this->container->get('kernel')->rebuildContainer();
     $this->setCurrentAccount($this->createTokenAccount(with_preview_scope: TRUE));
 
-    $response = $this->renderContentPath('/fr/page/' . $page->id());
+    $response = $this->renderContentPath($path_prefix . '/page/' . $page->id(), ['language' => 'fr']);
     $data = self::responseData($response);
 
     self::assertSame('French draft title', $data['head']['title']);
@@ -1047,6 +1062,204 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
       'fr',
       $data['route']['entity']['langcode'],
     );
+  }
+
+  /**
+   * Tests draft trees plus translation overrides for both template kinds.
+   */
+  #[\PHPUnit\Framework\Attributes\DataProvider('previewLanguageNegotiationCases')]
+  public function testTranslatedTemplateDrafts(string $path_prefix, bool $session): void {
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+    $this->config('language.negotiation')->set('url.prefixes', ['en' => 'en', 'fr' => 'fr'])->save();
+    if ($session) {
+      $this->config('language.negotiation')->set('session.parameter', 'content_language')->save();
+      $this->config('language.types')
+        ->set('negotiation.language_content.enabled', ['language-session' => -10, 'language-selected' => 12])
+        ->set('negotiation.language_interface.enabled', ['language-session' => -10, 'language-selected' => 12])->save();
+    }
+    $language_manager = $this->container->get(LanguageManagerInterface::class);
+    self::assertInstanceOf(ConfigurableLanguageManagerInterface::class, $language_manager);
+    $variant = $this->createPageVariant('translated', 'Stored chrome', 'Stored footer');
+    $tree = $variant->getComponentTree()->getValue();
+    $tree[2]['inputs']['heading'] = 'Draft footer';
+    $variant->setComponentTree($tree);
+    $this->container->get(AutoSaveManager::class)->saveEntity($variant);
+    $language_manager->getLanguageConfigOverride('fr', $variant->getConfigDependencyName())
+      ->set('component_tree', [$tree[0]['uuid'] => ['inputs' => ['heading' => 'French chrome']]])->save();
+    $this->config('canvas.settings')->set(PageVariant::DEFAULT_SETTING, $variant->id())->save();
+
+    $template = ContentTemplate::create([
+      'id' => 'node.article.full',
+      'content_entity_type_id' => 'node',
+      'content_entity_type_bundle' => 'article',
+      'content_entity_type_view_mode' => 'full',
+      'component_tree' => [$tree[0]],
+      'status' => TRUE,
+    ]);
+    $template->save();
+    $dynamic = $tree[0];
+    $dynamic['uuid'] = $this->container->get('uuid')->generate();
+    $dynamic['inputs']['heading'] = [
+      'sourceType' => 'entity-field',
+      'expression' => 'ℹ︎␜entity:node:article␝title␞␟value',
+    ];
+    $template->setComponentTree([$tree[0], $tree[2], $dynamic]);
+    $this->container->get(AutoSaveManager::class)->saveEntity($template);
+    $language_manager->getLanguageConfigOverride('fr', $template->getConfigDependencyName())
+      ->set('component_tree', [$tree[0]['uuid'] => ['inputs' => ['heading' => 'French template']]])->save();
+    $node = Node::create(['type' => 'article', 'title' => 'English article', 'status' => TRUE]);
+    $node->addTranslation('fr', ['title' => 'French article', 'status' => TRUE]);
+    $node->save();
+    $page = $this->createPage();
+    $this->container->get('kernel')->rebuildContainer();
+    $this->setCurrentAccount($this->createTokenAccount(with_preview_scope: TRUE));
+
+    foreach ([
+      ['/page/' . $page->id(), [], 'Stored component heading'],
+      ['/node/' . $node->id(), ['viewMode' => 'full'], 'French template'],
+      ['/', ['pageVariant' => 'translated'], 'French chrome'],
+      ['/unroutable', ['pageVariant' => 'translated'], 'French chrome'],
+      ['/en/unroutable', ['pageVariant' => 'translated'], 'French chrome'],
+    ] as [$path, $context, $expected]) {
+      $data = self::responseData($this->renderContentPath($path_prefix . $path, ['language' => 'fr'] + $context));
+      $content = json_encode($data['content'], JSON_THROW_ON_ERROR);
+      self::assertStringContainsString($expected, $content);
+      self::assertStringContainsString('French chrome', $content);
+      self::assertStringContainsString('Draft footer', $content);
+      self::assertStringNotContainsString('Stored footer', $content);
+      if ($path === '/node/' . $node->id()) {
+        self::assertSame('French article', $data['head']['title']);
+        self::assertStringContainsString('French article', $content);
+      }
+    }
+  }
+
+  /**
+   * A configured but absent translation falls back; unknown languages do not.
+   */
+  public function testPreviewLanguageFallbackAndValidation(): void {
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+    $this->config('language.negotiation')->set('url.prefixes', ['en' => '', 'fr' => 'fr'])->save();
+    $page = $this->createPage();
+    $this->container->get('kernel')->rebuildContainer();
+    $this->setCurrentAccount($this->editor);
+    $data = self::responseData($this->renderContentPath('/page/' . $page->id(), ['language' => 'unknown']));
+    self::assertSame('en', $data['route']['entity']['langcode']);
+    $this->setCurrentAccount($this->createTokenAccount(with_preview_scope: TRUE));
+    $data = self::responseData($this->renderContentPath('/page/' . $page->id(), ['language' => 'fr']));
+    self::assertSame('en', $data['route']['entity']['langcode']);
+    self::assertSame('Stored title', $data['head']['title']);
+    $this->expectException(NotFoundHttpException::class);
+    $this->renderContentPath('/page/' . $page->id(), ['language' => 'unknown']);
+  }
+
+  /**
+   * Access is checked on the requested translation, including its auto-save.
+   */
+  #[\PHPUnit\Framework\Attributes\DataProvider('inaccessibleTranslationCases')]
+  public function testInaccessiblePreviewTranslation(bool $draft): void {
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+    $this->config('language.negotiation')->set('url.prefixes', ['en' => '', 'fr' => 'fr'])->save();
+    $page = $this->createPage();
+    $translation = $page->addTranslation('fr', ['title' => 'Private French title', 'status' => $draft]);
+    $page->save();
+    if ($draft) {
+      $translation->set('status', FALSE);
+      $this->container->get(AutoSaveManager::class)->saveEntity($translation);
+    }
+    $this->container->get('kernel')->rebuildContainer();
+    $this->setCurrentAccount($this->createTokenAccount(with_preview_scope: TRUE));
+    $this->expectException(AccessDeniedHttpException::class);
+    $this->renderContentPath('/page/' . $page->id(), ['language' => 'fr']);
+  }
+
+  public static function inaccessibleTranslationCases(): iterable {
+    yield 'stored translation' => [FALSE];
+    yield 'auto-saved translation' => [TRUE];
+  }
+
+  /**
+   * Transport redirects retain context and queries without duplicating the base.
+   */
+  #[\PHPUnit\Framework\Attributes\DataProvider('previewInstallationBases')]
+  public function testLanguageRedirectAliasesAndBasePath(string $base, string $script): void {
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+    $this->config('language.negotiation')->set('url.prefixes', ['en' => 'en', 'fr' => 'fr'])->save();
+    $page = $this->createPage();
+    $page->addTranslation('fr', ['title' => 'French alias page', 'status' => TRUE]);
+    $page->save();
+    foreach (['en' => '/english-page', 'fr' => '/page-francaise'] as $langcode => $alias) {
+      PathAlias::create(['path' => '/page/' . $page->id(), 'alias' => $alias, 'langcode' => $langcode])->save();
+    }
+    $this->container->get('kernel')->rebuildContainer();
+    $this->setCurrentAccount($this->createTokenAccount(with_preview_scope: TRUE));
+    $server = ['SCRIPT_NAME' => $script, 'SCRIPT_FILENAME' => '/var/www' . $script];
+    $context = ['language' => 'fr', 'viewMode' => 'full'];
+    $request = Request::create($base . '/canvas/content-api?' . http_build_query([
+      'requestUri' => '/en/english-page?language=route-owned&viewMode=route-owned&filter%5Btag%5D=one&destination=/user/login',
+      ...$context,
+    ]), server: $server);
+    $response = $this->request($request);
+    self::assertInstanceOf(PreviewLanguageRedirectResponse::class, $response);
+    self::assertSame(302, $response->getStatusCode());
+    self::assertSame(0, $response->getCacheableMetadata()->getCacheMaxAge());
+    self::assertTrue($response->headers->hasCacheControlDirective('no-store'));
+    self::assertStringStartsWith($base . '/canvas/content-api?', $response->getTargetUrl());
+    $redirect_request = Request::create($response->getTargetUrl(), server: $server);
+    $redirect_query = $redirect_request->query->all();
+    $redirected_uri = $redirect_request->query->getString('requestUri');
+    self::assertSame('fr', $redirect_query['language']);
+    self::assertSame('full', $redirect_query['viewMode']);
+    self::assertSame('1', $redirect_query[CanvasContentApiRequest::LANGUAGE_REDIRECT_QUERY]);
+    self::assertSame('/fr/page-francaise', parse_url($redirected_uri, PHP_URL_PATH));
+    parse_str((string) parse_url($redirected_uri, PHP_URL_QUERY), $route_query);
+    self::assertSame(['language' => 'route-owned', 'viewMode' => 'route-owned', 'filter' => ['tag' => 'one'], 'destination' => '/user/login'], $route_query);
+    $result = $this->request($redirect_request);
+    self::assertInstanceOf(CacheableJsonResponse::class, $result);
+    self::assertSame('French alias page', self::responseData($result)['head']['title']);
+  }
+
+  public static function previewInstallationBases(): iterable {
+    yield 'root' => ['', '/index.php'];
+    yield 'subdirectory' => ['/drupal', '/drupal/index.php'];
+    yield 'front controller' => ['/drupal/index.php', '/drupal/index.php'];
+  }
+
+  /**
+   * A site that cannot negotiate the hint must not redirect indefinitely.
+   */
+  public function testLanguageRedirectStopsAfterOneHop(): void {
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+    $this->config('language.types')
+      ->set('negotiation.language_content.enabled', ['language-selected' => 12])
+      ->set('negotiation.language_interface.enabled', ['language-selected' => 12])->save();
+    $page = $this->createPage();
+    $this->container->get('kernel')->rebuildContainer();
+    $this->setCurrentAccount($this->createTokenAccount(with_preview_scope: TRUE));
+    $this->expectException(NotFoundHttpException::class);
+    $this->expectExceptionMessage('The requested preview language could not be negotiated.');
+    $this->renderContentPath('/page/' . $page->id(), ['language' => 'fr']);
+  }
+
+  /**
+   * Domain negotiation must not send the preview credential to another host.
+   */
+  public function testLanguageRedirectRejectsForeignOrigin(): void {
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+    $this->config('language.negotiation')->set('url.source', 'domain')
+      ->set('url.domains', ['en' => 'localhost', 'fr' => 'french.example'])->save();
+    $page = $this->createPage();
+    $this->container->get('kernel')->rebuildContainer();
+    $this->setCurrentAccount($this->createTokenAccount(with_preview_scope: TRUE));
+    $this->expectException(NotFoundHttpException::class);
+    $this->expectExceptionMessage('Cross-domain preview language negotiation is not supported.');
+    $this->renderContentPath('/page/' . $page->id(), ['language' => 'fr']);
+  }
+
+  public static function previewLanguageNegotiationCases(): iterable {
+    yield 'prefix' => ['', FALSE];
+    yield 'already prefixed' => ['/fr', FALSE];
+    yield 'session' => ['', TRUE];
   }
 
   /**
@@ -1172,6 +1385,12 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
       ]),
     );
     $response = $this->request($request);
+    if ($response instanceof PreviewLanguageRedirectResponse) {
+      self::assertSame(0, $response->getCacheableMetadata()->getCacheMaxAge());
+      self::assertTrue($response->headers->hasCacheControlDirective('no-store'));
+      self::assertStringStartsWith('/canvas/content-api?', $response->getTargetUrl());
+      $response = $this->request(Request::create($response->getTargetUrl()));
+    }
     self::assertInstanceOf(CacheableJsonResponse::class, $response);
     return $response;
   }

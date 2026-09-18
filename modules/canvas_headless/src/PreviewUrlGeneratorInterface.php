@@ -57,7 +57,7 @@ interface PreviewUrlGeneratorInterface {
    * @param bool $renewal
    *   TRUE for the in-place renewal lane; see
    *   \Drupal\canvas_headless\PreviewAssertionFactoryInterface::issue().
-   * @param array{viewMode?: string, pageVariant?: string} $preview_context
+   * @param array{viewMode?: string, pageVariant?: string, language?: string} $preview_context
    *   Optional rendering context for an editor preview.
    *
    * @return string|null

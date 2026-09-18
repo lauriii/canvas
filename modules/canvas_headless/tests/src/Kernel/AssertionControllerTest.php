@@ -8,6 +8,7 @@ use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas_headless\PreviewAssertionFactory;
 use Drupal\Core\Url;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
@@ -54,6 +55,7 @@ class AssertionControllerTest extends KernelTestBase {
     'simple_oauth',
     'custom_elements',
     'canvas_headless',
+    'language',
   ];
 
   /**
@@ -217,6 +219,25 @@ class AssertionControllerTest extends KernelTestBase {
     self::assertSame([
       'pageVariant' => 'alternate',
     ], $claims->claims()->get('previewContext'));
+  }
+
+  /**
+   * Tests signed language context for activation, renewal, and recovery.
+   */
+  public function testMintPreviewLanguage(): void {
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+    $this->setCurrentUser($this->editor);
+    foreach ([[], ['renewal' => '1']] as $lane) {
+      $response = $this->request(self::mintRequest($lane + ['path' => '/some-path', 'language' => 'fr']));
+      self::assertSame(['language' => 'fr'], self::decodeAssertion($response->getContent())->claims()->get('previewContext'));
+    }
+  }
+
+  public function testMintRejectsUnknownLanguage(): void {
+    $this->setCurrentUser($this->editor);
+    $this->expectException(BadRequestHttpException::class);
+    $this->expectExceptionMessage('The language query parameter is invalid.');
+    $this->request(self::mintRequest(['path' => '/some-path', 'language' => 'unknown']));
   }
 
   /**

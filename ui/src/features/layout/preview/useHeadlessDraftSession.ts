@@ -33,6 +33,8 @@ export interface HeadlessDraftSession {
 }
 
 export interface HeadlessPreviewContext {
+  /** Selected language for the standalone read-only preview, not the editor. */
+  language?: string;
   viewMode?: string;
   componentPreviewId?: string;
 }
@@ -151,6 +153,7 @@ export function useHeadlessDraftSession(
     entityType,
     entityId,
     previewContext?.viewMode,
+    previewContext?.language,
     previewContext?.componentPreviewId,
   ]);
   const [statusText, setStatusText] = useState(WAITING_TEXT);
@@ -264,6 +267,9 @@ export function useHeadlessDraftSession(
         ...(previewContext?.viewMode && {
           view_mode: previewContext.viewMode,
         }),
+        ...(previewContext?.language && {
+          language: previewContext.language,
+        }),
       });
     }
     return () => {
@@ -286,6 +292,7 @@ export function useHeadlessDraftSession(
     isComponentPreview,
     mainPreviewActive,
     previewContext?.viewMode,
+    previewContext?.language,
     previewContext?.componentPreviewId,
     sessionKey,
   ]);

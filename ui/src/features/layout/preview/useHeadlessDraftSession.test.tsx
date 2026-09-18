@@ -44,6 +44,36 @@ describe('useHeadlessDraftSession', () => {
     hostEvents.length = 0;
   });
 
+  it('isolates read-only preview sessions by language', () => {
+    const iframeRef = { current: document.createElement('iframe') };
+    const preview = renderHook(
+      ({ language }) =>
+        useHeadlessDraftSession(
+          iframeRef,
+          settings,
+          'canvas_page',
+          '7',
+          undefined,
+          undefined,
+          { language },
+        ),
+      { initialProps: { language: 'fr' } },
+    );
+    expect(hostMocks.activate).toHaveBeenLastCalledWith({
+      entity_type: 'canvas_page',
+      entity: '7',
+      language: 'fr',
+    });
+    preview.rerender({ language: 'en' });
+    expect(hostMocks.destroy).toHaveBeenCalledOnce();
+    expect(hostMocks.activate).toHaveBeenLastCalledWith({
+      entity_type: 'canvas_page',
+      entity: '7',
+      language: 'en',
+    });
+    preview.unmount();
+  });
+
   it('waits for the main preview session before attaching a thumbnail', () => {
     const mainIframeRef = {
       current: document.createElement('iframe'),

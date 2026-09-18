@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Drupal\canvas_headless;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder;
 use Drupal\canvas\PageVariantResolver;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas_headless\RenderConverter\JsComponentCanvasRenderConverter;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -42,11 +44,13 @@ final class CanvasContentEntityRenderer {
     ContentEntityInterface $entity,
     string $view_mode,
     bool $is_preview,
+    ?string $preview_language = NULL,
   ): array {
     [$build, $template, $view_builder, $cacheability] = $this->buildEntityContent(
       $entity,
       $view_mode,
       $is_preview,
+      $preview_language,
     );
 
     // Page variants provide the chrome for a canonical page. Other view modes
@@ -102,7 +106,7 @@ final class CanvasContentEntityRenderer {
       : $build;
     $messages_block_displayed = FALSE;
     $build = CanvasPageVariant::renderComponentTree(
-      $variant->getComponentTree(),
+      self::previewComponentTree($variant, $preview_language),
       $variant,
       $is_preview,
       $messages_block_displayed,
@@ -150,6 +154,7 @@ final class CanvasContentEntityRenderer {
     ContentEntityInterface $entity,
     string $view_mode,
     bool $is_preview,
+    ?string $preview_language = NULL,
   ): array {
     $template = NULL;
     $view_builder = NULL;
@@ -159,6 +164,9 @@ final class CanvasContentEntityRenderer {
       ->addCacheableDependency($this->configFactory->get('canvas.settings'));
     if ($is_preview) {
       $cacheability->addCacheTags([AutoSaveManager::CACHE_TAG]);
+    }
+    if ($preview_language !== NULL) {
+      $cacheability->addCacheContexts(['languages:language_interface', 'languages:language_content']);
     }
 
     if ($entity instanceof ComponentTreeEntityInterface) {
@@ -200,9 +208,18 @@ final class CanvasContentEntityRenderer {
       if ($template !== NULL) {
         $cacheability->addCacheableDependency($template);
       }
-      $build = $view_builder !== NULL && $template !== NULL && ($is_preview || $template->status())
-        ? $view_builder->build($view_builder->view($entity, $view_mode))
-        : NULL;
+      if ($is_preview && $template !== NULL && $preview_language !== NULL) {
+        // Auto-saved config lives outside the config override system. Merge
+        // translations onto its draft tree, as the coupled preview does.
+        $template = clone $template;
+        $template->setComponentTree(self::previewComponentTree($template, $preview_language)->getValue());
+        $build = $template->build($entity, TRUE);
+      }
+      else {
+        $build = $view_builder !== NULL && $template !== NULL && ($is_preview || $template->status())
+          ? $view_builder->build($view_builder->view($entity, $view_mode))
+          : NULL;
+      }
     }
 
     return [$build, $template, $view_builder, $cacheability];
@@ -219,9 +236,12 @@ final class CanvasContentEntityRenderer {
    *   The page variant render array, or NULL for a theme-backed variant, plus
    *   its cacheability.
    */
-  public function buildPageVariantPreview(PageVariant $variant): array {
+  public function buildPageVariantPreview(PageVariant $variant, ?string $preview_language = NULL): array {
     $cacheability = (new CacheableMetadata())
       ->addCacheableDependency($variant);
+    if ($preview_language !== NULL) {
+      $cacheability->addCacheContexts(['languages:language_interface', 'languages:language_content']);
+    }
     $auto_save = $this->autoSaveManager->getAutoSaveEntity($variant);
     $cacheability->addCacheableDependency($auto_save);
     if ($auto_save->entity instanceof PageVariant) {
@@ -234,11 +254,22 @@ final class CanvasContentEntityRenderer {
     }
 
     return [
-      'build' => $variant
-        ->getComponentTree()
+      'build' => self::previewComponentTree($variant, $preview_language)
         ->toRenderable($variant, isPreview: TRUE),
       'cacheability' => $cacheability,
     ];
+  }
+
+  /**
+   * Merges a read-only preview's translation override onto its staged tree.
+   *
+   * @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant::getPreviewComponentTree()
+   */
+  private static function previewComponentTree(ComponentTreeConfigEntityBase $entity, ?string $language): ComponentTreeItemList {
+    if ($language !== NULL && \array_key_exists($language, $entity->getTranslationLanguages(include_default: FALSE))) {
+      return $entity->getTranslatedComponentTree($language);
+    }
+    return $entity->getComponentTree();
   }
 
   /**

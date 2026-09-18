@@ -57,6 +57,7 @@ export interface DraftData {
   resourceVersion: string;
   /** Signed rendering context for an editor preview. */
   previewContext?: {
+    language?: string;
     viewMode?: string;
     pageVariant?: string;
   };
@@ -122,6 +123,8 @@ export function parseDraftData(
       (data.previewContext !== undefined &&
         (typeof data.previewContext !== 'object' ||
           data.previewContext === null ||
+          (data.previewContext.language !== undefined &&
+            typeof data.previewContext.language !== 'string') ||
           (data.previewContext.viewMode !== undefined &&
             typeof data.previewContext.viewMode !== 'string') ||
           (data.previewContext.pageVariant !== undefined &&
