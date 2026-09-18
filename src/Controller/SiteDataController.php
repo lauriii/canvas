@@ -14,6 +14,9 @@ use Drupal\Core\Theme\ThemeManagerInterface;
 /**
  * @internal This HTTP API is intended only for the Canvas UI. These controllers
  *   and associated routes may change at any time.
+ *
+ * This endpoint is public. Do not add data here that isn't already exposed via
+ * drupalSettings on public pages.
  */
 final class SiteDataController extends ApiControllerBase {
 

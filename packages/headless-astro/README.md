@@ -86,5 +86,13 @@ the `Astro` global (pages, components) or the APIContext (endpoints,
 middleware), because Astro exposes cookies per request rather than through
 request-scoped globals.
 
+The client's JSON:API prefix is resolved from the site's public site-data
+endpoint (fetched once per server instance), so sites serving JSON:API from a
+non-default prefix (e.g. `/api`) work without configuration. When that endpoint
+is unreachable, the `CANVAS_JSONAPI_PREFIX` environment variable applies, then
+the `/jsonapi` default. `getPublicClient()` and `getDraftClient()` are async for
+the same reason: `await` them like `getClient()`. For full manual control, use
+`JsonApiClient` from `@drupal-api-client/json-api-client` directly.
+
 `fetchEntity(Astro, { type, id, viewMode })` renders one content entity without
 page-level route or head data. Use it for embedded renders such as teaser cards.

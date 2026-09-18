@@ -27,6 +27,7 @@ import { buildClearedDraftCookie, buildDraftCookie } from './cookies';
 import { fetchEntity } from './entity-api';
 import { getDraftClient, getPublicClient } from './json-api-client';
 import { codeChallenge, generateCodeVerifier } from './pkce';
+import { createApiPrefixResolver } from './site-data';
 import { exchangeAssertion } from './token-exchange';
 
 import type { JsonApiClient } from '@drupal-api-client/json-api-client';
@@ -203,19 +204,30 @@ export interface DraftServer {
   getDraftData(): Promise<DraftData | null>;
   /** The resolved configuration. */
   getConfig(): DraftConfig;
-  /** A client for public content: unauthenticated, published content only. */
-  getPublicClient(): JsonApiClient;
+  /**
+   * A client for public content: unauthenticated, published content only.
+   * Resolves the site's JSON:API prefix on first use — see getClient().
+   */
+  getPublicClient(): Promise<JsonApiClient>;
   /**
    * A client for draft content, authenticated with the session's
    * user-bound access token. Throws when the session has expired.
+   * Resolves the site's JSON:API prefix on first use — see getClient().
    */
-  getDraftClient(draftData: DraftData): JsonApiClient;
+  getDraftClient(draftData: DraftData): Promise<JsonApiClient>;
   /**
    * The right client for the current request: the draft client (user-bound
    * session token, working copies) while the draft session is live,
    * otherwise the public client. An expired draft session falls back to
    * anonymous fetching — the draft indicator makes that state visible
    * instead of letting anonymous-visible content masquerade as a draft.
+   *
+   * The client's JSON:API prefix comes from the site's public site-data
+   * endpoint (fetched once per server instance), so sites serving JSON:API
+   * from a non-default prefix (e.g. `/api`) work without configuration. When
+   * the endpoint is unreachable the CANVAS_JSONAPI_PREFIX environment
+   * variable (or a config override) applies, then the client's `/jsonapi`
+   * default.
    */
   getClient(): Promise<JsonApiClient>;
   /**
@@ -273,6 +285,14 @@ export function createDraftServer(options: DraftServerOptions): DraftServer {
     await adapter.setCookie(
       buildDraftCookie(DRAFT_DATA_COOKIE_NAME, serializeDraftData(draftData)),
     );
+  };
+
+  let resolveApiPrefix: ReturnType<typeof createApiPrefixResolver> | undefined;
+  const resolveClientConfig = async (): Promise<DraftConfig> => {
+    const clientConfig = getConfig();
+    resolveApiPrefix ??= createApiPrefixResolver(clientConfig, fetchImpl);
+    const apiPrefix = await resolveApiPrefix();
+    return { ...clientConfig, ...(apiPrefix && { apiPrefix }) };
   };
 
   return {
@@ -429,14 +449,15 @@ export function createDraftServer(options: DraftServerOptions): DraftServer {
       return new Response(null, { status: 303, headers: { Location: '/' } });
     },
 
-    getPublicClient: () => getPublicClient(getConfig()),
-    getDraftClient: (draftData) => getDraftClient(getConfig(), draftData),
+    getPublicClient: async () => getPublicClient(await resolveClientConfig()),
+    getDraftClient: async (draftData) =>
+      getDraftClient(await resolveClientConfig(), draftData),
 
     async getClient(): Promise<JsonApiClient> {
       const draftData = await getDraftData();
       return draftData && !isDraftSessionExpired(draftData)
-        ? getDraftClient(getConfig(), draftData)
-        : getPublicClient(getConfig());
+        ? getDraftClient(await resolveClientConfig(), draftData)
+        : getPublicClient(await resolveClientConfig());
     },
 
     async fetchPage(path: string): Promise<PageResult | null> {

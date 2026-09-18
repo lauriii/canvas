@@ -41,12 +41,22 @@ final class DxRouteConsistencyTest extends UnitTestCase {
   }
 
   /**
- * Tests authentication required permission.
- */
+   * Tests authentication required permission.
+   */
   #[Depends('testRoutingYmlDx')]
   public function testAuthenticationRequiredPermission(array $canvas_api_routes): void {
+    // Routes that are intentionally public: they return only data already
+    // exposed to anonymous users (e.g. via drupalSettings on public pages),
+    // so they use `_access: 'TRUE'` instead of `_canvas_authentication_required`.
+    $public_routes = [
+      'canvas.api.site_data',
+    ];
     foreach ($canvas_api_routes as $canvas_api_route_name => $canvas_api_route) {
-      $this->assertArrayHasKey('_canvas_authentication_required', $canvas_api_route['requirements'], "`$canvas_api_route_name` needs to include the _canvas_authentication_required requirement. This is needed to provide useful errors for attempts to access the route unauthenticated.");
+      if (\in_array($canvas_api_route_name, $public_routes, TRUE)) {
+        $this->assertSame('TRUE', $canvas_api_route['requirements']['_access'] ?? NULL, "`$canvas_api_route_name` is listed as public and must declare `_access: 'TRUE'`.");
+        continue;
+      }
+      $this->assertArrayHasKey('_canvas_authentication_required', $canvas_api_route['requirements'], "`$canvas_api_route_name` needs to include the _canvas_authentication_required requirement. This is needed to provide useful errors for attempts to access the route unauthenticated. Intentionally public routes must be added to \$public_routes instead.");
     }
   }
 
