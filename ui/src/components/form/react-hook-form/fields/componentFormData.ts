@@ -7,6 +7,7 @@ import transforms from '@/utils/transforms';
 import type { PropsValues } from '@drupal-canvas/types';
 import type { ParsedQs } from 'qs';
 import type {
+  BasePropSource,
   ComponentModel,
   EvaluatedComponentModel,
 } from '@/features/layout/layoutModelSlice';
@@ -206,6 +207,43 @@ export function propInputData(
   };
 }
 
+// The only prop source type the component instance form renders as an editable
+// widget. Every other type - an entity field prop source linking the prop to
+// the host entity in a ContentTemplate, an adapter, the host entity itself - is
+// either replaced by a linked field badge or rendered disabled.
+// @see \Drupal\canvas\PropSource\PropSource
+// @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::buildConfigurationForm()
+const EDITABLE_SOURCE_TYPE_PREFIX = 'static';
+
+/**
+ * Whether a prop is populated by an editable widget in this form.
+ *
+ * Form state left behind by a widget the form no longer renders is stale, and
+ * must not be read as the prop's value: that value comes from elsewhere (the
+ * host entity, for a linked prop). Reading it also crashes the widget's
+ * transforms, because only a static prop source carries `sourceTypeSettings`.
+ *
+ * Unrecognized source types are treated as not editable, which is why the
+ * deprecated `dynamic` alias of `entity-field` needs no special case.
+ *
+ * @see https://www.drupal.org/i/3567167
+ */
+function hasEditableWidget(source: unknown): boolean {
+  // A component source that does not use prop sources at all, such as a block,
+  // has no `source` entry to contradict the form state.
+  if (
+    typeof source !== 'object' ||
+    source === null ||
+    !('sourceType' in source)
+  ) {
+    return true;
+  }
+  return (
+    String((source as BasePropSource).sourceType).split(':')[0] ===
+    EDITABLE_SOURCE_TYPE_PREFIX
+  );
+}
+
 /**
  * Takes a formState and provides an object keyed by prop name with the
  * corresponding prop values.
@@ -247,6 +285,13 @@ export function getPropsValues(
   const propsValues = Object.entries(
     formStateToObject(formState, selectedComponent),
   ).reduce((carry: PropsValues, [key, value]) => {
+    if (
+      !hasEditableWidget(
+        (selectedModel as EvaluatedComponentModel).source?.[key],
+      )
+    ) {
+      return carry;
+    }
     if (key in transformConfig) {
       let fieldTransforms = transformConfig[key];
       // Internally to formStateToObject we make use of the `qs` npm package and
