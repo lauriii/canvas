@@ -37,6 +37,10 @@ interface ColorFormPopoverProps {
   operation: 'add' | 'edit';
   color?: BrandKitColor;
   folderId?: string;
+  /**
+   * Virtual anchor the popover content is positioned against (e.g. the row's
+   * dots button). The popover is opened programmatically via `open`.
+   */
   anchorRef: React.RefObject<Measurable>;
   align?: 'start' | 'center' | 'end';
   open: boolean;
@@ -466,7 +470,12 @@ const ColorFormPopover = ({
                 </>
               )}
 
-              <Flex direction="column" gap="1" px="3">
+              <Flex
+                direction="column"
+                gap="1"
+                px="3"
+                className={styles.verticalPadding}
+              >
                 <label htmlFor="variableName" className={styles.fieldLabel}>
                   Variable name
                 </label>
@@ -616,7 +625,7 @@ const ColorFormPopover = ({
                   )}
 
                   {!isUsageLoading && (
-                    <Box px="3">
+                    <Box className={styles.verticalPadding} px="3">
                       <div
                         className={styles.infoBox}
                         data-testid="canvas-color-edit-info"

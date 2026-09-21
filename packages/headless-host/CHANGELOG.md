@@ -1,5 +1,15 @@
 # @drupal-canvas/headless-host
 
+## 0.4.1
+
+### Patch Changes
+
+- fc2cbd1: Retain the selected read-only preview language when renewing or
+  recovering an embedded draft session.
+- Updated dependencies [98b764a]
+- Updated dependencies [fc2cbd1]
+  - @drupal-canvas/headless@0.7.0
+
 ## 0.4.0
 
 ### Minor Changes

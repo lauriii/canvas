@@ -172,7 +172,6 @@ const SEL = {
     delete: '[data-testid="canvas-delete-folder-button"]',
   },
   menu: {
-    edit: '[data-state="open"] [data-testid="canvas-color-row-edit"]',
     rename: '[data-testid="canvas-color-row-rename"]',
     instances:
       '[data-state="open"] [data-testid="canvas-color-row-find-instances"]',
@@ -292,9 +291,8 @@ test.describe('brand kit colors', () => {
     // another way of representing RGB.
 
     // Edit Brand Red - should open in RGBA mode (srgb colorSpace)
-    await page.locator(SEL.row('Brand Red')).hover();
-    await page.locator(SEL.rowMenu('Brand Red')).click();
-    await page.locator(SEL.menu.edit).click();
+    // A single click on the row opens the edit modal.
+    await page.locator(SEL.row('Brand Red')).click();
     await expect(page.locator(SEL.form.rgba.r)).toBeVisible();
     await expect(page.locator(SEL.form.rgba.r)).toHaveValue('204');
     await expect(page.locator(SEL.form.rgba.g)).toHaveValue('0');
@@ -302,9 +300,7 @@ test.describe('brand kit colors', () => {
     await page.locator(SEL.form.cancel).click();
 
     // Edit Brand Green - should open in HSLA mode (HSL colorSpace)
-    await page.locator(SEL.row('Brand Green')).hover();
-    await page.locator(SEL.rowMenu('Brand Green')).click();
-    await page.locator(SEL.menu.edit).click();
+    await page.locator(SEL.row('Brand Green')).click();
     await expect(page.locator(SEL.form.hsla.h)).toBeVisible();
     await expect(page.locator(SEL.form.hsla.h)).toHaveValue('142');
     await expect(page.locator(SEL.form.hsla.s)).toHaveValue('100');
@@ -312,9 +308,7 @@ test.describe('brand kit colors', () => {
     await page.locator(SEL.form.cancel).click();
 
     // Edit Brand Blue - should open in RGBA mode (srgb without hex)
-    await page.locator(SEL.row('Brand Blue')).hover();
-    await page.locator(SEL.rowMenu('Brand Blue')).click();
-    await page.locator(SEL.menu.edit).click();
+    await page.locator(SEL.row('Brand Blue')).click();
     // Brand Blue is in sRGB mode without hex, so should default to RGBA
     await expect(page.locator(SEL.form.rgba.r)).toBeVisible();
     await expect(page.locator(SEL.form.rgba.r)).toHaveValue('0');
@@ -335,12 +329,12 @@ test.describe('brand kit colors', () => {
     // Set a unique variable name and continue editing.
     await page.locator(SEL.form.variable).fill('brand-yellow');
     await page.locator(SEL.form.save).click();
+    // A successful save closes the popover — wait for it to close before
+    // clicking the row again to reopen it.
+    await expect(page.locator(SEL.form.save)).toBeHidden();
     // - Edit "Brand Blue" so the color is now yellow (255, 255, 0)
-    // Color picker is already open from format verification above
 
-    await page.locator(SEL.row('Brand Blue')).hover();
-    await page.locator(SEL.rowMenu('Brand Blue')).click();
-    await page.locator(SEL.menu.edit).click();
+    await page.locator(SEL.row('Brand Blue')).click();
     // The CSS variable error should be hidden.
     await expect(page.locator('[data-testid="color-error-card"]')).toBeHidden();
     // Test validation: enter out-of-range RGB value should disable save
@@ -767,9 +761,7 @@ test.describe('brand kit colors', () => {
     // `brandTwoFolders` is currently bound to this color, so both the form trigger
     // swatch and the preview should update in real time without a page refresh.
     await canvas.openBrandKitPanel();
-    await page.locator(SEL.row('Father Christmas')).hover();
-    await page.locator(SEL.rowMenu('Father Christmas')).click();
-    await page.locator(SEL.menu.edit).click();
+    await page.locator(SEL.row('Father Christmas')).click();
     await page.locator(SEL.form.rgba.r).fill('0');
     await page.locator(SEL.form.rgba.g).fill('0');
     await page.locator(SEL.form.rgba.b).fill('128');

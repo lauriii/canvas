@@ -1,5 +1,13 @@
 # @drupal-canvas/headless-astro
 
+## 0.5.1
+
+### Patch Changes
+
+- Updated dependencies [98b764a]
+- Updated dependencies [fc2cbd1]
+  - @drupal-canvas/headless@0.7.0
+
 ## 0.5.0
 
 ### Minor Changes
