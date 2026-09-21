@@ -9,6 +9,50 @@ import { preflightCodeComponentPayloads } from './target-component-metadata';
 import type { BuiltComponent } from './build-project';
 
 describe('target component metadata', () => {
+  it('omits only same-push imports from validation without changing uploads', async () => {
+    const components = [
+      {
+        componentName: 'Image feature',
+        componentPayload: {
+          machineName: 'image_feature',
+          importedJsComponents: ['logo', 'existing', 'missing'],
+        },
+        importedJsComponents: ['logo', 'existing', 'missing'],
+      },
+      {
+        componentName: 'Logo',
+        componentPayload: {
+          machineName: 'logo',
+          importedJsComponents: [],
+        },
+        importedJsComponents: [],
+      },
+    ] as BuiltComponent[];
+    const originals = structuredClone(components);
+    const validateCodeComponentPayload = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Missing component: missing'))
+      .mockResolvedValueOnce(undefined);
+
+    const preflight = await preflightCodeComponentPayloads(components, {
+      validateCodeComponentPayload,
+    });
+
+    expect(validateCodeComponentPayload).toHaveBeenNthCalledWith(1, {
+      ...originals[0].componentPayload,
+      importedJsComponents: ['existing', 'missing'],
+    });
+    expect(validateCodeComponentPayload).toHaveBeenNthCalledWith(
+      2,
+      originals[1].componentPayload,
+    );
+    expect(components).toEqual(originals);
+    expect(preflight.results).toEqual([
+      expect.objectContaining({ itemName: 'Image feature', success: false }),
+      expect.objectContaining({ itemName: 'Logo', success: true }),
+    ]);
+  });
+
   it('collects remote payload failures before mutation', async () => {
     const components = [
       {
