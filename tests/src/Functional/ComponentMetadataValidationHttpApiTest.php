@@ -138,6 +138,21 @@ class ComponentMetadataValidationHttpApiTest extends HttpApiTestBase {
     $this->assertStringContainsString('cannot be used as a default', (string) $response->getBody());
     $this->assertStringContainsString('must be a fully-qualified URL', (string) $response->getBody());
 
+    $payload = self::validPayload('missing_import');
+    $payload['importedJsComponents'] = ['nonexistent_component'];
+    $response = $this->makeApiRequest('POST', $url, [
+      RequestOptions::HEADERS => [
+        'Content-Type' => 'application/json',
+        'X-CSRF-Token' => $this->drupalGet('session/token'),
+      ],
+      RequestOptions::JSON => $payload,
+    ]);
+    $this->assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+    $body = json_decode((string) $response->getBody(), associative: TRUE, flags: JSON_THROW_ON_ERROR);
+    $this->assertSame("The JavaScript component with the machine name 'nonexistent_component' does not exist.", $body['errors'][0]['detail']);
+    $this->assertNull(JavaScriptComponent::load('missing_import'));
+    $this->assertNull(JavaScriptComponent::load('nonexistent_component'));
+
     $payload = self::validPayload('missing_extension_reference');
     $payload['props'] = [
       'extension' => [
