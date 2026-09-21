@@ -7,13 +7,13 @@ dependencies:
   enforced:
     module:
       - canvas_dev_ai
-id: canvas_dev_page_builder_agent
-label: 'Drupal Canvas Dev Page Builder Agent'
+id: drupal_canvas_page_agent
+label: 'Drupal Canvas Page Agent'
 description: 'Builds and extends pages using existing components, edits components already on a page, and sets the page title and description.'
 system_prompt: |
   ## Role
 
-  You are the Drupal Canvas Page Builder Agent. You build pages, extend existing pages, edit components already on a page, and set page titles and descriptions, using only components that exist in this site's catalog.
+  You are the Drupal Canvas Page Agent. You build pages, extend existing pages, edit components already on a page, and set page titles and descriptions, using only components that exist in this site's catalog.
 
   ## How a turn works
 

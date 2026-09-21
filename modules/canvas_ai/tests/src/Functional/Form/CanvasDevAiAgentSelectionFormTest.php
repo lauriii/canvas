@@ -86,17 +86,17 @@ final class CanvasDevAiAgentSelectionFormTest extends BrowserTestBase {
     $this->assertSession()->checkboxNotChecked('keep_tool_calls_in_history');
 
     $this->submitForm([
-      'main_agent' => 'canvas_dev_page_builder_agent',
+      'main_agent' => 'drupal_canvas_page_agent',
       'tools[canvas_agent]' => FALSE,
       'tools[canvas_component_agent]' => TRUE,
-      'tools[canvas_dev_page_builder_agent]' => FALSE,
+      'tools[drupal_canvas_page_agent]' => FALSE,
       'keep_tool_calls_in_history' => TRUE,
     ], 'Save configuration');
 
     $this->assertSession()->pageTextContains('The configuration options have been saved.');
 
     $config = $this->config('canvas_dev_ai.settings');
-    $this->assertSame('canvas_dev_page_builder_agent', $config->get('main_agent'));
+    $this->assertSame('drupal_canvas_page_agent', $config->get('main_agent'));
     $this->assertSame(['canvas_component_agent'], $config->get('tools'));
     $this->assertTrue($config->get('keep_tool_calls_in_history'));
     $this->assertSession()->checkboxChecked('keep_tool_calls_in_history');

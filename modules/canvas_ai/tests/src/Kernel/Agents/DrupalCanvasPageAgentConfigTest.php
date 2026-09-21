@@ -16,15 +16,15 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\Yaml\Yaml;
 
 /**
- * Tests the canvas_dev_page_builder_agent config entity and its tools.
+ * Tests the drupal_canvas_page_agent config entity and its tools.
  */
 #[Group('canvas_ai')]
 #[RunTestsInSeparateProcesses]
-final class CanvasDevPageBuilderAgentConfigTest extends CanvasKernelTestBase {
+final class DrupalCanvasPageAgentConfigTest extends CanvasKernelTestBase {
 
-  private const AGENT_ID = 'canvas_dev_page_builder_agent';
+  private const AGENT_ID = 'drupal_canvas_page_agent';
 
-  private const AGENT_CONFIG_NAME = 'ai_agents.ai_agent.canvas_dev_page_builder_agent';
+  private const AGENT_CONFIG_NAME = 'ai_agents.ai_agent.drupal_canvas_page_agent';
 
   /**
    * The tools the agent must have enabled.
@@ -67,7 +67,7 @@ final class CanvasDevPageBuilderAgentConfigTest extends CanvasKernelTestBase {
       ->load(self::AGENT_ID);
     $this->assertInstanceOf(ConfigEntityInterface::class, $agent, 'The dev page builder agent entity exists.');
 
-    $this->assertSame('Drupal Canvas Dev Page Builder Agent', (string) $agent->label());
+    $this->assertSame('Drupal Canvas Page Agent', (string) $agent->label());
     $this->assertSame(50, $agent->get('max_loops'));
     $this->assertFalse($agent->get('orchestration_agent'));
     $this->assertFalse($agent->get('triage_agent'));

@@ -164,7 +164,7 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
    * giving up is not a history the next turn should resume from.
    *
    * @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::getNotSolvableMessage()
-   * @see \Drupal\Tests\canvas_ai\Kernel\Agents\CanvasDevPageBuilderAgentEndToEndTest::testMaxLoopsOutcomeIsReported()
+   * @see \Drupal\Tests\canvas_ai\Kernel\Agents\DrupalCanvasPageAgentEndToEndTest::testMaxLoopsOutcomeIsReported()
    * @see \Drupal\Tests\canvas_ai\Kernel\Agents\CanvasComponentAgentEndToEndTest::testMaxLoopsWithoutAConfiguredMessageUsesTheDefault()
    */
   public function testNotSolvableResponseGivesExpectedError(): void {
@@ -181,7 +181,7 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
     $agent->method('isFinished')->willReturn(TRUE);
     $agent->method('toArray')->willReturn(['looped' => 1]);
     $agent->method('getAiAgentEntity')->willReturnCallback(
-      fn () => AiAgent::load('canvas_dev_page_builder_agent'),
+      fn () => AiAgent::load('drupal_canvas_page_agent'),
     );
     $agent_manager = $this->createMock(AiAgentManager::class);
     $agent_manager->method('hasDefinition')->willReturn(TRUE);

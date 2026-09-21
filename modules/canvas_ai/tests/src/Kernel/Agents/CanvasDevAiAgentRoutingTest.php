@@ -82,7 +82,7 @@ final class CanvasDevAiAgentRoutingTest extends CanvasKernelTestBase {
       static fn (string $agent_id): bool => \in_array($agent_id, [
         'canvas_agent',
         'canvas_component_agent',
-        'canvas_dev_page_builder_agent',
+        'drupal_canvas_page_agent',
       ], TRUE),
     );
     // Records the agent ID the controller resolved; the stub stands in for it.
@@ -112,12 +112,12 @@ final class CanvasDevAiAgentRoutingTest extends CanvasKernelTestBase {
    */
   public function testCustomMainAgentIsInvoked(): void {
     $this->config('canvas_dev_ai.settings')
-      ->set('main_agent', 'canvas_dev_page_builder_agent')
+      ->set('main_agent', 'drupal_canvas_page_agent')
       ->save();
 
     $this->hop(['messages' => [['role' => 'user', 'text' => 'Routing test.']]]);
 
-    $this->assertSame('canvas_dev_page_builder_agent', $this->requestedAgentId);
+    $this->assertSame('drupal_canvas_page_agent', $this->requestedAgentId);
   }
 
   /**
@@ -129,10 +129,10 @@ final class CanvasDevAiAgentRoutingTest extends CanvasKernelTestBase {
   public function testToolIsInvoked(): void {
     $this->hop([
       'messages' => [['role' => 'user', 'text' => 'Routing test.']],
-      'selected_tool' => 'canvas_dev_page_builder_agent',
+      'selected_tool' => 'drupal_canvas_page_agent',
     ]);
 
-    $this->assertSame('canvas_dev_page_builder_agent', $this->requestedAgentId);
+    $this->assertSame('drupal_canvas_page_agent', $this->requestedAgentId);
 
     $this->config('canvas_dev_ai.settings')
       ->set('main_agent', 'canvas_component_agent')
@@ -141,10 +141,10 @@ final class CanvasDevAiAgentRoutingTest extends CanvasKernelTestBase {
 
     $this->hop([
       'messages' => [['role' => 'user', 'text' => 'Routing test.']],
-      'selected_tool' => 'canvas_dev_page_builder_agent',
+      'selected_tool' => 'drupal_canvas_page_agent',
     ]);
 
-    $this->assertSame('canvas_dev_page_builder_agent', $this->requestedAgentId);
+    $this->assertSame('drupal_canvas_page_agent', $this->requestedAgentId);
   }
 
   /**
@@ -222,7 +222,7 @@ final class CanvasDevAiAgentRoutingTest extends CanvasKernelTestBase {
    */
   public static function providerToolChange(): array {
     return [
-      'another Tool' => ['canvas_dev_page_builder_agent'],
+      'another Tool' => ['drupal_canvas_page_agent'],
       'no Tool' => [NULL],
     ];
   }

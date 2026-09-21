@@ -25,7 +25,7 @@ use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
- * Tests canvas_dev_page_builder_agent turns driven through the dev controller.
+ * Tests drupal_canvas_page_agent turns driven through the dev controller.
  *
  * Provider responses come from the ai module's echoai provider, which matches
  * each hop's request against a recorded fixture under
@@ -39,7 +39,7 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 #[Group('canvas_ai')]
 #[CoversClass(CanvasDevAiBuilder::class)]
 #[RunTestsInSeparateProcesses]
-final class CanvasDevPageBuilderAgentEndToEndTest extends CanvasKernelTestBase {
+final class DrupalCanvasPageAgentEndToEndTest extends CanvasKernelTestBase {
 
   use CanvasAiDevHopTrait;
   use GenerateComponentConfigTrait;
@@ -97,7 +97,7 @@ final class CanvasDevPageBuilderAgentEndToEndTest extends CanvasKernelTestBase {
     // The dev page builder agent is not the shipped default; sites select it
     // on the Agents & Tools form. The controller reads this setting.
     $this->config('canvas_dev_ai.settings')
-      ->set('main_agent', 'canvas_dev_page_builder_agent')
+      ->set('main_agent', 'drupal_canvas_page_agent')
       ->save();
     // The echoai provider reads the ai_mock_provider_result table before the
     // file fixtures this test drives it from.
@@ -144,7 +144,7 @@ final class CanvasDevPageBuilderAgentEndToEndTest extends CanvasKernelTestBase {
    * @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::getNotSolvableMessage()
    */
   public function testMaxLoopsOutcomeIsReported(): void {
-    $agent = $this->config('ai_agents.ai_agent.canvas_dev_page_builder_agent');
+    $agent = $this->config('ai_agents.ai_agent.drupal_canvas_page_agent');
     $agent->set('max_loops', 0)->save();
 
     $response = $this->hop([
@@ -163,7 +163,7 @@ final class CanvasDevPageBuilderAgentEndToEndTest extends CanvasKernelTestBase {
    * The plan is the agent's answer; the frontend must not send another hop.
    */
   public function testWholePageRequestStopsAtThePlanGate(): void {
-    // fixture: tests/resources/ai_test/requests/chat/dev-page-builder-plan-gate.yml.
+    // fixture: tests/resources/ai_test/requests/chat/drupal-canvas-page-agent-plan-gate.yml.
     $hop = $this->hop([
       'messages' => [['role' => 'user', 'text' => 'Create me a landing page for a university site']],
       'current_layout' => self::emptyLayout(),
@@ -198,14 +198,14 @@ final class CanvasDevPageBuilderAgentEndToEndTest extends CanvasKernelTestBase {
       ],
     ];
 
-    // fixture: tests/resources/ai_test/requests/chat/dev-page-builder-edit-hop-1.yml.
+    // fixture: tests/resources/ai_test/requests/chat/drupal-canvas-page-agent-edit-hop-1.yml.
     $hop1 = $this->hop(['messages' => $messages, 'current_layout' => $layout]);
     $this->assertTrue($hop1['status']);
     $this->assertTrue($hop1['should_continue']);
     $this->assertArrayNotHasKey('component_updates', $hop1);
     $this->assertSame('Changing the hero heading now.', $hop1['progress']);
 
-    // fixture: tests/resources/ai_test/requests/chat/dev-page-builder-edit-hop-2.yml.
+    // fixture: tests/resources/ai_test/requests/chat/drupal-canvas-page-agent-edit-hop-2.yml.
     $hop2 = $this->hop(['messages' => $messages, 'current_layout' => $layout]);
     $this->assertTrue($hop2['status']);
     $this->assertFalse($hop2['should_continue']);
@@ -224,12 +224,12 @@ final class CanvasDevPageBuilderAgentEndToEndTest extends CanvasKernelTestBase {
   public function testTitleAndDescriptionSetInOneHopAreMerged(): void {
     $messages = [['role' => 'user', 'text' => 'Set the page title to Campus and the description to Visit us']];
 
-    // fixture: tests/resources/ai_test/requests/chat/dev-page-builder-metadata-hop-1.yml.
+    // fixture: tests/resources/ai_test/requests/chat/drupal-canvas-page-agent-metadata-hop-1.yml.
     $hop1 = $this->hop(['messages' => $messages, 'current_layout' => self::emptyLayout()]);
     $this->assertTrue($hop1['should_continue']);
     $this->assertArrayNotHasKey('canvas_page_data', $hop1);
 
-    // fixture: tests/resources/ai_test/requests/chat/dev-page-builder-metadata-hop-2.yml.
+    // fixture: tests/resources/ai_test/requests/chat/drupal-canvas-page-agent-metadata-hop-2.yml.
     $hop2 = $this->hop(['messages' => $messages, 'current_layout' => self::emptyLayout()]);
     $this->assertTrue($hop2['status']);
     $this->assertFalse($hop2['should_continue']);
@@ -272,7 +272,7 @@ final class CanvasDevPageBuilderAgentEndToEndTest extends CanvasKernelTestBase {
       ],
     ];
 
-    // fixture: tests/resources/ai_test/requests/chat/dev-page-builder-place-hop-1.yml.
+    // fixture: tests/resources/ai_test/requests/chat/drupal-canvas-page-agent-place-hop-1.yml.
     $hop1 = $this->hop([
       'messages' => $messages,
       'current_layout' => $empty_layout,
@@ -282,7 +282,7 @@ final class CanvasDevPageBuilderAgentEndToEndTest extends CanvasKernelTestBase {
     $this->assertArrayNotHasKey('operations', $hop1);
     $this->assertSame('Adding the hero banner now.', $hop1['progress']);
 
-    // fixture: tests/resources/ai_test/requests/chat/dev-page-builder-place-hop-2.yml.
+    // fixture: tests/resources/ai_test/requests/chat/drupal-canvas-page-agent-place-hop-2.yml.
     // The client has no operations to apply yet, so it re-sends the same
     // layout; the parked hero placement executes against it during this hop.
     $hop2 = $this->hop([
@@ -314,7 +314,7 @@ final class CanvasDevPageBuilderAgentEndToEndTest extends CanvasKernelTestBase {
       ],
     ], ['operations' => $hop2['operations']]);
 
-    // fixture: tests/resources/ai_test/requests/chat/dev-page-builder-place-hop-3.yml.
+    // fixture: tests/resources/ai_test/requests/chat/drupal-canvas-page-agent-place-hop-3.yml.
     // The client applied hop 2's operations before sending this hop, so the
     // layout now contains the hero the second placement references.
     $hop3 = $this->hop([
@@ -400,7 +400,7 @@ final class CanvasDevPageBuilderAgentEndToEndTest extends CanvasKernelTestBase {
     // Turn 1 is the edit turn: hop 1 parks the edit_components call, hop 2
     // executes it and closes the turn.
     // fixtures: tests/resources/ai_test/requests/chat/
-    // dev-page-builder-edit-hop-1.yml and dev-page-builder-edit-hop-2.yml.
+    // drupal-canvas-page-agent-edit-hop-1.yml and drupal-canvas-page-agent-edit-hop-2.yml.
     $responses = $this->driveTurn([
       'messages' => [['role' => 'user', 'text' => 'Change the hero heading to Hello']],
       'current_layout' => $layout,
@@ -424,7 +424,7 @@ final class CanvasDevPageBuilderAgentEndToEndTest extends CanvasKernelTestBase {
     // agent parks another edit_components call straight away, without reading
     // the component again; the second hop runs it and closes the turn.
     // fixtures: tests/resources/ai_test/requests/chat/
-    // dev-page-builder-history-turn-2-hop-1.yml and -hop-2.yml.
+    // drupal-canvas-page-agent-history-turn-2-hop-1.yml and -hop-2.yml.
     $layout['regions']['content']['components'][0]['props']['heading'] = 'Hello';
     $responses = $this->driveTurn([
       'messages' => [

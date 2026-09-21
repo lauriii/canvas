@@ -22,7 +22,7 @@ use Symfony\Component\Yaml\Yaml;
 /**
  * Tool that lets the agent place one or more components onto the page.
  *
- * The canvas_dev_page_builder_agent lists this tool, restricted to one call
+ * The drupal_canvas_page_agent lists this tool, restricted to one call
  * per model response. It will eventually replace
  * \Drupal\canvas_ai\Plugin\AiFunctionCall\SetAIGeneratedComponentStructure.
  *

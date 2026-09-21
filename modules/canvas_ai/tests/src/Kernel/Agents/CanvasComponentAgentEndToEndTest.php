@@ -64,7 +64,7 @@ final class CanvasComponentAgentEndToEndTest extends CanvasKernelTestBase {
     // turns select no Tool, so they run whichever agent it names.
     $this->config('canvas_dev_ai.settings')
       ->set('main_agent', 'canvas_component_agent')
-      ->set('tools', ['canvas_dev_page_builder_agent'])
+      ->set('tools', ['drupal_canvas_page_agent'])
       ->save();
     // The echoai provider reads the ai_mock_provider_result table before the
     // file fixtures this test drives it from.
@@ -272,7 +272,7 @@ final class CanvasComponentAgentEndToEndTest extends CanvasKernelTestBase {
   public function testSelectedToolAgentRunsEveryHop(): void {
     // Set another agent as the main agent.
     $this->config('canvas_dev_ai.settings')
-      ->set('main_agent', 'canvas_dev_page_builder_agent')
+      ->set('main_agent', 'drupal_canvas_page_agent')
       ->set('tools', ['canvas_component_agent'])
       ->save();
     self::createRedButtonComponent();
