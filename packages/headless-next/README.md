@@ -17,8 +17,7 @@ Set the `CANVAS_SITE_URL` environment variable to your Drupal site URL.
 ## Usage
 
 **1. next.config.ts** — the config wrapper generates the component manifest at
-build time, adds the SDK packages to `transpilePackages`, and sends a
-session-aware CSP `frame-ancestors` header:
+build time and sends a session-aware CSP `frame-ancestors` header:
 
 ```ts
 import { withCanvas } from '@drupal-canvas/headless-next/config';
