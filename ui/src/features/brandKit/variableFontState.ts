@@ -1,4 +1,7 @@
-import { isVariableFont } from '@/features/brandKit/fontCss';
+import {
+  getFontFaceStyleDeclaration,
+  isVariableFont,
+} from '@/features/brandKit/fontCss';
 
 import type { CSSProperties } from 'react';
 import type {
@@ -160,9 +163,15 @@ export const getFontVariationSettings = (
     .join(', ');
 };
 
+/**
+ * `fontStyle` is what the accompanying `@font-face` declares, not the live
+ * reading of the italic axis. A font whose `ital` axis spans upright and italic
+ * is declared upright, so asking for `italic` here would have the browser fake
+ * a slant on top of the one `'ital' 1` already applies.
+ */
 export const getFontPreviewStyle = (font: AssetLibraryFont): CSSProperties => ({
   fontFamily: `"${font.family}", system-ui, sans-serif`,
   fontWeight: font.weight,
-  fontStyle: font.style,
+  fontStyle: getFontFaceStyleDeclaration(font),
   fontVariationSettings: getFontVariationSettings(font),
 });

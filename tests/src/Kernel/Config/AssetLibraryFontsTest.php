@@ -259,6 +259,7 @@ final class AssetLibraryFontsTest extends CanvasKernelTestBase {
 
     self::assertStringContainsString("@font-face {\n  font-family: 'Inter';", $entity->getCss());
     self::assertStringContainsString("format('woff2');", $entity->getCss());
+    self::assertStringContainsString('font-display: swap;', $entity->getCss(), 'Generated @font-face rules must swap to avoid invisible text while web fonts load.');
     self::assertStringContainsString(".example { font-family: 'Inter', sans-serif; }", $entity->getCss());
   }
 
