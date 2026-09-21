@@ -1,11 +1,8 @@
 import path from 'node:path';
-import { DRAFT_DATA_COOKIE_NAME } from '@drupal-canvas/headless';
 import { writeComponentManifest } from '@drupal-canvas/headless/components-endpoint';
 import {
-  hasFrameAncestors,
   mergeFrameAncestors,
   resolveDraftConfig,
-  resolveFrameAncestors,
 } from '@drupal-canvas/headless/server';
 
 import { writeComponentRegistryModule } from './component-registry';
@@ -20,13 +17,20 @@ const PHASE_PRODUCTION_BUILD = 'phase-production-build';
 const PHASE_DEVELOPMENT_SERVER = 'phase-development-server';
 const COMPONENTS_MODULE_ID =
   '@drupal-canvas/headless-next-generated-components';
+
 const CSP_HEADER = 'content-security-policy';
 
-// Next.js header rules can capture a named group from a cookie and insert it
-// into a header value. The cookie parser has already URL-decoded the JSON.
-// Capture only a URL-serialized HTTP(S) origin from the signed renewal URL;
-// the restricted host and port grammar cannot inject CSP delimiters.
-const DRAFT_EDITOR_ORIGIN_COOKIE_PATTERN = String.raw`.*"renewUrl":"(?<editorOrigin>https?://(?:[A-Za-z0-9.-]+|\[[0-9A-Fa-f:.]+\])(?::[0-9]{1,5})?)(?:/[^"\\]*)?".*`;
+/**
+ * The environment variable naming the origins allowed to embed the app. A
+ * whitespace- or comma-separated list, because a Drupal site can be reached
+ * on more than one origin the editor's browser might use: a multi-origin
+ * topology where the app server and the browser see Drupal differently, one
+ * frontend previewed from both a staging and a production Drupal, or a
+ * multisite serving several editor hostnames. Unset, the origin of
+ * CANVAS_SITE_URL is used, which is correct for the single-origin
+ * deployment and needs no configuration at all.
+ */
+const EDITOR_ORIGINS_ENV_VARIABLE = 'CANVAS_EDITOR_ORIGINS';
 
 type NextConfigInput =
   | NextConfig
@@ -39,12 +43,86 @@ type HeaderRule = Awaited<
   ReturnType<NonNullable<NextConfig['headers']>>
 >[number];
 
-const draftSessionCookieMatch = {
-  type: 'cookie' as const,
-  key: DRAFT_DATA_COOKIE_NAME,
-  value: DRAFT_EDITOR_ORIGIN_COOKIE_PATTERN,
-};
+/**
+ * The host shapes a Canvas editor can be served on: LDH domain labels, a
+ * dotted-quad IPv4 literal, or a bracketed IPv6 literal.
+ *
+ * Parsing with `URL` is not sufficient on its own. The URL host parser
+ * permits characters that are meaningless in a hostname but meaningful in a
+ * policy: `*` makes the source a wildcard matching every subdomain (and
+ * `https://*` matches every origin), while `;` ends the directive and `,`
+ * ends the whole policy, so a configured value could append a directive of
+ * its own. Matching the host against this pattern, and taking the port from
+ * `URL` (which parses it as digits), is what keeps a configured value to the
+ * one origin it names.
+ */
+const EDITOR_HOST_PATTERN =
+  /^(?:\[[0-9A-Fa-f:.]+\]|(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}|[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*)$/;
 
+/**
+ * One configured value as a CSP host-source, or null when it is not one.
+ *
+ * Values carrying credentials, using a scheme the editor cannot be served
+ * over, or naming a host outside EDITOR_HOST_PATTERN are dropped rather than
+ * repaired.
+ */
+function toEditorOrigin(value: string): string | null {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      return null;
+    }
+    if (url.username || url.password) {
+      return null;
+    }
+    if (!EDITOR_HOST_PATTERN.test(url.hostname)) {
+      return null;
+    }
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
+/** The deduplicated editor origins, in configured order. */
+function resolveEditorOrigins(): string[] {
+  const configured =
+    process.env[EDITOR_ORIGINS_ENV_VARIABLE] ??
+    process.env.CANVAS_SITE_URL ??
+    '';
+  return [
+    ...new Set(
+      configured
+        .split(/[\s,]+/)
+        .filter(Boolean)
+        .map(toEditorOrigin)
+        .filter((origin): origin is string => origin !== null),
+    ),
+  ];
+}
+
+/**
+ * The `frame-ancestors` source list: 'self' always, plus every configured
+ * editor origin. Resolved at build time from configuration rather than per
+ * request from the draft session, so one static rule serves every host
+ * identically — a rule conditioned on the session cookie is evaluated
+ * differently by Next.js's own server and by hosted routing layers, which
+ * silently dropped the editor origin wherever the two disagreed.
+ */
+function resolveFrameAncestors(): string {
+  const origins = resolveEditorOrigins();
+  if (origins.length === 0) {
+    console.warn(
+      `[canvas] Neither ${EDITOR_ORIGINS_ENV_VARIABLE} nor CANVAS_SITE_URL ` +
+        'names a usable http(s) origin, so no Canvas editor may embed this ' +
+        'app and previews will be refused. Set ' +
+        `${EDITOR_ORIGINS_ENV_VARIABLE} to the origin editors reach Drupal on.`,
+    );
+  }
+  return ["'self'", ...origins].join(' ');
+}
+
+/** Merges the directive into one header rule, leaving its other headers. */
 function mergeRuleFrameAncestors(
   rule: HeaderRule,
   frameAncestors: string,
@@ -60,14 +138,6 @@ function mergeRuleFrameAncestors(
         : header,
     ),
   };
-}
-
-function ruleNeedsDraftEditorOrigin(rule: HeaderRule): boolean {
-  return rule.headers.some(
-    (header) =>
-      header.key.toLowerCase() === CSP_HEADER &&
-      !hasFrameAncestors(header.value),
-  );
 }
 
 export interface WithCanvasOptions {
@@ -104,10 +174,11 @@ export const MANIFEST_ENV_VARIABLE = 'CANVAS_COMPONENT_MANIFEST_JSON';
  *   generated implementation registry when components are added or removed.
  * - Adds the SDK packages to `transpilePackages` (the adapter packages
  *   ship TypeScript source).
- * - Sends a `Content-Security-Policy: frame-ancestors` header. Responses
- *   are 'self'-only by default; a draft session also admits the exact
- *   editor origin carried by its signed renewal URL. An application-owned
- *   frame-ancestors directive remains authoritative.
+ * - Sends `Content-Security-Policy: frame-ancestors`, admitting the app
+ *   itself and every origin named by CANVAS_EDITOR_ORIGINS (default: the
+ *   origin of CANVAS_SITE_URL). Merged into the app's own `headers()` rules,
+ *   so no directive of theirs is discarded and an application-owned
+ *   frame-ancestors stays authoritative.
  *
  * ```ts
  * // next.config.ts
@@ -170,33 +241,14 @@ export function withCanvas(
 
     const userHeaders = config.headers;
     const headers: NonNullable<NextConfig['headers']> = async () => {
-      // When several header rules match a path and set the same key,
-      // Next.js keeps the LAST value — it does not emit repeated fields.
-      // So the SDK's catch-all rule goes first, and every user rule that
-      // sets a Content-Security-Policy gets the frame-ancestors directive
-      // merged into its value: on paths the app's own CSP rules match,
-      // the app's (merged) value wins; everywhere else the catch-all
-      // applies. A second cookie-matched rule admits the signed editor
-      // origin only for requests carrying a draft session. Either way no
-      // app directive is discarded.
+      // When several rules match a path and set the same key, Next.js keeps
+      // the LAST value, so the catch-all goes first and every app rule that
+      // sets a Content-Security-Policy gets the directive merged into its
+      // value. On paths the app's own rules match, the app's merged value
+      // wins; everywhere else the catch-all applies. No app directive is
+      // discarded, and an app-owned frame-ancestors stays authoritative.
       const frameAncestors = resolveFrameAncestors();
       const userRules = userHeaders ? await userHeaders() : [];
-      const mergedUserRules = userRules.flatMap((rule) => {
-        const fallback = mergeRuleFrameAncestors(rule, frameAncestors);
-        if (!ruleNeedsDraftEditorOrigin(rule)) {
-          return [fallback];
-        }
-        return [
-          fallback,
-          mergeRuleFrameAncestors(
-            {
-              ...rule,
-              has: [...(rule.has ?? []), draftSessionCookieMatch],
-            },
-            "'self' :editorOrigin",
-          ),
-        ];
-      });
       return [
         {
           source: '/:path*',
@@ -207,17 +259,9 @@ export function withCanvas(
             },
           ],
         },
-        {
-          source: '/:path*',
-          has: [draftSessionCookieMatch],
-          headers: [
-            {
-              key: 'Content-Security-Policy',
-              value: "frame-ancestors 'self' :editorOrigin",
-            },
-          ],
-        },
-        ...mergedUserRules,
+        ...userRules.map((rule) =>
+          mergeRuleFrameAncestors(rule, frameAncestors),
+        ),
       ];
     };
     const userWebpack = config.webpack;
