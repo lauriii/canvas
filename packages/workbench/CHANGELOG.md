@@ -1,5 +1,12 @@
 # @drupal-canvas/workbench
 
+## 0.11.1
+
+### Patch Changes
+
+- Updated dependencies [3ed0539]
+  - drupal-canvas@0.5.2
+
 ## 0.11.0
 
 ### Minor Changes

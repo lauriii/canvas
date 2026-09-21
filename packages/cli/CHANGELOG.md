@@ -1,5 +1,18 @@
 # @drupal-canvas/cli
 
+## 0.24.1
+
+### Patch Changes
+
+- 5b4d934: Move the page template support check before authentication and
+  continue syncing other resources when page templates are not supported.
+- 52cec0f: Fix page template pulls to use resolved prop values.
+- d863921: Allow metadata preflight to validate components importing
+  dependencies included in the same push, while retaining dependency validation
+  during upload.
+- Updated dependencies [3ed0539]
+  - drupal-canvas@0.5.2
+
 ## 0.24.0
 
 ### Minor Changes

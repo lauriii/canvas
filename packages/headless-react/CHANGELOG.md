@@ -1,5 +1,15 @@
 # @drupal-canvas/headless-react
 
+## 0.4.1
+
+### Patch Changes
+
+- bde9b02: Ship a compiled `dist` build instead of raw TypeScript source,
+  matching `@drupal-canvas/headless`.
+- Updated dependencies [98b764a]
+- Updated dependencies [fc2cbd1]
+  - @drupal-canvas/headless@0.7.0
+
 ## 0.4.0
 
 ### Minor Changes

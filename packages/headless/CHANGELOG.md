@@ -1,5 +1,24 @@
 # @drupal-canvas/headless
 
+## 0.7.0
+
+### Minor Changes
+
+- 98b764a: Resolve the JSON:API prefix from the site's now-public
+  `/canvas/api/v0/site-data` endpoint (previously editor-only) instead of always
+  using the `/jsonapi` default, so sites serving JSON:API from a non-default
+  prefix (e.g. `/api`) work without configuration. When that endpoint is
+  unreachable, the `CANVAS_JSONAPI_PREFIX` environment variable (or a config
+  override) applies as a fallback.
+
+  `getPublicClient()` and `getDraftClient()` are now async — `await` them like
+  `getClient()`.
+
+### Patch Changes
+
+- fc2cbd1: Preserve Canvas's selected read-only preview language in draft
+  sessions and forward it through `fetchPage()` only while the session is live.
+
 ## 0.6.0
 
 ### Minor Changes

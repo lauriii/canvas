@@ -1,5 +1,25 @@
 # @drupal-canvas/headless-next
 
+## 0.5.0
+
+### Minor Changes
+
+- 98b764a: Automatically discover the site's JSON:API prefix so sites using a
+  non-default prefix (e.g. `/api`) work without configuration.
+
+  `getPublicClient()` and `getDraftClient()` are now async — `await` them like
+  `getClient()`.
+
+### Patch Changes
+
+- bde9b02: Ship a compiled `dist` build instead of raw TypeScript source,
+  matching `@drupal-canvas/headless`.
+- Updated dependencies [98b764a]
+- Updated dependencies [fc2cbd1]
+- Updated dependencies [bde9b02]
+  - @drupal-canvas/headless@0.7.0
+  - @drupal-canvas/headless-react@0.4.1
+
 ## 0.4.0
 
 ### Minor Changes
