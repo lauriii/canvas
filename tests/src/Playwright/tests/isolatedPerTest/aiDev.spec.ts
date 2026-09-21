@@ -220,7 +220,7 @@ test.describe('AI dev chat', () => {
     const toolsTrigger = chat.locator('.custom-button');
     const menu = page.getByTestId('canvas-ai-tool-selector');
     const builderRow = menu.getByRole('button', {
-      name: /Dev Page Builder Agent/,
+      name: /Drupal Canvas Page Agent/,
     });
     const pill = page.getByTestId('canvas-ai-active-tool');
     const removeButton = pill.getByRole('button', {
@@ -232,7 +232,7 @@ test.describe('AI dev chat', () => {
     await toolsTrigger.click();
     await builderRow.click();
     await expect(menu).toBeHidden();
-    await expect(pill).toContainText('Drupal Canvas Dev Page Builder Agent');
+    await expect(pill).toContainText('Drupal Canvas Page Agent');
     await expect(removeButton).toBeEnabled();
     await expect(toolsTrigger).toBeEnabled();
 
@@ -397,7 +397,7 @@ test.describe('AI dev chat', () => {
       name: /Drupal Canvas Component Agent/,
     });
     const builderRow = menu.getByRole('button', {
-      name: /Drupal Canvas Dev Page Builder Agent/,
+      name: /Drupal Canvas Page Agent/,
     });
     const pill = page.getByTestId('canvas-ai-active-tool');
     const removeButton = pill.getByRole('button', {
@@ -417,9 +417,7 @@ test.describe('AI dev chat', () => {
     await expect(rows.nth(0)).toContainText(
       'This agent can manipulate things in Drupal Canvas.',
     );
-    await expect(rows.nth(1)).toContainText(
-      'Drupal Canvas Dev Page Builder Agent',
-    );
+    await expect(rows.nth(1)).toContainText('Drupal Canvas Page Agent');
     await expect(rows.nth(1)).toContainText(
       'Builds and extends pages using existing components, edits components already on a page, and sets the page title and description.',
     );
@@ -443,7 +441,7 @@ test.describe('AI dev chat', () => {
     await toolsTrigger.click();
     await builderRow.click();
     await expect(menu).toBeHidden();
-    await expect(pill).toContainText('Drupal Canvas Dev Page Builder Agent');
+    await expect(pill).toContainText('Drupal Canvas Page Agent');
     await toolsTrigger.click();
     await expect(builderRow).toHaveAttribute('aria-pressed', 'true');
     await expect(componentRow).toHaveAttribute('aria-pressed', 'false');
@@ -454,7 +452,7 @@ test.describe('AI dev chat', () => {
     await ai.submitQuery('What is a CMS?');
     await expect(answer).toHaveCount(2);
     expect(bodies).toHaveLength(2);
-    expect(bodies[1].selected_tool).toBe('canvas_dev_page_builder_agent');
+    expect(bodies[1].selected_tool).toBe('drupal_canvas_page_agent');
 
     // Selecting a different Tool replaces it in the pill, and in the next
     // request.
@@ -462,7 +460,7 @@ test.describe('AI dev chat', () => {
     await componentRow.click();
     await expect(menu).toBeHidden();
     await expect(pill).toContainText('Drupal Canvas Component Agent');
-    await expect(pill).not.toContainText('Page Builder');
+    await expect(pill).not.toContainText('Page Agent');
     await ai.submitQuery('What is a CMS?');
     await expect(answer).toHaveCount(3);
     expect(bodies).toHaveLength(3);
@@ -516,7 +514,7 @@ test.describe('AI dev chat', () => {
       .getByRole('checkbox', { name: 'Drupal Canvas Component Agent' })
       .uncheck();
     await page
-      .getByRole('checkbox', { name: 'Drupal Canvas Dev Page Builder Agent' })
+      .getByRole('checkbox', { name: 'Drupal Canvas Page Agent' })
       .uncheck();
     await page.getByRole('button', { name: 'Save configuration' }).click();
     await expect(

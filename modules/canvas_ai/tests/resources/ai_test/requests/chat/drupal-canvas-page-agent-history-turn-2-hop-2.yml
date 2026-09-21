@@ -1,5 +1,5 @@
 # Hop 2 of the second turn of a conversation: the parked edit_components call
-# ran, and the agent closes the turn. See dev-page-builder-history-turn-2-hop-1.yml
+# ran, and the agent closes the turn. See drupal-canvas-page-agent-history-turn-2-hop-1.yml
 # for the catalog caveat.
 request:
   messages:

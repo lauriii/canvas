@@ -25,7 +25,7 @@ use Symfony\Component\Yaml\Yaml;
  *
  * Companion to \Drupal\canvas_ai\Plugin\AiFunctionCall\PlaceComponents: place
  * puts a component on the page, edit tweaks the props of one already there,
- * addressed by UUID. The canvas_dev_page_builder_agent lists it; the frontend
+ * addressed by UUID. The drupal_canvas_page_agent lists it; the frontend
  * applies the returned component_updates on the next hop.
  *
  * @see \Drupal\canvas_ai\Controller\CanvasBuilder::render()

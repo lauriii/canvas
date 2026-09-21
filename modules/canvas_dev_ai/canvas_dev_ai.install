@@ -22,7 +22,7 @@ function canvas_dev_ai_install(bool $is_syncing): void {
   // @see https://www.drupal.org/project/drupal/issues/3425992
   \Drupal::configFactory()->getEditable('canvas_dev_ai.settings')
     ->set('main_agent', 'canvas_agent')
-    ->set('tools', ['canvas_component_agent', 'canvas_dev_page_builder_agent'])
+    ->set('tools', ['canvas_component_agent', 'drupal_canvas_page_agent'])
     // Keeping the agent's tool calls and results between turns costs tokens
     // on every later turn, so sites opt in on the Agents & Tools form.
     ->set('keep_tool_calls_in_history', FALSE)

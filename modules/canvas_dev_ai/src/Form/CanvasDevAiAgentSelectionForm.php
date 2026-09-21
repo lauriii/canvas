@@ -25,7 +25,7 @@ final class CanvasDevAiAgentSelectionForm extends ConfigFormBase {
   public const SELECTABLE_AGENTS = [
     'canvas_agent',
     'canvas_component_agent',
-    'canvas_dev_page_builder_agent',
+    'drupal_canvas_page_agent',
   ];
 
   /**
