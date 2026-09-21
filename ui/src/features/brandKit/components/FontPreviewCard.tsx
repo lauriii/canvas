@@ -1,6 +1,5 @@
-import { Box, Flex, Text } from '@radix-ui/themes';
+import { Flex, Text } from '@radix-ui/themes';
 
-import { buildFontFaceSnippet } from '@/features/brandKit/fontCss';
 import { getFontPreviewStyle } from '@/features/brandKit/variableFontState';
 
 import type { AssetLibraryFont } from '@/types/CodeComponent';
@@ -12,29 +11,29 @@ type FontPreviewCardProps = {
 };
 
 const FontPreviewCard = ({ font }: FontPreviewCardProps) => (
-  <Box className={styles.previewSection}>
-    <style>{buildFontFaceSnippet(font)}</style>
-    <Flex direction="column" gap="2">
-      <Text size="1" color="gray">
-        Preview
-      </Text>
+  <Flex direction="column" gap="2" className={styles.consoleSection}>
+    <Text size="2" weight="medium">
+      Preview
+    </Text>
+    <Flex direction="column" className={styles.previewCard}>
       <Text
         size="6"
         className={styles.previewSample}
         style={getFontPreviewStyle(font)}
+        data-testid={`canvas-brand-kit-font-preview-${font.id}`}
       >
         The quick brown fox jumps over the lazy dog.
       </Text>
       <Text
-        size="3"
-        color="gray"
+        size="2"
+        weight="medium"
         className={styles.previewSecondary}
         style={getFontPreviewStyle(font)}
       >
-        Aa Bb Cc 1234567890
+        abcdefghijklmnopqrstuvwxyz 0123456789
       </Text>
     </Flex>
-  </Box>
+  </Flex>
 );
 
 export default FontPreviewCard;
