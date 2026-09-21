@@ -18,6 +18,8 @@ use Drupal\canvas\PageVariantResolver;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
+use Drupal\Component\Serialization\Json;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\ConfigException;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
@@ -172,6 +174,63 @@ final class PageVariantTest extends CanvasKernelTestBase {
 
     // An enabled variant is not considered a new draft by the editor.
     self::assertFalse(AutoSaveManager::entityIsConsideredNew($reloaded));
+  }
+
+  /**
+   * Tests that API props include resolved values without changing stored inputs.
+   */
+  public function testNormalizeResolvedInputs(): void {
+    JavaScriptComponent::create([
+      'machineName' => 'banner',
+      'name' => 'Banner',
+      'status' => TRUE,
+      'props' => [
+        'text' => ['type' => 'string', 'title' => 'Text', 'contentMediaType' => 'text/html'],
+        'link' => ['type' => 'string', 'title' => 'Link', 'format' => 'uri-reference'],
+      ],
+      'slots' => [],
+      'js' => ['original' => '', 'compiled' => ''],
+      'css' => ['original' => '', 'compiled' => ''],
+      'dataDependencies' => [],
+    ])->save();
+    $component = Component::load('js.banner');
+    self::assertInstanceOf(Component::class, $component);
+    $inputs = [
+      'text' => ['value' => '<p>Welcome</p>', 'format' => 'canvas_html_block'],
+      'link' => ['uri' => 'internal:/about', 'options' => []],
+    ];
+    $tree = [
+      [
+        'uuid' => $this->container->get('uuid')->generate(),
+        'component_id' => $component->id(),
+        'component_version' => $component->getActiveVersion(),
+        'inputs' => $inputs,
+      ],
+      self::markerInstance(),
+    ];
+    $variant = PageVariant::create([
+      'id' => 'landing',
+      'label' => 'Landing',
+      'component_tree' => $tree,
+    ]);
+    $variant->save();
+
+    $normalized = $variant->normalizeForClientSide();
+    self::assertSame($inputs, $normalized->values['component_tree'][0]['inputs']);
+    self::assertSame([
+      'text' => '<p>Welcome</p>',
+      'link' => base_path() . 'about',
+    ], Json::decode(Json::encode($normalized->values['component_tree'][0]['inputs_resolved'])));
+    self::assertSame([], $normalized->values['component_tree'][1]['inputs_resolved']);
+    self::assertSame($tree, $variant->getComponentTree()->getValue());
+    $expected_cacheability = CacheableMetadata::createFromObject($variant);
+    foreach ($variant->getComponentTree() as $item) {
+      $expected_cacheability->addCacheableDependency($item->get('inputs_resolved'));
+    }
+    self::assertContains('config:filter.format.canvas_html_block', $normalized->getCacheTags());
+    self::assertEqualsCanonicalizing($expected_cacheability->getCacheTags(), $normalized->getCacheTags());
+    self::assertEqualsCanonicalizing($expected_cacheability->getCacheContexts(), $normalized->getCacheContexts());
+    self::assertSame($expected_cacheability->getCacheMaxAge(), $normalized->getCacheMaxAge());
   }
 
   /**
