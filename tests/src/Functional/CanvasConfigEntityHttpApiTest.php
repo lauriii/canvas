@@ -30,6 +30,8 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Url;
+use Drupal\file\Entity\File;
+use Drupal\media\Entity\Media;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\system\Entity\Menu;
@@ -37,6 +39,7 @@ use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\canvas\Traits\OpenApiSpecTrait;
+use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\system\Functional\Cache\AssertPageCacheContextsAndTagsTrait;
 use Drupal\user\UserInterface;
 use GuzzleHttp\RequestOptions;
@@ -60,6 +63,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
   use OpenApiSpecTrait;
   use AssertPageCacheContextsAndTagsTrait;
   use CreateTestJsComponentTrait;
+  use MediaTypeCreationTrait;
 
   /**
    * {@inheritdoc}
@@ -723,6 +727,85 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
   }
 
   /**
+   * Tests that editing referenced media invalidates resolved template props.
+   */
+  public function testPageVariantResolvedInputsCacheability(): void {
+    $this->drupalLogin($this->httpApiUser);
+    $media_type = $this->createMediaType('image');
+    $image_uri = $this->getRandomGenerator()->image(uniqid('public://') . '.png', '200x200', '400x400');
+    $file = File::create(['uri' => $image_uri]);
+    $file->save();
+    $media = Media::create([
+      'bundle' => $media_type->id(),
+      'name' => 'Template image',
+      'field_media_image' => ['target_id' => $file->id(), 'alt' => 'Original alt'],
+      'status' => TRUE,
+    ]);
+    $media->save();
+    JavaScriptComponent::create([
+      'machineName' => 'cacheable_banner',
+      'name' => 'Cacheable banner',
+      'status' => TRUE,
+      'props' => [
+        'image' => ['title' => 'Image', 'type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image'],
+        'text' => ['title' => 'Text', 'type' => 'string', 'contentMediaType' => 'text/html'],
+      ],
+      'slots' => [],
+      'js' => ['original' => '', 'compiled' => ''],
+      'css' => ['original' => '', 'compiled' => ''],
+      'dataDependencies' => [],
+    ])->save();
+    $component = Component::load('js.cacheable_banner');
+    self::assertInstanceOf(Component::class, $component);
+    $marker = Component::load('marker.page_content');
+    self::assertInstanceOf(Component::class, $marker);
+    PageVariant::create([
+      'id' => 'cacheable',
+      'label' => 'Cacheable',
+      'component_tree' => [
+        [
+          'uuid' => $this->container->get('uuid')->generate(),
+          'component_id' => $component->id(),
+          'component_version' => $component->getActiveVersion(),
+          'inputs' => [
+            'image' => ['target_id' => (int) $media->id()],
+            'text' => ['value' => '<p>Welcome</p>', 'format' => 'canvas_html_block'],
+          ],
+        ],
+        [
+          'uuid' => $this->container->get('uuid')->generate(),
+          'component_id' => $marker->id(),
+          'component_version' => $marker->getActiveVersion(),
+          'inputs' => [],
+        ],
+      ],
+    ])->save();
+    $url = Url::fromUri('base:/canvas/api/v0/config/page_variant/cacheable');
+    foreach (['MISS', 'HIT'] as $cache_status) {
+      $response = $this->makeApiRequest('GET', $url, []);
+      self::assertSame(200, $response->getStatusCode());
+      self::assertSame($cache_status, $response->getHeaderLine('X-Drupal-Dynamic-Cache'));
+      $body = Json::decode((string) $response->getBody());
+      self::assertSame('Original alt', $body['component_tree'][0]['inputs_resolved']['image']['alt']);
+    }
+
+    $media->set('field_media_image', ['target_id' => $file->id(), 'alt' => 'Updated alt']);
+    $media->save();
+    foreach (['MISS', 'HIT'] as $cache_status) {
+      $body = $this->assertExpectedResponse('GET', $url, [], 200, ['languages:language_interface', 'theme', 'user.permissions'], [
+        'config:canvas.page_variant.cacheable',
+        'config:filter.format.canvas_html_block',
+        'config:image.style.canvas_parametrized_width',
+        'file:' . $file->id(),
+        'http_response',
+        'media:' . $media->id(),
+      ], 'UNCACHEABLE (request policy)', $cache_status);
+      self::assertIsArray($body);
+      self::assertSame('Updated alt', $body['component_tree'][0]['inputs_resolved']['image']['alt']);
+    }
+  }
+
+  /**
    * @see \Drupal\canvas\Entity\PageVariant
    * @see \Drupal\canvas\Controller\ApiSettingsController
    */
@@ -808,7 +891,14 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'label' => 'Homepage',
       'description' => 'The default full-page layout.',
       'status' => TRUE,
-      'component_tree' => [$marker],
+      'component_tree' => [[
+        'parent_uuid' => NULL,
+        'slot' => NULL,
+        ...$marker,
+        'label' => NULL,
+        'inputs_resolved' => [],
+      ],
+      ],
     ];
     $this->assertSame($expected_normalization, $body);
 
@@ -846,7 +936,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     self::assertIsArray($body);
     self::assertSame('Homepage (updated)', $body['label']);
     self::assertNull($body['description']);
-    self::assertSame([$marker], $body['component_tree']);
+    self::assertSame($expected_normalization['component_tree'], $body['component_tree']);
 
     // PATCHing a tree without the marker: 422, the stored variant unchanged.
     $request_options[RequestOptions::JSON] = ['component_tree' => []];

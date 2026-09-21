@@ -8,7 +8,9 @@ use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\ClientSideRepresentation;
 use Drupal\canvas\Controller\ClientServerConversionTrait;
 use Drupal\canvas\EntityHandlers\PageVariantAccessControlHandler;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\ConfigException;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
@@ -111,16 +113,27 @@ final class PageVariant extends ComponentTreeConfigEntityBase implements CanvasH
    * {@inheritdoc}
    */
   public function normalizeForClientSide(): ClientSideRepresentation {
+    $cacheability = CacheableMetadata::createFromObject($this);
+    $component_tree = [];
+    foreach ($this->getComponentTree() as $item) {
+      \assert($item instanceof ComponentTreeItem);
+      $values = \array_map(fn($property) => $property->getValue(), $item->getProperties(TRUE));
+      unset($values['parent_item'], $values['component']);
+      $values['inputs'] = $item->getInputs();
+      $cacheability->addCacheableDependency($item->get('inputs_resolved'));
+      $component_tree[] = $values;
+    }
+
     return ClientSideRepresentation::create(
       values: [
         'id' => $this->id(),
         'label' => $this->label(),
         'description' => $this->description,
         'status' => $this->status(),
-        'component_tree' => $this->getComponentTree()->getValue(),
+        'component_tree' => $component_tree,
       ],
       preview: NULL,
-    )->addCacheableDependency($this);
+    )->addCacheableDependency($cacheability);
   }
 
   /**
