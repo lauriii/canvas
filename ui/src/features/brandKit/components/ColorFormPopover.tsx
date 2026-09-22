@@ -656,7 +656,7 @@ const ColorFormPopover = ({
             </Flex>
 
             {error && (
-              <Box px="3" mt="3" data-testid="color-error-card">
+              <Box px="3" mt="3" mb="3" data-testid="color-error-card">
                 <ErrorCard title={error.title} error={error.message} />
               </Box>
             )}
