@@ -84,6 +84,7 @@ export interface uiSliceState {
   redoStack: Array<UndoRedoStackItem>;
   currentRoute: RouteSnapshot;
   PreviouslyEdited: PreviouslyEdited;
+  rightPanelOpen: boolean;
 }
 
 type UpdateViewportPayload = {
@@ -135,6 +136,7 @@ export const initialState: uiSliceState = {
   },
   collapsedLayers: [],
   PreviouslyEdited: { name: '', path: '' },
+  rightPanelOpen: true,
 };
 
 export interface ScaleValue {
@@ -370,6 +372,14 @@ export const uiSlice = createAppSlice({
         } else {
           state.selection.consecutive = action.payload.consecutive || false;
         }
+        // Reopen the right panel whenever something is selected (a component,
+        // a crop/image area, or a prop within it), even if the user had
+        // previously closed the panel manually. This reducer runs on every
+        // dispatch, so re-selecting an already-selected component also
+        // reopens the panel, unlike a useEffect keyed on the selection value.
+        if (action.payload.items.length > 0) {
+          state.rightPanelOpen = true;
+        }
       },
     ),
     setPreviouslyEdited: create.reducer(
@@ -400,6 +410,11 @@ export const uiSlice = createAppSlice({
     setCurrentRoute: create.reducer(
       (state, action: PayloadAction<RouteSnapshot>) => {
         state.currentRoute = action.payload;
+      },
+    ),
+    setRightPanelOpen: create.reducer(
+      (state, action: PayloadAction<boolean>) => {
+        state.rightPanelOpen = action.payload;
       },
     ),
   }),
@@ -488,6 +503,9 @@ export const uiSlice = createAppSlice({
     selectCurrentRoute: (ui): RouteSnapshot => {
       return ui.currentRoute;
     },
+    selectRightPanelOpen: (ui): boolean => {
+      return ui.rightPanelOpen;
+    },
   },
 });
 
@@ -529,6 +547,7 @@ export const {
   toggleCollapsedLayer,
   removeCollapsedLayers,
   setCurrentRoute,
+  setRightPanelOpen,
 } = uiSlice.actions;
 
 export const {
@@ -555,6 +574,7 @@ export const {
   selectCollapsedLayers,
   selectPreviouslyEdited,
   selectCurrentRoute,
+  selectRightPanelOpen,
 } = uiSlice.selectors;
 
 // Memoized selectors using createSelector for better performance

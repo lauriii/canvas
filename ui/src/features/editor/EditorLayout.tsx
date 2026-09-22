@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { useParams } from 'react-router-dom';
+import { HamburgerMenuIcon } from '@radix-ui/react-icons';
+import { IconButton } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ContextualPanel from '@/components/panel/ContextualPanel';
@@ -18,7 +20,9 @@ import {
   selectEditorFrameContext,
   selectEditorFrameMode,
   selectIsMultiSelect,
+  selectRightPanelOpen,
   selectSelectedComponentUuid,
+  setRightPanelOpen,
 } from '@/features/ui/uiSlice';
 import { PAGE_VARIANT_ENTITY_TYPE } from '@/services/pageVariants';
 
@@ -35,6 +39,7 @@ const EditorLayout: React.FC<EditorLayoutProps> = ({ context }) => {
   const editorFrameMode = useAppSelector(selectEditorFrameMode);
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const isMultiSelect = useAppSelector(selectIsMultiSelect);
+  const isRightPanelOpen = useAppSelector(selectRightPanelOpen);
 
   const { entityType } = useParams();
   const dispatch = useAppDispatch();
@@ -58,6 +63,7 @@ const EditorLayout: React.FC<EditorLayoutProps> = ({ context }) => {
   const rightWidthPxRef = useRef(rightWidthPx);
   const layoutRef = useRef<HTMLDivElement>(null);
   const rightColumnRef = useRef<HTMLDivElement>(null);
+  const rightColumnMenuRef = useRef<HTMLDivElement>(null);
   const resizeHandleRef = useRef<HTMLDivElement | null>(null);
   const pointerIdRef = useRef<number>(-1);
   const isDraggingRef = useRef(false);
@@ -151,6 +157,23 @@ const EditorLayout: React.FC<EditorLayoutProps> = ({ context }) => {
     };
   }, [handlePointerMove, handlePointerUp]);
 
+  useEffect(() => {
+    if (rightColumnMenuRef.current) {
+      rightColumnMenuRef.current.style.display = 'none';
+    }
+  }, []);
+
+  useEffect(() => {
+    if (rightColumnRef.current) {
+      rightColumnRef.current.style.display = isRightPanelOpen ? 'flex' : 'none';
+    }
+    if (rightColumnMenuRef.current) {
+      rightColumnMenuRef.current.style.display = !isRightPanelOpen
+        ? 'block'
+        : 'none';
+    }
+  }, [isRightPanelOpen]);
+
   const effectiveRightWidth = isPanelHidden ? 0 : rightWidthPx;
   const showHandle = !isPanelHidden;
 
@@ -174,6 +197,15 @@ const EditorLayout: React.FC<EditorLayoutProps> = ({ context }) => {
           aria-valuemax={SIDEBAR_MAX_PX}
         />
       )}
+      <div ref={rightColumnMenuRef}>
+        <IconButton
+          aria-label="Open right panel"
+          data-testid="canvas-right-panel-menu-button"
+          onClick={() => dispatch(setRightPanelOpen(true))}
+        >
+          <HamburgerMenuIcon />
+        </IconButton>
+      </div>
       <div
         ref={rightColumnRef}
         className={clsx(styles.rightColumn, {
