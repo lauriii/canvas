@@ -677,13 +677,6 @@ final class CanvasDevAiBuilder extends ControllerBase {
         }
         $response = array_merge($response, $structured_output);
       }
-      // @todo Remove this branch without replacing it: neither agent runs here, and a file-upload turn carries no layout of its own, so deleting the key at turn end would leave the layout-reading tools with nothing. See https://git.drupalcode.org/project/canvas/-/work_items/3591777
-      if (\in_array($tool->getPluginId(), [
-        'ai_agents::ai_agent::canvas_page_builder_agent',
-        'ai_agents::ai_agent::canvas_template_builder_agent',
-      ], TRUE)) {
-        $this->canvasAiTempStore->deleteData(CanvasAiTempStore::CURRENT_LAYOUT_KEY);
-      }
     }
     // Only the final hop carries a message: the agent's answer to the user.
     if ($should_continue) {
