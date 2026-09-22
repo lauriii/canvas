@@ -8,9 +8,12 @@ namespace Drupal\Tests\canvas\Kernel\Twig;
 
 use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
 use Drupal\canvas\Twig\CanvasTwigExtension;
+use Drupal\canvas\Utility\DateResolver;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Image\ImageFactory;
 use Drupal\Core\Image\ImageInterface;
+use Drupal\Core\Language\LanguageInterface;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 use Drupal\file\FileInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
@@ -61,8 +64,15 @@ class CanvasTwigExtensionFiltersTest extends CanvasKernelTestBase {
     $fileUrlGenerator = $this->container->get(FileUrlGeneratorInterface::class);
     $renderer = $this->container->get('renderer');
 
+    // Build a minimal DateResolver with an 'en' mock language for this test.
+    $language = $this->createMock(LanguageInterface::class);
+    $language->method('getId')->willReturn('en');
+    $languageManager = $this->createMock(LanguageManagerInterface::class);
+    $languageManager->method('getCurrentLanguage')->willReturn($language);
+    $dateResolver = new DateResolver($languageManager);
+
     // Create the extension instance
-    $this->canvasTwigExtension = new CanvasTwigExtension($streamWrapperManager, $imageFactory, $fileUrlGenerator, $renderer);
+    $this->canvasTwigExtension = new CanvasTwigExtension($streamWrapperManager, $imageFactory, $fileUrlGenerator, $renderer, $dateResolver);
     $test_base_url = 'http://localhost/sites/default/files';
     $this->setSetting('file_public_base_url', $test_base_url);
   }

@@ -765,6 +765,25 @@ describe('getDataDependenciesFromAst', () => {
     });
   });
 
+  it.each([
+    'canvasFormatDate',
+    'canvasFormatDateTime',
+    'canvasFormatTime',
+    'canvasFormatDateRange',
+  ])('should detect needed drupalSettings when using %s', (name) => {
+    const code = `
+      // Random import.
+      import useSWR from 'swr';
+      // With different local identifier.
+      import { ${name} as format } from 'drupal-canvas';
+    `;
+    const ast = parse(code, { sourceType: 'module' });
+    const result = getDataDependenciesFromAst(ast);
+    expect(result).to.deep.equal({
+      drupalSettings: ['v0.langcode'],
+    });
+  });
+
   it('should detect needed drupalSettings when using both getSiteData and JsonApiClient, and should prevent duplicates', () => {
     const code = `
       // Random import.
