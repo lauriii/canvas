@@ -45,8 +45,6 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
  * ends and resumed by the next. Otherwise every turn is seeded from the client
  * transcript, which carries text only.
  *
- * @todo Replace the single request/response call with the real hop loop in https://git.drupalcode.org/project/canvas/-/work_items/3591777
- *
  * @internal
  */
 final class CanvasDevAiBuilder extends ControllerBase {
@@ -371,8 +369,6 @@ final class CanvasDevAiBuilder extends ControllerBase {
    *
    * @throws \RuntimeException
    *   Carrying the message shown to the user.
-   *
-   * @todo Reject a main agent the selection form could not have offered, once the page builder and Drupal Canvas agents exist, in https://git.drupalcode.org/project/canvas/-/work_items/3591777
    *
    * @see \Drupal\canvas_dev_ai\Form\CanvasDevAiAgentSelectionForm
    */
