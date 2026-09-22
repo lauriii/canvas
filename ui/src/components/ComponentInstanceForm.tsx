@@ -6,7 +6,7 @@ import React, {
   useState,
 } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
-import { Spinner, Text } from '@radix-ui/themes';
+import { Box, Spinner, Text } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import EmptyStateCallout from '@/components/EmptyStateCallout';
@@ -79,7 +79,7 @@ const ComponentInstanceFormRenderer: React.FC<
     editorFrameContext,
     components,
   } = inputAndUiData;
-
+  const selectedComponentName = components?.[selectedComponentType]?.name ?? '';
   const [jsxFormContent, setJsxFormContent] =
     useState<React.ReactElement | null>(null);
   const [currentComponentId, setCurrentComponentId] = useState<string | null>(
@@ -270,9 +270,18 @@ const ComponentInstanceFormRenderer: React.FC<
         ref={formRef}
       >
         {persistentTransforms.current && (
-          <TransformsContext.Provider value={persistentTransforms.current}>
-            {jsxFormContent}
-          </TransformsContext.Provider>
+          <>
+            {selectedComponentName && (
+              <Box mb="-2" mt="3">
+                <Text weight="bold" data-testid="selected-component-name">
+                  {selectedComponentName}
+                </Text>
+              </Box>
+            )}
+            <TransformsContext.Provider value={persistentTransforms.current}>
+              {jsxFormContent}
+            </TransformsContext.Provider>
+          </>
         )}
       </div>
     </Spinner>
