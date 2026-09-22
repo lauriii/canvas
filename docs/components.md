@@ -209,3 +209,82 @@ Nothing yet, this will change when we [support other `component type`s later](ht
 Each `component` can be placed in a folder to group them in the UI. The initial folder is determined by each `Component Source Plugin`.
 E.g. `SDC` `component`s are using the `group` property in their metadata.
 See `\Drupal\canvas\ComponentSource\ComponentSourceInterface::determineDefaultFolder()`
+
+### 3.7 Date and time prop formatting
+
+Canvas stores `date`, `date-time`, and `time` props as raw ISO strings and
+passes them to templates unchanged. This lets you use them programmatically
+(comparisons, calculations, etc.).
+
+When you want to display a date in the user's locale, use the Canvas date
+formatting utilities. Both Twig filters and JSX functions automatically:
+
+- Use the active Drupal interface language. The JSX functions read it from
+  `drupalSettings.canvasData.v0.langcode`. Importing any of them from
+  `drupal-canvas` adds the `v0.langcode` entry to the code component's
+  `dataDependencies.drupalSettings`, which attaches that setting wherever the
+  component is rendered.
+- Treat a value without a UTC offset as UTC and apply `timeZone: 'UTC'`, so
+  stored dates are never shifted by the viewer's local UTC offset. (Canvas
+  stores dates without timezone information; a date entered as 11 PM UTC must
+  display as 11 PM, not 3 AM the following day in an Eastern Time browser.)
+
+**Twig:**
+
+```twig
+{% set formatted_range = my_date_range_prop|canvasFormatDateRange %}
+
+<p><strong>Date:</strong> {{ my_date_prop|canvasFormatDate }}</p>
+<p><strong>DateTime:</strong> {{ my_datetime_prop|canvasFormatDateTime }}</p>
+<p><strong>Time:</strong> {{ my_time_prop|canvasFormatTime }}</p>
+<p><strong>Date Range:</strong> {{ formatted_range.from }} - {{ formatted_range.to }}</p>
+```
+
+**JSX — default short style:**
+
+```tsx
+import {
+  canvasFormatDate,
+  canvasFormatDateTime,
+  canvasFormatTime,
+  canvasFormatDateRange,
+} from 'drupal-canvas';
+
+export default function MyDateComponent({
+  myDateProp,
+  myDatetimeProp,
+  myTimeProp,
+  myDateRangeProp,
+}) {
+  const formattedDate = canvasFormatDate(myDateProp);
+  const formattedDateTime = canvasFormatDateTime(myDatetimeProp);
+  const formattedTime = canvasFormatTime(myTimeProp);
+  const formattedDateRange = canvasFormatDateRange(myDateRangeProp);
+
+  return (
+    <div>
+      <p><strong>Date:</strong> {formattedDate}</p>
+      <p><strong>DateTime:</strong> {formattedDateTime}</p>
+      <p><strong>Time:</strong> {formattedTime}</p>
+      <p><strong>Date Range:</strong> {formattedDateRange.from} - {formattedDateRange.to}</p>
+    </div>
+  );
+}
+```
+
+**JSX — custom format style:**
+
+All four functions accept an optional `options` object (`CanvasDateFormatOptions`)
+so you can override the default `'short'` style without losing the Drupal
+locale or UTC timezone guard:
+
+```tsx
+import type { CanvasDateFormatOptions } from 'drupal-canvas';
+
+canvasFormatDate(myDateProp, { dateStyle: 'long' })
+// e.g. 'January 15, 2026' (en)
+
+canvasFormatDateTime(myDatetimeProp, { dateStyle: 'medium', timeStyle: 'short' })
+canvasFormatTime(myTimeProp, { timeStyle: 'medium' })
+canvasFormatDateRange(myDateRangeProp, { dateStyle: 'medium' })
+```

@@ -8,8 +8,11 @@ namespace Drupal\Tests\canvas\Unit\Twig;
 
 use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
 use Drupal\canvas\Twig\CanvasTwigExtension;
+use Drupal\canvas\Utility\DateResolver;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Image\ImageFactory;
+use Drupal\Core\Language\LanguageInterface;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 use Drupal\Tests\UnitTestCase;
@@ -41,8 +44,15 @@ class CanvasTwigExtensionFiltersTest extends UnitTestCase {
     $fileUrlInterfaceManager = $this->createMock(FileUrlGeneratorInterface::class);
     $renderer = $this->createMock(RendererInterface::class);
 
+    // Build a minimal DateResolver with a mock language manager.
+    $language = $this->createMock(LanguageInterface::class);
+    $language->method('getId')->willReturn('en');
+    $languageManager = $this->createMock(LanguageManagerInterface::class);
+    $languageManager->method('getCurrentLanguage')->willReturn($language);
+    $dateResolver = new DateResolver($languageManager);
+
     // Create the extension instance
-    $this->canvasTwigExtension = new CanvasTwigExtension($streamWrapperManager, $imageFactory, $fileUrlInterfaceManager, $renderer);
+    $this->canvasTwigExtension = new CanvasTwigExtension($streamWrapperManager, $imageFactory, $fileUrlInterfaceManager, $renderer, $dateResolver);
   }
 
   /**
@@ -160,6 +170,28 @@ class CanvasTwigExtensionFiltersTest extends UnitTestCase {
       max(ParametrizedImageStyleConverter::ALLOWED_WIDTHS),
       \AssertionError::class,
     ];
+  }
+
+  /**
+   * Tests the date formatting filters with values an optional prop can hold.
+   *
+   * @legacy-covers \Drupal\canvas\Twig\CanvasTwigExtension::canvasFormatDate
+   * @legacy-covers \Drupal\canvas\Twig\CanvasTwigExtension::canvasFormatDateTime
+   * @legacy-covers \Drupal\canvas\Twig\CanvasTwigExtension::canvasFormatTime
+   * @legacy-covers \Drupal\canvas\Twig\CanvasTwigExtension::canvasFormatDateRange
+   */
+  #[DataProvider('providerCanvasFormatDateFiltersWithEmptyValues')]
+  public function testCanvasFormatDateFiltersWithEmptyValues(?string $value, string $expected): void {
+    self::assertSame($expected, $this->canvasTwigExtension->canvasFormatDate($value));
+    self::assertSame($expected, $this->canvasTwigExtension->canvasFormatDateTime($value));
+    self::assertSame($expected, $this->canvasTwigExtension->canvasFormatTime($value));
+    self::assertSame($value, $this->canvasTwigExtension->canvasFormatDateRange($value));
+  }
+
+  public static function providerCanvasFormatDateFiltersWithEmptyValues(): \Generator {
+    yield 'NULL (optional prop without a value)' => [NULL, ''];
+    yield 'empty string' => ['', ''];
+    yield 'unparseable string is returned unchanged' => ['not-a-date', 'not-a-date'];
   }
 
 }

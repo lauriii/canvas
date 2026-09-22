@@ -171,6 +171,7 @@ rightbar
 rightclick
 roundtripped
 rtkq
+rumgr
 scriptification
 scriptified
 scriptify
@@ -218,6 +219,7 @@ unloadable
 unmixable
 unmodeled
 unparseable
+unconstructed
 unrenderable
 unpartitioned
 unrooted

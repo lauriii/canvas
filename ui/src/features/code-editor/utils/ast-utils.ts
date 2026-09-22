@@ -40,6 +40,11 @@ export const getDataDependenciesFromAst = (ast: File): DataDependencies =>
         JsonApiClient: ['v0.baseUrl', 'v0.jsonapiSettings'],
         getSiteData: ['v0.baseUrl', 'v0.branding'],
         getPageData: ['v0.breadcrumbs', 'v0.pageTitle', 'v0.mainEntity'],
+        // The date formatting utilities read the active interface language.
+        canvasFormatDate: ['v0.langcode'],
+        canvasFormatDateTime: ['v0.langcode'],
+        canvasFormatTime: ['v0.langcode'],
+        canvasFormatDateRange: ['v0.langcode'],
       };
       const drupalSettingsDependencies = carry.drupalSettings || [];
       const computedSettings = drupalSettingsDependencies
@@ -66,8 +71,8 @@ export const getDataDependenciesFromAst = (ast: File): DataDependencies =>
               }
               return imports;
             }, [])
-            // Remove any imports other than getSiteData, getPageData or
-            // JsonApiClient - we don't need drupalSettings for anything else.
+            // Remove any imports other than the ones in the map - we don't
+            // need drupalSettings for anything else.
             .filter((item) => Object.keys(map).includes(item))
             .reduce<string[]>(
               // Expand the dependencies from the map.
