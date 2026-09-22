@@ -1,0 +1,9 @@
+name: 'Multi front end test'
+type: module
+description: 'Fixture for multi_frontend kernel tests.'
+package: Testing
+version: VERSION
+core_version_requirement: ^11.3
+dependencies:
+  - multi_frontend:multi_frontend
+  - drupal:node
