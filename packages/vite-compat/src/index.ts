@@ -5,11 +5,14 @@ import { build as viteBuild } from 'vite';
 import svgr from 'vite-plugin-svgr';
 import {
   ASSET_EXTENSIONS,
+  colorTokenToCss,
   FONT_EXTENSIONS,
+  parseCssColorString,
   resolveCanvasConfig,
 } from '@drupal-canvas/discovery';
 import drupalCanvas from '@drupal-canvas/vite-plugin';
 
+import type { NormalizedBrandKitColor } from '@drupal-canvas/discovery';
 import type { Manifest, Plugin, UserConfig } from 'vite';
 
 // The following packages are bundled by Drupal Canvas and are provided by
@@ -259,8 +262,129 @@ export interface ComponentPreviewMetadata {
   requiredPropNames: string[];
 }
 
+/**
+ * Resolves a color prop example value for Workbench preview.
+ * Brand kit references (canvas-color:<cssVarKey>) are resolved to a ResolvedColorProp object.
+ * Free-pick CSS strings (#rrggbb, rgb(), hsl(), etc.) are parsed and converted.
+ * Unresolvable values are returned as-is (fallback for graceful degradation).
+ */
+function resolveColorPropExampleForPreview(
+  example: unknown,
+  brandKitColors: NormalizedBrandKitColor[],
+): unknown {
+  if (typeof example !== 'string') {
+    return example;
+  }
+
+  // Brand kit reference: canvas-color:<cssVarKey>
+  if (example.startsWith('canvas-color:')) {
+    const key = example.slice('canvas-color:'.length);
+    const entry = brandKitColors.find((c) => c.key === key);
+    if (!entry || !entry.token) {
+      // Unresolvable brand kit ref — return raw string as safe fallback
+      return example;
+    }
+    return {
+      value: entry.token,
+      cssColorValue: colorTokenToCss(entry.token),
+      cssVariable: entry.cssVariable,
+      colorName: entry.name,
+    };
+  }
+
+  // Free-pick CSS string (#rrggbb, rgb(), hsl(), etc.)
+  const parsed = parseCssColorString(example);
+  if (parsed) {
+    return {
+      value: parsed.token,
+      cssColorValue: colorTokenToCss(parsed.token),
+      cssVariable: null,
+      colorName: null,
+    };
+  }
+
+  // Unrecognized string — pass through unchanged
+  return example;
+}
+
+export function resolvePageColorPropsForPreview<T>(
+  spec: T,
+  brandKitColors: NormalizedBrandKitColor[],
+  componentSchemas: ReadonlyMap<
+    string,
+    { colorPropNames: ReadonlySet<string> }
+  > = new Map(),
+): T {
+  const specRecord = asRecord(spec);
+  if (!specRecord) {
+    return spec;
+  }
+
+  const elements = asRecord(specRecord.elements);
+  if (!elements) {
+    return spec;
+  }
+
+  let hasElementUpdates = false;
+  const nextElements: Record<string, unknown> = {};
+
+  for (const [elementId, rawElement] of Object.entries(elements)) {
+    const element = asRecord(rawElement);
+    const props = asRecord(element?.props);
+    if (!element || !props) {
+      nextElements[elementId] = rawElement;
+      continue;
+    }
+
+    // Look up color prop names from schema index keyed by bare component name.
+    // Canvas prefixes component names with 'js.' in spec element.type values
+    // (e.g. 'js.nav' → 'nav') but componentSchemas is keyed by the bare name
+    // as stored in DiscoveredComponent.name by the discovery process.
+    const elementType = String(element.type ?? '');
+    const normalizedComponentName = elementType.startsWith('js.')
+      ? elementType.slice(3)
+      : elementType;
+    const schema = componentSchemas.get(normalizedComponentName);
+    const colorPropNames = schema?.colorPropNames;
+
+    let hasPropUpdates = false;
+    const nextProps: Record<string, unknown> = {};
+
+    for (const [propName, rawPropValue] of Object.entries(props)) {
+      // Only resolve color values for props declared with the color $ref
+      const isColorProp = colorPropNames?.has(propName) ?? false;
+      const nextPropValue = isColorProp
+        ? resolveColorPropExampleForPreview(rawPropValue, brandKitColors)
+        : rawPropValue;
+      nextProps[propName] = nextPropValue;
+      hasPropUpdates ||= nextPropValue !== rawPropValue;
+    }
+
+    if (hasPropUpdates) {
+      hasElementUpdates = true;
+      nextElements[elementId] = {
+        ...element,
+        props: nextProps,
+      };
+      continue;
+    }
+
+    nextElements[elementId] = rawElement;
+  }
+
+  if (!hasElementUpdates) {
+    return spec;
+  }
+
+  return {
+    ...specRecord,
+    elements: nextElements,
+  } as T;
+}
+
 export async function extractComponentPreviewMetadataFromComponentYaml(
   metadataPath: string,
+  brandKitColors: NormalizedBrandKitColor[] = [],
 ): Promise<ComponentPreviewMetadata> {
   try {
     const content = await fs.readFile(metadataPath, 'utf-8');
@@ -284,7 +408,13 @@ export async function extractComponentPreviewMetadataFromComponentYaml(
 
         const examples = propDefinition.examples;
         if (Array.isArray(examples) && examples.length > 0) {
-          exampleProps[propName] = examples[0];
+          const isColorProp =
+            propDefinition['$ref'] ===
+            'json-schema-definitions://canvas.module/color';
+          const rawExample = examples[0];
+          exampleProps[propName] = isColorProp
+            ? resolveColorPropExampleForPreview(rawExample, brandKitColors)
+            : rawExample;
         }
       }
     }

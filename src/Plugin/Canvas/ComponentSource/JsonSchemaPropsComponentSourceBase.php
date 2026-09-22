@@ -575,7 +575,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
    *   The resolved prop values and their combined bubbleable metadata: the
    *   cacheability plus the `#attached` assets a value needs to render.
    */
-  protected function getResolvedPropsAndBubbleableMetadata(array $props_evaluation_results, ?array $prop_schemas = NULL): array {
+  public function getResolvedPropsAndBubbleableMetadata(array $props_evaluation_results, ?array $prop_schemas = NULL): array {
     \assert(Inspector::assertAllObjects($props_evaluation_results, EvaluationResult::class));
     $props_bubbleable_metadata = new BubbleableMetadata();
     $props = [];

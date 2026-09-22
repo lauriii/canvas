@@ -6,12 +6,15 @@ import { fileURLToPath } from 'node:url';
 import { canvasTreeToSpec } from 'drupal-canvas/json-render-utils';
 import { loadEnv, build as viteBuild } from 'vite';
 import {
+  buildBrandKitColorCss,
   discoverCanvasProject,
+  readBrandKitColors,
   resolveCanvasConfig,
 } from '@drupal-canvas/discovery';
 import {
   createCanvasViteBuildConfig,
   extractComponentPreviewMetadataFromComponentYaml,
+  resolvePageColorPropsForPreview,
   validateCanvasImportRoots,
 } from '@drupal-canvas/vite-compat';
 import tailwindcss from '@tailwindcss/vite';
@@ -25,6 +28,7 @@ import { toPreviewPageSpec } from '../lib/spec-discovery';
 import type {
   DiscoveredComponent,
   DiscoveryResult,
+  NormalizedBrandKitColor,
 } from '@drupal-canvas/discovery';
 import type { Spec } from '@json-render/core';
 import type { OutputAsset, OutputChunk, RollupOutput } from 'rollup';
@@ -109,7 +113,14 @@ interface PreparedPagePreview {
 interface BuildPreviewPayloadDependencies {
   discover?: typeof discoverCanvasProject;
   resolveConfig?: typeof resolveCanvasConfig;
-  extractMetadata?: typeof extractComponentPreviewMetadataFromComponentYaml;
+  extractMetadata?: (
+    metadataPath: string,
+    brandKitColors?: NormalizedBrandKitColor[],
+  ) => Promise<{
+    label: string | null;
+    exampleProps: Record<string, unknown>;
+    requiredPropNames: string[];
+  }>;
   bundleInteractivePreview?: typeof bundleInteractivePreview;
 }
 
@@ -291,6 +302,16 @@ function buildPreviewBootstrapScript(
   }
 
   return bootstrapStatements.join('').replaceAll('</script>', '<\\/script>');
+}
+
+/**
+ * Prepends the brand kit color custom property block from the project's
+ * canvas.brand-kit.json to bundled preview CSS, matching the dev server's
+ * ordering (brand kit colors before the host global CSS).
+ */
+export function withBrandKitColorCss(projectRoot: string, css: string): string {
+  const brandKitCss = buildBrandKitColorCss(readBrandKitColors(projectRoot));
+  return brandKitCss ? `${brandKitCss}\n\n${css}` : css;
 }
 
 export function buildIframeHtml(
@@ -608,7 +629,11 @@ async function prepareComponentPreview(options: {
     };
   }
 
-  const metadata = await options.extractMetadata(component.metadataPath);
+  const brandKitColors = readBrandKitColors(options.projectRoot);
+  const metadata = await options.extractMetadata(
+    component.metadataPath,
+    brandKitColors,
+  );
   const spec = canvasTreeToSpec([
     {
       uuid: 'canvas-workbench-preview-root',
@@ -732,6 +757,8 @@ async function preparePagePreview(options: {
     )
     .map((component) => component.cssEntryPath);
 
+  const brandKitColors = readBrandKitColors(options.projectRoot);
+
   const pageTemplate = selectPageTemplate(
     options.discoveryResult.pageTemplates,
     parsedPage.pageVariant,
@@ -770,7 +797,11 @@ async function preparePagePreview(options: {
         ),
       };
     }
-    pageTemplateSpec = parsedPageTemplate.pageTemplate.spec;
+    pageTemplateSpec = resolvePageColorPropsForPreview(
+      parsedPageTemplate.pageTemplate.spec,
+      brandKitColors,
+      options.discoveryResult.componentSchemas,
+    );
   }
 
   return {
@@ -781,7 +812,11 @@ async function preparePagePreview(options: {
         name: page.name,
         projectRelativePath: page.relativePath,
       },
-      spec: parsedPage.spec,
+      spec: resolvePageColorPropsForPreview(
+        parsedPage.spec,
+        brandKitColors,
+        options.discoveryResult.componentSchemas,
+      ),
       pageTemplateSpec,
       bundleSources: toPreviewablePageRegistrySources(
         options.discoveryResult.components,
@@ -926,7 +961,7 @@ export async function buildPreviewPayload(
 
     const iframeHtml = buildIframeHtml(
       bundleResult.js,
-      bundleResult.css,
+      withBrandKitColorCss(options.projectRoot, bundleResult.css),
       runtimeSettings,
     );
 

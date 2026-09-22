@@ -9,12 +9,20 @@ import {
   pushContentTemplates,
 } from './prepare-content-templates-push';
 
-import type { DiscoveredContentTemplate } from '@drupal-canvas/discovery';
+import type {
+  BrandKitColorEntry,
+  ComponentMetadata,
+  DiscoveredContentTemplate,
+} from '@drupal-canvas/discovery';
 import type { CanvasComponentTree } from 'drupal-canvas/json-render-utils';
 
-vi.mock('@drupal-canvas/discovery', () => ({
-  loadComponentsMetadata: vi.fn(async () => []),
-}));
+vi.mock('@drupal-canvas/discovery', async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    loadComponentsMetadata: vi.fn(async () => []),
+  };
+});
 
 function mockDiscoveredContentTemplate(
   overrides: Partial<DiscoveredContentTemplate> = {},
@@ -316,6 +324,82 @@ describe('prepareContentTemplates', () => {
         'Cannot push content template',
       );
       expect(result.failed[0].error.message).not.toContain(templatePath);
+    } finally {
+      await fs.rm(temporaryDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it('serializes canvas-color cssVarKey refs to UUID refs when remoteBrandKitColors is supplied', async () => {
+    const temporaryDirectory = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'prepare-content-template-color-'),
+    );
+    const templatePath = path.join(temporaryDirectory, 'node.memo.full.json');
+
+    try {
+      await fs.writeFile(
+        templatePath,
+        JSON.stringify({
+          label: 'Memo full',
+          entityType: 'node',
+          bundle: 'memo',
+          viewMode: 'full',
+          elements: {
+            card: {
+              type: 'js.color-card',
+              props: { accent: 'canvas-color:brand-red' },
+            },
+          },
+        }),
+        'utf-8',
+      );
+
+      const colorMetadata: ComponentMetadata[] = [
+        {
+          name: 'Color Card',
+          machineName: 'color-card',
+          status: true,
+          required: [],
+          slots: {},
+          props: {
+            properties: {
+              accent: {
+                title: 'Accent',
+                type: 'string',
+                $ref: 'json-schema-definitions://canvas.module/color',
+              },
+            },
+          },
+        },
+      ];
+      const { loadComponentsMetadata } =
+        await import('@drupal-canvas/discovery');
+      vi.mocked(loadComponentsMetadata).mockResolvedValueOnce(colorMetadata);
+
+      const remoteBrandKitColors: BrandKitColorEntry[] = [
+        {
+          id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          name: 'Brand Red',
+          cssVariable: '--brand-red',
+          value: { colorSpace: 'srgb', components: [0.8, 0.1, 0.1] },
+          weight: 0,
+        },
+      ];
+
+      const result = await prepareContentTemplates(
+        [mockDiscoveredContentTemplate({ path: templatePath })],
+        new Map([['js.color-card', 'v1']]),
+        { components: [] } as never,
+        remoteBrandKitColors,
+      );
+
+      expect(result.failed).toEqual([]);
+      expect(result.valid).toHaveLength(1);
+      // The serialized component tree should contain the UUID ref, not the cssVarKey.
+      const tree = result.valid[0].result.components as CanvasComponentTree;
+      const accentValue = tree[0]?.inputs?.accent;
+      expect(accentValue).toBe(
+        'canvas-color:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      );
     } finally {
       await fs.rm(temporaryDirectory, { recursive: true, force: true });
     }

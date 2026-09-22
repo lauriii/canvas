@@ -5,6 +5,7 @@ import {
   serverPropToAuthored,
 } from './content-templates';
 
+import type { ComponentMetadata } from '@drupal-canvas/discovery';
 import type { ContentTemplate } from '../types/ContentTemplate';
 
 describe('serverPropToAuthored', () => {
@@ -183,5 +184,65 @@ describe('contentTemplateToAuthored', () => {
       contentTemplateToAuthored({ ...template, pageVariant: 'marketing' })
         .pageVariant,
     ).toBe('marketing');
+  });
+
+  it('collapses a resolved color object in inputs to a canvas-color token ref when componentMetadata is supplied', () => {
+    // Defensive: if inputs carries a resolved color object (e.g. {value, cssVariable}),
+    // collapseColorPropsInElements converts it to the canonical authored form.
+    const colorMetadata: ComponentMetadata[] = [
+      {
+        name: 'Color Card',
+        machineName: 'color-card',
+        status: true,
+        required: [],
+        slots: {},
+        props: {
+          properties: {
+            accent: {
+              title: 'Accent',
+              type: 'string',
+              $ref: 'json-schema-definitions://canvas.module/color',
+            },
+          },
+        },
+      },
+    ];
+
+    const template: ContentTemplate = {
+      id: 'node.memo.full',
+      label: 'Memo full',
+      status: true,
+      entityType: 'node',
+      bundle: 'memo',
+      viewMode: 'full',
+      component_tree: [
+        {
+          uuid: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+          parent_uuid: null,
+          slot: null,
+          component_id: 'js.color-card',
+          component_version: 'v1',
+          inputs: {
+            accent: {
+              value: {
+                colorSpace: 'srgb',
+                components: [0.8, 0.1, 0.1],
+                hex: '#cc1a1a',
+              },
+              cssVariable: '--brand-red',
+            },
+          },
+          label: null,
+        },
+      ],
+    };
+
+    const authored = contentTemplateToAuthored(template, colorMetadata);
+    expect(
+      (
+        authored.elements['ffffffff-ffff-4fff-8fff-ffffffffffff']
+          .props as Record<string, unknown>
+      ).accent,
+    ).toBe('canvas-color:brand-red');
   });
 });

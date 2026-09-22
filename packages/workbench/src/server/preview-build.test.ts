@@ -103,6 +103,7 @@ function makeDiscoveryResult(projectRoot: string): DiscoveryResult {
       scannedFiles: 0,
       ignoredFiles: 0,
     },
+    componentSchemas: new Map(),
   };
 }
 
@@ -322,6 +323,117 @@ describe('preview-build', () => {
         'utf-8',
       ),
     ).toContain('data-canvas-preview-runtime');
+  });
+
+  it('passes brand kit colors to extractMetadata when building component mock specs', async () => {
+    const projectRoot = await makeTemporaryDirectory();
+    const outputDir = '.canvas-preview/component';
+
+    await writeFile(
+      path.join(projectRoot, 'canvas.brand-kit.json'),
+      JSON.stringify({ colors: { 'brand-red': '#cc0000' } }),
+    );
+    await writeFile(
+      path.join(projectRoot, 'components/card/mocks.json'),
+      JSON.stringify({
+        mocks: [
+          { name: 'Mock One', props: { color: 'canvas-color:brand-red' } },
+        ],
+      }),
+    );
+    await writeFile(path.join(projectRoot, 'src/global.css'), 'body { }');
+
+    let capturedBrandKitColors: unknown = undefined;
+
+    await buildPreviewArtifact(
+      {
+        mode: 'component',
+        inputPath: 'components/card/component.yml',
+        projectRoot,
+        outDir: outputDir,
+      },
+      {
+        buildPreviewPayload: async (options) =>
+          makePreviewPayload(options.projectRoot),
+        discover: async () => makeDiscoveryResult(projectRoot),
+        resolveConfig: () => makeCanvasConfig(),
+        extractMetadata: async (_metadataPath, brandKitColors) => {
+          capturedBrandKitColors = brandKitColors;
+          return { label: 'Card', exampleProps: {}, requiredPropNames: [] };
+        },
+        bundleInteractivePreview: async () => ({
+          js: 'console.log("mock-runtime");',
+          css: '.mock { color: red; }',
+        }),
+      },
+    );
+
+    expect(capturedBrandKitColors).toEqual(
+      expect.arrayContaining([expect.objectContaining({ key: 'brand-red' })]),
+    );
+  });
+
+  it('resolves color props in mock specs before bundling', async () => {
+    const projectRoot = await makeTemporaryDirectory();
+    const outputDir = '.canvas-preview/component';
+
+    await writeFile(
+      path.join(projectRoot, 'canvas.brand-kit.json'),
+      JSON.stringify({ colors: { 'brand-red': '#cc0000' } }),
+    );
+    await writeFile(
+      path.join(projectRoot, 'components/card/mocks.json'),
+      JSON.stringify({
+        mocks: [
+          { name: 'Mock One', props: { color: 'canvas-color:brand-red' } },
+        ],
+      }),
+    );
+    await writeFile(path.join(projectRoot, 'src/global.css'), 'body { }');
+
+    let capturedSpec: unknown = undefined;
+
+    await buildPreviewArtifact(
+      {
+        mode: 'component',
+        inputPath: 'components/card/component.yml',
+        projectRoot,
+        outDir: outputDir,
+      },
+      {
+        buildPreviewPayload: async (options) =>
+          makePreviewPayload(options.projectRoot),
+        discover: async () => ({
+          ...makeDiscoveryResult(projectRoot),
+          componentSchemas: new Map([
+            ['card', { colorPropNames: new Set(['color']) }],
+          ]),
+        }),
+        resolveConfig: () => makeCanvasConfig(),
+        extractMetadata: async () => ({
+          label: 'Card',
+          exampleProps: {},
+          requiredPropNames: [],
+        }),
+        bundleInteractivePreview: async (options) => {
+          capturedSpec = options.spec;
+          return {
+            js: 'console.log("mock-runtime");',
+            css: '.mock { color: red; }',
+          };
+        },
+      },
+    );
+
+    const elements = (
+      capturedSpec as {
+        elements: Record<string, { props: Record<string, unknown> }>;
+      }
+    )?.elements;
+    const rootElement = elements ? Object.values(elements)[0] : undefined;
+    expect(rootElement?.props.color).toEqual(
+      expect.objectContaining({ cssColorValue: expect.any(String) }),
+    );
   });
 
   it('exports page html and simplified manifest without mocks', async () => {

@@ -1,8 +1,17 @@
 import { resolvedComponentTreeToAuthoredElementMap } from './authored-elements';
+import { collapseColorPropsInElements } from './prop-transforms';
 
+import type { ComponentMetadata } from '@drupal-canvas/discovery';
 import type { Page } from '../types/Page';
 
-export function pageToAuthoredSpec(page: Page): Record<string, unknown> {
+interface PageToAuthoredSpecOptions {
+  componentMetadata?: ComponentMetadata[];
+}
+
+export function pageToAuthoredSpec(
+  page: Page,
+  options: PageToAuthoredSpecOptions = {},
+): Record<string, unknown> {
   const meta: Record<string, unknown> = {
     uuid: page.uuid,
     title: page.title,
@@ -15,7 +24,13 @@ export function pageToAuthoredSpec(page: Page): Record<string, unknown> {
     return { ...meta, elements: {} };
   }
 
-  const elements = resolvedComponentTreeToAuthoredElementMap(page.components);
+  const baseElements = resolvedComponentTreeToAuthoredElementMap(
+    page.components,
+  );
+  const elements =
+    options.componentMetadata && options.componentMetadata.length > 0
+      ? collapseColorPropsInElements(baseElements, options.componentMetadata)
+      : baseElements;
 
   return { ...meta, elements };
 }

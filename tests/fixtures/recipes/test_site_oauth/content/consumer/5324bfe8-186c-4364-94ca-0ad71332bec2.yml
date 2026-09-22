@@ -42,6 +42,8 @@ default:
     -
       scope_id: canvas_js_component
     -
+      scope_id: canvas_brand_kit
+    -
       scope_id: canvas_page_create
     -
       scope_id: canvas_page_read

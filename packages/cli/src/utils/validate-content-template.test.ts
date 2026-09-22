@@ -78,6 +78,7 @@ async function makeDiscovery(
     pageTemplates: [],
     warnings: [],
     stats: { scannedFiles: 1, ignoredFiles: 0 },
+    componentSchemas: new Map(),
   };
 }
 

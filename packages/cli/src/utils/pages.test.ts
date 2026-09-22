@@ -6,6 +6,7 @@ import {
 } from './authored-elements';
 import { pageToAuthoredSpec } from './pages';
 
+import type { ComponentMetadata } from '@drupal-canvas/discovery';
 import type {
   AuthoredSpecElementMap,
   canvasTreeToSpec,
@@ -397,6 +398,123 @@ describe('pageToAuthoredSpec', () => {
         ]),
       ),
     ).toEqual(page.components.map(({ inputs_resolved: _, ...rest }) => rest));
+  });
+
+  it('collapses resolved color props using component metadata', () => {
+    const colorComponentMetadata: ComponentMetadata[] = [
+      {
+        name: 'Color Card',
+        machineName: 'color-card',
+        status: true,
+        required: [],
+        slots: {},
+        props: {
+          properties: {
+            brandColor: {
+              title: 'Brand Color',
+              type: 'string',
+              $ref: 'json-schema-definitions://canvas.module/color',
+            },
+            hexColor: {
+              title: 'Hex Color',
+              type: 'string',
+              $ref: 'json-schema-definitions://canvas.module/color',
+            },
+            fallbackColor: {
+              title: 'Fallback Color',
+              type: 'string',
+              $ref: 'json-schema-definitions://canvas.module/color',
+            },
+            title: {
+              title: 'Title',
+              type: 'string',
+            },
+          },
+        },
+      },
+    ];
+
+    const page: Page = {
+      id: 1,
+      uuid: '27a539f5-2dd0-471a-a364-8fee7a024a73',
+      title: 'Color Page',
+      description: '',
+      pageVariant: null,
+      status: true,
+      path: '/colors',
+      internalPath: '/page/1',
+      autoSaveLabel: null,
+      autoSavePath: null,
+      links: {},
+      components: [
+        {
+          uuid: 'color-node',
+          component_id: 'js.color-card',
+          component_version: 'v1',
+          parent_uuid: null,
+          slot: null,
+          inputs: {
+            brandColor: 'canvas-color:11111111-1111-4111-9111-111111111111',
+            hexColor: '#123456',
+            fallbackColor: '#777777',
+            title: 'Original title',
+          },
+          inputs_resolved: {
+            brandColor: {
+              value: {
+                colorSpace: 'srgb',
+                components: [0.8, 0, 0],
+                alpha: null,
+                hex: '#cc0000',
+              },
+              cssColorValue: 'rgb(204, 0, 0)',
+              cssVariable: '--brand-red',
+              colorName: 'Brand Red',
+            },
+            hexColor: {
+              value: {
+                colorSpace: 'srgb',
+                components: [0.07058823529411765, 0.20392156862745098, 0.3372],
+                alpha: null,
+                hex: '#123456',
+              },
+              cssColorValue: 'rgb(18, 52, 86)',
+              cssVariable: null,
+              colorName: null,
+            },
+            fallbackColor: {
+              value: {
+                colorSpace: 'srgb',
+                components: [0.125, 0.75, 0.5],
+                alpha: 0.5,
+                hex: '#12',
+              },
+              cssColorValue: 'rgba(32, 191, 128, 0.5)',
+              cssVariable: null,
+              colorName: null,
+            },
+            title: 'Server title',
+          },
+          label: null,
+        },
+      ],
+    };
+
+    const result = pageToAuthoredSpec(page, {
+      componentMetadata: colorComponentMetadata,
+    }) as {
+      elements: AuthoredSpecElementMap;
+    };
+
+    expect(result.elements['color-node']).toEqual({
+      type: 'js.color-card',
+      props: {
+        brandColor: 'canvas-color:brand-red',
+        hexColor: '#123456',
+        fallbackColor: 'rgba(32, 191, 128, 0.5)',
+        title: 'Server title',
+      },
+    });
   });
 
   it('stores media provenance in _provenance when inputs_resolved contains resolved media data', () => {

@@ -134,6 +134,7 @@ describe('preview-contract', () => {
         scannedFiles: 1,
         ignoredFiles: 0,
       },
+      componentSchemas: new Map(),
     });
 
     expect(manifest.componentRoot).toBe('/tmp/workspace');
@@ -142,6 +143,7 @@ describe('preview-contract', () => {
     expect(manifest.components[0].exampleProps).toEqual({});
     expect(manifest.components[0].mocks).toEqual([]);
     expect(manifest.globalCssUrl).toBeNull();
+    expect(manifest.brandKitCssUrl).toBeNull();
     expect(manifest.warnings).toHaveLength(1);
   });
 

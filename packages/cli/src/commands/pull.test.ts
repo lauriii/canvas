@@ -8,8 +8,8 @@ import { setConfig } from '../config';
 import { readValidatedComponentMetadata } from '../utils/component-metadata';
 import {
   createAssetsPullTask,
+  createBrandKitPullTask,
   createComponentsPullTask,
-  createFontsPullTask,
   createPagesPullTask,
 } from './pull';
 
@@ -48,7 +48,13 @@ describe('Pull Command', () => {
 
     it('should return empty summary when no components', async () => {
       const api = mockApiService({});
-      const task = createComponentsPullTask(api, tmpDir, false);
+      const task = createComponentsPullTask(
+        api,
+        tmpDir,
+        false,
+        { colors: [] },
+        { folders: [] },
+      );
 
       const { summaryLines } = await task.prepare();
       expect(summaryLines).toEqual([]);
@@ -56,7 +62,13 @@ describe('Pull Command', () => {
 
     it('should show only new counts in summary when none exist locally', async () => {
       const api = mockApiService({ a: mockComponent('button') });
-      const task = createComponentsPullTask(api, tmpDir, false);
+      const task = createComponentsPullTask(
+        api,
+        tmpDir,
+        false,
+        { colors: [] },
+        { folders: [] },
+      );
 
       const { summaryLines } = await task.prepare();
       expect(summaryLines).toEqual(['Components: 1 pull (1 new)']);
@@ -82,7 +94,13 @@ describe('Pull Command', () => {
         b: mockComponent('card'),
         c: mockComponent('hero'),
       });
-      const task = createComponentsPullTask(api, tmpDir, false);
+      const task = createComponentsPullTask(
+        api,
+        tmpDir,
+        false,
+        { colors: [] },
+        { folders: [] },
+      );
 
       const { summaryLines } = await task.prepare();
       expect(summaryLines).toEqual(['Components: 3 pull (2 new, 1 existing)']);
@@ -103,7 +121,13 @@ describe('Pull Command', () => {
       );
 
       const api = mockApiService({});
-      const task = createComponentsPullTask(api, tmpDir, false);
+      const task = createComponentsPullTask(
+        api,
+        tmpDir,
+        false,
+        { colors: [] },
+        { folders: [] },
+      );
 
       const { summaryLines, localOnlyCount } = await task.prepare();
       expect(summaryLines).toEqual(['Components: 1 delete (local-only)']);
@@ -125,7 +149,13 @@ describe('Pull Command', () => {
       );
 
       const api = mockApiService({ a: mockComponent('button') });
-      const task = createComponentsPullTask(api, tmpDir, false);
+      const task = createComponentsPullTask(
+        api,
+        tmpDir,
+        false,
+        { colors: [] },
+        { folders: [] },
+      );
 
       const { summaryLines } = await task.prepare();
       expect(summaryLines).toEqual([
@@ -136,7 +166,13 @@ describe('Pull Command', () => {
 
     it('should write new component files on execute', async () => {
       const api = mockApiService({ a: mockComponent('my-button') });
-      const task = createComponentsPullTask(api, tmpDir, false);
+      const task = createComponentsPullTask(
+        api,
+        tmpDir,
+        false,
+        { colors: [] },
+        { folders: [] },
+      );
 
       await task.prepare();
       const results = await task.execute();
@@ -181,7 +217,13 @@ describe('Pull Command', () => {
           sourceCodeJs: 'export default function MyButton() {}',
         },
       });
-      const task = createComponentsPullTask(api, tmpDir, false);
+      const task = createComponentsPullTask(
+        api,
+        tmpDir,
+        false,
+        { colors: [] },
+        { folders: [] },
+      );
 
       await task.prepare();
       await task.execute();
@@ -209,7 +251,13 @@ describe('Pull Command', () => {
       );
 
       const api = mockApiService({ a: mockComponent('my-button') });
-      const task = createComponentsPullTask(api, tmpDir, false);
+      const task = createComponentsPullTask(
+        api,
+        tmpDir,
+        false,
+        { colors: [] },
+        { folders: [] },
+      );
 
       await task.prepare();
       await task.execute();
@@ -235,7 +283,13 @@ describe('Pull Command', () => {
         sourceCodeJs,
       };
       const api = mockApiService({ a: component });
-      const task = createComponentsPullTask(api, tmpDir, false);
+      const task = createComponentsPullTask(
+        api,
+        tmpDir,
+        false,
+        { colors: [] },
+        { folders: [] },
+      );
 
       await task.prepare();
       const results = await task.execute();
@@ -260,7 +314,13 @@ describe('Pull Command', () => {
         },
       };
       const api = mockApiService({ a: component });
-      const task = createComponentsPullTask(api, tmpDir, false);
+      const task = createComponentsPullTask(
+        api,
+        tmpDir,
+        false,
+        { colors: [] },
+        { folders: [] },
+      );
 
       await task.prepare();
       await task.execute();
@@ -286,6 +346,8 @@ describe('Pull Command', () => {
         mockApiService({ a: component }),
         tmpDir,
         false,
+        { colors: [] },
+        { folders: [] },
       );
 
       await task.prepare();
@@ -319,6 +381,8 @@ describe('Pull Command', () => {
         mockApiService({ a: component }),
         tmpDir,
         false,
+        { colors: [] },
+        { folders: [] },
       );
 
       await task.prepare();
@@ -362,7 +426,13 @@ describe('Pull Command', () => {
       };
 
       const api = mockApiService({ a: component });
-      const task = createComponentsPullTask(api, tmpDir, false);
+      const task = createComponentsPullTask(
+        api,
+        tmpDir,
+        false,
+        { colors: [] },
+        { folders: [] },
+      );
 
       await task.prepare();
       const results = await task.execute();
@@ -414,7 +484,13 @@ describe('Pull Command', () => {
       };
 
       const api = mockApiService({ a: component });
-      const task = createComponentsPullTask(api, tmpDir, false);
+      const task = createComponentsPullTask(
+        api,
+        tmpDir,
+        false,
+        { colors: [] },
+        { folders: [] },
+      );
 
       await task.prepare();
       const results = await task.execute();
@@ -447,7 +523,13 @@ describe('Pull Command', () => {
         sourceCodeJs,
       };
       const api = mockApiService({ a: component });
-      const task = createComponentsPullTask(api, tmpDir, false);
+      const task = createComponentsPullTask(
+        api,
+        tmpDir,
+        false,
+        { colors: [] },
+        { folders: [] },
+      );
 
       await task.prepare();
       const results = await task.execute();
@@ -486,7 +568,13 @@ describe('Pull Command', () => {
       };
 
       const api = mockApiService({ a: component });
-      const task = createComponentsPullTask(api, tmpDir, false);
+      const task = createComponentsPullTask(
+        api,
+        tmpDir,
+        false,
+        { colors: [] },
+        { folders: [] },
+      );
 
       await task.prepare();
       const results = await task.execute();
@@ -517,7 +605,13 @@ describe('Pull Command', () => {
       );
 
       const api = mockApiService({ a: mockComponent('my-button') });
-      const task = createComponentsPullTask(api, tmpDir, true);
+      const task = createComponentsPullTask(
+        api,
+        tmpDir,
+        true,
+        { colors: [] },
+        { folders: [] },
+      );
 
       await task.prepare();
       const results = await task.execute();
@@ -547,7 +641,13 @@ describe('Pull Command', () => {
       );
 
       const api = mockApiService({});
-      const task = createComponentsPullTask(api, tmpDir, false);
+      const task = createComponentsPullTask(
+        api,
+        tmpDir,
+        false,
+        { colors: [] },
+        { folders: [] },
+      );
 
       await task.prepare();
       const results = await task.execute({ deleteLocalOnly: true });
@@ -556,6 +656,158 @@ describe('Pull Command', () => {
       expect(results.results[0].success).toBe(true);
       expect(results.results[0].details?.[0].content).toBe('Deleted');
       await expect(fs.access(orphanDir)).rejects.toThrow();
+    });
+
+    describe('color example UUID→cssVarKey transform', () => {
+      const brandKitColorsRef = {
+        colors: [
+          {
+            id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+            name: 'Baguette Legs',
+            cssVariable: '--baguette-legs',
+            value: {
+              colorSpace: 'srgb' as const,
+              components: [0.41, 0.49, 0.97],
+              alpha: null,
+              hex: null,
+            },
+            weight: 0,
+          },
+        ],
+      };
+
+      function makeColorComponent(exampleValue: unknown): Component {
+        return {
+          ...mockComponent('color-test'),
+          props: {
+            backgroundColor: {
+              $ref: 'json-schema-definitions://canvas.module/color',
+              examples: [exampleValue],
+            },
+          },
+        } as unknown as Component;
+      }
+
+      it('transforms canvas-color:<uuid> to canvas-color:<cssVarKey> when UUID is found', async () => {
+        const component = makeColorComponent(
+          'canvas-color:a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+        );
+        const api = mockApiService({ a: component });
+        const task = createComponentsPullTask(
+          api,
+          tmpDir,
+          false,
+          brandKitColorsRef,
+          { folders: [] },
+        );
+
+        await task.prepare();
+        await task.execute();
+
+        const ymlContent = await fs.readFile(
+          path.join(tmpDir, 'color-test', 'component.yml'),
+          'utf-8',
+        );
+        const parsed = yaml.load(ymlContent) as Record<string, unknown>;
+        const props = parsed.props as {
+          properties: {
+            backgroundColor: { examples: unknown[] };
+          };
+        };
+        expect(props.properties.backgroundColor.examples[0]).toBe(
+          'canvas-color:baguette-legs',
+        );
+      });
+
+      it('leaves canvas-color:<uuid> unchanged when UUID is not in brand kit', async () => {
+        const unknownUuid = 'ffffffff-ffff-ffff-ffff-ffffffffffff';
+        const component = makeColorComponent(`canvas-color:${unknownUuid}`);
+        const api = mockApiService({ a: component });
+        const task = createComponentsPullTask(
+          api,
+          tmpDir,
+          false,
+          {
+            colors: [],
+          },
+          {
+            folders: [],
+          },
+        );
+
+        await task.prepare();
+        await task.execute();
+
+        const ymlContent = await fs.readFile(
+          path.join(tmpDir, 'color-test', 'component.yml'),
+          'utf-8',
+        );
+        const parsed = yaml.load(ymlContent) as Record<string, unknown>;
+        const props = parsed.props as {
+          properties: {
+            backgroundColor: { examples: unknown[] };
+          };
+        };
+        expect(props.properties.backgroundColor.examples[0]).toBe(
+          `canvas-color:${unknownUuid}`,
+        );
+      });
+
+      it('leaves canvas-color:<cssVarKey> unchanged (already authored format)', async () => {
+        const component = makeColorComponent('canvas-color:baguette-legs');
+        const api = mockApiService({ a: component });
+        const task = createComponentsPullTask(
+          api,
+          tmpDir,
+          false,
+          brandKitColorsRef,
+          { folders: [] },
+        );
+
+        await task.prepare();
+        await task.execute();
+
+        const ymlContent = await fs.readFile(
+          path.join(tmpDir, 'color-test', 'component.yml'),
+          'utf-8',
+        );
+        const parsed = yaml.load(ymlContent) as Record<string, unknown>;
+        const props = parsed.props as {
+          properties: {
+            backgroundColor: { examples: unknown[] };
+          };
+        };
+        expect(props.properties.backgroundColor.examples[0]).toBe(
+          'canvas-color:baguette-legs',
+        );
+      });
+
+      it('leaves free-pick CSS color strings unchanged', async () => {
+        const component = makeColorComponent('#687df7e3');
+        const api = mockApiService({ a: component });
+        const task = createComponentsPullTask(
+          api,
+          tmpDir,
+          false,
+          brandKitColorsRef,
+          { folders: [] },
+        );
+
+        await task.prepare();
+        await task.execute();
+
+        const ymlContent = await fs.readFile(
+          path.join(tmpDir, 'color-test', 'component.yml'),
+          'utf-8',
+        );
+        const parsed = yaml.load(ymlContent) as Record<string, unknown>;
+        const props = parsed.props as {
+          properties: {
+            backgroundColor: { examples: unknown[] };
+          };
+        };
+        expect(props.properties.backgroundColor.examples[0]).toBe('#687df7e3');
+      });
     });
   });
 
@@ -1010,9 +1262,41 @@ describe('Pull Command', () => {
       } as unknown as ApiService;
     }
 
+    async function writeColorComponentMetadataFile(): Promise<void> {
+      const componentDir = path.join(tmpDir, 'color-card');
+      await fs.mkdir(componentDir, { recursive: true });
+      await fs.writeFile(
+        path.join(componentDir, 'index.tsx'),
+        'export default function ColorCard() { return null; }\n',
+        'utf-8',
+      );
+      await fs.writeFile(
+        path.join(componentDir, 'component.yml'),
+        [
+          'name: Color Card',
+          'machineName: color-card',
+          'status: true',
+          'required: []',
+          'props:',
+          '  properties:',
+          '    accent:',
+          '      title: Accent',
+          '      type: string',
+          '      $ref: json-schema-definitions://canvas.module/color',
+          '    free:',
+          '      title: Free',
+          '      type: string',
+          '      $ref: json-schema-definitions://canvas.module/color',
+          'slots: {}',
+          'dataDependencies: {}',
+        ].join('\n'),
+        'utf-8',
+      );
+    }
+
     it('should return empty summary when no pages', async () => {
       const api = mockApiService({});
-      const task = createPagesPullTask(api, tmpDir, false);
+      const task = createPagesPullTask(api, tmpDir, false, tmpDir);
 
       const { summaryLines } = await task.prepare();
       expect(summaryLines).toEqual([]);
@@ -1027,7 +1311,7 @@ describe('Pull Command', () => {
           '/about',
         ),
       });
-      const task = createPagesPullTask(api, tmpDir, false);
+      const task = createPagesPullTask(api, tmpDir, false, tmpDir);
 
       const { summaryLines } = await task.prepare();
       expect(summaryLines).toEqual(['Pages: 1 pull (1 new)']);
@@ -1058,13 +1342,14 @@ describe('Pull Command', () => {
           '/contact',
         ),
       });
-      const task = createPagesPullTask(api, tmpDir, false);
+      const task = createPagesPullTask(api, tmpDir, false, tmpDir);
 
       const { summaryLines } = await task.prepare();
       expect(summaryLines).toEqual(['Pages: 2 pull (1 new, 1 existing)']);
     });
 
     it('should write new page files on execute', async () => {
+      await writeColorComponentMetadataFile();
       const detail = mockPage(
         1,
         '27a539f5-2dd0-471a-a364-8fee7a024a73',
@@ -1073,12 +1358,44 @@ describe('Pull Command', () => {
         [
           {
             uuid: 'hero-uuid',
-            component_id: 'js.hero',
+            component_id: 'js.color-card',
             component_version: 'v1',
             parent_uuid: null,
             slot: null,
-            inputs: { heading: 'About Us' },
-            inputs_resolved: { heading: 'About Us' },
+            inputs: {
+              accent: 'canvas-color:88888888-8888-4888-8888-888888888888',
+              free: '#687df7e3',
+            },
+            inputs_resolved: {
+              accent: {
+                value: {
+                  colorSpace: 'srgb',
+                  components: [
+                    0.40784313725490196, 0.49019607843137253,
+                    0.9686274509803922,
+                  ],
+                  alpha: 0.8901960784313725,
+                  hex: '#687df7',
+                },
+                cssColorValue: 'rgba(104, 125, 247, 0.89)',
+                cssVariable: '--baguette-legs',
+                colorName: 'Baguette Legs',
+              },
+              free: {
+                value: {
+                  colorSpace: 'srgb',
+                  components: [
+                    0.40784313725490196, 0.49019607843137253,
+                    0.9686274509803922,
+                  ],
+                  alpha: 0.8901960784313725,
+                  hex: '#687df7',
+                },
+                cssColorValue: 'rgba(104, 125, 247, 0.89)',
+                cssVariable: null,
+                colorName: null,
+              },
+            },
             label: null,
           },
         ],
@@ -1095,7 +1412,7 @@ describe('Pull Command', () => {
         },
         { 1: detail },
       );
-      const task = createPagesPullTask(api, tmpDir, false);
+      const task = createPagesPullTask(api, tmpDir, false, tmpDir);
 
       await task.prepare();
       const results = await task.execute();
@@ -1110,8 +1427,11 @@ describe('Pull Command', () => {
       const content = JSON.parse(await fs.readFile(filePath, 'utf-8'));
       expect(content.title).toBe('About');
       expect(content.elements['hero-uuid']).toEqual({
-        type: 'js.hero',
-        props: { heading: 'About Us' },
+        type: 'js.color-card',
+        props: {
+          accent: 'canvas-color:baguette-legs',
+          free: '#687df7e3',
+        },
       });
     });
 
@@ -1134,7 +1454,7 @@ describe('Pull Command', () => {
         },
         { 1: detail },
       );
-      const task = createPagesPullTask(api, tmpDir, false);
+      const task = createPagesPullTask(api, tmpDir, false, tmpDir);
 
       await task.prepare();
       const results = await task.execute();
@@ -1178,7 +1498,7 @@ describe('Pull Command', () => {
         },
         { 1: detail },
       );
-      const task = createPagesPullTask(api, tmpDir, false);
+      const task = createPagesPullTask(api, tmpDir, false, tmpDir);
 
       await task.prepare();
       const results = await task.execute();
@@ -1225,7 +1545,7 @@ describe('Pull Command', () => {
         },
         { 1: detail },
       );
-      const task = createPagesPullTask(api, tmpDir, false);
+      const task = createPagesPullTask(api, tmpDir, false, tmpDir);
 
       await task.prepare();
       const results = await task.execute();
@@ -1258,7 +1578,7 @@ describe('Pull Command', () => {
           '/about',
         ),
       });
-      const task = createPagesPullTask(api, tmpDir, true);
+      const task = createPagesPullTask(api, tmpDir, true, tmpDir);
 
       await task.prepare();
       const results = await task.execute();
@@ -1292,7 +1612,7 @@ describe('Pull Command', () => {
           '/about',
         ),
       });
-      const task = createPagesPullTask(api, tmpDir, true);
+      const task = createPagesPullTask(api, tmpDir, true, tmpDir);
 
       const { summaryLines } = await task.prepare();
       expect(summaryLines).toEqual(['Pages: 1 pull (1 existing)']);
@@ -1328,7 +1648,7 @@ describe('Pull Command', () => {
           '/',
         ),
       });
-      const task = createPagesPullTask(api, tmpDir, true);
+      const task = createPagesPullTask(api, tmpDir, true, tmpDir);
 
       const { summaryLines } = await task.prepare();
       expect(summaryLines).toEqual(['Pages: 1 pull (1 existing)']);
@@ -1347,7 +1667,7 @@ describe('Pull Command', () => {
     });
   });
 
-  describe('createFontsPullTask', () => {
+  describe('createBrandKitPullTask', () => {
     let tmpDir: string;
 
     beforeEach(async () => {
@@ -1380,6 +1700,7 @@ describe('Pull Command', () => {
             url: f.url ?? `/sites/default/files/font-${i}.woff2`,
           })),
         }),
+        getFolders: vi.fn().mockResolvedValue([]),
         downloadFile: vi.fn().mockResolvedValue(Buffer.from([0x00, 0x01])),
       } as unknown as ApiService;
     }
@@ -1388,7 +1709,13 @@ describe('Pull Command', () => {
       const api = mockApiService([
         { family: 'Inter', weight: '400', style: 'normal' },
       ]);
-      const task = createFontsPullTask(api, tmpDir);
+      const task = createBrandKitPullTask(
+        api,
+        tmpDir,
+        false,
+        { colors: [] },
+        { folders: [] },
+      );
 
       const { summaryLines } = await task.prepare();
       expect(summaryLines).toEqual(['brand kit: 1 font variant pull (1 new)']);
@@ -1396,7 +1723,13 @@ describe('Pull Command', () => {
 
     it('should return empty summary when no fonts on brand kit', async () => {
       const api = mockApiService([]);
-      const task = createFontsPullTask(api, tmpDir);
+      const task = createBrandKitPullTask(
+        api,
+        tmpDir,
+        false,
+        { colors: [] },
+        { folders: [] },
+      );
 
       const { summaryLines } = await task.prepare();
       expect(summaryLines).toEqual([]);
@@ -1406,13 +1739,19 @@ describe('Pull Command', () => {
       const api = mockApiService([
         { family: 'My Font', weight: '400', style: 'normal' },
       ]);
-      const task = createFontsPullTask(api, tmpDir);
+      const task = createBrandKitPullTask(
+        api,
+        tmpDir,
+        false,
+        { colors: [] },
+        { folders: [] },
+      );
 
       await task.prepare();
       const results = await task.execute();
 
       expect(results.title).toBe('Pulled brand kit');
-      expect(results.label).toBe('Font variant');
+      expect(results.label).toBe('Item');
       expect(results.results.length).toBeGreaterThanOrEqual(1);
       expect(results.results[0].success).toBe(true);
       expect(results.results[0].itemName).toContain('My Font');
@@ -1429,6 +1768,130 @@ describe('Pull Command', () => {
       const fontsDir = path.join(tmpDir, 'fonts');
       const files = await fs.readdir(fontsDir);
       expect(files.length).toBe(1);
+    });
+
+    function mockApiServiceWithColors(
+      colors: Array<{
+        id: string;
+        name: string;
+        cssVariable: string;
+        value: {
+          colorSpace: 'srgb' | 'hsl';
+          components: number[];
+          alpha?: number | null;
+          hex?: string | null;
+        };
+        weight: number;
+      }>,
+    ): ApiService {
+      return {
+        getBrandKit: vi.fn().mockResolvedValue({
+          id: 'global',
+          fonts: [],
+          colors,
+        }),
+        getFolders: vi.fn().mockResolvedValue([]),
+        downloadFile: vi.fn(),
+      } as unknown as ApiService;
+    }
+
+    it('should include colors in the summary', async () => {
+      const api = mockApiServiceWithColors([
+        {
+          id: 'uuid-1',
+          name: 'Brand Red',
+          cssVariable: '--brand-red',
+          value: {
+            colorSpace: 'srgb',
+            components: [0.8, 0, 0],
+            alpha: null,
+            hex: '#cc0000',
+          },
+          weight: 0,
+        },
+      ]);
+      const task = createBrandKitPullTask(
+        api,
+        tmpDir,
+        false,
+        { colors: [] },
+        { folders: [] },
+      );
+
+      const { summaryLines } = await task.prepare();
+      expect(summaryLines).toEqual(['brand kit colors: 1 color pull (1 new)']);
+    });
+
+    it('should write pulled colors to canvas.brand-kit.json on execute', async () => {
+      const api = mockApiServiceWithColors([
+        {
+          id: 'uuid-1',
+          name: 'Brand Red',
+          cssVariable: '--brand-red',
+          value: {
+            colorSpace: 'srgb',
+            components: [204 / 255, 0, 0],
+            alpha: null,
+            hex: '#cc0000',
+          },
+          weight: 0,
+        },
+      ]);
+      const task = createBrandKitPullTask(
+        api,
+        tmpDir,
+        false,
+        { colors: [] },
+        { folders: [] },
+      );
+
+      await task.prepare();
+      const results = await task.execute();
+
+      expect(results.results).toEqual([
+        {
+          itemName: 'Brand Red (--brand-red)',
+          success: true,
+          details: [{ content: 'Added' }],
+        },
+      ]);
+
+      const raw = await fs.readFile(
+        path.join(tmpDir, 'canvas.brand-kit.json'),
+        'utf-8',
+      );
+      expect(JSON.parse(raw)).toEqual({
+        $schema:
+          'https://unpkg.com/@drupal-canvas/workbench/dist/client/src/lib/schemas/brand-kit.schema.json',
+        colors: { 'brand-red': '#cc0000' },
+      });
+    });
+
+    it('should keep local-only colors and report them as notes', async () => {
+      await fs.writeFile(
+        path.join(tmpDir, 'canvas.brand-kit.json'),
+        `${JSON.stringify({ colors: { local: '#123456' } }, null, 2)}\n`,
+        'utf-8',
+      );
+      const api = mockApiServiceWithColors([]);
+      const task = createBrandKitPullTask(
+        api,
+        tmpDir,
+        false,
+        { colors: [] },
+        { folders: [] },
+      );
+
+      const { summaryLines } = await task.prepare();
+      expect(summaryLines).toEqual(['brand kit colors: 0 pull (1 local-only)']);
+      const results = await task.execute();
+
+      expect(results.notes?.[0]).toContain('Local (--local)');
+      const raw = await fs.readFile(
+        path.join(tmpDir, 'canvas.brand-kit.json'),
+        'utf-8',
+      );
+      expect(JSON.parse(raw).colors).toEqual({ local: '#123456' });
     });
   });
 });

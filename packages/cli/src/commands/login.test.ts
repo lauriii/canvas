@@ -64,7 +64,7 @@ function setupHappyPath(overrides?: {
     includePages: false,
     includeContentTemplates: false,
     includePageTemplates: false,
-    includeBrandKit: false,
+    includeBrandKit: true,
     componentDir: '',
     outputDir: '',
     pagesDir: '',

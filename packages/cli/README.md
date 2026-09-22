@@ -32,9 +32,10 @@ The Canvas CLI uses three types of configuration:
 
 - **canvas.config.json** - Repository-committed configuration for values tied to
   your codebase structure (where files are stored, build output locations)
-- **canvas.brand-kit.json** - Optional Brand Kit (font) configuration. When
-  Brand Kit sync is enabled, `canvas push` and `canvas pull` use it to sync
-  fonts with the global Brand Kit. See
+- **canvas.brand-kit.json** - Optional Brand Kit configuration: fonts and
+  colors. When Brand Kit sync is enabled, `canvas push` and `canvas pull` use it
+  to sync both with the global Brand Kit. See
+  [Colors (Brand Kit)](#colors-brand-kit) and
   [Font push (Brand Kit)](#font-push-brand-kit).
 - **.env** - Environmental configuration and secrets that should not be tracked
   in version control (site URLs, OAuth credentials)
@@ -87,9 +88,9 @@ shown above. For existing projects, if `globalCssPath` is not set and
 
 #### canvas.brand-kit.json (Optional)
 
-Brand Kit (font) configuration lives in `canvas.brand-kit.json` in the project
-root. When Brand Kit sync is enabled, `canvas push` and `canvas pull` use it to
-sync fonts with the global Brand Kit. Example:
+Brand Kit configuration — fonts and colors — lives in `canvas.brand-kit.json` in
+the project root. When Brand Kit sync is enabled, `canvas push` and
+`canvas pull` use it to sync both with the global Brand Kit. Example:
 
 ```json
 {
@@ -113,12 +114,75 @@ sync fonts with the global Brand Kit. Example:
         "styles": ["normal"]
       }
     ]
+  },
+  "colors": {
+    "brand-red": "#cc0000",
+    "overlay": "hsla(220, 60%, 50%, 0.5)",
+    "santa-face": {
+      "value": "#0000FF",
+      "name": "Father Christmas"
+    }
   }
 }
 ```
 
-Font configuration lives in `canvas.brand-kit.json`. See
-[Font push (Brand Kit)](#font-push-brand-kit) for the full schema.
+Files the CLI creates carry a `$schema` reference so editors validate and
+autocomplete them, and `canvas validate` checks the whole file offline. See
+[Colors (Brand Kit)](#colors-brand-kit) and
+[Font push (Brand Kit)](#font-push-brand-kit).
+
+#### Colors (Brand Kit)
+
+The `colors` key is a map from color key to CSS color value: the key becomes the
+CSS custom property name (`"brand-red"` becomes `--brand-red`). Values are CSS
+color strings (`#rrggbb`, `#rrggbbaa`, `rgb()`, `rgba()`, `hsl()`, `hsla()`) or
+a `{ "value": …, "name": …, "displayFormat": … }` wrapper when an entry needs
+more than its value.
+
+Example:
+
+```json
+{
+  "colors": {
+    "brand-red": "#cc0000",
+    "overlay": "hsla(220, 60%, 50%, 0.5)",
+    "santa-face": {
+      "value": "#0000FF",
+      "name": "Father Christmas"
+    }
+  }
+}
+```
+
+The display name shown in the Canvas editor defaults to the key converted to
+title case ("Brand Red"), unless the wrapper asserts one. The site requires
+color names to be unique (compared case-insensitively).
+
+`displayFormat` controls how the color appears in the Canvas editor's color
+picker (`"rgb"`, `"hex"`, or `"hsl"`). It is derived automatically from the
+value form you write — a hex string displays as hex, `rgb()` as RGB, `hsl()` as
+HSL — so you only need to set it if you want the editor to show a different
+format than the one you wrote.
+
+`canvas pull` writes the site's colors into the map (keeping semantically equal
+entries byte-for-byte) and `canvas push` creates and updates colors on the site,
+matched by the variable the key names. A color that exists on the site but not
+in the file is never deleted by default — push reports it and continues. Pass
+`--prune-colors` to `canvas push` to delete such colors. A color that is in use
+by a component instance or template cannot be deleted; push continues with all
+other operations, reports the site's reason for each refusal, and fails at the
+end only if any deletions were refused.
+
+**Folders:** Color folders are managed in the Canvas UI only. Colors that
+already exist on the site retain their folder membership when updated by push.
+Colors created by push (i.e. keys present in the file but not yet on the site)
+land in the colors root; use the Canvas UI to move them into folders afterward.
+Color props can be configured in the UI to restrict their picker to colors from
+specific folders. That restriction is not enforced by the CLI: a pulled file may
+contain color values from outside the allowed folders, and those values can be
+pushed without error. However, a newly pushed color will not appear as an
+available option in the prop's color picker until it is placed in a supported
+folder via the UI.
 
 #### Font push (Brand Kit)
 
@@ -194,11 +258,12 @@ to get started.
 | _(none)_                 | _(none)_                           | User tokens from `canvas auth login` are stored in `~/.config/drupal-canvas/oauth.json` (keyed by site URL) and used automatically. No environment variable is needed.                                |
 | `--no-pages`             | `CANVAS_INCLUDE_PAGES`             | (Optional) Exclude pages from `pull`, `push`, and `reconcile-media`. `CANVAS_INCLUDE_PAGES` is deprecated; use `sync.pages` in `canvas.config.json` instead.                                          |
 | `--no-content-templates` | `CANVAS_INCLUDE_CONTENT_TEMPLATES` | (Optional) Exclude content templates from `pull`, `push`, and `reconcile-media`. `CANVAS_INCLUDE_CONTENT_TEMPLATES` is deprecated; use `sync.contentTemplates` in `canvas.config.json` instead.       |
-| `--include-brand-kit`    | `CANVAS_INCLUDE_BRAND_KIT`         | (Optional) Include brand kit (fonts) in `pull` and `push`. Defaults to `false`. Accepts `true`/`false`, `1`/`0`, or `yes`/`no`.                                                                       |
+| `--include-brand-kit`    | `CANVAS_INCLUDE_BRAND_KIT`         | (Optional) Include brand kit (fonts and colors) in `pull` and `push`. Defaults to `true`. Use `--no-include-brand-kit` to disable. Accepts `true`/`false`, `1`/`0`, or `yes`/`no`.                    |
 | `--no-page-templates`    | _(none)_                           | (Optional) Exclude page templates from `pull`, `push`, and `reconcile-media`. Use `sync.pageTemplates` in `canvas.config.json` for a project default.                                                 |
 
 **Note:** When `CANVAS_SCOPE` is unset, the CLI uses the `canvas_oauth`
-defaults. With `--include-brand-kit` or `CANVAS_INCLUDE_BRAND_KIT`, it adds the
+defaults. Brand kit sync is on by default; when it is enabled (or explicitly
+enabled via `--include-brand-kit` or `CANVAS_INCLUDE_BRAND_KIT`), it adds the
 `canvas:brand_kit` scope. When pages, content templates, or page templates are
 enabled through `sync` config, defaults, or deprecated env vars, it adds the
 corresponding `canvas:page:*`, `canvas:content_template`, and
@@ -328,8 +393,10 @@ stay managed in the Canvas editor instead of the authored codebase.
 ### `pull`
 
 Pull code components, global CSS, package.json, local modules imported by
-components, pages, content templates, and page templates from Drupal to your
-local filesystem. Brand Kit fonts are only included when explicitly enabled.
+components, pages, content templates, page templates, and brand kit (fonts and
+colors) from Drupal to your local filesystem. Brand kit sync is on by default
+when `canvas.brand-kit.json` is present; use `--no-include-brand-kit` to skip
+it.
 
 If the project's `package.json` was captured on a previous `push`, it is written
 back to the project root during pull. It is overwritten by default, or skipped
@@ -347,7 +414,8 @@ npx canvas pull [options]
   `canvas.config.json` or `src/components`)
 - `--no-pages`: Exclude pages from the pull operation
 - `--no-content-templates`: Exclude content templates from the pull operation
-- `--include-brand-kit [enabled]`: Include Brand Kit fonts in the pull operation
+- `--include-brand-kit [enabled]`: Include brand kit (fonts and colors) in the
+  pull operation. Defaults to `true`; use `--no-include-brand-kit` to disable.
 - `--no-page-templates`: Exclude page templates from the pull operation
 - `-y, --yes`: Skip all confirmation prompts (non-interactive mode)
 - `--skip-overwrite`: Skip items that already exist locally
@@ -374,10 +442,10 @@ Pull Code Components and global CSS without pages or content templates:
 npx canvas pull --no-pages --no-content-templates
 ```
 
-Pull Brand Kit fonts:
+Skip brand kit sync:
 
 ```bash
-npx canvas pull --include-brand-kit
+npx canvas pull --no-include-brand-kit
 ```
 
 Pull only new items (skip existing):
@@ -392,12 +460,12 @@ Fully non-interactive, only pull new items:
 npx canvas pull --yes --skip-overwrite
 ```
 
-Pulls Code Components, global CSS, pages, content templates, and page templates
-from your site by default. Use `--no-pages`, `--no-content-templates`, or
-`--no-page-templates` to exclude those resources for a single run, or set
-`sync.*` in `canvas.config.json` to change project defaults. Use
-`--include-brand-kit` or `CANVAS_INCLUDE_BRAND_KIT=true` to include Brand Kit
-fonts. Use `--skip-overwrite` to skip items that already exist locally.
+Pulls Code Components, global CSS, pages, content templates, page templates, and
+brand kit (fonts and colors) from your site by default. Use `--no-pages`,
+`--no-content-templates`, `--no-page-templates`, or `--no-include-brand-kit` to
+exclude those resources for a single run, or set `sync.*` in
+`canvas.config.json` to change project defaults. Use `--skip-overwrite` to skip
+items that already exist locally.
 
 **Fonts:** The pull command fetches fonts from the global Brand Kit, downloads
 font files into a `fonts/` directory, and adds local `src` entries to
@@ -405,8 +473,13 @@ font files into a `fonts/` directory, and adds local `src` entries to
 weight + style). Variants already present in your config (e.g., from a previous
 push) are skipped, so push-then-pull is idempotent. New variants added via the
 Canvas UI for a family you already have in config are downloaded and appended to
-`families`. Requires `--include-brand-kit` or `CANVAS_INCLUDE_BRAND_KIT` which
-will add the `canvas:brand_kit` OAuth scope.
+`families`.
+
+**Colors:** `canvas pull` writes the site's colors into the `colors` map in
+`canvas.brand-kit.json`. Entries already in the file that match the server value
+are kept byte-for-byte. Local-only entries (not on the site) are preserved at
+the end of the map and reported. `--skip-overwrite` only appends new colors and
+leaves existing entries untouched.
 
 ---
 
@@ -510,8 +583,9 @@ tree-shaking, and dependency management.
 ### `push`
 
 Build and push local components, global CSS, build artifacts, pages, content
-templates, and page templates to Drupal. Brand Kit fonts are only included when
-explicitly enabled.
+templates, page templates, and brand kit (fonts and colors) to Drupal. Brand kit
+sync is on by default when `canvas.brand-kit.json` is present; use
+`--no-include-brand-kit` to skip it.
 
 **Usage:**
 
@@ -525,8 +599,12 @@ npx canvas push [options]
   `componentDir` from `canvas.config.json` or `src/components`)
 - `--no-pages`: Exclude pages from the push operation
 - `--no-content-templates`: Exclude content templates from the push operation
-- `--include-brand-kit [enabled]`: Include Brand Kit fonts in the push operation
+- `--include-brand-kit [enabled]`: Include brand kit (fonts and colors) in the
+  push operation. Defaults to `true`.
+- `--no-include-brand-kit`: Exclude brand kit from the push operation.
 - `--no-page-templates`: Exclude page templates from the push operation
+- `--prune-colors`: Delete colors from the site that are absent from
+  `canvas.brand-kit.json`.
 - `-y, --yes`: Skip confirmation prompts (non-interactive mode)
 
 **Examples:**
@@ -543,10 +621,10 @@ Push components without pages or content templates:
 npx canvas push --no-pages --no-content-templates
 ```
 
-Push Brand Kit fonts:
+Skip brand kit sync:
 
 ```bash
-npx canvas push --include-brand-kit
+npx canvas push --no-include-brand-kit
 ```
 
 Push components in a specific directory:
@@ -572,11 +650,11 @@ component assets. Push can include:
    `package.json`, when present, is stored verbatim on the same asset_library
    entity so a later `pull` can reconstruct it. It is opaque metadata and is
    never parsed.
-3. **Fonts** - If `canvas.brand-kit.json` is present, fonts are resolved (via
-   unifont or local `src`), uploaded, and synced to the global Brand Kit.
-   Requires `--include-brand-kit` or `CANVAS_INCLUDE_BRAND_KIT` which will add
-   the `canvas:brand_kit` OAuth scope. See
-   [Font push (Brand Kit)](#font-push-brand-kit).
+3. **Fonts and Colors** - If `canvas.brand-kit.json` is present, fonts are
+   resolved (via unifont or local `src`), uploaded, and synced to the global
+   Brand Kit. Colors are created or updated on the site matched by CSS variable
+   name. Colors on the site but not in the file are reported and left untouched
+   unless `--prune-colors` is passed.
 4. **Vendor artifacts** - Bundled third-party dependencies
 5. **Local artifacts** - Bundled local imports (e.g., `@/utils`)
 6. **Shared chunks** - Common code shared between vendor bundles
@@ -762,7 +840,8 @@ npx canvas logout --site-url https://example.com
 
 ### `validate`
 
-Validate local components, pages, content templates, and page templates.
+Validate local components, pages, content templates, page templates, and
+`canvas.brand-kit.json`.
 
 **Usage:**
 

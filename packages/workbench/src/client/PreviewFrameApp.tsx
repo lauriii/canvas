@@ -190,11 +190,16 @@ export function PreviewFrameApp() {
       try {
         setPreviewError(null);
 
-        await Promise.all(
-          request.payload.cssUrls.map(async (cssUrl) => {
+        // Import CSS sequentially: Vite injects a style element when each
+        // module executes, so concurrent imports would make the cascade
+        // order (brand kit, then global, then component CSS) racy.
+        for (const cssUrl of request.payload.cssUrls) {
+          try {
             await import(/* @vite-ignore */ cssUrl);
-          }),
-        );
+          } catch (err) {
+            console.warn(`Failed to load CSS: ${cssUrl}`, err);
+          }
+        }
 
         const registry = await defineComponentRegistry(
           request.payload.registrySources.map((source) => ({

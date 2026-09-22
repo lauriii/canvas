@@ -10,6 +10,7 @@ import { processInPool } from './request-pool';
 import { isRecord } from './utils';
 
 import type {
+  BrandKitColorEntry,
   DiscoveredContentTemplate,
   DiscoveryResult,
 } from '@drupal-canvas/discovery';
@@ -86,6 +87,7 @@ export async function prepareContentTemplates(
   discovered: DiscoveredContentTemplate[],
   componentVersions: Map<string, string>,
   discoveryResult: DiscoveryResult,
+  remoteBrandKitColors: BrandKitColorEntry[] = [],
 ): Promise<{
   valid: Array<{ index: number; result: PreparedContentTemplate }>;
   failed: Array<{ index: number; error: Error }>;
@@ -124,6 +126,7 @@ export async function prepareContentTemplates(
     const serializedElements = serializeElementMapForServer(
       spec.elements ?? {},
       componentMetadata,
+      remoteBrandKitColors,
     );
     const tree = authoredElementMapToComponentTree(
       serializedElements,

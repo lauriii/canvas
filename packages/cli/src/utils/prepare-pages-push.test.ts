@@ -5,11 +5,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   collectPageResults,
+  entitiesHaveColorProps,
   preparePages,
   pushPages,
 } from './prepare-pages-push';
 
-import type { DiscoveredPage, DiscoveryResult } from '@drupal-canvas/discovery';
+import type {
+  ComponentMetadata,
+  DiscoveredPage,
+  DiscoveryResult,
+} from '@drupal-canvas/discovery';
 import type { ApiService } from '../services/api';
 import type { PageListItem } from '../types/Page';
 
@@ -22,6 +27,7 @@ const emptyDiscoveryResult: DiscoveryResult = {
   pageTemplates: [],
   warnings: [],
   stats: { scannedFiles: 0, ignoredFiles: 0 },
+  componentSchemas: new Map(),
 };
 
 function mockDiscoveredPage(
@@ -137,6 +143,138 @@ describe('preparePages', () => {
 
     expect(valid).toHaveLength(0);
     expect(failed).toHaveLength(1);
+  });
+});
+
+describe('entitiesHaveColorProps', () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'pages-color-check-'));
+  });
+
+  afterEach(async () => {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it('returns true when a page uses a component with color props', async () => {
+    const pagePath = path.join(tmpDir, 'home.json');
+    await fs.writeFile(
+      pagePath,
+      JSON.stringify({
+        title: 'Home',
+        elements: {
+          card: {
+            type: 'js.color-card',
+            props: { accent: 'canvas-color:brand-red' },
+          },
+        },
+      }),
+      'utf-8',
+    );
+
+    const pages = [mockDiscoveredPage('home', null, pagePath)];
+    const metadata: ComponentMetadata[] = [
+      {
+        name: 'Color Card',
+        machineName: 'color-card',
+        status: true,
+        required: [],
+        slots: {},
+        props: {
+          properties: {
+            accent: {
+              title: 'Accent',
+              type: 'string',
+              $ref: 'json-schema-definitions://canvas.module/color',
+            },
+          },
+        },
+      },
+    ];
+
+    await expect(entitiesHaveColorProps(pages, metadata)).resolves.toBe(true);
+  });
+
+  it('returns false when no page uses components with color props', async () => {
+    const pagePath = path.join(tmpDir, 'home.json');
+    await fs.writeFile(
+      pagePath,
+      JSON.stringify({
+        title: 'Home',
+        elements: {
+          hero: {
+            type: 'js.hero',
+            props: { heading: 'Hello' },
+          },
+        },
+      }),
+      'utf-8',
+    );
+
+    const pages = [mockDiscoveredPage('home', null, pagePath)];
+    const metadata: ComponentMetadata[] = [
+      {
+        name: 'Hero',
+        machineName: 'hero',
+        status: true,
+        required: [],
+        slots: {},
+        props: {
+          properties: {
+            heading: {
+              title: 'Heading',
+              type: 'string',
+            },
+          },
+        },
+      },
+    ];
+
+    await expect(entitiesHaveColorProps(pages, metadata)).resolves.toBe(false);
+  });
+
+  it('returns true when a content-template-shaped file uses a component with color props', async () => {
+    const templatePath = path.join(tmpDir, 'node.article.full.json');
+    await fs.writeFile(
+      templatePath,
+      JSON.stringify({
+        label: 'Article — Full',
+        entityType: 'node',
+        bundle: 'article',
+        viewMode: 'full',
+        elements: {
+          card: {
+            type: 'js.color-card',
+            props: { accent: 'canvas-color:brand-red' },
+          },
+        },
+      }),
+      'utf-8',
+    );
+
+    const metadata: ComponentMetadata[] = [
+      {
+        name: 'Color Card',
+        machineName: 'color-card',
+        status: true,
+        required: [],
+        slots: {},
+        props: {
+          properties: {
+            accent: {
+              title: 'Accent',
+              type: 'string',
+              $ref: 'json-schema-definitions://canvas.module/color',
+            },
+          },
+        },
+      },
+    ];
+
+    await expect(
+      entitiesHaveColorProps([{ path: templatePath }], metadata),
+    ).resolves.toBe(true);
   });
 });
 

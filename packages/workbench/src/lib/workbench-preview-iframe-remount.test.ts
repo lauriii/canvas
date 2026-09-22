@@ -38,6 +38,7 @@ const baseDiscovery: DiscoveryResult = {
   pageTemplates: [],
   warnings: [],
   stats: { scannedFiles: 0, ignoredFiles: 0 },
+  componentSchemas: new Map(),
 };
 
 const baseManifest: PreviewManifest = {
@@ -45,6 +46,7 @@ const baseManifest: PreviewManifest = {
   components: [],
   warnings: [],
   globalCssUrl: null,
+  brandKitCssUrl: null,
 };
 
 describe('computeWorkbenchStructuralFingerprint', () => {
@@ -58,6 +60,18 @@ describe('computeWorkbenchStructuralFingerprint', () => {
       structuredClone(baseManifest),
     );
     expect(a).toBe(b);
+  });
+
+  it('changes when the brand kit CSS URL changes', () => {
+    const a = computeWorkbenchStructuralFingerprint(
+      baseDiscovery,
+      baseManifest,
+    );
+    const b = computeWorkbenchStructuralFingerprint(baseDiscovery, {
+      ...baseManifest,
+      brandKitCssUrl: '/@id/virtual:canvas-brand-kit.css',
+    });
+    expect(a).not.toBe(b);
   });
 });
 
