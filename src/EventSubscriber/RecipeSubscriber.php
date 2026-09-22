@@ -29,7 +29,10 @@ final class RecipeSubscriber implements EventSubscriberInterface {
   public static function getSubscribedEvents(): array {
     return [
       PreImportEvent::class => 'ensureComponentsExist',
-      RecipeAppliedEvent::class => 'onApply',
+      RecipeAppliedEvent::class => [
+        ['onApply'],
+        ['migrateSiteTemplate', PHP_INT_MIN],
+      ],
     ];
   }
 
@@ -68,7 +71,19 @@ final class RecipeSubscriber implements EventSubscriberInterface {
         $this->configActionManager->applyAction($action_id, $name, $data);
       }
     }
+  }
 
+  /**
+   * Migrates page regions after all other recipe applied subscribers have run.
+   *
+   * Installing the page template component module rebuilds the container.
+   * Running last prevents later subscribers from using the invalidated
+   * container.
+   *
+   * @param \Drupal\Core\Recipe\RecipeAppliedEvent $event
+   *   The event object.
+   */
+  public static function migrateSiteTemplate(RecipeAppliedEvent $event): void {
     if ($event->recipe->type === 'Site') {
       PageVariantMigration::migrateDefaultTheme();
     }
