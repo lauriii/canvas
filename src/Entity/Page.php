@@ -39,7 +39,10 @@ use Drupal\views\EntityViewsData;
     label_collection: new TranslatableMarkup("Pages"),
     label_singular: new TranslatableMarkup("page"),
     label_plural: new TranslatableMarkup("pages"),
-    label_count: ["@count page", "@count pages"],
+    label_count: [
+      "singular" => "@count page",
+      "plural" => "@count pages",
+    ],
     handlers: [
       "storage" => SqlContentEntityStorage::class,
       "access" => PageAccessControlHandler::class,
