@@ -53,6 +53,7 @@ function makeDiscoveryResult(
     pageTemplates,
     warnings: [],
     stats: { scannedFiles: pageTemplates.length, ignoredFiles: 0 },
+    componentSchemas: new Map(),
   };
 }
 

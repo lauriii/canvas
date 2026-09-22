@@ -1,5 +1,7 @@
 import { resolvedComponentTreeToAuthoredElementMap } from './authored-elements';
+import { collapseColorPropsInElements } from './prop-transforms';
 
+import type { ComponentMetadata } from '@drupal-canvas/discovery';
 import type { AuthoredSpecElementMap } from 'drupal-canvas/json-render-utils';
 import type { PageVariant } from '../types/PageVariant';
 
@@ -25,6 +27,7 @@ export interface AuthoredPageTemplateSpec {
 export function pageVariantToAuthoredSpec(
   variant: PageVariant,
   isDefault: boolean,
+  componentMetadata: ComponentMetadata[] = [],
 ): AuthoredPageTemplateSpec {
   const meta: Omit<AuthoredPageTemplateSpec, 'elements'> = {
     label: variant.label,
@@ -37,10 +40,14 @@ export function pageVariantToAuthoredSpec(
     return { ...meta, elements: {} };
   }
 
-  const elements = resolvedComponentTreeToAuthoredElementMap(
+  const baseElements = resolvedComponentTreeToAuthoredElementMap(
     variant.component_tree,
     { fallbackToRawInputs: true },
   );
+  const elements =
+    componentMetadata.length > 0
+      ? collapseColorPropsInElements(baseElements, componentMetadata)
+      : baseElements;
 
   return { ...meta, elements };
 }

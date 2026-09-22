@@ -51,7 +51,7 @@ describe('config', () => {
         includePages: true,
         includeContentTemplates: true,
         includePageTemplates: true,
-        includeBrandKit: false,
+        includeBrandKit: true,
         outputDir: 'dist',
         pagesDir: 'pages',
         pageTemplatesDir: 'page-templates',
@@ -78,7 +78,7 @@ describe('config', () => {
         includePages: true,
         includeContentTemplates: true,
         includePageTemplates: true,
-        includeBrandKit: false,
+        includeBrandKit: true,
         outputDir: 'dist',
         pagesDir: 'pages',
         pageTemplatesDir: 'page-templates',
@@ -278,7 +278,7 @@ describe('config', () => {
         includePages: true,
         includeContentTemplates: true,
         includePageTemplates: true,
-        includeBrandKit: false,
+        includeBrandKit: true,
         outputDir: 'dist',
         pagesDir: 'pages',
         pageTemplatesDir: 'page-templates',
@@ -309,7 +309,7 @@ describe('config', () => {
       expect(getConfig().includeContentTemplates).toBe(false);
       expect(getConfig().includePageTemplates).toBe(false);
       expect(getConfig().scope).toBe(
-        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view',
+        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:brand_kit',
       );
     });
 
@@ -329,7 +329,7 @@ describe('config', () => {
       // they stay enabled.
       expect(getConfig().includePageTemplates).toBe(true);
       expect(getConfig().scope).toBe(
-        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:page_variant',
+        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:page_variant canvas:brand_kit',
       );
     });
 
@@ -344,12 +344,12 @@ describe('config', () => {
         siteUrl: '',
         clientId: '',
         clientSecret: '',
-        includeBrandKit: false,
+        includeBrandKit: true,
         includeContentTemplates: true,
         includePages: true,
         includePageTemplates: true,
         scope:
-          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant',
+          'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant canvas:brand_kit',
         componentDir: 'src/components',
         contentTemplatesDir: 'content-templates',
         fonts: undefined,
@@ -368,7 +368,7 @@ describe('config', () => {
 
       expect(getConfig().includePages).toBe(true);
       expect(getConfig().scope).toBe(
-        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant',
+        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant canvas:brand_kit',
       );
     });
 
@@ -382,7 +382,7 @@ describe('config', () => {
 
       expect(getConfig().includePageTemplates).toBe(true);
       expect(getConfig().scope).toBe(
-        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant',
+        'canvas:js_component canvas:asset_library canvas:media:image:create canvas:media:document:create canvas:media:view canvas:page:create canvas:page:read canvas:page:edit canvas:content_template canvas:page_variant canvas:brand_kit',
       );
     });
   });

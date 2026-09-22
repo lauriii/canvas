@@ -173,6 +173,7 @@ describe('validatePages', () => {
       pageTemplates: [],
       warnings: [],
       stats: { scannedFiles: 1, ignoredFiles: 0 },
+      componentSchemas: new Map(),
     };
 
     try {
@@ -215,6 +216,7 @@ describe('validatePages', () => {
       pageTemplates: [],
       warnings: [],
       stats: { scannedFiles: 1, ignoredFiles: 0 },
+      componentSchemas: new Map(),
     };
 
     try {
@@ -266,7 +268,7 @@ describe('validatePages', () => {
         {
           name: 'home',
           slug: 'home',
-          uuid,
+          uuid: null,
           path: pagePath,
           relativePath: 'pages/home.json',
         },
@@ -274,6 +276,7 @@ describe('validatePages', () => {
       pageTemplates: [],
       warnings: [],
       stats: { scannedFiles: 1, ignoredFiles: 0 },
+      componentSchemas: new Map(),
     };
 
     try {
@@ -333,6 +336,7 @@ describe('validatePages', () => {
       pageTemplates: [],
       warnings: [],
       stats: { scannedFiles: 1, ignoredFiles: 0 },
+      componentSchemas: new Map(),
     };
 
     try {
@@ -413,6 +417,7 @@ describe('validatePages', () => {
         pageTemplates: [],
         warnings: [],
         stats: { scannedFiles: 2, ignoredFiles: 0 },
+        componentSchemas: new Map(),
       };
 
       const { results } = await validatePages(discoveryResult);

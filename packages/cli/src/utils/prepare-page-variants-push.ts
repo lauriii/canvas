@@ -7,6 +7,7 @@ import { serializeElementMapForServer } from './prop-transforms';
 import { processInPool } from './request-pool';
 
 import type {
+  BrandKitColorEntry,
   DiscoveredPageTemplate,
   DiscoveryResult,
 } from '@drupal-canvas/discovery';
@@ -48,6 +49,7 @@ export async function preparePageVariants(
   discoveredPageTemplates: DiscoveredPageTemplate[],
   componentVersions: Map<string, string>,
   discoveryResult: DiscoveryResult,
+  remoteBrandKitColors: BrandKitColorEntry[] = [],
 ): Promise<{
   valid: Array<{ index: number; result: PreparedPageVariant }>;
   failed: Array<{ index: number; error: Error }>;
@@ -69,6 +71,7 @@ export async function preparePageVariants(
       const elements = serializeElementMapForServer(
         spec.elements ?? {},
         componentMetadata,
+        remoteBrandKitColors,
       );
       const components = authoredElementMapToComponentTree(
         elements,

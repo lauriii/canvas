@@ -1,3 +1,4 @@
+import type { BrandKitColorEntry } from '@drupal-canvas/discovery';
 import type {
   AssetLibrary,
   CodeComponentSerialized as Component,
@@ -5,6 +6,7 @@ import type {
 } from '@drupal-canvas/ui/types/CodeComponent';
 
 export { AssetLibrary, Component, DataDependencies };
+export type { BrandKitColorEntry };
 
 /**
  * A server-side uploaded artifact reference tracked in the asset library manifest.
@@ -73,9 +75,26 @@ export interface BrandKitFontEntryWithUrl extends BrandKitFontEntry {
   url: string;
 }
 
-/** Brand kit config entity (subset used for font sync). */
+/** Payload accepted by the color create/update endpoints (no server id). */
+export type BrandKitColorPayload = Omit<BrandKitColorEntry, 'id' | 'weight'> &
+  Partial<Pick<BrandKitColorEntry, 'weight'>>;
+
+/** Brand kit config entity (subset used for font and color sync). */
 export interface BrandKit {
   id: string;
   label?: string;
   fonts?: BrandKitFontEntryWithUrl[] | null;
+  /** Derived from the site's color entities; only present when colors exist. */
+  colors?: BrandKitColorEntry[];
+}
+
+/** Color folder config entity as returned by the HTTP API (matches backend Folder). */
+export interface ColorFolderEntry {
+  /** Server-assigned id (the entity UUID). */
+  id: string;
+  name: string;
+  type: string;
+  weight: number;
+  /** Array of color UUIDs contained in this folder. */
+  items: string[];
 }

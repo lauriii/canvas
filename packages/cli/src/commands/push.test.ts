@@ -729,6 +729,80 @@ describe('Push components', () => {
     vi.clearAllMocks();
   });
 
+  it('serializes color prop examples from cssVarKey refs to UUID refs', async () => {
+    const api = mockApiService();
+    vi.mocked(api.listComponents).mockResolvedValue({});
+    vi.mocked(api.createComponent).mockResolvedValue({} as never);
+
+    await pushBuiltComponents(
+      [
+        {
+          machineName: 'color-card',
+          componentName: 'Color Card',
+          importedJsComponents: [],
+          componentPayload: {
+            machineName: 'color-card',
+            name: 'Color Card',
+            props: {
+              accent: {
+                title: 'Accent',
+                type: 'string',
+                $ref: 'json-schema-definitions://canvas.module/color',
+                examples: ['canvas-color:baguette-legs'],
+              },
+              unknown: {
+                title: 'Unknown',
+                type: 'string',
+                $ref: 'json-schema-definitions://canvas.module/color',
+                examples: ['canvas-color:not-on-server'],
+              },
+              heading: {
+                title: 'Heading',
+                type: 'string',
+                examples: ['Welcome'],
+              },
+            },
+            sourceCodeJs: 'export default function ColorCard() {}',
+            compiledJs: 'export default function ColorCard() {}',
+          } as never,
+        },
+      ],
+      api,
+      'Pushing',
+      undefined,
+      [
+        {
+          id: '55555555-5555-4555-9555-555555555555',
+          name: 'Baguette Legs',
+          cssVariable: '--baguette-legs',
+          value: {
+            colorSpace: 'srgb',
+            components: [1, 0.678, 1],
+            alpha: null,
+            hex: '#ffadff',
+          },
+          weight: 4,
+        },
+      ],
+    );
+
+    expect(api.createComponent).toHaveBeenCalledTimes(1);
+    expect(api.createComponent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        props: {
+          accent: expect.objectContaining({
+            examples: ['canvas-color:55555555-5555-4555-9555-555555555555'],
+          }),
+          unknown: expect.objectContaining({
+            examples: ['canvas-color:not-on-server'],
+          }),
+          heading: expect.objectContaining({ examples: ['Welcome'] }),
+        },
+      }),
+      true,
+    );
+  });
+
   it('uploads built component payloads in dependency order', async () => {
     const api = mockApiService();
     vi.mocked(api.listComponents).mockResolvedValue({});

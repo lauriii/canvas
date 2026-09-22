@@ -4,11 +4,13 @@ import path from 'node:path';
 import { glob } from 'glob';
 import ignore from 'ignore';
 
+import { COLOR_PROP_SCHEMA_REF } from './brand-kit-colors';
 import { findDuplicateMachineNames, loadComponentMetadata } from './metadata';
 import { ComponentMetadataValidationError } from './metadata-validation';
 
 import type {
   DiscoveredComponent,
+  DiscoveredComponentSchema,
   DiscoveredContentTemplate,
   DiscoveredPage,
   DiscoveredPageTemplate,
@@ -481,24 +483,6 @@ export async function discoverCanvasProject(
   contentTemplates.sort((a, b) => a.path.localeCompare(b.path));
   pageTemplates.sort((a, b) => a.id.localeCompare(b.id));
 
-  const result: DiscoveryResult = {
-    componentRoot,
-    projectRoot,
-    components,
-    pages,
-    contentTemplates,
-    pageTemplates,
-    warnings,
-    stats: {
-      scannedFiles:
-        allCandidates.length +
-        pageCandidates.length +
-        contentTemplateCandidates.length +
-        pageTemplateCandidates.length,
-      ignoredFiles,
-    },
-  };
-
   // Invalid metadata is reported by consumers when they load it. Discovery
   // remains available so editors and validation commands can surface those
   // errors without stopping file watching or skipping the remaining files.
@@ -524,6 +508,46 @@ export async function discoverCanvasProject(
     validMetadataEntries.map(({ metadata }) => metadata),
   );
   warnings.push(...duplicateWarnings);
+
+  // Build componentSchemas index from loaded metadata.
+  const componentSchemas = new Map<string, DiscoveredComponentSchema>();
+  for (const { component, metadata } of validMetadataEntries) {
+    const colorPropNames = new Set<string>();
+    if (metadata.props?.properties) {
+      for (const [propName, propDef] of Object.entries(
+        metadata.props.properties,
+      )) {
+        if (
+          typeof propDef === 'object' &&
+          propDef !== null &&
+          '$ref' in propDef &&
+          propDef.$ref === COLOR_PROP_SCHEMA_REF
+        ) {
+          colorPropNames.add(propName);
+        }
+      }
+    }
+    componentSchemas.set(component.name, { colorPropNames });
+  }
+
+  const result: DiscoveryResult = {
+    componentRoot,
+    projectRoot,
+    components,
+    pages,
+    contentTemplates,
+    pageTemplates,
+    warnings,
+    stats: {
+      scannedFiles:
+        allCandidates.length +
+        pageCandidates.length +
+        contentTemplateCandidates.length +
+        pageTemplateCandidates.length,
+      ignoredFiles,
+    },
+    componentSchemas,
+  };
 
   return result;
 }

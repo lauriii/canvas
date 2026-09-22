@@ -1220,6 +1220,55 @@ describe('defineComponentCatalog', () => {
     ).toBe(false);
   });
 
+  it('should validate Canvas color props without recursive schema overflow', () => {
+    const metadata: ComponentMetadata[] = [
+      {
+        name: 'Color Chip',
+        machineName: 'color_chip',
+        status: true,
+        props: {
+          properties: {
+            color: {
+              title: 'Color',
+              type: 'string',
+              $ref: 'json-schema-definitions://canvas.module/color',
+            },
+          },
+        },
+        required: ['color'],
+        slots: {},
+      },
+    ];
+
+    const catalog = defineComponentCatalog(metadata);
+
+    const validHexSpec = {
+      root: 'chip',
+      elements: {
+        chip: {
+          type: 'js.color_chip',
+          props: { color: '#687df7e3' },
+          children: [],
+          slots: {},
+        },
+      },
+    };
+    expect(catalog.validate(validHexSpec).success).toBe(true);
+
+    const validBrandKitRefSpec = {
+      root: 'chip',
+      elements: {
+        chip: {
+          type: 'js.color_chip',
+          props: { color: 'canvas-color:brand-blue' },
+          children: [],
+          slots: {},
+        },
+      },
+    };
+    expect(catalog.validate(validBrandKitRefSpec).success).toBe(true);
+  });
+
   it('should create a catalog from component metadata', () => {
     const metadata: ComponentMetadata[] = [
       {

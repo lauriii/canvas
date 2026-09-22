@@ -3,9 +3,13 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
   discoverCanvasProject,
+  readBrandKitColors,
   resolveCanvasConfig,
 } from '@drupal-canvas/discovery';
-import { extractComponentPreviewMetadataFromComponentYaml } from '@drupal-canvas/vite-compat';
+import {
+  extractComponentPreviewMetadataFromComponentYaml,
+  resolvePageColorPropsForPreview,
+} from '@drupal-canvas/vite-compat';
 
 import { isSupportedPreviewModulePath } from '../lib/preview-runtime';
 import { toPreviewManifestComponentMocks } from '../lib/spec-discovery';
@@ -15,6 +19,7 @@ import {
   bundleInteractivePreview,
   formatComponentPathConstraintMessage,
   resolvePreviewRuntimeSettings,
+  withBrandKitColorCss,
 } from './preview-payload';
 import { trustSystemCertificates } from './system-ca';
 
@@ -694,6 +699,7 @@ export async function buildPreviewArtifact(
 
       const componentMetadata = await extractMetadata(
         selectedComponent.metadataPath,
+        readBrandKitColors(options.projectRoot),
       );
       const loadedMocks = await loadComponentMocks({
         component: selectedComponentForMocks,
@@ -704,6 +710,7 @@ export async function buildPreviewArtifact(
       combinedWarnings.push(...loadedMocks.warnings);
 
       if (loadedMocks.mocks.length > 0) {
+        const brandKitColors = readBrandKitColors(options.projectRoot);
         const globalCssPath = await maybeResolveGlobalCssPath(
           options.projectRoot,
           config.globalCssPath,
@@ -734,13 +741,17 @@ export async function buildPreviewArtifact(
           const bundleResult = await bundle({
             projectRoot: options.projectRoot,
             aliasBaseDir: config.aliasBaseDir,
-            spec: mock.spec,
+            spec: resolvePageColorPropsForPreview(
+              mock.spec,
+              brandKitColors,
+              discoveryResult.componentSchemas,
+            ),
             componentSources: registrySources,
             cssEntryPaths: uniqueCssEntryPaths,
           });
           const mockHtml = buildIframeHtml(
             bundleResult.js,
-            bundleResult.css,
+            withBrandKitColorCss(options.projectRoot, bundleResult.css),
             runtimeSettings,
           );
           const fileName = `component-mock-${String(mockIndex + 1).padStart(2, '0')}.html`;

@@ -81,7 +81,7 @@ describe('buildCommand', () => {
       componentDir: 'src/components',
       contentTemplatesDir: 'content-templates',
       globalCssPath: 'src/global.css',
-      includeBrandKit: false,
+      includeBrandKit: true,
       includeContentTemplates: false,
       includePages: false,
       includePageTemplates: false,
@@ -130,6 +130,7 @@ describe('buildCommand', () => {
         scannedFiles: 2,
         ignoredFiles: 0,
       },
+      componentSchemas: new Map(),
     } as DiscoveryResult;
     vi.mocked(discoverCanvasProject).mockResolvedValue(discoveryResult);
     vi.mocked(buildCanvasProject).mockResolvedValue({

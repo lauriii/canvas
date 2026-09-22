@@ -15,6 +15,7 @@ import {
   extractFirstExamplePropsFromComponentYaml,
   getWorkbenchHostGlobalCssVirtualUrl,
   resolveHostGlobalCssPath,
+  resolvePageColorPropsForPreview,
   rewriteCanvasAssetImports,
 } from './index';
 
@@ -169,6 +170,382 @@ describe('vite-compat', () => {
         title: 'Hello',
       },
       requiredPropNames: ['title'],
+    });
+  });
+
+  describe('color prop example resolution', () => {
+    it('resolves brand kit color reference to ResolvedColorProp object', async () => {
+      const root = await makeTempDir();
+      const metadataPath = path.join(root, 'component.yml');
+      await fs.writeFile(
+        metadataPath,
+        [
+          'name: Color Card',
+          'props:',
+          '  properties:',
+          '    background:',
+          '      type: string',
+          '      $ref: json-schema-definitions://canvas.module/color',
+          '      examples:',
+          '        - canvas-color:brand-red',
+        ].join('\n'),
+        'utf-8',
+      );
+
+      const brandKitColors = [
+        {
+          rawKey: 'brand-red',
+          key: 'brand-red',
+          cssVariable: '--brand-red',
+          name: 'Brand Red',
+          token: {
+            colorSpace: 'srgb' as const,
+            components: [0.8, 0, 0],
+            alpha: null,
+            hex: '#cc0000',
+          },
+          rawValue: '#cc0000',
+        },
+      ];
+
+      const result = await extractComponentPreviewMetadataFromComponentYaml(
+        metadataPath,
+        brandKitColors,
+      );
+      expect(result.exampleProps.background).toEqual({
+        value: {
+          colorSpace: 'srgb',
+          components: [0.8, 0, 0],
+          alpha: null,
+          hex: '#cc0000',
+        },
+        cssColorValue: '#cc0000',
+        cssVariable: '--brand-red',
+        colorName: 'Brand Red',
+      });
+    });
+
+    it('resolves free-pick hex color to ResolvedColorProp object', async () => {
+      const root = await makeTempDir();
+      const metadataPath = path.join(root, 'component.yml');
+      await fs.writeFile(
+        metadataPath,
+        [
+          'name: Color Card',
+          'props:',
+          '  properties:',
+          '    border:',
+          '      type: string',
+          '      $ref: json-schema-definitions://canvas.module/color',
+          '      examples:',
+          '        - "#687df7e3"',
+        ].join('\n'),
+        'utf-8',
+      );
+
+      const result = await extractComponentPreviewMetadataFromComponentYaml(
+        metadataPath,
+        [],
+      );
+      expect(result.exampleProps.border).toEqual({
+        value: {
+          colorSpace: 'srgb',
+          components: [
+            0.40784313725490196, 0.49019607843137253, 0.9686274509803922,
+          ],
+          alpha: 0.8901960784313725,
+          hex: '#687df7',
+        },
+        cssColorValue: 'rgba(104, 125, 247, 0.89)',
+        cssVariable: null,
+        colorName: null,
+      });
+    });
+
+    it('resolves free-pick hsl color to ResolvedColorProp object', async () => {
+      const root = await makeTempDir();
+      const metadataPath = path.join(root, 'component.yml');
+      await fs.writeFile(
+        metadataPath,
+        [
+          'name: Color Card',
+          'props:',
+          '  properties:',
+          '    accent:',
+          '      type: string',
+          '      $ref: json-schema-definitions://canvas.module/color',
+          '      examples:',
+          '        - "hsl(220, 60%, 50%)"',
+        ].join('\n'),
+        'utf-8',
+      );
+
+      const result = await extractComponentPreviewMetadataFromComponentYaml(
+        metadataPath,
+        [],
+      );
+      expect(result.exampleProps.accent).toEqual({
+        value: {
+          colorSpace: 'hsl',
+          components: [220, 60, 50],
+          alpha: null,
+          hex: null,
+        },
+        cssColorValue: 'hsl(220, 60%, 50%)',
+        cssVariable: null,
+        colorName: null,
+      });
+    });
+
+    it('returns raw string for unresolvable brand kit reference', async () => {
+      const root = await makeTempDir();
+      const metadataPath = path.join(root, 'component.yml');
+      await fs.writeFile(
+        metadataPath,
+        [
+          'name: Color Card',
+          'props:',
+          '  properties:',
+          '    background:',
+          '      type: string',
+          '      $ref: json-schema-definitions://canvas.module/color',
+          '      examples:',
+          '        - canvas-color:unknown-color',
+        ].join('\n'),
+        'utf-8',
+      );
+
+      const result = await extractComponentPreviewMetadataFromComponentYaml(
+        metadataPath,
+        [],
+      );
+      // Unresolvable brand kit ref returns raw string as safe fallback
+      expect(result.exampleProps.background).toBe('canvas-color:unknown-color');
+    });
+
+    it('passes through non-color props unchanged', async () => {
+      const root = await makeTempDir();
+      const metadataPath = path.join(root, 'component.yml');
+      await fs.writeFile(
+        metadataPath,
+        [
+          'name: Mixed Props',
+          'props:',
+          '  properties:',
+          '    title:',
+          '      type: string',
+          '      examples:',
+          '        - Hello World',
+          '    color:',
+          '      type: string',
+          '      $ref: json-schema-definitions://canvas.module/color',
+          '      examples:',
+          '        - "#ff0000"',
+        ].join('\n'),
+        'utf-8',
+      );
+
+      const result = await extractComponentPreviewMetadataFromComponentYaml(
+        metadataPath,
+        [],
+      );
+      expect(result.exampleProps.title).toBe('Hello World');
+      expect(result.exampleProps.color).toEqual({
+        value: {
+          colorSpace: 'srgb',
+          components: [1, 0, 0],
+          alpha: null,
+          hex: '#ff0000',
+        },
+        cssColorValue: '#ff0000',
+        cssVariable: null,
+        colorName: null,
+      });
+    });
+  });
+
+  describe('resolvePageColorPropsForPreview', () => {
+    it('resolves authored page color strings for preview', () => {
+      const spec = {
+        root: 'canvas:component-tree',
+        elements: {
+          'canvas:component-tree': {
+            type: 'canvas:component-tree',
+            props: {},
+            children: ['node-1'],
+          },
+          'node-1': {
+            type: 'js.canvas_test_code_components_color_three_colors',
+            props: {
+              brandPastel: 'canvas-color:baguette-legs',
+              free: '#ff0000',
+              title: 'Hello',
+            },
+          },
+        },
+      };
+
+      // Schema index keyed by bare component name (discovery strips any 'js.' prefix).
+      // Only brandPastel and free are declared as color props; title is a plain string.
+      const componentSchemas = new Map([
+        [
+          'canvas_test_code_components_color_three_colors',
+          {
+            colorPropNames: new Set<string>(['brandPastel', 'free']),
+          },
+        ],
+      ]);
+
+      const result = resolvePageColorPropsForPreview(
+        spec,
+        [
+          {
+            rawKey: 'baguette-legs',
+            key: 'baguette-legs',
+            cssVariable: '--baguette-legs',
+            name: 'Baguette Legs',
+            token: {
+              colorSpace: 'srgb',
+              components: [0.2, 0.3, 0.4],
+              hex: '#334d66',
+            },
+            rawValue: '#334d66',
+          },
+        ],
+        componentSchemas,
+      );
+
+      const props = result.elements['node-1'].props as Record<string, unknown>;
+      expect(props.brandPastel).toEqual({
+        value: {
+          colorSpace: 'srgb',
+          components: [0.2, 0.3, 0.4],
+          hex: '#334d66',
+        },
+        cssColorValue: '#334d66',
+        cssVariable: '--baguette-legs',
+        colorName: 'Baguette Legs',
+      });
+      expect(props.free).toEqual({
+        value: {
+          colorSpace: 'srgb',
+          components: [1, 0, 0],
+          alpha: null,
+          hex: '#ff0000',
+        },
+        cssColorValue: '#ff0000',
+        cssVariable: null,
+        colorName: null,
+      });
+      expect(props.title).toBe('Hello');
+    });
+
+    it('returns raw string for unknown brand kit color refs', () => {
+      const spec = {
+        root: 'root',
+        elements: {
+          root: {
+            type: 'js.canvas_test_code_components_color_three_colors',
+            props: {
+              brandPastel: 'canvas-color:baguette-legs',
+            },
+          },
+        },
+      };
+
+      const result = resolvePageColorPropsForPreview(spec, []);
+      const props = result.elements.root.props as Record<string, unknown>;
+      expect(props.brandPastel).toBe('canvas-color:baguette-legs');
+    });
+
+    it('does not transform color-like values on non-color props', () => {
+      // Regression test: a string prop with a value that parses as a CSS color
+      // should NOT be transformed if the prop is not declared with the color $ref.
+      const spec = {
+        root: 'canvas:component-tree',
+        elements: {
+          'canvas:component-tree': {
+            type: 'canvas:component-tree',
+            props: {},
+            children: ['node-1'],
+          },
+          'node-1': {
+            type: 'js.my_component',
+            props: {
+              title: '#ff0000',
+              subtitle: 'rgb(1, 2, 3)',
+            },
+          },
+        },
+      };
+
+      // Schema index: 'title' and 'subtitle' are NOT color props
+      const componentSchemas = new Map([
+        [
+          'my_component',
+          {
+            colorPropNames: new Set<string>(),
+          },
+        ],
+      ]);
+
+      const result = resolvePageColorPropsForPreview(
+        spec,
+        [],
+        componentSchemas,
+      );
+      const props = result.elements['node-1'].props as Record<string, unknown>;
+
+      // These should remain as raw strings, NOT transformed to ResolvedColorProp objects
+      expect(props.title).toBe('#ff0000');
+      expect(props.subtitle).toBe('rgb(1, 2, 3)');
+    });
+
+    it('transforms only color props when schema is provided', () => {
+      const spec = {
+        root: 'canvas:component-tree',
+        elements: {
+          'canvas:component-tree': {
+            type: 'canvas:component-tree',
+            props: {},
+            children: ['node-1'],
+          },
+          'node-1': {
+            type: 'js.my_component',
+            props: {
+              colorProp: '#ff0000',
+              textProp: '#00ff00',
+            },
+          },
+        },
+      };
+
+      // Schema index: only 'colorProp' is a color prop
+      const componentSchemas = new Map([
+        [
+          'my_component',
+          {
+            colorPropNames: new Set<string>(['colorProp']),
+          },
+        ],
+      ]);
+
+      const result = resolvePageColorPropsForPreview(
+        spec,
+        [],
+        componentSchemas,
+      );
+      const props = result.elements['node-1'].props as Record<string, unknown>;
+
+      // colorProp should be transformed
+      expect(props.colorProp).toEqual(
+        expect.objectContaining({
+          cssColorValue: '#ff0000',
+        }),
+      );
+
+      // textProp should remain a raw string
+      expect(props.textProp).toBe('#00ff00');
     });
   });
 

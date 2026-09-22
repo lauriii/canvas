@@ -1,6 +1,18 @@
+import {
+  CANVAS_COLOR_REF_PREFIX,
+  COLOR_PROP_SCHEMA_REF,
+  serializeColorValue,
+  transformColorRef,
+  UUID_PATTERN,
+} from '@drupal-canvas/discovery';
+
 import { isRecord } from './utils';
 
-import type { ComponentMetadata } from '@drupal-canvas/discovery';
+import type {
+  BrandKitColorEntry,
+  ColorTokenValue,
+  ComponentMetadata,
+} from '@drupal-canvas/discovery';
 import type { CodeComponentPropSerialized } from '@drupal-canvas/ui/types/CodeComponent';
 import type { AuthoredSpecElementMap } from 'drupal-canvas/json-render-utils';
 
@@ -9,6 +21,12 @@ export interface UnreconciledMediaProp {
   propName: string;
   src: string;
   mediaType: string;
+}
+
+export interface UnreconciledColorProp {
+  elementId: string;
+  propName: string;
+  key: string;
 }
 
 /**
@@ -80,6 +98,7 @@ interface PropTransformer {
     context: {
       schema: CodeComponentPropSerialized;
       provenance?: unknown;
+      colorsByCssVariable?: Map<string, BrandKitColorEntry>;
     },
   ): unknown;
 }
@@ -173,9 +192,25 @@ const mediaTransformer: PropTransformer = {
   },
 };
 
+/**
+ * Color props (`$ref: json-schema-definitions://canvas.module/color`).
+ * Authored: CSS string or canvas-color:<cssVarKey>. Server: CSS string or
+ * canvas-color:<uuid>.
+ */
+const colorTransformer: PropTransformer = {
+  matches(schema) {
+    return schema.$ref === COLOR_PROP_SCHEMA_REF;
+  },
+
+  serialize(value, { colorsByCssVariable }) {
+    return transformColorRef(value, colorsByCssVariable ?? new Map(), 'toUuid');
+  },
+};
+
 // All transformers. Order matters: the first match wins.
 const transformers: PropTransformer[] = [
   mediaTransformer,
+  colorTransformer,
   formattedTextTransformer,
   linkTransformer,
 ];
@@ -191,6 +226,7 @@ export function serializePropsForServer(
   props: Record<string, unknown>,
   propSchemas: Record<string, CodeComponentPropSerialized>,
   provenance: Record<string, unknown> = {},
+  colorsByCssVariable?: Map<string, BrandKitColorEntry>,
 ): Record<string, unknown> {
   const result: Record<string, unknown> = {};
 
@@ -208,6 +244,7 @@ export function serializePropsForServer(
       result[key] = transformer.serialize(value, {
         schema,
         provenance: provenance[key],
+        colorsByCssVariable,
       });
     } else {
       result[key] = value;
@@ -223,11 +260,15 @@ export function serializePropsForServer(
 export function serializeElementMapForServer(
   elements: AuthoredSpecElementMap,
   metadata: ComponentMetadata[],
+  remoteBrandKitColors: BrandKitColorEntry[] = [],
 ): AuthoredSpecElementMap {
   const schemaMap = new Map(
     metadata.map((m) => [`js.${m.machineName}`, m.props.properties ?? {}]),
   );
   const result: AuthoredSpecElementMap = {};
+  const colorsByCssVariable = new Map(
+    remoteBrandKitColors.map((color) => [color.cssVariable, color]),
+  );
 
   for (const [id, element] of Object.entries(elements)) {
     const propSchemas = schemaMap.get(element.type);
@@ -242,6 +283,7 @@ export function serializeElementMapForServer(
         element.props as Record<string, unknown>,
         propSchemas,
         element._provenance,
+        colorsByCssVariable,
       ),
     };
   }
@@ -281,4 +323,187 @@ export function collectUnreconciledMediaProps(
   }
 
   return unreconciled;
+}
+
+export function collectUnreconciledColorProps(
+  elements: AuthoredSpecElementMap,
+  metadata: ComponentMetadata[],
+  remoteBrandKitColors: BrandKitColorEntry[],
+): UnreconciledColorProp[] {
+  const schemaMap = new Map(
+    metadata.map((m) => [`js.${m.machineName}`, m.props.properties ?? {}]),
+  );
+  const knownCssVariables = new Set(
+    remoteBrandKitColors.map((color) => color.cssVariable),
+  );
+  const unreconciled: UnreconciledColorProp[] = [];
+
+  for (const [elementId, element] of Object.entries(elements)) {
+    const propSchemas = schemaMap.get(element.type);
+    if (!propSchemas || !isRecord(element.props)) {
+      continue;
+    }
+
+    for (const [propName, value] of Object.entries(element.props)) {
+      const schema = propSchemas[propName];
+      if (!schema || schema.$ref !== COLOR_PROP_SCHEMA_REF) {
+        continue;
+      }
+      if (typeof value !== 'string') {
+        continue;
+      }
+      if (!value.startsWith(CANVAS_COLOR_REF_PREFIX)) {
+        continue;
+      }
+
+      const key = value.slice(CANVAS_COLOR_REF_PREFIX.length);
+      if (UUID_PATTERN.test(key)) {
+        continue;
+      }
+      if (!knownCssVariables.has(`--${key}`)) {
+        unreconciled.push({ elementId, propName, key });
+      }
+    }
+  }
+
+  return unreconciled;
+}
+
+function isColorTokenValue(value: unknown): value is ColorTokenValue {
+  if (!isRecord(value)) {
+    return false;
+  }
+  const components = value.components;
+  return (
+    (value.colorSpace === 'srgb' || value.colorSpace === 'hsl') &&
+    Array.isArray(components) &&
+    components.length === 3 &&
+    components.every(
+      (component) =>
+        typeof component === 'number' && Number.isFinite(component),
+    )
+  );
+}
+
+/**
+ * Converts a single server-resolved color value to CLI-friendly string form.
+ * See {@link collapseColorPropsInElements} for the full conversion rules.
+ * Values that are not resolved objects pass through unchanged.
+ */
+function collapseResolvedColorPropValue(value: unknown): unknown {
+  const resolvedColor = isRecord(value) ? value : null;
+  const token = resolvedColor?.value;
+  if (!isColorTokenValue(token)) {
+    return value;
+  }
+
+  const cssVariableValue = resolvedColor?.cssVariable;
+  const cssVariable =
+    typeof cssVariableValue === 'string' ? cssVariableValue : null;
+  if (cssVariable && cssVariable.startsWith('--') && cssVariable.length > 2) {
+    return `${CANVAS_COLOR_REF_PREFIX}${cssVariable.slice(2)}`;
+  }
+
+  if (token.colorSpace === 'srgb' && typeof token.hex === 'string') {
+    const normalizedHex = /^#[0-9a-fA-F]{6}$/.test(token.hex)
+      ? token.hex
+      : null;
+    if (normalizedHex) {
+      if (token.alpha == null || token.alpha === 1) {
+        return normalizedHex;
+      }
+      const alphaByte = Math.min(
+        255,
+        Math.max(0, Math.round(token.alpha * 255)),
+      );
+      const alphaHex = alphaByte.toString(16).padStart(2, '0');
+      return `${normalizedHex}${alphaHex}`;
+    }
+  }
+
+  return serializeColorValue(token);
+}
+
+/**
+ * Converts server-resolved color prop values to CLI-friendly string form.
+ *
+ * During a pull the server returns color props as resolved objects
+ * ({ value: ColorTokenValue, cssVariable, cssColorValue, colorName }) rather
+ * than the plain strings stored in the database. This function walks every
+ * element in the map and rewrites those objects to CLI-friendly strings:
+ *
+ *   - Brand kit colors (cssVariable present) → "canvas-color:<cssVarKey>"
+ *     e.g. { cssVariable: "--brand-red", … }  → "canvas-color:brand-red"
+ *   - Free-pick sRGB with a hex value         → "#rrggbb" or "#rrggbbaa"
+ *   - All other free-pick colors              → CSS function string via
+ *                                               serializeColorValue()
+ *   - Values already in CLI-friendly form     → unchanged (pass-through)
+ *
+ * The original map reference is returned when no values change, avoiding
+ * spurious database writes.
+ */
+export function collapseColorPropsInElements(
+  elements: AuthoredSpecElementMap,
+  componentMetadata: ComponentMetadata[],
+): AuthoredSpecElementMap {
+  const colorPropNamesByType = new Map<string, Set<string>>();
+
+  for (const entry of componentMetadata) {
+    const colorProps = new Set<string>();
+    for (const [propName, schema] of Object.entries(
+      entry.props.properties ?? {},
+    )) {
+      if (schema.$ref === COLOR_PROP_SCHEMA_REF) {
+        colorProps.add(propName);
+      }
+    }
+    if (colorProps.size > 0) {
+      colorPropNamesByType.set(`js.${entry.machineName}`, colorProps);
+    }
+  }
+
+  if (colorPropNamesByType.size === 0) {
+    return elements;
+  }
+
+  let hasUpdates = false;
+  const nextElements: AuthoredSpecElementMap = {};
+
+  for (const [elementId, element] of Object.entries(elements)) {
+    const colorProps = colorPropNamesByType.get(element.type);
+    if (!colorProps || !isRecord(element.props)) {
+      nextElements[elementId] = element;
+      continue;
+    }
+
+    let propsChanged = false;
+    const nextProps: Record<string, unknown> = {
+      ...(element.props as Record<string, unknown>),
+    };
+
+    for (const propName of colorProps) {
+      if (!(propName in nextProps)) {
+        continue;
+      }
+      const currentValue = nextProps[propName];
+      const nextValue = collapseResolvedColorPropValue(currentValue);
+      if (nextValue !== currentValue) {
+        nextProps[propName] = nextValue;
+        propsChanged = true;
+      }
+    }
+
+    if (propsChanged) {
+      hasUpdates = true;
+      nextElements[elementId] = {
+        ...element,
+        props: nextProps,
+      };
+      continue;
+    }
+
+    nextElements[elementId] = element;
+  }
+
+  return hasUpdates ? nextElements : elements;
 }

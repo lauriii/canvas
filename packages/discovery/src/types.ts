@@ -79,6 +79,17 @@ export interface DiscoveredPageTemplate {
   relativePath: string;
 }
 
+/**
+ * Schema-derived, spec-time metadata for a single component.
+ * Populated once during discovery from the component's metadata file.
+ * Used to inform spec resolution (e.g. color prop conversion for preview)
+ * without re-reading YAML on every request.
+ */
+export interface DiscoveredComponentSchema {
+  /** Prop names declared with $ref: json-schema-definitions://canvas.module/color */
+  colorPropNames: ReadonlySet<string>;
+}
+
 export interface DiscoveryResult {
   componentRoot: string;
   projectRoot: string;
@@ -91,6 +102,12 @@ export interface DiscoveryResult {
     scannedFiles: number;
     ignoredFiles: number;
   };
+  /**
+   * Schema index keyed by component name (the value of element.type in a Spec).
+   * Contains only the subset of schema data needed for spec-level resolution.
+   * Components whose metadata failed to parse are absent from this map.
+   */
+  componentSchemas: ReadonlyMap<string, DiscoveredComponentSchema>;
 }
 
 export interface ComponentMetadata extends Pick<

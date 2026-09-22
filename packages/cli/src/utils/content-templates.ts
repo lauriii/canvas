@@ -1,6 +1,8 @@
 import { componentTreeToAuthoredElementMap } from './authored-elements';
+import { collapseColorPropsInElements } from './prop-transforms';
 import { isRecord } from './utils';
 
+import type { ComponentMetadata } from '@drupal-canvas/discovery';
 import type { AuthoredSpecElementMap } from 'drupal-canvas/json-render-utils';
 import type { ContentTemplate } from '../types/ContentTemplate';
 
@@ -76,11 +78,16 @@ export interface AuthoredContentTemplateFile {
  */
 export function contentTemplateToAuthored(
   template: ContentTemplate,
+  componentMetadata: ComponentMetadata[] = [],
 ): AuthoredContentTemplateFile {
-  const elements = componentTreeToAuthoredElementMap(
+  const baseElements = componentTreeToAuthoredElementMap(
     template.component_tree ?? [],
     translateInputsFromServer,
   );
+  const elements =
+    componentMetadata.length > 0
+      ? collapseColorPropsInElements(baseElements, componentMetadata)
+      : baseElements;
   return {
     label: template.label,
     entityType: template.entityType,

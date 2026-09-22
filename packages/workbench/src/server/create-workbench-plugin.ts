@@ -1,15 +1,19 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import {
+  BRAND_KIT_CONFIG_FILENAME,
+  buildBrandKitColorCss,
   ComponentMetadataValidationError,
   discoverCanvasProject,
   loadComponentMetadata,
   loadComponentsMetadata,
+  readBrandKitColors,
 } from '@drupal-canvas/discovery';
 import {
   ensureHostGlobalCssExists,
   extractComponentPreviewMetadataFromComponentYaml,
   getWorkbenchHostGlobalCssVirtualUrl,
+  resolvePageColorPropsForPreview,
 } from '@drupal-canvas/vite-compat';
 
 import { isComponentMetadataPath } from '../lib/component-metadata-path';
@@ -309,7 +313,11 @@ async function loadPreviewPageSpec(
   }
 
   return {
-    spec: parsedPage.spec,
+    spec: resolvePageColorPropsForPreview(
+      parsedPage.spec,
+      readBrandKitColors(discoveryResult.projectRoot),
+      discoveryResult.componentSchemas,
+    ),
     pageVariant: parsedPage.pageVariant,
     status: 200,
     error: null,
@@ -385,7 +393,11 @@ async function loadPreviewContentTemplateSpec(
   }
 
   return {
-    spec: parsedTemplate.spec,
+    spec: resolvePageColorPropsForPreview(
+      parsedTemplate.spec,
+      readBrandKitColors(discoveryResult.projectRoot),
+      discoveryResult.componentSchemas,
+    ),
     metadata: parsedTemplate.metadata,
     status: 200,
     error: null,
@@ -471,7 +483,11 @@ async function loadPreviewPageTemplateSpec(
   }
 
   return {
-    spec: parsedPageTemplate.pageTemplate.spec,
+    spec: resolvePageColorPropsForPreview(
+      parsedPageTemplate.pageTemplate.spec,
+      readBrandKitColors(discoveryResult.projectRoot),
+      discoveryResult.componentSchemas,
+    ),
     status: 200,
     error: null,
     enabled: parsedPageTemplate.pageTemplate.status,
@@ -532,6 +548,7 @@ export async function buildWorkbenchPreviewManifest(
       const componentPreviewMetadata =
         await extractComponentPreviewMetadataFromComponentYaml(
           component.metadataPath,
+          readBrandKitColors(discoveryResult.projectRoot),
         );
       const exampleProps = componentPreviewMetadata.exampleProps;
       const { mocks, warnings } = await loadComponentMocks(
@@ -571,6 +588,9 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
   let hostGlobalCssPath: string | null = null;
   const virtualHostGlobalCssId = 'virtual:canvas-host-global.css';
   const resolvedVirtualHostGlobalCssId = '\0virtual:canvas-host-global.css';
+  const virtualBrandKitCssId = 'virtual:canvas-brand-kit.css';
+  const resolvedVirtualBrandKitCssId = '\0virtual:canvas-brand-kit.css';
+  const brandKitCssVirtualUrl = '/@id/virtual:canvas-brand-kit.css';
 
   const refresh = async () => {
     if (refreshTask) {
@@ -603,9 +623,19 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
         return resolvedVirtualHostGlobalCssId;
       }
 
+      if (source === virtualBrandKitCssId) {
+        return resolvedVirtualBrandKitCssId;
+      }
+
       return null;
     },
     load(id) {
+      if (id === resolvedVirtualBrandKitCssId) {
+        // Lenient by design: a missing or malformed brand kit file yields an
+        // empty stylesheet rather than a dev-server error.
+        return buildBrandKitColorCss(readBrandKitColors(paths.hostProjectRoot));
+      }
+
       if (id !== resolvedVirtualHostGlobalCssId || !hostGlobalCssPath) {
         return null;
       }
@@ -739,6 +769,7 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
               globalCssUrl: hostGlobalCssPath
                 ? getWorkbenchHostGlobalCssVirtualUrl()
                 : null,
+              brandKitCssUrl: brandKitCssVirtualUrl,
             }),
           );
         })().catch((error) => {
@@ -901,6 +932,37 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
 
       server.watcher.on('all', (event, filePath) => {
         if (!['add', 'change', 'unlink'].includes(event)) {
+          return;
+        }
+
+        if (path.basename(filePath) === BRAND_KIT_CONFIG_FILENAME) {
+          // A brand kit edit affects both the generated stylesheet and the
+          // resolved color prop values (cssColorValue, cssVariable, colorName).
+          // Reload the CSS module first, then refresh the manifest to re-resolve
+          // color props with the updated brand kit colors.
+          const brandKitModule = server.moduleGraph.getModuleById(
+            resolvedVirtualBrandKitCssId,
+          );
+          if (brandKitModule) {
+            void server.reloadModule(brandKitModule);
+          }
+          void refresh()
+            .then(() => {
+              server.ws.send({
+                type: 'custom',
+                event: 'canvas:workbench:update',
+                data: {
+                  reloadFrameOnly: false,
+                  filePath,
+                  event,
+                },
+              });
+            })
+            .catch((error) => {
+              server.config.logger.error(
+                `Failed to refresh discovery after brand kit change: ${String(error)}`,
+              );
+            });
           return;
         }
 

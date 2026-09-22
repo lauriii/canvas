@@ -3,6 +3,7 @@ import path from 'path';
 import chalk from 'chalk';
 import { parse } from '@babel/parser';
 import * as p from '@clack/prompts';
+import { transformColorExamplesInProps } from '@drupal-canvas/discovery';
 import { getImportsFromAst } from '@drupal-canvas/ui/features/code-editor/utils/ast-utils';
 
 import { getGlobalCss } from './build-tailwind.js';
@@ -11,7 +12,11 @@ import { createProgressCallback, processInPool } from './request-pool';
 import { fileExists } from './utils';
 
 import type { ApiService } from '../services/api.js';
-import type { AssetLibrary, Component } from '../types/Component.js';
+import type {
+  AssetLibrary,
+  BrandKitColorEntry,
+  Component,
+} from '../types/Component.js';
 import type { Result } from '../types/Result.js';
 
 type ComponentOperation = 'create' | 'update' | 'delete';
@@ -60,6 +65,7 @@ async function buildComponentUploadTasks(
   preparedByName: Map<string, BuiltComponentForPush>,
   apiService: { listComponents: () => Promise<Record<string, unknown>> },
   onProgress: () => void,
+  colorsByCssVariable: Map<string, BrandKitColorEntry>,
 ): Promise<ComponentUploadTask[]> {
   const existingComponents = await apiService.listComponents();
   const remoteNames = new Set(Object.keys(existingComponents));
@@ -67,8 +73,29 @@ async function buildComponentUploadTasks(
   const tasks: ComponentUploadTask[] = [];
   for (const [machineName, prepared] of preparedByName.entries()) {
     onProgress();
+    // Serialize color examples for API submission.
+    // transformColorExamplesInProps expects a Metadata['props']-shaped wrapper
+    const wrappedProps = prepared.componentPayload.props
+      ? { properties: prepared.componentPayload.props }
+      : null;
+    const serializedResult = transformColorExamplesInProps(
+      wrappedProps,
+      colorsByCssVariable,
+      'toUuid',
+    );
+    // Extract the flat map back from the wrapper to match Component['props'] type.
+    const serializedProps = serializedResult?.properties as
+      | Component['props']
+      | undefined;
+    const serializedPayload: Component = {
+      ...prepared.componentPayload,
+      props:
+        serializedProps === null || serializedProps === undefined
+          ? prepared.componentPayload.props
+          : serializedProps,
+    };
     if (remoteNames.has(machineName)) {
-      let componentPayload = prepared.componentPayload;
+      let componentPayload = serializedPayload;
       if (componentPayload.type === 'external') {
         const serverComponent = existingComponents[machineName] as Component;
         // Preserve dependencies used by retained React fallback assets. Entity
@@ -96,7 +123,7 @@ async function buildComponentUploadTasks(
       tasks.push({
         machineName,
         operation: 'create',
-        componentPayload: prepared.componentPayload,
+        componentPayload: serializedPayload,
         importedJsComponents: prepared.importedJsComponents,
       });
     }
@@ -328,6 +355,7 @@ export async function pushBuiltComponents(
   apiService: ApiService,
   actionLabel: string = 'Uploading',
   activeSpinner?: PushProgressSpinner,
+  brandKitColors: BrandKitColorEntry[] = [],
 ): Promise<Result[]> {
   const results: Result[] = [];
   const spinner = activeSpinner ?? p.spinner();
@@ -360,12 +388,18 @@ export async function pushBuiltComponents(
   } else {
     spinner.start('Checking component operations');
   }
+  // Build CSS variable → BrandKitColorEntry map for color example serialization.
+  const colorsByCssVariable = new Map(
+    brandKitColors.map((c) => [c.cssVariable, c]),
+  );
+
   let uploadTasks: ComponentUploadTask[];
   try {
     uploadTasks = await buildComponentUploadTasks(
       preparedByName,
       apiService,
       existenceProgress,
+      colorsByCssVariable,
     );
   } catch (error) {
     spinner.stop('Component operation check failed', 2);

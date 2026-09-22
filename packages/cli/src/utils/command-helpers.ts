@@ -84,6 +84,11 @@ export function updateConfigFromOptions(options: {
     setConfig({ includePageTemplates: options.sync.pageTemplates });
   }
   if (typeof options.includeBrandKit === 'boolean') {
+    if (options.includeBrandKit) {
+      p.log.warn(
+        '--include-brand-kit is deprecated because brand kit is included by default. Remove this flag.',
+      );
+    }
     setConfig({ includeBrandKit: options.includeBrandKit });
   }
   const currentConfig = getConfig();

@@ -9,7 +9,10 @@ import {
   getPathAliasChange,
 } from './page-path-alias-validation';
 import { pageResultName } from './page-result-name';
-import { collectUnreconciledMediaProps } from './prop-transforms';
+import {
+  collectUnreconciledColorProps,
+  collectUnreconciledMediaProps,
+} from './prop-transforms';
 import {
   buildElementsValidationContext,
   validateElements,
@@ -17,12 +20,14 @@ import {
 
 import type { DiscoveryResult } from '@drupal-canvas/discovery';
 import type { AuthoredSpecElementMap } from 'drupal-canvas/json-render-utils';
+import type { BrandKitColorEntry } from '../types/Component';
 import type { PageListItem } from '../types/Page';
 import type { Result } from '../types/Result';
 
 export interface PageValidationOptions {
   remotePageByUuid?: Map<string, PageListItem>;
   availablePageVariantIds?: ReadonlySet<string>;
+  remoteBrandKitColors?: BrandKitColorEntry[];
 }
 
 /**
@@ -45,11 +50,11 @@ export async function validatePages(
 
   for (const page of discoveredPages) {
     const fileName = path.basename(page.path);
-
     try {
       const fileContent = await fs.readFile(page.path, 'utf-8');
       const spec = JSON.parse(fileContent) as Record<string, unknown>;
       const pageTitle = typeof spec.title === 'string' ? spec.title : undefined;
+      const elements = (spec.elements as AuthoredSpecElementMap) ?? {};
 
       const details: { heading?: string; content: string }[] = [];
 
@@ -79,7 +84,6 @@ export async function validatePages(
       }
 
       // Validate page elements against the component catalog.
-      const elements = (spec.elements as AuthoredSpecElementMap) ?? {};
       const elementsResult = validateElements(elements, context);
       if (!elementsResult.success && elementsResult.details) {
         details.push(...elementsResult.details);
@@ -92,6 +96,17 @@ export async function validatePages(
         details.push({
           heading: `elements.${entry.elementId}.props.${entry.propName}`,
           content: `Unreconciled external media URL "${entry.src}". Run \`canvas reconcile-media\` to resolve.`,
+        });
+      }
+      const unreconciledColors = collectUnreconciledColorProps(
+        elements,
+        metadata,
+        options.remoteBrandKitColors ?? [],
+      );
+      for (const entry of unreconciledColors) {
+        details.push({
+          heading: `elements.${entry.elementId}.props.${entry.propName}`,
+          content: `Unknown brand kit color key "${entry.key}". Run \`canvas pull\` to refresh local colors, or push the color before referencing it.`,
         });
       }
 

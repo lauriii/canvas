@@ -215,4 +215,67 @@ describe('pageVariantToAuthoredSpec', () => {
       },
     });
   });
+
+  it('collapses a resolved color object in inputs to a canvas-color token ref when componentMetadata is supplied', () => {
+    // The server stores canvas-color:<uuid> in inputs; inputs_resolved holds
+    // the expanded {value, cssVariable} object. pageVariantToAuthoredSpec uses
+    // inputs (via jsonRenderSpecToAuthoredElementMap), so the prop arrives as
+    // canvas-color:<uuid>. This test verifies that if a resolved color object
+    // does appear (e.g. a future API change), collapseColorPropsInElements
+    // converts it to the canonical canvas-color:<cssVarKey> form.
+    const variant: PageVariant = {
+      id: 'marketing',
+      label: 'Marketing',
+      status: true,
+      component_tree: [
+        {
+          uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+          parent_uuid: null,
+          slot: null,
+          component_id: 'js.color-card',
+          component_version: 'v1',
+          inputs: {
+            accent: {
+              value: {
+                colorSpace: 'srgb',
+                components: [0.8, 0.1, 0.1],
+                hex: '#cc1a1a',
+              },
+              cssVariable: '--brand-red',
+            },
+          },
+          label: null,
+        },
+      ],
+    };
+
+    const colorMetadata: ComponentMetadata[] = [
+      {
+        name: 'Color Card',
+        machineName: 'color-card',
+        status: true,
+        required: [],
+        slots: {},
+        props: {
+          properties: {
+            accent: {
+              title: 'Accent',
+              type: 'string',
+              $ref: 'json-schema-definitions://canvas.module/color',
+            },
+          },
+        },
+      },
+    ];
+
+    const spec = pageVariantToAuthoredSpec(variant, false, colorMetadata);
+    expect(
+      (
+        spec.elements['eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'].props as Record<
+          string,
+          unknown
+        >
+      ).accent,
+    ).toBe('canvas-color:brand-red');
+  });
 });

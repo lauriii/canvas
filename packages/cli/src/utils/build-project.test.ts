@@ -160,6 +160,7 @@ describe('buildCanvasProject', () => {
         scannedFiles: 2,
         ignoredFiles: 0,
       },
+      componentSchemas: new Map(),
     } as DiscoveryResult;
 
     const result = await buildCanvasProject({
@@ -276,6 +277,7 @@ describe('buildCanvasProject', () => {
         scannedFiles: 2,
         ignoredFiles: 0,
       },
+      componentSchemas: new Map(),
     } as DiscoveryResult;
 
     const result = await buildCanvasProject({
@@ -324,6 +326,7 @@ describe('buildCanvasProject', () => {
       regions: [],
       warnings: [],
       stats: { scannedFiles: 2, ignoredFiles: 0 },
+      componentSchemas: new Map(),
     } as DiscoveryResult;
 
     const result = await buildCanvasProject({
@@ -365,6 +368,7 @@ describe('buildCanvasProject', () => {
             scannedFiles: 0,
             ignoredFiles: 0,
           },
+          componentSchemas: new Map(),
         } as DiscoveryResult,
       }),
     ).rejects.toThrow(
@@ -415,6 +419,7 @@ describe('buildCanvasProject', () => {
           scannedFiles: 2,
           ignoredFiles: 0,
         },
+        componentSchemas: new Map(),
       } as DiscoveryResult,
       cleanOutputDir: true,
       requireJsEntries: true,

@@ -21,9 +21,23 @@ export async function validateFontsConfig(
   config: FontsConfig,
   projectRoot: string,
 ): Promise<void> {
+  const errors = await collectFontConfigErrors(config, projectRoot);
+  if (errors.length > 0) {
+    throw new Error(`Font config validation failed:\n${errors.join('\n')}`);
+  }
+}
+
+/**
+ * Collects the validation errors for a fonts config without throwing, so
+ * callers like `canvas validate` can report them per entry.
+ */
+export async function collectFontConfigErrors(
+  config: FontsConfig,
+  projectRoot: string,
+): Promise<string[]> {
   const families = config.families;
   if (!Array.isArray(families) || families.length === 0) {
-    return;
+    return [];
   }
 
   const errors: string[] = [];
@@ -67,7 +81,5 @@ export async function validateFontsConfig(
     }
   }
 
-  if (errors.length > 0) {
-    throw new Error(`Font config validation failed:\n${errors.join('\n')}`);
-  }
+  return errors;
 }
