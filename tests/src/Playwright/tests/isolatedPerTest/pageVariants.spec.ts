@@ -214,7 +214,7 @@ test.describe('Page variants', () => {
     );
     await canvas.publishAllChanges();
     await publishedFormRefreshed;
-    await page.getByLabel('Close').click();
+    await page.getByLabel('Close', { exact: true }).click();
     await pageDataForm
       .locator('button')
       .filter({ hasText: 'Page template' })
