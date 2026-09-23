@@ -73,6 +73,25 @@ The integration supplies a registry of every discovered component
 implementation, and the renderer consumes it automatically. During development
 the registry updates when components are added, removed, or renamed.
 
+## Editor origins and CSP
+
+By default, `frame-ancestors` admits `'self'`, the `CANVAS_SITE_URL` origin and
+the draft-session editor origin. Set `CANVAS_EDITOR_ORIGINS` to a comma- or
+whitespace-separated list of HTTP(S) URLs to replace both defaults. An empty or
+entirely invalid list admits only `'self'`. Origins are normalized and
+deduplicated; credentials, wildcards and literal IPv6 are rejected. For IPv6,
+use a DNS hostname.
+
+The integration merges CSP after the route response, preserving other directives
+and application-owned `frame-ancestors`. Use server-rendered previews. Reconcile
+later middleware/hosting CSP separately: multiple policies intersect. Verify the
+deployed headers. This policy controls embedding, not draft authorization.
+
+Both variables are read from server `process.env` per response. The integration
+loads Vite `.env` files during dev/build, with process values taking precedence;
+restart dev after edits. Supply production environment values separately and
+restart the server after changes. Rebuild/redeploy if the host embeds them.
+
 ## Data access
 
 `getClient(Astro)` returns the draft-aware JSON:API client;

@@ -9,13 +9,12 @@ import type { MiddlewareHandler } from 'astro';
 
 /**
  * Merges the `frame-ancestors` directive into every response's
- * Content-Security-Policy, restricting who may embed the app — the Astro
- * counterpart of the header withCanvas() configures for Next.js.
+ * Content-Security-Policy, restricting who may embed the app.
  * Registered by the canvas() integration. Merged, not set: a policy the
  * app already sends (default-src, script-src, ...) is preserved. An
  * application-owned frame-ancestors directive remains authoritative.
- * Otherwise, responses are 'self'-only by default, and a draft session
- * also admits the exact editor origin from its signed renewal URL.
+ * Otherwise, the shared resolver uses CANVAS_EDITOR_ORIGINS when set, or
+ * the site and draft editor origins by default, always including 'self'.
  */
 export const onRequest: MiddlewareHandler = async (context, next) => {
   const draftData = await getDraftData(context);

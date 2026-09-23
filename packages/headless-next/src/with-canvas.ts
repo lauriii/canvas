@@ -1,12 +1,6 @@
 import path from 'node:path';
-import { DRAFT_DATA_COOKIE_NAME } from '@drupal-canvas/headless';
 import { writeComponentManifest } from '@drupal-canvas/headless/components-endpoint';
-import {
-  hasFrameAncestors,
-  mergeFrameAncestors,
-  resolveDraftConfig,
-  resolveFrameAncestors,
-} from '@drupal-canvas/headless/server';
+import { resolveDraftConfig } from '@drupal-canvas/headless/server';
 
 import { writeComponentRegistryModule } from './component-registry';
 import { watchComponentRegistry } from './component-registry-watcher';
@@ -20,13 +14,8 @@ const PHASE_PRODUCTION_BUILD = 'phase-production-build';
 const PHASE_DEVELOPMENT_SERVER = 'phase-development-server';
 const COMPONENTS_MODULE_ID =
   '@drupal-canvas/headless-next-generated-components';
-const CSP_HEADER = 'content-security-policy';
 
-// Next.js header rules can capture a named group from a cookie and insert it
-// into a header value. The cookie parser has already URL-decoded the JSON.
-// Capture only a URL-serialized HTTP(S) origin from the signed renewal URL;
-// the restricted host and port grammar cannot inject CSP delimiters.
-const DRAFT_EDITOR_ORIGIN_COOKIE_PATTERN = String.raw`.*"renewUrl":"(?<editorOrigin>https?://(?:[A-Za-z0-9.-]+|\[[0-9A-Fa-f:.]+\])(?::[0-9]{1,5})?)(?:/[^"\\]*)?".*`;
+const CSP_HEADER = 'content-security-policy';
 
 type NextConfigInput =
   | NextConfig
@@ -34,41 +23,6 @@ type NextConfigInput =
       phase: string,
       context: { defaultConfig: NextConfig },
     ) => NextConfig | Promise<NextConfig>);
-
-type HeaderRule = Awaited<
-  ReturnType<NonNullable<NextConfig['headers']>>
->[number];
-
-const draftSessionCookieMatch = {
-  type: 'cookie' as const,
-  key: DRAFT_DATA_COOKIE_NAME,
-  value: DRAFT_EDITOR_ORIGIN_COOKIE_PATTERN,
-};
-
-function mergeRuleFrameAncestors(
-  rule: HeaderRule,
-  frameAncestors: string,
-): HeaderRule {
-  return {
-    ...rule,
-    headers: rule.headers.map((header) =>
-      header.key.toLowerCase() === CSP_HEADER
-        ? {
-            ...header,
-            value: mergeFrameAncestors(header.value, frameAncestors).join(', '),
-          }
-        : header,
-    ),
-  };
-}
-
-function ruleNeedsDraftEditorOrigin(rule: HeaderRule): boolean {
-  return rule.headers.some(
-    (header) =>
-      header.key.toLowerCase() === CSP_HEADER &&
-      !hasFrameAncestors(header.value),
-  );
-}
 
 export interface WithCanvasOptions {
   /**
@@ -102,10 +56,8 @@ export const MANIFEST_ENV_VARIABLE = 'CANVAS_COMPONENT_MANIFEST_JSON';
  *   silently.
  * - Watches local component definitions in development and updates the
  *   generated implementation registry when components are added or removed.
- * - Sends a `Content-Security-Policy: frame-ancestors` header. Responses
- *   are 'self'-only by default; a draft session also admits the exact
- *   editor origin carried by its signed renewal URL. An application-owned
- *   frame-ancestors directive remains authoritative.
+ * - Rejects static CSP header rules: mount the request-time Canvas
+ *   middleware/proxy separately and supply the app's CSP on its response.
  *
  * ```ts
  * // next.config.ts
@@ -159,55 +111,23 @@ export function withCanvas(
 
     const userHeaders = config.headers;
     const headers: NonNullable<NextConfig['headers']> = async () => {
-      // When several header rules match a path and set the same key,
-      // Next.js keeps the LAST value — it does not emit repeated fields.
-      // So the SDK's catch-all rule goes first, and every user rule that
-      // sets a Content-Security-Policy gets the frame-ancestors directive
-      // merged into its value: on paths the app's own CSP rules match,
-      // the app's (merged) value wins; everywhere else the catch-all
-      // applies. A second cookie-matched rule admits the signed editor
-      // origin only for requests carrying a draft session. Either way no
-      // app directive is discarded.
-      const frameAncestors = resolveFrameAncestors();
       const userRules = userHeaders ? await userHeaders() : [];
-      const mergedUserRules = userRules.flatMap((rule) => {
-        const fallback = mergeRuleFrameAncestors(rule, frameAncestors);
-        if (!ruleNeedsDraftEditorOrigin(rule)) {
-          return [fallback];
-        }
-        return [
-          fallback,
-          mergeRuleFrameAncestors(
-            {
-              ...rule,
-              has: [...(rule.has ?? []), draftSessionCookieMatch],
-            },
-            "'self' :editorOrigin",
+      if (
+        userRules.some((rule) =>
+          rule.headers.some(
+            (header) => header.key.toLowerCase() === CSP_HEADER,
           ),
-        ];
-      });
-      return [
-        {
-          source: '/:path*',
-          headers: [
-            {
-              key: 'Content-Security-Policy',
-              value: mergeFrameAncestors(null, frameAncestors).join(', '),
-            },
-          ],
-        },
-        {
-          source: '/:path*',
-          has: [draftSessionCookieMatch],
-          headers: [
-            {
-              key: 'Content-Security-Policy',
-              value: "frame-ancestors 'self' :editorOrigin",
-            },
-          ],
-        },
-        ...mergedUserRules,
-      ];
+        )
+      ) {
+        throw new Error(
+          '[canvas] Move Content-Security-Policy out of next.config headers(). ' +
+            'Set the complete policy on the response passed to applyCanvasHeaders() ' +
+            'from @drupal-canvas/headless-next/middleware in proxy.ts (Next.js 16) ' +
+            'or middleware.ts (Next.js 15). Static header rules can replace the ' +
+            'request-time policy rather than merge with it.',
+        );
+      }
+      return userRules;
     };
     const userWebpack = config.webpack;
     const webpack: NonNullable<NextConfig['webpack']> = (

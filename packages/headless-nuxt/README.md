@@ -17,8 +17,8 @@ Set the `CANVAS_SITE_URL` environment variable to your Drupal site URL.
 ## Usage
 
 **1. nuxt.config.ts** — the module mounts the draft routes and the component
-metadata endpoint, registers the CSP `frame-ancestors` middleware, compiles the
-SDK packages into both the Vue and Nitro builds, and writes the component
+metadata endpoint, registers the CSP `frame-ancestors` response hook, compiles
+the SDK packages into both the Vue and Nitro builds, and writes the component
 manifest at build time:
 
 ```ts
@@ -56,6 +56,26 @@ the globally registered `<CanvasComponentTree>`:
 The module supplies a registry of every discovered component implementation, and
 the renderer consumes it automatically. During development the registry updates
 when components are added, removed, or renamed.
+
+## Editor origins and CSP
+
+By default, `frame-ancestors` admits `'self'`, the `CANVAS_SITE_URL` origin and
+the draft-session editor origin. Set `CANVAS_EDITOR_ORIGINS` to a comma- or
+whitespace-separated list of HTTP(S) URLs to replace both defaults. An empty or
+entirely invalid list admits only `'self'`. Origins are normalized and
+deduplicated; credentials, wildcards and literal IPv6 are rejected. For IPv6,
+use a DNS hostname.
+
+The Nitro `beforeResponse` hook merges CSP, preserving other directives and
+application-owned `frame-ancestors`, including repeated headers. Use
+server-rendered previews. Reconcile later hooks/hosting CSP separately: multiple
+policies intersect. Verify deployed headers. This policy controls embedding, not
+draft authorization.
+
+Both variables are read from server `process.env` per response, not public
+runtime config. Nuxt loads `.env` during dev/build; supply production
+environment values separately. Restart after environment changes, or
+rebuild/redeploy if the Nitro preset or host embeds them.
 
 ## Data access
 

@@ -2,5 +2,6 @@
   "$schema": "../../node_modules/ng-packagr/ng-package.schema.json",
   "dest": "dist",
   "lib": { "entryFile": "src/index.ts" },
-  "assets": ["README.md", "tools"]
+  "assets": ["README.md", "tools"],
+  "allowedNonPeerDependencies": ["^@drupal-canvas/headless$"]
 }

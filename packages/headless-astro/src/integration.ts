@@ -57,7 +57,7 @@ function manifestPlugin(
  * targets import.meta.env, which the framework-agnostic core cannot read,
  * so the integration bridges these keys across.
  */
-const ENV_KEYS = ['CANVAS_SITE_URL'] as const;
+const ENV_KEYS = ['CANVAS_SITE_URL', 'CANVAS_EDITOR_ORIGINS'] as const;
 
 export interface CanvasIntegrationOptions {
   /**
@@ -80,8 +80,7 @@ export interface CanvasIntegrationOptions {
  *   (/api/canvas/components). All are server-rendered
  *   (`prerender = false`), so they work from a fully static project too.
  * - Registers the CSP `frame-ancestors` middleware. Responses are
- *   'self'-only by default; draft sessions also admit the exact editor
- *   origin from the signed renewal URL.
+ *   governed by the shared editor-origin configuration and draft session.
  * - Bundles the SDK packages into the SSR build (`vite.ssr.noExternal`;
  *   the adapter package ships TypeScript source).
  * - Bridges the SDK's environment variables from Astro's .env files into

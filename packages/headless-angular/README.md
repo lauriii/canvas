@@ -127,6 +127,26 @@ For custom mounting, `createCanvasRequest(request, options)` exposes `server`,
 `session`, `loadPage`, `handle` and `finalize`. Always finalize responses to
 apply cookies, CSP and cache policy. Never serialize the server accessor.
 
+## Editor origins and CSP
+
+By default, `frame-ancestors` admits `'self'`, the `CANVAS_SITE_URL` origin and
+the draft-session editor origin. Set `CANVAS_EDITOR_ORIGINS` to a comma- or
+whitespace-separated list of HTTP(S) URLs to replace both defaults. An empty or
+entirely invalid list admits only `'self'`. Origins are normalized and
+deduplicated; credentials, wildcards and literal IPv6 are rejected. For IPv6,
+use a DNS hostname.
+
+`finalize()` merges CSP after render, preserving other directives and
+application-owned `frame-ancestors`. Every request passes through it, so keep
+custom mounts finalizing their responses. Use server-rendered previews.
+Reconcile later server/hosting CSP separately: multiple policies intersect.
+Verify deployed headers. This policy controls embedding, not draft
+authorization.
+
+Both variables are read from server `process.env` per request on the Node SSR
+server, not from browser configuration. Restart the server after changing its
+environment; rebuild/redeploy if the host embeds the values.
+
 ## Data and draft sessions
 
 Only `{ page, session }` enters TransferState. Tokens, PKCE verifiers, server

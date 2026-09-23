@@ -55,8 +55,7 @@ export interface CanvasModuleOptions {
  *   /api/disable-draft, /api/draft/session) and the component metadata
  *   endpoint (/api/canvas/components).
  * - Merges the CSP `frame-ancestors` directive into every response,
- *   keeping responses 'self'-only by default and admitting the exact
- *   editor origin from a draft session's signed renewal URL while
+ *   using the shared editor-origin configuration and draft session while
  *   preserving the app's own policy.
  * - Registers the <DraftSession> component and teaches the Vue compiler
  *   about the SDK's <canvas-draft-session> custom element.
