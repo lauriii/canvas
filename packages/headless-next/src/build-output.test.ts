@@ -29,4 +29,21 @@ describe('built output', () => {
       expect(built).toMatch(/^(['"])use client\1;/);
     },
   );
+
+  // `next` publishes no `exports` map, so resolving its subpaths appends
+  // `.js` and turns a package specifier into a literal file path.
+  // `next/navigation.js` bypasses Next's server/client aliasing and breaks
+  // every consumer Turbopack build.
+  it.each([['adapter.js'], ['client/draft-session.js'], ['middleware.js']])(
+    'leaves Next.js subpath specifiers unresolved in dist/%s',
+    (relativePath) => {
+      const built = readFileSync(
+        path.join(packageRoot, 'dist', relativePath),
+        'utf-8',
+      );
+
+      expect(built).toMatch(/from "next\/[a-z]+"/);
+      expect(built).not.toMatch(/from "next\/[^"]*\.js"/);
+    },
+  );
 });

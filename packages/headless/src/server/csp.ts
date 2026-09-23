@@ -7,21 +7,51 @@
  * app, and discarding them would silently weaken its security posture.
  */
 
-import { getDraftEditorOrigin } from '../draft-data';
-
 import type { DraftData } from '../draft-data';
 
 /**
- * The frame-ancestors source list: 'self' always, plus the exact editor
- * origin from a draft session's signed renewal URL. Without a draft
- * session, or when its URL is invalid, the policy remains 'self'-only.
- * ('none' cannot be combined with other sources, so it is not used as the
- * fallback.)
+ * CSP host sources accept DNS hostnames and IPv4 literals, not literal IPv6
+ * addresses. DNS hostnames resolving to IPv6 remain supported. URL parsing
+ * alone also allows policy delimiters and wildcards in hosts: reject them.
+ */
+const EDITOR_HOST_PATTERN =
+  /^(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}|[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*)$/;
+
+function toEditorOrigin(value: string): string | null {
+  try {
+    const url = new URL(value);
+    if (
+      (url.protocol !== 'http:' && url.protocol !== 'https:') ||
+      url.username ||
+      url.password ||
+      !EDITOR_HOST_PATTERN.test(url.hostname)
+    ) {
+      return null;
+    }
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Resolve embedding policy from the server environment on each call. An
+ * explicitly configured list replaces BOTH defaults, even if empty/invalid.
+ * Otherwise admit the site origin and the draft session's editor origin.
+ * This controls framing only, not draft authentication or postMessage trust.
  */
 export function resolveFrameAncestors(
   draftData?: Pick<DraftData, 'renewUrl'> | null,
 ): string {
-  return ["'self'", getDraftEditorOrigin(draftData)].filter(Boolean).join(' ');
+  const configured = process.env.CANVAS_EDITOR_ORIGINS;
+  const values =
+    configured !== undefined
+      ? configured.split(/[\s,]+/)
+      : [process.env.CANVAS_SITE_URL ?? '', draftData?.renewUrl ?? ''];
+  const origins = values
+    .map(toEditorOrigin)
+    .filter((origin): origin is string => origin !== null);
+  return ["'self'", ...new Set(origins)].join(' ');
 }
 
 /** Whether any policy already defines its own frame-ancestors directive. */

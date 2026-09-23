@@ -26,8 +26,7 @@ interface NitroAppLike {
 
 /**
  * Merges the `frame-ancestors` directive into every response's
- * Content-Security-Policy, restricting who may embed the app — the Nitro
- * counterpart of the header withCanvas() configures for Next.js.
+ * Content-Security-Policy, restricting who may embed the app.
  * Registered by the module. Merged, not set: policies the app already
  * sends (default-src, script-src, ...) are preserved — repeated header
  * values included. An application-owned frame-ancestors directive remains
@@ -35,8 +34,8 @@ interface NitroAppLike {
  * route handlers and route rules are seen and merged instead of racing
  * on ordering.
  *
- * Responses are 'self'-only by default; a draft session also admits the
- * exact editor origin from its signed renewal URL.
+ * The shared resolver uses CANVAS_EDITOR_ORIGINS when set, or the site and
+ * draft editor origins by default, always including 'self'.
  */
 export default (nitroApp: NitroAppLike): void => {
   nitroApp.hooks.hook('beforeResponse', async (event) => {

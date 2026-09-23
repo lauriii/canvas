@@ -28,6 +28,11 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./middleware": {
+      "types": "./dist/middleware.d.ts",
+      "import": "./dist/middleware.js",
+      "default": "./dist/middleware.js"
+    },
     "./client": {
       "types": "./dist/client/index.d.ts",
       "import": "./dist/client/index.js",

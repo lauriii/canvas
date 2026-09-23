@@ -4,6 +4,7 @@ export default defineConfig({
   clean: ['dist'],
   entry: {
     index: 'src/index.ts',
+    middleware: 'src/middleware.ts',
     'client/index': 'src/client/index.ts',
     'config/index': 'src/config/index.ts',
     'canvas-component-tree': 'src/canvas-component-tree.tsx',
@@ -20,6 +21,14 @@ export default defineConfig({
   unbundle: true,
   platform: 'node',
   deps: {
+    // Keep dependency subpath specifiers exactly as written. Resolving them
+    // appends '.js', which for a dependency without an 'exports' map (such as
+    // 'next') yields a literal file path instead of a package specifier:
+    // 'next/navigation.js' bypasses Next's server/client aliasing and breaks
+    // every consumer Turbopack build.
+    // @todo Remove once the repository upgrades to tsdown 0.23+, where `false`
+    //    is the default: https://github.com/rolldown/tsdown/issues/888
+    resolveDepSubpath: false,
     neverBundle: [
       // Resolved by the consuming app's own bundler config (the alias
       // withCanvas() installs into webpack/turbopack), never by this

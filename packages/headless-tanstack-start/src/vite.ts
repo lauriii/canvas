@@ -14,7 +14,7 @@ import type { Plugin } from 'vite';
  * targets import.meta.env, which the framework-agnostic core cannot read,
  * so the plugin bridges these keys across.
  */
-const ENV_KEYS = ['CANVAS_SITE_URL'] as const;
+const ENV_KEYS = ['CANVAS_SITE_URL', 'CANVAS_EDITOR_ORIGINS'] as const;
 
 /**
  * The virtual module createComponentMetadataHandlers() imports the

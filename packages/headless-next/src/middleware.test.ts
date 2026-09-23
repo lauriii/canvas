@@ -1,0 +1,83 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DRAFT_DATA_COOKIE_NAME } from '@drupal-canvas/headless';
+
+import { applyCanvasHeaders, canvasMiddleware } from './middleware';
+
+const draftData = {
+  path: '/',
+  resourceVersion: 'rel:working-copy',
+  sub: '1',
+  renewUrl: 'https://editor.example/renew?value=%25',
+  accessToken: 'test',
+  tokenType: 'Bearer',
+  tokenExpiresAt: 0,
+  codeVerifier: 'test',
+};
+const request = (cookie?: string) =>
+  new NextRequest('https://app.example', {
+    headers: cookie ? { Cookie: `${DRAFT_DATA_COOKIE_NAME}=${cookie}` } : {},
+  });
+const encoded = encodeURIComponent(JSON.stringify(draftData));
+
+beforeEach(() => {
+  vi.stubEnv('CANVAS_SITE_URL', 'https://cms.example/subdir');
+  vi.stubEnv('CANVAS_EDITOR_ORIGINS', undefined);
+});
+afterEach(() => vi.unstubAllEnvs());
+
+describe('Canvas middleware/proxy', () => {
+  it.each([undefined, 'malformed', '%E0%A4%A', encodeURIComponent('{}')])(
+    'uses the site default with an absent or invalid cookie: %s',
+    (cookie) => {
+      expect(
+        canvasMiddleware(request(cookie)).headers.get(
+          'Content-Security-Policy',
+        ),
+      ).toBe("frame-ancestors 'self' https://cms.example");
+    },
+  );
+  it.each([encoded, JSON.stringify(draftData)])(
+    'parses the cookie via Next: %s',
+    (cookie) => {
+      expect(
+        canvasMiddleware(request(cookie)).headers.get(
+          'Content-Security-Policy',
+        ),
+      ).toBe(
+        "frame-ancestors 'self' https://cms.example https://editor.example",
+      );
+    },
+  );
+  it('does not restore cookie or site defaults for an empty override', () => {
+    vi.stubEnv('CANVAS_EDITOR_ORIGINS', '');
+    expect(
+      canvasMiddleware(request(encoded)).headers.get('Content-Security-Policy'),
+    ).toBe("frame-ancestors 'self'");
+  });
+  it('uses only the explicit valid sources', () => {
+    vi.stubEnv('CANVAS_EDITOR_ORIGINS', 'https://explicit.example');
+    expect(
+      canvasMiddleware(request(encoded)).headers.get('Content-Security-Policy'),
+    ).toBe("frame-ancestors 'self' https://explicit.example");
+  });
+  it.each([
+    [
+      "default-src 'self'; script-src https://scripts.example",
+      "default-src 'self'; script-src https://scripts.example, frame-ancestors 'self' https://cms.example https://editor.example",
+    ],
+    [
+      "default-src 'self', frame-ancestors https://app-owned.example",
+      "default-src 'self', frame-ancestors https://app-owned.example",
+    ],
+  ])('preserves application policy %s', (existing, expected) => {
+    const response = NextResponse.next();
+    response.headers.set('Content-Security-Policy', existing);
+    response.headers.set('X-App-Header', 'preserved');
+    response.cookies.set('app-cookie', 'preserved');
+    expect(applyCanvasHeaders(request(encoded), response)).toBe(response);
+    expect(response.headers.get('Content-Security-Policy')).toBe(expected);
+    expect(response.headers.get('X-App-Header')).toBe('preserved');
+    expect(response.cookies.get('app-cookie')?.value).toBe('preserved');
+  });
+});
