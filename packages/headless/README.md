@@ -17,6 +17,7 @@ use a framework adapter instead of this package directly:
 - `@drupal-canvas/headless-astro` (Astro)
 - `@drupal-canvas/headless-nuxt` (Nuxt)
 - `@drupal-canvas/headless-tanstack-start` (TanStack Start)
+- `@drupal-canvas/headless-angular` (Angular)
 
 ## Rendered pages
 

@@ -62,6 +62,12 @@ const FRAMEWORKS: Framework[] = [
     adapterPackage: '@drupal-canvas/headless-tanstack-start',
     docsUrl: `${PACKAGE_DOCS_BASE_URL}/headless-tanstack-start`,
   },
+  {
+    value: 'angular',
+    label: 'Angular',
+    adapterPackage: '@drupal-canvas/headless-angular',
+    docsUrl: `${PACKAGE_DOCS_BASE_URL}/headless-angular`,
+  },
 ];
 
 // Double quotes work across POSIX shells, cmd.exe, and PowerShell; single
@@ -106,7 +112,7 @@ const SetupSection = ({
         </Text>
         <RadioCards.Root
           size="1"
-          columns={{ initial: '2', sm: '4' }}
+          columns="5"
           value={framework.value}
           onValueChange={(value) => {
             const selected = FRAMEWORKS.find((item) => item.value === value);
