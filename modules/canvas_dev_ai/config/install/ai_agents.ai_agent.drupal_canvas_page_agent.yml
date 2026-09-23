@@ -219,8 +219,6 @@ default_information_tools: |
     tool: 'canvas_ai:get_component_context'
     parameters:
       catalog_only: true
-    available_on_loop:
-      - 1
   current_layout:
     label: 'Current layout'
     description: 'The page currently contains the components below, accurate as of the start of this turn. Anything you place during this turn appears here only from your next turn, which is expected. Never treat this layout as missing, stale or in need of a refresh. Every UUID listed here is real and safe to reference:'

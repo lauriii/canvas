@@ -30,9 +30,9 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
  * Provider responses come from the ai module's echoai provider, which matches
  * each hop's request against a recorded fixture under
  * tests/resources/ai_test/requests/chat. The fixtures also pin the agent's
- * request shape: the component catalog is injected into the chat history on
- * the first hop only (catalog_only), and each later hop carries the parked
- * place_components call and its tool result.
+ * request shape: the component catalog is not among the messages, since the
+ * agent's default information tools feed the system prompt, and each later hop
+ * carries the parked place_components call and its tool result.
  *
  * @see \Drupal\ai_test\Plugin\AiProvider\EchoProvider::getMatchingRequest()
  */
@@ -442,24 +442,27 @@ final class DrupalCanvasPageAgentEndToEndTest extends CanvasKernelTestBase {
     self::assertSame('The hero heading now says Goodbye.', $responses[1]['message']);
 
     // The model's first request of turn 2 carries the history turn 1 built:
-    // the catalog and user message of turn 1, the edit_components call, its
-    // result and the answer, then this turn's catalog and user message. The
-    // second catalog is the per-turn injection of the agent's
-    // get_component_context default information tool.
+    // its user message, the edit_components call, its result and the answer,
+    // then this turn's user message. The component catalog is not among them:
+    // the agent's default information tools feed the system prompt.
     self::assertCount(2, $inputs);
     $input = $inputs[0];
     self::assertInstanceOf(ChatInput::class, $input);
     $messages = $input->getMessages();
     self::assertSame(
-      ['user', 'user', 'assistant', 'tool', 'assistant', 'user', 'user'],
+      ['user', 'assistant', 'tool', 'assistant', 'user'],
       \array_map(static fn (ChatMessage $message): string => $message->getRole(), $messages),
     );
-    self::assertStringContainsString('Change the hero heading to Hello', $messages[1]->getText());
-    self::assertSame('edit_components', $messages[2]->toArray()['tools'][0]['function']['name']);
-    self::assertSame('call_1', $messages[3]->getToolsId());
-    self::assertStringContainsString('The updates were applied successfully.', $messages[3]->getText());
-    self::assertSame('The hero heading now says Hello.', $messages[4]->getText());
-    self::assertStringContainsString('Now make it say Goodbye', $messages[6]->getText());
+    self::assertStringContainsString('Change the hero heading to Hello', $messages[0]->getText());
+    self::assertSame('edit_components', $messages[1]->toArray()['tools'][0]['function']['name']);
+    self::assertSame('call_1', $messages[2]->getToolsId());
+    self::assertStringContainsString('The updates were applied successfully.', $messages[2]->getText());
+    self::assertSame('The hero heading now says Hello.', $messages[3]->getText());
+    self::assertStringContainsString('Now make it say Goodbye', $messages[4]->getText());
+
+    // Assert that the component catalog is present in the system prompt.
+    self::assertStringContainsString('sdc.canvas_test_sdc.banner', $input->getSystemPrompt());
+    self::assertStringContainsString('get_component_context', $input->getSystemPrompt());
   }
 
 }
