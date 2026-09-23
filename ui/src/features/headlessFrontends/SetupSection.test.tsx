@@ -32,7 +32,7 @@ describe('SetupSection', () => {
       within(screen.getByTestId('canvas-headless-framework-select'))
         .getAllByRole('radio')
         .map((radio) => radio.textContent),
-    ).toEqual(['Next.js', 'Astro', 'Nuxt', 'TanStack Start']);
+    ).toEqual(['Next.js', 'Astro', 'Nuxt', 'TanStack Start', 'Angular']);
   });
 
   it('includes the site URL, site name, and template in the create command', () => {
@@ -67,6 +67,7 @@ describe('SetupSection', () => {
     ['Astro', 'astro'],
     ['Nuxt', 'nuxt'],
     ['TanStack Start', 'tanstack-start'],
+    ['Angular', 'angular'],
   ])(
     'uses the selected %s framework for the create command',
     async (framework, template) => {
@@ -141,6 +142,7 @@ describe('SetupSection', () => {
     ['Nuxt', 'headless-nuxt'],
     ['Astro', 'headless-astro'],
     ['TanStack Start', 'headless-tanstack-start'],
+    ['Angular', 'headless-angular'],
   ])(
     'shows the %s adapter install command and links its guide',
     async (framework, path) => {

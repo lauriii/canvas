@@ -14,7 +14,8 @@ hooks, and configuration may change without a deprecation path.
 - A frontend app built on the Drupal Canvas Headless SDK. The SDK ships as the workspace package
   `@drupal-canvas/headless` (framework-agnostic core) plus one adapter per framework —
   `@drupal-canvas/headless-next` (Next.js), `@drupal-canvas/headless-astro` (Astro),
-  `@drupal-canvas/headless-nuxt` (Nuxt), and `@drupal-canvas/headless-tanstack-start` (TanStack Start) — with
+  `@drupal-canvas/headless-nuxt` (Nuxt), `@drupal-canvas/headless-tanstack-start` (TanStack Start),
+  and `@drupal-canvas/headless-angular` (Angular) — with
   `@drupal-canvas/headless-react` as the shared React binding.
 
 ## Setup

@@ -47,5 +47,15 @@
       "ref": "main",
       "path": "tanstack-start"
     }
+  },
+  {
+    "id": "angular",
+    "label": "Angular",
+    "experimental": true,
+    "repository": {
+      "url": "https://github.com/drupal-canvas/headless-templates.git",
+      "ref": "main",
+      "path": "angular"
+    }
   }
 ]

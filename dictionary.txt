@@ -245,6 +245,13 @@ wght
 xmdi
 ymls
 
+# Angular package format, compiler output, and hydration terminology
+fesm
+packagr
+projectable
+ɵɵdefine
+ɵɵng
+
 # Coding agent list maintained in packages/create/src/lib/agents.ts
 adal
 catbro

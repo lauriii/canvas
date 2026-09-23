@@ -21,6 +21,7 @@ Select a template
   Astro
   Nuxt
   TanStack Start
+  Angular
 ```
 
 The available experimental template IDs are:
@@ -31,6 +32,7 @@ The available experimental template IDs are:
 | `astro`          | Astro          |
 | `nuxt`           | Nuxt           |
 | `tanstack-start` | TanStack Start |
+| `angular`        | Angular        |
 
 The experimental flag is only needed for interactive discovery. An experimental
 template ID can be provided directly without it:
