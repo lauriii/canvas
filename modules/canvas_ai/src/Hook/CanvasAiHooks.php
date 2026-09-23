@@ -67,10 +67,6 @@ class CanvasAiHooks {
             'name' => $this->t('Active Component UUID'),
             'description' => $this->t('Returns the UUID of the active component in the page.'),
           ],
-          'available_regions' => [
-            'name' => $this->t('Available Regions'),
-            'description' => $this->t('Returns the available regions.'),
-          ],
           'custom_libraries' => [
             'name' => $this->t('Custom libraries in Canvas.'),
             'description' => $this->t('Returns the custom libraries in Canvas.'),
@@ -124,10 +120,6 @@ class CanvasAiHooks {
 
           case 'active_component_uuid':
             $replacements[$original] = $data['active_component_uuid'] ?? 'None';
-            break;
-
-          case 'available_regions':
-            $replacements[$original] = !empty($data['available_regions']) ? $data['available_regions'] : NULL;
             break;
 
           case 'custom_libraries':

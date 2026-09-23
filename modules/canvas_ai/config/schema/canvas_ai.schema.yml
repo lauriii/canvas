@@ -48,21 +48,3 @@ canvas_ai.component_description.settings:
             description: 'YAML string containing the component data.'
             constraints:
               NotBlank: []
-
-canvas_ai.page_variant.settings:
-  type: config_object
-  label: 'Canvas AI Page Variant Settings'
-  mapping:
-    variant_descriptions:
-      type: sequence
-      label: 'Variant descriptions'
-      sequence:
-        type: mapping
-        label: 'Variant'
-        mapping:
-          name:
-            type: label
-            label: 'Variant name'
-          description:
-            type: text
-            label: 'Variant description'

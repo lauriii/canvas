@@ -105,5 +105,5 @@ before deleting the theme page template instance), and publish. Once no
 variant uses one, the module can be uninstalled.
 
 Consumers updated for page variants: `canvas_translate` (config translation),
-`canvas_oauth` (a `canvas_page_variant` OAuth scope), and `canvas_ai` (variant
-descriptions instead of theme-region descriptions).
+`canvas_oauth` (a `canvas_page_variant` OAuth scope), and `canvas_ai` (agents
+place components only in the `content` region).

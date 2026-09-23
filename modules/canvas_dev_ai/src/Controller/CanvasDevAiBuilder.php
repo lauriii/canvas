@@ -170,7 +170,7 @@ final class CanvasDevAiBuilder extends ControllerBase {
     $agent->setModelName($default['model_id']);
     $agent->setAiConfiguration([]);
     $agent->setCreateDirectly(TRUE);
-    $agent->setTokenContexts($this->buildTokenContexts($prompt, $current_layout));
+    $agent->setTokenContexts($this->buildTokenContexts($prompt));
     // Stop the agent after a single tool decision, so each request returns
     // quickly and the frontend drives the next hop.
     $agent->setLooped(FALSE);
@@ -621,15 +621,13 @@ final class CanvasDevAiBuilder extends ControllerBase {
    *
    * @param array $prompt
    *   The decoded prompt.
-   * @param string $current_layout
-   *   The JSON-encoded current layout.
    *
    * @return array
    *   The token contexts.
    *
    * @see \Drupal\canvas_ai\Hook\CanvasAiHooks::canvas_ai_tokens()
    */
-  private function buildTokenContexts(array $prompt, string $current_layout): array {
+  private function buildTokenContexts(array $prompt): array {
     $selected_component = $prompt['selected_component'] ?? NULL;
     $component_agent_dynamic_state = $this->canvasAiPageBuilderHelper->generateComponentAgentDynamicPromptSection([
       'selected_component' => $selected_component,
@@ -646,7 +644,6 @@ final class CanvasDevAiBuilder extends ControllerBase {
       'page_description' => $prompt['page_description'] ?? NULL,
       'active_component_uuid' => $prompt['active_component_uuid'] ?? 'None',
       'component_agent_dynamic_state' => $component_agent_dynamic_state,
-      'available_regions' => Json::encode($this->canvasAiPageBuilderHelper->getAvailableRegions($current_layout)),
       // JSON-encode so the libraries render as readable data in the system
       // prompt token rather than the string "Array".
       'custom_libraries' => Json::encode(self::getSupportedLibraries()),
