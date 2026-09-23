@@ -582,6 +582,9 @@ tree-shaking, and dependency management.
 
 ### `push`
 
+Non-headless push converts external components back to Canvas-managed React; a
+later headless sync makes them external again.
+
 Build and push local components, global CSS, build artifacts, pages, content
 templates, page templates, and brand kit (fonts and colors) to Drupal. Brand kit
 sync is on by default when `canvas.brand-kit.json` is present; use

@@ -100,6 +100,7 @@ export function createComponentPayload(
   }
 
   if ('code' in params) {
+    payload.type = params.type ?? 'react';
     const {
       sourceCodeJs,
       compiledJs,
