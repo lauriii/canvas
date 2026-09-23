@@ -1,5 +1,19 @@
 # @drupal-canvas/headless-angular
 
+## 0.2.0
+
+### Minor Changes
+
+- 252aa34: Make the shared Headless SDK a regular dependency, matching the other
+  adapters. Release Angular's shared editor-origin policy support as a minor
+  update rather than allowing the SDK's minor release to trigger a
+  peer-dependency major bump.
+
+### Patch Changes
+
+- Updated dependencies [252aa34]
+  - @drupal-canvas/headless@0.8.0
+
 ## 0.1.0
 
 ### Minor Changes

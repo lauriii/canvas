@@ -1,6 +1,6 @@
 {
   "name": "@drupal-canvas/headless-next",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "engines": {
     "node": ">=22.19.0 <23 || >=24.5.0"
   },
@@ -61,8 +61,8 @@
     "type-check": "tsc --noEmit --pretty"
   },
   "dependencies": {
-    "@drupal-canvas/headless": "^0.7.0",
-    "@drupal-canvas/headless-react": "^0.4.1"
+    "@drupal-canvas/headless": "^0.8.0",
+    "@drupal-canvas/headless-react": "^0.4.2"
   },
   "peerDependencies": {
     "next": ">=15.0.0",
