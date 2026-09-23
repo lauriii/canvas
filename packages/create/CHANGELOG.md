@@ -1,5 +1,12 @@
 # @drupal-canvas/create
 
+## 1.8.0
+
+### Minor Changes
+
+- 732b7e5: Add the experimental Angular starter to the template registry and
+  framework selection flow.
+
 ## 1.7.0
 
 ### Minor Changes
