@@ -8,9 +8,3 @@ canvas_ai.component_description_settings:
   route_name: canvas_ai.component_description_settings
   base_route: canvas_ai.setting
   weight: 10
-
-canvas_ai.page_variant_settings:
-  title: 'Page Variant Descriptions'
-  route_name: canvas_ai.page_variant_settings
-  base_route: canvas_ai.setting
-  weight: 20

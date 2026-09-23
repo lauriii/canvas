@@ -65,7 +65,7 @@ tests:
         target_id: '6'
     tokens:
       -
-        value: "canvas_layout_fixture: empty-page-with-content-region-enabled\r\nactive_component_uuid:\r\navailable_regions: '{\"content\":{\"nodePathPrefix\":0,\"info\":null}}'"
+        value: "canvas_layout_fixture: empty-page-with-content-region-enabled\r\nactive_component_uuid:"
   -
     id:
       -
@@ -128,7 +128,7 @@ tests:
         target_id: '6'
     tokens:
       -
-        value: "canvas_layout_fixture: empty-page-with-content-region-enabled\r\nactive_component_uuid:\r\navailable_regions: '{\"content\":{\"nodePathPrefix\":0,\"info\":null}}'"
+        value: "canvas_layout_fixture: empty-page-with-content-region-enabled\r\nactive_component_uuid:"
   -
     id:
       -
@@ -203,7 +203,7 @@ tests:
         target_id: '6'
     tokens:
       -
-        value: "canvas_layout_fixture: non-empty-page-with-content-region-enabled\r\nactive_component_uuid: cc4bd806-4126-472b-981f-b91a4f9e8ff5\r\navailable_regions: '{\"content\":{\"nodePathPrefix\":0,\"info\":null}}'"
+        value: "canvas_layout_fixture: non-empty-page-with-content-region-enabled\r\nactive_component_uuid: cc4bd806-4126-472b-981f-b91a4f9e8ff5"
   -
     id:
       -
@@ -278,7 +278,7 @@ tests:
         target_id: '6'
     tokens:
       -
-        value: "canvas_layout_fixture: non-empty-page-with-content-region-enabled\r\nactive_component_uuid: b1fe179c-9069-48ec-9724-a14b9cf650e8\r\navailable_regions: '{\"content\":{\"nodePathPrefix\":0,\"info\":null}}'"
+        value: "canvas_layout_fixture: non-empty-page-with-content-region-enabled\r\nactive_component_uuid: b1fe179c-9069-48ec-9724-a14b9cf650e8"
   -
     id:
       -
@@ -341,7 +341,7 @@ tests:
         target_id: '6'
     tokens:
       -
-        value: "canvas_layout_fixture: non-empty-page-with-content-region-enabled\r\nactive_component_uuid: 3177b7b8-947e-4fc8-9ee4-81b7834d36a9\r\navailable_regions: '{\"content\":{\"nodePathPrefix\":0,\"info\":null}}'"
+        value: "canvas_layout_fixture: non-empty-page-with-content-region-enabled\r\nactive_component_uuid: 3177b7b8-947e-4fc8-9ee4-81b7834d36a9"
   -
     id:
       -
@@ -404,133 +404,7 @@ tests:
         target_id: '6'
     tokens:
       -
-        value: "canvas_layout_fixture: empty-page-with-content-region-enabled\r\nactive_component_uuid:\r\navailable_regions: '{\"content\":{\"nodePathPrefix\":0,\"info\":null}}'"
-  -
-    id:
-      -
-        value: '7'
-    uuid:
-      -
-        value: 98ad54fd-c2cb-4005-b0d8-5d1d0eae749c
-    label:
-      -
-        value: 'Add Component to Content Region'
-    status:
-      -
-        value: '1'
-    description:
-      -
-        value: 'When multiple regions are enabled, components should be placed in the Content region if the user has not specified a region in the prompt.'
-    uid:
-      -
-        target_id: '1'
-    created:
-      -
-        value: '1779972582'
-    changed:
-      -
-        value: '1782912094'
-    messages:
-      -
-        value: |
-          -
-            role: user
-            content: 'Add a heading component with the text "Hello Drupal" to this page.'
-    triggering_instructions:
-      -
-        value: 'Add a heading component with the text "Hello Drupal" to this page'
-    ai_agent:
-      -
-        target_id: canvas_page_builder_agent
-    rules:
-      -
-        value: |
-          rule_1:
-            tool: 'canvas_ai:set_component_structure'
-            label: 'Component added to the Content region'
-            tool_rules: should_be_run
-            tool_order: any
-            tool_loop_order: ''
-            tool_other_tool_order: 'canvas_ai:set_component_structure'
-            parameters:
-              component_structure:
-                type_of_check: yaml_path_equals
-                value: operations.0.target=content
-            remove: null
-          add_rule: null
-          response_rule: ''
-    config_reset:
-      -
-        value: '0'
-    ai_agents_test_group:
-      -
-        target_id: '6'
-    tokens:
-      -
-        value: "canvas_layout_fixture: page-with-multiple-regions\r\nactive_component_uuid: ''\r\navailable_regions: '{\"header\":{\"nodePathPrefix\":0,\"info\":null},\"content\":{\"nodePathPrefix\":1,\"info\":null},\"sidebar\":{\"nodePathPrefix\":2,\"info\":null},\"content_below\":{\"nodePathPrefix\":3,\"info\":null},\"footer_top\":{\"nodePathPrefix\":4,\"info\":null},\"footer_bottom\":{\"nodePathPrefix\":5,\"info\":null}}'"
-  -
-    id:
-      -
-        value: '8'
-    uuid:
-      -
-        value: 15487286-98b7-4911-9302-30d07a279265
-    label:
-      -
-        value: 'Add Component to an Explicitly Named Non-Content Region'
-    status:
-      -
-        value: '1'
-    description:
-      -
-        value: 'When the user explicitly names a non-content region, the component must be placed in that region rather than defaulting to content.'
-    uid:
-      -
-        target_id: '1'
-    created:
-      -
-        value: '1779974746'
-    changed:
-      -
-        value: '1782912094'
-    messages:
-      -
-        value: |
-          -
-            role: user
-            content: 'Add a simple "Contact Us" heading to the footer bottom region'
-    triggering_instructions:
-      -
-        value: 'Add a simple "Contact Us" heading to the footer bottom region'
-    ai_agent:
-      -
-        target_id: canvas_page_builder_agent
-    rules:
-      -
-        value: |
-          rule_1:
-            tool: 'canvas_ai:set_component_structure'
-            label: 'Component placed in footer_bottom, not content'
-            tool_rules: should_be_run
-            tool_order: any
-            tool_loop_order: ''
-            tool_other_tool_order: 'canvas_ai:set_component_structure'
-            parameters:
-              component_structure:
-                type_of_check: yaml_path_equals
-                value: "operations.0.target=footer_bottom\r\noperations.0.placement=inside"
-            remove: null
-          add_rule: null
-          response_rule: ''
-    config_reset:
-      -
-        value: '0'
-    ai_agents_test_group:
-      -
-        target_id: '6'
-    tokens:
-      -
-        value: "canvas_layout_fixture: page-with-multiple-regions\r\nactive_component_uuid: ''\r\navailable_regions: '{\"header\":{\"nodePathPrefix\":0,\"info\":null},\"content\":{\"nodePathPrefix\":1,\"info\":null},\"sidebar\":{\"nodePathPrefix\":2,\"info\":null},\"content_below\":{\"nodePathPrefix\":3,\"info\":null},\"footer_top\":{\"nodePathPrefix\":4,\"info\":null},\"footer_bottom\":{\"nodePathPrefix\":5,\"info\":null}}'"
+        value: "canvas_layout_fixture: empty-page-with-content-region-enabled\r\nactive_component_uuid:"
   -
     id:
       -
@@ -593,7 +467,7 @@ tests:
         target_id: '6'
     tokens:
       -
-        value: "canvas_layout_fixture: non-empty-page-with-content-region-enabled\r\nactive_component_uuid:\r\navailable_regions: '{\"content\":{\"nodePathPrefix\":0,\"info\":null}}'"
+        value: "canvas_layout_fixture: non-empty-page-with-content-region-enabled\r\nactive_component_uuid:"
   -
     id:
       -
@@ -656,7 +530,7 @@ tests:
         target_id: '6'
     tokens:
       -
-        value: "canvas_layout_fixture: non-empty-page-with-content-region-enabled\r\nactive_component_uuid:\r\navailable_regions: '{\"content\":{\"nodePathPrefix\":0,\"info\":null}}'"
+        value: "canvas_layout_fixture: non-empty-page-with-content-region-enabled\r\nactive_component_uuid:"
   -
     id:
       -
@@ -719,82 +593,7 @@ tests:
         target_id: '6'
     tokens:
       -
-        value: "canvas_layout_fixture: empty-page-with-content-region-enabled\r\nactive_component_uuid:\r\navailable_regions: '{\"content\":{\"nodePathPrefix\":0,\"info\":null}}'"
-  -
-    id:
-      -
-        value: '12'
-    uuid:
-      -
-        value: 62ac6459-a95f-43d3-818b-e49eadb30769
-    label:
-      -
-        value: 'Multiple Operations Targeting Different Regions'
-    status:
-      -
-        value: '1'
-    description:
-      -
-        value: 'When the user asks to place components in two different regions in a single request, the agent must produce two separate operations in the YAML output.'
-    uid:
-      -
-        target_id: '1'
-    created:
-      -
-        value: '1779974746'
-    changed:
-      -
-        value: '1782912094'
-    messages:
-      -
-        value: |
-          -
-            role: user
-            content: 'Add a heading "Site Navigation" to the header region and a heading "Quick Links" to the footer bottom region'
-    triggering_instructions:
-      -
-        value: 'Add a heading "Site Navigation" to the header region and a heading "Quick Links" to the footer bottom region'
-    ai_agent:
-      -
-        target_id: canvas_page_builder_agent
-    rules:
-      -
-        value: |
-          rule_1:
-            tool: 'canvas_ai:set_component_structure'
-            label: 'Two operations are produced'
-            tool_rules: should_be_run
-            tool_order: any
-            tool_loop_order: ''
-            tool_other_tool_order: 'canvas_ai:set_component_structure'
-            parameters:
-              component_structure:
-                type_of_check: yaml_path_exists
-                value: "operations.0.target\r\noperations.1.target"
-            remove: null
-          rule_2:
-            tool: 'canvas_ai:set_component_structure'
-            label: 'First operation targets header, second targets footer_bottom'
-            tool_rules: should_be_run
-            tool_order: any
-            tool_loop_order: ''
-            tool_other_tool_order: 'canvas_ai:set_component_structure'
-            parameters:
-              component_structure:
-                type_of_check: yaml_path_equals
-                value: "operations.0.target=header\r\noperations.0.placement=inside\r\noperations.1.target=footer_bottom\r\noperations.1.placement=inside"
-            remove: null
-          add_rule: null
-          response_rule: ''
-    config_reset:
-      -
-        value: '0'
-    ai_agents_test_group:
-      -
-        target_id: '6'
-    tokens:
-      -
-        value: "canvas_layout_fixture: page-with-multiple-regions\r\nactive_component_uuid: ''\r\navailable_regions: '{\"header\":{\"nodePathPrefix\":0,\"info\":null},\"content\":{\"nodePathPrefix\":1,\"info\":null},\"sidebar\":{\"nodePathPrefix\":2,\"info\":null},\"content_below\":{\"nodePathPrefix\":3,\"info\":null},\"footer_top\":{\"nodePathPrefix\":4,\"info\":null},\"footer_bottom\":{\"nodePathPrefix\":5,\"info\":null}}'"
+        value: "canvas_layout_fixture: empty-page-with-content-region-enabled\r\nactive_component_uuid:"
   -
     id:
       -
@@ -857,7 +656,7 @@ tests:
         target_id: '6'
     tokens:
       -
-        value: "canvas_layout_fixture: empty-page-with-content-region-enabled\r\nactive_component_uuid:\r\navailable_regions: '{\"content\":{\"nodePathPrefix\":0,\"info\":null}}'"
+        value: "canvas_layout_fixture: empty-page-with-content-region-enabled\r\nactive_component_uuid:"
   -
     id:
       -
@@ -867,13 +666,13 @@ tests:
         value: 6ec2e1a0-2ee1-4ccd-9ae7-cd3807b1c6db
     label:
       -
-        value: 'Ordinal Target Resolves to the Third Component of a Type'
+        value: 'Ordinal Target Resolves to the First Component of a Type'
     status:
       -
         value: '1'
     description:
       -
-        value: 'When the user references a component by ordinal position ("the third one-column section"), the agent must resolve the reference_uuid to that specific occurrence rather than the last one of that type.'
+        value: 'When the user references a component by ordinal position ("the first one-column section"), the agent must resolve the reference_uuid to that specific occurrence rather than the last one of that type.'
     uid:
       -
         target_id: '1'
@@ -888,10 +687,10 @@ tests:
         value: |
           -
             role: user
-            content: 'Add a heading with the text "Our Services" below the third one-column section. Add the heading directly; do not wrap it in a container, column, or section.'
+            content: 'Add a heading with the text "Our Services" below the first one-column section. Add the heading directly; do not wrap it in a container, column, or section.'
     triggering_instructions:
       -
-        value: 'Add a heading with the text "Our Services" below the third One Column Container. Add the heading directly; do not wrap it in a container, column, or section.'
+        value: 'Add a heading with the text "Our Services" below the first one-column section. Add the heading directly; do not wrap it in a container, column, or section.'
     ai_agent:
       -
         target_id: canvas_page_builder_agent
@@ -900,7 +699,7 @@ tests:
         value: |
           rule_1:
             tool: 'canvas_ai:set_component_structure'
-            label: 'Reference resolves to the third one_column, placed below'
+            label: 'Reference resolves to the first one_column, placed below'
             tool_rules: should_be_run
             tool_order: any
             tool_loop_order: ''
@@ -908,7 +707,7 @@ tests:
             parameters:
               component_structure:
                 type_of_check: yaml_path_equals
-                value: "operations.0.target=content\r\noperations.0.placement=below\r\noperations.0.reference_uuid=c242ae12-d411-4e19-a555-64cc2c31babb\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.heading.props.text=Our Services"
+                value: "operations.0.target=content\r\noperations.0.placement=below\r\noperations.0.reference_uuid=3177b7b8-947e-4fc8-9ee4-81b7834d36a9\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.heading.props.text=Our Services"
             remove: null
           add_rule: null
           response_rule: ''
@@ -920,7 +719,7 @@ tests:
         target_id: '6'
     tokens:
       -
-        value: "canvas_layout_fixture: non-empty-page-with-content-region-enabled\r\nactive_component_uuid:\r\navailable_regions: '{\"content\":{\"nodePathPrefix\":0,\"info\":null}}'"
+        value: "canvas_layout_fixture: non-empty-page-with-content-region-enabled\r\nactive_component_uuid:"
   -
     id:
       -
@@ -995,70 +794,7 @@ tests:
         target_id: '6'
     tokens:
       -
-        value: "canvas_layout_fixture: empty-page-with-content-region-enabled\r\nactive_component_uuid:\r\navailable_regions: '{\"content\":{\"nodePathPrefix\":0,\"info\":null}}'"
-  -
-    id:
-      -
-        value: '16'
-    uuid:
-      -
-        value: 4c9927c4-d4f3-4cd0-9d06-4a5c28a969f6
-    label:
-      -
-        value: 'Region Description Drives Heading Level'
-    status:
-      -
-        value: '1'
-    description:
-      -
-        value: 'When a region carries an info description constraining heading level, the agent must honor it and set element=h2 even though the user did not specify a heading level.'
-    uid:
-      -
-        target_id: '1'
-    created:
-      -
-        value: '1780056316'
-    changed:
-      -
-        value: '1782912094'
-    messages:
-      -
-        value: |
-          -
-            role: user
-            content: 'Add a heading with the text "Latest Updates" to the header region. Add the heading directly; do not wrap it in a container, column, or section.'
-    triggering_instructions:
-      -
-        value: 'Add a heading with the text "Latest Updates" to the header region. Add the heading directly; do not wrap it in a container, column, or section.'
-    ai_agent:
-      -
-        target_id: canvas_page_builder_agent
-    rules:
-      -
-        value: |
-          rule_1:
-            tool: 'canvas_ai:set_component_structure'
-            label: 'Heading placed in header region with level forced to h2 by region description'
-            tool_rules: should_be_run
-            tool_order: any
-            tool_loop_order: ''
-            tool_other_tool_order: 'canvas_ai:set_component_structure'
-            parameters:
-              component_structure:
-                type_of_check: yaml_path_equals
-                value: "operations.0.target=header\r\noperations.0.placement=below\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.heading.props.text=Latest Updates\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.heading.props.element=h2"
-            remove: null
-          add_rule: null
-          response_rule: ''
-    config_reset:
-      -
-        value: '0'
-    ai_agents_test_group:
-      -
-        target_id: '6'
-    tokens:
-      -
-        value: "canvas_layout_fixture: page-with-multiple-regions\r\nactive_component_uuid: ''\r\navailable_regions: '{\"header\":{\"nodePathPrefix\":0,\"info\":\"Heading components placed in this region must always use heading level H2 (element h2).\"},\"content\":{\"nodePathPrefix\":1,\"info\":null},\"sidebar\":{\"nodePathPrefix\":2,\"info\":null},\"content_below\":{\"nodePathPrefix\":3,\"info\":null},\"footer_top\":{\"nodePathPrefix\":4,\"info\":null},\"footer_bottom\":{\"nodePathPrefix\":5,\"info\":null}}'"
+        value: "canvas_layout_fixture: empty-page-with-content-region-enabled\r\nactive_component_uuid:"
   -
     id:
       -
@@ -1121,7 +857,7 @@ tests:
         target_id: '6'
     tokens:
       -
-        value: "canvas_layout_fixture: non-empty-page-with-content-region-enabled\r\nactive_component_uuid: 4c6ef712-5bca-4459-bce6-f7581b5c67bd\r\navailable_regions: '{\"content\":{\"nodePathPrefix\":0,\"info\":null}}'"
+        value: "canvas_layout_fixture: non-empty-page-with-content-region-enabled\r\nactive_component_uuid: 4c6ef712-5bca-4459-bce6-f7581b5c67bd"
   -
     id:
       -
@@ -1196,70 +932,7 @@ tests:
         target_id: '6'
     tokens:
       -
-        value: "canvas_layout_fixture: page-with-multiple-regions\r\nactive_component_uuid: ''\r\navailable_regions: '{\"header\":{\"nodePathPrefix\":0,\"info\":null},\"content\":{\"nodePathPrefix\":1,\"info\":null},\"sidebar\":{\"nodePathPrefix\":2,\"info\":null},\"content_below\":{\"nodePathPrefix\":3,\"info\":null},\"footer_top\":{\"nodePathPrefix\":4,\"info\":null},\"footer_bottom\":{\"nodePathPrefix\":5,\"info\":null}}'"
-  -
-    id:
-      -
-        value: '19'
-    uuid:
-      -
-        value: d30c253c-09e1-4e56-8db6-94ea6e1402f6
-    label:
-      -
-        value: 'Anchored Placement in a Non-Content Region'
-    status:
-      -
-        value: '1'
-    description:
-      -
-        value: 'When the reference component exists only in a non-content region, the agent must resolve that region and place the new component there. The site branding block exists only in the header, so the heading must be placed above it in the header region.'
-    uid:
-      -
-        target_id: '1'
-    created:
-      -
-        value: '1780057400'
-    changed:
-      -
-        value: '1782912094'
-    messages:
-      -
-        value: |
-          -
-            role: user
-            content: "Add a heading reading 'Announcements' above the site branding block. Add the heading directly; do not wrap it in a container, column, or section."
-    triggering_instructions:
-      -
-        value: "Add a heading reading 'Announcements' above the site branding block. Add the heading directly; do not wrap it in a container, column, or section."
-    ai_agent:
-      -
-        target_id: canvas_page_builder_agent
-    rules:
-      -
-        value: |
-          rule_1:
-            tool: 'canvas_ai:set_component_structure'
-            label: 'Heading placed above the site branding block in the header region'
-            tool_rules: should_be_run
-            tool_order: any
-            tool_loop_order: ''
-            tool_other_tool_order: 'canvas_ai:set_component_structure'
-            parameters:
-              component_structure:
-                type_of_check: yaml_path_equals
-                value: "operations.0.target=header\r\noperations.0.placement=above\r\noperations.0.reference_uuid=4890f586-2774-44f0-a9cb-f0abe5500473\r\noperations.0.components.0.sdc\\.canvas_test_sdc\\.heading.props.text=Announcements"
-            remove: null
-          add_rule: null
-          response_rule: ''
-    config_reset:
-      -
-        value: '0'
-    ai_agents_test_group:
-      -
-        target_id: '6'
-    tokens:
-      -
-        value: "canvas_layout_fixture: page-with-multiple-regions\r\nactive_component_uuid: ''\r\navailable_regions: '{\"header\":{\"nodePathPrefix\":0,\"info\":null},\"content\":{\"nodePathPrefix\":1,\"info\":null},\"sidebar\":{\"nodePathPrefix\":2,\"info\":null},\"content_below\":{\"nodePathPrefix\":3,\"info\":null},\"footer_top\":{\"nodePathPrefix\":4,\"info\":null},\"footer_bottom\":{\"nodePathPrefix\":5,\"info\":null}}'"
+        value: "canvas_layout_fixture: non-empty-page-with-content-region-enabled\r\nactive_component_uuid: ''"
   -
     id:
       -
@@ -1322,4 +995,4 @@ tests:
         target_id: '6'
     tokens:
       -
-        value: "canvas_layout_fixture: page-with-multiple-regions\r\nactive_component_uuid: 3177b7b8-947e-4fc8-9ee4-81b7834d36a9\r\navailable_regions: '{\"header\":{\"nodePathPrefix\":0,\"info\":null},\"content\":{\"nodePathPrefix\":1,\"info\":null},\"sidebar\":{\"nodePathPrefix\":2,\"info\":null},\"content_below\":{\"nodePathPrefix\":3,\"info\":null},\"footer_top\":{\"nodePathPrefix\":4,\"info\":null},\"footer_bottom\":{\"nodePathPrefix\":5,\"info\":null}}'"
+        value: "canvas_layout_fixture: non-empty-page-with-content-region-enabled\r\nactive_component_uuid: 3177b7b8-947e-4fc8-9ee4-81b7834d36a9"

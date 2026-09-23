@@ -29,14 +29,6 @@ canvas_ai.setting:
   requirements:
     _permission: 'use Drupal Canvas AI'
 
-canvas_ai.page_variant_settings:
-  path: '/admin/config/ai/canvas-ai-page-variant-settings'
-  defaults:
-    _title: 'Canvas AI Page Variant Settings'
-    _form: 'Drupal\canvas_ai\Form\CanvasAiPageVariantSettingsForm'
-  requirements:
-    _permission: 'use Drupal Canvas AI'
-
 canvas_ai.get_progress:
   path: '/admin/api/canvas/ai-progress'
   defaults:

@@ -55,7 +55,6 @@ const processComponents = (
  * Builds the current_layout request parameter from a layout tree and its model.
  *
  * @see \Drupal\canvas_ai\CanvasAiPageBuilderHelper::getComponentsByUuid()
- * @see \Drupal\canvas_ai\CanvasAiPageBuilderHelper::getAvailableRegions()
  */
 export const buildCurrentLayout = (
   layout: RegionNode[],
