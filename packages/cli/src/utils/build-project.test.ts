@@ -213,6 +213,7 @@ describe('buildCanvasProject', () => {
     expect(result.builtComponents[0]?.componentPayload).toEqual(
       expect.objectContaining({
         machineName: 'card',
+        type: 'react',
         sourceCodeJs: expect.stringContaining('@/components/button'),
         compiledJs: expect.stringContaining("from 'motion/react'"),
       }),

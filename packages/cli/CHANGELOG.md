@@ -1,5 +1,12 @@
 # @drupal-canvas/cli
 
+## 0.25.1
+
+### Patch Changes
+
+- 239a9a9: Explicitly set the React component type during non-headless push so
+  existing external components become Canvas-managed React components.
+
 ## 0.25.0
 
 ### Minor Changes
