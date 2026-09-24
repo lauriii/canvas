@@ -204,7 +204,7 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       icon: <BrandKitIcon />,
       label: 'Brand kit',
       enabled: true,
-      hidden: !hasPermission('brandKit') || !getCanvasSettings()?.devMode,
+      hidden: !hasPermission('brandKit'),
     },
   ];
 

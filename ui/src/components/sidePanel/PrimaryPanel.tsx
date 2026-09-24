@@ -38,10 +38,7 @@ export const PrimaryPanel = () => {
     ) {
       dispatch(unsetActivePanel());
     }
-    if (
-      activePanel === 'brandKit' &&
-      (!hasPermission('brandKit') || !getCanvasSettings()?.devMode)
-    ) {
+    if (activePanel === 'brandKit' && !hasPermission('brandKit')) {
       dispatch(unsetActivePanel());
     }
   }, [activePanel, dispatch]);
@@ -100,13 +97,11 @@ export const PrimaryPanel = () => {
                     <Code />
                   </ErrorBoundary>
                 )}
-                {activePanel === 'brandKit' &&
-                  hasPermission('brandKit') &&
-                  getCanvasSettings()?.devMode && (
-                    <ErrorBoundary>
-                      <BrandKitPanel />
-                    </ErrorBoundary>
-                  )}
+                {activePanel === 'brandKit' && hasPermission('brandKit') && (
+                  <ErrorBoundary>
+                    <BrandKitPanel />
+                  </ErrorBoundary>
+                )}
                 {activePanel === 'pages' && (
                   <ErrorBoundary>
                     <Pages />
