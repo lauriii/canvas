@@ -98,6 +98,83 @@ This lower-level call does not automatically load the framework’s draft sessio
 
 Links managed in Drupal need to point to the correct frontend destination, whether they reference Drupal content or pages that exist only in the headless frontend.
 
+### Translation links
+
+`fetchPage` returns `route.negotiatedLanguage` and `route.translations`. On multilingual sites, the list
+includes **every enabled language**, matching `getPageData()` from `drupal-canvas`
+(`mainEntity.translations`). It is empty on monolingual sites and routes without a canonical content entity.
+
+Each entry supplies `langcode`, localized `name`, `nativeName`, `translationAvailable`, `current`, and `url`.
+Availability is true only if the translation exists and the requester may view it; missing and denied
+translations both report false. Authorized preview accounts can see different availability.
+`current` follows the requested/negotiated language, not the rendered entity language.
+
+For example, with English and Spanish translations and no French translation, requesting `/fr/page/1`
+can render English. The response's `route` contains:
+
+```json
+{
+  "name": "entity.canvas_page.canonical",
+  "requestUri": "/fr/page/1",
+  "params": { "canvas_page": "1" },
+  "managedByCanvas": true,
+  "entity": {
+    "entityType": "canvas_page",
+    "bundle": "canvas_page",
+    "id": "1",
+    "uuid": "11111111-1111-4111-8111-111111111111",
+    "langcode": "en"
+  },
+  "negotiatedLanguage": "fr",
+  "translations": [
+    { "langcode": "en", "name": "English", "nativeName": "English", "url": "/contact", "translationAvailable": true, "current": false, "external": false },
+    { "langcode": "fr", "name": "French", "nativeName": "Français", "url": "/fr/page/1", "translationAvailable": false, "current": true, "external": false },
+    { "langcode": "es", "name": "Spanish", "nativeName": "Español", "url": "/es/contacto", "translationAvailable": true, "current": false, "external": false }
+  ]
+}
+```
+
+Unavailable entries use `getPageData()`'s fallback URL behavior: generate the supplied rendered
+entity's canonical URL using the entry's language. A missing translation can resolve to Drupal's fallback;
+**an unavailable URL is not guaranteed to be viewable**, particularly when a translation exists but access is denied.
+
+For an available-only switcher, filter explicitly and use the supplied names:
+
+```ts
+const page = await fetchPage("/fr/page/1");
+if (page && !("redirect" in page)) {
+  const languageLinks = page.route.translations
+    .filter((translation) => translation.translationAvailable)
+    .map((translation) => ({
+      label: translation.nativeName, // Or translation.name for localized names.
+      active: translation.current,
+      rendered: translation.langcode === page.route.entity?.langcode,
+      href: toPublicUrl(translation.langcode, translation.url),
+    }));
+}
+```
+
+In this example, filtering removes the current French entry: neither remaining entry is `active`.
+Use `rendered` instead to highlight English, the language identified by `route.entity.langcode`.
+For an all-language switcher, omit the filter and use `translationAvailable` to label unavailable choices;
+do not imply that every link retrieves viewable content.
+
+`toPublicUrl` is application-owned mapping logic, not an SDK helper. For example, it can map the Spanish
+entry `/es/contacto` to `https://example.es/contacto` or `/es-ES/contacto`. Use the original non-external
+Drupal URI, not the mapped public URL, when calling `fetchPage` for that translation.
+
+Translation URLs from `fetchPage()` use additional processing compared with those from `getPageData()`:
+the Drupal installation base path is removed, language-switch options follow configured negotiation
+priority, and query negotiation explicitly selects each language. For example, `/contact?language=en`
+selects English regardless of prior browsing or Drupal session state. Preserve that query string.
+Editor-only preview settings for view mode, component, page variant, and language are omitted;
+ordinary language-selection parameters remain.
+
+Headless entries also add `external`. An `external: true` entry retains an absolute URL, such as one
+produced by Drupal domain negotiation. It is **not valid `fetchPage` input** and does not imply SDK
+domain-negotiation support. Map it to a public URL instead. Structured translations do not generate
+HTML `hreflang` links.
+
 ### Mapping Drupal URLs to frontend URLs
 
 Even when Drupal owns the content and its translated aliases, the frontend may use a different URL structure. For example, a page with the English URL path alias `/contact` and the Spanish alias `/contacto` (“contact”) could require these mappings:

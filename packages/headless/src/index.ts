@@ -60,6 +60,7 @@ export {
   type CanvasComponentTreeSlot,
   type DrupalRoute,
   type DrupalRouteEntity,
+  type DrupalRouteTranslation,
   type JsonValue,
   type Page,
   type PageHead,

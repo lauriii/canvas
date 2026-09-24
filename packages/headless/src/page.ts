@@ -52,6 +52,26 @@ export interface DrupalRouteEntity {
   langcode: string;
 }
 
+/**
+ * An enabled language, matching getPageData() translation metadata from drupal-canvas.
+ */
+export interface DrupalRouteTranslation {
+  langcode: string;
+  /** Localized display name. */
+  name: string;
+  /** The language's own name. */
+  nativeName: string;
+  /** Exists and is viewable; false for both missing and denied translations. */
+  translationAvailable: boolean;
+  /** Matches negotiatedLanguage, even when the rendered entity falls back. */
+  current: boolean;
+  /** Drupal URI without its base path, or an external URL. Unavailable entries
+   * use Code Component fallback semantics, not a guarantee of access. */
+  url: string;
+  /** External URLs are not valid fetchPage input; map them to public URLs. */
+  external: boolean;
+}
+
 /** The Drupal route that was resolved for the requested frontend URI. */
 export interface DrupalRoute {
   name: string;
@@ -60,6 +80,10 @@ export interface DrupalRoute {
   /** Whether Canvas manages the route's complete component tree. */
   managedByCanvas: boolean;
   entity: DrupalRouteEntity | null;
+  /** Negotiated content language; may differ from entity.langcode on fallback. */
+  negotiatedLanguage: string;
+  /** Empty on monolingual sites and routes without a canonical content entity. */
+  translations: DrupalRouteTranslation[];
 }
 
 /**
