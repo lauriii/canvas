@@ -1,5 +1,16 @@
 # @drupal-canvas/headless
 
+## 0.9.0
+
+### Minor Changes
+
+- e1fae30: Add `route.negotiatedLanguage` and `route.translations` to the page
+  data returned by `fetchPage()`. Translation entries share the fields and
+  switcher behavior of `mainEntity.translations` returned by `getPageData()`
+  from `drupal-canvas`. Headless entries additionally include `external` and use
+  a different URL form: Drupal request URIs without the installation base path,
+  or absolute external URLs.
+
 ## 0.8.0
 
 ### Minor Changes

@@ -1,5 +1,12 @@
 # @drupal-canvas/headless-react
 
+## 0.4.3
+
+### Patch Changes
+
+- Updated dependencies [e1fae30]
+  - @drupal-canvas/headless@0.9.0
+
 ## 0.4.2
 
 ### Patch Changes
