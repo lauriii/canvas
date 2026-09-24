@@ -1,0 +1,288 @@
+---
+title: Headless - Setup
+---
+
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+The goal of this page: have the Canvas editor render its preview through your
+own frontend app, with your app's components placeable on a page by an editor.
+
+## What you'll have when you're done
+
+- A frontend app scaffolded from a Canvas Headless template (or an app you
+  already have, wired with the same SDK), running locally and serving the two
+  routes Canvas requires of it.
+- That app registered on your site's **Headless frontends** list, showing
+  status **Ready**.
+- The Canvas editor rendering its preview from your app instead of from
+  Drupal, unpublished content included.
+- Your app's own components in the Canvas component library, and one of them
+  placed on a page.
+
+## Prerequisites
+
+- A Drupal 11.3 or later site with Canvas installed that you can administer.
+  The **Edit** button in the top right of any page opens the Canvas visual
+  editor.
+- The `canvas_headless` submodule enabled, so the editor can embed your
+  frontend app and register its components. It pulls in `simple_oauth`
+  (6.1.0 or later), `consumers`, and `custom_elements`. Configure Simple
+  OAuth's RSA keypair at `/admin/config/people/simple_oauth`, since the same
+  keypair signs preview assertions.
+- The **Administer Canvas Headless frontends** and **Access Canvas Headless
+  preview** permissions on your account. Both are restricted permissions
+  granted per role.
+- Node.js 22.19 or later, or 24.5 or later. Node 23 is not supported. npm
+  ships with it.
+- A Chromium-based browser while you develop over plain HTTP. The editor
+  embeds your app cross-origin and the preview session rides on a partitioned
+  cookie, so Firefox needs HTTPS and Safari needs a version with CHIPS
+  support.
+
+Canvas Headless is on when **Headless frontends** sits in the icon rail down
+the left edge of the Canvas editor. Seeing it needs the **Administer Canvas
+Headless frontends** permission.
+
+## Steps
+
+<Steps>
+
+1. ### Scaffold the frontend app
+
+   `@drupal-canvas/create` writes `CANVAS_SITE_URL` into the project's `.env`
+   from `--site-url`, so point it at your site. To connect an app you already have,
+   wire the framework adapter into it yourself and pick back up at step 3.
+
+   <Tabs syncKey="headless-framework">
+   <TabItem label="Next.js">
+
+   ```bash
+   npx @drupal-canvas/create@latest my-canvas-frontend \
+     --template nextjs \
+     --site-url https://your-site.example.com \
+     --agents none
+   ```
+
+   The Next.js template wires the adapter in `next.config.ts` with
+   `withCanvas()`, and mounts the Canvas routes itself as four files under
+   `app/api/`.
+
+   </TabItem>
+   <TabItem label="Astro">
+
+   ```bash
+   npx @drupal-canvas/create@latest my-canvas-frontend \
+     --template astro \
+     --site-url https://your-site.example.com \
+     --agents none
+   ```
+
+   The Astro template wires the adapter with `canvas()` in the `integrations`
+   array of `astro.config.mjs`, which injects the Canvas routes.
+
+   </TabItem>
+   <TabItem label="Nuxt">
+
+   ```bash
+   npx @drupal-canvas/create@latest my-canvas-frontend \
+     --template nuxt \
+     --site-url https://your-site.example.com \
+     --agents none
+   ```
+
+   The Nuxt template wires the adapter by listing
+   `@drupal-canvas/headless-nuxt` in the `modules` array of `nuxt.config.ts`.
+
+   </TabItem>
+   <TabItem label="TanStack Start">
+
+   ```bash
+   npx @drupal-canvas/create@latest my-canvas-frontend \
+     --template tanstack-start \
+     --site-url https://your-site.example.com \
+     --agents none
+   ```
+
+   The TanStack Start template wires the adapter with `canvas()` in the
+   `plugins` array of `vite.config.ts`.
+
+   </TabItem>
+   <TabItem label="Angular">
+
+   ```bash
+   npx @drupal-canvas/create@latest my-canvas-frontend \
+     --template angular \
+     --site-url https://your-site.example.com \
+     --agents none
+   ```
+
+   </TabItem>
+   </Tabs>
+
+   `--agents none` skips generating per-agent rule files for Cursor, Copilot,
+   and similar.
+
+   Whatever the framework, the template gives you the same four things: a
+   catch-all route that resolves any Drupal path with `fetchPage()` and
+   renders the result with `<CanvasComponentTree>`, the draft session routes,
+   the component metadata endpoint at `/api/canvas/components`, and a
+   directory of ready-made components. `CANVAS_SITE_URL` is the entire
+   configuration. There is no client secret, because the app never holds a
+   standing credential.
+
+2. ### Start the app and check the Canvas routes
+
+   ```bash
+   cd my-canvas-frontend
+   npm run dev
+   ```
+
+   The dev server prints its local URL: `http://localhost:3000` for the
+   Next.js, Nuxt, and TanStack Start templates, `http://localhost:4321` for
+   Astro. Confirm the app is serving the Canvas contract, against the URL
+   yours printed:
+
+   ```bash
+   curl -i http://localhost:3000/api/canvas/components
+   ```
+
+   ```http
+   HTTP/1.1 401 Unauthorized
+   content-security-policy: frame-ancestors 'self'
+   cache-control: no-store
+   content-type: application/json
+   www-authenticate: Bearer
+
+   {"error":"missing_assertion","message":"Provide a Drupal preview assertion as a Bearer token. Assertions are single-use; mint a fresh one per request."}
+   ```
+
+   A 401 here is the success case: the route exists and is refusing a caller
+   that brought no credential. This is the exact response Canvas looks for
+   when it decides whether an app is connected. The `frame-ancestors` header
+   is the adapter's doing; it keeps the app un-embeddable until a live preview
+   session names the editor's origin.
+
+3. ### Register the app with Canvas
+
+   Open Canvas and pick **Headless frontends** from the icon rail down the
+   left edge. Click **Add frontend**, put the URL your dev server printed into
+   the dialog's one **Frontend URL** field, and confirm. The URL takes no
+   trailing slash, no query, and no fragment.
+
+   Your browser, not the Drupal server, probes each registered app and labels
+   the row:
+
+   | Status | Meaning |
+   | --- | --- |
+   | **Ready** | The app answered at `/api/canvas/components` the way the adapter does. |
+   | **Setup needed** | Something answered at that URL, but not a Canvas adapter. |
+   | **Unreachable** | Nothing answered. |
+
+   Failed rows are re-probed every few seconds, so a row that starts wrong
+   turns green on its own once you fix the app. Canvas previews through the
+   first app in the list; drag rows to reorder.
+
+4. ### Open a page in the Canvas editor
+
+   Open any page of your site and click **Edit**. The editor no longer draws
+   the preview itself: it embeds your app in a frame, and what fills the
+   canvas is your frontend rendering that page, drafts included. The toolbar
+   names the active app's host and lets you switch between registered apps,
+   and a status line above the frame reads **Draft session active — renews
+   automatically around `<time>`**.
+
+   <Aside>
+   This is site-wide, not per page. Once a frontend is registered, every
+   Canvas editing session on the site previews through the active app.
+   </Aside>
+
+   The same load synchronizes components. Canvas reads your app's component
+   metadata endpoint and registers every component it finds, so the component
+   library now lists the components in your codebase. There is nothing to
+   push.
+
+5. ### Place one of your components
+
+   Open the component library and drag one of your app's components onto the
+   page: the templates ship a set of them, including Hero, Card, and
+   Accordion. Canvas records the placement and your app renders it in the
+   frame, with the props declared in that component's `component.yml` now
+   editable in the right-hand panel.
+
+   Publish the page and the same composition renders on the app's own URL,
+   this time as ordinary application markup: the selection markers only exist
+   while a draft session is live.
+
+6. ### Add a component of your own
+
+   From the project root:
+
+   ```bash
+   npx canvas scaffold --name my-hero
+   ```
+
+   The directory comes from `componentDir` in `canvas.config.json`:
+   `components` in the Next.js template, `src/components` in Astro and
+   TanStack Start, `app/components` in Nuxt. See
+   [Local codebase](/code-components/local-codebase) for the full set of
+   options.
+
+   Open the new `component.yml` and change two lines. `machineName` arrives as
+   the placeholder `hello-world`, the same for every component
+   `canvas scaffold` writes, so the second one you scaffold would collide with
+   the first. It is
+   the component's identity in Canvas and the key your app's generated
+   registry renders by; it does not have to match the directory name, but a
+   name that does is easier to live with. `status` arrives as `false`, which
+   registers the component without offering it for placement:
+
+   ```yaml
+   name: My Hero
+   machineName: my-hero
+   status: true
+   ```
+
+   Reload the Canvas editor. **My Hero** is now in the component library,
+   ready to drag onto a page. Drupal will not let anyone rename it or flip its
+   status there: an external component's identity belongs to the app that
+   implements it. Change `machineName` later and Canvas treats it as a
+   different component, registering the new name and deactivating the old
+   entry.
+
+</Steps>
+
+<Aside type="tip">
+If a step did not go the way it reads here, see the
+[FAQ](/headless/faq) for the errors and statuses that come up most often.
+</Aside>
+
+## What just happened
+
+Two halves met.
+
+On the app side, `CANVAS_SITE_URL` is the whole configuration, because the
+credential is minted per preview rather than stored. When you opened the
+editor, Drupal signed a single-use, short-lived assertion and pointed the
+embedded frame at your app's `/api/draft`, which exchanged it at your site's
+`/oauth/token` for an access token bound to your own user account.
+Unpublished content appears in the preview because you are allowed to see it,
+not because the app holds a privileged key, and the token's reach is capped to
+a read-only preview ceiling.
+
+On the rendering side, the catch-all route hands the requested path to
+`fetchPage()`, which asks Drupal to resolve it the way it would for a visitor
+and hand back the routed entity as a tree of elements rather than as finished
+HTML. `<CanvasComponentTree>` walks that tree and renders each element with the
+component of the same machine name in your codebase. That is the part plain
+JSON:API cannot do: JSON:API answers "give me entity X", not "what does this
+URL resolve to, and which components compose it". Listings and detail queries
+still go over JSON:API, through the same client.
+
+## Next steps
+
+- [Component metadata](/code-components/component-metadata) - props, slots,
+  and the component format your app's component directory already uses.
+- [Local codebase](/code-components/local-codebase) - `canvas pull` brings
+  components that already exist on your site into the app's codebase.
+- [Multilingual sites](/headless/multilingual-sites) - configure language
+  negotiation, translation links, and frontend routing.
