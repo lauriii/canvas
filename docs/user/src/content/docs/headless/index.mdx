@@ -9,10 +9,16 @@ The Canvas Headless module lets the Drupal Canvas editor embed your app, so
 editors preview their work — draft content included — rendered by the app
 itself, with the app's components registered in Canvas.
 
-<LinkButton href="/headless/setup" variant="primary">
+<LinkButton
+  href={`${import.meta.env.BASE_URL}/headless/setup`.replace(/^\/\//, '/')}
+  variant="primary"
+>
   Set up a frontend app
 </LinkButton>
-<LinkButton href="/headless/faq" variant="secondary">
+<LinkButton
+  href={`${import.meta.env.BASE_URL}/headless/faq`.replace(/^\/\//, '/')}
+  variant="secondary"
+>
   FAQ
 </LinkButton>
 
