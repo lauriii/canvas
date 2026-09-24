@@ -398,9 +398,14 @@ colors) from Drupal to your local filesystem. Brand kit sync is on by default
 when `canvas.brand-kit.json` is present; use `--no-include-brand-kit` to skip
 it.
 
-If the project's `package.json` was captured on a previous `push`, it is written
-back to the project root during pull. It is overwritten by default, or skipped
-with `--skip-overwrite`, the same as global CSS.
+If the project's `package.json` was stored on a previous `push`, it is
+reconciled with the local file during pull. When no local `package.json` exists,
+the stored one is written to the project root. When a local file exists, its
+contents are preserved: each dependency from the stored `dependencies` that is
+absent from the local `dependencies`, `devDependencies`, and `peerDependencies`
+is added to the local `dependencies`, using the stored version. Existing
+versions, scripts, and other fields are left unchanged. Use `--skip-overwrite`
+to leave an existing `package.json` untouched, the same as global CSS.
 
 **Usage:**
 

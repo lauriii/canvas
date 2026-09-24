@@ -981,21 +981,140 @@ describe('Pull Command', () => {
       ).toBe(packageJson);
     });
 
-    it('should overwrite an existing package.json by default', async () => {
-      await fs.writeFile(
-        path.join(tmpDir, 'package.json'),
-        '{ "name": "old" }',
-        'utf-8',
-      );
-      const api = mockApiService('', '{ "name": "new" }');
+    it('should merge missing dependencies into an existing package.json', async () => {
+      const local = `${JSON.stringify(
+        {
+          name: 'my-project',
+          version: '1.2.3',
+          scripts: { dev: 'next dev' },
+          dependencies: { react: '^18.0.0' },
+          devDependencies: { typescript: '^5.0.0' },
+        },
+        null,
+        2,
+      )}\n`;
+      await fs.writeFile(path.join(tmpDir, 'package.json'), local, 'utf-8');
+      const pulled = JSON.stringify({
+        name: 'remote-name',
+        version: '9.9.9',
+        scripts: { dev: 'vite' },
+        dependencies: {
+          react: '^19.0.0',
+          typescript: '^4.0.0',
+          'class-variance-authority': '^0.7.1',
+        },
+      });
+      const api = mockApiService('', pulled);
       const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
 
       await task.prepare();
-      await task.execute();
+      const results = await task.execute();
 
+      const written = JSON.parse(
+        await fs.readFile(path.join(tmpDir, 'package.json'), 'utf-8'),
+      );
+      // Missing dependency added to `dependencies`.
+      expect(written.dependencies['class-variance-authority']).toBe('^0.7.1');
+      // Existing dependency keeps its local version (add-only).
+      expect(written.dependencies.react).toBe('^18.0.0');
+      // Dependency present only in local devDependencies is not added or moved.
+      expect(written.dependencies.typescript).toBeUndefined();
+      expect(written.devDependencies.typescript).toBe('^5.0.0');
+      // Project-owned fields are preserved.
+      expect(written.name).toBe('my-project');
+      expect(written.version).toBe('1.2.3');
+      expect(written.scripts.dev).toBe('next dev');
+
+      // The added dependency is reported as its own `Dependency` item.
+      const addedResult = results.results.find(
+        (r) => r.itemName === 'class-variance-authority',
+      );
+      expect(addedResult?.itemType).toBe('Dependency');
+      expect(addedResult?.success).toBe(true);
+      expect(addedResult?.details?.[0].content).toBe('Added');
+      // Only the missing dependency is reported, not existing ones.
+      expect(
+        results.results.filter((r) => r.itemType === 'Dependency'),
+      ).toHaveLength(1);
+      expect(results.notes?.some((n) => n.includes('npm install'))).toBe(true);
+    });
+
+    it('should leave a dependency in peerDependencies untouched', async () => {
+      const local = `${JSON.stringify(
+        {
+          name: 'lib',
+          peerDependencies: { react: '^18.0.0' },
+        },
+        null,
+        2,
+      )}\n`;
+      await fs.writeFile(path.join(tmpDir, 'package.json'), local, 'utf-8');
+      const api = mockApiService(
+        '',
+        JSON.stringify({ dependencies: { react: '^19.0.0' } }),
+      );
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
+
+      await task.prepare();
+      const results = await task.execute();
+
+      const written = JSON.parse(
+        await fs.readFile(path.join(tmpDir, 'package.json'), 'utf-8'),
+      );
+      expect(written.dependencies).toBeUndefined();
+      expect(written.peerDependencies.react).toBe('^18.0.0');
+      const packageJsonResult = results.results.find(
+        (r) => r.itemName === 'package.json',
+      );
+      expect(packageJsonResult?.details?.[0].content).toBe('No changes');
+    });
+
+    it('should not modify package.json or emit a reminder when nothing is added', async () => {
+      const local = `${JSON.stringify(
+        { name: 'p', dependencies: { react: '^18.0.0' } },
+        null,
+        2,
+      )}\n`;
+      await fs.writeFile(path.join(tmpDir, 'package.json'), local, 'utf-8');
+      const api = mockApiService(
+        '',
+        JSON.stringify({ dependencies: { react: '^19.0.0' } }),
+      );
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
+
+      await task.prepare();
+      const results = await task.execute();
+
+      // File is byte-identical (no rewrite).
       expect(
         await fs.readFile(path.join(tmpDir, 'package.json'), 'utf-8'),
-      ).toBe('{ "name": "new" }');
+      ).toBe(local);
+      expect(results.notes?.some((n) => n.includes('npm install'))).toBeFalsy();
+    });
+
+    it('should fail the package.json item when the local file is not valid JSON', async () => {
+      const invalid = '{ "name": "p", }';
+      await fs.writeFile(path.join(tmpDir, 'package.json'), invalid, 'utf-8');
+      const api = mockApiService(
+        '',
+        JSON.stringify({ dependencies: { react: '^19.0.0' } }),
+      );
+      const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
+
+      await task.prepare();
+      const results = await task.execute();
+
+      const packageJsonResult = results.results.find(
+        (r) => r.itemName === 'package.json',
+      );
+      expect(packageJsonResult?.success).toBe(false);
+      expect(packageJsonResult?.details?.[0].content).toContain(
+        'Could not merge dependencies',
+      );
+      // Local file left untouched.
+      expect(
+        await fs.readFile(path.join(tmpDir, 'package.json'), 'utf-8'),
+      ).toBe(invalid);
     });
 
     it('should skip writing package.json with skipOverwrite when it already exists', async () => {
