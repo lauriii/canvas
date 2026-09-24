@@ -1,0 +1,50 @@
+---
+title: Headless
+---
+
+import { LinkButton } from '@astrojs/starlight/components';
+
+Build decoupled frontend apps on top of Drupal Canvas with the Headless SDK.
+The Canvas Headless module lets the Drupal Canvas editor embed your app, so
+editors preview their work — draft content included — rendered by the app
+itself, with the app's components registered in Canvas.
+
+<LinkButton href="/headless/setup" variant="primary">
+  Set up a frontend app
+</LinkButton>
+<LinkButton href="/headless/faq" variant="secondary">
+  FAQ
+</LinkButton>
+
+## Key concepts
+
+- **Draft preview** - Editors preview draft content rendered by your app, with
+  the markers and geometry Canvas needs for selection and drag-and-drop.
+- **`fetchPage()`** - Requests page content from Drupal, returning route
+  context, document-head data, and a Canvas component tree when Canvas renders
+  the route.
+- **`fetchEntity()`** - Renders one specific content entity in a content
+  template view mode, such as a teaser.
+- **Component metadata endpoint** - Exposes your app's components to Canvas so
+  editors can place them on pages.
+
+## Framework adapters
+
+Install the framework adapter for your stack:
+
+- [`@drupal-canvas/headless`](https://www.npmjs.com/package/@drupal-canvas/headless) - framework-agnostic SDK
+- [`@drupal-canvas/headless-next`](https://www.npmjs.com/package/@drupal-canvas/headless-next) - Next.js
+- [`@drupal-canvas/headless-astro`](https://www.npmjs.com/package/@drupal-canvas/headless-astro) - Astro
+- [`@drupal-canvas/headless-nuxt`](https://www.npmjs.com/package/@drupal-canvas/headless-nuxt) - Nuxt
+- [`@drupal-canvas/headless-tanstack-start`](https://www.npmjs.com/package/@drupal-canvas/headless-tanstack-start) - TanStack Start
+- [`@drupal-canvas/headless-angular`](https://www.npmjs.com/package/@drupal-canvas/headless-angular) - Angular
+
+Enable the `canvas_headless` submodule so the editor can embed your frontend
+app and register its components.
+
+## In this section
+
+- [Setup](/headless/setup) - scaffold an app, register it with Canvas, and
+  place your own components on a page.
+- [FAQ](/headless/faq) - the errors and frontend statuses that come up most
+  often, and what each one means.

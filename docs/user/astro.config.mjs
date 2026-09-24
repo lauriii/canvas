@@ -126,6 +126,15 @@ export default defineConfig({
           ],
         },
         {
+          label: 'Headless',
+          items: [
+            { label: 'Introduction', slug: 'headless' },
+            { label: 'Setup', slug: 'headless/setup' },
+            { label: 'Multilingual sites', slug: 'headless/multilingual-sites' },
+            { label: 'FAQ', slug: 'headless/faq' },
+          ],
+        },
+        {
           label: 'SDC components',
           items: [
             { label: 'Introduction', slug: 'sdc-components' },

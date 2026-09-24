@@ -1,27 +1,35 @@
-# Multilingual sites with Canvas Headless
+---
+title: Headless - Multilingual sites
+---
 
-<!-- cspell:words contacto contactanos productos -->
+{/* cspell:words contacto contactanos productos */}
 
-This document outlines language negotiation and routing for multilingual sites with Canvas Headless.
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
 
-## TL;DR
+This guide covers language negotiation and routing for multilingual sites with Canvas Headless.
 
-**Drupal-side domain negotiation is not yet supported** and requires the planned multi-backend support ([#3592072](https://git.drupalcode.org/project/canvas/-/work_items/3592072)). Otherwise, multilingual sites work today, with custom code or workarounds where needed.
+<Aside title="Before you begin">
+Follow the [Translations guide](/guides/translations) to enable translation support,
+configure your site's languages, and set up a translation workflow in Drupal.
+Then return here to connect your headless frontend to that multilingual content.
+</Aside>
 
-- The headless frontend selects the language and passes it to Drupal using Drupal’s configured negotiation method.
+## At a glance
+
+- The headless frontend can select the language however your app requires—for example, using a path prefix, domain, browser preference, or saved user choice. It then passes that language to Drupal using Drupal’s configured negotiation method. Frontend language selection is independent of Drupal’s negotiation limitations.
 - The SDK’s `fetchPage` function retrieves Drupal page content. Include the language in the requested URL as a path prefix or query parameter. Browser-language forwarding requires a workaround until custom request header support is added ([#3592073](https://git.drupalcode.org/project/canvas/-/work_items/3592073)).
 - Drupal-generated links need adapting only when the frontend uses different domains, path prefixes, or aliases. Use outbound path processors or frontend rewriting.
 - For frontend-only pages, maintain language-specific links in translated menus and content.
 
 ---
 
-## Language negotiation
+## Drupal language negotiation
 
 The headless frontend and Drupal negotiate language independently. The frontend selects a language using its own logic, such as a URL path prefix or domain, then sends requests in the format Drupal expects. For example, a frontend using `example.hu` can request `/hu/page/5` from Drupal when Drupal uses path-prefix negotiation.
 
-Drupal core provides these language negotiation methods:
+The table below lists **Drupal core’s language negotiation methods**, not the ways your frontend can select a language. It describes how Drupal determines the language of requests it receives from your frontend:
 
-| Method                               | Example                          | Canvas Headless support                                                                                           |
+| Method                               | Example                          | Use with Canvas Headless                                                                                           |
 | ------------------------------------ | -------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | URL path prefix                      | `example.com/hu/page/5`          | Supported                                                                                                         |
 | URL domain                           | `example.hu/page/5`              | Not yet supported ([#3592072](https://git.drupalcode.org/project/canvas/-/work_items/3592072))                    |
@@ -46,7 +54,8 @@ const getPage = cache((path: string) => fetchPage(path));
 
 Adapt the path passed to this helper to include Drupal’s language prefix or query parameter. If the language comes from the incoming request—for example, its domain—resolve it before calling `getPage`, so the language is included in the cache key.
 
-#### URL path prefix
+<Tabs>
+<TabItem label="URL path prefix">
 
 Include Drupal’s language prefix in the requested path:
 
@@ -56,7 +65,8 @@ await fetchPage("/hu/page/5");
 
 The prefix must match Drupal’s configuration. In this example, `hu` is the language code for Hungarian, but Drupal can be configured to use a different URL prefix for that language.
 
-#### Request/session parameter
+</TabItem>
+<TabItem label="Request/session parameter">
 
 Include the language in the requested query string:
 
@@ -66,7 +76,8 @@ await fetchPage("/page/5?language=hu");
 
 Use Drupal’s configured parameter name (`language` by default). Send it with each request rather than relying on Drupal session persistence.
 
-#### Browser language (workaround)
+</TabItem>
+<TabItem label="Browser language (workaround)">
 
 The framework helpers do not automatically forward the visitor’s `Accept-Language` header or accept custom headers. Support for custom request headers in the Headless SDK is tracked in [#3592073](https://git.drupalcode.org/project/canvas/-/work_items/3592073). Until then, use the lower-level SDK’s `fetchPage` with a custom fetch implementation:
 
@@ -92,7 +103,13 @@ const page = await fetchPage("/page/5", {
 
 Drupal must have browser-language negotiation enabled. Keep the custom fetch request-scoped so one visitor’s language cannot leak into another’s request.
 
-This lower-level call does not automatically load the framework’s draft session. Preview integrations must also supply `draftData` to preserve draft access.
+<Aside title="Preserve draft access in previews">
+This lower-level call does not automatically load the framework’s draft session.
+Preview integrations must also supply `draftData` to preserve draft access.
+</Aside>
+
+</TabItem>
+</Tabs>
 
 ## Links and frontend routing
 
@@ -135,8 +152,12 @@ can render English. The response's `route` contains:
 ```
 
 Unavailable entries use `getPageData()`'s fallback URL behavior: generate the supplied rendered
-entity's canonical URL using the entry's language. A missing translation can resolve to Drupal's fallback;
-**an unavailable URL is not guaranteed to be viewable**, particularly when a translation exists but access is denied.
+entity's canonical URL using the entry's language. A missing translation can resolve to Drupal's fallback.
+
+<Aside type="caution" title="Unavailable translation URLs may not be viewable">
+An unavailable URL is not guaranteed to be viewable, particularly when a translation
+exists but access is denied. Use `translationAvailable` to decide which links to offer.
+</Aside>
 
 For an available-only switcher, filter explicitly and use the supplied names:
 

@@ -1,0 +1,65 @@
+---
+title: Headless - FAQ
+---
+
+Answers to the errors and statuses that come up most often when connecting a
+frontend app to Canvas. For the walkthrough these refer to, see
+[Setup](/headless/setup).
+
+## Setup and registration
+
+### The dev server never starts, and prints `Error: CANVAS_SITE_URL must be set. See .env.example.`
+
+The app has no `.env`, or the file is not in the project root next to
+`package.json`. `@drupal-canvas/create` writes it from `--site-url`; if you
+scaffolded without that flag, copy `.env.example` to `.env` and fill in your
+site's base URL with no trailing slash and no path.
+
+### Why does the frontend row show Setup needed?
+
+A server answered at that URL, but not with the adapter's 401. Run the `curl`
+check from [step 2 of Setup](/headless/setup) against the exact URL you
+registered. The usual causes are a wrong port and an app whose adapter never
+reached the build: `withCanvas()` in `next.config.ts`, `canvas()` in
+`astro.config.mjs`'s `integrations`, `@drupal-canvas/headless-nuxt` in
+`nuxt.config.ts`'s `modules`, or `canvas()` in `vite.config.ts`'s `plugins`
+for TanStack Start.
+
+### Why does the frontend row show Unreachable?
+
+Nothing answered. Canvas probes each app from your browser rather than from
+the Drupal server, so a localhost dev server is fine, but the URL has to be
+one your browser can open, and the dev server has to still be running.
+
+### Why is Headless frontends missing from Canvas?
+
+Your account does not have the **Administer Canvas Headless frontends**
+permission. **Access Canvas Headless preview** is the separate permission
+editors need to preview through an app, and a role can hold either one without
+the other.
+
+## Preview
+
+### Why does the preview never start, or stay blank, in Firefox or Safari?
+
+The preview session depends on a cookie set cross-origin, in a partition.
+Chromium-based browsers work over HTTPS, and also against a plain-HTTP
+localhost dev server. Firefox needs HTTPS, plus a per-site exception for the
+Drupal site if you block all third-party cookies. Safari follows CHIPS
+availability, which it lacks in versions 18.5 through 26.1.
+
+### Why does one entity fail to open in preview while others work?
+
+Previewing needs view access to the entity, not only edit access. An entity
+with no canonical URL, or one whose path your app does not serve, cannot be
+previewed either.
+
+## Components
+
+### Why is a component I added missing from the component library?
+
+Check its `component.yml`. `status` has to be `true`; a component left at the
+default `status: false` does synchronize, and Drupal records it, but it is not
+offered for placement. Check `machineName` too: left at the default
+`hello-world`, a second component collides with the first. Reload the editor
+afterwards, since components synchronize when the editor loads.

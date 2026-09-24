@@ -180,7 +180,7 @@ language prefix or query preserved. External URLs remain absolute and are **not 
 this does not add SDK support for domain negotiation. Frontends map entries to their own public URLs.
 The headless-only `external` flag and URL processing support Drupal request URIs: configured negotiation
 priority and explicit query-language selection are preserved, while editor-only preview settings are omitted.
-See [multilingual examples](../../docs/multilingual-sites-with-canvas-headless.md#translation-links).
+See [multilingual examples](../../docs/user/src/content/docs/headless/multilingual-sites.mdx#translation-links).
 
 ### Redirect response
 

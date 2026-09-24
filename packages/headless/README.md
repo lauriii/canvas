@@ -99,7 +99,7 @@ base path. For available translations, pass them unchanged to `fetchPage`,
 preserving language prefixes and query strings. External URLs remain absolute
 and are not valid `fetchPage` input; the SDK does not thereby support Drupal
 domain negotiation. Map entries to public URLs in the frontend. See the
-[multilingual guide](../../docs/multilingual-sites-with-canvas-headless.md#translation-links)
+[multilingual guide](../../docs/user/src/content/docs/headless/multilingual-sites.mdx#translation-links)
 for a language-switcher example.
 
 Use `fetchEntity({ type, id, viewMode })` when the current request should render

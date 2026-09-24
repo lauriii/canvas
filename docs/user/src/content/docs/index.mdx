@@ -23,6 +23,12 @@ import { CardGrid, LinkCard } from '@astrojs/starlight/components';
 </CardGrid>
 <CardGrid>
   <LinkCard
+    title="Headless"
+    href={`${import.meta.env.BASE_URL}/headless`.replace(/^\/\//, '/')}
+  />
+</CardGrid>
+<CardGrid>
+  <LinkCard
     title="SDC components"
     href={`${import.meta.env.BASE_URL}/sdc-components`.replace(/^\/\//, '/')}
   />
