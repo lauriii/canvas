@@ -54,6 +54,9 @@ class CanvasPageVariantEnableTest extends BrowserTestBase {
       // before any variant exists.
       // @see \Drupal\canvas\PageVariantResolver
       'config:canvas.settings',
+      // @see \Drupal\canvas\Hook\ComponentSourceHooks::pageAttachments()
+      'config:canvas.asset_library.global',
+      'config:canvas.brand_kit.global',
       'config:system.menu.account',
       'config:system.menu.main',
       'config:system.site',

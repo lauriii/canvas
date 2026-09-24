@@ -32,7 +32,7 @@ final class MediaLibrariesBuildTest extends CanvasKernelTestBase {
   }
 
   /**
-   * Tests \canvas_library_info_build.
+   * Tests \Drupal\canvas\Hook\LibraryHooks::libraryInfoBuild().
    */
   public function testLibraryBuild(): void {
     // Set olivero as the default theme.
