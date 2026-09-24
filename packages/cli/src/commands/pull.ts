@@ -34,6 +34,7 @@ import { printCommandIntro } from '../utils/command-intro';
 import { appendCommandSummarySection } from '../utils/command-summary';
 import { contentTemplateToAuthored } from '../utils/content-templates';
 import { ensureTailwindImportAtTop } from '../utils/ensure-global-css-tailwind-import';
+import { mergePackageJsonDependencies } from '../utils/merge-package-json';
 import { pageVariantToAuthoredSpec } from '../utils/page-variants';
 import { pageToAuthoredSpec } from '../utils/pages';
 import { stripProjectedContentEntityReferencePropKeys } from '../utils/process-component-files';
@@ -925,9 +926,9 @@ export function createAssetsPullTask(
     async execute(): Promise<PullTaskResult> {
       const results: Result[] = [];
       const notes: string[] = [];
-      // Set when the pulled `package.json` is newly created or its content
-      // differs from what was on disk, so the user is reminded to reinstall
-      // dependencies. An identical overwrite raises no note.
+      // Set when the pulled `package.json` is newly created or gains added
+      // dependencies, so the user is reminded to reinstall. A no-op merge (no
+      // missing dependencies) raises no note.
       let packageJsonChanged = false;
       if (globalCss) {
         try {
@@ -961,23 +962,51 @@ export function createAssetsPullTask(
               success: true,
               details: [{ content: 'Skipped (already exists)' }],
             });
-          } else {
-            // Compare against the on-disk file (if any) before overwriting, so
-            // the dependency-install reminder only fires on a real change.
-            const previous = packageJsonExists
-              ? await fs.readFile(packageJsonPath, 'utf-8').catch(() => null)
-              : null;
-            packageJsonChanged = previous !== packageJson;
+          } else if (!packageJsonExists) {
+            // No local file to preserve: write the pulled manifest verbatim.
             await fs.writeFile(packageJsonPath, packageJson, 'utf-8');
+            packageJsonChanged = true;
             results.push({ itemName: 'package.json', success: true });
+          } else {
+            // A local file exists: preserve it and only add dependencies it is
+            // missing, so project-owned fields (scripts, metadata) survive.
+            const local = await fs.readFile(packageJsonPath, 'utf-8');
+            const { output, added } = mergePackageJsonDependencies(
+              local,
+              packageJson,
+            );
+            if (output === null) {
+              results.push({
+                itemName: 'package.json',
+                success: true,
+                details: [{ content: 'No changes' }],
+              });
+            } else {
+              await fs.writeFile(packageJsonPath, output, 'utf-8');
+              packageJsonChanged = true;
+              for (const name of added) {
+                results.push({
+                  itemName: name,
+                  itemType: 'Dependency',
+                  success: true,
+                  details: [{ content: 'Added' }],
+                });
+              }
+            }
           }
         } catch (error) {
+          // A malformed local `package.json` fails only this item; the rest of
+          // the pull continues. The local file is left untouched.
           const errorMessage =
             error instanceof Error ? error.message : String(error);
           results.push({
             itemName: 'package.json',
             success: false,
-            details: [{ content: errorMessage }],
+            details: [
+              {
+                content: `Could not merge dependencies: ${errorMessage}. Fix the local package.json and pull again.`,
+              },
+            ],
           });
         }
       }
