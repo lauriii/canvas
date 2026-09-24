@@ -618,6 +618,11 @@ class CanvasPageVariantTest extends FunctionalTestBase {
     // @see \Drupal\canvas\EventSubscriber\PageVariantSelectorSubscriber
     if ($this->container->get(ModuleHandlerInterface::class)->moduleExists('canvas')) {
       $expected_baseline_cache_tags[] = 'config:canvas.settings';
+      // Every front-end page also depends on the global asset library and
+      // brand kit, whose generated files it refers to.
+      // @see \Drupal\canvas\Hook\ComponentSourceHooks::pageAttachments()
+      $expected_baseline_cache_tags[] = 'config:canvas.asset_library.global';
+      $expected_baseline_cache_tags[] = 'config:canvas.brand_kit.global';
     }
     $expected_dependency_cacheability = new CacheableMetadata();
     array_walk(

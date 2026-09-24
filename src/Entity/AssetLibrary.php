@@ -211,11 +211,15 @@ final class AssetLibrary extends ConfigEntityBase implements CanvasAssetInterfac
 
     // The files generated in CanvasAssetStorage::doSave() have a
     // content-dependent hash in their name. This has 2 consequences:
-    // 1. Cached responses that referred to an older version, continue to work.
+    // 1. Previously cached responses still refer to the old files, which remain
+    //    on disk, so nothing breaks. They serve outdated assets until they are
+    //    invalidated, which happens because they depend on this config entity's
+    //    cache tags, which are invalidated automatically on save.
+    //    @see \Drupal\canvas\Hook\ComponentSourceHooks::pageAttachments()
     // 2. New responses must use the newly generated files, which requires the
     //    asset library to point to those new files. Hence the library info must
     //    be recalculated.
-    // @see \canvas_library_info_build()
+    // @see \Drupal\canvas\Hook\LibraryHooks::libraryInfoBuild()
     Cache::invalidateTags(['library_info']);
   }
 

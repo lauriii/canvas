@@ -50,7 +50,7 @@ class CanvasAssetStorage extends ConfigEntityStorage implements EntityHandlerInt
    *
    * Does NOT handle asset library updates.
    *
-   * @see \canvas_library_info_builds()
+   * @see \Drupal\canvas\Hook\LibraryHooks::libraryInfoBuild()
    * @see \Drupal\canvas\Entity\AssetLibrary::postSave()
    * @see \Drupal\canvas\Entity\JavaScriptComponent::postSave()
    */

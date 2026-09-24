@@ -945,7 +945,7 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
     // 2. New responses must use the newly generated files, which requires the
     //    asset library to point to those new files. Hence the library info must
     //    be recalculated.
-    // @see \canvas_library_info_build()
+    // @see \Drupal\canvas\Hook\LibraryHooks::libraryInfoBuild()
     Cache::invalidateTags(['library_info']);
   }
 

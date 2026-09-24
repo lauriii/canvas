@@ -232,11 +232,16 @@ final class Color extends ConfigEntityBase implements CanvasHttpApiEligibleConfi
   private static function regenerateBrandKitAssets(): void {
     $storage = \Drupal::entityTypeManager()->getStorage(BrandKit::ENTITY_TYPE_ID);
     \assert($storage instanceof CanvasAssetStorage);
+    $tags = ['library_info'];
     foreach ($storage->loadMultiple() as $brand_kit) {
       \assert($brand_kit instanceof CanvasAssetInterface);
       $storage->generateFiles($brand_kit);
+      // The brand kit is not saved, so its cache tags must be invalidated
+      // explicitly for responses to refer to the newly generated files.
+      // @see \Drupal\canvas\Hook\ComponentSourceHooks::pageAttachments()
+      $tags = Cache::mergeTags($tags, array_values($brand_kit->getCacheTagsToInvalidate()));
     }
-    Cache::invalidateTags(['library_info']);
+    Cache::invalidateTags($tags);
   }
 
   /**

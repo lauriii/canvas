@@ -11,6 +11,7 @@ use Drupal\canvas\Entity\BrandKit;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Asset\AttachedAssetsInterface;
 use Drupal\Core\Asset\LibraryDependencyResolverInterface;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\DrupalKernelInterface;
 use Drupal\Core\Extension\ThemeInstallerInterface;
@@ -129,16 +130,24 @@ readonly final class ComponentSourceHooks {
     // TRICKY: the `route` cache context varies also by route parameters, that
     // is unnecessary here, because this only varies by route definition.
     $page['#cache']['contexts'][] = 'route.name';
+    // The generated asset files have a content-dependent hash in their name,
+    // so responses must be invalidated when these config entities change, to
+    // make them refer to the newly generated files.
+    // @see \Drupal\canvas\Entity\AssetLibrary::postSave()
+    $cacheability = CacheableMetadata::createFromRenderArray($page);
     $asset_library = AssetLibrary::load(AssetLibrary::GLOBAL_ID);
     // The `global `asset library is guaranteed to exist, but protect even
     // against the most obscure edge cases. (Also: tests do simulate that!)
     if ($asset_library) {
       $page['#attached']['library'][] = $asset_library->getAssetLibrary($is_preview);
+      $cacheability->addCacheableDependency($asset_library);
     }
     $brand_kit = BrandKit::load(BrandKit::GLOBAL_ID);
     if ($brand_kit) {
       $page['#attached']['library'][] = $brand_kit->getAssetLibrary($is_preview);
+      $cacheability->addCacheableDependency($brand_kit);
     }
+    $cacheability->applyTo($page);
   }
 
   /**
