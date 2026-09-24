@@ -10,6 +10,7 @@ use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas_headless\CanvasContentEntityRenderer;
 use Drupal\canvas_headless\CanvasContentHeadBuilder;
+use Drupal\canvas_headless\CanvasContentTranslationLinks;
 use Drupal\canvas_headless\PreviewTokenInspector;
 use Drupal\canvas_headless\RenderConverter\JsComponentCanvasRenderConverter;
 use Drupal\canvas_headless\Routing\CanvasContentRouteEnhancer;
@@ -40,6 +41,7 @@ final class CanvasContentController {
     private readonly AutoSaveManager $autoSaveManager,
     private readonly CanvasContentEntityRenderer $entityRenderer,
     private readonly CanvasContentHeadBuilder $headBuilder,
+    private readonly CanvasContentTranslationLinks $translationLinks,
     #[Autowire(service: 'custom_elements.canvas_render_converter')]
     private readonly JsComponentCanvasRenderConverter $canvasRenderConverter,
     #[Autowire(service: 'custom_elements.normalizer')]
@@ -158,6 +160,7 @@ final class CanvasContentController {
       };
     }
 
+    $language_context = $this->translationLinks->build($rendered_entity, $request, $cacheability);
     $response = new CacheableJsonResponse([
       'content' => $content,
       'head' => $head_result['head'],
@@ -166,7 +169,7 @@ final class CanvasContentController {
         $request_uri,
         $rendered_entity,
         $managed_by_canvas,
-      ),
+      ) + $language_context,
     ]);
     $response->addCacheableDependency($cacheability);
     return $response;

@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas_headless\Kernel;
 
-// cspell:ignore unroutable francaise Btag
+// cspell:ignore unroutable francaise Btag Anglais
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\CodeComponentDataProvider;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\JavaScriptComponent;
@@ -19,6 +20,7 @@ use Drupal\canvas_headless\PreviewLanguageRedirectResponse;
 use Drupal\canvas_headless\StackMiddleware\CanvasContentApiRequest;
 use Drupal\consumers\Entity\Consumer;
 use Drupal\Core\Cache\CacheableJsonResponse;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Language\LanguageManagerInterface;
@@ -38,14 +40,19 @@ use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use Drupal\user\Entity\Role;
 use Drupal\user\UserInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Bridge\PsrHttpMessage\HttpMessageFactoryInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
  * Tests routed Canvas content and scoped auto-save previews.
@@ -225,6 +232,8 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
         'uuid' => $page->uuid(),
         'langcode' => 'en',
       ],
+      'negotiatedLanguage' => 'en',
+      'translations' => [],
     ], $data['route']);
     self::assertContains('canvas_page:' . $page->id(), $response->getCacheableMetadata()->getCacheTags());
     self::assertContains('canvas_page_view', $response->getCacheableMetadata()->getCacheTags());
@@ -905,6 +914,8 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
         'params' => [],
         'managedByCanvas' => FALSE,
         'entity' => NULL,
+        'negotiatedLanguage' => 'en',
+        'translations' => [],
       ],
     ], self::responseData($without_entity));
 
@@ -1135,6 +1146,213 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Tests aliases, missing languages, access, and cacheable translation links.
+   */
+  public function testTranslationLinks(): void {
+    $this->installConfig(['user']);
+    $role = Role::load('anonymous');
+    self::assertInstanceOf(Role::class, $role);
+    $this->grantPermissions($role, ['access content']);
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+    ConfigurableLanguage::createFromLangcode('de')->save();
+    $page = $this->createPage();
+    $page->addTranslation('fr', ['title' => 'French', 'status' => TRUE])->save();
+    $this->config('language.negotiation')
+      ->set('url.prefixes', ['en' => '', 'fr' => 'fr', 'de' => 'de'])
+      ->set('session.parameter', 'locale')->save();
+    foreach (['en' => '/hello', 'fr' => '/bonjour'] as $langcode => $alias) {
+      PathAlias::create(['path' => '/page/' . $page->id(), 'alias' => $alias, 'langcode' => $langcode])->save();
+    }
+    $this->container->get('kernel')->rebuildContainer();
+    $this->setCurrentAccount(new AnonymousUserSession());
+    // Session negotiation is disabled: its configured selector is unrelated
+    // query data here and must not be rewritten.
+    $response = $this->renderContentPath('/fr/bonjour?locale=fr');
+    $route = self::responseData($response)['route'];
+    self::assertSame('fr', $route['negotiatedLanguage']);
+    self::assertSame([
+      ['langcode' => 'en', 'name' => 'English', 'nativeName' => 'English', 'url' => '/hello?locale=fr', 'translationAvailable' => TRUE, 'current' => FALSE, 'external' => FALSE],
+      ['langcode' => 'fr', 'name' => 'French', 'nativeName' => 'Français', 'url' => '/fr/bonjour?locale=fr', 'translationAvailable' => TRUE, 'current' => TRUE, 'external' => FALSE],
+      ['langcode' => 'de', 'name' => 'German', 'nativeName' => 'Deutsch', 'url' => '/de/page/' . $page->id() . '?locale=fr', 'translationAvailable' => FALSE, 'current' => FALSE, 'external' => FALSE],
+    ], $route['translations']);
+    foreach ($route['translations'] as $translation) {
+      if ($translation['translationAvailable']) {
+        $target = self::responseData($this->renderContentPath($translation['url']))['route'];
+        self::assertSame($translation['langcode'], $target['entity']['langcode']);
+      }
+    }
+    self::assertContains('languages:language_interface', $response->getCacheableMetadata()->getCacheContexts());
+    self::assertContains('config:language.entity.fr', $response->getCacheableMetadata()->getCacheTags());
+    self::assertContains('languages:language_content', $response->getCacheableMetadata()->getCacheContexts());
+    foreach (['config:configurable_language_list', 'config:language.types', 'config:language.negotiation'] as $tag) {
+      self::assertContains($tag, $response->getCacheableMetadata()->getCacheTags());
+    }
+    $fallback = self::responseData($this->renderContentPath('/de/page/' . $page->id()))['route'];
+    self::assertSame('de', $fallback['negotiatedLanguage']);
+    self::assertSame('en', $fallback['entity']['langcode']);
+    self::assertFalse($fallback['translations'][0]['current']);
+    self::assertTrue($fallback['translations'][2]['current']);
+    self::assertFalse($fallback['translations'][2]['translationAvailable']);
+    self::assertCount(3, $fallback['translations']);
+    self::assertSame([], array_filter($fallback['translations'], static fn (array $entry): bool => $entry['translationAvailable'] && $entry['current']));
+
+    $page->getTranslation('fr')->set('status', FALSE)->save();
+    $this->container->get(EntityTypeManagerInterface::class)->getAccessControlHandler('canvas_page')->resetCache();
+    $response = $this->renderContentPath('/hello');
+    $entries = self::responseData($response)['route']['translations'];
+    self::assertSame(['en', 'fr', 'de'], array_column($entries, 'langcode'));
+    self::assertSame([TRUE, FALSE, FALSE], array_column($entries, 'translationAvailable'));
+    // Keep the established language-specific fallback URL, even when denied.
+    self::assertSame('/fr/bonjour', $entries[1]['url']);
+    // Availability is not a route-access bypass: this established fallback URL
+    // still resolves to the denied translation, rather than viewable English.
+    try {
+      $this->renderContentPath($entries[1]['url']);
+      self::fail('An unavailable link must not bypass translation access.');
+    }
+    catch (CacheableAccessDeniedHttpException $exception) {
+      self::assertContains('user.permissions', $exception->getCacheContexts());
+    }
+    self::assertContains('user.permissions', $response->getCacheableMetadata()->getCacheContexts());
+    self::assertContains('canvas_page:' . $page->id(), $response->getCacheableMetadata()->getCacheTags());
+    $editor = $this->createUser(['access content', Page::EDIT_PERMISSION]);
+    self::assertInstanceOf(UserInterface::class, $editor);
+    $this->setCurrentAccount($this->createTokenAccount(with_preview_scope: TRUE, user: $editor));
+    $preview = self::responseData($this->renderContentPath('/hello'))['route'];
+    self::assertSame(['en', 'fr', 'de'], array_column($preview['translations'], 'langcode'));
+    self::assertSame([TRUE, TRUE, FALSE], array_column($preview['translations'], 'translationAvailable'));
+  }
+
+  /**
+   * Compares real API outputs while their request context is still active.
+   */
+  #[DataProvider('translationContractCases')]
+  public function testTranslationContractParity(string $requested, bool $french_published, bool $preview): void {
+    $this->installConfig(['user']);
+    $role = Role::load('anonymous');
+    self::assertInstanceOf(Role::class, $role);
+    $this->grantPermissions($role, ['access content']);
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+    ConfigurableLanguage::createFromLangcode('de')->save();
+    $this->config('language.negotiation')->set('url.prefixes', ['en' => '', 'fr' => 'fr', 'de' => 'de'])->save();
+    $page = $this->createPage();
+    $page->addTranslation('fr', ['title' => 'French', 'status' => $french_published])->save();
+    $editor = $this->createUser(['access content', Page::EDIT_PERMISSION]);
+    self::assertInstanceOf(UserInterface::class, $editor);
+    $this->container->get('kernel')->rebuildContainer();
+    $account = $preview ? $this->createTokenAccount(with_preview_scope: TRUE, user: $editor) : new AnonymousUserSession();
+    $this->setCurrentAccount($account);
+
+    $captured = [];
+    $listener = function (ResponseEvent $event) use (&$captured, $account): void {
+      if (!$event->isMainRequest() || !$event->getRequest()->attributes->has(CanvasContentApiRequest::REQUESTED_URI_ATTRIBUTE)) {
+        return;
+      }
+      // Calling the provider after renderContentPath() would instead see the
+      // restored test request. Capture it here, on the actual routed request.
+      self::assertSame($event->getRequest(), $this->container->get(RequestStack::class)->getCurrentRequest());
+      self::assertSame($account, $this->container->get(AccountProxyInterface::class)->getAccount());
+      $captured[] = $this->container->get(CodeComponentDataProvider::class)->getCanvasDataMainEntityV0();
+    };
+    $dispatcher = $this->container->get(EventDispatcherInterface::class);
+    $dispatcher->addListener(KernelEvents::RESPONSE, $listener);
+    try {
+      // No auto-saves: only access differs between public and preview cases.
+      $response = $this->renderContentPath(($requested === 'en' ? '' : '/' . $requested) . '/page/' . $page->id());
+    }
+    finally {
+      $dispatcher->removeListener(KernelEvents::RESPONSE, $listener);
+    }
+    self::assertSame(200, $response->getStatusCode());
+    self::assertCount(1, $captured);
+    $main_entity = $captured[0][CodeComponentDataProvider::V0]['mainEntity'];
+    $route = self::responseData($response)['route'];
+    self::assertSame($requested, $route['negotiatedLanguage']);
+    self::assertSame($requested === 'de' ? 'en' : $requested, $route['entity']['langcode']);
+    self::assertSame($main_entity['uuid'], $route['entity']['uuid']);
+    self::assertSame($main_entity['requestedLanguage'], $route['negotiatedLanguage']);
+    self::assertSame($main_entity['renderedLanguage'], $route['entity']['langcode']);
+    self::assertSame(['en', 'fr', 'de'], array_column($route['translations'], 'langcode'));
+    self::assertSame([TRUE, $french_published || $preview, FALSE], array_column($route['translations'], 'translationAvailable'));
+
+    // Strip only the deliberate URL differences, not an allowlist of shared
+    // fields: unexpected fields, types, and ordering must fail this comparison.
+    $headless_entries = \array_map(static function (array $entry): array {
+      unset($entry['url'], $entry['external']);
+      return $entry;
+    }, $route['translations']);
+    $component_entries = \array_map(static function (array $entry): array {
+      unset($entry['url']);
+      return $entry;
+    }, $main_entity['translations']);
+    self::assertSame($component_entries, $headless_entries);
+  }
+
+  /**
+   * Provides available, missing, denied and preview-accessible translations.
+   */
+  public static function translationContractCases(): iterable {
+    yield 'available requested' => ['fr', TRUE, FALSE];
+    yield 'missing requested with fallback' => ['de', TRUE, FALSE];
+    yield 'denied for public' => ['en', FALSE, FALSE];
+    yield 'viewable in authorized preview' => ['en', FALSE, TRUE];
+  }
+
+  /**
+   * Tests language names follow interface-language configuration overrides.
+   */
+  public function testTranslationLinkNames(): void {
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+    $page = $this->createPage();
+    $this->config('language.negotiation')->set('url.prefixes', ['en' => '', 'fr' => 'fr'])->save();
+    $language_manager = $this->container->get(LanguageManagerInterface::class);
+    self::assertInstanceOf(ConfigurableLanguageManagerInterface::class, $language_manager);
+    $language_manager->getLanguageConfigOverride('fr', 'language.entity.en')->set('label', 'Anglais')->save();
+    $this->container->get('kernel')->rebuildContainer();
+    $this->setCurrentAccount($this->createTokenAccount(with_preview_scope: TRUE));
+    foreach (['' => 'English', '/fr' => 'Anglais'] as $prefix => $name) {
+      $response = $this->renderContentPath($prefix . '/page/' . $page->id());
+      $entries = self::responseData($response)['route']['translations'];
+      self::assertSame($name, $entries[0]['name']);
+      self::assertSame('English', $entries[0]['nativeName']);
+      self::assertContains('languages:language_interface', $response->getCacheableMetadata()->getCacheContexts());
+      self::assertContains('config:language.entity.en', $response->getCacheableMetadata()->getCacheTags());
+    }
+  }
+
+  /**
+   * Tests session negotiation URIs are explicit and do not expose preview data.
+   */
+  public function testQueryTranslationLinks(): void {
+    $this->installConfig(['user']);
+    $role = Role::load('anonymous');
+    self::assertInstanceOf(Role::class, $role);
+    $this->grantPermissions($role, ['access content']);
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+    $page = $this->createPage();
+    $page->addTranslation('fr', ['title' => 'French', 'status' => TRUE])->save();
+    $this->config('language.types')
+      ->set('negotiation.language_interface.enabled', ['language-session' => 0, 'language-selected' => 1])
+      ->save();
+    $this->config('language.negotiation')->set('session.parameter', 'locale')->save();
+    $this->container->get('kernel')->rebuildContainer();
+    foreach ([new AnonymousUserSession(), $this->createTokenAccount(with_preview_scope: TRUE)] as $account) {
+      $this->setCurrentAccount($account);
+      $path = '/page/' . $page->id();
+      $route = self::responseData($this->renderContentPath($path . '?locale=fr', ['viewMode' => 'full']))['route'];
+      self::assertSame('fr', $route['negotiatedLanguage']);
+      self::assertSame([
+        ['langcode' => 'en', 'name' => 'English', 'nativeName' => 'English', 'url' => $path . '?locale=en', 'translationAvailable' => TRUE, 'current' => FALSE, 'external' => FALSE],
+        ['langcode' => 'fr', 'name' => 'French', 'nativeName' => 'Français', 'url' => $path . '?locale=fr', 'translationAvailable' => TRUE, 'current' => TRUE, 'external' => FALSE],
+      ], $route['translations']);
+      foreach ($route['translations'] as $translation) {
+        $target = self::responseData($this->renderContentPath($translation['url']))['route'];
+        self::assertSame($translation['langcode'], $target['entity']['langcode']);
+      }
+    }
+  }
+
+  /**
    * A configured but absent translation falls back; unknown languages do not.
    */
   public function testPreviewLanguageFallbackAndValidation(): void {
@@ -1260,6 +1478,164 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     yield 'prefix' => ['', FALSE];
     yield 'already prefixed' => ['/fr', FALSE];
     yield 'session' => ['', TRUE];
+  }
+
+  /**
+   * Tests switch links follow configured content negotiation precedence.
+   */
+  #[DataProvider('languageSwitchPrecedence')]
+  public function testContentLanguageSwitchPrecedence(bool $session_first): void {
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+    $page = $this->createPage();
+    $page->addTranslation('fr', ['title' => 'French', 'status' => TRUE])->save();
+    $this->config('language.types')
+      ->set('configurable', ['language_interface', 'language_content'])
+      ->set('negotiation.language_content.enabled', $session_first
+        ? ['language-session' => 0, 'language-interface' => 1]
+        : ['language-interface' => 0, 'language-session' => 1])
+      ->set('negotiation.language_interface.enabled', ['language-url' => 0, 'language-selected' => 1])
+      ->save();
+    $this->config('language.negotiation')
+      ->set('url.prefixes', ['en' => '', 'fr' => 'fr'])
+      ->set('session.parameter', 'locale')->save();
+    $this->container->get('kernel')->rebuildContainer();
+    $this->setCurrentAccount($this->createTokenAccount(with_preview_scope: TRUE));
+    // Make the two methods disagree, so their order determines the language.
+    $path = '/page/' . $page->id();
+    $route = self::responseData($this->renderContentPath('/fr' . $path . '?locale=en'))['route'];
+    self::assertSame($session_first ? 'en' : 'fr', $route['negotiatedLanguage']);
+    self::assertSame($session_first ? 'en' : 'fr', $route['entity']['langcode']);
+    self::assertSame([
+      ['langcode' => 'en', 'name' => 'English', 'nativeName' => 'English', 'url' => $path . '?locale=en', 'translationAvailable' => TRUE, 'current' => $session_first, 'external' => FALSE],
+      ['langcode' => 'fr', 'name' => 'French', 'nativeName' => 'Français', 'url' => '/fr' . $path . '?locale=fr', 'translationAvailable' => TRUE, 'current' => !$session_first, 'external' => FALSE],
+    ], $route['translations']);
+    foreach ($route['translations'] as $translation) {
+      $target = self::responseData($this->renderContentPath($translation['url']))['route'];
+      self::assertSame($translation['langcode'], $target['entity']['langcode']);
+    }
+  }
+
+  /**
+   * Provides both orderings of content session negotiation and UI delegation.
+   */
+  public static function languageSwitchPrecedence(): iterable {
+    yield 'session before interface' => [TRUE];
+    yield 'interface before session' => [FALSE];
+  }
+
+  /**
+   * Tests mixed URL/session negotiation links round-trip without session state.
+   */
+  #[DataProvider('mixedLanguageNegotiation')]
+  public function testMixedLanguageTranslationLinks(bool $session_first, bool $delegate, bool $preview): void {
+    $this->installConfig(['user']);
+    $role = Role::load('anonymous');
+    self::assertInstanceOf(Role::class, $role);
+    $this->grantPermissions($role, ['access content']);
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+    ConfigurableLanguage::createFromLangcode('de')->save();
+    $page = $this->createPage();
+    $page->addTranslation('fr', ['title' => 'French', 'status' => TRUE])->save();
+    $methods = $session_first
+      ? ['language-session' => 0, 'language-url' => 1, 'language-selected' => 2]
+      : ['language-url' => 0, 'language-session' => 1, 'language-selected' => 2];
+    $this->config('language.types')
+      ->set('configurable', ['language_interface', 'language_content'])
+      ->set('negotiation.language_content.enabled', $delegate ? ['language-interface' => 0] : $methods)
+      ->set('negotiation.language_interface.enabled', $delegate ? $methods : ['language-url' => 0, 'language-selected' => 1])
+      ->save();
+    $this->config('language.negotiation')
+      ->set('url.prefixes', ['en' => '', 'fr' => 'fr', 'de' => 'de'])
+      ->set('session.parameter', 'locale')->save();
+    $this->container->get('kernel')->rebuildContainer();
+    $this->setCurrentAccount($preview ? $this->createTokenAccount(with_preview_scope: TRUE) : new AnonymousUserSession());
+    $path = '/page/' . $page->id();
+    foreach ([
+      [$path, 'en', 'en'],
+      [$path . '?locale=fr', 'fr', 'fr'],
+      ['/fr' . $path . '?locale=en', $session_first ? 'en' : 'fr', $session_first ? 'en' : 'fr'],
+      [$path . '?locale=de', 'de', 'en'],
+    ] as [$uri, $negotiated, $rendered]) {
+      $uri .= str_contains($uri, '?') ? '&campaign=test' : '?campaign=test';
+      $route = self::responseData($this->renderContentPath($uri, ['viewMode' => 'full']))['route'];
+      self::assertSame($negotiated, $route['negotiatedLanguage']);
+      self::assertSame($rendered, $route['entity']['langcode']);
+      self::assertSame(['en', 'fr', 'de'], array_column($route['translations'], 'langcode'));
+      foreach ($route['translations'] as $translation) {
+        $langcode = $translation['langcode'];
+        self::assertSame($langcode === $negotiated, $translation['current']);
+        self::assertSame($langcode !== 'de', $translation['translationAvailable']);
+        self::assertFalse($translation['external']);
+        self::assertSame(($langcode === 'en' ? '' : '/' . $langcode) . $path, parse_url($translation['url'], PHP_URL_PATH));
+        $query_string = parse_url($translation['url'], PHP_URL_QUERY);
+        self::assertIsString($query_string);
+        parse_str($query_string, $query);
+        self::assertEquals(['locale' => $langcode, 'campaign' => 'test'], $query);
+        $target = self::responseData($this->renderContentPath($translation['url']))['route'];
+        self::assertSame($langcode, $target['negotiatedLanguage']);
+        self::assertSame($langcode === 'de' ? 'en' : $langcode, $target['entity']['langcode']);
+      }
+    }
+  }
+
+  /**
+   * Provides both priorities, content/UI negotiation, and public/preview access.
+   */
+  public static function mixedLanguageNegotiation(): iterable {
+    foreach ([FALSE, TRUE] as $session_first) {
+      foreach ([FALSE, TRUE] as $delegate) {
+        foreach ([FALSE, TRUE] as $preview) {
+          yield ($session_first ? 'session first' : 'URL first') . ', ' . ($delegate ? 'interface' : 'content') . ', ' . ($preview ? 'preview' : 'anonymous') => [$session_first, $delegate, $preview];
+        }
+      }
+    }
+  }
+
+  /**
+   * Tests domain URLs are retained and explicitly flagged as external.
+   */
+  public function testDomainTranslationLinks(): void {
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+    $page = $this->createPage();
+    $page->addTranslation('fr', ['title' => 'French', 'status' => TRUE])->save();
+    $this->config('language.negotiation')
+      ->set('url.source', 'domain')
+      ->set('url.domains', ['en' => 'localhost', 'fr' => 'fr.example.com'])
+      ->save();
+    $this->container->get('kernel')->rebuildContainer();
+    $this->setCurrentAccount($this->createTokenAccount(with_preview_scope: TRUE));
+    $route = self::responseData($this->renderPage($page))['route'];
+    self::assertSame([
+      ['langcode' => 'en', 'name' => 'English', 'nativeName' => 'English', 'url' => '/page/' . $page->id(), 'translationAvailable' => TRUE, 'current' => TRUE, 'external' => FALSE],
+      ['langcode' => 'fr', 'name' => 'French', 'nativeName' => 'Français', 'url' => 'http://fr.example.com/page/' . $page->id(), 'translationAvailable' => TRUE, 'current' => FALSE, 'external' => TRUE],
+    ], $route['translations']);
+  }
+
+  /**
+   * Tests generated translation URIs exclude the Drupal installation path.
+   */
+  public function testTranslationLinksInSubdirectory(): void {
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+    $page = $this->createPage();
+    $page->addTranslation('fr', ['title' => 'French', 'status' => TRUE])->save();
+    $this->config('language.negotiation')->set('url.prefixes', ['en' => '', 'fr' => 'fr'])->save();
+    $this->container->get('kernel')->rebuildContainer();
+    $this->setCurrentAccount($this->createTokenAccount(with_preview_scope: TRUE));
+    $request = Request::create(
+      'http://localhost/drupal/canvas/content-api?' . http_build_query(['requestUri' => '/fr/page/' . $page->id()]),
+      server: [
+        'SCRIPT_NAME' => '/drupal/index.php',
+        'SCRIPT_FILENAME' => '/var/www/drupal/index.php',
+        'PHP_SELF' => '/drupal/index.php',
+      ],
+    );
+    $response = $this->request($request);
+    self::assertInstanceOf(CacheableJsonResponse::class, $response);
+    $route = self::responseData($response)['route'];
+    self::assertSame([
+      ['langcode' => 'en', 'name' => 'English', 'nativeName' => 'English', 'url' => '/page/' . $page->id(), 'translationAvailable' => TRUE, 'current' => FALSE, 'external' => FALSE],
+      ['langcode' => 'fr', 'name' => 'French', 'nativeName' => 'Français', 'url' => '/fr/page/' . $page->id(), 'translationAvailable' => TRUE, 'current' => TRUE, 'external' => FALSE],
+    ], $route['translations']);
   }
 
   /**

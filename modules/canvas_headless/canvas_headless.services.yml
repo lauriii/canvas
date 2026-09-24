@@ -22,6 +22,9 @@ services:
   Drupal\canvas_headless\EventSubscriber\CanvasContentResponseSubscriber: {}
   Drupal\canvas_headless\EventSubscriber\DetachedPreviewRouteSubscriber: {}
   Drupal\canvas_headless\CanvasContentEntityRenderer: {}
+  Drupal\canvas_headless\CanvasContentTranslationLinks:
+    arguments:
+      $negotiator: '@?language_negotiator'
   Drupal\canvas_headless\CanvasContentHeadBuilder:
     arguments:
       $metatagManager: '@?metatag.manager'

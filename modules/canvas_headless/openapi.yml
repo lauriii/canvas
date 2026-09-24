@@ -59,6 +59,7 @@ paths:
                   - $ref: '#/components/schemas/CanvasRedirectResult'
               examples:
                 content:
+                  summary: French request rendering English because the French translation is unavailable.
                   value:
                     content:
                       element: js-example-card
@@ -68,10 +69,33 @@ paths:
                       title: Example page
                     route:
                       name: entity.canvas_page.canonical
-                      requestUri: /page/1
+                      requestUri: /fr/page/1
                       params:
                         canvas_page: '1'
                       managedByCanvas: true
+                      negotiatedLanguage: fr
+                      translations:
+                        - langcode: en
+                          name: English
+                          nativeName: English
+                          url: /contact
+                          translationAvailable: true
+                          current: false
+                          external: false
+                        - langcode: fr
+                          name: French
+                          nativeName: Français
+                          url: /fr/page/1
+                          translationAvailable: false
+                          current: true
+                          external: false
+                        - langcode: es
+                          name: Spanish
+                          nativeName: Español
+                          url: /es/contact
+                          translationAvailable: true
+                          current: false
+                          external: false
                       entity:
                         entityType: canvas_page
                         bundle: canvas_page
@@ -507,7 +531,7 @@ components:
     CanvasRouteContext:
       type: object
       additionalProperties: false
-      required: [name, requestUri, params, managedByCanvas, entity]
+      required: [name, requestUri, params, managedByCanvas, entity, negotiatedLanguage, translations]
       properties:
         name:
           type: string
@@ -523,6 +547,40 @@ components:
           oneOf:
             - $ref: '#/components/schemas/RoutedEntityRef'
             - type: 'null'
+        negotiatedLanguage:
+          type: string
+          description: Negotiated content-language ID, which may differ from the rendered entity language on fallback.
+        translations:
+          type: array
+          description: All enabled languages, with Code Component translation metadata and fallback URL semantics. Empty on monolingual sites and routes without a canonical content entity.
+          items:
+            $ref: '#/components/schemas/RouteTranslation'
+
+    RouteTranslation:
+      type: object
+      additionalProperties: false
+      required: [langcode, name, nativeName, translationAvailable, current, url, external]
+      properties:
+        langcode:
+          type: string
+        name:
+          type: string
+          description: Localized language name.
+        nativeName:
+          type: string
+          description: The language's own name.
+        translationAvailable:
+          type: boolean
+          description: True only if the translation exists and the requester may view it. Missing and denied translations both report false.
+        current:
+          type: boolean
+          description: Matches negotiatedLanguage, even when the rendered entity falls back.
+        url:
+          type: string
+          description: Site-relative Drupal request URI with base path removed, or an absolute external URL. The frontend maps this to its public URL. Unavailable entries use Code Component fallback URL semantics; their URLs are not guaranteed to be viewable.
+        external:
+          type: boolean
+          description: External URLs are not valid content API or SDK fetchPage input. This does not imply domain negotiation support in the SDK.
 
     RoutedEntityRef:
       type: object

@@ -109,6 +109,8 @@ Canvas does not manage the requested entity and view mode.
 
 ### Content response
 
+This example requests French, but renders English because the French translation is unavailable.
+
 ```text
 {
   "content": {...},
@@ -137,11 +139,17 @@ Canvas does not manage the requested entity and view mode.
   },
   "route": {
     "name": "entity.canvas_page.canonical",
-    "requestUri": "/page/1",
+    "requestUri": "/fr/page/1",
     "params": {
       "canvas_page": "1"
     },
     "managedByCanvas": true,
+    "negotiatedLanguage": "fr",
+    "translations": [
+      { "langcode": "en", "name": "English", "nativeName": "English", "url": "/contact", "translationAvailable": true, "current": false, "external": false },
+      { "langcode": "fr", "name": "French", "nativeName": "Français", "url": "/fr/page/1", "translationAvailable": false, "current": true, "external": false },
+      { "langcode": "es", "name": "Spanish", "nativeName": "Español", "url": "/es/contact", "translationAvailable": true, "current": false, "external": false }
+    ],
     "entity": {
       "entityType": "canvas_page",
       "bundle": "canvas_page",
@@ -159,6 +167,20 @@ roots in its `default` slot. Routes Canvas does not manage and managed routes wi
 
 `head` is compatible with the [Unhead](https://unhead.unjs.io/) package. It always contains `title` and may also
 contain `meta`, `link`, and `script`. Canonical links are omitted because the frontend owns its public URLs.
+
+`route.negotiatedLanguage` is the negotiated content-language ID. `route.translations` lists every enabled
+language, matching Code Components' `getPageData().mainEntity.translations`: `langcode`, localized `name`,
+`nativeName`, `url`, `translationAvailable`, and `current`. Missing and denied translations both report
+`translationAvailable: false`, with the established Code Component fallback URL semantics, not a guarantee
+of access. `current` follows `route.negotiatedLanguage`; `route.entity.langcode` identifies the rendered
+language. Monolingual sites and routes without a canonical content entity return an empty list.
+
+A non-external `url` is a site-relative Drupal request URI, with the installation base path removed and the
+language prefix or query preserved. External URLs remain absolute and are **not valid `fetchPage` input**;
+this does not add SDK support for domain negotiation. Frontends map entries to their own public URLs.
+The headless-only `external` flag and URL processing support Drupal request URIs: configured negotiation
+priority and explicit query-language selection are preserved, while editor-only preview settings are omitted.
+See [multilingual examples](../../docs/multilingual-sites-with-canvas-headless.md#translation-links).
 
 ### Redirect response
 
