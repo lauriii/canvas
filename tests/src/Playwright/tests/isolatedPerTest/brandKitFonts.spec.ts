@@ -53,7 +53,6 @@ const uploadFont = async (page: Page, filename: string) => {
 };
 
 test.use({
-  modules: ['canvas_dev_mode'],
   enableTestExtensions: true,
 });
 

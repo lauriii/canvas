@@ -226,7 +226,6 @@ const PROP = {
 };
 
 test.use({
-  modules: ['canvas_dev_mode'],
   enableTestExtensions: true,
 });
 
