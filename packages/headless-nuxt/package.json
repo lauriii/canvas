@@ -76,7 +76,7 @@
   },
   "dependencies": {
     "@drupal-canvas/headless": "^0.11.0",
-    "@nuxt/kit": "^4.4.8",
+    "@nuxt/kit": "^4.5.2",
     "drupal-canvas": "^0.7.1",
     "h3": "^1.15.0"
   },
@@ -85,7 +85,7 @@
     "vue": ">=3.4.0"
   },
   "devDependencies": {
-    "@nuxt/nitro-server": "^4.4.8",
+    "@nuxt/nitro-server": "^4.5.2",
     "jsdom": "^26.1.0",
     "nuxt": "^4.4.8",
     "typescript": "^5.9.3",
