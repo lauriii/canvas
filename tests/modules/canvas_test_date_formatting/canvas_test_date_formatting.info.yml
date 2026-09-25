@@ -1,6 +1,0 @@
-name: 'Test Canvas date formatting components'
-type: module
-description: 'SDC and code components used only by Canvas date-formatting filter tests, kept out of canvas_test_sdc so they do not perturb component-enumeration fixtures.'
-dependencies:
-  - canvas:canvas
-package: Testing

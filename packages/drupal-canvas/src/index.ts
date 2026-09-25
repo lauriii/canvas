@@ -1,10 +1,4 @@
 import {
-  canvasFormatDate,
-  canvasFormatDateRange,
-  canvasFormatDateTime,
-  canvasFormatTime,
-} from './date-utils.js';
-import {
   drupalSettingsToCanvasContext,
   drupalSettingsToJsonApiRuntimeConfig,
   readCanvasDataV0,
@@ -35,8 +29,6 @@ import {
   isLegacyRuntimeSupported,
 } from './runtime.js';
 import { cn } from './utils.js';
-
-import type { CanvasDateFormatOptions } from './date-utils.js';
 
 export type { CanvasContext, PageContext, SiteContext } from './context.js';
 export type {
@@ -89,12 +81,4 @@ export {
   createJsonApiClient,
   DraftSessionError,
   isDraftSessionError,
-
-  // date-utils
-  canvasFormatDate,
-  canvasFormatDateTime,
-  canvasFormatTime,
-  canvasFormatDateRange,
 };
-
-export type { CanvasDateFormatOptions };

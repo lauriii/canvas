@@ -47,7 +47,6 @@ readonly final class ComponentSourceHooks {
 
   const ASSET_LIBRARY_METHOD_MAPPING = [
     'canvas/canvasData.v0.baseUrl' => 'getCanvasDataBaseUrlV0',
-    'canvas/canvasData.v0.langcode' => 'getCanvasDataLangcodeV0',
     'canvas/canvasData.v0.branding' => 'getCanvasDataBrandingV0',
     'canvas/canvasData.v0.breadcrumbs' => 'getCanvasDataBreadcrumbsV0',
     'canvas/canvasData.v0.jsonapiSettings' => 'getCanvasDataJsonApiSettingsV0',
@@ -169,12 +168,6 @@ readonly final class ComponentSourceHooks {
       // Allow overrides: only set if still NULL.
       if (NestedArray::getValue($settings, [...$path, 'baseUrl']) === NULL) {
         $canvasData = array_replace_recursive($canvasData, $this->memoize($request, 'canvas/canvasData.v0.baseUrl'));
-      }
-    }
-    if ($all || \in_array('canvas/canvasData.v0.langcode', $all_attached_asset_libraries, TRUE)) {
-      // Allow overrides: only set if still NULL.
-      if (NestedArray::getValue($settings, [...$path, 'langcode']) === NULL) {
-        $canvasData = array_replace_recursive($canvasData, $this->memoize($request, 'canvas/canvasData.v0.langcode'));
       }
     }
     if ($all || \in_array('canvas/canvasData.v0.branding', $all_attached_asset_libraries, TRUE)) {

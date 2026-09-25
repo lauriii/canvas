@@ -7,7 +7,6 @@ namespace Drupal\canvas\Twig;
 use Drupal\canvas\Entity\ParametrizedImageStyle;
 use Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride;
 use Drupal\canvas\Routing\ParametrizedImageStyleConverter;
-use Drupal\canvas\Utility\DateResolver;
 use Drupal\Component\Render\MarkupInterface;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\UrlHelper;
@@ -27,8 +26,6 @@ use Twig\TwigFunction;
  * This:
  * 1. adds metadata to output as HTML comments
  * 2. provides a `toSrcSet` Twig filter
- * 3. provides locale-aware date formatting filters: `canvasFormatDate`,
- *    `canvasFormatDateTime`, `canvasFormatTime`, `canvasFormatDateRange`
  */
 final class CanvasTwigExtension extends AbstractExtension {
 
@@ -43,15 +40,12 @@ final class CanvasTwigExtension extends AbstractExtension {
    *   The file URL generator.
    * @param \Drupal\Core\Render\RendererInterface $renderer
    *   The renderer service.
-   * @param \Drupal\canvas\Utility\DateResolver $dateResolver
-   *   The date resolver service for locale-aware date formatting.
    */
   public function __construct(
     private readonly StreamWrapperManagerInterface $streamWrapperManager,
     private readonly ImageFactory $imageFactory,
     private readonly FileUrlGeneratorInterface $fileUrlGenerator,
     private readonly RendererInterface $renderer,
-    private readonly DateResolver $dateResolver,
   ) {}
 
   /**
@@ -83,22 +77,6 @@ final class CanvasTwigExtension extends AbstractExtension {
       new TwigFilter(
         'jsx_attributes',
         [$this, 'jsxAttributes'],
-      ),
-      new TwigFilter(
-        'canvasFormatDate',
-        [$this, 'canvasFormatDate'],
-      ),
-      new TwigFilter(
-        'canvasFormatDateTime',
-        [$this, 'canvasFormatDateTime'],
-      ),
-      new TwigFilter(
-        'canvasFormatTime',
-        [$this, 'canvasFormatTime'],
-      ),
-      new TwigFilter(
-        'canvasFormatDateRange',
-        [$this, 'canvasFormatDateRange'],
       ),
     ];
   }
@@ -312,81 +290,6 @@ final class CanvasTwigExtension extends AbstractExtension {
     $safe_markup = Markup::create($markup);
     /** @var \Drupal\Component\Render\MarkupInterface $safe_markup */
     return $safe_markup;
-  }
-
-  /**
-   * Formats an ISO date string using the active Drupal locale's short date.
-   *
-   * @param string|null $iso
-   *   ISO date string, e.g. '2026-01-15'. NULL when the prop has no value.
-   *
-   * @return string
-   *   Locale-formatted date, e.g. '1/15/26' (en) or '15/01/2026' (fr).
-   *   Returns $iso unchanged if it cannot be parsed, or '' for NULL.
-   */
-  public function canvasFormatDate(?string $iso): string {
-    if ($iso === NULL) {
-      return '';
-    }
-    return $this->dateResolver->resolveDate($iso);
-  }
-
-  /**
-   * Formats an ISO datetime string using the active Drupal locale's format.
-   *
-   * @param string|null $iso
-   *   ISO datetime string, e.g. '2026-01-15T14:30:00Z'. NULL when the prop has
-   *   no value.
-   *
-   * @return string
-   *   Locale-formatted date+time string. Returns $iso unchanged if
-   *   it cannot be parsed, or '' for NULL.
-   */
-  public function canvasFormatDateTime(?string $iso): string {
-    if ($iso === NULL) {
-      return '';
-    }
-    return $this->dateResolver->resolveDateTime($iso);
-  }
-
-  /**
-   * Formats an ISO time/datetime string using the Drupal locale's time format.
-   *
-   * @param string|null $iso
-   *   ISO time or datetime string, e.g. '14:30:00' or
-   *   '2026-01-15T14:30:00Z'. NULL when the prop has no value.
-   *
-   * @return string
-   *   Locale-formatted time string. Returns $iso unchanged if it cannot
-   *   be parsed, or '' for NULL.
-   */
-  public function canvasFormatTime(?string $iso): string {
-    if ($iso === NULL) {
-      return '';
-    }
-    return $this->dateResolver->resolveTime($iso);
-  }
-
-  /**
-   * Formats the 'from' and 'to' fields of a Canvas date-range prop.
-   *
-   * Non-array values are passed through unchanged, so templates can safely
-   * apply this filter even when the prop might not always be a range.
-   *
-   * @param mixed $value
-   *   A Canvas date-range array with optional 'from' and 'to' string keys,
-   *   e.g. ['from' => '2026-01-15', 'to' => '2026-03-20'].
-   *   Non-array values are returned unchanged.
-   *
-   * @return mixed
-   *   Array with 'from'/'to' values formatted in the active locale, or $value
-   *   unchanged if it is not an array.
-   */
-  public function canvasFormatDateRange(mixed $value): mixed {
-    if (!\is_array($value)) {
-      return $value;
-    }
-    return $this->dateResolver->resolveDateRange($value);
   }
 
 }
