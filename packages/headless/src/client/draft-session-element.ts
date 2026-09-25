@@ -36,20 +36,25 @@
  * observed: a client-routed app (Nuxt, a Next.js page transition) keeps
  * the element alive across navigations, and the host must hear about the
  * current path — status reports and the renew link both carry it. Without
- * the attribute the path is read from window.location at connect time.
+ * the attribute the path and query string are read from window.location at
+ * connect time.
  *
  * Alongside the session machine, the element also runs a content-height
  * reporter (./height-report) for the same `editor-origin`: an independent
  * exchange that lets the host size the preview iframe to fit.
+ * Render this element only in draft mode; while embedded, it also owns link
+ * delegation, including when the session token has expired.
  */
 
 import { createDraftSession } from './draft-session';
 import { createCanvasGeometryBridge } from './geometry-bridge';
 import { createHeightReporter } from './height-report';
+import { createNavigationBridge } from './navigation-bridge';
 
 import type { DraftSession, DraftSessionRenewState } from './draft-session';
 import type { CanvasGeometryBridge } from './geometry-bridge';
 import type { HeightReporter } from './height-report';
+import type { NavigationBridge } from './navigation-bridge';
 
 export const DRAFT_SESSION_ELEMENT_TAG = 'canvas-draft-session';
 
@@ -94,6 +99,7 @@ export class DraftSessionElement extends BaseElement {
   #machine: DraftSession | null = null;
   #geometryBridge: CanvasGeometryBridge | null = null;
   #heightReporter: HeightReporter | null = null;
+  #navigationBridge: NavigationBridge | null = null;
   #connected = false;
   #tokenExpiresAt: number | null = null;
   #expired = false;
@@ -114,10 +120,15 @@ export class DraftSessionElement extends BaseElement {
       this.getAttribute('initial-expired') !== 'false';
     this.#renewUrl = this.getAttribute('renew-url');
     this.#embedded = window.self !== window.top;
-    this.#path = this.getAttribute('path') ?? window.location.pathname;
+    this.#path =
+      this.getAttribute('path') ??
+      window.location.pathname + window.location.search;
     this.#connected = true;
 
     this.#startEpoch();
+    if (this.#embedded) {
+      this.#navigationBridge = createNavigationBridge({ embedded: true });
+    }
     const editorOrigin = this.getAttribute('editor-origin');
     this.#heightReporter = createHeightReporter({
       editorOrigin,
@@ -137,6 +148,8 @@ export class DraftSessionElement extends BaseElement {
     this.#heightReporter = null;
     this.#geometryBridge?.destroy();
     this.#geometryBridge = null;
+    this.#navigationBridge?.destroy();
+    this.#navigationBridge = null;
   }
 
   attributeChangedCallback(
@@ -149,7 +162,7 @@ export class DraftSessionElement extends BaseElement {
     if (!this.#connected || name !== 'path') {
       return;
     }
-    const path = newValue ?? window.location.pathname;
+    const path = newValue ?? window.location.pathname + window.location.search;
     if (path === this.#path) {
       return;
     }
@@ -236,7 +249,9 @@ export class DraftSessionElement extends BaseElement {
         continue;
       }
       link.hidden = false;
-      link.href = `${this.#renewUrl}?path=${encodeURIComponent(this.#path)}`;
+      const renewUrl = new URL(this.#renewUrl);
+      renewUrl.searchParams.set('path', this.#path);
+      link.href = renewUrl.toString();
     }
 
     this.dispatchEvent(

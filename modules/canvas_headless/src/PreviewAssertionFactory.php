@@ -90,6 +90,7 @@ class PreviewAssertionFactory implements PreviewAssertionFactoryInterface {
    * {@inheritdoc}
    */
   public function issue(AccountInterface $user, string $path, string $resource_version, bool $renewal = FALSE, array $preview_context = []): string {
+    $path = self::withPreviewContext($path, $preview_context);
     $expiration = (int) $this->configFactory->get('canvas_headless.settings')->get('assertion_expiration');
     $audience = self::tokenEndpointAudience($this->languageManager);
     // The absolute URL of the standalone renewal route, as seen by the
@@ -111,8 +112,8 @@ class PreviewAssertionFactory implements PreviewAssertionFactoryInterface {
     $token = (new JwtFacade())->issue(
       new Sha256(),
       InMemory::file($this->getKeyPath()),
-      function (Builder $builder, \DateTimeImmutable $now) use ($audience, $expiration, $issuer, $jti, $path, $preview_context, $renew_url, $renewal, $resource_version, $user): Builder {
-        $builder = $builder
+      function (Builder $builder, \DateTimeImmutable $now) use ($audience, $expiration, $issuer, $jti, $path, $renew_url, $renewal, $resource_version, $user): Builder {
+        return $builder
           ->withHeader('typ', self::TYP_HEADER)
           ->issuedBy($issuer)
           ->permittedFor($audience)
@@ -130,13 +131,54 @@ class PreviewAssertionFactory implements PreviewAssertionFactoryInterface {
           ->withClaim('path', $path)
           ->withClaim('resourceVersion', $resource_version)
           ->withClaim('renewUrl', $renew_url);
-        return $preview_context === []
-          ? $builder
-          : $builder->withClaim('previewContext', $preview_context);
       },
     );
 
     return $token->toString();
+  }
+
+  /**
+   * Carries rendering choices in each preview's signed entry path.
+   *
+   * Existing markers survive standalone renewal when no explicit context is
+   * supplied. Updating one marker preserves other query bytes and the fragment.
+   * Marker names prefix the unchanged context key with _canvas_.
+   *
+   * @param string $path
+   *   The validated entry path.
+   * @param array{viewMode?: string, pageVariant?: string, language?: string, excludeAutoSave?: bool} $preview_context
+   *   Explicit choices from the preview host.
+   *
+   * @return string
+   *   The entry path with request-specific rendering choices.
+   */
+  private static function withPreviewContext(string $path, array $preview_context): string {
+    if ($preview_context === []) {
+      return $path;
+    }
+    $markers = [];
+    foreach (['language', 'viewMode', 'pageVariant', 'excludeAutoSave'] as $name) {
+      if (isset($preview_context[$name])) {
+        $value = $preview_context[$name];
+        $markers['_canvas_' . $name] = \is_bool($value) ? ($value ? 'true' : 'false') : $value;
+      }
+    }
+    $fragment_parts = explode('#', $path, 2);
+    $fragment = $fragment_parts[1] ?? NULL;
+    $query_parts = explode('?', $fragment_parts[0], 2);
+    $pathname = $query_parts[0];
+    $query = $query_parts[1] ?? NULL;
+    // Parsing and rebuilding the entire query would lose duplicate parameters
+    // and rewrite the app's encoding, so only replace the explicit markers.
+    $parameters = $query === NULL || $query === '' ? [] : explode('&', $query);
+    $parameters = array_filter($parameters, static function (string $parameter) use ($markers): bool {
+      $name = urldecode(explode('=', $parameter, 2)[0]);
+      return !isset($markers[$name]);
+    });
+    foreach ($markers as $name => $value) {
+      $parameters[] = $name . '=' . rawurlencode($value);
+    }
+    return $pathname . '?' . implode('&', $parameters) . ($fragment === NULL ? '' : '#' . $fragment);
   }
 
   /**

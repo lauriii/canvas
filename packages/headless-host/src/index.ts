@@ -1,16 +1,16 @@
 /**
  * @file
- * Host-side implementation of the Canvas headless draft-preview protocol.
+ * Host-side implementation of the Canvas headless preview protocol.
  *
- * The embedding host page (the Canvas editor, or any other application that
- * embeds a Canvas headless frontend app) runs inside the editor's
- * authenticated Drupal session — the one context that can mint preview
- * assertions. The embedded app cannot reach that session itself: its
+ * During draft preview, the embedding host page (the Canvas editor, or any
+ * other application that embeds a Canvas headless frontend app) runs inside
+ * the editor's authenticated Drupal session. Only that context can mint
+ * preview assertions. The embedded app cannot reach that session itself: its
  * requests are cross-site in the ancestor chain, so Drupal's SameSite=Lax
  * session cookie never accompanies them. This module relays for the app
  * over postMessage:
  *
- *   host → app   {type: 'canvas-headless:status-request', hostSessionId, passive?}
+ *   host → app   {type: 'canvas-headless:status-request', hostSessionId, passive?, navigation?}
  *   app  → host  {type: 'canvas-headless:status', hostSessionId, status, path, tokenExpiresAt}
  *   app  → host  {type: 'canvas-headless:renew-request', hostSessionId, path}
  *   host → app   {type: 'canvas-headless:assertion', hostSessionId, assertion}
@@ -22,6 +22,8 @@
  *   host → app   {type: 'canvas-headless:viewport-height', hostSessionId, height}
  *   host → app   {type: 'canvas-headless:geometry-request', hostSessionId}
  *   app  → host  {type: 'canvas-headless:geometry', hostSessionId, geometry}
+ *   app  → host  {type: 'canvas-headless:navigation-ready'}
+ *   app  → host  {type: 'canvas-headless:navigation', hostSessionId, url}
  *
  * On a renew request the host fetches a fresh assertion (via the
  * `fetchAssertion` callback, which owns transport specifics such as CSRF)
@@ -45,7 +47,10 @@
  * come from the configured frontend origin and from the host's own iframe;
  * outgoing messages are addressed to that origin, never '*'. Each loaded
  * iframe document also gets a new host session ID, so messages queued by the
- * previous document cannot affect its replacement.
+ * previous document cannot affect its replacement. Navigation also requires
+ * transient user activation in the host window, which the browser propagates
+ * from a real interaction inside the iframe. A script cannot navigate the host
+ * by sending the protocol message on its own.
  *
  * Height reporting is independent of the session lifecycle above. The app
  * reports its final height on load and after layout changes. It may also ask
@@ -62,6 +67,8 @@ import {
   HEADLESS_HEIGHT_MESSAGE,
   HEADLESS_HEIGHT_PROBE_MESSAGE,
   HEADLESS_HEIGHT_PROBE_READY_MESSAGE,
+  HEADLESS_NAVIGATION_MESSAGE,
+  HEADLESS_NAVIGATION_READY_MESSAGE,
   HEADLESS_REFRESH_ACK_MESSAGE,
   HEADLESS_REFRESH_MESSAGE,
   HEADLESS_RENEW_REQUEST_MESSAGE,
@@ -69,9 +76,13 @@ import {
   HEADLESS_STATUS_REQUEST_MESSAGE,
   HEADLESS_VIEWPORT_HEIGHT_MESSAGE,
   isCanvasGeometrySnapshot,
+  parsePreviewRequest,
+  withPreviewContext,
 } from '@drupal-canvas/headless';
 
 import type { CanvasGeometry } from '@drupal-canvas/headless';
+
+export type { PreviewContext } from '@drupal-canvas/headless';
 
 // The protocol message types are declared once, in @drupal-canvas/headless
 // (whose client entry implements the app side); re-exported here so host
@@ -85,12 +96,16 @@ export {
   HEADLESS_HEIGHT_MESSAGE,
   HEADLESS_HEIGHT_PROBE_MESSAGE,
   HEADLESS_HEIGHT_PROBE_READY_MESSAGE,
+  HEADLESS_NAVIGATION_MESSAGE,
+  HEADLESS_NAVIGATION_READY_MESSAGE,
   HEADLESS_REFRESH_ACK_MESSAGE,
   HEADLESS_REFRESH_MESSAGE,
   HEADLESS_VIEWPORT_HEIGHT_MESSAGE,
   HEADLESS_RENEW_REQUEST_MESSAGE,
   HEADLESS_STATUS_MESSAGE,
   HEADLESS_STATUS_REQUEST_MESSAGE,
+  parsePreviewRequest,
+  withPreviewContext,
 };
 
 /**
@@ -107,6 +122,11 @@ export type HeadlessPreviewHostEvent =
   | { type: 'recovering' }
   | { type: 'recovery-failed' }
   | { type: 'geometry'; geometry: CanvasGeometry[] };
+
+export interface HeadlessNavigationOptions {
+  /** Whether the source link used `target="_blank"`. */
+  openInNewTab: boolean;
+}
 
 export interface HeadlessPreviewHostOptions {
   /** The iframe the frontend app is embedded in. */
@@ -132,6 +152,11 @@ export interface HeadlessPreviewHostOptions {
   onEvent?: (event: HeadlessPreviewHostEvent) => void;
   /** Receives rendered content-height reports from the embedded app. */
   onHeight?: (height: number) => void;
+  /** Handles navigation to an absolute HTTP(S) URL from the embedded app. */
+  onNavigate?: (
+    url: string,
+    options: HeadlessNavigationOptions,
+  ) => void | Promise<void>;
 }
 
 export interface HeadlessPreviewHost {
@@ -156,7 +181,7 @@ export interface HeadlessPreviewHost {
 }
 
 /**
- * Creates the host side of the draft-preview protocol for one iframe.
+ * Creates the host side of the preview protocol for one iframe.
  */
 export function createHeadlessPreviewHost(
   options: HeadlessPreviewHostOptions,
@@ -168,6 +193,7 @@ export function createHeadlessPreviewHost(
     fetchAssertion,
     onEvent,
     onHeight,
+    onNavigate,
   } = options;
   let recoveryAttempted = false;
   let active = false;
@@ -307,6 +333,7 @@ export function createHeadlessPreviewHost(
         type: HEADLESS_STATUS_REQUEST_MESSAGE,
         hostSessionId,
         ...(passive && { passive: true }),
+        ...(onNavigate && { navigation: true }),
       },
       frontendOrigin,
     );
@@ -351,8 +378,8 @@ export function createHeadlessPreviewHost(
       emit({ type: 'activation-failed' });
       return;
     }
-    // Attached documents reuse a session owned by another iframe. They may
-    // observe its status, but must never renew or recover it independently.
+    // Attached documents may observe an existing session, but must never
+    // renew or recover it independently.
     passive = true;
     loadGeneration += 1;
     active = false;
@@ -423,6 +450,14 @@ export function createHeadlessPreviewHost(
       return;
     }
 
+    if (event.data.type === HEADLESS_NAVIGATION_READY_MESSAGE) {
+      // Client-side hydration may install the navigation bridge after the
+      // iframe load handshake. Source and origin were checked above, so the
+      // host can safely repeat the current document's status request.
+      requestStatus();
+      return;
+    }
+
     if (hostSessionId === null) {
       return;
     }
@@ -445,6 +480,27 @@ export function createHeadlessPreviewHost(
         : '/';
 
     switch (event.data.type) {
+      case HEADLESS_NAVIGATION_MESSAGE:
+        if (
+          onNavigate &&
+          window.navigator.userActivation?.isActive === true &&
+          typeof event.data.url === 'string'
+        ) {
+          try {
+            const target = new URL(event.data.url);
+            if (target.protocol === 'http:' || target.protocol === 'https:') {
+              void Promise.resolve(
+                onNavigate(event.data.url, {
+                  openInNewTab: event.data.openInNewTab === true,
+                }),
+              ).catch(() => {});
+            }
+          } catch {
+            // Ignore malformed navigation requests.
+          }
+        }
+        break;
+
       case HEADLESS_GEOMETRY_MESSAGE:
         if (active) {
           emit({

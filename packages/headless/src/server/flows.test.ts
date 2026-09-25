@@ -43,7 +43,9 @@ function tokenResponse() {
   });
 }
 
-function liveDraftData(overrides: Partial<DraftData> = {}): DraftData {
+function liveDraftData(
+  overrides: Partial<DraftData> & { previewContext?: unknown } = {},
+): DraftData {
   return {
     path: '/node/9',
     resourceVersion: 'rel:working-copy',
@@ -97,7 +99,7 @@ function makeAdapter() {
       flag = true;
       cookies.set(DRAFT_DATA_COOKIE_NAME, {
         name: DRAFT_DATA_COOKIE_NAME,
-        value: serializeDraftData(draftData),
+        value: JSON.stringify(draftData),
         httpOnly: true,
         path: '/',
         sameSite: 'none',
@@ -134,7 +136,6 @@ describe('redeemAssertion', () => {
       expect(result.draftData).toMatchObject({
         path: '/node/1',
         resourceVersion: 'rel:working-copy',
-        previewContext: validClaims.previewContext,
         sub: '42',
         renewUrl: validClaims.renewUrl,
         accessToken: 'access-token-value',
@@ -179,7 +180,22 @@ describe('redeemAssertion', () => {
       );
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.draftData.previewContext).toBeUndefined();
+        expect(result.draftData).not.toHaveProperty('previewContext');
+      }
+    },
+  );
+
+  it.each([false, true, 'false', 0, null])(
+    'does not store an obsolete session-wide excludeAutoSave claim (%s)',
+    async (excludeAutoSave) => {
+      const result = await redeemAssertion(
+        buildAssertion({ ...validClaims, previewContext: { excludeAutoSave } }),
+        CONFIG,
+        vi.fn().mockResolvedValue(tokenResponse()),
+      );
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.draftData).not.toHaveProperty('previewContext');
       }
     },
   );
@@ -279,61 +295,92 @@ describe('enableDraftMode', () => {
     expect(response.status).toBe(422);
   });
 
-  it('stores the session cross-site and redirects to the signed path', async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(tokenResponse());
-    const { server, cookies, getFlag } = makeServer(
-      fetchImpl as unknown as typeof fetch,
-    );
-
-    const assertion = buildAssertion(validClaims);
-    const response = await server.enableDraftMode(
-      new Request(
-        `https://app.example/api/draft?assertion=${encodeURIComponent(assertion)}`,
-      ),
-    );
-
-    expect(response.status).toBe(307);
-    expect(response.headers.get('Location')).toBe('/node/1');
-    expect(getFlag()).toBe(true);
-
-    // The framework flag cookie was re-set with the cross-site attributes.
-    const flagCookie = cookies.get(FLAG_COOKIE);
-    expect(flagCookie).toMatchObject({
-      value: 'bypass-value',
-      sameSite: 'none',
-      secure: true,
-      partitioned: true,
-      httpOnly: true,
-      path: '/',
-    });
-
-    const dataCookie = cookies.get(DRAFT_DATA_COOKIE_NAME);
-    expect(dataCookie).toMatchObject({
-      sameSite: 'none',
-      secure: true,
-      partitioned: true,
-    });
-    expect(JSON.parse(dataCookie!.value)).toMatchObject({ path: '/node/1' });
-  });
-
-  it('continues into a live session when the assertion is dead', async () => {
-    const fetchImpl = vi
-      .fn()
-      .mockResolvedValue(
-        Response.json({ error: 'invalid_grant' }, { status: 400 }),
+  it.each([
+    '/node/1',
+    '/node/1?filter=a%20b&_canvas_language=pl&_canvas_viewMode=teaser&_canvas_pageVariant=alternate&_canvas_excludeAutoSave=true#part',
+  ])(
+    'stores only shared session fields and redirects to signed path %s',
+    async (path) => {
+      const fetchImpl = vi.fn().mockResolvedValue(tokenResponse());
+      const { server, cookies, getFlag } = makeServer(
+        fetchImpl as unknown as typeof fetch,
       );
-    const { server, seedSession } = makeServer(
-      fetchImpl as unknown as typeof fetch,
-    );
-    seedSession(liveDraftData({ path: '/node/9' }));
 
-    const response = await server.enableDraftMode(
-      new Request('https://app.example/api/draft?assertion=dead'),
-    );
+      const assertion = buildAssertion({ ...validClaims, path });
+      const response = await server.enableDraftMode(
+        new Request(
+          `https://app.example/api/draft?assertion=${encodeURIComponent(assertion)}`,
+        ),
+      );
 
-    expect(response.status).toBe(307);
-    expect(response.headers.get('Location')).toBe('/node/9');
-  });
+      expect(response.status).toBe(307);
+      expect(response.headers.get('Location')).toBe(path);
+      expect(getFlag()).toBe(true);
+
+      // The framework flag cookie was re-set with the cross-site attributes.
+      const flagCookie = cookies.get(FLAG_COOKIE);
+      expect(flagCookie).toMatchObject({
+        value: 'bypass-value',
+        sameSite: 'none',
+        secure: true,
+        partitioned: true,
+        httpOnly: true,
+        path: '/',
+      });
+
+      const dataCookie = cookies.get(DRAFT_DATA_COOKIE_NAME);
+      expect(dataCookie).toMatchObject({
+        sameSite: 'none',
+        secure: true,
+        partitioned: true,
+      });
+      expect(JSON.parse(dataCookie!.value)).toMatchObject({
+        path: path.includes('?') ? '/node/1?filter=a%20b#part' : '/node/1',
+      });
+      expect(JSON.parse(dataCookie!.value)).not.toHaveProperty(
+        'previewContext',
+      );
+    },
+  );
+
+  it.each([
+    [null, '/node/9'],
+    ['/example', '/example'],
+    [
+      '/example?_canvas_excludeAutoSave=true',
+      '/example?_canvas_excludeAutoSave=true',
+    ],
+    ['//evil.example', '/node/9'],
+    ['/\n/evil.example', '/node/9'],
+    ['/\n/[bad', '/node/9'],
+    ['/\\evil.example', '/node/9'],
+  ])(
+    'restores this tab after a rejected assertion (%s)',
+    async (path, expected) => {
+      const fetchImpl = vi
+        .fn()
+        .mockResolvedValue(
+          Response.json({ error: 'invalid_grant' }, { status: 400 }),
+        );
+      const { server, seedSession } = makeServer(
+        fetchImpl as unknown as typeof fetch,
+      );
+      seedSession(liveDraftData({ path: '/node/9' }));
+
+      const response = await server.enableDraftMode(
+        new Request(
+          `https://app.example/api/draft?assertion=${path === null ? 'dead' : buildAssertion({ ...validClaims, path })}`,
+        ),
+      );
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get('Location')).toBe(expected);
+      expect(await server.getDraftData()).toMatchObject({
+        path: '/node/9',
+        accessToken: 'old-token',
+      });
+    },
+  );
 
   it('surfaces the redemption failure without a live session', async () => {
     const fetchImpl = vi
@@ -393,34 +440,61 @@ describe('renewDraftSession', () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
-  it('renews the session and answers the new expiry as JSON', async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(tokenResponse());
-    const { server, seedSession, cookies } = makeServer(
-      fetchImpl as unknown as typeof fetch,
-    );
-    seedSession(liveDraftData({ sub: '42' }));
+  it.each(
+    [undefined, false, true].flatMap((previousExcludeAutoSave) =>
+      [undefined, false, true].map((excludeAutoSave) => ({
+        previousExcludeAutoSave,
+        excludeAutoSave,
+      })),
+    ),
+  )(
+    'drops obsolete exclusion policy $previousExcludeAutoSave on renewal with claim $excludeAutoSave',
+    async ({ previousExcludeAutoSave, excludeAutoSave }) => {
+      const fetchImpl = vi.fn().mockResolvedValue(tokenResponse());
+      const { server, seedSession, cookies } = makeServer(
+        fetchImpl as unknown as typeof fetch,
+      );
+      seedSession(
+        liveDraftData({
+          sub: '42',
+          previewContext: {
+            ...validClaims.previewContext,
+            ...{ excludeAutoSave: previousExcludeAutoSave },
+          },
+        }),
+      );
 
-    const response = await server.renewDraftSession(
-      renewRequest({ assertion: buildAssertion(validClaims) }),
-    );
+      const response = await server.renewDraftSession(
+        renewRequest({
+          assertion: buildAssertion({
+            ...validClaims,
+            previewContext: {
+              ...validClaims.previewContext,
+              ...(excludeAutoSave !== undefined && { excludeAutoSave }),
+            },
+          }),
+        }),
+      );
 
-    expect(response.status).toBe(200);
-    const body = (await response.json()) as { tokenExpiresAt: number };
-    expect(body.tokenExpiresAt).toBeGreaterThan(Date.now());
-    expect(
-      JSON.parse(cookies.get(DRAFT_DATA_COOKIE_NAME)!.value),
-    ).toMatchObject({ accessToken: 'access-token-value' });
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as { tokenExpiresAt: number };
+      expect(body.tokenExpiresAt).toBeGreaterThan(Date.now());
+      expect(
+        JSON.parse(cookies.get(DRAFT_DATA_COOKIE_NAME)!.value),
+      ).toMatchObject({ accessToken: 'access-token-value' });
 
-    // The renewal exchange spends the session's stored verifier at Drupal,
-    // and the session continues with a rotated one.
-    const exchangeBody = new URLSearchParams(fetchImpl.mock.calls[0][1].body);
-    expect(exchangeBody.get('code_verifier')).toBe('stored-verifier');
-    const stored = JSON.parse(
-      cookies.get(DRAFT_DATA_COOKIE_NAME)!.value,
-    ) as DraftData;
-    expect(typeof stored.codeVerifier).toBe('string');
-    expect(stored.codeVerifier).not.toBe('stored-verifier');
-  });
+      // The renewal exchange spends the session's stored verifier at Drupal,
+      // and the session continues with a rotated one.
+      const exchangeBody = new URLSearchParams(fetchImpl.mock.calls[0][1].body);
+      expect(exchangeBody.get('code_verifier')).toBe('stored-verifier');
+      const stored = JSON.parse(
+        cookies.get(DRAFT_DATA_COOKIE_NAME)!.value,
+      ) as DraftData;
+      expect(typeof stored.codeVerifier).toBe('string');
+      expect(stored.codeVerifier).not.toBe('stored-verifier');
+      expect(stored).not.toHaveProperty('previewContext');
+    },
+  );
 });
 
 describe('disableDraftMode', () => {
@@ -674,22 +748,37 @@ describe('fetchPage', () => {
     });
   });
 
-  it('returns a configured redirect without draft annotations', async () => {
-    const redirect = {
-      redirect: {
-        external: false,
-        url: '/new-location',
-        statusCode: 301,
-      },
-    };
-    const fetchImpl = vi.fn().mockResolvedValue(Response.json(redirect));
-    const { server, seedSession } = makeServer(
-      fetchImpl as unknown as typeof fetch,
-    );
-    seedSession(liveDraftData());
-
-    await expect(server.fetchPage('/old-location')).resolves.toEqual(redirect);
-  });
+  it.each([
+    [false, false, true],
+    [true, false, true],
+    [true, true, true],
+    [true, false, false],
+  ])(
+    'retains request mode on local redirects (saved=%s, external=%s, live=%s)',
+    async (saved, external, live) => {
+      const target = external
+        ? 'https://elsewhere.example/new-location'
+        : '/new-location?filter=a%20b#section';
+      const redirect = { redirect: { external, url: target, statusCode: 301 } };
+      const fetchImpl = vi.fn().mockResolvedValue(Response.json(redirect));
+      const { server, seedSession } = makeServer(fetchImpl);
+      seedSession(
+        liveDraftData({ tokenExpiresAt: Date.now() + (live ? 60_000 : -1) }),
+      );
+      const path = saved
+        ? '/old-location?_canvas_excludeAutoSave=true'
+        : '/old-location';
+      await expect(server.fetchPage(path)).resolves.toEqual({
+        redirect: {
+          ...redirect.redirect,
+          url:
+            saved && live && !external
+              ? '/new-location?filter=a%20b&_canvas_excludeAutoSave=true#section'
+              : target,
+        },
+      });
+    },
+  );
 
   it('preserves Drupal base paths in the endpoint URL', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(Response.json(page));
@@ -707,6 +796,230 @@ describe('fetchPage', () => {
     );
   });
 
+  it.each([
+    ['language', '_canvas_language', 'en', 'pl'],
+    ['viewMode', '_canvas_viewMode', 'full', 'teaser'],
+    ['pageVariant', '_canvas_pageVariant', 'variant_a', 'variant_b'],
+  ])(
+    'keeps %s local when two tabs share authentication',
+    async (field, query, first, second) => {
+      const fetchImpl = vi.fn(async (input: string | URL | Request) => {
+        const url = new URL(input instanceof Request ? input.url : input);
+        if (url.pathname === '/oauth/token') return tokenResponse();
+        return Response.json({
+          ...page,
+          head: { title: url.searchParams.get(field) ?? 'default' },
+        });
+      });
+      const harness = makeAdapter();
+      const makeTab = (value: string) => {
+        const path = `/example?filter=a%20b&${query}=${value}`;
+        const claims = {
+          ...validClaims,
+          path,
+          previewContext: { [field]: value },
+        };
+        const adapter = {
+          ...harness.adapter,
+          getRequestUrl: async () => `https://app.example${path}`,
+        };
+        return {
+          path,
+          claims,
+          server: createDraftServer({ adapter, config: CONFIG, fetchImpl }),
+        };
+      };
+      const a = makeTab(first);
+      const b = makeTab(second);
+      const activate = async (tab: typeof a) => {
+        const response = await tab.server.enableDraftMode(
+          new Request(
+            `https://app.example/api/draft?assertion=${buildAssertion(tab.claims)}`,
+          ),
+        );
+        expect(response.headers.get('Location')).toBe(tab.path);
+      };
+      const render = async (tab: typeof a, expected: string) => {
+        // Existing apps may supply only their route pathname to fetchPage().
+        expect(await tab.server.fetchPage('/example')).toMatchObject({
+          head: { title: expected },
+        });
+      };
+      await activate(a);
+      await render(a, first);
+      await activate(b);
+      await render(b, second);
+      await render(a, first);
+      for (const tab of [a, b]) {
+        const response = await tab.server.renewDraftSession(
+          new Request('https://app.example/api/draft/renew', {
+            method: 'POST',
+            body: JSON.stringify({ assertion: buildAssertion(tab.claims) }),
+          }),
+        );
+        expect(response.status).toBe(200);
+        await render(a, first);
+        await render(b, second);
+      }
+      await activate(a);
+      await render(b, second);
+      const session = JSON.parse(
+        harness.cookies.get(DRAFT_DATA_COOKIE_NAME)!.value,
+      );
+      expect(session).not.toHaveProperty('previewContext');
+      expect(session.path).toBe('/example?filter=a%20b');
+    },
+  );
+
+  it('keeps saved-only rendering local to each tab sharing a draft cookie', async () => {
+    let autoSavedTitle = 'Auto-saved heading';
+    const fetchImpl = vi.fn(async (input: string | URL | Request) => {
+      const url = new URL(input instanceof Request ? input.url : input);
+      if (url.pathname === '/oauth/token') {
+        return tokenResponse();
+      }
+      return Response.json({
+        ...page,
+        head: {
+          title:
+            url.searchParams.get('excludeAutoSave') === 'true'
+              ? 'Saved heading'
+              : autoSavedTitle,
+        },
+      });
+    });
+    const { server: editor, adapter } = makeServer(fetchImpl);
+    // Both tabs send the same cookies, but retain their own document URLs.
+    const canonical = createDraftServer({ adapter, config: CONFIG, fetchImpl });
+    const editorClaims = {
+      ...validClaims,
+      path: '/example',
+      previewContext: {},
+    };
+    const savedClaims = {
+      ...editorClaims,
+      path: '/example?_canvas_excludeAutoSave=true',
+      // An older host may still send this claim. It must not become session policy.
+      previewContext: { excludeAutoSave: true },
+    };
+    const activate = async (
+      server: typeof editor,
+      claims: typeof editorClaims,
+    ) => {
+      const response = await server.enableDraftMode(
+        new Request(
+          `https://app.example/api/draft?assertion=${buildAssertion(claims)}`,
+        ),
+      );
+      expect(response.status).toBe(307);
+      return response.headers.get('Location')!;
+    };
+    const editorPath = await activate(editor, editorClaims);
+    const expectTitle = async (
+      server: typeof editor,
+      path: string,
+      title: string,
+    ) => {
+      expect(await server.fetchPage(path)).toMatchObject({ head: { title } });
+    };
+    await expectTitle(editor, editorPath, autoSavedTitle);
+    const canonicalPath = await activate(canonical, savedClaims);
+    await expectTitle(canonical, canonicalPath, 'Saved heading');
+    await expectTitle(editor, editorPath, autoSavedTitle);
+
+    autoSavedTitle = 'Another auto-saved heading';
+    // Refresh both tabs after an edit, then after either tab renews the shared token.
+    for (const claims of [null, editorClaims, savedClaims]) {
+      if (claims) {
+        const response = await editor.renewDraftSession(
+          new Request('https://app.example/api/draft/renew', {
+            method: 'POST',
+            body: JSON.stringify({ assertion: buildAssertion(claims) }),
+          }),
+        );
+        expect(response.status).toBe(200);
+      }
+      await expectTitle(editor, editorPath, autoSavedTitle);
+      await expectTitle(canonical, canonicalPath, 'Saved heading');
+    }
+    // Recovery reactivates either host without changing the other tab's policy.
+    await activate(editor, editorClaims);
+    await expectTitle(canonical, canonicalPath, 'Saved heading');
+    await activate(canonical, savedClaims);
+    await expectTitle(editor, editorPath, autoSavedTitle);
+  });
+
+  it.each([
+    {
+      context: undefined,
+      expected: {
+        language: 'fr',
+        viewMode: 'teaser',
+        pageVariant: 'url',
+        excludeAutoSave: 'true',
+      },
+    },
+    { context: {}, expected: {} },
+    { context: { excludeAutoSave: false }, expected: {} },
+    { context: { viewMode: 'full' }, expected: { viewMode: 'full' } },
+    {
+      context: {
+        language: 'de',
+        viewMode: 'full',
+        pageVariant: 'explicit',
+        excludeAutoSave: true,
+      },
+      expected: {
+        language: 'de',
+        viewMode: 'full',
+        pageVariant: 'explicit',
+        excludeAutoSave: 'true',
+      },
+    },
+  ])(
+    'resolves explicit page context $context only with a live session',
+    async ({ context, expected }) => {
+      for (const session of ['live', 'expired', 'public']) {
+        const fetchImpl = vi.fn().mockResolvedValue(Response.json(page));
+        const harness = makeAdapter();
+        harness.adapter.getRequestUrl = vi
+          .fn()
+          .mockResolvedValue(
+            'https://app.example/example?_canvas_language=en&_canvas_pageVariant=url&_canvas_excludeAutoSave=true',
+          );
+        if (session !== 'public') {
+          harness.seedSession(
+            liveDraftData({
+              tokenExpiresAt: Date.now() + (session === 'live' ? 60_000 : -1),
+            }),
+          );
+        }
+        const server = createDraftServer({
+          adapter: harness.adapter,
+          config: CONFIG,
+          fetchImpl,
+        });
+
+        await server.fetchPage(
+          '/example?page=2&_canvas_language=fr&_canvas_viewMode=teaser',
+          context,
+        );
+
+        const [url, init] = fetchImpl.mock.calls[0];
+        expect(Object.fromEntries(url.searchParams)).toEqual({
+          requestUri: '/example?page=2',
+          ...(session === 'live' ? expected : {}),
+        });
+        expect(init.headers.Authorization).toBe(
+          session === 'live' ? 'Bearer old-token' : undefined,
+        );
+        expect(harness.adapter.getRequestUrl).toHaveBeenCalledTimes(
+          context === undefined ? 1 : 0,
+        );
+      }
+    },
+  );
+
   it('marks a draft component tree as editor-renderable', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(Response.json(page));
     const { server, seedSession } = makeServer(
@@ -722,7 +1035,11 @@ describe('fetchPage', () => {
       }),
     );
 
-    await expect(server.fetchPage('/example')).resolves.toEqual({
+    await expect(
+      server.fetchPage(
+        '/example?_canvas_language=fr&_canvas_viewMode=teaser&_canvas_pageVariant=alternate',
+      ),
+    ).resolves.toEqual({
       ...page,
       content: { element: 'canvas-page', canvasDraftMode: true },
     });
@@ -739,30 +1056,76 @@ describe('fetchPage', () => {
     );
   });
 
-  it('fetches a component through the existing entity draft session', async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(Response.json(page));
-    const { server, seedSession } = makeServer(
-      fetchImpl as unknown as typeof fetch,
-    );
-    seedSession(
-      liveDraftData({
+  it.each([
+    undefined,
+    '/api/canvas/component-preview?_canvas_language=pl&_canvas_viewMode=teaser&_canvas_pageVariant=alternate&_canvas_excludeAutoSave=true',
+  ])(
+    'fetches a component using only request language from %s',
+    async (previewUri) => {
+      const fetchImpl = vi.fn().mockResolvedValue(Response.json(page));
+      const { server, seedSession } = makeServer(
+        fetchImpl as unknown as typeof fetch,
+      );
+      seedSession(
+        liveDraftData({
+          path: '/example?language=fr&_canvas_excludeAutoSave=true',
+          previewContext: {
+            pageVariant: 'alternate',
+          },
+        }),
+      );
+
+      await server.fetchComponentPreview('js.example', previewUri);
+
+      expect(fetchImpl).toHaveBeenCalledWith(
+        new URL(
+          `https://drupal.example/canvas/content-api?requestUri=%2F&componentId=js.example${previewUri ? '&language=pl' : ''}`,
+        ),
+        expect.any(Object),
+      );
+      expect(await server.getDraftData()).toMatchObject({
         path: '/example?language=fr',
-        previewContext: { pageVariant: 'alternate' },
-      }),
-    );
+      });
+    },
+  );
 
-    await server.fetchComponentPreview('js.example');
+  it.each([
+    [undefined, true],
+    [true, true],
+    [false, true],
+    [true, false],
+  ] as const)(
+    'applies excludeAutoSave=%s only to live page sessions (%s)',
+    async (excludeAutoSave, live) => {
+      const fetchImpl = vi.fn().mockResolvedValue(Response.json(page));
+      const { server, seedSession } = makeServer(fetchImpl);
+      seedSession(
+        liveDraftData({
+          tokenExpiresAt: Date.now() + (live ? 60_000 : -1),
+          // A cookie written by an older SDK must not override this request.
+          previewContext: {
+            language: 'en',
+            ...{ excludeAutoSave: !excludeAutoSave },
+          },
+        }),
+      );
 
-    expect(fetchImpl).toHaveBeenCalledWith(
-      new URL(
-        'https://drupal.example/canvas/content-api?requestUri=%2Fexample%3Flanguage%3Dfr&componentId=js.example',
-      ),
-      expect.any(Object),
-    );
-    expect(await server.getDraftData()).toMatchObject({
-      path: '/example?language=fr',
-    });
-  });
+      const query =
+        excludeAutoSave === undefined
+          ? ''
+          : `?_canvas_excludeAutoSave=${excludeAutoSave}`;
+      await server.fetchPage(`/example${query}`);
+
+      const [url, init] = fetchImpl.mock.calls[0];
+      expect(url.searchParams.get('requestUri')).toBe('/example');
+      expect(url.searchParams.get('excludeAutoSave')).toBe(
+        live && excludeAutoSave === true ? 'true' : null,
+      );
+      expect(init.headers.Authorization).toBe(
+        live ? 'Bearer old-token' : undefined,
+      );
+    },
+  );
 
   it('keeps an expired draft session anonymous and marker-free', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(Response.json(page));
@@ -884,4 +1247,37 @@ describe('fetchEntity', () => {
       server.fetchEntity({ type: 'node', id: '2' }),
     ).resolves.toEqual({ ...entity, content: null, managedByCanvas: false });
   });
+
+  it.each([
+    [undefined, true],
+    [true, true],
+    [false, true],
+    [true, false],
+  ] as const)(
+    'applies excludeAutoSave=%s only to live entity sessions (%s)',
+    async (excludeAutoSave, live) => {
+      const fetchImpl = vi.fn().mockResolvedValue(Response.json(entity));
+      const { server, seedSession } = makeServer(fetchImpl);
+      seedSession(
+        liveDraftData({
+          tokenExpiresAt: Date.now() + (live ? 60_000 : -1),
+          // A cookie written by an older SDK must not override this request.
+          previewContext: {
+            language: 'en',
+            ...{ excludeAutoSave: !excludeAutoSave },
+          },
+        }),
+      );
+
+      await server.fetchEntity({ type: 'node', id: '2', excludeAutoSave });
+
+      const [url, init] = fetchImpl.mock.calls[0];
+      expect(url.searchParams.get('excludeAutoSave')).toBe(
+        live && excludeAutoSave === true ? 'true' : null,
+      );
+      expect(init.headers.Authorization).toBe(
+        live ? 'Bearer old-token' : undefined,
+      );
+    },
+  );
 });

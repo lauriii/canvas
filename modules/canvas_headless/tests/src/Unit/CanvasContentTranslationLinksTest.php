@@ -80,6 +80,7 @@ final class CanvasContentTranslationLinksTest extends UnitTestCase {
     $url->method('setAbsolute')->willReturnSelf();
     $url->method('toString')->willReturn($generated);
     $entity = $this->createMock(ContentEntityInterface::class);
+    $entity->method('id')->willReturn(1);
     $entity->method('hasLinkTemplate')->with('canonical')->willReturn(TRUE);
     $entity->method('toUrl')->with('canonical')->willReturn($url);
     $entity->method('hasTranslation')->willReturnMap([['en', TRUE], ['fr', TRUE], ['de', FALSE]]);

@@ -31,6 +31,15 @@ final class JsComponentCanvasRenderConverter extends CanvasRenderConverter {
   /**
    * {@inheritdoc}
    */
+  // @phpstan-ignore shipmonk.deadMethod (Called by the parent converter.)
+  protected function isBlockRenderArray(array $render_array): bool {
+    // Let Drupal resolve ordered theme suggestions through normal rendering.
+    return !\is_array($render_array['#theme'] ?? NULL) && parent::isBlockRenderArray($render_array);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function convertRenderArray(array $render_array): CustomElement {
     if (($render_array[self::PREVIEW_CONTENT_REGION] ?? FALSE) === TRUE) {
       // Tell the headless SDK where to place editor markers in page chrome.

@@ -1,4 +1,4 @@
-import { cookies, draftMode } from 'next/headers';
+import { cookies, draftMode, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import type { DraftServerAdapter } from '@drupal-canvas/headless/server';
@@ -16,6 +16,8 @@ export const NEXT_DRAFT_MODE_COOKIE_NAME = '__prerender_bypass';
  */
 export const nextDraftAdapter: DraftServerAdapter = {
   draftFlagCookieName: NEXT_DRAFT_MODE_COOKIE_NAME,
+  getRequestUrl: async () =>
+    (await headers()).get('x-canvas-preview-request-url'),
   getCookie: async (name) => (await cookies()).get(name)?.value ?? null,
   setCookie: async (cookie) => {
     (await cookies()).set(cookie);

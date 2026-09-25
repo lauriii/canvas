@@ -1,4 +1,4 @@
-import { getCookie, setCookie } from 'h3';
+import { getCookie, getRequestURL, setCookie } from 'h3';
 import {
   buildClearedDraftCookie,
   buildDraftCookie,
@@ -40,6 +40,7 @@ function applyCookie(event: H3Event, cookie: DraftCookie): void {
  */
 export function createNuxtDraftAdapter(event: H3Event): DraftServerAdapter {
   return {
+    getRequestUrl: async () => getRequestURL(event).href,
     getCookie: async (name) => getCookie(event, name) ?? null,
     setCookie: async (cookie) => {
       applyCookie(event, cookie);

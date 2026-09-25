@@ -87,7 +87,10 @@ class PreviewAssertionFactoryTest extends CanvasKernelTestBase {
         '/home',
         'rel:working-copy',
         preview_context: [
+          'language' => 'fr',
           'viewMode' => 'teaser',
+          'pageVariant' => 'alternate',
+          'excludeAutoSave' => TRUE,
         ],
       );
     $this->assertNotSame('', $jwt);
@@ -104,12 +107,10 @@ class PreviewAssertionFactoryTest extends CanvasKernelTestBase {
     $this->assertSame('42', $claims->get('sub'));
     $this->assertSame(PreviewAssertionFactory::CLIENT_ID, $claims->get('azp'));
     $this->assertSame('canvas_headless', $claims->get('azp'));
-    $this->assertSame('/home', $claims->get('path'));
+    $this->assertSame('/home?_canvas_language=fr&_canvas_viewMode=teaser&_canvas_pageVariant=alternate&_canvas_excludeAutoSave=true', $claims->get('path'));
     $this->assertSame('activation', $claims->get('use'));
     $this->assertSame('rel:working-copy', $claims->get('resourceVersion'));
-    $this->assertSame([
-      'viewMode' => 'teaser',
-    ], $claims->get('previewContext'));
+    $this->assertFalse($claims->has('previewContext'));
     $this->assertStringEndsWith('/canvas-headless/renew', $claims->get('renewUrl'));
     $this->assertNotEmpty($claims->get('jti'));
 
@@ -120,18 +121,34 @@ class PreviewAssertionFactoryTest extends CanvasKernelTestBase {
   }
 
   /**
-   * Tests the "use" claim's renewal marking.
+   * Tests request context in activation and renewal assertions.
    */
   public function testRenewalMarking(): void {
     $account = $this->createMock(AccountInterface::class);
     $account->method('id')->willReturn(42);
 
-    $jwt = $this->container->get(PreviewAssertionFactoryInterface::class)
-      ->issue($account, '/home', 'rel:working-copy', TRUE);
-    \assert($jwt !== '');
-    $token = (new Parser(new JoseEncoder()))->parse($jwt);
-    \assert($token instanceof UnencryptedToken);
-    $this->assertSame('renewal', $token->claims()->get('use'));
+    // cspell:ignore Fcanvas
+    $cases = [
+      ['/home', [], '/home'],
+      ['/home', ['excludeAutoSave' => TRUE], '/home?_canvas_excludeAutoSave=true'],
+      ['/home', ['excludeAutoSave' => FALSE], '/home?_canvas_excludeAutoSave=false'],
+      ['/home?_canvas_excludeAutoSave=true&_canvas_excludeAutoSave=true&tag=a#details', ['excludeAutoSave' => FALSE], '/home?tag=a&_canvas_excludeAutoSave=false#details'],
+      ['/home?tag=a&tag=b&term=some+text&encoded=%2f&_canvas_excludeAutoSave=true#details?section', ['language' => 'fr'], '/home?tag=a&tag=b&term=some+text&encoded=%2f&_canvas_excludeAutoSave=true&_canvas_language=fr#details?section'],
+      ['/home?_canvas_language=en&%5Fcanvas_language=pl&_canvas_viewMode=full&keep=&_canvas_pageVariant=default#', ['language' => 'fr', 'viewMode' => 'teaser'], '/home?keep=&_canvas_pageVariant=default&_canvas_language=fr&_canvas_viewMode=teaser#'],
+      ['/home?_canvas_language=fr&_canvas_viewMode=teaser&_canvas_pageVariant=alternate&_canvas_excludeAutoSave=true#details', [], '/home?_canvas_language=fr&_canvas_viewMode=teaser&_canvas_pageVariant=alternate&_canvas_excludeAutoSave=true#details'],
+    ];
+    foreach ([FALSE, TRUE] as $renewal) {
+      foreach ($cases as [$path, $context, $expected]) {
+        $jwt = $this->container->get(PreviewAssertionFactoryInterface::class)
+          ->issue($account, $path, 'rel:working-copy', $renewal, $context);
+        self::assertNotSame('', $jwt);
+        $token = (new Parser(new JoseEncoder()))->parse($jwt);
+        \assert($token instanceof UnencryptedToken);
+        $this->assertSame($renewal ? 'renewal' : 'activation', $token->claims()->get('use'));
+        $this->assertSame($expected, $token->claims()->get('path'));
+        $this->assertFalse($token->claims()->has('previewContext'));
+      }
+    }
   }
 
   /**

@@ -12,9 +12,9 @@ import {
 } from './adapter';
 
 /**
- * The module-level draft server every request shares. All state lives in
- * the request's cookies (reached through the request-scoped helpers from
- * @tanstack/react-start/server), and the configuration is resolved from
+ * The module-level draft server every request shares. Authentication and
+ * preview context come from the current cookies and URL through the helpers
+ * in @tanstack/react-start/server. The configuration is resolved from
  * the environment lazily per call — nothing here touches the request or
  * the environment at import time, so builds without CANVAS_SITE_URL set do
  * not throw.

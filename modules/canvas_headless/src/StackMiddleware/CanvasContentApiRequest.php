@@ -29,6 +29,11 @@ final class CanvasContentApiRequest implements HttpKernelInterface {
   public const PREVIEW_LANGUAGE_QUERY = 'language';
 
   /**
+   * Opts preview requests out of auto-saved entities and configuration.
+   */
+  public const EXCLUDE_AUTO_SAVE_QUERY = 'excludeAutoSave';
+
+  /**
    * Internal one-hop guard; accepting it can only reject failed negotiation.
    */
   public const LANGUAGE_REDIRECT_QUERY = '_canvas_headless_language_redirect';
@@ -42,6 +47,7 @@ final class CanvasContentApiRequest implements HttpKernelInterface {
     self::PAGE_VARIANT_PREVIEW_QUERY,
     self::COMPONENT_PREVIEW_QUERY,
     self::PREVIEW_LANGUAGE_QUERY,
+    self::EXCLUDE_AUTO_SAVE_QUERY,
   ];
 
   public function __construct(

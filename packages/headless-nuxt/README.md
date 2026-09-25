@@ -84,7 +84,7 @@ rebuild/redeploy if the Nitro preset or host embeds them.
 
 Data access happens in Nitro server routes, where the draft session cookies
 live: `getClient(event)` returns the draft-aware JSON:API client and
-`fetchPage(event, path)` fetches rendered content, both from
+`fetchPage(event, path, previewContext?)` fetches rendered content, both from
 `@drupal-canvas/headless-nuxt/server`. Pages consume those routes with
 `useFetch()`, which forwards the request's cookies during SSR. Render
 `page.content` directly and pass the complete `page.head` object reactively to

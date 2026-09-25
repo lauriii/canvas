@@ -31,6 +31,52 @@ Opening an entity in the Canvas editor then loads the first frontend in the list
 In cloned environments, regenerate the Simple OAuth keypair per environment; with shared keys, preview credentials
 minted on one clone would redeem on another.
 
+## Published route previews
+
+The module embeds the first configured frontend on published canonical entity
+pages rendered by a Canvas component tree or an enabled `full` content template.
+Any selected page variant must also be headless-compatible.
+
+Embedding requires a logged-in user with `access canvas headless preview` and
+access to the Drupal route. Other visitors and unsupported routes keep Drupal's
+normal rendering.
+
+Previews render saved content, templates, and page variants with the current
+user's permissions. Drupal's toolbar, administration navigation, and status
+messages remain visible around the iframe.
+
+Custom frontend Content Security Policies must allow the Drupal origin in
+`frame-ancestors`.
+
+### Navigation
+
+Eligible links open outside the iframe: Drupal-resolved paths use their Drupal
+URL, while unresolved paths and external links use their original URL.
+`target="_blank"` opens a new tab.
+
+### Entity previews and revisions
+
+Entities with enabled Canvas content templates can embed the frontend on their
+`entity.{entity_type}.preview`, `entity.{entity_type}.revision`, and
+`entity.{entity_type}.latest_version` routes. This includes node form previews,
+core revision routes, and Content Moderation's latest-version routes. Embedding
+requires the authenticated access described above and an enabled Canvas template
+for the selected view mode. Other requests keep Drupal's normal rendering.
+
+Canvas currently enables content templates only for nodes. Other entity types
+require a module that adds content template support.
+
+Previews render the selected entity revision or unsaved form values with saved
+Canvas templates and page variants. Canvas auto-saves do not replace them. Preview
+responses and their rendered content cannot be cached.
+
+The frontend must serve preview and revision paths through its Drupal content
+route handler. The SDK catch-all route can handle these paths.
+
+### Building the browser code
+
+Build browser assets with `npm run packages:build` from the repository root.
+
 ## Browser support
 
 - Chromium-based browsers: works over HTTPS, and without HTTPS on a plain-http `localhost` dev server.
@@ -213,9 +259,8 @@ Errors use RFC 9457 Problem Details and the `application/problem+json` media typ
 
 ## Known limitations
 
-- The rendered-content endpoint serves the default revision: an unpublished entity previews fully, but a published entity's forward
-  revision appears only in JSON:API-driven listings (the SDK hydrates working copies), not on pages rendered
-  through `fetchPage()`.
+- Canonical routes render the default revision. Use revision or latest-version
+  paths with `fetchPage()` to render a published entity's forward revision.
 - Core JSON:API filtered collections exclude unpublished content regardless of permissions; the example app avoids
   filtered collection queries for draft content.
 - Content gated by a view permission not declared preview-safe is invisible in previews until the owning module

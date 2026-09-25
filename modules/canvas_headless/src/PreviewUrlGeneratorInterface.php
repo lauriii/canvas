@@ -39,11 +39,14 @@ interface PreviewUrlGeneratorInterface {
    * @param string $path
    *   The session entry path. Navigation only — access control lives
    *   entirely in the token the assertion redeems for.
+   * @param array{viewMode?: string, pageVariant?: string, language?: string, excludeAutoSave?: bool} $preview_context
+   *   Optional rendering context retained during standalone renewal. Auto-saves
+   *   are included unless excludeAutoSave is TRUE.
    *
    * @return \Drupal\Core\Url|null
    *   The preview URL, or NULL when the current user may not preview.
    */
-  public function generateForPath(string $path): ?Url;
+  public function generateForPath(string $path, array $preview_context = []): ?Url;
 
   /**
    * Mints a bare preview assertion whose session enters at the given path.
@@ -57,7 +60,7 @@ interface PreviewUrlGeneratorInterface {
    * @param bool $renewal
    *   TRUE for the in-place renewal lane; see
    *   \Drupal\canvas_headless\PreviewAssertionFactoryInterface::issue().
-   * @param array{viewMode?: string, pageVariant?: string, language?: string} $preview_context
+   * @param array{viewMode?: string, pageVariant?: string, language?: string, excludeAutoSave?: bool} $preview_context
    *   Optional rendering context for an editor preview.
    *
    * @return string|null

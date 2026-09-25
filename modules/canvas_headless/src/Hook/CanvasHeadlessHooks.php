@@ -10,17 +10,24 @@ use Drupal\canvas_headless\FrontendUrl;
 use Drupal\canvas_headless\Grant\PreviewAssertionGrant;
 use Drupal\canvas_headless\PreviewAssertionFactory;
 use Drupal\canvas_headless\PreviewUrlGeneratorInterface;
+use Drupal\canvas_headless\Routing\CanvasContentRoute;
+use Drupal\canvas_headless\StackMiddleware\CanvasContentApiRequest;
 use Drupal\consumers\Entity\ConsumerInterface;
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityFormInterface;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Hook\Order\OrderAfter;
+use Drupal\Core\Routing\AccessAwareRouterInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Hook implementations for Drupal Canvas Headless.
@@ -34,7 +41,38 @@ class CanvasHeadlessHooks {
     private readonly AccountInterface $currentUser,
     private readonly RouteMatchInterface $routeMatch,
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly RequestStack $requestStack,
   ) {}
+
+  /**
+   * Lets field expressions read the exact entity authorized by a preview route.
+   *
+   * Providers may authorize previews through create/update or revision access
+   * instead of ordinary view access. Use their completed route access result
+   * only for the selected entity. Referenced entities and individual fields
+   * retain their own access checks.
+   */
+  #[Hook('entity_access')]
+  public function previewEntityViewAccess(EntityInterface $entity, string $operation, AccountInterface $account): AccessResultInterface {
+    $request = $this->requestStack->getCurrentRequest();
+    if ($operation !== 'view' || !$request?->attributes->has(CanvasContentApiRequest::REQUESTED_URI_ATTRIBUTE) || $account->id() !== $this->currentUser->id()) {
+      return AccessResult::neutral();
+    }
+    $access = $request->attributes->get(AccessAwareRouterInterface::ACCESS_RESULT);
+    // This result is absent while route access is being checked. Never grant
+    // access to the route itself based on the entity it wants to preview.
+    if (!$access instanceof AccessResultInterface || !$access->isAllowed()) {
+      return AccessResult::neutral();
+    }
+    $content_route = CanvasContentRoute::resolve($this->routeMatch->getRouteName(), $this->routeMatch->getRouteObject(), $this->routeMatch->getParameters()->all());
+    if (!$content_route?->isPreview || $content_route->entity !== $entity) {
+      return AccessResult::neutral();
+    }
+    return AccessResult::allowed()
+      ->addCacheableDependency($access)
+      ->addCacheContexts(['user', 'oauth2_scopes'])
+      ->setCacheMaxAge(0);
+  }
 
   /**
    * Implements hook_canvas_headless_safe_permissions().

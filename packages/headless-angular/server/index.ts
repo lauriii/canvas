@@ -60,6 +60,7 @@ export function createCanvasRequest(
     config: options.config,
     fetchImpl: options.fetchImpl,
     adapter: {
+      getRequestUrl: async () => request.url,
       getCookie: async (name) => cookies.get(name) ?? null,
       setCookie,
       isDraftFlagEnabled: async () =>
@@ -91,7 +92,7 @@ export function createCanvasRequest(
         : null;
     return {
       page: component
-        ? await server.fetchComponentPreview(component)
+        ? await server.fetchComponentPreview(component, path)
         : await server.fetchPage(path),
       session: await session(),
     };

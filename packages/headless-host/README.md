@@ -54,6 +54,12 @@ assertion-minting endpoint. The Canvas editor posts to
 `/canvas-headless/assertion` with an `X-CSRF-Token` header from core's
 `/session/token`.
 
+## Navigation delegation
+
+Set `onNavigate` to enable iframe navigation delegation. The callback receives
+an absolute HTTP(S) URL and `openInNewTab` intent. The host accepts navigation
+messages only during transient user activation from the iframe.
+
 ## Learn more
 
 The app side of the protocol ships in

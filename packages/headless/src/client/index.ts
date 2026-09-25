@@ -26,6 +26,11 @@ export {
   type HeightReporter,
   type HeightReporterOptions,
 } from './height-report';
+export {
+  createNavigationBridge,
+  type NavigationBridge,
+  type NavigationBridgeOptions,
+} from './navigation-bridge';
 export { createCanvasGeometryObserver } from '@drupal-canvas/preview-geometry';
 export type {
   CanvasGeometryObserver,

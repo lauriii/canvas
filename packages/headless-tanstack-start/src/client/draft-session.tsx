@@ -12,7 +12,7 @@ import type { DraftSessionProps as ReactDraftSessionProps } from '@drupal-canvas
 export type { DraftSessionSnapshot } from '@drupal-canvas/headless-react';
 
 /**
- * The TanStack Start wiring is the router's pathname; data refresh is
+ * The TanStack Start wiring is the router's pathname and query; data refresh is
  * deliberately left to the shared component's in-place re-arm.
  */
 export type DraftSessionProps = Omit<
@@ -32,6 +32,8 @@ export type DraftSessionProps = Omit<
  * renewed token.
  */
 export function DraftSession(props: DraftSessionProps): ReactNode {
-  const pathname = useLocation({ select: (location) => location.pathname });
-  return <ReactDraftSession {...props} path={pathname} />;
+  const path = useLocation({
+    select: (location) => location.pathname + location.searchStr,
+  });
+  return <ReactDraftSession {...props} path={path} />;
 }

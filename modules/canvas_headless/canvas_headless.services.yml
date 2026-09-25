@@ -21,6 +21,7 @@ services:
       $languagePathProcessor: '@?path_processor_language'
   Drupal\canvas_headless\EventSubscriber\CanvasContentResponseSubscriber: {}
   Drupal\canvas_headless\EventSubscriber\DetachedPreviewRouteSubscriber: {}
+  Drupal\canvas_headless\EventSubscriber\EmbeddedPreviewSubscriber: {}
   Drupal\canvas_headless\CanvasContentEntityRenderer: {}
   Drupal\canvas_headless\CanvasContentTranslationLinks:
     arguments:
@@ -32,6 +33,11 @@ services:
   Drupal\canvas_headless\Access\PreviewCeilingAccessPolicy:
     tags:
       - { name: access_policy }
+  Drupal\canvas_headless\Access\NodePreviewAccessCheck:
+    decorates: access_check.node.preview
+    decoration_on_invalid: ignore
+    arguments:
+      $inner: '@Drupal\canvas_headless\Access\NodePreviewAccessCheck.inner'
   Drupal\canvas_headless\ExternalComponentSync: {}
   Drupal\canvas_headless\Controller\ExternalComponentSyncController: {}
   Drupal\canvas_headless\RenderConverter\JsComponentCanvasRenderConverter:

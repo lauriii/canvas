@@ -48,6 +48,13 @@ paths:
           description: Optional page variant editor preview selector.
           schema:
             type: string
+        - name: excludeAutoSave
+          in: query
+          required: false
+          description: Exclude Canvas auto-saves from preview rendering.
+          schema:
+            type: boolean
+            default: false
       responses:
         '200':
           description: Content result or redirect result.
@@ -205,6 +212,13 @@ paths:
           schema:
             type: string
             pattern: '^[a-z0-9_]+$'
+        - name: excludeAutoSave
+          in: query
+          required: false
+          description: Exclude Canvas auto-saves from preview rendering.
+          schema:
+            type: boolean
+            default: false
       responses:
         '200':
           description: Entity render result.
@@ -283,7 +297,7 @@ paths:
         - name: language
           in: query
           required: false
-          description: Configured language selected in Canvas's read-only preview, retained in signed preview context. An unknown language returns 400.
+          description: Configured language selected in Canvas's read-only preview. An unknown language returns 400.
           schema:
             type: string
         - name: view_mode
@@ -293,6 +307,16 @@ paths:
           schema:
             type: string
             pattern: '^[a-z0-9_]+$'
+        - name: exclude_auto_save
+          in: query
+          required: false
+          description: Exclude Canvas auto-saves from this preview request.
+          schema:
+            oneOf:
+              - type: boolean
+              - type: integer
+                enum: [0, 1]
+            default: false
         - $ref: '#/components/parameters/CsrfToken'
       responses:
         '200':

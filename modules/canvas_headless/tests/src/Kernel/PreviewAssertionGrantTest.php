@@ -234,8 +234,10 @@ class PreviewAssertionGrantTest extends AuthorizedRequestBase {
    * Tests that modifying any claim breaks the signature.
    */
   public function testTamperedAssertionIsRefused(): void {
-    $tampered = self::tamperClaim($this->mintAssertion(), 'sub', '1');
-    self::assertGrantError($this->exchange($tampered), 'Token signature mismatch');
+    foreach (['sub' => '1', 'path' => '/node/1?_canvas_viewMode=full'] as $claim => $value) {
+      $tampered = self::tamperClaim($this->mintAssertion(), $claim, $value);
+      self::assertGrantError($this->exchange($tampered), 'Token signature mismatch');
+    }
   }
 
   /**
@@ -674,7 +676,11 @@ class PreviewAssertionGrantTest extends AuthorizedRequestBase {
    */
   private function mintAssertion(bool $renewal = FALSE): string {
     return $this->container->get(PreviewAssertionFactoryInterface::class)
-      ->issue($this->editor, '/node/1', 'rel:working-copy', $renewal);
+      ->issue($this->editor, '/node/1?_canvas_excludeAutoSave=true&tag=a&tag=b#details', 'rel:working-copy', $renewal, [
+        'language' => 'fr',
+        'viewMode' => 'teaser',
+        'pageVariant' => 'alternate',
+      ]);
   }
 
   /**

@@ -59,6 +59,11 @@ final class PreviewCeilingAccessPolicy extends AccessPolicyBase {
       return;
     }
 
+    // Simple OAuth calculates permissions from the subject's roles, while
+    // TokenAuthUser::getRoles() exposes only roles declared by role scopes.
+    // Permission-scoped preview tokens can therefore share user.roles despite
+    // different subject permissions. Keep their calculated results per user.
+    $calculated_permissions->addCacheContexts(['user']);
     $ceiling = $this->scopeProvider->getPermissions($preview_scope);
     foreach ($calculated_permissions->getItems() as $item) {
       if (!$item->isAdmin()) {

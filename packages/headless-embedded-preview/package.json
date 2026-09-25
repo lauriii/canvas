@@ -1,0 +1,19 @@
+{
+  "name": "@drupal-canvas/headless-embedded-preview",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "npm run type-check && NODE_ENV=production tsdown",
+    "test": "vitest run src/headlessPreviewNavigation.test.ts",
+    "type-check": "tsc --noEmit --pretty"
+  },
+  "dependencies": {
+    "@drupal-canvas/headless-host": "*"
+  },
+  "devDependencies": {
+    "tsdown": "^0.22.12",
+    "typescript": "^5.8.3",
+    "vitest": "^4.0.18"
+  }
+}

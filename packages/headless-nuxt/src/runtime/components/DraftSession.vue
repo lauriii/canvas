@@ -11,6 +11,8 @@
  * refresh events are handled by the module's client plugin instead of
  * reloading the page. The element also reports content height to the embedding
  * host.
+ * The shared navigation bridge reports eligible link clicks to the host, which
+ * takes over navigation when it advertises that capability.
  *
  * The slot owns presentation: children marked
  * `data-draft-session-view="active"` show while the session is live and
@@ -21,11 +23,9 @@
  * headless page that only needs the renewal protocol leaves the slot
  * empty.
  */
-import { onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useFetch, useRoute } from 'nuxt/app';
-import {
-  defineDraftSessionElement,
-} from '@drupal-canvas/headless/client';
+import { defineDraftSessionElement } from '@drupal-canvas/headless/client';
 
 import type { DraftSessionState } from '../server/routes/session-state';
 
@@ -46,6 +46,8 @@ const props = withDefaults(
 );
 
 const route = useRoute();
+// The fragment is unavailable during SSR; the query carries the preview mode.
+const path = computed(() => route.fullPath.split('#', 1)[0]);
 const { data: session } = await useFetch<DraftSessionState>(
   props.sessionEndpoint,
 );
@@ -63,7 +65,7 @@ onMounted(() => {
     :renew-url="session.renewUrl ?? undefined"
     :editor-origin="session.editorOrigin ?? undefined"
     :renew-endpoint="renewEndpoint"
-    :path="route.path"
+    :path="path"
   >
     <slot />
   </canvas-draft-session>

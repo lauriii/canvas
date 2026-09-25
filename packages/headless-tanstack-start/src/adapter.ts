@@ -2,7 +2,7 @@ import {
   buildClearedDraftCookie,
   buildDraftCookie,
 } from '@drupal-canvas/headless/server';
-import { getCookie, setCookie } from '@tanstack/react-start/server';
+import { getCookie, getRequest, setCookie } from '@tanstack/react-start/server';
 
 import type {
   DraftCookie,
@@ -39,6 +39,7 @@ function applyCookie(cookie: DraftCookie): void {
  * deletion that states its partition (see buildClearedDraftCookie()).
  */
 export const tanstackDraftAdapter: DraftServerAdapter = {
+  getRequestUrl: async () => getRequest().url,
   getCookie: async (name) => getCookie(name) ?? null,
   setCookie: async (cookie) => {
     applyCookie(cookie);

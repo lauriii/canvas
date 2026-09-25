@@ -13,6 +13,7 @@ use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageVariant;
+use Drupal\canvas\Entity\StagedLanguageConfigOverride;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas_headless\CanvasContentContextBuilder;
 use Drupal\canvas_headless\Grant\PreviewAssertionGrant;
@@ -24,22 +25,28 @@ use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Controller\TitleResolverInterface;
+use Drupal\Core\Entity\Entity\EntityViewDisplay;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\Extension\ThemeSettingsProvider;
 use Drupal\Core\File\FileUrlGeneratorInterface;
+use Drupal\Core\Form\FormState;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Language\LanguageManagerInterface;
+use Drupal\Core\ParamConverter\ParamNotConvertedException;
 use Drupal\Core\Routing\RouteBuilderInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\Core\Session\PermissionCheckerInterface;
+use Drupal\Core\TempStore\PrivateTempStoreFactory;
 use Drupal\Core\Theme\ThemeInitializationInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\language\ConfigurableLanguageManagerInterface;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\node\Entity\Node;
@@ -47,9 +54,12 @@ use Drupal\node\Entity\NodeType;
 use Drupal\path_alias\Entity\PathAlias;
 use Drupal\simple_oauth\Authentication\TokenAuthUser;
 use Drupal\simple_oauth\Entity\Oauth2Token;
+use Drupal\taxonomy\Entity\Term;
+use Drupal\taxonomy\Entity\Vocabulary;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
+use Drupal\Tests\content_moderation\Traits\ContentModerationTestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\Role;
 use Drupal\user\UserInterface;
@@ -73,6 +83,7 @@ use Symfony\Component\HttpKernel\KernelEvents;
 final class CanvasContentControllerTest extends CanvasKernelTestBase {
 
   use GenerateComponentConfigTrait;
+  use ContentModerationTestTrait;
   use RequestTrait;
   use UserCreationTrait;
 
@@ -165,11 +176,11 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
 
     // Burn uid 1, which bypasses access checks.
     $this->createUser();
+    /** @var \Drupal\user\UserInterface $editor */
     $editor = $this->createUser([
       'access content',
       PageVariant::ADMIN_PERMISSION,
     ]);
-    \assert($editor instanceof UserInterface);
     $this->editor = $editor;
   }
 
@@ -202,6 +213,12 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     self::assertSame($page->uuid(), $data['context']['page']['mainEntity']['uuid']);
     self::assertContains(AutoSaveManager::CACHE_TAG, $result->getCacheableMetadata()->getCacheTags());
     self::assertContains('oauth2_scopes', $result->getCacheableMetadata()->getCacheContexts());
+
+    foreach (['true' => 'Stored title', 'false' => 'Auto-saved title'] as $exclude_auto_save => $expected_title) {
+      $result = $this->renderContentPath('/page/' . $page->id(), [CanvasContentApiRequest::EXCLUDE_AUTO_SAVE_QUERY => $exclude_auto_save]);
+      self::assertSame($expected_title, self::responseData($result)['head']['title']);
+      self::assertContains('url.query_args:' . CanvasContentApiRequest::API_QUERY_PARAMETERS_KEY, $result->getCacheableMetadata()->getCacheContexts());
+    }
   }
 
   /**
@@ -504,6 +521,22 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     self::assertStringNotContainsString('Stored component heading', $variant_preview_content);
     self::assertStringNotContainsString('Published selected chrome', $variant_preview_content);
 
+    // An explicit variant can render its saved tree without draft components
+    // or the editor-only marker placeholder.
+    $stored_variant_preview = $this->renderContentPath(
+      '/page/' . $page->id(),
+      [
+        CanvasContentApiRequest::PAGE_VARIANT_PREVIEW_QUERY => $selected_id,
+        CanvasContentApiRequest::EXCLUDE_AUTO_SAVE_QUERY => 'true',
+      ],
+    );
+    $stored_variant_content = \json_encode(self::responseData($stored_variant_preview)['content'], JSON_THROW_ON_ERROR);
+    self::assertStringContainsString('Published selected chrome', $stored_variant_content);
+    self::assertStringNotContainsString('Draft page chrome', $stored_variant_content);
+    self::assertStringNotContainsString('Stored component heading', $stored_variant_content);
+    self::assertStringNotContainsString('canvas--page-content-marker-placeholder', $stored_variant_content);
+    self::assertNotContains(AutoSaveManager::CACHE_TAG, $stored_variant_preview->getCacheableMetadata()->getCacheTags());
+
     // A page variant has no canonical URL, so its frontend entry URI is the
     // site root. Detached preview routing must not inherit the front page's
     // format requirement.
@@ -556,6 +589,13 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
       AutoSaveManager::CACHE_TAG,
       $preview->getCacheableMetadata()->getCacheTags(),
     );
+
+    $stored = $this->renderContentPath('/page/' . $page->id(), [CanvasContentApiRequest::EXCLUDE_AUTO_SAVE_QUERY => 'true']);
+    $stored_content = \json_encode(self::responseData($stored)['content'], JSON_THROW_ON_ERROR);
+    self::assertStringContainsString('Before page content', $stored_content);
+    self::assertStringNotContainsString('Draft page chrome', $stored_content);
+    self::assertStringNotContainsString('canvas-preview-content-region', $stored_content);
+    self::assertNotContains(AutoSaveManager::CACHE_TAG, $stored->getCacheableMetadata()->getCacheTags());
 
     // A content template's selection overrides the site default, including
     // an auto-saved template selection during a draft preview.
@@ -793,6 +833,11 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
       'url.query_args:' . CanvasContentApiRequest::API_QUERY_PARAMETERS_KEY,
       $response->getCacheableMetadata()->getCacheContexts(),
     );
+
+    // External component defaults come from saved metadata in either mode.
+    $stored_response = $this->renderContentPath($page_uri, $component_preview_context + [CanvasContentApiRequest::EXCLUDE_AUTO_SAVE_QUERY => 'true']);
+    self::assertSame($data['content'], self::responseData($stored_response)['content']);
+    self::assertNotContains(AutoSaveManager::CACHE_TAG, $stored_response->getCacheableMetadata()->getCacheTags());
   }
 
   /**
@@ -869,6 +914,50 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     self::assertStringContainsString('Rendered by a local JavaScript component', $content);
     self::assertSame(2, \substr_count($content, '"element":"drupal-markup"'));
     self::assertSame(1, \substr_count($content, '"element":"js-canvas-headless-local-test"'));
+
+    // Exclusion also reaches local JavaScript components nested in an explicit
+    // page variant, rather than only choosing the variant's saved tree.
+    $variant = $this->createPageVariant('local_components', 'Header', 'Footer');
+    $local_component_config = Component::load(self::LOCAL_COMPONENT_ID);
+    self::assertInstanceOf(Component::class, $local_component_config);
+    $marker = Component::load(Marker::PAGE_CONTENT_COMPONENT_ID);
+    self::assertInstanceOf(Component::class, $marker);
+    $variant->setComponentTree([
+      [
+        'uuid' => $this->container->get('uuid')->generate(),
+        'component_id' => $local_component_config->id(),
+        'component_version' => $local_component_config->getActiveVersion(),
+        'inputs' => ['heading' => 'Rendered by a local JavaScript component'],
+      ],
+      [
+        'uuid' => $this->container->get('uuid')->generate(),
+        'component_id' => $marker->id(),
+        'component_version' => $marker->getActiveVersion(),
+        'inputs' => [],
+      ],
+    ]);
+    self::assertEntityIsValid($variant);
+    $variant->save();
+    $local_draft = clone $local_component;
+    $local_draft->set('props', []);
+    $this->container->get(AutoSaveManager::class)->saveEntity($local_draft);
+    $this->setCurrentAccount($this->createTokenAccount(with_preview_scope: TRUE));
+    foreach (['false', 'true'] as $exclude_auto_save) {
+      $response = $this->renderContentPath('/', [
+        CanvasContentApiRequest::PAGE_VARIANT_PREVIEW_QUERY => 'local_components',
+        CanvasContentApiRequest::EXCLUDE_AUTO_SAVE_QUERY => $exclude_auto_save,
+      ]);
+      $content = \json_encode(self::responseData($response)['content'], JSON_THROW_ON_ERROR);
+      self::assertStringContainsString('"element":"js-canvas-headless-local-test"', $content);
+      if ($exclude_auto_save === 'true') {
+        self::assertStringContainsString('Rendered by a local JavaScript component', $content);
+        self::assertNotContains(AutoSaveManager::CACHE_TAG, $response->getCacheableMetadata()->getCacheTags());
+      }
+      else {
+        self::assertStringNotContainsString('Rendered by a local JavaScript component', $content);
+        self::assertContains(AutoSaveManager::CACHE_TAG, $response->getCacheableMetadata()->getCacheTags());
+      }
+    }
   }
 
   /**
@@ -1003,6 +1092,16 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
       $preview->getCacheableMetadata()->getCacheTags(),
     );
 
+    $stored = $this->renderContentPath('/node/' . $node->id(), [CanvasContentApiRequest::EXCLUDE_AUTO_SAVE_QUERY => 'true']);
+    self::assertNull(self::responseData($stored)['content']);
+    $template->enable()->save();
+    $this->container->get(AutoSaveManager::class)->saveEntity($draft);
+    $stored = $this->renderContentPath('/node/' . $node->id(), [CanvasContentApiRequest::EXCLUDE_AUTO_SAVE_QUERY => 'true']);
+    $stored_content = \json_encode(self::responseData($stored)['content'], JSON_THROW_ON_ERROR);
+    self::assertStringContainsString('Published template heading', $stored_content);
+    self::assertStringNotContainsString('Draft template heading', $stored_content);
+    self::assertNotContains(AutoSaveManager::CACHE_TAG, $stored->getCacheableMetadata()->getCacheTags());
+
     $draft->setComponentTree([]);
     $this->container->get(AutoSaveManager::class)->saveEntity($draft);
     $empty_preview = $this->renderContentPath('/node/' . $node->id());
@@ -1010,6 +1109,332 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     self::assertSame(200, $empty_preview->getStatusCode());
     self::assertNull($empty_preview_data['content']);
     self::assertTrue($empty_preview_data['route']['managedByCanvas']);
+  }
+
+  /**
+   * Tests exact revisions of different entity types through the content API.
+   */
+  public function testEntityRevisions(): void {
+    /** @var \Drupal\user\UserInterface $editor */
+    $editor = $this->createUser(['access content', 'view all revisions']);
+    $this->setCurrentAccount($editor);
+    $component = Component::load(self::COMPONENT_ID);
+    self::assertInstanceOf(Component::class, $component);
+    ContentTemplate::create([
+      'id' => 'node.article.full',
+      'content_entity_type_id' => 'node',
+      'content_entity_type_bundle' => 'article',
+      'content_entity_type_view_mode' => 'full',
+      'component_tree' => [[
+        'uuid' => $this->container->get('uuid')->generate(),
+        'component_id' => $component->id(),
+        'component_version' => $component->getActiveVersion(),
+        'inputs' => ['heading' => ['sourceType' => 'entity-field', 'expression' => 'ℹ︎␜entity:node:article␝title␞␟value']],
+      ],
+      ],
+      'status' => TRUE,
+    ])->save();
+    $node = Node::create(['type' => 'article', 'title' => 'First revision', 'uid' => $editor->id(), 'status' => TRUE]);
+    $node->save();
+    $first_revision = $node->getRevisionId();
+    $node->setNewRevision(TRUE);
+    $node->setTitle('Current revision');
+    $node->save();
+
+    $template_draft = ContentTemplate::load('node.article.full');
+    self::assertInstanceOf(ContentTemplate::class, $template_draft);
+    $template_draft->setComponentTree([]);
+    $this->container->get(AutoSaveManager::class)->saveEntity($template_draft);
+    $this->container->get(EntityTypeManagerInterface::class)->getStorage(ContentTemplate::ENTITY_TYPE_ID)->resetCache();
+
+    // An unrelated Canvas auto-save must not replace either selected source.
+    $auto_save = clone $node;
+    $auto_save->setTitle('Canvas auto-save');
+    $this->container->get(AutoSaveManager::class)->saveEntity($auto_save);
+    $this->setCurrentAccount($this->createTokenAccount(TRUE, $editor));
+    $response = $this->renderContentPath('/node/' . $node->id() . '/revisions/' . $first_revision . '/view', [CanvasContentApiRequest::EXCLUDE_AUTO_SAVE_QUERY => 'false']);
+    $data = self::responseData($response);
+    self::assertStringContainsString('First revision', \json_encode($data['content'], JSON_THROW_ON_ERROR));
+    self::assertSame('First revision', $data['head']['title']);
+    self::assertSame(0, $response->getCacheableMetadata()->getCacheMaxAge());
+
+    /** @var \Drupal\user\UserInterface $reader */
+    $reader = $this->createUser(['access content']);
+    $this->setCurrentAccount($this->createTokenAccount(TRUE, $reader));
+    try {
+      $this->renderContentPath('/node/' . $node->id() . '/revisions/' . $first_revision . '/view');
+      self::fail('Viewing a revision requires revision permissions.');
+    }
+    catch (CacheableAccessDeniedHttpException) {
+    }
+
+    // Latest moderated drafts add a form with an array of theme suggestions.
+    $this->enableModules(['workflows', 'content_moderation']);
+    $this->installEntitySchema('content_moderation_state');
+    $this->addEntityTypeAndBundleToWorkflow($this->createEditorialWorkflow(), 'node', 'article');
+    $this->container->get(RouteBuilderInterface::class)->rebuild();
+    /** @var \Drupal\user\UserInterface $moderator */
+    $moderator = $this->createUser([
+      'access content',
+      'view all revisions',
+      'view latest version',
+      'view any unpublished content',
+      'use editorial transition publish',
+    ]);
+    $this->setCurrentAccount($moderator);
+    $moderated_node = Node::create([
+      'type' => 'article',
+      'title' => 'Published moderated content',
+      'uid' => $moderator->id(),
+      'moderation_state' => 'published',
+    ]);
+    $moderated_node->save();
+    $moderated_node->setNewRevision(TRUE);
+    $moderated_node->setTitle('Latest moderated draft');
+    $moderated_node->set('moderation_state', 'draft');
+    $moderated_node->save();
+    $moderator_token = $this->createTokenAccount(TRUE, $moderator);
+    $this->setCurrentAccount($moderator_token);
+    self::assertFalse($moderator_token->hasPermission('use editorial transition publish'));
+    foreach ([
+      '/node/' . $moderated_node->id() . '/latest',
+      '/node/' . $moderated_node->id() . '/revisions/' . $moderated_node->getRevisionId() . '/view',
+    ] as $path) {
+      $response = $this->renderContentPath($path);
+      $data = self::responseData($response);
+      self::assertSame(200, $response->getStatusCode());
+      self::assertTrue($data['route']['managedByCanvas']);
+      self::assertSame('Latest moderated draft', $data['head']['title']);
+      self::assertStringContainsString('Latest moderated draft', \json_encode($data['content'], JSON_THROW_ON_ERROR));
+      self::assertSame(0, $response->getCacheableMetadata()->getCacheMaxAge());
+    }
+    $response = $this->renderContentPath('/node/' . $moderated_node->id(), [CanvasContentApiRequest::EXCLUDE_AUTO_SAVE_QUERY => 'true']);
+    $data = self::responseData($response);
+    self::assertSame('Published moderated content', $data['head']['title']);
+    self::assertStringContainsString('Published moderated content', \json_encode($data['content'], JSON_THROW_ON_ERROR));
+    self::assertStringNotContainsString('Latest moderated draft', \json_encode($data['content'], JSON_THROW_ON_ERROR));
+
+    // A second entity type exercises core's generic revision route provider.
+    $this->enableModules(['taxonomy', 'canvas_headless_test']);
+    $this->installEntitySchema('taxonomy_term');
+    $this->installConfig(['taxonomy']);
+    Vocabulary::create(['vid' => 'topics', 'name' => 'Topics'])->save();
+    $this->container->get(RouteBuilderInterface::class)->rebuild();
+    /** @var \Drupal\user\UserInterface $term_editor */
+    $term_editor = $this->createUser(['access content', 'view term revisions in topics']);
+    $this->setCurrentAccount($term_editor);
+    ContentTemplate::create([
+      'id' => 'taxonomy_term.topics.full',
+      'content_entity_type_id' => 'taxonomy_term',
+      'content_entity_type_bundle' => 'topics',
+      'content_entity_type_view_mode' => 'full',
+      'component_tree' => [[
+        'uuid' => $this->container->get('uuid')->generate(),
+        'component_id' => $component->id(),
+        'component_version' => $component->getActiveVersion(),
+        'inputs' => ['heading' => ['sourceType' => 'entity-field', 'expression' => 'ℹ︎␜entity:taxonomy_term:topics␝name␞␟value']],
+      ],
+      ],
+      'status' => TRUE,
+    ])->save();
+    $term = Term::create(['vid' => 'topics', 'name' => 'Unpublished term revision', 'status' => FALSE]);
+    $term->save();
+    $term_revision = $term->getRevisionId();
+    $term->setNewRevision(TRUE);
+    $term->setName('Current term');
+    $term->setPublished()->save();
+    $term_auto_save = clone $term;
+    $term_auto_save->setName('Canvas term auto-save');
+    $this->container->get(AutoSaveManager::class)->saveEntity($term_auto_save);
+    $term_token = $this->createTokenAccount(TRUE, $term_editor);
+    $this->setCurrentAccount($term_token);
+    self::assertTrue($term_token->hasPermission('view term revisions in topics'));
+    self::assertFalse($term_token->hasPermission('administer taxonomy'));
+    $path = '/taxonomy/term/' . $term->id() . '/revision/' . $term_revision . '/view';
+    $response = $this->renderContentPath($path);
+    $data = self::responseData($response);
+    self::assertTrue($data['route']['managedByCanvas']);
+    self::assertSame('Unpublished term revision', $data['head']['title']);
+    self::assertStringContainsString('Unpublished term revision', \json_encode($data['content'], JSON_THROW_ON_ERROR));
+    self::assertSame(0, $response->getCacheableMetadata()->getCacheMaxAge());
+    $this->setCurrentAccount($this->createTokenAccount(TRUE, $reader));
+    try {
+      $this->renderContentPath('/taxonomy/term/' . $term->id() . '/revision/' . $term_revision . '/view');
+      self::fail('Revision permissions are required for non-node entities too.');
+    }
+    catch (CacheableAccessDeniedHttpException) {
+    }
+  }
+
+  /**
+   * Tests private unsaved form previews with language and Metatag support.
+   */
+  #[DataProvider('entityPreviewLanguages')]
+  public function testEntityPreviews(bool $multilingual, bool $metatag): void {
+    if ($metatag) {
+      $this->enableModules(['token', 'metatag']);
+      $this->installConfig(['metatag']);
+      $this->config('system.site')->set('name', 'Preview site')->save();
+    }
+    if ($multilingual) {
+      ConfigurableLanguage::createFromLangcode('fr')->save();
+      $this->config('language.negotiation')
+        ->set('url.prefixes', ['en' => '', 'fr' => 'fr'])
+        ->save();
+      $this->container->get('kernel')->rebuildContainer();
+    }
+    /** @var \Drupal\user\UserInterface $editor */
+    $editor = $this->createUser(['access content', 'create article content', 'edit any article content', 'view all revisions']);
+    $this->setCurrentAccount($editor);
+    $component = Component::load(self::COMPONENT_ID);
+    self::assertInstanceOf(Component::class, $component);
+    foreach (['full', 'teaser'] as $view_mode) {
+      ContentTemplate::create([
+        'id' => 'node.article.' . $view_mode,
+        'content_entity_type_id' => 'node',
+        'content_entity_type_bundle' => 'article',
+        'content_entity_type_view_mode' => $view_mode,
+        'component_tree' => [[
+          'uuid' => $this->container->get('uuid')->generate(),
+          'component_id' => $component->id(),
+          'component_version' => $component->getActiveVersion(),
+          'inputs' => ['heading' => ['sourceType' => 'entity-field', 'expression' => 'ℹ︎␜entity:node:article␝title␞␟value']],
+        ],
+        ],
+        'status' => TRUE,
+      ])->save();
+    }
+    $node = Node::create(['type' => 'article', 'title' => 'First revision', 'uid' => $editor->id(), 'status' => TRUE]);
+    $node->save();
+
+    $template_draft = ContentTemplate::load('node.article.full');
+    self::assertInstanceOf(ContentTemplate::class, $template_draft);
+    $template_draft->setComponentTree([]);
+    $this->container->get(AutoSaveManager::class)->saveEntity($template_draft);
+    $this->container->get(EntityTypeManagerInterface::class)->getStorage(ContentTemplate::ENTITY_TYPE_ID)->resetCache();
+
+    // An unrelated Canvas auto-save must not replace either selected source.
+    $auto_save = clone $node;
+    $auto_save->setTitle('Canvas auto-save');
+    $this->container->get(AutoSaveManager::class)->saveEntity($auto_save);
+    $node->setTitle('Unsaved form title');
+    $node->setUnpublished();
+    $form = $this->container->get(EntityTypeManagerInterface::class)->getFormObject('node', 'default')->setEntity($node);
+    $this->container->get(PrivateTempStoreFactory::class)->get('node_preview')->set((string) $node->uuid(), (new FormState())->setFormObject($form));
+    $account = $this->createTokenAccount(TRUE, $editor);
+    $this->setCurrentAccount($account);
+    self::assertFalse($account->hasPermission('edit any article content'));
+    foreach (['full', 'teaser'] as $view_mode) {
+      $response = $this->renderContentPath('/node/preview/' . $node->uuid() . '/' . $view_mode, [CanvasContentApiRequest::EXCLUDE_AUTO_SAVE_QUERY => 'false']);
+      $data = self::responseData($response);
+      self::assertTrue($data['route']['managedByCanvas']);
+      self::assertStringContainsString('Unsaved form title', \json_encode($data['content'], JSON_THROW_ON_ERROR));
+      self::assertSame($metatag ? 'Unsaved form title | Preview site' : 'Unsaved form title', $data['head']['title']);
+      self::assertSame($multilingual ? ['en', 'fr'] : [], array_column($data['route']['translations'], 'langcode'));
+      self::assertSame($multilingual ? ['/node/' . $node->id(), '/fr/node/' . $node->id()] : [], array_column($data['route']['translations'], 'url'));
+      self::assertSame(0, $response->getCacheableMetadata()->getCacheMaxAge());
+      self::assertSame($account, $this->container->get(AccountProxyInterface::class)->getAccount());
+    }
+    $this->setCurrentAccount($editor);
+    $new_node = Node::create(['type' => 'article', 'title' => 'New unsaved node', 'uid' => $editor->id()]);
+    self::assertNull($new_node->id());
+    $form = $this->container->get(EntityTypeManagerInterface::class)->getFormObject('node', 'default')->setEntity($new_node);
+    $this->container->get(PrivateTempStoreFactory::class)->get('node_preview')->set((string) $new_node->uuid(), (new FormState())->setFormObject($form));
+    $this->setCurrentAccount($account);
+    foreach ($multilingual ? ['en' => '', 'fr' => '/fr'] : ['en' => ''] as $langcode => $prefix) {
+      $response = $this->renderContentPath($prefix . '/node/preview/' . $new_node->uuid() . '/full');
+      self::assertSame(200, $response->getStatusCode());
+      $data = self::responseData($response);
+      self::assertTrue($data['route']['managedByCanvas']);
+      self::assertStringContainsString('New unsaved node', \json_encode($data['content'], JSON_THROW_ON_ERROR));
+      self::assertSame(['title' => 'New unsaved node'], $data['head']);
+      self::assertSame('New unsaved node', $data['context']['page']['pageTitle']);
+      self::assertSame($new_node->uuid(), $data['context']['page']['mainEntity']['uuid']);
+      self::assertSame([], $data['context']['page']['mainEntity']['translations']);
+      self::assertSame($langcode, $data['route']['negotiatedLanguage']);
+      self::assertSame([], $data['route']['translations']);
+      self::assertSame(0, $response->getCacheableMetadata()->getCacheMaxAge());
+    }
+
+    // A page variant can wrap Drupal-rendered content without a Canvas content
+    // template. Its nested entity must not reuse a previous form preview.
+    $template = ContentTemplate::load('node.article.full');
+    self::assertInstanceOf(ContentTemplate::class, $template);
+    $template->delete();
+    $this->container->get(ThemeInstallerInterface::class)->install(['stark']);
+    $this->config('system.theme')->set('default', 'stark')->save();
+    $this->createPageVariant('headless', 'Before page content', 'After page content');
+    $this->config('canvas.settings')->set('default_page_variant', 'headless')->save();
+    FieldStorageConfig::create([
+      'entity_type' => 'node',
+      'field_name' => 'field_preview',
+      'type' => 'string',
+    ])->save();
+    FieldConfig::create([
+      'entity_type' => 'node',
+      'bundle' => 'article',
+      'field_name' => 'field_preview',
+    ])->save();
+    EntityViewDisplay::create([
+      'targetEntityType' => 'node',
+      'bundle' => 'article',
+      'mode' => 'default',
+      'status' => TRUE,
+    ])->setComponent('field_preview', ['type' => 'string', 'label' => 'hidden'])->save();
+    $node->in_preview = TRUE;
+    foreach (['First unsaved field value', 'Second unsaved field value'] as $field_value) {
+      $this->setCurrentAccount($editor);
+      $node->set('field_preview', $field_value);
+      $form = $this->container->get(EntityTypeManagerInterface::class)->getFormObject('node', 'default')->setEntity($node);
+      $this->container->get(PrivateTempStoreFactory::class)->get('node_preview')->set((string) $node->uuid(), (new FormState())->setFormObject($form));
+      $this->setCurrentAccount($account);
+      $response = $this->renderContentPath('/node/preview/' . $node->uuid() . '/full');
+      $content = \json_encode(self::responseData($response)['content'], JSON_THROW_ON_ERROR);
+      self::assertStringContainsString('Before page content', $content);
+      self::assertStringContainsString($field_value, $content);
+      self::assertSame(0, $response->getCacheableMetadata()->getCacheMaxAge());
+    }
+
+    // Owning a private preview does not grant create/update access.
+    /** @var \Drupal\user\UserInterface $reader */
+    $reader = $this->createUser(['access content']);
+    $this->setCurrentAccount($reader);
+    foreach ([$node, $new_node] as $denied_node) {
+      $form = $this->container->get(EntityTypeManagerInterface::class)->getFormObject('node', 'default')->setEntity($denied_node);
+      $this->container->get(PrivateTempStoreFactory::class)->get('node_preview')->set((string) $denied_node->uuid(), (new FormState())->setFormObject($form));
+    }
+    $reader_token = $this->createTokenAccount(TRUE, $reader);
+    $this->setCurrentAccount($reader_token);
+    self::assertFalse($reader_token->hasPermission('view all revisions'));
+    self::assertFalse($reader_token->hasPermission('view article revisions'));
+    self::assertFalse($reader_token->hasPermission('administer nodes'));
+    foreach ([
+      '/node/preview/' . $node->uuid() . '/full',
+      '/node/preview/' . $new_node->uuid() . '/full',
+    ] as $denied_path) {
+      try {
+        $denied_response = $this->renderContentPath($denied_path);
+        self::assertSame(403, $denied_response->getStatusCode(), $denied_path . ': ' . $denied_response->getContent());
+      }
+      catch (CacheableAccessDeniedHttpException) {
+        self::assertSame($reader_token, $this->container->get(AccountProxyInterface::class)->getAccount());
+      }
+    }
+
+    // A different editor cannot read another user's private form preview.
+    $this->setCurrentAccount($this->createTokenAccount(TRUE));
+    $this->expectException(ParamNotConvertedException::class);
+    $this->renderContentPath('/node/preview/' . $new_node->uuid() . '/full');
+  }
+
+  /**
+   * Provides preview configurations with optional languages and Metatag.
+   */
+  public static function entityPreviewLanguages(): iterable {
+    yield 'monolingual' => [FALSE, FALSE];
+    yield 'multilingual' => [TRUE, FALSE];
+    yield 'monolingual with Metatag' => [FALSE, TRUE];
+    yield 'multilingual with Metatag' => [TRUE, TRUE];
   }
 
   /**
@@ -1139,6 +1564,14 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     catch (CacheableAccessDeniedHttpException $exception) {
       self::assertContains('user.permissions', $exception->getCacheContexts());
     }
+
+    /** @var \Drupal\user\UserInterface $author */
+    $author = $this->createUser(['access content', 'view own unpublished content']);
+    $node = Node::create(['type' => 'article', 'title' => 'Private stored title', 'uid' => $author->id(), 'status' => FALSE]);
+    $node->save();
+    $this->setCurrentAccount($this->createTokenAccount(TRUE, $author));
+    $result = $this->renderContentPath('/node/' . $node->id(), [CanvasContentApiRequest::EXCLUDE_AUTO_SAVE_QUERY => 'true']);
+    self::assertSame('Private stored title', self::responseData($result)['head']['title']);
   }
 
   /**
@@ -1315,6 +1748,32 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
         self::assertSame('French article', $data['head']['title']);
         self::assertStringContainsString('French article', $content);
       }
+    }
+
+    $language_manager = $this->container->get(LanguageManagerInterface::class);
+    self::assertInstanceOf(ConfigurableLanguageManagerInterface::class, $language_manager);
+    $translation_draft = StagedLanguageConfigOverride::fromLanguageConfigOverride($language_manager->getLanguageConfigOverride('fr', $variant->getConfigDependencyName()));
+    $translation_draft->setData('component_tree', [$tree[0]['uuid'] => ['inputs' => ['heading' => 'Draft French chrome']]]);
+    $translation_draft->save();
+    foreach ([
+      ['/unroutable', [CanvasContentApiRequest::PAGE_VARIANT_PREVIEW_QUERY => 'translated']],
+      ['/page/' . $page->id(), []],
+    ] as [$path, $context]) {
+      $stored_variant = $this->renderContentPath($path_prefix . $path, $context + [
+        'language' => 'fr',
+        CanvasContentApiRequest::EXCLUDE_AUTO_SAVE_QUERY => 'true',
+      ]);
+      $stored_content = json_encode(self::responseData($stored_variant)['content'], JSON_THROW_ON_ERROR);
+      self::assertStringContainsString('French chrome', $stored_content);
+      self::assertStringContainsString('Stored footer', $stored_content);
+      self::assertStringNotContainsString('Draft footer', $stored_content);
+      self::assertStringNotContainsString('Draft French chrome', $stored_content);
+      self::assertNotContains(AutoSaveManager::CACHE_TAG, $stored_variant->getCacheableMetadata()->getCacheTags());
+
+      $draft_variant = $this->renderContentPath($path_prefix . $path, $context + ['language' => 'fr']);
+      $draft_content = json_encode(self::responseData($draft_variant)['content'], JSON_THROW_ON_ERROR);
+      self::assertStringContainsString('Draft French chrome', $draft_content);
+      self::assertStringContainsString('Draft footer', $draft_content);
     }
   }
 
@@ -1923,7 +2382,7 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
   /**
    * Renders a routed entity through the public kernel boundary.
    *
-   * @param array{viewMode?: string, componentId?: string, pageVariant?: string} $preview_context
+   * @param array{viewMode?: string, componentId?: string, pageVariant?: string, excludeAutoSave?: string} $preview_context
    *   Optional editor preview context.
    */
   private function renderContentPath(string $request_uri, array $preview_context = []): CacheableJsonResponse {

@@ -11,6 +11,8 @@ import {
   createHeadlessPreviewHost,
   HEADLESS_GEOMETRY_MESSAGE,
   HEADLESS_GEOMETRY_REQUEST_MESSAGE,
+  HEADLESS_NAVIGATION_MESSAGE,
+  HEADLESS_NAVIGATION_READY_MESSAGE,
   HEADLESS_REFRESH_ACK_MESSAGE,
   HEADLESS_REFRESH_MESSAGE,
   HEADLESS_RENEW_REQUEST_MESSAGE,
@@ -97,8 +99,60 @@ async function createHeightHarness({
   return { host, hostSessionId, iframe, onHeight, postMessage, send };
 }
 
+async function createNavigationHarness(
+  onNavigate?: (
+    url: string,
+    options: { openInNewTab: boolean },
+  ) => void | Promise<void>,
+  transientUserActivation = true,
+) {
+  Object.defineProperty(window.navigator, 'userActivation', {
+    configurable: true,
+    value: {
+      hasBeenActive: transientUserActivation,
+      isActive: transientUserActivation,
+    },
+  });
+  const iframe = document.createElement('iframe');
+  document.body.appendChild(iframe);
+  const host = createHeadlessPreviewHost({
+    iframe,
+    frontendOrigin: FRONTEND_ORIGIN,
+    draftUrl: `${FRONTEND_ORIGIN}/draft`,
+    fetchAssertion: vi.fn().mockResolvedValue('signed assertion'),
+    onNavigate,
+  });
+  host.attach(`${FRONTEND_ORIGIN}/node/1`);
+  const postMessage = vi.spyOn(iframe.contentWindow!, 'postMessage');
+  iframe.dispatchEvent(new Event('load'));
+  const statusRequest = postMessage.mock.calls.find(
+    ([message]) =>
+      (message as { type?: string }).type === HEADLESS_STATUS_REQUEST_MESSAGE,
+  )?.[0] as { hostSessionId?: unknown; navigation?: unknown } | undefined;
+  expect(typeof statusRequest?.hostSessionId).toBe('string');
+  const hostSessionId = statusRequest!.hostSessionId as string;
+  postMessage.mockClear();
+
+  const send = (
+    data: Record<string, unknown>,
+    event: { origin?: string; source?: MessageEventSource | null } = {},
+  ) => {
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: { hostSessionId, ...data },
+        origin: event.origin ?? FRONTEND_ORIGIN,
+        source:
+          event.source === undefined ? iframe.contentWindow : event.source,
+      }),
+    );
+  };
+
+  return { host, hostSessionId, iframe, postMessage, send, statusRequest };
+}
+
 afterEach(() => {
   document.body.innerHTML = '';
+  Reflect.deleteProperty(window.navigator, 'userActivation');
   vi.restoreAllMocks();
 });
 
@@ -372,6 +426,144 @@ describe('createHeadlessPreviewHost', () => {
   afterEach(() => {
     document.body.replaceChildren();
     vi.restoreAllMocks();
+  });
+
+  it('advertises and handles host-owned navigation', async () => {
+    const onNavigate = vi.fn().mockResolvedValue(undefined);
+    const { host, postMessage, send, statusRequest } =
+      await createNavigationHarness(onNavigate);
+
+    expect(statusRequest).toMatchObject({ navigation: true });
+    send({
+      type: HEADLESS_NAVIGATION_MESSAGE,
+      openInNewTab: true,
+      url: 'https://app.example/node/2?view=full#content',
+    });
+
+    await vi.waitFor(() =>
+      expect(onNavigate).toHaveBeenCalledExactlyOnceWith(
+        'https://app.example/node/2?view=full#content',
+        { openInNewTab: true },
+      ),
+    );
+    expect(postMessage).not.toHaveBeenCalled();
+    host.destroy();
+  });
+
+  it('ignores navigation without transient user activation', async () => {
+    const onNavigate = vi.fn();
+    const { host, send } = await createNavigationHarness(onNavigate, false);
+
+    send({
+      type: HEADLESS_NAVIGATION_MESSAGE,
+      url: 'https://outside.example/forced-navigation',
+    });
+
+    expect(onNavigate).not.toHaveBeenCalled();
+    host.destroy();
+  });
+
+  it('repeats the navigation handshake when a late bridge is ready', async () => {
+    const onNavigate = vi.fn();
+    const { host, hostSessionId, postMessage, send } =
+      await createNavigationHarness(onNavigate);
+
+    send({
+      type: HEADLESS_NAVIGATION_READY_MESSAGE,
+      hostSessionId: undefined,
+    });
+
+    expect(postMessage).toHaveBeenCalledExactlyOnceWith(
+      {
+        type: HEADLESS_STATUS_REQUEST_MESSAGE,
+        hostSessionId,
+        passive: true,
+        navigation: true,
+      },
+      FRONTEND_ORIGIN,
+    );
+    host.destroy();
+  });
+
+  it('ignores navigation readiness from an untrusted sender', async () => {
+    const onNavigate = vi.fn();
+    const { host, iframe, postMessage, send } =
+      await createNavigationHarness(onNavigate);
+
+    send(
+      {
+        type: HEADLESS_NAVIGATION_READY_MESSAGE,
+        hostSessionId: undefined,
+      },
+      { origin: 'https://outside.example', source: iframe.contentWindow },
+    );
+    send(
+      {
+        type: HEADLESS_NAVIGATION_READY_MESSAGE,
+        hostSessionId: undefined,
+      },
+      { source: window },
+    );
+
+    expect(postMessage).not.toHaveBeenCalled();
+    host.destroy();
+  });
+
+  it('does not advertise or handle navigation without a callback', async () => {
+    const { host, postMessage, send, statusRequest } =
+      await createNavigationHarness();
+
+    expect(statusRequest).not.toHaveProperty('navigation');
+    send({
+      type: HEADLESS_NAVIGATION_MESSAGE,
+      url: 'https://app.example/frontend-only',
+    });
+    expect(postMessage).not.toHaveBeenCalled();
+    host.destroy();
+  });
+
+  it('ignores malformed and untrusted navigation requests', async () => {
+    const onNavigate = vi.fn().mockResolvedValue(undefined);
+    const { host, hostSessionId, iframe, postMessage, send } =
+      await createNavigationHarness(onNavigate);
+    const navigation = {
+      type: HEADLESS_NAVIGATION_MESSAGE,
+      url: 'https://app.example/node/2',
+    };
+
+    send({ ...navigation, url: '/node/2' });
+    send({ ...navigation, url: '//outside.example/node/2' });
+    send({ ...navigation, url: 'mailto:editor@example.com' });
+    send({ ...navigation, url: 'javascript:alert(1)' });
+    send({ ...navigation, url: 'not a URL' });
+    send({ ...navigation, url: undefined });
+    send(
+      { ...navigation },
+      { origin: 'https://outside.example', source: iframe.contentWindow },
+    );
+    send({ ...navigation }, { source: window });
+    send({ ...navigation, hostSessionId: `${hostSessionId}-old` });
+
+    await Promise.resolve();
+    expect(onNavigate).not.toHaveBeenCalled();
+    expect(postMessage).not.toHaveBeenCalled();
+    host.destroy();
+  });
+
+  it('accepts an absolute HTTP URL', async () => {
+    const onNavigate = vi.fn();
+    const { host, send } = await createNavigationHarness(onNavigate);
+
+    send({
+      type: HEADLESS_NAVIGATION_MESSAGE,
+      url: 'http://localhost:3000/frontend-only',
+    });
+
+    expect(onNavigate).toHaveBeenCalledExactlyOnceWith(
+      'http://localhost:3000/frontend-only',
+      { openInNewTab: false },
+    );
+    host.destroy();
   });
 
   it('attaches an iframe to an existing session without minting an assertion', async () => {

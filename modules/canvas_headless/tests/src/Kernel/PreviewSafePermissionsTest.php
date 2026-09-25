@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas_headless\Kernel;
 
 use Drupal\Component\Plugin\Exception\PluginException;
+use Drupal\media\Entity\MediaType;
 use Drupal\node\Entity\NodeType;
+use Drupal\taxonomy\Entity\Vocabulary;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\user\PermissionHandlerInterface;
 use PHPUnit\Framework\Attributes\Group;
@@ -48,6 +50,9 @@ class PreviewSafePermissionsTest extends CanvasKernelTestBase {
    */
   public function testCeilingDropsUndefinedPermissions(): void {
     NodeType::create(['type' => 'article', 'name' => 'Article'])->save();
+    $this->enableModules(['taxonomy']);
+    Vocabulary::create(['vid' => 'topics', 'name' => 'Topics'])->save();
+    MediaType::create(['id' => 'image', 'label' => 'Image', 'source' => 'image'])->save();
 
     /** @var \Drupal\simple_oauth\Plugin\ScopeGranularityInterface $granularity */
     $granularity = $this->container->get('plugin.manager.scope_granularity')
@@ -62,6 +67,14 @@ class PreviewSafePermissionsTest extends CanvasKernelTestBase {
     // Per-bundle revision viewing, declared per existing node type for
     // editors who hold it instead of the site-wide permission.
     $this->assertContains('view article revisions', $permissions);
+    // Other entity providers must declare their additional read permissions.
+    $this->assertNotContains('view own unpublished media', $permissions);
+    $this->assertNotContains('view all media revisions', $permissions);
+    $this->assertNotContains('view any image media revisions', $permissions);
+    $this->assertNotContains('view all taxonomy revisions', $permissions);
+    $this->assertNotContains('view term revisions in topics', $permissions);
+    $this->assertNotContains('revert all taxonomy revisions', $permissions);
+    $this->assertNotContains('delete any image media revisions', $permissions);
 
     // Declared but undefined (the content_moderation module is not
     // installed): dropped.

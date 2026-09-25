@@ -36,6 +36,10 @@ final class CanvasContentEntityRenderer {
   /**
    * Resolves and builds the Canvas rendering strategy for an entity.
    *
+   * @param bool $is_entity_preview
+   *   Whether the route selected an exact preview entity whose render array
+   *   must remain uncached when nested inside a page variant.
+   *
    * @return array{build: ?array, cacheability: \Drupal\Core\Cache\CacheableMetadata}
    *   The Canvas render array, or NULL when Canvas does not render the entity,
    *   plus dependencies that determined the result.
@@ -45,6 +49,7 @@ final class CanvasContentEntityRenderer {
     string $view_mode,
     bool $is_preview,
     ?string $preview_language = NULL,
+    bool $is_entity_preview = FALSE,
   ): array {
     [$build, $template, $view_builder, $cacheability] = $this->buildEntityContent(
       $entity,
@@ -79,7 +84,7 @@ final class CanvasContentEntityRenderer {
     // not part of a headless application's component tree. Ignore the complete
     // variant rather than rendering its wrapper as markup. The already built
     // main content still determines whether Canvas manages this route.
-    if (self::containsThemePageTemplate($variant)) {
+    if (!self::isHeadlessCompatiblePageVariant($variant)) {
       return [
         'build' => $build,
         'cacheability' => $cacheability,
@@ -95,6 +100,13 @@ final class CanvasContentEntityRenderer {
       $build = $view_builder->build($view_builder->view($entity, $view_mode));
     }
 
+    if ($is_entity_preview) {
+      // Like core's NodePreviewController, disable caching on the entity build
+      // before page wrapping. The outer page's max-age does not prevent nested
+      // entity render cache hits or writes.
+      $build['#cache']['max-age'] = 0;
+    }
+
     // Keep the editable content region at the page variant's marker. Without
     // this renderless wire element, SDK renderers can only put the region
     // boundary around the complete tree, including page chrome.
@@ -106,7 +118,7 @@ final class CanvasContentEntityRenderer {
       : $build;
     $messages_block_displayed = FALSE;
     $build = CanvasPageVariant::renderComponentTree(
-      self::previewComponentTree($variant, $preview_language),
+      $is_preview ? self::previewComponentTree($variant, $preview_language) : $variant->getComponentTree(),
       $variant,
       $is_preview,
       $messages_block_displayed,
@@ -228,34 +240,36 @@ final class CanvasContentEntityRenderer {
   /**
    * Builds the edited page variant itself for a headless editor preview.
    *
-   * This renders the auto-saved tree directly, including temporarily invalid
-   * drafts. The page content marker therefore remains a visible editor
-   * placeholder instead of receiving routed content.
+   * By default this renders the auto-saved tree directly, including temporarily
+   * invalid drafts and the page content marker's editor placeholder. Excluding
+   * auto-saves renders saved trees and components without editor placeholders.
    *
    * @return array{build: ?array, cacheability: \Drupal\Core\Cache\CacheableMetadata}
    *   The page variant render array, or NULL for a theme-backed variant, plus
    *   its cacheability.
    */
-  public function buildPageVariantPreview(PageVariant $variant, ?string $preview_language = NULL): array {
+  public function buildPageVariantPreview(PageVariant $variant, ?string $preview_language = NULL, bool $use_auto_save = TRUE): array {
     $cacheability = (new CacheableMetadata())
       ->addCacheableDependency($variant);
     if ($preview_language !== NULL) {
       $cacheability->addCacheContexts(['languages:language_interface', 'languages:language_content']);
     }
-    $auto_save = $this->autoSaveManager->getAutoSaveEntity($variant);
-    $cacheability->addCacheableDependency($auto_save);
-    if ($auto_save->entity instanceof PageVariant) {
-      $variant = $auto_save->entity;
-      $cacheability->addCacheableDependency($variant);
+    if ($use_auto_save) {
+      $auto_save = $this->autoSaveManager->getAutoSaveEntity($variant);
+      $cacheability->addCacheableDependency($auto_save);
+      if ($auto_save->entity instanceof PageVariant) {
+        $variant = $auto_save->entity;
+        $cacheability->addCacheableDependency($variant);
+      }
     }
 
-    if (self::containsThemePageTemplate($variant)) {
+    if (!self::isHeadlessCompatiblePageVariant($variant)) {
       return self::unsupported($cacheability);
     }
 
     return [
-      'build' => self::previewComponentTree($variant, $preview_language)
-        ->toRenderable($variant, isPreview: TRUE),
+      'build' => ($use_auto_save ? self::previewComponentTree($variant, $preview_language) : $variant->getComponentTree())
+        ->toRenderable($variant, isPreview: $use_auto_save),
       'cacheability' => $cacheability,
     ];
   }
@@ -273,16 +287,16 @@ final class CanvasContentEntityRenderer {
   }
 
   /**
-   * Whether the variant contains Drupal's coupled theme page template.
+   * Whether a page variant can be rendered by a headless application.
    */
-  private static function containsThemePageTemplate(PageVariant $variant): bool {
+  public static function isHeadlessCompatiblePageVariant(PageVariant $variant): bool {
     foreach ($variant->getComponentTree()->getValue() as $component) {
       $component_id = $component['component_id'] ?? NULL;
       if (\is_string($component_id) && \str_starts_with($component_id, self::THEME_PAGE_TEMPLATE_COMPONENT_PREFIX)) {
-        return TRUE;
+        return FALSE;
       }
     }
-    return FALSE;
+    return TRUE;
   }
 
   /**
