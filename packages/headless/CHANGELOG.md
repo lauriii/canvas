@@ -1,5 +1,21 @@
 # @drupal-canvas/headless
 
+## 0.11.0
+
+### Minor Changes
+
+- aaaa869: Keep preview context specific to each request so tabs do not change
+  each other's rendering settings. Authenticated previews can exclude Canvas
+  auto-saves with `excludeAutoSave`, and `fetchPage()` accepts explicit preview
+  context.
+
+### Patch Changes
+
+- aaaa869: Delegate eligible embedded link clicks in draft mode to the host when
+  it advertises navigation support.
+- Updated dependencies [73d9fb8]
+  - drupal-canvas@0.7.1
+
 ## 0.10.0
 
 ### Minor Changes

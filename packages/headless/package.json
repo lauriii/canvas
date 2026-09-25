@@ -1,6 +1,6 @@
 {
   "name": "@drupal-canvas/headless",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "engines": {
     "node": ">=22.19.0 <23 || >=24.5.0"
   },
@@ -75,7 +75,7 @@
   },
   "dependencies": {
     "@drupal-api-client/json-api-client": "^1.4.1",
-    "drupal-canvas": "^0.7.0"
+    "drupal-canvas": "^0.7.1"
   },
   "devDependencies": {
     "@drupal-canvas/discovery": "*",

@@ -1,5 +1,11 @@
 # drupal-canvas
 
+## 0.7.1
+
+### Patch Changes
+
+- 73d9fb8: Reverted !1632
+
 ## 0.7.0
 
 ### Minor Changes

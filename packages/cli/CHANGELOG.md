@@ -1,5 +1,12 @@
 # @drupal-canvas/cli
 
+## 0.26.1
+
+### Patch Changes
+
+- Updated dependencies [73d9fb8]
+  - drupal-canvas@0.7.1
+
 ## 0.26.0
 
 ### Minor Changes
