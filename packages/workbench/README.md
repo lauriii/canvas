@@ -29,6 +29,12 @@ npx canvas-workbench
 The `canvas-workbench` binary starts the packaged Workbench Vite runtime in your
 current working directory.
 
+On startup, Workbench scans its client modules and your configured
+`componentDir` for dependencies before the first preview. Libraries such as SWR
+are optimized when your components import them; projects that do not use them
+need not install them. Workbench continues to supply its own shared React
+runtime.
+
 ## Configuration
 
 Workbench can run without a `canvas.config.json` file, but it is useful to add
@@ -66,6 +72,20 @@ missing, Workbench temporarily falls back to `src/components/global.css` when
 that file exists. Move the file to `src/global.css`, or set `globalCssPath`
 explicitly to keep the legacy location. `outputDir` is part of the wider Canvas
 config surface, but Workbench does not use it.
+
+## Page and site context
+
+Both preview paths — the interactive preview and `preview-build` output — render
+components inside the `drupal-canvas` context providers, so `usePageContext()`,
+`useSiteContext()`, and `useJsonApiClient()` work without component changes.
+Page context uses the Workbench defaults (`pageTitle: ''`, `breadcrumbs: []`,
+`mainEntity: null`); site context and the JSON:API client come from the site
+data the Vite integration loads once from `/canvas/api/v0/site-data`
+(`CANVAS_SITE_URL`), with the same fallbacks as before. The legacy
+`getPageData()`, `getSiteData()`, and `new JsonApiClient()` APIs keep working
+through `drupalSettings` in both paths, resolved from the same snapshot as the
+hooks: discovered site data first, then the static `CANVAS_SITE_URL` and
+`CANVAS_JSONAPI_PREFIX` settings, then the preview origin.
 
 ## Preview build command
 
@@ -144,7 +164,12 @@ For end-user guidance, see:
   `/__canvas/preview-manifest`, serves the shell on `/component/...`,
   `/page/...`, and `/page-template/...`, and watches the host project for file
   changes. Source-only edits update the preview via Vite HMR without remounting
-  the iframe.
+  the iframe; in-place edits to component metadata, mocks, and page specs
+  refresh the mounted iframe with the fresh data, so component state survives
+  while props and mock data update. The iframe is remounted when the discovery
+  structure changes (a component, page, or template added or removed) and when
+  one of those files, a mock file included, is added or removed rather than
+  edited in place.
 
 ## Strict preview MVP contract
 

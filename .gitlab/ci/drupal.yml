@@ -24,6 +24,9 @@
   - composer config prefer-stable true
   - |
     composer config repositories.$CI_PARENT_PROJECT_NAME --json '{"type": "path", "url": "../'$CI_PROJECT_NAME'", "options": { "symlink": false } }'
+  # Only 11.4: avoid Twig 3.30; 11.3 requires ~3.26.0.
+  - |
+    if [ "${DRUPAL_CORE#11.4.}" != "$DRUPAL_CORE" ]; then composer require twig/twig:3.29.0 --no-update; fi
   - composer require "drupal/core-dev:$DRUPAL_CORE" "drupal/$CI_PARENT_PROJECT_NAME @dev" --with-all-dependencies --no-install
 
 .drupal-restore-git: &drupal-restore-git

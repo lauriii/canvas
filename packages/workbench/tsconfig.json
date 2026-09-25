@@ -4,6 +4,10 @@
     "baseUrl": ".",
     "paths": {
       "@wb/*": ["./src/*"],
+      "react": ["./node_modules/@types/react"],
+      "react/*": ["./node_modules/@types/react/*"],
+      "react-dom": ["./node_modules/@types/react-dom"],
+      "react-dom/*": ["./node_modules/@types/react-dom/*"],
       "@drupal-canvas/discovery": ["../discovery/src/index.ts"],
       "@drupal-canvas/vite-compat": ["../vite-compat/src/index.ts"],
       "@drupal-canvas/vite-plugin": ["../vite-plugin/src/index.ts"],

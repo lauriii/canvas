@@ -63,6 +63,8 @@ class CanvasConfigUpdater {
   }
 
   public function updateJavaScriptComponent(JavaScriptComponent $javaScriptComponent): bool {
+    // Keep in sync with the import-based detection in the code editor.
+    // @see ui/src/features/code-editor/utils/ast-utils.ts
     $map = [
       'getSiteData' => [
         'v0.baseUrl',
@@ -73,6 +75,20 @@ class CanvasConfigUpdater {
         'v0.pageTitle',
       ],
       '@drupal-api-client/json-api-client' => [
+        'v0.baseUrl',
+        'v0.jsonapiSettings',
+      ],
+      'useSiteContext' => [
+        'v0.baseUrl',
+        'v0.branding',
+        'v0.themeAssets',
+      ],
+      'usePageContext' => [
+        'v0.breadcrumbs',
+        'v0.pageTitle',
+        'v0.mainEntity',
+      ],
+      'useJsonApiClient' => [
         'v0.baseUrl',
         'v0.jsonapiSettings',
       ],
@@ -89,7 +105,7 @@ class CanvasConfigUpdater {
       }
       if (\count($settings) > 0) {
         $current = $javaScriptComponent->get('dataDependencies');
-        $current['drupalSettings'] = \array_unique(\array_merge($current['drupalSettings'] ?? [], $settings));
+        $current['drupalSettings'] = \array_values(\array_unique(\array_merge($current['drupalSettings'] ?? [], $settings)));
         $javaScriptComponent->set('dataDependencies', $current);
       }
       else {

@@ -18,6 +18,7 @@ import {
 
 import { isComponentMetadataPath } from '../lib/component-metadata-path';
 import { isTopLevelContentTemplateSpecPath } from '../lib/content-template-spec-path';
+import { isMockSpecPath } from '../lib/mock-spec-path';
 import {
   isTopLevelPageSpecPath,
   isTopLevelPageTemplateSpecPath,
@@ -53,14 +54,6 @@ import type { WorkbenchPaths } from './paths';
 function isPreviewSourcePath(filePath: string): boolean {
   const normalizedPath = filePath.replaceAll('\\', '/');
   return /\.(js|jsx|ts|tsx|css)$/.test(normalizedPath);
-}
-
-function isMockSpecPath(filePath: string): boolean {
-  const normalizedPath = filePath.replaceAll('\\', '/');
-  return (
-    /(^|\/)mocks\.json$/.test(normalizedPath) ||
-    /(^|\/)[^/]+\.mocks\.json$/.test(normalizedPath)
-  );
 }
 
 /**

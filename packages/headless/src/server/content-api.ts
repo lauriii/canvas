@@ -76,10 +76,17 @@ export async function fetchPage(
   if (!response.ok) {
     return null;
   }
-  const result = (await response.json()) as PageResult;
-  if (isPageRedirect(result)) {
-    return result;
+  const raw = (await response.json()) as PageResult;
+  if (isPageRedirect(raw)) {
+    return raw;
   }
+  // Sites running a Canvas version that predates the context API answer
+  // without `context`; components then see missing context rather than
+  // fabricated values.
+  const result: PageResult = {
+    ...raw,
+    context: raw.context ?? { page: null, site: null },
+  };
   if (liveDraft && result.route.managedByCanvas) {
     return {
       ...result,

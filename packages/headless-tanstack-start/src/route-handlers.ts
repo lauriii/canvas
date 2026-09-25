@@ -1,4 +1,9 @@
-import { disableDraftMode, enableDraftMode, renewDraftSession } from './server';
+import {
+  disableDraftMode,
+  enableDraftMode,
+  handleJsonApiProxy,
+  renewDraftSession,
+} from './server';
 
 /**
  * The shape a TanStack Start server route handler takes: the framework
@@ -21,12 +26,29 @@ export interface DraftRouteHandlers {
    * session.
    */
   disableDraft: { POST: ServerRouteHandler };
+  /**
+   * Mount at src/routes/api/canvas.jsonapi.$.ts (the default
+   * CANVAS_JSONAPI_PROXY_PATH) with every method. The same-origin JSON:API
+   * proxy portable Code Components reach Drupal through; see
+   * createJsonApiProxyHandler() in @drupal-canvas/headless/server.
+   */
+  jsonApiProxy: {
+    GET: ServerRouteHandler;
+    HEAD: ServerRouteHandler;
+    POST: ServerRouteHandler;
+    PATCH: ServerRouteHandler;
+    /** Routed to the shared proxy's 405 response, never forwarded. */
+    PUT: ServerRouteHandler;
+    DELETE: ServerRouteHandler;
+    OPTIONS: ServerRouteHandler;
+  };
 }
 
 /**
- * Creates the three draft-mode route handlers: activation (redeems the
- * `?assertion=` preview URL), in-place renewal (POST `{assertion}`), and
- * exit. Configuration defaults to CANVAS_SITE_URL, resolved per request.
+ * Creates the draft-mode route handlers: activation (redeems the
+ * `?assertion=` preview URL), in-place renewal (POST `{assertion}`), exit,
+ * and the same-origin JSON:API proxy. Configuration defaults to
+ * CANVAS_SITE_URL, resolved per request.
  *
  * ```ts
  * // src/routes/api/draft.ts
@@ -40,9 +62,20 @@ export interface DraftRouteHandlers {
  * ```
  */
 export function createDraftRouteHandlers(): DraftRouteHandlers {
+  const proxy: ServerRouteHandler = ({ request }) =>
+    handleJsonApiProxy(request);
   return {
     draft: { GET: ({ request }) => enableDraftMode(request) },
     draftRenew: { POST: ({ request }) => renewDraftSession(request) },
     disableDraft: { POST: () => disableDraftMode() },
+    jsonApiProxy: {
+      GET: proxy,
+      HEAD: proxy,
+      POST: proxy,
+      PATCH: proxy,
+      PUT: proxy,
+      DELETE: proxy,
+      OPTIONS: proxy,
+    },
   };
 }

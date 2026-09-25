@@ -1,6 +1,6 @@
 {
   "name": "@drupal-canvas/headless-next",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "engines": {
     "node": ">=22.19.0 <23 || >=24.5.0"
   },
@@ -52,6 +52,11 @@
       "types": "./dist/component-preview-page.d.ts",
       "import": "./dist/component-preview-page.js",
       "default": "./dist/component-preview-page.js"
+    },
+    "./CanvasRuntime": {
+      "types": "./dist/canvas-runtime.d.ts",
+      "import": "./dist/canvas-runtime.js",
+      "default": "./dist/canvas-runtime.js"
     }
   },
   "scripts": {
@@ -61,8 +66,9 @@
     "type-check": "tsc --noEmit --pretty"
   },
   "dependencies": {
-    "@drupal-canvas/headless": "^0.9.0",
-    "@drupal-canvas/headless-react": "^0.4.3"
+    "@drupal-canvas/headless": "^0.10.0",
+    "@drupal-canvas/headless-react": "^0.5.0",
+    "drupal-canvas": "^0.7.0"
   },
   "peerDependencies": {
     "next": ">=15.0.0",

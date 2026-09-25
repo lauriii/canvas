@@ -33,3 +33,17 @@ because they are imported by `client.js`.**
 
 Relevant reading:
 [Islands architecture](https://docs.astro.build/en/concepts/islands/)
+
+## Canvas island client renderer
+
+`src/lib/canvas-client.ts` wraps Astro's Preact client renderer so every Code
+Component island renders inside the `drupal-canvas` context and JSON:API client
+providers, configured from `drupalSettings.canvasData.v0` and the island's own
+`data-canvas-preview` attribute (one wrapper per island element and component).
+Mounted islands re-read the settings when an update is announced: Drupal's AJAX
+`settings` command after it merged a response's settings (the renderer wraps
+`Drupal.AjaxCommands.prototype.settings`, since core attaches no behavior for a
+settings-only response), Drupal's behavior attachment, the
+`drupal-canvas:settings-updated` event dispatched on `window`, or a call to
+`notifyCanvasSettingsUpdated()`. The `canvas/astro.hydration` library depends on
+`core/drupal` so the connection is made when the renderer evaluates.

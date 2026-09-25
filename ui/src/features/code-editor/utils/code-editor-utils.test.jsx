@@ -800,6 +800,97 @@ describe('getDataDependenciesFromAst', () => {
     });
   });
 
+  it.each([
+    'canvasFormatDate',
+    'canvasFormatDateTime',
+    'canvasFormatTime',
+    'canvasFormatDateRange',
+  ])('detects langcode for namespace access to %s', (name) => {
+    const ast = parse(
+      `import * as canvas from 'drupal-canvas'; canvas.${name}('2026-01-15');`,
+      { sourceType: 'module' },
+    );
+    expect(getDataDependenciesFromAst(ast)).to.deep.equal({
+      drupalSettings: ['v0.langcode'],
+    });
+  });
+
+  it('combines date and context imports without duplicate settings', () => {
+    const ast = parse(
+      `import { canvasFormatDate as format } from 'drupal-canvas'; import { useSiteContext } from 'drupal-canvas/react';
+       import * as canvas from 'drupal-canvas';
+       canvas.canvasFormatTime('14:30:00');`,
+      { sourceType: 'module' },
+    );
+    expect(getDataDependenciesFromAst(ast)).to.deep.equal({
+      drupalSettings: [
+        'v0.langcode',
+        'v0.baseUrl',
+        'v0.branding',
+        'v0.themeAssets',
+      ],
+    });
+  });
+
+  it('does not attach runtime settings for the date options type', () => {
+    const ast = parse(
+      `import type { CanvasDateFormatOptions } from 'drupal-canvas';`,
+      { sourceType: 'module', plugins: ['typescript'] },
+    );
+    expect(getDataDependenciesFromAst(ast)).to.deep.equal({});
+  });
+
+  it('ignores date helper imports from unrelated packages', () => {
+    const ast = parse(`import { canvasFormatDate } from 'another-package';`, {
+      sourceType: 'module',
+    });
+    expect(getDataDependenciesFromAst(ast)).to.deep.equal({});
+  });
+
+  it('should detect needed drupalSettings for members of namespace imports', () => {
+    const code = `
+      import * as canvas from 'drupal-canvas/react';
+      import * as utils from 'drupal-canvas/drupal-utils';
+
+      export default function Title() {
+        const page = canvas.usePageContext();
+        const site = utils.getSiteData();
+        return <h1>{page.pageTitle}{site.branding.siteName}</h1>;
+      }
+    `;
+    const ast = parse(code, { sourceType: 'module', plugins: ['jsx'] });
+    const result = getDataDependenciesFromAst(ast);
+    expect(result).to.deep.equal({
+      drupalSettings: [
+        'v0.breadcrumbs',
+        'v0.pageTitle',
+        'v0.mainEntity',
+        'v0.baseUrl',
+        'v0.branding',
+      ],
+    });
+  });
+
+  it('should detect needed drupalSettings when using the context hooks', () => {
+    const code = `
+      import useSWR from 'swr';
+      import { usePageContext as usePage, useSiteContext, useJsonApiClient } from 'drupal-canvas/react';
+    `;
+    const ast = parse(code, { sourceType: 'module' });
+    const result = getDataDependenciesFromAst(ast);
+    expect(result).to.deep.equal({
+      drupalSettings: [
+        'v0.breadcrumbs',
+        'v0.pageTitle',
+        'v0.mainEntity',
+        'v0.baseUrl',
+        'v0.branding',
+        'v0.themeAssets',
+        'v0.jsonapiSettings',
+      ],
+    });
+  });
+
   it('should not include drupalSettings property when it stays empty', () => {
     const code = `
       import useSWR from 'swr';

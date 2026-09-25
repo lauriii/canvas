@@ -110,6 +110,7 @@ describe('isPageRedirect', () => {
       isPageRedirect({
         content: { element: 'canvas-page' },
         head: { title: 'Page' },
+        context: { page: null, site: null },
         route: {
           name: 'entity.canvas_page.canonical',
           requestUri: '/page',
@@ -150,6 +151,7 @@ describe('isPageRedirect', () => {
       isPageRedirect({
         content: null,
         head: { title: 'Empty page' },
+        context: { page: null, site: null },
         route: {
           name: 'user.login',
           requestUri: '/user/login',

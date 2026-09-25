@@ -9,6 +9,14 @@ interface AstroIslandElementConstructor {
   new (...params: any[]): AstroIslandElement;
 }
 
+// Declare the Drupal runtime before any Code Component module evaluates, so
+// the legacy getters and `new JsonApiClient()` keep working on Drupal pages.
+// This header script runs before the islands' module scripts.
+// @see packages/drupal-canvas/src/runtime.ts
+(globalThis as Record<string, unknown>).__drupalCanvasRuntime = {
+  environment: 'drupal',
+};
+
 (() => {
   const AstroIsland = customElements.get(
     'astro-island',

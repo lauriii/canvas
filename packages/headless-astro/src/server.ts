@@ -16,6 +16,7 @@ import type {
   EntityResult,
   PageResult,
 } from '@drupal-canvas/headless/server';
+import type { JsonApiRuntimeConfig } from 'drupal-canvas/jsonapi-client';
 import type { AstroDraftContext } from './adapter';
 
 // One draft server per request context. All state lives in the request's
@@ -111,6 +112,18 @@ export function fetchComponentPreview(
   componentId: string,
 ): Promise<PageResult | null> {
   return getDraftServer(context).fetchComponentPreview(componentId);
+}
+
+/**
+ * The nonsecret JSON:API runtime configuration for this request's browser
+ * client (resolved endpoints, the proxy path, preview state). Serialize it
+ * into the page with `serializeJsonForHtml()`; `createJsonApiClient()` from
+ * `drupal-canvas/jsonapi-client` builds the browser client from it.
+ */
+export function getJsonApiRuntimeConfig(
+  context: AstroDraftContext,
+): Promise<JsonApiRuntimeConfig> {
+  return getDraftServer(context).getJsonApiRuntimeConfig();
 }
 
 export { isDraftSessionExpired };

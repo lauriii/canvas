@@ -44,6 +44,31 @@ import HelloCard from './components/canvas/hello-card';
 />;
 ```
 
+Pass `context={page.context}` so registered components can read the page and
+site context through `usePageContext()` and `useSiteContext()` from
+`drupal-canvas/react`: the renderer wraps the tree in `CanvasContextProvider`.
+An explicit `context` prop takes precedence over an outer provider, `null`
+values included; when omitted, an outer `CanvasContextProvider` is inherited.
+
+`useJsonApiClient()` is served from the nonsecret JSON:API runtime configuration
+the SDK's server integration prepares (`getJsonApiRuntimeConfig()`): either the
+`jsonApi` prop, or the nearest `JsonApiRuntimeProvider` (framework adapters
+supply one, for example the Next.js `CanvasRuntime` server component; TanStack
+Start applications render it in the root route from loader data). Without
+configuration an outer `JsonApiClientProvider` is inherited, and without that
+the hook reports the missing provider. In the browser the client sends requests
+through the application's same-origin proxy. Server rendering creates its own
+client from the same configuration: public rendering gets a direct,
+unauthenticated client; a live draft session gets the same non-null, draft-aware
+client the browser gets, so SWR keys stay enabled, prefetched fallback data
+renders into the initial HTML, and hydration does not mismatch — but that client
+performs no network requests. Draft data is not fetched during server rendering:
+a request made while rendering fails with `ServerRenderingDraftFetchError`,
+which names the fix. Prefetch draft data on the server with the SDK's
+`getClient()` and supply it as SWR fallback data (see
+`@drupal-canvas/headless`); SWR fetches in the browser after hydration, through
+the proxy. This contract is the same for every React adapter.
+
 Named Canvas slots become React props with rendered `ReactNode` values; a
 `default` slot becomes `children`. Drupal markup strings are inserted as trusted
 HTML. Because React does not natively support rendering comment nodes, draft

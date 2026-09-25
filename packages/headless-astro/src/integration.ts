@@ -5,7 +5,10 @@ import {
   readComponentManifest,
   writeComponentManifest,
 } from '@drupal-canvas/headless/components-endpoint';
-import { resolveDraftConfig } from '@drupal-canvas/headless/server';
+import {
+  DEFAULT_JSONAPI_PROXY_PATH,
+  resolveDraftConfig,
+} from '@drupal-canvas/headless/server';
 import { canvasComponentRegistry } from '@drupal-canvas/headless/vite';
 
 import type { AstroIntegration } from 'astro';
@@ -57,7 +60,14 @@ function manifestPlugin(
  * targets import.meta.env, which the framework-agnostic core cannot read,
  * so the integration bridges these keys across.
  */
-const ENV_KEYS = ['CANVAS_SITE_URL', 'CANVAS_EDITOR_ORIGINS'] as const;
+const ENV_KEYS = [
+  'CANVAS_SITE_URL',
+  'CANVAS_EDITOR_ORIGINS',
+  'CANVAS_JSONAPI_PREFIX',
+  'CANVAS_JSONAPI_URL',
+  'CANVAS_JSONAPI_SITE_URL',
+  'CANVAS_JSONAPI_PROXY_PATH',
+] as const;
 
 export interface CanvasIntegrationOptions {
   /**
@@ -76,8 +86,9 @@ export interface CanvasIntegrationOptions {
  * The Drupal Canvas headless integration for Astro:
  *
  * - Injects the draft session routes (/api/draft, /api/draft/renew,
- *   /api/disable-draft) and the component metadata endpoint
- *   (/api/canvas/components). All are server-rendered
+ *   /api/disable-draft), the component metadata endpoint
+ *   (/api/canvas/components), and the same-origin JSON:API proxy
+ *   (/api/canvas/jsonapi/[...path]). All are server-rendered
  *   (`prerender = false`), so they work from a fully static project too.
  * - Registers the CSP `frame-ancestors` middleware. Responses are
  *   governed by the shared editor-origin configuration and draft session.
@@ -204,6 +215,16 @@ export function canvas(
           injectRoute({
             pattern: componentsRoutePath,
             entrypoint: '@drupal-canvas/headless-astro/routes/components',
+          });
+          // The same-origin JSON:API proxy for portable Code Components, at
+          // the path the SDK's runtime configuration points browser clients
+          // at.
+          const jsonApiProxyPath =
+            process.env.CANVAS_JSONAPI_PROXY_PATH?.replace(/\/+$/, '') ||
+            DEFAULT_JSONAPI_PROXY_PATH;
+          injectRoute({
+            pattern: `${jsonApiProxyPath}/[...path]`,
+            entrypoint: '@drupal-canvas/headless-astro/routes/jsonapi-proxy',
           });
         }
       },

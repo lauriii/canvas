@@ -42,8 +42,9 @@ use Drupal\Core\Template\Attribute;
  * - #inner_html: Twig template fragment rendered inside the canvas-island
  *   wrapper, before slot templates. Defaults to the script tags that load the
  *   renderer and component bundles.
- * - #attributes: Optional extra attributes to merge into the canvas-island
- *   wrapper. Overrides the defaults when keys collide.
+ * - #attributes: Optional extra attributes (an array or an Attribute object)
+ *   to merge into the canvas-island wrapper. Overrides the defaults when keys
+ *   collide.
  *
  * @see \Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor::processAttachments
  * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script/type/importmap
@@ -139,8 +140,9 @@ class AstroIsland extends RenderElementBase {
     if (!empty($element['#slots'])) {
       $attributes->setAttribute('await-children', '');
     }
-    if (isset($element['#attributes'])) {
-      $attributes->merge($element['#attributes']);
+    if (!empty($element['#attributes'])) {
+      $extra_attributes = $element['#attributes'];
+      $attributes->merge($extra_attributes instanceof Attribute ? $extra_attributes : new Attribute($extra_attributes));
     }
 
     $element['#attached']['library'][] = 'canvas/astro.hydration';

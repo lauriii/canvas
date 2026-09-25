@@ -76,6 +76,17 @@ It contains one structured root, or `null` when Canvas does not return managed
 content. Multiple rendered roots are nested under a transparent structural root.
 Pass `page.head` to the framework bridge documented by the adapter.
 
+`page.context` carries the page and site context React Code Components read
+through the `usePageContext()` and `useSiteContext()` hooks of the
+`drupal-canvas` package: the page title, breadcrumbs, and primary entity
+(language and translations included), and the site's branding and backend base
+URL. Drupal generates it for the resolved page, so language, access,
+cacheability, and draft-preview semantics are Drupal's; theme asset URLs are
+empty for headless frontends. Pass it to the React renderer
+(`context={page.context}`), or supply it to components outside the tree with
+`CanvasContextProvider`. Sites running an older Canvas module answer without
+context; the SDK then reports `null` page and site context.
+
 When Drupal resolves a configured redirect, `fetchPage()` returns `PageRedirect`
 instead of `Page`. It contains `redirect.url`, `redirect.external`, and Drupal's
 configured `redirect.statusCode`. Handle it before reading page fields using the
@@ -111,6 +122,97 @@ data with `content` set to `null` and `route.managedByCanvas` set to `false`. An
 empty managed tree also has `content` set to `null`, but keeps
 `route.managedByCanvas` set to `true`. Route-not-found and access-denied
 responses make `fetchPage()` return `null`.
+
+## JSON:API for portable Code Components
+
+To write a component that also works in Drupal and Workbench, use the supplied
+client rather than configuring one inside the component. See
+[Writing portable components](../../docs/user/src/content/docs/code-components/data-fetching.mdx#writing-portable-components)
+for a minimal `useJsonApiClient()` and SWR example.
+
+Code Components that use `useJsonApiClient()` from `drupal-canvas/react` fetch
+Drupal content from the browser. The SDK keeps those requests on the
+application's own origin through a JSON:API proxy that the framework adapters
+mount at `/api/canvas/jsonapi` (configurable with `CANVAS_JSONAPI_PROXY_PATH`):
+
+```text
+Code Component → shared browser client → application proxy → Drupal
+Server code   → shared server client  → Drupal
+```
+
+The proxy forwards requests and response bodies without interpreting JSON:API
+documents. It only reaches the configured backend's JSON:API prefix and
+Decoupled Router endpoint (with an optional language path prefix), validates
+upstream redirects against the same boundary, never forwards browser
+authentication headers or cookies, never returns Drupal's cookies, and refuses
+state-changing requests that do not carry a same-origin `Sec-Fetch-Site` or
+`Origin` signal. Authentication comes from the draft session alone:
+
+- No preview session: the request is forwarded unauthenticated and returns
+  published content.
+- Live preview session: the request carries the editor's user-bound token, and
+  the client adds the session's resource version (`rel:working-copy`) to reads.
+  Responses are `private, no-store`.
+- Expired or invalid session: the proxy answers a session error (HTTP 401,
+  `{ "error": "draft_session_expired" }`, header
+  `X-Canvas-Draft-Session: expired`), never public content — also when Drupal
+  itself rejects the session token with 401. Resource-level denials (403) pass
+  through unchanged. The shared client surfaces the session error as
+  `DraftSessionError`, and the existing renewal and recovery lifecycle applies.
+- Responses vary on `Cookie` in addition to what Drupal varies on; 304 answers
+  to conditional requests pass through; redirects inside the boundary are
+  rewritten to the proxy, the rest refused.
+
+Preview tokens carry the editor's permissions capped by the view-only ceiling of
+ADR 14, and Drupal authorizes every operation; the proxy grants nothing.
+
+The SDK's server integration prepares the nonsecret runtime configuration the
+browser client is created from — `DraftServer.getJsonApiRuntimeConfig()` —
+containing the resolved upstream endpoints, the proxy path, and the session's
+resource version and preview flag, never credentials. Framework adapters hand it
+to the React renderer.
+
+`getClient()`, `getPublicClient()`, and `getDraftClient()` create the same
+shared client implementation (`createJsonApiClient()` from
+`drupal-canvas/jsonapi-client`) for server code, calling Drupal directly. Draft
+reads use the session's resource version for resources and fetch each collection
+item's working copy in a separate request (a failing ordinary item fetch keeps
+the original item; session errors propagate); raw responses bypass this.
+Responses are deserialized with `DefaultSerializer`.
+
+Configuration: `CANVAS_SITE_URL` is the backend; the JSON:API prefix is
+discovered from `/canvas/api/v0/site-data`, with `CANVAS_JSONAPI_PREFIX` as the
+fallback; `CANVAS_JSONAPI_URL` sets the full upstream JSON:API base URL and
+takes precedence over discovery for JSON:API requests only — the supporting
+endpoints (Decoupled Router path translation) stay on `CANVAS_SITE_URL`. An
+override under `CANVAS_SITE_URL` is a prefix (a language prefix goes between the
+site path and it); an override on another site is localized through
+`CANVAS_JSONAPI_SITE_URL`, that site's base URL including its install path
+(`https://api.example/mount` for `https://api.example/mount/api`, giving
+`https://api.example/mount/fr/api`), and accepts no language prefix without it.
+
+### Server rendering and SWR
+
+Server rendering a component does not run its SWR fetcher. To put data in the
+initial HTML, prefetch it with `getClient()` and supply it as SWR fallback data;
+the portable component keeps using its string key, and in Drupal it fetches in
+the browser as before. The React renderers give server rendering the same
+draft-aware client the browser gets (so fallback data renders and hydration
+matches) without network access in a draft session: draft data reaches the
+initial HTML only through this prefetch.
+
+```tsx
+const client = await getClient();
+const articles = await client.getCollection('node--article');
+
+<SwrFallback fallback={{ articles }}>
+  <CanvasComponentTree tree={page.content} context={page.context} />
+</SwrFallback>;
+```
+
+`DefaultSerializer` adds non-enumerable `getMeta()` and `getLinks()` methods
+that do not survive JSON serialization into hydration fallback data. Token
+renewal does not clear SWR caches; applications own that policy.
 
 ## Installation
 
@@ -172,9 +274,10 @@ mostly wiring:
    import { createDraftServer } from '@drupal-canvas/headless/server';
 
    const server = createDraftServer({ adapter: myFrameworkAdapter });
-   // GET  /api/draft          -> server.enableDraftMode(request)
-   // POST /api/draft/renew    -> server.renewDraftSession(request)
-   // POST /api/disable-draft  -> server.disableDraftMode()
+   // GET  /api/draft                 -> server.enableDraftMode(request)
+   // POST /api/draft/renew           -> server.renewDraftSession(request)
+   // POST /api/disable-draft         -> server.disableDraftMode()
+   // ANY  /api/canvas/jsonapi/**     -> server.handleJsonApiProxy(request)
    ```
 
 3. Mount `createComponentMetadataHandler()` from
@@ -207,3 +310,6 @@ mostly wiring:
 
 6. Expose data access: `server.getClient()` and `server.fetchPage()`, surfaced
    however your framework reaches per-request state.
+7. Mount `server.handleJsonApiProxy(request)` at the configured proxy path
+   (default `/api/canvas/jsonapi`) with a catch-all suffix, for every method,
+   and expose `server.getJsonApiRuntimeConfig()` to the rendering integration.

@@ -7,7 +7,11 @@
  * under `../components-endpoint` instead.
  */
 
-export { resolveDraftConfig, type DraftConfig } from './config';
+export {
+  DEFAULT_JSONAPI_PROXY_PATH,
+  resolveDraftConfig,
+  type DraftConfig,
+} from './config';
 export { type DraftServerAdapter } from './adapter';
 export {
   buildClearedDraftCookie,
@@ -26,13 +30,26 @@ export {
   type DraftServerOptions,
   type RedemptionResult,
 } from './flows';
-export { getDraftClient, getPublicClient } from './json-api-client';
+export {
+  getDraftClient,
+  getPublicClient,
+  resolveJsonApiEndpoints,
+  resolveJsonApiRuntimeConfig,
+  resolveJsonApiUrl,
+  type JsonApiEndpoints,
+} from './json-api-client';
+export {
+  createJsonApiProxyHandler,
+  isSameOriginRequest,
+  type JsonApiProxyOptions,
+} from './jsonapi-proxy';
 export { createApiPrefixResolver } from './site-data';
 export { fetchPage } from './content-api';
 export {
   isPageRedirect,
   serializeJsonForHtml,
   type CanvasComponentTreeElement,
+  type CanvasContext,
   type CanvasComponentTreeSlot,
   type DrupalRoute,
   type DrupalRouteEntity,

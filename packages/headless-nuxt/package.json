@@ -1,6 +1,6 @@
 {
   "name": "@drupal-canvas/headless-nuxt",
-  "version": "0.5.3",
+  "version": "0.6.0",
   "engines": {
     "node": ">=22.19.0 <23 || >=24.5.0"
   },
@@ -63,6 +63,11 @@
       "import": "./src/runtime/components/CanvasComponentTree.ts",
       "types": "./src/runtime/components/CanvasComponentTree.ts",
       "default": "./src/runtime/components/CanvasComponentTree.ts"
+    },
+    "./routes/jsonapi-proxy": {
+      "import": "./src/runtime/server/routes/jsonapi-proxy.ts",
+      "types": "./src/runtime/server/routes/jsonapi-proxy.ts",
+      "default": "./src/runtime/server/routes/jsonapi-proxy.ts"
     }
   },
   "scripts": {
@@ -70,8 +75,9 @@
     "type-check": "vue-tsc --noEmit --pretty"
   },
   "dependencies": {
-    "@drupal-canvas/headless": "^0.9.0",
+    "@drupal-canvas/headless": "^0.10.0",
     "@nuxt/kit": "^4.4.8",
+    "drupal-canvas": "^0.7.0",
     "h3": "^1.15.0"
   },
   "peerDependencies": {
@@ -83,8 +89,8 @@
     "jsdom": "^26.1.0",
     "nuxt": "^4.4.8",
     "typescript": "^5.9.3",
+    "vitest": "^4.0.18",
     "vue": "^3.5.39",
-    "vue-tsc": "^3.2.2",
-    "vitest": "^4.0.18"
+    "vue-tsc": "^3.2.2"
   }
 }

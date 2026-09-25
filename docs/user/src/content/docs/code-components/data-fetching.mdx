@@ -32,19 +32,44 @@ menus data as JSON](../../../assets/images/data-fetch-1.webp)
 
 ### Page and site data
 
-You can access information about the current page with the `getPageData`
-utility. Results can be viewed in the Data Fetch pane below the component
+Read information about the current page with the `usePageContext` hook and
+about the site with the `useSiteContext` hook. Both work in Drupal-rendered
+Code Components, Canvas Workbench previews, and React-based headless
+frontends. Results can be viewed in the Data Fetch pane below the component
 preview.
 
-```js
-import { getPageData } from 'drupal-canvas';
+```jsx
+import { usePageContext, useSiteContext } from 'drupal-canvas/react';
 
-const { pageTitle, breadcrumbs, mainEntity } = getPageData();
+export default function PageHeader() {
+  const page = usePageContext();
+  const site = useSiteContext();
+  if (!page || !site) return null;
+  return (
+    <header>
+      <a href={site.branding.homeUrl}>{site.branding.siteName}</a>
+      <h1>{page.pageTitle}</h1>
+    </header>
+  );
+}
 ```
+
+`usePageContext()` returns `{ pageTitle, breadcrumbs, mainEntity }`;
+`useSiteContext()` returns `{ branding, baseUrl, themeAssets }`. Call the hooks
+unconditionally at the top level of a function component or custom hook
+(React's rules of hooks). They return `null` when the rendering integration
+supplies no such data, for example a component rendered without a provider.
+
+<Aside>
+  `getPageData()` and `getSiteData()` are deprecated. They keep working in
+  Drupal-rendered Code Components and Workbench, but throw in headless
+  frontends. `canvas pull` migrates safe calls to the hooks automatically; see
+  the Canvas CLI documentation.
+</Aside>
 
 #### Main entity metadata
 The main entity is the primary Drupal entity (e.g. article, canvas_page, blog) associated with the current page.
-Access main entity metadata of the page you are on with `getPageData`.
+Access main entity metadata of the page you are on with `usePageContext`.
 This can be used to construct JSON:API parameters for requests.
 
 ℹ️ Not every route has a main entity, in that case `mainEntity` will be null
@@ -58,24 +83,24 @@ on pages with a main entity, then this check is not necessary.
 
 **Example usage that fetches a list of articles but excludes the current article being viewed:**
 ```js
-import { getPageData } from 'drupal-canvas';
-import { JsonApiClient } from 'drupal-canvas';
+import { useJsonApiClient, usePageContext } from 'drupal-canvas/react';
 import { DrupalJsonApiParams } from 'drupal-jsonapi-params';
 import useSWR from 'swr'
 
-const client = new JsonApiClient();
-
 function RelatedArticles({ mainEntity }) {
+  const client = useJsonApiClient();
   const { bundle, entityTypeId, uuid } = mainEntity;
   const { data, error, isLoading } = useSWR(
-  [
-    'node--article',
-    {
-      queryString: new DrupalJsonApiParams()
-        .addFilter('id', uuid, '<>') // Exclude current article by uuid.
-        .getQueryString(),
-    },
-  ],
+  client
+    ? [
+        'node--article',
+        {
+          queryString: new DrupalJsonApiParams()
+            .addFilter('id', uuid, '<>') // Exclude current article by uuid.
+            .getQueryString(),
+        },
+      ]
+    : null,
   ([type, options]) => client.getCollection(type, options),
   );
 
@@ -85,7 +110,8 @@ function RelatedArticles({ mainEntity }) {
 // Wrapper component to check for mainEntity existence and type before calling a hook since
 // hooks cannot be called conditionally (React rules of hooks).
 function RelatedArticlesWrapper() {
-  const { mainEntity } = getPageData();
+  const page = usePageContext();
+  const mainEntity = page?.mainEntity;
 
   // Return early if there is no mainEntity, or it is not an article node.
    if (
@@ -140,10 +166,11 @@ editor may see `translationAvailable: true` where an anonymous visitor sees
 
 **Example language switcher:**
 ```js
-import { getPageData } from 'drupal-canvas';
+import { usePageContext } from 'drupal-canvas/react';
 
 function LanguageSwitcher() {
-  const { mainEntity } = getPageData();
+  const page = usePageContext();
+  const mainEntity = page?.mainEntity;
   if (!mainEntity) {
     return null;
   }
@@ -179,12 +206,13 @@ function LanguageSwitcher() {
 export default LanguageSwitcher;
 ```
 
-You can also access site information with the `getSiteData` utility
+You can also access site information with the `useSiteContext` hook:
 
 ```js
-import { getSiteData } from 'drupal-canvas';
+import { useSiteContext } from 'drupal-canvas/react';
 
-const { siteName } = getSiteData().branding;
+const site = useSiteContext();
+const siteName = site?.branding.siteName;
 ```
 
 ![Drupal's Drupal Canvas data fetch pane showing the results of access page
@@ -192,9 +220,11 @@ and site data](../../../assets/images/data-fetch-2.webp)
 
 ### JSON:API
 
-[drupal-canvas](https://www.npmjs.com/package/drupal-canvas) provides the
+[drupal-canvas](https://www.npmjs.com/package/drupal-canvas) provides a
 [JSON:API client](https://www.npmjs.com/package/@drupal-api-client/json-api-client)
-automatically configured with a `baseUrl` as well as
+through the `useJsonApiClient` hook. Rendering integrations supply the configured
+client through a provider; the hook does not detect the environment or create a
+client. The shared implementation uses
 [DefaultSerializer](https://project.pages.drupalcode.org/api_client/jsonapi-tutorial/deserializing-data/#defaultserializer-top-level-meta-and-links) for
 [deserialization](https://project.pages.drupalcode.org/api_client/jsonapi-tutorial/deserializing-data/).
 [Drupal core's JSON:API module](https://www.drupal.org/docs/core-modules-and-themes/core-modules/jsonapi-module)
@@ -204,28 +234,29 @@ The associated
 [parameter helper package](https://project.pages.drupalcode.org/api_client/jsonapi-tutorial/parameters/#generating-query-strings-with-drupal-jsonapi-params)
 is also included as a native package.
 
+#### Writing portable components
+
+Use `useJsonApiClient()` to write the same component for Drupal, Workbench, and
+React-based headless frontends. Each integration supplies the appropriate client
+through a provider. Keep Drupal globals, backend URLs, authentication, proxy
+configuration, and environment-specific branches out of the component. Outside a
+Canvas tree, your integration must supply a `JsonApiClientProvider`.
+
+Use a stable SWR key for the query and render data whenever it is available,
+including prefetched fallback data:
+
 ```jsx
-import { JsonApiClient } from 'drupal-canvas';
-import { DrupalJsonApiParams } from 'drupal-jsonapi-params';
+import { useJsonApiClient } from 'drupal-canvas/react';
 import useSWR from 'swr';
 
-const client = new JsonApiClient();
-
 export default function List() {
-  const { data, error, isLoading } = useSWR(
-    [
-      'node--article',
-      {
-        queryString: new DrupalJsonApiParams()
-          .addInclude(['field_tags'])
-          .getQueryString(),
-      },
-    ],
-    ([type, options]) => client.getCollection(type, options),
+  const client = useJsonApiClient();
+  const { data, error } = useSWR(client ? 'articles' : null, () =>
+    client.getCollection('node--article'),
   );
 
   if (error) return 'An error has occurred.';
-  if (isLoading) return 'Loading...';
+  if (!data) return 'Loading...';
   return (
     <ul>
       {data.map((article) => (
@@ -236,14 +267,25 @@ export default function List() {
 }
 ```
 
-You can override the `baseUrl` and any default options:
+The hook returns `null` when no client is provided, so pass `null` as the SWR
+key in that case, as above. Do not hide available data just because SWR reports
+`isLoading` during revalidation.
 
-```js
-const client = new JsonApiClient('https://drupal-api-demo.party', {
-  serializer: undefined,
-  cache: undefined,
-});
-```
+<Aside title="Server rendering">
+  SWR fetchers do not run during server rendering. Use the Headless SDK's `await
+  getClient()` in server code to prefetch, then supply the results through a
+  client `SWRConfig` wrapper's `fallback` with the same key (`articles` here).
+  The renderer's draft client cannot fetch during server rendering. See the [SSR
+  and prefetch
+  guidance](https://git.drupalcode.org/project/canvas/-/blob/1.x/packages/headless/README.md#server-rendering-and-swr).
+</Aside>
+
+<Aside>
+  `new JsonApiClient()` is deprecated. It keeps working in Drupal-rendered
+  Code Components and Workbench, and throws in headless frontends. Use
+  `useJsonApiClient()` in components, or the Headless SDK's `getClient()` in
+  headless server code.
+</Aside>
 
 <Aside type="tip">
   For development outside of Drupal Canvas, use
@@ -274,26 +316,28 @@ and outputs links to each of them using the `getNodePath` utility from the
 back to the `/node/[nid]` path.
 
 ```jsx
-import { getNodePath, JsonApiClient } from 'drupal-canvas';
+import { getNodePath } from 'drupal-canvas'; import { useJsonApiClient } from 'drupal-canvas/react';
 import { DrupalJsonApiParams } from 'drupal-jsonapi-params';
 import useSWR from 'swr';
 
 const Articles = () => {
-  const client = new JsonApiClient();
+  const client = useJsonApiClient();
   const { data, error, isLoading } = useSWR(
-    [
-      'node--article',
-      {
-        queryString: new DrupalJsonApiParams()
-          .addSort('created', 'DESC')
-          .getQueryString(),
-      },
-    ],
+    client
+      ? [
+          'node--article',
+          {
+            queryString: new DrupalJsonApiParams()
+              .addSort('created', 'DESC')
+              .getQueryString(),
+          },
+        ]
+      : null,
     ([type, options]) => client.getCollection(type, options),
   );
 
   if (error) return 'An error has occurred.';
-  if (isLoading) return 'Loading...';
+  if (isLoading || !data) return 'Loading...';
   return (
     <ul>
       {data.map((article) => (
@@ -314,18 +358,17 @@ This example builds a navigation menu using the
 [JSON:API Menu Items module](https://www.drupal.org/project/jsonapi_menu_items):
 
 ```jsx
-import { JsonApiClient, sortMenu } from 'drupal-canvas';
+import { sortMenu } from 'drupal-canvas'; import { useJsonApiClient } from 'drupal-canvas/react';
 import useSWR from 'swr';
 
-const client = new JsonApiClient();
-
 const Navigation = () => {
+  const client = useJsonApiClient();
   const { data, isLoading, error } = useSWR(
-    ['menu_items', 'main'],
+    client ? ['menu_items', 'main'] : null,
     ([type, resourceId]) => client.getResource(type, resourceId),
   );
   if (error) return 'An error has occurred.';
-  if (isLoading) return 'Loading...';
+  if (isLoading || !data) return 'Loading...';
 
   const menu = sortMenu(data);
 

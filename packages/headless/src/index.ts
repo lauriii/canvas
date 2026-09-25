@@ -58,6 +58,7 @@ export {
   serializeJsonForHtml,
   type CanvasComponentTreeElement,
   type CanvasComponentTreeSlot,
+  type CanvasContext,
   type DrupalRoute,
   type DrupalRouteEntity,
   type DrupalRouteTranslation,

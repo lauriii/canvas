@@ -3,6 +3,7 @@ import { defineConfig } from 'tsdown';
 export default defineConfig({
   entry: [
     'src/index.ts',
+    'src/react.ts',
     'src/json-render-utils.tsx',
     // Backward compatibility entries for elements that were moved into drupal-canvas package.
     'src/drupal-utils.ts',

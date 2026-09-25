@@ -33,7 +33,12 @@ import {
 import { printCommandIntro } from '../utils/command-intro';
 import { appendCommandSummarySection } from '../utils/command-summary';
 import { contentTemplateToAuthored } from '../utils/content-templates';
+import { evaluateContextHookSupport } from '../utils/context-hook-support';
 import { ensureTailwindImportAtTop } from '../utils/ensure-global-css-tailwind-import';
+import {
+  diagnoseLegacyApiUsage,
+  migrateGetterCalls,
+} from '../utils/getter-codemod';
 import { mergePackageJsonDependencies } from '../utils/merge-package-json';
 import { pageVariantToAuthoredSpec } from '../utils/page-variants';
 import { pageToAuthoredSpec } from '../utils/pages';
@@ -68,6 +73,8 @@ import type { PageListItem } from '../types/Page';
 import type { PageVariant } from '../types/PageVariant';
 import type { Result } from '../types/Result';
 import type { CommandSummaryResource } from '../utils/command-summary';
+import type { ContextHookSupport } from '../utils/context-hook-support';
+import type { GetterMigrationResult } from '../utils/getter-codemod';
 
 interface PullOptions {
   clientId?: string;
@@ -259,17 +266,43 @@ interface ColorFolderRef {
   folders: ColorFolderEntry[];
 }
 
+/**
+ * The getter migration a pull performs on component sources when the site
+ * and the installed `drupal-canvas` package support the context hooks.
+ * `null` means the gates were not evaluated (no site URL).
+ */
+export type PullCodemodSupport = ContextHookSupport | null;
+
+/** The AI-agent migration prompt printed for components left unchanged. */
+export const GETTER_MIGRATION_PROMPT =
+  'Legacy APIs remain supported in Drupal and Workbench. For headless use, ' +
+  'migrate only the remaining legacy API usages identified above. In function ' +
+  'components or custom hooks, use the corresponding hooks from ' +
+  '`drupal-canvas/react`. Call hooks unconditionally at the top level before ' +
+  'any possible return; handle missing context or clients. Outside components and ' +
+  'custom hooks, use SDK page context data or `getClient()` in headless server ' +
+  'code; pass data or a client to browser helpers. Preserve output, types, hook ' +
+  'order, and access controls. Never expose credentials.';
+
+const NULLABLE_HOOKS_NOTE =
+  'The context hooks return null when no context is available. Strict ' +
+  'TypeScript checks may require follow-up for nullable results; no null ' +
+  'guards were generated.';
+
 export function createComponentsPullTask(
   apiService: ApiService,
   componentDir: string,
   skipOverwrite: boolean,
   brandKitColorsRef: BrandKitColorsRef,
   colorFolderRef: ColorFolderRef,
+  codemodSupport: PullCodemodSupport = null,
 ): PullTask {
   let components: Record<string, Component> = {};
   const localComponentMap = new Map<string, DiscoveredComponent>();
   let localOnlyComponents: DiscoveredComponent[] = [];
   let preferJsxForNewComponents = false;
+  /** Planned getter migrations, keyed by machine name. */
+  const migrations = new Map<string, GetterMigrationResult>();
 
   function buildMetadata(component: Component): Metadata {
     // Build UUID → BrandKitColorEntry map from the shared ref.
@@ -383,6 +416,46 @@ export function createComponentsPullTask(
         lines.push(`Components: ${n} delete (local-only)`);
       }
 
+      // Plan the getter migration so the conversions show before the pull
+      // is confirmed.
+      migrations.clear();
+      if (codemodSupport?.supported) {
+        for (const component of Object.values(components)) {
+          if (!component.sourceCodeJs) {
+            continue;
+          }
+          const discovered = localComponentMap.get(component.machineName);
+          if (discovered && skipOverwrite) {
+            continue;
+          }
+          const result = migrateGetterCalls(
+            component.sourceCodeJs,
+            discovered?.jsEntryPath ??
+              path.join(componentDir, component.machineName, 'index.tsx'),
+          );
+          if (result.usesGetters || result.constructsClient) {
+            migrations.set(component.machineName, result);
+          }
+        }
+        const planned = [...migrations.entries()].filter(
+          ([, result]) => result.changed,
+        );
+        if (planned.length > 0) {
+          lines.push(
+            `Components: ${planned.length} getter migration${planned.length === 1 ? '' : 's'} to context hooks`,
+          );
+          for (const [machineName, result] of planned) {
+            lines.push(
+              `  ${machineName}: ${result.conversions
+                .map(
+                  (conversion) => `${conversion.from}() → ${conversion.to}()`,
+                )
+                .join(', ')}`,
+            );
+          }
+        }
+      }
+
       return {
         summaryLines: lines,
         localOnlyCount: localOnlyComponents.length,
@@ -393,21 +466,52 @@ export function createComponentsPullTask(
       deleteLocalOnly?: boolean;
     }): Promise<PullTaskResult> {
       const results: Result[] = [];
+      const notes: string[] = [];
+      const remainingGetterComponents: string[] = [];
+      const legacyClients: string[] = [];
+      let migratedAny = false;
 
-      for (const component of Object.values(components)) {
+      for (const remoteComponent of Object.values(components)) {
         try {
-          const discovered = localComponentMap.get(component.machineName);
+          const discovered = localComponentMap.get(remoteComponent.machineName);
+
+          if (discovered && skipOverwrite) {
+            results.push({
+              itemName: remoteComponent.machineName,
+              success: true,
+              details: [{ content: 'Skipped (already exists)' }],
+            });
+            continue;
+          }
+
+          // Apply the planned getter migration to the source that is written.
+          const migration = migrations.get(remoteComponent.machineName);
+          const component: Component =
+            migration?.changed && remoteComponent.sourceCodeJs
+              ? { ...remoteComponent, sourceCodeJs: migration.source }
+              : remoteComponent;
+          const details: { content: string }[] = [];
+          if (migration?.changed) {
+            migratedAny = true;
+            details.push({
+              content: `Migrated ${migration.conversions
+                .map(
+                  (conversion) => `${conversion.from}() → ${conversion.to}()`,
+                )
+                .join(', ')}`,
+            });
+          }
+          const warnings =
+            migration?.warnings.map((warning) => `Not migrated: ${warning}`) ??
+            [];
+          if (migration && !migration.changed && migration.usesGetters) {
+            remainingGetterComponents.push(remoteComponent.machineName);
+          }
+          if (migration?.constructsClient) {
+            legacyClients.push(remoteComponent.machineName);
+          }
 
           if (discovered) {
-            if (skipOverwrite) {
-              results.push({
-                itemName: component.machineName,
-                success: true,
-                details: [{ content: 'Skipped (already exists)' }],
-              });
-              continue;
-            }
-
             const dir = path.dirname(discovered.metadataPath);
             const existingJsPath = discovered.jsEntryPath;
             const defaultJsPath = existingJsPath ?? path.join(dir, 'index.tsx');
@@ -445,10 +549,12 @@ export function createComponentsPullTask(
           results.push({
             itemName: component.machineName,
             success: true,
+            ...(details.length > 0 && { details }),
+            ...(warnings.length > 0 && { warnings }),
           });
         } catch (error) {
           results.push({
-            itemName: component.machineName,
+            itemName: remoteComponent.machineName,
             success: false,
             details: [
               {
@@ -457,6 +563,42 @@ export function createComponentsPullTask(
             ],
           });
         }
+      }
+
+      // The capability gates failed: report the limitation once, with the
+      // migration guidance, when pulled sources still use the getters.
+      if (codemodSupport && !codemodSupport.supported) {
+        const usesGetters = Object.values(components).some(
+          (component) =>
+            component.sourceCodeJs &&
+            !(localComponentMap.has(component.machineName) && skipOverwrite) &&
+            migrateGetterCalls(component.sourceCodeJs, 'index.tsx').usesGetters,
+        );
+        if (usesGetters) {
+          notes.push(
+            'Getter calls were left unchanged because the context hooks could not be used:',
+            ...codemodSupport.reasons.map((reason) => `  - ${reason}`),
+            `Migration prompt for AI agents: ${GETTER_MIGRATION_PROMPT}`,
+          );
+        }
+      }
+      if (remainingGetterComponents.length > 0) {
+        notes.push(
+          `Components with getter calls left unchanged: ${remainingGetterComponents.join(', ')}`,
+        );
+      }
+      if (legacyClients.length > 0) {
+        notes.push(
+          `Components still constructing \`new JsonApiClient()\`: ${legacyClients.join(', ')}`,
+        );
+      }
+      if (remainingGetterComponents.length > 0 || legacyClients.length > 0) {
+        notes.push(
+          `Migration prompt for AI agents: ${GETTER_MIGRATION_PROMPT}`,
+        );
+      }
+      if (migratedAny) {
+        notes.push(NULLABLE_HOOKS_NOTE);
       }
 
       if (options?.deleteLocalOnly && localOnlyComponents.length > 0) {
@@ -483,7 +625,12 @@ export function createComponentsPullTask(
         }
       }
 
-      return { results, title: 'Pulled components', label: 'Component' };
+      return {
+        results,
+        title: 'Pulled components',
+        label: 'Component',
+        notes: notes.length > 0 ? notes : undefined,
+      };
     },
   };
 }
@@ -1036,6 +1183,20 @@ export function createAssetsPullTask(
             // Text module: write the verbatim original source (the `uri`
             // artifact holds minified compiled JS, which is not editable).
             await fs.writeFile(dest, entry.source, 'utf-8');
+            // Helper modules are never rewritten by the getter codemod.
+            const diagnostics = /\.(jsx?|tsx?|mjs)$/.test(relativePath)
+              ? diagnoseLegacyApiUsage(entry.source, relativePath)
+              : [];
+            if (diagnostics.length > 0) {
+              results.push({
+                itemName: relativePath,
+                success: true,
+                details: diagnostics.map((content) => ({
+                  content: `Diagnostic: ${content}`,
+                })),
+              });
+              continue;
+            }
           } else if (entry.url) {
             // Binary asset: the `uri` artifact holds the original bytes;
             // download over HTTP and write verbatim.
@@ -1366,6 +1527,12 @@ export function pullCommand(program: Command): void {
 
         // Build pull tasks.
         const projectRoot = process.cwd();
+        // The getter migration runs only when the site and the installed
+        // drupal-canvas package both support the context hooks.
+        const codemodSupport = await evaluateContextHookSupport({
+          siteUrl: config.siteUrl,
+          projectRoot,
+        });
         const tasks: PullTask[] = [
           createComponentsPullTask(
             apiService,
@@ -1373,6 +1540,7 @@ export function pullCommand(program: Command): void {
             options.skipOverwrite ?? false,
             brandKitColorsRef,
             colorFolderRef,
+            codemodSupport,
           ),
           createAssetsPullTask(
             apiService,

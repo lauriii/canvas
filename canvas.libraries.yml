@@ -97,9 +97,12 @@ ajax.hyperscriptify:
   js:
     js/ajax.hyperscriptify.js: {}
 
+# The Canvas client renderer for Code Component islands: Astro's Preact client
+# renderer wrapped with the drupal-canvas context providers.
+# @see packages/astro-hydration/src/lib/canvas-client.ts
 astro.client:
   js:
-    packages/astro-hydration/dist/client.js: {}
+    packages/astro-hydration/dist/canvas-client.js: {}
   license:
     name: MIT
     url: https://raw.githubusercontent.com/withastro/astro/refs/heads/main/LICENSE
@@ -117,6 +120,10 @@ astro.hydration:
     url: https://raw.githubusercontent.com/withastro/astro/refs/heads/main/LICENSE
     gpl-compatible: true
   dependencies:
+    # The island client renderer connects to Drupal's settings lifecycle
+    # (Drupal.behaviors, Drupal.AjaxCommands), so Drupal must exist first.
+    # @see packages/astro-hydration/src/lib/canvas-client.ts
+    - core/drupal
     - core/drupalSettings
 
 preview:

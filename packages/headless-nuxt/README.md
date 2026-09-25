@@ -29,7 +29,10 @@ export default defineNuxtConfig({
 
 Configure under the `drupalCanvas` key: `injectRoutes: false` to mount the
 runtime handlers at paths of your own, `componentsRoutePath` to move the
-metadata endpoint.
+metadata endpoint. The module also mounts the same-origin JSON:API proxy at
+`/api/canvas/jsonapi/**` (`CANVAS_JSONAPI_PROXY_PATH`), through which browser
+code reaches Drupal with the draft session's authorization; the
+`routes/jsonapi-proxy` subpath export mounts it by hand.
 
 **2. Session banner** — render the globally registered `<DraftSession>`
 component in the app shell with the banner markup in its slot. The component
@@ -91,9 +94,29 @@ The client's JSON:API prefix is resolved from the site's public site-data
 endpoint (fetched once per server instance), so sites serving JSON:API from a
 non-default prefix (e.g. `/api`) work without configuration. When that endpoint
 is unreachable, the `CANVAS_JSONAPI_PREFIX` environment variable applies, then
-the `/jsonapi` default. `getPublicClient()` and `getDraftClient()` are async for
-the same reason: `await` them like `getClient()`. For full manual control, use
-`JsonApiClient` from `@drupal-api-client/json-api-client` directly.
+the `/jsonapi` default; `CANVAS_JSONAPI_URL` sets a full upstream URL that takes
+precedence over discovery. `getPublicClient()` and `getDraftClient()` are async
+for the same reason: `await` them like `getClient()`. All three create the
+shared `drupal-canvas` client (`createJsonApiClient()`), which deserializes
+responses with `DefaultSerializer`.
 
 `fetchEntity(event, { type, id, viewMode })` renders one content entity without
 page-level route or head data. Use it for embedded renders such as teaser cards.
+
+`page.context` carries the page and site context (title, breadcrumbs, primary
+entity, branding) Drupal generated for the routed page. To fetch JSON:API
+content from the browser, build the shared client from the nonsecret runtime
+configuration the session route answers as `jsonApi`:
+
+```ts
+import { createJsonApiClient } from 'drupal-canvas/jsonapi-client';
+
+const { data: session } = await useFetch('/api/draft/session');
+const client = createJsonApiClient({
+  ...session.value.jsonApi,
+  credentials: 'same-origin',
+});
+```
+
+Requests go through the proxy; an expired preview session surfaces as
+`DraftSessionError` instead of public content.

@@ -37,6 +37,7 @@ export default defineConfig({
               'tailwind-merge': 'tailwind-merge.js',
               'astro-hydration/src/lib/jsonapi-params.ts': 'jsonapi-params.js',
               'astro-hydration/src/lib/swr.ts': 'swr.js',
+              'astro-hydration/src/lib/canvas-client.ts': 'canvas-client.js',
               'drupal-canvas': 'drupal-canvas.js',
             };
             return Object.entries(matches).reduce((carry, [key, value]) => {
@@ -85,6 +86,12 @@ export default defineConfig({
           );
 
           if (matchedLibrary) {
+            // The island client renderer must share the page's `drupal-canvas`
+            // and `preact` module instances with Code Components, so its
+            // imports stay bare and resolve through the import map.
+            if (parent?.includes(path.resolve(__dirname, 'src/lib/canvas-client.ts'))) {
+              return true;
+            }
             // Bundle if imported directly from astro-hydration source.
             if (parent?.includes(path.resolve(__dirname, 'src/'))) {
               return false;

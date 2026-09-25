@@ -28,6 +28,7 @@ services:
   Drupal\canvas_headless\CanvasContentHeadBuilder:
     arguments:
       $metatagManager: '@?metatag.manager'
+  Drupal\canvas_headless\CanvasContentContextBuilder: {}
   Drupal\canvas_headless\Access\PreviewCeilingAccessPolicy:
     tags:
       - { name: access_policy }

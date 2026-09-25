@@ -20,6 +20,7 @@ export {
   getDraftConfig,
   getDraftData,
   getDraftServer,
+  getJsonApiRuntimeConfig,
   isDraftModeEnabled,
   isDraftSessionExpired,
 } from './server';
@@ -32,6 +33,7 @@ export {
   type AccessToken,
   type CanvasComponentTreeElement,
   type CanvasComponentTreeSlot,
+  type CanvasContext,
   type DrupalRoute,
   type DrupalRouteEntity,
   type DraftData,
@@ -42,6 +44,7 @@ export {
   type PageResult,
 } from '@drupal-canvas/headless';
 export type { DraftConfig, DraftServer } from '@drupal-canvas/headless/server';
+export type { JsonApiRuntimeConfig } from 'drupal-canvas/jsonapi-client';
 export type {
   ComponentMetadataEntry,
   ComponentMetadataPayload,

@@ -423,7 +423,8 @@ npx canvas pull [options]
   pull operation. Defaults to `true`; use `--no-include-brand-kit` to disable.
 - `--no-page-templates`: Exclude page templates from the pull operation
 - `-y, --yes`: Skip all confirmation prompts (non-interactive mode)
-- `--skip-overwrite`: Skip items that already exist locally
+- `--skip-overwrite`: Skip items that already exist locally (the getter
+  migration below never touches skipped files)
 
 **About prompts:**
 
@@ -487,6 +488,49 @@ the end of the map and reported. `--skip-overwrite` only appends new colors and
 leaves existing entries untouched.
 
 ---
+
+#### Getter migration to context hooks
+
+`pull` migrates pulled component sources from the deprecated `getPageData()` and
+`getSiteData()` calls to the `usePageContext()` and `useSiteContext()` hooks of
+the `drupal-canvas` package. The migration runs as part of every pull, with no
+separate option, but only when both checks pass:
+
+- the connected site advertises context-hook support at
+  `/canvas/api/v0/site-data` (`capabilities.contextHooks`), and
+- the project's installed `drupal-canvas/react` entry statically exports both
+  hooks as runtime values. Root-only packages fail this check; no version
+  threshold or additional capability flag is used.
+
+If either check fails or cannot be verified, getter calls stay unchanged and the
+pull reports the limitation with migration guidance.
+
+A component file is rewritten only when every getter usage in it is safe: the
+call uses the imported binding, takes no arguments, sits at an unconditional
+hook position in a function component or custom hook with no possible earlier
+return, and the hook names do not conflict with other identifiers. Otherwise the
+file stays unchanged and the reason is reported per file. Aliased imports are
+handled, replacement hooks are imported from `drupal-canvas/react`, and unused
+legacy imports are removed. `new JsonApiClient()` and pulled helper modules
+receive diagnostics only. No null guards or type changes are generated; strict
+TypeScript checks may need follow-up for the hooks' nullable results, which the
+pull notes.
+
+Direct destructuring of a getter result (including property defaults) leaves the
+entire file unchanged: the replacement hook can return `null`. Convert manually
+with an explicit guard, for example
+`const { pageTitle = 'Unavailable' } = usePageContext() ?? {};`, reviewing
+nested destructuring separately. Existing `getPageData() ?? {}` and
+`getSiteData() ?? {}` fallbacks can migrate when the call is otherwise
+unconditional; right-hand short-circuit operands, ternary branches and
+destructuring defaults cannot. Direct assignment followed by optional access
+continues to migrate. This is not a general null-safety or data-flow analysis of
+subsequent uses.
+
+Planned conversions are listed before the confirmation prompt (and applied with
+`--yes`). Afterwards the pull lists migrated files with their replacements,
+per-file warnings for the remaining cases, and one consolidated AI-agent
+migration prompt for them.
 
 ### `scaffold`
 

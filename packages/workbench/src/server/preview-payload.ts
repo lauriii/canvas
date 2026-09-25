@@ -30,6 +30,7 @@ import type {
   DiscoveryResult,
   NormalizedBrandKitColor,
 } from '@drupal-canvas/discovery';
+import type { CanvasSiteData } from '@drupal-canvas/vite-plugin';
 import type { Spec } from '@json-render/core';
 import type { OutputAsset, OutputChunk, RollupOutput } from 'rollup';
 
@@ -68,6 +69,8 @@ export interface PreviewPayload {
 export interface InteractiveBundleResult {
   js: string;
   css: string;
+  /** The site data the Vite integration loaded during the bundle build. */
+  siteData: CanvasSiteData | null;
 }
 
 export interface PreviewRuntimeSettings {
@@ -147,12 +150,48 @@ export function resolvePreviewRuntimeSettings(
   };
 }
 
+/**
+ * The Workbench context helpers, inlined into the generated entry: the entry
+ * is bundled inside the host project, where this package's modules are not
+ * resolvable. Mirrors `createWorkbenchContext()` and
+ * `createWorkbenchJsonApiConfig()` in ../lib/workbench-context.ts.
+ */
+const WORKBENCH_CONTEXT_RUNTIME_SOURCE = [
+  'const WORKBENCH_EMPTY_THEME_ASSETS = { logo: { url: "" }, favicon: { url: "", mimeType: "" } };',
+  'function createWorkbenchContext(siteData, fallbackBaseUrl) {',
+  '  return {',
+  '    page: { pageTitle: "", breadcrumbs: [], mainEntity: null },',
+  '    site: {',
+  '      branding: (siteData && siteData.branding) || { homeUrl: "", siteName: "", siteSlogan: "" },',
+  '      baseUrl: (siteData && siteData.baseUrl) || fallbackBaseUrl,',
+  '      themeAssets: (siteData && siteData.themeAssets) || WORKBENCH_EMPTY_THEME_ASSETS,',
+  '    },',
+  '  };',
+  '}',
+  'function createWorkbenchJsonApiConfig(siteData, fallbackBaseUrl) {',
+  '  if (siteData && siteData.jsonapiSettings === null) { return null; }',
+  '  const apiPrefix = siteData && siteData.jsonapiSettings && siteData.jsonapiSettings.apiPrefix;',
+  '  return {',
+  '    baseUrl: (siteData && siteData.baseUrl) || fallbackBaseUrl,',
+  '    ...(apiPrefix ? { apiPrefix } : {}),',
+  '    resourceVersion: null,',
+  '    preview: false,',
+  '  };',
+  '}',
+].join('\n');
+
 export function buildPreviewRuntimeEntrySource(options: {
   spec: Spec;
   pageTemplateSpec?: Spec | null;
   componentSources: BundleComponentSource[];
   cssEntryPaths: string[];
+  /** The static settings; the site data module supplies the rest. */
+  runtimeSettings?: PreviewRuntimeSettings;
 }): string {
+  const runtimeSettings = options.runtimeSettings ?? {
+    baseUrl: null,
+    jsonapiPrefix: null,
+  };
   const componentImports = options.componentSources
     .map(
       (source, index) =>
@@ -181,7 +220,9 @@ export function buildPreviewRuntimeEntrySource(options: {
   return [
     "import React from 'react';",
     "import { createRoot } from 'react-dom/client';",
+    "import { createJsonApiClient } from 'drupal-canvas'; import { CanvasContextProvider, JsonApiClientProvider } from 'drupal-canvas/react';",
     "import { renderSpec } from 'drupal-canvas/json-render-utils';",
+    "import canvasSiteData from 'virtual:drupal-canvas/site-data';",
     componentImports,
     cssImports,
     "if (typeof globalThis === 'object') {",
@@ -203,7 +244,21 @@ export function buildPreviewRuntimeEntrySource(options: {
     'const pageContent = renderSpec(spec, registry);',
     'if (pageTemplateSpec) { registry["marker.page_content"] = () => pageContent; }',
     'const renderedNode = pageTemplateSpec ? renderSpec(pageTemplateSpec, registry) : pageContent;',
-    'createRoot(container).render(React.createElement(React.Fragment, null, renderedNode));',
+    // The same providers the interactive preview mounts: Workbench page
+    // defaults and the site data loaded once by the Vite integration,
+    // resolved with the static settings and the preview origin exactly as
+    // the bootstrap script resolves the legacy settings — from the same
+    // inputs, not from the legacy settings themselves.
+    // @see ../lib/workbench-context.ts
+    // @see resolvePreviewSiteData()
+    WORKBENCH_CONTEXT_RUNTIME_SOURCE,
+    WORKBENCH_SITE_DATA_RUNTIME_SOURCE,
+    `const canvasStaticSettings = ${JSON.stringify(runtimeSettings)};`,
+    'const canvasResolvedSiteData = resolvePreviewSiteData(canvasStaticSettings, canvasSiteData);',
+    'const canvasContext = createWorkbenchContext(canvasResolvedSiteData, canvasPreviewOrigin);',
+    'const canvasJsonApiConfig = createWorkbenchJsonApiConfig(canvasResolvedSiteData, canvasPreviewOrigin);',
+    'const withClient = canvasJsonApiConfig ? React.createElement(JsonApiClientProvider, { client: createJsonApiClient(canvasJsonApiConfig) }, renderedNode) : renderedNode;',
+    'createRoot(container).render(React.createElement(CanvasContextProvider, { context: canvasContext }, withClient));',
   ].join('\n');
 }
 
@@ -277,28 +332,115 @@ function toPayload(
   };
 }
 
+/**
+ * The one site-data snapshot both preview consumers resolve from: the site
+ * data the Vite integration discovered wins, the static `CANVAS_SITE_URL` /
+ * `CANVAS_JSONAPI_PREFIX` settings fill what discovery did not provide, and
+ * the preview origin is the last resort (applied in the browser). The legacy
+ * `drupalSettings` bootstrap resolves it on the server and the generated
+ * entry resolves it in the browser from the same inputs (the inlined static
+ * settings and the site data module), so `getSiteData()` and
+ * `useSiteContext()` never disagree about the backend without either reading
+ * the other's output.
+ *
+ * Mirrored by `WORKBENCH_SITE_DATA_RUNTIME_SOURCE` below; keep them in sync.
+ */
+export function resolvePreviewSiteData(
+  runtimeSettings: PreviewRuntimeSettings,
+  siteData: CanvasSiteData | null = null,
+): CanvasSiteData | null {
+  const baseUrl = siteData?.baseUrl || runtimeSettings.baseUrl || undefined;
+  const jsonapiSettings =
+    siteData?.jsonapiSettings === null
+      ? null
+      : siteData?.jsonapiSettings?.apiPrefix || runtimeSettings.jsonapiPrefix
+        ? {
+            ...siteData?.jsonapiSettings,
+            apiPrefix:
+              siteData?.jsonapiSettings?.apiPrefix ||
+              (runtimeSettings.jsonapiPrefix as string),
+          }
+        : undefined;
+  if (!siteData && !baseUrl && jsonapiSettings === undefined) {
+    return null;
+  }
+  return {
+    ...siteData,
+    ...(baseUrl && { baseUrl }),
+    ...(jsonapiSettings !== undefined && { jsonapiSettings }),
+  };
+}
+
+/**
+ * The browser-side mirror of `resolvePreviewSiteData()` and of the bootstrap
+ * script's origin fallback, inlined into the generated entry.
+ */
+const WORKBENCH_SITE_DATA_RUNTIME_SOURCE = [
+  'function resolvePreviewSiteData(runtimeSettings, siteData) {',
+  '  const baseUrl = (siteData && siteData.baseUrl) || runtimeSettings.baseUrl || undefined;',
+  '  const discoveredPrefix = siteData && siteData.jsonapiSettings && siteData.jsonapiSettings.apiPrefix;',
+  '  const jsonapiSettings = siteData && siteData.jsonapiSettings === null',
+  '    ? null',
+  '    : (discoveredPrefix || runtimeSettings.jsonapiPrefix)',
+  '      ? { ...(siteData && siteData.jsonapiSettings), apiPrefix: discoveredPrefix || runtimeSettings.jsonapiPrefix }',
+  '      : undefined;',
+  '  if (!siteData && !baseUrl && jsonapiSettings === undefined) { return null; }',
+  '  return { ...siteData, ...(baseUrl ? { baseUrl } : {}), ...(jsonapiSettings !== undefined ? { jsonapiSettings } : {}) };',
+  '}',
+  "const canvasPreviewOrigin = ['http:', 'https:'].includes(window.location.protocol) ? window.location.origin : 'http://localhost';",
+].join('\n');
+
 function buildPreviewBootstrapScript(
   runtimeSettings: PreviewRuntimeSettings,
+  siteData: CanvasSiteData | null = null,
 ): string {
+  const resolved = resolvePreviewSiteData(runtimeSettings, siteData);
   const bootstrapStatements = [
+    // Generated previews are a Workbench environment for the legacy runtime
+    // APIs; declare it before the runtime script evaluates component modules.
+    // @see packages/drupal-canvas/src/runtime.ts
+    'window.__drupalCanvasRuntime = { environment: "workbench" };',
     'window.drupalSettings = window.drupalSettings ?? {};',
     'window.drupalSettings.canvasData = window.drupalSettings.canvasData ?? {};',
     'window.drupalSettings.canvasData.v0 = window.drupalSettings.canvasData.v0 ?? {};',
-    runtimeSettings.baseUrl
-      ? `const canvasPreviewBaseUrl = ${JSON.stringify(runtimeSettings.baseUrl)};`
+    resolved?.baseUrl
+      ? `const canvasPreviewBaseUrl = ${JSON.stringify(resolved.baseUrl)};`
       : "const canvasPreviewBaseUrl = ['http:', 'https:'].includes(window.location.protocol) ? window.location.origin : 'http://localhost';",
     'if (typeof window.drupalSettings.canvasData.v0.baseUrl !== "string" || window.drupalSettings.canvasData.v0.baseUrl.length === 0) {',
     '  window.drupalSettings.canvasData.v0.baseUrl = canvasPreviewBaseUrl;',
     '}',
   ];
 
-  if (runtimeSettings.jsonapiPrefix) {
+  if (resolved?.jsonapiSettings === null) {
+    // The site reports JSON:API as not installed; legacy clients must see
+    // that too.
+    bootstrapStatements.push(
+      'if (window.drupalSettings.canvasData.v0.jsonapiSettings === undefined) { window.drupalSettings.canvasData.v0.jsonapiSettings = null; }',
+    );
+  } else if (resolved?.jsonapiSettings?.apiPrefix) {
     bootstrapStatements.push(
       'window.drupalSettings.canvasData.v0.jsonapiSettings = window.drupalSettings.canvasData.v0.jsonapiSettings ?? {};',
       'if (typeof window.drupalSettings.canvasData.v0.jsonapiSettings.apiPrefix !== "string" || window.drupalSettings.canvasData.v0.jsonapiSettings.apiPrefix.length === 0) {',
-      `  window.drupalSettings.canvasData.v0.jsonapiSettings.apiPrefix = ${JSON.stringify(runtimeSettings.jsonapiPrefix)};`,
+      `  window.drupalSettings.canvasData.v0.jsonapiSettings.apiPrefix = ${JSON.stringify(resolved.jsonapiSettings.apiPrefix)};`,
       '}',
     );
+  }
+
+  // The remaining site-level data for legacy consumers (`getSiteData()`),
+  // filled in without overriding what is already set.
+  if (resolved) {
+    const siteLevelData = Object.fromEntries(
+      Object.entries(resolved).filter(
+        ([key]) => key !== 'baseUrl' && key !== 'jsonapiSettings',
+      ),
+    );
+    if (Object.keys(siteLevelData).length > 0) {
+      bootstrapStatements.push(
+        `for (const [key, value] of Object.entries(${JSON.stringify(siteLevelData)})) {`,
+        '  if (window.drupalSettings.canvasData.v0[key] === undefined) { window.drupalSettings.canvasData.v0[key] = value; }',
+        '}',
+      );
+    }
   }
 
   return bootstrapStatements.join('').replaceAll('</script>', '<\\/script>');
@@ -321,10 +463,14 @@ export function buildIframeHtml(
     baseUrl: null,
     jsonapiPrefix: null,
   },
+  siteData: CanvasSiteData | null = null,
 ): string {
   const escapedScript = js.replaceAll('</script>', '<\\/script>');
   const escapedStyle = css.replaceAll('</style>', '<\\/style>');
-  const bootstrapScript = buildPreviewBootstrapScript(runtimeSettings);
+  const bootstrapScript = buildPreviewBootstrapScript(
+    runtimeSettings,
+    siteData,
+  );
 
   return [
     '<!doctype html>',
@@ -347,6 +493,11 @@ export function buildIframeHtml(
     '</body>',
     '</html>',
   ].join('');
+}
+
+interface CanvasSiteDataPlugin {
+  name: string;
+  api?: { getCanvasSiteData(): CanvasSiteData };
 }
 
 function collectOutputs(result: RollupOutput | RollupOutput[]): {
@@ -425,6 +576,7 @@ export async function bundleInteractivePreview(options: {
   pageTemplateSpec?: Spec | null;
   componentSources: BundleComponentSource[];
   cssEntryPaths: string[];
+  runtimeSettings?: PreviewRuntimeSettings;
 }): Promise<InteractiveBundleResult> {
   const require = createRequire(import.meta.url);
   const reactPackageRoot = path.dirname(require.resolve('react/package.json'));
@@ -433,6 +585,9 @@ export async function bundleInteractivePreview(options: {
   );
   const drupalCanvasEntryPath =
     resolveSpecifierFromCurrentModule('drupal-canvas');
+  const drupalCanvasReactPath = resolveSpecifierFromCurrentModule(
+    'drupal-canvas/react',
+  );
   const drupalCanvasJsonRenderUtilsPath = resolveSpecifierFromCurrentModule(
     'drupal-canvas/json-render-utils',
   );
@@ -446,6 +601,7 @@ export async function bundleInteractivePreview(options: {
     pageTemplateSpec: options.pageTemplateSpec,
     componentSources: options.componentSources,
     cssEntryPaths: options.cssEntryPaths,
+    runtimeSettings: options.runtimeSettings,
   });
   const canvasViteConfig = createCanvasViteBuildConfig({
     hostRoot: options.projectRoot,
@@ -505,6 +661,10 @@ export async function bundleInteractivePreview(options: {
             replacement: drupalCanvasEntryPath,
           },
           {
+            find: /^drupal-canvas\/react$/,
+            replacement: drupalCanvasReactPath,
+          },
+          {
             find: 'drupal-canvas/json-render-utils',
             replacement: drupalCanvasJsonRenderUtilsPath,
           },
@@ -534,7 +694,23 @@ export async function bundleInteractivePreview(options: {
       },
     });
 
-    return collectOutputs(buildResult as RollupOutput | RollupOutput[]);
+    const outputs = collectOutputs(
+      buildResult as RollupOutput | RollupOutput[],
+    );
+    // The Vite integration loaded the site data once during the build.
+    const canvasPlugin = (canvasViteConfig.plugins ?? [])
+      .flat()
+      .find(
+        (plugin): plugin is CanvasSiteDataPlugin =>
+          typeof plugin === 'object' &&
+          plugin !== null &&
+          'name' in plugin &&
+          plugin.name === 'drupal-canvas',
+      );
+    return {
+      ...outputs,
+      siteData: canvasPlugin?.api?.getCanvasSiteData() ?? null,
+    };
   } finally {
     await fs.rm(temporaryDirectory, { recursive: true, force: true });
   }
@@ -957,12 +1133,14 @@ export async function buildPreviewPayload(
           : null,
       componentSources: preparedResult.prepared.bundleSources,
       cssEntryPaths: uniqueCssPaths,
+      runtimeSettings,
     });
 
     const iframeHtml = buildIframeHtml(
       bundleResult.js,
       withBrandKitColorCss(options.projectRoot, bundleResult.css),
       runtimeSettings,
+      bundleResult.siteData,
     );
 
     return toPayload(request, {

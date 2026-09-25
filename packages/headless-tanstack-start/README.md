@@ -43,6 +43,11 @@ export const Route = createFileRoute('/api/draft')({
 // src/routes/api/disable-draft.ts   -> disableDraft.POST
 // src/routes/api/canvas.components.ts:
 //   const { GET, OPTIONS } = createComponentMetadataHandlers();
+// src/routes/api/canvas.jsonapi.$.ts (the same-origin JSON:API proxy):
+//   const { jsonApiProxy } = createDraftRouteHandlers();
+//   export const Route = createFileRoute('/api/canvas/jsonapi/$')({
+//     server: { handlers: jsonApiProxy },
+//   });
 ```
 
 Mount the component-preview route:
@@ -78,14 +83,29 @@ component renders `<DraftSession>` from
 `@drupal-canvas/headless-tanstack-start/client` with a render prop that owns the
 banner markup.
 
-**5. Component tree** — pass the structured content returned by `fetchPage()` to
-`<CanvasComponentTree>`:
+**5. Component tree** — pass the structured content and context returned by
+`fetchPage()` to `<CanvasComponentTree>`:
 
 ```tsx
 import { CanvasComponentTree } from '@drupal-canvas/headless-tanstack-start/CanvasComponentTree';
 
-<CanvasComponentTree tree={page.content} />;
+<CanvasComponentTree tree={page.content} context={page.context} />;
 ```
+
+`context` lets registered components read the page and site data through
+`usePageContext()` and `useSiteContext()` from `drupal-canvas/react`. For
+`useJsonApiClient()`, read `getJsonApiRuntimeConfig()` in the server function
+the root route's loader calls (alongside the session state) and render
+`JsonApiRuntimeProvider` from `@drupal-canvas/headless-react` around the outlet;
+`CanvasComponentTree` also accepts it as an explicit `jsonApi` prop. The
+configuration is serializable and carries no credentials.
+
+During server rendering `useJsonApiClient()` returns the same draft-aware client
+as in the browser, so SWR fallback data supplied through `SWRConfig` renders
+into the initial HTML and hydration does not mismatch, but the client performs
+no network requests on the server: prefetch draft data with `getClient()` in the
+server function the route loader calls and pass it as SWR fallback data (see
+`@drupal-canvas/headless-react`).
 
 The `canvas()` plugin supplies a registry of every discovered component
 implementation, and the renderer consumes it automatically. During development
@@ -125,9 +145,12 @@ The client's JSON:API prefix is resolved from the site's public site-data
 endpoint (fetched once per server instance), so sites serving JSON:API from a
 non-default prefix (e.g. `/api`) work without configuration. When that endpoint
 is unreachable, the `CANVAS_JSONAPI_PREFIX` environment variable applies, then
-the `/jsonapi` default. `getPublicClient()` and `getDraftClient()` are async for
-the same reason: `await` them like `getClient()`. For full manual control, use
-`JsonApiClient` from `@drupal-api-client/json-api-client` directly.
+the `/jsonapi` default; `CANVAS_JSONAPI_URL` sets a full upstream URL that takes
+precedence over discovery. `getPublicClient()` and `getDraftClient()` are async
+for the same reason: `await` them like `getClient()`. All three create the
+shared `drupal-canvas` client (`createJsonApiClient()`), which deserializes
+responses with `DefaultSerializer`. `getJsonApiRuntimeConfig()` and
+`handleJsonApiProxy()` back the browser client and the proxy route.
 
 `fetchEntity({ type, id, viewMode })` renders one content entity without
 page-level route or head data. Use it for embedded renders such as teaser cards.

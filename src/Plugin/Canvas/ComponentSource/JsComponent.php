@@ -607,6 +607,10 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
         'canvas_slot_ids' => \array_keys($slot_definitions),
         'canvas_is_preview' => $isPreview,
       ],
+      // The island's client renderer configures the shared JSON:API client to
+      // read working copies in previews, through the editor's Drupal session.
+      // @see packages/astro-hydration/src/lib/canvas-client.ts
+      '#attributes' => $isPreview ? ['data-canvas-preview' => 'true'] : [],
     ];
   }
 

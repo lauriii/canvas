@@ -11,6 +11,12 @@ type RegionsProviderProps = {
   children: ReactNode;
 };
 
+/**
+ * Supplies the region node map read by `Region`.
+ *
+ * @deprecated Theme-global regions were replaced by page variants (ADR 19);
+ *   compose pages with the component tree instead. Kept for compatibility.
+ */
 export function RegionsProvider({ regions, children }: RegionsProviderProps) {
   return (
     <RegionsContext.Provider value={regions}>
@@ -24,6 +30,12 @@ type RegionProps = {
   fallback?: ReactNode;
 };
 
+/**
+ * Renders the region whose machine name matches `name`.
+ *
+ * @deprecated Theme-global regions were replaced by page variants (ADR 19);
+ *   compose pages with the component tree instead. Kept for compatibility.
+ */
 export function Region({ name, fallback = null }: RegionProps) {
   const regions = useContext(RegionsContext);
   const node = regions[name];

@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
-import { loadEnv } from 'vite';
+import { loadEnv, normalizePath } from 'vite';
 import {
   drupalCanvasCompat,
   drupalCanvasCompatServer,
@@ -64,6 +64,22 @@ export async function createWorkbenchConfig(
         : {}),
     },
     optimizeDeps: {
+      // Scan both sides of runtime-only imports before serving the preview.
+      // Late discovery can otherwise split React across optimizer generations.
+      // Keep the client root separate: a glob rooted above Vite's root can
+      // omit its descendants. Published @wb modules also need explicit entries
+      // because the scanner does not crawl TSX dependencies in node_modules.
+      entries: [
+        path.join(paths.clientRoot, '**/*.{html,ts,tsx}'),
+        path.join(paths.workbenchSourceRoot, 'lib/**/*.ts'),
+        // Discover optional dependencies from host imports, not a fixed list
+        // that would require every project to install them.
+        path.join(paths.componentDiscoveryRoot, '**/*.{js,jsx,ts,tsx,mjs}'),
+        `!${path.join(paths.componentDiscoveryRoot, '**/*.{test,spec}.{js,jsx,ts,tsx,mjs}')}`,
+        `!${path.join(paths.componentDiscoveryRoot, '**/__tests__/**')}`,
+        `!${path.join(paths.clientRoot, '**/*.{test,spec}.{ts,tsx}')}`,
+        `!${path.join(paths.workbenchSourceRoot, 'lib/**/*.{test,spec}.ts')}`,
+      ].map(normalizePath),
       // Base UI imports these CommonJS shim subpaths from ESM files. Prebundle
       // them so Vite does not serve the raw shim files to the browser.
       include: [

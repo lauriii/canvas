@@ -9,7 +9,8 @@
   "license": "GPL-2.0-or-later",
   "scripts": {
     "build": "astro build && node extract-hydration-script.js",
-    "type-check": "tsc --noEmit --pretty"
+    "type-check": "tsc --noEmit --pretty",
+    "test": "vitest run"
   },
   "canvas": {
     "//": "@see docs/adr/0008-astro-hydration-bundled-dependencies-as-external.md",
@@ -24,11 +25,15 @@
     "astro": "^5.18.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "drupal-canvas": "^0.6.0",
+    "drupal-canvas": "^0.7.0",
     "drupal-jsonapi-params": "^2.3.2",
     "preact": "^10.25.4",
     "preact-render-to-string": "^6.6.7",
     "swr": "^2.3.7",
     "tailwind-merge": "^3.0.2"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0",
+    "vitest": "^4.0.18"
   }
 }

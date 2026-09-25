@@ -28,7 +28,7 @@ export function ComponentPreview({ page }: ComponentPreviewProps) {
           background: white;
         }
       `}</style>
-      <CanvasComponentTree tree={page.content} />
+      <CanvasComponentTree tree={page.content} context={page.context} />
     </main>
   );
 }

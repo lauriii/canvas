@@ -38,7 +38,10 @@ export default defineConfig({
 ```
 
 Pass `injectRoutes: false` to mount the `routes/*` subpath exports at paths of
-your own.
+your own. The integration also injects the same-origin JSON:API proxy at
+`/api/canvas/jsonapi/[...path]` (`CANVAS_JSONAPI_PROXY_PATH`), through which
+browser code reaches Drupal with the draft session's authorization
+(`routes/jsonapi-proxy`).
 
 **2. Session banner** — render `DraftSession.astro` in the app layout with the
 banner markup in its slot. The component gathers the session state server-side
@@ -109,9 +112,26 @@ The client's JSON:API prefix is resolved from the site's public site-data
 endpoint (fetched once per server instance), so sites serving JSON:API from a
 non-default prefix (e.g. `/api`) work without configuration. When that endpoint
 is unreachable, the `CANVAS_JSONAPI_PREFIX` environment variable applies, then
-the `/jsonapi` default. `getPublicClient()` and `getDraftClient()` are async for
-the same reason: `await` them like `getClient()`. For full manual control, use
-`JsonApiClient` from `@drupal-api-client/json-api-client` directly.
+the `/jsonapi` default; `CANVAS_JSONAPI_URL` sets a full upstream URL that takes
+precedence over discovery. `getPublicClient()` and `getDraftClient()` are async
+for the same reason: `await` them like `getClient()`. All three create the
+shared `drupal-canvas` client (`createJsonApiClient()`), which deserializes
+responses with `DefaultSerializer`.
 
 `fetchEntity(Astro, { type, id, viewMode })` renders one content entity without
 page-level route or head data. Use it for embedded renders such as teaser cards.
+
+`page.context` carries the page and site context (title, breadcrumbs, primary
+entity, branding) Drupal generated for the routed page. To fetch JSON:API
+content from the browser, inline the nonsecret runtime configuration from
+`getJsonApiRuntimeConfig(Astro)` with `serializeJsonForHtml()` and build the
+shared client from it in a script:
+
+```ts
+import { createJsonApiClient } from 'drupal-canvas/jsonapi-client';
+
+const client = createJsonApiClient({ ...config, credentials: 'same-origin' });
+```
+
+Requests go through the proxy; an expired preview session surfaces as
+`DraftSessionError` instead of public content.

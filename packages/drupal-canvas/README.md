@@ -2,6 +2,12 @@
 
 Utilities and base components for building Drupal Canvas Code Components.
 
+React context hooks/providers are exported from `drupal-canvas/react`, together
+with `CanvasContextProviderProps` and `JsonApiClientProviderProps`. Context data
+and client types remain at the root. Existing components (`FormattedText`,
+`Image`, `Region`, `RegionsProvider`), utilities and legacy subpaths are
+unchanged; authoring helpers remain on `drupal-canvas/json-render-utils`.
+
 ## Utilities
 
 ### `cn`
@@ -33,37 +39,72 @@ const ControlDots = ({ className }) => (
 );
 ```
 
-### `getPageData`
+### `usePageContext` and `useSiteContext`
 
-Access information about the current page.
+Read the current page and site data in a React Code Component. Both hooks work
+in Drupal-rendered Code Components, Canvas Workbench previews, and React-based
+headless frontends: the rendering integration establishes the provider, and the
+hooks read it synchronously. They return `null`, with one actionable console
+warning, when no provider is mounted or the integration supplied no such data.
 
-```js
-import { getPageData } from 'drupal-canvas';
+```jsx
+import { usePageContext, useSiteContext } from 'drupal-canvas/react';
 
-const { pageTitle, breadcrumbs, mainEntity } = getPageData();
-const { bundle, entityTypeId, uuid, translations } = mainEntity;
+export default function PageHeader() {
+  const page = usePageContext();
+  const site = useSiteContext();
+
+  if (!page || !site) return null;
+
+  return (
+    <header>
+      <a href={site.branding.homeUrl}>{site.branding.siteName}</a>
+      <h1>{page.pageTitle}</h1>
+    </header>
+  );
+}
 ```
 
-#### Main entity metadata
+- Page context (`PageContext`): `pageTitle`, `breadcrumbs`, and `mainEntity`
+  (the primary Drupal entity, `null` on routes without one), including language
+  and translation information. See
+  [Main entity metadata](https://project.pages.drupalcode.org/canvas/code-components/data-fetching#main-entity-metadata).
+- Site context (`SiteContext`): `branding`, the Drupal `baseUrl`, and
+  `themeAssets`. Headless frontends receive empty theme asset URLs; that is
+  valid site context, so shared components must handle empty asset URLs.
 
-The main entity is the primary Drupal entity (e.g. article, canvas_page, blog)
-associated with the current page. Access main entity metadata of the page you
-are on with `getPageData`. This can be used to construct JSON:API parameters for
-requests. `mainEntity.translations` lists every enabled site language
-(`langcode`, `name`, `nativeName`, `url`, `translationAvailable`, `current`) for
-building a language switcher, alongside `requestedLanguage` and
-`renderedLanguage`.
-[View documentation and example here.](https://project.pages.drupalcode.org/canvas/code-components/data-fetching#main-entity-metadata)
+Call the hooks unconditionally at the top level of a function component or
+custom hook (React's rules of hooks) and handle `null` results.
 
-### `getSiteData`
+To reach components outside a Canvas tree, such as a site header in a headless
+application, wrap them in `CanvasContextProvider`:
 
-Access information about the site.
+```jsx
+import { CanvasContextProvider } from 'drupal-canvas/react';
+
+<CanvasContextProvider context={page.context}>
+  <SiteHeader />
+</CanvasContextProvider>;
+```
+
+The `CanvasContext` type describes the provider's value:
+`{ page: PageContext | null; site: SiteContext | null }`.
+
+### `getPageData` and `getSiteData` (deprecated)
+
+`getPageData()` and `getSiteData()` are deprecated in favor of
+`usePageContext()` and `useSiteContext()`. They keep working in Drupal-rendered
+Code Components and Canvas Workbench previews, where they read `drupalSettings`,
+and they still report their data to the code editor's "Component data" panel.
+Outside those environments they throw an error that names the replacement API.
+Components used in both frontend modes must migrate to the hooks; `canvas pull`
+migrates safe calls automatically (see the Canvas CLI).
 
 ```js
-import { getSiteData } from 'drupal-canvas';
+import { getPageData, getSiteData } from 'drupal-canvas';
 
+const { pageTitle, breadcrumbs, mainEntity } = getPageData();
 const { baseUrl, branding } = getSiteData();
-const { homeUrl, siteName, siteSlogan } = branding;
 ```
 
 ### `sortLinksetMenu`
@@ -111,38 +152,33 @@ const { data } = useSWR(['menu_items', 'main'], ([type, resourceId]) =>
 const menu = sortMenu(data);
 ```
 
-### `JsonApiClient`
+### `useJsonApiClient`
 
+Read a configured
 [JSON:API client](https://www.npmjs.com/package/@drupal-api-client/json-api-client)
-automatically configured with a `baseUrl` as well as
-[Jsona](https://www.npmjs.com/package/jsona) for
-[deserialization](https://project.pages.drupalcode.org/api_client/jsonapi-tutorial/deserializing-data/).
-
-[Drupal core's JSON:API module](https://www.drupal.org/docs/core-modules-and-themes/core-modules/jsonapi-module)
-must be enabled to use this client.
+from context. The Drupal island renderer, the headless React renderer, and both
+Workbench preview paths provide it; the hook never fetches data or creates a
+client on render. Use it with SWR or another fetching library:
 
 ```jsx
-import { JsonApiClient } from 'drupal-canvas';
+import { useJsonApiClient } from 'drupal-canvas/react';
 import { DrupalJsonApiParams } from 'drupal-jsonapi-params';
 import useSWR from 'swr';
 
-const client = new JsonApiClient();
-
 export default function List() {
-  const { data, error, isLoading } = useSWR(
-    [
-      'node--article',
-      {
-        queryString: new DrupalJsonApiParams()
-          .addInclude(['field_tags'])
-          .getQueryString(),
-      },
-    ],
-    ([type, options]) => client.getCollection(type, options),
+  const client = useJsonApiClient();
+  const { data, error } = useSWR(client ? 'articles' : null, () =>
+    client.getCollection('node--article', {
+      queryString: new DrupalJsonApiParams()
+        .addInclude(['field_tags'])
+        .getQueryString(),
+    }),
   );
 
   if (error) return 'An error has occurred.';
-  if (isLoading) return 'Loading...';
+  // Test for data, not `isLoading`: with prefetched SWR fallback data the
+  // data is present while SWR still reports loading during revalidation.
+  if (!data) return 'Loading...';
   return (
     <ul>
       {data.map((article) => (
@@ -151,6 +187,93 @@ export default function List() {
     </ul>
   );
 }
+```
+
+The hook returns `null`, with one console warning, when no provider is mounted.
+In Drupal previews the client reads working copies (the `rel:working-copy`
+resource version) through the editor's session; in headless browsers it reaches
+Drupal through the application's same-origin proxy, authenticated from the draft
+preview session. Replacing the provided client does not clear SWR caches.
+
+For portable components, use this hook rather than Drupal globals or a client
+with hardcoded URLs or credentials. Drupal, Workbench, and headless React
+integrations supply the client; the hook does not detect the environment. See
+[Writing portable components](../../docs/user/src/content/docs/code-components/data-fetching.mdx#writing-portable-components)
+for an SWR example and server-rendering guidance.
+
+[Drupal core's JSON:API module](https://www.drupal.org/docs/core-modules-and-themes/core-modules/jsonapi-module)
+must be enabled.
+
+Provide a client explicitly for components outside a Canvas tree with
+`JsonApiClientProvider`:
+
+```jsx
+import { JsonApiClientProvider } from 'drupal-canvas/react';
+
+<JsonApiClientProvider client={client}>
+  <SiteHeader />
+</JsonApiClientProvider>;
+```
+
+### `createJsonApiClient` (`drupal-canvas/jsonapi-client`)
+
+The shared, framework-agnostic client implementation rendering integrations and
+the Canvas Headless SDK build on. It extends
+`@drupal-api-client/json-api-client` with `DefaultSerializer`, draft reads at a
+configured resource version (collection items are hydrated with their working
+copies before serialization; raw responses bypass this), mapping of browser
+requests to a same-origin proxy (including absolute pagination links and the
+Decoupled Router endpoint), `DraftSessionError` for rejected preview sessions
+(the proxy's session error, or a 401 answered to a direct request that carried
+the session credentials), and caches separated by resource version and session
+scope: a client that may carry a session (authentication, cookies — explicit or
+a browser's same-origin default — the proxy, a custom `fetch` transport, a
+preview or a resource version) caches only with an explicit `cacheScope`, so the
+legacy client and any transport-injected client share no cache without a
+caller-provided scope. A 401 is a rejected session when the request carried the
+configured credentials (the Authorization header, cookies, or a transport
+declared with `fetchAuthenticates`); `disableAuthentication` opts a request out,
+and failing to obtain or renew credentials is a rejected session too. Draft
+collection reads hydrate each item with its working copy, keeping the read's
+locale, sparse fieldsets, includes, and an explicitly selected resource version;
+the working copies' included resources are merged into the document, and a
+resource that is itself primary is never duplicated in `included`, so
+relationships resolve to the selected working copy. URLs keep the backend's site
+path (`https://host/sub/fr/jsonapi/...`, also for the Decoupled Router and index
+lookups); `apiUrl` under `baseUrl` is a prefix override, and `apiUrl` on another
+site is a foreign JSON:API base: with `apiSiteUrl` (that site's base URL,
+install path included) a locale prefix goes between them
+(`https://api.example/mount/fr/api`), without it no locale prefix applies; the
+Decoupled Router stays under `baseUrl` either way.
+
+```js
+import { createJsonApiClient } from 'drupal-canvas/jsonapi-client';
+
+const client = createJsonApiClient({
+  baseUrl: 'https://drupal.example',
+  apiPrefix: 'jsonapi',
+  // Browser clients in headless apps go through the app's proxy.
+  proxyUrl: '/api/canvas/jsonapi',
+  resourceVersion: 'rel:working-copy',
+  preview: true,
+});
+```
+
+`DefaultSerializer` and `createCache` are re-exported from
+`drupal-canvas/jsonapi-client` unchanged.
+
+### `JsonApiClient` (deprecated)
+
+`new JsonApiClient()` is deprecated in favor of `useJsonApiClient()` in React
+Code Components and the Headless SDK's `getClient()` in headless server code. It
+keeps working in Drupal-rendered Code Components and Canvas Workbench previews,
+where it is configured from `drupalSettings`, and throws an error naming the
+replacement APIs elsewhere, even when a base URL is supplied.
+
+```jsx
+import { JsonApiClient } from 'drupal-canvas';
+
+const client = new JsonApiClient();
 ```
 
 You can override the `baseUrl` and any default options:
@@ -162,10 +285,15 @@ const client = new JsonApiClient('https://drupal-api-demo.party', {
 });
 ```
 
-If working outside of Drupal Canvas, you can use the
-[`@drupal-canvas/vite-plugin`](https://www.npmjs.com/package/@drupal-api-client/json-api-client)
-to automatically configure the base URL for you. Otherwise you must explicitly
-provide a base URL.
+### Migrating from the deprecated APIs
+
+Replace `getPageData()`, `getSiteData()`, and `new JsonApiClient()` with
+`usePageContext()`, `useSiteContext()`, and `useJsonApiClient()` in function
+components or custom hooks. Call hooks unconditionally at the top level before
+any possible return; handle missing context or clients. Outside components and
+custom hooks, use the Headless SDK's page context data or `getClient()` in
+headless server code; pass data or a client to browser helpers. Preserve output,
+types, hook order, and access controls. Never expose credentials.
 
 ### json-render Utils
 
@@ -384,7 +512,11 @@ process, an SVG image for example. Such an image is rendered as-is, without a
 `srcset`. An SVG image that specifies neither its dimensions nor a `viewBox` is
 rendered without `width` and `height` too, and is then sized by the browser.
 
-### Region / RegionsProvider
+### Region / RegionsProvider (deprecated)
+
+Deprecated: theme-global regions were replaced by page variants, which compose a
+page from a single component tree. Both components keep working for
+compatibility, but no new region integration is added.
 
 Render Drupal Canvas global regions inside a layout component.
 `<Region name="..." />` slots in the region whose machine name matches `name`,

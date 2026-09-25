@@ -1,5 +1,37 @@
 # @drupal-canvas/workbench
 
+## 0.13.0
+
+### Minor Changes
+
+- ed541e3: Support the `drupal-canvas` context hooks in both preview paths: the
+  interactive preview and generated preview entries render inside
+  `CanvasContextProvider` and `JsonApiClientProvider`, with Workbench page
+  defaults and the site data the Vite integration loaded once. Legacy
+  `drupalSettings` consumers keep working, and generated previews declare the
+  Workbench runtime for the legacy getters and `new JsonApiClient()`.
+
+  Generated previews resolve one site-data snapshot for the legacy
+  `drupalSettings` and the hooks: discovered site data, then the static
+  settings, then the preview origin.
+
+  The generated entry resolves that snapshot from the same inputs as the
+  bootstrap script instead of reading the legacy settings back. Editing a
+  component mock refreshes the mounted preview iframe in place (component state
+  kept, props and mock data updated) instead of remounting it.
+
+### Patch Changes
+
+- ed541e3: Fetch public Canvas site metadata without credentials, including when
+  tooling has an OAuth token configured. Authenticated data requests and write
+  operations are unchanged.
+- ed541e3: Scan Workbench client modules and host components during initial
+  dependency optimization to prevent cold-start previews from mixing React
+  optimizer generations. Optional component dependencies are discovered from
+  imports rather than required in every project.
+- Updated dependencies [ed541e3]
+  - drupal-canvas@0.7.0
+
 ## 0.12.0
 
 ### Minor Changes
