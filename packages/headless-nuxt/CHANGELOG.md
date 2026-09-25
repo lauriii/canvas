@@ -1,5 +1,11 @@
 # @drupal-canvas/headless-nuxt
 
+## 0.7.1
+
+### Patch Changes
+
+- 614dfb4: Update runtime dependencies to compatible versions.
+
 ## 0.7.0
 
 ### Minor Changes

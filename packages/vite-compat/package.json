@@ -23,7 +23,7 @@
     "@drupal-canvas/discovery": "*",
     "@drupal-canvas/vite-plugin": "*",
     "js-yaml": "^4.1.1",
-    "vite-plugin-svgr": "^4.5.0"
+    "vite-plugin-svgr": "^5.2.0"
   },
   "peerDependencies": {
     "vite": "^6 || ^7"
