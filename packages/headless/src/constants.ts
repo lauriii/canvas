@@ -36,9 +36,9 @@ export const CANVAS_COMPONENT_PREVIEW_PATH = '/api/canvas/component-preview';
  * cookie never accompanies them. The embedding host page (the Canvas editor)
  * *does* hold that session, so renewal is a relayed conversation over
  * postMessage. These string values are the contract between the two sides:
- * the app side is implemented by the draft session state machine in this
- * package's `client` entry, the host side by @drupal-canvas/headless-host
- * (which re-exports these constants).
+ * the app side is implemented by the protocol bridges in this package's
+ * `client` entry, the host side by @drupal-canvas/headless-host (which
+ * re-exports these constants).
  */
 
 /** Host → app: establish the current iframe document's protocol session. */
@@ -58,6 +58,13 @@ export const HEADLESS_REFRESH_MESSAGE = 'canvas-headless:refresh';
 
 /** App → host: confirms that a numbered refresh command was received. */
 export const HEADLESS_REFRESH_ACK_MESSAGE = 'canvas-headless:refresh-ack';
+
+/** App → host: delegates an absolute HTTP URL for host-owned navigation. */
+export const HEADLESS_NAVIGATION_MESSAGE = 'canvas-headless:navigation';
+
+/** App → host: asks the host to repeat its navigation handshake. */
+export const HEADLESS_NAVIGATION_READY_MESSAGE =
+  'canvas-headless:navigation-ready';
 
 /** Host → app: complete the trusted geometry-channel handshake. */
 export const HEADLESS_GEOMETRY_REQUEST_MESSAGE =

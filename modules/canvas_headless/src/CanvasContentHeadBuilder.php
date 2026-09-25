@@ -44,7 +44,7 @@ final class CanvasContentHeadBuilder {
     $cacheability = (new CacheableMetadata())->addCacheableDependency($entity);
     $elements = [];
 
-    if ($this->metatagManager !== NULL) {
+    if ($this->metatagManager !== NULL && $entity->id() !== NULL) {
       $context = new RenderContext();
       $metatag_elements = $this->renderer->executeInRenderContext(
         $context,

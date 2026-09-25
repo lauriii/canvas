@@ -21,16 +21,27 @@ import type { EntityResult } from '../entity';
  * the session token has expired — the request is anonymous and resolves only
  * what anonymous visitors may see. Returns null for anything the current
  * access level cannot see (403/404).
+ * The request-local excludeAutoSave option excludes Canvas auto-saves while
+ * retaining the editor's access permissions.
  */
 export async function fetchEntity(options: {
   baseUrl: string;
   type: string;
   id: string;
   viewMode?: string;
+  excludeAutoSave?: boolean;
   draftData?: DraftData | null;
   fetchImpl?: typeof fetch;
 }): Promise<EntityResult | null> {
-  const { baseUrl, type, id, viewMode, draftData, fetchImpl = fetch } = options;
+  const {
+    baseUrl,
+    type,
+    id,
+    viewMode,
+    draftData,
+    excludeAutoSave,
+    fetchImpl = fetch,
+  } = options;
 
   const headers: Record<string, string> = { Accept: 'application/json' };
   let liveDraft = false;
@@ -49,6 +60,9 @@ export async function fetchEntity(options: {
   url.searchParams.set('id', id);
   if (viewMode) {
     url.searchParams.set('viewMode', viewMode);
+  }
+  if (liveDraft && excludeAutoSave === true) {
+    url.searchParams.set('excludeAutoSave', 'true');
   }
   const response = await fetchImpl(url, {
     headers,

@@ -110,7 +110,7 @@ final class ExternalComponentSyncControllerTest extends CanvasKernelTestBase {
   private function controller(): ExternalComponentSyncController {
     $preview_url_generator = new class() implements PreviewUrlGeneratorInterface {
 
-      public function generateForPath(string $path): ?Url {
+      public function generateForPath(string $path, array $preview_context = []): ?Url {
         return NULL;
       }
 

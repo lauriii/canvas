@@ -35,6 +35,7 @@ final class CanvasContentHeadBuilderTest extends UnitTestCase {
    */
   public function testBuildWithMetatag(): void {
     $entity = $this->createMock(ContentEntityInterface::class);
+    $entity->method('id')->willReturn(1);
     $entity->method('label')->willReturn('Fallback title');
     $entity->method('getCacheContexts')->willReturn([]);
     $entity->method('getCacheTags')->willReturn(['entity:1']);

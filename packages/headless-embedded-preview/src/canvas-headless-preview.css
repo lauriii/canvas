@@ -1,0 +1,60 @@
+.canvas-headless-preview {
+  position: fixed;
+  top: var(--drupal-displace-offset-top, 0);
+  right: var(--drupal-displace-offset-right, 0);
+  bottom: var(--drupal-displace-offset-bottom, 0);
+  left: var(--drupal-displace-offset-left, 0);
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+
+.canvas-headless-preview__messages {
+  overflow: auto;
+  flex-shrink: 0;
+  max-height: 50%;
+}
+
+.canvas-headless-preview > .node-preview-container {
+  position: static;
+  flex-shrink: 0;
+}
+
+.canvas-headless-preview__frame,
+.canvas-headless-preview__error {
+  flex: 1;
+  min-height: 0;
+}
+
+.canvas-headless-preview__frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #fff;
+}
+
+.canvas-headless-preview__error {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 2rem;
+  background: #fff;
+}
+
+.canvas-headless-preview__error[hidden],
+.canvas-headless-preview__frame[hidden] {
+  display: none;
+}
+
+.canvas-headless-preview__error-content {
+  width: 100%;
+  max-width: 38rem;
+}
+
+html:has(.canvas-headless-preview),
+body:has(.canvas-headless-preview) {
+  overflow: hidden;
+}

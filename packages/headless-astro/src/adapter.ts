@@ -47,6 +47,7 @@ export interface AstroCookieStore {
  * satisfy it.
  */
 export interface AstroDraftContext {
+  url?: URL;
   cookies: AstroCookieStore;
   redirect: (path: string) => Response;
 }
@@ -75,6 +76,7 @@ export function createAstroDraftAdapter(
   context: AstroDraftContext,
 ): DraftServerAdapter {
   return {
+    getRequestUrl: async () => context.url?.href ?? null,
     getCookie: async (name) => context.cookies.get(name)?.value ?? null,
     setCookie: async (cookie) => {
       setCookie(context.cookies, cookie);

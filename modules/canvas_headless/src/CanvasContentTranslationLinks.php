@@ -72,7 +72,7 @@ final class CanvasContentTranslationLinks {
       ->addCacheTags(['config:configurable_language_list'])
       ->addCacheableDependency($this->configFactory->get('language.types'))
       ->addCacheableDependency($this->configFactory->get('language.negotiation'));
-    if (!$this->languageManager->isMultilingual() || $entity === NULL || !$entity->hasLinkTemplate('canonical')) {
+    if (!$this->languageManager->isMultilingual() || $entity === NULL || $entity->id() === NULL || !$entity->hasLinkTemplate('canonical')) {
       return $result;
     }
 

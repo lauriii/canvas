@@ -57,6 +57,7 @@ final class CanvasContentApiRequestTest extends UnitTestCase {
               CanvasContentApiRequest::COMPONENT_PREVIEW_QUERY => 'route-component',
               CanvasContentApiRequest::API_QUERY_PARAMETERS_KEY => [
                 CanvasContentApiRequest::PREVIEW_VIEW_MODE_QUERY => 'teaser',
+                CanvasContentApiRequest::EXCLUDE_AUTO_SAVE_QUERY => 'true',
               ],
             ]),
             $request->getRequestUri(),
@@ -71,6 +72,7 @@ final class CanvasContentApiRequestTest extends UnitTestCase {
             CanvasContentApiRequest::COMPONENT_PREVIEW_QUERY => 'route-component',
             CanvasContentApiRequest::API_QUERY_PARAMETERS_KEY => [
               CanvasContentApiRequest::PREVIEW_VIEW_MODE_QUERY => 'teaser',
+              CanvasContentApiRequest::EXCLUDE_AUTO_SAVE_QUERY => 'true',
             ],
           ], $request->query->all());
           self::assertSame(
@@ -80,6 +82,7 @@ final class CanvasContentApiRequestTest extends UnitTestCase {
           self::assertSame(
             [
               CanvasContentApiRequest::PREVIEW_VIEW_MODE_QUERY => 'teaser',
+              CanvasContentApiRequest::EXCLUDE_AUTO_SAVE_QUERY => 'true',
             ],
             $request->attributes->get(CanvasContentApiRequest::API_QUERY_PARAMETERS_KEY),
           );
@@ -93,6 +96,7 @@ final class CanvasContentApiRequestTest extends UnitTestCase {
       http_build_query([
         'requestUri' => '/articles/example?campaign=test&viewMode=route-view-mode&componentId=route-component',
         CanvasContentApiRequest::PREVIEW_VIEW_MODE_QUERY => 'teaser',
+        CanvasContentApiRequest::EXCLUDE_AUTO_SAVE_QUERY => 'true',
       ]),
     );
     $request->headers->set('Authorization', 'Bearer preview-token');

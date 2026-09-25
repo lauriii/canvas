@@ -16,8 +16,8 @@ import type { DraftConfig, DraftServer } from '@drupal-canvas/headless/server';
 import type { JsonApiRuntimeConfig } from 'drupal-canvas/jsonapi-client';
 import type { H3Event } from 'h3';
 
-// One draft server per request event. All state lives in the request's
-// cookies, so this cache is purely about not re-deriving the closures when
+// One draft server per request event. Authentication and preview context
+// come from its cookies and URL. This cache avoids re-deriving closures when
 // several handlers ask for the server during one request.
 const servers = new WeakMap<H3Event, DraftServer>();
 
@@ -78,11 +78,7 @@ export function getClient(
 /** Fetches one entity by type and ID through the current draft session. */
 export function fetchEntity(
   event: H3Event,
-  options: {
-    type: string;
-    id: string;
-    viewMode?: string;
-  },
+  options: Parameters<DraftServer['fetchEntity']>[0],
 ): Promise<EntityResult | null> {
   return getDraftServer(event).fetchEntity(options);
 }
@@ -90,20 +86,23 @@ export function fetchEntity(
 /**
  * Fetches a page by its Drupal path, resolved through Drupal's routing,
  * carrying the live draft session's bearer token when there is one.
+ * An explicit previewContext replaces all URL-derived preview settings.
  */
 export function fetchPage(
   event: H3Event,
   path: string,
+  previewContext?: Parameters<DraftServer['fetchPage']>[1],
 ): Promise<PageResult | null> {
-  return getDraftServer(event).fetchPage(path);
+  return getDraftServer(event).fetchPage(path, previewContext);
 }
 
 /** Fetches one component preview through the current draft session. */
 export function fetchComponentPreview(
   event: H3Event,
   componentId: string,
+  previewUri?: string,
 ): Promise<PageResult | null> {
-  return getDraftServer(event).fetchComponentPreview(componentId);
+  return getDraftServer(event).fetchComponentPreview(componentId, previewUri);
 }
 
 /**

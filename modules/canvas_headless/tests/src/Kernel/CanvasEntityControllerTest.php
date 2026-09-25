@@ -16,6 +16,7 @@ use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas_headless\Controller\CanvasEntityController;
 use Drupal\canvas_headless\Grant\PreviewAssertionGrant;
 use Drupal\canvas_headless\PreviewAssertionFactory;
+use Drupal\canvas_headless\StackMiddleware\CanvasContentApiRequest;
 use Drupal\consumers\Entity\Consumer;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
@@ -299,6 +300,16 @@ final class CanvasEntityControllerTest extends CanvasKernelTestBase {
     );
     self::assertStringContainsString('Auto-saved component heading', $content);
     self::assertStringNotContainsString('Published template heading', $content);
+
+    $response = $this->renderPageEntity($page, exclude_auto_save: 'true');
+    $content = \json_encode(self::responseData($response)['content'], JSON_THROW_ON_ERROR);
+    self::assertStringContainsString('Stored component heading', $content);
+    self::assertStringNotContainsString('Auto-saved component heading', $content);
+    self::assertNotContains(AutoSaveManager::CACHE_TAG, $response->getCacheableMetadata()->getCacheTags());
+    self::assertContains('url.query_args:' . CanvasContentApiRequest::EXCLUDE_AUTO_SAVE_QUERY, $response->getCacheableMetadata()->getCacheContexts());
+
+    $response = $this->renderPageEntity($page, exclude_auto_save: 'false');
+    self::assertStringContainsString('Auto-saved component heading', \json_encode(self::responseData($response)['content'], JSON_THROW_ON_ERROR));
   }
 
   /**
@@ -326,6 +337,12 @@ final class CanvasEntityControllerTest extends CanvasKernelTestBase {
     // The auto-saved template is used for preview-scoped requests.
     self::assertStringContainsString('Auto-saved teaser heading', $content);
     self::assertStringNotContainsString('Teaser template heading', $content);
+
+    $response = $this->renderEntity($node, 'teaser', exclude_auto_save: 'true');
+    $content = \json_encode(self::responseData($response)['content'], JSON_THROW_ON_ERROR);
+    self::assertStringContainsString('Teaser template heading', $content);
+    self::assertStringNotContainsString('Auto-saved teaser heading', $content);
+    self::assertNotContains(AutoSaveManager::CACHE_TAG, $response->getCacheableMetadata()->getCacheTags());
   }
 
   /**
@@ -393,6 +410,14 @@ final class CanvasEntityControllerTest extends CanvasKernelTestBase {
     catch (CacheableAccessDeniedHttpException $exception) {
       self::assertContains('user.permissions', $exception->getCacheContexts());
     }
+
+    $role = $this->createRole(['view own unpublished content']);
+    self::assertIsString($role);
+    $this->editor->addRole($role)->save();
+    $node->setOwnerId((int) $this->editor->id())->save();
+    $this->setCurrentAccount($this->createTokenAccount(with_preview_scope: TRUE));
+    $result = $this->renderEntity($node, exclude_auto_save: 'true');
+    self::assertSame((string) $node->id(), self::responseData($result)['entity']['id']);
   }
 
   /**
@@ -472,12 +497,13 @@ final class CanvasEntityControllerTest extends CanvasKernelTestBase {
   /**
    * Renders an entity through the public kernel boundary.
    */
-  private function renderEntity(Node $node, string $view_mode = 'full'): CacheableJsonResponse {
+  private function renderEntity(Node $node, string $view_mode = 'full', ?string $exclude_auto_save = NULL): CacheableJsonResponse {
     $request = Request::create(
       CanvasEntityController::API_PATH . '?' . http_build_query([
         'type' => 'node',
         'id' => (string) $node->id(),
         'viewMode' => $view_mode,
+        CanvasContentApiRequest::EXCLUDE_AUTO_SAVE_QUERY => $exclude_auto_save,
       ]),
     );
     $response = $this->request($request);
@@ -488,12 +514,13 @@ final class CanvasEntityControllerTest extends CanvasKernelTestBase {
   /**
    * Renders a page entity through the public kernel boundary.
    */
-  private function renderPageEntity(Page $page, string $view_mode = 'full'): CacheableJsonResponse {
+  private function renderPageEntity(Page $page, string $view_mode = 'full', ?string $exclude_auto_save = NULL): CacheableJsonResponse {
     $request = Request::create(
       CanvasEntityController::API_PATH . '?' . http_build_query([
         'type' => Page::ENTITY_TYPE_ID,
         'id' => (string) $page->id(),
         'viewMode' => $view_mode,
+        CanvasContentApiRequest::EXCLUDE_AUTO_SAVE_QUERY => $exclude_auto_save,
       ]),
     );
     $response = $this->request($request);

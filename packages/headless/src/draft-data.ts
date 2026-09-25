@@ -1,10 +1,11 @@
+import { parsePreviewRequest } from './preview-context';
+
 /**
  * The draft session, established by exchanging a signed preview assertion at
  * Drupal's token endpoint. It describes a session, not a previewed entity:
  *
- * - `path`: the session's entry point, from the assertion's claims.
- *   Navigation only — what the app previews is determined by this path and
- *   the app's own routing.
+ * - `path`: the session's fallback entry point, without reserved preview
+ *   parameters. Navigation only; rendering context comes from each request.
  * - `resourceVersion`: session-wide revision policy the draft client applies
  *   to every fetch, using Drupal core JSON:API's `resourceVersion` query
  *   parameter values:
@@ -26,8 +27,6 @@
  *   - `id:<revision-id>` — one exact revision. Inherently per-entity, so it
  *     does not make sense as a session-wide policy; a "view this historical
  *     revision" feature would carry it per fetch, not here.
- * - `previewContext`: optional signed rendering context for editor previews.
- *   The SDK forwards it only while the user-bound draft session is live.
  * - `sub`: the Drupal user id of the editor the session is bound to, from
  *   the assertion's `sub` claim. Renewal is *continuation*, not activation:
  *   a renewal whose assertion names a different editor (the browser's
@@ -55,12 +54,6 @@
 export interface DraftData {
   path: string;
   resourceVersion: string;
-  /** Signed rendering context for an editor preview. */
-  previewContext?: {
-    language?: string;
-    viewMode?: string;
-    pageVariant?: string;
-  };
   sub: string;
   renewUrl: string;
   accessToken: string;
@@ -120,15 +113,6 @@ export function parseDraftData(
     if (
       typeof data.path !== 'string' ||
       typeof data.resourceVersion !== 'string' ||
-      (data.previewContext !== undefined &&
-        (typeof data.previewContext !== 'object' ||
-          data.previewContext === null ||
-          (data.previewContext.language !== undefined &&
-            typeof data.previewContext.language !== 'string') ||
-          (data.previewContext.viewMode !== undefined &&
-            typeof data.previewContext.viewMode !== 'string') ||
-          (data.previewContext.pageVariant !== undefined &&
-            typeof data.previewContext.pageVariant !== 'string'))) ||
       typeof data.sub !== 'string' ||
       typeof data.renewUrl !== 'string' ||
       typeof data.accessToken !== 'string' ||
@@ -138,10 +122,24 @@ export function parseDraftData(
     ) {
       return null;
     }
-    return data;
+    return sessionData(data);
   } catch {
     return null;
   }
+}
+
+/** Only session fields cross the shared-cookie boundary, including older cookies. */
+function sessionData(data: DraftData): DraftData {
+  return {
+    path: parsePreviewRequest(data.path).requestUri,
+    resourceVersion: data.resourceVersion,
+    sub: data.sub,
+    renewUrl: data.renewUrl,
+    accessToken: data.accessToken,
+    tokenType: data.tokenType,
+    tokenExpiresAt: data.tokenExpiresAt,
+    codeVerifier: data.codeVerifier,
+  };
 }
 
 /**
@@ -149,7 +147,7 @@ export function parseDraftData(
  * it.
  */
 export function serializeDraftData(draftData: DraftData): string {
-  return JSON.stringify(draftData);
+  return JSON.stringify(sessionData(draftData));
 }
 
 /**

@@ -145,16 +145,18 @@ final class ContentTemplateAwareViewBuilder extends EntityViewBuilder {
         )->applyTo($defaults);
     }
 
+    // Content templates own the complete output, including new entities and
+    // non-default revisions, which do not have render cache keys.
+    if ($template && $template->status()) {
+      unset($defaults['#theme']);
+    }
+
     $keys = NestedArray::getValue($defaults, ['#cache', 'keys']);
     if ($keys !== NULL) {
       if ($template && $template->status()) {
         // This entity has render caching, so add a cache key indicating whether
         // or not it's opted into Canvas.
         $keys[] = 'with-canvas';
-        // We don't want to use the default theme template (such as
-        // `node.html.twig`) because any content entity type that uses Canvas'
-        // ContentTemplates is opting in to full control via Canvas.
-        unset($defaults['#theme']);
       }
       else {
         $keys[] = 'without-canvas';

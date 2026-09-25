@@ -1,8 +1,13 @@
 import { once } from 'node:events';
 import { createServer } from 'node:http';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { isPageRedirect, serializeJsonForHtml } from '../index';
+import {
+  isPageRedirect,
+  parsePreviewRequest,
+  serializeJsonForHtml,
+  withPreviewContext,
+} from '../index';
 import { fetchPage } from './content-api';
 
 import type { AddressInfo } from 'node:net';
@@ -50,24 +55,22 @@ describe('language negotiation transport', () => {
       source.listen(0, '127.0.0.1');
       await once(source, 'listening');
       try {
-        const page = await fetchPage('/page/1?language=route-owned', {
-          baseUrl: `http://127.0.0.1:${(source.address() as AddressInfo).port}/drupal`,
-          draftData: {
-            path: '/page/1',
-            sub: '42',
-            resourceVersion: 'rel:working-copy',
-            renewUrl: 'https://unused.example/renew',
-            tokenType: 'Bearer',
-            accessToken: 'test-only-token',
-            tokenExpiresAt: Date.now() + 60_000,
-            codeVerifier: 'test-only-verifier',
-            previewContext: {
-              language: 'fr',
-              viewMode: 'full',
-              pageVariant: 'test',
+        const page = await fetchPage(
+          '/page/1?language=route-owned&_canvas_excludeAutoSave=true&_canvas_language=fr&_canvas_viewMode=full',
+          {
+            baseUrl: `http://127.0.0.1:${(source.address() as AddressInfo).port}/drupal`,
+            draftData: {
+              path: '/page/1',
+              sub: '42',
+              resourceVersion: 'rel:working-copy',
+              renewUrl: 'https://unused.example/renew',
+              tokenType: 'Bearer',
+              accessToken: 'test-only-token',
+              tokenExpiresAt: Date.now() + 60_000,
+              codeVerifier: 'test-only-verifier',
             },
           },
-        });
+        );
         expect(page).toMatchObject({ head: { title: 'French draft' } });
         expect(received).toHaveLength(2);
         expect(received[0].authorization).toBe('Bearer test-only-token');
@@ -80,7 +83,7 @@ describe('language negotiation transport', () => {
           requestUri: '/fr/page/1?language=route-owned',
           language: 'fr',
           viewMode: 'full',
-          pageVariant: 'test',
+          excludeAutoSave: 'true',
           _canvas_headless_language_redirect: '1',
         });
       } finally {
@@ -178,5 +181,222 @@ describe('serializeJsonForHtml', () => {
     expect(serialized).not.toContain('>');
     expect(serialized).not.toContain('&');
     expect(JSON.parse(serialized)).toEqual(value);
+  });
+});
+
+describe('request-local preview context', () => {
+  const draftData = {
+    path: '/page/1',
+    sub: '42',
+    resourceVersion: 'rel:working-copy',
+    renewUrl: 'https://drupal.example/renew',
+    tokenType: 'Bearer',
+    accessToken: 'test-only-token',
+    tokenExpiresAt: Date.now() + 60_000,
+    codeVerifier: 'test-only-verifier',
+    // Old cookies must not affect any request, even when still valid.
+    previewContext: { language: 'de', viewMode: 'teaser', pageVariant: 'old' },
+  };
+  const context = {
+    language: 'fr',
+    viewMode: 'full',
+    pageVariant: 'new',
+    excludeAutoSave: true,
+  };
+  const page = {
+    content: null,
+    head: { title: 'Page' },
+    route: { managedByCanvas: true },
+  };
+
+  it.each([
+    [
+      undefined,
+      {
+        language: 'fr',
+        viewMode: 'full',
+        pageVariant: 'new',
+        excludeAutoSave: 'true',
+      },
+    ],
+    [{}, {}],
+    [{ language: 'pl' }, { language: 'pl' }],
+  ])(
+    'uses explicit request context %j in place of URL or cookie context',
+    async (previewContext, expected) => {
+      const fetchImpl = vi.fn().mockResolvedValue(Response.json(page));
+      await fetchPage(
+        withPreviewContext('/page/1?tag=a%20b&tag=c#heading', context),
+        {
+          baseUrl: 'https://drupal.example',
+          draftData,
+          previewContext,
+          fetchImpl,
+        },
+      );
+      const [url] = fetchImpl.mock.calls[0];
+      expect(Object.fromEntries(url.searchParams)).toEqual({
+        requestUri: '/page/1?tag=a%20b&tag=c#heading',
+        ...expected,
+      });
+    },
+  );
+
+  it('does not apply a legacy cookie context when the request has none', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(Response.json(page));
+    await fetchPage('/page/1', {
+      baseUrl: 'https://drupal.example',
+      draftData,
+      fetchImpl,
+    });
+    const [url] = fetchImpl.mock.calls[0];
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      requestUri: '/page/1',
+    });
+  });
+
+  it.each([null, { ...draftData, tokenExpiresAt: 0 }])(
+    'does not forward preview context without live authorization (%j)',
+    async (session) => {
+      const fetchImpl = vi.fn().mockResolvedValue(Response.json(page));
+      await fetchPage(withPreviewContext('/page/1', context), {
+        baseUrl: 'https://drupal.example',
+        draftData: session,
+        fetchImpl,
+      });
+      const [url, init] = fetchImpl.mock.calls[0];
+      expect(Object.fromEntries(url.searchParams)).toEqual({
+        requestUri: '/page/1',
+      });
+      expect(init.headers).not.toHaveProperty('Authorization');
+    },
+  );
+
+  it('isolates component previews from page context while retaining their requested language', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(Response.json(page));
+    await fetchPage(withPreviewContext('/page/1', context), {
+      baseUrl: 'https://drupal.example',
+      draftData,
+      componentPreviewId: 'js.heading',
+      fetchImpl,
+    });
+    const [url] = fetchImpl.mock.calls[0];
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      requestUri: '/page/1',
+      componentId: 'js.heading',
+      language: 'fr',
+    });
+  });
+
+  it.each([
+    [false, true, undefined, context],
+    [true, true, undefined, undefined],
+    [false, false, undefined, undefined],
+    [false, true, 'js.heading', { language: 'fr' }],
+  ])(
+    'retains request context across applicable redirects (external=%s, live=%s, component=%s)',
+    async (external, live, componentPreviewId, expected) => {
+      const redirect = {
+        external,
+        url: external
+          ? 'https://other.example/new?tag=a%20b#heading'
+          : '/new?tag=a%20b#heading',
+        statusCode: 301,
+      };
+      const fetchImpl = vi.fn().mockResolvedValue(Response.json({ redirect }));
+      const result = await fetchPage(withPreviewContext('/old', context), {
+        baseUrl: 'https://drupal.example',
+        draftData: live ? draftData : null,
+        componentPreviewId,
+        fetchImpl,
+      });
+      expect(result).toEqual({
+        redirect: {
+          ...redirect,
+          url: expected
+            ? withPreviewContext(redirect.url, expected)
+            : redirect.url,
+        },
+      });
+    },
+  );
+});
+
+describe('preview request URL helpers', () => {
+  it('preserves unrelated query encoding, duplicates, and the fragment', () => {
+    const path =
+      '/page?tag=a%20b&tag=c%2Fd&language=route-owned&viewMode=grid&_canvas_tracking=1&_canvas_language=fr&_canvas_viewMode=teaser&_canvas_pageVariant=alternate&_canvas_excludeAutoSave=true#section?keep=1';
+    expect(parsePreviewRequest(path)).toEqual({
+      requestUri:
+        '/page?tag=a%20b&tag=c%2Fd&language=route-owned&viewMode=grid&_canvas_tracking=1#section?keep=1',
+      language: 'fr',
+      viewMode: 'teaser',
+      pageVariant: 'alternate',
+      excludeAutoSave: true,
+    });
+  });
+
+  // cspell:ignore Fcanvas Fmode
+  it('removes malformed values and parses encoded keys and repeated context safely', () => {
+    expect(
+      parsePreviewRequest(
+        '/page?%5Fcanvas_language=pl&_canvas_language=fr&_canvas_viewMode=bad%2Fmode&_canvas_pageVariant=%20&_canvas_excludeAutoSave=false&_canvas_excludeAutoSave=true#',
+      ),
+    ).toEqual({
+      requestUri: '/page#',
+      language: 'pl',
+      excludeAutoSave: false,
+    });
+  });
+
+  it('uses current-request defaults when the route omits reserved parameters', () => {
+    const defaults = parsePreviewRequest(
+      '/current?_canvas_language=pl&_canvas_viewMode=teaser&_canvas_pageVariant=alternate&_canvas_excludeAutoSave=true',
+    );
+    expect(parsePreviewRequest('/page?tag=a%20b', defaults)).toEqual({
+      requestUri: '/page?tag=a%20b',
+      language: 'pl',
+      viewMode: 'teaser',
+      pageVariant: 'alternate',
+      excludeAutoSave: true,
+    });
+    expect(
+      parsePreviewRequest(
+        '/page?_canvas_language=fr&_canvas_excludeAutoSave=false',
+        defaults,
+      ),
+    ).toEqual({
+      requestUri: '/page',
+      language: 'fr',
+      viewMode: 'teaser',
+      pageVariant: 'alternate',
+      excludeAutoSave: false,
+    });
+    expect(
+      parsePreviewRequest(
+        '/page?_canvas_language=&_canvas_language=en&_canvas_viewMode=invalid%2Fmode&_canvas_pageVariant=&_canvas_excludeAutoSave=invalid',
+        defaults,
+      ),
+    ).toEqual({
+      requestUri: '/page',
+      excludeAutoSave: false,
+    });
+  });
+
+  it('replaces all previous context without changing route parameters', () => {
+    const path =
+      '/page?tag=a%20b&tag=c&_canvas_language=pl&_canvas_viewMode=teaser&_canvas_pageVariant=old&_canvas_excludeAutoSave=true#';
+    expect(withPreviewContext(path, { language: 'en' })).toBe(
+      '/page?tag=a%20b&tag=c&_canvas_language=en#',
+    );
+    expect(withPreviewContext(path, {})).toBe('/page?tag=a%20b&tag=c#');
+    expect(
+      withPreviewContext(path, {
+        language: '',
+        viewMode: '../full',
+        pageVariant: ' ',
+        excludeAutoSave: false,
+      }),
+    ).toBe('/page?tag=a%20b&tag=c#');
   });
 });

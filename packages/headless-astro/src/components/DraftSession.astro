@@ -15,6 +15,8 @@ import { getDraftEditorOrigin } from '@drupal-canvas/headless';
  * Auto-save refresh events use Astro's navigate() API, which swaps the page
  * through ClientRouter when enabled and navigates the document otherwise.
  * The element also reports content height to the embedding host.
+ * The shared navigation bridge reports eligible link clicks to the host, which
+ * takes over navigation when it advertises that capability.
  *
  * The slot owns presentation: children marked
  * `data-draft-session-view="active"` show while the session is live and

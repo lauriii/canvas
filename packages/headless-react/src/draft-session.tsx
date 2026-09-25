@@ -8,6 +8,7 @@ import {
   createCanvasGeometryBridge,
   createDraftSession,
   createHeightReporter,
+  createNavigationBridge,
 } from '@drupal-canvas/headless/client';
 
 import type { ReactNode } from 'react';
@@ -38,7 +39,7 @@ export interface DraftSessionSnapshot {
   embedded: boolean;
   expired: boolean;
   renewState: DraftSessionRenewState;
-  /** The current app path (for the renew link's ?path= parameter). */
+  /** The current app path and query string for the renew link. */
   path: string;
   renewUrl: string | null;
 }
@@ -59,8 +60,8 @@ export interface DraftSessionProps {
   /** The app endpoint that redeems a fresh assertion. */
   renewEndpoint?: string;
   /**
-   * The current app path, reported to the host and carried by the renew
-   * link. Framework wrappers bind their router's pathname; without it the
+   * The current app path and query string, reported to the host and carried
+   * by the renew link. Framework wrappers bind their router's URL; without it the
    * document's location at machine creation is used, which is correct only
    * until a client-side navigation.
    */
@@ -97,7 +98,9 @@ export interface DraftSessionProps {
  * server-provided props arrive.
  *
  * Alongside the session machine, this component also runs a content-height
- * reporter (see @drupal-canvas/headless/client's createHeightReporter).
+ * reporter and the iframe navigation bridge from
+ * @drupal-canvas/headless/client. Mount this component only in draft mode;
+ * navigation remains available when the session token expires.
  */
 export function DraftSession({
   tokenExpiresAt,
@@ -154,7 +157,7 @@ export function DraftSession({
       return;
     }
     if (!hasPathPropRef.current) {
-      pathRef.current = window.location.pathname;
+      pathRef.current = window.location.pathname + window.location.search;
     }
     const session = createDraftSession({
       tokenExpiresAt: effectiveExpiresAt,
@@ -215,6 +218,14 @@ export function DraftSession({
       reporter.destroy();
     };
   }, [embedded, editorOrigin]);
+
+  useEffect(() => {
+    if (embedded !== true) {
+      return;
+    }
+    const bridge = createNavigationBridge({ embedded });
+    return () => bridge.destroy();
+  }, [embedded]);
 
   useEffect(() => {
     if (embedded !== true || !editorOrigin) {

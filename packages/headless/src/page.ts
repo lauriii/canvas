@@ -84,7 +84,7 @@ export interface DrupalRoute {
   entity: DrupalRouteEntity | null;
   /** Negotiated content language; may differ from entity.langcode on fallback. */
   negotiatedLanguage: string;
-  /** Empty on monolingual sites and routes without a canonical content entity. */
+  /** Empty on monolingual sites, without a canonical entity, or for ID-less previews. */
   translations: DrupalRouteTranslation[];
 }
 

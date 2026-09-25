@@ -249,7 +249,7 @@ readonly final class CodeComponentDataProvider {
       ->getId();
     $rendered_langcode = $entity->language()->getId();
     $translations = [];
-    if ($entity instanceof TranslatableInterface) {
+    if ($entity instanceof TranslatableInterface && $entity->id() !== NULL) {
       // JsComponent::renderComponent() bubbles these dependencies before
       // hook_js_settings_alter() attaches the data during asset rendering.
       $translations = EntityTranslationMetadata::build(

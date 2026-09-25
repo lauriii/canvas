@@ -40,8 +40,8 @@ class PreviewUrlGenerator implements PreviewUrlGeneratorInterface {
   /**
    * {@inheritdoc}
    */
-  public function generateForPath(string $path): ?Url {
-    $assertion = $this->issueForPath($path);
+  public function generateForPath(string $path, array $preview_context = []): ?Url {
+    $assertion = $this->issueForPath($path, preview_context: $preview_context);
     if ($assertion === NULL) {
       return NULL;
     }

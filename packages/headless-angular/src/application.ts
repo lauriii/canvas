@@ -31,6 +31,7 @@ import {
   createCanvasGeometryBridge,
   createDraftSession,
   createHeightReporter,
+  createNavigationBridge,
 } from '@drupal-canvas/headless/client';
 
 import type { ResolveFn } from '@angular/router';
@@ -348,7 +349,7 @@ export class CanvasDocumentHead {
   }
 }
 
-/** Hydration-safe ownership of the existing host/session/geometry machines. */
+/** Hydration-safe ownership of the draft session and preview bridges. */
 @Injectable({ providedIn: 'root' })
 export class CanvasDraftSession {
   private readonly store = inject(CanvasPageStore);
@@ -365,6 +366,9 @@ export class CanvasDraftSession {
   );
   readonly renewState = signal<DraftSessionRenewState>('idle');
   private machine?: DraftSession;
+  private readonly draftEnabled = computed(
+    () => this.store.session()?.enabled === true,
+  );
   // Navigation changes path only; it must not reset the session's renewal timer.
   private readonly epoch = computed(() => JSON.stringify(this.store.session()));
   constructor() {
@@ -373,6 +377,13 @@ export class CanvasDraftSession {
         this.document.defaultView!.self !== this.document.defaultView!.top,
       );
       this.ready.set(true);
+    });
+    // Token renewal must not restart navigation delegation.
+    effect((onCleanup) => {
+      const embedded = this.embedded();
+      if (embedded !== true || !this.draftEnabled()) return;
+      const bridge = createNavigationBridge({ embedded });
+      onCleanup(() => bridge.destroy());
     });
     effect((onCleanup) => {
       const ready = this.ready();

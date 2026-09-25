@@ -10,9 +10,10 @@
  * This root entry is isomorphic: protocol constants, geometry validation,
  * rendered-page contracts and helpers, the draft session data contract,
  * assertion claim decoding, and the session token helper. Server-side flows
- * live under `./server`, the client-side renewal state machine under
- * `./client`, and component metadata exposure under `./components-endpoint` —
- * the subpaths keep browser bundles free of Node-only code and vice versa.
+ * live under `./server`, the client-side state machine and protocol bridges
+ * under `./client`, and component metadata exposure under
+ * `./components-endpoint` — the subpaths keep browser bundles free of Node-only
+ * code and vice versa.
  */
 
 export {
@@ -26,6 +27,8 @@ export {
   HEADLESS_HEIGHT_MESSAGE,
   HEADLESS_HEIGHT_PROBE_MESSAGE,
   HEADLESS_HEIGHT_PROBE_READY_MESSAGE,
+  HEADLESS_NAVIGATION_MESSAGE,
+  HEADLESS_NAVIGATION_READY_MESSAGE,
   HEADLESS_REFRESH_ACK_MESSAGE,
   HEADLESS_VIEWPORT_HEIGHT_MESSAGE,
   HEADLESS_REFRESH_MESSAGE,
@@ -52,6 +55,8 @@ export {
   type DraftData,
 } from './draft-data';
 export { decodeAssertionClaims } from './assertion';
+export { parsePreviewRequest, withPreviewContext } from './preview-context';
+export type { PreviewContext } from './preview-context';
 export { getSessionToken, type AccessToken } from './token';
 export {
   isPageRedirect,

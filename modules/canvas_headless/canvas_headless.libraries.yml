@@ -1,0 +1,10 @@
+headless.preview:
+  css:
+    component:
+      ../../packages/headless-embedded-preview/dist/canvas-headless-preview.css: {}
+  js:
+    ../../packages/headless-embedded-preview/dist/canvas-headless-preview.js: { preprocess: false, minified: true }
+  dependencies:
+    - core/drupal
+    - core/drupalSettings
+    - core/once

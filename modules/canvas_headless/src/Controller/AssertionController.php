@@ -99,7 +99,7 @@ class AssertionController extends ControllerBase {
    */
   public function renew(Request $request): TrustedRedirectResponse {
     $path = static::validatedPath($request);
-    $url = $this->previewUrlGenerator->generateForPath($path);
+    $url = $this->previewUrlGenerator->generateForPath($path, $this->previewContext($request));
     if ($url === NULL) {
       throw new BadRequestHttpException('No preview URL can be generated for this account.');
     }
@@ -140,7 +140,7 @@ class AssertionController extends ControllerBase {
     }
     // Page variants are config entities without a canonical URL. Their
     // headless editor preview enters the frontend at its root path and carries
-    // the edited variant in signed preview context instead.
+    // the edited variant in the signed entry path's query string instead.
     if ($entity instanceof PageVariant) {
       return '/';
     }
@@ -178,13 +178,16 @@ class AssertionController extends ControllerBase {
   }
 
   /**
-   * Reads optional content-template rendering context.
+   * Reads optional rendering context without changing preview authorization.
    *
-   * @return array{viewMode?: string, pageVariant?: string, language?: string}
-   *   The context carried by the signed preview assertion.
+   * @return array{viewMode?: string, pageVariant?: string, language?: string, excludeAutoSave?: bool}
+   *   The rendering choices added to the signed entry path's query string.
    */
   protected function previewContext(Request $request): array {
     $context = [];
+    if ($request->query->has('exclude_auto_save')) {
+      $context['excludeAutoSave'] = $request->query->getBoolean('exclude_auto_save', FALSE);
+    }
     $language = $request->query->get('language', '');
     if ($language !== '') {
       if (!\is_string($language) || $this->languageManager()->getLanguage($language) === NULL) {

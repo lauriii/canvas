@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   HEADLESS_ASSERTION_MESSAGE,
+  HEADLESS_NAVIGATION_MESSAGE,
+  HEADLESS_NAVIGATION_READY_MESSAGE,
   HEADLESS_REFRESH_MESSAGE,
   HEADLESS_STATUS_REQUEST_MESSAGE,
 } from '../constants';
@@ -32,12 +34,13 @@ const HOST_SESSION_ID = 'host-session';
 
 defineDraftSessionElement();
 
-function establishHostSession(): void {
+function establishHostSession(navigation = false): void {
   window.dispatchEvent(
     new MessageEvent('message', {
       data: {
         type: HEADLESS_STATUS_REQUEST_MESSAGE,
         hostSessionId: HOST_SESSION_ID,
+        navigation,
       },
       origin: ORIGIN,
       source: window.parent,
@@ -111,15 +114,15 @@ beforeEach(() => {
 
 afterEach(() => {
   document.body.innerHTML = '';
+  window.history.replaceState(null, '', '/');
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   vi.useRealTimers();
 });
 
 describe('DraftSessionElement', () => {
-  // jsdom is not embedded: window.self === window.top, so these tests
-  // exercise the standalone lane. The embedded lane's behavior (host
-  // messaging, renewal) is the machine's, covered in draft-session.test.ts.
-
   it('shows the active view of a live standalone session', () => {
+    const postMessage = vi.spyOn(window.parent, 'postMessage');
     const { element, activeView, expiredView } = mount();
 
     expect(element.hasAttribute('expired')).toBe(false);
@@ -127,7 +130,70 @@ describe('DraftSessionElement', () => {
     expect(element.getAttribute('renew-state')).toBe('idle');
     expect(activeView.hidden).toBe(false);
     expect(expiredView.hidden).toBe(true);
+    expect(postMessage).not.toHaveBeenCalledWith(
+      { type: HEADLESS_NAVIGATION_READY_MESSAGE },
+      '*',
+    );
   });
+
+  it.each([false, true])(
+    'delegates navigation until disconnected, including expired sessions (initialExpired: %s)',
+    (initialExpired) => {
+      const originalTop = Object.getOwnPropertyDescriptor(window, 'top');
+      Object.defineProperty(window, 'top', { value: {}, configurable: true });
+      vi.stubGlobal(
+        'navigator',
+        Object.assign(Object.create(window.navigator), {
+          userActivation: { isActive: true },
+        }),
+      );
+      const postMessage = vi
+        .spyOn(window.parent, 'postMessage')
+        .mockImplementation(() => {});
+      const link = document.createElement('a');
+      link.href = 'https://frontend.example/articles';
+      document.body.appendChild(link);
+      // Prevent jsdom navigation when the bridge is disconnected.
+      link.addEventListener('click', (event) => event.preventDefault());
+
+      try {
+        const { element } = mount({ initialExpired });
+        expect(postMessage).toHaveBeenCalledWith(
+          { type: HEADLESS_NAVIGATION_READY_MESSAGE },
+          '*',
+        );
+        establishHostSession(true);
+
+        const expectDelegation = () => {
+          postMessage.mockClear();
+          link.click();
+          expect(postMessage).toHaveBeenCalledExactlyOnceWith(
+            {
+              type: HEADLESS_NAVIGATION_MESSAGE,
+              hostSessionId: HOST_SESSION_ID,
+              openInNewTab: false,
+              url: link.href,
+            },
+            ORIGIN,
+          );
+        };
+        expectDelegation();
+        vi.advanceTimersByTime(300_000);
+        expect(element.hasAttribute('expired')).toBe(true);
+        expectDelegation();
+
+        element.remove();
+        postMessage.mockClear();
+        establishHostSession(true);
+        link.click();
+        expect(postMessage).not.toHaveBeenCalled();
+      } finally {
+        if (originalTop) {
+          Object.defineProperty(window, 'top', originalTop);
+        }
+      }
+    },
+  );
 
   it('shows the expired view when the session is already expired', () => {
     const { element, activeView, expiredView, renewLink } = mount({
@@ -180,16 +246,28 @@ describe('DraftSessionElement', () => {
     });
   });
 
-  it('tracks path changes through the observed attribute', () => {
-    const { element, snapshots, renewLink } = mount({ initialExpired: true });
-    expect(snapshots.at(-1)).toMatchObject({ path: '/' });
+  it('tracks path changes and retains request-local preview selection on renewal', () => {
+    const initialPath = '/initial?_canvas_excludeAutoSave=true';
+    window.history.replaceState(null, '', initialPath);
+    const { element, snapshots, renewLink } = mount({
+      initialExpired: true,
+      renewUrl: 'https://drupal.example/canvas-headless/renew',
+    });
+    expect(snapshots.at(-1)).toMatchObject({ path: initialPath });
+    expect(new URL(renewLink.href).searchParams.get('path')).toBe(initialPath);
 
-    element.setAttribute('path', '/node/7');
+    element.setAttribute('path', '/node/7?_canvas_excludeAutoSave=true');
 
-    expect(snapshots.at(-1)).toMatchObject({ path: '/node/7' });
+    expect(snapshots.at(-1)).toMatchObject({
+      path: '/node/7?_canvas_excludeAutoSave=true',
+    });
     expect(renewLink.getAttribute('href')).toBe(
-      'https://drupal.example/canvas-headless/renew?path=%2Fnode%2F7',
+      'https://drupal.example/canvas-headless/renew?path=%2Fnode%2F7%3F_canvas_excludeAutoSave%3Dtrue',
     );
+
+    element.removeAttribute('path');
+    expect(snapshots.at(-1)).toMatchObject({ path: initialPath });
+    expect(new URL(renewLink.href).searchParams.get('path')).toBe(initialPath);
   });
 
   it('honors an initial path attribute over window.location', () => {

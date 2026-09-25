@@ -3,7 +3,8 @@
 // as server code and every consumer build breaks.
 'use client';
 
-import { usePathname, useRouter } from 'next/navigation';
+import { Suspense } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { DraftSession as ReactDraftSession } from '@drupal-canvas/headless-react';
 
 import type { ReactNode } from 'react';
@@ -13,7 +14,7 @@ export type { DraftSessionSnapshot } from '@drupal-canvas/headless-react';
 
 /**
  * The Next.js wiring is exactly what the shared component leaves open:
- * the router's pathname and its server-data refresh.
+ * the router's pathname and query string, and its server-data refresh.
  */
 export type DraftSessionProps = Omit<
   ReactDraftSessionProps,
@@ -22,19 +23,29 @@ export type DraftSessionProps = Omit<
 
 /**
  * The Next.js <DraftSession>: the shared React component from
- * @drupal-canvas/headless-react bound to the App Router — usePathname()
- * keeps the host's status reports and the renew link on the current page,
+ * @drupal-canvas/headless-react bound to the App Router. The route hooks
+ * keep status reports and the renew link on the current page and preview mode,
  * and router.refresh() re-renders the server tree after a renewal, so the
  * renewed session arrives as new props (new cookie, new tokenExpiresAt,
  * re-armed machine).
  */
 export function DraftSession(props: DraftSessionProps): ReactNode {
+  // Reading search parameters can suspend while Next builds a static page.
+  return (
+    <Suspense fallback={null}>
+      <RoutedDraftSession {...props} />
+    </Suspense>
+  );
+}
+
+function RoutedDraftSession(props: DraftSessionProps): ReactNode {
   const router = useRouter();
   const pathname = usePathname();
+  const query = useSearchParams().toString();
   return (
     <ReactDraftSession
       {...props}
-      path={pathname}
+      path={`${pathname}${query ? `?${query}` : ''}`}
       refreshData={() => router.refresh()}
     />
   );

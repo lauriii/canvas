@@ -11,6 +11,8 @@ import type { DraftCookie } from './cookies';
  * machine's options instead (see `../client`).
  */
 export interface DraftServerAdapter {
+  /** Current document/data request URL, for preview context omitted by callers. */
+  getRequestUrl?(): Promise<string | null>;
   /** Reads a request cookie value; null when absent. */
   getCookie(name: string): Promise<string | null>;
   /** Sets a response cookie with the given attributes. */

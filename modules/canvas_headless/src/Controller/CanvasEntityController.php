@@ -57,12 +57,13 @@ final class CanvasEntityController {
       self::API_PATH,
     );
     $is_preview = PreviewTokenInspector::hasPreviewScope($this->currentUser->getAccount());
+    $use_auto_save = $is_preview && $request->query->get(CanvasContentApiRequest::EXCLUDE_AUTO_SAVE_QUERY, 'false') !== 'true';
     if ($is_preview) {
       // ContentTemplateAwareViewBuilder only loads an auto-saved content
       // template when the current route sets this option.
       $route = $this->routeMatch->getRouteObject();
       \assert($route !== NULL);
-      $route->setOption('_canvas_use_template_draft', TRUE);
+      $route->setOption('_canvas_use_template_draft', $use_auto_save);
     }
     $entity_type_id = (string) $request->query->get('type', '');
     if ($entity_type_id === '') {
@@ -107,7 +108,7 @@ final class CanvasEntityController {
 
     [$build, $rendered_entity, $cacheability] = $this->renderEntity(
       $entity,
-      $is_preview,
+      $use_auto_save,
       $view_mode,
     );
     $cacheability = (new BubbleableMetadata())
@@ -159,7 +160,7 @@ final class CanvasEntityController {
   }
 
   /**
-   * Renders a content entity, selecting its auto-save for preview tokens.
+   * Renders a content entity, optionally selecting its Canvas auto-save.
    *
    * @return array{?array, ContentEntityInterface, BubbleableMetadata}
    *   The Canvas render array when supported, the selected entity, and the
@@ -167,13 +168,13 @@ final class CanvasEntityController {
    */
   private function renderEntity(
     ContentEntityInterface $stored_entity,
-    bool $is_preview,
+    bool $use_auto_save,
     string $view_mode,
   ): array {
     $entity = $stored_entity;
     $auto_save = NULL;
     $access = NULL;
-    if ($is_preview) {
+    if ($use_auto_save) {
       $auto_save = $this->autoSaveManager->getAutoSaveEntityForPreview($stored_entity);
       if (!$auto_save->isEmpty()) {
         \assert($auto_save->entity instanceof ContentEntityInterface);
@@ -198,14 +199,17 @@ final class CanvasEntityController {
     $render_result = $this->entityRenderer->buildEntity(
       $entity,
       $view_mode,
-      $is_preview,
+      $use_auto_save,
     );
     $build = $render_result['build'];
     $cacheability = (new BubbleableMetadata())
       ->addCacheableDependency($render_result['cacheability'])
       ->addCacheableDependency($entity)
       ->addCacheTags([$entity->getEntityTypeId() . '_view'])
-      ->addCacheContexts(['oauth2_scopes']);
+      ->addCacheContexts([
+        'oauth2_scopes',
+        'url.query_args:' . CanvasContentApiRequest::EXCLUDE_AUTO_SAVE_QUERY,
+      ]);
     if ($build !== NULL) {
       $cacheability->addCacheableDependency(
         CacheableMetadata::createFromRenderArray($build),
