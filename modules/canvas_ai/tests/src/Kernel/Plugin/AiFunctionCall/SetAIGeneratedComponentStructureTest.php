@@ -16,6 +16,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait;
 use Drupal\Tests\canvas_ai\Traits\FunctionalCallTestTrait;
+use Drupal\Tests\canvas_ai\Traits\ImageMediaPropTestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -36,6 +37,7 @@ final class SetAIGeneratedComponentStructureTest extends CanvasKernelTestBase {
 
   use CreateTestJsComponentTrait;
   use FunctionalCallTestTrait;
+  use ImageMediaPropTestTrait;
   use UserCreationTrait;
 
   /**
@@ -64,6 +66,7 @@ final class SetAIGeneratedComponentStructureTest extends CanvasKernelTestBase {
    */
   protected static $modules = [
     ...self::CANVAS_KERNEL_TEST_MINIMAL_MODULES,
+    'field',
     'ai',
     'ai_agents',
     'canvas_ai',
@@ -80,6 +83,7 @@ final class SetAIGeneratedComponentStructureTest extends CanvasKernelTestBase {
     $this->installEntitySchema('file');
     $this->installEntitySchema('path_alias');
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+    $this->setUpImageMediaType();
     $this->container->get(ComponentSourceManager::class)->generateComponents();
 
     $this->functionCallManager = $this->container->get('plugin.manager.ai.function_calls');
@@ -243,6 +247,43 @@ YAML;
     $invalid_slot_name_yaml = Yaml::dump($decoded);
     $result = $this->getComponentToolOutput($invalid_slot_name_yaml);
     $this->assertSame('Failed to process layout data: Component validation errors: components.0.[sdc.canvas_test_sdc.two_column]: Invalid component subtree. This component subtree contains an invalid slot name for component <em class="placeholder">sdc.canvas_test_sdc.two_column</em>: <em class="placeholder">not_real_slot</em>. Valid slot names are: <em class="placeholder">column_one, column_two</em>. components.0.[sdc.canvas_test_sdc.two_column].slots.column_one.0.[sdc.canvas_test_sdc.my-hero].props.cta1href: The property cta1href is required. components.0.[sdc.canvas_test_sdc.two_column].slots.not_real_slot.0.[sdc.canvas_test_sdc.my-hero].props.cta1href: The property cta1href is required.', self::normalizeErrorString($result));
+  }
+
+  /**
+   * Tests a media item the current user is not allowed to view.
+   *
+   * An image prop is populated by a reference to a media item, and Canvas
+   * resolves that reference with the current user's access rights: an agent
+   * must not be able to put media on the page for a user who may not see it.
+   */
+  public function testSetComponentStructureWithInaccessibleMedia(): void {
+    $media = $this->createImageMedia();
+    $yaml = <<<YAML
+      operations:
+        - target: 'content'
+          reference_uuid: ''
+          placement: 'inside'
+          components:
+          - sdc.canvas_test_sdc.image:
+              props:
+                image: {$media->id()}
+      YAML;
+
+    // The first account ::setUp() creates is user 1, which bypasses access
+    // checks: the very same media item raises no validation error for it.
+    $this->assertSame(1, (int) $this->privilegedUser->id());
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
+    $this->container->get(CanvasAiTempStore::class)->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout('multi_region_empty'));
+    $result = $this->getComponentToolOutput($yaml);
+    $this->assertSame('Component structure processed successfully.', $result);
+
+    // User A may use Canvas AI, but may not view the media item.
+    $user_a = $this->createUserWithoutMediaAccess();
+    $this->assertFalse($media->access('view', $user_a));
+    $this->container->get(AccountProxyInterface::class)->setAccount($user_a);
+    $this->container->get(CanvasAiTempStore::class)->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout('multi_region_empty'));
+    $result = $this->getComponentToolOutput($yaml);
+    $this->assertSame(\sprintf('Failed to process layout data: %s', self::MEDIA_ACCESS_DENIED_MESSAGE), self::normalizeErrorString($result));
   }
 
   /**

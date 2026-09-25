@@ -17,6 +17,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait;
 use Drupal\Tests\canvas_ai\Traits\FunctionalCallTestTrait;
+use Drupal\Tests\canvas_ai\Traits\ImageMediaPropTestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -37,6 +38,7 @@ final class PlaceComponentsTest extends CanvasKernelTestBase {
 
   use CreateTestJsComponentTrait;
   use FunctionalCallTestTrait;
+  use ImageMediaPropTestTrait;
   use UserCreationTrait;
 
   /**
@@ -65,6 +67,7 @@ final class PlaceComponentsTest extends CanvasKernelTestBase {
    */
   protected static $modules = [
     ...self::CANVAS_KERNEL_TEST_MINIMAL_MODULES,
+    'field',
     'ai',
     'ai_agents',
     'canvas_ai',
@@ -81,6 +84,7 @@ final class PlaceComponentsTest extends CanvasKernelTestBase {
     $this->installEntitySchema('file');
     $this->installEntitySchema('path_alias');
     $this->installEntitySchema(Page::ENTITY_TYPE_ID);
+    $this->setUpImageMediaType();
     $this->container->get(ComponentSourceManager::class)->generateComponents();
 
     $this->functionCallManager = $this->container->get('plugin.manager.ai.function_calls');
@@ -456,6 +460,38 @@ final class PlaceComponentsTest extends CanvasKernelTestBase {
         YAML, placement: 'below', reference_uuid: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'),
     ]);
     $this->assertSame('Failed to place components: Component with UUID "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee" not found in layout', self::normalizeErrorString($result));
+  }
+
+  /**
+   * Tests placing a media item the current user is not allowed to view.
+   *
+   * An image prop is populated by a reference to a media item, and Canvas
+   * resolves that reference with the current user's access rights: an agent
+   * must not be able to put media on the page for a user who may not see it.
+   */
+  public function testPlaceComponentsWithInaccessibleMedia(): void {
+    $media = $this->createImageMedia();
+    $components_yaml = <<<YAML
+      - sdc.canvas_test_sdc.image:
+          props:
+            image: {$media->id()}
+      YAML;
+
+    // The first account ::setUp() creates is user 1, which bypasses access
+    // checks: the very same media item raises no validation error for it.
+    $this->assertSame(1, (int) $this->privilegedUser->id());
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
+    $this->container->get(CanvasAiTempStore::class)->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout('multi_region_empty'));
+    $result = $this->getComponentToolOutput([self::buildOperation($components_yaml)]);
+    $this->assertStringStartsWith('Components placed successfully.', $result);
+
+    // User A may use Canvas AI, but may not view the media item.
+    $user_a = $this->createUserWithoutMediaAccess();
+    $this->assertFalse($media->access('view', $user_a));
+    $this->container->get(AccountProxyInterface::class)->setAccount($user_a);
+    $this->container->get(CanvasAiTempStore::class)->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, $this->getCurrentLayout('multi_region_empty'));
+    $result = $this->getComponentToolOutput([self::buildOperation($components_yaml)]);
+    $this->assertSame(\sprintf('Failed to place components: %s', self::MEDIA_ACCESS_DENIED_MESSAGE), self::normalizeErrorString($result));
   }
 
   /**
