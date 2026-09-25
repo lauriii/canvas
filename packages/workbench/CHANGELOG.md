@@ -1,5 +1,11 @@
 # @drupal-canvas/workbench
 
+## 0.13.2
+
+### Patch Changes
+
+- 614dfb4: Update runtime dependencies to compatible versions.
+
 ## 0.13.1
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @drupal-canvas/cli
 
+## 0.26.2
+
+### Patch Changes
+
+- 614dfb4: Update runtime dependencies to compatible versions.
+- Updated dependencies [614dfb4]
+  - @drupal-canvas/eslint-config@0.10.1
+
 ## 0.26.1
 
 ### Patch Changes

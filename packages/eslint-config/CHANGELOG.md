@@ -1,5 +1,11 @@
 # @drupal-canvas/eslint-config
 
+## 0.10.1
+
+### Patch Changes
+
+- 614dfb4: Update runtime dependencies to compatible versions.
+
 ## 0.10.0
 
 ### Minor Changes

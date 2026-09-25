@@ -1,5 +1,11 @@
 # @drupal-canvas/create
 
+## 1.9.1
+
+### Patch Changes
+
+- 614dfb4: Update runtime dependencies to compatible versions.
+
 ## 1.9.0
 
 ### Minor Changes
