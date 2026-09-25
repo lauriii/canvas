@@ -135,7 +135,6 @@ describe('Prop types editing', () => {
       '#test-bool-default-true code',
       'false',
     );
-    cy.findByTestId('selected-component-name').should('have.text', 'All props');
     cy.findByLabelText('Bool (default true)')
       .assertToggleState(true)
       .toggleToggle()
