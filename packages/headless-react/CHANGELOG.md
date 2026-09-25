@@ -1,5 +1,27 @@
 # @drupal-canvas/headless-react
 
+## 0.5.0
+
+### Minor Changes
+
+- ed541e3: `CanvasComponentTree` accepts `context` (from `fetchPage()`'s
+  `page.context`) and `jsonApi` (from the SDK's `getJsonApiRuntimeConfig()`)
+  props and mounts the `drupal-canvas` context and JSON:API client providers for
+  registered components. An explicit `context` prop takes precedence over an
+  outer `CanvasContextProvider`; without either, the hooks report missing
+  context. Server rendering gets the same draft-aware client as the browser (SWR
+  fallback data renders, hydration matches) without network access in a draft
+  session: draft requests made while rendering fail with
+  `ServerRenderingDraftFetchError`, which points to `getClient()` prefetching
+  and SWR fallback data.
+
+### Patch Changes
+
+- Updated dependencies [ed541e3]
+- Updated dependencies [ed541e3]
+  - drupal-canvas@0.7.0
+  - @drupal-canvas/headless@0.10.0
+
 ## 0.4.3
 
 ### Patch Changes

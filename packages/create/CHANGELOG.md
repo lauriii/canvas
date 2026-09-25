@@ -1,5 +1,16 @@
 # @drupal-canvas/create
 
+## 1.9.0
+
+### Minor Changes
+
+- 00fae2f: Make all headless templates available in the interactive template
+  picker without an experimental flag.
+  - Remove `--experimental-headless` from existing commands; the flag is no
+    longer supported.
+  - Keep selecting the `default` template in non-interactive runs that omit
+    `--template`.
+
 ## 1.8.0
 
 ### Minor Changes

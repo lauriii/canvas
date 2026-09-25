@@ -1,5 +1,12 @@
 # @drupal-canvas/headless-angular
 
+## 0.2.2
+
+### Patch Changes
+
+- Updated dependencies [ed541e3]
+  - @drupal-canvas/headless@0.10.0
+
 ## 0.2.1
 
 ### Patch Changes

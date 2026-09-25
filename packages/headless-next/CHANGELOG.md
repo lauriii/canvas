@@ -1,5 +1,32 @@
 # @drupal-canvas/headless-next
 
+## 0.7.0
+
+### Minor Changes
+
+- ed541e3: Mount the same-origin JSON:API proxy for portable Code Components and
+  expose the JSON:API runtime configuration (`getJsonApiRuntimeConfig()`)
+  browser clients are created from. The React renderers accept
+  `context={page.context}` so `usePageContext()` and `useSiteContext()` work in
+  headless components. Server rendering follows one contract in every React
+  adapter: prefetch draft data with `getClient()` and supply SWR fallback data;
+  the hook's client is the same on both sides of hydration.
+- ed541e3: Add the `CanvasRuntime` server component
+  (`@drupal-canvas/headless-next/CanvasRuntime`). Render it once in the root
+  layout: it supplies the request's nonsecret JSON:API runtime configuration to
+  every `CanvasComponentTree` below it, so `useJsonApiClient()` works in
+  registered components. `CanvasComponentTree` keeps its `'use client'` boundary
+  and additionally accepts `context` and `jsonApi` props.
+
+### Patch Changes
+
+- Updated dependencies [ed541e3]
+- Updated dependencies [ed541e3]
+- Updated dependencies [ed541e3]
+  - drupal-canvas@0.7.0
+  - @drupal-canvas/headless-react@0.5.0
+  - @drupal-canvas/headless@0.10.0
+
 ## 0.6.1
 
 ### Patch Changes
