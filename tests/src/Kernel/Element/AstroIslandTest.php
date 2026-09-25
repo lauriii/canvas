@@ -13,6 +13,7 @@ use Drupal\Component\Utility\DeprecationHelper;
 use Drupal\Core\Asset\LibraryDiscoveryInterface;
 use Drupal\Core\Cache\CacheCollectorInterface;
 use Drupal\Core\Extension\ExtensionPathResolver;
+use Drupal\Core\Template\Attribute;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\CacheBustingTrait;
 use Drupal\Tests\canvas\Traits\CrawlerTrait;
@@ -151,7 +152,7 @@ final class AstroIslandTest extends CanvasKernelTestBase {
     self::assertEquals($component_url, $element->attr('component-url'));
 
     $canvas_directory = $this->container->get(ExtensionPathResolver::class)->getPath('module', 'canvas');
-    self::assertEquals(\sprintf('/%s/packages/astro-hydration/dist/client.js?2.1.0-alpha3', $canvas_directory), $element->attr('renderer-url'));
+    self::assertEquals(\sprintf('/%s/packages/astro-hydration/dist/canvas-client.js?2.1.0-alpha3', $canvas_directory), $element->attr('renderer-url'));
 
     $scripts = $element->filter('script[type="module"][blocking="render"]');
     self::assertCount(2, $scripts);
@@ -230,6 +231,36 @@ final class AstroIslandTest extends CanvasKernelTestBase {
   /**
    * Covers AstroIsland.
    */
+
+  /**
+   * Extra attributes, as an array or an Attribute object, reach the island.
+   */
+  public function testExtraAttributes(): void {
+    foreach ([
+      ['data-canvas-preview' => 'true'],
+      new Attribute(['data-canvas-preview' => 'true']),
+    ] as $attributes) {
+      $island = [
+        '#type' => 'astro_island',
+        '#uuid' => 'island-attributes',
+        '#name' => 'Attributes',
+        '#component_url' => '/component.js',
+        '#attributes' => $attributes,
+      ];
+      $crawler = $this->crawlerForRenderArray($island);
+      $element = $crawler->filter('canvas-island');
+      self::assertCount(1, $element);
+      self::assertSame('true', $element->attr('data-canvas-preview'));
+      self::assertSame('only', $element->attr('client'));
+      // Extra attributes are merged after the island's own, so they close
+      // the start tag; markup expectations rely on this order.
+      self::assertMatchesRegularExpression(
+        '/^<canvas-island [^>]*client="only"[^>]* data-canvas-preview="true">/',
+        $element->outerHtml(),
+      );
+    }
+  }
+
   public function testInvalidElement(): void {
     // Missing key.
     $island = [

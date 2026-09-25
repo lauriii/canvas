@@ -1,4 +1,5 @@
 import React, { StrictMode } from 'react';
+import { declareCanvasRuntime } from 'drupal-canvas';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
 
@@ -20,7 +21,7 @@ type WorkbenchWindow = Window & {
 };
 
 function ensurePreviewRuntimeGlobals(): void {
-  const runtimeWindow = window as WorkbenchWindow;
+  const runtimeWindow = window as unknown as WorkbenchWindow;
   runtimeWindow.React ??= React;
   runtimeWindow.drupalSettings ??= {};
   runtimeWindow.drupalSettings.canvasData ??= {};
@@ -36,6 +37,7 @@ function ensurePreviewRuntimeGlobals(): void {
 }
 
 ensurePreviewRuntimeGlobals();
+declareCanvasRuntime('workbench');
 const defaultWorkbenchRoute = '/page';
 
 createRoot(document.getElementById('root')!).render(

@@ -35,11 +35,13 @@
   "devDependencies": {
     "@drupal-canvas/auth": "*",
     "tsdown": "^0.22.12",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   },
   "scripts": {
     "build": "NODE_ENV=production tsdown",
     "dev": "NODE_ENV=development tsdown --watch",
-    "type-check": "tsc --noEmit --pretty"
+    "type-check": "tsc --noEmit --pretty",
+    "test": "vitest run"
   }
 }

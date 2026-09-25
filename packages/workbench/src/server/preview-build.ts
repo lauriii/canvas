@@ -748,11 +748,13 @@ export async function buildPreviewArtifact(
             ),
             componentSources: registrySources,
             cssEntryPaths: uniqueCssEntryPaths,
+            runtimeSettings,
           });
           const mockHtml = buildIframeHtml(
             bundleResult.js,
             withBrandKitColorCss(options.projectRoot, bundleResult.css),
             runtimeSettings,
+            bundleResult.siteData,
           );
           const fileName = `component-mock-${String(mockIndex + 1).padStart(2, '0')}.html`;
 

@@ -102,6 +102,50 @@ paths:
                         id: '1'
                         uuid: 773942c6-3660-4c50-9a8d-e25966a69bff
                         langcode: en
+                    context:
+                      page:
+                        pageTitle: Example page
+                        breadcrumbs:
+                          - key: <front>
+                            text: Home
+                            url: /
+                        mainEntity:
+                          bundle: canvas_page
+                          entityTypeId: canvas_page
+                          uuid: 773942c6-3660-4c50-9a8d-e25966a69bff
+                          requestedLanguage: fr
+                          renderedLanguage: en
+                          translations:
+                            - langcode: en
+                              name: English
+                              nativeName: English
+                              url: /contact
+                              translationAvailable: true
+                              current: false
+                            - langcode: fr
+                              name: French
+                              nativeName: Français
+                              url: /fr/page/1
+                              translationAvailable: false
+                              current: true
+                            - langcode: es
+                              name: Spanish
+                              nativeName: Español
+                              url: /es/contact
+                              translationAvailable: true
+                              current: false
+                      site:
+                        branding:
+                          homeUrl: /page/1
+                          siteName: Example site
+                          siteSlogan: ''
+                        baseUrl: https://example.com
+                        themeAssets:
+                          logo:
+                            url: https://example.com/core/themes/olivero/logo.svg
+                          favicon:
+                            url: https://example.com/core/themes/olivero/favicon.ico
+                            mimeType: image/vnd.microsoft.icon
                 redirect:
                   value:
                     redirect:
@@ -461,7 +505,7 @@ components:
     CanvasContentResult:
       type: object
       additionalProperties: false
-      required: [content, head, route]
+      required: [content, head, route, context]
       properties:
         content:
           oneOf:
@@ -472,6 +516,130 @@ components:
           $ref: '#/components/schemas/UnheadDocument'
         route:
           $ref: '#/components/schemas/CanvasRouteContext'
+        context:
+          $ref: '#/components/schemas/CanvasContext'
+
+    CanvasContext:
+      description: >-
+        The page and site context React Code Components read through the
+        `usePageContext()` and `useSiteContext()` hooks of the `drupal-canvas`
+        package, generated for the routed request.
+      type: object
+      additionalProperties: false
+      required: [page, site]
+      properties:
+        page:
+          type: object
+          additionalProperties: false
+          required: [pageTitle, breadcrumbs, mainEntity]
+          properties:
+            pageTitle:
+              type: string
+            breadcrumbs:
+              type: array
+              items:
+                type: object
+                additionalProperties: false
+                required: [key, text, url]
+                properties:
+                  key:
+                    type: string
+                  text:
+                    type: string
+                  url:
+                    type: string
+            mainEntity:
+              oneOf:
+                - type: 'null'
+                - type: object
+                  additionalProperties: false
+                  required:
+                    - bundle
+                    - entityTypeId
+                    - uuid
+                    - requestedLanguage
+                    - renderedLanguage
+                    - translations
+                  properties:
+                    bundle:
+                      type: string
+                    entityTypeId:
+                      type: string
+                    uuid:
+                      type: string
+                    requestedLanguage:
+                      type: string
+                    renderedLanguage:
+                      type: string
+                    translations:
+                      type: array
+                      items:
+                        type: object
+                        additionalProperties: false
+                        required:
+                          - langcode
+                          - name
+                          - nativeName
+                          - url
+                          - translationAvailable
+                          - current
+                        properties:
+                          langcode:
+                            type: string
+                          name:
+                            type: string
+                          nativeName:
+                            type: string
+                          url:
+                            type: string
+                          translationAvailable:
+                            type: boolean
+                          current:
+                            type: boolean
+        site:
+          type: object
+          additionalProperties: false
+          required: [branding, baseUrl, themeAssets]
+          properties:
+            branding:
+              type: object
+              additionalProperties: false
+              required: [homeUrl, siteName, siteSlogan]
+              properties:
+                homeUrl:
+                  type: string
+                siteName:
+                  type: string
+                siteSlogan:
+                  type: string
+            baseUrl:
+              type: string
+            themeAssets:
+              description: >-
+                Assets from Drupal's configured default theme, without request
+                theme negotiation. Frontends may choose whether to use them.
+                URLs may be empty for unset or disabled assets; favicon MIME
+                settings are preserved even when the URL is empty.
+              type: object
+              additionalProperties: false
+              required: [logo, favicon]
+              properties:
+                logo:
+                  type: object
+                  additionalProperties: false
+                  required: [url]
+                  properties:
+                    url:
+                      type: string
+                favicon:
+                  type: object
+                  additionalProperties: false
+                  required: [url, mimeType]
+                  properties:
+                    url:
+                      type: string
+                    mimeType:
+                      type: string
 
     CanvasRedirectResult:
       type: object

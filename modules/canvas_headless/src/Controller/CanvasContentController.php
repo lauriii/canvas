@@ -8,6 +8,7 @@ use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
+use Drupal\canvas_headless\CanvasContentContextBuilder;
 use Drupal\canvas_headless\CanvasContentEntityRenderer;
 use Drupal\canvas_headless\CanvasContentHeadBuilder;
 use Drupal\canvas_headless\CanvasContentTranslationLinks;
@@ -41,6 +42,7 @@ final class CanvasContentController {
     private readonly AutoSaveManager $autoSaveManager,
     private readonly CanvasContentEntityRenderer $entityRenderer,
     private readonly CanvasContentHeadBuilder $headBuilder,
+    private readonly CanvasContentContextBuilder $contextBuilder,
     private readonly CanvasContentTranslationLinks $translationLinks,
     #[Autowire(service: 'custom_elements.canvas_render_converter')]
     private readonly JsComponentCanvasRenderConverter $canvasRenderConverter,
@@ -160,6 +162,13 @@ final class CanvasContentController {
       };
     }
 
+    // The page and site context React Code Components read through the
+    // `drupal-canvas` context hooks, generated for the routed request.
+    $context = $this->contextBuilder->build(
+      $cacheability,
+      $rendered_entity instanceof ContentEntityInterface ? $rendered_entity : NULL,
+    );
+
     $language_context = $this->translationLinks->build($rendered_entity, $request, $cacheability);
     $response = new CacheableJsonResponse([
       'content' => $content,
@@ -170,6 +179,7 @@ final class CanvasContentController {
         $rendered_entity,
         $managed_by_canvas,
       ) + $language_context,
+      'context' => $context,
     ]);
     $response->addCacheableDependency($cacheability);
     return $response;

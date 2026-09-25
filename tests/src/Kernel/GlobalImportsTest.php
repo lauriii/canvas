@@ -29,6 +29,7 @@ final class GlobalImportsTest extends CanvasKernelTestBase {
     self::assertArrayHasKey('preact', $map['imports']);
     self::assertArrayHasKey('clsx', $map['imports']);
     self::assertArrayHasKey('drupal-canvas', $map['imports']);
+    self::assertStringEndsWith('/drupal-canvas-react.js?1.2.3', $map['imports']['drupal-canvas/react']);
 
     // Cache-busting query strings are appended.
     self::assertStringEndsWith('?1.2.3', $map['imports']['preact']);

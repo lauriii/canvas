@@ -3,7 +3,21 @@
   "compilerOptions": {
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "types": ["node", "react"]
+    "types": [
+      "node",
+      "react"
+    ],
+    "paths": {
+      "react": [
+        "./node_modules/@types/react"
+      ],
+      "react/*": [
+        "./node_modules/@types/react/*"
+      ]
+    },
+    "baseUrl": "."
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }

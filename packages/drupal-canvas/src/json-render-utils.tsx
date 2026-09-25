@@ -5,7 +5,7 @@ import { schema } from '@json-render/react/schema';
 
 import canvasSchema from '../../../schema.json';
 
-import type { ComponentType, ReactNode } from 'react';
+import type { ComponentType, ReactElement, ReactNode } from 'react';
 import type { ComponentMetadata } from '@drupal-canvas/discovery';
 import type { PropResolutionContext, Spec, UIElement } from '@json-render/core';
 
@@ -301,7 +301,7 @@ function renderSpecElement(
   elements: Spec['elements'],
   registry: ComponentRegistry,
   ctx: PropResolutionContext,
-): React.ReactNode {
+): ReactNode {
   const element = elements[key];
   if (!element) {
     throw new Error(`Element key "${key}" not found in elements map.`);
@@ -341,7 +341,7 @@ function renderSpecElement(
     ...normalizedProps,
     ...slots,
     ...(children.length > 0 ? { children } : {}),
-  });
+  }) as ReactElement;
 }
 
 function renderSpecChild(
@@ -366,10 +366,7 @@ function renderSpecChild(
  * @param registry - Component registry to use for rendering.
  * @see {@link defineComponentRegistry}
  */
-export function renderSpec(
-  spec: Spec,
-  registry: ComponentRegistry,
-): React.ReactNode {
+export function renderSpec(spec: Spec, registry: ComponentRegistry): ReactNode {
   const ctx: PropResolutionContext = {
     stateModel: spec.state ?? {},
   };
@@ -386,7 +383,7 @@ export function renderSpec(
 export function renderCanvasTree(
   components: CanvasComponentTree,
   registry: ComponentRegistry,
-): React.ReactNode {
+): ReactNode {
   const spec = canvasTreeToSpec(components);
   return renderSpec(spec, registry);
 }

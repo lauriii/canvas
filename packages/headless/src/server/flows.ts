@@ -25,12 +25,20 @@ import { resolveDraftConfig } from './config';
 import { fetchPage } from './content-api';
 import { buildClearedDraftCookie, buildDraftCookie } from './cookies';
 import { fetchEntity } from './entity-api';
-import { getDraftClient, getPublicClient } from './json-api-client';
+import {
+  getDraftClient,
+  getPublicClient,
+  resolveJsonApiRuntimeConfig,
+} from './json-api-client';
+import { createJsonApiProxyHandler } from './jsonapi-proxy';
 import { codeChallenge, generateCodeVerifier } from './pkce';
 import { createApiPrefixResolver } from './site-data';
 import { exchangeAssertion } from './token-exchange';
 
-import type { JsonApiClient } from '@drupal-api-client/json-api-client';
+import type {
+  CanvasJsonApiClient,
+  JsonApiRuntimeConfig,
+} from 'drupal-canvas/jsonapi-client';
 import type { DraftData } from '../draft-data';
 import type { EntityResult } from '../entity';
 import type { PageResult } from '../page';
@@ -208,13 +216,13 @@ export interface DraftServer {
    * A client for public content: unauthenticated, published content only.
    * Resolves the site's JSON:API prefix on first use — see getClient().
    */
-  getPublicClient(): Promise<JsonApiClient>;
+  getPublicClient(): Promise<CanvasJsonApiClient>;
   /**
    * A client for draft content, authenticated with the session's
    * user-bound access token. Throws when the session has expired.
    * Resolves the site's JSON:API prefix on first use — see getClient().
    */
-  getDraftClient(draftData: DraftData): Promise<JsonApiClient>;
+  getDraftClient(draftData: DraftData): Promise<CanvasJsonApiClient>;
   /**
    * The right client for the current request: the draft client (user-bound
    * session token, working copies) while the draft session is live,
@@ -227,9 +235,24 @@ export interface DraftServer {
    * from a non-default prefix (e.g. `/api`) work without configuration. When
    * the endpoint is unreachable the CANVAS_JSONAPI_PREFIX environment
    * variable (or a config override) applies, then the client's `/jsonapi`
-   * default.
+   * default. An explicit CANVAS_JSONAPI_URL override wins over discovery.
    */
-  getClient(): Promise<JsonApiClient>;
+  getClient(): Promise<CanvasJsonApiClient>;
+  /**
+   * The nonsecret JSON:API runtime configuration for the current request's
+   * browser client: resolved upstream endpoints, the application's proxy
+   * path, and the session's resource version while the draft session is
+   * live. Framework adapters pass it to the React rendering integration,
+   * which creates the browser client from it. Safe to serialize.
+   */
+  getJsonApiRuntimeConfig(): Promise<JsonApiRuntimeConfig>;
+  /**
+   * Body of the same-origin JSON:API proxy route (any method, mounted at the
+   * configured proxy path with a catch-all suffix). Forwards browser
+   * requests from portable Code Components to the configured Drupal backend
+   * with the session's credentials; see ./jsonapi-proxy.
+   */
+  handleJsonApiProxy(request: Request): Promise<Response>;
   /**
    * Fetches a page by its Drupal path (see ./content-api), carrying the
    * live draft session's bearer token when there is one.
@@ -453,7 +476,21 @@ export function createDraftServer(options: DraftServerOptions): DraftServer {
     getDraftClient: async (draftData) =>
       getDraftClient(await resolveClientConfig(), draftData),
 
-    async getClient(): Promise<JsonApiClient> {
+    async getJsonApiRuntimeConfig(): Promise<JsonApiRuntimeConfig> {
+      return resolveJsonApiRuntimeConfig(
+        await resolveClientConfig(),
+        await getDraftData(),
+      );
+    },
+
+    handleJsonApiProxy: createJsonApiProxyHandler({
+      getConfig: resolveClientConfig,
+      isDraftModeEnabled: () => adapter.isDraftFlagEnabled(),
+      getDraftData,
+      fetchImpl,
+    }),
+
+    async getClient(): Promise<CanvasJsonApiClient> {
       const draftData = await getDraftData();
       return draftData && !isDraftSessionExpired(draftData)
         ? getDraftClient(await resolveClientConfig(), draftData)

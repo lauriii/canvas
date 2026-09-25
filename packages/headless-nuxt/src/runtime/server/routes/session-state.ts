@@ -4,7 +4,13 @@ import {
   isDraftSessionExpired,
 } from '@drupal-canvas/headless';
 
-import { getDraftData, isDraftModeEnabled } from '../session';
+import {
+  getDraftData,
+  getJsonApiRuntimeConfig,
+  isDraftModeEnabled,
+} from '../session';
+
+import type { JsonApiRuntimeConfig } from 'drupal-canvas/jsonapi-client';
 
 /**
  * What the <DraftSession> component needs to drive the client-side session
@@ -16,6 +22,12 @@ export interface DraftSessionState {
   expired: boolean;
   renewUrl: string | null;
   editorOrigin: string | null;
+  /**
+   * The nonsecret JSON:API runtime configuration for browser clients: build
+   * one with `createJsonApiClient()` from `drupal-canvas/jsonapi-client` to
+   * read Drupal content through the application's proxy.
+   */
+  jsonApi: JsonApiRuntimeConfig;
 }
 
 /**
@@ -28,6 +40,7 @@ export interface DraftSessionState {
  * the httpOnly cookie.
  */
 export default defineEventHandler(async (event): Promise<DraftSessionState> => {
+  const jsonApi = await getJsonApiRuntimeConfig(event);
   if (!isDraftModeEnabled(event)) {
     return {
       enabled: false,
@@ -35,6 +48,7 @@ export default defineEventHandler(async (event): Promise<DraftSessionState> => {
       expired: false,
       renewUrl: null,
       editorOrigin: null,
+      jsonApi,
     };
   }
 
@@ -45,5 +59,6 @@ export default defineEventHandler(async (event): Promise<DraftSessionState> => {
     expired: !draftData || isDraftSessionExpired(draftData),
     renewUrl: draftData?.renewUrl ?? null,
     editorOrigin: getDraftEditorOrigin(draftData),
+    jsonApi,
   };
 });

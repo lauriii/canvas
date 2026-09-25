@@ -13,6 +13,7 @@ import type {
   PageResult,
 } from '@drupal-canvas/headless';
 import type { DraftConfig, DraftServer } from '@drupal-canvas/headless/server';
+import type { JsonApiRuntimeConfig } from 'drupal-canvas/jsonapi-client';
 import type { H3Event } from 'h3';
 
 // One draft server per request event. All state lives in the request's
@@ -105,8 +106,32 @@ export function fetchComponentPreview(
   return getDraftServer(event).fetchComponentPreview(componentId);
 }
 
+/**
+ * The nonsecret JSON:API runtime configuration for this request's browser
+ * client (resolved endpoints, the proxy path, preview state). Serialize it
+ * into a page or answer it from a server route; `createJsonApiClient()` from
+ * `drupal-canvas/jsonapi-client` builds the browser client from it.
+ */
+export function getJsonApiRuntimeConfig(
+  event: H3Event,
+): Promise<JsonApiRuntimeConfig> {
+  return getDraftServer(event).getJsonApiRuntimeConfig();
+}
+
+/**
+ * The same-origin JSON:API proxy for this request; see the module's
+ * `routes/jsonapi-proxy` handler.
+ */
+export function handleJsonApiProxy(
+  event: H3Event,
+  request: Request,
+): Promise<Response> {
+  return getDraftServer(event).handleJsonApiProxy(request);
+}
+
 export { isDraftSessionExpired, isPageRedirect, NUXT_DRAFT_FLAG_COOKIE_NAME };
 export type {
+  CanvasContext,
   EntityResult,
   DrupalRoute,
   DrupalRouteEntity,
@@ -115,3 +140,4 @@ export type {
   PageRedirect,
   PageResult,
 } from '@drupal-canvas/headless';
+export type { JsonApiRuntimeConfig };

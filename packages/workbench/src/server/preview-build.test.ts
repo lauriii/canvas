@@ -227,6 +227,7 @@ describe('preview-build', () => {
         bundleInteractivePreview: async () => ({
           js: 'console.log("mock-runtime");',
           css: '.mock { color: red; }',
+          siteData: null,
         }),
       },
     );
@@ -364,6 +365,7 @@ describe('preview-build', () => {
         bundleInteractivePreview: async () => ({
           js: 'console.log("mock-runtime");',
           css: '.mock { color: red; }',
+          siteData: null,
         }),
       },
     );
@@ -392,6 +394,15 @@ describe('preview-build', () => {
     await writeFile(path.join(projectRoot, 'src/global.css'), 'body { }');
 
     let capturedSpec: unknown = undefined;
+    const siteData = {
+      baseUrl: 'https://canvas.example.test',
+      branding: { homeUrl: '/', siteName: 'Color and context', siteSlogan: '' },
+      jsonapiSettings: { apiPrefix: 'jsonapi' },
+    };
+    await writeFile(
+      path.join(projectRoot, '.env'),
+      'CANVAS_SITE_URL=https://canvas.example.test\n',
+    );
 
     await buildPreviewArtifact(
       {
@@ -417,9 +428,11 @@ describe('preview-build', () => {
         }),
         bundleInteractivePreview: async (options) => {
           capturedSpec = options.spec;
+          expect(options.runtimeSettings?.baseUrl).toBe(siteData.baseUrl);
           return {
             js: 'console.log("mock-runtime");',
             css: '.mock { color: red; }',
+            siteData,
           };
         },
       },
@@ -433,6 +446,16 @@ describe('preview-build', () => {
     const rootElement = elements ? Object.values(elements)[0] : undefined;
     expect(rootElement?.props.color).toEqual(
       expect.objectContaining({ cssColorValue: expect.any(String) }),
+    );
+    const html = await fs.readFile(
+      path.join(projectRoot, outputDir, 'component-mock-01.html'),
+      'utf-8',
+    );
+    expect(html).toContain('--brand-red:');
+    expect(html.indexOf('--brand-red:')).toBeLessThan(html.indexOf('.mock {'));
+    expect(html).toContain(JSON.stringify({ branding: siteData.branding }));
+    expect(html).toContain(
+      'window.drupalSettings.canvasData.v0.jsonapiSettings.apiPrefix = "jsonapi";',
     );
   });
 

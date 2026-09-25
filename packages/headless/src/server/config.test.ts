@@ -8,6 +8,7 @@ describe('resolveDraftConfig', () => {
 
     expect(resolveDraftConfig()).toEqual({
       baseUrl: 'https://drupal.example',
+      jsonApiProxyPath: '/api/canvas/jsonapi',
     });
     vi.unstubAllEnvs();
   });
@@ -28,6 +29,7 @@ describe('resolveDraftConfig', () => {
     expect(resolveDraftConfig()).toEqual({
       baseUrl: 'https://drupal.example',
       apiPrefix: 'api',
+      jsonApiProxyPath: '/api/canvas/jsonapi',
     });
     vi.unstubAllEnvs();
   });
@@ -39,6 +41,7 @@ describe('resolveDraftConfig', () => {
     expect(resolveDraftConfig({ apiPrefix: 'api' })).toEqual({
       baseUrl: 'https://drupal.example',
       apiPrefix: 'api',
+      jsonApiProxyPath: '/api/canvas/jsonapi',
     });
     vi.unstubAllEnvs();
   });
@@ -49,7 +52,42 @@ describe('resolveDraftConfig', () => {
 
     expect(resolveDraftConfig()).toEqual({
       baseUrl: 'https://drupal.example',
+      jsonApiProxyPath: '/api/canvas/jsonapi',
     });
+    vi.unstubAllEnvs();
+  });
+
+  it('reads and validates the JSON:API site base URL from the environment', () => {
+    vi.stubEnv('CANVAS_SITE_URL', 'https://drupal.example/sub');
+    vi.stubEnv('CANVAS_JSONAPI_URL', 'https://api.example/mount/api');
+    vi.stubEnv('CANVAS_JSONAPI_SITE_URL', 'https://api.example/mount/');
+    expect(resolveDraftConfig()).toMatchObject({
+      jsonApiUrl: 'https://api.example/mount/api',
+      jsonApiSiteUrl: 'https://api.example/mount',
+    });
+    vi.stubEnv('CANVAS_JSONAPI_SITE_URL', 'https://api.example/elsewhere');
+    expect(() => resolveDraftConfig()).toThrow(/not under its site base URL/);
+    vi.unstubAllEnvs();
+  });
+
+  it('reads the full JSON:API URL override and the proxy path from the environment', () => {
+    vi.stubEnv('CANVAS_SITE_URL', 'https://drupal.example');
+    vi.stubEnv('CANVAS_JSONAPI_URL', 'https://api.example/drupal/jsonapi/');
+    vi.stubEnv('CANVAS_JSONAPI_PROXY_PATH', '/canvas-proxy/');
+
+    expect(resolveDraftConfig()).toEqual({
+      baseUrl: 'https://drupal.example',
+      jsonApiUrl: 'https://api.example/drupal/jsonapi',
+      jsonApiProxyPath: '/canvas-proxy',
+    });
+    vi.unstubAllEnvs();
+  });
+
+  it('rejects a proxy path that is not site-relative', () => {
+    vi.stubEnv('CANVAS_SITE_URL', 'https://drupal.example');
+    expect(() =>
+      resolveDraftConfig({ jsonApiProxyPath: 'https://evil.example/' }),
+    ).toThrow('CANVAS_JSONAPI_PROXY_PATH');
     vi.unstubAllEnvs();
   });
 });

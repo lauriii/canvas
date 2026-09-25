@@ -1,3 +1,11 @@
+import { assertLegacyRuntime } from './migration.js';
+
+export type {
+  CanvasContext,
+  PageContext,
+  SiteContext,
+} from './context-types.js';
+
 interface Linkset {
   linkset: LinksetItem[];
 }
@@ -62,13 +70,13 @@ export function sortMenu(linkset: Linkset) {
   return menu;
 }
 
-interface BreadcrumbLink {
+export interface BreadcrumbLink {
   key: string;
   text: string;
   url: string;
 }
 
-interface EntityMetadata {
+export interface EntityMetadata {
   bundle: string;
   entityTypeId: string;
   uuid: string;
@@ -88,7 +96,7 @@ interface EntityMetadata {
   translations: TranslationMetadata[];
 }
 
-interface TranslationMetadata {
+export interface TranslationMetadata {
   langcode: string;
   // The language name in the current display language (e.g. "German").
   name: string;
@@ -103,18 +111,18 @@ interface TranslationMetadata {
   current: boolean;
 }
 
-interface PageData {
+export interface PageData {
   pageTitle: string;
   breadcrumbs: Array<BreadcrumbLink>;
   mainEntity: EntityMetadata | null;
 }
 
-interface ThemeAssets {
+export interface ThemeAssets {
   logo: { url: string };
   favicon: { url: string; mimeType: string };
 }
 
-interface SiteData {
+export interface SiteData {
   branding: {
     homeUrl: string;
     siteName: string;
@@ -124,7 +132,18 @@ interface SiteData {
   themeAssets: ThemeAssets;
 }
 
+/**
+ * Reads the current page data from `drupalSettings`.
+ *
+ * Supported in Drupal-rendered Code Components and Canvas Workbench previews
+ * only; elsewhere it throws an actionable migration error.
+ *
+ * @deprecated Use `usePageContext()` in React Code Components, or read
+ *   `page.context.page` from the Headless SDK's page response outside
+ *   components.
+ */
 export const getPageData = (): PageData => {
+  assertLegacyRuntime('getPageData()');
   const pageData = {
     pageTitle: globalThis?.drupalSettings?.canvasData?.v0?.pageTitle || '',
     breadcrumbs: globalThis?.drupalSettings?.canvasData?.v0?.breadcrumbs || [],
@@ -138,7 +157,18 @@ export const getPageData = (): PageData => {
   return pageData;
 };
 
+/**
+ * Reads the site data from `drupalSettings`.
+ *
+ * Supported in Drupal-rendered Code Components and Canvas Workbench previews
+ * only; elsewhere it throws an actionable migration error.
+ *
+ * @deprecated Use `useSiteContext()` in React Code Components, or read
+ *   `page.context.site` from the Headless SDK's page response outside
+ *   components.
+ */
 export const getSiteData = (): SiteData => {
+  assertLegacyRuntime('getSiteData()');
   const siteData = {
     branding: globalThis?.drupalSettings?.canvasData?.v0?.branding || {
       homeUrl: '',

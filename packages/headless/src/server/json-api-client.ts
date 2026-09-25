@@ -1,13 +1,111 @@
-import { JsonApiClient } from '@drupal-api-client/json-api-client';
+/**
+ * @file
+ * The SDK's JSON:API client factories. Both create the shared
+ * `drupal-canvas` client implementation (the same one `useJsonApiClient()`
+ * hands to React Code Components) instead of maintaining a separate
+ * subclass: draft reads, serialization, and proxy mapping live there.
+ */
+
+import {
+  createJsonApiClient,
+  resolveJsonApiBase,
+} from 'drupal-canvas/jsonapi-client';
 
 import { getSessionToken } from '../token';
 
 import type {
-  GetOptions,
-  JsonApiClientOptions,
-} from '@drupal-api-client/json-api-client';
+  CanvasJsonApiClient,
+  JsonApiRuntimeConfig,
+} from 'drupal-canvas/jsonapi-client';
 import type { DraftData } from '../draft-data';
 import type { DraftConfig } from './config';
+
+/**
+ * The resolved upstream JSON:API endpoints: the backend base URL (where the
+ * supporting endpoints such as path translation live), the JSON:API prefix
+ * relative to it, and — with a full URL override — the separate JSON:API base
+ * URL.
+ */
+export interface JsonApiEndpoints {
+  baseUrl: string;
+  apiPrefix?: string;
+  apiUrl?: string;
+  apiSiteUrl?: string;
+}
+
+/**
+ * Resolves the upstream JSON:API endpoints. An explicit full URL override
+ * (`jsonApiUrl`) takes precedence over the discovered or configured prefix
+ * for JSON:API requests only: the backend base URL keeps serving the
+ * Decoupled Router and the other supporting endpoints, so an override on
+ * another host or path never redirects path translation there.
+ */
+export function resolveJsonApiEndpoints(
+  config: Pick<
+    DraftConfig,
+    'baseUrl' | 'apiPrefix' | 'jsonApiUrl' | 'jsonApiSiteUrl'
+  >,
+): JsonApiEndpoints {
+  if (config.jsonApiUrl) {
+    // Under the backend base URL the override is a prefix (a locale prefix
+    // goes between the site path and it); elsewhere it is a foreign base,
+    // localizable through its own site base URL.
+    const api = resolveJsonApiBase(config.baseUrl, {
+      apiUrl: config.jsonApiUrl,
+      apiSiteUrl: config.jsonApiSiteUrl,
+    });
+    return {
+      baseUrl: config.baseUrl,
+      apiPrefix: api.apiPrefix,
+      apiUrl: `${api.base}/${api.apiPrefix}`,
+      ...(api.foreign && api.siteKnown && { apiSiteUrl: api.base }),
+    };
+  }
+  return {
+    baseUrl: config.baseUrl,
+    ...(config.apiPrefix && { apiPrefix: config.apiPrefix }),
+  };
+}
+
+/**
+ * The full upstream JSON:API base URL the endpoints resolve to.
+ */
+export function resolveJsonApiUrl(endpoints: JsonApiEndpoints): string {
+  return (
+    endpoints.apiUrl ??
+    `${endpoints.baseUrl.replace(/\/+$/, '')}/${endpoints.apiPrefix ?? 'jsonapi'}`
+  );
+}
+
+/**
+ * The nonsecret JSON:API runtime configuration for a browser client: the
+ * resolved upstream endpoints, the application's proxy path, and the
+ * session's resource version while a draft session is live. Contains no
+ * credentials and is safe to serialize into a page.
+ */
+export function resolveJsonApiRuntimeConfig(
+  config: Pick<
+    DraftConfig,
+    | 'baseUrl'
+    | 'apiPrefix'
+    | 'jsonApiUrl'
+    | 'jsonApiSiteUrl'
+    | 'jsonApiProxyPath'
+  >,
+  draftData: DraftData | null,
+): JsonApiRuntimeConfig {
+  const endpoints = resolveJsonApiEndpoints(config);
+  const live = draftData !== null && getSessionToken(draftData) !== null;
+  return {
+    baseUrl: endpoints.baseUrl,
+    ...(endpoints.apiPrefix && { apiPrefix: endpoints.apiPrefix }),
+    ...(endpoints.apiUrl && { apiUrl: endpoints.apiUrl }),
+    ...(endpoints.apiSiteUrl && { apiSiteUrl: endpoints.apiSiteUrl }),
+    proxyUrl: config.jsonApiProxyPath ?? '/api/canvas/jsonapi',
+    resourceVersion: live ? draftData.resourceVersion : null,
+    preview: live,
+  };
+}
 
 /**
  * A client for public content: unauthenticated, sees only published content.
@@ -18,115 +116,50 @@ import type { DraftConfig } from './config';
  * default applies.
  */
 export function getPublicClient(
-  config: Pick<DraftConfig, 'baseUrl' | 'apiPrefix'>,
-): JsonApiClient {
-  return new JsonApiClient(config.baseUrl, {
-    ...(config.apiPrefix && { apiPrefix: config.apiPrefix }),
+  config: Pick<
+    DraftConfig,
+    'baseUrl' | 'apiPrefix' | 'jsonApiUrl' | 'jsonApiSiteUrl'
+  >,
+): CanvasJsonApiClient {
+  return createJsonApiClient({
+    ...resolveJsonApiEndpoints(config),
+    resourceVersion: null,
+    preview: false,
+    cacheScope: 'public',
   });
-}
-
-/**
- * A JsonApiClient that transparently reads draft content at the requested
- * resource version, so app code needs no draft-specific fetching logic.
- *
- * - getResource() asks for the resource version (working copy) unless the
- *   caller already pinned one.
- * - getCollection() hydrates each item with its working copy. Core JSON:API
- *   accepts `resourceVersion` on individual resources only — collections
- *   always return default revisions, which would hide forward revisions.
- *   The hydration is an N+1 per-item fan-out, run in parallel; acceptable
- *   for editor-facing preview traffic. A per-item fetch that fails falls
- *   back to the item as the collection returned it (default revision), so
- *   a transient error shows the published title rather than breaking the
- *   listing — resilience over alarms, chosen for preview traffic. Skipped
- *   for rawResponse requests, which promise the unmodified Response object.
- */
-class DraftJsonApiClient extends JsonApiClient {
-  constructor(
-    baseUrl: string,
-    options: JsonApiClientOptions,
-    private readonly resourceVersion: string,
-  ) {
-    super(baseUrl, options);
-  }
-
-  private withResourceVersion(options?: GetOptions): GetOptions {
-    if (options?.queryString?.includes('resourceVersion=')) {
-      return options;
-    }
-    const version = `resourceVersion=${encodeURIComponent(this.resourceVersion)}`;
-    return {
-      ...options,
-      queryString: options?.queryString
-        ? `${options.queryString}&${version}`
-        : version,
-    };
-  }
-
-  override async getResource<T>(
-    type: string,
-    resourceId: string,
-    options?: GetOptions,
-  ) {
-    return super.getResource<T>(
-      type,
-      resourceId,
-      options?.rawResponse ? options : this.withResourceVersion(options),
-    );
-  }
-
-  override async getCollection<T>(type: string, options?: GetOptions) {
-    const document = await super.getCollection<T>(type, options);
-    if (options?.rawResponse) {
-      return document;
-    }
-    const data = (document as { data?: Array<{ id: string }> })?.data;
-    if (!Array.isArray(data)) {
-      return document;
-    }
-    const hydrated = await Promise.all(
-      data.map(async (item) => {
-        try {
-          const workingCopy = (await this.getResource(type, item.id)) as {
-            data?: unknown;
-          };
-          return workingCopy?.data ?? item;
-        } catch {
-          return item;
-        }
-      }),
-    );
-    return { ...document, data: hydrated } as typeof document;
-  }
 }
 
 /**
  * A client for draft content, authenticated with the session's user-bound
  * access token (minted from the preview assertion, carrying the initiating
- * editor's own permissions). Returns working copies transparently; see
- * DraftJsonApiClient.
+ * editor's own permissions). Returns working copies transparently: resource
+ * reads use the session's resource version, and collection reads fetch each
+ * item's working copy (see the shared client).
  *
  * Throws when the session has expired — callers are expected to check
  * isDraftSessionExpired() first and fall back to the public client with a
  * visible indicator instead of silently downgrading.
  */
 export function getDraftClient(
-  config: Pick<DraftConfig, 'baseUrl' | 'apiPrefix'>,
+  config: Pick<
+    DraftConfig,
+    'baseUrl' | 'apiPrefix' | 'jsonApiUrl' | 'jsonApiSiteUrl'
+  >,
   draftData: DraftData,
-): JsonApiClient {
+): CanvasJsonApiClient {
   const token = getSessionToken(draftData);
   if (!token) {
     throw new Error('The draft preview session has expired.');
   }
-  return new DraftJsonApiClient(
-    config.baseUrl,
-    {
-      ...(config.apiPrefix && { apiPrefix: config.apiPrefix }),
-      authentication: {
-        type: 'Custom',
-        credentials: { value: `${token.tokenType} ${token.value}` },
-      },
+  return createJsonApiClient({
+    ...resolveJsonApiEndpoints(config),
+    authentication: {
+      type: 'Custom',
+      credentials: { value: `${token.tokenType} ${token.value}` },
     },
-    draftData.resourceVersion,
-  );
+    resourceVersion: draftData.resourceVersion,
+    preview: true,
+    // Cache entries are separated per editor session and token lifetime.
+    cacheScope: `session:${draftData.sub}:${draftData.tokenExpiresAt}`,
+  });
 }

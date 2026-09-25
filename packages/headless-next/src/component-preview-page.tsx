@@ -2,6 +2,7 @@ import { CANVAS_COMPONENT_PREVIEW_QUERY } from '@drupal-canvas/headless';
 import { isPageRedirect } from '@drupal-canvas/headless/server';
 
 import { CanvasComponentTree } from './canvas-component-tree';
+import { CanvasRuntime } from './canvas-runtime';
 import { fetchComponentPreview, getDraftData } from './server';
 
 interface ComponentPreviewPageProps {
@@ -42,7 +43,9 @@ export async function ComponentPreviewPage({
         }
         nextjs-portal { display: none !important; }
       `}</style>
-      <CanvasComponentTree tree={page.content} />
+      <CanvasRuntime>
+        <CanvasComponentTree tree={page.content} context={page.context} />
+      </CanvasRuntime>
     </main>
   );
 }

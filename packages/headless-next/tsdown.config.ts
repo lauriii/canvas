@@ -8,6 +8,7 @@ export default defineConfig({
     'client/index': 'src/client/index.ts',
     'config/index': 'src/config/index.ts',
     'canvas-component-tree': 'src/canvas-component-tree.tsx',
+    'canvas-runtime': 'src/canvas-runtime.tsx',
     'component-preview-page': 'src/component-preview-page.tsx',
   },
   format: ['es'],

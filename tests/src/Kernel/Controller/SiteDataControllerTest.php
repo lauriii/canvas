@@ -54,6 +54,7 @@ class SiteDataControllerTest extends CanvasKernelTestBase {
     self::assertArrayNotHasKey('breadcrumbs', $data);
     self::assertArrayNotHasKey('mainEntity', $data);
     self::assertArrayNotHasKey('pageTitle', $data);
+    self::assertSame(['contextHooks' => TRUE], $data['capabilities']);
   }
 
   public function testGetAllowedForAnonymousUser(): void {

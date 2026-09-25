@@ -18,6 +18,7 @@ const useSwr = await import('../lib/swr');
 const tailwindTypography = await import('../lib/tailwindcss-typography');
 
 const { ...drupalCanvas } = await import('../lib/drupal-canvas');
+const { ...drupalCanvasReact } = await import('../lib/drupal-canvas-react');
 // For backward compatibility import separately elements that were moved to the drupal-canvas package
 // so they have separate files in dist that can be used in backward compatible import map entries.
 const FormattedText = await import('drupal-canvas/FormattedText');
@@ -36,6 +37,9 @@ const { getNodePath, sortMenu } = await import('drupal-canvas/jsonapi-utils');
 // customElements (not available server-side)
 if (typeof window !== 'undefined' && typeof customElements !== 'undefined') {
   await import('../lib/canvas-island.ts');
+  // The client renderer Drupal points every island at; it wraps Astro's Preact
+  // renderer with the drupal-canvas context providers.
+  await import('../lib/canvas-client.ts');
 }
 
 export default function () {}

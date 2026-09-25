@@ -74,7 +74,8 @@
     "type-check": "tsc --noEmit --pretty"
   },
   "dependencies": {
-    "@drupal-api-client/json-api-client": "^1.4.1"
+    "@drupal-api-client/json-api-client": "^1.4.1",
+    "drupal-canvas": "^0.6.0"
   },
   "devDependencies": {
     "@drupal-canvas/discovery": "*",

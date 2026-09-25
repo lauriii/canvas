@@ -7,11 +7,17 @@ import {
   useRef,
   useState,
 } from 'react';
+import { createJsonApiClient } from 'drupal-canvas';
 import {
   defineComponentRegistry,
   renderSpec,
 } from 'drupal-canvas/json-render-utils';
+import {
+  CanvasContextProvider,
+  JsonApiClientProvider,
+} from 'drupal-canvas/react';
 import { useNavigate } from 'react-router';
+import siteData from 'virtual:drupal-canvas/site-data';
 import { PreviewErrorAlert } from '@wb/client/components/preview-error-alert';
 import { fetchDiscoveryResult } from '@wb/lib/discovery-client';
 import { fetchPreviewManifest } from '@wb/lib/preview-client';
@@ -21,6 +27,10 @@ import {
 } from '@wb/lib/preview-contract';
 import { getPreviewTargetKey } from '@wb/lib/preview-target-key';
 import { resolveWorkbenchPreviewNavigation } from '@wb/lib/resolve-workbench-preview-navigation';
+import {
+  createWorkbenchContext,
+  createWorkbenchJsonApiConfig,
+} from '@wb/lib/workbench-context';
 
 import type { ErrorInfo, ReactNode } from 'react';
 import type { EnrichedDiscoveryResult } from '@wb/lib/discovery-client';
@@ -116,6 +126,36 @@ class FrameRenderBoundary extends Component<
 
     return this.props.children;
   }
+}
+
+/**
+ * Supplies the `drupal-canvas` context to every previewed component: the
+ * Workbench page defaults and the site data the Vite integration loaded once.
+ * The provider stays mounted across preview targets and hot updates.
+ */
+function WorkbenchProviders({ children }: { children: ReactNode }) {
+  // The same inputs the legacy settings are built from (the site data the
+  // Vite integration injected, then the preview origin; see main.tsx), so
+  // the hooks and `getSiteData()` agree without reading the global.
+  const context = useMemo(
+    () => createWorkbenchContext(siteData, window.location.origin),
+    [],
+  );
+  const client = useMemo(() => {
+    const config = createWorkbenchJsonApiConfig(
+      siteData,
+      window.location.origin,
+    );
+    return config ? createJsonApiClient(config) : null;
+  }, []);
+  const content = client ? (
+    <JsonApiClientProvider client={client}>{children}</JsonApiClientProvider>
+  ) : (
+    children
+  );
+  return (
+    <CanvasContextProvider context={context}>{content}</CanvasContextProvider>
+  );
 }
 
 export function PreviewFrameApp() {
@@ -402,7 +442,7 @@ export function PreviewFrameApp() {
         }}
       >
         {activeRender ? (
-          <>
+          <WorkbenchProviders>
             <RenderSignal
               renderId={activeRender.renderId}
               type={activeRender.type}
@@ -418,7 +458,7 @@ export function PreviewFrameApp() {
               }}
             />
             {activeRender.node}
-          </>
+          </WorkbenchProviders>
         ) : previewError ? (
           <PreviewErrorAlert message={previewError} />
         ) : null}

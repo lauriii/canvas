@@ -53,6 +53,7 @@ class GlobalImports {
         '@tailwindcss/typography' => \sprintf('%s%s/packages/astro-hydration/dist/tailwindcss-typography.js', $base_path, $canvas_path),
 
         'drupal-canvas' => \sprintf('%s%s/packages/astro-hydration/dist/drupal-canvas.js', $base_path, $canvas_path),
+        'drupal-canvas/react' => \sprintf('%s%s/packages/astro-hydration/dist/drupal-canvas-react.js', $base_path, $canvas_path),
         // Backward compatibility entries for elements that were moved
         // into drupal-canvas package.
         '@/lib/FormattedText' => \sprintf('%s%s/packages/astro-hydration/dist/FormattedText.js', $base_path, $canvas_path),

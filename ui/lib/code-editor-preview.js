@@ -19,7 +19,23 @@
  * @see ui/vite.config.ts
  */
 
+import {
+  createJsonApiClient,
+  declareCanvasRuntime,
+  drupalSettingsToCanvasContext,
+  drupalSettingsToJsonApiRuntimeConfig,
+  readCanvasDataV0,
+} from 'drupal-canvas';
+import {
+  CanvasContextProvider,
+  JsonApiClientProvider,
+} from 'drupal-canvas/react';
 import { h, render } from 'preact';
+
+// The code editor preview is a Drupal environment for the legacy runtime APIs
+// (`getPageData()`, `getSiteData()`, `new JsonApiClient()`). Declare it before
+// the component modules are imported below.
+declareCanvasRuntime('drupal');
 
 // Get the data from the script tag.
 const dataElement = document.getElementById('canvas-code-editor-preview-data');
@@ -91,9 +107,32 @@ Promise.all([import(compiledJsUrl), import(compiledJsForSlotsUrl)]).then(
       }, {}),
     };
 
-    // Render the component.
+    // Render the component inside the same context providers Drupal islands
+    // use, with the editor's preview data (see CanvasController) as the page
+    // context. The client reads working copies through the editor's session.
+    const canvasData = readCanvasDataV0(drupalSettings);
+    const jsonApiConfig = drupalSettingsToJsonApiRuntimeConfig(canvasData, {
+      preview: true,
+    });
+    let component = h(mainModule.default, propsAndSlots);
+    if (jsonApiConfig) {
+      component = h(
+        JsonApiClientProvider,
+        {
+          client: createJsonApiClient({
+            ...jsonApiConfig,
+            credentials: 'same-origin',
+          }),
+        },
+        component,
+      );
+    }
     render(
-      h(mainModule.default, propsAndSlots),
+      h(
+        CanvasContextProvider,
+        { context: drupalSettingsToCanvasContext(canvasData) },
+        component,
+      ),
       document.getElementById('canvas-code-editor-preview-root'),
     );
   },

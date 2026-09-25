@@ -17,6 +17,15 @@ file.
 | `CANVAS_SITE_URL`       | Base URL of your Drupal site.                                                     |
 | `CANVAS_JSONAPI_PREFIX` | Optional custom prefix for JSON:API requests. Drupal core defaults to `/jsonapi`. |
 
+The plugin loads the site's public `/canvas/api/v0/site-data` endpoint once per
+server (sending an OAuth token when `CANVAS_ACCESS_TOKEN` or the Canvas CLI
+token store provides one) and exposes the result two ways: the
+`virtual:drupal-canvas/site-data` module, which Canvas Workbench imports to
+supply the `drupal-canvas` context providers, and `window.drupalSettings`
+injected into the page for the legacy `getSiteData()`, `getPageData()`, and
+`new JsonApiClient()` APIs. Build tooling can read the same data from the plugin
+instance's `api.getCanvasSiteData()`.
+
 Import the plugin in your Vite configuration:
 
 ```js

@@ -14,21 +14,32 @@ use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
+use Drupal\canvas_headless\CanvasContentContextBuilder;
 use Drupal\canvas_headless\Grant\PreviewAssertionGrant;
 use Drupal\canvas_headless\PreviewAssertionFactory;
 use Drupal\canvas_headless\PreviewLanguageRedirectResponse;
 use Drupal\canvas_headless\StackMiddleware\CanvasContentApiRequest;
 use Drupal\consumers\Entity\Consumer;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableJsonResponse;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Controller\TitleResolverInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\Core\Extension\ThemeHandlerInterface;
+use Drupal\Core\Extension\ThemeInstallerInterface;
+use Drupal\Core\Extension\ThemeSettingsProvider;
+use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Routing\RouteBuilderInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\Core\Session\PermissionCheckerInterface;
+use Drupal\Core\Theme\ThemeInitializationInterface;
+use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\language\ConfigurableLanguageManagerInterface;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\node\Entity\Node;
@@ -175,14 +186,20 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     ] as $account) {
       $this->setCurrentAccount($account);
       $result = $this->renderPage($page);
-      self::assertSame('Stored title', self::responseData($result)['head']['title']);
+      $data = self::responseData($result);
+      self::assertSame('Stored title', $data['head']['title']);
+      // The context describes the same entity as the head and the content.
+      self::assertSame('Stored title', $data['context']['page']['pageTitle']);
       self::assertNotContains(AutoSaveManager::CACHE_TAG, $result->getCacheableMetadata()->getCacheTags());
       self::assertContains('oauth2_scopes', $result->getCacheableMetadata()->getCacheContexts());
     }
 
     $this->setCurrentAccount($this->createTokenAccount(with_preview_scope: TRUE));
     $result = $this->renderPage($page);
-    self::assertSame('Auto-saved title', self::responseData($result)['head']['title']);
+    $data = self::responseData($result);
+    self::assertSame('Auto-saved title', $data['head']['title']);
+    self::assertSame('Auto-saved title', $data['context']['page']['pageTitle']);
+    self::assertSame($page->uuid(), $data['context']['page']['mainEntity']['uuid']);
     self::assertContains(AutoSaveManager::CACHE_TAG, $result->getCacheableMetadata()->getCacheTags());
     self::assertContains('oauth2_scopes', $result->getCacheableMetadata()->getCacheContexts());
   }
@@ -191,6 +208,7 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
    * Tests the Canvas-owned endpoint response without Lupus services.
    */
   public function testCanvasContentResponse(): void {
+    $this->container->get(ThemeInstallerInterface::class)->install(['stark']);
     $page = $this->createPage();
     $page->setComponentTree([
       ...$page->getComponentTree()->getValue(),
@@ -238,6 +256,31 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     self::assertContains('canvas_page:' . $page->id(), $response->getCacheableMetadata()->getCacheTags());
     self::assertContains('canvas_page_view', $response->getCacheableMetadata()->getCacheTags());
     self::assertContains('url', $response->getCacheableMetadata()->getCacheContexts());
+    // The page and site context for the `drupal-canvas` context hooks.
+    self::assertSame('Stored title', $data['context']['page']['pageTitle']);
+    self::assertSame([['key' => '<front>', 'text' => 'Home', 'url' => '/']], $data['context']['page']['breadcrumbs']);
+    self::assertSame([
+      'bundle' => 'canvas_page',
+      'entityTypeId' => 'canvas_page',
+      'uuid' => $page->uuid(),
+      'requestedLanguage' => 'en',
+      'renderedLanguage' => 'en',
+      'translations' => [],
+    ], $data['context']['page']['mainEntity']);
+    self::assertSame([
+      'branding' => [
+        'homeUrl' => '/user/login',
+        'siteName' => '',
+        'siteSlogan' => '',
+      ],
+      'baseUrl' => 'http://localhost',
+      'themeAssets' => [
+        'logo' => ['url' => 'http://localhost/core/themes/stark/logo.svg'],
+        'favicon' => ['url' => 'http://localhost/core/misc/favicon.ico', 'mimeType' => 'image/vnd.microsoft.icon'],
+      ],
+    ], $data['context']['site']);
+    self::assertContains('config:system.site', $response->getCacheableMetadata()->getCacheTags());
+    self::assertContains('url.site', $response->getCacheableMetadata()->getCacheContexts());
 
     $page->setComponentTree([])->save();
     $empty_response = $this->renderPage($page);
@@ -245,6 +288,111 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     self::assertSame(200, $empty_response->getStatusCode());
     self::assertNull($empty_data['content']);
     self::assertTrue($empty_data['route']['managedByCanvas']);
+  }
+
+  /**
+   * Tests default-theme assets and cache invalidation independently of the active theme.
+   */
+  public function testDefaultThemeAssets(): void {
+    $this->container->get(ThemeInstallerInterface::class)->install(['stark', 'olivero']);
+    $this->config('system.theme')->set('default', 'stark')->set('admin', 'olivero')->save();
+    $this->container->get(ThemeManagerInterface::class)->setActiveTheme($this->container->get(ThemeInitializationInterface::class)->getActiveThemeByName('olivero'));
+    $this->config('olivero.settings')->set('logo.use_default', FALSE)->set('logo.path', 'https://admin.example/logo.svg')->save();
+    // The existing Drupal/Workbench path continues to read the active theme.
+    self::assertSame('https://admin.example/logo.svg', $this->container->get(CodeComponentDataProvider::class)->getCanvasDataThemeAssetsV0()['v0']['themeAssets']['logo']['url']);
+
+    $response = $this->renderContentPath('/user/login');
+    $assets = self::responseData($response)['context']['site']['themeAssets'];
+    self::assertSame('http://localhost/core/themes/stark/logo.svg', $assets['logo']['url']);
+    self::assertSame(['url' => 'http://localhost/core/misc/favicon.ico', 'mimeType' => 'image/vnd.microsoft.icon'], $assets['favicon']);
+    $tags = $response->getCacheableMetadata()->getCacheTags();
+    foreach (['system.theme', 'system.theme.global', 'core.extension', 'stark.settings'] as $name) {
+      self::assertContains('config:' . $name, $tags);
+    }
+    self::assertNotContains('config:olivero.settings', $tags);
+
+    // Core's rendered tag covers first creation without disabling caching.
+    self::assertTrue($this->config('stark.settings')->isNew());
+    self::assertContains('rendered', $tags);
+    self::assertSame(Cache::PERMANENT, $response->getCacheableMetadata()->getCacheMaxAge());
+    $cache = $this->container->get('cache.data');
+    $cache->set('theme-context', $assets, Cache::PERMANENT, $tags);
+    $this->config('stark.settings')->set('logo.use_default', TRUE)->save();
+    self::assertFalse($cache->get('theme-context'));
+    $cache->set('theme-context', $assets, Cache::PERMANENT, $tags);
+    // Uploaded assets are configured as file URIs, not managed file IDs.
+    $this->config('stark.settings')
+      ->set('logo.use_default', FALSE)->set('logo.path', 'public://brand.svg')
+      ->set('favicon.use_default', FALSE)->set('favicon.path', 'https://cdn.example/icon.png')
+      ->set('favicon.mimetype', 'image/png')->save();
+    self::assertFalse($cache->get('theme-context'));
+    $assets = self::responseData($this->renderContentPath('/user/login'))['context']['site']['themeAssets'];
+    self::assertStringEndsWith('/files/brand.svg', $assets['logo']['url']);
+    self::assertSame(['url' => 'https://cdn.example/icon.png', 'mimeType' => 'image/png'], $assets['favicon']);
+
+    $cache->set('theme-context', $assets, Cache::PERMANENT, $tags);
+    $this->config('stark.settings')->set('logo.path', 'public://replacement.svg')->save();
+    self::assertFalse($cache->get('theme-context'));
+    $assets = self::responseData($this->renderContentPath('/user/login'))['context']['site']['themeAssets'];
+    self::assertStringEndsWith('/files/replacement.svg', $assets['logo']['url']);
+
+    $cache->set('theme-context', $assets, Cache::PERMANENT, $tags);
+    $this->config('system.theme.global')->set('features.favicon', FALSE)->save();
+    self::assertFalse($cache->get('theme-context'));
+    $this->config('stark.settings')->set('logo.path', '')->save();
+    $assets = self::responseData($this->renderContentPath('/user/login'))['context']['site']['themeAssets'];
+    // Retain the provider's configured MIME type even without a favicon URL.
+    self::assertSame(['logo' => ['url' => ''], 'favicon' => ['url' => '', 'mimeType' => 'image/png']], $assets);
+
+    $this->config('system.theme.global')->set('features.favicon', TRUE)->save();
+    $this->config('stark.settings')->set('favicon.path', '')->set('favicon.mimetype', NULL)->save();
+    $assets = self::responseData($this->renderContentPath('/user/login'))['context']['site']['themeAssets'];
+    self::assertSame(['logo' => ['url' => ''], 'favicon' => ['url' => '', 'mimeType' => '']], $assets);
+    $cache->set('theme-context', $assets, Cache::PERMANENT, $tags);
+    $this->config('system.theme')->set('default', 'olivero')->save();
+    self::assertFalse($cache->get('theme-context'));
+    $response = $this->renderContentPath('/user/login');
+    $assets = self::responseData($response)['context']['site']['themeAssets'];
+    self::assertSame('https://admin.example/logo.svg', $assets['logo']['url']);
+    self::assertSame('http://localhost/core/themes/olivero/favicon.ico', $assets['favicon']['url']);
+    self::assertContains('config:olivero.settings', $response->getCacheableMetadata()->getCacheTags());
+    self::assertNotContains('config:stark.settings', $response->getCacheableMetadata()->getCacheTags());
+
+    $this->config('system.theme')->clear('default')->save();
+    $response = $this->renderContentPath('/user/login');
+    self::assertSame(['logo' => ['url' => ''], 'favicon' => ['url' => '', 'mimeType' => '']], self::responseData($response)['context']['site']['themeAssets']);
+    self::assertContains('config:system.theme', $response->getCacheableMetadata()->getCacheTags());
+  }
+
+  /**
+   * Tests that resolving assets never requests an active theme.
+   */
+  public function testThemeAssetsWithoutNegotiation(): void {
+    $this->container->get(ThemeInstallerInterface::class)->install(['stark']);
+    self::assertFalse($this->container->initialized(CanvasContentContextBuilder::class));
+    $theme_manager = $this->createMock(ThemeManagerInterface::class);
+    $theme_manager->expects(self::never())->method('getActiveTheme');
+    $settings = new ThemeSettingsProvider(
+      $theme_manager,
+      $this->container->get(ThemeInitializationInterface::class),
+      $this->container->get(ThemeHandlerInterface::class),
+      $this->container->get(ConfigFactoryInterface::class),
+      $this->container->get(FileUrlGeneratorInterface::class),
+      $this->container->get('cache.memory'),
+    );
+    // Replace the provider already instantiated by Canvas's entity hooks.
+    $this->container->set(CodeComponentDataProvider::class, new CodeComponentDataProvider(
+      $this->container->get(ConfigFactoryInterface::class),
+      $this->container->get(RequestStack::class),
+      $this->container->get(RouteMatchInterface::class),
+      $this->container->get(TitleResolverInterface::class),
+      $this->container->get('breadcrumb'),
+      $this->container->get(LanguageManagerInterface::class),
+      $this->container,
+      $settings,
+    ));
+    $response = $this->renderContentPath('/user/login');
+    self::assertSame('http://localhost/core/themes/stark/logo.svg', self::responseData($response)['context']['site']['themeAssets']['logo']['url']);
   }
 
   /**
@@ -888,6 +1036,7 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
    * Tests validation and rejection of non-content paths.
    */
   public function testCanvasContentPathValidation(): void {
+    $this->container->get(ThemeInstallerInterface::class)->install(['stark']);
     $missing_path = $this->request(
       Request::create('/canvas/content-api'),
     );
@@ -916,6 +1065,26 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
         'entity' => NULL,
         'negotiatedLanguage' => 'en',
         'translations' => [],
+      ],
+      // Routes without a primary entity still carry page and site context.
+      'context' => [
+        'page' => [
+          'pageTitle' => 'Log in',
+          'breadcrumbs' => [],
+          'mainEntity' => NULL,
+        ],
+        'site' => [
+          'branding' => [
+            'homeUrl' => '/user/login',
+            'siteName' => '',
+            'siteSlogan' => '',
+          ],
+          'baseUrl' => 'http://localhost',
+          'themeAssets' => [
+            'logo' => ['url' => 'http://localhost/core/themes/stark/logo.svg'],
+            'favicon' => ['url' => 'http://localhost/core/misc/favicon.ico', 'mimeType' => 'image/vnd.microsoft.icon'],
+          ],
+        ],
       ],
     ], self::responseData($without_entity));
 
@@ -1073,6 +1242,10 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
       'fr',
       $data['route']['entity']['langcode'],
     );
+    // The context follows the selected translation's auto-save too.
+    self::assertSame('French draft title', $data['context']['page']['pageTitle']);
+    self::assertSame('fr', $data['context']['page']['mainEntity']['requestedLanguage']);
+    self::assertSame('fr', $data['context']['page']['mainEntity']['renderedLanguage']);
   }
 
   /**

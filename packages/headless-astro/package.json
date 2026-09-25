@@ -61,14 +61,20 @@
     },
     "./DraftSession.astro": "./src/components/DraftSession.astro",
     "./CanvasComponentTree.astro": "./src/components/CanvasComponentTree.astro",
-    "./ComponentPreviewPage.astro": "./src/components/ComponentPreviewPage.astro"
+    "./ComponentPreviewPage.astro": "./src/components/ComponentPreviewPage.astro",
+    "./routes/jsonapi-proxy": {
+      "import": "./src/routes/jsonapi-proxy.ts",
+      "types": "./src/routes/jsonapi-proxy.ts",
+      "default": "./src/routes/jsonapi-proxy.ts"
+    }
   },
   "scripts": {
     "test": "vitest run",
     "type-check": "astro check --tsconfig ./tsconfig.json && tsc --noEmit --pretty"
   },
   "dependencies": {
-    "@drupal-canvas/headless": "^0.9.0"
+    "@drupal-canvas/headless": "^0.9.0",
+    "drupal-canvas": "^0.6.0"
   },
   "peerDependencies": {
     "astro": ">=5.17.0",

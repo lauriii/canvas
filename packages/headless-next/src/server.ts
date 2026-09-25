@@ -27,3 +27,5 @@ export const getDraftClient: DraftServer['getDraftClient'] =
 export const fetchEntity = server.fetchEntity;
 export const fetchPage = server.fetchPage;
 export const fetchComponentPreview = server.fetchComponentPreview;
+export const getJsonApiRuntimeConfig = server.getJsonApiRuntimeConfig;
+export const handleJsonApiProxy = server.handleJsonApiProxy;

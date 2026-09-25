@@ -10,12 +10,32 @@ import type { CanvasComponentTreeProps as ReactCanvasComponentTreeProps } from '
 
 export type CanvasComponentTreeProps = Pick<
   ReactCanvasComponentTreeProps,
-  'tree'
+  'tree' | 'context' | 'jsonApi'
 >;
 
-/** Renders a Canvas tree with every component discovered by withCanvas(). */
-export function CanvasComponentTree({ tree }: CanvasComponentTreeProps) {
-  return <ReactCanvasComponentTree tree={tree} components={canvasComponents} />;
+/**
+ * Renders a Canvas tree with every component discovered by withCanvas().
+ *
+ * A client boundary: registered components render on the server for the
+ * initial HTML and hydrate in the browser, where hooks and interactivity run.
+ * Pass `context={page.context}` so `usePageContext()` and `useSiteContext()`
+ * see the routed page's data. `useJsonApiClient()` is configured by the
+ * `CanvasRuntime` server component (rendered once in the root layout), or by
+ * an explicit `jsonApi` prop.
+ */
+export function CanvasComponentTree({
+  tree,
+  context,
+  jsonApi,
+}: CanvasComponentTreeProps) {
+  return (
+    <ReactCanvasComponentTree
+      tree={tree}
+      context={context}
+      jsonApi={jsonApi}
+      components={canvasComponents}
+    />
+  );
 }
 
 export default CanvasComponentTree;

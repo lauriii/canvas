@@ -3,9 +3,15 @@ import os from 'os';
 import path from 'path';
 import yaml from 'js-yaml';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { parse } from '@babel/parser';
+import * as p from '@clack/prompts';
 
 import { setConfig } from '../config';
 import { readValidatedComponentMetadata } from '../utils/component-metadata';
+import {
+  COMMAND_RESULT_REPORT_OPTIONS,
+  reportResults,
+} from '../utils/report-results';
 import {
   createAssetsPullTask,
   createBrandKitPullTask,
@@ -16,6 +22,11 @@ import {
 import type { ApiService } from '../services/api';
 import type { Component } from '../types/Component';
 import type { Page, PageListItem } from '../types/Page';
+
+vi.mock('@clack/prompts', () => ({
+  log: { info: vi.fn(), warn: vi.fn(), message: vi.fn() },
+  note: vi.fn(),
+}));
 
 const mockComponent = (machineName: string): Component =>
   ({
@@ -808,6 +819,553 @@ describe('Pull Command', () => {
         };
         expect(props.properties.backgroundColor.examples[0]).toBe('#687df7e3');
       });
+    });
+  });
+
+  describe('getter migration codemod', () => {
+    let tmpDir: string;
+
+    beforeEach(async () => {
+      tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'pull-codemod-'));
+    });
+
+    afterEach(async () => {
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    });
+
+    const getterComponent = (machineName: string, source: string): Component =>
+      ({ ...mockComponent(machineName), sourceCodeJs: source }) as Component;
+
+    const safeSource = `import { getPageData } from 'drupal-canvas';
+
+export default function Title() {
+  const { pageTitle } = getPageData() ?? {};
+  return <h1>{pageTitle}</h1>;
+}
+`;
+    const unsafeSource = `import { getPageData } from 'drupal-canvas';
+
+export default function Crumbs({ show }) {
+  if (!show) {
+    return null;
+  }
+  const { breadcrumbs } = getPageData();
+  return <nav>{breadcrumbs.length}</nav>;
+}
+`;
+
+    it('reports nullable destructuring through pull without partially rewriting the file', async () => {
+      const source = `import { getPageData as read, getSiteData, JsonApiClient } from 'drupal-canvas';
+export default function Example() {
+  const site = getSiteData();
+  const { pageTitle: title = 'Unavailable' } = read();
+  const client = new JsonApiClient();
+  return title || site?.branding.siteName;
+}`;
+      const api = {
+        listComponents: vi.fn().mockResolvedValue({
+          a: getterComponent('nullable', source),
+          b: getterComponent('guarded', safeSource),
+        }),
+      } as unknown as ApiService;
+      const task = createComponentsPullTask(
+        api,
+        tmpDir,
+        false,
+        { colors: [] },
+        { folders: [] },
+        { supported: true, reasons: [] },
+      );
+      const { summaryLines } = await task.prepare();
+      expect(summaryLines).toContain(
+        'Components: 1 getter migration to context hooks',
+      );
+      const outcome = await task.execute();
+      expect(
+        await fs.readFile(path.join(tmpDir, 'nullable', 'index.tsx'), 'utf-8'),
+      ).toBe(source);
+      expect(
+        await fs.readFile(path.join(tmpDir, 'guarded', 'index.tsx'), 'utf-8'),
+      ).toContain('usePageContext() ?? {}');
+      const message = vi.mocked(p.log.message).mockClear();
+      reportResults(outcome.results, outcome.title, outcome.label, {
+        ...COMMAND_RESULT_REPORT_OPTIONS,
+        showTitle: false,
+      });
+      const report = message.mock.calls.map(([text]) => text).join('\n');
+      expect(report).toContain('Warnings');
+      expect(report).toContain('nullable');
+      expect(report).toContain(
+        'Not migrated: `read()` is destructured without a null guard',
+      );
+      expect(report).toContain('`usePageContext() ?? {}`');
+      expect(
+        report.match(/`new JsonApiClient\(\)` is not migrated automatically/g),
+      ).toHaveLength(1);
+      expect(outcome.notes).toContainEqual(
+        expect.stringContaining(
+          'Components with getter calls left unchanged: nullable',
+        ),
+      );
+    });
+
+    it('plans and applies conversions when both gates pass', async () => {
+      const api = {
+        listComponents: vi.fn().mockResolvedValue({
+          a: getterComponent('title', safeSource),
+          b: getterComponent('crumbs', unsafeSource),
+          c: mockComponent('plain'),
+        }),
+      } as unknown as ApiService;
+      const task = createComponentsPullTask(
+        api,
+        tmpDir,
+        false,
+        { colors: [] },
+        { folders: [] },
+        {
+          supported: true,
+          reasons: [],
+        },
+      );
+
+      const { summaryLines } = await task.prepare();
+      expect(summaryLines).toEqual([
+        'Components: 3 pull (3 new)',
+        'Components: 1 getter migration to context hooks',
+        '  title: getPageData() → usePageContext()',
+      ]);
+
+      const outcome = await task.execute();
+      const written = await fs.readFile(
+        path.join(tmpDir, 'title', 'index.tsx'),
+        'utf-8',
+      );
+      expect(written).toContain(
+        "import { usePageContext } from 'drupal-canvas/react';",
+      );
+      expect(written).toContain(
+        'const { pageTitle } = usePageContext() ?? {};',
+      );
+      expect(
+        await fs.readFile(path.join(tmpDir, 'crumbs', 'index.tsx'), 'utf-8'),
+      ).toBe(unsafeSource);
+      expect(
+        outcome.results.find((r) => r.itemName === 'title')?.details,
+      ).toEqual([{ content: 'Migrated getPageData() → usePageContext()' }]);
+      expect(
+        outcome.results.find((r) => r.itemName === 'crumbs')?.warnings?.[0],
+      ).toContain(
+        'Not migrated: `getPageData()` is called after a possible early return',
+      );
+      expect(outcome.notes).toEqual([
+        expect.stringContaining(
+          'Components with getter calls left unchanged: crumbs',
+        ),
+        expect.stringContaining('Migration prompt for AI agents:'),
+        expect.stringContaining('nullable results'),
+      ]);
+    });
+
+    it.each([
+      "import { sortMenu, getPageData, getSiteData } from 'drupal-canvas/drupal-utils';",
+      "import { getPageData, getSiteData } from 'drupal-canvas'; import { usePageContext, useSiteContext } from 'drupal-canvas/react';",
+    ])(
+      'writes valid migrated source for adjacent trailing getters: %s',
+      async (imports) => {
+        const source = `${imports}
+export default function Header() {
+  const page = getPageData();
+  const site = getSiteData();
+  return <h1>{page.pageTitle}{site.branding.siteName}</h1>;
+}
+`;
+        const api = {
+          listComponents: vi.fn().mockResolvedValue({
+            a: getterComponent('header', source),
+          }),
+        } as unknown as ApiService;
+        const task = createComponentsPullTask(
+          api,
+          tmpDir,
+          false,
+          { colors: [] },
+          { folders: [] },
+          { supported: true, reasons: [] },
+        );
+        await task.prepare();
+        await task.execute();
+        const written = await fs.readFile(
+          path.join(tmpDir, 'header', 'index.tsx'),
+          'utf-8',
+        );
+        expect(() =>
+          parse(written, {
+            sourceType: 'module',
+            plugins: ['jsx', 'typescript'],
+          }),
+        ).not.toThrow();
+        expect(written).toContain('const page = usePageContext();');
+        expect(written).toContain('const site = useSiteContext();');
+        expect(written).not.toMatch(/getPageData|getSiteData/);
+      },
+    );
+
+    it.each([
+      [
+        'mixed',
+        `import { getPageData, JsonApiClient } from 'drupal-canvas';
+const client = new JsonApiClient();
+export default function Header() {
+  const page = getPageData();
+  return <h1>{page.pageTitle}</h1>;
+}`,
+        true,
+      ],
+      [
+        'both-getters',
+        `import { getPageData, getSiteData, JsonApiClient } from 'drupal-canvas';
+const client = new JsonApiClient();
+export default function Header() {
+  const page = getPageData();
+  const site = getSiteData();
+  return <h1>{page?.pageTitle}{site?.branding.siteName}</h1>;
+}`,
+        true,
+      ],
+      [
+        'constructor-only',
+        `import { JsonApiClient } from 'drupal-canvas';
+export default function Header() {
+  const client = new JsonApiClient();
+  return <h1>Hello</h1>;
+}`,
+        false,
+      ],
+      [
+        'module-scope',
+        `import { JsonApiClient } from 'drupal-canvas';
+const client = new JsonApiClient();
+export default function Header() { return <h1>Hello</h1>; }`,
+        false,
+      ],
+      [
+        'unsafe-mixed',
+        `import { getPageData, JsonApiClient } from 'drupal-canvas';
+const client = new JsonApiClient();
+const page = getPageData();
+export default function Header() { return <h1>{page.pageTitle}</h1>; }`,
+        false,
+      ],
+    ] as const)(
+      'reports residual constructor migration for %s',
+      async (name, source, converted) => {
+        const api = {
+          listComponents: vi
+            .fn()
+            .mockResolvedValue({ a: getterComponent(name, source) }),
+        } as unknown as ApiService;
+        const task = createComponentsPullTask(
+          api,
+          tmpDir,
+          false,
+          { colors: [] },
+          { folders: [] },
+          { supported: true, reasons: [] },
+        );
+        await task.prepare();
+        const outcome = await task.execute();
+        const written = await fs.readFile(
+          path.join(tmpDir, name, 'index.tsx'),
+          'utf-8',
+        );
+        expect(written).toContain('const client = new JsonApiClient();');
+        if (converted) {
+          expect(written).toContain('const page = usePageContext();');
+        } else {
+          expect(written).toBe(source);
+        }
+        // Capture the actual terminal reporter with the same options as pull,
+        // rather than merely checking diagnostics in the codemod result.
+        const message = vi.mocked(p.log.message).mockClear();
+        reportResults(outcome.results, outcome.title, outcome.label, {
+          ...COMMAND_RESULT_REPORT_OPTIONS,
+          showTitle: false,
+        });
+        const report = message.mock.calls.map(([text]) => text).join('\n');
+        expect(report).toContain('Warnings');
+        expect(report).toContain(name);
+        expect(
+          report.match(
+            /`new JsonApiClient\(\)` is not migrated automatically/g,
+          ),
+        ).toHaveLength(1);
+        if (converted)
+          expect(report).toContain('Migrated getPageData() → usePageContext()');
+        if (name === 'unsafe-mixed') expect(report).toContain('module level');
+        expect(outcome.notes).toContain(
+          `Components still constructing \`new JsonApiClient()\`: ${name}`,
+        );
+        const getterNotes = outcome.notes?.filter((note) =>
+          note.startsWith('Components with getter calls left unchanged:'),
+        );
+        expect(getterNotes).toEqual(
+          name === 'unsafe-mixed'
+            ? [`Components with getter calls left unchanged: ${name}`]
+            : [],
+        );
+        const notes = outcome.notes?.join('\n');
+        expect(notes).not.toMatch(/getPageData|getSiteData/);
+        expect(notes).toContain('remain supported in Drupal and Workbench');
+        expect(notes).toContain('For headless use, migrate only the remaining');
+        if (name === 'both-getters') {
+          expect(written).toContain('const site = useSiteContext();');
+          expect(written).not.toMatch(/getPageData|getSiteData/);
+          expect(report).toContain('getSiteData() → useSiteContext()');
+        }
+        expect(
+          outcome.notes?.filter((note) =>
+            note.startsWith('Migration prompt for AI agents:'),
+          ),
+        ).toHaveLength(1);
+      },
+    );
+
+    it.each([
+      { supported: true, skipOverwrite: false },
+      { supported: false, skipOverwrite: false },
+      { supported: true, skipOverwrite: true },
+    ])(
+      'preserves colors and folders with migration gates %j',
+      async ({ supported, skipOverwrite }) => {
+        const colorId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+        const folderId = '88888888-8888-4888-8888-888888888888';
+        const component = getterComponent('title', safeSource);
+        component.props = {
+          backgroundColor: {
+            title: 'Background color',
+            type: 'string',
+            $ref: 'json-schema-definitions://canvas.module/color',
+            examples: [`canvas-color:${colorId}`],
+            'x-canvas-color-folders': [folderId],
+          },
+        };
+        const colorsRef: Parameters<typeof createComponentsPullTask>[3] = {
+          colors: [],
+        };
+        const foldersRef: Parameters<typeof createComponentsPullTask>[4] = {
+          folders: [],
+        };
+        const localSource = 'export default () => null;';
+        const localMetadata = yaml.dump({
+          name: 'title',
+          machineName: 'title',
+          status: true,
+        });
+        if (skipOverwrite) {
+          await fs.mkdir(path.join(tmpDir, 'title'));
+          await fs.writeFile(
+            path.join(tmpDir, 'title', 'component.yml'),
+            localMetadata,
+          );
+          await fs.writeFile(
+            path.join(tmpDir, 'title', 'index.jsx'),
+            localSource,
+          );
+        }
+        const api = {
+          listComponents: vi.fn().mockResolvedValue({
+            title: component,
+            fresh: { ...component, name: 'fresh', machineName: 'fresh' },
+          }),
+        } as unknown as ApiService;
+        const task = createComponentsPullTask(
+          api,
+          tmpDir,
+          skipOverwrite,
+          colorsRef,
+          foldersRef,
+          {
+            supported,
+            reasons: supported
+              ? []
+              : ['the site does not advertise context-hook support'],
+          },
+        );
+        const { summaryLines } = await task.prepare();
+        expect(
+          summaryLines.some((line) => line.includes('getter migration')),
+        ).toBe(supported);
+        await expect(fs.access(path.join(tmpDir, 'fresh'))).rejects.toThrow();
+        // The brand-kit prepare barrier populates these shared refs before execute.
+        colorsRef.colors = [
+          {
+            id: colorId,
+            name: 'Brand red',
+            cssVariable: '--brand-red',
+            weight: 0,
+            value: {
+              colorSpace: 'srgb',
+              components: [0.8, 0, 0],
+              alpha: null,
+              hex: null,
+            },
+          },
+        ];
+        foldersRef.folders = [
+          {
+            id: folderId,
+            name: 'Brand palette',
+            type: 'color',
+            weight: 0,
+            items: [colorId],
+          },
+        ];
+        await task.execute();
+        const freshDir = path.join(tmpDir, 'fresh');
+        const written = await fs.readFile(
+          path.join(freshDir, skipOverwrite ? 'index.jsx' : 'index.tsx'),
+          'utf-8',
+        );
+        expect(written).toBe(
+          supported
+            ? safeSource
+                .replaceAll('getPageData', 'usePageContext')
+                .replace("'drupal-canvas'", "'drupal-canvas/react'")
+            : safeSource,
+        );
+        const metadata = await fs.readFile(
+          path.join(freshDir, 'component.yml'),
+          'utf-8',
+        );
+        expect(metadata).toContain('canvas-color:brand-red');
+        expect(metadata).toContain(`${folderId} # Brand palette`);
+        if (skipOverwrite) {
+          expect(
+            await fs.readFile(path.join(tmpDir, 'title', 'index.jsx'), 'utf-8'),
+          ).toBe(localSource);
+          expect(
+            await fs.readFile(
+              path.join(tmpDir, 'title', 'component.yml'),
+              'utf-8',
+            ),
+          ).toBe(localMetadata);
+        }
+      },
+    );
+
+    it('converts nothing further on a second pull', async () => {
+      const api = {
+        listComponents: vi.fn().mockResolvedValue({
+          a: getterComponent('title', safeSource),
+        }),
+      } as unknown as ApiService;
+      const first = createComponentsPullTask(
+        api,
+        tmpDir,
+        false,
+        { colors: [] },
+        { folders: [] },
+        {
+          supported: true,
+          reasons: [],
+        },
+      );
+      await first.prepare();
+      await first.execute();
+      const migrated = await fs.readFile(
+        path.join(tmpDir, 'title', 'index.tsx'),
+        'utf-8',
+      );
+
+      const secondApi = {
+        listComponents: vi.fn().mockResolvedValue({
+          a: getterComponent('title', migrated),
+        }),
+      } as unknown as ApiService;
+      const second = createComponentsPullTask(
+        secondApi,
+        tmpDir,
+        false,
+        { colors: [] },
+        { folders: [] },
+        {
+          supported: true,
+          reasons: [],
+        },
+      );
+      const { summaryLines } = await second.prepare();
+      expect(summaryLines).toEqual(['Components: 1 pull (1 existing)']);
+      const outcome = await second.execute();
+      expect(outcome.notes).toBeUndefined();
+      expect(
+        await fs.readFile(path.join(tmpDir, 'title', 'index.tsx'), 'utf-8'),
+      ).toBe(migrated);
+    });
+
+    it('keeps sources unchanged and reports the limitation when a gate fails', async () => {
+      const api = {
+        listComponents: vi.fn().mockResolvedValue({
+          a: getterComponent('title', safeSource),
+        }),
+      } as unknown as ApiService;
+      const task = createComponentsPullTask(
+        api,
+        tmpDir,
+        false,
+        { colors: [] },
+        { folders: [] },
+        {
+          supported: false,
+          reasons: ['the site does not advertise context-hook support'],
+        },
+      );
+      const { summaryLines } = await task.prepare();
+      expect(summaryLines).toEqual(['Components: 1 pull (1 new)']);
+      const outcome = await task.execute();
+      expect(
+        await fs.readFile(path.join(tmpDir, 'title', 'index.tsx'), 'utf-8'),
+      ).toBe(safeSource);
+      expect(outcome.notes?.[0]).toContain('left unchanged');
+      expect(outcome.notes?.[1]).toContain('does not advertise');
+      expect(outcome.notes?.[2]).toContain('Migration prompt for AI agents:');
+    });
+
+    it('never touches files protected by skipOverwrite', async () => {
+      const dir = path.join(tmpDir, 'title');
+      await fs.mkdir(dir, { recursive: true });
+      await fs.writeFile(
+        path.join(dir, 'component.yml'),
+        yaml.dump({ name: 'title', machineName: 'title', status: true }),
+        'utf-8',
+      );
+      await fs.writeFile(
+        path.join(dir, 'index.jsx'),
+        'export default () => null;',
+        'utf-8',
+      );
+      const api = {
+        listComponents: vi.fn().mockResolvedValue({
+          a: getterComponent('title', safeSource),
+        }),
+      } as unknown as ApiService;
+      const task = createComponentsPullTask(
+        api,
+        tmpDir,
+        true,
+        { colors: [] },
+        { folders: [] },
+        {
+          supported: true,
+          reasons: [],
+        },
+      );
+      const { summaryLines } = await task.prepare();
+      expect(summaryLines).toEqual(['Components: 1 pull (1 existing)']);
+      await task.execute();
+      expect(await fs.readFile(path.join(dir, 'index.jsx'), 'utf-8')).toBe(
+        'export default () => null;',
+      );
     });
   });
 
