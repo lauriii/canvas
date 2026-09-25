@@ -30,7 +30,6 @@ interface CreateOptions {
   template?: string;
   ref?: string;
   agents?: string;
-  experimentalHeadless?: boolean;
   siteName?: string;
   siteUrl?: string;
 }
@@ -54,10 +53,6 @@ program
     'comma-separated list of additional agents to support, or "none" to skip compatibility symlinks',
   )
   .option(
-    '--experimental-headless',
-    'enable experimental headless frontend templates',
-  )
-  .option(
     '--site-name <name>',
     'use slugified site name as the suggested project name',
   )
@@ -76,9 +71,6 @@ program
         const selectedAgents = parseAgentSelection(options.agents);
         const predefinedTemplates = templates as Template[];
         assertUniqueTemplateIdentifiers(predefinedTemplates);
-        const availableTemplates = options.experimentalHeadless
-          ? predefinedTemplates
-          : predefinedTemplates.filter((template) => !template.experimental);
 
         // Validate template flag if provided.
         if (options.template) {
@@ -107,7 +99,7 @@ program
             });
           } else if (!template) {
             p.log.error(
-              `Template "${options.template}" not found.\n\nAvailable templates:\n${availableTemplates
+              `Template "${options.template}" not found.\n\nAvailable templates:\n${predefinedTemplates
                 .map((availableTemplate) => `- ${availableTemplate.id}`)
                 .join('\n')}`,
             );
@@ -185,20 +177,12 @@ program
         // Get template from flag or prompts.
         let templateId = options.template;
         if (!templateId) {
-          // If there's only one available template, use it automatically.
-          if (availableTemplates.length === 1) {
-            templateId = availableTemplates[0].id;
+          if (!interactive) {
+            templateId = 'default';
           } else {
-            if (!interactive) {
-              p.log.error(
-                'Template is required in a non-interactive run. Use --template.',
-              );
-              process.exit(1);
-            }
-
             const selected = await p.select({
               message: 'Select a template',
-              options: availableTemplates.map((template) => ({
+              options: predefinedTemplates.map((template) => ({
                 value: template.id,
                 label: template.label,
               })),
