@@ -16,6 +16,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait;
 use Drupal\Tests\canvas_ai\Traits\FunctionalCallTestTrait;
+use Drupal\Tests\canvas_ai\Traits\ImageMediaPropTestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -32,6 +33,7 @@ final class SetAIGeneratedTemplateDataTest extends CanvasKernelTestBase {
 
   use CreateTestJsComponentTrait;
   use FunctionalCallTestTrait;
+  use ImageMediaPropTestTrait;
   use UserCreationTrait;
 
   protected FunctionCallPluginManager $functionCallManager;
@@ -47,6 +49,7 @@ final class SetAIGeneratedTemplateDataTest extends CanvasKernelTestBase {
    */
   protected static $modules = [
     ...self::CANVAS_KERNEL_TEST_MINIMAL_MODULES,
+    'field',
     'ai',
     'ai_agents',
     'canvas_ai',
@@ -61,6 +64,7 @@ final class SetAIGeneratedTemplateDataTest extends CanvasKernelTestBase {
     $this->installEntitySchema('file');
     $this->installEntitySchema('path_alias');
     $this->installEntitySchema('user');
+    $this->setUpImageMediaType();
     $this->container->get(ComponentSourceManager::class)->generateComponents();
 
     $this->functionCallManager = $this->container->get('plugin.manager.ai.function_calls');
@@ -309,6 +313,50 @@ YAML;
 
     $result = $tool->getStructuredOutput();
     $this->assertEquals($expected_output, $result);
+  }
+
+  /**
+   * Tests a media item the current user is not allowed to view.
+   *
+   * An image prop is populated by a reference to a media item, and Canvas
+   * resolves that reference with the current user's access rights: an agent
+   * must not be able to put media on the page for a user who may not see it.
+   */
+  public function testTemplateDataWithInaccessibleMedia(): void {
+    $media = $this->createImageMedia();
+    $yaml = <<<YAML
+      content:
+        - sdc.canvas_test_sdc.image:
+            props:
+              image: {$media->id()}
+      YAML;
+
+    $layout_json = \json_encode([
+      'regions' => [
+        'content' => [
+          'nodePathPrefix' => [0],
+          'components' => [],
+        ],
+      ],
+    ]);
+    $this->mockTempStore->expects($this->exactly(2))
+      ->method('getData')
+      ->with(CanvasAiTempStore::CURRENT_LAYOUT_KEY)
+      ->willReturn($layout_json);
+
+    // The first account ::setUp() creates is user 1, which bypasses access
+    // checks: the very same media item raises no validation error for it.
+    $this->assertSame(1, (int) $this->privilegedUser->id());
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
+    $result = $this->getTemplateToolOutput($yaml);
+    $this->assertSame('Template data has been successfully set.', $result);
+
+    // User A may use Canvas AI, but may not view the media item.
+    $user_a = $this->createUserWithoutMediaAccess();
+    $this->assertFalse($media->access('view', $user_a));
+    $this->container->get(AccountProxyInterface::class)->setAccount($user_a);
+    $result = $this->getTemplateToolOutput($yaml);
+    $this->assertSame(\sprintf('Failed to save: %s', self::MEDIA_ACCESS_DENIED_MESSAGE), self::normalizeErrorString($result));
   }
 
   private function getTemplateToolOutput(string $yaml): string {
