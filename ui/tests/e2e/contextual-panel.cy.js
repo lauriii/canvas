@@ -13,7 +13,7 @@ describe('Contextual panel', () => {
     cy.drupalUninstall();
   });
 
-  it('should open the context menu on right-click and close it on close icon click', () => {
+  it('should open the context menu on right-click', () => {
     cy.loadURLandWaitForCanvasLoaded();
     // Wait for the preview iframe to load and render something that confirms it is ready.
     cy.get('iframe[data-canvas-preview]').should('exist');
@@ -44,23 +44,6 @@ describe('Contextual panel', () => {
       cy.findByText('Delete').click();
     });
     cy.waitForElementContentNotInIframe('h1', 'hello, world!');
-    // Assert that close icon exists and clicking it closes the contextual panel, and that clicking the right panel menu button opens it again.
-    cy.findByTestId('canvas-contextual-panel--close-icon').focus();
-    cy.findByTestId('canvas-contextual-panel--close-icon').should('have.focus');
-    cy.findByTestId('canvas-contextual-panel--close-icon').realPress('Enter');
-    cy.findByTestId('canvas-contextual-panel').should('not.be.visible');
-    cy.findByTestId('canvas-right-panel-menu-button').focus();
-    cy.findByTestId('canvas-right-panel-menu-button').should('have.focus');
-    cy.findByTestId('canvas-right-panel-menu-button').realPress('Enter');
-    cy.findByTestId('canvas-contextual-panel').should('be.visible');
-    // Assert that closing the panel while a component is already selected,
-    // then re-selecting that same component (which does not change the
-    // underlying selection value) still reopens the panel.
-    cy.clickComponentInPreview('Hero');
-    cy.findByTestId('canvas-contextual-panel--close-icon').click();
-    cy.findByTestId('canvas-contextual-panel').should('not.be.visible');
-    cy.clickComponentInPreview('Hero');
-    cy.findByTestId('canvas-contextual-panel').should('be.visible');
   });
 
   it('should open the context menu on right-click in primary content menu', () => {

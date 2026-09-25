@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { Outlet, useParams } from 'react-router-dom';
-import { Cross1Icon, InfoCircledIcon } from '@radix-ui/react-icons';
+import { InfoCircledIcon } from '@radix-ui/react-icons';
 import {
   Box,
   Button,
   Callout,
   Flex,
-  IconButton,
   ScrollArea,
   Tabs,
   Text,
@@ -23,14 +22,15 @@ import {
   selectIsMultiSelect,
   selectSelectedComponentUuid,
   selectSelection,
-  setRightPanelOpen,
 } from '@/features/ui/uiSlice';
 import useHidePanelClasses from '@/hooks/useHidePanelClasses';
 import { PAGE_VARIANT_ENTITY_TYPE } from '@/services/pageVariants';
 
+import type React from 'react';
+
 import styles from './ContextualPanel.module.css';
 
-const ContextualPanel = () => {
+const ContextualPanel: React.FC = () => {
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const isMultiSelect = useAppSelector(selectIsMultiSelect);
   const selection = useAppSelector(selectSelection);
@@ -89,16 +89,6 @@ const ContextualPanel = () => {
         height="100%"
         data-testid={`canvas-contextual-panel-${selectedComponent}`}
       >
-        <Flex align="end" justify="end" pr="4">
-          <IconButton
-            aria-label="Close right panel"
-            data-testid="canvas-contextual-panel--close-icon"
-            onClick={() => dispatch(setRightPanelOpen(false))}
-            variant="ghost"
-          >
-            <Cross1Icon />
-          </IconButton>
-        </Flex>
         <ErrorBoundary>
           <Tabs.Root
             defaultValue={'pageData'}
