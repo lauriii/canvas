@@ -32,16 +32,12 @@ describe('React entry point', () => {
     }
   });
 
-  it('leaves existing components and date helpers on the root', () => {
+  it('leaves existing components on the root', () => {
     for (const name of [
       'FormattedText',
       'Image',
       'Region',
       'RegionsProvider',
-      'canvasFormatDate',
-      'canvasFormatDateTime',
-      'canvasFormatTime',
-      'canvasFormatDateRange',
     ]) {
       expect(root).toHaveProperty(name);
       expect(react).not.toHaveProperty(name);

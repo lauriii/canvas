@@ -114,53 +114,6 @@ class CodeComponentDataProviderTest extends FunctionalTestBase {
   }
 
   /**
-   * Tests v 0 langcode on a published page that uses date formatting.
-   *
-   * @legacy-covers \Drupal\canvas\CodeComponentDataProvider::getCanvasDataLangcodeV0
-   */
-  public function testV0LangcodeUsingDateFormatting(): void {
-    $this->container->get(ModuleInstallerInterface::class)->install(['language', 'canvas_test_date_formatting']);
-    // Refresh the container so the language schema is known before saving
-    // language.negotiation below.
-    $this->rebuildContainer();
-    ConfigurableLanguage::createFromLangcode('fr')->save();
-    $this->config('language.negotiation')
-      ->set('url.prefixes', ['en' => '', 'fr' => 'fr'])
-      ->save();
-    $this->rebuildContainer();
-
-    $page = Page::create([
-      'title' => 'Test page',
-      'type' => 'page',
-      'components' => [
-        [
-          'uuid' => CanvasTestSetup::UUID_COMPONENT_SDC,
-          'component_id' => 'js.canvas_test_date_formatting_code_date',
-        ],
-      ],
-    ]);
-    self::assertCount(0, $page->validate());
-    $page->save();
-
-    $regular_user = $this->drupalCreateUser(['access content']);
-    $this->assertInstanceOf(AccountInterface::class, $regular_user);
-    $this->drupalLogin($regular_user);
-
-    // The published page only attaches the asset libraries for the code
-    // component's data dependencies: `langcode` must be the only key.
-    $this->drupalGet($page->toUrl());
-    $drupalSettings = $this->getDrupalSettings();
-    $this->assertArrayHasKey(CodeComponentDataProvider::CANVAS_DATA_KEY, $drupalSettings);
-    self::assertSame(['langcode' => 'en'], $drupalSettings[CodeComponentDataProvider::CANVAS_DATA_KEY][CodeComponentDataProvider::V0]);
-
-    // The langcode follows the negotiated interface language.
-    $fr = $this->container->get(LanguageManagerInterface::class)->getLanguage('fr');
-    $this->drupalGet($page->toUrl('canonical', ['language' => $fr]));
-    $drupalSettings = $this->getDrupalSettings();
-    self::assertSame(['langcode' => 'fr'], $drupalSettings[CodeComponentDataProvider::CANVAS_DATA_KEY][CodeComponentDataProvider::V0]);
-  }
-
-  /**
    * Tests v 0 not using drupal settings.
    *
    * @legacy-covers \Drupal\canvas\CodeComponentDataProvider

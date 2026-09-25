@@ -178,7 +178,6 @@ jquery.overrides:
 canvasData.v0:
   dependencies:
     - canvas/canvasData.v0.baseUrl
-    - canvas/canvasData.v0.langcode
     - canvas/canvasData.v0.branding
     - canvas/canvasData.v0.breadcrumbs
     - canvas/canvasData.v0.jsonapiSettings
@@ -196,14 +195,6 @@ canvasData.v0.baseUrl:
     canvasData:
       v0:
         baseUrl: null
-
-canvasData.v0.langcode:
-  dependencies:
-    - core/drupalSettings
-  drupalSettings:
-    canvasData:
-      v0:
-        langcode: null
 
 canvasData.v0.branding:
   dependencies:

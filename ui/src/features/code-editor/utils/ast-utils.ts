@@ -17,11 +17,6 @@ const DATA_DEPENDENCY_MAP: Record<string, string[]> = {
   JsonApiClient: ['v0.baseUrl', 'v0.jsonapiSettings'],
   getSiteData: ['v0.baseUrl', 'v0.branding'],
   getPageData: ['v0.breadcrumbs', 'v0.pageTitle', 'v0.mainEntity'],
-  // The date formatting utilities read the active interface language.
-  canvasFormatDate: ['v0.langcode'],
-  canvasFormatDateTime: ['v0.langcode'],
-  canvasFormatTime: ['v0.langcode'],
-  canvasFormatDateRange: ['v0.langcode'],
   useJsonApiClient: ['v0.baseUrl', 'v0.jsonapiSettings'],
   useSiteContext: ['v0.baseUrl', 'v0.branding', 'v0.themeAssets'],
   usePageContext: ['v0.breadcrumbs', 'v0.pageTitle', 'v0.mainEntity'],

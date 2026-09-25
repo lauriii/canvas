@@ -264,17 +264,6 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
     // They are only added for the Canvas UI, and are not available normally.
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { canvas, canvasExtension, ...drupalSettings } = getDrupalSettings();
-    const previewDrupalSettings = {
-      ...drupalSettings,
-      canvasData: {
-        ...drupalSettings.canvasData,
-        v0: {
-          ...drupalSettings.canvasData?.v0,
-          langcode:
-            drupalSettings.canvasData?.v0?.langcode ?? drupalSettings.langcode,
-        },
-      },
-    };
     const previewJsData = JSON.stringify({
       compiledJsUrl: URL.createObjectURL(
         new Blob([compiledJs], { type: 'text/javascript' }),
@@ -284,7 +273,7 @@ const Preview = ({ isLoading = false }: { isLoading?: boolean }) => {
       ),
       propValues,
       slotNames,
-      drupalSettings: previewDrupalSettings,
+      drupalSettings,
     });
     setIframeSrcDoc(
       getIframeSrc({

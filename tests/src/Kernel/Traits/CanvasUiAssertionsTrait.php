@@ -24,13 +24,10 @@ trait CanvasUiAssertionsTrait {
       'branding',
       'breadcrumbs',
       'jsonapiSettings',
-      'langcode',
       'mainEntity',
       'pageTitle',
       'themeAssets',
     ], \array_keys($this->drupalSettings[CodeComponentDataProvider::CANVAS_DATA_KEY][CodeComponentDataProvider::V0]));
-    self::assertIsString($this->drupalSettings[CodeComponentDataProvider::CANVAS_DATA_KEY][CodeComponentDataProvider::V0]['langcode']);
-    self::assertNotEmpty($this->drupalSettings[CodeComponentDataProvider::CANVAS_DATA_KEY][CodeComponentDataProvider::V0]['langcode']);
     self::assertSame('This is a page title for testing purposes', $this->drupalSettings[CodeComponentDataProvider::CANVAS_DATA_KEY][CodeComponentDataProvider::V0]['pageTitle']);
   }
 

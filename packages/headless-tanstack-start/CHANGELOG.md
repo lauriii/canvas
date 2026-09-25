@@ -1,5 +1,23 @@
 # @drupal-canvas/headless-tanstack-start
 
+## 0.8.0
+
+### Minor Changes
+
+- aaaa869: Read preview context from each request and accept an explicit context
+  argument in `fetchPage(path, context)`.
+
+### Patch Changes
+
+- aaaa869: Delegate eligible embedded link clicks in draft mode to the host when
+  it advertises navigation support.
+- Updated dependencies [aaaa869]
+- Updated dependencies [73d9fb8]
+- Updated dependencies [aaaa869]
+  - @drupal-canvas/headless@0.11.0
+  - @drupal-canvas/headless-react@0.5.1
+  - drupal-canvas@0.7.1
+
 ## 0.7.0
 
 ### Minor Changes

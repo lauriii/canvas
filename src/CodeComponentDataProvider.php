@@ -66,19 +66,6 @@ readonly final class CodeComponentDataProvider {
   }
 
   /**
-   * Returns the active interface langcode for V0 of drupalSettings.canvasData.
-   *
-   * @return array[]
-   */
-  public function getCanvasDataLangcodeV0(): array {
-    return [
-      self::V0 => [
-        'langcode' => $this->languageManager->getCurrentLanguage(LanguageInterface::TYPE_INTERFACE)->getId(),
-      ],
-    ];
-  }
-
-  /**
    * Returns the Branding array for V0 of drupalSettings.canvasData.
    *
    * @return array[]

@@ -765,25 +765,6 @@ describe('getDataDependenciesFromAst', () => {
     });
   });
 
-  it.each([
-    'canvasFormatDate',
-    'canvasFormatDateTime',
-    'canvasFormatTime',
-    'canvasFormatDateRange',
-  ])('should detect needed drupalSettings when using %s', (name) => {
-    const code = `
-      // Random import.
-      import useSWR from 'swr';
-      // With different local identifier.
-      import { ${name} as format } from 'drupal-canvas';
-    `;
-    const ast = parse(code, { sourceType: 'module' });
-    const result = getDataDependenciesFromAst(ast);
-    expect(result).to.deep.equal({
-      drupalSettings: ['v0.langcode'],
-    });
-  });
-
   it('should detect needed drupalSettings when using both getSiteData and JsonApiClient, and should prevent duplicates', () => {
     const code = `
       // Random import.
@@ -798,53 +779,6 @@ describe('getDataDependenciesFromAst', () => {
     expect(result).to.deep.equal({
       drupalSettings: ['v0.baseUrl', 'v0.jsonapiSettings', 'v0.branding'],
     });
-  });
-
-  it.each([
-    'canvasFormatDate',
-    'canvasFormatDateTime',
-    'canvasFormatTime',
-    'canvasFormatDateRange',
-  ])('detects langcode for namespace access to %s', (name) => {
-    const ast = parse(
-      `import * as canvas from 'drupal-canvas'; canvas.${name}('2026-01-15');`,
-      { sourceType: 'module' },
-    );
-    expect(getDataDependenciesFromAst(ast)).to.deep.equal({
-      drupalSettings: ['v0.langcode'],
-    });
-  });
-
-  it('combines date and context imports without duplicate settings', () => {
-    const ast = parse(
-      `import { canvasFormatDate as format } from 'drupal-canvas'; import { useSiteContext } from 'drupal-canvas/react';
-       import * as canvas from 'drupal-canvas';
-       canvas.canvasFormatTime('14:30:00');`,
-      { sourceType: 'module' },
-    );
-    expect(getDataDependenciesFromAst(ast)).to.deep.equal({
-      drupalSettings: [
-        'v0.langcode',
-        'v0.baseUrl',
-        'v0.branding',
-        'v0.themeAssets',
-      ],
-    });
-  });
-
-  it('does not attach runtime settings for the date options type', () => {
-    const ast = parse(
-      `import type { CanvasDateFormatOptions } from 'drupal-canvas';`,
-      { sourceType: 'module', plugins: ['typescript'] },
-    );
-    expect(getDataDependenciesFromAst(ast)).to.deep.equal({});
-  });
-
-  it('ignores date helper imports from unrelated packages', () => {
-    const ast = parse(`import { canvasFormatDate } from 'another-package';`, {
-      sourceType: 'module',
-    });
-    expect(getDataDependenciesFromAst(ast)).to.deep.equal({});
   });
 
   it('should detect needed drupalSettings for members of namespace imports', () => {

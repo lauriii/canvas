@@ -44,7 +44,6 @@
         "phpstan": "composer --working-dir=$(composer run composer-root) exec phpstan -- --configuration=$(pwd)/phpstan.neon --autoload-file=$(pwd)/phpstan_rules/autoload.php analyze $(pwd)",
         "phpstan-regenerate-ignores-for-non-min-core-version-features": "rm $(pwd)/phpstan-ignores-non-min-core-version.neon && touch $(pwd)/phpstan-ignores-non-min-core-version.neon && composer --working-dir=$(composer run composer-root) exec phpstan -- --configuration=$(pwd)/phpstan.neon --autoload-file=$(pwd)/phpstan_rules/autoload.php --generate-baseline=$(pwd)/phpstan-ignores-non-min-core-version.neon --allow-empty-baseline analyze $(pwd)",
         "phpunit": "./tests/scripts/phpunit.sh",
-        "generate:date-fallback-patterns": "php ./scripts/generate-date-fallback-patterns.php",
         "lint:phpcs": "@phpcs",
         "lint:phpstan": "@phpstan",
         "lint": [
@@ -67,7 +66,6 @@
         "lint:phpstan": "Runs PHPStan using Canvas' rules, generates CI artifact.",
         "phpstan-regenerate-ignores-for-non-min-core-version-features": "Regenerates PHPStan baseline for Canvas-provided features that require a core version beyond the minimum supported version.",
         "phpunit": "Runs Canvas' back-end test suite. Supports running subset, use `composer run phpunit -- --help`.",
-        "generate:date-fallback-patterns": "Regenerates src/Utility/DateFallbackPatterns.php from ICU data. Requires ext-intl.",
         "lint": "Runs all Canvas back-end (PHP) linting. Sibling: `npm run lint`.",
         "fix": "Runs all Canvas back-end (PHP) auto-fixing. Sibling: `npm run fix`."
     }

@@ -1,6 +1,6 @@
 {
   "name": "@drupal-canvas/cli",
-  "version": "0.26.0",
+  "version": "0.26.1",
   "description": "CLI tool for managing Drupal Canvas code components",
   "license": "GPL-2.0-or-later",
   "repository": {
@@ -56,7 +56,7 @@
     "chalk": "^5.4.1",
     "commander": "^14.0.0",
     "dotenv": "^16.5.0",
-    "drupal-canvas": "^0.7.0",
+    "drupal-canvas": "^0.7.1",
     "eslint": "^9.22.0",
     "js-yaml": "^4.1.0",
     "lightningcss": "^1.30.1",
