@@ -18,6 +18,8 @@ use Drupal\canvas_ai\CanvasAiChatHelper;
 use Drupal\canvas_ai\CanvasAiPageBuilderHelper;
 use Drupal\canvas_ai\CanvasAiTempStore;
 use Drupal\canvas_ai\Plugin\AiFunctionCall\BuilderResponseFunctionCallInterface;
+use Drupal\canvas_ai\Plugin\AiFunctionCall\EditComponents;
+use Drupal\canvas_ai\Plugin\AiFunctionCall\PlaceComponents;
 use Drupal\Component\Plugin\PluginManagerInterface;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Environment;
@@ -42,8 +44,9 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
  * it reports finished. A conversation is several turns under one
  * conversation_id: when the site opts in on the Agents & Tools form, the
  * agent's own history, tool calls and results included, is kept when a turn
- * ends and resumed by the next. Otherwise every turn is seeded from the client
- * transcript, which carries text only.
+ * ends and resumed by the next, with each placement result cut to its success
+ * sentence. Otherwise every turn is seeded from the client transcript, which
+ * carries text only.
  *
  * @internal
  */
@@ -465,7 +468,9 @@ final class CanvasDevAiBuilder extends ControllerBase {
    * Called when a turn ended with the agent finished. Nothing is kept unless
    * the site opted in. A state still carrying a tool call the agent parked but
    * never ran cannot reach here: parking one leaves the agent unfinished, and
-   * an unfinished turn stores its own state for the next hop instead.
+   * an unfinished turn stores its own state for the next hop instead. The
+   * placement results in the kept history are cut to their success sentence,
+   * as the rest of their text only serves the turn that already ended.
    *
    * @param array $prompt
    *   The decoded prompt.
@@ -488,7 +493,37 @@ final class CanvasDevAiBuilder extends ControllerBase {
       $this->canvasAiTempStore->deleteStoredConversationState($conversation_id);
       return;
     }
-    $this->canvasAiTempStore->setStoredConversationState($conversation_id, $agent_id, $agent->toArray());
+    $this->canvasAiTempStore->setStoredConversationState($conversation_id, $agent_id, self::trimKeptToolResults($agent->toArray()));
+  }
+
+  /**
+   * Cuts each kept placement result down to its success sentence.
+   *
+   * The place_components and edit_components tools succeed with a verbose
+   * message whose details — assigned UUIDs, predicted layout, applied
+   * updates — only serve the turn the tool ran in, so the state a later
+   * turn resumes keeps the success sentence alone. Failure results are
+   * kept whole.
+   *
+   * @param array $state
+   *   The agent state, as written by its ::toArray().
+   *
+   * @return array
+   *   The state, with each trimmed tool message carrying the sentence only.
+   */
+  private static function trimKeptToolResults(array $state): array {
+    foreach ($state['chat_history'] ?? [] as $index => $message) {
+      if ($message['role'] !== 'tool') {
+        continue;
+      }
+      foreach ([PlaceComponents::SUCCESS_MESSAGE, EditComponents::SUCCESS_MESSAGE] as $success_message) {
+        if (\str_starts_with($message['text'], $success_message)) {
+          $state['chat_history'][$index]['text'] = $success_message;
+          break;
+        }
+      }
+    }
+    return $state;
   }
 
   /**

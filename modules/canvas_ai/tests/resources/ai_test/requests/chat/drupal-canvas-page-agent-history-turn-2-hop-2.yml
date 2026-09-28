@@ -32,10 +32,7 @@ request:
       tool_id: null
     -
       role: tool
-      text: |
-        The updates were applied successfully.
-        00000000-0000-4000-8000-000000000001:
-            heading: Hello
+      text: 'The updates were applied successfully.'
       images: {  }
       remote_files: {  }
       tools: null
