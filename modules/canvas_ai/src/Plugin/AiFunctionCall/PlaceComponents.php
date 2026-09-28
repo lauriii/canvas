@@ -51,6 +51,16 @@ use Symfony\Component\Yaml\Yaml;
 final class PlaceComponents extends FunctionCallBase implements ExecutableFunctionCallInterface, AiAgentContextInterface, BuilderResponseFunctionCallInterface {
 
   /**
+   * The first line of a successful result; the rest is appended to it.
+   *
+   * A conversation's next turn keeps only this line of the result: the UUIDs
+   * and layout that follow it are scoped to the turn the tool ran in.
+   *
+   * @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::trimKeptToolResults()
+   */
+  public const SUCCESS_MESSAGE = 'Components placed successfully.';
+
+  /**
    * The Canvas page builder helper service.
    *
    * @var \Drupal\canvas_ai\CanvasAiPageBuilderHelper
@@ -148,7 +158,7 @@ final class PlaceComponents extends FunctionCallBase implements ExecutableFuncti
       // only from the next turn. Remind it to call this tool again while any
       // planned section is still unplaced.
       $output = \sprintf(
-        "Components placed successfully.\nThe placed components with their assigned UUIDs:\n%s\nThe expected page layout after placement (UUID tree):\n%s\nThese UUIDs are valid immediately — use them as reference_uuid for the next section in this same turn. The page layout you were given at the start of this turn does not list them yet and will only do so from your next turn, so for anything placed during this turn this result is authoritative and that layout is not. This is expected, not a sign that the layout is missing or that you should wait.\n\nThis result is a continuation point, not a stopping point: if any section from your approved plan is still unplaced, your next output MUST be the next place_components call — a turn with text and no tool call would freeze the build here. Only once every planned section is on the page do you stop and write the closing confirmation.",
+        self::SUCCESS_MESSAGE . "\nThe placed components with their assigned UUIDs:\n%s\nThe expected page layout after placement (UUID tree):\n%s\nThese UUIDs are valid immediately — use them as reference_uuid for the next section in this same turn. The page layout you were given at the start of this turn does not list them yet and will only do so from your next turn, so for anything placed during this turn this result is authoritative and that layout is not. This is expected, not a sign that the layout is missing or that you should wait.\n\nThis result is a continuation point, not a stopping point: if any section from your approved plan is still unplaced, your next output MUST be the next place_components call — a turn with text and no tool call would freeze the build here. Only once every planned section is on the page do you stop and write the closing confirmation.",
         Yaml::dump($placement->componentStructureWithUuids, 10, 2),
         Yaml::dump($placement->predictedLayout, 10, 2),
       );

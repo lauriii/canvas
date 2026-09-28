@@ -52,6 +52,17 @@ use Symfony\Component\Yaml\Yaml;
 final class EditComponents extends FunctionCallBase implements ExecutableFunctionCallInterface, AiAgentContextInterface, BuilderResponseFunctionCallInterface {
 
   /**
+   * The first line of a successful result; the rest is appended to it.
+   *
+   * A conversation's next turn keeps only this line of the result: the dump
+   * of the applied updates that follows it is scoped to the turn the tool
+   * ran in.
+   *
+   * @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::trimKeptToolResults()
+   */
+  public const SUCCESS_MESSAGE = 'The updates were applied successfully.';
+
+  /**
    * The Canvas page builder helper service.
    *
    * @var \Drupal\canvas_ai\CanvasAiPageBuilderHelper
@@ -136,7 +147,7 @@ final class EditComponents extends FunctionCallBase implements ExecutableFunctio
 
       // The frontend applies these updates to the page on the next hop.
       $this->setStructuredOutput(['component_updates' => $component_updates]);
-      $this->setOutput("The updates were applied successfully.\n" . Yaml::dump($component_updates));
+      $this->setOutput(self::SUCCESS_MESSAGE . "\n" . Yaml::dump($component_updates));
     }
     catch (ParseException $e) {
       // A raw parse error gives the model nothing to act on, so it retries

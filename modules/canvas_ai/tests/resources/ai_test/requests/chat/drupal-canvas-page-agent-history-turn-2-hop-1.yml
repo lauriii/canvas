@@ -1,9 +1,9 @@
 # Hop 1 of the second turn of a conversation: the agent resumes the history
 # turn 1 built (its edit_components call and result included, see messages 2
-# and 3) and parks a new edit_components call without reading the component
-# again. The component catalog the agent's default information tool fetches is
-# not among the messages: it feeds the system prompt, which echoai does not
-# match.
+# and 3 — the result cut to its success sentence when turn 1 ended) and parks
+# a new edit_components call without reading the component again. The
+# component catalog the agent's default information tool fetches is not among
+# the messages: it feeds the system prompt, which echoai does not match.
 request:
   messages:
     -
@@ -35,10 +35,7 @@ request:
       tool_id: null
     -
       role: tool
-      text: |
-        The updates were applied successfully.
-        00000000-0000-4000-8000-000000000001:
-            heading: Hello
+      text: 'The updates were applied successfully.'
       images: {  }
       remote_files: {  }
       tools: null
