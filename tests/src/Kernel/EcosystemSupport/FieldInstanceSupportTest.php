@@ -174,7 +174,7 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
   /**
    * Intentionally unsupported field instances' field types.
    *
-   * @var array<lowercase-string, array{class: class-string, exceptions: array<array>}>
+   * @var array<lowercase-string, array{class: class-string, allowed: array<array>}>
    */
   public const INTENTIONALLY_UNSUPPORTED = EntityFieldPropSourceMatcher::IGNORE_FIELD_TYPES;
 
@@ -250,7 +250,7 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
       if (\array_key_exists($field_type, self::SUPPORTED)) {
         $expected_supported_fields[] = $field_name;
       }
-      if (\array_key_exists($field_type, self::INTENTIONALLY_UNSUPPORTED) && empty(self::INTENTIONALLY_UNSUPPORTED[$field_type]['exceptions'])) {
+      if (\array_key_exists($field_type, self::INTENTIONALLY_UNSUPPORTED) && empty(self::INTENTIONALLY_UNSUPPORTED[$field_type]['allowed'])) {
         $expected_unsupported_fields[] = $field_name;
         // Remove from expected fields.
         $expected_fields = \array_diff($expected_fields, [$field_name]);

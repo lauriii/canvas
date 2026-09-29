@@ -16,6 +16,7 @@ use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\link\LinkItemInterface;
@@ -104,6 +105,14 @@ class EntityFieldPropSourceMatcherTest extends PropSourceMatcherTestBase {
     ],
     // The typical example; with a variety of field types.
     'entity:node:foo' => [
+      'type=array&items[type]=integer' => ['sourceType' => PropSource::EntityField->value, 'expression' => 'ℹ︎␜entity:node:foo␝many_from_an_integer_list␞␟value'],
+      'type=array&items[type]=integer&minItems=1' => ['sourceType' => PropSource::EntityField->value, 'expression' => 'ℹ︎␜entity:node:foo␝many_from_an_integer_list␞␟value'],
+      'type=array&items[type]=number' => [
+        ['sourceType' => PropSource::EntityField->value, 'expression' => 'ℹ︎␜entity:node:foo␝many_from_a_float_list␞␟value'],
+        ['sourceType' => PropSource::EntityField->value, 'expression' => 'ℹ︎␜entity:node:foo␝many_from_an_integer_list␞␟value'],
+      ],
+      'type=array&items[type]=string' => ['sourceType' => PropSource::EntityField->value, 'expression' => 'ℹ︎␜entity:node:foo␝many_from_a_string_list␞␟label'],
+      'type=array&items[type]=string&minItems=1' => ['sourceType' => PropSource::EntityField->value, 'expression' => 'ℹ︎␜entity:node:foo␝many_from_a_string_list␞␟label'],
       'type=boolean!optional' => [
         ['sourceType' => PropSource::EntityField->value, 'expression' => 'ℹ︎␜entity:node:foo␝default_langcode␞␟value'],
         ['sourceType' => PropSource::EntityField->value, 'expression' => 'ℹ︎␜entity:node:foo␝field_silly_image␞␟entity␜␜entity:file␝status␞␟value'],
@@ -215,7 +224,6 @@ class EntityFieldPropSourceMatcherTest extends PropSourceMatcherTestBase {
       'type=string&$ref=json-schema-definitions://canvas.module/color' => [
         ['sourceType' => PropSource::EntityField->value, 'expression' => 'ℹ︎␜entity:node:foo␝marketing_docs␞␟entity␜␜entity:media␝name␞␟value'],
         ['sourceType' => PropSource::EntityField->value, 'expression' => 'ℹ︎␜entity:node:foo␝media_video_field␞␟entity␜␜entity:media␝name␞␟value'],
-        ['sourceType' => PropSource::EntityField->value, 'expression' => 'ℹ︎␜entity:node:foo␝one_from_an_string_list␞␟label'],
         ['sourceType' => PropSource::EntityField->value, 'expression' => 'ℹ︎␜entity:node:foo␝title␞␟value'],
       ],
       'type=string&$ref=json-schema-definitions://canvas.module/color!optional' => [
@@ -847,6 +855,66 @@ class EntityFieldPropSourceMatcherTest extends PropSourceMatcherTestBase {
       'field_type' => 'list_string',
       'required' => TRUE,
     ])->save();
+    FieldStorageConfig::create([
+      'field_name' => 'many_from_a_string_list',
+      'entity_type' => 'node',
+      'type' => 'list_string',
+      'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+      'settings' => [
+        'allowed_values' => [
+          'first_key' => 'First Value',
+          'second_key' => 'Second Value',
+        ],
+      ],
+    ])->save();
+    FieldConfig::create([
+      'label' => 'Many pre-defined strings',
+      'field_name' => 'many_from_a_string_list',
+      'entity_type' => 'node',
+      'bundle' => 'foo',
+      'field_type' => 'list_string',
+      'required' => TRUE,
+    ])->save();
+    FieldStorageConfig::create([
+      'field_name' => 'many_from_an_integer_list',
+      'entity_type' => 'node',
+      'type' => 'list_integer',
+      'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+      'settings' => [
+        'allowed_values' => [
+          0 => 'Zero',
+          1 => 'One',
+        ],
+      ],
+    ])->save();
+    FieldConfig::create([
+      'label' => 'Many pre-defined integers',
+      'field_name' => 'many_from_an_integer_list',
+      'entity_type' => 'node',
+      'bundle' => 'foo',
+      'field_type' => 'list_integer',
+      'required' => TRUE,
+    ])->save();
+    FieldStorageConfig::create([
+      'field_name' => 'many_from_a_float_list',
+      'entity_type' => 'node',
+      'type' => 'list_float',
+      'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+      'settings' => [
+        'allowed_values' => [
+          '1.5' => 'One point five',
+          '2.5' => 'Two point five',
+        ],
+      ],
+    ])->save();
+    FieldConfig::create([
+      'label' => 'Many pre-defined floats',
+      'field_name' => 'many_from_a_float_list',
+      'entity_type' => 'node',
+      'bundle' => 'foo',
+      'field_type' => 'list_float',
+      'required' => TRUE,
+    ])->save();
   }
 
   /**
@@ -1002,6 +1070,60 @@ class EntityFieldPropSourceMatcherTest extends PropSourceMatcherTestBase {
     self::assertNotEmpty(\array_filter($expressions, fn (string $e): bool => \str_contains($e, 'field_pdf_download')));
     self::assertNotEmpty(\array_filter($expressions, fn (string $e): bool => \str_contains($e, 'marketing_docs')));
     self::assertSame([], \array_filter($expressions, fn (string $e): bool => \str_contains($e, 'field_zip_download')));
+  }
+
+  public function testMultiValuedStringListMatchesArrayOfStrings(): void {
+    $matcher = \Drupal::service(EntityFieldPropSourceMatcher::class);
+    \assert($matcher instanceof EntityFieldPropSourceMatcher);
+    $prop_shape = PropShape::normalize([
+      'type' => 'array',
+      'items' => ['type' => 'string'],
+      'minItems' => 1,
+    ]);
+
+    $matches = \array_map(
+      fn (EntityFieldPropSource $s): string => (string) $s->expression,
+      $matcher->match(TRUE, $prop_shape, 'node', 'foo'),
+    );
+
+    self::assertNotEmpty(\array_filter(
+      $matches,
+      fn (string $match): bool => \str_starts_with($match, 'ℹ︎␜entity:node:foo␝many_from_a_string_list␞␟')
+    ));
+  }
+
+  public function testMultiValuedIntegerListMatchesArrayOfIntegers(): void {
+    $matcher = \Drupal::service(EntityFieldPropSourceMatcher::class);
+    \assert($matcher instanceof EntityFieldPropSourceMatcher);
+    $prop_shape = PropShape::normalize([
+      'type' => 'array',
+      'items' => ['type' => 'integer'],
+      'minItems' => 1,
+    ]);
+
+    $matches = \array_map(
+      fn (EntityFieldPropSource $s): string => (string) $s->expression,
+      $matcher->match(TRUE, $prop_shape, 'node', 'foo'),
+    );
+
+    self::assertContains('ℹ︎␜entity:node:foo␝many_from_an_integer_list␞␟value', $matches);
+  }
+
+  public function testMultiValuedFloatListMatchesArrayOfNumbers(): void {
+    $matcher = \Drupal::service(EntityFieldPropSourceMatcher::class);
+    \assert($matcher instanceof EntityFieldPropSourceMatcher);
+    $prop_shape = PropShape::normalize([
+      'type' => 'array',
+      'items' => ['type' => 'number'],
+      'minItems' => 1,
+    ]);
+
+    $matches = \array_map(
+      fn (EntityFieldPropSource $s): string => (string) $s->expression,
+      $matcher->match(TRUE, $prop_shape, 'node', 'foo'),
+    );
+
+    self::assertContains('ℹ︎␜entity:node:foo␝many_from_a_float_list␞␟value', $matches);
   }
 
   /**

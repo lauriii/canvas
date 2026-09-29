@@ -111,7 +111,7 @@ use Symfony\Component\Validator\Constraint;
 final class EntityFieldPropSourceMatcher {
 
   /**
-   * @var array<lowercase-string, array{class: class-string, exceptions: array<array>}>
+   * @var array<lowercase-string, array{class: class-string, allowed: array<array>}>
    */
   public const IGNORE_FIELD_TYPES = [
     // The `decimal` field type is impossible to match, because it is impossible
@@ -120,11 +120,11 @@ final class EntityFieldPropSourceMatcher {
     // explicitly states "Ideal for exact counts and measures".See
     // https://stackoverflow.com/a/38357877.
     // @todo Consider mapping these to `type: number` in https://www.drupal.org/i/3549936, but accept data loss OR only match it if the decimal field is configured with a low enough level of precision. The most common case is precision=2, which would likely be safe?
-    'decimal' => ['class' => DecimalItem::class, 'exceptions' => []],
+    'decimal' => ['class' => DecimalItem::class, 'allowed' => []],
     // JSON Schema has no way to represent language codes, plus this is not a
     // common need in components.
     // @todo Consider matching against `type: string, pattern: …` in https://www.drupal.org/i/3549939
-    'language' => ['class' => LanguageItem::class, 'exceptions' => []],
+    'language' => ['class' => LanguageItem::class, 'allowed' => []],
     // The `list` field types allows each field instance to define its own set
     // of possible values. The probability of this exactly matching the explicit
     // inputs (i.e. the prop shape's `enum`) for a component is astronomical.
@@ -132,7 +132,7 @@ final class EntityFieldPropSourceMatcher {
       'class' => ListFloatItem::class,
       // Allow matching against a prop that accepts ANY floating point number.
       // (No restrictions, such as `minimum`, `multipleOf` …)
-      'exceptions' => [
+      'allowed' => [
         ['type' => 'number'],
       ],
     ],
@@ -140,7 +140,7 @@ final class EntityFieldPropSourceMatcher {
       'class' => ListIntegerItem::class,
       // Allow matching against a prop that accepts ANY integer or floating
       // point number. (No restrictions, such as `minimum`, `multipleOf` …)
-      'exceptions' => [
+      'allowed' => [
         ['type' => 'integer'],
         ['type' => 'number'],
       ],
@@ -148,15 +148,41 @@ final class EntityFieldPropSourceMatcher {
     // The `map` field type has no widget, is broken, and is hidden in the UI.
     // @see https://www.drupal.org/node/2563843
     // @see \Drupal\Core\Field\Plugin\Field\FieldType\MapItem
-    'map' => ['class' => MapItem::class, 'exceptions' => []],
+    'map' => ['class' => MapItem::class, 'allowed' => []],
     // The `password` field type can never contain data that could be reasonably
     // displayed in a component instance.
     // @see \Drupal\Core\Field\Plugin\Field\FieldType\PasswordItem
-    'password' => ['class' => PasswordItem::class, 'exceptions' => []],
+    'password' => ['class' => PasswordItem::class, 'allowed' => []],
     // JSON Schema has no way to represent telephone numbers codes, plus this is
     // not a common need in components.
     // @todo Consider adding a computed `tel_uri` property in https://www.drupal.org/i/3549940 to expose this as a `tel:…` URI, which then would be matchable against `type: string, format: uri, x-allowed-schemes: [tel]`
-    'telephone' => ['class' => TelephoneItem::class, 'exceptions' => []],
+    'telephone' => ['class' => TelephoneItem::class, 'allowed' => []],
+  ];
+
+  /**
+   * Field types to exclude from matching, identified by field type ID string.
+   *
+   * Used for field types that belong in IGNORE_FIELD_TYPES conceptually, but
+   * whose field item class cannot be referenced from this namespace per the
+   * `phpat.shapeMatcher` architecture rule.
+   *
+   * @var array<lowercase-string, array{allowed: array<array>}>
+   *
+   * @see \Drupal\Core\Field\FieldDefinitionInterface::getType()
+   */
+  public const IGNORE_FIELD_TYPES_BY_ID = [
+    // The `list_string` field type lets each field instance define its own set
+    // of allowed values. A component prop's `enum` is defined independently by
+    // the component author — the two enumerations have no relationship, so a
+    // match would be meaningless. Only a prop that accepts any string (no enum
+    // or other constraints) is a legitimate match.
+    'list_string' => [
+      // Allow matching a prop that accepts any string, with no enum or other
+      // constraints.
+      'allowed' => [
+        ['type' => 'string'],
+      ],
+    ],
   ];
 
   public function __construct(
@@ -672,13 +698,23 @@ final class EntityFieldPropSourceMatcher {
     $field_definitions = $this->recurseDataDefinitionInterface($entity_data_definition);
     foreach ($field_definitions as $field_definition) {
       \assert($field_definition instanceof FieldDefinitionInterface);
-      foreach (self::IGNORE_FIELD_TYPES as ['class' => $field_type_class, 'exceptions' => $allowed_schemas]) {
+      foreach (self::IGNORE_FIELD_TYPES as ['class' => $field_type_class, 'allowed' => $allowed_schemas]) {
         // DO NOT ignore the field type if it's one of a carefully selected set
-        // of exceptions.
+        // of allowed schemas.
         if (\in_array($schema, $allowed_schemas, TRUE)) {
           continue;
         }
         if (is_a($field_definition->getItemDefinition()->getClass(), $field_type_class, TRUE)) {
+          continue 2;
+        }
+      }
+      foreach (self::IGNORE_FIELD_TYPES_BY_ID as $field_type_id => ['allowed' => $allowed_schemas]) {
+        // DO NOT ignore the field type if it's one of a carefully selected set
+        // of allowed schemas.
+        if (\in_array($schema, $allowed_schemas, TRUE)) {
+          continue;
+        }
+        if ($field_definition->getType() === $field_type_id) {
           continue 2;
         }
       }

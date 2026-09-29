@@ -40,6 +40,7 @@ use Drupal\Core\TypedData\ComplexDataDefinitionInterface;
 use Drupal\Core\TypedData\DataReferenceDefinitionInterface;
 use Drupal\Core\Url;
 use Drupal\file\FileInterface;
+use Drupal\options\Plugin\Field\FieldType\ListItemBase;
 use Drupal\text\Plugin\Field\FieldType\TextItemBase;
 use Drupal\user\UserInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -208,7 +209,10 @@ final class ApiUiContentEntityReferenceControllers extends ApiControllerBase {
       // render time, and rejected by storage.
       // @see \Drupal\canvas\Plugin\Validation\Constraint\MultiValuedFieldNotSupportedConstraint
       // @todo https://git.drupalcode.org/project/canvas/-/work_items/3589536
-      if ($field_definition->getFieldStorageDefinition()->getCardinality() !== 1) {
+      if (
+        $field_definition->getFieldStorageDefinition()->getCardinality() !== 1
+        && !\is_a($field_definition->getItemDefinition()->getClass(), ListItemBase::class, TRUE)
+      ) {
         continue;
       }
       // Skip fields the current user cannot view (e.g., the user entity's

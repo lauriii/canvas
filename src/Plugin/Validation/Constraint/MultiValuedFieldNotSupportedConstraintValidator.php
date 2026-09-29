@@ -14,6 +14,7 @@ use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\options\Plugin\Field\FieldType\ListItemBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
@@ -153,7 +154,8 @@ final class MultiValuedFieldNotSupportedConstraintValidator extends ConstraintVa
       // A nonexistent field is handled by other constraints.
       return FALSE;
     }
-    return $field_definition->getFieldStorageDefinition()->getCardinality() !== 1;
+    return $field_definition->getFieldStorageDefinition()->getCardinality() !== 1
+      && !\is_a($field_definition->getItemDefinition()->getClass(), ListItemBase::class, TRUE);
   }
 
 }
