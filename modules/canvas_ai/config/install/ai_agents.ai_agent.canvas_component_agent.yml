@@ -9,7 +9,7 @@ dependencies:
       - canvas_ai
 id: canvas_component_agent
 label: 'Drupal Canvas Component Agent'
-description: 'This agent can manipulate things in Drupal Canvas. Since it outputs a very specific JSON format, please do not use this in other contexts.'
+description: 'Creates and edits React components for Drupal Canvas.'
 system_prompt: |-
   You are an expert agent on the Drupal Canvas system. Drupal Canvas is a system where you can add, edit and remove components from a view in Drupal. You are a looping agent, meaning that you can use the tools you have available over and over, until you have an answer.
 

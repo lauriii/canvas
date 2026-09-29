@@ -387,3 +387,19 @@ function canvas_ai_post_update_0013_delete_page_variant_settings(): void {
   \Drupal::configFactory()->reset('canvas_ai.page_variant.settings');
   \Drupal::service(RouteBuilderInterface::class)->rebuild();
 }
+
+/**
+ * Clarify the Canvas component agent's description.
+ *
+ * The description read as an internal usage caveat rather than explaining
+ * what the agent does. Update it to state its purpose plainly.
+ */
+function canvas_ai_post_update_0014_clarify_component_agent_description(): void {
+  $module_path = \Drupal::service(ModuleExtensionList::class)->getPath('canvas_ai');
+  $source = new FileStorage($module_path . '/config/install');
+  $data = $source->read('ai_agents.ai_agent.canvas_component_agent');
+  $config = \Drupal::configFactory()->getEditable('ai_agents.ai_agent.canvas_component_agent');
+  if ($data && !$config->isNew()) {
+    $config->set('description', $data['description'])->save(TRUE);
+  }
+}
