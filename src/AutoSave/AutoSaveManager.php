@@ -44,6 +44,7 @@ use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
 use Drupal\Core\KeyValueStore\KeyValueStoreInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\metatag\Plugin\Field\FieldType\MetatagFieldItem;
 use Drupal\path\Plugin\Field\FieldType\PathFieldItemList;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -338,8 +339,7 @@ class AutoSaveManager implements EventSubscriberInterface {
     // persisted elsewhere on save (path aliases, moderation states).
     $fields = \array_filter($fields, static fn (FieldItemListInterface $field) => !$field->getFieldDefinition()->isComputed() || self::isPersistedComputedField($field->getFieldDefinition()));
 
-    foreach (\array_keys($fields) as $name) {
-      $items = $entity->get($name);
+    foreach ($fields as $items) {
       // Exclude items that are empty.
       if ($items->isEmpty()) {
         continue;
@@ -356,7 +356,47 @@ class AutoSaveManager implements EventSubscriberInterface {
           continue;
         }
       }
-      $normalized[$name] = TypedDataHelper::castRawPhpTypes($items);
+      // Canonicalize metatag values before hashing: run each item through
+      // MetatagFieldItem::preSave() so it holds what a real entity save would
+      // store. Values arriving from the editor have never been processed by
+      // ::preSave() — persisting an auto-save entry does not run it — while the
+      // stored entity's values were processed by it on the last real save.
+      // Without that asymmetry removed, an unchanged editor round-trip hashes
+      // differently than the stored entity, in two ways. First, the field
+      // stores its tags as one order-sensitive JSON string: ::preSave() sorts
+      // them by key, but the metatag_firehose widget re-emits them in form
+      // order. Second, ::preSave() strips tags matching metatag's config
+      // defaults, but the widget prefills those very defaults into empty tags,
+      // so a page stored without metatag data (e.g. created before the metatag
+      // module was installed) echoes them back on every layout POST — and
+      // publishing that difference can never converge, because ::preSave()
+      // strips the tags again.
+      // @see \Drupal\metatag\Plugin\Field\FieldType\MetatagFieldItem::preSave()
+      // @see \Drupal\metatag\Plugin\Field\FieldWidget\MetatagFirehose::formElement()
+      // @todo Generalize handling of field types whose ::preSave() canonicalizes the stored value in https://git.drupalcode.org/project/canvas/-/work_items/3592013
+      if ($items->getFieldDefinition()->getType() === 'metatag') {
+        $values = [];
+        foreach ($items as $delta => $item) {
+          \assert($item instanceof MetatagFieldItem);
+          // ::preSave() only rewrites the item's own value; cloning first
+          // keeps the live entity untouched, because Map::__clone deep-clones
+          // the property objects.
+          $item = clone $item;
+          $item->preSave();
+          // ::preSave() reduces an item holding only default tags to the
+          // encoding of an empty array, which ::isEmpty() reports as empty;
+          // skipping such items matches an entity stored without metatag
+          // data.
+          if (!$item->isEmpty()) {
+            $values[$delta] = TypedDataHelper::castRawPhpTypes($item);
+          }
+        }
+        if ($values !== []) {
+          $normalized[$items->getName()] = $values;
+        }
+        continue;
+      }
+      $normalized[$items->getName()] = TypedDataHelper::castRawPhpTypes($items);
     }
     return $normalized;
   }
