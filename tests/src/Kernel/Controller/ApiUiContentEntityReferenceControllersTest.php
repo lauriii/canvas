@@ -224,6 +224,26 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
       'settings' => ['handler_settings' => ['target_bundles' => ['page' => 'page']]],
     ])->save();
 
+    FieldStorageConfig::create([
+      'field_name' => 'field_keywords',
+      'entity_type' => 'node',
+      'type' => 'list_string',
+      'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+      'settings' => [
+        'allowed_values' => [
+          'alpha' => 'Alpha',
+          'beta' => 'Beta',
+        ],
+      ],
+    ])->save();
+    FieldConfig::create([
+      'field_name' => 'field_keywords',
+      'entity_type' => 'node',
+      'bundle' => 'article',
+      'label' => 'Keywords',
+      'field_type' => 'list_string',
+    ])->save();
+
     // Entity reference field targeting multiple bundles — exercises the
     // multi-target-bundle branch of resolveReferenceTarget().
     $this->createMediaType('image', [
@@ -903,17 +923,17 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
   }
 
   /**
-   * The picker omits multi-valued fields, matching the data-integrity rule.
+   * The picker omits unsupported multi-valued fields, but keeps supported lists.
    *
-   * The picker composes delta-less expressions; on a multi-valued field the
-   * Evaluator resolves those to a delta-keyed array of values (or entities),
-   * which is not supported at render time — so neither descending nor leaf
-   * picks are offered.
+   * Delta-less expressions on most multi-valued fields still resolve to
+   * delta-keyed arrays, which are not supported end-to-end. The exception is
+   * the supported list field family, which Canvas intentionally allows through
+   * this picker and validation path.
    *
    * @see \Drupal\canvas\Plugin\Validation\Constraint\MultiValuedFieldNotSupportedConstraint
    * @todo Update in https://git.drupalcode.org/project/canvas/-/work_items/3589536
    */
-  public function testFieldsEndpointOmitsMultiValuedFields(): void {
+  public function testFieldsEndpointOmitsUnsupportedMultiValuedFieldsButKeepsSupportedLists(): void {
     $this->setUpCurrentUser([], [JavaScriptComponent::ADMIN_PERMISSION, 'access content']);
     $response = $this->request(Request::create(\sprintf(self::URL_FIELDS, 'node', 'article')));
     self::assertSame(Response::HTTP_OK, $response->getStatusCode());
@@ -922,6 +942,8 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
     self::assertArrayNotHasKey('field_related', $by_name);
     // Single-valued fields are unaffected.
     self::assertArrayHasKey('field_image', $by_name);
+    // Supported multi-valued scalar lists remain available.
+    self::assertArrayHasKey('field_keywords', $by_name);
   }
 
   /**
@@ -1028,6 +1050,7 @@ class ApiUiContentEntityReferenceControllersTest extends CanvasKernelTestBase {
       'field_date_range',
       'field_file',
       'field_image',
+      'field_keywords',
       'field_link',
       'field_media',
       'field_text',
