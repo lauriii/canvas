@@ -415,7 +415,7 @@ test.describe('AI dev chat', () => {
     await expect(rows).toHaveCount(2);
     await expect(rows.nth(0)).toContainText('Drupal Canvas Component Agent');
     await expect(rows.nth(0)).toContainText(
-      'This agent can manipulate things in Drupal Canvas.',
+      'Creates and edits React components for Drupal Canvas.',
     );
     await expect(rows.nth(1)).toContainText('Drupal Canvas Page Agent');
     await expect(rows.nth(1)).toContainText(
