@@ -221,6 +221,49 @@ final class EditComponentsTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Tests that an invalid boolean or integer prop value is rejected.
+   *
+   * `BooleanData::getCastedValue()` casts any non-empty string to `TRUE`,
+   * and `IntegerData::getCastedValue()` casts any non-numeric string to `0`,
+   * so silently letting an unrecognized value like `"maybe"` or `"canvas"`
+   * through would store the wrong value with no error anywhere.
+   *
+   * @see \Drupal\canvas_ai\AiResponseValidator::collectPrimitiveTypeViolations()
+   */
+  public function testEditComponentInvalidPrimitiveTypeValueReportsError(): void {
+    $this->container->get(AccountProxyInterface::class)->setAccount($this->privilegedUser);
+    $this->container->get(CanvasAiTempStore::class)->setData(CanvasAiTempStore::CURRENT_LAYOUT_KEY, json_encode([
+      'regions' => [
+        'content' => [
+          'nodePathPrefix' => [0],
+          'components' => [
+            [
+              'name' => 'sdc.canvas_test_sdc.shoe_badge',
+              'uuid' => '1f7f5b2b-3b34-4a1a-9b8a-8f7c9a6d5e21',
+              'props' => ['variant' => 'primary'],
+            ],
+            [
+              'name' => 'sdc.canvas_test_sdc.required-integer',
+              'uuid' => '2a6b1c3d-4e5f-4a7b-8c9d-0e1f2a3b4c5d',
+              'props' => ['count' => 42],
+            ],
+          ],
+        ],
+      ],
+    ], JSON_THROW_ON_ERROR));
+
+    $edits = [
+      ['component_uuid' => '1f7f5b2b-3b34-4a1a-9b8a-8f7c9a6d5e21', 'props' => 'pill: "maybe"'],
+      ['component_uuid' => '2a6b1c3d-4e5f-4a7b-8c9d-0e1f2a3b4c5d', 'props' => 'count: "canvas"'],
+    ];
+    $result = $this->getToolOutput('canvas_ai:edit_components', ['component_edits' => $edits]);
+    $normalized = self::normalizeErrorString($result);
+    $this->assertStringStartsWith('Failed to edit components: Component validation errors:', $normalized);
+    $this->assertStringContainsString('components.0.[sdc.canvas_test_sdc.shoe_badge].props.pill: Component `sdc.canvas_test_sdc.shoe_badge`: the `pill` prop value "maybe" cannot be stored: expected a boolean (`true` or `false`).', $normalized);
+    $this->assertStringContainsString('components.1.[sdc.canvas_test_sdc.required-integer].props.count: Component `sdc.canvas_test_sdc.required-integer`: the `count` prop value "canvas" cannot be stored: expected an integer.', $normalized);
+  }
+
+  /**
    * Tests that editing a component runs its prop values through the validator.
    *
    * An undefined prop name and an out-of-enum value both reach the shared
