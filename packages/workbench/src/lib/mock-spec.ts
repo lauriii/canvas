@@ -37,9 +37,7 @@ export interface MockSpecAdvancedEntry {
 }
 
 export type AuthoredMockSpecEntry =
-  | MockSpecPropsEntry
-  | MockSpecPropsAndSlotsEntry
-  | MockSpecAdvancedEntry;
+  MockSpecPropsEntry | MockSpecPropsAndSlotsEntry | MockSpecAdvancedEntry;
 
 export interface NormalizedMockSpecEntry {
   name: string;

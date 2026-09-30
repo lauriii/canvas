@@ -37,12 +37,7 @@ import styles from './Navigation.module.css';
 
 const hasPermission = (
   permission:
-    | 'edit'
-    | 'duplicate'
-    | 'homepage'
-    | 'delete'
-    | 'unpublish'
-    | 'publish',
+    'edit' | 'duplicate' | 'homepage' | 'delete' | 'unpublish' | 'publish',
   item: ContentStub,
 ) => {
   const links = item.links || {};

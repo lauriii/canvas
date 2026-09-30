@@ -12,6 +12,9 @@
       "ignoreAtRules": ["theme", "custom-variant", "utility", "slot"]
     }],
     "at-rule-empty-line-before": null,
+    "at-rule-prelude-no-invalid": [true, {
+      "ignoreAtRules": ["apply"]
+    }],
     "color-function-notation": "legacy",
     "comment-empty-line-before": null,
     "custom-property-pattern": "^[a-z][-_a-z0-9IE]*$",

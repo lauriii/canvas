@@ -63,10 +63,7 @@ const parseEntityAutocompleteValue = (value: string): string[] => {
 };
 
 type PropsValuesOrArrayOfPropsValues =
-  | Array<PropsValues>
-  | PropsValues
-  | null
-  | undefined;
+  Array<PropsValues> | PropsValues | null | undefined;
 
 type BaseTransformOptions = {
   multiple?: boolean;

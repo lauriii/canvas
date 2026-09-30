@@ -178,26 +178,24 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       enabled: true,
       hidden: !hasExtensions,
     },
-    ...pageExtensions.map(
-      (ext): SideMenuLink => ({
-        type: 'link',
-        id: `page-ext-${ext.id}`,
-        href: `/app/${ext.id}`,
-        icon: ext.icon ? (
-          <span
-            className={styles.maskIcon}
-            style={{
-              maskImage: `url(${ext.icon})`,
-              WebkitMaskImage: `url(${ext.icon})`,
-            }}
-          />
-        ) : (
-          <ExtensionIcon />
-        ),
-        label: ext.name,
-        hidden: false,
-      }),
-    ),
+    ...pageExtensions.map((ext): SideMenuLink => ({
+      type: 'link',
+      id: `page-ext-${ext.id}`,
+      href: `/app/${ext.id}`,
+      icon: ext.icon ? (
+        <span
+          className={styles.maskIcon}
+          style={{
+            maskImage: `url(${ext.icon})`,
+            WebkitMaskImage: `url(${ext.icon})`,
+          }}
+        />
+      ) : (
+        <ExtensionIcon />
+      ),
+      label: ext.name,
+      hidden: false,
+    })),
     {
       type: 'button',
       id: 'brandKit',

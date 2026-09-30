@@ -115,8 +115,7 @@ interface PreviewBuildPageManifest {
 }
 
 type PreviewBuildManifest =
-  | PreviewBuildComponentManifest
-  | PreviewBuildPageManifest;
+  PreviewBuildComponentManifest | PreviewBuildPageManifest;
 
 interface PreparedStagedHtmlFile {
   fileName: string;

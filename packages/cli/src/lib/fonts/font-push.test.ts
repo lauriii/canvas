@@ -417,6 +417,7 @@ describe('pushFonts', () => {
         fonts: [face400, face600],
       }),
       listFonts: vi.fn().mockResolvedValue([]),
+      getFontProperties: vi.fn().mockResolvedValue([]),
     } as Awaited<ReturnType<typeof createFontResolver>>);
 
     const tempPath1 = path.join(tmpDir, 'p1.woff2');
@@ -464,6 +465,7 @@ describe('pushFonts', () => {
         fonts: [variableFace],
       }),
       listFonts: vi.fn().mockResolvedValue([]),
+      getFontProperties: vi.fn().mockResolvedValue([]),
     } as Awaited<ReturnType<typeof createFontResolver>>);
 
     const tempPath = path.join(tmpDir, 'variable.woff2');
@@ -519,6 +521,7 @@ describe('pushFonts', () => {
     vi.mocked(createFontResolver).mockResolvedValueOnce({
       resolveFont: vi.fn().mockResolvedValueOnce({ fonts: [variableFace] }),
       listFonts: vi.fn().mockResolvedValue([]),
+      getFontProperties: vi.fn().mockResolvedValue([]),
     } as Awaited<ReturnType<typeof createFontResolver>>);
     const tempPath = path.join(tmpDir, 'v.woff2');
     await fs.writeFile(tempPath, Buffer.from([0]));

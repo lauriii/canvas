@@ -94,17 +94,13 @@ async function locatePackageJson(projectRoot: string): Promise<string | null> {
 }
 
 type ExportConditions =
-  | string
-  | null
-  | { [condition: string]: ExportConditions };
+  string | null | { [condition: string]: ExportConditions };
 
 /** The export conditions an `import` of the package matches, by priority. */
 const IMPORT_CONDITIONS = new Set(['import', 'default']);
 
 type ConditionMatch =
-  | { kind: 'resolved'; target: string }
-  | { kind: 'denied' }
-  | { kind: 'none' };
+  { kind: 'resolved'; target: string } | { kind: 'denied' } | { kind: 'none' };
 
 /**
  * Matches export conditions the way Node does for an `import`: the keys are

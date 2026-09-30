@@ -34,7 +34,7 @@
   },
   "devDependencies": {
     "@drupal-canvas/auth": "*",
-    "tsdown": "^0.22.12",
+    "tsdown": "^0.23.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   },

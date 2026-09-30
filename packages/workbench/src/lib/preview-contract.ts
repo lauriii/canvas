@@ -4,9 +4,7 @@ import type { Spec } from '@json-render/core';
 import type { DiscoveryResult, DiscoveryWarning } from './discovery-client';
 
 export type PreviewIneligibilityReason =
-  | 'invalid_metadata'
-  | 'missing_js_entry'
-  | 'unsupported_js_extension';
+  'invalid_metadata' | 'missing_js_entry' | 'unsupported_js_extension';
 
 export interface PreviewComponentMetadataError {
   sourcePath: string;

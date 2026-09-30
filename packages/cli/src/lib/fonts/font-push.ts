@@ -296,10 +296,7 @@ function fontsUnchanged(
 }
 
 export type FontPushOutcomeOperation =
-  | 'create'
-  | 'update'
-  | 'unchanged'
-  | 'delete';
+  'create' | 'update' | 'unchanged' | 'delete';
 
 export interface FontPushOutcome {
   itemName: string;

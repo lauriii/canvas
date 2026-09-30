@@ -14,14 +14,10 @@ import type { PatternsList } from '@/types/Pattern';
 import type { FolderData } from './FolderList';
 
 type AllowedItemTypes =
-  | ComponentsList
-  | PatternsList
-  | Record<string, CodeComponentSerialized>;
+  ComponentsList | PatternsList | Record<string, CodeComponentSerialized>;
 
 type AllowedLayoutType =
-  | LayoutItemType.PATTERN
-  | LayoutItemType.COMPONENT
-  | LayoutItemType.CODE;
+  LayoutItemType.PATTERN | LayoutItemType.COMPONENT | LayoutItemType.CODE;
 
 interface LibraryItemListProps<T extends { id: string; name: string }> {
   items: AllowedItemTypes | undefined;

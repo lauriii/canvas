@@ -85,8 +85,7 @@ async function buildComponentUploadTasks(
     );
     // Extract the flat map back from the wrapper to match Component['props'] type.
     const serializedProps = serializedResult?.properties as
-      | Component['props']
-      | undefined;
+      Component['props'] | undefined;
     const serializedPayload: Component = {
       ...prepared.componentPayload,
       props:

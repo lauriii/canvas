@@ -620,8 +620,8 @@ const AiWizardDev = () => {
   // next turn resumes that history instead of rebuilding it from the
   // transcript. The chat is cleared when this component mounts (see
   // handleComponentRender), so a mount is a conversation.
-  const conversationIdRef = useRef(
-    `conv_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+  const [conversationId] = useState(
+    () => `conv_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
   );
   const [createCodeComponent] = useCreateCodeComponentMutation();
   const navigate = useNavigate();
@@ -685,8 +685,7 @@ const AiWizardDev = () => {
   const transformLayout = () => {
     const state = store.getState();
     const theLayout = state?.layoutModel?.present as
-      | LayoutModelSliceState
-      | undefined;
+      LayoutModelSliceState | undefined;
     if (!theLayout?.layout) return null;
     return buildCurrentLayout(theLayout.layout, selectModel(state));
   };
@@ -930,7 +929,7 @@ const AiWizardDev = () => {
           const pageData = selectPageData(state);
           return {
             request_id: requestId,
-            conversation_id: conversationIdRef.current,
+            conversation_id: conversationId,
             entity_type: current.params.entityType,
             entity_id: current.params.entityId,
             // Prefer the code-editor route param: it identifies the open

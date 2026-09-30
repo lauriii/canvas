@@ -70,8 +70,7 @@ function buildCanvasSiteData(
         ''
       ).replace(/\/+$/, '');
       const themeAssets = canvasApiData.themeAssets as
-        | Record<string, Record<string, unknown>>
-        | undefined;
+        Record<string, Record<string, unknown>> | undefined;
       if (!themeAssets) return canvasApiData;
       return {
         ...canvasApiData,

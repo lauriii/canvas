@@ -176,9 +176,7 @@ export interface AdaptedPropSource extends BasePropSource {
 }
 
 export type PropSource =
-  | AdaptedPropSource
-  | StaticPropSource
-  | DynamicPropSource;
+  AdaptedPropSource | StaticPropSource | DynamicPropSource;
 
 export type ResolvedValues = Record<string, AnyValue>;
 
@@ -718,8 +716,7 @@ export const updateExistingComponentValues =
     const state = getState();
     const components: ComponentsList | undefined = state?.componentAndLayoutApi
       ?.queries?.['getComponents(undefined)']?.data as
-      | ComponentsList
-      | undefined;
+      ComponentsList | undefined;
     if (!components) {
       console.warn('No components list found, cannot update component values.');
       return;
@@ -817,8 +814,7 @@ export const _linkPropToEntityValue =
     const state = getState();
     const components: ComponentsList | undefined = state?.componentAndLayoutApi
       ?.queries?.['getComponents(undefined)']?.data as
-      | ComponentsList
-      | undefined;
+      ComponentsList | undefined;
     if (!components) {
       console.warn('No components list found, cannot update component values.');
       return;
