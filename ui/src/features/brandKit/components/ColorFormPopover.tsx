@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer } from 'react';
+import { useEffect, useMemo, useReducer, useRef } from 'react';
 import parse from 'html-react-parser';
 import { Cross2Icon } from '@radix-ui/react-icons';
 import * as Popover from '@radix-ui/react-popover';
@@ -238,14 +238,22 @@ const ColorFormPopover = ({
     }
   }, [open, resetCreate, resetUpdate]);
 
-  // Initialize form when opening
+  // Initialize form once per open. A background refetch hands us a new `color`
+  // object while the popover is open; re-initializing then would discard edits.
+  const initializedRef = useRef(false);
   useEffect(() => {
-    if (open) {
-      if (operation === 'edit' && color) {
-        updateForm({ type: 'INIT_EDIT', color });
-      } else {
-        updateForm({ type: 'INIT_ADD' });
-      }
+    if (!open) {
+      initializedRef.current = false;
+      return;
+    }
+    if (initializedRef.current) {
+      return;
+    }
+    initializedRef.current = true;
+    if (operation === 'edit' && color) {
+      updateForm({ type: 'INIT_EDIT', color });
+    } else {
+      updateForm({ type: 'INIT_ADD' });
     }
   }, [open, operation, color]);
 
