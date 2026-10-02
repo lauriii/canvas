@@ -21,7 +21,7 @@
     },
     {
       "matchManagers": ["npm"],
-      "matchPackageNames": ["vite", "vite-*", "@vitejs/**", "astro", "@astrojs/**"],
+      "matchPackageNames": ["vite", "vite-*", "@vitejs/**", "astro", "@astrojs/**", "@playwright/test"],
       "enabled": false
     }
   ]
