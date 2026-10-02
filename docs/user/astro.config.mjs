@@ -1,9 +1,11 @@
 // @ts-check
+// cspell:ignore satteri
 import { defineConfig } from 'astro/config';
+import { satteri } from '@astrojs/markdown-satteri';
 import starlight from '@astrojs/starlight';
 
 /**
- * Rehype plugin: prefix root-relative content links with the configured base.
+ * Hast plugin: prefix root-relative content links with the configured base.
  *
  * The site is deployed under a base path (`/canvas/` in production,
  * `/canvas/mr-<iid>/` for merge request previews — see `ASTRO_BASE` in
@@ -11,51 +13,59 @@ import starlight from '@astrojs/starlight';
  * but hardcoded root-relative links in the content — for example
  * `[Translations](/guides/translations)` — are emitted verbatim and would 404
  * on the deployed site. This prepends the base so those links resolve correctly
- * regardless of the deploy target. Both Markdown links (hast `<a>` elements) and
- * raw JSX links in MDX (`<a href="/…">`, kept as `mdxJsx*Element` nodes) are
- * handled.
+ * regardless of the deploy target. It handles both Markdown links (hast
+ * `<a>` elements) and raw HTML links written in content (`<a href="/…">`),
+ * which are represented as hast `raw` nodes in Satteri's Markdown pipeline.
  */
-function rehypeBaseRelativeLinks() {
+const astroBase = (process.env.ASTRO_BASE || '').replace(/\/+$/, '');
+
+const withBase = (/** @type {any} */ href) =>
+  typeof href === 'string' &&
+  href.startsWith('/') &&
+  !href.startsWith('//') &&
+  href !== astroBase &&
+  !href.startsWith(`${astroBase}/`)
+    ? `${astroBase}${href}`
+    : href;
+
+function baseRelativeLinksPlugin() {
   // ASTRO_BASE is normalized with a trailing slash; drop it so `base + href`
   // never produces a double slash. Empty when unset (local dev at the domain
   // root), which makes the rewrite a no-op.
-  const base = (process.env.ASTRO_BASE || '').replace(/\/+$/, '');
-  // Prefix the base to an in-site absolute href. External (`//`, `https://`),
-  // anchor (`#…`), non-string (JSX expression), and already-prefixed values are
-  // returned untouched.
-  const withBase = (/** @type {any} */ href) =>
-    typeof href === 'string' &&
-    href.startsWith('/') &&
-    !href.startsWith('//') &&
-    href !== base &&
-    !href.startsWith(`${base}/`)
-      ? `${base}${href}`
-      : href;
-  return (/** @type {any} */ tree) => {
-    if (!base) return;
-    const visit = (/** @type {any} */ node) => {
-      // Markdown links become hast `<a>` elements.
-      if (node.type === 'element' && node.tagName === 'a') {
-        node.properties = node.properties || {};
-        node.properties.href = withBase(node.properties.href);
-      }
-      // Raw JSX links in MDX stay as `mdxJsx*Element` nodes carrying an
-      // `attributes` array instead of hast `properties`.
-      if (
-        (node.type === 'mdxJsxTextElement' ||
-          node.type === 'mdxJsxFlowElement') &&
-        node.name === 'a' &&
-        Array.isArray(node.attributes)
-      ) {
-        for (const attr of node.attributes) {
+  return {
+    name: 'base-relative-links',
+    element: {
+      filter: ['a'],
+      visit(node, ctx) {
+        if (!astroBase) return;
+        const href = node.properties?.href;
+        if (href) {
+          ctx.setProperty(node, 'href', withBase(href));
+        }
+      },
+    },
+    mdxJsxFlowElement: {
+      filter: ['a'],
+      visit(node, ctx) {
+        if (!astroBase) return;
+        for (const attr of node.attributes || []) {
           if (attr.type === 'mdxJsxAttribute' && attr.name === 'href') {
-            attr.value = withBase(attr.value);
+            ctx.setProperty(node, 'href', withBase(attr.value));
           }
         }
-      }
-      if (Array.isArray(node.children)) node.children.forEach(visit);
-    };
-    visit(tree);
+      },
+    },
+    mdxJsxTextElement: {
+      filter: ['a'],
+      visit(node, ctx) {
+        if (!astroBase) return;
+        for (const attr of node.attributes || []) {
+          if (attr.type === 'mdxJsxAttribute' && attr.name === 'href') {
+            ctx.setProperty(node, 'href', withBase(attr.value));
+          }
+        }
+      },
+    },
   };
 }
 
@@ -63,7 +73,9 @@ function rehypeBaseRelativeLinks() {
 export default defineConfig({
   trailingSlash: 'never',
   markdown: {
-    rehypePlugins: [rehypeBaseRelativeLinks],
+    processor: satteri({
+      hastPlugins: [baseRelativeLinksPlugin()],
+    }),
   },
   integrations: [
     starlight({
