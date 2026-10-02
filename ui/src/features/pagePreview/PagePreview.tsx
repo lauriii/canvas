@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
-import { useLocation, useParams } from 'react-router';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useParams, useSearchParams } from 'react-router';
 import { AlertDialog, Button, Flex } from '@radix-ui/themes';
 import { skipToken } from '@reduxjs/toolkit/query';
 

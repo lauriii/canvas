@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { clsx } from 'clsx';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import TemplateIcon from '@assets/icons/template.svg?react';
 import {
   BoxModelIcon,

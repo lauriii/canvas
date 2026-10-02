@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { selectCurrentRoute, setCurrentRoute } from '@/features/ui/uiSlice';

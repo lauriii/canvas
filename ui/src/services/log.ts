@@ -1,5 +1,5 @@
 import type { ErrorInfo } from 'react';
-import type { ErrorResponse } from 'react-router-dom';
+import type { ErrorResponse } from 'react-router';
 
 const logApi = {
   // Dummy service to log errors. Only a placeholder for now that mimics how

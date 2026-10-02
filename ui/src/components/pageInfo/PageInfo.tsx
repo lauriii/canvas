@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
-import { NavLink, useParams } from 'react-router-dom';
+import { NavLink, useParams } from 'react-router';
 import TemplateIcon from '@assets/icons/template.svg?react';
 import {
   ChevronLeftIcon,

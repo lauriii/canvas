@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import parse from 'html-react-parser';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { PlusIcon } from '@radix-ui/react-icons';
 import {
   AlertDialog,

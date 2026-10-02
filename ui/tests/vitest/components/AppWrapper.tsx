@@ -1,5 +1,5 @@
 import { Provider } from 'react-redux';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router';
 import { Theme } from '@radix-ui/themes';
 
 import ErrorBoundary from '@/components/error/ErrorBoundary';
@@ -17,10 +17,7 @@ const AppWrapper = ({
   location: string;
   path: string;
 }>) => (
-  <MemoryRouter
-    initialEntries={[location]}
-    future={{ v7_relativeSplatPath: true, v7_startTransition: true }} // Avoid React Router future warnings.
-  >
+  <MemoryRouter initialEntries={[location]}>
     <Routes>
       <Route
         path={path}

@@ -4,7 +4,7 @@ import {
   isRouteErrorResponse,
   useAsyncError,
   useRouteError,
-} from 'react-router-dom';
+} from 'react-router';
 
 import ErrorAlert from '@/components/error/ErrorAlert';
 import ErrorCard from '@/components/error/ErrorCard';

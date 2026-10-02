@@ -1,5 +1,5 @@
 import { Provider } from 'react-redux';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 
@@ -10,8 +10,8 @@ import useRouteSync from './useRouteSync';
 
 const mockNavigate = vi.fn();
 
-vi.mock('react-router-dom', async () => {
-  const originalModule = await vi.importActual('react-router-dom');
+vi.mock('react-router', async () => {
+  const originalModule = await vi.importActual('react-router');
   return {
     ...originalModule,
     useNavigate: () => mockNavigate,

@@ -231,21 +231,13 @@ export function CanvasNavigationMixin<TBase extends Constructor<CanvasBase>>(
         .locator('[data-testid="canvas-topbar"]')
         .getByRole('button', { name: 'Preview' })
         .click();
-      await this.page.waitForLoadState('domcontentloaded');
-      // Wait for no DOM mutations for a period.
-      await this.page.waitForFunction(() => {
-        const iframe = document.querySelector(
-          'iframe[class^="_PagePreviewIframe"]',
-        );
-        const iframeDocument =
-          iframe.contentDocument || iframe.contentWindow.document;
-        return iframeDocument.querySelector('main')?.children.length > 0;
-      });
-      await this.page
+      // SPA navigation does not reload the document; wait for preview content.
+      const previewMain = this.page
         .locator('iframe[class^="_PagePreviewIframe"]')
         .contentFrame()
-        .locator('main')
-        .waitFor({ state: 'visible' });
+        .locator('main');
+      await expect(previewMain.locator(':scope > *').first()).toBeAttached();
+      await expect(previewMain).toBeVisible();
     }
 
     async closePreview() {

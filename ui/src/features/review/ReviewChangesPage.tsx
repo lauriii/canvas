@@ -1,10 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Navigate,
-  useLocation,
-  useNavigate,
-  useParams,
-} from 'react-router-dom';
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router';
 
 import { useAppDispatch } from '@/app/hooks';
 import { usePublishPendingChanges } from '@/components/review/usePublishPendingChanges';

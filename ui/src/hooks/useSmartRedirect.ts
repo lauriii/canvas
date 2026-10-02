@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 
 import { useAppSelector } from '@/app/hooks';
 import { selectHomepagePath } from '@/features/configuration/configurationSlice';
