@@ -51,7 +51,14 @@ Variants are managed and edited entirely in the editor:
   ComponentSource (`marker.page_content`). It is intrinsic to every variant,
   never listed in the component library, and cannot be deleted (only
   repositioned). A variant must contain exactly one; validation enforces this.
-  At render time the marker is replaced with the route's main content.
+  At render time the marker is replaced with the route's main content. The
+  theme's `html.html.twig` renders a "Skip to main content" link targeting
+  `#main-content`; core's `page.html.twig` used to provide that anchor. If the
+  rendered page has no `id="main-content"` (for example a variant that does not
+  use the theme page template component), the marker's position gains an
+  `<a id="main-content">` anchor. If one is already present (the theme page
+  template component renders the theme's `page.html.twig`, which ships with it),
+  no second anchor is added.
 - **Rendering**: when a variant resolves for a request (entity selection, then
   content template selection, then the site default), the `canvas` display
   variant renders the variant's tree through the bare `canvas_page_variant`

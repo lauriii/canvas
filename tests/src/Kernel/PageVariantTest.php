@@ -751,11 +751,64 @@ final class PageVariantTest extends CanvasKernelTestBase {
     // The page body renders through the bare variant template.
     self::assertSame('canvas_page_variant', $build['#theme']);
 
-    // The route's main content is injected where the marker sits.
+    // The route's main content is injected where the marker sits. Render the
+    // whole build, not just #content, so the #main-content anchor #post_render
+    // callback runs.
+    // @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant::resolveMainContentAnchor()
     $renderer = $this->container->get(RendererInterface::class);
     self::assertInstanceOf(RendererInterface::class, $renderer);
-    $html = (string) $renderer->renderInIsolation($build['#content']);
+    $html = (string) $renderer->renderInIsolation($build);
     self::assertStringContainsString($sentinel, $html);
+
+    // This variant has no theme page template, so nothing else provides the
+    // anchor: the callback inserts it, before the injected content, so the
+    // theme's "Skip to main content" link (in html.html.twig) has a target.
+    // @see core/modules/system/templates/html.html.twig
+    $anchor = '<a id="main-content" tabindex="-1"></a>';
+    self::assertStringContainsString($anchor, $html);
+    self::assertLessThan(\strpos($html, $sentinel), \strpos($html, $anchor));
+  }
+
+  /**
+   * Tests how the #main-content anchor placeholder resolves against markup.
+   *
+   * The anchor is added only when the rendered page has no existing
+   * `id="main-content"`, so the theme's "Skip to main content" link always has
+   * exactly one target. Fragment navigation is case-sensitive, so a differently
+   * cased or suffixed id must not suppress the anchor.
+   *
+   * @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant::resolveMainContentAnchor()
+   */
+  public function testResolveMainContentAnchor(): void {
+    $placeholder = '<!--canvas-main-content-anchor-->';
+    $anchor = '<a id="main-content" tabindex="-1"></a>';
+    $resolve = static fn (string $html): string => (string) CanvasPageVariant::resolveMainContentAnchor($html, []);
+
+    // No existing anchor: the placeholder becomes the anchor.
+    self::assertSame("<div>{$anchor}x</div>", $resolve("<div>{$placeholder}x</div>"));
+    // Markup with no placeholder is returned untouched.
+    self::assertSame('<div>x</div>', $resolve('<div>x</div>'));
+
+    // An existing id="main-content" (any quote style or attribute spacing, any
+    // id-name casing) suppresses the anchor: the placeholder is removed.
+    foreach ([
+      '<main id="main-content"></main>',
+      "<main id='main-content'></main>",
+      '<main ID="main-content"></main>',
+      '<main id = "main-content"></main>',
+    ] as $existing) {
+      self::assertSame("$existing y", $resolve("{$placeholder}$existing y"), $existing);
+    }
+
+    // A differently cased or suffixed id is a different target, so the anchor is
+    // still added. A `data-id` is not an `id` either.
+    foreach ([
+      '<main id="Main-Content"></main>',
+      '<main id="main-content-foo"></main>',
+      '<aside data-id="main-content"></aside>',
+    ] as $unrelated) {
+      self::assertSame("$anchor$unrelated", $resolve("{$placeholder}$unrelated"), $unrelated);
+    }
   }
 
   /**

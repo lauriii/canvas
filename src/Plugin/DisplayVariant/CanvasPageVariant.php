@@ -14,6 +14,7 @@ use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\PageVariantResolver;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
+use Drupal\Component\Render\MarkupInterface;
 use Drupal\Core\Block\MessagesBlockPluginInterface;
 use Drupal\Core\Block\TitleBlockPluginInterface;
 use Drupal\Core\Cache\CacheableMetadata;
@@ -24,6 +25,8 @@ use Drupal\Core\Display\VariantBase;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\Render\Markup;
+use Drupal\Core\Security\TrustedCallbackInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -64,9 +67,34 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
   id: self::PLUGIN_ID,
   admin_label: new TranslatableMarkup('Page with Drupal Canvas Components')
 )]
-final class CanvasPageVariant extends VariantBase implements PageVariantInterface, ContainerFactoryPluginInterface {
+final class CanvasPageVariant extends VariantBase implements PageVariantInterface, ContainerFactoryPluginInterface, TrustedCallbackInterface {
 
   public const string PLUGIN_ID = 'canvas';
+
+  /**
+   * Placeholder marking where the #main-content anchor may be inserted.
+   *
+   * A page variant may already contain an `id="main-content"` element (for
+   * example the theme page template component renders the theme's
+   * page.html.twig, which core ships with that anchor). Emitting a second one
+   * would create a duplicate id, so the anchor is resolved after rendering:
+   * ::buildPageVariant() prefixes this placeholder to the main content (which
+   * renders at the "Page content" marker) and a #post_render callback replaces
+   * it with the anchor only when the rendered page has none, and removes it
+   * otherwise.
+   *
+   * @see ::buildPageVariant()
+   * @see ::resolveMainContentAnchor()
+   */
+  private const string MAIN_CONTENT_ANCHOR_PLACEHOLDER = '<!--canvas-main-content-anchor-->';
+
+  /**
+   * The #main-content anchor the theme's "Skip to main content" link targets.
+   *
+   * @see core/modules/system/templates/html.html.twig
+   * @see core/modules/system/templates/page.html.twig
+   */
+  private const string MAIN_CONTENT_ANCHOR = '<a id="main-content" tabindex="-1"></a>';
 
   /**
    * The plugin configuration key whose value is the preview value.
@@ -211,12 +239,22 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
     // Track whether a block showing the messages is displayed.
     $messages_block_displayed = FALSE;
 
+    // Prefix the main content with the #main-content anchor placeholder, which
+    // ::resolveMainContentAnchor() resolves once the whole variant has
+    // rendered.
+    // @see ::resolveMainContentAnchor()
+    // @see \Drupal\canvas_headless\CanvasContentEntityRenderer
+    $main_content = [
+      'main_content_anchor' => ['#markup' => Markup::create(self::MAIN_CONTENT_ANCHOR_PLACEHOLDER)],
+      'main_content' => $this->mainContent,
+    ];
+
     $content = self::renderComponentTree(
       $is_preview ? $this->getPreviewComponentTree($variant) : $variant->getComponentTree(),
       $variant,
       $is_preview,
       $messages_block_displayed,
-      $this->mainContent,
+      $main_content,
       $this->title,
     );
 
@@ -238,6 +276,10 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
     $build = [
       '#theme' => 'canvas_page_variant',
       '#content' => $content,
+      // Resolve the #main-content anchor placeholder once the whole variant
+      // (including any theme page template component) has rendered.
+      // @see ::resolveMainContentAnchor()
+      '#post_render' => [[self::class, 'resolveMainContentAnchor']],
     ];
     CacheableMetadata::createFromObject($variant)
       ->applyTo($build);
@@ -298,9 +340,12 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
    *
    * The preview flag is passed to the component tree so component sources can
    * render their auto-saved drafts. Title and messages blocks receive their
-   * page-level data. The "Page content" marker is replaced with the route's
-   * main content.
+   * page-level data. The "Page content" marker is replaced with the given main
+   * content, exactly as passed: callers that need the #main-content anchor
+   * prefix it themselves before calling, so other callers (for example the
+   * headless content API) are unaffected.
    *
+   * @see ::buildPageVariant()
    * @see \Drupal\Core\Display\PageVariantInterface
    * @see \Drupal\canvas\ComponentSource\ComponentSourceInterface::renderComponent()
    * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::renderComponent()
@@ -329,6 +374,50 @@ final class CanvasPageVariant extends VariantBase implements PageVariantInterfac
     }
     \assert($fiber->isTerminated());
     return $fiber->getReturn();
+  }
+
+  /**
+   * Resolves the #main-content anchor placeholder in the rendered variant.
+   *
+   * The theme's html.html.twig renders a "Skip to main content" link targeting
+   * `#main-content`. A variant may contain the anchor (for example, the theme
+   * page template component renders the theme's page.html.twig), so emitting
+   * one unconditionally would create a duplicate id. The placeholder sits where
+   * the route's main content is injected; here it becomes the anchor only when
+   * the rendered page has none, and is removed otherwise.
+   *
+   * @param string|\Drupal\Component\Render\MarkupInterface $children
+   *   The rendered children of the page variant.
+   * @param array $element
+   *   The render array being rendered.
+   *
+   * @return string|\Drupal\Component\Render\MarkupInterface
+   *   The rendered children with the placeholder resolved.
+   *
+   * @see core/modules/system/templates/html.html.twig
+   * @see core/modules/system/templates/page.html.twig
+   */
+  public static function resolveMainContentAnchor(string|MarkupInterface $children, array $element): string|MarkupInterface {
+    $html = (string) $children;
+    if (!\str_contains($html, self::MAIN_CONTENT_ANCHOR_PLACEHOLDER)) {
+      return $children;
+    }
+    // Only the absence of an existing id="main-content" warrants an anchor. The
+    // attribute name is matched case-insensitively (HTML attribute names are),
+    // but the id value is matched case-sensitively and bounded: fragment
+    // navigation to the skip link's `#main-content` is case-sensitive and must
+    // not match `Main-Content`, and `main-content-foo` is a different id.
+    // @see core/modules/system/templates/html.html.twig
+    $has_anchor = \preg_match('/(?<![-\w])(?i:id)\s*=\s*(?:"main-content"|\'main-content\'|main-content(?![\w-]))/', $html) === 1;
+    $replacement = $has_anchor ? '' : self::MAIN_CONTENT_ANCHOR;
+    return Markup::create(\str_replace(self::MAIN_CONTENT_ANCHOR_PLACEHOLDER, $replacement, $html));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function trustedCallbacks(): array {
+    return ['resolveMainContentAnchor'];
   }
 
 }
