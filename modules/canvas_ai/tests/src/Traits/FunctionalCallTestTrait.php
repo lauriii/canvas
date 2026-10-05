@@ -9,6 +9,7 @@ use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 trait FunctionalCallTestTrait {
 
   protected static function normalizeErrorString(string $error): string {
+    $error = preg_replace('/ at line \d+/', '', $error) ?? $error;
     return trim((string) preg_replace('/\s+/', ' ', $error));
   }
 

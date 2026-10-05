@@ -1458,6 +1458,29 @@ class CanvasAiPageBuilderHelper {
   }
 
   /**
+   * Validates a component slot target.
+   *
+   * @param string $target
+   *   The target in the form "parent_uuid/slot_name".
+   * @param array $components_by_uuid
+   *   The current page's components, keyed by UUID.
+   *
+   * @return string|null
+   *   An error message, or NULL when the target exists.
+   */
+  public function validateSlotTargetExists(string $target, array $components_by_uuid): ?string {
+    [$parent_uuid, $slot_name] = explode('/', $target, 2);
+    if (!isset($components_by_uuid[$parent_uuid])) {
+      return \sprintf('Invalid slot "%s". Component with UUID "%s" not found in layout', $target, $parent_uuid);
+    }
+    if (!\in_array($target, $components_by_uuid[$parent_uuid]['slots'], TRUE)) {
+      return \sprintf('Slot "%s" does not exist on component "%s".', $slot_name, $parent_uuid);
+    }
+
+    return NULL;
+  }
+
+  /**
    * Gets the region indices from the current layout.
    *
    * @param string $current_layout
@@ -1681,7 +1704,7 @@ class CanvasAiPageBuilderHelper {
    *
    * @return array
    *   An array keyed by component UUID, each value being
-   *   ['component_id' => string, 'props' => array].
+   *   ['component_id' => string, 'props' => array, 'slots' => list<string>].
    */
   public function getComponentsByUuid(array $current_layout): array {
     $components_by_uuid = [];
@@ -1710,6 +1733,7 @@ class CanvasAiPageBuilderHelper {
       $components_by_uuid[$component['uuid']] = [
         'component_id' => $component['name'] ?? '',
         'props' => \is_array($component['props'] ?? NULL) ? $component['props'] : [],
+        'slots' => \is_array($component['slots'] ?? NULL) ? \array_keys($component['slots']) : [],
       ];
       foreach ($component['slots'] ?? [] as $slot_payload) {
         if (\is_array($slot_payload) && \is_array($slot_payload['components'])) {

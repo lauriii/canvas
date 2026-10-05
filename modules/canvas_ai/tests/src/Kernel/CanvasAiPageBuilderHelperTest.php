@@ -75,7 +75,6 @@ final class CanvasAiPageBuilderHelperTest extends CanvasKernelTestBase {
             [
               "name" => "sdc.starshot_demo.starshot-heading",
               "uuid" => "678e9ee1-dc49-4495-b7cb-9bdd5625a59b",
-              "nodePath" => [0, 0],
             ],
           ],
         ],
@@ -85,14 +84,12 @@ final class CanvasAiPageBuilderHelperTest extends CanvasKernelTestBase {
             [
               "name" => "sdc.canvas_test_sdc.two_column",
               "uuid" => "2f957795-e30a-46a0-acfe-868adc0685bf",
-              "nodePath" => [1, 0],
               "slots" => [
                 "2f957795-e30a-46a0-acfe-868adc0685bf/column_one" => [
                   "components" => [
                     [
                       "name" => "sdc.canvas_test_sdc.image",
                       "uuid" => "837173ae-5940-4c48-a304-31c6d81901b5",
-                      "nodePath" => [1, 0, 0, 0],
                     ],
                   ],
                 ],
@@ -101,7 +98,6 @@ final class CanvasAiPageBuilderHelperTest extends CanvasKernelTestBase {
                     [
                       "name" => "sdc.canvas_test_sdc.druplicon",
                       "uuid" => "4e45ef4c-501c-4612-b02b-1911e88a4592",
-                      "nodePath" => [1, 0, 1, 0],
                     ],
                   ],
                 ],
@@ -151,7 +147,6 @@ final class CanvasAiPageBuilderHelperTest extends CanvasKernelTestBase {
             [
               "name" => "sdc.starshot_demo.starshot-heading",
               "uuid" => "678e9ee1-dc49-4495-b7cb-9bdd5625a59b",
-              "nodePath" => [0, 0],
             ],
           ],
         ],
@@ -161,21 +156,18 @@ final class CanvasAiPageBuilderHelperTest extends CanvasKernelTestBase {
             [
               "name" => "sdc.canvas_test_sdc.two_column",
               "uuid" => "2f957795-e30a-46a0-acfe-868adc0685bf",
-              "nodePath" => [1, 0],
               "slots" => [
                 "2f957795-e30a-46a0-acfe-868adc0685bf/column_one" => [
                   "components" => [
                     [
                       "name" => "sdc.canvas_test_sdc.image",
                       "uuid" => "837173ae-5940-4c48-a304-31c6d81901b5",
-                      "nodePath" => [1, 0, 0, 0],
                       "slots" => [
                         "837173ae-5940-4c48-a304-31c6d81901b5/inner_slot" => [
                           "components" => [
                             [
                               "name" => "sdc.canvas_test_sdc.druplicon",
                               "uuid" => "7fd447a9-f1b3-4b9c-ae23-ee4b174f7b84",
-                              "nodePath" => [1, 0, 1, 0, 0, 0],
                             ],
                           ],
                         ],
@@ -188,7 +180,6 @@ final class CanvasAiPageBuilderHelperTest extends CanvasKernelTestBase {
                     [
                       "name" => "sdc.canvas_test_sdc.druplicon",
                       "uuid" => "4e45ef4c-501c-4612-b02b-1911e88a4592",
-                      "nodePath" => [1, 0, 1, 0],
                     ],
                   ],
                 ],
@@ -656,23 +647,31 @@ XML;
     ];
 
     // Nested-slot components are flattened to top-level entries; component_id
-    // comes from "name"; props default to [] when absent.
+    // comes from "name"; props default to [] when absent; slots contain the
+    // full slot target keys.
     $expected = [
       "3af8363b-143c-4136-9e7c-47374cb56679" => [
         "component_id" => "sdc.canvas_test_sdc.heading",
         "props" => ["text" => "Hello", "element" => "h1"],
+        "slots" => [],
       ],
       "e9e4308d-86f3-4253-ba12-abb8c037e5be" => [
         "component_id" => "sdc.canvas_test_sdc.two_column",
         "props" => [],
+        "slots" => [
+          "e9e4308d-86f3-4253-ba12-abb8c037e5be/column_one",
+          "e9e4308d-86f3-4253-ba12-abb8c037e5be/column_two",
+        ],
       ],
       "29d9f67e-38e9-4a76-b20d-bbe11fc9a609" => [
         "component_id" => "sdc.canvas_test_sdc.image",
         "props" => ["src" => "/image.png"],
+        "slots" => [],
       ],
       "d280666e-b608-46e0-81e0-1919542195ad" => [
         "component_id" => "sdc.canvas_test_sdc.druplicon",
         "props" => [],
+        "slots" => [],
       ],
     ];
 

@@ -359,4 +359,23 @@ class AiResponseValidator {
     return $pathMap;
   }
 
+  /**
+   * Renders collected tool errors as one markdown list per item.
+   *
+   * @param array<string, list<string>> $errors
+   *   The errors found, keyed by the label of the item they belong to, for
+   *   example "Operation 0".
+   *
+   * @return string
+   *   The message reported to the model.
+   */
+  public function formatErrors(array $errors): string {
+    $sections = ['Nothing was applied. Fix every error listed below and call the tool again.'];
+    foreach ($errors as $item => $item_errors) {
+      $bullets = \array_map(static fn (string $error): string => '- ' . $error, $item_errors);
+      $sections[] = \sprintf("## %s\n%s", $item, \implode("\n", $bullets));
+    }
+    return \implode("\n\n", $sections);
+  }
+
 }
