@@ -1,3 +1,4 @@
+import path from 'node:path';
 import prettier from 'eslint-config-prettier';
 import pluginChaiFriendly from 'eslint-plugin-chai-friendly';
 import cypress from 'eslint-plugin-cypress';
@@ -55,6 +56,106 @@ const isolatedPerTestPlugin = {
   },
 };
 
+// Number of test cases each existing Cypress spec had when this rule was added. Do not raise.
+// cspell:ignore autosave
+const cypressTestBaseline = {
+  'ui/tests/e2e/auto-path-alias.cy.js': 4,
+  'ui/tests/e2e/autocomplete-props.cy.js': 3,
+  'ui/tests/e2e/autosave.cy.js': 1,
+  'ui/tests/e2e/canary.cy.js': 2,
+  'ui/tests/e2e/ckeditor5.cy.js': 4,
+  'ui/tests/e2e/code-component-image.cy.js': 1,
+  'ui/tests/e2e/component-transforms-and-evolution.cy.js': 1,
+  'ui/tests/e2e/components-slots.cy.js': 1,
+  'ui/tests/e2e/contextual-panel.cy.js': 6,
+  'ui/tests/e2e/copy-and-paste.cy.js': 2,
+  'ui/tests/e2e/dom-to-redux.cy.js': 5,
+  'ui/tests/e2e/drag-and-drop.cy.js': 2,
+  'ui/tests/e2e/editor-frame.cy.js': 2,
+  'ui/tests/e2e/empty-canvas.cy.js': 2,
+  'ui/tests/e2e/entity-form-field-types-test.cy.js': 3,
+  'ui/tests/e2e/error-handling.cy.js': 2,
+  'ui/tests/e2e/expand-slots.cy.js': 1,
+  'ui/tests/e2e/extension-legacy.cy.js': 1,
+  'ui/tests/e2e/image-code-component.cy.js': 1,
+  'ui/tests/e2e/link-code-component.cy.js': 1,
+  'ui/tests/e2e/media-library-component-instance.cy.js': 2,
+  'ui/tests/e2e/media-library-entity-form.cy.js': 2,
+  'ui/tests/e2e/media-library.cy.js': 4,
+  'ui/tests/e2e/media-video-prop.cy.js': 2,
+  'ui/tests/e2e/multi-select-components.cy.js': 6,
+  'ui/tests/e2e/multivalue-date-time-form-design.cy.js': 12,
+  'ui/tests/e2e/multivalue-form-design-link.cy.js': 13,
+  'ui/tests/e2e/multivalue-form-design-list.cy.js': 11,
+  'ui/tests/e2e/multivalue-form-design-number-integer.cy.js': 10,
+  'ui/tests/e2e/multivalue-form-design.cy.js': 8,
+  'ui/tests/e2e/multivalue-media-form-design.cy.js': 5,
+  'ui/tests/e2e/navigation.cy.js': 11,
+  'ui/tests/e2e/overlay-ui.cy.js': 1,
+  'ui/tests/e2e/page-data-form.cy.js': 1,
+  'ui/tests/e2e/pattern.cy.js': 1,
+  'ui/tests/e2e/primary-panel.cy.js': 2,
+  'ui/tests/e2e/prop-types.cy.js': 20,
+  'ui/tests/e2e/publish-review.cy.js': 3,
+  'ui/tests/e2e/publish-validation.cy.js': 4,
+  'ui/tests/e2e/realtime-preview-code-component.cy.js': 1,
+  'ui/tests/e2e/scope-css.cy.js': 2,
+  'ui/tests/e2e/states.cy.js': 11,
+  'ui/tests/e2e/topbar-layout-preview-mode.cy.js': 7,
+  'ui/tests/e2e/undo-redo.cy.js': 2,
+  'ui/tests/e2e/vh-units.cy.js': 2,
+  'ui/tests/unit/code-editor-component-data-props.cy.jsx': 8,
+  'ui/tests/unit/code-editor-component-data-slots.cy.jsx': 2,
+  'ui/tests/unit/code-editor-preview.cy.jsx': 1,
+  'ui/tests/unit/error-boundary.cy.jsx': 7,
+  'ui/tests/unit/validation.cy.js': 3,
+};
+
+const noNewCypressPlugin = {
+  rules: {
+    'no-new-cypress-tests': {
+      meta: {
+        type: 'problem',
+        docs: {
+          description:
+            'Disallow new Cypress specs and new test cases in existing Cypress specs',
+        },
+        schema: [],
+        messages: {
+          tooMany:
+            'Do not add Cypress tests ({{count}} found, {{limit}} allowed). Write a Playwright or Vitest test instead.',
+        },
+      },
+      create(context) {
+        const key = path.relative(context.cwd, context.filename);
+        const limit = cypressTestBaseline[key] ?? 0;
+        let count = 0;
+        return {
+          CallExpression(node) {
+            const c = node.callee;
+            const name = c.type === 'MemberExpression' ? c.object : c;
+            if (
+              name.type === 'Identifier' &&
+              ['it', 'specify'].includes(name.name)
+            ) {
+              count++;
+            }
+          },
+          'Program:exit'(node) {
+            if (count > limit) {
+              context.report({
+                node,
+                messageId: 'tooMany',
+                data: { count, limit },
+              });
+            }
+          },
+        };
+      },
+    },
+  },
+};
+
 export default defineConfig([
   js.configs.recommended,
   tseslint.configs.recommended,
@@ -72,6 +173,12 @@ export default defineConfig([
       'vitest/valid-expect': 'off', // https://github.com/vitest-dev/eslint-plugin-vitest/issues/675'
       'vitest/no-conditional-expect': 'off',
     },
+  },
+  {
+    // Cypress is being phased out: existing specs may be edited, but not gain test cases.
+    files: ['**/*.cy.*'],
+    plugins: { 'no-new-cypress': noNewCypressPlugin },
+    rules: { 'no-new-cypress/no-new-cypress-tests': 'error' },
   },
   {
     files: ['**/*.cy.*', 'ui/tests/e2e/entity-form-fields/*'],
