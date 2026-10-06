@@ -33,6 +33,7 @@
         "mglaman/phpstan-drupal": "2.0.15",
         "phpat/phpat": "0.12.4",
         "phpstan/phpstan": "2.2.16",
+        "phpstan/phpstan-phpunit": "2.0.21",
         "phpstan/phpstan-strict-rules": "2.0.11",
         "shipmonk/dead-code-detector": "1.2.0"
     },
