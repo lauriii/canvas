@@ -19,19 +19,51 @@ import styles from '@/features/layout/preview/Preview.module.css';
 
 interface IFrameSwapperProps {
   srcDocument: string;
+  /**
+   * CSS injected at the end of the preview document's <head> to guarantee it
+   * takes precedence over server-provided styles. Modifying this CSS updates
+   * the iframe dynamically without a full reload.
+   */
+  headStyles: string;
   setIsReloading: Dispatch<SetStateAction<boolean>>;
   interactive: boolean;
 }
 
+const HEAD_STYLES_ID = 'canvas-preview-head-styles';
+
+const applyHeadStyles = (frame: HTMLIFrameElement | null, css: string) => {
+  const previewDocument = frame?.contentDocument;
+  if (!previewDocument?.head) {
+    return;
+  }
+  const style =
+    previewDocument.getElementById(HEAD_STYLES_ID) ??
+    previewDocument.createElement('style');
+  style.id = HEAD_STYLES_ID;
+  style.textContent = css;
+  // Re-append even when the element already exists, so the block stays last in
+  // the head if the document added stylesheets after it.
+  previewDocument.head.append(style);
+};
+
 const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
   (
-    { srcDocument, setIsReloading, interactive },
+    { srcDocument, headStyles, setIsReloading, interactive },
     ref: Ref<HTMLIFrameElement>,
   ) => {
     const iFrameRefs = useRef<(HTMLIFrameElement | null)[]>([]);
     const whichActiveRef = useRef(0);
     const [whichActive, setWhichActive] = useState(0);
     const { isDragging } = useAppSelector(selectDragging);
+    // Latest-value ref, so writing a new srcdoc picks up the current styles
+    // without re-running (and so reloading) the srcdoc effect on style changes.
+    const headStylesRef = useRef(headStyles);
+    headStylesRef.current = headStyles;
+
+    // Keep already-loaded preview documents in step when the styles change.
+    useEffect(() => {
+      iFrameRefs.current.forEach((frame) => applyHeadStyles(frame, headStyles));
+    }, [headStyles]);
 
     useImperativeHandle(ref, () => {
       if (!iFrameRefs.current[0] || !iFrameRefs.current[1]) {
@@ -61,6 +93,10 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
         // The load event in some browsers (e.g., Safari) fires on page load if the srcdoc is empty, but we don't want to swap in that case.
         return;
       }
+
+      // The styles may have changed while this document was loading; the
+      // in-place update only reaches documents that have finished parsing.
+      applyHeadStyles(iframe, headStylesRef.current);
 
       iframe.style.display = '';
 
@@ -138,10 +174,18 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
       setIsReloading(true);
       const { activeIFrame, inactiveIFrame } = getIFrames();
 
+      // Insert the head styles into the markup itself, so a loading document
+      // renders with them from its first paint.
+      const srcDocumentWithStyles = srcDocument.replace(
+        /<\/head>/i,
+        () =>
+          `<style id="${HEAD_STYLES_ID}">${headStylesRef.current}</style></head>`,
+      );
+
       // Initialize active iframe if not already initialized
       if (activeIFrame && !activeIFrame.srcdoc) {
         activeIFrame.style.display = 'block';
-        activeIFrame.srcdoc = srcDocument;
+        activeIFrame.srcdoc = srcDocumentWithStyles;
       }
 
       // Immediately set the currently active iframe to not initialized
@@ -160,7 +204,7 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
         // This means that when the swap occurs, both iframes are display: block; and we are just swapping the opacity from 0/1
         inactiveIFrame.style.display = 'block';
         inactiveIFrame.addEventListener('load', swapIFrames);
-        inactiveIFrame.srcdoc = srcDocument;
+        inactiveIFrame.srcdoc = srcDocumentWithStyles;
       }
 
       return () => {
