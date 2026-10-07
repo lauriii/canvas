@@ -186,7 +186,10 @@ export const pendingChangesApi = createApi({
           // after publishing, the auto-save request could wipe out any changes that were made in
           // any hook_entity_presave code
           dispatch(
-            componentAndLayoutApi.util.invalidateTags([{ type: 'Layout' }]),
+            componentAndLayoutApi.util.invalidateTags([
+              { type: 'Layout' },
+              { type: 'CodeComponents', id: 'LIST' },
+            ]),
           );
           dispatch(setPreviousPendingChanges());
           dispatch(setErrors());
