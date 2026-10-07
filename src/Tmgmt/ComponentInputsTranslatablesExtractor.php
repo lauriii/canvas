@@ -10,13 +10,17 @@ use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentInstanceInputsConfigSchemaGenerator;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Config\Schema\ConfigSchemaDiscovery;
 use Drupal\Core\Config\Schema\Mapping;
 use Drupal\Core\Config\Schema\Sequence;
 use Drupal\Core\Config\Schema\TypedConfigInterface;
+use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Field\TypedData\FieldItemDataDefinitionInterface;
 use Drupal\Core\TypedData\DataDefinitionInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * Extracts translatable data from component inputs for TMGMT.
@@ -26,10 +30,70 @@ use Drupal\Core\TypedData\DataDefinitionInterface;
  */
 final class ComponentInputsTranslatablesExtractor {
 
+  /**
+   * Internal placeholder for component inputs that are empty in the source.
+   *
+   * TMGMT's Data::flatten() strips empty strings, so the extracted #text for
+   * an empty optional input must be non-empty for the input to be offered for
+   * translation at all. The sentinel is never shown to translators: the
+   * review form blanks it on output, and if a translator plugin passes it
+   * through as a "translation", the field processor discards it instead of
+   * storing it.
+   *
+   * @see \Drupal\canvas\Hook\TmgmtHooks::tmgmtDataItemTextOutputAlter()
+   * @see \Drupal\canvas\Tmgmt\ComponentTreeFieldProcessor::setTranslations()
+   */
+  public const string EMPTY_SENTINEL = '∅';
+
+  /**
+   * Config schema definitions as discovered and altered, but not resolved.
+   *
+   * @var array<string, array<string, mixed>>|null
+   *
+   * @see ::getUnresolvedSchemaDefinition()
+   */
+  private ?array $unresolvedSchemaDefinitions = NULL;
+
   public function __construct(
     private readonly TypedConfigManagerInterface $typedConfigManager,
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    #[Autowire(service: 'config.storage.schema')]
+    private readonly StorageInterface $schemaStorage,
+    private readonly ModuleHandlerInterface $moduleHandler,
   ) {
+  }
+
+  /**
+   * Gets a config schema definition as specified, before type resolution.
+   *
+   * TypedConfigManager::getDefinitions() cannot be used for this: core
+   * rewrites a definition in place the first time its type is resolved (the
+   * base type's definition is merged in and the `type` key is removed). So
+   * `field.value.text` reads as `type: text_format` only until anything in
+   * the request has resolved it; afterwards it has no `type` at all, and a
+   * definition without a `type` builds a Mapping with a plain DataDefinition.
+   *
+   * This repeats what TypedConfigManager::findDefinitions() does before
+   * resolution: discovery plus the `config_schema_info` alter, so alters such
+   * as ConfigTranslationHooks::configSchemaInfoAlter() are honored.
+   *
+   * @param string $type
+   *   The config schema type name, e.g. `field.value.text`.
+   *
+   * @return array<string, mixed>|null
+   *   The definition as specified in config schema YAML and altered by
+   *   hook_config_schema_info_alter(), or NULL if there is none.
+   *
+   * @see \Drupal\Core\Config\TypedConfigManager::getDefinitionWithReplacements()
+   * @see \Drupal\canvas\Hook\ConfigTranslationHooks::configSchemaInfoAlter()
+   */
+  private function getUnresolvedSchemaDefinition(string $type): ?array {
+    if ($this->unresolvedSchemaDefinitions === NULL) {
+      $definitions = (new ConfigSchemaDiscovery($this->schemaStorage))->getDefinitions();
+      $this->moduleHandler->alter('config_schema_info', $definitions);
+      $this->unresolvedSchemaDefinitions = $definitions;
+    }
+    return $this->unresolvedSchemaDefinitions[$type] ?? NULL;
   }
 
   /**
@@ -153,16 +217,14 @@ final class ComponentInputsTranslatablesExtractor {
     }
     $field_type = $static_prop_source->fieldItemList->getFieldDefinition()->getType();
     $cardinality = $static_prop_source->getCardinality();
-    $field_value_schema = \sprintf('field.value.%s', $field_type);
-    if (!$this->typedConfigManager->hasDefinition($field_value_schema)) {
+    // Use the unresolved definition, this preserves the originally specified
+    // config schema type, such as `type: text_format`. That is necessary to
+    // set #format on a TMGMT translatable when appropriate to trigger the
+    // loading of CKEditor 5 in a TMGMT job item form.
+    $prop_field_definition_raw = $this->getUnresolvedSchemaDefinition(\sprintf('field.value.%s', $field_type));
+    if ($prop_field_definition_raw === NULL) {
       return $concrete_schema;
     }
-
-    // Use the raw definition whenever possible, this maximally preserves the
-    // originally specified config schema type, such as `type: text_format`.
-    // That is necessary to set #format on a TMGMT translatable when appropriate
-    // to trigger the loading of CKEditor 5 in a TMGMT job item form.
-    $prop_field_definition_raw = $this->typedConfigManager->getDefinitions()[$field_value_schema];
 
     // The number of non-computed stored properties on the field item — not the
     // count of `field.value.*` mapping keys — determines the runtime shape of
@@ -273,7 +335,7 @@ final class ComponentInputsTranslatablesExtractor {
           if (self::isComponentInstanceInputs($schema)) {
             // Customized behavior, to allow translating optional component
             // props not populated in the default translation.
-            $config_data[$key] = '∅';
+            $config_data[$key] = self::EMPTY_SENTINEL;
           }
           else {
             // Same behavior as the parent implementation.
