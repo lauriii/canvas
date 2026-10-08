@@ -1458,6 +1458,29 @@ class CanvasAiPageBuilderHelper {
   }
 
   /**
+   * Validates a component slot target.
+   *
+   * @param string $target
+   *   The target in the form "parent_uuid/slot_name".
+   * @param array $components_by_uuid
+   *   The current page's components, keyed by UUID.
+   *
+   * @return string|null
+   *   An error message, or NULL when the target exists.
+   */
+  public function validateSlotTargetExists(string $target, array $components_by_uuid): ?string {
+    [$parent_uuid, $slot_name] = explode('/', $target, 2);
+    if (!isset($components_by_uuid[$parent_uuid])) {
+      return \sprintf('Invalid slot "%s". Component with UUID "%s" not found in layout', $target, $parent_uuid);
+    }
+    if (!\in_array($target, $components_by_uuid[$parent_uuid]['slots'], TRUE)) {
+      return \sprintf('Slot "%s" does not exist on component "%s".', $slot_name, $parent_uuid);
+    }
+
+    return NULL;
+  }
+
+  /**
    * Gets the region indices from the current layout.
    *
    * @param string $current_layout
@@ -1681,7 +1704,7 @@ class CanvasAiPageBuilderHelper {
    *
    * @return array
    *   An array keyed by component UUID, each value being
-   *   ['component_id' => string, 'props' => array].
+   *   ['component_id' => string, 'props' => array, 'slots' => list<string>].
    */
   public function getComponentsByUuid(array $current_layout): array {
     $components_by_uuid = [];
@@ -1710,6 +1733,7 @@ class CanvasAiPageBuilderHelper {
       $components_by_uuid[$component['uuid']] = [
         'component_id' => $component['name'] ?? '',
         'props' => \is_array($component['props'] ?? NULL) ? $component['props'] : [],
+        'slots' => \is_array($component['slots'] ?? NULL) ? \array_keys($component['slots']) : [],
       ];
       foreach ($component['slots'] ?? [] as $slot_payload) {
         if (\is_array($slot_payload) && \is_array($slot_payload['components'])) {
@@ -1717,6 +1741,77 @@ class CanvasAiPageBuilderHelper {
         }
       }
     }
+  }
+
+  /**
+   * Gets the libraries supported by Canvas.
+   *
+   * @return array
+   *   The array of supported libraries.
+   */
+  public function getSupportedLibraries(): array {
+    return [
+      [
+        "name" => "formatted_text",
+        "type" => "Built-in custom package",
+        "description" => "A built-in component to render text with trusted HTML using [`dangerouslySetInnerHTML`](https://react.dev/reference/react-dom/components/common#dangerously-setting-the-inner-html). The content is safe when processed through Drupal's filter system that is [correctly configured](https://www.drupal.org/docs/administering-a-drupal-site/security-in-drupal/configuring-text-formats-aka-input-formats-for-security).",
+        "code" => "```jsx\nimport { FormattedText } from 'drupal-canvas';\n\nexport default function Example() {\n  return (\n    <FormattedText>\n      <em>Hello, world!</em>\n    </FormattedText>\n  );\n}\n```",
+      ],
+      [
+        "name" => "cn",
+        "type" => "Built-in custom package",
+        "description" => "Utility for combining Tailwind CSS classes.",
+        "code" => "```jsx\nimport { cn } from 'drupal-canvas';\n\nexport default function Example() {\n  return <ControlDots className=\"top-4 left-4 stroke-white absolute\" />;\n}\n\nconst ControlDots = ({ className }) => (\n  <svg\n    xmlns=\"http://www.w3.org/2000/svg\"\n    viewBox=\"0 0 31 9\"\n    fill=\"none\"\n    strokeWidth=\"2\"\n    className={cn('w-12', className)}\n  >\n    <ellipse cx=\"4.13\" cy=\"4.97\" rx=\"3.13\" ry=\"2.97\" />\n    <ellipse cx=\"15.16\" cy=\"4.97\" rx=\"3.13\" ry=\"2.97\" />\n    <ellipse cx=\"26.19\" cy=\"4.97\" rx=\"3.13\" ry=\"2.97\" />\n  </svg>\n);\n```",
+      ],
+      [
+        "name" => "tailwind",
+        "type" => "Bundled npm package",
+        "description" => "Tailwind 4 is available to all components by default. The global CSS is added to all pages with the `@import \"tailwindcss\"` directive included. You can use the [`@theme` directive to customize theme variables](https://tailwindcss.com/docs/theme). For example, you can add a new color to your project by defining a theme variable like `--color-drupal-blue`: Now you can use utility classes like `bg-drupal-blue`, `text-drupal-blue`, or `fill-drupal-blue` in your component markup:",
+        "code" => "```css\n@theme {\n  --color-drupal-blue: #009cde;\n}\n``` \n```jsx\nexport default function Example() {\nreturn <div className=\"bg-drupal-blue\">Drupal Blue</div>;\n}\n```",
+      ],
+      [
+        "name" => "clsx",
+        "type" => "Bundled npm package",
+        "description" => "A tiny utility for constructing `className` strings conditionally. Also serves as a faster & smaller drop-in replacement for the `classnames` module.",
+        "code" => "```jsx\nimport { clsx } from 'clsx'\n\nexport default function Example() {\n  return (\n    <div className={clsx('foo', true && 'bar', 'baz');} />\n    // => 'foo bar baz'\n  );\n};\n```",
+      ],
+      [
+        "name" => "class_variance_authority",
+        "type" => "Bundled npm package",
+        "description" => "CVA helps you define components with multiple visual variants (like size, color, state) in a clean, type-safe way. Instead of manually concatenating CSS classes or writing complex conditional logic, you define variants upfront and let CVA handle the class composition.",
+        "code" => "```js\nimport { cva } from 'class-variance-authority';\n\nconst button = cva(\n  'font-semibold border rounded', // base classes\n  {\n    variants: {\n      intent: {\n        primary: 'bg-blue-500 text-white border-blue-500',\n        secondary: 'bg-gray-200 text-gray-900 border-gray-200',\n      },\n      size: {\n        small: 'text-sm py-1 px-2',\n        medium: 'text-base py-2 px-4',\n      },\n    },\n    defaultVariants: {\n      intent: 'primary',\n      size: 'medium',\n    },\n  },\n);\n\n// Usage\nbutton({ intent: 'secondary', size: 'small' });\n// Returns: \"font-semibold border rounded bg-gray-200 text-gray-900 border-gray-200 text-sm py-1 px-2\"\n```",
+      ],
+      [
+        "name" => "json_api_client",
+        "type" => "Bundled npm package",
+        "description" => "A JSON:API client for fetching Drupal content from code components. Use it with drupal-jsonapi-params to build query strings and swr to load and cache remote data.",
+        "code" => "```js\nimport { JsonApiClient } from '@drupal-api-client/json-api-client';\nimport { DrupalJsonApiParams } from 'drupal-jsonapi-params';\nimport useSWR from 'swr';\n```",
+      ],
+      [
+        "name" => "drupal_jsonapi_params",
+        "type" => "Bundled npm package",
+        "description" => "A helper package for generating JSON:API query strings, including includes, filters, fields, sorts, and pagination.",
+        "code" => "```js\nimport { DrupalJsonApiParams } from 'drupal-jsonapi-params';\n\nconst params = new DrupalJsonApiParams()\n  .addInclude(['field_media_image'])\n  .addFields('node--article', ['title', 'path', 'field_media_image']);\n```",
+      ],
+      [
+        "name" => "swr",
+        "type" => "Bundled npm package",
+        "description" => "A React data fetching hook for loading, caching, and revalidating content in code components.",
+        "code" => "```js\nimport useSWR from 'swr';\n\nconst { data, error, isLoading } = useSWR('/jsonapi/node/article', fetcher);\n```",
+      ],
+      [
+        "name" => "tailwind_merge",
+        "type" => "Bundled npm package",
+        "description" => "A utility function to efficiently merge Tailwind CSS classes in JS without style conflicts.",
+        "code" => "```js\nimport { twMerge } from 'tailwind-merge';\n\ntwMerge('px-2 py-1 bg-red hover:bg-dark-red', 'p-3 bg-[#B91C1C]');\n// → 'hover:bg-dark-red p-3 bg-[#B91C1C]'\n```",
+      ],
+      [
+        "name" => 'tailwindcss_typography',
+        "type" => "Bundled npm package",
+        "description" => "A Tailwind CSS plugin that provides a set of pre-configured typography classes for consistent and readable text styles.",
+        "code" => "```js\n<FormattedText className=\"prose md:prose-lg lg:prose-xl\">\n  {body}\n</FormattedText>\n```",
+      ],
+    ];
   }
 
 }

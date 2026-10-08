@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { skipToken } from '@reduxjs/toolkit/query';
 
 import { useAppSelector } from '@/app/hooks';

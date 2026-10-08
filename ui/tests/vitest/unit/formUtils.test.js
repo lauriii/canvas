@@ -647,9 +647,9 @@ describe('validateProp', () => {
 });
 
 describe('shouldSkipPropValidation', () => {
-  const buildTargetInForm = (name, otherInputNames = []) => {
+  const buildTargetInForm = (name, otherInputNames = [], tagName = 'input') => {
     const form = document.createElement('form');
-    const input = document.createElement('input');
+    const input = document.createElement(tagName);
     input.name = name;
     form.appendChild(input);
     otherInputNames.forEach((extraName) => {
@@ -836,5 +836,30 @@ describe('getCurrentValueFromProps', () => {
         element: { '#value': 'hello' },
       }),
     ).to.equal('hello');
+  });
+
+  it('should return the selected option value for a select with a selection', () => {
+    expect(
+      getCurrentValueFromProps({
+        options: [
+          { value: 'small', label: 'Small', selected: false },
+          { value: 'large', label: 'Large', selected: true },
+        ],
+      }),
+    ).to.equal('large');
+  });
+
+  it('should return "_none" for a select with options but no selection', () => {
+    // Regression test for #3591894: an optional select with nothing chosen
+    // must report '_none' (not undefined) so shouldSkipPropValidation can
+    // recognize the empty state and skip validation.
+    expect(
+      getCurrentValueFromProps({
+        options: [
+          { value: 'small', label: 'Small', selected: false },
+          { value: 'large', label: 'Large', selected: false },
+        ],
+      }),
+    ).to.equal('_none');
   });
 });

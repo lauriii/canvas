@@ -82,7 +82,7 @@
   "devDependencies": {
     "jsdom": "^26.1.0",
     "react-dom": "^18.3.1",
-    "tsdown": "^0.22.12",
+    "tsdown": "^0.23.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.8"
   },

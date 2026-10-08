@@ -52,8 +52,12 @@ export const dispatchFieldError = (
 };
 
 export const getCurrentValueFromProps = (props: Record<string, any>) => {
-  if (props.options && props.options.some((opt: any) => opt.selected)) {
-    return props.options.find((opt: any) => opt.selected).value;
+  const selectedOption = props.options?.find((opt: any) => opt.selected);
+  if (selectedOption) {
+    return selectedOption.value;
+  }
+  if (props.options) {
+    return '_none';
   }
   if (props.attributes?.type === 'checkbox') {
     // A checkbox's value attribute is its return value when checked (usually

@@ -14,12 +14,7 @@ import type { CanvasContext as CanvasContextData } from 'drupal-canvas/drupal-ut
  * accept it.
  */
 export type JsonValue =
-  | string
-  | number
-  | boolean
-  | null
-  | JsonValue[]
-  | { [key: string]: JsonValue };
+  string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
 /** Scalar attributes for one document meta tag. */
 export type PageHeadMeta = Record<string, string>;
@@ -150,9 +145,7 @@ export interface CanvasComponentTreeElement {
  * nested while retaining their render order.
  */
 export type CanvasComponentTreeSlot =
-  | string
-  | CanvasComponentTreeElement
-  | CanvasComponentTreeSlot[];
+  string | CanvasComponentTreeElement | CanvasComponentTreeSlot[];
 
 /**
  * Serializes JSON for an inline data script without creating HTML markup.

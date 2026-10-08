@@ -599,11 +599,11 @@ test.describe('Language Select', () => {
 
     // Unpublish the page from the page listing dropdown.
     await page.getByTestId('canvas-navigation-button').click();
-    const pageItem = page
+    await page
       .getByTestId('canvas-navigation-content')
       .getByRole('listitem')
-      .filter({ hasText: 'Canvas Translation Test Page' });
-    pageItem.hover();
+      .filter({ hasText: 'Canvas Translation Test Page' })
+      .hover();
 
     const optionsButton = page.getByLabel(
       'Page options for Canvas Translation Test Page',

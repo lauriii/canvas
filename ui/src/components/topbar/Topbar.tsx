@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router';
 import DropIcon from '@assets/icons/drop.svg?react';
 import { CardStackPlusIcon, PersonIcon } from '@radix-ui/react-icons';
 import * as Menubar from '@radix-ui/react-menubar';

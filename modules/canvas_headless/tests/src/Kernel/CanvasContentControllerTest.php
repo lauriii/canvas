@@ -444,6 +444,12 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     self::assertTrue($before < $page_content);
     self::assertTrue($page_content < $after);
     self::assertStringNotContainsString('canvas-preview-content-region', $content);
+    // The #main-content anchor placeholder is a coupled-rendering concern,
+    // resolved by a #post_render callback that only the display variant adds.
+    // Headless rendering shares renderComponentTree() but not that callback, so
+    // it must never emit the unresolved placeholder.
+    // @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant::resolveMainContentAnchor()
+    self::assertStringNotContainsString('canvas-main-content-anchor', $content);
     self::assertContains(
       'config:canvas.page_variant.headless',
       $response->getCacheableMetadata()->getCacheTags(),

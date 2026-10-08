@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router';
 import { Spinner } from '@radix-ui/themes';
 
 import { useGetConflictPageLayoutQuery } from '@/services/componentAndLayout';

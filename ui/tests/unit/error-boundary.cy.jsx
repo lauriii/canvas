@@ -1,10 +1,6 @@
 import { Suspense } from 'react';
-import {
-  Await,
-  createBrowserRouter,
-  json,
-  RouterProvider,
-} from 'react-router-dom';
+import { Await, createBrowserRouter } from 'react-router';
+import { RouterProvider } from 'react-router/dom';
 
 import ErrorBoundary, {
   RouteAsyncErrorBoundary,
@@ -170,7 +166,7 @@ describe('RouteErrorBoundary handles errors', () => {
             element: <></>,
             errorElement: <RouteErrorBoundary />,
             loader: () => {
-              throw json(
+              throw Response.json(
                 {},
                 { status: 418, statusText: 'Unable to brew coffee' },
               );

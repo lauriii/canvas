@@ -14,9 +14,7 @@ import styles from './List.module.css';
 export interface ListProps {
   items: ComponentsList | PatternsList | undefined;
   type:
-    | LayoutItemType.COMPONENT
-    | LayoutItemType.PATTERN
-    | LayoutItemType.DYNAMIC;
+    LayoutItemType.COMPONENT | LayoutItemType.PATTERN | LayoutItemType.DYNAMIC;
   renderItem: (item: any) => React.ReactNode;
   indent?: number;
 }

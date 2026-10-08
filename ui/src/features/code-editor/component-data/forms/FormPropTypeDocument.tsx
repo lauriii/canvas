@@ -55,8 +55,7 @@ export default function FormPropTypeDocument({
   limitedCount = 1,
 }: Pick<CodeComponentProp, 'id'> & {
   example:
-    | CodeComponentPropDocumentExample
-    | CodeComponentPropDocumentExample[];
+    CodeComponentPropDocumentExample | CodeComponentPropDocumentExample[];
   required: boolean;
   allowMultiple?: boolean;
   valueMode?: ValueMode;

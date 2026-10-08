@@ -104,8 +104,7 @@ export function createArrayDragEndHandler<T extends string | number>(
       const oldIndex = Number(active.id);
       const newIndex = Number(over.id);
       const newExample = arrayMove([...displayArray], oldIndex, newIndex) as
-        | string[]
-        | number[];
+        string[] | number[];
       dispatch(
         updateProp({
           id,
@@ -157,8 +156,7 @@ export function handleArrayRemove<T extends string | number>(
   additionalUpdates?: Partial<CodeComponentProp>,
 ) {
   const newExample = displayArray.filter((_, i) => i !== index) as
-    | string[]
-    | number[];
+    string[] | number[];
   dispatch(
     updateProp({
       id,

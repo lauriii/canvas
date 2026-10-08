@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import {
   ChevronDownIcon,
   ClockIcon,
@@ -37,12 +37,7 @@ import styles from './Navigation.module.css';
 
 const hasPermission = (
   permission:
-    | 'edit'
-    | 'duplicate'
-    | 'homepage'
-    | 'delete'
-    | 'unpublish'
-    | 'publish',
+    'edit' | 'duplicate' | 'homepage' | 'delete' | 'unpublish' | 'publish',
   item: ContentStub,
 ) => {
   const links = item.links || {};

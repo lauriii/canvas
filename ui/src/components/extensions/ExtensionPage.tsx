@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 import { ArrowLeftIcon } from '@radix-ui/react-icons';
 import { IconButton } from '@radix-ui/themes';
 

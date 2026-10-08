@@ -1,8 +1,5 @@
 export type ConnectionStatus =
-  | 'checking'
-  | 'ready'
-  | 'unreachable'
-  | 'setup-needed';
+  'checking' | 'ready' | 'unreachable' | 'setup-needed';
 
 export interface HeadlessFrontend {
   id: string;

@@ -1,5 +1,7 @@
+import { v4 as uuidv4 } from 'uuid';
 import { createApi } from '@reduxjs/toolkit/query/react';
 
+import { BRAND_KIT_ID } from '@/features/brandKit/constants';
 import { setUpdatePreview } from '@/features/layout/layoutModelSlice';
 import { baseQueryWithAutoSaves } from '@/services/baseQuery';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
@@ -13,6 +15,27 @@ export interface UploadedArtifact {
   uri: string;
   url: string;
 }
+
+/**
+ * Patches the Brand kit cache entry the colors UI reads from.
+ *
+ * @param mutate - Mutates the draft color list in place.
+ */
+const patchColors = (mutate: (colors: BrandKitColor[]) => void) =>
+  brandKitApi.util.updateQueryData('getBrandKit', BRAND_KIT_ID, (draft) => {
+    // The list is omitted entirely while the Brand kit has no colors.
+    draft.colors ??= [];
+    mutate(draft.colors);
+  });
+
+/**
+ * Tracks the latest pending write per color id.
+ *
+ * If an older write fails after a newer optimistic write has already run, it
+ * must not undo the newer result. Each write stores a token here and only
+ * rolls back its patch if it is still the latest token for that color.
+ */
+const latestColorWrites = new Map<string, symbol>();
 
 /**
  * A single component instance using a specific color.
@@ -140,9 +163,32 @@ export const brandKitApi = createApi({
         method: 'POST',
         body,
       }),
+      async onQueryStarted(color, { dispatch, queryFulfilled }) {
+        // Insert a temporary row with a fake client id, then replace it with
+        // the server row so the UI never keeps a fake id.
+        const pendingId = `pending-${uuidv4()}`;
+        const patchResult = dispatch(
+          patchColors((colors) => {
+            colors.push({ ...color, id: pendingId });
+          }),
+        );
+        try {
+          const { data: created } = await queryFulfilled;
+          dispatch(
+            patchColors((colors) => {
+              const index = colors.findIndex((c) => c.id === pendingId);
+              if (index !== -1) {
+                colors[index] = created;
+              }
+            }),
+          );
+        } catch {
+          patchResult.undo();
+        }
+      },
       invalidatesTags: [
         { type: 'BrandKits', id: 'LIST' },
-        { type: 'BrandKits', id: 'global' },
+        { type: 'BrandKits', id: BRAND_KIT_ID },
       ],
     }),
     updateColor: builder.mutation<
@@ -154,17 +200,35 @@ export const brandKitApi = createApi({
         method: 'PATCH',
         body: changes,
       }),
-      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+      async onQueryStarted({ id, changes }, { dispatch, queryFulfilled }) {
+        const token = Symbol(); // uniquely identifies this write
+        latestColorWrites.set(id, token); // record as newest for this color
+        const patchResult = dispatch(
+          patchColors((colors) => {
+            const color = colors.find((candidate) => candidate.id === id);
+            if (color) {
+              Object.assign(color, changes); // apply optimistically
+            }
+          }),
+        );
         try {
           await queryFulfilled;
-          dispatch(setUpdatePreview(true));
-        } catch (err) {
-          console.error(err);
+          dispatch(setUpdatePreview(true)); // trigger server preview refresh
+        } catch {
+          // Skip undo if a newer write for this color has since been applied —
+          // rolling back here would revert a change the user made after this one.
+          if (latestColorWrites.get(id) === token) {
+            patchResult.undo();
+          }
+        } finally {
+          if (latestColorWrites.get(id) === token) {
+            latestColorWrites.delete(id); // clean up once settled
+          }
         }
       },
       invalidatesTags: [
         { type: 'BrandKits', id: 'LIST' },
-        { type: 'BrandKits', id: 'global' },
+        { type: 'BrandKits', id: BRAND_KIT_ID },
       ],
     }),
     deleteColor: builder.mutation<void, string>({
@@ -174,7 +238,7 @@ export const brandKitApi = createApi({
       }),
       invalidatesTags: [
         { type: 'BrandKits', id: 'LIST' },
-        { type: 'BrandKits', id: 'global' },
+        { type: 'BrandKits', id: BRAND_KIT_ID },
       ],
     }),
     getColorUsageDetails: builder.query<ColorUsageDetailsResponse, string>({

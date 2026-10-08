@@ -274,7 +274,8 @@ export interface BrandKit {
   id: string;
   label: string;
   fonts: BrandKitFont[] | null;
-  colors: BrandKitColor[] | null;
+  /** Absent while the Brand kit has no colors, rather than an empty list. */
+  colors?: BrandKitColor[] | null;
 }
 
 export type BrandKitFontVariantType = 'static' | 'variable';

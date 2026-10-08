@@ -6,10 +6,7 @@ const ENV_EXAMPLE_FILENAME = '.env.example';
 const ENV_VARIABLE = 'CANVAS_SITE_URL';
 
 type WriteSiteUrlEnvResult =
-  | 'created'
-  | 'copied-example'
-  | 'configured-existing'
-  | 'existing-site-url';
+  'created' | 'copied-example' | 'configured-existing' | 'existing-site-url';
 
 type EnvLines = {
   lines: string[];

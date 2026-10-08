@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import clsx from 'clsx';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import {
   ExclamationTriangleIcon,

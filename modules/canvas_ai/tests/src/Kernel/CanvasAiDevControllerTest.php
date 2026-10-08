@@ -21,6 +21,7 @@ use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\canvas_ai\Kernel\Traits\CanvasAiDevHopTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -159,15 +160,17 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
   /**
    * A not-solvable response gives the expected error and forgets the turn.
    *
-   * Any not-solvable response outside max-loop exhaustion triggers this error.
-   * The conversation state goes with the turn: what the agent did before
-   * giving up is not a history the next turn should resume from.
+   * Outside max-loop exhaustion, the error is the one the provider reported,
+   * or a generic message when there is none. The conversation state goes with
+   * the turn: what the agent did before giving up is not a history the next
+   * turn should resume from.
    *
    * @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::getNotSolvableMessage()
    * @see \Drupal\Tests\canvas_ai\Kernel\Agents\DrupalCanvasPageAgentEndToEndTest::testMaxLoopsOutcomeIsReported()
    * @see \Drupal\Tests\canvas_ai\Kernel\Agents\CanvasComponentAgentEndToEndTest::testMaxLoopsWithoutAConfiguredMessageUsesTheDefault()
    */
-  public function testNotSolvableResponseGivesExpectedError(): void {
+  #[DataProvider('providerNotSolvableResponse')]
+  public function testNotSolvableResponseGivesExpectedError(?string $last_error, string $expected_message): void {
     $this->container->get(ModuleInstallerInterface::class)->install(['canvas_dev_ai']);
     $this->refreshContainer();
     $this->setUpAiDevHops();
@@ -180,6 +183,7 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
     $agent->method('determineSolvability')->willReturn(AiAgentInterface::JOB_NOT_SOLVABLE);
     $agent->method('isFinished')->willReturn(TRUE);
     $agent->method('toArray')->willReturn(['looped' => 1]);
+    $agent->method('getLastError')->willReturn($last_error);
     $agent->method('getAiAgentEntity')->willReturnCallback(
       fn () => AiAgent::load('drupal_canvas_page_agent'),
     );
@@ -193,9 +197,25 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
     ]);
 
     self::assertFalse($response['status']);
-    self::assertSame('The request could not be completed. Please try again.', $response['message']);
+    self::assertSame($expected_message, $response['message']);
     self::assertFalse($response['should_continue']);
     self::assertNull($temp_store->getStoredConversationState('test-conversation'));
+  }
+
+  /**
+   * Data provider for testNotSolvableResponseGivesExpectedError().
+   */
+  public static function providerNotSolvableResponse(): array {
+    return [
+      'provider error is shown' => [
+        'The model is overloaded. Please try again later.',
+        'The model is overloaded. Please try again later.',
+      ],
+      'no provider error falls back to the generic message' => [
+        NULL,
+        'The request could not be completed. Please try again.',
+      ],
+    ];
   }
 
   /**

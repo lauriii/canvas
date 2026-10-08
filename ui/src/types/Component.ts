@@ -83,9 +83,7 @@ export interface PropSourceComponent extends BaseComponent {
 }
 // Union type for any component
 export type CanvasComponent =
-  | DynamicComponent
-  | JSComponent
-  | PropSourceComponent;
+  DynamicComponent | JSComponent | PropSourceComponent;
 
 // ComponentsList representing the API response
 export interface ComponentsList {

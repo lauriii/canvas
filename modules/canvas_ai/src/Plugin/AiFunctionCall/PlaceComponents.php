@@ -11,6 +11,7 @@ use Drupal\canvas_ai\AiResponseValidator;
 use Drupal\canvas_ai\CanvasAiPageBuilderHelper;
 use Drupal\canvas_ai\CanvasAiPermissions;
 use Drupal\canvas_ai\CanvasAiTempStore;
+use Drupal\Component\Serialization\Json;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Plugin\Context\ContextDefinition;
 use Drupal\Core\Session\AccountProxyInterface;
@@ -125,25 +126,54 @@ final class PlaceComponents extends FunctionCallBase implements ExecutableFuncti
       $operations = [];
       $all_errors = [];
       $current_layout = $this->tempStore->getData(CanvasAiTempStore::CURRENT_LAYOUT_KEY) ?? '';
+      $layout_data = Json::decode($current_layout);
+      $components_by_uuid = $this->pageBuilderHelper->getComponentsByUuid(
+        \is_array($layout_data) ? $layout_data : [],
+      );
       foreach ($this->getContextValue('operations') as $index => $operation) {
-        try {
-          $operation['components'] = Yaml::parse($operation['components'] ?? '');
+        $errors = $this->validatePlacementParams($operation, $current_layout, $components_by_uuid);
+        $components_yaml = $operation['components'] ?? '';
+        // The schema types components as a string, but ComplexToolItems does
+        // not check a record's fields, so a model that sends the list as JSON
+        // gets there too; Yaml::parse() would throw a TypeError on it.
+        if (!\is_string($components_yaml)) {
+          $errors[] = 'The components value must be a string containing a YAML list.';
         }
-        catch (ParseException $e) {
-          // A raw parse error gives the model nothing to act on, so it retries
-          // the same payload; tell it how to fix the YAML instead.
-          $all_errors['Operation ' . $index][] = \sprintf("The components value is not valid YAML: %s Rewrite it with every string value quoted — unquoted dash-separated values such as 2233-33-33 are read as invalid dates, and HTML or multi-line text must be quoted too.", $e->getMessage());
+        else {
+          try {
+            $operation['components'] = Yaml::parse($components_yaml);
+            // A block that did not parse is reported below; its shape is only
+            // checked once it has, and the components in it only once it is a
+            // list of mappings.
+            $component_errors = self::validateComponents($operation['components']);
+            if ($component_errors === []) {
+              try {
+                $this->responseValidator->validateComponentStructure($operation['components']);
+              }
+              catch (\Exception $e) {
+                $component_errors[] = $e->getMessage();
+              }
+            }
+            $errors = \array_merge($errors, $component_errors);
+          }
+          catch (ParseException $e) {
+            // A raw parse error gives the model nothing to act on, so it
+            // retries the same payload; tell it how to fix the YAML instead.
+            $errors[] = \sprintf("The components value is not valid YAML: %s Rewrite it with every string value quoted — unquoted dash-separated values such as 2233-33-33 are read as invalid dates, and HTML or multi-line text must be quoted too.", $e->getMessage());
+          }
+        }
+        if ($errors !== []) {
+          $all_errors['Operation ' . $index] = $errors;
           continue;
-        }
-        $all_errors = array_merge($all_errors, $this->validatePlacementParams($operation, $index, $current_layout));
-        if (\is_array($operation['components'])) {
-          $this->responseValidator->validateComponentStructure($operation['components']);
         }
         $operations[] = $operation;
       }
 
-      if (!empty($all_errors)) {
-        throw new \Exception(Yaml::dump($all_errors));
+      if ($all_errors !== []) {
+        $message = $this->responseValidator->formatErrors($all_errors);
+        $this->loggerFactory->get('canvas_ai')->warning($message);
+        $this->setOutput($message);
+        return;
       }
 
       // Once validated, convert the operations to the structure (with
@@ -171,68 +201,97 @@ final class PlaceComponents extends FunctionCallBase implements ExecutableFuncti
   }
 
   /**
-   * Validates the placement parameters of a single operation.
+   * Validates the target, placement and reference of a single operation.
    *
    * @param array $operation
-   *   The operation to validate, with its components block already parsed.
-   * @param int $index
-   *   The index of the operation, used for error messages.
+   *   The operation to validate.
    * @param string $current_layout
    *   The current layout JSON string, used to resolve the target region.
+   * @param array $components_by_uuid
+   *   The current page's components, keyed by UUID.
    *
-   * @return array
-   *   An array of validation errors, keyed by operation, or empty if valid.
+   * @return list<string>
+   *   The validation errors found, or an empty list if the operation is valid.
    */
-  private function validatePlacementParams(array $operation, int $index, string $current_layout): array {
+  private function validatePlacementParams(array $operation, string $current_layout, array $components_by_uuid): array {
     $errors = [];
-    $error_key = 'Operation ' . $index;
 
-    if (!isset($operation['target']) || !\is_string($operation['target']) || $operation['target'] === '') {
-      $errors[$error_key][] = 'The target key is missing in the operation.';
-      return $errors;
+    $target = $operation['target'] ?? NULL;
+    $has_target = \is_string($target) && $target !== '';
+    if (!$has_target) {
+      $errors[] = 'The target key is missing in the operation.';
     }
 
-    if (!isset($operation['placement']) || !\in_array($operation['placement'], ['above', 'below', 'inside'], TRUE)) {
-      $errors[$error_key][] = 'The placement key is missing or invalid in the operation.';
-      return $errors;
+    $placement = $operation['placement'] ?? NULL;
+    if (!\in_array($placement, ['above', 'below', 'inside'], TRUE)) {
+      $errors[] = 'The placement key is missing or invalid in the operation.';
     }
 
     // A target naming a region must match a region present in the layout. A
     // target containing a slash names a `parent_uuid/slot_name` pair instead,
-    // whose parent is resolved during nodePath calculation.
-    if (strpos($operation['target'], '/') === FALSE) {
-      $region_error = $this->pageBuilderHelper->validateRegionExists($operation['target'], $current_layout);
-      if ($region_error !== NULL) {
-        $errors[$error_key][] = $region_error;
-        return $errors;
+    // which must name a component on the page and one of its slots.
+    if ($has_target) {
+      if (strpos($target, '/') === FALSE) {
+        $target_error = $this->pageBuilderHelper->validateRegionExists($target, $current_layout);
+      }
+      else {
+        $target_error = $this->pageBuilderHelper->validateSlotTargetExists($target, $components_by_uuid);
+      }
+      if ($target_error !== NULL) {
+        $errors[] = $target_error;
       }
     }
 
-    $placement = $operation['placement'];
     // If placement is 'above' or 'below', reference_uuid must be provided.
-    if (\in_array($placement, ['above', 'below'], TRUE) && empty($operation['reference_uuid'])) {
-      $errors[$error_key][] = 'The reference_uuid must be provided for above/below placement.';
+    if (\in_array($placement, ['above', 'below'], TRUE)) {
+      $reference_uuid = $operation['reference_uuid'] ?? NULL;
+      if (empty($reference_uuid)) {
+        $errors[] = 'The reference_uuid must be provided for above/below placement.';
+      }
+      elseif (!\is_string($reference_uuid) || !isset($components_by_uuid[$reference_uuid])) {
+        $errors[] = \sprintf('Component with UUID "%s" not found in layout', $reference_uuid);
+      }
     }
 
     // If placement is 'inside', reference_uuid is not needed and the target
     // must not already contain child components.
     if ($placement === 'inside') {
       if (!empty($operation['reference_uuid'])) {
-        $errors[$error_key][] = 'The reference_uuid is not required for inside placement.';
+        $errors[] = 'The reference_uuid is not required for inside placement.';
       }
-      if ($this->pageBuilderHelper->hasChildComponents($operation['target'])) {
-        $errors[$error_key][] = 'The target ' . $operation['target'] . ' has "inside" placement specified, but it contains child components. Select any child component in the target and use "above" or "below" placement instead.';
+      if ($has_target && $this->pageBuilderHelper->hasChildComponents($target)) {
+        $errors[] = 'The target ' . $target . ' has "inside" placement specified, but it contains child components. Select any child component in the target and use "above" or "below" placement instead.';
       }
     }
 
-    // Operation must contain components, as a parseable YAML list.
-    if (!\is_array($operation['components'])) {
-      $errors[$error_key][] = 'The components value must be a YAML list.';
-    }
-    elseif ($operation['components'] === []) {
-      $errors[$error_key][] = 'The operation must contain components.';
-    }
+    return $errors;
+  }
 
+  /**
+   * Validates the parsed components block of a single operation.
+   *
+   * @param mixed $components
+   *   The operation's parsed components value.
+   *
+   * @return list<string>
+   *   The validation errors found, or an empty list if the block is a
+   *   non-empty list of mappings.
+   */
+  private static function validateComponents(mixed $components): array {
+    if (!\is_array($components)) {
+      return ['The components value must be a YAML list.'];
+    }
+    if ($components === []) {
+      return ['The operation must contain components.'];
+    }
+    // A bare component ID parses as a string; the structure validation
+    // iterates each entry, so it must be a mapping.
+    $errors = [];
+    foreach ($components as $position => $component) {
+      if (!\is_array($component)) {
+        $errors[] = \sprintf('Entry %d of the components list must be a mapping keyed by the component ID, with its props and slots under it.', $position);
+      }
+    }
     return $errors;
   }
 

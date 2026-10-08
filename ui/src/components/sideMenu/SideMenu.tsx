@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import clsx from 'clsx';
-import { useParams } from 'react-router';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import BrandKitIcon from '@assets/icons/brand-kit.svg?react';
 import ExtensionIcon from '@assets/icons/extension-sm.svg?react';
 import HeadlessIcon from '@assets/icons/headless.svg?react';
@@ -178,26 +177,24 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       enabled: true,
       hidden: !hasExtensions,
     },
-    ...pageExtensions.map(
-      (ext): SideMenuLink => ({
-        type: 'link',
-        id: `page-ext-${ext.id}`,
-        href: `/app/${ext.id}`,
-        icon: ext.icon ? (
-          <span
-            className={styles.maskIcon}
-            style={{
-              maskImage: `url(${ext.icon})`,
-              WebkitMaskImage: `url(${ext.icon})`,
-            }}
-          />
-        ) : (
-          <ExtensionIcon />
-        ),
-        label: ext.name,
-        hidden: false,
-      }),
-    ),
+    ...pageExtensions.map((ext): SideMenuLink => ({
+      type: 'link',
+      id: `page-ext-${ext.id}`,
+      href: `/app/${ext.id}`,
+      icon: ext.icon ? (
+        <span
+          className={styles.maskIcon}
+          style={{
+            maskImage: `url(${ext.icon})`,
+            WebkitMaskImage: `url(${ext.icon})`,
+          }}
+        />
+      ) : (
+        <ExtensionIcon />
+      ),
+      label: ext.name,
+      hidden: false,
+    })),
     {
       type: 'button',
       id: 'brandKit',

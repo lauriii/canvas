@@ -306,9 +306,7 @@ export default function Props() {
                   example={prop.example as string[] | number[]}
                   itemType={
                     (prop.type === 'array' ? prop.items?.type : prop.type) as
-                      | 'string'
-                      | 'integer'
-                      | 'number'
+                      'string' | 'integer' | 'number'
                   }
                   isDisabled={disabledPropIds.has(prop.id)}
                   required={required.includes(propName)}
@@ -402,9 +400,7 @@ export default function Props() {
                 <FormPropTypeEnum
                   type={
                     (prop.type === 'array' ? prop.items?.type : prop.type) as
-                      | 'string'
-                      | 'number'
-                      | 'integer'
+                      'string' | 'number' | 'integer'
                   }
                   id={prop.id}
                   required={required.includes(propName)}
@@ -548,11 +544,7 @@ export default function Props() {
                     // Restore the original type from items before clearing.
                     if (prop.items?.type) {
                       updates.type = prop.items.type as
-                        | 'string'
-                        | 'integer'
-                        | 'number'
-                        | 'boolean'
-                        | 'object';
+                        'string' | 'integer' | 'number' | 'boolean' | 'object';
                     }
                     updates.items = undefined;
                     // If prop is required, try to preserve the first value

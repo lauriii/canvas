@@ -28,7 +28,7 @@ class CanvasPackagesDocsFileHashTest extends CanvasKernelTestBase {
     $this->assertSame(
       $expected_hash,
       $actual_hash,
-      'Library definitions are out of sync. The changes made to the packages.mdx file must be registered in CanvasBuilder::getSupportedLibraries().'
+      'Library definitions are out of sync. The changes made to the packages.mdx file must be registered in CanvasAiPageBuilderHelper::getSupportedLibraries().'
     );
   }
 

@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  startTransition,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useParams } from 'react-router';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -36,6 +43,7 @@ interface PreviewFrameDescriptor {
 interface PreviewFrameState {
   active: PreviewFrameDescriptor | null;
   pending: PreviewFrameDescriptor | null;
+  pendingReady: boolean;
 }
 
 interface HeadlessPreviewFrameProps extends PreviewFrameDescriptor {
@@ -210,7 +218,10 @@ const HeadlessPreviewFrame: React.FC<HeadlessPreviewFrameProps> = ({
  *
  * Page changes are double-buffered: the current iframe remains visible while
  * the next page activates and reports its height, then the new iframe replaces
- * it in one render. This avoids exposing navigation and height-probe states.
+ * it in one render. Readiness is recorded in a transition, and a pending frame
+ * is promoted only if it still matches the committed route. This avoids
+ * exposing navigation and height-probe states or replacing the current frame
+ * with a canceled preview.
  */
 const HeadlessPreview: React.FC<HeadlessPreviewProps> = ({
   settings,
@@ -234,11 +245,10 @@ const HeadlessPreview: React.FC<HeadlessPreviewProps> = ({
       autoSavesHash: autoSavesHashRef.current,
     };
   }, [contentEntityId, entityType, viewMode]);
-  const currentFrameKeyRef = useRef(currentFrame?.frameKey);
-  currentFrameKeyRef.current = currentFrame?.frameKey;
   const [frames, setFrames] = useState<PreviewFrameState>(() => ({
     active: currentFrame,
     pending: null,
+    pendingReady: false,
   }));
 
   useEffect(() => {
@@ -247,30 +257,31 @@ const HeadlessPreview: React.FC<HeadlessPreviewProps> = ({
     }
     setFrames((current) => {
       if (!current.active) {
-        return { active: currentFrame, pending: null };
+        return { active: currentFrame, pending: null, pendingReady: false };
       }
       if (current.active.frameKey === currentFrame.frameKey) {
-        return current.pending ? { ...current, pending: null } : current;
+        return current.pending
+          ? { ...current, pending: null, pendingReady: false }
+          : current;
       }
       if (current.pending?.frameKey === currentFrame.frameKey) {
-        return current;
+        return current.pendingReady
+          ? { active: current.pending, pending: null, pendingReady: false }
+          : current;
       }
-      return { ...current, pending: currentFrame };
+      return { ...current, pending: currentFrame, pendingReady: false };
     });
-  }, [currentFrame]);
+  }, [currentFrame, frames.pendingReady]);
 
-  const activateFrame = useCallback((frameKey: string) => {
-    setFrames((current) => {
-      // A pending frame can report readiness in the same render cycle as a
-      // newer navigation. Never promote it after its route stopped being
-      // current, or the already-ready target can be demoted indefinitely.
-      if (
-        frameKey !== currentFrameKeyRef.current ||
-        current.pending?.frameKey !== frameKey
-      ) {
-        return current;
-      }
-      return { active: current.pending, pending: null };
+  const markFrameReady = useCallback((frameKey: string) => {
+    // Let route transitions settle before deciding whether to display this frame.
+    startTransition(() => {
+      setFrames((current) => {
+        if (current.pending?.frameKey !== frameKey || current.pendingReady) {
+          return current;
+        }
+        return { ...current, pendingReady: true };
+      });
     });
   }, []);
 
@@ -299,7 +310,7 @@ const HeadlessPreview: React.FC<HeadlessPreviewProps> = ({
             viewportWidth={viewportWidth}
             viewportMinHeight={viewportMinHeight}
             active={isActive}
-            onReady={activateFrame}
+            onReady={markFrameReady}
           />
         );
       })}

@@ -1,5 +1,5 @@
 import { Provider } from 'react-redux';
-import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, render, screen, waitFor } from '@testing-library/react';
 
@@ -205,25 +205,50 @@ describe('HeadlessPreview', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('does not activate a page that became ready after navigating back', () => {
-    renderPreview(500);
-    act(() => latestOnHeight?.(1200));
-    const firstPageIframe = screen.getByTestId('canvas-headless-iframe');
+  it.each(['before', 'after'])(
+    'does not activate a canceled page that reports readiness %s navigating back',
+    (readinessOrder) => {
+      renderPreview(500);
+      act(() => latestOnHeight?.(1200));
+      const firstPageIframe = screen.getByTestId('canvas-headless-iframe');
 
-    act(() => navigateTo?.('/node/2'));
-    const secondPageOnHeight = latestOnHeight;
-    expect(secondPageOnHeight).toBeDefined();
+      act(() => navigateTo?.('/node/2'));
+      const secondPageOnHeight = latestOnHeight;
+      expect(secondPageOnHeight).toBeDefined();
 
-    act(() => {
-      navigateTo?.('/node/1');
-      secondPageOnHeight?.(700);
-    });
+      act(() => {
+        if (readinessOrder === 'before') {
+          secondPageOnHeight?.(700);
+        }
+        navigateTo?.('/node/1');
+        if (readinessOrder === 'after') {
+          secondPageOnHeight?.(700);
+        }
+      });
 
-    expect(screen.getByTestId('canvas-headless-iframe')).toBe(firstPageIframe);
-    expect(
-      screen.queryByTestId('canvas-headless-pending-iframe'),
-    ).not.toBeInTheDocument();
-  });
+      expect(screen.getByTestId('canvas-headless-iframe')).toBe(
+        firstPageIframe,
+      );
+      expect(
+        screen.queryByTestId('canvas-headless-pending-iframe'),
+      ).not.toBeInTheDocument();
+
+      // Reopening the canceled page must wait for its new iframe to report readiness.
+      act(() => navigateTo?.('/node/2'));
+      const nextPageIframe = screen.getByTestId(
+        'canvas-headless-pending-iframe',
+      );
+      expect(screen.getByTestId('canvas-headless-iframe')).toBe(
+        firstPageIframe,
+      );
+
+      act(() => latestOnHeight?.(800));
+      expect(screen.getByTestId('canvas-headless-iframe')).toBe(nextPageIframe);
+      expect(
+        screen.queryByTestId('canvas-headless-pending-iframe'),
+      ).not.toBeInTheDocument();
+    },
+  );
 
   it('shows progress while waiting for the next page to become ready', () => {
     vi.useFakeTimers();

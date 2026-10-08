@@ -1,8 +1,7 @@
 import type { PreviewManifestComponent } from './preview-contract';
 
 export type ResolveWorkbenchPreviewNavigationResult =
-  | { kind: 'navigate'; path: string }
-  | { kind: 'open'; href: string };
+  { kind: 'navigate'; path: string } | { kind: 'open'; href: string };
 
 export interface ResolveWorkbenchPreviewNavigationContext {
   workbenchOrigin: string;

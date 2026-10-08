@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import BellIcon from '@assets/icons/bell.svg?react';
 import { Popover } from '@radix-ui/themes';
 

@@ -8,6 +8,7 @@ use Drupal\canvas\Config\Schema\ComponentInputsMapping;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Render\Element;
 use Drupal\tmgmt_content\DefaultFieldProcessor;
@@ -137,10 +138,80 @@ final class ComponentTreeFieldProcessor extends DefaultFieldProcessor implements
           // $inputs filtered to schema keys only.
           \array_intersect_key($inputs, \array_flip($config_schema_order)),
         );
+        // Values resolved to NULL (a discarded ∅ sentinel "translation") are
+        // refilled from the default translation, because the entity cannot be
+        // saved with a required prop absent: FieldItemList::preSave()
+        // enforces required props. This must recurse: a composite input (e.g.
+        // a sequence of mappings) can carry a discarded leaf next to a really
+        // translated sibling, leaving a NULL at arbitrary depth. Values that
+        // stay NULL (absent in the default translation too) are dropped.
+        $default_inputs = self::defaultTranslationInputs($field, $delta);
+        foreach ($inputs_in_schema_order as $key => $value) {
+          $inputs_in_schema_order[$key] = self::refillDiscardedFromDefault($value, $default_inputs[$key] ?? NULL);
+        }
         // Write only non-NULL (preserve FALSE, 0, '', []).
         $item->setInput(\array_filter($inputs_in_schema_order, static fn($v) => $v !== NULL));
       }
     }
+  }
+
+  /**
+   * Replaces discarded (NULL) values with the default translation's values.
+   *
+   * @param mixed $value
+   *   An input value that may be, or contain at any depth, a NULL left behind
+   *   by a discarded ∅ sentinel "translation".
+   * @param mixed $default
+   *   The default translation's value at the same position, or NULL if it has
+   *   none.
+   *
+   * @return mixed
+   *   The value with every NULL replaced by the default translation's value
+   *   at the same position; nested values that stay NULL are removed. Returns
+   *   NULL only if the value itself is NULL and there is no default.
+   */
+  private static function refillDiscardedFromDefault(mixed $value, mixed $default): mixed {
+    if ($value === NULL) {
+      return $default;
+    }
+    if (!\is_array($value)) {
+      return $value;
+    }
+    foreach ($value as $key => $child) {
+      $refilled = self::refillDiscardedFromDefault($child, \is_array($default) ? ($default[$key] ?? NULL) : NULL);
+      if ($refilled === NULL) {
+        unset($value[$key]);
+      }
+      else {
+        $value[$key] = $refilled;
+      }
+    }
+    return $value;
+  }
+
+  /**
+   * Gets the default translation's inputs for the item at a given delta.
+   *
+   * @param \Drupal\Core\Field\FieldItemListInterface $field
+   *   The (translated) component tree field being written to.
+   * @param int $delta
+   *   The item delta.
+   *
+   * @return array
+   *   The default translation's inputs for that delta; empty if none.
+   */
+  private static function defaultTranslationInputs(FieldItemListInterface $field, int $delta): array {
+    $entity = $field->getEntity();
+    if (!$entity instanceof ContentEntityInterface) {
+      return [];
+    }
+    $default_field = $entity->getUntranslated()->get($field->getName());
+    if (!$default_field->offsetExists($delta)) {
+      return [];
+    }
+    $default_item = $default_field->offsetGet($delta);
+    \assert($default_item instanceof ComponentTreeItem);
+    return $default_item->getInputs() ?? [];
   }
 
   /**
@@ -154,9 +225,12 @@ final class ComponentTreeFieldProcessor extends DefaultFieldProcessor implements
    * raw $inputs array at the exact nested position they were extracted from.
    *
    * Recursively walks the TMGMT data tree: at translatable leaves (#translate
-   * TRUE), returns the #translation['#text'] value; at intermediate nodes,
-   * merges translated children back into the existing input array, preserving
-   * non-translated sibling keys.
+   * TRUE), returns NULL if the "translation" is the ∅ sentinel (not a real
+   * translation — it is discarded and the key is refilled from the default
+   * translation), the translated string otherwise — including the empty
+   * string, which is a valid, explicitly empty translation; at intermediate
+   * nodes, merges translated children back into the existing input array,
+   * preserving non-translated sibling keys.
    *
    * @param array $tmgmt_data
    *   TMGMT data node, e.g. ['#text' => ..., '#translation' => [...], ...].
@@ -167,17 +241,49 @@ final class ComponentTreeFieldProcessor extends DefaultFieldProcessor implements
    *
    * @return mixed
    *   The updated value with translations written in at the correct depth.
+   *
+   * @see \Drupal\canvas\Hook\TmgmtHooks::maskEmptyComponentTreeTranslations()
+   * @see \Drupal\canvas\Hook\TmgmtHooks::tmgmtDataItemTextOutputAlter()
    */
   private static function writeNestedTranslationsToInputs(array $tmgmt_data, mixed $existing, bool &$found): mixed {
     if (\array_key_exists('#translate', $tmgmt_data) && $tmgmt_data['#translate'] === TRUE) {
       \assert(\array_key_exists('#translation', $tmgmt_data));
       \assert(\array_key_exists('#text', $tmgmt_data['#translation']));
       $found = TRUE;
-      return $tmgmt_data['#translation']['#text'];
+      $text = $tmgmt_data['#translation']['#text'];
+      // The sentinel is not a translation (a translator plugin echoed the
+      // empty-source placeholder back): returning NULL discards it, and
+      // setTranslations() refills the key from the default translation. An
+      // empty string is a valid, explicitly empty translation, stored as-is.
+      // Two consequences of this exact match: a translation that merely
+      // CONTAINS the sentinel (e.g. a machine translator returning "fr: ∅")
+      // is stored verbatim, and a translator can never store a literal ∅ as
+      // an intentional translation.
+      if ($text === ComponentInputsTranslatablesExtractor::EMPTY_SENTINEL) {
+        return NULL;
+      }
+      return $text;
     }
     $result = \is_array($existing) ? $existing : [];
+    $any_translated = FALSE;
+    $all_translated_null = TRUE;
     foreach (Element::children($tmgmt_data) as $key) {
-      $result[$key] = self::writeNestedTranslationsToInputs($tmgmt_data[$key], $result[$key] ?? NULL, $found);
+      $child_found = FALSE;
+      $result[$key] = self::writeNestedTranslationsToInputs($tmgmt_data[$key], $result[$key] ?? NULL, $child_found);
+      if ($child_found) {
+        $found = TRUE;
+        $any_translated = TRUE;
+        if ($result[$key] !== NULL) {
+          $all_translated_null = FALSE;
+        }
+      }
+    }
+    // If every translatable leaf in this subtree resolved to NULL (the ∅
+    // sentinel), return NULL for the whole composite input so it is refilled
+    // from the default translation as one consistent value. This handles
+    // compound inputs such as text_format (value + format).
+    if ($any_translated && $all_translated_null) {
+      return NULL;
     }
     return $result;
   }

@@ -165,8 +165,7 @@ describe('draft server rendering with SWR fallback and hydration', () => {
         preview: true,
       });
       pending = client?.getResource('node--article', 'a') as
-        | Promise<Article>
-        | undefined;
+        Promise<Article> | undefined;
       return null;
     }
     renderOnServer(

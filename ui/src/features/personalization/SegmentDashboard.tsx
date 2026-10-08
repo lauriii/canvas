@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import snakeCase from 'lodash/snakeCase';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { PlusIcon } from '@radix-ui/react-icons';
 import { Button, Flex } from '@radix-ui/themes';
 

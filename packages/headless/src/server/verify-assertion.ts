@@ -3,8 +3,7 @@ import { exchangeAssertion } from './token-exchange';
 import type { DraftConfig } from './config';
 
 export type AssertionVerification =
-  | { ok: true }
-  | { ok: false; status: 401 | 403 | 502; message: string };
+  { ok: true } | { ok: false; status: 401 | 403 | 502; message: string };
 
 /**
  * Verifies that a request comes from the embedding Drupal Canvas instance,

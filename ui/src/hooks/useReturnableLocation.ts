@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router';
 
 import { useAppDispatch } from '@/app/hooks';
 import { setPreviouslyEdited } from '@/features/ui/uiSlice';

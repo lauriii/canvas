@@ -1,4 +1,4 @@
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -244,10 +244,7 @@ vi.mock('@/features/versionComparison/PageVersionComparisonView', () => ({
 }));
 
 const getPage = () => (
-  <MemoryRouter
-    initialEntries={['/conflict/canvas_page/1']}
-    future={{ v7_relativeSplatPath: true, v7_startTransition: true }}
-  >
+  <MemoryRouter initialEntries={['/conflict/canvas_page/1']}>
     <Routes>
       <Route
         path="/conflict/:entityType/:entityId"

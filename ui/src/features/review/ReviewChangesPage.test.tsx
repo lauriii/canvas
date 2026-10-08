@@ -1,4 +1,4 @@
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Theme } from '@radix-ui/themes';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -164,10 +164,7 @@ const ReviewPageTestApp = ({
   state?: unknown;
 }) => (
   <Theme accentColor="blue" hasBackground={false}>
-    <MemoryRouter
-      initialEntries={[{ pathname: initialPath, state }]}
-      future={{ v7_relativeSplatPath: true, v7_startTransition: true }}
-    >
+    <MemoryRouter initialEntries={[{ pathname: initialPath, state }]}>
       <Routes>
         <Route path="/review" element={<ReviewChangesPage />} />
         <Route

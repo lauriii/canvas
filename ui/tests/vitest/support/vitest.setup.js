@@ -9,6 +9,18 @@ const mockDrupalSettings = {
   canvas: {},
 };
 
+// Strip AbortSignal from RequestInit before the native constructor sees it:
+// Node 24's undici Request rejects cross-realm signals from jsdom.
+const RealRequest = globalThis.Request;
+class PatchedRequest extends RealRequest {
+  constructor(input, init) {
+    const { signal, ...initWithoutSignal } = init ?? {};
+    super(input, initWithoutSignal);
+  }
+}
+globalThis.Request = PatchedRequest;
+global.Request = PatchedRequest;
+
 const RealURL = globalThis.URL;
 
 vi.stubGlobal(

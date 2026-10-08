@@ -1118,8 +1118,7 @@ export function App() {
                       .map(
                         (uuid) =>
                           (templateResponse.spec.elements?.[uuid]?.type as
-                            | string
-                            | undefined) ?? null,
+                            string | undefined) ?? null,
                       )
                       .filter((t): t is string => typeof t === 'string'),
                   ),

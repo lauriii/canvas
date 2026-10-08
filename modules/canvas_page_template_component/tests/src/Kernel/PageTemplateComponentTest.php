@@ -8,14 +8,17 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
+use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\canvas_page_template_component\PageTemplateComponentUninstallValidator;
 use Drupal\canvas_page_template_component\Plugin\Canvas\ComponentSource\ThemePageTemplate;
+use Drupal\Core\Display\VariantManager;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Extension\ModuleUninstallValidatorException;
 use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Routing\RouteObjectInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 use PHPUnit\Framework\Attributes\CoversFunction;
@@ -224,6 +227,67 @@ final class PageTemplateComponentTest extends CanvasKernelTestBase {
     $editing = $render(TRUE);
     self::assertStringContainsString($empty_region_annotation, $editing);
     self::assertStringContainsString('canvas--slot-empty-placeholder', $editing);
+  }
+
+  /**
+   * Tests the #main-content anchor is not duplicated by the theme template.
+   *
+   * The theme page template component renders the theme's page.html.twig, which
+   * core ships with the `<a id="main-content">` anchor. The display variant
+   * must not add a second one at the "Page content" marker.
+   *
+   * @see \Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant::resolveMainContentAnchor()
+   */
+  public function testMainContentAnchorNotDuplicatedByThemeTemplate(): void {
+    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_page_template_component']);
+    $component = Component::load('theme_page_template.stark');
+    self::assertInstanceOf(Component::class, $component);
+    $marker = Component::load(Marker::PAGE_CONTENT_COMPONENT_ID);
+    self::assertInstanceOf(Component::class, $marker);
+
+    $template_uuid = 'b53d5c15-4b2f-40b7-8f28-be6a04e0323f';
+    PageVariant::create([
+      'id' => 'stark_variant',
+      'label' => 'Stark variant',
+      'component_tree' => [
+        [
+          'uuid' => $template_uuid,
+          'component_id' => 'theme_page_template.stark',
+          'component_version' => $component->getActiveVersion(),
+          'inputs' => [],
+        ],
+        [
+          'uuid' => '0f0d5c15-4b2f-40b7-8f28-be6a04e0323f',
+          'component_id' => Marker::PAGE_CONTENT_COMPONENT_ID,
+          'component_version' => $marker->getActiveVersion(),
+          'parent_uuid' => $template_uuid,
+          'slot' => 'content',
+          'inputs' => [],
+        ],
+      ],
+    ])->save();
+
+    $variant_manager = $this->container->get('plugin.manager.display_variant');
+    self::assertInstanceOf(VariantManager::class, $variant_manager);
+    $plugin = $variant_manager->createInstance(CanvasPageVariant::PLUGIN_ID, [
+      CanvasPageVariant::PREVIEW_KEY => FALSE,
+      CanvasPageVariant::VARIANT_ID_KEY => 'stark_variant',
+    ]);
+    self::assertInstanceOf(CanvasPageVariant::class, $plugin);
+    $sentinel = 'canvas-main-content-theme-template';
+    $plugin->setMainContent(['#markup' => $sentinel]);
+    // @phpstan-ignore-next-line argument.type
+    $plugin->setTitle(new TranslatableMarkup('Stark title'));
+
+    $renderer = $this->container->get(RendererInterface::class);
+    self::assertInstanceOf(RendererInterface::class, $renderer);
+    $build = $plugin->build();
+    $html = (string) $renderer->renderInIsolation($build);
+
+    // Stark's page.html.twig (core's system fallback) already carries the
+    // anchor, so exactly one `id="main-content"` survives, not two.
+    self::assertStringContainsString($sentinel, $html);
+    self::assertSame(1, \substr_count($html, 'id="main-content"'));
   }
 
 }

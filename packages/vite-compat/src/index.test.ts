@@ -1112,8 +1112,7 @@ describe('vite-compat', () => {
       );
 
       const transformIndexHtml = drupalCanvasPlugin?.transformIndexHtml as
-        | ((html: string) => { tags?: Array<{ children?: string }> })
-        | undefined;
+        ((html: string) => { tags?: Array<{ children?: string }> }) | undefined;
       const transformed = transformIndexHtml?.('<html></html>');
       expect(transformed?.tags).toBeDefined();
       expect(transformed?.tags?.[0]?.children).toContain(

@@ -15,6 +15,9 @@ export default defineConfig({
       optimizer: {
         web: {
           enabled: true,
+          // Excluded so it resolves `Request` at runtime, ensuring node 24
+          // support.
+          exclude: ['@reduxjs/toolkit'],
         },
       },
     },

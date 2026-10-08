@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { buildColorStyles } from '@/features/brandKit/colorCss';
+import { BRAND_KIT_ID } from '@/features/brandKit/constants';
 import IframeSwapper from '@/features/layout/preview/IframeSwapper';
 import PreviewProgress from '@/features/layout/preview/PreviewProgress';
 import ViewportOverlay from '@/features/layout/previewOverlay/ViewportOverlay';
@@ -15,6 +17,7 @@ import {
 } from '@/features/ui/uiSlice';
 import { useComponentHtmlMap } from '@/hooks/useComponentHtmlMap';
 import useSyncIframeHeightToContent from '@/hooks/useSyncIframeHeightToContent';
+import { useGetBrandKitQuery } from '@/services/brandKit';
 
 import styles from './Preview.module.css';
 
@@ -45,6 +48,14 @@ const Viewport: React.FC<ViewportProps> = (props) => {
       ? NON_FULL_VIEW_MODE_MIN_HEIGHT
       : viewportMinHeight;
   useComponentHtmlMap(iframeRef.current);
+  // Mirror live Brand kit colors to the preview. This subscription
+  // ensures optimistic cache updates aren't lost when the editor panel
+  // unmounts.
+  const { data: brandKit } = useGetBrandKitQuery(BRAND_KIT_ID);
+  const brandKitColorStyles = useMemo(
+    () => buildColorStyles(brandKit?.colors),
+    [brandKit?.colors],
+  );
 
   useSyncIframeHeightToContent(
     iframeRef.current,
@@ -83,6 +94,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
       <IframeSwapper
         ref={iframeRef}
         srcDocument={frameSrcDoc}
+        headStyles={brandKitColorStyles}
         setIsReloading={setIsReloading}
         interactive={editorFrameMode === EditorFrameMode.INTERACTIVE}
       />

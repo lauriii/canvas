@@ -1,5 +1,4 @@
-import { useParams } from 'react-router';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 import { EyeNoneIcon, EyeOpenIcon } from '@radix-ui/react-icons';
 import { Button, Tooltip } from '@radix-ui/themes';
 

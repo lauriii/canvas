@@ -3,8 +3,7 @@
  */
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DeepChat } from 'deep-chat-react';
-import { useParams } from 'react-router';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 import AiWelcome from '@assets/icons/ai-welcome.svg?react';
 import { Box, Flex, Text } from '@radix-ui/themes';
 
