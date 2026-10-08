@@ -579,22 +579,33 @@ final class CanvasDevAiBuilder extends ControllerBase {
    * Explains why the agent gave up on the turn.
    *
    * The agent returns JOB_NOT_SOLVABLE when it ran out of loops or when the
-   * provider call failed. Only the first case has a message worth showing;
-   * anything else in the chat history is the narration of an earlier hop.
+   * provider call failed. The first case shows the max-loops message, the
+   * second the error the provider reported. Anything else in the chat history
+   * is the narration of an earlier hop.
    *
    * @param \Drupal\ai_agents\PluginBase\AiAgentEntityWrapper $agent
    *   The agent that gave up.
    *
    * @return string
-   *   The configured max-loops message, or a generic failure message.
+   *   The configured max-loops message, the provider error, or a generic
+   *   failure message.
    *
    * @see \Drupal\ai_agents\PluginBase\AiAgentEntityWrapper::getMaxLoopsMessage()
+   * @see \Drupal\ai_agents\PluginBase\AiAgentEntityWrapper::getLastError()
    */
   private static function getNotSolvableMessage(AiAgentEntityWrapper $agent): string {
     $entity = $agent->getAiAgentEntity();
     if ($agent->toArray()['looped'] > (int) $entity->get('max_loops')) {
       $message = (string) $entity->get('max_loops_message');
       return $message !== '' ? $message : 'I was unable to fully answer your question within the allowed number of processing steps. Please try rephrasing or narrowing your question.';
+    }
+    // getLastError() only exists since ai_agents 1.3.5.
+    // @phpstan-ignore-next-line function.alreadyNarrowedType
+    if (method_exists($agent, 'getLastError')) {
+      $error = (string) $agent->getLastError();
+      if ($error !== '') {
+        return $error;
+      }
     }
     return 'The request could not be completed. Please try again.';
   }
