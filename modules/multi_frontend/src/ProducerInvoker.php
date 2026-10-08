@@ -1,0 +1,201 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\multi_frontend;
+
+use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\RevisionableInterface;
+use Drupal\Core\Render\Component\Exception\InvalidComponentException;
+use Drupal\Core\Render\RenderContext;
+use Drupal\Core\Render\RendererInterface;
+use Drupal\Core\Theme\Component\ComponentValidator;
+use Drupal\Core\Theme\ComponentPluginManager;
+use Drupal\multi_frontend\Envelope\ComponentNode;
+
+/**
+ * Invokes producers, validates what they return, and collects cacheability.
+ *
+ * The single place a producer is called from. Every consumer, the render
+ * element, the derived HTTP route and the envelope builder alike, goes
+ * through here, which is what keeps the HTML and the data paths from
+ * drifting: they are the same call.
+ */
+final class ProducerInvoker {
+
+  public function __construct(
+    private readonly ComponentProducerManager $producerManager,
+    private readonly ComponentPluginManager $componentManager,
+    private readonly ComponentValidator $componentValidator,
+    private readonly RendererInterface $renderer,
+  ) {}
+
+  /**
+   * Produces props for one subject, validating them against the schema.
+   *
+   * Validation here is unconditional, not wrapped in assert(). Core's SDC
+   * validation is a development assertion, correctly so for a Twig-only path,
+   * and core's own documentation tells sites to run production with
+   * zend.assertions=-1. A published contract cannot rest on a check that is
+   * compiled out in production.
+   *
+   * @return array<string, mixed>
+   *   The validated props.
+   */
+  public function produceProps(
+    string $producer_id,
+    mixed $subject,
+    RefinableCacheableDependencyInterface $cacheability,
+    int $depth = 0,
+  ): array {
+    /** @var \Drupal\multi_frontend\ComponentProducerInterface $producer */
+    $producer = $this->producerManager->createInstance($producer_id);
+    $context = new ProducerContext($cacheability, $this, $depth);
+
+    // Producers run inside a render context, so that anything already
+    // bubbling through an existing Drupal API, a generated URL, an access
+    // check, a nested render, is collected without the producer asking. A
+    // producer that forgets to record a dependency for something the renderer
+    // already knows about still gets it right.
+    $render_context = new RenderContext();
+    $props = $this->renderer->executeInRenderContext(
+      $render_context,
+      static fn (): array => $producer->produce($subject, $context),
+    );
+    if (!$render_context->isEmpty()) {
+      $cacheability->addCacheableDependency($render_context->pop());
+    }
+
+    $component_id = $producer->getComponentId();
+    $definition = $this->componentManager->getDefinition($component_id);
+
+    // An optional prop with no value is an absent prop, not a null one. This
+    // matters more than it looks: a prop populated from an access-controlled
+    // field is NULL exactly when the viewer may not see it, and a schema that
+    // types it as a string would then refuse to render the whole component
+    // for that viewer. Dropping the key is what JSON Schema means by optional,
+    // and it keeps a producer from having to build its return array
+    // conditionally, which is the render-array awkwardness this replaces.
+    // A required prop that is NULL still fails validation, loudly.
+    $required = $definition['props']['required'] ?? [];
+    $props = \array_filter(
+      $props,
+      static fn (mixed $value, string $name): bool => $value !== NULL || \in_array($name, $required, TRUE),
+      ARRAY_FILTER_USE_BOTH,
+    );
+
+    $this->componentValidator->validateProps($props, $this->componentManager->createInstance($component_id));
+
+    // The schema cannot express "this value survives being serialized", and
+    // that is the one rule this whole contract rests on: core accepts a Url
+    // object in a `type: string` prop and JSON-encodes it to an empty object.
+    // Checking the round trip here is the difference between claiming props
+    // are data and knowing it.
+    // Compare the re-encoded form rather than the decoded value. A strict
+    // comparison against the original rejects valid data: json_encode(1.0)
+    // emits "1", which decodes to an int, so a producer returning a whole
+    // number for a `type: number` prop would be refused. Re-encoding still
+    // catches the failure this exists for, because an unserializable object
+    // encodes to {} and comes back as [], which re-encodes differently.
+    $encoded = \json_encode($props, JSON_THROW_ON_ERROR);
+    $round_tripped = \json_decode($encoded, TRUE, 512, JSON_THROW_ON_ERROR);
+    if (\json_encode($round_tripped, JSON_THROW_ON_ERROR) !== $encoded) {
+      throw new InvalidComponentException(\sprintf(
+        'Producer "%s" returned props that do not survive JSON serialization. Props must be plain arrays and scalars.',
+        $producer_id,
+      ));
+    }
+
+    return $props;
+  }
+
+  /**
+   * Produces a complete envelope node for one subject.
+   */
+  public function produceNode(
+    string $producer_id,
+    mixed $subject,
+    RefinableCacheableDependencyInterface $parent_cacheability,
+    int $depth = 0,
+  ): ComponentNode {
+    // Each node collects its own cacheability first, so that per-node
+    // metadata is real rather than a copy of the response's, and only then
+    // merges upward.
+    $node_cacheability = new CacheableMetadata();
+    if ($subject instanceof EntityInterface) {
+      // Whatever the decision to show this subject varied on belongs to the
+      // node, not just to the response that happens to carry it. Without this
+      // a node can report itself publicly cacheable while the endpoint
+      // serving it is gated, and a consumer trusting the body would cache an
+      // access-controlled resource for everyone.
+      $node_cacheability->addCacheableDependency($subject->access('view', NULL, TRUE));
+    }
+    $props = $this->produceProps($producer_id, $subject, $node_cacheability, $depth);
+
+    /** @var \Drupal\multi_frontend\ComponentProducerInterface $producer */
+    $producer = $this->producerManager->createInstance($producer_id);
+    $slots = $producer->produceSlots($subject, new ProducerContext($node_cacheability, $this, $depth));
+
+    $component_id = $producer->getComponentId();
+    $node = new ComponentNode(
+      $component_id,
+      $props,
+      $slots,
+      ['data-component-id' => $component_id],
+      $node_cacheability,
+    );
+    $parent_cacheability->addCacheableDependency($node_cacheability);
+    return $node;
+  }
+
+  /**
+   * Renders a build in isolation, merging its cacheability into a collector.
+   *
+   * Used by ProducerContext::formattedText() so that a text format's cache
+   * tags reach the node that used it.
+   */
+  public function renderInContext(array $build, RefinableCacheableDependencyInterface $cacheability): string {
+    $markup = (string) $this->renderer->renderInIsolation($build);
+    $cacheability->addCacheableDependency(CacheableMetadata::createFromRenderArray($build));
+    return $markup;
+  }
+
+  /**
+   * Returns render cache keys for a producer and subject, or NULL.
+   *
+   * Computable before the producer runs, which is the property that keeps
+   * render caching working: on a cache hit the producer is never invoked, in
+   * the same way a render-cached views listing is not rebuilt from its query.
+   * Cache contexts, unlike keys, are discovered during production, and core's
+   * VariationCache already handles exactly that with cache redirects.
+   *
+   * @return string[]|null
+   *   Cache keys, or NULL when the subject has no stable identity.
+   */
+  public static function cacheKeys(string $producer_id, mixed $subject): ?array {
+    if (!$subject instanceof EntityInterface) {
+      return NULL;
+    }
+    // An unsaved entity has no ID, so every unsaved entity of a type would
+    // share one key and serve another entity's props.
+    if ($subject->isNew()) {
+      return NULL;
+    }
+    $keys = [
+      'produced_component',
+      $producer_id,
+      $subject->getEntityTypeId(),
+      (string) $subject->id(),
+      $subject->language()->getId(),
+    ];
+    // Two revisions of one entity share an ID, so without the revision the
+    // first one rendered would be served for both.
+    if ($subject instanceof RevisionableInterface && $subject->getRevisionId() !== NULL) {
+      $keys[] = (string) $subject->getRevisionId();
+    }
+    return $keys;
+  }
+
+}

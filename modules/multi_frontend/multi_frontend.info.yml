@@ -1,0 +1,5 @@
+name: Multi front end
+type: module
+description: 'Reference implementation of the core multi-front-end contract: component producers, a component and page envelope, and published props schemas. Proposed for Drupal core; depends on nothing but core.'
+package: Drupal Canvas
+core_version_requirement: ^11.3
