@@ -289,6 +289,7 @@ const UnforkTranslationDialog = ({
         </Text>
         <TextField.Root
           data-testid="unfork-translation-confirm-input"
+          aria-label="Type REVERT to confirm"
           value={confirmText}
           onChange={(e) => setConfirmText(e.target.value)}
         />

@@ -184,8 +184,7 @@ final class ApiLayoutController {
               $forked_translations[] = $langcode;
             }
             // The fork routes only exist for canvas_page.
-            // @todo https://www.drupal.org/i/3498525 should generalize this to
-            //   all eligible content entity types, like the delete route.
+            // @todo Generalize to all eligible content entity types, like the delete route, in https://www.drupal.org/i/3498525.
             if ($entity->getEntityTypeId() === Page::ENTITY_TYPE_ID && $translation->access('update')) {
               $links[$langcode][$is_forked ? CanvasUriDefinitions::LINK_REL_UNFORK : CanvasUriDefinitions::LINK_REL_FORK] = Url::fromRoute(
                 $is_forked ? 'canvas.api.content.translation.unfork' : 'canvas.api.content.translation.fork',
