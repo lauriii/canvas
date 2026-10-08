@@ -44,6 +44,7 @@ import { contentEntityReferenceApi } from '@/services/contentEntityReferenceApi'
 import { extensionsApi } from '@/services/extensions';
 import { headlessComponentSyncApi } from '@/services/headlessComponentSync';
 import { headlessFrontendsApi } from '@/services/headlessFrontends';
+import { iconsApi } from '@/services/icons';
 import { notificationsApi } from '@/services/notificationsApi';
 import { pageDataFormApi } from '@/services/pageDataForm';
 import { pageVariantsApi } from '@/services/pageVariants';
@@ -161,6 +162,7 @@ const rootReducer = combineSlices(
   componentInstanceFormApi,
   pageDataFormApi,
   extensionsApi,
+  iconsApi,
   configurationSlice,
   primaryPanelSlice,
   dialogSlice,
@@ -262,6 +264,7 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
         componentInstanceFormApi.middleware,
         pageDataFormApi.middleware,
         extensionsApi.middleware,
+        iconsApi.middleware,
         notificationsApi.middleware,
         undoRedoActionIdMiddleware,
         pendingChangesApi.middleware,
