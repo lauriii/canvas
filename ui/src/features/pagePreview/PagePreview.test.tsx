@@ -23,7 +23,7 @@ vi.mock('@/features/layout/preview/useHeadlessDraftSession', () => ({
   useHeadlessDraftSession: mocks.session,
 }));
 vi.mock('@/services/componentAndLayout', () => ({
-  useGetPageLayoutQuery: vi.fn(),
+  useGetPageLayoutQuery: vi.fn(() => ({})),
 }));
 vi.mock('@/services/preview', () => ({
   useGetSnapshotPreviewQuery: mocks.snapshot,

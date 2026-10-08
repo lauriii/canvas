@@ -104,7 +104,9 @@ final readonly class PropSourceSuggester {
     // 4. never suggest content_translation's `content_translation_source` and
     //    `content_translation_outdated` base fields, added with fixed names to
     //    a content entity type when one of its bundles is translatable.
+    // 5. never suggest Canvas's own `canvas_component_tree_fork` base field.
     // @see \Drupal\content_translation\ContentTranslationHandler::fieldStorageDefinitions()
+    // @see \Drupal\canvas\Hook\ContentTranslationHooks::entityBaseFieldInfo()
     $content_entity_type_definition = $this->entityTypeManager->getDefinition($entity_type_id);
     \assert($content_entity_type_definition instanceof ContentEntityTypeInterface);
     $is_irrelevant = \in_array($expression_field_name, [
@@ -113,6 +115,10 @@ final readonly class PropSourceSuggester {
       $content_entity_type_definition->getRevisionMetadataKey('revision_log_message'),
       'content_translation_source',
       'content_translation_outdated',
+      // Literal to avoid a layering dependency on the ContentTranslation
+      // namespace.
+      // @see \Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork::FIELD_NAME
+      'canvas_component_tree_fork',
     ], TRUE);
     if ($is_irrelevant) {
       return TRUE;
