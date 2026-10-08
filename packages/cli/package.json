@@ -52,7 +52,7 @@
     "@clack/prompts": "^0.11.0",
     "@drupal-canvas/eslint-config": "^0.10.1",
     "@swc/wasm": "^1.12.1",
-    "axios": "^1.16.1",
+    "axios": "^1.20.0",
     "chalk": "^6.0.0",
     "commander": "^15.0.0",
     "dotenv": "^16.5.0",
