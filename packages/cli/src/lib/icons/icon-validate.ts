@@ -26,8 +26,8 @@ export interface ValidatedIconLibrary {
 
 /**
  * Client-side SVG safety pre-checks that mirror the server sanitizer for fast
- * feedback: scripts, event handler attributes, javascript: URLs, DOCTYPE
- * declarations, and external href/src references. The server remains
+ * feedback: scripts, `<style>` elements, event handler attributes,
+ * javascript: URLs, DOCTYPE declarations, and external href/src references. The server remains
  * authoritative; these are best-effort early errors.
  * Returns human-readable issue descriptions (empty array means no issues).
  */
@@ -36,6 +36,11 @@ export function validateSvgSafety(content: string): string[] {
 
   if (/<script/i.test(content)) {
     issues.push('contains a <script> element');
+  }
+  // The server rejects `<style>` elements outright: inlined into the page,
+  // their rules would apply to the whole document.
+  if (/<style[\s>/]/i.test(content)) {
+    issues.push('contains a <style> element');
   }
   if (/\son[a-z]+\s*=/i.test(content)) {
     issues.push('contains an event handler attribute (on*)');

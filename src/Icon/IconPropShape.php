@@ -87,6 +87,11 @@ final class IconPropShape {
    * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponentDiscovery::buildEphemeralSdcPluginInstance()
    */
   public static function dereference(array $schema): array {
+    // Multi-value icon props carry the icon shape in `items`, where a sibling
+    // scope `pattern` would be ignored just the same.
+    if (\is_array($schema['items'] ?? NULL)) {
+      $schema['items'] = self::dereference($schema['items']);
+    }
     if (($schema['$ref'] ?? NULL) !== self::SCHEMA_REF) {
       return $schema;
     }

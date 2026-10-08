@@ -57,6 +57,11 @@ final class IconPropShapeTest extends UnitTestCase {
       ['type' => 'string', 'pattern' => '^(phosphor):.+$'],
       IconPropShape::dereference(['type' => 'string', '$ref' => IconPropShape::SCHEMA_REF, 'pattern' => '^(phosphor):.+$']),
     );
+    // Multi-value icon props are dereferenced in `items`, scope pattern kept.
+    $this->assertSame(
+      ['type' => 'array', 'items' => ['type' => 'string', 'pattern' => '^(phosphor):.+$']],
+      IconPropShape::dereference(['type' => 'array', 'items' => ['type' => 'string', '$ref' => IconPropShape::SCHEMA_REF, 'pattern' => '^(phosphor):.+$']]),
+    );
     // Non-icon schemas pass through unchanged.
     $image = ['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/image'];
     $this->assertSame($image, IconPropShape::dereference($image));

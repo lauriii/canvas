@@ -78,6 +78,9 @@ final class SvgSanitizerTest extends UnitTestCase {
       'fill attribute with external url()' => ['<svg xmlns="http://www.w3.org/2000/svg"><rect fill="url(https://evil.example/f.svg#a)"/></svg>'],
       'filter attribute with external url()' => ['<svg xmlns="http://www.w3.org/2000/svg"><rect filter="url(//evil.example/f.svg#b)"/></svg>'],
       'clip-path attribute with external url()' => ['<svg xmlns="http://www.w3.org/2000/svg"><rect clip-path="url(../other.svg#c)"/></svg>'],
+      'style attribute with comment-split url()' => ['<svg xmlns="http://www.w3.org/2000/svg"><rect style="fill:url/**/(https://evil.example/f.svg#a)"/></svg>'],
+      'fill attribute with comment-split url()' => ['<svg xmlns="http://www.w3.org/2000/svg"><rect fill="url/**/(https://evil.example/f.svg#a)"/></svg>'],
+      'fill attribute with CSS-escaped url()' => ['<svg xmlns="http://www.w3.org/2000/svg"><rect fill="\\75rl(https://evil.example/f.svg#a)"/></svg>'],
       'animation values with external url()' => ['<svg xmlns="http://www.w3.org/2000/svg"><rect fill="url(#g)"><animate attributeName="fill" values="url(#g);url(https://evil.example/f.svg#d)"/></rect></svg>'],
       // CSS in an inline SVG is not scoped to it, so a stylesheet inside an
       // icon reaches the whole page even when the CSS itself is otherwise

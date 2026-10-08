@@ -73,7 +73,10 @@ export function parseIconScopePattern(
 export function isIconSchema(
   schema?: { type?: unknown; $ref?: string; pattern?: string } | null,
 ): boolean {
-  if (!schema || schema.type !== 'string') {
+  // SDC metadata appends `object` to the declared type (e.g.
+  // `['string', 'object']`); the first element counts, as on the server.
+  const type = Array.isArray(schema?.type) ? schema.type[0] : schema?.type;
+  if (!schema || type !== 'string') {
     return false;
   }
   return schema.$ref === ICON_SCHEMA_REF || isIconPattern(schema.pattern);

@@ -35,6 +35,19 @@ describe('validateSvgSafety', () => {
     expect(issues.join('\n')).toContain('event handler');
   });
 
+  it('rejects style elements', () => {
+    const issues = validateSvgSafety(
+      '<svg><style>body { display: none }</style><rect/></svg>',
+    );
+    expect(issues.join('\n')).toContain('<style>');
+  });
+
+  it('allows style attributes', () => {
+    expect(
+      validateSvgSafety('<svg><rect style="fill: currentColor"/></svg>'),
+    ).toEqual([]);
+  });
+
   it('rejects javascript: URLs', () => {
     const issues = validateSvgSafety(
       '<svg><a href="javascript:alert(1)">x</a></svg>',
@@ -185,6 +198,7 @@ describe('validateIconLibraryEntry', () => {
     await writeSvgDir('icons/my_icons', {
       'evil.svg': '<svg><script>alert(1)</script></svg>',
       'sneaky.svg': '<svg onload="x()"><path d="M0 0"/></svg>',
+      'styled.svg': '<svg><style>body { display: none }</style><rect/></svg>',
     });
 
     const error = await validateIconLibraryEntry(
@@ -198,6 +212,9 @@ describe('validateIconLibraryEntry', () => {
     );
     expect((error as Error).message).toContain(
       'sneaky.svg: contains an event handler attribute',
+    );
+    expect((error as Error).message).toContain(
+      'styled.svg: contains a <style> element',
     );
   });
 });

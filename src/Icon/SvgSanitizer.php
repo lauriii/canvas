@@ -167,25 +167,23 @@ final class SvgSanitizer {
       }
     }
 
-    if ($name === 'style') {
-      $reasons = [...$reasons, ...self::validateCss($value, 'style attribute')];
-    }
-    // Any other attribute can carry a `url()` function reference too — fill,
-    // stroke, filter, clip-path, mask, animation `values` lists, and so on —
-    // which must stay a local fragment just like in CSS. The style attribute
-    // is already covered (with CSS escape decoding) by validateCss() above.
-    elseif (\stripos($value, 'url') !== FALSE) {
-      $reasons = [...$reasons, ...self::validateUrlFunctions($value, \sprintf('"%s" attribute', $name))];
-    }
+    // Besides the style attribute, any other attribute can carry a `url()`
+    // function reference too — fill, stroke, filter, clip-path, mask,
+    // animation `values` lists, and so on — which must stay a local fragment
+    // just like in CSS. Presentation attributes are parsed with CSS syntax, so
+    // CSS escapes and comments apply to them as well: every attribute value
+    // goes through the same CSS checks.
+    $location = $name === 'style' ? 'style attribute' : \sprintf('"%s" attribute', $name);
+    $reasons = [...$reasons, ...self::validateCss($value, $location)];
 
     return $reasons;
   }
 
   /**
-   * Validates inline CSS from a `style` attribute.
+   * Validates CSS syntax from an attribute value.
    *
-   * `<style>` elements are rejected outright, so only the attribute — whose
-   * declarations apply to its own element — reaches this.
+   * `<style>` elements are rejected outright, so only attributes — whose
+   * declarations apply to their own element — reach this.
    *
    * @return list<string>
    *   Rejection reasons for this CSS.
@@ -208,6 +206,12 @@ final class SvgSanitizer {
     );
     $css = (string) \preg_replace('/\\\\(.)/s', '$1', $css);
 
+    // CSS drops comments before tokenizing, so `url/**/(…)` is still a
+    // `url()` function. Icons have no use for comments in attribute values,
+    // so reject them rather than strip them before the checks below.
+    if (\str_contains($css, '/*')) {
+      $reasons[] = \sprintf('The %s must not contain CSS comments.', $location);
+    }
     if (\preg_match('/@import/i', $css)) {
       $reasons[] = \sprintf('The %s must not contain "@import".', $location);
     }
