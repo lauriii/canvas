@@ -16,6 +16,23 @@ abstract class CanvasUpdatePathTestBase extends UpdatePathTestBase {
   use AssertSameInputsTrait;
 
   /**
+   * Continues past Canvas' warning about enabled PHP assertions.
+   *
+   * Tests run with PHP assertions enabled, so update.php shows this warning
+   * before running updates, unless a test disables assertions for the site.
+   *
+   * @see \Drupal\canvas\Hook\UpdateHooks::updateRequirements()
+   */
+  protected function updateRequirementsProblem(): void {
+    parent::updateRequirementsProblem();
+    if ($this->getSession()->getPage()->hasLink('try again')) {
+      $this->assertWarningSummaries(['Drupal Canvas: PHP assertions']);
+      $this->clickLink('try again');
+      $this->checkForMetaRefresh();
+    }
+  }
+
+  /**
    * Adds before/after doctor assertions around the update run.
    */
   protected function runUpdates(): void {
