@@ -696,10 +696,31 @@ function canvas_post_update_0026_rehash_auto_save_items(): void {
 
     // Reconstruct the entity from its stored snapshot and rehash with the
     // new normalization.
-    $entity = $storage->create($item['data']);
-    $entity->enforceIsNew(FALSE);
-    $item['data'] = $to_storable->invoke(NULL, $entity);
-    $item['data_hash'] = $generate_hash->invoke(NULL, $normalize->invoke(NULL, $entity));
+    try {
+      $entity = $storage->create($item['data']);
+      $entity->enforceIsNew(FALSE);
+      $item['data'] = $to_storable->invoke(NULL, $entity);
+      $item['data_hash'] = $generate_hash->invoke(NULL, $normalize->invoke(NULL, $entity));
+    }
+    catch (\Exception $e) {
+      // Auto-saves may contain invalid data by design: only publishing
+      // requires valid data. Normalizing invalid data can trigger assertions,
+      // for example in optimizeExplicitInput(). With assertions disabled, as
+      // they should be on production sites, this does not happen.
+      // Canvas warns about enabled assertions before updates run, but that
+      // warning is easy to miss or ignore: `drush updb -y` prints it and
+      // continues. Hence this message repeats the advice.
+      // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::optimizeExplicitInput()
+      // @see \Drupal\canvas\Hook\UpdateHooks::updateRequirements()
+      if (\ini_get('zend.assertions') !== '1') {
+        throw $e;
+      }
+      throw new \RuntimeException(\sprintf(
+        'Auto-save item %s contains invalid data: %s Disable PHP assertions (zend.assertions) while running database updates per the https://www.drupal.org/docs/develop/drupal-apis/runtime-assertions best practices. Run `drush canvas:doctor --checks=auto_save --details` for details.',
+        $key,
+        $e->getMessage(),
+      ), previous: $e);
+    }
 
     // Recompute original_hash against the currently stored entity so conflict
     // detection stays correct after the normalization change.
