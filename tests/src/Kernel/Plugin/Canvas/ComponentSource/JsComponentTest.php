@@ -1802,6 +1802,114 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
   }
 
   /**
+   * Tests scoped import maps when a leaf is both a direct and transitive dep.
+   *
+   * Diamond shape: `diamond_top` directly imports `diamond_leaf` AND
+   * `diamond_middle`; `diamond_middle` also imports `diamond_leaf`. Every
+   * component that imports `diamond_leaf` must have an entry for
+   * `@/components/diamond_leaf` in its own scope, because the browser switches
+   * the active import-map scope when it loads each module file. There is no
+   * global mapping for `@/components/*`, so a missing entry in the leaf's
+   * importer scope leaves the bare specifier unresolvable at runtime.
+   */
+  public function testImportMapsWithDiamondDependency(): void {
+    $file_generator = $this->container->get(FileUrlGeneratorInterface::class);
+    \assert($file_generator instanceof FileUrlGeneratorInterface);
+
+    // The shared leaf, alphabetically first among the top's direct deps. This
+    // ordering is the trigger: `JavaScriptComponent::getComponentDependencies()`
+    // iterates dependencies in the order Drupal sorts config dependencies, so
+    // the top component visits `diamond_leaf` before `diamond_middle`.
+    $leaf = JavaScriptComponent::create([
+      'machineName' => 'diamond_leaf',
+      'name' => 'Diamond Leaf',
+      'status' => TRUE,
+      'props' => [],
+      'slots' => [],
+      'css' => ['original' => '', 'compiled' => ''],
+      'js' => [
+        'original' => 'console.log("leaf");',
+        'compiled' => 'console.log("leaf");',
+      ],
+      'dataDependencies' => [],
+    ]);
+    $leaf->save();
+
+    // The intermediate; imports the shared leaf.
+    $middle = JavaScriptComponent::create([
+      'machineName' => 'diamond_middle',
+      'name' => 'Diamond Middle',
+      'status' => TRUE,
+      'props' => [],
+      'slots' => [],
+      'css' => ['original' => '', 'compiled' => ''],
+      'js' => [
+        'original' => 'import "@/components/diamond_leaf";',
+        'compiled' => 'import "@/components/diamond_leaf";',
+      ],
+      'dataDependencies' => [],
+    ]);
+    $middle->save();
+    $middle_data = $middle->normalizeForClientSide()->values;
+    $middle_data['importedJsComponents'] = ['diamond_leaf'];
+    $middle->updateFromClientSide($middle_data);
+    $middle->save();
+
+    // The top of the diamond; imports BOTH the shared leaf and the
+    // intermediate.
+    $top = JavaScriptComponent::create([
+      'machineName' => 'diamond_top',
+      'name' => 'Diamond Top',
+      'status' => TRUE,
+      'props' => [],
+      'slots' => [],
+      'css' => ['original' => '', 'compiled' => ''],
+      'js' => [
+        'original' => 'import "@/components/diamond_leaf"; import "@/components/diamond_middle";',
+        'compiled' => 'import "@/components/diamond_leaf"; import "@/components/diamond_middle";',
+      ],
+      'dataDependencies' => [],
+    ]);
+    $top->save();
+    $top_data = $top->normalizeForClientSide()->values;
+    $top_data['importedJsComponents'] = ['diamond_leaf', 'diamond_middle'];
+    $top->updateFromClientSide($top_data);
+    $top->save();
+
+    $component = Component::load(JsComponent::componentIdFromJavascriptComponentId((string) $top->id()));
+    \assert($component instanceof ComponentInterface);
+    $source = $component->getComponentSource();
+    \assert($source instanceof ComponentSourceWithSlotsInterface);
+    $rendered = $source->renderComponent(self::getDefaultInputForJsonSchemaProps($component), $source->getSlotDefinitions(), 'test-uuid', FALSE);
+
+    self::assertArrayHasKey('#import_maps', $rendered);
+    self::assertArrayHasKey(ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS, $rendered['#import_maps']);
+    $scopes = $rendered['#import_maps'][ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS];
+
+    $top_url = $top->getComponentUrl($file_generator, FALSE);
+    $middle_url = $middle->getComponentUrl($file_generator, FALSE);
+    $leaf_url = $leaf->getComponentUrl($file_generator, FALSE);
+
+    // The top component scope must reference both of its direct imports.
+    self::assertArrayHasKey($top_url, $scopes);
+    self::assertSame($leaf_url, $scopes[$top_url]['@/components/diamond_leaf'] ?? NULL);
+    self::assertSame($middle_url, $scopes[$top_url]['@/components/diamond_middle'] ?? NULL);
+
+    // The intermediate component must ALSO carry the leaf in its own scope:
+    // the browser will load `diamond_middle.js`, switch to that scope, then
+    // resolve `@/components/diamond_leaf` from within it.
+    self::assertArrayHasKey($middle_url, $scopes, 'Intermediate has its own import-map scope.');
+    self::assertSame(
+      $leaf_url,
+      $scopes[$middle_url]['@/components/diamond_leaf'] ?? NULL,
+      'Intermediate scope still maps the shared leaf when the leaf is also a direct sibling of the top.',
+    );
+
+    // The leaf itself has no dependencies and so no scope of its own.
+    self::assertArrayNotHasKey($leaf_url, $scopes);
+  }
+
+  /**
    * Orders the well-known image shape's props per core version.
    *
    * Drupal 11.4 started casting configuration data against config schema on

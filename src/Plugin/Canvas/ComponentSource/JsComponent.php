@@ -739,16 +739,24 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
   private function getScopedDependencies(JavaScriptComponent $component, AutoSaveEntity $autoSave, bool $isPreview, array $seen = []): array {
     $scoped_dependencies = [];
     $component_url = $component->getComponentUrl($this->fileUrlGenerator, $isPreview);
+    // Track the current recursion path so cyclic dependencies don't loop. This
+    // must NOT be a global "visited" set: a dependency shared by sibling
+    // branches (a diamond) must still receive its own scope. Using a path-based
+    // set ensures each component maps all of its own direct imports, regardless
+    // of what was visited elsewhere in the graph.
+    $seen[] = $component->id();
     foreach ($component->getComponentDependencies($autoSave, $isPreview) as $js_component_dependency_name => $js_component_dependency) {
+      \assert($js_component_dependency instanceof JavaScriptComponent);
+      $dependency_component_url = $js_component_dependency->getComponentUrl($this->fileUrlGenerator, $isPreview);
+      // Every component must map each of its own direct imports in its own
+      // scope, even if the same dependency also appears on another branch.
+      $scoped_dependencies[$component_url]["@/components/{$js_component_dependency_name}"] = $dependency_component_url;
       if (\in_array($js_component_dependency_name, $seen, TRUE)) {
-        // Recursion or already processed by another dependency.
+        // This dependency is an ancestor on the current path: recursing into it
+        // would loop. The scope entry above is still required.
         continue;
       }
-      $seen[] = $js_component_dependency_name;
-      \assert($js_component_dependency instanceof JavaScriptComponent);
       $dependencyAutoSave = $this->loadAutoSaveEntity($js_component_dependency, $isPreview);
-      $dependency_component_url = $js_component_dependency->getComponentUrl($this->fileUrlGenerator, $isPreview);
-      $scoped_dependencies[$component_url]["@/components/{$js_component_dependency_name}"] = $js_component_dependency->getComponentUrl($this->fileUrlGenerator, $isPreview);
       $scoped_dependencies = array_merge($scoped_dependencies, $this->getScopedDependencies($js_component_dependency, $dependencyAutoSave, $isPreview, $seen));
       if (isset($scoped_dependencies[$dependency_component_url])) {
         // The dependencies of my dependencies are also my dependencies, so says
