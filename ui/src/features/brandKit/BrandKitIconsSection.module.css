@@ -1,0 +1,68 @@
+.libraryRow {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: var(--space-1);
+  cursor: pointer;
+  text-align: left;
+  border: none;
+  border-radius: var(--radius-2);
+  background: none;
+  gap: var(--space-2);
+}
+
+.libraryRow:hover {
+  background: var(--gray-2);
+}
+
+.libraryChip {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  color: var(--blue-11);
+  border-radius: 3px;
+  background: var(--blue-4);
+}
+
+.libraryChevron {
+  flex-shrink: 0;
+  color: var(--gray-11);
+}
+
+.popover {
+  width: auto;
+  border: 1px solid var(--gray-4);
+  border-radius: var(--radius-3);
+  box-shadow: 4px 4px 30px var(--gray-a5);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  row-gap: var(--space-3);
+}
+
+.cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  padding: var(--space-1);
+  gap: var(--space-1);
+  /* ponytail: large packs rely on content-visibility to keep rendering
+     cheap; per-pack lazy fetch is the upgrade path. */
+  content-visibility: auto;
+  contain-intrinsic-size: 68px 44px;
+}
+
+.cellLabel {
+  overflow: hidden;
+  max-width: 100%;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--gray-11);
+  font-size: var(--font-size-1);
+}

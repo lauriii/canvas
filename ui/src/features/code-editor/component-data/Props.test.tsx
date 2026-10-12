@@ -307,6 +307,32 @@ describe('props in code editor', () => {
   });
 
   describe('prop types', () => {
+    it('creates a new icon prop', async () => {
+      await addProp('Icon', 'My Icon');
+      // The icon form renders the pack scope and example icon selectors.
+      expect(screen.getByText('Icon packs')).toBeInTheDocument();
+      expect(screen.getByText('Example icon')).toBeInTheDocument();
+      await waitFor(() => {
+        const prop = selectCodeComponentProperty('props')(store.getState())[0];
+        expect(prop).toMatchObject({
+          name: 'My Icon',
+          type: 'string',
+          derivedType: 'icon',
+          $ref: 'json-schema-definitions://canvas.module/icon',
+        });
+      });
+      // The serialized prop keeps the icon `$ref` (and would keep a scope
+      // `pattern`, set through the pack multi-select, when scoped).
+      const serialized = serializeProps(
+        selectCodeComponentProperty('props')(store.getState()),
+      );
+      expect(serialized.myIcon).toEqual({
+        title: 'My Icon',
+        type: 'string',
+        $ref: 'json-schema-definitions://canvas.module/icon',
+      });
+    });
+
     it('creates a new integer prop', async () => {
       await addProp('Integer', 'Count');
       expect(screen.getByLabelText('Example value')).toHaveAttribute(

@@ -1,3 +1,4 @@
+import { resolveIconValue } from '@/components/icons/iconScope';
 import {
   isEvaluatedComponentModel,
   syncPropSourcesToResolvedValues,
@@ -10,6 +11,7 @@ import { ComponentPreviewUpdateEvent } from './componentPreviewEvents';
 import type { PropsValues } from '@drupal-canvas/types';
 import type { Dispatch } from '@reduxjs/toolkit';
 import type { InputUIData } from '@/types/Form';
+import type { IconPack } from '@/types/Icons';
 
 export const POLLED_BACKGROUND_TIMEOUT = 1000;
 
@@ -24,6 +26,8 @@ interface ComponentFormHandlerDependencies {
   selectedComponent: string;
   propName: string;
   isScalarProp: boolean;
+  isIconProp: boolean;
+  iconPacks: IconPack[] | undefined;
   polledBackgroundUpdate: React.MutableRefObject<number | null>;
   component: any;
   patchComponent: (inputUiData: InputUIData, params: any) => void;
@@ -64,11 +68,21 @@ export const createComponentFormStateHandler = (
 
     let backgroundPreviewUpdate = false;
     if (deps.isScalarProp) {
+      // An icon prop stores the raw `pack_id:icon_id`, but the component renders
+      // the resolved value (inline SVG or asset URL). Resolve it client-side
+      // from the installed packs so the real-time update shows the icon
+      // immediately, instead of pushing the raw id (which renders blank) and
+      // waiting for the server round trip to correct it. Other scalars are
+      // already renderable as-is.
+      // @see \Drupal\canvas\Icon\IconResolver
+      const previewValue = deps.isIconProp
+        ? resolveIconValue(resolved[deps.propName], deps.iconPacks)
+        : resolved[deps.propName];
       // Fire an event to allow listeners to attempt real-time updates.
       const PreviewUpdateEvent = new ComponentPreviewUpdateEvent(
         deps.selectedComponent,
         deps.propName,
-        resolved[deps.propName],
+        previewValue,
       );
       document.dispatchEvent(PreviewUpdateEvent);
       deps.dispatch(

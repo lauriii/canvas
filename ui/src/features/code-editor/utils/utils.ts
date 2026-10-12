@@ -414,6 +414,7 @@ export function serializeProps(props: CodeComponentProp[]) {
           enum: enumValues,
           $ref,
           format,
+          pattern,
           contentMediaType,
           'x-formatting-context': xFormattingContext,
           'x-canvas-color-picker': xCanvasColorPicker,
@@ -506,6 +507,7 @@ export function serializeProps(props: CodeComponentProp[]) {
           // When not an array, metadata goes at top level
           if ($ref) processed.$ref = $ref;
           if (format) processed.format = format;
+          if (pattern) processed.pattern = pattern;
           if (contentMediaType) processed.contentMediaType = contentMediaType;
           if (xFormattingContext)
             processed['x-formatting-context'] = xFormattingContext;
@@ -544,6 +546,9 @@ export function deserializeProps(
       'meta:enum': metaEnum,
       $ref,
       format,
+      // Only used by single-value icon props (the pack-scope pattern), so it
+      // is not lifted from `items` for array props.
+      pattern,
       contentMediaType,
       'x-canvas-color-picker': xCanvasColorPicker,
       'x-canvas-color-folders': xCanvasColorFolders,
@@ -659,6 +664,7 @@ export function deserializeProps(
       }),
       ...(actualRef && { $ref: actualRef }),
       ...(actualFormat && { format: actualFormat }),
+      ...(pattern && !allowMultiple && { pattern }),
       ...(actualContentMediaType && {
         contentMediaType: actualContentMediaType,
       }),
