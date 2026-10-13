@@ -144,11 +144,13 @@ export interface SiteData {
  */
 export const getPageData = (): PageData => {
   assertLegacyRuntime('getPageData()');
+  /* eslint-disable no-restricted-globals -- Deprecated legacy getter. */
   const pageData = {
     pageTitle: globalThis?.drupalSettings?.canvasData?.v0?.pageTitle || '',
     breadcrumbs: globalThis?.drupalSettings?.canvasData?.v0?.breadcrumbs || [],
     mainEntity: globalThis?.drupalSettings?.canvasData?.v0?.mainEntity || null,
   };
+  /* eslint-enable no-restricted-globals */
   globalThis?.window?.parent.postMessage({
     type: '_canvas_useswr_data_fetch',
     id: 'getPageData()',
@@ -169,6 +171,7 @@ export const getPageData = (): PageData => {
  */
 export const getSiteData = (): SiteData => {
   assertLegacyRuntime('getSiteData()');
+  /* eslint-disable no-restricted-globals -- Deprecated legacy getter. */
   const siteData = {
     branding: globalThis?.drupalSettings?.canvasData?.v0?.branding || {
       homeUrl: '',
@@ -181,6 +184,7 @@ export const getSiteData = (): SiteData => {
       favicon: { url: '', mimeType: '' },
     },
   };
+  /* eslint-enable no-restricted-globals */
   globalThis?.window?.parent.postMessage({
     type: '_canvas_useswr_data_fetch',
     id: 'getSiteData()',
