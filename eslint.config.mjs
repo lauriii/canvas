@@ -17,6 +17,19 @@ const drupalGlobals = {
   drupalSettings: true,
 };
 
+const reactReduxRestrictedImport = {
+  name: 'react-redux',
+  importNames: ['useSelector', 'useStore', 'useDispatch'],
+  message: 'Please use pre-typed versions from `src/app/hooks.ts` instead.',
+};
+
+// Portable `drupal-canvas` code runs in Drupal-rendered pages, Workbench, and
+// Headless, so it must not depend on Drupal's browser globals. The settings
+// adapter and the legacy getters and client read them on behalf of the
+// integrations; see ADR 0021.
+const runtimePortabilityMessage =
+  'Portable drupal-canvas code runs in Drupal-rendered pages, Workbench, and Headless (ADR 0021): get data from context hooks or explicit arguments. Only integration adapters read Drupal settings. See .agents/skills/canvas-code-component-runtime-portability.';
+
 const isolatedPerTestPlugin = {
   rules: {
     'require-isolated-per-test-import': {
@@ -214,14 +227,7 @@ export default defineConfig([
       '@typescript-eslint/no-restricted-imports': [
         2,
         {
-          paths: [
-            {
-              name: 'react-redux',
-              importNames: ['useSelector', 'useStore', 'useDispatch'],
-              message:
-                'Please use pre-typed versions from `src/app/hooks.ts` instead.',
-            },
-          ],
+          paths: [reactReduxRestrictedImport],
         },
       ],
       'react-hooks/immutability': 'off',
@@ -276,6 +282,57 @@ export default defineConfig([
       react: {
         version: '18.2',
       },
+    },
+  },
+  {
+    // The settings adapter is the one module that reads `drupalSettings`.
+    files: ['packages/drupal-canvas/src/**/*.{ts,tsx}'],
+    ignores: ['**/*.test.*', 'packages/drupal-canvas/src/drupal-settings.ts'],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        {
+          globals: ['Drupal', 'drupalSettings'].map((name) => ({
+            name,
+            message: runtimePortabilityMessage,
+          })),
+          // Also `window.drupalSettings` and `globalThis?.drupalSettings`.
+          checkGlobalObject: true,
+        },
+      ],
+    },
+  },
+  {
+    // The package entry point re-exports the adapter and deprecated readers
+    // for the integrations that need them.
+    files: ['packages/drupal-canvas/src/**/*.{ts,tsx}'],
+    ignores: ['**/*.test.*', 'packages/drupal-canvas/src/index.ts'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          paths: [reactReduxRestrictedImport],
+          patterns: [
+            {
+              group: ['**/drupal-settings', '**/drupal-settings.js'],
+              allowTypeImports: true,
+              message: runtimePortabilityMessage,
+            },
+            {
+              group: ['**/drupal-utils', '**/drupal-utils.js'],
+              importNames: ['getPageData', 'getSiteData'],
+              allowTypeImports: true,
+              message: runtimePortabilityMessage,
+            },
+            {
+              group: ['**/jsonapi-client', '**/jsonapi-client.js'],
+              importNames: ['JsonApiClient'],
+              allowTypeImports: true,
+              message: runtimePortabilityMessage,
+            },
+          ],
+        },
+      ],
     },
   },
   {
