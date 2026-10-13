@@ -7,11 +7,13 @@ namespace Drupal\canvas_test_page\Hook;
 use Drupal\canvas\Entity\Page;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Url;
 
 readonly class CanvasTestPageHooks {
 
@@ -64,6 +66,32 @@ readonly class CanvasTestPageHooks {
     $info['non_existent_widget']['canvas'] = [
       'transforms' => [
         'diaclone' => [],
+      ],
+    ];
+  }
+
+  /**
+   * Implements hook_canvas_content_operation().
+   */
+  #[Hook('canvas_content_operation')]
+  public function canvasContentOperation(EntityInterface $entity): array {
+    if (!$this->state->get('canvas_test_page.content_operations', FALSE)) {
+      return [];
+    }
+    return [
+      'canvas_test_page_view' => [
+        'title' => new TranslatableMarkup('View on site'),
+        'url' => $entity->toUrl(),
+        'weight' => -10,
+      ],
+      'canvas_test_page_front' => [
+        'title' => new TranslatableMarkup('Front page'),
+        'url' => Url::fromRoute('<front>'),
+      ],
+      // The current user in tests lacks access to this route.
+      'canvas_test_page_admin' => [
+        'title' => new TranslatableMarkup('Administration'),
+        'url' => Url::fromRoute('system.admin'),
       ],
     ];
   }

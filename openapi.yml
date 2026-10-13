@@ -2117,6 +2117,13 @@ paths:
                             type: string
                           example:
                             edit-form: /canvas/editor/canvas_page/3
+                        linkLabels:
+                          type: object
+                          description: The labels of the operation links provided by other modules, keyed by link relation type.
+                          additionalProperties:
+                            type: string
+                          example:
+                            my_module_translate: Translate
                   meta:
                     type: object
                     description: Present for non-search requests only.
@@ -5833,6 +5840,13 @@ components:
             type: string
           examples:
             - edit-form: /canvas/editor/canvas_page/3
+        linkLabels:
+          type: object
+          description: The labels of the operation links provided by other modules, keyed by link relation type.
+          additionalProperties:
+            type: string
+          examples:
+            - my_module_translate: Translate
       examples:
         -
           id: 1

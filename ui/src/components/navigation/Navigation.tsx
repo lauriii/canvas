@@ -29,6 +29,7 @@ import EmptyStateCallout from '@/components/EmptyStateCallout';
 import InfiniteScrollObserver from '@/components/InfiniteScrollObserver';
 import { selectHomepagePath } from '@/features/configuration/configurationSlice';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
+import { getModuleOperations } from '@/utils/contentOperations';
 
 import type { FormEvent } from 'react';
 import type { ContentStub } from '@/types/Content';
@@ -138,18 +139,43 @@ const renderPublishButton = (
     </>
   ) : null;
 
-const renderDeleteButton = (
-  item: ContentStub,
-  onDelete?: (page: ContentStub) => void,
-) =>
-  hasPermission('delete', item) ? (
+const renderModuleOperations = (item: ContentStub) => {
+  const moduleOperations = getModuleOperations(item);
+  return moduleOperations.length ? (
     <>
       {shouldShowSeparator(item, [
         'edit',
         'homepage',
         'duplicate',
         'unpublish',
+        'publish',
       ]) && <DropdownMenu.Separator />}
+      {moduleOperations.map(({ rel, href, label }) => (
+        <DropdownMenu.Item
+          key={rel}
+          asChild
+          onClick={(event) => event.stopPropagation()}
+        >
+          <a href={href}>{label}</a>
+        </DropdownMenu.Item>
+      ))}
+    </>
+  ) : null;
+};
+
+const renderDeleteButton = (
+  item: ContentStub,
+  onDelete?: (page: ContentStub) => void,
+) =>
+  hasPermission('delete', item) ? (
+    <>
+      {(shouldShowSeparator(item, [
+        'edit',
+        'homepage',
+        'duplicate',
+        'unpublish',
+      ]) ||
+        getModuleOperations(item).length > 0) && <DropdownMenu.Separator />}
       <AlertDialog.Root>
         <AlertDialog.Trigger>
           <DropdownMenu.Item
@@ -284,6 +310,7 @@ const NavigationItem = ({
             {renderSetAsHomepageButton(item, onSetHomepage, homepagePath)}
             {renderUnpublishButton(item, onUnpublish)}
             {renderPublishButton(item, onPublish)}
+            {renderModuleOperations(item)}
             {renderDeleteButton(item, onDelete)}
           </DropdownMenu.Content>
         </DropdownMenu.Root>
