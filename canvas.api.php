@@ -13,7 +13,10 @@ use Drupal\canvas\PropExpressions\StructuredData\StructuredDataPropExpression;
 use Drupal\canvas\PropShape\CandidateStorablePropShape;
 use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Extension\ExtensionPathResolver;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Url;
 
 /**
  * @addtogroup hooks
@@ -139,6 +142,37 @@ function hook_canvas_importmap_alter(array &$import_maps): void {
 
   // Replace an existing global import with a custom build.
   $import_maps[ImportMapResponseAttachmentsProcessor::GLOBAL_IMPORTS]['clsx'] = \base_path() . $module_path . '/js/custom-clsx.js';
+}
+
+/**
+ * Declare operations to add to a content entity in the Canvas UI.
+ *
+ * The Canvas counterpart of hook_entity_operation(): the operations appear in
+ * the Canvas content list next to Canvas's own operations. Each operation is
+ * shown only when the current user has access to its URL.
+ *
+ * @param \Drupal\Core\Entity\EntityInterface $entity
+ *   The content entity on which the operations will be performed.
+ *
+ * @return array
+ *   An array of operations, keyed by a unique, module-prefixed name. The key
+ *   is used as the operation's link relation type. Each operation is an
+ *   associative array with the following key-value pairs:
+ *   - title: The localized title of the operation.
+ *   - url: An instance of \Drupal\Core\Url for the operation URL.
+ *   - weight: (optional) The weight of the operation. Defaults to 0.
+ *
+ * @see hook_entity_operation()
+ * @see \Drupal\canvas\Controller\ApiContentControllers::getEntityOperations()
+ */
+function hook_canvas_content_operation(EntityInterface $entity): array {
+  return [
+    'my_module_translate' => [
+      'title' => new TranslatableMarkup('Translate'),
+      'url' => Url::fromUri('base:my-translation-ui/' . $entity->id()),
+      'weight' => 50,
+    ],
+  ];
 }
 
 /**

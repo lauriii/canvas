@@ -15,6 +15,7 @@ use Drupal\canvas\Resource\OffsetPage;
 use Drupal\canvas\Utility\HomePageHelper;
 use Drupal\Component\Transliteration\TransliterationInterface;
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Component\Utility\SortArray;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
@@ -29,6 +30,7 @@ use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Http\Exception\CacheableAccessDeniedHttpException;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
@@ -71,6 +73,7 @@ final class ApiContentControllers extends ApiControllerBase {
     #[Autowire(service: 'transliteration')]
     private readonly TransliterationInterface $transliteration,
     private readonly HomePageHelper $homePageHelper,
+    private readonly ModuleHandlerInterface $moduleHandler,
   ) {}
 
   /**
@@ -480,6 +483,18 @@ final class ApiContentControllers extends ApiControllerBase {
       $has_unsaved_status_change = $autoSaveEntity->isPublished() !== $content_entity->isPublished();
     }
 
+    // Labels of the operations provided by hook_canvas_content_operation(), in
+    // weight order: the link collection itself is sorted by key.
+    $operations = [];
+    foreach ($linkCollection as $link) {
+      $attributes = $link->getTargetAttributes();
+      if (isset($attributes['label'])) {
+        $operations[$link->getLinkRelationType()] = $attributes + ['weight' => '0'];
+      }
+    }
+    \uasort($operations, [SortArray::class, 'sortByWeightElement']);
+    $link_labels = \array_map(static fn(array $operation): string => $operation['label'], $operations);
+
     $url_cacheability->addCacheableDependency($generated_url)
       ->addCacheableDependency($linkCollection)
       ->addCacheableDependency($autoSaveData);
@@ -506,6 +521,7 @@ final class ApiContentControllers extends ApiControllerBase {
       'autoSavePath' => $autoSavePath,
       // @see https://jsonapi.org/format/#document-links
       'links' => $linkCollection->asArray(),
+      ...($link_labels ? ['linkLabels' => $link_labels] : []),
     ];
   }
 
@@ -861,6 +877,25 @@ final class ApiContentControllers extends ApiControllerBase {
           $link_rel,
           new CanvasResourceLink($access, $this->getUrlFromRoute($content_entity, $route_name), $link_rel)
         );
+      }
+      else {
+        $links->addCacheableDependency($access);
+      }
+    }
+
+    $operations = $this->moduleHandler->invokeAll('canvas_content_operation', [$content_entity]);
+    foreach ($operations as $link_rel => $operation) {
+      $access = $operation['url']->access($this->currentUser, TRUE);
+      \assert($access instanceof AccessResult);
+      if ($access->isAllowed()) {
+        $links = $links->withLink(
+          $link_rel,
+          new CanvasResourceLink($access, $operation['url'], $link_rel, [
+            'label' => (string) $operation['title'],
+            'weight' => (string) ($operation['weight'] ?? 0),
+          ])
+        );
+        $links->addCacheContexts(['languages:language_interface']);
       }
       else {
         $links->addCacheableDependency($access);
