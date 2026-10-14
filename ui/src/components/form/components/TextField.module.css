@@ -46,3 +46,7 @@
 .autocomplete {
   padding-inline-start: 16px;
 }
+
+.autocompleteWrap .root.autocomplete {
+  background-position-x: calc(100% - 4px);
+}
