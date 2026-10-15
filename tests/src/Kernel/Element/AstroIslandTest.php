@@ -141,8 +141,8 @@ final class AstroIslandTest extends CanvasKernelTestBase {
     self::assertEquals('', $element->attr('ssr'));
     self::assertEquals('only', $element->attr('client'));
     self::assertJsonStringEqualsJsonString(Json::encode([
-      'text' => ['raw', 'Win a pony'],
-      'count' => ['raw', '3'],
+      'text' => Json::encode('Win a pony'),
+      'count' => Json::encode('3'),
     ]), $element->attr('props') ?? '');
     self::assertJsonStringEqualsJsonString(Json::encode([
       'name' => $component->label(),

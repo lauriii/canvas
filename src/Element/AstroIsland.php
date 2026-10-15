@@ -201,13 +201,14 @@ class AstroIsland extends RenderElementBase {
    * @param array<string, mixed> $element
    *   The render element.
    *
-   * @return array<string, array{string, mixed}>|\stdClass
-   *   Mapped props ready for JSON encoding. \stdClass when empty so the
-   *   encoded value is {} rather than [].
+   * @return array<string, string>|\stdClass
+   *   Mapped props ready for JSON encoding. Each prop value is itself a JSON
+   *   string so Astro can transport it without Astro-custom reviver tags.
+   *   \stdClass when empty so the encoded value is {} rather than [].
    */
   protected static function buildProps(array $element): array|\stdClass {
     $mapped = \array_map(
-      static fn(mixed $prop_value): array => ['raw', $prop_value],
+      static fn(mixed $prop_value): string => \json_encode($prop_value, JSON_THROW_ON_ERROR),
       \array_diff_key($element['#props'] ?? [], \array_flip(self::CANVAS_INTERNAL_PROP_KEYS))
     );
     return \count($mapped) === 0 ? new \stdClass() : $mapped;

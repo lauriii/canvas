@@ -147,7 +147,7 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
           'props',
           JSON.stringify({
             ...JSON.parse(component.getAttribute('props')!),
-            [e.propName]: ['raw', e.propValue],
+            [e.propName]: JSON.stringify(e.propValue),
           }),
         );
       };

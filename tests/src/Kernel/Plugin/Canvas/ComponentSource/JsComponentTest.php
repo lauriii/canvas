@@ -1130,10 +1130,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     // they should not be present as props in the canvas-island element.
     // Ternary because empty arrays are encoded as '[]' in Json::encode().
     $json_expected = (empty($expected_component_props)) ? '{}' :
-      Json::encode(\array_map(static fn(EvaluationResult $r): array => [
-        'raw',
-        $r->value,
-      ], $expected_component_props));
+      Json::encode(\array_map(static fn(EvaluationResult $r): string => Json::encode($r->value), $expected_component_props));
     self::assertJsonStringEqualsJsonString($json_expected, $element->attr('props') ?? '');
 
     // Assert rendered code component's JS.
@@ -2861,7 +2858,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
    */
   public static function providerHydrationAndRenderingEdgeCases(): array {
     $test_cases = parent::providerHydrationAndRenderingEdgeCases();
-    $test_cases['populated optional object prop'][2] = 'props="{&quot;image&quot;:[&quot;raw&quot;,{&quot;src&quot;:&quot;\/cat.jpg&quot;,&quot;alt&quot;:&quot;\ud83e\udd99&quot;,&quot;width&quot;:1,&quot;height&quot;:1}]}"';
+    $test_cases['populated optional object prop'][2] = 'props="{&quot;image&quot;:&quot;{\\&quot;src\\&quot;:\\&quot;\\\\\/cat.jpg\\&quot;,\\&quot;alt\\&quot;:\\&quot;\\\\ud83e\\\\udd99\\&quot;,\\&quot;width\\&quot;:1,\\&quot;height\\&quot;:1}&quot;}"';
     $test_cases['NULLish optional object prop'][2] = 'props="{}"';
     $test_cases['NULL optional object prop'][2] = 'props="{}"';
     return $test_cases;
