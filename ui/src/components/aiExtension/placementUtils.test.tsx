@@ -74,13 +74,22 @@ describe('decodeEntities', () => {
 
 describe('progressToHtml', () => {
   it('escapes the narration once, even when the model wrote entities', () => {
-    const html = progressToHtml('News &amp; events\n<b>', false);
+    const html = progressToHtml('News &amp; events\n<b>', 'running');
     expect(html).toBe(
       'News &amp; events<br>&lt;b&gt;<div class="aiProgressStatus"><span class="aiLoader"></span>Thinking</div>',
     );
   });
 
   it('switches the status row to finished', () => {
-    expect(progressToHtml('Done', true)).toContain('aiCompletedIcon');
+    expect(progressToHtml('Done', 'finished')).toContain('aiCompletedIcon');
+  });
+
+  it('gives a stopped turn its own status row, not the finished one', () => {
+    const html = progressToHtml('Half built', 'stopped');
+    expect(html).toBe(
+      'Half built<div class="aiProgressStatus"><span class="aiStoppedIcon"></span>Stopped</div>',
+    );
+    expect(html).not.toContain('aiCompletedIcon');
+    expect(html).not.toContain('aiLoader');
   });
 });

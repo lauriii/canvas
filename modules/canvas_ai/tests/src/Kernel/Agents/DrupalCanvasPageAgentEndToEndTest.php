@@ -378,7 +378,7 @@ final class DrupalCanvasPageAgentEndToEndTest extends CanvasKernelTestBase {
     // success sentence, shedding the UUIDs, predicted layout and guidance
     // that only served this turn. Both placements ran their tool during
     // this turn, so both results are trimmed.
-    $conversation = $this->container->get(CanvasAiTempStore::class)->getStoredConversationState('test-conversation');
+    $conversation = $this->container->get(CanvasAiTempStore::class)->getStoredConversationState('test-conversation', 'test-request');
     self::assertNotNull($conversation);
     $tool_messages = \array_values(\array_filter(
       $conversation['state']['chat_history'],
@@ -445,10 +445,11 @@ final class DrupalCanvasPageAgentEndToEndTest extends CanvasKernelTestBase {
       },
     );
 
-    // Turn 2 sends a new request_id under the same conversation_id, with the
-    // transcript the client holds: text only, as the wizard keeps it. The
-    // agent parks another edit_components call straight away, without reading
-    // the component again; the second hop runs it and closes the turn.
+    // Turn 2 sends a new request_id under the same conversation_id, naming
+    // turn 1 as the turn the client accepted, with the transcript the client
+    // holds: text only, as the wizard keeps it. The agent parks another
+    // edit_components call straight away, without reading the component
+    // again; the second hop runs it and closes the turn.
     // fixtures: tests/resources/ai_test/requests/chat/
     // drupal-canvas-page-agent-history-turn-2-hop-1.yml and -hop-2.yml.
     $layout['regions']['content']['components'][0]['props']['heading'] = 'Hello';
@@ -461,6 +462,7 @@ final class DrupalCanvasPageAgentEndToEndTest extends CanvasKernelTestBase {
       'current_layout' => $layout,
       'request_id' => 'turn-2',
       'conversation_id' => 'conversation-1',
+      'last_successful_request_id' => 'turn-1',
     ]);
     self::assertCount(2, $responses);
     self::assertSame('Changing the hero heading again now.', $responses[0]['progress']);

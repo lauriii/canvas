@@ -7,9 +7,12 @@
  * reports it is finished. Each hop's narration is rendered into a single
  * progress message, and the answer follows it on the final hop. Every turn
  * of one chat session is sent under one conversation_id, under which the
- * backend keeps the agent's own history between turns. Rendered instead of
- * AiWizard when drupalSettings.canvas.aiDevMode is set by the canvas_dev_ai
- * module.
+ * backend keeps the agent's own history between turns as checkpoints keyed
+ * by request_id. Each turn names the last turn this chat accepted as
+ * last_successful_request_id, and that is the checkpoint the backend
+ * resumes: a turn the user stopped is never named, so whatever it left on
+ * the server is never resumed. Rendered instead of AiWizard when
+ * drupalSettings.canvas.aiDevMode is set by the canvas_dev_ai module.
  */
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DeepChat } from 'deep-chat-react';
@@ -52,6 +55,7 @@ import type { CustomButton } from 'deep-chat/dist/types/customButton';
 import type { LayoutModelSliceState } from '@/features/layout/layoutModelSlice';
 import type { CodeComponent } from '@/types/CodeComponent';
 import type { CanvasComponent } from '@/types/Component';
+import type { ProgressStatus } from './placementUtils';
 
 import styles from './AiWizard.module.css';
 
@@ -249,6 +253,7 @@ const operationsHandler = {
     layoutUtils,
     componentSelectionUtils,
     onPlaced,
+    isStopped,
   }: {
     message: any;
     dispatch: any;
@@ -256,6 +261,7 @@ const operationsHandler = {
     layoutUtils: any;
     componentSelectionUtils: any;
     onPlaced: () => void;
+    isStopped: () => boolean;
   }) => {
     // Logic for placing components (SDCs/Blocks/Code components) to the editor frame.
     for (const op of message.operations) {
@@ -267,6 +273,11 @@ const operationsHandler = {
         availableComponents
       ) {
         for (const component of op.components) {
+          // The user may stop the turn while a batch is being placed, one
+          // component a second. What was placed stays; the rest never is.
+          if (isStopped()) {
+            return;
+          }
           if (component.id && availableComponents[component.id]) {
             const componentToUse: CanvasComponent =
               availableComponents[component.id];
@@ -304,16 +315,23 @@ const componentUpdatesHandler = {
     message,
     dispatch,
     layoutUtils,
+    isStopped,
   }: {
     message: any;
     dispatch: any;
     layoutUtils: any;
+    isStopped: () => boolean;
   }) => {
     // The edit_components tool returns prop changes keyed by component UUID;
     // apply each to the layout so the canvas reflects the edit.
     for (const [componentToUpdateId, values] of Object.entries(
       message.component_updates,
     )) {
+      // A stop lands between two edits the same way it lands between two
+      // placements: the rest of the batch is left unapplied.
+      if (isStopped()) {
+        return;
+      }
       await dispatch(
         layoutUtils.updateExistingComponentValues({
           componentToUpdateId,
@@ -433,7 +451,11 @@ const DEEP_CHAT_MESSAGE_STYLES = {
   },
 } as const;
 
+// The position is set explicitly: with a custom button in the inside-end
+// slot, deep-chat would otherwise move the submit button, and the loader that
+// replaces it while a turn runs, to outside-end, past the input's edge.
 const DEEP_CHAT_SUBMIT_BUTTON_STYLES = {
+  position: 'inside-end',
   disabled: {
     container: {
       default: {
@@ -459,17 +481,6 @@ const DEEP_CHAT_SUBMIT_BUTTON_STYLES = {
     `,
     },
   },
-  stop: {
-    svg: {
-      content: `
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M0 3C0 1.34315 1.34315 0 3 0H21C22.6569 0 24 1.34315 24 3V21C24 22.6569 22.6569 24 21 24H3C1.34315 24 0 22.6569 0 21V3Z" fill="#0090FF"/>
-        <rect width="16" height="16" transform="translate(4 4)" fill="white" fill-opacity="0.01"/>
-        <path fill-rule="evenodd" clip-rule="evenodd" d="M6.1333 7.19997C6.1333 6.61087 6.61087 6.1333 7.19997 6.1333H16.8C17.3891 6.1333 17.8666 6.61087 17.8666 7.19997V16.8C17.8666 17.3891 17.3891 17.8666 16.8 17.8666H7.19997C6.61087 17.8666 6.1333 17.3891 6.1333 16.8V7.19997ZM16.8 7.19997H7.19997V16.8H16.8V7.19997Z" fill="white"/>
-      </svg>
-    `,
-    },
-  },
 } as const;
 
 const DEEP_CHAT_AUXILIARY_STYLE = `
@@ -481,7 +492,7 @@ const DEEP_CHAT_AUXILIARY_STYLE = `
     align-items: center;
     padding-top: 8px;
   }
-  .aiLoader, .aiCompletedIcon {
+  .aiLoader, .aiCompletedIcon, .aiStoppedIcon {
     display: inline-block;
     box-sizing: border-box;
     vertical-align: middle;
@@ -516,6 +527,24 @@ const DEEP_CHAT_AUXILIARY_STYLE = `
     border: solid #30A46C;
     border-width: 0 1.5px 1.5px 0;
     transform: rotate(45deg);
+  }
+  /* A stopped turn reads as neutral, never as the green completed check: the
+     agent was interrupted with work still to do. */
+  .aiStoppedIcon {
+    position: relative;
+    width: 12px;
+    height: 12px;
+    border: 1.5px solid #8B8D98;
+    border-radius: 50%;
+  }
+  .aiStoppedIcon::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 3px;
+    height: 3px;
+    background-color: #8B8D98;
   }
   #chat-view:has(#messages:empty) {
     display: block;
@@ -588,6 +617,63 @@ const DEEP_CHAT_TOOL_BUTTON_DISABLED_STYLES = {
   },
 } as const;
 
+// Layout of the stop button, shared by its states: deep-chat unsets one
+// state's container styles before applying the next state's. deep-chat gives
+// every inside-end button the same absolute slot, so the wider right margin
+// is what places this one beside the submit button and its loader, which
+// keep the 8px slot, rather than on top of them.
+const DEEP_CHAT_STOP_BUTTON_CONTAINER = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginRight: '40px',
+  marginBottom: '12px',
+  cursor: 'pointer',
+} as const;
+
+// The stop button while a turn is running. The icon was previously an
+// override for deep-chat's own stop state, which the request path never
+// enters; the control that shows it is this one.
+const DEEP_CHAT_STOP_BUTTON_STYLES = {
+  container: {
+    default: DEEP_CHAT_STOP_BUTTON_CONTAINER,
+  },
+  svg: {
+    content: `
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 3C0 1.34315 1.34315 0 3 0H21C22.6569 0 24 1.34315 24 3V21C24 22.6569 22.6569 24 21 24H3C1.34315 24 0 22.6569 0 21V3Z" fill="#0090FF"/>
+      <rect width="16" height="16" transform="translate(4 4)" fill="white" fill-opacity="0.01"/>
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M6.1333 7.19997C6.1333 6.61087 6.61087 6.1333 7.19997 6.1333H16.8C17.3891 6.1333 17.8666 6.61087 17.8666 7.19997V16.8C17.8666 17.3891 17.3891 17.8666 16.8 17.8666H7.19997C6.61087 17.8666 6.1333 17.3891 6.1333 16.8V7.19997ZM16.8 7.19997H7.19997V16.8H16.8V7.19997Z" fill="white"/>
+    </svg>
+  `,
+  },
+} as const;
+
+// Idle: there is no turn to stop, so the button is not shown at all. The
+// entry stays in the customButtons array either way — removing it would
+// change the array's identity and re-render deep-chat, clearing the typed
+// prompt — so the idle state is a hidden one rather than a missing button.
+const DEEP_CHAT_STOP_BUTTON_HIDDEN_STYLES = {
+  container: {
+    default: {
+      ...DEEP_CHAT_STOP_BUTTON_CONTAINER,
+      display: 'none',
+    },
+  },
+} as const;
+
+// Closes a turn the user stopped. On the request path onResponse() is the
+// only thing that ends a turn, so the turn has to answer with something.
+const TURN_STOPPED_MESSAGE =
+  'You interrupted the agent. What would you like to change?';
+
+// The turn in flight: what the stop button and the unmount cleanup signal.
+type Turn = {
+  stopped: boolean;
+  placed: boolean;
+  answered: boolean;
+};
+
 // Memoized DeepChat so it only re-renders when its props change identity.
 const MemoDeepChat = memo(DeepChat);
 
@@ -648,9 +734,17 @@ const AiWizardDev = () => {
   const welcomeTextRef = useRef<HTMLSpanElement>(null);
   // AbortController to cancel ongoing requests when component unmounts
   const abortControllerRef = useRef<AbortController | null>(null);
-  // Ends the hop loop of the turn in flight. Aborting the fetch only rejects
-  // the request the loop is awaiting, so the loop is signalled separately.
-  const turnRef = useRef<{ stopped: boolean; placed: boolean } | null>(null);
+  // Ends the turn in flight: the hop loop, and a batch of operations the loop
+  // is applying. Aborting the fetch only rejects the request the loop is
+  // awaiting, so the loop and the batch are signaled separately.
+  const turnRef = useRef<Turn | null>(null);
+  // The request_id of the last turn this chat accepted: its final hop landed,
+  // its operations were applied without an error, and the user did not stop
+  // it. Every hop of the next turn names it as last_successful_request_id,
+  // the checkpoint the backend resumes. A stopped or failed turn leaves it
+  // unchanged. A mount is a conversation (see conversationId), so it starts
+  // empty, and the chat is only ever cleared by mounting.
+  const lastSuccessfulRequestIdRef = useRef('');
 
   // Ref for the values that cannot change during a turn: the route params and
   // the open code component.
@@ -692,13 +786,14 @@ const AiWizardDev = () => {
   // Cleanup effect to abort requests when component unmounts
   useEffect(() => {
     return () => {
-      // Abort any ongoing requests.
-      if (turnRef.current) {
-        turnRef.current.stopped = true;
+      // Abort any ongoing request, and end the turn the way the stop button
+      // does: a hop that lands after this is not applied to a chat that is
+      // gone.
+      const turn = turnRef.current;
+      if (turn && !turn.answered) {
+        turn.stopped = true;
       }
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
+      abortControllerRef.current?.abort();
     };
   }, []);
 
@@ -754,6 +849,9 @@ const AiWizardDev = () => {
                 turnRef.current.placed = true;
               }
             },
+            // Read at every step of a batch, so a stop pressed while the
+            // batch is being applied ends it there.
+            isStopped: () => turnRef.current?.stopped ?? false,
           });
         }
         return { text: message.message };
@@ -797,44 +895,86 @@ const AiWizardDev = () => {
   }, []);
   const dismissSelectedTool = useCallback(() => setSelectedTool(null), []);
 
+  // Ends the turn in flight. The hop the loop is awaiting is dropped and its
+  // result is never applied; a batch of operations being applied stops before
+  // its next component. So the page stops changing as soon as this runs, and
+  // the loop guards cover the case where that hop already landed. The server
+  // finishes the hop it is executing either way — the request cannot be
+  // recalled — and may store what it produced, but the next turn names the
+  // last accepted turn's checkpoint rather than this one's, so none of it is
+  // resumed. The backend is not told about the stop.
+  const stopTurn = useCallback(() => {
+    // deep-chat fires onClick in the hidden state too, so an idle chat has to
+    // ignore the click itself.
+    const turn = turnRef.current;
+    if (!isTurnInProgressRef.current || !turn) {
+      return;
+    }
+    turn.stopped = true;
+    abortControllerRef.current?.abort();
+  }, []);
+
   const activeTool = useMemo(
     () => tools.find((tool) => tool.id === selectedTool),
     [tools, selectedTool],
   );
 
-  // The Tools menu trigger, built only while tools are configured. Both
-  // dependencies are fixed for the life of the chat, so the array keeps a
-  // stable identity and never re-renders MemoDeepChat.
-  const customButtons = useMemo(
-    (): CustomButton[] | undefined =>
+  // The Tools menu trigger, built only while tools are configured.
+  const toolsButton = useMemo(
+    (): CustomButton | null =>
       tools.length > 0
-        ? [
-            {
-              position: 'inside-start',
-              styles: {
-                button: {
-                  default: DEEP_CHAT_TOOL_BUTTON_STYLES,
-                  disabled: DEEP_CHAT_TOOL_BUTTON_DISABLED_STYLES,
-                },
+        ? {
+            position: 'inside-start',
+            styles: {
+              button: {
+                default: DEEP_CHAT_TOOL_BUTTON_STYLES,
+                disabled: DEEP_CHAT_TOOL_BUTTON_DISABLED_STYLES,
               },
-              onClick: toggleToolSelector,
             },
-          ]
-        : undefined,
+            onClick: toggleToolSelector,
+          }
+        : null,
     [tools.length, toggleToolSelector],
   );
 
-  // Locks and unlocks the trigger with the turn. deep-chat adds `setState` to
-  // the button it was handed when it renders, so this switches the trigger's
-  // state without a new customButtons identity, which would re-render
-  // MemoDeepChat. A menu that is open when the turn starts is closed.
+  // The stop button, next to the submit button. Its hidden state is the
+  // initial one, so it is only shown once a turn is running.
+  const stopButton = useMemo(
+    (): CustomButton => ({
+      position: 'inside-end',
+      styles: {
+        button: {
+          default: DEEP_CHAT_STOP_BUTTON_STYLES,
+          disabled: DEEP_CHAT_STOP_BUTTON_HIDDEN_STYLES,
+        },
+      },
+      initialState: 'disabled',
+      onClick: stopTurn,
+    }),
+    [stopTurn],
+  );
+
+  // Every dependency is fixed for the life of the chat, so the array keeps a
+  // stable identity and never re-renders MemoDeepChat.
+  const customButtons = useMemo(
+    (): CustomButton[] =>
+      toolsButton ? [toolsButton, stopButton] : [stopButton],
+    [toolsButton, stopButton],
+  );
+
+  // Locks the Tools trigger and reveals the stop button for the length of the
+  // turn. deep-chat adds `setState` to the buttons it was handed when it
+  // renders, so this switches their states without a new customButtons
+  // identity, which would re-render MemoDeepChat. A menu that is open when
+  // the turn starts is closed.
   useEffect(() => {
     isTurnInProgressRef.current = isTurnInProgress;
-    customButtons?.[0]?.setState?.(isTurnInProgress ? 'disabled' : 'default');
+    toolsButton?.setState?.(isTurnInProgress ? 'disabled' : 'default');
+    stopButton.setState?.(isTurnInProgress ? 'default' : 'disabled');
     if (isTurnInProgress) {
       setIsToolSelectorOpen(false);
     }
-  }, [isTurnInProgress, customButtons]);
+  }, [isTurnInProgress, toolsButton, stopButton]);
 
   // Stable handler for DeepChat's connect prop. It reads up-to-date data via
   // refs (currentValuesRef, receiveMessageRef, csrfTokenRef, chatElementRef,
@@ -855,7 +995,7 @@ const AiWizardDev = () => {
       // so deep-chat never re-seeds the list mid-turn.
       let progressIndex = -1;
       let narration = '';
-      const renderProgress = (progress: string, isFinished: boolean) => {
+      const renderProgress = (progress: string, status: ProgressStatus) => {
         const chatEl = chatElementRef.current;
         // The final hop's narration is empty when everything the agent said
         // was its answer, so the last non-empty one is kept and re-rendered
@@ -864,7 +1004,7 @@ const AiWizardDev = () => {
         if (!chatEl || !narration) {
           return;
         }
-        const html = progressToHtml(narration, isFinished);
+        const html = progressToHtml(narration, status);
         withAutoScroll(chatEl, () => {
           if (progressIndex < 0) {
             chatEl.addMessage({ html, role: 'ai' });
@@ -874,6 +1014,12 @@ const AiWizardDev = () => {
           }
         });
       };
+
+      // The turn in flight. Declared out here so the cleanup in `finally` can
+      // reach it: a stopped turn leaves the loop through the catch or through
+      // the break below, and its placements need the same cleanup a turn that
+      // ran to the end gets.
+      let turn: Turn | null = null;
 
       try {
         const MAX_FILE_SIZE = drupalSettings?.canvas?.canvasAiMaxFileSize;
@@ -891,9 +1037,20 @@ const AiWizardDev = () => {
         // Identifies this chat turn. The controller keys the paused agent on
         // it, so every hop of the same turn must send the same value.
         const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+        // The checkpoint this turn resumes from, fixed for the turn. The
+        // backend keeps it beside the checkpoint this turn writes, so a turn
+        // that is stopped or fails leaves it in place for the next one.
+        const lastSuccessfulRequestId = lastSuccessfulRequestIdRef.current;
         const abortController = new AbortController();
         abortControllerRef.current = abortController;
-        const turn = { stopped: false, placed: false };
+        // `answered` records whether the agent's answer was delivered. Only
+        // the final hop has one, so a turn stopped before it still owes
+        // deep-chat a response.
+        turn = {
+          stopped: false,
+          placed: false,
+          answered: false,
+        };
         turnRef.current = turn;
         setIsTurnInProgress(true);
         // The component the user had selected when they sent the message is
@@ -929,6 +1086,7 @@ const AiWizardDev = () => {
           return {
             request_id: requestId,
             conversation_id: conversationId,
+            last_successful_request_id: lastSuccessfulRequestId,
             entity_type: current.params.entityType,
             entity_id: current.params.entityId,
             // Prefer the code-editor route param: it identifies the open
@@ -1005,44 +1163,91 @@ const AiWizardDev = () => {
                 'An error occurred while processing your request. Please try again.',
             );
           }
+          // A hop that lands after the user pressed stop is discarded whole:
+          // its narration is not shown and its operations are not applied.
+          // The abort usually rejects the fetch above before this is reached;
+          // this covers the press that arrives once the response already has.
+          if (turn.stopped) {
+            break;
+          }
           // The narration stays above the answer, and its status row spins
           // until the turn is finished.
-          renderProgress(data.progress, !data.should_continue);
+          renderProgress(
+            data.progress,
+            data.should_continue ? 'running' : 'finished',
+          );
           // Apply this hop's side effects: component placement, page data, code
           // component updates.
           const processedMessage = await receiveMessageRef.current(data);
+          // A stop pressed while this hop's operations were being applied
+          // ended the batch early. The turn closes on the stopped notice
+          // below, not on the agent's answer, and no further hop is sent.
+          if (turn.stopped) {
+            break;
+          }
           // Only the final hop has an answer for the user. Delivering a
           // response earlier would end the turn as far as deep-chat is
           // concerned, and stop its loader.
           if (!data.should_continue) {
             await signals.onResponse(processedMessage);
+            turn.answered = true;
+            // The turn is accepted: the next turn resumes the checkpoint this
+            // one wrote. A turn whose operations could not be applied answered
+            // with an error and is not accepted, which leaves the last
+            // accepted turn in place.
+            if (!(
+              'role' in processedMessage && processedMessage.role === 'error'
+            )) {
+              lastSuccessfulRequestIdRef.current = requestId;
+            }
           }
-        } while (data.should_continue && !turn.stopped);
+        } while (data.should_continue);
 
-        // Placing selects each component in turn. Once the build has landed,
-        // leave nothing selected: the editor route and the selection state
-        // must agree, or the contextual panel shows an empty form.
-        if (turn.placed) {
-          componentSelectionUtils.unsetSelectedComponent();
+        // A turn stopped after its hop had already landed leaves the loop
+        // here rather than through the catch, and still owes deep-chat a
+        // response. Unmount ends a batch the same way, and then there is no
+        // chat left to tell.
+        if (!turn.answered) {
+          renderProgress(narration, 'stopped');
+          if (chatElementRef.current) {
+            await signals.onResponse({ text: TURN_STOPPED_MESSAGE });
+          }
         }
       } catch (error: any) {
-        // Keep the narration, with its status row switched to finished.
-        renderProgress(narration, true);
-        // Don't show error if request was aborted intentionally
         if (error.name === 'AbortError') {
-          console.log('AI request was aborted');
-          return;
+          // The stop button drops the request the loop is awaiting. Keep the
+          // narration of the hops that did land, on a status row that reports
+          // stopped rather than finished, and close the turn on a notice
+          // instead of an error. Unmount aborts too, and then there is no
+          // chat left to tell.
+          renderProgress(narration, 'stopped');
+          if (chatElementRef.current) {
+            await signals.onResponse({ text: TURN_STOPPED_MESSAGE });
+          }
+        } else {
+          // Keep the narration, with its status row switched to finished.
+          renderProgress(narration, 'finished');
+          console.error('AI request failed:', error);
+          await signals.onResponse({
+            text: error.message
+              ? error.message
+              : 'An error occurred while processing your request. Please try again.',
+            role: 'error',
+          });
         }
-        console.error('AI request failed:', error);
-        await signals.onResponse({
-          text: error.message
-            ? error.message
-            : 'An error occurred while processing your request. Please try again.',
-          role: 'error',
-        });
       } finally {
-        // Also runs on the AbortError return above, so an unmounting turn
-        // cannot leave the selection locked.
+        // Placing selects each component in turn. Once the build has landed —
+        // or been stopped part way — leave nothing selected: the editor route
+        // and the selection state must agree, or the contextual panel shows an
+        // empty form.
+        if (turn?.placed) {
+          componentSelectionUtils.unsetSelectedComponent();
+        }
+        // The turn is over: neither the stop button nor the unmount cleanup
+        // has anything left to stop.
+        turnRef.current = null;
+        // Also runs when the turn was stopped or the component unmounted, so
+        // neither can leave the selection locked.
         setIsTurnInProgress(false);
       }
       setTimeout(() => {

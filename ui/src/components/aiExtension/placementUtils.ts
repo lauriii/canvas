@@ -88,8 +88,29 @@ export const decodeEntities = (text: string): string =>
   );
 
 /**
+ * How a turn ended, or that it is still running.
+ *
+ * A stopped turn is its own state rather than a finished one: the agent was
+ * interrupted with work still to do, and the completed icon would claim it
+ * finished that work.
+ */
+export type ProgressStatus = 'running' | 'finished' | 'stopped';
+
+/**
+ * The status row each state renders: its icon class and its label.
+ */
+const PROGRESS_STATUS_ROW: Record<
+  ProgressStatus,
+  { icon: string; label: string }
+> = {
+  running: { icon: 'aiLoader', label: 'Thinking' },
+  finished: { icon: 'aiCompletedIcon', label: 'Thinking' },
+  stopped: { icon: 'aiStoppedIcon', label: 'Stopped' },
+};
+
+/**
  * Builds the progress message: the agent's narration, above a status row that
- * spins until the turn is finished.
+ * spins until the turn is finished, and reports how it ended once it is.
  *
  * The narration is decoded, escaped and its newlines turned into line breaks.
  * The message is added as HTML rather than text so the backend leaves it out
@@ -99,13 +120,13 @@ export const decodeEntities = (text: string): string =>
  */
 export const progressToHtml = (
   progress: string,
-  isFinished: boolean,
+  status: ProgressStatus,
 ): string => {
   const narration = decodeEntities(progress)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/\n/g, '<br>');
-  const icon = isFinished ? 'aiCompletedIcon' : 'aiLoader';
-  return `${narration}<div class="aiProgressStatus"><span class="${icon}"></span>Thinking</div>`;
+  const { icon, label } = PROGRESS_STATUS_ROW[status];
+  return `${narration}<div class="aiProgressStatus"><span class="${icon}"></span>${label}</div>`;
 };
