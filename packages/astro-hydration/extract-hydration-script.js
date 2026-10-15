@@ -26,9 +26,6 @@ while ((match = scriptRegex.exec(html)) !== null) {
   scriptContents += match[1].trim() + '\n';
 }
 
-// Remove when https://github.com/withastro/astro/pull/13046 is merged upstream
-scriptContents = scriptContents.replace('{0:t=>', "{'raw':t=>t,0:t=>");
-
 scriptContents = `${scriptContents}\n${fs.readFileSync(elementPath, 'utf8')}\n`;
 
 // Write the script contents to hydration.js
