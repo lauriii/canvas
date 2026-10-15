@@ -24,10 +24,12 @@ class CanvasAiTempStore {
   private const AGENT_STATE_KEY_PREFIX = 'agent_state_';
 
   /**
-   * Key prefix for the agent state a conversation resumes from.
+   * Key prefix for the checkpoints a conversation's next turn resumes from.
    *
    * Keyed by the client-supplied conversation ID, in a key space of its own
-   * for the same reason as AGENT_STATE_KEY_PREFIX.
+   * for the same reason as AGENT_STATE_KEY_PREFIX. The entry holds at most
+   * two checkpoints, keyed by request ID: the one the last turn resumed from
+   * and the one it wrote.
    */
   private const CONVERSATION_STATE_KEY_PREFIX = 'conversation_state_';
 
@@ -140,18 +142,20 @@ class CanvasAiTempStore {
   }
 
   /**
-   * Gets the agent state a conversation resumes its next turn from.
+   * Gets the checkpoint a conversation's next turn resumes from.
    *
    * @param string $conversation_id
    *   The conversation ID identifying the chat session.
+   * @param string $request_id
+   *   The request ID of the turn whose checkpoint to resume: the turn the
+   *   client last accepted.
    *
    * @return array{agent_id: string, state: array}|null
-   *   The ID of the agent whose last turn ended the conversation and the state
-   *   as written by its ::toArray(), or NULL when the conversation has no turn
-   *   to resume from.
+   *   The ID of the agent that ran that turn and the state as written by its
+   *   ::toArray(), or NULL when the conversation holds no checkpoint for it.
    */
-  public function getStoredConversationState(string $conversation_id): ?array {
-    $record = $this->tempStore->get(self::CONVERSATION_STATE_KEY_PREFIX . $conversation_id);
+  public function getStoredConversationState(string $conversation_id, string $request_id): ?array {
+    $record = $this->getConversationCheckpoints($conversation_id)[$request_id] ?? NULL;
     if (!isset($record['agent_id'], $record['state'])) {
       return NULL;
     }
@@ -159,27 +163,43 @@ class CanvasAiTempStore {
   }
 
   /**
-   * Stores the agent state a conversation resumes its next turn from.
+   * Stores the checkpoint a turn ended with, for the conversation's next turn.
+   *
+   * The conversation keeps two checkpoints at most: the one this turn resumed
+   * from, which stays for as long as the client still names it, and this
+   * turn's own. Every other checkpoint is dropped. A turn the user stopped
+   * may still end on the server and write its checkpoint here; the client
+   * never names that turn, so the checkpoint is never resumed and goes on
+   * the next write.
    *
    * @param string $conversation_id
    *   The conversation ID identifying the chat session.
+   * @param string $request_id
+   *   The request ID of the turn that wrote the state.
    * @param string $agent_id
    *   The ID of the agent that ran the turn. Only that agent resumes the
    *   state: the history describes work the others never did.
    * @param array $state
    *   The state, as returned by the agent's ::toArray().
+   * @param string $resumed_request_id
+   *   The request ID of the turn this turn resumed from, or an empty string
+   *   when it started from the client transcript.
    *
    * @throws \Drupal\Core\TempStore\TempStoreException
    */
-  public function setStoredConversationState(string $conversation_id, string $agent_id, array $state): void {
-    $this->tempStore->set(self::CONVERSATION_STATE_KEY_PREFIX . $conversation_id, [
-      'agent_id' => $agent_id,
-      'state' => $state,
-    ]);
+  public function setStoredConversationState(string $conversation_id, string $request_id, string $agent_id, array $state, string $resumed_request_id = ''): void {
+    $checkpoints = $this->getConversationCheckpoints($conversation_id);
+    $stored = [
+      $request_id => ['agent_id' => $agent_id, 'state' => $state],
+    ];
+    if ($resumed_request_id !== $request_id && isset($checkpoints[$resumed_request_id])) {
+      $stored[$resumed_request_id] = $checkpoints[$resumed_request_id];
+    }
+    $this->tempStore->set(self::CONVERSATION_STATE_KEY_PREFIX . $conversation_id, $stored);
   }
 
   /**
-   * Removes the agent state a conversation would resume from.
+   * Removes every checkpoint a conversation holds.
    *
    * @param string $conversation_id
    *   The conversation ID identifying the chat session.
@@ -188,6 +208,20 @@ class CanvasAiTempStore {
    */
   public function deleteStoredConversationState(string $conversation_id): void {
     $this->tempStore->delete(self::CONVERSATION_STATE_KEY_PREFIX . $conversation_id);
+  }
+
+  /**
+   * Reads the checkpoints a conversation holds, keyed by request ID.
+   *
+   * @param string $conversation_id
+   *   The conversation ID identifying the chat session.
+   *
+   * @return array<string, array>
+   *   The checkpoints, empty when the conversation holds none.
+   */
+  private function getConversationCheckpoints(string $conversation_id): array {
+    $record = $this->tempStore->get(self::CONVERSATION_STATE_KEY_PREFIX . $conversation_id);
+    return \is_array($record) ? $record : [];
   }
 
 }

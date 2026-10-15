@@ -43,10 +43,11 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
  * the agent pauses after each tool decision and the client re-POSTs until
  * it reports finished. A conversation is several turns under one
  * conversation_id: when the site opts in on the Agents & Tools form, the
- * agent's own history, tool calls and results included, is kept when a turn
- * ends and resumed by the next, with each placement result cut to its success
- * sentence. Otherwise every turn is seeded from the client transcript, which
- * carries text only.
+ * agent's own history, tool calls and results included, is kept as a
+ * checkpoint when a turn ends, with each placement result cut to its success
+ * sentence. The client names the turn it last accepted, and the next turn
+ * resumes that checkpoint. Otherwise every turn is seeded from the client
+ * transcript, which carries text only.
  *
  * @internal
  */
@@ -437,40 +438,48 @@ final class CanvasDevAiBuilder extends ControllerBase {
 
     // The conversation's earlier turns left the agent's own history, every
     // tool call and tool result included. Resume from it rather than from
-    // the client transcript, which carries text only. Only the agent that
-    // wrote that history resumes it: to any other agent it describes work it
-    // never did. Selecting a different Tool between turns is allowed, so that
-    // case seeds from the transcript instead of failing the turn.
+    // the client transcript, which carries text only. The client names the
+    // turn it last accepted, and only that turn's checkpoint is resumed: a
+    // turn the user stopped may still have ended on the server and stored
+    // one, but the client never names it. Only the agent that wrote the
+    // history resumes it: to any other agent it describes work it never did.
+    // Selecting a different Tool between turns is allowed, so that case
+    // seeds from the transcript instead of failing the turn.
     // @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::render()
-    $conversation_id = self::getConversationId($prompt);
-    $conversation = $conversation_id !== '' && $this->keepsToolCallsInHistory()
-      ? $this->canvasAiTempStore->getStoredConversationState($conversation_id)
-      : NULL;
-    if ($conversation !== NULL && $conversation['agent_id'] === $agent_id) {
-      // The loop counter is serialized with the state and drives three things
-      // in the agent: the chat input is appended to the history on loop 1
-      // only, the progress thread is started at loop 0 only, and max_loops
-      // is compared against it. Start this turn from 0 so the new message is
-      // read, its narration is recorded, and the ceiling bounds this turn.
-      // @see \Drupal\ai_agents\PluginBase\AiAgentEntityWrapper::determineSolvability()
-      // @see \Drupal\ai_agents\EventSubscriber\AgentStatusSubscriber
-      $resumed = $conversation['state'];
-      $resumed['looped'] = 0;
-      $agent->fromArray($resumed);
-      return;
+    if ($this->keepsToolCallsInHistory()) {
+      $conversation = $this->canvasAiTempStore->getStoredConversationState(
+        self::getConversationId($prompt),
+        self::getLastSuccessfulRequestId($prompt),
+      );
+      if ($conversation !== NULL && $conversation['agent_id'] === $agent_id) {
+        // The loop counter is serialized with the state and drives three
+        // things in the agent: the chat input is appended to the history on
+        // loop 1 only, the progress thread is started at loop 0 only, and
+        // max_loops is compared against it. Start this turn from 0 so the new
+        // message is read, its narration is recorded, and the ceiling bounds
+        // this turn.
+        // @see \Drupal\ai_agents\PluginBase\AiAgentEntityWrapper::determineSolvability()
+        // @see \Drupal\ai_agents\EventSubscriber\AgentStatusSubscriber
+        $resumed = $conversation['state'];
+        $resumed['looped'] = 0;
+        $agent->fromArray($resumed);
+        return;
+      }
     }
     $agent->setChatHistory($this->canvasAiChatHelper->getFilteredChatHistory($messages));
   }
 
   /**
-   * Keeps the agent's history for the conversation's next turn.
+   * Keeps the agent's history as the checkpoint the next turn resumes from.
    *
    * Called when a turn ended with the agent finished. Nothing is kept unless
    * the site opted in. A state still carrying a tool call the agent parked but
    * never ran cannot reach here: parking one leaves the agent unfinished, and
    * an unfinished turn stores its own state for the next hop instead. The
    * placement results in the kept history are cut to their success sentence,
-   * as the rest of their text only serves the turn that already ended.
+   * as the rest of their text only serves the turn that already ended. The
+   * checkpoint this turn resumed from stays beside the new one: should the
+   * client not accept this turn, the next one still names that checkpoint.
    *
    * @param array $prompt
    *   The decoded prompt.
@@ -493,7 +502,13 @@ final class CanvasDevAiBuilder extends ControllerBase {
       $this->canvasAiTempStore->deleteStoredConversationState($conversation_id);
       return;
     }
-    $this->canvasAiTempStore->setStoredConversationState($conversation_id, $agent_id, self::trimKeptToolResults($agent->toArray()));
+    $this->canvasAiTempStore->setStoredConversationState(
+      $conversation_id,
+      $prompt['request_id'],
+      $agent_id,
+      self::trimKeptToolResults($agent->toArray()),
+      self::getLastSuccessfulRequestId($prompt),
+    );
   }
 
   /**
@@ -561,6 +576,28 @@ final class CanvasDevAiBuilder extends ControllerBase {
   private static function getConversationId(array $prompt): string {
     $conversation_id = $prompt['conversation_id'] ?? '';
     return \is_string($conversation_id) ? $conversation_id : '';
+  }
+
+  /**
+   * Reads the request ID of the turn the client last accepted.
+   *
+   * The dev wizard sends it with every hop of a turn: the last turn whose
+   * final hop landed, whose operations it applied, and which the user did not
+   * stop. That turn's checkpoint is the one the new turn resumes. Only the
+   * client knows whether a turn was accepted — a turn the user stopped may
+   * still have ended on the server — so it is the client that names the
+   * checkpoint, and a turn it never names is never resumed.
+   *
+   * @param array $prompt
+   *   The decoded prompt.
+   *
+   * @return string
+   *   The request ID, or an empty string when the client accepted no turn of
+   *   this conversation yet, or sent none.
+   */
+  private static function getLastSuccessfulRequestId(array $prompt): string {
+    $request_id = $prompt['last_successful_request_id'] ?? '';
+    return \is_string($request_id) ? $request_id : '';
   }
 
   /**
