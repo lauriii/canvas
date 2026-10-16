@@ -135,6 +135,18 @@ Storing these as separate `field prop`s simplifies supporting both symmetric and
 
 (Drupal's Content Translation module natively supports configuring this.)
 
+Canvas enforces the symmetric `translation_sync` configuration for `component tree` fields site-wide: whether a
+translation diverges is a per-entity, per-translation decision instead of a per-field, site-wide one. With the
+experimental `canvas_dev_translation` module installed, every translatable content entity type gains the translatable,
+revisionable `canvas_component_tree_fork` boolean base field (default `FALSE`). A translation whose flag is `TRUE` is
+_forked_: it owns an independent `component tree` and is excluded from symmetric synchronization in both directions —
+saving the default translation leaves the forked tree untouched, and saving the forked translation propagates nothing
+outward. The flag on the default translation is ignored, and one flag covers all `component tree` fields on the entity.
+Forking flips the flag on the translation's auto-save draft (symmetric mode already stores identical tree rows per
+translation, so the current state is the fork seed); unforking destructively re-syncs the translation from the default
+translation, preserving its translatable input values for `component instance`s that still exist in the default tree.
+See `\Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork::isForkedTranslation()`.
+
 The same 6 `field prop`s are also stored for `component instance`s stored in config entities. This allows them to be
 loaded into `ComponentTreeItem` objects and then treated (validated etc) identically to `component instance`s stored in
 content entities.
