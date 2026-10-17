@@ -71,8 +71,9 @@ export default defineNuxtConfig({
 ```
 
 Local font files are bundled by Vite. Provider fonts resolve over the network at
-build time, as `canvas push` does. The stylesheet updates in development when
-`canvas.brand-kit.json` changes.
+build time, as `canvas push` does. The stylesheet is generated into
+`.canvas/brand-kit.css`; keep `.canvas/` out of Git. It updates in development
+when `canvas.brand-kit.json` changes.
 
 ## Editor origins and CSP
 

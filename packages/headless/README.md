@@ -312,12 +312,14 @@ mostly wiring:
    boundaries, use `hasCanvasPreviewContentRegion()` to avoid emitting a second
    pair.
 
-5. Provide the brand kit stylesheet: the shared Vite plugin serves
-   `virtual:@drupal-canvas/headless/brand-kit.css`; otherwise write
-   `buildBrandKitStylesheet({ stylesheetPath })` from
-   `@drupal-canvas/headless/component-registry` to `stylesheetPath`. Local font
-   URLs are relative to it, so the app's bundler emits the font files.
-   Regenerate it when `canvas.brand-kit.json` changes.
+5. Provide the brand kit stylesheet: the shared Vite plugin writes
+   `.canvas/brand-kit.css` and resolves
+   `virtual:@drupal-canvas/headless/brand-kit.css` to it; otherwise call
+   `writeBrandKitStylesheet({ stylesheetPath })` from
+   `@drupal-canvas/headless/component-registry` (`BRAND_KIT_STYLESHEET_PATH` is
+   the conventional location). Local font URLs are relative to the file, so the
+   app's bundler emits the font files. Rewrite it when `canvas.brand-kit.json`
+   changes.
 
 6. Wire the client side: render the `<canvas-draft-session>` element, or the
    React `<DraftSession>` from `@drupal-canvas/headless-react`, with the session
