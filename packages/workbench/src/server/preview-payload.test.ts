@@ -10,6 +10,7 @@ import {
   bundleInteractivePreview,
   resolvePreviewSiteData,
   withBrandKitColorCss,
+  withBrandKitFontCss,
 } from './preview-payload';
 
 import type { Spec } from '@json-render/core';
@@ -877,6 +878,57 @@ props:
       expect(withBrandKitColorCss(projectRoot, 'body { margin: 0; }')).toBe(
         'body { margin: 0; }',
       );
+    });
+  });
+
+  describe('withBrandKitFontCss', () => {
+    it('prepends @font-face rules with local font files inlined as data URLs', async () => {
+      const projectRoot = await makeTemporaryDirectory();
+      await writeFile(
+        path.join(projectRoot, 'fonts/brand-sans.woff2'),
+        Buffer.from('woff2-bytes'),
+      );
+      await writeFile(
+        path.join(projectRoot, 'canvas.brand-kit.json'),
+        JSON.stringify({
+          fonts: {
+            families: [
+              {
+                name: 'Brand Sans',
+                src: 'fonts/brand-sans.woff2',
+                weights: ['100 900'],
+              },
+              { name: 'Missing', src: 'fonts/missing.woff2' },
+            ],
+          },
+        }),
+      );
+
+      expect(
+        await withBrandKitFontCss(
+          projectRoot,
+          withBrandKitColorCss(projectRoot, 'body { margin: 0; }'),
+        ),
+      ).toBe(
+        [
+          '@font-face {',
+          "  font-family: 'Brand Sans';",
+          `  src: url('data:font/woff2;base64,${Buffer.from('woff2-bytes').toString('base64')}') format('woff2');`,
+          '  font-weight: 100 900;',
+          '  font-style: normal;',
+          '  font-display: swap;',
+          '}',
+          '',
+          'body { margin: 0; }',
+        ].join('\n'),
+      );
+    });
+
+    it('returns the CSS unchanged when the project has no brand kit fonts', async () => {
+      const projectRoot = await makeTemporaryDirectory();
+      expect(
+        await withBrandKitFontCss(projectRoot, 'body { margin: 0; }'),
+      ).toBe('body { margin: 0; }');
     });
   });
 });

@@ -13,8 +13,8 @@ import type {
 } from './preview-contract';
 
 /**
- * Stable structural fingerprint for discovery + manifest: brand kit CSS URL,
- * global CSS URL, sorted component names, sorted page slugs, sorted
+ * Stable structural fingerprint for discovery + manifest: brand kit fonts
+ * and colors CSS URLs, global CSS URL, sorted component names, sorted page slugs, sorted
  * content-template slugs, and sorted page-template ids. Content edits to an
  * existing JSON file should not change this string.
  */
@@ -22,6 +22,7 @@ export function computeWorkbenchStructuralFingerprint(
   discovery: DiscoveryResult,
   manifest: PreviewManifest,
 ): string {
+  const brandKitFontsCss = manifest.brandKitFontsCssUrl ?? '';
   const brandKitCss = manifest.brandKitCssUrl ?? '';
   const globalCss = manifest.globalCssUrl ?? '';
   const componentNames = [...discovery.components]
@@ -40,7 +41,7 @@ export function computeWorkbenchStructuralFingerprint(
     .map((pageTemplate) => pageTemplate.id)
     .sort()
     .join('\0');
-  return `${brandKitCss}\n${globalCss}\n${componentNames}\n${pageSlugs}\n${contentTemplateSlugs}\n${pageTemplateIds}`;
+  return `${brandKitFontsCss}\n${brandKitCss}\n${globalCss}\n${componentNames}\n${pageSlugs}\n${contentTemplateSlugs}\n${pageTemplateIds}`;
 }
 
 export function shouldHideComponentPreviewFrame(

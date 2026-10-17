@@ -144,6 +144,7 @@ describe('preview-contract', () => {
     expect(manifest.components[0].mocks).toEqual([]);
     expect(manifest.globalCssUrl).toBeNull();
     expect(manifest.brandKitCssUrl).toBeNull();
+    expect(manifest.brandKitFontsCssUrl).toBeNull();
     expect(manifest.warnings).toHaveLength(1);
   });
 

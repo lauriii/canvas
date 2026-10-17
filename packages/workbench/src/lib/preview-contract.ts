@@ -63,6 +63,8 @@ export interface PreviewManifest {
   warnings: PreviewWarning[];
   globalCssUrl: string | null;
   brandKitCssUrl: string | null;
+  /** Brand kit `@font-face` stylesheet, loaded before the colors one. */
+  brandKitFontsCssUrl: string | null;
 }
 
 /** Parent tells the preview iframe to refetch discovery/manifest without remounting (e.g. after page JSON save). */
@@ -244,6 +246,7 @@ export function buildPreviewManifest(
     warnings: discoveryResult.warnings,
     globalCssUrl: null,
     brandKitCssUrl: null,
+    brandKitFontsCssUrl: null,
   };
 }
 
