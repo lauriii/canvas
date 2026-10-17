@@ -42,6 +42,30 @@ export type {
   ColorTokenValue,
   NormalizedBrandKitColor,
 } from './brand-kit-colors';
+export {
+  FONT_PROVIDERS,
+  brandKitFontResolveOptions,
+  buildBrandKitFontCss,
+  createBrandKitFontResolver,
+  fontFormatLabel,
+  fontVariantKey,
+  normalizeBrandKitFonts,
+  readBrandKitFonts,
+  resolveBrandKitFontFaces,
+  resolvedFontFaceWeight,
+  selectResolvedFontFaces,
+} from './brand-kit-fonts';
+export type {
+  BrandKitFontFace,
+  FontAxisDefaults,
+  FontDefaults,
+  FontFamilyEntry,
+  FontProvider,
+  FontProviderOptions,
+  FontsConfig,
+  LocalFontFamilyEntry,
+  ProviderFontFamilyEntry,
+} from './brand-kit-fonts';
 export { DEFAULT_CANVAS_CONFIG, resolveCanvasConfig } from './config';
 export type { CanvasConfigWarning } from './config';
 export { detectHeadlessSdk } from './detect-headless-sdk';

@@ -29,6 +29,7 @@
     "@drupal-canvas/json-schema-validation": "*",
     "glob": "^13.0.1",
     "ignore": "^7.0.5",
+    "unifont": "^0.8.3",
     "yaml": "^2.8.3"
   },
   "devDependencies": {
