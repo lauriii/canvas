@@ -16,3 +16,5 @@ declare module 'virtual:@drupal-canvas/headless/components' {
 }
 
 declare module 'virtual:@drupal-canvas/headless/global.css' {}
+
+declare module 'virtual:@drupal-canvas/headless/brand-kit.css' {}
