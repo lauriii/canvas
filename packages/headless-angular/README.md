@@ -61,16 +61,20 @@ CLI:
 }
 ```
 
-The command generates two modules; ignore both in Git:
+The command generates these files; ignore them in Git:
 
 - `src/canvas-components.generated.ts`: browser-safe component registry.
 - `src/canvas-manifest.generated.ts`: metadata imported **only by server.ts**.
+- `src/canvas-brand-kit.generated.css`: the fonts and colors from
+  `canvas.brand-kit.json`, the CSS Drupal generates for the site's brand kit.
+  Add it to the `styles` array in `angular.json`. Provider fonts resolve over
+  the network, as `canvas push` does.
 
-The watcher handles component/config changes, additions, renames and deletions.
-Invalid initial metadata fails the command; watch errors recover on valid edits.
-Angular CLI handles generated-source updates through its normal reload pipeline.
-Production metadata is bundled into the server and needs no component sources or
-runtime filesystem discovery.
+The watcher handles component/config changes, additions, renames and deletions,
+and `canvas.brand-kit.json` changes. Invalid initial metadata fails the command;
+watch errors recover on valid edits. Angular CLI handles generated-source
+updates through its normal reload pipeline. Production metadata is bundled into
+the server and needs no component sources or runtime filesystem discovery.
 
 ## Server and routing
 
