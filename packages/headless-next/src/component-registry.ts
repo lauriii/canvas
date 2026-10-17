@@ -6,12 +6,12 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import {
-  buildBrandKitStylesheet,
+  BRAND_KIT_STYLESHEET_PATH,
   buildComponentRegistryModule,
+  writeBrandKitStylesheet as writeHeadlessBrandKitStylesheet,
 } from '@drupal-canvas/headless/component-registry';
 
 const NEXT_COMPONENT_REGISTRY_PATH = '.canvas/components.ts';
-const NEXT_BRAND_KIT_CSS_PATH = '.canvas/brand-kit.css';
 
 /** Writes Next.js's generated registry and returns its absolute path. */
 export async function writeComponentRegistryModule(
@@ -27,23 +27,19 @@ export async function writeComponentRegistryModule(
 
 /**
  * Writes the generated brand kit stylesheet and returns its absolute path.
- * It is written even when empty, so the app's import always resolves.
  */
 export async function writeBrandKitStylesheet(
   projectRoot: string,
 ): Promise<string> {
-  const stylesheetPath = path.resolve(projectRoot, NEXT_BRAND_KIT_CSS_PATH);
-  await writeIfChanged(
+  const stylesheetPath = path.resolve(projectRoot, BRAND_KIT_STYLESHEET_PATH);
+  await writeHeadlessBrandKitStylesheet({
+    projectRoot,
     stylesheetPath,
-    await buildBrandKitStylesheet({
-      projectRoot,
-      stylesheetPath,
-      onFontError: (family, error) =>
-        console.warn(
-          `[canvas] Could not resolve brand kit font "${family}": ${String(error)}`,
-        ),
-    }),
-  );
+    onFontError: (family, error) =>
+      console.warn(
+        `[canvas] Could not resolve brand kit font "${family}": ${String(error)}`,
+      ),
+  });
   return stylesheetPath;
 }
 
