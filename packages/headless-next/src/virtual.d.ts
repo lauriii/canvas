@@ -4,3 +4,5 @@ declare module '@drupal-canvas/headless-next-generated-components' {
   const components: CanvasComponentRegistry;
   export default components;
 }
+
+declare module '@drupal-canvas/headless-next-generated-brand-kit.css' {}

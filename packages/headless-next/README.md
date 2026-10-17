@@ -155,6 +155,20 @@ import { CanvasComponentTree } from '@drupal-canvas/headless-next/CanvasComponen
 implementation, and the renderer consumes it automatically. During development
 the registry updates when components are added, removed, or renamed.
 
+**7. Brand kit** — import the brand kit stylesheet in the root layout, next to
+the global CSS. `withCanvas()` generates it from `canvas.brand-kit.json` into
+`.canvas/brand-kit.css`: the fonts and colors Drupal generates for the site's
+brand kit.
+
+```tsx
+// app/layout.tsx
+import '@drupal-canvas/headless-next-generated-brand-kit.css';
+```
+
+Local font files are bundled by Next.js. Provider fonts resolve over the network
+at build time, as `canvas push` does. The stylesheet updates in development when
+`canvas.brand-kit.json` changes.
+
 `CanvasComponentTree` keeps its `'use client'` boundary: registered components
 render on the server for the initial HTML and hydrate in the browser, where
 hooks and interactivity run. `context={page.context}` lets components read the
