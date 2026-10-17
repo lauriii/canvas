@@ -4,10 +4,12 @@ import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  buildBrandKitStylesheet,
   buildComponentRegistryModule,
   resolveComponentRegistrySourcePaths,
 } from './component-registry';
 import {
+  CANVAS_BRAND_KIT_CSS_MODULE_ID,
   CANVAS_COMPONENTS_MODULE_ID,
   CANVAS_GLOBAL_CSS_MODULE_ID,
   canvasComponentRegistry,
@@ -112,6 +114,7 @@ describe('component implementation registry', () => {
       configPath: path.join(root, 'canvas.config.json'),
       componentRoot: path.join(root, 'components/canvas'),
       globalCssPath: path.join(root, 'styles/global.css'),
+      brandKitPath: path.join(root, 'canvas.brand-kit.json'),
     });
   });
 
@@ -172,6 +175,7 @@ describe('component implementation registry', () => {
 
     expect(add).toHaveBeenCalledWith([
       path.join(root, 'canvas.config.json'),
+      path.join(root, 'canvas.brand-kit.json'),
       path.join(root, 'src/components'),
     ]);
 
@@ -184,5 +188,52 @@ describe('component implementation registry', () => {
     expect(invalidateMain).toHaveBeenCalledOnce();
     expect(invalidateClient).toHaveBeenCalledOnce();
     expect(send).toHaveBeenCalledWith({ type: 'full-reload' });
+
+    onChange?.('change', path.join(root, 'canvas.brand-kit.json'));
+    await vi.advanceTimersByTimeAsync(50);
+    expect(send).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('brand kit stylesheet', () => {
+  const BRAND_KIT = JSON.stringify({
+    fonts: { families: [{ name: 'Brand Sans', src: 'fonts/brand.woff2' }] },
+    colors: { 'brand-red': '#cc0000' },
+  });
+
+  it('references local fonts relative to the generated stylesheet, fonts before colors', async () => {
+    const root = await makeProjectRoot();
+    await writeFile(path.join(root, 'canvas.brand-kit.json'), BRAND_KIT);
+
+    const css = await buildBrandKitStylesheet({
+      projectRoot: root,
+      stylesheetPath: path.join(root, '.canvas/brand-kit.css'),
+    });
+
+    expect(css).toContain("src: url('../fonts/brand.woff2') format('woff2');");
+    expect(css.indexOf('@font-face')).toBeLessThan(css.indexOf(':root'));
+    expect(css).toContain('--brand-red: #cc0000;');
+  });
+
+  it('is empty without a brand kit file', async () => {
+    const root = await makeProjectRoot();
+    expect(
+      await buildBrandKitStylesheet({
+        projectRoot: root,
+        stylesheetPath: path.join(root, 'brand-kit.css'),
+      }),
+    ).toBe('');
+  });
+
+  it('provides the stylesheet through the shared Vite module', async () => {
+    const root = await makeProjectRoot();
+    await writeFile(path.join(root, 'canvas.brand-kit.json'), BRAND_KIT);
+    const plugin = canvasComponentRegistry({ projectRoot: root });
+    const resolvedId = plugin.resolveId(CANVAS_BRAND_KIT_CSS_MODULE_ID);
+
+    // A project-root path, not a \0 id, so Vite resolves the font URLs.
+    expect(path.dirname(resolvedId!)).toBe(root);
+    const css = await plugin.load.call({ warn: vi.fn() }, resolvedId!);
+    expect(css).toContain("src: url('./fonts/brand.woff2') format('woff2');");
   });
 });

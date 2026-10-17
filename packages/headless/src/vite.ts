@@ -7,6 +7,7 @@
 import path from 'node:path';
 
 import {
+  buildBrandKitStylesheet,
   buildComponentRegistryModule,
   resolveComponentRegistrySourcePaths,
 } from './component-registry';
@@ -21,7 +22,21 @@ export const CANVAS_COMPONENTS_MODULE_ID =
 export const CANVAS_GLOBAL_CSS_MODULE_ID =
   'virtual:@drupal-canvas/headless/global.css';
 
+/**
+ * Virtual module with the brand kit stylesheet generated from the app's
+ * canvas.brand-kit.json (fonts, then colors). Import it next to the app's
+ * global CSS.
+ */
+export const CANVAS_BRAND_KIT_CSS_MODULE_ID =
+  'virtual:@drupal-canvas/headless/brand-kit.css';
+
 const RESOLVED_CANVAS_COMPONENTS_MODULE_ID = `\0${CANVAS_COMPONENTS_MODULE_ID}`;
+
+/**
+ * The brand kit module resolves to a path in the project root, not a `\0` id,
+ * so Vite resolves its relative font URLs and emits the font files.
+ */
+const BRAND_KIT_CSS_FILENAME = '__canvas-brand-kit.css';
 
 type RegistryWatchEvent = 'add' | 'addDir' | 'change' | 'unlink' | 'unlinkDir';
 
@@ -52,7 +67,10 @@ export interface CanvasComponentRegistryVitePlugin {
   configResolved(config: { root: string }): void;
   configureServer(server: ComponentRegistryViteDevServer): void;
   resolveId(id: string): string | undefined;
-  load(id: string): Promise<string | undefined>;
+  load(
+    this: { warn(message: string): void },
+    id: string,
+  ): Promise<string | undefined>;
 }
 
 interface ComponentRegistryViteDevServer {
@@ -100,17 +118,31 @@ export function canvasComponentRegistry(
         return resolveComponentRegistrySourcePaths({ projectRoot })
           .globalCssPath;
       }
+      if (id === CANVAS_BRAND_KIT_CSS_MODULE_ID) {
+        return path.join(projectRoot, BRAND_KIT_CSS_FILENAME);
+      }
       return undefined;
     },
     async load(id) {
-      return id === RESOLVED_CANVAS_COMPONENTS_MODULE_ID
-        ? buildComponentRegistryModule({ projectRoot })
-        : undefined;
+      if (id === RESOLVED_CANVAS_COMPONENTS_MODULE_ID) {
+        return buildComponentRegistryModule({ projectRoot });
+      }
+      if (id === path.join(projectRoot, BRAND_KIT_CSS_FILENAME)) {
+        return buildBrandKitStylesheet({
+          projectRoot,
+          stylesheetPath: id,
+          onFontError: (family, error) =>
+            this.warn(
+              `[canvas] Could not resolve brand kit font "${family}": ${String(error)}`,
+            ),
+        });
+      }
+      return undefined;
     },
   };
 }
 
-/** Invalidates the generated virtual registry after structural changes. */
+/** Invalidates the generated virtual modules after structural or brand kit changes. */
 function configureComponentRegistryWatcher(
   server: ComponentRegistryViteDevServer,
   getProjectRoot: () => string,
@@ -119,7 +151,11 @@ function configureComponentRegistryWatcher(
     projectRoot: getProjectRoot(),
   });
   let timer: ReturnType<typeof setTimeout> | undefined;
-  server.watcher.add([sourcePaths.configPath, sourcePaths.componentRoot]);
+  server.watcher.add([
+    sourcePaths.configPath,
+    sourcePaths.brandKitPath,
+    sourcePaths.componentRoot,
+  ]);
 
   const refresh = () => {
     server.moduleGraph.invalidateAll();
@@ -143,7 +179,11 @@ function configureComponentRegistryWatcher(
       sourcePaths = resolveComponentRegistrySourcePaths({
         projectRoot: getProjectRoot(),
       });
-      server.watcher.add([sourcePaths.configPath, sourcePaths.componentRoot]);
+      server.watcher.add([
+        sourcePaths.configPath,
+        sourcePaths.brandKitPath,
+        sourcePaths.componentRoot,
+      ]);
     }
     if (timer) {
       clearTimeout(timer);
@@ -166,7 +206,10 @@ function isRegistryStructureChange(
   sourcePaths: ComponentRegistrySourcePaths,
 ): boolean {
   const absolutePath = path.resolve(filePath);
-  if (absolutePath === sourcePaths.configPath) {
+  if (
+    absolutePath === sourcePaths.configPath ||
+    absolutePath === sourcePaths.brandKitPath
+  ) {
     return true;
   }
 

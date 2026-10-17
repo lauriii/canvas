@@ -75,7 +75,8 @@
   },
   "dependencies": {
     "@drupal-api-client/json-api-client": "^1.4.1",
-    "drupal-canvas": "^0.7.1"
+    "drupal-canvas": "^0.7.1",
+    "unifont": "^0.8.3"
   },
   "devDependencies": {
     "@drupal-canvas/discovery": "*",
