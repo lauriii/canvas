@@ -60,6 +60,20 @@ The module supplies a registry of every discovered component implementation, and
 the renderer consumes it automatically. During development the registry updates
 when components are added, removed, or renamed.
 
+**4. Brand kit** — add the brand kit stylesheet to the app's CSS. It holds the
+fonts and colors from `canvas.brand-kit.json`, the CSS Drupal generates for the
+site's brand kit:
+
+```ts
+export default defineNuxtConfig({
+  css: ['virtual:@drupal-canvas/headless/brand-kit.css'],
+});
+```
+
+Local font files are bundled by Vite. Provider fonts resolve over the network at
+build time, as `canvas push` does. The stylesheet updates in development when
+`canvas.brand-kit.json` changes.
+
 ## Editor origins and CSP
 
 By default, `frame-ancestors` admits `'self'`, the `CANVAS_SITE_URL` origin and

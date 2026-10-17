@@ -63,3 +63,11 @@ default `status: false` does synchronize, and Drupal records it, but it is not
 offered for placement. Check `machineName` too: left at the default
 `hello-world`, a second component collides with the first. Reload the editor
 afterwards, since components synchronize when the editor loads.
+
+### Why don't Brand Kit fonts or colors appear on my frontend?
+
+Drupal does not send its Brand Kit CSS to headless frontends. The frontend
+builds it from its own `canvas.brand-kit.json`, which
+`canvas pull --include-brand-kit` keeps in sync. Import the brand kit stylesheet
+next to your global CSS, as your adapter's README describes. For example,
+`virtual:@drupal-canvas/headless/brand-kit.css` with Vite-based adapters.
