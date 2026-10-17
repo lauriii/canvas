@@ -1,6 +1,10 @@
 import { randomUUID } from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
+import {
+  brandKitFontResolveOptions,
+  selectResolvedFontFaces,
+} from '@drupal-canvas/discovery';
 
 import { downloadResolvedFaces } from './font-downloader.js';
 import { extractVariableFontAxes } from './font-metadata.js';
@@ -14,7 +18,6 @@ import {
 import { createFontResolver } from './font-resolver.js';
 import { validateFontsConfig } from './font-validate.js';
 
-import type { FontFaceData, ResolveFontOptions } from 'unifont';
 import type { Config, FontFamilyEntry, FontsConfig } from '../../config.js';
 import type { ApiService } from '../../services/api.js';
 import type {
@@ -78,54 +81,6 @@ function buildExistingVariantMap(
 }
 
 /**
- * Normalizes weights from config: uses weights array or falls back to defaults.
- */
-function normalizeWeights(
-  entry: FontFamilyEntry,
-  defaults: FontsConfig['defaults'],
-): string[] {
-  if (entry.weights?.length) {
-    return entry.weights.map((w) => String(w).trim().toLowerCase());
-  }
-  return (defaults?.weights ?? ['400']).map((v) =>
-    String(v).trim().toLowerCase(),
-  );
-}
-
-/**
- * Normalizes styles from config: uses styles array or falls back to defaults.
- */
-function normalizeStyles(
-  entry: FontFamilyEntry,
-  defaults: FontsConfig['defaults'],
-): ResolveFontOptions['styles'] {
-  if (entry.styles?.length) {
-    return entry.styles.map((s) => s) as ResolveFontOptions['styles'];
-  }
-  return (defaults?.styles ?? ['normal']) as ResolveFontOptions['styles'];
-}
-
-function mergeResolveOptions(
-  defaults: FontsConfig['defaults'],
-  entry: FontFamilyEntry,
-): ResolveFontOptions {
-  const weights = normalizeWeights(entry, defaults);
-  const styles = normalizeStyles(entry, defaults);
-  // When the family does not set subsets, use a single subset only. Otherwise
-  // defaults or provider defaults can pull in many subsets (e.g. 100+ for CJK).
-  const subsets =
-    entry.subsets && entry.subsets.length > 0 ? entry.subsets : ['latin'];
-  // Pass only the options we need; unifont merges with its defaultResolveOptions.
-  // This avoids requesting unnecessary variants.
-  return {
-    weights,
-    styles,
-    subsets,
-    formats: ['woff2'],
-  };
-}
-
-/**
  * Process one family entry: resolve (unifont or local src), then upload and build font entries.
  * Reuses existing variant entries from existingByKey when the variant key matches (no upload).
  */
@@ -172,7 +127,7 @@ async function processFamily(
   }
 
   // Provider-based: resolve via unifont, then filter to only requested (weight, style) and download.
-  const options = mergeResolveOptions(config.defaults, entry);
+  const options = brandKitFontResolveOptions(config.defaults, entry);
   const resolved = await unifont.resolveFont(entry.name, options);
   if (!resolved?.fonts?.length) {
     throw new Error(
@@ -180,41 +135,7 @@ async function processFamily(
     );
   }
 
-  const requestedVariantKeys = new Set<string>();
-  for (const w of options.weights) {
-    for (const s of options.styles) {
-      requestedVariantKeys.add(variantKey(entry.name, w, s));
-      // Variable font faces from providers (e.g. npm @fontsource-variable) report weight as [min, max]; we take weight[0]. So a config range "100 900" must also match the face key with weight "100".
-      if (typeof w === 'string' && w.includes(' ')) {
-        const rangeMin = w.split(/\s+/)[0];
-        if (rangeMin) {
-          requestedVariantKeys.add(variantKey(entry.name, rangeMin, s));
-        }
-      }
-    }
-  }
-
-  const weightFromFace = (face: FontFaceData): string =>
-    face.weight === undefined
-      ? '400'
-      : Array.isArray(face.weight)
-        ? face.weight.join(' ')
-        : String(face.weight);
-  const styleFromFace = (face: FontFaceData): string => face.style ?? 'normal';
-
-  const facesMatchingRequest = resolved.fonts.filter((face) =>
-    requestedVariantKeys.has(
-      variantKey(entry.name, weightFromFace(face), styleFromFace(face)),
-    ),
-  );
-
-  // One face per (weight, style); unifont may return many per key (e.g. one per subset).
-  const oneFacePerVariant = new Map<string, FontFaceData>();
-  for (const face of facesMatchingRequest) {
-    const k = variantKey(entry.name, weightFromFace(face), styleFromFace(face));
-    if (!oneFacePerVariant.has(k)) oneFacePerVariant.set(k, face);
-  }
-  const fontsToUse = Array.from(oneFacePerVariant.values());
+  const fontsToUse = selectResolvedFontFaces(entry, options, resolved.fonts);
 
   const downloaded: DownloadedFace[] = await downloadResolvedFaces(fontsToUse);
   const tempPaths: string[] = [];

@@ -1,6 +1,9 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { BRAND_KIT_SCHEMA_URL } from '@drupal-canvas/discovery';
+import {
+  BRAND_KIT_SCHEMA_URL,
+  fontVariantKey as variantKey,
+} from '@drupal-canvas/discovery';
 
 import { BRAND_KIT_CONFIG_FILENAME } from '../../config.js';
 import { FONT_EXTENSIONS, normalizeFontFormat } from './font-extensions.js';
@@ -25,27 +28,7 @@ function validateFontFormat(entryFormat: string, url: string): string {
   );
 }
 
-/**
- * Normalizes family, weight, and style into a single comparable key.
- */
-export function variantKey(
-  family: string,
-  weight: string | number,
-  style: string | number,
-): string {
-  const f = String(family || '')
-    .trim()
-    .toLowerCase();
-  const w =
-    String(weight ?? '400')
-      .trim()
-      .toLowerCase() || '400';
-  const s =
-    String(style ?? 'normal')
-      .trim()
-      .toLowerCase() || 'normal';
-  return `${f}\0${w}\0${s}`;
-}
+export { variantKey };
 
 function toWeightStrings(entry: FontFamilyEntry): string[] {
   if (entry.weights?.length) {
