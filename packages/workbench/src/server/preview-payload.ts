@@ -6,12 +6,10 @@ import { fileURLToPath } from 'node:url';
 import { canvasTreeToSpec } from 'drupal-canvas/json-render-utils';
 import { loadEnv, build as viteBuild } from 'vite';
 import {
-  buildBrandKitColorCss,
-  buildBrandKitFontCss,
+  buildBrandKitCss,
   discoverCanvasProject,
+  fontFileDataUrl,
   readBrandKitColors,
-  readBrandKitFonts,
-  resolveBrandKitFontFaces,
   resolveCanvasConfig,
 } from '@drupal-canvas/discovery';
 import {
@@ -450,53 +448,20 @@ function buildPreviewBootstrapScript(
 }
 
 /**
- * Prepends the brand kit color custom property block from the project's
- * canvas.brand-kit.json to bundled preview CSS, matching the dev server's
- * ordering (brand kit colors before the host global CSS).
+ * Prepends the project's brand kit stylesheet (canvas.brand-kit.json fonts,
+ * then colors) to bundled preview CSS, matching the dev server's ordering
+ * (brand kit before the host global CSS). Local font files are inlined as
+ * data URLs, like other bundled preview assets, so the HTML stays
+ * self-contained; provider fonts keep their provider URLs.
  */
-export function withBrandKitColorCss(projectRoot: string, css: string): string {
-  const brandKitCss = buildBrandKitColorCss(readBrandKitColors(projectRoot));
-  return brandKitCss ? `${brandKitCss}\n\n${css}` : css;
-}
-
-/**
- * Prepends `@font-face` rules for the project's canvas.brand-kit.json fonts
- * to preview CSS, matching the site's ordering (brand kit fonts before
- * colors). Local font files are inlined as data URLs, like other bundled
- * preview assets, so the HTML stays self-contained; provider fonts keep
- * their provider URLs. Unreadable local files and unresolvable families are
- * skipped.
- */
-export async function withBrandKitFontCss(
+export async function withBrandKitCss(
   projectRoot: string,
   css: string,
 ): Promise<string> {
-  const fonts = readBrandKitFonts(projectRoot);
-  if (!fonts) {
-    return css;
-  }
-  const faces = await resolveBrandKitFontFaces(fonts, projectRoot);
-  const inlinedFaces = await Promise.all(
-    faces.map(async ({ path: filePath, ...face }) => {
-      if (filePath === undefined) {
-        return face;
-      }
-      try {
-        const data = await fs.readFile(filePath);
-        return {
-          ...face,
-          url: `data:font/${face.format};base64,${data.toString('base64')}`,
-        };
-      } catch {
-        return null;
-      }
-    }),
-  );
-  const fontCss = buildBrandKitFontCss(
-    inlinedFaces.filter((face) => face !== null),
-    () => '',
-  );
-  return fontCss ? `${fontCss}\n\n${css}` : css;
+  const brandKitCss = await buildBrandKitCss(projectRoot, {
+    localFontUrl: fontFileDataUrl,
+  });
+  return brandKitCss ? `${brandKitCss}\n\n${css}` : css;
 }
 
 export function buildIframeHtml(
@@ -1181,10 +1146,7 @@ export async function buildPreviewPayload(
 
     const iframeHtml = buildIframeHtml(
       bundleResult.js,
-      await withBrandKitFontCss(
-        options.projectRoot,
-        withBrandKitColorCss(options.projectRoot, bundleResult.css),
-      ),
+      await withBrandKitCss(options.projectRoot, bundleResult.css),
       runtimeSettings,
       bundleResult.siteData,
     );

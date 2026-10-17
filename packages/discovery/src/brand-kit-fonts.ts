@@ -3,7 +3,11 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createUnifont, providers } from 'unifont';
 
-import { BRAND_KIT_CONFIG_FILENAME } from './brand-kit-colors';
+import {
+  BRAND_KIT_CONFIG_FILENAME,
+  buildBrandKitColorCss,
+  readBrandKitColors,
+} from './brand-kit-colors';
 
 import type { FontFaceData, ResolveFontOptions, Unifont } from 'unifont';
 
@@ -317,31 +321,84 @@ export function fontFormatLabel(format: string): string {
   );
 }
 
+/** URL for a local font face; may read or copy the file. */
+export type BrandKitLocalFontUrl = (
+  face: BrandKitFontFace & { path: string },
+) => string | Promise<string>;
+
 /**
  * Builds `@font-face` rules in family order, in the same shape as the
  * site's generated brand kit CSS (`BrandKit::buildFontFaceRule()`). Local
- * faces get their URL from `localUrl` (e.g. a dev server path or a data
- * URL); an empty result is the empty string.
+ * faces get their URL from `localUrl`: a dev server path, a path relative to
+ * a generated stylesheet, or a data URL. Faces whose `localUrl` throws (e.g.
+ * an unreadable file) are skipped; an empty result is the empty string.
  */
-export function buildBrandKitFontCss(
+export async function buildBrandKitFontCss(
   faces: BrandKitFontFace[],
-  localUrl: (face: BrandKitFontFace & { path: string }) => string,
-): string {
-  return faces
-    .map((face) => {
-      const url =
-        face.path !== undefined
-          ? localUrl(face as BrandKitFontFace & { path: string })
-          : face.url;
+  localUrl: BrandKitLocalFontUrl,
+): Promise<string> {
+  const rules = await Promise.all(
+    faces.map(async (face) => {
+      let url = face.url ?? '';
+      if (face.path !== undefined) {
+        try {
+          url = await localUrl(face as BrandKitFontFace & { path: string });
+        } catch {
+          return null;
+        }
+      }
       return [
         '@font-face {',
         `  font-family: '${escapeCssString(face.family)}';`,
-        `  src: url('${escapeCssString(url ?? '')}') format('${fontFormatLabel(face.format)}');`,
+        `  src: url('${escapeCssString(url)}') format('${fontFormatLabel(face.format)}');`,
         `  font-weight: ${face.weight};`,
         `  font-style: ${face.style};`,
         '  font-display: swap;',
         '}',
       ].join('\n');
-    })
+    }),
+  );
+  return rules.filter((rule) => rule !== null).join('\n\n');
+}
+
+/**
+ * Reads a local font face into a `data:font/<format>;base64,` URL, for
+ * self-contained HTML. Throws when the file cannot be read.
+ */
+export async function fontFileDataUrl(
+  face: BrandKitFontFace & { path: string },
+): Promise<string> {
+  const data = await fs.readFile(face.path);
+  return `data:font/${face.format};base64,${data.toString('base64')}`;
+}
+
+/**
+ * Builds the brand kit stylesheet for a project from canvas.brand-kit.json:
+ * `@font-face` rules, then the colors `:root` block, the order of the site's
+ * generated brand kit CSS. Framework-agnostic (Node only): callers choose how
+ * local font files are referenced through `localFontUrl`. Provider families
+ * need network access; families that fail to resolve are skipped and reported
+ * through `onFontError`. Lenient: a missing or malformed file yields `''`.
+ */
+export async function buildBrandKitCss(
+  projectRoot: string,
+  options: {
+    localFontUrl: BrandKitLocalFontUrl;
+    onFontError?: (family: string, error: unknown) => void;
+    resolver?: Pick<Unifont<any>, 'resolveFont'>;
+  },
+): Promise<string> {
+  const fonts = readBrandKitFonts(projectRoot);
+  const fontCss = fonts
+    ? await buildBrandKitFontCss(
+        await resolveBrandKitFontFaces(fonts, projectRoot, {
+          resolver: options.resolver,
+          onError: options.onFontError,
+        }),
+        options.localFontUrl,
+      )
+    : '';
+  return [fontCss, buildBrandKitColorCss(readBrandKitColors(projectRoot))]
+    .filter((css) => css !== '')
     .join('\n\n');
 }

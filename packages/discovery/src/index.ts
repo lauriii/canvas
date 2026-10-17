@@ -45,8 +45,10 @@ export type {
 export {
   FONT_PROVIDERS,
   brandKitFontResolveOptions,
+  buildBrandKitCss,
   buildBrandKitFontCss,
   createBrandKitFontResolver,
+  fontFileDataUrl,
   fontFormatLabel,
   fontVariantKey,
   normalizeBrandKitFonts,
@@ -57,6 +59,7 @@ export {
 } from './brand-kit-fonts';
 export type {
   BrandKitFontFace,
+  BrandKitLocalFontUrl,
   FontAxisDefaults,
   FontDefaults,
   FontFamilyEntry,

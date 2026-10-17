@@ -6,7 +6,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BRAND_KIT_CONFIG_FILENAME } from './brand-kit-colors';
 import {
   brandKitFontResolveOptions,
+  buildBrandKitCss,
   buildBrandKitFontCss,
+  fontFileDataUrl,
   normalizeBrandKitFonts,
   readBrandKitFonts,
   resolveBrandKitFontFaces,
@@ -202,8 +204,8 @@ describe('resolveBrandKitFontFaces', () => {
 });
 
 describe('buildBrandKitFontCss', () => {
-  it('emits @font-face rules in the site brand kit CSS shape', () => {
-    const css = buildBrandKitFontCss(
+  it('emits @font-face rules in the site brand kit CSS shape', async () => {
+    const css = await buildBrandKitFontCss(
       [
         {
           family: "Brand's Sans",
@@ -243,8 +245,85 @@ describe('buildBrandKitFontCss', () => {
     );
   });
 
-  it('returns an empty string when nothing renders', () => {
-    expect(buildBrandKitFontCss([], () => '')).toBe('');
+  it('skips local faces whose URL cannot be built', async () => {
+    const css = await buildBrandKitFontCss(
+      [
+        {
+          family: 'Missing',
+          weight: '400',
+          style: 'normal',
+          format: 'woff2',
+          path: '/project/fonts/missing.woff2',
+        },
+      ],
+      () => Promise.reject(new Error('ENOENT')),
+    );
+    expect(css).toBe('');
+  });
+
+  it('returns an empty string when nothing renders', async () => {
+    expect(await buildBrandKitFontCss([], () => '')).toBe('');
+  });
+});
+
+describe('fontFileDataUrl', () => {
+  it('reads a local font file into a data URL', async () => {
+    const root = await makeTempDir();
+    tempDirs.push(root);
+    const filePath = path.join(root, 'brand.woff');
+    await fs.writeFile(filePath, 'font-bytes');
+    expect(
+      await fontFileDataUrl({
+        family: 'Brand',
+        weight: '400',
+        style: 'normal',
+        format: 'woff',
+        path: filePath,
+      }),
+    ).toBe(
+      `data:font/woff;base64,${Buffer.from('font-bytes').toString('base64')}`,
+    );
+  });
+});
+
+describe('buildBrandKitCss', () => {
+  it('emits fonts before colors, with local URLs relative to a generated stylesheet', async () => {
+    const root = await makeTempDir();
+    tempDirs.push(root);
+    await fs.writeFile(
+      path.join(root, BRAND_KIT_CONFIG_FILENAME),
+      JSON.stringify({
+        fonts: { families: [{ name: 'Brand', src: 'fonts/brand.woff2' }] },
+        colors: { 'brand-red': '#cc0000' },
+      }),
+      'utf-8',
+    );
+    // A framework adapter writing the stylesheet to .canvas/brand-kit.css,
+    // so the app's own bundler resolves the font file.
+    const cssDirectory = path.join(root, '.canvas');
+    const css = await buildBrandKitCss(root, {
+      localFontUrl: (face) =>
+        path.relative(cssDirectory, face.path).split(path.sep).join('/'),
+    });
+    expect(css).toBe(
+      [
+        '@font-face {',
+        "  font-family: 'Brand';",
+        "  src: url('../fonts/brand.woff2') format('woff2');",
+        '  font-weight: 400;',
+        '  font-style: normal;',
+        '  font-display: swap;',
+        '}',
+        '',
+        ':root {\n  --brand-red: #cc0000;\n}',
+      ].join('\n'),
+    );
+  });
+
+  it('returns an empty string without a brand kit file', async () => {
+    const root = await makeTempDir();
+    tempDirs.push(root);
+    expect(await buildBrandKitCss(root, { localFontUrl: () => '' })).toBe('');
   });
 });
 
