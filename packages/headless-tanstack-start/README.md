@@ -111,6 +111,29 @@ The `canvas()` plugin supplies a registry of every discovered component
 implementation, and the renderer consumes it automatically. During development
 the registry updates when components are added, removed, or renamed.
 
+**6. Brand kit** — import the brand kit stylesheet in the root route, next to
+the global CSS. It holds the fonts and colors from `canvas.brand-kit.json`, the
+CSS Drupal generates for the site's brand kit:
+
+```tsx
+// src/routes/__root.tsx
+import 'virtual:@drupal-canvas/headless/brand-kit.css';
+```
+
+To link it like the app's own stylesheet instead, import it with `?url` and add
+it to the root route's `head()` links before the global CSS:
+
+```tsx
+import brandKitCss from 'virtual:@drupal-canvas/headless/brand-kit.css?url';
+
+// head: () => ({ links: [{ rel: 'stylesheet', href: brandKitCss }, ...] })
+```
+
+Both forms are linked in the server-rendered HTML. Local font files are bundled
+by Vite. Provider fonts resolve over the network at build time, as `canvas push`
+does. The stylesheet is generated into `.canvas/brand-kit.css`; keep `.canvas/`
+out of Git. It updates in development when `canvas.brand-kit.json` changes.
+
 ## Editor origins and CSP
 
 By default, `frame-ancestors` admits `'self'`, the `CANVAS_SITE_URL` origin and

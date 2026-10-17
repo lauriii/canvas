@@ -84,6 +84,7 @@ const mkCssUrls = (
   m: PreviewManifest,
   comps: DiscoveredComponent[],
 ): string[] => [
+  ...(m.brandKitFontsCssUrl ? [m.brandKitFontsCssUrl] : []),
   ...(m.brandKitCssUrl ? [m.brandKitCssUrl] : []),
   ...(m.globalCssUrl ? [m.globalCssUrl] : []),
   ...comps
@@ -903,6 +904,9 @@ export function App() {
         const cssUrls = selectedComponentMock
           ? mkCssUrls(previewManifest, discoveryResult?.components ?? [])
           : [
+              ...(previewManifest.brandKitFontsCssUrl
+                ? [previewManifest.brandKitFontsCssUrl]
+                : []),
               ...(previewManifest.brandKitCssUrl
                 ? [previewManifest.brandKitCssUrl]
                 : []),

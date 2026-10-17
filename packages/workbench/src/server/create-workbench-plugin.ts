@@ -3,11 +3,14 @@ import path from 'node:path';
 import {
   BRAND_KIT_CONFIG_FILENAME,
   buildBrandKitColorCss,
+  buildBrandKitFontCss,
   ComponentMetadataValidationError,
   discoverCanvasProject,
   loadComponentMetadata,
   loadComponentsMetadata,
   readBrandKitColors,
+  readBrandKitFonts,
+  resolveBrandKitFontFaces,
 } from '@drupal-canvas/discovery';
 import {
   ensureHostGlobalCssExists,
@@ -28,6 +31,7 @@ import {
   buildPreviewManifest,
   markPreviewManifestComponentMetadataInvalid,
 } from '../lib/preview-contract';
+import { toViteFsUrl } from '../lib/preview-runtime';
 import {
   toDiscoveredContentTemplateName,
   toDiscoveredPageName,
@@ -584,6 +588,10 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
   const virtualBrandKitCssId = 'virtual:canvas-brand-kit.css';
   const resolvedVirtualBrandKitCssId = '\0virtual:canvas-brand-kit.css';
   const brandKitCssVirtualUrl = '/@id/virtual:canvas-brand-kit.css';
+  const virtualBrandKitFontsCssId = 'virtual:canvas-brand-kit-fonts.css';
+  const resolvedVirtualBrandKitFontsCssId =
+    '\0virtual:canvas-brand-kit-fonts.css';
+  const brandKitFontsCssVirtualUrl = '/@id/virtual:canvas-brand-kit-fonts.css';
 
   const refresh = async () => {
     if (refreshTask) {
@@ -620,13 +628,37 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
         return resolvedVirtualBrandKitCssId;
       }
 
+      if (source === virtualBrandKitFontsCssId) {
+        return resolvedVirtualBrandKitFontsCssId;
+      }
+
       return null;
     },
-    load(id) {
+    async load(id) {
       if (id === resolvedVirtualBrandKitCssId) {
         // Lenient by design: a missing or malformed brand kit file yields an
         // empty stylesheet rather than a dev-server error.
         return buildBrandKitColorCss(readBrandKitColors(paths.hostProjectRoot));
+      }
+
+      if (id === resolvedVirtualBrandKitFontsCssId) {
+        // Same leniency as the colors stylesheet. Local font files are served
+        // from disk; provider families resolve to their provider URLs.
+        const fonts = readBrandKitFonts(paths.hostProjectRoot);
+        if (!fonts) {
+          return '';
+        }
+        const faces = await resolveBrandKitFontFaces(
+          fonts,
+          paths.hostProjectRoot,
+          {
+            onError: (family, error) =>
+              this.warn(
+                `Could not resolve brand kit font "${family}": ${String(error)}`,
+              ),
+          },
+        );
+        return buildBrandKitFontCss(faces, (face) => toViteFsUrl(face.path));
       }
 
       if (id !== resolvedVirtualHostGlobalCssId || !hostGlobalCssPath) {
@@ -763,6 +795,7 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
                 ? getWorkbenchHostGlobalCssVirtualUrl()
                 : null,
               brandKitCssUrl: brandKitCssVirtualUrl,
+              brandKitFontsCssUrl: brandKitFontsCssVirtualUrl,
             }),
           );
         })().catch((error) => {
@@ -929,15 +962,19 @@ export function createWorkbenchPlugin(paths: WorkbenchPaths): Plugin {
         }
 
         if (path.basename(filePath) === BRAND_KIT_CONFIG_FILENAME) {
-          // A brand kit edit affects both the generated stylesheet and the
-          // resolved color prop values (cssColorValue, cssVariable, colorName).
-          // Reload the CSS module first, then refresh the manifest to re-resolve
-          // color props with the updated brand kit colors.
-          const brandKitModule = server.moduleGraph.getModuleById(
+          // A brand kit edit affects both generated stylesheets (fonts and
+          // colors) and the resolved color prop values (cssColorValue,
+          // cssVariable, colorName). Reload the CSS modules first, then
+          // refresh the manifest to re-resolve color props with the updated
+          // brand kit colors.
+          for (const moduleId of [
+            resolvedVirtualBrandKitFontsCssId,
             resolvedVirtualBrandKitCssId,
-          );
-          if (brandKitModule) {
-            void server.reloadModule(brandKitModule);
+          ]) {
+            const brandKitModule = server.moduleGraph.getModuleById(moduleId);
+            if (brandKitModule) {
+              void server.reloadModule(brandKitModule);
+            }
           }
           void refresh()
             .then(() => {

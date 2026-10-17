@@ -251,9 +251,9 @@ The subpaths keep browser bundles free of Node-only code and vice versa:
 - `@drupal-canvas/headless/components-endpoint` — Node-only: the component
   metadata endpoint handler and the build-time component manifest.
 - `@drupal-canvas/headless/component-registry` — Node-only: generates component
-  implementation registry source.
-- `@drupal-canvas/headless/vite` — Node-only: the shared component registry
-  plugin for adapters built on Vite.
+  implementation registry source and the brand kit stylesheet.
+- `@drupal-canvas/headless/vite` — Node-only: the shared component registry and
+  brand kit stylesheet plugin for adapters built on Vite.
 - `@drupal-canvas/headless/preview.css` — styles empty slot and region drop
   targets in draft previews.
 - `@drupal-canvas/headless/node` — Node-only: system certificate configuration
@@ -312,7 +312,16 @@ mostly wiring:
    boundaries, use `hasCanvasPreviewContentRegion()` to avoid emitting a second
    pair.
 
-5. Wire the client side: render the `<canvas-draft-session>` element, or the
+5. Provide the brand kit stylesheet: the shared Vite plugin writes
+   `.canvas/brand-kit.css` and resolves
+   `virtual:@drupal-canvas/headless/brand-kit.css` to it; otherwise call
+   `writeBrandKitStylesheet({ stylesheetPath })` from
+   `@drupal-canvas/headless/component-registry` (`BRAND_KIT_STYLESHEET_PATH` is
+   the conventional location). Local font URLs are relative to the file, so the
+   app's bundler emits the font files. Rewrite it when `canvas.brand-kit.json`
+   changes.
+
+6. Wire the client side: render the `<canvas-draft-session>` element, or the
    React `<DraftSession>` from `@drupal-canvas/headless-react`, with the session
    state your server gathered.
 
@@ -320,8 +329,8 @@ mostly wiring:
    `refreshData` to React's `DraftSession`, or handle
    `DRAFT_SESSION_REFRESH_EVENT` when using `<canvas-draft-session>`.
 
-6. Expose data access: `server.getClient()` and `server.fetchPage()`, surfaced
+7. Expose data access: `server.getClient()` and `server.fetchPage()`, surfaced
    however your framework reaches per-request state.
-7. Mount `server.handleJsonApiProxy(request)` at the configured proxy path
+8. Mount `server.handleJsonApiProxy(request)` at the configured proxy path
    (default `/api/canvas/jsonapi`) with a catch-all suffix, for every method,
    and expose `server.getJsonApiRuntimeConfig()` to the rendering integration.

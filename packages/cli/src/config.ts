@@ -11,6 +11,7 @@ import {
 import type {
   BrandKitColorsFileMap,
   CanvasConfigWarning,
+  FontsConfig,
 } from '@drupal-canvas/discovery';
 
 // Load environment variables.
@@ -33,53 +34,15 @@ export function loadEnvFiles() {
 // Load environment variables before creating config.
 loadEnvFiles();
 
-/** Defaults for provider-based font resolution (weights, styles, subsets). */
-export interface FontDefaults {
-  weights?: string[];
-  styles?: string[];
-  subsets?: string[];
-}
-
-/** Provider-specific options (e.g. Adobe kit ID). */
-export interface FontProviderOptions {
-  adobe?: { id: string[] };
-}
-
-/** Per-axis default value override (axis tag -> number). Used for variable fonts. */
-export type FontAxisDefaults = Record<string, number>;
-
-/** Shared fields for all font family entries. */
-interface FontFamilyEntryBase {
-  name: string;
-  weights?: string[];
-  styles?: string[];
-  /** Optional axis default overrides for variable fonts (e.g. { "wght": 500 }). Clamped to axis min/max. */
-  axisDefaults?: FontAxisDefaults;
-}
-
-/** Font family entry for a local file. */
-export interface LocalFontFamilyEntry extends FontFamilyEntryBase {
-  src: string;
-  provider?: never;
-  subsets?: never;
-}
-
-/** Font family entry for a provider-based font. */
-export interface ProviderFontFamilyEntry extends FontFamilyEntryBase {
-  provider?: 'google' | 'bunny' | 'fontshare' | 'fontsource' | 'npm' | 'adobe';
-  src?: never;
-  /** Subsets to request from the provider (e.g. ['latin', 'cyrillic']). */
-  subsets?: string[];
-}
-
-/** A single font family entry in canvas.brand-kit.json families. */
-export type FontFamilyEntry = LocalFontFamilyEntry | ProviderFontFamilyEntry;
-
-export interface FontsConfig {
-  defaults?: FontDefaults;
-  families: FontFamilyEntry[];
-  providers?: FontProviderOptions;
-}
+export type {
+  FontAxisDefaults,
+  FontDefaults,
+  FontFamilyEntry,
+  FontProviderOptions,
+  FontsConfig,
+  LocalFontFamilyEntry,
+  ProviderFontFamilyEntry,
+} from '@drupal-canvas/discovery';
 
 export interface Config {
   siteUrl: string;

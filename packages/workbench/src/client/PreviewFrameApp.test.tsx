@@ -47,6 +47,7 @@ vi.mock('@wb/lib/preview-client', () => ({
     warnings: [],
     globalCssUrl: null,
     brandKitCssUrl: null,
+    brandKitFontsCssUrl: null,
   }),
 }));
 

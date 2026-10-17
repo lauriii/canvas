@@ -19,7 +19,7 @@ import {
   bundleInteractivePreview,
   formatComponentPathConstraintMessage,
   resolvePreviewRuntimeSettings,
-  withBrandKitColorCss,
+  withBrandKitCss,
 } from './preview-payload';
 import { trustSystemCertificates } from './system-ca';
 
@@ -751,7 +751,7 @@ export async function buildPreviewArtifact(
           });
           const mockHtml = buildIframeHtml(
             bundleResult.js,
-            withBrandKitColorCss(options.projectRoot, bundleResult.css),
+            await withBrandKitCss(options.projectRoot, bundleResult.css),
             runtimeSettings,
             bundleResult.siteData,
           );

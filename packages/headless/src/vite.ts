@@ -7,8 +7,10 @@
 import path from 'node:path';
 
 import {
+  BRAND_KIT_STYLESHEET_PATH,
   buildComponentRegistryModule,
   resolveComponentRegistrySourcePaths,
+  writeBrandKitStylesheet,
 } from './component-registry';
 
 import type { ComponentRegistrySourcePaths } from './component-registry';
@@ -20,6 +22,15 @@ export const CANVAS_COMPONENTS_MODULE_ID =
 /** Virtual module resolving to the app's configured global CSS entrypoint. */
 export const CANVAS_GLOBAL_CSS_MODULE_ID =
   'virtual:@drupal-canvas/headless/global.css';
+
+/**
+ * Module id of the brand kit stylesheet generated from the app's
+ * canvas.brand-kit.json (fonts, then colors), written to
+ * `.canvas/brand-kit.css`. Import it next to the app's global CSS, as a side
+ * effect or with `?url`.
+ */
+export const CANVAS_BRAND_KIT_CSS_MODULE_ID =
+  'virtual:@drupal-canvas/headless/brand-kit.css';
 
 const RESOLVED_CANVAS_COMPONENTS_MODULE_ID = `\0${CANVAS_COMPONENTS_MODULE_ID}`;
 
@@ -50,6 +61,7 @@ export interface CanvasComponentRegistryVitePlugin {
   name: string;
   enforce: 'pre';
   configResolved(config: { root: string }): void;
+  buildStart(): Promise<void>;
   configureServer(server: ComponentRegistryViteDevServer): void;
   resolveId(id: string): string | undefined;
   load(id: string): Promise<string | undefined>;
@@ -89,6 +101,9 @@ export function canvasComponentRegistry(
     configResolved(config) {
       projectRoot = path.resolve(options.projectRoot ?? config.root);
     },
+    async buildStart() {
+      await writeBrandKitStylesheetFor(projectRoot);
+    },
     configureServer(server) {
       configureComponentRegistryWatcher(server, () => projectRoot);
     },
@@ -100,6 +115,16 @@ export function canvasComponentRegistry(
         return resolveComponentRegistrySourcePaths({ projectRoot })
           .globalCssPath;
       }
+      const [file, query] = id.split('?');
+      if (file === CANVAS_BRAND_KIT_CSS_MODULE_ID) {
+        const stylesheetPath = path.join(
+          projectRoot,
+          BRAND_KIT_STYLESHEET_PATH,
+        );
+        return query === undefined
+          ? stylesheetPath
+          : `${stylesheetPath}?${query}`;
+      }
       return undefined;
     },
     async load(id) {
@@ -110,7 +135,22 @@ export function canvasComponentRegistry(
   };
 }
 
-/** Invalidates the generated virtual registry after structural changes. */
+/** Writes .canvas/brand-kit.css; Vite serves and hot-updates it as a file. */
+function writeBrandKitStylesheetFor(projectRoot: string): Promise<void> {
+  return writeBrandKitStylesheet({
+    projectRoot,
+    stylesheetPath: path.join(projectRoot, BRAND_KIT_STYLESHEET_PATH),
+    onFontError: (family, error) =>
+      console.warn(
+        `[canvas] Could not resolve brand kit font "${family}": ${String(error)}`,
+      ),
+  });
+}
+
+/**
+ * Invalidates the generated registry after structural changes, and rewrites
+ * the brand kit stylesheet after canvas.brand-kit.json changes.
+ */
 function configureComponentRegistryWatcher(
   server: ComponentRegistryViteDevServer,
   getProjectRoot: () => string,
@@ -119,7 +159,12 @@ function configureComponentRegistryWatcher(
     projectRoot: getProjectRoot(),
   });
   let timer: ReturnType<typeof setTimeout> | undefined;
-  server.watcher.add([sourcePaths.configPath, sourcePaths.componentRoot]);
+  let brandKitWrite = Promise.resolve();
+  server.watcher.add([
+    sourcePaths.configPath,
+    sourcePaths.brandKitPath,
+    sourcePaths.componentRoot,
+  ]);
 
   const refresh = () => {
     server.moduleGraph.invalidateAll();
@@ -129,6 +174,18 @@ function configureComponentRegistryWatcher(
     server.ws.send({ type: 'full-reload' });
   };
   const onChange = (event: string, filePath: string) => {
+    if (path.resolve(filePath) === sourcePaths.brandKitPath) {
+      // Serialized, so a slow provider font resolution for an earlier save
+      // cannot overwrite a later one.
+      brandKitWrite = brandKitWrite
+        .then(() => writeBrandKitStylesheetFor(getProjectRoot()))
+        .catch((error) =>
+          console.warn(
+            `[canvas] Could not update the brand kit stylesheet: ${String(error)}`,
+          ),
+        );
+      return;
+    }
     if (
       !REGISTRY_WATCH_EVENTS.has(event as RegistryWatchEvent) ||
       !isRegistryStructureChange(
@@ -143,7 +200,11 @@ function configureComponentRegistryWatcher(
       sourcePaths = resolveComponentRegistrySourcePaths({
         projectRoot: getProjectRoot(),
       });
-      server.watcher.add([sourcePaths.configPath, sourcePaths.componentRoot]);
+      server.watcher.add([
+        sourcePaths.configPath,
+        sourcePaths.brandKitPath,
+        sourcePaths.componentRoot,
+      ]);
     }
     if (timer) {
       clearTimeout(timer);

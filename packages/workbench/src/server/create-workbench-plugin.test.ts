@@ -1,10 +1,15 @@
 import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { discoverCanvasProject } from '@drupal-canvas/discovery';
 
-import { buildWorkbenchPreviewManifest } from './create-workbench-plugin';
+import {
+  buildWorkbenchPreviewManifest,
+  createWorkbenchPlugin,
+} from './create-workbench-plugin';
+
+import type { WorkbenchPaths } from './paths';
 
 const tempDirs: string[] = [];
 
@@ -107,5 +112,56 @@ describe('buildWorkbenchPreviewManifest', () => {
         },
       ],
     });
+  });
+});
+
+describe('createWorkbenchPlugin brand kit fonts module', () => {
+  it('serves @font-face rules for local brand kit fonts', async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'canvas-workbench-'));
+    tempDirs.push(root);
+    await fs.writeFile(
+      path.join(root, 'canvas.brand-kit.json'),
+      JSON.stringify({
+        fonts: {
+          families: [{ name: 'Brand Sans', src: 'fonts/brand-sans.woff2' }],
+        },
+      }),
+      'utf8',
+    );
+    const plugin = createWorkbenchPlugin({
+      hostProjectRoot: root,
+    } as WorkbenchPaths);
+    const resolveId = plugin.resolveId as (source: string) => string | null;
+    const load = plugin.load as (
+      this: { warn: (message: string) => void },
+      id: string,
+    ) => Promise<string | null>;
+
+    const id = resolveId('virtual:canvas-brand-kit-fonts.css');
+    expect(id).toBe('\0virtual:canvas-brand-kit-fonts.css');
+    const css = await load.call({ warn: vi.fn() }, id!);
+    expect(css).toContain("font-family: 'Brand Sans';");
+    expect(css).toContain(
+      `src: url('/@fs${path.join(root, 'fonts/brand-sans.woff2').replaceAll('\\', '/')}') format('woff2');`,
+    );
+  });
+
+  it('serves an empty stylesheet without a brand kit file', async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'canvas-workbench-'));
+    tempDirs.push(root);
+    const plugin = createWorkbenchPlugin({
+      hostProjectRoot: root,
+    } as WorkbenchPaths);
+    const load = plugin.load as (
+      this: { warn: (message: string) => void },
+      id: string,
+    ) => Promise<string | null>;
+
+    expect(
+      await load.call(
+        { warn: vi.fn() },
+        '\0virtual:canvas-brand-kit-fonts.css',
+      ),
+    ).toBe('');
   });
 });

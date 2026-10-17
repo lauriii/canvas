@@ -6,8 +6,9 @@ import { fileURLToPath } from 'node:url';
 import { canvasTreeToSpec } from 'drupal-canvas/json-render-utils';
 import { loadEnv, build as viteBuild } from 'vite';
 import {
-  buildBrandKitColorCss,
+  buildBrandKitCss,
   discoverCanvasProject,
+  fontFileDataUrl,
   readBrandKitColors,
   resolveCanvasConfig,
 } from '@drupal-canvas/discovery';
@@ -447,12 +448,19 @@ function buildPreviewBootstrapScript(
 }
 
 /**
- * Prepends the brand kit color custom property block from the project's
- * canvas.brand-kit.json to bundled preview CSS, matching the dev server's
- * ordering (brand kit colors before the host global CSS).
+ * Prepends the project's brand kit stylesheet (canvas.brand-kit.json fonts,
+ * then colors) to bundled preview CSS, matching the dev server's ordering
+ * (brand kit before the host global CSS). Local font files are inlined as
+ * data URLs, like other bundled preview assets, so the HTML stays
+ * self-contained; provider fonts keep their provider URLs.
  */
-export function withBrandKitColorCss(projectRoot: string, css: string): string {
-  const brandKitCss = buildBrandKitColorCss(readBrandKitColors(projectRoot));
+export async function withBrandKitCss(
+  projectRoot: string,
+  css: string,
+): Promise<string> {
+  const brandKitCss = await buildBrandKitCss(projectRoot, {
+    localFontUrl: fontFileDataUrl,
+  });
   return brandKitCss ? `${brandKitCss}\n\n${css}` : css;
 }
 
@@ -1138,7 +1146,7 @@ export async function buildPreviewPayload(
 
     const iframeHtml = buildIframeHtml(
       bundleResult.js,
-      withBrandKitColorCss(options.projectRoot, bundleResult.css),
+      await withBrandKitCss(options.projectRoot, bundleResult.css),
       runtimeSettings,
       bundleResult.siteData,
     );

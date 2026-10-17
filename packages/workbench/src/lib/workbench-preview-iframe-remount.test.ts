@@ -47,6 +47,7 @@ const baseManifest: PreviewManifest = {
   warnings: [],
   globalCssUrl: null,
   brandKitCssUrl: null,
+  brandKitFontsCssUrl: null,
 };
 
 describe('computeWorkbenchStructuralFingerprint', () => {
@@ -70,6 +71,18 @@ describe('computeWorkbenchStructuralFingerprint', () => {
     const b = computeWorkbenchStructuralFingerprint(baseDiscovery, {
       ...baseManifest,
       brandKitCssUrl: '/@id/virtual:canvas-brand-kit.css',
+    });
+    expect(a).not.toBe(b);
+  });
+
+  it('changes when the brand kit fonts CSS URL changes', () => {
+    const a = computeWorkbenchStructuralFingerprint(
+      baseDiscovery,
+      baseManifest,
+    );
+    const b = computeWorkbenchStructuralFingerprint(baseDiscovery, {
+      ...baseManifest,
+      brandKitFontsCssUrl: '/@id/virtual:canvas-brand-kit-fonts.css',
     });
     expect(a).not.toBe(b);
   });

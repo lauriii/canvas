@@ -2,7 +2,10 @@ import { existsSync, statSync, watch } from 'node:fs';
 import path from 'node:path';
 import { resolveComponentRegistrySourcePaths } from '@drupal-canvas/headless/component-registry';
 
-import { writeComponentRegistryModule } from './component-registry';
+import {
+  writeBrandKitStylesheet,
+  writeComponentRegistryModule,
+} from './component-registry';
 
 import type { FSWatcher } from 'node:fs';
 import type { ComponentRegistrySourcePaths } from '@drupal-canvas/headless/component-registry';
@@ -10,6 +13,7 @@ import type { ComponentRegistrySourcePaths } from '@drupal-canvas/headless/compo
 interface RegistryWatcherState {
   directoryWatcher?: FSWatcher;
   timer?: ReturnType<typeof setTimeout>;
+  brandKitTimer?: ReturnType<typeof setTimeout>;
 }
 
 interface RegistryWatcherGlobal {
@@ -23,7 +27,10 @@ const globalState = globalThis as typeof globalThis & RegistryWatcherGlobal;
 const registryWatchers =
   (globalState.__drupalCanvasHeadlessNextRegistryWatchers ??= new Map());
 
-/** Keeps Next's generated registry synchronized while the dev server runs. */
+/**
+ * Keeps Next's generated registry and brand kit stylesheet synchronized while
+ * the dev server runs.
+ */
 export function watchComponentRegistry(projectRoot: string): void {
   if (registryWatchers.has(projectRoot)) {
     return;
@@ -92,16 +99,39 @@ export function watchComponentRegistry(projectRoot: string): void {
     state.timer.unref();
   };
 
+  // Debounced like the registry, so a slow provider font resolution from an
+  // earlier save cannot overwrite a later one out of order.
+  const scheduleBrandKitRefresh = () => {
+    if (state.brandKitTimer) {
+      clearTimeout(state.brandKitTimer);
+    }
+    state.brandKitTimer = setTimeout(() => {
+      state.brandKitTimer = undefined;
+      void writeBrandKitStylesheet(projectRoot).catch((error: unknown) => {
+        console.warn(
+          `[canvas] Could not update the brand kit stylesheet: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      });
+    }, 50);
+    state.brandKitTimer.unref();
+  };
+
   subscribeToComponentRoot();
 
+  const brandKitFilename = path.basename(
+    resolveComponentRegistrySourcePaths({ projectRoot }).brandKitPath,
+  );
   const configWatcher = watch(projectRoot, (_event, filename) => {
     if (filename?.toString() === 'canvas.config.json') {
       scheduleRefresh();
     }
+    if (filename?.toString() === brandKitFilename) {
+      scheduleBrandKitRefresh();
+    }
   });
   configWatcher.on('error', (error) => {
     console.warn(
-      `[canvas] Could not watch canvas.config.json: ${error.message}`,
+      `[canvas] Could not watch canvas.config.json and ${brandKitFilename}: ${error.message}`,
     );
   });
   configWatcher.unref();

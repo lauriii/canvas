@@ -9,7 +9,7 @@ import {
   buildPreviewRuntimeEntrySource,
   bundleInteractivePreview,
   resolvePreviewSiteData,
-  withBrandKitColorCss,
+  withBrandKitCss,
 } from './preview-payload';
 
 import type { Spec } from '@json-render/core';
@@ -857,7 +857,7 @@ props:
     expect(bundled.js).not.toContain('React.createElement("section"');
   });
 
-  describe('withBrandKitColorCss', () => {
+  describe('withBrandKitCss', () => {
     it('prepends the brand kit color block to bundled CSS', async () => {
       const projectRoot = await makeTemporaryDirectory();
       await writeFile(
@@ -867,14 +867,54 @@ props:
         }),
       );
 
-      expect(withBrandKitColorCss(projectRoot, 'body { margin: 0; }')).toBe(
+      expect(await withBrandKitCss(projectRoot, 'body { margin: 0; }')).toBe(
         ':root {\n  --brand-red: #cc0000;\n}\n\nbody { margin: 0; }',
       );
     });
 
-    it('returns the CSS unchanged when the project has no brand kit colors', async () => {
+    it('prepends @font-face rules before colors, with local font files inlined as data URLs', async () => {
       const projectRoot = await makeTemporaryDirectory();
-      expect(withBrandKitColorCss(projectRoot, 'body { margin: 0; }')).toBe(
+      await writeFile(
+        path.join(projectRoot, 'fonts/brand-sans.woff2'),
+        Buffer.from('woff2-bytes'),
+      );
+      await writeFile(
+        path.join(projectRoot, 'canvas.brand-kit.json'),
+        JSON.stringify({
+          fonts: {
+            families: [
+              {
+                name: 'Brand Sans',
+                src: 'fonts/brand-sans.woff2',
+                weights: ['100 900'],
+              },
+              { name: 'Missing', src: 'fonts/missing.woff2' },
+            ],
+          },
+          colors: { 'brand-red': '#cc0000' },
+        }),
+      );
+
+      expect(await withBrandKitCss(projectRoot, 'body { margin: 0; }')).toBe(
+        [
+          '@font-face {',
+          "  font-family: 'Brand Sans';",
+          `  src: url('data:font/woff2;base64,${Buffer.from('woff2-bytes').toString('base64')}') format('woff2');`,
+          '  font-weight: 100 900;',
+          '  font-style: normal;',
+          '  font-display: swap;',
+          '}',
+          '',
+          ':root {\n  --brand-red: #cc0000;\n}',
+          '',
+          'body { margin: 0; }',
+        ].join('\n'),
+      );
+    });
+
+    it('returns the CSS unchanged when the project has no brand kit', async () => {
+      const projectRoot = await makeTemporaryDirectory();
+      expect(await withBrandKitCss(projectRoot, 'body { margin: 0; }')).toBe(
         'body { margin: 0; }',
       );
     });

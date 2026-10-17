@@ -2,7 +2,10 @@ import path from 'node:path';
 import { writeComponentManifest } from '@drupal-canvas/headless/components-endpoint';
 import { resolveDraftConfig } from '@drupal-canvas/headless/server';
 
-import { writeComponentRegistryModule } from './component-registry';
+import {
+  writeBrandKitStylesheet,
+  writeComponentRegistryModule,
+} from './component-registry';
 import { watchComponentRegistry } from './component-registry-watcher';
 
 import type { NextConfig } from 'next';
@@ -14,6 +17,12 @@ const PHASE_PRODUCTION_BUILD = 'phase-production-build';
 const PHASE_DEVELOPMENT_SERVER = 'phase-development-server';
 const COMPONENTS_MODULE_ID =
   '@drupal-canvas/headless-next-generated-components';
+/**
+ * The brand kit stylesheet the app imports next to its global CSS, aliased
+ * to the generated .canvas/brand-kit.css.
+ */
+export const BRAND_KIT_CSS_MODULE_ID =
+  '@drupal-canvas/headless-next-generated-brand-kit.css';
 
 const CSP_HEADER = 'content-security-policy';
 
@@ -56,6 +65,10 @@ export const MANIFEST_ENV_VARIABLE = 'CANVAS_COMPONENT_MANIFEST_JSON';
  *   silently.
  * - Watches local component definitions in development and updates the
  *   generated implementation registry when components are added or removed.
+ * - Generates the brand kit stylesheet from canvas.brand-kit.json (fonts,
+ *   then colors), importable as
+ *   `@drupal-canvas/headless-next-generated-brand-kit.css`, and regenerates
+ *   it in development when the file changes.
  * - Rejects static CSP header rules: mount the request-time Canvas
  *   middleware/proxy separately and supply the app's CSP on its response.
  *
@@ -81,15 +94,15 @@ export function withCanvas(
     if (phase === PHASE_DEVELOPMENT_SERVER) {
       resolveDraftConfig();
     }
-    const componentRegistryPath =
-      await writeComponentRegistryModule(projectRoot);
+    const [componentRegistryPath, brandKitStylesheetPath] = await Promise.all([
+      writeComponentRegistryModule(projectRoot),
+      writeBrandKitStylesheet(projectRoot),
+    ]);
     if (phase === PHASE_DEVELOPMENT_SERVER) {
       watchComponentRegistry(projectRoot);
     }
-    const turbopackComponentRegistryPath = `./${path
-      .relative(projectRoot, componentRegistryPath)
-      .split(path.sep)
-      .join('/')}`;
+    const toTurbopackPath = (filePath: string) =>
+      `./${path.relative(projectRoot, filePath).split(path.sep).join('/')}`;
 
     if (
       phase === PHASE_PRODUCTION_BUILD &&
@@ -141,6 +154,7 @@ export function withCanvas(
       resolvedConfig.resolve.alias = {
         ...(resolvedConfig.resolve.alias ?? {}),
         [COMPONENTS_MODULE_ID]: componentRegistryPath,
+        [BRAND_KIT_CSS_MODULE_ID]: brandKitStylesheetPath,
       };
       return resolvedConfig;
     };
@@ -151,7 +165,8 @@ export function withCanvas(
         ...config.turbopack,
         resolveAlias: {
           ...config.turbopack?.resolveAlias,
-          [COMPONENTS_MODULE_ID]: turbopackComponentRegistryPath,
+          [COMPONENTS_MODULE_ID]: toTurbopackPath(componentRegistryPath),
+          [BRAND_KIT_CSS_MODULE_ID]: toTurbopackPath(brandKitStylesheetPath),
         },
       },
       env: {

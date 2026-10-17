@@ -70,6 +70,21 @@ Supported providers include `google`, `bunny`, `fontshare`, `fontsource`,
 For the full CLI schema and advanced font options, see the
 [`@drupal-canvas/cli` README](https://www.npmjs.com/package/@drupal-canvas/cli).
 
+## Preview fonts in Workbench
+
+Workbench loads the fonts in `canvas.brand-kit.json` into every preview, so
+components render with Brand Kit fonts before you push. Local `src` files are
+served from the project. Provider families resolve the same way
+`canvas push --include-brand-kit` resolves them, so previews need network
+access for provider fonts. Editing `canvas.brand-kit.json` reloads the preview.
+
+`canvas-workbench preview-build` embeds local font files in the generated HTML.
+Provider fonts keep their provider URLs.
+
+Headless frontends load the same fonts and colors from `canvas.brand-kit.json`
+through a brand kit stylesheet their adapter generates. See
+[Headless FAQ](/headless/faq).
+
 ## Use fonts in Code Components
 
 Do not import font packages from Code Component JavaScript or TypeScript files.
