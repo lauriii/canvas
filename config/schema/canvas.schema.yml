@@ -410,6 +410,27 @@ canvas.settings:
           pattern: '/^[a-z0-9_]+$/'
         ConfigExists:
           prefix: canvas.page_variant.
+    icons:
+      type: mapping
+      label: 'Icon settings'
+      # Optional so a canvas.settings object created before this key existed
+      # (for example by the page-variant post-update) stays valid; missing is
+      # treated as an empty allow-list.
+      requiredKey: false
+      mapping:
+        allowed_packs:
+          # An empty list offers every installed pack. This is authoring policy
+          # consumed by the icons listing endpoint, not validation: the
+          # per-prop scope `pattern` remains the validation boundary.
+          # @see \Drupal\canvas\Controller\ApiIconsController::list()
+          type: sequence
+          label: 'Icon packs offered to content authors (empty offers every installed pack)'
+          sequence:
+            type: string
+            label: 'Icon pack ID'
+            constraints:
+              Regex:
+                pattern: '/^[a-z0-9_]+$/'
 
 # The config equivalent of a ComponentTreeItemList, validated by the same constraints.
 # This is a list of component items in a tree, one item per component instance.
@@ -879,6 +900,18 @@ field.field_settings.component_tree:
   constraints:
     FullyValidatable: ~
 
+# Schema for the `canvas_icon` field type: an Icon API icon id (`pack_id:icon_id`)
+# stored as a plain string. `IconItem` extends core's `string` field type, so
+# its storage settings and stored value reuse the `string` field schema.
+# @see \Drupal\canvas\Plugin\Field\FieldType\IconItem
+field.storage_settings.canvas_icon:
+  type: field.storage_settings.string
+  label: 'Icon settings'
+
+field.value.canvas_icon:
+  type: field.value.string
+  label: 'Default value'
+
 canvas.pattern.*:
   type: config_entity
   constraints:
@@ -1118,6 +1151,87 @@ canvas.brand_kit.*:
                 default:
                   type: float
                   label: 'Default axis value'
+
+canvas.icon_library.*:
+  type: config_entity
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    id:
+      type: machine_name
+      label: 'Icon library ID'
+      constraints:
+        # Restates the `machine_name` type's constraints: constraints defined
+        # at the use site replace the type-level ones instead of merging.
+        # @see \Drupal\Core\Config\TypedConfigManager::buildDataDefinition()
+        Regex:
+          pattern: '/^[a-z0-9_]+$/'
+          message: "The %value machine name is not valid."
+        Length:
+          # @see \Drupal\Core\Config\Entity\ConfigEntityStorage::MAX_ID_LENGTH
+          max: 166
+        Callback:
+          callback: ['\Drupal\canvas\Entity\IconLibrary', validateIconPackIdCollision]
+    label:
+      type: required_label
+      label: 'Human-readable label'
+    description:
+      type: text
+      label: 'Human-readable description'
+      nullable: true
+      requiredKey: false
+    template:
+      type: string
+      label: 'Twig template used to render icons in this library'
+      nullable: true
+      requiredKey: false
+    assets:
+      type: sequence
+      label: 'Uploaded SVG files'
+      nullable: true
+      orderby: value
+      # Should be omitted when there are no assets.
+      requiredKey: false
+      constraints:
+        # There must be >=1 SVG file; otherwise the key should be omitted.
+        NotBlank: ~
+        Unique:
+          fields: [name]
+          errorPath: name
+          message: 'Asset names must be unique.'
+          stopOnFirstError: false
+        Callback:
+          callback: ['\Drupal\canvas\Entity\IconLibrary', validateAssets]
+      sequence:
+        type: canvas.icon_library_asset_entry
+
+canvas.icon_library_asset_entry:
+  type: mapping
+  label: 'Icon library asset entry'
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    name:
+      type: string
+      label: 'File name'
+      constraints:
+        NotBlank: []
+    uri:
+      type: uri
+      label: 'Managed file URI'
+      constraints:
+        NotBlank: []
+        UriScheme: ['public']
+    hash:
+      # SHA-256 of the file contents, returned by the upload endpoint. Lets
+      # the CLI skip re-uploading unchanged files on incremental pushes.
+      type: string
+      label: 'SHA-256 hash of the file contents'
+      nullable: true
+      requiredKey: false
+      constraints:
+        Regex:
+          pattern: '/^[0-9a-f]{64}$/'
 
 canvas.compilable_code:
   type: mapping

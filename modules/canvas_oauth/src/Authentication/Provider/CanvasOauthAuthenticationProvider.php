@@ -10,6 +10,7 @@ use Drupal\canvas\Entity\Color;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Folder;
+use Drupal\canvas\Entity\IconLibrary;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\Core\Authentication\AuthenticationProviderInterface;
@@ -69,6 +70,8 @@ class CanvasOauthAuthenticationProvider implements AuthenticationProviderInterfa
       'canvas.api.config.page_region.gone.item',
       'canvas.api.settings.default_page_variant.get',
       'canvas.api.settings.default_page_variant.set',
+      'canvas.api.icons.list',
+      'canvas.api.icons.upload',
       'canvas.api.push.complete',
       'canvas.api.push.fail',
       'canvas.api.push.start',
@@ -97,6 +100,7 @@ class CanvasOauthAuthenticationProvider implements AuthenticationProviderInterfa
       Color::ENTITY_TYPE_ID,
       ContentTemplate::ENTITY_TYPE_ID,
       Folder::ENTITY_TYPE_ID,
+      IconLibrary::ENTITY_TYPE_ID,
       PageVariant::ENTITY_TYPE_ID,
     ];
 

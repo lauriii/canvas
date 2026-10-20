@@ -1,0 +1,33 @@
+canvas_test:
+  enabled: true
+  label: 'Canvas test icons'
+  description: 'A small hand-drawn icon pack used by Canvas tests.'
+  version: 1.0.0
+  license:
+    name: GPL-2.0-or-later
+    url: https://www.gnu.org/licenses/gpl-2.0.html
+    gpl-compatible: true
+  extractor: svg
+  config:
+    sources:
+      - icons/{icon_id}.svg
+  settings:
+    size:
+      title: 'Size'
+      type: integer
+      default: 24
+  template: >-
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="{{ size|default(24) }}"
+      height="{{ size|default(24) }}"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      {{ content }}
+    </svg>
