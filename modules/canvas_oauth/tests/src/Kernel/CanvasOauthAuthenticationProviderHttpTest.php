@@ -634,7 +634,7 @@ class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
    */
   public function testMediaUploadRouteWithValidToken(): void {
     $this->setUpMediaUpload();
-    $access_token = $this->requestAccessToken([Page::CREATE_PERMISSION, 'create image media']);
+    $access_token = $this->requestAccessToken([Page::CREATE_PERMISSION, 'create image media', 'access content']);
     $request = $this->createMediaUploadRequest();
     $request->headers->set('Authorization', 'Bearer ' . $access_token);
     $response = $this->request($request);
