@@ -21,10 +21,7 @@ import {
   updateProp,
 } from '@/features/code-editor/codeEditorSlice';
 import { createDisplayArray } from '@/features/code-editor/utils/arrayPropUtils';
-import {
-  getPropMachineName,
-  serializeProps,
-} from '@/features/code-editor/utils/utils';
+import { serializeProps } from '@/features/code-editor/utils/utils';
 import { type CodeComponentPropImageExample } from '@/types/CodeComponent';
 
 import Props, { REQUIRED_EXAMPLE_ERROR_MESSAGE } from './Props';
@@ -159,13 +156,84 @@ describe('props in code editor', () => {
           screen.getByRole('textbox', { name: 'Prop name' }),
         ).toBeInTheDocument();
       });
-      const propName = selectCodeComponentProperty('props')(store.getState())[0]
-        .name;
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
       await userEvent.click(screen.getByRole('switch', { name: 'Required' }));
       expect(screen.getByRole('switch', { name: 'Required' })).toBeChecked();
       expect(
         selectCodeComponentProperty('required')(store.getState())[0],
-      ).toEqual(getPropMachineName(propName));
+      ).toEqual(propId);
+    });
+
+    it('toggles required independently for two unnamed props', async () => {
+      // Add two props and leave both names empty.
+      await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+
+      await waitFor(() => {
+        expect(
+          screen.getAllByRole('switch', { name: 'Required' }),
+        ).toHaveLength(2);
+      });
+
+      const props = selectCodeComponentProperty('props')(store.getState());
+      expect(props).toHaveLength(2);
+      // Both props have empty, identical names.
+      expect(props[0].name).toEqual('');
+      expect(props[1].name).toEqual('');
+
+      // Toggle Required on the first prop only.
+      const requiredSwitches = screen.getAllByRole('switch', {
+        name: 'Required',
+      });
+      await userEvent.click(requiredSwitches[0]);
+
+      // The first switch is checked, the second stays off.
+      const [firstSwitch, secondSwitch] = screen.getAllByRole('switch', {
+        name: 'Required',
+      });
+      expect(firstSwitch).toBeChecked();
+      expect(secondSwitch).not.toBeChecked();
+
+      // The store only marks the first prop as required.
+      expect(selectCodeComponentProperty('required')(store.getState())).toEqual(
+        [props[0].id],
+      );
+    });
+
+    it('toggles required independently for two identically named props', async () => {
+      await addProp('Text', 'Alpha');
+      await addProp('Text', 'Alpha');
+
+      await waitFor(() => {
+        expect(
+          screen.getAllByRole('switch', { name: 'Required' }),
+        ).toHaveLength(2);
+      });
+
+      const props = selectCodeComponentProperty('props')(store.getState());
+      expect(props).toHaveLength(2);
+      // Both props share the same name.
+      expect(props[0].name).toEqual('Alpha');
+      expect(props[1].name).toEqual('Alpha');
+
+      // Toggle Required on the second prop only.
+      const requiredSwitches = screen.getAllByRole('switch', {
+        name: 'Required',
+      });
+      await userEvent.click(requiredSwitches[1]);
+
+      // The second switch is checked, the first stays off.
+      const [firstSwitch, secondSwitch] = screen.getAllByRole('switch', {
+        name: 'Required',
+      });
+      expect(firstSwitch).not.toBeChecked();
+      expect(secondSwitch).toBeChecked();
+
+      // The store only marks the second prop as required.
+      expect(selectCodeComponentProperty('required')(store.getState())).toEqual(
+        [props[1].id],
+      );
     });
 
     it('changing type clears example data', async () => {
@@ -202,9 +270,11 @@ describe('props in code editor', () => {
 
     it('clears required when changing type to content entity reference', async () => {
       await addProp('Text', 'Author');
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
       await userEvent.click(screen.getByRole('switch', { name: 'Required' }));
       expect(selectCodeComponentProperty('required')(store.getState())).toEqual(
-        ['author'],
+        [propId],
       );
 
       await userEvent.click(screen.getByRole('combobox', { name: 'Type' }));

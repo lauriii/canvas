@@ -24,10 +24,12 @@ import { useAppDispatch, useAppSelector, useAppStore } from '@/app/hooks';
 import {
   selectCodeComponentProperty,
   setCodeComponentProperty,
+  setRequiredFromNames,
 } from '@/features/code-editor/codeEditorSlice';
 import {
   deserializeProps,
   deserializeSlots,
+  serializeRequired,
 } from '@/features/code-editor/utils/utils';
 import { FORM_TYPES } from '@/features/form/constants';
 import { setFieldValue } from '@/features/form/formStateSlice';
@@ -204,7 +206,7 @@ const requiredPropsHandler = {
   canHandle: (msg: any) =>
     'required_props' in msg && Array.isArray(msg.required_props),
   handle: async ({ message, dispatch }: { message: any; dispatch: any }) => {
-    dispatch(setCodeComponentProperty(['required', message.required_props]));
+    dispatch(setRequiredFromNames(message.required_props));
   },
 };
 
@@ -714,8 +716,16 @@ const AiWizardDev = () => {
   const codeComponentName = useAppSelector(
     selectCodeComponentProperty('machineName'),
   );
-  const codeComponentRequiredProps = useAppSelector(
+  const codeComponentProps = useAppSelector(
+    selectCodeComponentProperty('props'),
+  );
+  const codeComponentRequiredIds = useAppSelector(
     selectCodeComponentProperty('required'),
+  );
+  // Convert ID-based required to name-based for the AI backend.
+  const codeComponentRequiredProps = useMemo(
+    () => serializeRequired(codeComponentProps, codeComponentRequiredIds),
+    [codeComponentProps, codeComponentRequiredIds],
   );
   // The layout, page data and selection a request carries are read straight
   // from the Redux store at request time. A ref mirrors them only after React

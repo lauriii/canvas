@@ -14,6 +14,7 @@ export interface CodeComponent {
   status: boolean;
   type: CodeComponentType;
   props: CodeComponentProp[];
+  // Prop IDs, not machine names. Converted to names on serialization.
   required: string[];
   slots: any[];
   sourceCodeJs: string;

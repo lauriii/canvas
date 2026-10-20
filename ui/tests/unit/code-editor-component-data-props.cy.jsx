@@ -13,7 +13,6 @@ import {
 } from '@/features/code-editor/codeEditorSlice';
 import ComponentData from '@/features/code-editor/component-data/ComponentData';
 import { parseExampleSrc as parseImageExampleSrc } from '@/features/code-editor/component-data/forms/FormPropTypeImage';
-import { getPropMachineName } from '@/features/code-editor/utils/utils';
 
 import '@/styles/radix-themes';
 import '@/styles/index.css';
@@ -214,15 +213,12 @@ describe('Component data / props in code editor', () => {
     // Check that the prop is now required.
     cy.log('Checking updated prop');
     cy.wrap(store).then((store) => {
-      const propName = selectCodeComponentProperty('props')(store.getState())[0]
-        .name;
+      const propId = selectCodeComponentProperty('props')(store.getState())[0]
+        .id;
       const required = selectCodeComponentProperty('required')(
         store.getState(),
       );
-      expect(required[0]).to.equal(
-        getPropMachineName(propName),
-        'Should have the prop as required',
-      );
+      expect(required[0]).to.equal(propId, 'Should have the prop as required');
     });
 
     // Toggle the prop as not required.

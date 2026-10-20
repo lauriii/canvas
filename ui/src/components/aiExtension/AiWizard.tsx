@@ -11,10 +11,12 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   selectCodeComponentProperty,
   setCodeComponentProperty,
+  setRequiredFromNames,
 } from '@/features/code-editor/codeEditorSlice';
 import {
   deserializeProps,
   deserializeSlots,
+  serializeRequired,
 } from '@/features/code-editor/utils/utils';
 import { FORM_TYPES } from '@/features/form/constants';
 import { setFieldValue } from '@/features/form/formStateSlice';
@@ -171,7 +173,7 @@ const requiredPropsHandler = {
   canHandle: (msg: any) =>
     'required_props' in msg && Array.isArray(msg.required_props),
   handle: async ({ message, dispatch }: { message: any; dispatch: any }) => {
-    dispatch(setCodeComponentProperty(['required', message.required_props]));
+    dispatch(setRequiredFromNames(message.required_props));
   },
 };
 
@@ -682,8 +684,16 @@ const AiWizard = () => {
   const codeComponentName = useAppSelector(
     selectCodeComponentProperty('machineName'),
   );
-  const codeComponentRequiredProps = useAppSelector(
+  const codeComponentProps = useAppSelector(
+    selectCodeComponentProperty('props'),
+  );
+  const codeComponentRequiredIds = useAppSelector(
     selectCodeComponentProperty('required'),
+  );
+  // Convert ID-based required to name-based for the AI backend.
+  const codeComponentRequiredProps = useMemo(
+    () => serializeRequired(codeComponentProps, codeComponentRequiredIds),
+    [codeComponentProps, codeComponentRequiredIds],
   );
   const model = useAppSelector(selectModel);
   const textPropsMap = Object.fromEntries(
