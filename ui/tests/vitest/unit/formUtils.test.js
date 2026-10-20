@@ -856,10 +856,59 @@ describe('getCurrentValueFromProps', () => {
     expect(
       getCurrentValueFromProps({
         options: [
+          { value: '_none', label: '- None -', selected: false },
           { value: 'small', label: 'Small', selected: false },
           { value: 'large', label: 'Large', selected: false },
         ],
       }),
     ).to.equal('_none');
+  });
+
+  it('should fall back to the first option for a select with no selected option', () => {
+    const options = [
+      { type: 'option', value: 's', label: 'Small', selected: false },
+      { type: 'option', value: 'm', label: 'Medium', selected: false },
+    ];
+    expect(getCurrentValueFromProps({ attributes: {}, options })).to.equal('s');
+    // A stored value that is no longer one of the options.
+    expect(
+      getCurrentValueFromProps({
+        attributes: {},
+        options,
+        element: { '#value': 'gone', '#default_value': 'gone' },
+      }),
+    ).to.equal('s');
+  });
+
+  it('should not fall back to the first option for a multiple select', () => {
+    const options = [
+      { type: 'option', value: 's', label: 'Small', selected: false },
+    ];
+    expect(
+      getCurrentValueFromProps({
+        attributes: { multiple: 'multiple' },
+        options,
+      }),
+    ).to.equal('_none');
+    expect(
+      getCurrentValueFromProps({
+        attributes: { 'data-is-multiselect': true },
+        options,
+      }),
+    ).to.equal('_none');
+  });
+});
+
+describe('formStateToObject with undefined values', () => {
+  it('should leave out undefined values instead of sending "undefined"', () => {
+    expect(
+      formStateToObject(
+        {
+          'canvas_component_props[c1][shape]': undefined,
+          'canvas_component_props[c1][note]': 'hi',
+        },
+        'c1',
+      ),
+    ).to.deep.equal({ note: 'hi' });
   });
 });

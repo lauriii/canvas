@@ -85,7 +85,9 @@ export const formStateToObject = (
         // empty value in the query string.
         params.append(key, '');
       }
-    } else {
+    } else if (value !== undefined) {
+      // Leave out a value-less element, such as radios with nothing checked,
+      // as a browser does, rather than sending the string "undefined".
       params.append(key, value as any);
     }
   });

@@ -57,6 +57,17 @@ export const getCurrentValueFromProps = (props: Record<string, any>) => {
     return selectedOption.value;
   }
   if (props.options) {
+    // A single select with no selected option shows, and submits, its first
+    // option. This also covers a stored value that is no longer an option. An
+    // optional select's first option is "- None -" ('_none').
+    const firstOption = props.options.find(
+      (opt: any) => opt.type !== 'optgroup',
+    );
+    const isMultiple =
+      props.attributes?.multiple || props.attributes?.['data-is-multiselect'];
+    if (firstOption && !isMultiple) {
+      return firstOption.value;
+    }
     return '_none';
   }
   if (props.attributes?.type === 'checkbox') {
