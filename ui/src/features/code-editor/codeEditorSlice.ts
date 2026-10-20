@@ -2,9 +2,10 @@ import { v4 as uuidv4 } from 'uuid';
 import { createSelector, createSlice } from '@reduxjs/toolkit';
 
 import {
-  getPropMachineName,
+  deserializeRequired,
   serializeDataDependencies,
   serializeProps,
+  serializeRequired,
   serializeSlots,
 } from '@/features/code-editor/utils/utils';
 
@@ -225,19 +226,14 @@ export const codeEditorSlice = createSlice({
       }>,
     ) => {
       const { propId } = action.payload;
-      const propToRemove = state.codeComponent.props.find(
-        (prop) => prop.id === propId,
-      );
       state.codeComponent.props = state.codeComponent.props.filter(
         (prop) => prop.id !== propId,
       );
-      if (propToRemove) {
-        state.codeComponent.required = state.codeComponent.required.filter(
-          (name) => name !== getPropMachineName(propToRemove.name),
-        );
-        // Set auto-save to true when removing a prop.
-        state.status.needsAutoSave = true;
-      }
+      state.codeComponent.required = state.codeComponent.required.filter(
+        (id) => id !== propId,
+      );
+      // Set auto-save to true when removing a prop.
+      state.status.needsAutoSave = true;
     },
 
     reorderProps: (
@@ -265,15 +261,28 @@ export const codeEditorSlice = createSlice({
       const prop = state.codeComponent.props.find((p) => p.id === propId);
       if (!prop) return;
 
-      const propName = getPropMachineName(prop.name);
-      if (state.codeComponent.required.includes(propName)) {
+      if (state.codeComponent.required.includes(propId)) {
         state.codeComponent.required = state.codeComponent.required.filter(
-          (name) => name !== propName,
+          (id) => id !== propId,
         );
       } else {
-        state.codeComponent.required.push(propName);
+        state.codeComponent.required.push(propId);
       }
       // Set auto-save to true when toggling required.
+      state.status.needsAutoSave = true;
+    },
+
+    /**
+     * Sets the required prop IDs from an array of prop machine names.
+     *
+     * Converts name-based required (e.g. from AI or external sources) to
+     * the internal ID-based representation by looking up current props.
+     */
+    setRequiredFromNames: (state, action: PayloadAction<string[]>) => {
+      state.codeComponent.required = deserializeRequired(
+        state.codeComponent.props,
+        action.payload,
+      );
       state.status.needsAutoSave = true;
     },
 
@@ -497,7 +506,7 @@ export const selectCodeComponentSerialized = createSelector(
     name: codeComponent.name,
     status: codeComponent.status,
     props: serializeProps(codeComponent.props),
-    required: codeComponent.required,
+    required: serializeRequired(codeComponent.props, codeComponent.required),
     slots: serializeSlots(codeComponent.slots),
     sourceCodeJs: codeComponent.sourceCodeJs,
     sourceCodeCss: codeComponent.sourceCodeCss,
@@ -575,6 +584,7 @@ export const {
   removeProp,
   reorderProps,
   toggleRequired,
+  setRequiredFromNames,
   setEntityFieldExpressions,
   addSlot,
   updateSlot,

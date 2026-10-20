@@ -778,6 +778,56 @@ export function deserializeSlots(
 }
 
 /**
+ * Converts the internal ID-based required array to a name-based required array
+ * suitable for JSON Schema serialization.
+ *
+ * Only includes entries for props that have a non-empty name, since unnamed
+ * props are not serialized.
+ *
+ * @param props - The deserialized props with IDs.
+ * @param requiredIds - The array of prop IDs that are marked as required.
+ * @returns An array of prop machine names that are required.
+ */
+export function serializeRequired(
+  props: CodeComponentProp[],
+  requiredIds: string[],
+): string[] {
+  const requiredNames: string[] = [];
+  for (const prop of props) {
+    if (requiredIds.includes(prop.id) && prop.name) {
+      const machineName = getPropMachineName(prop.name);
+      if (!requiredNames.includes(machineName)) {
+        requiredNames.push(machineName);
+      }
+    }
+  }
+  return requiredNames;
+}
+
+/**
+ * Converts a name-based required array (from JSON Schema) to an ID-based
+ * required array for internal state management.
+ *
+ * @param props - The deserialized props with IDs.
+ * @param requiredNames - The array of prop machine names that are required.
+ * @returns An array of prop IDs that are required.
+ */
+export function deserializeRequired(
+  props: CodeComponentProp[],
+  requiredNames: string[] | undefined,
+): string[] {
+  if (!requiredNames || !requiredNames.length) {
+    return [];
+  }
+  return props
+    .filter(
+      (prop) =>
+        prop.name && requiredNames.includes(getPropMachineName(prop.name)),
+    )
+    .map((prop) => prop.id);
+}
+
+/**
  * Deserializes a code component.
  */
 export function deserializeCodeComponent(
@@ -802,6 +852,7 @@ export function deserializeCodeComponent(
     ...codeComponent,
     type: codeComponent.type ?? 'react',
     props,
+    required: deserializeRequired(props, codeComponent.required),
     slots: deserializeSlots(codeComponent.slots),
     sourceCodeJs: codeComponent.sourceCodeJs ?? '',
     sourceCodeCss: codeComponent.sourceCodeCss ?? '',

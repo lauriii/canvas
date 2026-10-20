@@ -12,10 +12,12 @@ import {
 import {
   deserializeCodeComponent,
   deserializeProps,
+  deserializeRequired,
   deserializeSlots,
   formatToValidImportName,
   getPropValuesForPreview,
   serializeProps,
+  serializeRequired,
   serializeSlots,
 } from '@/features/code-editor/utils/utils';
 
@@ -894,5 +896,83 @@ describe('deserializeCodeComponent', () => {
     expect(result.dataDependencies).toEqual({});
     expect(result.props).toEqual([]);
     expect(result.slots).toEqual([]);
+  });
+
+  it('converts required prop names to prop IDs', () => {
+    const result = deserializeCodeComponent({
+      props: {
+        title: { title: 'Title', type: 'string', examples: ['Hello'] },
+        body: { title: 'Body', type: 'string', examples: ['World'] },
+      },
+      required: ['title'],
+    });
+    expect(result.required).toEqual([result.props[0].id]);
+  });
+});
+
+describe('serializeRequired / deserializeRequired', () => {
+  const props = [
+    { id: 'id-1', name: 'First Name' },
+    { id: 'id-2', name: 'Last Name' },
+    { id: 'id-3', name: 'Email Address' },
+    // Unnamed prop is not valid yet and should be ignored.
+    { id: 'id-4', name: '' },
+  ];
+
+  describe('serializeRequired', () => {
+    it('maps required IDs to prop machine names', () => {
+      expect(serializeRequired(props, ['id-1', 'id-3'])).toEqual([
+        'firstName',
+        'emailAddress',
+      ]);
+    });
+
+    it('returns an empty array when nothing is required', () => {
+      expect(serializeRequired(props, [])).toEqual([]);
+    });
+
+    it('ignores required IDs for props without a name', () => {
+      expect(serializeRequired(props, ['id-4'])).toEqual([]);
+    });
+
+    it('ignores unknown required IDs', () => {
+      expect(serializeRequired(props, ['does-not-exist'])).toEqual([]);
+    });
+
+    it('de-duplicates machine names that collide', () => {
+      const collidingProps = [
+        { id: 'id-1', name: 'Full name' },
+        { id: 'id-2', name: 'full name' },
+      ];
+      expect(serializeRequired(collidingProps, ['id-1', 'id-2'])).toEqual([
+        'fullName',
+      ]);
+    });
+  });
+
+  describe('deserializeRequired', () => {
+    it('maps required machine names back to prop IDs', () => {
+      expect(deserializeRequired(props, ['firstName', 'emailAddress'])).toEqual(
+        ['id-1', 'id-3'],
+      );
+    });
+
+    it('returns an empty array when nothing is required', () => {
+      expect(deserializeRequired(props, [])).toEqual([]);
+    });
+
+    it('returns an empty array when required names is undefined', () => {
+      expect(deserializeRequired(props, undefined)).toEqual([]);
+    });
+
+    it('ignores names that do not match any prop', () => {
+      expect(deserializeRequired(props, ['nonExistent'])).toEqual([]);
+    });
+  });
+
+  it('round-trips required props (serialize then deserialize)', () => {
+    const requiredIds = ['id-2', 'id-3'];
+    const names = serializeRequired(props, requiredIds);
+    expect(deserializeRequired(props, names)).toEqual(requiredIds);
   });
 });

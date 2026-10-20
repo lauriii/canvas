@@ -16,6 +16,7 @@ import {
 import {
   serializeDataDependencies,
   serializeProps,
+  serializeRequired,
   serializeSlots,
 } from '@/features/code-editor/utils/utils';
 import { useUpdateAutoSaveMutation as updateGlobalAssetLibraryMutation } from '@/services/assetLibrary';
@@ -142,7 +143,7 @@ const useAutoSave = (requestedComponentId: string): void => {
           compiledCss,
           props: serializeProps(props),
           slots: serializeSlots(slots),
-          required,
+          required: serializeRequired(props, required),
           importedJsComponents: importedJsComponentsRef.current,
           dataDependencies: serializeDataDependencies(props, dataDependencies),
         },
