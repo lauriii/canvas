@@ -162,6 +162,87 @@ describe('serializePropsForServer - color transformer', () => {
 });
 
 describe('serializePropsForServer — link transformer', () => {
+  it.each(['uri', 'uri-reference', 'iri', 'iri-reference'])(
+    'restores an unchanged %s link from provenance without local metadata',
+    (format) => {
+      const link = {
+        uri: 'entity:node/7',
+        options: { attributes: { target: '_blank' } },
+      };
+      const url = 'https://example.com/node/7';
+      expect(
+        serializePropsForServer(
+          { link: url },
+          { link: { title: 'Link', type: 'string', format } },
+          { link: { ...link, resolved_url: url } },
+        ),
+      ).toEqual({ link });
+    },
+  );
+
+  it.each([
+    ['/node/8', 'internal:/node/8'],
+    ['https://example.com/new', 'https://example.com/new'],
+    ['', ''],
+  ])('serializes the edited URL %j with empty options', (url, uri) => {
+    expect(
+      serializePropsForServer(
+        { link: url },
+        { link: { title: 'Link', type: 'string', format: 'uri-reference' } },
+        {
+          link: {
+            uri: 'entity:node/7',
+            options: { attributes: { target: '_blank' } },
+            resolved_url: '/node/7',
+          },
+        },
+      ),
+    ).toEqual({
+      link: { uri, options: [] },
+    });
+  });
+
+  it.each([
+    { uri: 'entity:node/7', options: [] },
+    { uri: 7, options: [], resolved_url: '/node/7' },
+    { uri: 'entity:node/7', resolved_url: '/node/7' },
+    { uri: 'entity:node/7', options: null, resolved_url: '/node/7' },
+  ])('ignores incomplete link provenance %j', (link) => {
+    expect(
+      serializePropsForServer(
+        { link: '/node/7' },
+        { link: { title: 'Link', type: 'string', format: 'uri-reference' } },
+        { link },
+      ),
+    ).toEqual({ link: { uri: 'internal:/node/7', options: [] } });
+  });
+
+  it.each([
+    { uri: 'entity:node/7', options: { attributes: { target: '_blank' } } },
+    { sourceType: 'host-entity-url', absolute: false },
+    {
+      sourceType: 'entity-field',
+      expression: 'ℹ︎␜entity:node:article␝field_link␞␟uri',
+    },
+  ])(
+    'passes raw link inputs and dynamic sources through unchanged: %j',
+    (link) => {
+      expect(
+        serializePropsForServer(
+          { link },
+          { link: { title: 'Link', type: 'string', format: 'uri-reference' } },
+          {
+            link: {
+              uri: 'entity:node/99',
+              options: [],
+              resolved_url: '/node/99',
+            },
+          },
+        ),
+      ).toEqual({ link });
+    },
+  );
+
   it('wraps absolute URI into { uri, options }', () => {
     const schemas: Record<string, CodeComponentPropSerialized> = {
       link: { title: 'Link', type: 'string', format: 'uri' },
