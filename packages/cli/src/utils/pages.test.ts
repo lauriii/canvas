@@ -517,7 +517,7 @@ describe('pageToAuthoredSpec', () => {
     });
   });
 
-  it('stores media provenance in _provenance when inputs_resolved contains resolved media data', () => {
+  it('stores media and link provenance alongside resolved props', () => {
     const page: Page = {
       id: 1,
       uuid: '27a539f5-2dd0-471a-a364-8fee7a024a73',
@@ -537,8 +537,15 @@ describe('pageToAuthoredSpec', () => {
           component_version: 'v1',
           parent_uuid: null,
           slot: null,
-          inputs: { image: { target_id: 42 } },
+          inputs: {
+            image: { target_id: 42 },
+            link: {
+              uri: 'entity:node/7',
+              options: { attributes: { target: '_blank' } },
+            },
+          },
           inputs_resolved: {
+            link: '/node/7',
             image: {
               src: '/sites/default/files/example.jpg',
               alt: 'Example image',
@@ -560,6 +567,7 @@ describe('pageToAuthoredSpec', () => {
         'image-uuid': {
           type: 'js.hero',
           props: {
+            link: '/node/7',
             image: {
               src: '/sites/default/files/example.jpg',
               alt: 'Example image',
@@ -568,6 +576,11 @@ describe('pageToAuthoredSpec', () => {
             },
           },
           _provenance: {
+            link: {
+              uri: 'entity:node/7',
+              options: { attributes: { target: '_blank' } },
+              resolved_url: '/node/7',
+            },
             image: {
               target_id: 42,
             },

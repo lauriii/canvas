@@ -120,17 +120,35 @@ function isResolvedContentEntityReferenceValue(value: unknown): boolean {
   return isRecord(value) && typeof value.__type === 'string';
 }
 
-function extractMediaProvenance(
+function isLinkProp(
+  input: unknown,
+  resolved: unknown,
+): input is { uri: string; options: Record<string, unknown> | unknown[] } {
+  return (
+    typeof resolved === 'string' &&
+    isRecord(input) &&
+    typeof input.uri === 'string' &&
+    (isRecord(input.options) || Array.isArray(input.options))
+  );
+}
+
+function extractPropProvenance(
   inputs: Record<string, unknown>,
   resolvedInputs: Record<string, unknown>,
 ): Record<string, unknown> | undefined {
-  const provenance = Object.fromEntries(
-    Object.entries(inputs).filter(([key, value]) => {
-      return (
-        isResolvedMediaValue(resolvedInputs[key]) && isReferenceInput(value)
-      );
-    }),
-  );
+  const provenance: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(inputs)) {
+    const resolved = resolvedInputs[key];
+    if (isResolvedMediaValue(resolved) && isReferenceInput(value)) {
+      provenance[key] = value;
+    } else if (isLinkProp(value, resolved)) {
+      provenance[key] = {
+        uri: value.uri,
+        options: value.options,
+        resolved_url: resolved,
+      };
+    }
+  }
 
   return Object.keys(provenance).length > 0 ? provenance : undefined;
 }
@@ -153,10 +171,10 @@ function restoreContentEntityReferenceInputs(
 /**
  * Converts a component tree with computed inputs into an authored element map.
  *
- * Resolved media values are written as authored props while their entity
- * references are retained as provenance for push serialization. Content
- * entity references retain their raw input because they are not authored as
- * resolved entity data.
+ * Resolved media values and link URLs are written as authored props while
+ * their stored inputs are retained as provenance for push serialization.
+ * Content entity references retain their raw input because they are not
+ * authored as resolved entity data.
  */
 export function resolvedComponentTreeToAuthoredElementMap(
   tree: CanvasComponentTree,
@@ -197,7 +215,7 @@ export function resolvedComponentTreeToAuthoredElementMap(
       );
     }
 
-    const provenance = extractMediaProvenance(inputs, resolvedInputs);
+    const provenance = extractPropProvenance(inputs, resolvedInputs);
     if (provenance) {
       element._provenance = provenance;
     }

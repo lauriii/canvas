@@ -129,6 +129,9 @@ const formattedTextTransformer: PropTransformer = {
 /**
  * Link props (`format: uri | uri-reference | iri | iri-reference`).
  * Authored: plain string (URL or path). Server: `{ uri, options }`.
+ * Unchanged URLs reuse the original URI and options from provenance. Edited
+ * URLs use the normalization below and empty options. The `resolved_url`
+ * snapshot in provenance is local metadata and is never sent to Drupal.
  *
  * Root-relative paths (no scheme, leading `/`) are prefixed with `internal:`,
  * matching what the server stores when the same value is authored in the
@@ -148,9 +151,18 @@ const linkTransformer: PropTransformer = {
     );
   },
 
-  serialize(value, { schema }) {
+  serialize(value, { schema, provenance }) {
     if (typeof value !== 'string') {
       return value;
+    }
+
+    if (
+      isRecord(provenance) &&
+      typeof provenance.uri === 'string' &&
+      (isRecord(provenance.options) || Array.isArray(provenance.options)) &&
+      provenance.resolved_url === value
+    ) {
+      return { uri: provenance.uri, options: provenance.options };
     }
 
     // Only uri-reference and iri-reference allow relative paths;

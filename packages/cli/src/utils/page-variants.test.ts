@@ -11,7 +11,15 @@ import type { ComponentMetadata } from '@drupal-canvas/discovery';
 import type { PageVariant } from '../types/PageVariant';
 
 describe('pageVariantToAuthoredSpec', () => {
-  it('pulls resolved props that validate and serialize back to stored inputs', () => {
+  it.each([
+    ['entity:node/7', '/node/7', { attributes: { target: '_blank' } }],
+    ['internal:/about', '/about', []],
+    [
+      'https://example.com',
+      'https://example.com?foo=bar#section',
+      { query: { foo: 'bar' }, fragment: 'section' },
+    ],
+  ])('round-trips resolved props with link URI %s', (uri, url, options) => {
     const metadata: ComponentMetadata = {
       name: 'Banner',
       machineName: 'banner',
@@ -37,7 +45,7 @@ describe('pageVariantToAuthoredSpec', () => {
     const inputs = {
       image: { target_id: 42 },
       text: { value: '<p>Welcome</p>', format: 'canvas_html_block' },
-      link: { uri: 'internal:/about', options: [] },
+      link: { uri, options },
     };
     const resolved = {
       image: {
@@ -47,7 +55,7 @@ describe('pageVariantToAuthoredSpec', () => {
         height: 800,
       },
       text: '<p>Welcome</p>',
-      link: '/about',
+      link: url,
     };
     const id = 'c264f8d9-6657-4e54-8431-29664bf28add';
     const variant: PageVariant = {
@@ -72,7 +80,10 @@ describe('pageVariantToAuthoredSpec', () => {
     expect(elements[id]).toEqual({
       type: 'js.banner',
       props: resolved,
-      _provenance: { image: { target_id: 42 } },
+      _provenance: {
+        image: { target_id: 42 },
+        link: { uri, options, resolved_url: url },
+      },
     });
     expect(
       validateElements(elements, buildElementsValidationContext([metadata])),
