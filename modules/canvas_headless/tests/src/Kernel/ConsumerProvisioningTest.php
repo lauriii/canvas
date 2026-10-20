@@ -41,6 +41,9 @@ class ConsumerProvisioningTest extends CanvasKernelTestBase {
     parent::setUp();
     $this->installEntitySchema('user');
     $this->installEntitySchema('consumer');
+    // simple_oauth 6.1.2+ deletes tokens on consumer deletion, which requires
+    // the oauth2_token table to exist even in tests that do not exercise it.
+    $this->installEntitySchema('oauth2_token');
     include_once __DIR__ . '/../../../canvas_headless.install';
   }
 
