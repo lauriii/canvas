@@ -208,6 +208,13 @@ test.describe('Optional Image Default Management', () => {
       defaultImagePreview.locator('button[aria-label="Remove default"]'),
     ).toBeVisible();
 
+    // The "Add media" button must be interactive (not disabled while the
+    // default image preview is showing) before it is used to replace the
+    // image, further down in this test.
+    await expect(
+      imageFieldset.getByRole('button', { name: 'Add media' }),
+    ).toBeEnabled();
+
     await defaultImagePreview
       .locator('button[aria-label="Remove default"]')
       .click();
