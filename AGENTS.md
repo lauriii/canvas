@@ -34,7 +34,7 @@ composer run phpunit -- tests/src/Kernel/PropExpressionKernelTest.php
 composer run phpunit -- tests/src/Kernel/PropExpressionKernelTest.php --filter testLabel
 npm run test:playwright -- tests/src/Playwright/tests/isolatedPerTest/routing.spec.ts
 npm run --workspace=@drupal-canvas/ui cy:component -- --spec tests/unit/validation.cy.js
-npm run --workspace=@drupal-canvas/ui cy:run -- --spec tests/e2e/canary.cy.js
+npm run --workspace=@drupal-canvas/ui cy:run -- --spec tests/e2e/navigation.cy.js
 npm run --workspace=@drupal-canvas/cli test:vitest -- src/lib/transform-css.test.ts
 ```
 
