@@ -451,7 +451,7 @@ export function createCanvasViteBuildConfig(
 ): UserConfig {
   return {
     root: options.hostRoot,
-    esbuild: { jsx: 'automatic' },
+    oxc: { jsx: { runtime: 'automatic' } },
     plugins: [
       ...drupalCanvasCompat({
         hostRoot: options.hostRoot,
@@ -497,6 +497,18 @@ function isBareImport(source: string): boolean {
     !source.startsWith('\0') &&
     !source.includes('\0')
   );
+}
+
+/**
+ * Oxc imports its syntax-lowering helpers (e.g. object spread for the es2015
+ * component target) from `@oxc-project/runtime`. Rolldown resolves them from
+ * its embedded copy of that package, so they can be bundled like esbuild's
+ * inlined helpers instead of being externalized and vendored as a third-party
+ * package. Rolldown currently consults only the `external` option for these
+ * injected imports, not plugin `resolveId` hooks.
+ */
+function isOxcRuntimeHelperImport(source: string): boolean {
+  return source.startsWith('@oxc-project/runtime/helpers/');
 }
 
 function isCanvasProvidedExternal(source: string): boolean {
@@ -738,6 +750,10 @@ export async function buildCanvasComponentEntry(options: {
       return true;
     }
 
+    if (isOxcRuntimeHelperImport(source)) {
+      return false;
+    }
+
     if (isBareImport(source)) {
       metadata.thirdPartyPackages.add(source);
       return true;
@@ -777,10 +793,10 @@ export async function buildCanvasComponentEntry(options: {
         formats: ['es'],
         fileName: () => `${options.entry.outputBaseName}.js`,
       },
-      rollupOptions: {
+      rolldownOptions: {
         external: externalizeComponentImport,
         output: {
-          inlineDynamicImports: true,
+          codeSplitting: false,
         },
       },
     },
@@ -909,7 +925,11 @@ function createBundledSourceHarvestPlugin(options: {
     async buildEnd() {
       for (const id of this.getModuleIds()) {
         const info = this.getModuleInfo(id);
-        if (!info || info.isExternal || info.isEntry) {
+        // Skip entries and external modules. External modules were never
+        // bundled, so they have no source to harvest and their `code` is
+        // `null`.
+        // @see https://rolldown.rs/reference/Interface.ModuleInfo#code
+        if (!info || info.isEntry || info.code === null) {
           continue;
         }
         // Skip virtual modules and anything resolved outside the project.
@@ -1062,7 +1082,7 @@ export async function buildCanvasLocalArtifacts(options: {
       minify: true,
       sourcemap: false,
       copyPublicDir: false,
-      rollupOptions: {
+      rolldownOptions: {
         input: hasCodeEntries
           ? codeEntries
           : { __canvas_assets: virtualAssetEntry },
@@ -1175,7 +1195,7 @@ export async function buildCanvasVendorArtifacts(options: {
       minify: true,
       sourcemap: false,
       copyPublicDir: false,
-      rollupOptions: {
+      rolldownOptions: {
         input: entries,
         external: (source) => isCanvasProvidedExternal(source),
         treeshake: false,

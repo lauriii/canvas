@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Provider } from 'react-redux';
+import { fn } from 'storybook/test';
 import { configureStore } from '@reduxjs/toolkit';
-import { fn } from '@storybook/test';
 
 import {
   ReviewChangesView,

@@ -102,7 +102,7 @@ export async function bundleVendorDependencies(
       outDir: vendorDir,
       emptyOutDir: true,
       manifest: true, // Generate manifest for reliable import map building
-      rollupOptions: {
+      rolldownOptions: {
         input: entries,
         external: DRUPAL_CANVAS_EXTERNALS,
         treeshake: false,

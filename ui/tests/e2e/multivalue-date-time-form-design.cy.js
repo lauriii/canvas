@@ -419,11 +419,22 @@ describe('Multivalue DateTime Form Design', () => {
     }).as('updatePreview');
     setDateTimeInFirstEmptyRow('@unlimited-datetime', '2024-01-01', '10:00');
 
+    getEditableRows('@unlimited-datetime')
+      .its('length')
+      .as('editableRowCount', { type: 'static' });
     cy.get('@unlimited-datetime')
       .findByRole('button', { name: '+ Add new' })
       .click();
     cy.selectorShouldHaveUpdatedFormBuildId(entityFormSelector);
     cy.get('body[data-canvas-ajax-behaviors="true"]').should('not.exist');
+    // The rebuilt rows replace the old ones in stages after the form build ID
+    // changes, so wait for the final rows before choosing the new empty one.
+    cy.get('@editableRowCount').then((editableRowCount) => {
+      getEditableRows('@unlimited-datetime').should(
+        'have.length',
+        editableRowCount + 1,
+      );
+    });
 
     cy.intercept({
       url: '**/canvas/api/v0/layout/node/2',

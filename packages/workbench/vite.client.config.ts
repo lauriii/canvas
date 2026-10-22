@@ -12,7 +12,7 @@ export default defineConfig({
   root: clientRoot,
   build: {
     outDir: path.resolve(packageRoot, 'dist/client'),
-    rollupOptions: {
+    rolldownOptions: {
       external: [
         'react',
         'react-dom',

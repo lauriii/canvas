@@ -1,5 +1,5 @@
+import { fn } from 'storybook/test';
 import { Text } from '@radix-ui/themes';
-import { fn } from '@storybook/test';
 
 import ErrorCard from '@/components/error/ErrorCard';
 

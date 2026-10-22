@@ -108,7 +108,7 @@ export async function bundleLocalAliasImports(
         outDir: outputDirForLocalImports,
         emptyOutDir: false,
         manifest: true,
-        rollupOptions: {
+        rolldownOptions: {
           treeshake: false,
           input: codeEntries,
           external: DRUPAL_CANVAS_EXTERNALS,

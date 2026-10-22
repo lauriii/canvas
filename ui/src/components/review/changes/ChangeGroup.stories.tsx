@@ -1,6 +1,6 @@
 // cspell:ignore Balint Takacs Chueka
 import { useState } from 'react';
-import { fn } from '@storybook/test';
+import { fn } from 'storybook/test';
 
 import ChangeGroup from './ChangeGroup';
 

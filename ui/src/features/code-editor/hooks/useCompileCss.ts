@@ -11,10 +11,30 @@ import {
   compilePartialCss,
   compileCss as compileTailwindCss,
   extractClassNameCandidates,
-  transformCss,
+  transformCss as transformCssWithLightningCss,
 } from 'tailwindcss-in-browser';
 
+import { getBaseUrl, getCanvasSettings } from '@/utils/drupal-globals';
+
 import { UNLAYERED_DISPLAY_UTILITIES } from '../utils/tailwindCss';
+
+const CANVAS_MODULE_UI_PATH =
+  `${getBaseUrl()}${getCanvasSettings().canvasModulePath}/ui` as const;
+
+/**
+ * Transforms CSS with Lightning CSS.
+ *
+ * When served in production, the WASM asset path needs to be relative to the
+ * Drupal web root, so we pass the asset base URL as `wasmBaseUrl`. In
+ * development mode, the library's default URL is resolved by Vite.
+ */
+const transformCss = (css: string): Promise<string> =>
+  transformCssWithLightningCss(css, {
+    wasmBaseUrl:
+      import.meta.env.MODE === 'production'
+        ? `${CANVAS_MODULE_UI_PATH}/dist/assets`
+        : undefined,
+  });
 
 const useCompileCss = (): {
   extractClassNameCandidates: (markup: string) => string[];

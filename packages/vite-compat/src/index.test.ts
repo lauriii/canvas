@@ -732,6 +732,53 @@ describe('vite-compat', () => {
     expect(output).not.toContain('data:image/svg+xml');
   });
 
+  it('bundles Oxc runtime helpers into components instead of vendoring them', async () => {
+    const hostRoot = await makeTempDir();
+    const componentEntry = path.join(hostRoot, 'src/components/card/index.jsx');
+    const outputDir = path.join(hostRoot, 'dist/components/card');
+    await fs.mkdir(path.dirname(componentEntry), { recursive: true });
+    // Object spread and rest are lowered for the es2015 component target into
+    // calls to `@oxc-project/runtime/helpers/objectSpread2` and
+    // `objectWithoutProperties`.
+    await fs.writeFile(
+      componentEntry,
+      [
+        "import { Switch } from '@radix-ui/react-switch';",
+        'export function merge(base, extra) {',
+        '  return { ...base, ...extra, merged: true };',
+        '}',
+        'export function omit(props) {',
+        '  const { hidden, ...rest } = props;',
+        '  return rest;',
+        '}',
+        'export default function Card(props) {',
+        '  return <Switch {...omit(props)} />;',
+        '}',
+      ].join('\n'),
+      'utf-8',
+    );
+
+    const metadata = await buildCanvasComponentEntry({
+      projectRoot: hostRoot,
+      aliasBaseDir: 'src',
+      entry: {
+        entryPath: componentEntry,
+        outputDir,
+        outputBaseName: 'index',
+      },
+    });
+
+    const output = await fs.readFile(path.join(outputDir, 'index.js'), 'utf-8');
+    expect(output).not.toContain('@oxc-project/runtime');
+    // The helpers were lowered and inlined, not left as native syntax.
+    expect(output).not.toMatch(/\{\s*\.\.\./);
+    // Ordinary third-party imports are still externalized and vendored.
+    expect(output).toContain('from "@radix-ui/react-switch"');
+    expect([...metadata.thirdPartyPackages]).toEqual([
+      '@radix-ui/react-switch',
+    ]);
+  });
+
   it('creates a shared Canvas Vite config with host compatibility plugins', () => {
     const config = createCanvasViteBuildConfig({
       hostRoot: '/tmp/host',
@@ -739,7 +786,7 @@ describe('vite-compat', () => {
     });
 
     expect(config.root).toBe('/tmp/host');
-    expect(config.esbuild).toEqual({ jsx: 'automatic' });
+    expect(config.oxc).toEqual({ jsx: { runtime: 'automatic' } });
     const pluginNames = (config.plugins ?? []).flatMap((plugin) => {
       if (plugin && typeof plugin === 'object' && 'name' in plugin) {
         return [plugin.name];
@@ -924,7 +971,7 @@ describe('vite-compat', () => {
       ),
       'utf-8',
     );
-    expect(builtEntry).toContain('import.meta.resolve("@/lib/poster.webp")');
+    expect(builtEntry).toContain('import.meta.resolve(`@/lib/poster.webp`)');
     // Its source is captured by disk path so a pull can restore the file, even
     // though it never had an import specifier to key on.
     expect(result.bundledSources).toContainEqual({

@@ -382,6 +382,47 @@ describe('headless height probing', () => {
     host.destroy();
   });
 
+  it('accepts final height reports after the iframe reloads during a probe', async () => {
+    const { host, iframe, onHeight, postMessage, send } =
+      await createHeightHarness();
+
+    send({
+      type: HEADLESS_HEIGHT_PROBE_MESSAGE,
+      id: 'probe-1',
+      height: 1500,
+    });
+    expect(iframe.style.height).toBe('1500px');
+
+    // A draft refresh replaces the document before it restores the probe.
+    postMessage.mockClear();
+    iframe.dispatchEvent(new Event('load'));
+    const statusRequest = postMessage.mock.calls.find(
+      ([message]: unknown[]) =>
+        (message as { type?: string }).type === HEADLESS_STATUS_REQUEST_MESSAGE,
+    )?.[0] as { hostSessionId: string };
+    const sendFromNewDocument = (data: Record<string, unknown>) => {
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          data: { ...data, hostSessionId: statusRequest.hostSessionId },
+          origin: FRONTEND_ORIGIN,
+          source: iframe.contentWindow,
+        }),
+      );
+    };
+    sendFromNewDocument({
+      type: HEADLESS_STATUS_MESSAGE,
+      status: 'active',
+      path: '/page/one',
+      tokenExpiresAt: 123,
+    });
+    sendFromNewDocument({ type: HEADLESS_HEIGHT_MESSAGE, height: 3865 });
+
+    expect(iframe.style.height).toBe('500px');
+    expect(onHeight).toHaveBeenCalledWith(3865);
+
+    host.destroy();
+  });
+
   it('restores the iframe when the host is destroyed during a probe', async () => {
     const { host, iframe, send } = await createHeightHarness();
 
