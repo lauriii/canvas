@@ -13,8 +13,9 @@ directory.** No Cypress spec is deleted without a corresponding row below
 explaining where its coverage went. When the last row is `Deleted`, this
 entire directory (and this file) is deleted in the same commit.
 
-See `AGENTS.md` and the migration plan (canvas.drupal.org issue tracking
-this effort) for the full rationale and MR sequencing.
+See `AGENTS.md` for repo-wide testing conventions, and see "Appendix: MR
+phase plan" below for the full rationale and MR sequencing this ledger is
+tracking progress against.
 
 ## Status legend
 
@@ -31,7 +32,7 @@ this effort) for the full rationale and MR sequencing.
 |---|---|---|---|
 | `auto-path-alias.cy.js` | Not started | — | Path alias auto-generation from title, manual-override lock, post-publish lock. No Playwright coverage yet. |
 | `autocomplete-props.cy.js` | Not started | `componentOperations.spec.ts` (partial: blur behavior only), `raceConditions.spec.ts` (partial: installs `canvas_test_autocomplete`) | Missing: `ul.ui-autocomplete` suggestion list assertions, config-entity autocomplete rewrite, link-field autocomplete resolving to node alias. |
-| `autosave.cy.js` | Not started | `componentOperations.spec.ts` (partial), `mediaMultiCardinality.spec.ts` (partial) | Missing: deletion surviving reload. Reproduce the setup in-test and reuse existing coverage where possible before adding new helpers. |
+| `autosave.cy.js` | **Deleted** | `componentOperations.spec.ts` (`Can delete component with delete key`) | Coverage was folded into existing CRUD coverage: delete a component, reopen the same editor route, and assert the deletion persisted in both UI overlay and preview. |
 | `canary.cy.js` | **Deleted** | `canaryMinimal.spec.ts` + `tests/src/Playwright/setup.ts` / `fixtures/test.ts` harness | Cypress-harness-only smoke test (`drupalInstall`, `drupalCreateUser`, `drupalInstallModule`). The Playwright fixture harness proves the equivalent install/login/module-install flow on every single test run. |
 | `ckeditor5.cy.js` | Not started | `componentOperations.spec.ts` (partial: empty required formatted body) | Missing: text-format switching + "Change text format?" dialog (already `it.skip` in Cypress, see #3522998); Source-editing mode round trip; publish + assert on node edit form; Claro admin-theme dialog styling. |
 | `code-component-image.cy.js` | Not started | `optionalImageDefault.spec.ts` (partial: "Code component: Remove, upload, and persist optional image correctly") | Missing: "Vanilla Image" default `placehold.co` src assertion; publish, then assert the image on the **live published page** (not just the editor). |
@@ -84,7 +85,7 @@ silently.
 
 | Cypress helper | Status | Playwright equivalent | Notes |
 |---|---|---|---|
-| `cy.drupalCanvasInstall` / `cy.drupalInstall` | Not started | `tests/src/Playwright/fixtures/test.ts` (`isolatedPerTest`) + `setup.ts` | Playwright installs with the bare `minimal` profile and each migrated test reproduces only the setup it needs. Add helper modules only as a last resort. |
+| `cy.drupalCanvasInstall` / `cy.drupalInstall` | Migrated | `tests/src/Playwright/fixtures/test.ts` (`isolatedPerTest`) + `tests/src/Playwright/setup.ts` | Playwright installs the bare `minimal` profile and each migrated spec reproduces only the setup it needs. Prefer in-test setup first; add helper modules only as a last resort. |
 | `cy.drupalLogin` / `cy.drupalLoginAsAdmin` / `cy.drupalLogout` | Migrated | `Drupal.login()` / `Drupal.loginAsAdmin()` / `Drupal.logout()` (`@drupal/playwright`) | Direct equivalents already in use by every spec. |
 | `cy.drupalCreateUser` / `cy.drupalCreateRole` | Migrated | `Drupal.createUser()` / `Drupal.createRole()` / `Drupal.addPermissions()` | Used in `tests/src/Playwright/setup.ts`. |
 | `cy.drupalInstallModule` | Migrated | `Drupal.installModules()` | Used in `tests/src/Playwright/setup.ts` and via the `modules` fixture option. |
@@ -92,7 +93,7 @@ silently.
 | `cy.setKeyValue` | Migrated | `canvas_e2e_support` route exists (`/canvas-test/set-key-value/{collection}`); no Playwright wrapper yet | Add a wrapper only if a migrated spec needs it and inline usage is no longer readable. |
 | `cy.previewReady` / `cy.getIframeBody` / `cy.waitForElement*InIframe` | Migrated | `CanvasBase.waitForEditorFrame()`, `CanvasUtilities.getActivePreviewFrame()` / `testInPreviewFrame()` | Playwright uses native `FrameLocator` + `expect().toPass()` retries instead of bespoke polling commands. |
 | `cy.openLibraryPanel` / `cy.openLayersPanel` | Migrated | `CanvasNavigation.openLibraryPanel()` / `openLayersPanel()` (+ `openCodePanel`, `openPagesPanel`, `openTemplatesPanel`, `openBrandKitPanel`) | Playwright's navigation mixin has strictly more panel-opening helpers. |
-| `cy.loadURLandWaitForCanvasLoaded` | Not started | `CanvasNavigation.createCanvas()` / `openCanvas()` | Different model: Cypress navigates by URL; Playwright usually creates content via the UI and reopens that route for persistence checks. |
+| `cy.loadURLandWaitForCanvasLoaded` | Migrated | `CanvasNavigation.openCanvas()` / `createCanvas()` | Different model: Cypress navigates by URL; Playwright usually creates content via UI and returns `{ entity_type, entity_id }`, then reopens that route when persistence checks are needed. |
 | `cy.insertComponent` | Migrated | `CanvasComponents.addComponent()` | Equivalent: opens the Library panel context menu and asserts the instance count. |
 | `cy.editHeroComponent` | Migrated | `CanvasComponents.editComponentProp()` | Playwright's version is generic over prop name/type rather than hard-coded to the Hero component. |
 | `cy.clickComponentInPreview` / `cy.getComponentInPreview` | Migrated | `CanvasComponents.clickPreviewComponent()` / `hoverPreviewComponent()` | |
@@ -127,3 +128,208 @@ When in doubt, add the missing assertions to the existing Playwright spec
 first (per `AGENTS.md`: prefer extending an existing test over creating a
 parallel one), then delete the Cypress spec in the same commit that closes
 the gap.
+
+## Appendix: MR phase plan
+
+This is the full sequencing plan this migration is following. It is kept
+here (rather than only in an issue) so any contributor picking up the next
+MR has the full rationale without needing prior conversation context.
+Update this appendix if the plan changes; keep the "Spec status" table
+above as the moment-to-moment source of truth for what's actually done.
+
+### Guiding rules
+
+1. **Close gaps in existing Playwright specs**, don't create parallel
+   files (per `AGENTS.md`).
+2. **This README is the ledger.** Every MR updates it: each Cypress spec
+   gets a row — `Migrated to <playwright spec>` / `Partially migrated
+   (remaining: …)` / `Not started` / `Deleted: covered by …`. The
+   directory and this README are deleted together in the final MR. No
+   ambiguity about what's left at any point.
+3. **Upstream candidates are quarantined** in
+   `tests/src/Playwright/upstream/`, Canvas-free, so they can be lifted
+   into `@drupal/playwright` as a patch.
+4. Each MR is independently reviewable; no MR both adds infra *and*
+   migrates more than ~3 specs.
+
+### Setup strategy for migration
+
+Migration does not use a seeded-site fixture. Each migrated Playwright test
+reproduces only the setup it needs, directly in the test flow.
+
+If coverage cannot stay readable or reliable with explicit setup in the
+spec, add a helper module as a last resort.
+
+Consolidate migrated coverage wherever practical. Every isolated test run
+installs and tears down Drupal, so reducing duplicate test setup paths keeps
+the suite cheaper to run and easier to maintain.
+
+**Also confirmed:** 26 of 45 Cypress specs are already partially covered
+by an existing Playwright spec — close those gaps in place (don't fork a
+parallel file), then delete the Cypress spec. A few specs
+(`scope-css.cy.js`, parts of `dom-to-redux.cy.js`, `states.cy.js`) are not
+true e2e tests; move those to Vitest in `ui` where possible, Cypress
+component tests where jsdom can't do the job (e.g. `@scope` at-rule
+parsing).
+
+### Phase 0 — Ledger + free deletions
+
+**MR 0 (done):** Establish this migration ledger and remove redundant
+Cypress specs: `canary.cy.js`, `components-slots.cy.js`,
+`drag-and-drop.cy.js` (deleted), `image-code-component.cy.js` (gap closed
+in `optionalImageDefault.spec.ts`, then deleted).
+
+### Phase 1 — Foundation
+
+**MR 1 (done):** Keep the default Playwright install path (`minimal` +
+`setupSite()`), and migrate coverage by reproducing setup inside tests.
+Do not add a seeded fixture path.
+
+Originally proved with **`autosave.spec.ts`** (migrated from
+`autosave.cy.js` — delete a hero, reload without clearing auto-save, assert
+still gone). That coverage now lives in
+`componentOperations.spec.ts` (`Can delete component with delete key`) so
+the standalone autosave spec was removed as redundant.
+
+Also in this MR: ensure migration docs prefer explicit per-test setup and
+state that helper modules are a last resort.
+
+**MR 2:** Migrate **`states.cy.js`** (327 lines, `canvas_test_state_api`)
+into a new `drupalStates.spec.ts`. Pure `#states` API assertion
+(visibility/disabled/checked/required reacting to checkbox, select, radio,
+and text-input changes) — no new helpers needed, only the already-established
+`page.getByLabel()` + `expect(...).toBeVisible/toBeEnabled/toBeChecked/
+toHaveAttribute()` patterns used throughout the existing suite.
+
+No `drupalAjax.ts` in this MR. `cy.waitForAjax` is dead code in the
+current Cypress suite (defined in `commands.js`, called by zero specs).
+`cy.recordFormBuildId` / `cy.selectorShouldHaveUpdatedFormBuildId` are only
+called by the `multivalue-form-design*.cy.js` specs (MR 9–10) — both are
+arbitrary-wait patterns from an earlier refactor that most likely
+shouldn't be ported at all; Playwright's built-in auto-waiting (or, in the
+rare case an explicit wait is truly needed, `page.waitForLoadState
+('networkidle')`) should be tried first when MR 9–10 is scoped.
+
+### Phase 2 — Reusable Canvas page-object mixins
+
+Each MR adds one mixin to `objects/canvas/` and migrates the specs that
+need it.
+
+| MR | New mixin | Migrates |
+|---|---|---|
+| **3** | `CanvasHistory` — `undo()`/`redo()` (`Meta+Z`), `expectUndoEnabled()`, plus `openPageDataForm()`/`openComponentForm()` on `CanvasNavigation` | `undo-redo`, `page-data-form` |
+| **4** | `CanvasContextMenu` — `openContextMenu(target, {in: 'preview'\|'layers'})`, `chooseMenuItem()`; `CanvasSelection` — `selectMany()`, `expectSelected()`, `expectNameTag()` | `contextual-panel`, `multi-select-components`, `overlay-ui`, `expand-slots` |
+| **5** | `CanvasClipboard` — `copySelection()`, `paste()`, `readClipboardStore()` + `context.grantPermissions` | `copy-and-paste` |
+| **6** | `CanvasFrame` — `zoomIn/Out()`, `setZoom()`, `expectZoom()`, `ctrlWheel()`, `getScaledDimensions()` | `editor-frame`, `vh-units` |
+
+MR 4 is the highest-leverage: right-click context menus and selection
+assertions recur across ~10 remaining specs.
+
+### Phase 3 — The page-data-form blind spot
+
+Playwright currently never exercises a field widget inside
+`canvas-page-data-form`. This is the single largest structural gap and
+needs its own mixin before any of the four specs below can move.
+
+**MR 7:** `CanvasPageDataForm` mixin — open the tab, scope locators to the
+form, drive the media-library widget inside it, assert AJAX rebuilds.
+Migrate `media-library-entity-form.cy.js`.
+
+**MR 8:** Entity-form field widgets — port the 23
+`entity-form-fields/*.js` modules to a TS table-driven
+`entityFormFieldTypes.spec.ts`, plus a JSON:API read helper
+(`?resourceVersion=rel:working-copy`). Migrates
+`entity-form-field-types-test.cy.js` (195 lines + 23 modules).
+
+**MR 9–10:** Multivalue widgets in the entity-form context — the widget
+behaviors are already covered by `multivaluePropTypes.spec.ts` for
+component props; only the entity-form integration path is missing. Add a
+second `describe` there rather than new files. Also folds in the
+genuinely-missing widget cases: link drag-reorder, server-side 422 leaving
+the panel interactive, list dropdown chevron open/close and
+re-enable-on-remove, number drag-reorder. Migrates `multivalue-form-design`,
+`-link`, `-list`, `-number-integer`, `-date-time`,
+`multivalue-media-form-design`.
+
+### Phase 4 — Prop types (largest single gap)
+
+`prop-types.cy.js` is 970 lines / 19 cases against `sdc_test_all_props`,
+with no Playwright counterpart. Split by prop family into three MRs so
+each diff is reviewable:
+
+- **MR 11:** scalars — booleans with defaults, the 7 string formats, integer min/max/clamping, space-only and emptied-optional values, JSON-string textareas. Introduces `expectPropValidationMessage()` on `CanvasComponents` (`data-invalid-prop-value` / `data-prop-message`).
+- **MR 12:** enums and dates — string/integer `_none` handling, date+time, date range (including PATCH payload shape), date-only.
+- **MR 13:** CKEditor — block-format toolbar, `drupalSettings.editor.formats` config, typing a paragraph + list. Also absorbs the migratable parts of `ckeditor5.cy.js` (source mode, publish round-trip, Claro dialog styling); its already-skipped `can change text formats` test is dropped with a note in this ledger pointing at [#3522998].
+
+### Phase 5 — Publish, review, routing
+
+**MR 14:** `auto-path-alias.cy.js` — alias auto-generation, manual-override
+lock, post-publish lock. Reproduce setup directly in the spec.
+
+**MR 15:** publish error paths — extend `reviewChanges.spec.ts` /
+`conflictResolution.spec.ts` with topbar status transitions
+(`Published`/`Changed`/`No changes`), the review counter,
+discard-without-reload, exception errors, and per-entity error links that
+SPA-navigate to the erroring component. Adds `publishExpectingErrors()` to
+`CanvasNavigation`. Migrates `publish-review`, `publish-validation`.
+
+**MR 16:** `navigation.cy.js` — fold search, duplicate, delete,
+set-homepage and staged-publish into `infiniteScroll.spec.ts`/a new
+`contentNavigation.spec.ts`; extends `CanvasNavigation`.
+
+### Phase 6 — Remaining long tail
+
+Grouped by shared setup, roughly 4 MRs:
+
+- **MR 17 — media:** remaining `media-library`, `media-library-component-instance`, `media-video-prop` gaps folded into `optionalImageDefault` / `mediaMultiCardinality` / `video`.
+- **MR 18 — code components:** `link-code-component`, `code-component-image`, `realtime-preview-code-component` (preview must update *before* the PATCH), `component-transforms-and-evolution`.
+- **MR 19 — panels and errors:** `primary-panel` (route-mock 50 components, hover previews), `error-handling` (418 boundary, 401 logged-out), `empty-canvas` (SEO/metatag fieldset, empty-region placeholder), `topbar-layout-preview-mode` gaps into `pagePreview.spec.ts`.
+- **MR 20 — extensions and patterns:** `extension-legacy`, `pattern` insert-on-another-page gap into `patternEditing.spec.ts`, `autocomplete-props` gaps into `componentOperations.spec.ts`.
+
+### Phase 7 — Non-e2e extraction
+
+**MR 21:** `dom-to-redux.cy.js` — the store-propagation assertions move to
+Vitest in `ui`; the Drupal `#states` interaction half stays e2e and folds
+into the MR 2 `drupalStates.spec.ts`.
+
+**MR 22:** `scope-css.cy.js` — **caveat:** `scopeCss` is a non-exported
+closure in `js/ajax.command.customizations.js`, and the test asserts on
+parsed `@scope` at-rules via `CSSStyleSheet`. jsdom supports neither. This
+MR first extracts `scopeCss` into an importable ES module, then:
+- CSS-variable resolution and selector-rewriting logic → Vitest (string-in/string-out, no CSSOM).
+- `@scope` at-rule parsing assertions → Cypress component test (real browser), since Vitest cannot parse them. Confirm this split once the extraction is done rather than committing to it upfront.
+
+### Phase 8 — Teardown
+
+**MR 23:** Remove the Cypress e2e suite.
+
+- Delete `ui/tests/e2e/` (including this README), `ui/tests/support/realDnd.js`, `spec-tags.js`, `parallel.js`, `flaky-specs.js`, and the e2e-only half of `commands.js` (keep `cy.mount` and anything the surviving component/unit tests use).
+- Strip the `e2e` block and `setupNodeEvents` tasks from `ui/cypress.config.js`; keep the `component` block.
+- Remove the `cypress E2E` GitLab job and its `retry.exit_codes: [112]` flaky handling; keep `cypress unit`.
+- Drop now-unused devDeps (`cypress-real-events`, `cypress-axe`, `cypress-terminal-report`, `@cypress/skip-test`, `@cypress/webpack-preprocessor`, `fast-glob`, `minimist`) if nothing else uses them.
+- Prune the e2e `cy:*` scripts from `ui/package.json`.
+- Update `AGENTS.md`, `CONTRIBUTING.md` and `docs/testing/` to drop e2e-Cypress references.
+
+### Upstream proposal
+
+Any upstream proposals from this migration should remain Canvas-free and be
+backed by usage across multiple specs before proposing patches.
+
+### Sequencing summary
+
+| Phase | MRs | Specs cleared |
+|---|---|---|
+| 0 Ledger + free deletions | 1 | 4 |
+| 1 Foundation | 2 | 2 |
+| 2 Mixins | 4 | 8 |
+| 3 Page-data form | 4 | 8 |
+| 4 Prop types | 3 | 2 |
+| 5 Publish/routing | 3 | 4 |
+| 6 Long tail | 4 | 12 |
+| 7 Non-e2e | 2 | 2 |
+| 8 Teardown | 1 | — |
+| **Total** | **24** | **45** |
+
+### Known risks
+
+- **Per-test setup runtime.** `isolatedPerTest` installs per *test*. Consolidate overlapping coverage where possible so migration does not duplicate expensive setup/teardown paths.

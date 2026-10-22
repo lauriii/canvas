@@ -319,18 +319,31 @@ test.describe('Perform CRUD operations on components', () => {
     });
   });
 
-  // Assertions are made in the helper functions.
-  // eslint-disable-next-line playwright/expect-expect
   test('Can delete component with delete key', async ({
     page,
     drupal,
     canvas,
   }) => {
     await drupal.login({ username: 'editor', password: 'editor' });
-    await canvas.openCanvas(await canvas.createCanvas());
+    const canvasPage = await canvas.createCanvas();
+    await canvas.openCanvas(canvasPage);
     await canvas.openLibraryPanel();
     await canvas.addComponent({ id: 'sdc.canvas_test_sdc.card' });
     await canvas.deleteComponent('sdc.canvas_test_sdc.card');
+
+    // Reopen the same editor route to confirm the deletion persisted.
+    await canvas.openCanvas(canvasPage);
+    await expect(
+      page.locator(
+        '.componentOverlay:has([data-canvas-component-id="sdc.canvas_test_sdc.card"])',
+      ),
+    ).toHaveCount(0);
+    await canvas.testInPreviewFrame(
+      '[data-component-id="canvas_test_sdc:card"]',
+      async (card) => {
+        await expect(card).toHaveCount(0);
+      },
+    );
   });
 
   test('Can add a component with slots', async ({ page, drupal, canvas }) => {
