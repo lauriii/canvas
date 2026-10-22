@@ -7,6 +7,7 @@ namespace Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall;
 use Drupal\ai\Service\FunctionCalling\ExecutableFunctionCallInterface;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas_ai\CanvasAiPermissions;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\Group;
@@ -45,7 +46,21 @@ final class GetJsComponentTest extends CanvasKernelTestBase {
     $this->installEntitySchema('path_alias');
     $this->functionCallManager = $this->container->get('plugin.manager.ai.function_calls');
     // Needs access to Canvas, permission to create code components is enough.
+    $this->setUpCurrentUser([], [JavaScriptComponent::ADMIN_PERMISSION, CanvasAiPermissions::USE_CANVAS_AI]);
+  }
+
+  /**
+   * Tests that the tool refuses to run without the Canvas AI permission.
+   */
+  public function testWithoutPermission(): void {
     $this->setUpCurrentUser([], [JavaScriptComponent::ADMIN_PERMISSION]);
+    $tool = $this->functionCallManager->createInstance('ai_agent:get_js_component');
+    $this->assertInstanceOf(ExecutableFunctionCallInterface::class, $tool);
+    $tool->setContextValue('component_name', 'test_component');
+
+    $this->expectException(\Exception::class);
+    $this->expectExceptionMessage('The current user does not have the right permissions to run this tool.');
+    $tool->execute();
   }
 
   /**
