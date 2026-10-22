@@ -192,7 +192,7 @@ export default defineConfig({
     environments: {
       client: {
         build: {
-          rollupOptions: {
+          rolldownOptions: {
             output: {
               // Filename pattern for the output files
               entryFileNames: '[name].js',

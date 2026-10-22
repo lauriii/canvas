@@ -32,7 +32,13 @@ import type {
 } from '@drupal-canvas/discovery';
 import type { CanvasSiteData } from '@drupal-canvas/vite-plugin';
 import type { Spec } from '@json-render/core';
-import type { OutputAsset, OutputChunk, RollupOutput } from 'rollup';
+
+// A single written output from Vite's `build()`, excluding the watcher variant
+// it can also resolve to.
+type ViteBuildOutput = Extract<
+  Awaited<ReturnType<typeof viteBuild>>,
+  { output: unknown[] }
+>;
 
 export type PreviewMode = 'component' | 'page';
 
@@ -500,13 +506,19 @@ interface CanvasSiteDataPlugin {
   api?: { getCanvasSiteData(): CanvasSiteData };
 }
 
-function collectOutputs(result: RollupOutput | RollupOutput[]): {
+function collectOutputs(result: ViteBuildOutput | ViteBuildOutput[]): {
   js: string;
   css: string;
 } {
   const outputs = Array.isArray(result) ? result : [result];
-  const chunks: OutputChunk[] = [];
-  const assets: OutputAsset[] = [];
+  const chunks: Extract<
+    ViteBuildOutput['output'][number],
+    { type: 'chunk' }
+  >[] = [];
+  const assets: Extract<
+    ViteBuildOutput['output'][number],
+    { type: 'asset' }
+  >[] = [];
 
   outputs.forEach((output) => {
     output.output.forEach((entry) => {
@@ -614,7 +626,7 @@ export async function bundleInteractivePreview(options: {
     const buildResult = await viteBuild({
       configFile: false,
       root: options.projectRoot,
-      esbuild: canvasViteConfig.esbuild,
+      oxc: canvasViteConfig.oxc,
       logLevel: 'silent',
       define: {
         'process.env.NODE_ENV': JSON.stringify('production'),
@@ -683,9 +695,9 @@ export async function bundleInteractivePreview(options: {
           fileName: () => 'preview-runtime.js',
           cssFileName: 'preview-runtime.css',
         },
-        rollupOptions: {
+        rolldownOptions: {
           output: {
-            inlineDynamicImports: true,
+            codeSplitting: false,
             entryFileNames: 'preview-runtime.js',
             chunkFileNames: 'preview-runtime.js',
             assetFileNames: 'preview-[name][extname]',
@@ -695,7 +707,7 @@ export async function bundleInteractivePreview(options: {
     });
 
     const outputs = collectOutputs(
-      buildResult as RollupOutput | RollupOutput[],
+      buildResult as ViteBuildOutput | ViteBuildOutput[],
     );
     // The Vite integration loaded the site data once during the build.
     const canvasPlugin = (canvasViteConfig.plugins ?? [])

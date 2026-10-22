@@ -344,6 +344,14 @@ export function createHeadlessPreviewHost(
     // Start a new protocol session before accepting messages from that document.
     emit({ type: 'geometry', geometry: [] });
     active = false;
+    // Height reports are ignored while a probe is active. A document that
+    // reloads mid-probe never sends the restore message, so end the probe
+    // here. Otherwise, the iframe keeps the probe height and ignores reports.
+    if (probeFrame !== null) {
+      window.cancelAnimationFrame(probeFrame);
+      probeFrame = null;
+    }
+    restoreProbeHeight();
     if (!canHandshakeOnLoad) {
       return;
     }

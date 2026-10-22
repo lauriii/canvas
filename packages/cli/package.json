@@ -63,9 +63,9 @@
     "open": "^11.0.0",
     "opentype.js": "^1.3.4",
     "request-filtering-agent": "^3.2.0",
-    "tailwindcss-in-browser": "^0.6.0",
+    "tailwindcss-in-browser": "^0.7.0",
     "unifont": "^0.8.0",
-    "vite": "^6.3.5",
+    "vite": "^8.3.3",
     "vite-plugin-svgr": "^5.2.0",
     "woff2-encoder": "^2.0.0",
     "yaml": "^2.8.3"

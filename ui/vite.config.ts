@@ -50,7 +50,7 @@ export default defineConfig(({ command, mode }) => {
     },
     build: {
       reportCompressedSize: false,
-      rollupOptions: {
+      rolldownOptions: {
         // external: ['react', 'react-dom', "redux", "@reduxjs/toolkit"],
         output: {
           entryFileNames: `assets/[name].js`,
@@ -61,20 +61,15 @@ export default defineConfig(({ command, mode }) => {
     },
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, './src'),
-        '@assets': path.resolve(__dirname, './assets'),
-        '@experimental': path.resolve(__dirname, '../experimental'),
-        '@tests': path.resolve(__dirname, './tests'),
+        '@': path.resolve(import.meta.dirname, './src'),
+        '@assets': path.resolve(import.meta.dirname, './assets'),
+        '@experimental': path.resolve(import.meta.dirname, '../experimental'),
+        '@tests': path.resolve(import.meta.dirname, './tests'),
         '@drupal-canvas/astro-hydration': path.resolve(
-          __dirname,
+          import.meta.dirname,
           '../packages/astro-hydration',
         ),
       },
-    },
-    optimizeDeps: {
-      // These libraries need to be excluded from Vite's dependency optimization until
-      // https://github.com/vitejs/vite/issues/8427 is fixed.
-      exclude: ['@swc/wasm-web', 'tailwindcss-in-browser'],
     },
   };
 });

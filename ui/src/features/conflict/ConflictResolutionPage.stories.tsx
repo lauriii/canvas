@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Provider } from 'react-redux';
+import { fn } from 'storybook/test';
 import { configureStore } from '@reduxjs/toolkit';
-import { fn } from '@storybook/test';
 
 import { uiSliceReducer } from '@/features/ui/uiSlice';
 import { PageVersionComparisonView } from '@/features/versionComparison/PageVersionComparisonView';

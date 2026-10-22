@@ -129,11 +129,11 @@ describe('bundleLocalAliasImports', () => {
       'build' in viteConfig &&
       viteConfig.build &&
       typeof viteConfig.build === 'object' &&
-      'rollupOptions' in viteConfig.build &&
-      viteConfig.build.rollupOptions &&
-      typeof viteConfig.build.rollupOptions === 'object' &&
-      'input' in viteConfig.build.rollupOptions
-        ? (viteConfig.build.rollupOptions.input as Record<string, string>)
+      'rolldownOptions' in viteConfig.build &&
+      viteConfig.build.rolldownOptions &&
+      typeof viteConfig.build.rolldownOptions === 'object' &&
+      'input' in viteConfig.build.rolldownOptions
+        ? (viteConfig.build.rolldownOptions.input as Record<string, string>)
         : {};
 
     expect(Object.keys(input)).toHaveLength(2);

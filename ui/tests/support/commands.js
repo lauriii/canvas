@@ -772,6 +772,20 @@ Cypress.Commands.add('loadURLandWaitForCanvasLoaded', (options = {}) => {
   cy.drupalRelativeURL(url);
 
   cy.previewReady();
+  // On first load, the editor centers the preview by scrolling the editor pane
+  // in a later animation frame, so the preview can still be off screen after it
+  // has loaded. Wait for that scroll, so that positions read from the preview
+  // (for example, where a context menu opens) are on screen.
+  cy.get('[data-canvas-editor-pane="true"]', { log: false }).should(($pane) => {
+    const pane = $pane[0].getBoundingClientRect();
+    const preview = $pane[0]
+      .querySelector('[data-testid="canvas-editor-frame-scaling"]')
+      .getBoundingClientRect();
+    expect(
+      preview.left + preview.width / 2,
+      'preview is centered within the editor pane',
+    ).to.be.within(pane.left, pane.right);
+  });
 });
 
 let formBuildId = {};
