@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall;
 
 use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas_ai\CanvasAiPermissions;
 use Drupal\canvas_ai\Plugin\AiFunctionCall\EditComponentJs;
 use Drupal\Component\Serialization\Json;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas_ai\Traits\FunctionalCallTestTrait;
+use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
-use Symfony\Component\Yaml\Yaml;
 
 /**
  * Tests for the EditComponentJs function call plugin.
@@ -20,6 +21,7 @@ use Symfony\Component\Yaml\Yaml;
 final class EditComponentJsTest extends CanvasKernelTestBase {
 
   use FunctionalCallTestTrait;
+  use UserCreationTrait;
 
   /**
    * The function call plugin manager.
@@ -43,6 +45,9 @@ final class EditComponentJsTest extends CanvasKernelTestBase {
   protected function setUp(): void {
     parent::setUp();
     $this->functionCallManager = $this->container->get('plugin.manager.ai.function_calls');
+    // setUpCurrentUser() queries the path_alias table.
+    $this->installEntitySchema('path_alias');
+    $this->setUpCurrentUser([], [CanvasAiPermissions::USE_CANVAS_AI]);
     $js_component = JavaScriptComponent::create([
       'machineName' => 'existing_component',
       'name' => 'Existing Component',
@@ -61,6 +66,20 @@ final class EditComponentJsTest extends CanvasKernelTestBase {
       'dataDependencies' => [],
     ]);
     $js_component->save();
+  }
+
+  /**
+   * Tests that the tool refuses to run without the Canvas AI permission.
+   */
+  public function testWithoutPermission(): void {
+    $this->setUpCurrentUser();
+    $tool = $this->functionCallManager->createInstance('ai_agent:edit_component_js');
+    $this->assertInstanceOf(EditComponentJs::class, $tool);
+    $tool->setContextValue('component_machine_name', 'existing_component');
+
+    $this->expectException(\Exception::class);
+    $this->expectExceptionMessage('The current user does not have the right permissions to run this tool.');
+    $tool->execute();
   }
 
   /**
@@ -181,75 +200,6 @@ final class EditComponentJsTest extends CanvasKernelTestBase {
   }
 
   /**
-   * Data provider for testInvalidPropsOrSlotsMetadataReturnsError.
-   *
-   * @return array<string, array{string, string, string}>
-   *   Cases of [props_metadata, slots_metadata, expected error].
-   */
-  public static function invalidPropsOrSlotsMetadataProvider(): array {
-    return [
-      'prop id collides with slot name' => [
-        Json::encode([
-          ['id' => 'content', 'name' => 'Content', 'type' => 'string', 'example' => 'Some content'],
-        ]),
-        Json::encode([
-          ['id' => 'content', 'name' => 'Content', 'example' => '<p>child</p>'],
-        ]),
-        'Component validation errors: component_structure: The component "canvas:existing_component" declared [content] both as a prop and as a slot. Make sure to use different names.',
-      ],
-      'malformed slots JSON' => [
-        Json::encode([
-          ['id' => 'title', 'name' => 'Title', 'type' => 'string', 'example' => 'Hi'],
-        ]),
-        'garbage',
-        'The slots metadata must be a valid JSON array of slot objects.',
-      ],
-      'slot missing a name' => [
-        Json::encode([
-          ['id' => 'title', 'name' => 'Title', 'type' => 'string', 'example' => 'Hi'],
-        ]),
-        Json::encode([
-          ['id' => 'children'],
-        ]),
-        'Each slot must include both an "id" and a "name". Slot "children" is missing one of them.',
-      ],
-      'slot id is not the camelCase of its name' => [
-        Json::encode([
-          ['id' => 'title', 'name' => 'Title', 'type' => 'string', 'example' => 'Hi'],
-        ]),
-        Json::encode([
-          ['id' => 'accordion_content', 'name' => 'Accordion Content', 'example' => '<p>x</p>'],
-        ]),
-        'The slot "id" must be the camelCase of the slot "name". Got id "accordion_content" for name "Accordion Content"; expected "accordionContent".',
-      ],
-    ];
-  }
-
-  /**
-   * Test that invalid props or slots metadata returns the error to the agent.
-   *
-   * @param string $props_metadata
-   *   The props metadata as a JSON encoded string.
-   * @param string $slots_metadata
-   *   The slots metadata as a JSON encoded string.
-   * @param string $expected_error
-   *   The expected error message.
-   */
-  #[DataProvider('invalidPropsOrSlotsMetadataProvider')]
-  public function testInvalidPropsOrSlotsMetadataReturnsError(string $props_metadata, string $slots_metadata, string $expected_error): void {
-    $result = $this->getToolOutput(
-      'ai_agent:edit_component_js',
-      [
-        'javascript' => 'console.log("x");',
-        'props_metadata' => $props_metadata,
-        'slots_metadata' => $slots_metadata,
-        'component_machine_name' => 'existing_component',
-      ]
-    );
-    self::assertYamlError($result, $expected_error);
-  }
-
-  /**
    * Test that dropping existing props and slots warns they were removed.
    */
   public function testEditDroppingPropsAndSlotsWarns(): void {
@@ -295,54 +245,141 @@ final class EditComponentJsTest extends CanvasKernelTestBase {
     $this->assertStringContainsString('aside', $result);
   }
 
-  public function testComponentValidation(): void {
-    $component_machine_name = 'existing_component';
-    $javascript = 'console.log("Hello World");';
-    $props_metadata = Json::encode([
-      [
-        'id' => 'title',
-        'name' => 'Title',
-        'type' => 'string',
-        'example' => 1,
-      ],
-      [
-        'id' => 'count',
-        'name' => 'Count',
-        'type' => 'integer',
-        // 'example' will be transformed into 'examples' array.
-        'example' => 'four',
-      ],
-    ]);
-    $result = $this->getToolOutput(
-      'ai_agent:edit_component_js',
-      [
-        'javascript' => $javascript,
-        'props_metadata' => $props_metadata,
-        'component_machine_name' => $component_machine_name,
-      ]
-    );
-    self::assertYamlError($result, 'Component validation errors: component_structure: Prop "title" has invalid example value: [] Integer value found, but a string or an object is required component_structure: Prop "count" has invalid example value: [] String value found, but an integer or an object is required component_structure.props.count.examples.0: This value should be of the correct primitive type.');
+  /**
+   * Tests that every error of an edit call is reported together.
+   *
+   * @param array $contexts
+   *   The context values to set on the tool.
+   * @param string $expected_error
+   *   The expected error message.
+   */
+  #[DataProvider('errorsProvider')]
+  public function testErrorsAreReportedTogether(array $contexts, string $expected_error): void {
+    $tool = $this->functionCallManager->createInstance('ai_agent:edit_component_js');
+    $this->assertInstanceOf(EditComponentJs::class, $tool);
+    foreach ($contexts as $key => $context) {
+      $tool->setContextValue($key, $context);
+    }
+    $tool->execute();
+
+    self::assertSame($expected_error, self::normalizeErrorString($tool->getReadableOutput()));
+    // Nothing is applied while any error exists.
+    self::assertSame([], $tool->getStructuredOutput());
   }
 
   /**
-   * Asserts that the tool result contains a YAML error message.
+   * Data provider for testErrorsAreReportedTogether.
    *
-   * CanvasBuilder expects the tool result to always be a YAML parsable string.
-   *
-   * @param string $toolResult
-   *   The tool result.
-   * @param string $expectedError
-   *   The expected error message.
-   *
-   * @return void
-   *
-   * @see \Drupal\canvas_ai\Controller\CanvasBuilder::render()
+   * @return array<string, array{contexts: array, expected_error: string}>
+   *   An array of test cases.
    */
-  private function assertYamlError(string $toolResult, string $expectedError): void {
-    $yaml = Yaml::parse($toolResult);
-    self::assertIsArray($yaml);
-    self::assertCount(1, $yaml);
-    self::assertSame("Failed to process Javascript component data: $expectedError", $this->normalizeErrorString($yaml['error']));
+  public static function errorsProvider(): array {
+    $title_prop = Json::encode([
+      ['id' => 'title', 'name' => 'Title', 'type' => 'string', 'example' => 'Hi'],
+    ]);
+    $accordion_content_slot = Json::encode([
+      ['id' => 'accordion_content', 'name' => 'Accordion Content', 'example' => '<p>x</p>'],
+    ]);
+    $nothing_applied = 'Nothing was applied. Fix every error listed below and call the tool again.';
+    $accordion_content_error = 'The slot "id" must be the camelCase of the slot "name". Got id "accordion_content" for name "Accordion Content"; expected "accordionContent".';
+
+    return [
+      'prop id collides with slot name' => [
+        'contexts' => [
+          'javascript' => 'console.log("x");',
+          'props_metadata' => Json::encode([
+            ['id' => 'content', 'name' => 'Content', 'type' => 'string', 'example' => 'Some content'],
+          ]),
+          'slots_metadata' => Json::encode([
+            ['id' => 'content', 'name' => 'Content', 'example' => '<p>child</p>'],
+          ]),
+          'component_machine_name' => 'existing_component',
+        ],
+        'expected_error' => $nothing_applied . ' ## Component - Component validation errors: component_structure: The component "canvas:existing_component" declared [content] both as a prop and as a slot. Make sure to use different names.',
+      ],
+      'malformed slots JSON' => [
+        'contexts' => [
+          'javascript' => 'console.log("x");',
+          'props_metadata' => $title_prop,
+          'slots_metadata' => 'garbage',
+          'component_machine_name' => 'existing_component',
+        ],
+        'expected_error' => $nothing_applied . ' ## Slots - The slots metadata must be a valid JSON array of slot objects.',
+      ],
+      'slot missing a name' => [
+        'contexts' => [
+          'javascript' => 'console.log("x");',
+          'props_metadata' => $title_prop,
+          'slots_metadata' => Json::encode([
+            ['id' => 'children'],
+          ]),
+          'component_machine_name' => 'existing_component',
+        ],
+        'expected_error' => $nothing_applied . ' ## Slot 0 - Each slot must include both an "id" and a "name". Slot "children" is missing one of them.',
+      ],
+      'slot id is not the camelCase of its name' => [
+        'contexts' => [
+          'javascript' => 'console.log("x");',
+          'props_metadata' => $title_prop,
+          'slots_metadata' => $accordion_content_slot,
+          'component_machine_name' => 'existing_component',
+        ],
+        'expected_error' => $nothing_applied . ' ## Slot 0 - ' . $accordion_content_error,
+      ],
+      'every invalid slot is reported' => [
+        'contexts' => [
+          'javascript' => 'console.log("x");',
+          'props_metadata' => $title_prop,
+          'slots_metadata' => Json::encode([
+            ['id' => 'children'],
+            ['id' => 'accordion_content', 'name' => 'Accordion Content', 'example' => '<p>x</p>'],
+          ]),
+          'component_machine_name' => 'existing_component',
+        ],
+        'expected_error' => $nothing_applied . ' ## Slot 0 - Each slot must include both an "id" and a "name". Slot "children" is missing one of them. ## Slot 1 - ' . $accordion_content_error,
+      ],
+      'component does not exist' => [
+        'contexts' => [
+          'javascript' => 'console.log("x");',
+          'props_metadata' => $title_prop,
+          'component_machine_name' => 'missing_component',
+        ],
+        'expected_error' => $nothing_applied . ' ## Component - Could not find component missing_component.',
+      ],
+      'component does not exist and a slot is invalid' => [
+        'contexts' => [
+          'javascript' => 'console.log("x");',
+          'props_metadata' => $title_prop,
+          'slots_metadata' => $accordion_content_slot,
+          'component_machine_name' => 'missing_component',
+        ],
+        'expected_error' => $nothing_applied . ' ## Component - Could not find component missing_component. ## Slot 0 - ' . $accordion_content_error,
+      ],
+      'invalid prop examples' => [
+        'contexts' => [
+          'javascript' => 'console.log("Hello World");',
+          'props_metadata' => Json::encode([
+            ['id' => 'title', 'name' => 'Title', 'type' => 'string', 'example' => 1],
+            // 'example' will be transformed into 'examples' array.
+            ['id' => 'count', 'name' => 'Count', 'type' => 'integer', 'example' => 'four'],
+          ]),
+          'component_machine_name' => 'existing_component',
+        ],
+        'expected_error' => $nothing_applied . ' ## Component - Component validation errors: component_structure: Prop "title" has invalid example value: [] Integer value found, but a string or an object is required component_structure: Prop "count" has invalid example value: [] String value found, but an integer or an object is required component_structure.props.count.examples.0: This value should be of the correct primitive type.',
+      ],
+      'slot and structure errors are reported together' => [
+        'contexts' => [
+          'javascript' => 'console.log("x");',
+          'props_metadata' => Json::encode([
+            ['id' => 'title', 'name' => 'Title', 'type' => 'string', 'example' => 1],
+            ['id' => 'count', 'name' => 'Count', 'type' => 'integer', 'example' => 'four'],
+          ]),
+          'slots_metadata' => $accordion_content_slot,
+          'component_machine_name' => 'existing_component',
+        ],
+        'expected_error' => $nothing_applied . ' ## Slot 0 - ' . $accordion_content_error . ' ## Component - Component validation errors: component_structure: Prop "title" has invalid example value: [] Integer value found, but a string or an object is required component_structure: Prop "count" has invalid example value: [] String value found, but an integer or an object is required component_structure.props.count.examples.0: This value should be of the correct primitive type.',
+      ],
+    ];
   }
 
 }

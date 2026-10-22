@@ -8,7 +8,8 @@ use Drupal\Component\Serialization\Json;
  * Helpers for the props and slots the agent supplies for a JS component.
  *
  * Transforms agent-supplied slot metadata into the stored slot definition
- * shape and lists the props or slots an edit removes from a component.
+ * shape, collecting the errors of every invalid slot, and lists the props or
+ * slots an edit removes from a component.
  *
  * @see \Drupal\canvas\Entity\JavaScriptComponent
  * @see canvas.slot_definition in config/schema/canvas.schema.yml
@@ -19,21 +20,22 @@ trait AiGeneratedJsComponentPropsAndSlotsTrait {
    * Transforms AI-supplied slot metadata into serialized slot definitions.
    *
    * Requires both a slot 'id' and 'name', with 'id' the camelCase of 'name'.
+   * Every invalid slot is reported instead of stopping at the first one.
    *
    * @param string $slots
    *   The slots metadata as a JSON encoded array. An empty string means no
    *   slots were supplied and is a valid no-op.
+   * @param array<string, list<string>> $errors
+   *   The errors found, keyed by the label of the item they belong to: "Slots"
+   *   when the metadata is not a JSON array, "Slot <index>" when a slot is
+   *   missing an 'id' or a 'name', or when its 'id' is not the camelCase of
+   *   its 'name'.
    *
    * @return array
-   *   The slots keyed by slot machine name, each value being an array with a
-   *   'title' and an optional 'examples' list.
-   *
-   * @throws \Exception
-   *   When the slots metadata is not a valid JSON array, when a slot is missing
-   *   an 'id' or a 'name', or when a slot 'id' is not the camelCase of its
-   *   'name'.
+   *   The valid slots keyed by slot machine name, each value being an array
+   *   with a 'title' and an optional 'examples' list.
    */
-  protected function transformSlotsMetadata(string $slots): array {
+  protected function transformSlotsMetadata(string $slots, array &$errors): array {
     // No slots supplied.
     if (trim($slots) === '') {
       return [];
@@ -41,21 +43,24 @@ trait AiGeneratedJsComponentPropsAndSlotsTrait {
 
     $slots_array = Json::decode($slots);
     if (!\is_array($slots_array)) {
-      throw new \Exception('The slots metadata must be a valid JSON array of slot objects.');
+      $errors['Slots'][] = 'The slots metadata must be a valid JSON array of slot objects.';
+      return [];
     }
 
     $transformed_slots = [];
-    foreach ($slots_array as $slot) {
+    foreach ($slots_array as $index => $slot) {
       $id = \is_array($slot) && isset($slot['id']) ? (string) $slot['id'] : '';
       $name = \is_array($slot) && isset($slot['name']) ? (string) $slot['name'] : '';
       if ($id === '' || $name === '') {
         $label = $id !== '' ? $id : ($name !== '' ? $name : '(unnamed)');
-        throw new \Exception(\sprintf('Each slot must include both an "id" and a "name". Slot "%s" is missing one of them.', $label));
+        $errors['Slot ' . $index][] = \sprintf('Each slot must include both an "id" and a "name". Slot "%s" is missing one of them.', $label);
+        continue;
       }
 
       $expected_id = $this->slotNameToCamelCase($name);
       if ($id !== $expected_id) {
-        throw new \Exception(\sprintf('The slot "id" must be the camelCase of the slot "name". Got id "%s" for name "%s"; expected "%s".', $id, $name, $expected_id));
+        $errors['Slot ' . $index][] = \sprintf('The slot "id" must be the camelCase of the slot "name". Got id "%s" for name "%s"; expected "%s".', $id, $name, $expected_id);
+        continue;
       }
 
       $transformed = [
