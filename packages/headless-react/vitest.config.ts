@@ -13,9 +13,9 @@ export default defineConfig({
   test: {
     server: {
       // Installed dependencies are otherwise loaded by Node directly; SWR
-      // (used by the server-rendering tests) must import the aliased React
-      // copy the renderer uses.
-      deps: { inline: [/\/node_modules\/swr\//] },
+      // and `Image`'s next-image-standalone (used by the server-rendering
+      // tests) must import the aliased React copy the renderer uses.
+      deps: { inline: [/\/node_modules\/(swr|next-image-standalone)\//] },
     },
   },
   resolve: {
