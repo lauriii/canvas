@@ -269,18 +269,16 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
    */
   private function markMultivalueFormElements(array &$element, string $field_label, int $cardinality): void {
     foreach (Element::children($element) as $key) {
-      // A focal point's x and y inputs are edited as a unit by the
-      // DrupalFocalPointMultivalueForm component, so they are not marked
-      // individually. Its row controls (weight, remove) still are.
-      $is_focal_point = ($element[$key]['#widget-type'] ?? NULL) === 'canvas_focal_point';
-      if ($is_focal_point && ($element[$key]['#type'] ?? NULL) === 'fieldset') {
-        $element[$key]['#multivalue_field_label'] = $field_label;
+      // An image's focal point inputs are edited as a unit by the focal point
+      // picker, not as multivalue inputs.
+      // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::addFocalPointInputs()
+      if (!empty($element[$key]['#canvas_focal_point'])) {
+        continue;
       }
 
       // Mark input elements.
       if (isset($element[$key]['#type']) &&
-          \in_array($element[$key]['#type'], ['textfield', 'number', 'url', 'entity_autocomplete', 'submit', 'select'], TRUE) &&
-          !($is_focal_point && $element[$key]['#type'] === 'number')) {
+          \in_array($element[$key]['#type'], ['textfield', 'number', 'url', 'entity_autocomplete', 'submit', 'select'], TRUE)) {
         $element[$key]['#is_multivalue_form'] = TRUE;
         $element[$key]['#attributes']['data-field-label'] = $field_label;
         $element[$key]['#attributes']['data-cardinality'] = $cardinality;
@@ -313,7 +311,6 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
     $map = [
       'boolean_checkbox' => ['mainProperty' => []],
       'canvas_color_picker' => ['mainProperty' => []],
-      'canvas_focal_point' => ['focalPoint' => []],
       'datetime_default' => ['mainProperty' => [], 'dateTime' => []],
       'daterange_default' => ['dateRange' => []],
       'email_default' => ['mainProperty' => []],

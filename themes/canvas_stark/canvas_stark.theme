@@ -189,14 +189,6 @@ function canvas_stark_form_node_form_alter(array &$form, FormStateInterface $for
 function canvas_stark_preprocess_field_multiple_value_form(array &$variables): void {
   $variables['attributes']['data-canvas-multiple-values'] = 'true';
 
-  // Focal points paired with an image render under that image's media widget,
-  // so their own list is hidden. It stays in the form for its inputs, and for
-  // its "Add" button, which the media widget uses to add focal points.
-  // @see ui/src/components/form/components/drupal/DrupalFocalPointMultivalueForm.tsx
-  if (($variables['element']['#widget-type'] ?? NULL) === 'canvas_focal_point' && !empty($variables['element'][0]['#attributes']['data-canvas-focal-point-image'])) {
-    $variables['attributes']['hidden'] = 'hidden';
-  }
-
   if (isset($variables['table']['#rows'])) {
     $row_count = count($variables['table']['#rows']);
     $variables['attributes']['data-canvas-row-count'] = $row_count;

@@ -1498,35 +1498,6 @@ field.widget_settings.canvas_color_picker:
         type: string
         label: 'Folder UUID'
 
-field.widget_settings.canvas_focal_point:
-  type: mapping
-  label: 'Canvas focal point widget settings'
-  mapping:
-    image_prop:
-      type: string
-      label: 'Image prop to preview'
-      nullable: true
-
-# @see \Drupal\canvas\Plugin\Field\FieldType\FocalPointItem
-field.value.canvas_focal_point:
-  type: mapping
-  label: 'Default value'
-  mapping:
-    x:
-      type: float
-      label: 'Horizontal position'
-      constraints:
-        Range:
-          min: 0
-          max: 100
-    y:
-      type: float
-      label: 'Vertical position'
-      constraints:
-        Range:
-          min: 0
-          max: 100
-
 # Search API processor configuration
 plugin.plugin_configuration.search_api_processor.canvas_component_tree_inputs:
   type: search_api.default_processor_configuration

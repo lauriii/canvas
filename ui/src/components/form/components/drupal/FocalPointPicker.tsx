@@ -10,14 +10,12 @@ import {
 import clsx from 'clsx';
 import { ResetIcon } from '@radix-ui/react-icons';
 
-import { useAppDispatch, useAppStore } from '@/app/hooks';
+import { useAppDispatch } from '@/app/hooks';
 import {
   useSafeFormContext,
   useSafeRHFContext,
 } from '@/components/form/contexts/FormContext';
 import { dispatchFieldValue } from '@/components/form/react-hook-form/utils';
-import { selectFormValues } from '@/features/form/formStateSlice';
-import useInputUIData from '@/hooks/useInputUIData';
 
 import type { ReactNode } from 'react';
 import type { FieldContextValue } from '@/components/form/contexts/FieldContext';
@@ -46,7 +44,7 @@ const FocalPointContext = createContext<{
 
 export const useFocalPointContext = () => useContext(FocalPointContext);
 
-// Out of range values are not shown: the focalPoint transform does not store
+// Out of range values are not shown: the mediaFocalPoint transform does not store
 // them either.
 const toPercent = (value: unknown): number | null => {
   if (value === '' || value === null || value === undefined) {
@@ -58,48 +56,6 @@ const toPercent = (value: unknown): number | null => {
 
 const clampPercent = (value: number) =>
   Math.round(Math.min(100, Math.max(0, value)));
-
-/**
- * Returns the image a focal point is set on, from the component's layout model.
- *
- * @param imageProp - The name of the component's image prop.
- * @param delta - The focal point's position in its list, if it is in one.
- */
-export const useFocalPointImage = (
-  imageProp: string | undefined,
-  delta: number,
-): string | null => {
-  const { model, selectedComponent } = useInputUIData();
-  if (!imageProp) {
-    return null;
-  }
-  const resolved = (model?.[selectedComponent] as any)?.resolved?.[imageProp];
-  const image = Array.isArray(resolved)
-    ? (resolved[delta] ?? resolved[0])
-    : resolved;
-  return typeof image?.src === 'string' ? image.src : null;
-};
-
-/**
- * A small preview of an image with the focal point marked on it.
- */
-export const FocalPointThumbnail = ({
-  src,
-  point,
-}: {
-  src: string | null;
-  point: FocalPoint | null;
-}) => (
-  <span className={styles.thumbnail} aria-hidden="true">
-    {src && <img src={src} alt="" className={styles.image} />}
-    {point && (
-      <span
-        className={styles.thumbnailDot}
-        style={{ left: `${point.x}%`, top: `${point.y}%` }}
-      />
-    )}
-  </span>
-);
 
 export const formatFocalPoint = (point: FocalPoint | null) =>
   point ? `${point.x}%, ${point.y}%` : 'Not set';
@@ -124,13 +80,11 @@ const NUDGES: Record<string, [number, number]> = {
  * @see DrupalFocalPointCoordinate
  */
 const FocalPointPicker = ({
-  imageProp,
-  delta = 0,
+  src,
   onPointChange,
   children,
 }: {
-  imageProp?: string;
-  delta?: number;
+  src?: string;
   onPointChange?: (
     point: FocalPoint | null,
     registrations: Partial<Record<Axis, CoordinateRegistration>>,
@@ -138,10 +92,8 @@ const FocalPointPicker = ({
   children?: ReactNode;
 }) => {
   const dispatch = useAppDispatch();
-  const store = useAppStore();
   const formContext = useSafeFormContext();
   const rhfContext = useSafeRHFContext();
-  const src = useFocalPointImage(imageProp, delta);
   const [coordinates, setCoordinates] = useState<
     Partial<Record<Axis, CoordinateRegistration>>
   >({});
@@ -200,24 +152,8 @@ const FocalPointPicker = ({
       return;
     }
     const formId = formContext.formId as FormId;
-    const setSilently = (name: string, value: number) => {
-      rhfContext?.setValue(name, value);
-      dispatchFieldValue(dispatch, formId, name, value);
-    };
-    // A list item pairs with the image at the same position. Empty earlier
-    // items would be dropped from the list and shift this point onto another
-    // image, so they are set to the center in the same update.
-    const [, listName, position] = yName.match(/^(.*)\[(\d+)\]\[y\]$/) ?? [];
-    if (listName) {
-      const values = selectFormValues(store.getState(), formId);
-      for (let i = 0; i < Number(position); i++) {
-        const names = [`${listName}[${i}][x]`, `${listName}[${i}][y]`];
-        if (names.some((name) => toPercent(values[name]) === null)) {
-          names.forEach((name) => setSilently(name, 50));
-        }
-      }
-    }
-    setSilently(yName, next.y);
+    rhfContext?.setValue(yName, next.y);
+    dispatchFieldValue(dispatch, formId, yName, next.y);
     setPendingX(next.x);
   };
 

@@ -68,6 +68,33 @@ examples:
     height: 1180
 ```
 
+#### Focal point
+
+Add `x-canvas-focal-point: true` to an image prop, or to a list of images, to let
+editors set a focal point on each image. They drag a marker on the image in its
+media field. The image then has a `focalPoint` with `x` and `y` percentages from
+its top left corner, the center (`50`, `50`) when not set.
+
+```yaml
+type: object
+$ref: json-schema-definitions://canvas.module/image
+x-canvas-focal-point: true
+```
+
+The `Image` component crops around it, so spreading the image is enough:
+
+```jsx
+import { Image } from 'drupal-canvas';
+
+<Image {...image} style={{ width: 300, height: 200 }} />
+```
+
+In Twig, use it for CSS `object-position`:
+
+```twig
+<img src="{{ image.src }}" style="object-fit: cover; object-position: {{ image.focalPoint.x }}% {{ image.focalPoint.y }}%" />
+```
+
 ### Video
 
 Reference to a video object with metadata like dimensions and file URL. Only the
@@ -102,30 +129,6 @@ examples:
     filename: annual-report.pdf
     filesize: 25600
     mimetype: application/pdf
-```
-
-### Focal point
-
-A point on an image, as `x` and `y` percentages from its top left corner. Editors
-set it under the component's image prop, by dragging a marker on a preview of the
-image, rather than in a separate field. A list of focal points pairs item by item
-with a list of images. Apply it with, for example, CSS `object-position`.
-
-```yaml
-type: object
-$ref: json-schema-definitions://canvas.module/focal-point
-examples:
-  - x: 50
-    y: 30
-```
-
-Pass it to the `Image` component's `focalPoint` prop, which crops the image
-around that point:
-
-```jsx
-import { Image } from 'drupal-canvas';
-
-<Image {...image} focalPoint={focalPoint} style={{ width: 300, height: 200 }} />
 ```
 
 ### Boolean

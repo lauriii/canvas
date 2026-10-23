@@ -148,6 +148,10 @@ final class PropShape {
     // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::buildComponentInstanceForm()
     unset($normalized_prop_schema['x-canvas-color-picker']);
     unset($normalized_prop_schema['x-canvas-color-folders']);
+    // Same for the focal point annotation on image props: it adds a focal
+    // point to the stored value, but does not change the field type.
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::FOCAL_POINT_ANNOTATION
+    unset($normalized_prop_schema['x-canvas-focal-point']);
 
     // TRICKY: In Drupal 11.4 and earlier, SDC appends `'object'` to every
     // prop's declared `type` (and then dedupes) so Twig can defer rendering

@@ -5,17 +5,14 @@ import { fireEvent, render, screen } from '@testing-library/react';
 
 import { makeStore } from '@/app/store';
 import { FormProvider } from '@/components/form/contexts/FormContext';
-import {
-  selectFormValues,
-  setFieldValue,
-} from '@/features/form/formStateSlice';
+import { selectFormValues } from '@/features/form/formStateSlice';
 
 import FocalPointPicker, { useFocalPointContext } from './FocalPointPicker';
 
 import type { FieldContextValue } from '@/components/form/contexts/FieldContext';
 
 const name = (axis: string, position = 0) =>
-  `canvas_component_props[uuid][focal][${position}][${axis}]`;
+  `canvas_component_props[uuid][image][focal_points][media_${position}][${axis}]`;
 
 // Stands in for DrupalFocalPointCoordinate, which needs the full form
 // pipeline: registers a value and a FieldContext with the picker.
@@ -122,51 +119,6 @@ describe('FocalPointPicker', () => {
     expect(contexts.y.triggerChange).not.toHaveBeenCalled();
     expect(contexts.x.triggerChange).toHaveBeenCalledTimes(1);
     expect(contexts.x.triggerChange).toHaveBeenCalledWith(80);
-  });
-
-  it('sets empty earlier list items to the center in the same change', () => {
-    const { store, contexts, frame } = renderPicker('', '', 2);
-    store.dispatch(
-      setFieldValue({
-        formId: 'component_instance_form',
-        fieldName: name('x', 0),
-        value: '',
-      }),
-    );
-    store.dispatch(
-      setFieldValue({
-        formId: 'component_instance_form',
-        fieldName: name('y', 0),
-        value: '',
-      }),
-    );
-    store.dispatch(
-      setFieldValue({
-        formId: 'component_instance_form',
-        fieldName: name('x', 1),
-        value: 10,
-      }),
-    );
-    store.dispatch(
-      setFieldValue({
-        formId: 'component_instance_form',
-        fieldName: name('y', 1),
-        value: 20,
-      }),
-    );
-    pointer(frame, 'pointerdown', 40, 60);
-    pointer(frame, 'pointerup', 40, 60);
-
-    const values = selectFormValues(
-      store.getState(),
-      'component_instance_form',
-    );
-    // The empty first item is filled; the set second one is left alone.
-    expect(values[name('x', 0)]).toBe(50);
-    expect(values[name('y', 0)]).toBe(50);
-    expect(values[name('x', 1)]).toBe(10);
-    expect(values[name('y', 2)]).toBe(60);
-    expect(contexts.x.triggerChange).toHaveBeenCalledWith(20);
   });
 
   it('ignores pointer moves without a pointer down', () => {

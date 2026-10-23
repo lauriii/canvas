@@ -1,16 +1,10 @@
-import { useEffect, useId, useRef } from 'react';
+import { useId } from 'react';
 import clsx from 'clsx';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { DragHandleDots2Icon } from '@radix-ui/react-icons';
 
 import { a2p } from '@/local_packages/utils';
-
-import {
-  focalPointSlotKey,
-  imagePropFromInputName,
-  registerFocalPointSlot,
-} from './focalPointSlots';
 
 import type { ReactNode } from 'react';
 
@@ -51,23 +45,6 @@ const DrupalMediaLibraryItem = ({
     },
   });
 
-  // An image's focal point control renders here, if the component has one.
-  // @see DrupalFocalPoint
-  const slotRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    const slot = slotRef.current;
-    const input = slot?.parentElement?.querySelector<HTMLInputElement>(
-      'input[name$="[target_id]"]',
-    );
-    const imageProp = imagePropFromInputName(input?.name ?? '');
-    if (!slot || !imageProp) {
-      return;
-    }
-    const key = focalPointSlotKey(imageProp, itemIndex);
-    registerFocalPointSlot(key, slot);
-    return () => registerFocalPointSlot(key, null);
-  }, [itemIndex]);
-
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -97,11 +74,6 @@ const DrupalMediaLibraryItem = ({
         </div>
       )}
       {children}
-      <div
-        ref={slotRef}
-        className={styles.focalPointSlot}
-        data-canvas-focal-point-slot
-      />
     </div>
   );
 };

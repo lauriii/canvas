@@ -67,12 +67,13 @@ not result in responsive image variants being generated.
 
 #### `focalPoint`
 
-A `focal-point` prop value (`{ x, y }`, percentages). The image is cropped around
-that point with `object-fit: cover` and a matching `object-position`. A `style`
-prop overrides either.
+A focal point (`{ x, y }`, percentages). The image is cropped around that point
+with `object-fit: cover` and a matching `object-position`. A `style` prop
+overrides either. Image props with `x-canvas-focal-point: true` include it, so
+`<Image {...photo} />` applies it.
 
 ```jsx
-<Image {...photo} focalPoint={focalPoint} style={{ width: 300, height: 200 }} />
+<Image {...photo} style={{ width: 300, height: 200 }} />
 ```
 
 #### `fill`

@@ -55,8 +55,7 @@ final class JsonSchemaObject extends Mapping {
         throw new \LogicException(\sprintf("The schema definition at `%s` is invalid: the parent '\$ref' property contains a '%s' property that uses an unsupported config schema type '%s'. This is not supported.", $parent?->getPropertyPath() ?? $name, $property_name, $detail['type']));
       }
       $definition['mapping'][$property_name] = [
-        // Config schema calls JSON Schema's `number` type `float`.
-        'type' => $detail['type'] === 'number' ? 'float' : $detail['type'],
+        'type' => $detail['type'] ?? 'unknown',
         'label' => $detail['title'] ?? '',
       ];
       if (!\in_array($property_name, $schema['required'] ?? [], TRUE)) {

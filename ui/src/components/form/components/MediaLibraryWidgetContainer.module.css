@@ -176,8 +176,8 @@
           display: none;
         }
 
-        /* Not the images of a focal point control rendered under the item. */
-        img:not([data-canvas-focal-point-slot] img) {
+        /* Not the image in an item's focal point picker. */
+        img:not([data-canvas-focal-point] img) {
           display: block;
           width: var(--canvas-media-item-width);
           height: var(--canvas-media-item-height);

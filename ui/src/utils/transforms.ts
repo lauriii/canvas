@@ -453,38 +453,50 @@ const mediaSelection: Transformer<
   return multiple ? selectionValues : selectionValues[0];
 };
 
-// Turns the x and y inputs of the focal point widget into `{x, y}` numbers,
-// dropping items that are incomplete or out of range. Per-input JSON Schema
-// validation does not run for props built from several inputs, so this keeps
-// invalid points out of the preview.
-// @see \Drupal\canvas\Plugin\Field\FieldWidget\CanvasFocalPointWidget
-const focalPoint: Transformer<
+// Replaces `mediaSelection` and `mainProperty` for media library widgets on
+// image props with focal points: returns `{target_id, focal_point: {x, y}}` per
+// selected image. Focal points are inputs keyed by media ID next to the
+// selection, `focal_points[media_<ID>][x]`; an incomplete or out of range one
+// is left out.
+// @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::FOCAL_POINT_ANNOTATION
+const mediaFocalPoint: Transformer<
   BaseTransformOptions,
   null | PropsValues | Array<PropsValues>
 > = (value, options) => {
-  // A bare `{x, y}` record is accepted too, so the transform is idempotent.
-  const records: Array<unknown> =
-    value !== null && typeof value === 'object' && 'x' in value
-      ? [value]
-      : normalizeMultipleRecords(value);
-  const points = records.flatMap((record: unknown) => {
+  const points = ((value as PropsValues | null)?.focal_points ??
+    {}) as PropsValues;
+  const selection = mediaSelection(value, options, {} as StaticPropSource);
+  const records: Array<unknown> = options.multiple
+    ? normalizeMultipleRecords(selection)
+    : [selection];
+  const items = records.flatMap((record) => {
     if (record === null || typeof record !== 'object') {
       return [];
     }
-    const { x, y } = record as PropsValues;
-    if (x === '' || y === '' || x == null || y == null) {
+    const { target_id: targetId } = record as PropsValues;
+    if (targetId === undefined || targetId === null || targetId === '') {
       return [];
     }
+    const { x, y } = (points[`media_${targetId}`] ?? {}) as PropsValues;
     const point = { x: Number(x), y: Number(y) };
-    const inRange = (n: number) => n >= 0 && n <= 100;
-    return inRange(point.x) && inRange(point.y) ? [point] : [];
+    const isValid =
+      x !== '' &&
+      y !== '' &&
+      x != null &&
+      y != null &&
+      [point.x, point.y].every((n) => n >= 0 && n <= 100);
+    return [
+      isValid
+        ? { target_id: targetId, focal_point: point }
+        : { target_id: targetId },
+    ];
   });
-  return options.multiple ? points : (points[0] ?? null);
+  return options.multiple ? items : (items[0] ?? null);
 };
 
 const transforms = {
   mainProperty,
-  focalPoint,
+  mediaFocalPoint,
   firstRecord,
   dateTime,
   dateRange,

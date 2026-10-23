@@ -1,7 +1,6 @@
 <div{{ attributes }}>
-  <img src="{{ image.src }}" alt="{{ image.alt }}" data-focal-point="{{ focal_point.x }} {{ focal_point.y }}" style="width: 300px; height: 150px; object-fit: cover; object-position: {{ focal_point.x }}% {{ focal_point.y }}%;" />
+  <img src="{{ image.src }}" alt="{{ image.alt }}" style="width: 300px; height: 150px; object-fit: cover; object-position: {{ image.focalPoint.x }}% {{ image.focalPoint.y }}%;" />
   {% for item in gallery %}
-    {% set point = gallery_focal_points[loop.index0] %}
-    <img src="{{ item.src }}" alt="{{ item.alt }}" data-focal-point="{{ point.x }} {{ point.y }}" style="width: 100px; height: 100px; object-fit: cover; object-position: {{ point.x|default(50) }}% {{ point.y|default(50) }}%;" />
+    <img src="{{ item.src }}" alt="{{ item.alt }}" style="width: 100px; height: 100px; object-fit: cover; object-position: {{ item.focalPoint.x }}% {{ item.focalPoint.y }}%;" />
   {% endfor %}
 </div>

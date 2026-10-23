@@ -8,46 +8,35 @@ machineName: canvas_test_focal_point_image
 name: Focal point image (code)
 required:
 - image
-- focalPoint
 props:
   image:
     title: Image
     type: object
     $ref: json-schema-definitions://canvas.module/image
+    x-canvas-focal-point: true
     examples:
     - src: https://placehold.co/1200x600.png
       width: 1200
       height: 600
       alt: A placeholder
-  focalPoint:
-    title: Focal point
-    type: object
-    $ref: json-schema-definitions://canvas.module/focal-point
-    examples:
-    - x: 25
-      y: 75
   gallery:
     title: Gallery
     type: array
+    x-canvas-focal-point: true
     items:
       type: object
       $ref: json-schema-definitions://canvas.module/image
-  galleryFocalPoints:
-    title: Gallery focal points
-    type: array
-    items:
-      type: object
-      $ref: json-schema-definitions://canvas.module/focal-point
 slots: {}
 js:
   original: |
     import { Image } from 'drupal-canvas';
 
-    const FocalPointImage = ({ image, focalPoint, gallery = [], galleryFocalPoints = [] }) => (
+    // Each image carries its focal point, which Image applies.
+    const FocalPointImage = ({ image, gallery = [] }) => (
       <div>
-        <Image {...image} focalPoint={focalPoint} style={{ width: 300, height: 150 }} />
+        <Image {...image} style={{ width: 300, height: 150 }} />
         {gallery.map((item, i) => (
-          <Image key={i} {...item} focalPoint={galleryFocalPoints[i]} style={{ width: 100, height: 100 }} />
+          <Image key={i} {...item} style={{ width: 100, height: 100 }} />
         ))}
       </div>
     );
@@ -56,11 +45,11 @@ js:
   compiled: |
     import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
     import { Image } from 'drupal-canvas';
-    const FocalPointImage = ({ image, focalPoint, gallery = [], galleryFocalPoints = [] })=>/*#__PURE__*/ _jsxs("div", {
+    // Each image carries its focal point, which Image applies.
+    const FocalPointImage = ({ image, gallery = [] })=>/*#__PURE__*/ _jsxs("div", {
             children: [
                 /*#__PURE__*/ _jsx(Image, {
                     ...image,
-                    focalPoint: focalPoint,
                     style: {
                         width: 300,
                         height: 150
@@ -68,7 +57,6 @@ js:
                 }),
                 gallery.map((item, i)=>/*#__PURE__*/ _jsx(Image, {
                         ...item,
-                        focalPoint: galleryFocalPoints[i],
                         style: {
                             width: 100,
                             height: 100

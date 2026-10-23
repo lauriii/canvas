@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\EcosystemSupport;
 
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
-use Drupal\canvas\Plugin\Field\FieldType\FocalPointItem;
 use Drupal\canvas\PropExpressions\StructuredData\Labeler;
 use Drupal\canvas\PropSource\EntityFieldPropSource;
 use Drupal\canvas\PropSource\PropSource;
@@ -401,11 +400,6 @@ final class FieldInstanceSupportTest extends EcosystemSupportTestBase {
       }
       // There is no need to map Canvas component trees *into* Canvas component trees.
       if ($def['class'] === ComponentTreeItem::class) {
-        continue;
-      }
-      // The focal point field type stores component props and is hidden from
-      // Field UI, so sites do not create entity fields to match against.
-      if ($def['class'] === FocalPointItem::class) {
         continue;
       }
       foreach ([TRUE, FALSE] as $required) {

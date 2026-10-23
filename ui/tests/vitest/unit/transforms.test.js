@@ -711,47 +711,50 @@ describe('Transforms - dateRange', () => {
   });
 });
 
-describe('Transforms - focalPoint', () => {
-  it('Should cast a single item to numbers', () => {
-    expect(transforms.focalPoint([{ x: '25', y: '75' }], {})).toEqual({
-      x: 25,
-      y: 75,
-    });
-  });
-
-  it('Should accept 0 and 100 and its own output', () => {
-    expect(transforms.focalPoint([{ x: 0, y: 100 }], {})).toEqual({
-      x: 0,
-      y: 100,
-    });
-    expect(transforms.focalPoint({ x: 10, y: 20 }, {})).toEqual({
-      x: 10,
-      y: 20,
-    });
-  });
-
-  it('Should return null for incomplete or out of range items', () => {
-    expect(transforms.focalPoint([{ x: '25', y: '' }], {})).toBeNull();
-    expect(transforms.focalPoint([{ x: '140', y: '50' }], {})).toBeNull();
-    expect(transforms.focalPoint([{ x: 'abc', y: '50' }], {})).toBeNull();
-    expect(transforms.focalPoint(null, {})).toBeNull();
-  });
-
-  it('Should return a weight-ordered list without incomplete items', () => {
+describe('Transforms - mediaFocalPoint', () => {
+  it('Should keep each image with its focal point', () => {
     expect(
-      transforms.focalPoint(
+      transforms.mediaFocalPoint(
         {
-          0: { x: '10', y: '20', _weight: '1' },
-          1: { x: '30', y: '40', _weight: '0' },
-          2: { x: '', y: '', _weight: '2' },
-          add_more: 'Add another item',
+          selection: [{ target_id: '3' }],
+          focal_points: { media_3: { x: '25', y: '75' } },
+        },
+        {},
+      ),
+    ).toEqual({ target_id: '3', focal_point: { x: 25, y: 75 } });
+  });
+
+  it('Should leave out an incomplete or out of range focal point', () => {
+    const withPoint = (point) =>
+      transforms.mediaFocalPoint(
+        { selection: [{ target_id: '3' }], focal_points: { media_3: point } },
+        {},
+      );
+    expect(withPoint({ x: '25', y: '' })).toEqual({ target_id: '3' });
+    expect(withPoint({ x: '140', y: '50' })).toEqual({ target_id: '3' });
+    expect(withPoint(undefined)).toEqual({ target_id: '3' });
+    expect(transforms.mediaFocalPoint({ selection: '' }, {})).toBeNull();
+    expect(transforms.mediaFocalPoint(null, {})).toBeNull();
+  });
+
+  it('Should return weight-ordered items for multiple values', () => {
+    expect(
+      transforms.mediaFocalPoint(
+        {
+          selection: [
+            { target_id: '1', weight: '1' },
+            { target_id: '2', weight: '0' },
+          ],
+          focal_points: {
+            media_1: { x: '0', y: '100' },
+            media_2: { x: '', y: '' },
+          },
         },
         { multiple: true },
       ),
     ).toEqual([
-      { x: 30, y: 40 },
-      { x: 10, y: 20 },
+      { target_id: '2' },
+      { target_id: '1', focal_point: { x: 0, y: 100 } },
     ]);
-    expect(transforms.focalPoint(null, { multiple: true })).toEqual([]);
   });
 });

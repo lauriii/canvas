@@ -1,5 +1,5 @@
 name: 'Canvas test focal point'
-description: 'An SDC and a code component with single and multivalue focal point props.'
+description: 'An SDC and a code component whose image props store a focal point per image.'
 type: module
 package: Testing
 dependencies:
