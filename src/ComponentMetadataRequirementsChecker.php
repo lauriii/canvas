@@ -8,7 +8,6 @@ use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
 use Drupal\canvas\PropShape\EphemeralPropShapeRepository;
-use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropShape\StorablePropShape;
 use Drupal\canvas\Validation\JsonSchema\ContentEntityReferenceObjectConstraint;
 use Drupal\Core\Template\Attribute;
@@ -172,22 +171,6 @@ final class ComponentMetadataRequirementsChecker {
             $messages[] = \sprintf('"x-canvas-color-folders" on prop "%s" must contain only non-empty strings.', $prop_name);
             break;
           }
-        }
-      }
-
-      // Validation for x-canvas-focal-point: only image props (or lists of
-      // images) can store a focal point per image.
-      // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::FOCAL_POINT_ANNOTATION
-      if (\array_key_exists('x-canvas-focal-point', $prop)) {
-        if ($prop['x-canvas-focal-point'] !== TRUE) {
-          $messages[] = \sprintf('"x-canvas-focal-point" on prop "%s" must be true.', $prop_name);
-          continue;
-        }
-        $shape = PropShape::standardize($prop)->schema;
-        $ref = ($shape['type'] === 'array' ? $shape['items']['$ref'] ?? NULL : $shape['$ref'] ?? NULL);
-        if ($ref !== JsonSchemaObjectRef::Image->value) {
-          $messages[] = \sprintf('"x-canvas-focal-point" on prop "%s" requires an image prop or a list of images.', $prop_name);
-          continue;
         }
       }
 

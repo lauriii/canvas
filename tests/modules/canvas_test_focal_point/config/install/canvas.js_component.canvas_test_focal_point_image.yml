@@ -12,8 +12,7 @@ props:
   image:
     title: Image
     type: object
-    $ref: json-schema-definitions://canvas.module/image
-    x-canvas-focal-point: true
+    $ref: json-schema-definitions://canvas.module/image-with-focal-point
     examples:
     - src: https://placehold.co/1200x600.png
       width: 1200
@@ -22,10 +21,9 @@ props:
   gallery:
     title: Gallery
     type: array
-    x-canvas-focal-point: true
     items:
       type: object
-      $ref: json-schema-definitions://canvas.module/image
+      $ref: json-schema-definitions://canvas.module/image-with-focal-point
 slots: {}
 js:
   original: |

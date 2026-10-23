@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\PropShape;
 
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType;
 use Drupal\canvas\Plugin\ComponentPluginManager;
@@ -60,7 +61,7 @@ final class PropShape {
     // props of an object-shaped prop may be ordered differently.
     // @see tests/modules/canvas_test_sdc/components/image-without-ref/image-without-ref.component.yml
     // @phpstan-ignore function.strict
-    $well_known_prop_shape = array_search($resolved_normalized, self::getWellKnownPropShapes(), FALSE);
+    $well_known_prop_shape = self::storableRef(array_search($resolved_normalized, self::getWellKnownPropShapes(), FALSE));
 
     if ($well_known_prop_shape !== FALSE) {
       return PropShape::normalize([
@@ -77,7 +78,7 @@ final class PropShape {
       // props of an object-shaped prop may be ordered differently.
       // @see tests/modules/canvas_test_sdc/components/image-without-ref/image-without-ref.component.yml
       // @phpstan-ignore function.strict
-      $well_known_prop_shape = array_search($resolved_normalized_array_items, self::getWellKnownPropShapes(), FALSE);
+      $well_known_prop_shape = self::storableRef(array_search($resolved_normalized_array_items, self::getWellKnownPropShapes(), FALSE));
       if ($well_known_prop_shape !== FALSE) {
         $other_key_value_pairs = array_diff_key($resolved_normalized, array_flip(['type', 'items']));
         return PropShape::normalize([
@@ -92,6 +93,14 @@ final class PropShape {
     }
 
     return PropShape::normalize($raw_sdc_prop_schema);
+  }
+
+  /**
+   * Maps a well-known `$ref` to the one whose shape it is stored as.
+   */
+  private static function storableRef(string|int|false $ref): string|int|false {
+    // An image with a focal point is stored as an image, plus a focal point.
+    return $ref === JsonSchemaObjectRef::IMAGE_WITH_FOCAL_POINT ? JsonSchemaObjectRef::Image->value : $ref;
   }
 
   public function getType(): JsonSchemaType {
@@ -148,10 +157,6 @@ final class PropShape {
     // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::buildComponentInstanceForm()
     unset($normalized_prop_schema['x-canvas-color-picker']);
     unset($normalized_prop_schema['x-canvas-color-folders']);
-    // Same for the focal point annotation on image props: it adds a focal
-    // point to the stored value, but does not change the field type.
-    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::FOCAL_POINT_ANNOTATION
-    unset($normalized_prop_schema['x-canvas-focal-point']);
 
     // TRICKY: In Drupal 11.4 and earlier, SDC appends `'object'` to every
     // prop's declared `type` (and then dedupes) so Twig can defer rendering

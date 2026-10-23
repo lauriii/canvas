@@ -70,15 +70,14 @@ examples:
 
 #### Focal point
 
-Add `x-canvas-focal-point: true` to an image prop, or to a list of images, to let
-editors set a focal point on each image. They drag a marker on the image in its
+Use the `image-with-focal-point` definition instead of `image`, for one image or a
+list of images, to let editors set a focal point on each image. They drag a marker on the image in its
 media field. The image then has a `focalPoint` with `x` and `y` percentages from
 its top left corner, the center (`50`, `50`) when not set.
 
 ```yaml
 type: object
-$ref: json-schema-definitions://canvas.module/image
-x-canvas-focal-point: true
+$ref: json-schema-definitions://canvas.module/image-with-focal-point
 ```
 
 The `Image` component crops around it, so spreading the image is enough:

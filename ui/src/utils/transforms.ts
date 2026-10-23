@@ -458,7 +458,7 @@ const mediaSelection: Transformer<
 // selected image. Focal points are inputs keyed by media ID next to the
 // selection, `focal_points[media_<ID>][x]`; an incomplete or out of range one
 // is left out.
-// @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::FOCAL_POINT_ANNOTATION
+// @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef::IMAGE_WITH_FOCAL_POINT
 const mediaFocalPoint: Transformer<
   BaseTransformOptions,
   null | PropsValues | Array<PropsValues>

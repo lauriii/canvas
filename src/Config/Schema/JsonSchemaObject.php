@@ -51,6 +51,27 @@ final class JsonSchemaObject extends Mapping {
         // Resolve the $ref.
         $detail += $prop_schema;
       }
+      // An object of scalars, such as an image's focal point.
+      if ($detail['type'] === 'object' && \is_array($detail['properties'] ?? NULL)) {
+        $definition['mapping'][$property_name] = [
+          'type' => 'mapping',
+          'label' => $detail['title'] ?? '',
+          'mapping' => \array_map(static function (array $nested) use ($supported_property_types, $parent, $name, $property_name): array {
+            if (!\in_array($nested['type'] ?? NULL, $supported_property_types, TRUE)) {
+              throw new \LogicException(\sprintf("The schema definition at `%s` is invalid: the parent '\$ref' property contains a '%s' property that uses an unsupported config schema type. This is not supported.", $parent?->getPropertyPath() ?? $name, $property_name));
+            }
+            // JSON Schema's `number` is config schema's `float`.
+            return [
+              'type' => $nested['type'] === 'number' ? 'float' : $nested['type'],
+              'label' => $nested['title'] ?? '',
+            ];
+          }, $detail['properties']),
+        ];
+        if (!\in_array($property_name, $schema['required'] ?? [], TRUE)) {
+          $definition['mapping'][$property_name]['requiredKey'] = FALSE;
+        }
+        continue;
+      }
       if (!\in_array($detail['type'], $supported_property_types, TRUE)) {
         throw new \LogicException(\sprintf("The schema definition at `%s` is invalid: the parent '\$ref' property contains a '%s' property that uses an unsupported config schema type '%s'. This is not supported.", $parent?->getPropertyPath() ?? $name, $property_name, $detail['type']));
       }

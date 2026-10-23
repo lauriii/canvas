@@ -269,15 +269,12 @@ canvas.json_schema.prop_shape.object:
         Choice:
           choices:
             - 'json-schema-definitions://canvas.module/image'
+            # @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef::IMAGE_WITH_FOCAL_POINT
+            - 'json-schema-definitions://canvas.module/image-with-focal-point'
             - 'json-schema-definitions://canvas.module/video'
             - 'json-schema-definitions://canvas.module/document'
             # @see \Drupal\canvas\Entity\JavaScriptComponent::getContentEntityReferenceProps()
             - 'json-schema-definitions://canvas.module/content-entity-reference'
-    # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::FOCAL_POINT_ANNOTATION
-    'x-canvas-focal-point':
-      requiredKey: false
-      type: boolean
-      label: 'Editors set a focal point per image'
 
 canvas.json_schema.object:
   class: '\Drupal\canvas\Config\Schema\JsonSchemaObject'
@@ -298,11 +295,6 @@ canvas.json_schema.prop_shape.array:
     items:
       type: canvas.json_schema.prop_shape.[type]
       label: 'Type of array items'
-    # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::FOCAL_POINT_ANNOTATION
-    'x-canvas-focal-point':
-      requiredKey: false
-      type: boolean
-      label: 'Editors set a focal point per image'
     # Determines:
     # - the configured cardinality for StaticPropSources
     # - the exact cardinality for matching EntityFieldPropSources

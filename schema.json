@@ -274,6 +274,39 @@
         }
       }
     },
+    "image-with-focal-point": {
+      "title": "image with focal point",
+      "type":  "object",
+      "required": ["src"],
+      "properties": {
+        "src": {
+          "title": "Image URL",
+          "$ref": "json-schema-definitions://canvas.module/image-uri"
+        },
+        "alt": {
+          "title": "Alternative text",
+          "type": "string"
+        },
+        "width": {
+          "title": "Image width",
+          "type": "integer"
+        },
+        "height": {
+          "title": "Image height",
+          "type": "integer"
+        },
+        "focalPoint": {
+          "title": "Focal point",
+          "description": "The point to keep in view when the image is cropped, in percent from its top left corner.",
+          "type": "object",
+          "required": ["x", "y"],
+          "properties": {
+            "x": {"type": "number", "minimum": 0, "maximum": 100},
+            "y": {"type": "number", "minimum": 0, "maximum": 100}
+          }
+        }
+      }
+    },
     "video": {
       "title": "video",
       "type":  "object",

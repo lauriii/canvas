@@ -10,8 +10,9 @@ export default function Image({
   // optional as long as an `src` prop is provided with a `alternateWidths`
   // query string parameter, in which case we'll provide a default loader.
   loader?: (params: ImageLoaderParams) => string;
-  // A `focal-point` prop value: crops the image around this point when it
-  // does not fit its box (for example with `fill`). The `style` prop wins.
+  // An `image-with-focal-point` prop's focal point: crops the image around
+  // this point when it does not fit its box (for example with `fill`). The
+  // `style` prop wins.
   focalPoint?: { x: number; y: number } | null;
 }) {
   const props = focalPoint

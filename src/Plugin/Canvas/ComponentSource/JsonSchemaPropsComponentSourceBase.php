@@ -11,6 +11,7 @@ use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\EmptyTargetEntityProviderInterface;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\InvalidComponentInputsPropSourceException;
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\MissingHostEntityException;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
@@ -94,19 +95,6 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
 abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase implements ComponentSourceWithSlotsInterface, ContainerFactoryPluginInterface {
 
   public const EXPLICIT_INPUT_NAME = 'props';
-
-  /**
-   * Annotation that lets editors set a focal point per image of an image prop.
-   *
-   * Each image's stored value gains `focal_point: {x, y}`, percentages from its
-   * top left corner, and its resolved value gains `focalPoint: {x, y}`, the
-   * center when not set. Valid on image props and lists of images; it does not
-   * change the prop shape.
-   *
-   * @see \Drupal\canvas\ComponentMetadataRequirementsChecker
-   * @see \Drupal\canvas\PropShape\PropShape::normalizePropSchema()
-   */
-  public const string FOCAL_POINT_ANNOTATION = 'x-canvas-focal-point';
 
   /**
    * @var array<string, \Drupal\canvas\PropSource\StaticPropSource>
@@ -664,10 +652,19 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
   /**
    * Whether a prop stores a focal point per image.
    *
-   * @see self::FOCAL_POINT_ANNOTATION
+   * True for props that reference the image-with-focal-point shape, or a list
+   * of them. Each image's stored value gains `focal_point: {x, y}`,
+   * percentages from its top left corner, and its resolved value gains
+   * `focalPoint: {x, y}`, the center when not set.
+   *
+   * @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef::IMAGE_WITH_FOCAL_POINT
    */
   protected function hasFocalPoints(string $prop_name): bool {
-    return ($this->getMetadata()->schema['properties'][$prop_name][self::FOCAL_POINT_ANNOTATION] ?? FALSE) === TRUE;
+    // SDC metadata has its `$ref`s resolved: look for the focal point there.
+    $is_image_with_focal_point = static fn (array $schema): bool => ($schema['$ref'] ?? NULL) === JsonSchemaObjectRef::IMAGE_WITH_FOCAL_POINT
+      || isset($schema['properties']['focalPoint']);
+    $prop = $this->getMetadata()->schema['properties'][$prop_name] ?? [];
+    return $is_image_with_focal_point($prop) || $is_image_with_focal_point($prop['items'] ?? []);
   }
 
   /**

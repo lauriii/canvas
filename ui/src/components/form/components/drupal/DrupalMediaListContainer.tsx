@@ -61,7 +61,7 @@ function collectTargetIds(
  * Items stored as objects keep everything stored with them, such as an image's
  * focal point; IDs without a stored item are stored as is.
  *
- * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::FOCAL_POINT_ANNOTATION
+ * @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef::IMAGE_WITH_FOCAL_POINT
  */
 export function reorderStoredItems(
   stored: unknown,

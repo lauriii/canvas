@@ -7,7 +7,6 @@ namespace Drupal\Tests\canvas\Kernel\Plugin\Canvas\ComponentSource;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
-use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -29,7 +28,7 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Tests image props that store a focal point per image.
  *
- * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::FOCAL_POINT_ANNOTATION
+ * @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef::IMAGE_WITH_FOCAL_POINT
  */
 #[CoversClass(JsonSchemaPropsComponentSourceBase::class)]
 #[RunTestsInSeparateProcesses]
@@ -213,34 +212,6 @@ final class FocalPointImagePropTest extends ApiLayoutControllerTestBase {
     self::assertCount(3, $sources);
     self::assertStringContainsString('image-1', $sources[0]);
     self::assertStringContainsString('image-2', $sources[1]);
-  }
-
-  /**
-   * Tests that only image props can store focal points.
-   */
-  public function testAnnotationRequiresImage(): void {
-    $code_component = JavaScriptComponent::create([
-      'machineName' => 'focal_point_on_a_string',
-      'name' => 'Focal point on a string',
-      'status' => FALSE,
-      'props' => [
-        'heading' => [
-          'title' => 'Heading',
-          'type' => 'string',
-          'examples' => ['Hello'],
-          JsonSchemaPropsComponentSourceBase::FOCAL_POINT_ANNOTATION => TRUE,
-        ],
-      ],
-      'required' => [],
-      'js' => ['original' => '', 'compiled' => ''],
-      'css' => ['original' => '', 'compiled' => ''],
-      'dataDependencies' => [],
-    ]);
-    $messages = [];
-    foreach ($code_component->getTypedData()->validate() as $violation) {
-      $messages[] = (string) $violation->getMessage();
-    }
-    self::assertContains('"x-canvas-focal-point" on prop "heading" requires an image prop or a list of images.', $messages);
   }
 
 }
