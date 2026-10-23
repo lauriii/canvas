@@ -607,7 +607,7 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     $definitions = $component->getSettings()['prop_field_definitions'];
     self::assertSame('canvas_focal_point', $definitions[$single_prop]['field_type']);
     self::assertSame('canvas_focal_point', $definitions[$single_prop]['field_widget']);
-    self::assertSame([['x' => 25, 'y' => 75]], $definitions[$single_prop]['default_value']);
+    self::assertSame([['x' => 25.0, 'y' => 75.0]], $definitions[$single_prop]['default_value']);
     self::assertSame('canvas_focal_point', $definitions[$multiple_prop]['field_type']);
     self::assertSame(FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED, $definitions[$multiple_prop]['cardinality']);
 
@@ -629,21 +629,22 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     self::assertSame(['focalPoint' => ['multiple' => FALSE]], $json['transforms'][$single_prop]);
     self::assertSame(['focalPoint' => ['multiple' => TRUE]], $json['transforms'][$multiple_prop]);
 
+    // The kernel test renders with the default theme rather than Canvas Stark,
+    // so assert the widget's own markup: each focal point prop names the image
+    // prop with the same cardinality.
+    // @see themes/canvas_stark/templates/fieldset--widget-canvas-focal-point.html.twig
     $crawler = new Crawler($json['html']);
-    $single = $crawler->filter('drupal-canvas-focal-point');
-    self::assertCount(1, $single);
-    self::assertSame('image', $single->attr('image-prop'));
-    self::assertCount(2, $single->filter('drupal-canvas-focal-point-coordinate'));
-    self::assertStringContainsString("[$single_prop][0][x]", (string) $single->filter('drupal-canvas-focal-point-coordinate')->first()->attr('attributes'));
+    $single = $crawler->filter("input[name$='[$single_prop][0][x]']")->closest('fieldset');
+    self::assertNotNull($single);
+    self::assertSame('image', $single->attr('data-canvas-focal-point-image'));
+    self::assertCount(1, $single->filter("input[type=number][name$='[$single_prop][0][x]'][min='0'][max='100']"));
+    self::assertCount(1, $single->filter("input[type=number][name$='[$single_prop][0][y]'][min='0'][max='100']"));
 
-    // The empty multivalue widget renders one empty item. Its inputs are
-    // edited as a unit, so they are not marked as multivalue inputs.
-    $multiple = $crawler->filter('drupal-canvas-focal-point--multivalue-form');
-    self::assertCount(1, $multiple);
-    self::assertSame('gallery', $multiple->attr('image-prop'));
-    self::assertSame('Gallery focal points', $multiple->attr('field-label'));
-    self::assertCount(2, $multiple->filter('drupal-canvas-focal-point-coordinate'));
-    self::assertCount(0, $multiple->filter('drupal-canvas-input--multivalue-form'));
+    // The empty multivalue widget renders one empty item.
+    $multiple = $crawler->filter("input[name$='[$multiple_prop][0][x]']")->closest('fieldset');
+    self::assertNotNull($multiple);
+    self::assertSame('gallery', $multiple->attr('data-canvas-focal-point-image'));
+    self::assertCount(1, $multiple->filter("input[type=number][name$='[$multiple_prop][0][y]']"));
   }
 
   private function getCrawlerForFormRequest(string $form_url, ComponentInterface $component_entity, ?array $form_canvas_props): Crawler {

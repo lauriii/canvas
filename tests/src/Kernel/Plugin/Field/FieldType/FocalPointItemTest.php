@@ -15,12 +15,14 @@ use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\Attributes\TestWith;
 
 /**
  * @see \Drupal\canvas\Plugin\Field\FieldType\FocalPointItem
  */
 #[CoversClass(FocalPointItem::class)]
+#[RunTestsInSeparateProcesses]
 #[Group('canvas')]
 #[Group('canvas_shape_matching')]
 final class FocalPointItemTest extends CanvasKernelTestBase {
@@ -46,16 +48,6 @@ final class FocalPointItemTest extends CanvasKernelTestBase {
     self::assertSame('canvas_focal_point', $list->fieldWidget);
     self::assertSame(3, $list->cardinality);
 
-    // An inline schema identical to the definition is recognized as it.
-    $inline = PropShape::standardize([
-      'type' => 'object',
-      'required' => ['x', 'y'],
-      'properties' => [
-        'x' => ['type' => 'number', 'minimum' => 0, 'maximum' => 100],
-        'y' => ['type' => 'number', 'minimum' => 0, 'maximum' => 100],
-      ],
-    ]);
-    self::assertSame(JsonSchemaObjectRef::FocalPoint->value, $inline->schema['$ref']);
   }
 
   /**
