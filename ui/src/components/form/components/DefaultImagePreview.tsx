@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import {
+  focalPointSlotKey,
+  registerFocalPointSlot,
+} from '@/components/form/components/drupal/focalPointSlots';
 import { isEvaluatedComponentModel } from '@/features/layout/layoutModelSlice';
 import { EditorFrameContext } from '@/features/ui/uiSlice';
 import useInputUIData from '@/hooks/useInputUIData';
@@ -55,6 +59,11 @@ const isEmptyValue = (value: unknown): boolean => {
 };
 
 const DefaultImagePreview = ({ propName }: DefaultImagePreviewProps) => {
+  const focalPointSlotRef = useCallback(
+    (node: HTMLDivElement | null) =>
+      registerFocalPointSlot(focalPointSlotKey(propName, 0), node),
+    [propName],
+  );
   const inputUIData = useInputUIData();
   const {
     selectedComponent: selectedComponentId,
@@ -225,6 +234,8 @@ const DefaultImagePreview = ({ propName }: DefaultImagePreviewProps) => {
         )}
         <span className={styles.defaultImageLabel}>{imageAlt}</span>
       </div>
+      {/* The focal point control for this image renders here. */}
+      <div ref={focalPointSlotRef} className={styles.focalPointSlot} />
     </div>
   );
 };

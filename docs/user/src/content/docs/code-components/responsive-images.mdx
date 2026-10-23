@@ -65,6 +65,16 @@ not result in responsive image variants being generated.
 
 ### Optional Props
 
+#### `focalPoint`
+
+A `focal-point` prop value (`{ x, y }`, percentages). The image is cropped around
+that point with `object-fit: cover` and a matching `object-position`. A `style`
+prop overrides either.
+
+```jsx
+<Image {...photo} focalPoint={focalPoint} style={{ width: 300, height: 200 }} />
+```
+
 #### `fill`
 
 A boolean that causes the image to fill the parent element, which is useful when

@@ -1,5 +1,16 @@
 .item {
   display: flex;
+  flex-wrap: wrap;
+}
+
+/* Holds the image's focal point control, below the item. */
+.focalPointSlot {
+  flex-basis: 100%;
+  margin-top: var(--space-2);
+}
+
+.focalPointSlot:empty {
+  display: none;
 }
 
 .dragHandle {

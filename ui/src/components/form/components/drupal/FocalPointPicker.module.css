@@ -104,3 +104,12 @@
   width: 280px;
   max-width: 280px;
 }
+
+.reset {
+  align-self: center;
+  margin-top: var(--space-2);
+}
+
+.triggerLabel {
+  font-weight: 500;
+}

@@ -6,13 +6,15 @@ import {
   useMemo,
   useState,
 } from 'react';
+import { Button } from '@radix-ui/themes';
 
-import { useAppDispatch } from '@/app/hooks';
+import { useAppDispatch, useAppStore } from '@/app/hooks';
 import {
   useSafeFormContext,
   useSafeRHFContext,
 } from '@/components/form/contexts/FormContext';
 import { dispatchFieldValue } from '@/components/form/react-hook-form/utils';
+import { selectFormValues } from '@/features/form/formStateSlice';
 import useInputUIData from '@/hooks/useInputUIData';
 
 import type { ReactNode } from 'react';
@@ -111,10 +113,12 @@ const FocalPointPicker = ({
   imageProp,
   delta = 0,
   onPointChange,
+  showReset = false,
   children,
 }: {
   imageProp?: string;
   delta?: number;
+  showReset?: boolean;
   onPointChange?: (
     point: FocalPoint | null,
     registrations: Partial<Record<Axis, CoordinateRegistration>>,
@@ -122,6 +126,7 @@ const FocalPointPicker = ({
   children?: ReactNode;
 }) => {
   const dispatch = useAppDispatch();
+  const store = useAppStore();
   const formContext = useSafeFormContext();
   const rhfContext = useSafeRHFContext();
   const src = useFocalPointImage(imageProp, delta);
@@ -180,8 +185,25 @@ const FocalPointPicker = ({
       setDraft(null);
       return;
     }
-    rhfContext?.setValue(yName, next.y);
-    dispatchFieldValue(dispatch, formContext.formId as FormId, yName, next.y);
+    const formId = formContext.formId as FormId;
+    const setSilently = (name: string, value: number) => {
+      rhfContext?.setValue(name, value);
+      dispatchFieldValue(dispatch, formId, name, value);
+    };
+    // A list item pairs with the image at the same position. Empty earlier
+    // items would be dropped from the list and shift this point onto another
+    // image, so they are set to the center in the same update.
+    const [, listName, position] = yName.match(/^(.*)\[(\d+)\]\[y\]$/) ?? [];
+    if (listName) {
+      const values = selectFormValues(store.getState(), formId);
+      for (let i = 0; i < Number(position); i++) {
+        const names = [`${listName}[${i}][x]`, `${listName}[${i}][y]`];
+        if (names.some((name) => toPercent(values[name]) === null)) {
+          names.forEach((name) => setSilently(name, 50));
+        }
+      }
+    }
+    setSilently(yName, next.y);
     setPendingX(next.x);
   };
 
@@ -233,6 +255,17 @@ const FocalPointPicker = ({
         )}
       </div>
       <div className={styles.inputs}>{children}</div>
+      {showReset && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="1"
+          className={styles.reset}
+          onClick={() => commit({ x: 50, y: 50 })}
+        >
+          Reset to center
+        </Button>
+      )}
     </FocalPointContext.Provider>
   );
 };

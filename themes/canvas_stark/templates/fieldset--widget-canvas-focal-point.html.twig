@@ -4,7 +4,9 @@
  * Canvas Stark override for the focal point widget's fieldset.
  *
  * Renders the x and y inputs inside a focal point picker. Inside a multivalue
- * table, renders a list row that opens the picker in a popover instead.
+ * table, renders a list row that opens the picker in a popover instead. When
+ * the component has an image prop, the React components render their control
+ * under that image's media widget.
  *
  * Available variables: see fieldset.html.twig.
  *
@@ -30,7 +32,14 @@
       'form-wrapper',
     ]
   %}
-  {# A labelled group rather than a <fieldset>, to match other widgets. #}
+  {#
+    A labelled group rather than a <fieldset>, to match other widgets. With an
+    image prop, the widget renders its control under that image, so the group
+    itself is hidden.
+  #}
+  {% if attributes['data-canvas-focal-point-image'] is not empty %}
+    {% set attributes = attributes.setAttribute('hidden', 'hidden') %}
+  {% endif %}
   <div{{ attributes.addClass(classes).setAttribute('role', 'group').setAttribute('aria-label', legend.title|render|striptags|trim) }}>
     <canvas-drupal-label
       title="{{ legend.title }}"

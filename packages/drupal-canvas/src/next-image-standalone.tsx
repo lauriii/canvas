@@ -2,14 +2,28 @@ import NextImage from 'next-image-standalone';
 
 import type { ImageLoaderParams, ImageProps } from 'next-image-standalone';
 
-export default function Image(
-  props: Omit<ImageProps, 'loader'> & {
-    // `next-image-standalone` expects a loader function, but we make that
-    // optional as long as an `src` prop is provided with a `alternateWidths`
-    // query string parameter, in which case we'll provide a default loader.
-    loader?: (params: ImageLoaderParams) => string;
-  },
-) {
+export default function Image({
+  focalPoint,
+  ...imageProps
+}: Omit<ImageProps, 'loader'> & {
+  // `next-image-standalone` expects a loader function, but we make that
+  // optional as long as an `src` prop is provided with a `alternateWidths`
+  // query string parameter, in which case we'll provide a default loader.
+  loader?: (params: ImageLoaderParams) => string;
+  // A `focal-point` prop value: crops the image around this point when it
+  // does not fit its box (for example with `fill`). The `style` prop wins.
+  focalPoint?: { x: number; y: number } | null;
+}) {
+  const props = focalPoint
+    ? {
+        ...imageProps,
+        style: {
+          objectFit: 'cover' as const,
+          objectPosition: `${focalPoint.x}% ${focalPoint.y}%`,
+          ...imageProps.style,
+        },
+      }
+    : imageProps;
   const { src, loader } = props;
 
   // `src` is a URL string in this integration; a statically imported image

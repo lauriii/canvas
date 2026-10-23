@@ -81,3 +81,7 @@
   color: var(--slate-11);
   font-size: 13px;
 }
+
+.focalPointSlot:empty {
+  display: none;
+}

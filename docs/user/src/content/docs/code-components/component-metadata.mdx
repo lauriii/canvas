@@ -107,9 +107,9 @@ examples:
 ### Focal point
 
 A point on an image, as `x` and `y` percentages from its top left corner. Editors
-set it by dragging a marker on a preview of the component's image prop. A list of
-focal points pairs item by item with a list of images. Apply it with, for
-example, CSS `object-position`.
+set it under the component's image prop, by dragging a marker on a preview of the
+image, rather than in a separate field. A list of focal points pairs item by item
+with a list of images. Apply it with, for example, CSS `object-position`.
 
 ```yaml
 type: object
@@ -119,12 +119,13 @@ examples:
     y: 30
 ```
 
+Pass it to the `Image` component's `focalPoint` prop, which crops the image
+around that point:
+
 ```jsx
-<img
-  src={image.src}
-  alt={image.alt}
-  style={{ objectFit: 'cover', objectPosition: `${focalPoint.x}% ${focalPoint.y}%` }}
-/>
+import { Image } from 'drupal-canvas';
+
+<Image {...image} focalPoint={focalPoint} style={{ width: 300, height: 200 }} />
 ```
 
 ### Boolean

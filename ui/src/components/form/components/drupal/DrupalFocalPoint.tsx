@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import clsx from 'clsx';
-import { Cross2Icon } from '@radix-ui/react-icons';
+import { createPortal } from 'react-dom';
+import { Cross2Icon, TargetIcon } from '@radix-ui/react-icons';
 import * as Popover from '@radix-ui/react-popover';
 import { Flex, Text } from '@radix-ui/themes';
 
@@ -9,44 +10,94 @@ import FocalPointPicker, {
   formatFocalPoint,
   useFocalPointImage,
 } from './FocalPointPicker';
+import { focalPointSlotKey, useFocalPointSlot } from './focalPointSlots';
 
 import type { ReactNode } from 'react';
-import type { FocalPoint } from './FocalPointPicker';
+import type { CoordinateRegistration, FocalPoint } from './FocalPointPicker';
 
 import multivalueStyles from './DrupalInputMultivalueForm.module.css';
 import styles from './FocalPointPicker.module.css';
 
 /**
- * The focal point widget for a single value prop.
+ * Renders a focal point control under the image it belongs to.
  *
- * A button summarizing the point opens a popover with the picker. The popover
- * is always mounted so the x and y inputs stay registered with the form.
+ * The control (with the real x and y inputs) is portaled into the slot the
+ * image widget registered, so the focal point reads as part of the image
+ * rather than as a separate field. Until that slot exists, for example while
+ * no image is selected, it stays mounted but hidden so the inputs keep their
+ * form state. Without an image prop it renders in place.
  *
- * @see \Drupal\canvas\Plugin\Field\FieldWidget\CanvasFocalPointWidget
- * @see DrupalFocalPointMultivalueForm
+ * @see focalPointSlots.ts
  */
-const DrupalFocalPoint = ({
+export const FoldedUnderImage = ({
   imageProp,
+  position,
   children,
 }: {
   imageProp?: string;
+  // Null while not yet known: the control stays hidden in place.
+  position: number | null;
+  children: ReactNode;
+}) => {
+  const slot = useFocalPointSlot(
+    imageProp && position !== null
+      ? focalPointSlotKey(imageProp, position)
+      : null,
+  );
+  if (!imageProp) {
+    return <>{children}</>;
+  }
+  return slot ? createPortal(children, slot) : <div hidden>{children}</div>;
+};
+
+/**
+ * A button summarizing a focal point, which opens the picker in a popover.
+ */
+export const FocalPointPopover = ({
+  label,
+  imageProp,
+  position,
+  onPointChange,
+  open,
+  onOpenChange,
+  footer,
+  children,
+}: {
+  label: string;
+  imageProp?: string;
+  position: number;
+  onPointChange?: (
+    point: FocalPoint | null,
+    registrations: Partial<Record<'x' | 'y', CoordinateRegistration>>,
+  ) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  footer?: ReactNode;
   children?: ReactNode;
 }) => {
-  const [open, setOpen] = useState(false);
   const [point, setPoint] = useState<FocalPoint | null>(null);
-  const src = useFocalPointImage(imageProp, 0);
+  const src = useFocalPointImage(imageProp, position);
 
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
+    <Popover.Root open={open} onOpenChange={onOpenChange}>
       <Popover.Trigger asChild>
         <button
           type="button"
           className={styles.trigger}
           data-canvas-focal-point-trigger
-          aria-label={`Edit focal point: ${formatFocalPoint(point)}`}
+          aria-label={`Edit ${label}: ${formatFocalPoint(point)}`}
         >
-          <FocalPointThumbnail src={src} point={point} />
-          <Text size="2">{formatFocalPoint(point)}</Text>
+          {imageProp ? (
+            <TargetIcon aria-hidden="true" />
+          ) : (
+            <FocalPointThumbnail src={src} point={point} />
+          )}
+          <Text size="1" className={styles.triggerLabel}>
+            {label}
+          </Text>
+          <Text size="1" color="gray">
+            {formatFocalPoint(point)}
+          </Text>
         </button>
       </Popover.Trigger>
       <Popover.Content
@@ -60,7 +111,7 @@ const DrupalFocalPoint = ({
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
             e.preventDefault();
-            setOpen(false);
+            onOpenChange(false);
           }
         }}
       >
@@ -74,7 +125,7 @@ const DrupalFocalPoint = ({
             weight="medium"
             className={multivalueStyles.popoverLabel}
           >
-            Focal point
+            {label}
           </Text>
           <Popover.Close aria-label="Close">
             <Cross2Icon />
@@ -82,12 +133,47 @@ const DrupalFocalPoint = ({
         </Flex>
         <FocalPointPicker
           imageProp={imageProp}
-          onPointChange={(next) => setPoint(next)}
+          delta={position}
+          showReset={!!imageProp}
+          onPointChange={(next, registrations) => {
+            setPoint(next);
+            onPointChange?.(next, registrations);
+          }}
         >
           {children}
         </FocalPointPicker>
+        {footer}
       </Popover.Content>
     </Popover.Root>
+  );
+};
+
+/**
+ * The focal point widget for a single value prop.
+ *
+ * @see \Drupal\canvas\Plugin\Field\FieldWidget\CanvasFocalPointWidget
+ * @see DrupalFocalPointMultivalueForm
+ */
+const DrupalFocalPoint = ({
+  imageProp,
+  children,
+}: {
+  imageProp?: string;
+  children?: ReactNode;
+}) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <FoldedUnderImage imageProp={imageProp} position={0}>
+      <FocalPointPopover
+        label="Focal point"
+        imageProp={imageProp}
+        position={0}
+        open={open}
+        onOpenChange={setOpen}
+      >
+        {children}
+      </FocalPointPopover>
+    </FoldedUnderImage>
   );
 };
 

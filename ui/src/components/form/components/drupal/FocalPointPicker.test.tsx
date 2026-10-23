@@ -5,14 +5,17 @@ import { fireEvent, render, screen } from '@testing-library/react';
 
 import { makeStore } from '@/app/store';
 import { FormProvider } from '@/components/form/contexts/FormContext';
-import { selectFormValues } from '@/features/form/formStateSlice';
+import {
+  selectFormValues,
+  setFieldValue,
+} from '@/features/form/formStateSlice';
 
 import FocalPointPicker, { useFocalPointContext } from './FocalPointPicker';
 
 import type { FieldContextValue } from '@/components/form/contexts/FieldContext';
 
-const name = (axis: string) =>
-  `canvas_component_props[uuid][focal][0][${axis}]`;
+const name = (axis: string, position = 0) =>
+  `canvas_component_props[uuid][focal][${position}][${axis}]`;
 
 // Stands in for DrupalFocalPointCoordinate, which needs the full form
 // pipeline: registers a value and a FieldContext with the picker.
@@ -20,20 +23,22 @@ const Coordinate = ({
   axis,
   value,
   fieldContext,
+  position = 0,
 }: {
   axis: 'x' | 'y';
   value: string;
   fieldContext: FieldContextValue;
+  position?: number;
 }) => {
   const focalPoint = useFocalPointContext();
   useEffect(() => {
     focalPoint?.register(axis, {
-      name: name(axis),
+      name: name(axis, position),
       value,
       element: null,
       fieldContext,
     });
-  }, [focalPoint, axis, value, fieldContext]);
+  }, [focalPoint, axis, value, fieldContext, position]);
   return null;
 };
 
@@ -56,7 +61,7 @@ const fieldContext = (axis: string): FieldContextValue => ({
   triggerBlur: vi.fn(),
 });
 
-const renderPicker = (x: string, y: string) => {
+const renderPicker = (x: string, y: string, position = 0) => {
   const store = makeStore({});
   const contexts = { x: fieldContext('x'), y: fieldContext('y') };
   const onPointChange = vi.fn();
@@ -64,8 +69,18 @@ const renderPicker = (x: string, y: string) => {
     <Provider store={store}>
       <FormProvider formId="component_instance_form">
         <FocalPointPicker onPointChange={onPointChange}>
-          <Coordinate axis="x" value={x} fieldContext={contexts.x} />
-          <Coordinate axis="y" value={y} fieldContext={contexts.y} />
+          <Coordinate
+            axis="x"
+            value={x}
+            fieldContext={contexts.x}
+            position={position}
+          />
+          <Coordinate
+            axis="y"
+            value={y}
+            fieldContext={contexts.y}
+            position={position}
+          />
         </FocalPointPicker>
       </FormProvider>
     </Provider>,
@@ -107,6 +122,51 @@ describe('FocalPointPicker', () => {
     expect(contexts.y.triggerChange).not.toHaveBeenCalled();
     expect(contexts.x.triggerChange).toHaveBeenCalledTimes(1);
     expect(contexts.x.triggerChange).toHaveBeenCalledWith(80);
+  });
+
+  it('sets empty earlier list items to the center in the same change', () => {
+    const { store, contexts, frame } = renderPicker('', '', 2);
+    store.dispatch(
+      setFieldValue({
+        formId: 'component_instance_form',
+        fieldName: name('x', 0),
+        value: '',
+      }),
+    );
+    store.dispatch(
+      setFieldValue({
+        formId: 'component_instance_form',
+        fieldName: name('y', 0),
+        value: '',
+      }),
+    );
+    store.dispatch(
+      setFieldValue({
+        formId: 'component_instance_form',
+        fieldName: name('x', 1),
+        value: 10,
+      }),
+    );
+    store.dispatch(
+      setFieldValue({
+        formId: 'component_instance_form',
+        fieldName: name('y', 1),
+        value: 20,
+      }),
+    );
+    pointer(frame, 'pointerdown', 40, 60);
+    pointer(frame, 'pointerup', 40, 60);
+
+    const values = selectFormValues(
+      store.getState(),
+      'component_instance_form',
+    );
+    // The empty first item is filled; the set second one is left alone.
+    expect(values[name('x', 0)]).toBe(50);
+    expect(values[name('y', 0)]).toBe(50);
+    expect(values[name('x', 1)]).toBe(10);
+    expect(values[name('y', 2)]).toBe(60);
+    expect(contexts.x.triggerChange).toHaveBeenCalledWith(20);
   });
 
   it('ignores pointer moves without a pointer down', () => {
