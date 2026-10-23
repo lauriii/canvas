@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
-import { useNavigate, useParams, useSearchParams } from 'react-router';
+import {
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router';
 import {
   CheckIcon,
   ChevronDownIcon,
@@ -326,6 +331,7 @@ const LanguageSelect = () => {
     setOpenPopoverId(open ? languageId : null);
   };
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const { entityType, entityId, width, previewEntityId, bundle, viewMode } =
     useParams();
@@ -426,6 +432,9 @@ const LanguageSelect = () => {
       } else {
         navigate(`/editor/${entityType}/${entityId}`);
       }
+    } else if (!isTemplateRoute && isForked(languageId)) {
+      // A forked translation owns its layout, so it is edited, not previewed.
+      navigate(`/editor/${entityType}/${entityId}?language=${languageId}`);
     } else {
       const currentWidth = width || 'full';
       if (isTemplateRoute) {
@@ -468,6 +477,52 @@ const LanguageSelect = () => {
   // A language whose translation owns a forked layout.
   const isForked = (languageId: string) =>
     Boolean(translations?.forked?.includes(languageId));
+
+  // Keep the route in step with the active translation's fork state: forked
+  // translations are edited in the editor, other translations are previewed.
+  // This covers forking or reverting from the language menu, and links into
+  // the preview of a forked translation (e.g. from canvas_translate).
+  // Read fork state from the active language's own layout query: it loads on
+  // both routes, even when the editor's request for a no longer forked
+  // translation is refused, and unlike the slice it never holds the previous
+  // entity's translations.
+  const isPreviewRoute = location.pathname.startsWith('/preview/');
+  const activeTranslations = fetchedLayout?.translations;
+  const activeLanguageForked =
+    !!activeLanguageId &&
+    !!activeTranslations?.forked?.includes(activeLanguageId);
+  const isNonDefaultLanguage =
+    !!activeLanguageId &&
+    !!activeTranslations?.available?.[0] &&
+    activeLanguageId !== activeTranslations.available[0];
+  useEffect(() => {
+    if (isTemplateRoute || !entityType || !entityId || !isNonDefaultLanguage) {
+      return;
+    }
+    if (activeLanguageForked && isPreviewRoute) {
+      navigate(
+        `/editor/${entityType}/${entityId}?language=${activeLanguageId}`,
+        {
+          replace: true,
+        },
+      );
+    } else if (!activeLanguageForked && !isPreviewRoute) {
+      navigate(
+        `/preview/${entityType}/${entityId}/${width || 'full'}?language=${activeLanguageId}`,
+        { replace: true },
+      );
+    }
+  }, [
+    activeLanguageForked,
+    activeLanguageId,
+    entityId,
+    entityType,
+    isNonDefaultLanguage,
+    isPreviewRoute,
+    isTemplateRoute,
+    navigate,
+    width,
+  ]);
 
   const handleConfigureLanguages = () => {
     window.open(

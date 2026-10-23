@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
-import { useParams } from 'react-router';
+import { useParams, useSearchParams } from 'react-router';
 import { Box, Spinner } from '@radix-ui/themes';
 import { skipToken } from '@reduxjs/toolkit/query';
 
@@ -42,6 +42,10 @@ const PageDataFormRenderer = () => {
     selectFormValues(state, FORM_TYPES.ENTITY_FORM),
   );
   const { entityId, entityType } = useParams();
+  // The forked translation being edited, if any: its form differs from the
+  // default translation's.
+  const [searchParams] = useSearchParams();
+  const editorLanguage = searchParams.get('language') ?? '';
   const {
     currentData: formTemplate,
     error,
@@ -113,7 +117,7 @@ const PageDataFormRenderer = () => {
     if (entityId && entityType) {
       refetch();
     }
-  }, [refetch, entityId, entityType]);
+  }, [refetch, entityId, entityType, editorLanguage]);
 
   useEffect(() => {
     // If the HTML for the form has not yet loaded OR the JSON for the current
@@ -132,7 +136,7 @@ const PageDataFormRenderer = () => {
 
     setJsxFormContent(
       <div
-        key={`${entityType}:${entityId}:${fulfilledTimeStamp}`}
+        key={`${entityType}:${entityId}:${editorLanguage}:${fulfilledTimeStamp}`}
         data-testid="canvas-page-data-form"
         className={styles.pageDataForm}
         onClick={interceptEditTemplateLink}
@@ -147,6 +151,7 @@ const PageDataFormRenderer = () => {
       </div>,
     );
   }, [
+    editorLanguage,
     entityId,
     entityType,
     formTemplate,

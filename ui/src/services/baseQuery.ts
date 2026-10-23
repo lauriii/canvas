@@ -1,3 +1,4 @@
+import { defaultSerializeQueryArgs } from '@reduxjs/toolkit/query';
 import { fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import { fetchCsrfToken } from '@/utils/csrf';
@@ -8,6 +9,7 @@ import type {
   BaseQueryFn,
   FetchArgs,
   FetchBaseQueryError,
+  SerializeQueryArgs,
 } from '@reduxjs/toolkit/query/react';
 import type { RootState } from '@/app/store';
 import type { AppConfiguration } from '@/features/configuration/configurationSlice';
@@ -140,6 +142,98 @@ export const replaceEntityParamsInUrl = (
   return newUrl;
 };
 
+/**
+ * The language of the forked translation open in the entity editor, if any.
+ *
+ * Forked translations own their layout, so the entity editor edits them like
+ * the default translation, with the language in the `?language=` query of the
+ * editor route. Symmetric translations are only previewed, on the preview
+ * route, so they never yield an editor language.
+ */
+export const getEditorLanguage = (href: string): string => {
+  const url = new URL(href, 'http://localhost');
+  return /\/canvas\/editor\//.test(url.pathname)
+    ? (url.searchParams.get('language') ?? '')
+    : '';
+};
+
+// The entity-scoped editor API paths whose route entity the backend swaps for
+// the translation named by `canvas_langcode`.
+// @see \Drupal\canvas\EventSubscriber\ForkedTranslationEditRequestSubscriber
+const EDITOR_ENTITY_API_PATH =
+  /canvas\/api\/v0\/(?:layout|form\/component-instance|form\/content-entity|content\/auto-save)\/([^/?]+)\/([^/?]+)(?:[/?]|$)/;
+
+/**
+ * Names a forked translation on editor API requests for its entity.
+ */
+export const addEditorLanguageToUrl = (
+  url: string,
+  language: string | undefined,
+  entityType: string | undefined,
+  entityId: string | undefined,
+): string => {
+  // Previews of a translation name it with their own hint, and are allowed for
+  // every translation, forked or not.
+  if (!language || url.includes('canvas_preview_langcode=')) {
+    return url;
+  }
+  const match = url.match(EDITOR_ENTITY_API_PATH);
+  if (!match || match[1] !== entityType || match[2] !== entityId) {
+    return url;
+  }
+  return `${url}${url.includes('?') ? '&' : '?'}canvas_langcode=${encodeURIComponent(language)}`;
+};
+
+/**
+ * The translation an editor API request acts on.
+ *
+ * Reads follow the editor route, which decides what to load. Writes follow the
+ * translation the editor's data was loaded for, so a write that races a
+ * language switch can never send one translation's data to another.
+ */
+const getRequestTranslation = (
+  api: BaseQueryApi,
+): {
+  language?: string;
+  entityType?: string;
+  entityId?: string;
+} => {
+  if (api.type === 'mutation') {
+    const owner = (api.getState() as Partial<RootState>).pageDataOwner;
+    return {
+      language: owner?.langcode,
+      entityType: owner?.entityType,
+      entityId: owner?.entityId,
+    };
+  }
+  const { entityType, entityId } = extractEntityParams(window.location.href);
+  return {
+    language: getEditorLanguage(window.location.href),
+    entityType,
+    entityId,
+  };
+};
+
+/**
+ * Cache key for queries the base query names the edited translation on.
+ *
+ * The default translation and a forked translation of the same entity are
+ * different data, so the editor language is part of the cache key.
+ */
+export const serializeEditorQueryArgs: SerializeQueryArgs<any> = ({
+  queryArgs,
+  endpointDefinition,
+  endpointName,
+}) =>
+  defaultSerializeQueryArgs({
+    queryArgs: {
+      ...queryArgs,
+      editorLanguage: getEditorLanguage(window.location.href),
+    },
+    endpointDefinition,
+    endpointName,
+  });
+
 const rawBaseQuery = (appConfiguration: AppConfiguration) => {
   const { baseUrl } = appConfiguration;
   const defaultQuery = fetchBaseQuery({
@@ -162,12 +256,18 @@ const rawBaseQuery = (appConfiguration: AppConfiguration) => {
     const url = typeof arg == 'string' ? arg : arg.url;
     const { entityType, entityId, templateBundle, templateViewMode } =
       extractEntityParams(window.location.href);
-    const newUrl = replaceEntityParamsInUrl(
-      url,
-      entityType,
-      entityId,
-      templateBundle,
-      templateViewMode,
+    const translation = getRequestTranslation(api);
+    const newUrl = addEditorLanguageToUrl(
+      replaceEntityParamsInUrl(
+        url,
+        entityType,
+        entityId,
+        templateBundle,
+        templateViewMode,
+      ),
+      translation.language,
+      translation.entityType,
+      translation.entityId,
     );
     const newArg = typeof arg == 'string' ? newUrl : { ...arg, url: newUrl };
     return defaultQuery(newArg, api, extraOptions);

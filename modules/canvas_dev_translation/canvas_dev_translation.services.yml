@@ -1,0 +1,9 @@
+services:
+  _defaults:
+    autoconfigure: true
+    autowire: true
+  # Ships in this feature-flag module, next to the fork routes, so editing
+  # forked translations is gated the same way.
+  Drupal\canvas\EventSubscriber\ForkedTranslationEditRequestSubscriber:
+    arguments:
+      $currentRouteMatch: '@current_route_match'

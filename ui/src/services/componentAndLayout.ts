@@ -14,11 +14,15 @@ import {
   setSnapshotHTML,
   setSnapshotTitle,
 } from '@/features/pagePreview/previewSlice';
-import { baseQueryWithAutoSaves } from '@/services/baseQuery';
+import {
+  baseQueryWithAutoSaves,
+  serializeEditorQueryArgs,
+} from '@/services/baseQuery';
 import { brandKitApi } from '@/services/brandKit';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
 
+import type { FetchBaseQueryMeta } from '@reduxjs/toolkit/query';
 import type { RootLayoutModel } from '@/features/layout/layoutModelSlice';
 import type {
   UpdateComponentQueryArg,
@@ -202,6 +206,7 @@ export const componentAndLayoutApi = createApi({
           ? `${path}?canvas_preview_langcode=${encodeURIComponent(language)}`
           : path;
       },
+      serializeQueryArgs: serializeEditorQueryArgs,
       providesTags: () => [{ type: 'Layout' }],
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
@@ -220,6 +225,13 @@ export const componentAndLayoutApi = createApi({
                 owner: {
                   entityType: arg.entityType,
                   entityId: arg.entityId,
+                  // The forked translation the base query named, if any.
+                  langcode:
+                    new URL(
+                      (meta as FetchBaseQueryMeta | undefined)?.request.url ??
+                        '',
+                      window.location.origin,
+                    ).searchParams.get('canvas_langcode') ?? '',
                 },
               }),
             );

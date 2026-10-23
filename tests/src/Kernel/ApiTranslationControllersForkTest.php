@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
-// cspell:ignore Hola
+// cspell:ignore Hola Título nuevo Otro título
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CanvasUriDefinitions;
@@ -12,6 +12,7 @@ use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSyn
 use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
 use Drupal\canvas\Controller\ApiTranslationControllers;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas\EventSubscriber\ForkedTranslationEditRequestSubscriber;
 use Drupal\content_translation\BundleTranslationSettingsInterface;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Entity\ContentEntityInterface;
@@ -31,6 +32,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Tests the translation fork/unfork HTTP API endpoints.
@@ -44,6 +46,7 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
  */
 #[RunTestsInSeparateProcesses]
 #[CoversClass(ApiTranslationControllers::class)]
+#[CoversClass(ForkedTranslationEditRequestSubscriber::class)]
 #[Group('canvas')]
 #[Group('canvas_translation')]
 final class ApiTranslationControllersForkTest extends CanvasKernelTestBase {
@@ -381,6 +384,157 @@ final class ApiTranslationControllersForkTest extends CanvasKernelTestBase {
     \assert($stored instanceof Page);
     self::assertFalse(ComponentTreeTranslationFork::isForkedTranslation($stored->getTranslation('es')));
     self::assertTrue($this->container->get(AutoSaveManager::class)->getAutoSaveEntity($stored)->isEmpty());
+  }
+
+  /**
+   * The layout URL for the translation named by `?canvas_langcode=`.
+   */
+  private static function editorLayoutUrl(Page $page, string $langcode): string {
+    return Url::fromRoute('canvas.api.layout.get', [
+      'entity_type' => Page::ENTITY_TYPE_ID,
+      'entity' => $page->id(),
+    ], ['query' => [ForkedTranslationEditRequestSubscriber::QUERY_KEY => $langcode]])->toString();
+  }
+
+  /**
+   * Saves a translation's layout through the editor's whole-layout POST.
+   *
+   * Round-trips the layout GET response, as the editor does, with the main
+   * content region emptied and the title changed.
+   */
+  private function postEmptiedLayout(Page $page, string $langcode, string $title): Response {
+    $url = self::editorLayoutUrl($page, $langcode);
+    $response = $this->request(Request::create($url));
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+    $json = \json_decode((string) $response->getContent(), TRUE);
+    \assert(\is_array($json));
+    $layout = $json['layout'];
+    $layout[0]['components'] = [];
+    $request = Request::create($url, 'POST', content: \json_encode([
+      'layout' => $layout,
+      'model' => [],
+      'entity_form_fields' => ['title[0][value]' => $title] + $json['entity_form_fields'],
+      'autoSaves' => $json['autoSaves'],
+      'clientInstanceId' => 'test-client',
+    ], JSON_THROW_ON_ERROR));
+    $request->headers->set('Content-Type', 'application/json');
+    return $this->request($request);
+  }
+
+  /**
+   * Tests editing a forked translation's layout through the editor API.
+   */
+  public function testEditForkedTranslation(): void {
+    $this->setUpCurrentUser(permissions: [Page::EDIT_PERMISSION]);
+    $page = $this->createTranslatedPage();
+    $auto_save = $this->container->get(AutoSaveManager::class);
+    \assert($auto_save instanceof AutoSaveManager);
+
+    // Symmetric translations are read-only in the editor.
+    try {
+      $this->request(Request::create(self::editorLayoutUrl($page, 'es')));
+      $this->fail('Expected access denied for a symmetric translation.');
+    }
+    catch (AccessDeniedHttpException $e) {
+      self::assertSame('Only forked translations can be edited in the Canvas editor.', $e->getMessage());
+    }
+
+    // Fork Spanish: the fork lives in the draft, which is enough to edit it.
+    $response = $this->request(Request::create($this->forkUrl($page, 'es'), 'POST'));
+    self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
+
+    // The layout and page data are the Spanish translation's.
+    $response = $this->request(Request::create(self::editorLayoutUrl($page, 'es')));
+    $json = \json_decode((string) $response->getContent(), TRUE);
+    \assert(\is_array($json));
+    self::assertSame('Spanish title', $json['entity_form_fields']['title[0][value]']);
+    self::assertStringContainsString('Hola A (es)', \json_encode($json['model'], JSON_THROW_ON_ERROR));
+    // Naming the default translation is the same as not naming one.
+    $response = $this->request(Request::create(self::editorLayoutUrl($page, 'en')));
+    $json = \json_decode((string) $response->getContent(), TRUE);
+    \assert(\is_array($json));
+    self::assertSame('English title', $json['entity_form_fields']['title[0][value]']);
+
+    // A structural edit and a page data edit land in the Spanish draft only.
+    $response = $this->postEmptiedLayout($page, 'es', 'Título nuevo');
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+    $stored = Page::load($page->id());
+    \assert($stored instanceof Page);
+    $es_draft = $auto_save->getAutoSaveEntity($stored->getTranslation('es'))->entity;
+    \assert($es_draft instanceof Page);
+    self::assertSame('Título nuevo', $es_draft->label());
+    self::assertCount(0, $es_draft->getComponentTree());
+    self::assertTrue($auto_save->getAutoSaveEntity($stored)->isEmpty());
+    self::assertSame('English title', $stored->label());
+    self::assertCount(1, $stored->getComponentTree());
+
+    // A language without a translation is never resolved to another one.
+    $this->expectException(NotFoundHttpException::class);
+    $this->request(Request::create(self::editorLayoutUrl($page, 'de')));
+  }
+
+  /**
+   * Tests that forked translation drafts publish and discard independently.
+   */
+  public function testForkedDraftsPublishAndDiscardIndependently(): void {
+    $this->setUpCurrentUser(permissions: [
+      Page::EDIT_PERMISSION,
+      AutoSaveManager::PUBLISH_PERMISSION,
+    ]);
+    $page = $this->createTranslatedPage();
+    $auto_save = $this->container->get(AutoSaveManager::class);
+    \assert($auto_save instanceof AutoSaveManager);
+    $es_key = Page::ENTITY_TYPE_ID . ':' . $page->id() . ':es';
+    $en_key = Page::ENTITY_TYPE_ID . ':' . $page->id() . ':en';
+
+    $response = $this->request(Request::create($this->forkUrl($page, 'es'), 'POST'));
+    self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
+    $response = $this->postEmptiedLayout($page, 'es', 'Título nuevo');
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+    $this->stageDefaultTranslationDraft($page, 'English title updated');
+
+    // Both drafts are listed, the forked one labelled with its language.
+    $pending = $this->getAutoSaveStatesFromServer();
+    self::assertEqualsCanonicalizing([$en_key, $es_key], \array_keys($pending));
+    self::assertSame('Título nuevo (Spanish)', $pending[$es_key]['label']);
+
+    // Publishing the forked draft leaves the default translation's pending.
+    $response = $this->makePublishAllRequest([$es_key => $pending[$es_key]]);
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+    $stored = Page::load($page->id());
+    \assert($stored instanceof Page);
+    $es = $stored->getTranslation('es');
+    \assert($es instanceof Page);
+    self::assertTrue(ComponentTreeTranslationFork::isForkedTranslation($es));
+    self::assertSame('Título nuevo', $es->label());
+    self::assertCount(0, $es->getComponentTree());
+    self::assertSame('English title', $stored->label());
+    self::assertCount(1, $stored->getComponentTree());
+    self::assertSame([$en_key], \array_keys($this->getAutoSaveStatesFromServer()));
+
+    // Discarding the forked draft leaves the default translation's pending.
+    $response = $this->postEmptiedLayout($page, 'es', 'Otro título');
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+    $discard_url = Url::fromRoute('canvas.api.auto-save.delete', [
+      'entity_type' => Page::ENTITY_TYPE_ID,
+      'entity' => $page->id(),
+    ], ['query' => [ForkedTranslationEditRequestSubscriber::QUERY_KEY => 'es']])->toString();
+    $response = $this->request(Request::create($discard_url, 'DELETE'));
+    self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode(), (string) $response->getContent());
+    self::assertSame([$en_key], \array_keys($this->getAutoSaveStatesFromServer()));
+
+    // Discarding the default translation's draft leaves a forked draft.
+    $response = $this->postEmptiedLayout($page, 'es', 'Otro título');
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+    // Generate the URL in the default language: URL generation would otherwise
+    // prefix the language negotiated by the previous request.
+    $discard_url = Url::fromRoute('canvas.api.auto-save.delete', [
+      'entity_type' => Page::ENTITY_TYPE_ID,
+      'entity' => $page->id(),
+    ], ['language' => $this->container->get(LanguageManagerInterface::class)->getDefaultLanguage()])->toString();
+    $response = $this->request(Request::create($discard_url, 'DELETE'));
+    self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode(), (string) $response->getContent());
+    self::assertSame([$es_key], \array_keys($this->getAutoSaveStatesFromServer()));
   }
 
   /**

@@ -145,6 +145,8 @@ outward. The flag on the default translation is ignored, and one flag covers all
 Forking flips the flag on the translation's auto-save draft (symmetric mode already stores identical tree rows per
 translation, so the current state is the fork seed); unforking destructively re-syncs the translation from the default
 translation, preserving its translatable input values for `component instance`s that still exist in the default tree.
+A forked translation is edited in the Canvas editor like the default translation; symmetric translations are only
+previewed there.
 See `\Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork::isForkedTranslation()`.
 
 The same 6 `field prop`s are also stored for `component instance`s stored in config entities. This allows them to be
