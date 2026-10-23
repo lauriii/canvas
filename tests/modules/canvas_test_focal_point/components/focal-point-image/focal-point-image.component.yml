@@ -1,0 +1,37 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Focal point image
+status: stable
+props:
+  type: object
+  required:
+    - image
+    - focal_point
+  properties:
+    image:
+      title: Image
+      type: object
+      $ref: json-schema-definitions://canvas.module/image
+      examples:
+        - src: https://placehold.co/1200x600.png
+          alt: 'A placeholder'
+          width: 1200
+          height: 600
+    focal_point:
+      title: Focal point
+      type: object
+      $ref: json-schema-definitions://canvas.module/focal-point
+      examples:
+        - x: 25
+          y: 75
+    gallery:
+      title: Gallery
+      type: array
+      items:
+        $ref: json-schema-definitions://canvas.module/image
+        type: object
+    gallery_focal_points:
+      title: Gallery focal points
+      type: array
+      items:
+        $ref: json-schema-definitions://canvas.module/focal-point
+        type: object

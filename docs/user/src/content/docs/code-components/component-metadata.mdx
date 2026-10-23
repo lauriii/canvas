@@ -104,6 +104,29 @@ examples:
     mimetype: application/pdf
 ```
 
+### Focal point
+
+A point on an image, as `x` and `y` percentages from its top left corner. Editors
+set it by dragging a marker on a preview of the component's image prop. A list of
+focal points pairs item by item with a list of images. Apply it with, for
+example, CSS `object-position`.
+
+```yaml
+type: object
+$ref: json-schema-definitions://canvas.module/focal-point
+examples:
+  - x: 50
+    y: 30
+```
+
+```jsx
+<img
+  src={image.src}
+  alt={image.alt}
+  style={{ objectFit: 'cover', objectPosition: `${focalPoint.x}% ${focalPoint.y}%` }}
+/>
+```
+
 ### Boolean
 
 True or false value.

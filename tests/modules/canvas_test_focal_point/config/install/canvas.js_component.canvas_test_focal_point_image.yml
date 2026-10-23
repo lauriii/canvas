@@ -1,0 +1,92 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+    - canvas_test_focal_point
+machineName: canvas_test_focal_point_image
+name: Focal point image (code)
+required:
+- image
+- focalPoint
+props:
+  image:
+    title: Image
+    type: object
+    $ref: json-schema-definitions://canvas.module/image
+    examples:
+    - src: https://placehold.co/1200x600.png
+      width: 1200
+      height: 600
+      alt: A placeholder
+  focalPoint:
+    title: Focal point
+    type: object
+    $ref: json-schema-definitions://canvas.module/focal-point
+    examples:
+    - x: 25
+      y: 75
+  gallery:
+    title: Gallery
+    type: array
+    items:
+      type: object
+      $ref: json-schema-definitions://canvas.module/image
+  galleryFocalPoints:
+    title: Gallery focal points
+    type: array
+    items:
+      type: object
+      $ref: json-schema-definitions://canvas.module/focal-point
+slots: {}
+js:
+  original: |
+    const FocalPointImage = ({ image, focalPoint, gallery = [], galleryFocalPoints = [] }) => {
+      const position = (point) => point ? `${point.x}% ${point.y}%` : '50% 50%';
+      return (
+        <div>
+          <img src={image?.src} alt={image?.alt} data-focal-point={position(focalPoint)} style={{ width: '300px', height: '150px', objectFit: 'cover', objectPosition: position(focalPoint) }} />
+          {gallery.map((item, i) => (
+            <img key={i} src={item.src} alt={item.alt} data-focal-point={position(galleryFocalPoints[i])} style={{ width: '100px', height: '100px', objectFit: 'cover', objectPosition: position(galleryFocalPoints[i]) }} />
+          ))}
+        </div>
+      );
+    };
+
+    export default FocalPointImage;
+  compiled: |
+    import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+    const FocalPointImage = ({ image, focalPoint, gallery = [], galleryFocalPoints = [] })=>{
+        const position = (point)=>point ? `${point.x}% ${point.y}%` : '50% 50%';
+        return /*#__PURE__*/ _jsxs("div", {
+            children: [
+                /*#__PURE__*/ _jsx("img", {
+                    src: image?.src,
+                    alt: image?.alt,
+                    "data-focal-point": position(focalPoint),
+                    style: {
+                        width: '300px',
+                        height: '150px',
+                        objectFit: 'cover',
+                        objectPosition: position(focalPoint)
+                    }
+                }),
+                gallery.map((item, i)=>/*#__PURE__*/ _jsx("img", {
+                        src: item.src,
+                        alt: item.alt,
+                        "data-focal-point": position(galleryFocalPoints[i]),
+                        style: {
+                            width: '100px',
+                            height: '100px',
+                            objectFit: 'cover',
+                            objectPosition: position(galleryFocalPoints[i])
+                        }
+                    }, i))
+            ]
+        });
+    };
+    export default FocalPointImage;
+css:
+  original: ''
+  compiled: ''
+dataDependencies: {}
