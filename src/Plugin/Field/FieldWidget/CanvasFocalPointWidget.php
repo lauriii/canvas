@@ -47,10 +47,13 @@ final class CanvasFocalPointWidget extends WidgetBase {
     $item = $items->get($delta);
     $element['#type'] = 'fieldset';
     $element['#attributes']['data-canvas-focal-point-image'] = $this->getSetting('image_prop') ?? '';
-    foreach (['x' => $this->t('X (%)'), 'y' => $this->t('Y (%)')] as $axis => $title) {
+    foreach (['x' => $this->t('Horizontal position (%)'), 'y' => $this->t('Vertical position (%)')] as $axis => $title) {
       $element[$axis] = [
         '#type' => 'number',
         '#title' => $title,
+        // The picker labels the inputs "X" and "Y" inside the field.
+        // @see ui/src/components/form/components/drupal/DrupalFocalPointCoordinate.tsx
+        '#title_display' => 'invisible',
         '#default_value' => $item?->get($axis)->getValue(),
         '#min' => 0,
         '#max' => 100,

@@ -95,7 +95,7 @@ export const FocalPointPopover = ({
           <Text size="1" className={styles.triggerLabel}>
             {label}
           </Text>
-          <Text size="1" color="gray">
+          <Text size="1" className={styles.triggerValue}>
             {formatFocalPoint(point)}
           </Text>
         </button>
@@ -134,7 +134,6 @@ export const FocalPointPopover = ({
         <FocalPointPicker
           imageProp={imageProp}
           delta={position}
-          showReset={!!imageProp}
           onPointChange={(next, registrations) => {
             setPoint(next);
             onPointChange?.(next, registrations);

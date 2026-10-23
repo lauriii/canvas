@@ -81,6 +81,7 @@ final class CanvasFocalPointWidgetTest extends UnitTestCase {
     self::assertSame($expected_image_prop, $element['#attributes']['data-canvas-focal-point-image']);
     foreach (['x', 'y'] as $index => $axis) {
       self::assertSame('number', $element[$axis]['#type']);
+      self::assertSame('invisible', $element[$axis]['#title_display']);
       self::assertSame(0, $element[$axis]['#min']);
       self::assertSame(100, $element[$axis]['#max']);
       self::assertSame('any', $element[$axis]['#step']);
