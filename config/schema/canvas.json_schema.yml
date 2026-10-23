@@ -271,6 +271,7 @@ canvas.json_schema.prop_shape.object:
             - 'json-schema-definitions://canvas.module/image'
             - 'json-schema-definitions://canvas.module/video'
             - 'json-schema-definitions://canvas.module/document'
+            - 'json-schema-definitions://canvas.module/focal-point'
             # @see \Drupal\canvas\Entity\JavaScriptComponent::getContentEntityReferenceProps()
             - 'json-schema-definitions://canvas.module/content-entity-reference'
 

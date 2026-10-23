@@ -21,6 +21,7 @@ enum JsonSchemaObjectRef: string {
   case Image = 'json-schema-definitions://canvas.module/image';
   case Video = 'json-schema-definitions://canvas.module/video';
   case Document = 'json-schema-definitions://canvas.module/document';
+  case FocalPoint = 'json-schema-definitions://canvas.module/focal-point';
   case ContentEntityReference = 'json-schema-definitions://canvas.module/content-entity-reference';
 
   /**

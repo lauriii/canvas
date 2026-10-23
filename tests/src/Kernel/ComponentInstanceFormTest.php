@@ -585,6 +585,67 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
 
   }
 
+  /**
+   * Tests the focal point widget for single and multivalue props.
+   *
+   * Both an SDC and a code component use the same widget, transforms and
+   * Canvas Stark markup. Each focal point prop previews the image prop with the
+   * same cardinality.
+   *
+   * @legacy-covers \Drupal\canvas\Plugin\Field\FieldWidget\CanvasFocalPointWidget
+   * @legacy-covers \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::fieldWidgetCompleteFormAlter
+   */
+  #[TestWith(['sdc.canvas_test_focal_point.focal-point-image', 'focal_point', 'gallery_focal_points'])]
+  #[TestWith(['js.canvas_test_focal_point_image', 'focalPoint', 'galleryFocalPoints'])]
+  public function testFocalPointWidget(string $component_id, string $single_prop, string $multiple_prop): void {
+    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_test_focal_point']);
+    $node = $this->createNode(['type' => 'article', 'title' => 'Test node']);
+    $node->save();
+
+    $component = Component::load($component_id);
+    \assert($component instanceof ComponentInterface);
+    $definitions = $component->getSettings()['prop_field_definitions'];
+    self::assertSame('canvas_focal_point', $definitions[$single_prop]['field_type']);
+    self::assertSame('canvas_focal_point', $definitions[$single_prop]['field_widget']);
+    self::assertSame([['x' => 25, 'y' => 75]], $definitions[$single_prop]['default_value']);
+    self::assertSame('canvas_focal_point', $definitions[$multiple_prop]['field_type']);
+    self::assertSame(FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED, $definitions[$multiple_prop]['cardinality']);
+
+    $form_canvas_props = $this->getFormCanvasPropsForComponent($component_id);
+    $json = self::decodeResponse($this->request(Request::create(
+      '/canvas/api/v0/form/component-instance/node/' . $node->id(),
+      'PATCH',
+      [
+        'form_canvas_tree' => json_encode([
+          'nodeType' => 'component',
+          'slots' => [],
+          'type' => "{$component_id}@{$component->getActiveVersion()}",
+          'uuid' => '5f18db31-fa2f-4f4e-a377-dc0c6a0b7dc4',
+        ], JSON_THROW_ON_ERROR),
+        'form_canvas_props' => json_encode($form_canvas_props, JSON_THROW_ON_ERROR),
+        'form_canvas_selected' => '5f18db31-fa2f-4f4e-a377-dc0c6a0b7dc4',
+      ],
+    )));
+    self::assertSame(['focalPoint' => ['multiple' => FALSE]], $json['transforms'][$single_prop]);
+    self::assertSame(['focalPoint' => ['multiple' => TRUE]], $json['transforms'][$multiple_prop]);
+
+    $crawler = new Crawler($json['html']);
+    $single = $crawler->filter('drupal-canvas-focal-point');
+    self::assertCount(1, $single);
+    self::assertSame('image', $single->attr('image-prop'));
+    self::assertCount(2, $single->filter('drupal-canvas-focal-point-coordinate'));
+    self::assertStringContainsString("[$single_prop][0][x]", (string) $single->filter('drupal-canvas-focal-point-coordinate')->first()->attr('attributes'));
+
+    // The empty multivalue widget renders one empty item. Its inputs are
+    // edited as a unit, so they are not marked as multivalue inputs.
+    $multiple = $crawler->filter('drupal-canvas-focal-point--multivalue-form');
+    self::assertCount(1, $multiple);
+    self::assertSame('gallery', $multiple->attr('image-prop'));
+    self::assertSame('Gallery focal points', $multiple->attr('field-label'));
+    self::assertCount(2, $multiple->filter('drupal-canvas-focal-point-coordinate'));
+    self::assertCount(0, $multiple->filter('drupal-canvas-input--multivalue-form'));
+  }
+
   private function getCrawlerForFormRequest(string $form_url, ComponentInterface $component_entity, ?array $form_canvas_props): Crawler {
     // `$form_canvas_props` is nullable, so we can simulate the request having
     // `undefined` as value, which happens when the inputs are empty on a

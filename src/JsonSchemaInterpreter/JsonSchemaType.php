@@ -462,6 +462,15 @@ enum JsonSchemaType: string {
             'width' => new FieldTypePropExpression('image', 'width'),
             'height' => new FieldTypePropExpression('image', 'height'),
           ])),
+          // @see \Drupal\canvas\Plugin\Field\FieldType\FocalPointItem
+          JsonSchemaObjectRef::FocalPoint => new StorablePropShape(
+            shape: $shape,
+            fieldWidget: 'canvas_focal_point',
+            fieldTypeProp: new FieldTypeObjectPropsExpression('canvas_focal_point', [
+              'x' => new FieldTypePropExpression('canvas_focal_point', 'x'),
+              'y' => new FieldTypePropExpression('canvas_focal_point', 'y'),
+            ]),
+          ),
           // @see \Drupal\file\Plugin\Field\FieldType\FileItem
           // @see \Drupal\canvas\Hook\ShapeMatchingHooks::mediaLibraryStorablePropShapeAlter()
           JsonSchemaObjectRef::Video => new StorablePropShape(

@@ -643,6 +643,37 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
   }
 
   /**
+   * Finds the image prop a focal point prop's picker previews.
+   *
+   * A list of focal points pairs with a list of images (item by item), a single
+   * focal point with a single image. Otherwise, any image prop is used.
+   *
+   * @param array<string, array<string, mixed>> $prop_schemas
+   *   The component's prop schemas (schema['properties']).
+   * @param string $focal_point_prop_name
+   *   The name of the focal point prop.
+   *
+   * @return string|null
+   *   The name of the best matching image prop, if any.
+   */
+  protected static function getFocalPointImagePropName(array $prop_schemas, string $focal_point_prop_name): ?string {
+    // Component metadata has its `$ref`s resolved, and SDC metadata types are
+    // lists such as `[array, object]`. Standardizing restores the `$ref` of
+    // well-known shapes and a single type.
+    $shapes = \array_map(static fn (array $schema): array => PropShape::standardize($schema)->schema, $prop_schemas);
+    $image_props = [];
+    foreach ($shapes as $prop_name => $shape) {
+      $is_list = $shape['type'] === 'array';
+      $ref = $is_list ? ($shape['items']['$ref'] ?? NULL) : ($shape['$ref'] ?? NULL);
+      if ($ref === 'json-schema-definitions://canvas.module/image') {
+        $image_props[$prop_name] = $is_list;
+      }
+    }
+    $multiple = $shapes[$focal_point_prop_name]['type'] === 'array';
+    return \array_search($multiple, $image_props, TRUE) ?: \array_key_first($image_props);
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function inputToClientModel(array $explicit_input): array {
@@ -1010,6 +1041,9 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
         if (!empty($folders) && \is_array($folders)) {
           $field_widget_settings['folders'] = $folders;
         }
+      }
+      if ($field_widget_plugin_id === 'canvas_focal_point') {
+        $field_widget_settings['image_prop'] = self::getFocalPointImagePropName($component_schema['properties'], $sdc_prop_name);
       }
       $widget = $source->getWidget($component->id(), $component->getLoadedVersion(), $sdc_prop_name, $label, $field_widget_plugin_id, $description, $field_widget_settings);
       $is_required = $static_prop_source_field_definition['required'];

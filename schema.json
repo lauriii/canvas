@@ -333,6 +333,26 @@
       "type": "object",
       "x-allowed-entity-type-id": null
     },
+    "focal-point": {
+      "title": "focal point",
+      "type": "object",
+      "required": ["x", "y"],
+      "$comment": "A point on an image, as percentages from its top left corner. Apply it with, for example, CSS object-position.",
+      "properties": {
+        "x": {
+          "title": "Horizontal position",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "y": {
+          "title": "Vertical position",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    },
     "color": {
       "title": "color",
       "type": "string",
