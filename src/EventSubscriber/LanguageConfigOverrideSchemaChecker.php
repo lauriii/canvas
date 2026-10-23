@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\EventSubscriber;
 
+use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
 use Drupal\canvas\Hook\ConfigTranslationHooks;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Config\ConfigException;
@@ -91,7 +92,9 @@ final readonly class LanguageConfigOverrideSchemaChecker implements EventSubscri
     // @see \Drupal\Core\Config\Config::setOverriddenData()
     $base_data = $this->configFactory->get($name)->getRawData();
     $override_data = $config->get();
-    $merged = NestedArray::mergeDeepArray([$base_data, $override_data], TRUE);
+    $merged = ComponentTreeConfigEntityBase::resolveForkedComponentTree(
+      NestedArray::mergeDeepArray([$base_data, $override_data], TRUE),
+    );
 
     // Validate the merged result against config schema and constraints.
     $typed = $this->typedConfigManager->createFromNameAndData($name, $merged);

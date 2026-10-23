@@ -6,6 +6,9 @@ namespace Drupal\canvas\Controller;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
+use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
+use Drupal\canvas\Plugin\DataType\ComponentInputs;
+use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Language\LanguageInterface;
@@ -137,6 +140,116 @@ final class ApiTranslationControllers extends ApiControllerBase {
     $untranslated = $canvas_page->getUntranslated();
     $untranslated->removeTranslation($canvas_page->language()->getId());
     $untranslated->save();
+    return new JsonResponse(status: Response::HTTP_NO_CONTENT);
+  }
+
+  /**
+   * Forks a config entity translation: it starts owning its component tree.
+   *
+   * The translation's staged config override gets the complete translated
+   * component tree (the base tree with the translation's translated inputs) as
+   * its forked component tree, replacing its sparse translated inputs. Like
+   * content forks, this lives in the drafts until published.
+   *
+   * @param \Drupal\Core\Config\Entity\ConfigEntityInterface $config_entity
+   *   The config entity; the translation is the negotiated `?language=`.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   204 No Content on success (idempotent), 400 when targeting the default
+   *   language, 404 when the language has no translation.
+   *
+   * @see \Drupal\canvas\Entity\ComponentTreeConfigEntityBase::$forked_component_tree
+   */
+  public function forkConfigTranslation(ConfigEntityInterface $config_entity): JsonResponse {
+    return $this->setConfigForkState($config_entity, forked: TRUE);
+  }
+
+  /**
+   * Unforks a config entity translation: it translates the base tree again.
+   *
+   * The forked component tree is dropped from the translation's staged config
+   * override, keeping its translatable input values for component instances
+   * that exist in the base tree. Fork-only components are discarded.
+   *
+   * @param \Drupal\Core\Config\Entity\ConfigEntityInterface $config_entity
+   *   The config entity; the translation is the negotiated `?language=`.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   204 No Content on success (idempotent), 400 when targeting the default
+   *   language, 404 when the language has no translation.
+   */
+  public function unforkConfigTranslation(ConfigEntityInterface $config_entity): JsonResponse {
+    return $this->setConfigForkState($config_entity, forked: FALSE);
+  }
+
+  /**
+   * Applies a fork state change to a config translation's staged override.
+   */
+  private function setConfigForkState(ConfigEntityInterface $config_entity, bool $forked): JsonResponse {
+    \assert($config_entity instanceof ComponentTreeConfigEntityBase);
+    $langcode = $this->languageManager->getCurrentLanguage()->getId();
+    if ($langcode === $config_entity->language()->getId()) {
+      return new JsonResponse(
+        ['message' => \sprintf('Cannot change the component tree fork state of the default translation for %s %s.', $config_entity->getEntityTypeId(), $config_entity->id())],
+        Response::HTTP_BAD_REQUEST,
+      );
+    }
+    if (!isset($config_entity->getTranslationLanguages(include_default: FALSE)[$langcode])) {
+      return new JsonResponse(
+        ['message' => \sprintf('%s %s has no %s translation.', $config_entity->getEntityTypeId(), $config_entity->id(), $langcode)],
+        Response::HTTP_NOT_FOUND,
+      );
+    }
+    // Operate on the base entity's draft, if any: it is what the translation's
+    // tree is merged onto, and what the staged override publishes with.
+    $draft = $this->autoSaveManager->getAutoSaveEntity($config_entity);
+    $entity = $draft->isEmpty() ? $config_entity : $draft->entity;
+    \assert($entity instanceof ComponentTreeConfigEntityBase);
+    if ($entity->isForkedTranslation($langcode) === $forked) {
+      return new JsonResponse(status: Response::HTTP_NO_CONTENT);
+    }
+    $staged = $entity->getTranslation($langcode);
+    $translated_tree = $entity->getTranslatedComponentTree($langcode);
+    if ($forked) {
+      $staged->setData(ComponentTreeConfigEntityBase::FORKED_COMPONENT_TREE, ComponentTreeConfigEntityBase::encodeForkedComponentTree($translated_tree));
+      $staged->clearData('component_tree');
+    }
+    else {
+      // Keep the fork's translated values of translatable inputs, for
+      // component instances that exist in the base tree.
+      $base_tree = $entity->getComponentTree();
+      $sparse = [];
+      foreach ($translated_tree as $item) {
+        \assert($item instanceof ComponentTreeItem);
+        $base_item = $base_tree->getComponentTreeItemByUuid($item->getUuid());
+        if ($base_item === NULL) {
+          continue;
+        }
+        $inputs_typed_data = $base_item->get('inputs');
+        \assert($inputs_typed_data instanceof ComponentInputs);
+        $base_inputs = $base_item->getInputs() ?? [];
+        $translated = \array_filter(
+          \array_intersect_key($item->getInputs() ?? [], \array_flip($inputs_typed_data->getTranslatableInputKeys())),
+          static fn (mixed $value, string $key): bool => !\array_key_exists($key, $base_inputs) || $base_inputs[$key] !== $value,
+          ARRAY_FILTER_USE_BOTH,
+        );
+        if ($translated !== []) {
+          $sparse[$item->getUuid()]['inputs'] = $translated;
+        }
+      }
+      $staged->clearData(ComponentTreeConfigEntityBase::FORKED_COMPONENT_TREE);
+      if ($sparse === []) {
+        $staged->clearData('component_tree');
+      }
+      else {
+        $staged->setData('component_tree', $sparse);
+      }
+    }
+    // Stage the base entity too: staged overrides are listed, published and
+    // discarded with their base entity's draft.
+    // @see \Drupal\canvas\AutoSave\AutoSaveManager::getTranslationGroupAutoSaves()
+    $this->autoSaveManager->saveEntity($entity);
+    $this->autoSaveManager->saveEntity($staged);
     return new JsonResponse(status: Response::HTTP_NO_CONTENT);
   }
 

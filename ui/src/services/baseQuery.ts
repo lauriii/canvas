@@ -152,7 +152,7 @@ export const replaceEntityParamsInUrl = (
  */
 export const getEditorLanguage = (href: string): string => {
   const url = new URL(href, 'http://localhost');
-  return /\/canvas\/editor\//.test(url.pathname)
+  return /\/canvas\/(?:editor|template)\//.test(url.pathname)
     ? (url.searchParams.get('language') ?? '')
     : '';
 };
@@ -163,6 +163,10 @@ export const getEditorLanguage = (href: string): string => {
 // @see \Drupal\canvas\EventSubscriber\ForkedTranslationEditRequestSubscriber::ROUTE_ENTITY_PARAMETERS
 const EDITOR_ENTITY_API_PATH =
   /canvas\/api\/v0\/(?:layout|form\/component-instance|form\/content-entity)\/([^/?]+)\/([^/?]+)(?:[/?]|$)/;
+// The content template editor API paths: the template ID, then the preview
+// entity ID.
+const TEMPLATE_EDITOR_API_PATH =
+  /canvas\/api\/v0\/(?:layout-content-template|form\/component-instance\/content_template)\/([^/?]+)\/([^/?]+)(?:[/?]|$)/;
 
 /**
  * Names a forked translation on editor API requests for its entity.
@@ -172,6 +176,8 @@ export const addEditorLanguageToUrl = (
   language: string | undefined,
   entityType: string | undefined,
   entityId: string | undefined,
+  // On the content template editor: the template's bundle and view mode.
+  template?: { bundle: string; viewMode: string },
 ): string => {
   // Previews of a translation name it with their own hint, and are allowed for
   // every translation, forked or not. A URL that already names a translation
@@ -183,8 +189,13 @@ export const addEditorLanguageToUrl = (
   ) {
     return url;
   }
-  const match = url.match(EDITOR_ENTITY_API_PATH);
-  if (!match || match[1] !== entityType || match[2] !== entityId) {
+  const match = template
+    ? url.match(TEMPLATE_EDITOR_API_PATH)
+    : url.match(EDITOR_ENTITY_API_PATH);
+  const expected = template
+    ? [`${entityType}.${template.bundle}.${template.viewMode}`, entityId]
+    : [entityType, entityId];
+  if (!match || match[1] !== expected[0] || match[2] !== expected[1]) {
     return url;
   }
   return `${url}${url.includes('?') ? '&' : '?'}canvas_langcode=${encodeURIComponent(language)}`;
@@ -205,7 +216,19 @@ export const getRequestTranslation = (
   language?: string;
   entityType?: string;
   entityId?: string;
+  template?: { bundle: string; viewMode: string };
 } => {
+  const { entityType, entityId, templateBundle, templateViewMode } =
+    extractEntityParams(window.location.href);
+  // Content templates have no page data owner: the route decides.
+  if (templateBundle && templateViewMode) {
+    return {
+      language: getEditorLanguage(window.location.href),
+      entityType,
+      entityId,
+      template: { bundle: templateBundle, viewMode: templateViewMode },
+    };
+  }
   const owner = (api.getState() as Partial<RootState>).pageDataOwner;
   if (api.type === 'mutation' && owner) {
     return {
@@ -214,7 +237,6 @@ export const getRequestTranslation = (
       entityId: owner.entityId,
     };
   }
-  const { entityType, entityId } = extractEntityParams(window.location.href);
   return {
     language: getEditorLanguage(window.location.href),
     entityType,
@@ -276,6 +298,7 @@ const rawBaseQuery = (appConfiguration: AppConfiguration) => {
       translation.language,
       translation.entityType,
       translation.entityId,
+      translation.template,
     );
     const newArg = typeof arg == 'string' ? newUrl : { ...arg, url: newUrl };
     return defaultQuery(newArg, api, extraOptions);

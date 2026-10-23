@@ -340,11 +340,16 @@ const LanguageSelect = () => {
   const [searchParams] = useSearchParams();
   const { entityType, entityId, width, previewEntityId, bundle, viewMode } =
     useParams();
-  const unforkPreviewHref = useHref(
-    `/preview/${entityType}/${entityId}/${width || 'full'}?language=${unforkLanguageId}`,
-  );
   const { isTemplateContext, isTemplatePreviewRoute } = useTemplateRef();
   const isTemplateRoute = isTemplateContext || isTemplatePreviewRoute;
+  const unforkPreviewHref = useHref(
+    isTemplateRoute
+      ? `/preview/template/${entityType}/${bundle}/${entityId || previewEntityId}/${viewMode}/${width || 'full'}?language=${unforkLanguageId}`
+      : `/preview/${entityType}/${entityId}/${width || 'full'}?language=${unforkLanguageId}`,
+  );
+  const templateEditorHref = useHref(
+    `/template/${entityType}/${bundle}/${viewMode}/${entityId || previewEntityId}`,
+  );
   const sliceTranslations = useAppSelector(selectTranslations);
   // The slice's translations only update on initial layout load, so prefer
   // the layout query's own (cache-shared, no extra request) result: it stays
@@ -432,15 +437,17 @@ const LanguageSelect = () => {
       return;
     }
 
-    if (selectedLang.isDefault) {
-      if (isTemplateRoute) {
-        navigate(
-          `/template/${entityType}/${bundle}/${viewMode}/${entityId || previewEntityId}`,
-        );
-      } else {
-        navigate(`/editor/${entityType}/${entityId}`);
-      }
-    } else if (!isTemplateRoute && isForked(languageId)) {
+    if (isTemplateRoute && (selectedLang.isDefault || isForked(languageId))) {
+      // The template editor's state is not keyed by language, so load the
+      // template or its forked translation afresh.
+      window.location.assign(
+        selectedLang.isDefault
+          ? templateEditorHref
+          : `${templateEditorHref}?language=${languageId}`,
+      );
+    } else if (selectedLang.isDefault) {
+      navigate(`/editor/${entityType}/${entityId}`);
+    } else if (isForked(languageId)) {
       // A forked translation owns its layout, so it is edited, not previewed.
       navigate(`/editor/${entityType}/${entityId}?language=${languageId}`);
     } else {

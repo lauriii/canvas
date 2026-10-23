@@ -54,10 +54,18 @@ symmetric synchronization, validation, and component version propagation, and to
   layout API fork metadata, and the editor UI actions. The gate moves into canvas proper when translation support is
   promoted. Editing forked translations in the editor (the `canvas_langcode` request subscriber) is not gated: without
   fork support no translation is forked, so it only ever resolves the default translation.
-- Config-defined component trees (PageRegion, ContentTemplate) fork via the shape of their language overrides: an
-  override carrying only translatable input values is symmetric (structure falls through to the base config), an
-  override carrying the full component tree is forked. No flag is stored, because nothing re-syncs override contents,
-  so the derived-state objection that applies to content entities does not apply here.
+- Config-defined component trees (ContentTemplate, PageVariant) fork through their language overrides: an override
+  carrying only translatable input values is symmetric (structure falls through to the base config), an override
+  carrying a `forked_component_tree` is forked. The fork cannot be an override of `component_tree` itself, because
+  overrides are merged onto the base config and so could never delete or reorder its component instances. It cannot be
+  a nested array either, because core removes override keys the base config lacks, recursively, whenever the base
+  config is saved, which would remove every fork-only component instance. So the base config always carries an empty
+  `forked_component_tree` string, and a forked language's override sets it to its complete tree, JSON-encoded. Every
+  reader of a translation's tree (rendering with the language's overrides, the translation validator, component version
+  updates, and the editor) uses the fork's tree instead of the merged one. Fork state is the presence of that value in
+  the staged override when there is one, and the stored override otherwise; no flag is needed, because nothing
+  re-syncs override contents. Forking, unforking and editing a forked config translation stage its override, which is
+  listed, published and discarded with its base entity's draft.
 
 ## Consequences
 

@@ -108,6 +108,9 @@ final class CanvasConfigEntityTranslationsAreValidConstraintValidator extends Co
       // base to get the full picture that will be served to consumers.
       // @see \Drupal\Core\Config\Config::setOverriddenData()
       $merged = NestedArray::mergeDeepArray([$base_data, $override_data], TRUE);
+      if ($value instanceof ComponentTreeConfigEntityBase) {
+        $merged = ComponentTreeConfigEntityBase::resolveForkedComponentTree($merged);
+      }
       $typed = $this->typedConfigManager->createFromNameAndData($name, $merged);
       $violations = $typed->validate();
 

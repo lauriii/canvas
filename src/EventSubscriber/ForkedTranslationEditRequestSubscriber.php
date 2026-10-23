@@ -6,6 +6,7 @@ namespace Drupal\canvas\EventSubscriber;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
+use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
 use Drupal\Core\Access\AccessManagerInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\CacheableResponseInterface;
@@ -53,7 +54,11 @@ final class ForkedTranslationEditRequestSubscriber implements EventSubscriberInt
     'canvas.api.layout.get' => 'entity',
     'canvas.api.layout.patch' => 'entity',
     'canvas.api.layout.post' => 'entity',
+    'canvas.api.layout.get.content_template' => 'entity',
+    'canvas.api.layout.patch.content_template' => 'entity',
+    'canvas.api.layout.post.content_template' => 'entity',
     'canvas.api.form.component_instance' => 'entity',
+    'canvas.api.form.component_instance.content_template' => 'entity',
     'canvas.api.form.content_entity' => 'entity',
     'canvas.api.content.auto-save.patch' => 'canvas_page',
     'canvas.api.auto-save.delete' => 'entity',
@@ -77,11 +82,32 @@ final class ForkedTranslationEditRequestSubscriber implements EventSubscriberInt
       return;
     }
     $entity = $request->attributes->get($parameter);
-    // Config entities (e.g. code components on the discard route) have no
-    // content translations; the parameter does not apply to them.
-    if (!$entity instanceof ContentEntityInterface || !$entity->isTranslatable()) {
+    if ($entity instanceof ComponentTreeConfigEntityBase) {
+      $translation = self::getConfigEntityTranslation($entity, $langcode);
+    }
+    // Other config entities (e.g. code components on the discard route) have
+    // no translations; the parameter does not apply to them.
+    elseif (!$entity instanceof ContentEntityInterface || !$entity->isTranslatable()) {
       return;
     }
+    else {
+      $translation = $this->getContentEntityTranslation($entity, $langcode, accept_pending_unfork: $route_name === 'canvas.api.auto-save.delete');
+    }
+
+    $request->attributes->set($parameter, $translation);
+    // The current route match caches the route parameters per request.
+    $this->currentRouteMatch->resetRouteMatch();
+    // The router checked route access against the translation it upcast,
+    // which is the negotiated one, not the one named here.
+    if (!$this->accessManager->checkRequest($request)) {
+      throw new AccessDeniedHttpException();
+    }
+  }
+
+  /**
+   * Resolves the named translation of a content entity.
+   */
+  private function getContentEntityTranslation(ContentEntityInterface $entity, string $langcode, bool $accept_pending_unfork): ContentEntityInterface {
 
     $default_translation = $entity->getUntranslated();
     if ($default_translation->language()->getId() === $langcode) {
@@ -94,19 +120,35 @@ final class ForkedTranslationEditRequestSubscriber implements EventSubscriberInt
         throw new NotFoundHttpException(\sprintf('%s %s has no %s translation.', $entity->getEntityTypeId(), $entity->id(), $langcode));
       }
       $translation = $entity->getTranslation($langcode);
-      if (!$this->isForked($translation, accept_pending_unfork: $route_name === 'canvas.api.auto-save.delete')) {
+      if (!$this->isForked($translation, $accept_pending_unfork)) {
         throw new AccessDeniedHttpException('Only forked translations can be edited in the Canvas editor.');
       }
     }
+    return $translation;
+  }
 
-    $request->attributes->set($parameter, $translation);
-    // The current route match caches the route parameters per request.
-    $this->currentRouteMatch->resetRouteMatch();
-    // The router checked route access against the translation it upcast,
-    // which is the negotiated one, not the one named here.
-    if (!$this->accessManager->checkRequest($request)) {
-      throw new AccessDeniedHttpException();
+  /**
+   * Resolves the named translation of a config entity with a component tree.
+   *
+   * A config entity is always loaded without config overrides on these routes,
+   * so the default translation is the entity itself. A forked translation is
+   * edited through a copy whose component tree is the translation's staged
+   * forked component tree.
+   *
+   * @see \Drupal\canvas\Entity\ComponentTreeConfigEntityBase::forEditingForkedTranslation()
+   */
+  private static function getConfigEntityTranslation(ComponentTreeConfigEntityBase $entity, string $langcode): ComponentTreeConfigEntityBase {
+    if ($entity->language()->getId() === $langcode) {
+      return $entity;
     }
+    if (!isset($entity->getTranslationLanguages(include_default: FALSE)[$langcode])) {
+      throw new NotFoundHttpException(\sprintf('%s %s has no %s translation.', $entity->getEntityTypeId(), $entity->id(), $langcode));
+    }
+    // The staged override decides when there is one.
+    if (!$entity->isForkedTranslation($langcode)) {
+      throw new AccessDeniedHttpException('Only forked translations can be edited in the Canvas editor.');
+    }
+    return $entity->forEditingForkedTranslation($langcode);
   }
 
   public static function onResponse(ResponseEvent $event): void {

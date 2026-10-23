@@ -197,11 +197,17 @@ final class ApiLayoutController {
       }
     }
     // Also collect languages that have config language overrides for the
-    // ContentTemplate.
-    if ($entity instanceof ContentTemplate
+    // translatable config entities.
+    // @see canvas.api.config.translation.delete in canvas.routing.yml
+    if (($entity instanceof ContentTemplate || $entity instanceof PageVariant)
       && $this->moduleHandler->moduleExists('config_translation')
       && $this->languageManager instanceof ConfigurableLanguageManagerInterface) {
       $config_name = $entity->getConfigDependencyName();
+      $can_translate = $this->currentUser->hasPermission('translate configuration');
+      // @see canvas_dev_translation.routing.yml
+      $can_fork = $can_translate
+        && $this->moduleHandler->moduleExists('canvas_dev_translation')
+        && $entity->access('update');
       foreach ($this->languageManager->getLanguages() as $langcode => $language) {
         if ($language->isDefault() || \in_array($langcode, $available_translations, TRUE)) {
           continue;
@@ -209,18 +215,28 @@ final class ApiLayoutController {
         $override = $this->languageManager->getLanguageConfigOverride($langcode, $config_name);
         if (!$override->isNew()) {
           $available_translations[] = $langcode;
-          if (!isset($links[$langcode]) && $this->currentUser->hasPermission('translate configuration')) {
-            $delete_url = Url::fromRoute(
-              'canvas.api.config.translation.delete',
-              [
-                'canvas_config_entity_type_id' => 'content_template',
-                'config_entity' => $entity->id(),
-              ],
-              ['language' => $language],
-            );
+          $route_parameters = [
+            'canvas_config_entity_type_id' => $entity->getEntityTypeId(),
+            'config_entity' => $entity->id(),
+          ];
+          if (!isset($links[$langcode]) && $can_translate) {
             $links[$langcode] = [
-              CanvasUriDefinitions::LINK_REL_DELETE => $delete_url->toString(),
+              CanvasUriDefinitions::LINK_REL_DELETE => Url::fromRoute('canvas.api.config.translation.delete', $route_parameters, ['language' => $language])->toString(),
             ];
+          }
+          // Fork state and fork/unfork links. $entity is the auto-save draft
+          // when one exists, and its translations are the staged overrides, so
+          // the reported state is draft-aware.
+          $is_forked = $entity->isForkedTranslation($langcode);
+          if ($is_forked) {
+            $forked_translations[] = $langcode;
+          }
+          if ($can_fork) {
+            $links[$langcode][$is_forked ? CanvasUriDefinitions::LINK_REL_UNFORK : CanvasUriDefinitions::LINK_REL_FORK] = Url::fromRoute(
+              $is_forked ? 'canvas.api.config.translation.unfork' : 'canvas.api.config.translation.fork',
+              $route_parameters,
+              ['language' => $language],
+            )->toString();
           }
         }
       }

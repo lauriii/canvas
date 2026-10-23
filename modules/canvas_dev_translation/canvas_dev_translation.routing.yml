@@ -36,3 +36,41 @@ canvas.api.content.translation.unfork:
         type: entity:canvas_page
     _format: 'json'
   methods: [DELETE]
+
+# Config translation forks: the translation's config override owns its
+# component tree. The language is resolved from the `?language=` query
+# parameter, like canvas.api.config.translation.delete. Forking changes how the
+# translation's layout is edited and stored, so it requires both translating
+# config and updating the config entity.
+# @see \Drupal\canvas\Entity\ComponentTreeConfigEntityBase::$forked_component_tree
+canvas.api.config.translation.fork:
+  path: '/canvas/api/v0/config/{canvas_config_entity_type_id}/{config_entity}/translations/fork'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiTranslationControllers::forkConfigTranslation'
+  requirements:
+    _canvas_authentication_required: TRUE
+    canvas_config_entity_type_id: '(content_template|page_variant)'
+    _permission: 'translate configuration'
+    _entity_access: 'config_entity.update'
+  options:
+    parameters:
+      config_entity:
+        type: entity:{canvas_config_entity_type_id}
+    _format: 'json'
+  methods: [POST]
+
+canvas.api.config.translation.unfork:
+  path: '/canvas/api/v0/config/{canvas_config_entity_type_id}/{config_entity}/translations/fork'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiTranslationControllers::unforkConfigTranslation'
+  requirements:
+    _canvas_authentication_required: TRUE
+    canvas_config_entity_type_id: '(content_template|page_variant)'
+    _permission: 'translate configuration'
+    _entity_access: 'config_entity.update'
+  options:
+    parameters:
+      config_entity:
+        type: entity:{canvas_config_entity_type_id}
+    _format: 'json'
+  methods: [DELETE]

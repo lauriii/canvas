@@ -67,6 +67,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
     'content_entity_type_bundle',
     'content_entity_type_view_mode',
     'component_tree',
+    'forked_component_tree',
     'exposed_slots',
     'page_variant',
   ],
@@ -250,7 +251,7 @@ final class ContentTemplate extends ComponentTreeConfigEntityBase implements Can
    */
   public function getComponentTree(?FieldableEntityInterface $parent = NULL): ComponentTreeItemList {
     $item = $this->createDanglingComponentTreeItemList($parent ?? $this);
-    $item->setValue(\array_values($this->component_tree ?? []));
+    $item->setValue($this->getLoadedComponentTreeSequence());
     return $item;
   }
 

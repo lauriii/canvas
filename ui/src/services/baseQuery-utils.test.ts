@@ -153,6 +153,27 @@ describe('addEditorLanguageToUrl', () => {
     ).toBe(
       'canvas/api/v0/form/content-entity/canvas_page/1/default?canvas_langcode=de',
     );
+    // The content template editor's API names the template and preview entity.
+    expect(
+      addEditorLanguageToUrl(
+        'canvas/api/v0/layout-content-template/node.article.full/7',
+        'fr',
+        'node',
+        '7',
+        { bundle: 'article', viewMode: 'full' },
+      ),
+    ).toBe(
+      'canvas/api/v0/layout-content-template/node.article.full/7?canvas_langcode=fr',
+    );
+    expect(
+      addEditorLanguageToUrl(
+        'canvas/api/v0/layout-content-template/node.page.full/7',
+        'fr',
+        'node',
+        '7',
+        { bundle: 'article', viewMode: 'full' },
+      ),
+    ).toBe('canvas/api/v0/layout-content-template/node.page.full/7');
     // A content auto-save for a listed pending change.
     expect(
       addEditorLanguageToUrl(
@@ -189,6 +210,20 @@ describe('getRequestTranslation', () => {
       entityId: '1',
     });
     expect(getRequestTranslation(api('query', frOwner)).language).toBe('');
+  });
+
+  it('follows the route on the content template editor', () => {
+    window.history.pushState(
+      {},
+      '',
+      '/canvas/template/node/article/full/7?language=fr',
+    );
+    expect(getRequestTranslation(api('mutation', frOwner))).toEqual({
+      language: 'fr',
+      entityType: 'node',
+      entityId: '7',
+      template: { bundle: 'article', viewMode: 'full' },
+    });
   });
 
   it('follows the route for writes without loaded data', () => {

@@ -149,6 +149,12 @@ A forked translation is edited in the Canvas editor like the default translation
 previewed there.
 See `\Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork::isForkedTranslation()`.
 
+Config-defined `component tree`s (content templates and page variants) are translated with sparse language overrides
+of translatable input values. A forked config translation instead stores its complete tree, JSON-encoded, in its
+override's `forked_component_tree` value, which is empty in the base config. That tree replaces the base config's tree
+for the language.
+See `\Drupal\canvas\Entity\ComponentTreeConfigEntityBase::$forked_component_tree`.
+
 The same 6 `field prop`s are also stored for `component instance`s stored in config entities. This allows them to be
 loaded into `ComponentTreeItem` objects and then treated (validated etc) identically to `component instance`s stored in
 content entities.

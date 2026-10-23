@@ -404,6 +404,16 @@ final class ComponentSourceManager extends DefaultPluginManager {
    */
   private function updateConfigEntityTranslation(ComponentTreeConfigEntityBase $entity, string $langcode): bool {
     $staged = $entity->getTranslation($langcode);
+    // A forked translation owns its whole tree: update it in full, including
+    // component versions, independently of the base config.
+    if ($entity->isForkedTranslation($langcode)) {
+      $fork = $entity->getTranslatedComponentTree($langcode);
+      if (!$this->runUpdatersOnComponentTreeItemList($fork)) {
+        return FALSE;
+      }
+      $staged->setData(ComponentTreeConfigEntityBase::FORKED_COMPONENT_TREE, ComponentTreeConfigEntityBase::encodeForkedComponentTree($fork));
+      return TRUE;
+    }
     // @see \Drupal\canvas\Entity\ComponentTreeConfigEntityBase::$component_tree
     $prior = $staged->getData('component_tree');
     if (!\is_array($prior) || $prior === []) {
