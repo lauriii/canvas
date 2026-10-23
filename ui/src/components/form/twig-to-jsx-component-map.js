@@ -7,6 +7,8 @@ import {
 } from '@/components/form/components/drupal/DrupalContainerTextFormat';
 import DrupalDatetimeMultivalueForm from '@/components/form/components/drupal/DrupalDatetimeMultivalueForm';
 import DrupalDetails from '@/components/form/components/drupal/DrupalDetails';
+import DrupalFocalPoint from '@/components/form/components/drupal/DrupalFocalPoint';
+import DrupalFocalPointCoordinate from '@/components/form/components/drupal/DrupalFocalPointCoordinate';
 import DrupalForm from '@/components/form/components/drupal/DrupalForm';
 import DrupalFormElement from '@/components/form/components/drupal/DrupalFormElement';
 import DrupalFormElementLabel from '@/components/form/components/drupal/DrupalFormElementLabel';
@@ -47,6 +49,8 @@ const twigToJSXComponentMap = {
   'drupal-canvas-datetime-wrapper--multivalue-form':
     DrupalDatetimeMultivalueForm,
   'drupal-canvas-select--multivalue-form': DrupalSelectMultivalueForm,
+  'drupal-canvas-focal-point': DrupalFocalPoint,
+  'drupal-canvas-focal-point-coordinate': DrupalFocalPointCoordinate,
   'drupal-canvas-radios': DrupalRadioGroup,
   'drupal-canvas-select': DrupalSelect,
   'drupal-canvas-textarea': DrupalTextArea,

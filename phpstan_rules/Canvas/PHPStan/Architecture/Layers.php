@@ -25,6 +25,7 @@ use Drupal\canvas\EntityHandlers\StagedLanguageConfigOverrideStorage;
 use Drupal\canvas\GlobalImports;
 use Drupal\canvas\Hook\ShapeMatchingHooks;
 use Drupal\canvas\InvalidComponentInputsPropSourceException;
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType;
 use Drupal\canvas\MissingHostEntityException;
@@ -334,6 +335,8 @@ final class Layers {
         // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentInstanceInputsConfigSchemaGenerator
         Selector::classname(JsonSchemaType::class),
         Selector::classname(JsonSchemaStringFormat::class),
+        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::hasFocalPoints()
+        Selector::classname(JsonSchemaObjectRef::class),
         Selector::classname(CanvasStaticPropSourceFieldWidget::class),
         // Canvas utilities.
         Selector::inNamespace('Drupal\canvas\Utility'),

@@ -19,7 +19,12 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 
+import { useAppDispatch, useAppStore } from '@/app/hooks';
 import { toPropName } from '@/components/form/react-hook-form/fields/componentFormData';
+import {
+  removeFieldValue,
+  selectFormValues,
+} from '@/features/form/formStateSlice';
 import { isEvaluatedComponentModel } from '@/features/layout/layoutModelSlice';
 import useInputUIData from '@/hooks/useInputUIData';
 import { usePatchComponent, usePatchProp } from '@/services/preview';
@@ -48,6 +53,30 @@ function collectTargetIds(
     targetIds.push(formEl.getAttribute('value') || '');
   });
   return { propName, targetIds };
+}
+
+/**
+ * Puts a media prop's stored items in a new order of media IDs.
+ *
+ * Items stored as objects keep everything stored with them, such as an image's
+ * focal point; IDs without a stored item are stored as is.
+ *
+ * @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef::IMAGE_WITH_FOCAL_POINT
+ */
+export function reorderStoredItems(
+  stored: unknown,
+  targetIds: string[],
+): unknown[] {
+  const items = Array.isArray(stored) ? [...stored] : [];
+  return targetIds.map((targetId) => {
+    const index = items.findIndex(
+      (item) =>
+        item !== null &&
+        typeof item === 'object' &&
+        String((item as { target_id?: unknown }).target_id) === targetId,
+    );
+    return index === -1 ? targetId : items.splice(index, 1)[0];
+  });
 }
 
 /**
@@ -93,6 +122,8 @@ const DrupalMediaListContainer = ({
     inputUIData;
   const patchComponent = usePatchComponent();
   const patchProp = usePatchProp();
+  const dispatch = useAppDispatch();
+  const store = useAppStore();
   const selectedModel = useMemo(
     () => model?.[selectedComponent] || null,
     [model, selectedComponent],
@@ -150,11 +181,15 @@ const DrupalMediaListContainer = ({
             selectedComponent,
           );
           if (propName && isEvaluatedComponentModel(selectedModel)) {
+            const value = reorderStoredItems(
+              selectedModel.source[propName]?.value,
+              targetIds,
+            );
             patchProp(
               inputUIData,
               propName,
-              { ...selectedModel.source[propName], value: targetIds },
-              targetIds,
+              { ...selectedModel.source[propName], value },
+              value,
             );
           }
         });
@@ -280,6 +315,69 @@ const DrupalMediaListContainer = ({
     selectedModel,
     patchComponent,
   ]);
+
+  // Removing an item rebuilds the widget with renumbered items, which leaves
+  // the form state of the old last item behind; the next change would then
+  // bring it back. Once the rebuild is done, forget the values of inputs that
+  // no longer exist.
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (
+      !wrapper ||
+      !wrapper.closest('[data-form-id="component_instance_form"]')
+    ) {
+      return;
+    }
+    const pruneRemovedItems = () => {
+      const formId = 'component_instance_form';
+      const prefix = (
+        wrapper.querySelector(
+          '[name*="[selection]"]',
+        ) as HTMLInputElement | null
+      )?.name.replace(/\[selection\].*$/, '[selection]');
+      if (!prefix) {
+        return;
+      }
+      const stale = Object.keys(
+        selectFormValues(store.getState(), formId),
+      ).filter(
+        (name) =>
+          name.startsWith(prefix) &&
+          !document.querySelector(`[name="${CSS.escape(name)}"]`),
+      );
+      if (stale.length) {
+        dispatch(removeFieldValue({ formId, fieldName: stale }));
+      }
+    };
+    const handleRemoveIntent = (e: Event) => {
+      const isKeyboardActivation =
+        e instanceof KeyboardEvent && (e.key === 'Enter' || e.key === ' ');
+      if (e.type === 'keydown' && !isKeyboardActivation) {
+        return;
+      }
+      if (
+        (e.target as HTMLElement).closest('[data-canvas-media-remove-button]')
+      ) {
+        document.addEventListener(
+          'drupalAjaxStop',
+          () => setTimeout(pruneRemovedItems),
+          { once: true },
+        );
+      }
+    };
+    wrapper.addEventListener('mousedown', handleRemoveIntent, {
+      capture: true,
+    });
+    wrapper.addEventListener('keydown', handleRemoveIntent, { capture: true });
+    return () => {
+      wrapper.removeEventListener('mousedown', handleRemoveIntent, {
+        capture: true,
+      });
+      wrapper.removeEventListener('keydown', handleRemoveIntent, {
+        capture: true,
+      });
+    };
+  }, [dispatch, store]);
 
   // Create sensors scoped to this sortable list - both pointer and keyboard
   const pointerSensor = useSensor(PointerSensor, {

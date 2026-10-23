@@ -233,6 +233,7 @@ Built-in transforms include:
 - `dateTime` - which will combine child `date` and `time` fields into a valid ISO-8601 datetime string
 - `dateRange` - which will combine start/end date parts into `value` and `end_value`
 - `entityAutocompleteTargetId` - which parses an autocomplete input like `"Example (3)"` and returns `"3"`
+- `mediaFocalPoint` - which, for `image-with-focal-point` props, returns each selected media ID with its focal point (`{target_id, focal_point: {x, y}}`)
 
 ℹ️ The completeness of this is tested by `\Drupal\Tests\canvas\Kernel\EcosystemSupport\FieldWidgetSupportTest`.
 

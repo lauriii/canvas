@@ -66,7 +66,10 @@ const derivedPropTypes = [
     displayName: 'Image',
     derive: (prop: CodeComponentPropSerialized) =>
       prop.type === 'object' &&
-      prop.$ref === 'json-schema-definitions://canvas.module/image',
+      [
+        'json-schema-definitions://canvas.module/image',
+        'json-schema-definitions://canvas.module/image-with-focal-point',
+      ].includes(prop.$ref as string),
     init: {
       type: 'object',
       $ref: 'json-schema-definitions://canvas.module/image',

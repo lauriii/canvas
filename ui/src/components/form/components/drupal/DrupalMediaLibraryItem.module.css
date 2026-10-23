@@ -1,5 +1,7 @@
 .item {
   display: flex;
+  /* An image's focal point control wraps below it. */
+  flex-wrap: wrap;
 }
 
 .dragHandle {

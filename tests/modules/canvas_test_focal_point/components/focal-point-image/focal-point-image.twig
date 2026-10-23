@@ -1,0 +1,6 @@
+<div{{ attributes }}>
+  <img src="{{ image.src }}" alt="{{ image.alt }}" style="width: 300px; height: 150px; object-fit: cover; object-position: {{ image.focalPoint.x }}% {{ image.focalPoint.y }}%;" />
+  {% for item in gallery %}
+    <img src="{{ item.src }}" alt="{{ item.alt }}" style="width: 100px; height: 100px; object-fit: cover; object-position: {{ item.focalPoint.x }}% {{ item.focalPoint.y }}%;" />
+  {% endfor %}
+</div>

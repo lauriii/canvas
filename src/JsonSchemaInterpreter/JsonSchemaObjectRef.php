@@ -24,6 +24,17 @@ enum JsonSchemaObjectRef: string {
   case ContentEntityReference = 'json-schema-definitions://canvas.module/content-entity-reference';
 
   /**
+   * An image whose editors set a focal point per image.
+   *
+   * Standardizes to the image shape: it stores and edits the same way, plus a
+   * focal point per image.
+   *
+   * @see \Drupal\canvas\PropShape\PropShape::standardize()
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::hasFocalPoints()
+   */
+  public const string IMAGE_WITH_FOCAL_POINT = 'json-schema-definitions://canvas.module/image-with-focal-point';
+
+  /**
    * Whether the given JSON schema for a prop is a content-entity-reference.
    *
    * @param JsonSchema $prop_schema

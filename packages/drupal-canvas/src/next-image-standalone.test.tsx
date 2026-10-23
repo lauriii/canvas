@@ -110,4 +110,26 @@ describe('Image', () => {
     expect(unoptimized).toBeUndefined();
     expect(loader).toBe(customLoader);
   });
+
+  it('crops around a focal point, letting `style` override it', () => {
+    const base = {
+      src: '/sites/default/files/maple-street.jpg',
+      width: 1200,
+      height: 800,
+      alt: 'A maple street',
+    };
+    expect(
+      renderedProps({ ...base, focalPoint: { x: 25, y: 75 } }).style,
+    ).toEqual({ objectFit: 'cover', objectPosition: '25% 75%' });
+    expect(
+      renderedProps({
+        ...base,
+        focalPoint: { x: 25, y: 75 },
+        style: { objectFit: 'contain' },
+      }).style,
+    ).toEqual({ objectFit: 'contain', objectPosition: '25% 75%' });
+    const plain = renderedProps({ ...base, focalPoint: null });
+    expect(plain.style).toBeUndefined();
+    expect(plain).not.toHaveProperty('focalPoint');
+  });
 });

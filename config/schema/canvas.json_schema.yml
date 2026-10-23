@@ -269,6 +269,8 @@ canvas.json_schema.prop_shape.object:
         Choice:
           choices:
             - 'json-schema-definitions://canvas.module/image'
+            # @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef::IMAGE_WITH_FOCAL_POINT
+            - 'json-schema-definitions://canvas.module/image-with-focal-point'
             - 'json-schema-definitions://canvas.module/video'
             - 'json-schema-definitions://canvas.module/document'
             # @see \Drupal\canvas\Entity\JavaScriptComponent::getContentEntityReferenceProps()

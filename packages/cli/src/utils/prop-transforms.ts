@@ -44,7 +44,10 @@ interface MediaPropDescriptor {
 const imageDescriptor: MediaPropDescriptor = {
   mediaType: 'image',
   matchesSchema: (schema) =>
-    schema.$ref === 'json-schema-definitions://canvas.module/image',
+    [
+      'json-schema-definitions://canvas.module/image',
+      'json-schema-definitions://canvas.module/image-with-focal-point',
+    ].includes(schema.$ref as string),
   getUrl: (value) => {
     if (!isRecord(value) || typeof value.src !== 'string') return null;
     return value.src;
