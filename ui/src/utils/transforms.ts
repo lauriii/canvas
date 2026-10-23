@@ -466,9 +466,10 @@ const mediaFocalPoint: Transformer<
   const points = ((value as PropsValues | null)?.focal_points ??
     {}) as PropsValues;
   const selection = mediaSelection(value, options, {} as StaticPropSource);
-  const records: Array<unknown> = options.multiple
-    ? normalizeMultipleRecords(selection)
-    : [selection];
+  const records: Array<unknown> =
+    options.multiple && typeof selection !== 'string'
+      ? normalizeMultipleRecords(selection)
+      : [selection];
   const items = records.flatMap((record) => {
     if (record === null || typeof record !== 'object') {
       return [];

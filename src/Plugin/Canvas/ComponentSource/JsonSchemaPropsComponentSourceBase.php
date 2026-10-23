@@ -769,7 +769,11 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
         // @see \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::markMultivalueFormElements()
         '#canvas_focal_point' => TRUE,
       ];
-      foreach (['x' => new TranslatableMarkup('Horizontal position (%)'), 'y' => new TranslatableMarkup('Vertical position (%)')] as $axis => $title) {
+      $titles = [
+        'x' => new TranslatableMarkup('Horizontal position (%)'),
+        'y' => new TranslatableMarkup('Vertical position (%)'),
+      ];
+      foreach ($titles as $axis => $title) {
         $element[$axis] = [
           '#type' => 'number',
           '#theme' => 'input__number__focal_point',
