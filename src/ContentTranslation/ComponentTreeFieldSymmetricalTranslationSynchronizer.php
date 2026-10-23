@@ -11,6 +11,7 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\content_translation\FieldTranslationSynchronizerInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\FieldDefinitionInterface;
 
@@ -29,6 +30,7 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizer implements Fiel
 
   public function __construct(
     private readonly FieldTranslationSynchronizerInterface $decorated,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
   ) {}
 
   /**
@@ -46,18 +48,20 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizer implements Fiel
     $saved_translation_is_forked = $entity->hasTranslation($sync_langcode)
       && ComponentTreeTranslationFork::isForkedTranslation($entity->getTranslation($sync_langcode));
     // Core re-sources the synchronization from an arbitrary translation when
-    // a new default revision is saved from a stale loaded revision while
-    // untranslatable-field changes affect all revisions — and that arbitrary
-    // translation can be a forked one, which would copy the fork's tree into
-    // every other translation. Protect all translations whenever that branch
-    // is reachable and a fork exists; symmetric siblings then miss at most
-    // one structural merge (repaired on the next regular save), which beats
-    // silently absorbing a forked tree.
+    // a new default revision is saved from a stale loaded revision (a newer
+    // default revision was saved meanwhile) while untranslatable-field changes
+    // affect all revisions — and that arbitrary translation can be a forked
+    // one, which would copy the fork's tree into every other translation.
+    // Protect all translations exactly when that branch runs and a fork
+    // exists; symmetric siblings then miss one structural merge, which beats
+    // silently absorbing a forked tree. Every other new revision, such as
+    // each publish from the editor, synchronizes normally.
     // @see \Drupal\content_translation\FieldTranslationSynchronizer::synchronizeFields()
     $core_may_resync_from_arbitrary_translation = $entity->isNewRevision()
       && $entity->isDefaultRevision()
       && !$entity->isDefaultTranslationAffectedOnly()
-      && self::hasForkedTranslation($entity);
+      && self::hasForkedTranslation($entity)
+      && $this->isLoadedRevisionStale($entity);
     $protect_all = $saved_translation_is_forked || $core_may_resync_from_arbitrary_translation;
     $snapshot = self::snapshotProtectedComponentTreeValues($entity, $protect_all);
     $net_new = $protect_all ? [] : $this->getDefaultTranslationNewComponentInstanceUuids($entity);
@@ -70,6 +74,23 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizer implements Fiel
     if (!$protect_all) {
       $this->synchronizeComponentInstanceInputs($entity, $net_new);
     }
+  }
+
+  /**
+   * Whether a newer default revision was saved since the entity was loaded.
+   *
+   * Mirrors the condition under which core re-sources synchronization.
+   *
+   * @see \Drupal\content_translation\FieldTranslationSynchronizer::synchronizeFields()
+   */
+  private function isLoadedRevisionStale(ContentEntityInterface $entity): bool {
+    $id = $entity->id();
+    if ($id === NULL) {
+      return FALSE;
+    }
+    $default_revision = $this->entityTypeManager->getStorage($entity->getEntityTypeId())->load($id);
+    return $default_revision instanceof ContentEntityInterface
+      && $default_revision->getLoadedRevisionId() !== $entity->getLoadedRevisionId();
   }
 
   /**
@@ -168,10 +189,21 @@ final class ComponentTreeFieldSymmetricalTranslationSynchronizer implements Fiel
       $field_net_new = $net_new[$field_name] ?? [];
       $default_tree = $entity->getUntranslated()->get($field_name);
       \assert($default_tree instanceof ComponentTreeItemList);
-      foreach ($target_tree as $delta => $target_item) {
+      // Core skips a field whose source value is empty, so an emptied default
+      // tree never reaches the symmetric translations: empty them here.
+      // @see \Drupal\content_translation\FieldTranslationSynchronizer::synchronizeFields()
+      if ($default_tree->isEmpty()) {
+        $target_tree->setValue([]);
+        continue;
+      }
+      foreach ($target_tree as $target_item) {
         \assert($target_item instanceof ComponentTreeItem);
-        $default_item = $default_tree->get($delta);
-        \assert($default_item instanceof ComponentTreeItem);
+        // Match by UUID, not delta: the trees are only aligned by delta when
+        // core's synchronization ran for this field.
+        $default_item = $default_tree->getComponentTreeItemByUuid($target_item->getUuid());
+        if ($default_item === NULL) {
+          continue;
+        }
 
         $default_inputs = $default_item->getInputs() ?? [];
         $target_inputs = $target_item->getInputs() ?? [];

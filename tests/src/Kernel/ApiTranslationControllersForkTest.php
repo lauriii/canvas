@@ -690,6 +690,95 @@ final class ApiTranslationControllersForkTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Tests one page with a forked and a symmetric non-default translation.
+   */
+  public function testForkedAndSymmetricTranslationsOfOnePage(): void {
+    $this->setUpCurrentUser(permissions: [
+      Page::EDIT_PERMISSION,
+      AutoSaveManager::PUBLISH_PERMISSION,
+    ]);
+    ConfigurableLanguage::createFromLangcode('de')->save();
+    $this->config('language.negotiation')
+      ->set('url.prefixes', ['en' => '', 'es' => 'es', 'de' => 'de'])
+      ->save();
+    \Drupal::service('kernel')->rebuildContainer();
+    $container = \Drupal::getContainer();
+    \assert($container instanceof ContainerBuilder);
+    $this->container = $container;
+    $page = $this->createTranslatedPage();
+    $de = $page->addTranslation('de', [
+      'title' => 'German title',
+      'status' => TRUE,
+      'components' => $page->get('components')->getValue(),
+    ]);
+    \assert($de instanceof Page);
+    $this->container->get(BundleTranslationSettingsInterface::class)
+      ->getTranslationMetadata($de)
+      ->setSource('en');
+    $de->save();
+    $es_key = Page::ENTITY_TYPE_ID . ':' . $page->id() . ':es';
+    $en_key = Page::ENTITY_TYPE_ID . ':' . $page->id() . ':en';
+
+    // Fork Spanish and publish the fork; German stays symmetric.
+    $response = $this->request(Request::create($this->forkUrl($page, 'es'), 'POST'));
+    self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
+    $pending = $this->getAutoSaveStatesFromServer();
+    $response = $this->makePublishAllRequest([$es_key => $pending[$es_key]]);
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+
+    // Only the forked translation is editable in the editor.
+    $response = $this->request(Request::create(self::editorLayoutUrl($page, 'es')));
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    try {
+      $this->request(Request::create(self::editorLayoutUrl($page, 'de')));
+      $this->fail('Expected access denied for the symmetric translation.');
+    }
+    catch (AccessDeniedHttpException $e) {
+      self::assertSame('Only forked translations can be edited in the Canvas editor.', $e->getMessage());
+    }
+
+    // Empty both the forked and the default translation's layouts.
+    $response = $this->postEmptiedLayout($page, 'es', 'Título nuevo');
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+    $response = $this->postEmptiedLayout($page, 'en', 'English title updated');
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+    $pending = $this->getAutoSaveStatesFromServer();
+    self::assertEqualsCanonicalizing([$en_key, $es_key], \array_keys($pending));
+
+    // Publishing the default translation carries the symmetric translation
+    // along and leaves the fork, stored and drafted, alone.
+    $response = $this->makePublishAllRequest([$en_key => $pending[$en_key]]);
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+    $stored = Page::load($page->id());
+    \assert($stored instanceof Page);
+    $stored_de = $stored->getTranslation('de');
+    $stored_es = $stored->getTranslation('es');
+    \assert($stored_de instanceof Page && $stored_es instanceof Page);
+    self::assertSame('English title updated', $stored->label());
+    self::assertCount(0, $stored->getComponentTree());
+    self::assertSame('German title', $stored_de->label());
+    self::assertCount(0, $stored_de->getComponentTree());
+    self::assertSame('Spanish title', $stored_es->label());
+    self::assertCount(1, $stored_es->getComponentTree());
+    self::assertSame([$es_key], \array_keys($this->getAutoSaveStatesFromServer()));
+
+    // Publishing the fork leaves the other translations alone.
+    $pending = $this->getAutoSaveStatesFromServer();
+    $response = $this->makePublishAllRequest([$es_key => $pending[$es_key]]);
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+    $stored = Page::load($page->id());
+    \assert($stored instanceof Page);
+    $stored_es = $stored->getTranslation('es');
+    \assert($stored_es instanceof Page);
+    self::assertTrue(ComponentTreeTranslationFork::isForkedTranslation($stored_es));
+    self::assertFalse(ComponentTreeTranslationFork::isForkedTranslation($stored->getTranslation('de')));
+    self::assertSame('Título nuevo', $stored_es->label());
+    self::assertCount(0, $stored_es->getComponentTree());
+    self::assertSame('English title updated', $stored->label());
+    self::assertSame('German title', $stored->getTranslation('de')->label());
+  }
+
+  /**
    * Tests that forking requires entity update access.
    */
   public function testForkRequiresUpdateAccess(): void {
