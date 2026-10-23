@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import {
+  useHref,
   useLocation,
   useNavigate,
   useParams,
@@ -40,6 +41,7 @@ import { selectPageData } from '@/features/pageData/pageDataSlice';
 import { selectSnapshotTitle } from '@/features/pagePreview/previewSlice';
 import { useTemplateCaption } from '@/hooks/useTemplateCaption';
 import { useTemplateRef } from '@/hooks/useTemplateRef';
+import { getEditorLanguage } from '@/services/baseQuery';
 import {
   componentAndLayoutApi,
   useDeletePageTranslationMutation,
@@ -216,6 +218,7 @@ interface UnforkTranslationDialogProps {
   languageId: string | null;
   languageName: string | undefined;
   url: string | undefined;
+  onSuccess: (languageId: string) => void;
   onClose: () => void;
 }
 
@@ -223,6 +226,7 @@ const UnforkTranslationDialog = ({
   languageId,
   languageName,
   url,
+  onSuccess,
   onClose,
 }: UnforkTranslationDialogProps) => {
   const [confirmText, setConfirmText] = useState('');
@@ -251,7 +255,8 @@ const UnforkTranslationDialog = ({
       return;
     }
     try {
-      await unforkPageTranslation(url).unwrap();
+      await unforkPageTranslation({ url, langcode: languageId }).unwrap();
+      onSuccess(languageId);
       onClose();
     } catch (error) {
       console.error('Failed to revert to synced layout:', error);
@@ -335,6 +340,9 @@ const LanguageSelect = () => {
   const [searchParams] = useSearchParams();
   const { entityType, entityId, width, previewEntityId, bundle, viewMode } =
     useParams();
+  const unforkPreviewHref = useHref(
+    `/preview/${entityType}/${entityId}/${width || 'full'}?language=${unforkLanguageId}`,
+  );
   const { isTemplateContext, isTemplatePreviewRoute } = useTemplateRef();
   const isTemplateRoute = isTemplateContext || isTemplatePreviewRoute;
   const sliceTranslations = useAppSelector(selectTranslations);
@@ -821,6 +829,15 @@ const LanguageSelect = () => {
             ? translations?.links?.[unforkLanguageId]?.[UNFORK_LINK_REL]
             : undefined
         }
+        onSuccess={(languageId) => {
+          // A reverted translation is previewed, not edited. Load the preview
+          // afresh, like any switch of the edited translation: in-app
+          // navigation races the route effect above, which still sees the
+          // translation as forked and would return to the editor.
+          if (getEditorLanguage(window.location.href) === languageId) {
+            window.location.replace(unforkPreviewHref);
+          }
+        }}
         onClose={() => setUnforkLanguageId(null)}
       />
     </>

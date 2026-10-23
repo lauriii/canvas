@@ -16,6 +16,7 @@ import {
 } from '@/features/pagePreview/previewSlice';
 import {
   baseQueryWithAutoSaves,
+  getEditorLanguage,
   serializeEditorQueryArgs,
 } from '@/services/baseQuery';
 import { brandKitApi } from '@/services/brandKit';
@@ -367,16 +368,26 @@ export const componentAndLayoutApi = createApi({
         );
       },
     }),
-    unforkPageTranslation: builder.mutation<void, string>({
-      query: (url) => ({
+    unforkPageTranslation: builder.mutation<
+      void,
+      { url: string; langcode: string }
+    >({
+      query: ({ url }) => ({
         url,
         method: 'DELETE',
       }),
-      // Refetch the layout so the reverted (synced) layout and fork action
-      // replace the forked state.
-      invalidatesTags: [{ type: 'Layout' }],
-      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+      async onQueryStarted({ langcode }, { dispatch, queryFulfilled }) {
         await queryFulfilled;
+        // Refetch the layout so the reverted (synced) layout and fork action
+        // replace the forked state. A reverted translation is no longer
+        // editable, so the editor's own layout request for it would be
+        // refused: when it is the one being edited, the caller moves to its
+        // preview instead, which loads the synced layout.
+        if (getEditorLanguage(window.location.href) !== langcode) {
+          dispatch(
+            componentAndLayoutApi.util.invalidateTags([{ type: 'Layout' }]),
+          );
+        }
         // Unforking writes an auto-save draft: surface it in the review
         // panel immediately instead of waiting for the poll.
         dispatch(
