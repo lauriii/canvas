@@ -586,6 +586,7 @@ const LanguageSelect = () => {
             >
               <DropdownMenu.Item
                 data-testid={`language-option-${language.id}`}
+                className={styles.languageItem}
                 onSelect={() => handleLanguageChange(language.id)}
               >
                 <Flex align="center" width="100%">
@@ -603,9 +604,13 @@ const LanguageSelect = () => {
                   </Text>
                   {isForked(language.id) && (
                     <Badge
-                      color="amber"
+                      color="gray"
+                      variant="soft"
+                      radius="small"
                       size="1"
-                      ml="1"
+                      ml="auto"
+                      className={styles.forkedBadge}
+                      title="This translation has its own layout."
                       data-testid={`language-forked-badge-${language.id}`}
                     >
                       Forked
