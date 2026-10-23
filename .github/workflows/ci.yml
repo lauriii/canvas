@@ -211,6 +211,6 @@ jobs:
           export DRUPAL_ROOT_CORE="$DRUPAL_ROOT/web/core"
           cd "$MODULE_DIR/ui"
           npx cypress install
-          # Fail early with the module copy's contents if the spec is missing.
-          ls -la tests/e2e/canary.cy.js || { ls -la . tests tests/e2e | head -60; exit 1; }
-          npx cypress run --browser electron --spec tests/e2e/canary.cy.js
+          # CI runs on the pull request's merge with 1.x, which removed the
+          # canary spec while porting Cypress tests to Playwright.
+          npx cypress run --browser electron --spec tests/e2e/empty-canvas.cy.js
