@@ -55,6 +55,23 @@ const hasPermission = (
   }
 };
 
+// The homepage config may hold either the internal path or the alias, which
+// mirrors the server-side HomePageHelper::isHomepage() check.
+export const isHomepage = (item: ContentStub, homepagePath?: string) =>
+  !!homepagePath &&
+  (item.internalPath === homepagePath || item.path === homepagePath);
+
+// Pins the homepage to the top while keeping the server order for the rest.
+export const pinHomepageFirst = (
+  items: ContentStub[],
+  homepagePath?: string,
+) => {
+  const index = items.findIndex((item) => isHomepage(item, homepagePath));
+  return index > 0
+    ? [items[index], ...items.slice(0, index), ...items.slice(index + 1)]
+    : items;
+};
+
 // Helper function to create dropdown menu content for a page item
 const createPageMenuContent = (
   item: ContentStub,
@@ -327,18 +344,17 @@ const ContentGroup = ({
 
   return (
     <Flex data-testid="canvas-page-list" direction="column" gap="1">
-      {items.map((item) => {
+      {pinHomepageFirst(items, homepagePath).map((item) => {
         const isSelected =
           selectedPageId !== undefined &&
           String(selectedPageId) === String(item.id);
-        const isHomepage = item.internalPath === homepagePath;
 
         return (
           <PageListItem
             key={`${item.id}-${item.status}`}
             item={item}
             isSelected={isSelected}
-            isHomepage={isHomepage}
+            isHomepage={isHomepage(item, homepagePath)}
             homepagePath={homepagePath}
             onSelect={onSelect}
             onDuplicate={onDuplicate}
