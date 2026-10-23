@@ -453,8 +453,38 @@ const mediaSelection: Transformer<
   return multiple ? selectionValues : selectionValues[0];
 };
 
+// Turns the x and y inputs of the focal point widget into `{x, y}` numbers,
+// dropping items that are incomplete or out of range. Per-input JSON Schema
+// validation does not run for props built from several inputs, so this keeps
+// invalid points out of the preview.
+// @see \Drupal\canvas\Plugin\Field\FieldWidget\CanvasFocalPointWidget
+const focalPoint: Transformer<
+  BaseTransformOptions,
+  null | PropsValues | Array<PropsValues>
+> = (value, options) => {
+  // A bare `{x, y}` record is accepted too, so the transform is idempotent.
+  const records: Array<unknown> =
+    value !== null && typeof value === 'object' && 'x' in value
+      ? [value]
+      : normalizeMultipleRecords(value);
+  const points = records.flatMap((record: unknown) => {
+    if (record === null || typeof record !== 'object') {
+      return [];
+    }
+    const { x, y } = record as PropsValues;
+    if (x === '' || y === '' || x == null || y == null) {
+      return [];
+    }
+    const point = { x: Number(x), y: Number(y) };
+    const inRange = (n: number) => n >= 0 && n <= 100;
+    return inRange(point.x) && inRange(point.y) ? [point] : [];
+  });
+  return options.multiple ? points : (points[0] ?? null);
+};
+
 const transforms = {
   mainProperty,
+  focalPoint,
   firstRecord,
   dateTime,
   dateRange,

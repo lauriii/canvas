@@ -1,0 +1,106 @@
+.frame {
+  position: relative;
+  overflow: hidden;
+  min-height: 80px;
+  cursor: crosshair;
+  user-select: none;
+  touch-action: none;
+  border: 1px solid var(--gray-6);
+  border-radius: 4px;
+  background-color: var(--gray-2);
+}
+
+.image {
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+  color: var(--gray-10);
+  font-size: var(--font-size-1);
+}
+
+.dot,
+.thumbnailDot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  border: 2px solid white;
+  border-radius: 50%;
+  background-color: var(--blue-9);
+  box-shadow: 0 0 0 1px var(--black-a8);
+}
+
+.dot {
+  width: 16px;
+  height: 16px;
+}
+
+.thumbnailDot {
+  width: 8px;
+  height: 8px;
+  border-width: 1px;
+}
+
+.inputs {
+  display: flex;
+  margin-top: var(--space-2);
+  gap: var(--space-2);
+}
+
+.inputs > * {
+  flex: 1;
+  min-width: 0;
+}
+
+.thumbnail {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 2px;
+  background-color: var(--gray-4);
+}
+
+.thumbnail .image {
+  /* Stretched, not cropped, so the dot sits where it does on the image. */
+  width: 100%;
+  height: 100%;
+}
+
+.trigger {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--space-1) var(--space-2);
+  cursor: pointer;
+  text-align: left;
+  border: 1px solid var(--gray-6);
+  border-radius: 4px;
+  background-color: white;
+  gap: var(--space-2);
+}
+
+.trigger:hover {
+  background-color: var(--gray-2);
+}
+
+.trigger:focus-visible {
+  outline: 2px solid var(--blue-8);
+  outline-offset: -2px;
+}
+
+/* Room for an image preview; the shared multivalue popover is narrower. */
+.popover {
+  width: 280px;
+  max-width: 280px;
+}
