@@ -145,6 +145,9 @@ services:
     class: Drupal\canvas\EventSubscriber\CanvasRouteOptionsEventSubscriber
     tags:
       - { name: 'event_subscriber' }
+  Drupal\canvas\EventSubscriber\ForkedTranslationEditRequestSubscriber:
+    arguments:
+      $currentRouteMatch: '@current_route_match'
   Drupal\canvas\EventSubscriber\ColorConfigImportValidator: ~
   Drupal\canvas\EventSubscriber\ComponentConfigImportValidator: ~
   Drupal\canvas\EventSubscriber\ComponentTreeConfigEntityTransformer: ~

@@ -52,7 +52,8 @@ symmetric synchronization, validation, and component version propagation, and to
 - Everything ships gated behind the experimental `canvas_dev_translation` module (in addition to content_translation),
   including the base field, the fork/unfork HTTP endpoints (whose routes live in that module's routing file), the
   layout API fork metadata, and the editor UI actions. The gate moves into canvas proper when translation support is
-  promoted.
+  promoted. Editing forked translations in the editor (the `canvas_langcode` request subscriber) is not gated: without
+  fork support no translation is forked, so it only ever resolves the default translation.
 - Config-defined component trees (PageRegion, ContentTemplate) fork via the shape of their language overrides: an
   override carrying only translatable input values is symmetric (structure falls through to the base config), an
   override carrying the full component tree is forked. No flag is stored, because nothing re-syncs override contents,
@@ -71,8 +72,8 @@ symmetric synchronization, validation, and component version propagation, and to
   whole entity group, because their trees depend on the default translation's draft, until per-language publish
   lands.
 - The Canvas editor is the editing surface for forked trees. Editor requests name the forked translation with an
-  explicit `?canvas_langcode=` query parameter, which a request subscriber resolves after routing, so no controller
-  changes are needed; symmetric translations stay preview-only. Writes name the translation their data was loaded
+  explicit `?canvas_langcode=` query parameter, which a request subscriber resolves after routing, and route
+  controllers read the swapped entity unchanged; symmetric translations stay preview-only. Writes name the translation their data was loaded
   for, and switching the edited translation of an entity reloads the editor, so one translation's data is never
   written to another.
   See `\Drupal\canvas\EventSubscriber\ForkedTranslationEditRequestSubscriber`.

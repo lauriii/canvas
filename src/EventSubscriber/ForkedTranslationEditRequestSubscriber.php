@@ -29,16 +29,15 @@ use Symfony\Component\HttpKernel\KernelEvents;
  * is fragile.
  *
  * After routing and route access checks, the upcast route entity is swapped
- * for the named translation. The controllers need no changes: auto-save keys
- * and draft overlays already follow the entity's language. Symmetric
+ * for the named translation. Route controllers read the swapped entity
+ * unchanged: auto-save keys and draft overlays follow its language. Symmetric
  * translations stay read-only in the editor, so a non-default translation is
  * only accepted when it is forked, in storage or in its auto-save draft.
  *
- * Registered by the canvas_dev_translation module, next to the fork routes,
- * so it is gated the same way.
+ * Not gated on canvas_dev_translation: without fork support no translation is
+ * forked, so only the default translation can be named.
  *
  * @see \Drupal\canvas\EventSubscriber\CanvasRouteOptionsEventSubscriber::redirectCanvasApiToPreviewLanguage()
- * @see canvas_dev_translation.routing.yml
  */
 final class ForkedTranslationEditRequestSubscriber implements EventSubscriberInterface {
 
