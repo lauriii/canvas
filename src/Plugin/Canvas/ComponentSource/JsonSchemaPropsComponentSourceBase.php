@@ -670,7 +670,8 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       }
     }
     $multiple = $shapes[$focal_point_prop_name]['type'] === 'array';
-    return \array_search($multiple, $image_props, TRUE) ?: \array_key_first($image_props);
+    $same_cardinality = \array_search($multiple, $image_props, TRUE);
+    return $same_cardinality !== FALSE ? $same_cardinality : \array_key_first($image_props);
   }
 
   /**
