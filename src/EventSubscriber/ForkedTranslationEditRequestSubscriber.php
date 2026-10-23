@@ -6,6 +6,7 @@ namespace Drupal\canvas\EventSubscriber;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
+use Drupal\Core\Access\AccessManagerInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\CacheableResponseInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
@@ -28,11 +29,13 @@ use Symfony\Component\HttpKernel\KernelEvents;
  * by design, and redirecting request bodies through negotiation-specific URLs
  * is fragile.
  *
- * After routing and route access checks, the upcast route entity is swapped
- * for the named translation. Route controllers read the swapped entity
- * unchanged: auto-save keys and draft overlays follow its language. Symmetric
- * translations stay read-only in the editor, so a non-default translation is
- * only accepted when it is forked, in storage or in its auto-save draft.
+ * After routing, the upcast route entity is swapped for the named translation
+ * and route access is checked again against it. Route controllers read the
+ * swapped entity unchanged: auto-save keys and draft overlays follow its
+ * language. Symmetric translations stay read-only in the editor, so a
+ * non-default translation is only accepted when it is forked, as decided by
+ * its auto-save draft when it has one. The discard route also accepts a
+ * pending unfork (forked in storage only), so it can be discarded.
  *
  * Not gated on canvas_dev_translation: without fork support no translation is
  * forked, so only the default translation can be named.
@@ -59,6 +62,7 @@ final class ForkedTranslationEditRequestSubscriber implements EventSubscriberInt
   public function __construct(
     private readonly AutoSaveManager $autoSaveManager,
     private readonly CurrentRouteMatch $currentRouteMatch,
+    private readonly AccessManagerInterface $accessManager,
   ) {}
 
   public function onRequest(RequestEvent $event): void {
@@ -67,7 +71,8 @@ final class ForkedTranslationEditRequestSubscriber implements EventSubscriberInt
     if (!\is_string($langcode) || $langcode === '') {
       return;
     }
-    $parameter = self::ROUTE_ENTITY_PARAMETERS[$request->attributes->get(RouteObjectInterface::ROUTE_NAME)] ?? NULL;
+    $route_name = $request->attributes->get(RouteObjectInterface::ROUTE_NAME);
+    $parameter = self::ROUTE_ENTITY_PARAMETERS[$route_name] ?? NULL;
     if ($parameter === NULL) {
       return;
     }
@@ -89,19 +94,19 @@ final class ForkedTranslationEditRequestSubscriber implements EventSubscriberInt
         throw new NotFoundHttpException(\sprintf('%s %s has no %s translation.', $entity->getEntityTypeId(), $entity->id(), $langcode));
       }
       $translation = $entity->getTranslation($langcode);
-      if (!$this->isForked($translation)) {
+      if (!$this->isForked($translation, accept_pending_unfork: $route_name === 'canvas.api.auto-save.delete')) {
         throw new AccessDeniedHttpException('Only forked translations can be edited in the Canvas editor.');
-      }
-      // Route access was checked against the upcast entity; translation access
-      // can differ.
-      if (!$translation->access('update')) {
-        throw new AccessDeniedHttpException();
       }
     }
 
     $request->attributes->set($parameter, $translation);
     // The current route match caches the route parameters per request.
     $this->currentRouteMatch->resetRouteMatch();
+    // The router checked route access against the translation it upcast,
+    // which is the negotiated one, not the one named here.
+    if (!$this->accessManager->checkRequest($request)) {
+      throw new AccessDeniedHttpException();
+    }
   }
 
   public static function onResponse(ResponseEvent $event): void {
@@ -113,19 +118,20 @@ final class ForkedTranslationEditRequestSubscriber implements EventSubscriberInt
   }
 
   /**
-   * Whether the translation is forked in storage or in its auto-save draft.
+   * Whether the translation is forked, as the editor sees it.
    *
-   * A fork lives in the draft until it is published, and a pending unfork
-   * still edits a translation that is forked in storage.
+   * A pending fork or unfork lives in the auto-save draft until it is
+   * published, so a draft decides; without one, storage does. A pending unfork
+   * is forked in storage only.
    */
-  private function isForked(ContentEntityInterface $translation): bool {
-    if (ComponentTreeTranslationFork::isForkedTranslation($translation)) {
-      return TRUE;
-    }
+  private function isForked(ContentEntityInterface $translation, bool $accept_pending_unfork): bool {
+    $stored = ComponentTreeTranslationFork::isForkedTranslation($translation);
     $draft = $this->autoSaveManager->getAutoSaveEntity($translation);
-    return !$draft->isEmpty()
-      && $draft->entity instanceof ContentEntityInterface
-      && ComponentTreeTranslationFork::isForkedTranslation($draft->entity);
+    if ($draft->isEmpty() || !$draft->entity instanceof ContentEntityInterface) {
+      return $stored;
+    }
+    return ComponentTreeTranslationFork::isForkedTranslation($draft->entity)
+      || ($accept_pending_unfork && $stored);
   }
 
   public static function getSubscribedEvents(): array {

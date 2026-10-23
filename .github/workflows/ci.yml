@@ -175,7 +175,8 @@ jobs:
           cd "$MODULE_DIR"
           npm ci
           # The UI depends on headless-host, which imports the headless core's
-          # compiled dist.
+          # compiled dist, which in turn imports the drupal-canvas library's.
+          npm run build -w drupal-canvas
           npm run build -w @drupal-canvas/headless
           npm run build -w ui
       - name: Playwright (one spec, headless chromium)

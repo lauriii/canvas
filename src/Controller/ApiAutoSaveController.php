@@ -239,22 +239,37 @@ final class ApiAutoSaveController extends ApiControllerBase {
   }
 
   /**
-   * Whether a translation is forked in storage or in its auto-save snapshot.
+   * Whether an auto-save snapshot is a pending unfork listed on its own.
    *
-   * Pending forks live only in the snapshot; pending unforks only in storage.
+   * A pending unfork (forked in storage, not in its snapshot) publishes and
+   * discards with the default translation's draft, since it will share its
+   * component tree again. It is listed on its own only while the default
+   * translation has no draft to list it under.
+   *
+   * @param array<string, AutoSaveEntry> $all
+   *   Every pending auto-save entry, with 'entity'.
    */
-  private function isForkedTranslationInStorageOrDraft(EntityInterface $snapshot): bool {
-    if (self::isForkedTranslationDraft($snapshot)) {
-      return TRUE;
-    }
+  private function isStandalonePendingUnfork(EntityInterface $snapshot, array $all): bool {
     if (!$snapshot instanceof ContentEntityInterface || $snapshot->id() === NULL) {
       return FALSE;
     }
     $stored = $this->entityTypeManager->getStorage($snapshot->getEntityTypeId())->load($snapshot->id());
     $langcode = $snapshot->language()->getId();
-    return $stored instanceof ContentEntityInterface
-      && $stored->hasTranslation($langcode)
-      && ComponentTreeTranslationFork::isForkedTranslation($stored->getTranslation($langcode));
+    if (!$stored instanceof ContentEntityInterface
+      || !$stored->hasTranslation($langcode)
+      || !ComponentTreeTranslationFork::isForkedTranslation($stored->getTranslation($langcode))) {
+      return FALSE;
+    }
+    foreach ($all as $item) {
+      $entity = $item['entity'] ?? NULL;
+      if (($item['is_default_translation'] ?? TRUE)
+        && $entity instanceof ContentEntityInterface
+        && $entity->getEntityTypeId() === $snapshot->getEntityTypeId()
+        && (string) $entity->id() === (string) $snapshot->id()) {
+        return FALSE;
+      }
+    }
+    return TRUE;
   }
 
   /**
@@ -277,7 +292,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
    */
   private function getPublishableAutoSaves(bool $with_conflicts, ?CacheableMetadata $cache = NULL): array {
     $all = $this->autoSaveManager->getAllAutoSaveList(with_entities: TRUE, with_conflicts: $with_conflicts);
-    return \array_filter($all, function (array $item) use ($cache): bool {
+    return \array_filter($all, function (array $item) use ($cache, $all): bool {
       \assert($item['entity'] instanceof EntityInterface);
       $access = $item['entity']->access('view label', return_as_object: TRUE);
       if ($cache !== NULL) {
@@ -292,10 +307,13 @@ final class ApiAutoSaveController extends ApiControllerBase {
       // Hide symmetric non-default-translation auto-saves until per-language
       // publish lands: they publish with the default translation's draft.
       // Forked translations own their layout and are edited in the editor, so
-      // their drafts are listed.
+      // their drafts are listed. A pending unfork is listed under the default
+      // translation's draft when there is one.
       // @todo Remove this filtering in https://git.drupalcode.org/project/canvas/-/work_items/3591703.
       return $access->isAllowed()
-        && (($item['is_default_translation'] ?? TRUE) || $this->isForkedTranslationInStorageOrDraft($item['entity']));
+        && (($item['is_default_translation'] ?? TRUE)
+          || self::isForkedTranslationDraft($item['entity'])
+          || $this->isStandalonePendingUnfork($item['entity'], $all));
     });
   }
 
@@ -886,6 +904,11 @@ final class ApiAutoSaveController extends ApiControllerBase {
         // over.
         // @see \Drupal\canvas\AutoSave\AutoSaveManager::isPersistedComputedField()
         $ignore_field = ($field->isComputed() && !AutoSaveManager::isPersistedComputedField($field)) || $original_field->equals($auto_save_entity->get($field_name));
+        // A forked translation's draft is published on its own, so its copy
+        // of a field shared with the default translation may be older than
+        // the stored value; only its own translatable fields are applied.
+        // @see ::includeSiblingTranslationAutoSaves()
+        $ignore_field |= self::isForkedTranslationDraft($auto_save_entity) && !$field->isTranslatable();
         $keys = ['id', 'revision_id', 'uuid', 'langcode', 'status', 'published'];
         $revision_keys = ['revision_created', 'revision_user'];
         foreach ($keys as $key) {

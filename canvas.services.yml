@@ -148,6 +148,7 @@ services:
   Drupal\canvas\EventSubscriber\ForkedTranslationEditRequestSubscriber:
     arguments:
       $currentRouteMatch: '@current_route_match'
+      $accessManager: '@access_manager'
   Drupal\canvas\EventSubscriber\ColorConfigImportValidator: ~
   Drupal\canvas\EventSubscriber\ComponentConfigImportValidator: ~
   Drupal\canvas\EventSubscriber\ComponentTreeConfigEntityTransformer: ~

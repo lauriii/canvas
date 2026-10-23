@@ -4,6 +4,7 @@ import {
   addEditorLanguageToUrl,
   extractEntityParams,
   getEditorLanguage,
+  getRequestTranslation,
   replaceEntityParamsInUrl,
 } from '@/services/baseQuery';
 
@@ -141,6 +142,26 @@ describe('addEditorLanguageToUrl', () => {
         '1',
       ),
     ).toBe('canvas/api/v0/layout/canvas_page/1?canvas_preview_langcode=fr');
+    // A request that names its translation itself.
+    expect(
+      addEditorLanguageToUrl(
+        'canvas/api/v0/form/content-entity/canvas_page/1/default?canvas_langcode=de',
+        'fr',
+        'canvas_page',
+        '1',
+      ),
+    ).toBe(
+      'canvas/api/v0/form/content-entity/canvas_page/1/default?canvas_langcode=de',
+    );
+    // A content auto-save for a listed pending change.
+    expect(
+      addEditorLanguageToUrl(
+        '/canvas/api/v0/content/auto-save/canvas_page/1',
+        'fr',
+        'canvas_page',
+        '1',
+      ),
+    ).toBe('/canvas/api/v0/content/auto-save/canvas_page/1');
     // The default translation.
     expect(
       addEditorLanguageToUrl(
@@ -150,5 +171,36 @@ describe('addEditorLanguageToUrl', () => {
         '1',
       ),
     ).toBe('canvas/api/v0/layout/canvas_page/1');
+  });
+});
+
+describe('getRequestTranslation', () => {
+  const api = (type: 'query' | 'mutation', pageDataOwner: unknown) =>
+    ({ type, getState: () => ({ pageDataOwner }) }) as unknown as Parameters<
+      typeof getRequestTranslation
+    >[0];
+  const frOwner = { entityType: 'canvas_page', entityId: '1', langcode: 'fr' };
+
+  it('follows the loaded data for writes and the route for reads', () => {
+    window.history.pushState({}, '', '/canvas/editor/canvas_page/1');
+    expect(getRequestTranslation(api('mutation', frOwner))).toEqual({
+      language: 'fr',
+      entityType: 'canvas_page',
+      entityId: '1',
+    });
+    expect(getRequestTranslation(api('query', frOwner)).language).toBe('');
+  });
+
+  it('follows the route for writes without loaded data', () => {
+    window.history.pushState(
+      {},
+      '',
+      '/canvas/editor/canvas_page/1?language=fr',
+    );
+    expect(getRequestTranslation(api('mutation', null))).toEqual({
+      language: 'fr',
+      entityType: 'canvas_page',
+      entityId: '1',
+    });
   });
 });

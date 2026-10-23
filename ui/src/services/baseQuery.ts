@@ -158,10 +158,11 @@ export const getEditorLanguage = (href: string): string => {
 };
 
 // The entity-scoped editor API paths whose route entity the backend swaps for
-// the translation named by `canvas_langcode`.
-// @see \Drupal\canvas\EventSubscriber\ForkedTranslationEditRequestSubscriber
+// the translation named by `canvas_langcode`. Requests on behalf of a listed
+// pending change (discard, content auto-save) name its translation themselves.
+// @see \Drupal\canvas\EventSubscriber\ForkedTranslationEditRequestSubscriber::ROUTE_ENTITY_PARAMETERS
 const EDITOR_ENTITY_API_PATH =
-  /canvas\/api\/v0\/(?:layout|form\/component-instance|form\/content-entity|content\/auto-save)\/([^/?]+)\/([^/?]+)(?:[/?]|$)/;
+  /canvas\/api\/v0\/(?:layout|form\/component-instance|form\/content-entity)\/([^/?]+)\/([^/?]+)(?:[/?]|$)/;
 
 /**
  * Names a forked translation on editor API requests for its entity.
@@ -173,8 +174,13 @@ export const addEditorLanguageToUrl = (
   entityId: string | undefined,
 ): string => {
   // Previews of a translation name it with their own hint, and are allowed for
-  // every translation, forked or not.
-  if (!language || url.includes('canvas_preview_langcode=')) {
+  // every translation, forked or not. A URL that already names a translation
+  // keeps it.
+  if (
+    !language ||
+    url.includes('canvas_preview_langcode=') ||
+    url.includes('canvas_langcode=')
+  ) {
     return url;
   }
   const match = url.match(EDITOR_ENTITY_API_PATH);
@@ -189,21 +195,23 @@ export const addEditorLanguageToUrl = (
  *
  * Reads follow the editor route, which decides what to load. Writes follow the
  * translation the editor's data was loaded for, so a write that races a
- * language switch can never send one translation's data to another.
+ * language switch can never send one translation's data to another. Without
+ * loaded data (e.g. after a failed refetch), writes follow the route too, so
+ * they never fall back to the default translation while a fork is open.
  */
-const getRequestTranslation = (
+export const getRequestTranslation = (
   api: BaseQueryApi,
 ): {
   language?: string;
   entityType?: string;
   entityId?: string;
 } => {
-  if (api.type === 'mutation') {
-    const owner = (api.getState() as Partial<RootState>).pageDataOwner;
+  const owner = (api.getState() as Partial<RootState>).pageDataOwner;
+  if (api.type === 'mutation' && owner) {
     return {
-      language: owner?.langcode,
-      entityType: owner?.entityType,
-      entityId: owner?.entityId,
+      language: owner.langcode,
+      entityType: owner.entityType,
+      entityId: owner.entityId,
     };
   }
   const { entityType, entityId } = extractEntityParams(window.location.href);

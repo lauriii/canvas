@@ -68,12 +68,14 @@ symmetric synchronization, validation, and component version propagation, and to
   input overrides) no longer holds. Consumers must detect fork state and degrade gracefully; publishing a string draft
   onto a forked translation must be refused.
 - A draft whose own snapshot is forked is listed in the pending changes, labelled with its language, and publishes and
-  discards independently of its siblings. Symmetric drafts and pending unforks still publish and discard with the
+  discards independently of its siblings; it applies only its translatable fields, so it never reverts a shared field
+  the default translation published since. Symmetric drafts and pending unforks still publish and discard with the
   whole entity group, because their trees depend on the default translation's draft, until per-language publish
-  lands.
+  lands. A pending unfork is listed under the default translation's draft when there is one, and on its own otherwise.
 - The Canvas editor is the editing surface for forked trees. Editor requests name the forked translation with an
-  explicit `?canvas_langcode=` query parameter, which a request subscriber resolves after routing, and route
-  controllers read the swapped entity unchanged; symmetric translations stay preview-only. Writes name the translation their data was loaded
+  explicit `?canvas_langcode=` query parameter, which a request subscriber resolves after routing before re-checking
+  route access against the named translation, and route controllers read the swapped entity unchanged; symmetric
+  translations and pending unforks stay preview-only. Writes name the translation their data was loaded
   for, and switching the edited translation of an entity reloads the editor, so one translation's data is never
   written to another.
   See `\Drupal\canvas\EventSubscriber\ForkedTranslationEditRequestSubscriber`.
