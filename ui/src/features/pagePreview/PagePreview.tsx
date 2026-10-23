@@ -109,7 +109,10 @@ const PagePreview = () => {
   // the generic /layout route, which only supports canvas_page entities, so it
   // is skipped for templates (their preview entity is rendered via the
   // snapshot query below).
-  const { data: defaultLayoutData } = useGetPageLayoutQuery(
+  const {
+    data: defaultLayoutData,
+    fulfilledTimeStamp: defaultLayoutFetchedAt,
+  } = useGetPageLayoutQuery(
     entityId && entityType && !isContentTemplate
       ? { entityId, entityType }
       : skipToken,
@@ -136,28 +139,28 @@ const PagePreview = () => {
       },
     );
 
-  // When the active language's fork state flips (fork/unfork), the
-  // translation's layout was replaced server-side, and the layout refetch
-  // that reported the change also reset the snapshot to the default-language
-  // render. Re-fetch the language snapshot so the preview shows the actual
-  // translation again. Read fork state from the layout query itself: the
-  // slice's translations only update on initial load.
-  const translations = defaultLayoutData?.translations;
-  const activeLanguageForked =
-    !!language && !!translations?.forked?.includes(language);
-  const activeLanguageForkedRef = useRef(activeLanguageForked);
+  // Every completed default-language layout fetch resets the snapshot to the
+  // default-language render (see getPageLayout), e.g. after forking, unforking
+  // or deleting any translation. Re-fetch the language snapshot so the preview
+  // shows the translation again, unless the translation no longer exists.
+  // Read the translations from the layout query itself: the slice's only
+  // update on initial load.
+  const defaultLayoutFetchedAtRef = useRef(defaultLayoutFetchedAt);
+  const activeLanguageAvailable =
+    !!language &&
+    !!defaultLayoutData?.translations?.available?.includes(language);
   useEffect(() => {
-    if (activeLanguageForkedRef.current === activeLanguageForked) {
+    if (defaultLayoutFetchedAtRef.current === defaultLayoutFetchedAt) {
       return;
     }
-    activeLanguageForkedRef.current = activeLanguageForked;
-    if (!language || !isPreview || headlessSettings) {
+    defaultLayoutFetchedAtRef.current = defaultLayoutFetchedAt;
+    if (!activeLanguageAvailable || !isPreview || headlessSettings) {
       return;
     }
     refetchLanguagePreview();
   }, [
-    activeLanguageForked,
-    language,
+    defaultLayoutFetchedAt,
+    activeLanguageAvailable,
     isPreview,
     headlessSettings,
     refetchLanguagePreview,
