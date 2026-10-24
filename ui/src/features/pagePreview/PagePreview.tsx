@@ -109,31 +109,62 @@ const PagePreview = () => {
   // the generic /layout route, which only supports canvas_page entities, so it
   // is skipped for templates (their preview entity is rendered via the
   // snapshot query below).
-  useGetPageLayoutQuery(
+  const {
+    data: defaultLayoutData,
+    fulfilledTimeStamp: defaultLayoutFetchedAt,
+  } = useGetPageLayoutQuery(
     entityId && entityType && !isContentTemplate
       ? { entityId, entityType }
       : skipToken,
   );
 
   // Language preview: auto-fetch whenever language/entity changes.
-  const { error: languagePreviewError } = useGetSnapshotPreviewQuery(
-    {
-      entityType: entityType!,
-      entityId: entityId!,
-      language,
-      isTemplate: isContentTemplate,
-      templateInfo: { bundle, viewMode },
-    },
-    {
-      skip:
-        !!headlessSettings ||
-        !isPreview ||
-        (!language && !isContentTemplate) ||
-        !entityType ||
-        !entityId,
-      refetchOnMountOrArgChange: true,
-    },
-  );
+  const { error: languagePreviewError, refetch: refetchLanguagePreview } =
+    useGetSnapshotPreviewQuery(
+      {
+        entityType: entityType!,
+        entityId: entityId!,
+        language,
+        isTemplate: isContentTemplate,
+        templateInfo: { bundle, viewMode },
+      },
+      {
+        skip:
+          !!headlessSettings ||
+          !isPreview ||
+          (!language && !isContentTemplate) ||
+          !entityType ||
+          !entityId,
+        refetchOnMountOrArgChange: true,
+      },
+    );
+
+  // Every completed default-language layout fetch resets the snapshot to the
+  // default-language render (see getPageLayout), e.g. after forking, unforking
+  // or deleting any translation. Re-fetch the language snapshot so the preview
+  // shows the translation again, unless the translation no longer exists.
+  // Read the translations from the layout query itself: the slice's only
+  // update on initial load.
+  const defaultLayoutFetchedAtRef = useRef(defaultLayoutFetchedAt);
+  const activeLanguageAvailable =
+    !!language &&
+    !!defaultLayoutData?.translations?.available?.includes(language);
+  useEffect(() => {
+    if (defaultLayoutFetchedAtRef.current === defaultLayoutFetchedAt) {
+      return;
+    }
+    defaultLayoutFetchedAtRef.current = defaultLayoutFetchedAt;
+    if (!activeLanguageAvailable || !isPreview || headlessSettings) {
+      return;
+    }
+    refetchLanguagePreview();
+  }, [
+    defaultLayoutFetchedAt,
+    activeLanguageAvailable,
+    isPreview,
+    headlessSettings,
+    refetchLanguagePreview,
+  ]);
 
   // Clear snapshot HTML and title when leaving language preview and handle errors.
   useEffect(() => {

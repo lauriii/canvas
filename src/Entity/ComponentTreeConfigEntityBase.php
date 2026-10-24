@@ -40,6 +40,39 @@ abstract class ComponentTreeConfigEntityBase extends ConfigEntityBase implements
   protected ?array $component_tree;
 
   /**
+   * A forked translation's own component tree, JSON-encoded.
+   *
+   * Always empty in the base config. A forked language's config override sets
+   * it, so it is only populated on an entity loaded with that language's config
+   * overrides (e.g. when rendering), and then replaces the component tree.
+   *
+   * It cannot be an override of the component tree itself: config overrides
+   * are merged onto the base config, so an override could never delete or
+   * reorder the base config's component instances. It cannot be a nested array
+   * either: whenever the base config is saved, core removes override keys that
+   * the base config does not have, recursively, which would remove every
+   * fork-only component instance. A string under a key that the base config
+   * always has survives that.
+   *
+   * @see \Drupal\Core\Config\ConfigFactoryOverrideBase::filterNestedArray()
+   * @see ::isForkedTranslation()
+   * @see ::getTranslatedComponentTree()
+   */
+  protected string $forked_component_tree = '';
+
+  /**
+   * The language whose forked component tree this object edits, if any.
+   *
+   * @see ::forEditingForkedTranslation()
+   */
+  private ?string $editedForkedTranslation = NULL;
+
+  /**
+   * The config key holding a forked translation's own component tree.
+   */
+  public const string FORKED_COMPONENT_TREE = 'forked_component_tree';
+
+  /**
    * An array of entity translation metadata.
    *
    * An associative array keyed by translation language code. Every value is a
@@ -150,6 +183,11 @@ abstract class ComponentTreeConfigEntityBase extends ConfigEntityBase implements
   }
 
   public function setComponentTree(array $values): static {
+    if ($this->editedForkedTranslation !== NULL) {
+      $this->getTranslation($this->editedForkedTranslation)
+        ->setData(self::FORKED_COMPONENT_TREE, self::encodeForkedComponentTreeValues($values));
+      return $this;
+    }
     // TRICKY: a config entity with a translated component tree has sequence
     // keys: those are essential for config translation. Omitting them would
     // cause validation to fail.
@@ -359,10 +397,175 @@ abstract class ComponentTreeConfigEntityBase extends ConfigEntityBase implements
       \array_values($base['component_tree'] ?? []),
     );
     $override = $this->getTranslation($langcode)->getData();
-    $merged = NestedArray::mergeDeepArray([$base, $override], TRUE);
     $tree = $this->createDanglingComponentTreeItemList($this);
+    // A forked translation's tree replaces the base tree rather than being
+    // merged onto it.
+    $fork = self::decodeForkedComponentTree($override[self::FORKED_COMPONENT_TREE] ?? NULL);
+    if ($fork !== NULL) {
+      $tree->setValue(\array_values($fork));
+      return $tree;
+    }
+    $merged = NestedArray::mergeDeepArray([$base, $override], TRUE);
     $tree->setValue(\array_values($merged['component_tree'] ?? []));
     return $tree;
+  }
+
+  /**
+   * Encodes a component tree as a forked translation's config value.
+   *
+   * @see ::$forked_component_tree
+   *
+   * @internal
+   */
+  public static function encodeForkedComponentTree(ComponentTreeItemList $tree): string {
+    return self::encodeForkedComponentTreeValues($tree->getValue());
+  }
+
+  /**
+   * Encodes a component tree sequence as a forked translation's config value.
+   *
+   * @param ComponentTreeItemKeyedSequence|ComponentTreeItemListArray $values
+   *   The component tree sequence.
+   *
+   * @see ::$forked_component_tree
+   *
+   * @internal
+   */
+  public static function encodeForkedComponentTreeValues(array $values): string {
+    return \json_encode(
+      self::asDeterministicallyAndTranslatableKeyedComponentTreeSequence(
+        self::componentTreeInstancesInputsMustBeArrays(\array_values($values)),
+      ),
+      JSON_THROW_ON_ERROR,
+    );
+  }
+
+  /**
+   * Returns a copy that edits a forked translation's component tree.
+   *
+   * The copy's component tree is the translation's staged forked component
+   * tree, and setting its component tree stages the translation's instead of
+   * the base config's. The auto-save manager saves the copy by staging the
+   * translation's config override.
+   *
+   * @see \Drupal\canvas\EventSubscriber\ForkedTranslationEditRequestSubscriber
+   * @see \Drupal\canvas\AutoSave\AutoSaveManager::saveEntity()
+   *
+   * @internal
+   */
+  public function forEditingForkedTranslation(string $langcode): static {
+    \assert($this->isForkedTranslation($langcode));
+    $copy = clone $this;
+    $copy->editedForkedTranslation = $langcode;
+    // The typed data adapter wraps the entity it was created for.
+    unset($copy->typedData);
+    return $copy;
+  }
+
+  /**
+   * Returns a copy that edits the base config's component tree.
+   *
+   * @internal
+   */
+  public function withoutForkedTranslationEditing(): static {
+    $copy = clone $this;
+    $copy->editedForkedTranslation = NULL;
+    unset($copy->typedData);
+    return $copy;
+  }
+
+  /**
+   * The language whose forked component tree this object edits, if any.
+   *
+   * @internal
+   */
+  public function getEditedForkedTranslation(): ?string {
+    return $this->editedForkedTranslation;
+  }
+
+  /**
+   * Decodes a forked translation's config value.
+   *
+   * @return ?array<string, ComponentTreeItemArray>
+   *   The UUID-keyed component tree, or NULL when not forked.
+   *
+   * @see ::$forked_component_tree
+   *
+   * @internal
+   */
+  public static function decodeForkedComponentTree(mixed $value): ?array {
+    if (!\is_string($value) || $value === '') {
+      return NULL;
+    }
+    $tree = \json_decode($value, TRUE, flags: JSON_THROW_ON_ERROR);
+    \assert(\is_array($tree));
+    return $tree;
+  }
+
+  /**
+   * The component tree this entity was loaded with, as a sequence.
+   *
+   * A forked translation's own tree when loaded with its config overrides.
+   *
+   * @return array<int, ComponentTreeItemArray>
+   */
+  protected function getLoadedComponentTreeSequence(): array {
+    if ($this->editedForkedTranslation !== NULL) {
+      return \array_values(self::decodeForkedComponentTree($this->getTranslation($this->editedForkedTranslation)->getData(self::FORKED_COMPONENT_TREE)) ?? []);
+    }
+    return \array_values(self::decodeForkedComponentTree($this->forked_component_tree) ?? $this->component_tree ?? []);
+  }
+
+  /**
+   * Resolves a translation's merged config data to what consumers get.
+   *
+   * A forked translation's component tree replaces the base config's, so the
+   * result validates the fork's tree with the component tree's constraints.
+   *
+   * @param array<string, mixed> $merged
+   *   Base config data with a language's override data merged onto it.
+   *
+   * @return array<string, mixed>
+   *   The data, with a forked component tree as the component tree.
+   *
+   * @internal
+   */
+  public static function resolveForkedComponentTree(array $merged): array {
+    $fork = self::decodeForkedComponentTree($merged[self::FORKED_COMPONENT_TREE] ?? NULL);
+    if ($fork !== NULL) {
+      $merged['component_tree'] = $fork;
+      $merged[self::FORKED_COMPONENT_TREE] = '';
+    }
+    return $merged;
+  }
+
+  /**
+   * Whether the given translation's component tree is forked.
+   *
+   * A forked translation owns its component tree, stored in its config
+   * override, instead of translating the base config's component instances.
+   * Draft-aware: a staged (auto-saved) override decides when there is one, the
+   * stored override otherwise.
+   *
+   * @param string $langcode
+   *   A non-default language code.
+   * @param bool $stored_only
+   *   TRUE to ignore the staged override and only inspect stored config.
+   *
+   * @internal
+   */
+  public function isForkedTranslation(string $langcode, bool $stored_only = FALSE): bool {
+    if ($langcode === $this->langcode) {
+      return FALSE;
+    }
+    $language_manager = self::languageManager();
+    if (!$language_manager instanceof ConfigurableLanguageManagerInterface) {
+      return FALSE;
+    }
+    $data = $stored_only
+      ? $language_manager->getLanguageConfigOverride($langcode, $this->getConfigDependencyName())->get()
+      : $this->getTranslation($langcode)->getData();
+    return self::decodeForkedComponentTree($data[self::FORKED_COMPONENT_TREE] ?? NULL) !== NULL;
   }
 
   /**

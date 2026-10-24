@@ -8,6 +8,7 @@ namespace Drupal\Tests\canvas\Kernel\ComponentSource;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
+use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
 use Drupal\canvas\Controller\ApiAutoSaveController;
 use Drupal\canvas\Controller\ApiLayoutController;
 use Drupal\canvas\Entity\Component;
@@ -39,8 +40,13 @@ final class ContentEntityTranslationPropagationTest extends TranslationPropagati
 
   /**
    * {@inheritdoc}
+   *
+   * The canvas_dev_translation module enables per-translation component tree
+   * forks, exercised by the fork-specific tests below; the fork flag defaults
+   * to FALSE, so the symmetric propagation tests are unaffected.
    */
   protected static $modules = [
+    'canvas_dev_translation',
     'content_translation',
   ];
 
@@ -224,6 +230,75 @@ final class ContentEntityTranslationPropagationTest extends TranslationPropagati
     // Re-running once every translation is current is a no-op: nothing left to
     // update, so no modification is reported.
     self::assertFalse($manager->updateComponentInstances($es_tree));
+  }
+
+  /**
+   * Tests that a forked translation is reconciled in place, not redirected.
+   *
+   * When the host of the updated tree is a forked translation, the update must
+   * not redirect to the default translation: only the fork's own tree is
+   * reconciled, and nothing propagates to the default translation.
+   */
+  public function testForkedHostReconciledInPlace(): void {
+    $page = $this->createPageWithTranslation();
+    $es = $page->getTranslation('es');
+    $es->set(ComponentTreeTranslationFork::FIELD_NAME, TRUE);
+    $es->save();
+
+    $this->addRequiredProp();
+
+    $page = Page::load($page->id());
+    \assert($page instanceof Page);
+    $es_tree = $page->getTranslation('es')->getComponentTree();
+    $manager = $this->container->get(ComponentSourceManager::class);
+    self::assertTrue($manager->updateComponentInstances($es_tree));
+
+    // The forked Spanish translation is reconciled in place.
+    $es_item = $es_tree->getComponentTreeItemByUuid(self::COMPONENT_UUID);
+    self::assertNotNull($es_item);
+    self::assertNotSame($this->originalVersion, $es_item->getComponentVersion());
+    self::assertSame('polite', $es_item->getInputs()['voice'] ?? NULL);
+    self::assertSame('Hola mundo', $es_item->getInputs()['required_text'] ?? NULL);
+
+    // The default (English) translation is untouched: no redirect happened
+    // and nothing propagated outward from the fork.
+    $en_item = $page->getUntranslated()->getComponentTree()->getComponentTreeItemByUuid(self::COMPONENT_UUID);
+    self::assertNotNull($en_item);
+    self::assertSame($this->originalVersion, $en_item->getComponentVersion());
+    self::assertArrayNotHasKey('voice', $en_item->getInputs() ?? []);
+  }
+
+  /**
+   * Tests that forked siblings are skipped when the default tree updates.
+   *
+   * Reconciling the default translation must leave a forked sibling's tree on
+   * its own component version; the fork reconciles when edited or published
+   * in its own language.
+   */
+  public function testForkedSiblingSkippedOnDefaultUpdate(): void {
+    $page = $this->createPageWithTranslation();
+    $es = $page->getTranslation('es');
+    $es->set(ComponentTreeTranslationFork::FIELD_NAME, TRUE);
+    $es->save();
+
+    $this->addRequiredProp();
+
+    $page = Page::load($page->id());
+    \assert($page instanceof Page);
+    $manager = $this->container->get(ComponentSourceManager::class);
+    self::assertTrue($manager->updateComponentInstances($page->getComponentTree()));
+
+    // The default translation converged on the new version.
+    $en_item = $page->getComponentTree()->getComponentTreeItemByUuid(self::COMPONENT_UUID);
+    self::assertNotNull($en_item);
+    self::assertNotSame($this->originalVersion, $en_item->getComponentVersion());
+    self::assertSame('polite', $en_item->getInputs()['voice'] ?? NULL);
+
+    // The forked Spanish sibling was skipped.
+    $es_item = $page->getTranslation('es')->getComponentTree()->getComponentTreeItemByUuid(self::COMPONENT_UUID);
+    self::assertNotNull($es_item);
+    self::assertSame($this->originalVersion, $es_item->getComponentVersion());
+    self::assertArrayNotHasKey('voice', $es_item->getInputs() ?? []);
   }
 
   /**

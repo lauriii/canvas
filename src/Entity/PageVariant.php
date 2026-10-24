@@ -53,6 +53,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
     'label',
     'description',
     'component_tree',
+    'forked_component_tree',
   ],
   constraints: [
     'ImmutableProperties' => [
@@ -96,7 +97,7 @@ final class PageVariant extends ComponentTreeConfigEntityBase implements CanvasH
    */
   public function getComponentTree(): ComponentTreeItemList {
     $field_items = $this->createDanglingComponentTreeItemList($this);
-    $field_items->setValue(\array_values($this->component_tree ?? []));
+    $field_items->setValue($this->getLoadedComponentTreeSequence());
     return $field_items;
   }
 

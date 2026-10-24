@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  addEditorLanguageToUrl,
   extractEntityParams,
+  getEditorLanguage,
+  getRequestTranslation,
   replaceEntityParamsInUrl,
 } from '@/services/baseQuery';
 
@@ -66,5 +69,173 @@ describe('replaceEntityParamsInUrl', () => {
     const url = '/api/static/path';
     const result = replaceEntityParamsInUrl(url);
     expect(result).toBe('/api/static/path');
+  });
+});
+
+describe('getEditorLanguage', () => {
+  it('reads the language of the entity editor route', () => {
+    expect(getEditorLanguage('/canvas/editor/canvas_page/1?language=fr')).toBe(
+      'fr',
+    );
+    expect(
+      getEditorLanguage(
+        '/canvas/editor/canvas_page/1/component/abc?language=fr',
+      ),
+    ).toBe('fr');
+  });
+
+  it('ignores the default translation and the preview route', () => {
+    expect(getEditorLanguage('/canvas/editor/canvas_page/1')).toBe('');
+    expect(
+      getEditorLanguage('/canvas/preview/canvas_page/1/full?language=fr'),
+    ).toBe('');
+  });
+});
+
+describe('addEditorLanguageToUrl', () => {
+  it('names the translation on editor API requests for its entity', () => {
+    expect(
+      addEditorLanguageToUrl(
+        'canvas/api/v0/layout/canvas_page/1',
+        'fr',
+        'canvas_page',
+        '1',
+      ),
+    ).toBe('canvas/api/v0/layout/canvas_page/1?canvas_langcode=fr');
+    expect(
+      addEditorLanguageToUrl(
+        '/canvas/api/v0/form/content-entity/canvas_page/1/default?a=b',
+        'fr',
+        'canvas_page',
+        '1',
+      ),
+    ).toBe(
+      '/canvas/api/v0/form/content-entity/canvas_page/1/default?a=b&canvas_langcode=fr',
+    );
+  });
+
+  it('leaves other requests unchanged', () => {
+    // Another entity.
+    expect(
+      addEditorLanguageToUrl(
+        'canvas/api/v0/layout/canvas_page/12',
+        'fr',
+        'canvas_page',
+        '1',
+      ),
+    ).toBe('canvas/api/v0/layout/canvas_page/12');
+    // Not an entity-scoped editor endpoint.
+    expect(
+      addEditorLanguageToUrl(
+        '/canvas/api/v0/auto-saves/pending',
+        'fr',
+        'canvas_page',
+        '1',
+      ),
+    ).toBe('/canvas/api/v0/auto-saves/pending');
+    // A translation preview, which names its language itself.
+    expect(
+      addEditorLanguageToUrl(
+        'canvas/api/v0/layout/canvas_page/1?canvas_preview_langcode=fr',
+        'fr',
+        'canvas_page',
+        '1',
+      ),
+    ).toBe('canvas/api/v0/layout/canvas_page/1?canvas_preview_langcode=fr');
+    // A request that names its translation itself.
+    expect(
+      addEditorLanguageToUrl(
+        'canvas/api/v0/form/content-entity/canvas_page/1/default?canvas_langcode=de',
+        'fr',
+        'canvas_page',
+        '1',
+      ),
+    ).toBe(
+      'canvas/api/v0/form/content-entity/canvas_page/1/default?canvas_langcode=de',
+    );
+    // The content template editor's API names the template and preview entity.
+    expect(
+      addEditorLanguageToUrl(
+        'canvas/api/v0/layout-content-template/node.article.full/7',
+        'fr',
+        'node',
+        '7',
+        { bundle: 'article', viewMode: 'full' },
+      ),
+    ).toBe(
+      'canvas/api/v0/layout-content-template/node.article.full/7?canvas_langcode=fr',
+    );
+    expect(
+      addEditorLanguageToUrl(
+        'canvas/api/v0/layout-content-template/node.page.full/7',
+        'fr',
+        'node',
+        '7',
+        { bundle: 'article', viewMode: 'full' },
+      ),
+    ).toBe('canvas/api/v0/layout-content-template/node.page.full/7');
+    // A content auto-save for a listed pending change.
+    expect(
+      addEditorLanguageToUrl(
+        '/canvas/api/v0/content/auto-save/canvas_page/1',
+        'fr',
+        'canvas_page',
+        '1',
+      ),
+    ).toBe('/canvas/api/v0/content/auto-save/canvas_page/1');
+    // The default translation.
+    expect(
+      addEditorLanguageToUrl(
+        'canvas/api/v0/layout/canvas_page/1',
+        '',
+        'canvas_page',
+        '1',
+      ),
+    ).toBe('canvas/api/v0/layout/canvas_page/1');
+  });
+});
+
+describe('getRequestTranslation', () => {
+  const api = (type: 'query' | 'mutation', pageDataOwner: unknown) =>
+    ({ type, getState: () => ({ pageDataOwner }) }) as unknown as Parameters<
+      typeof getRequestTranslation
+    >[0];
+  const frOwner = { entityType: 'canvas_page', entityId: '1', langcode: 'fr' };
+
+  it('follows the loaded data for writes and the route for reads', () => {
+    window.history.pushState({}, '', '/canvas/editor/canvas_page/1');
+    expect(getRequestTranslation(api('mutation', frOwner))).toEqual({
+      language: 'fr',
+      entityType: 'canvas_page',
+      entityId: '1',
+    });
+    expect(getRequestTranslation(api('query', frOwner)).language).toBe('');
+  });
+
+  it('follows the route on the content template editor', () => {
+    window.history.pushState(
+      {},
+      '',
+      '/canvas/template/node/article/full/7?language=fr',
+    );
+    expect(getRequestTranslation(api('mutation', frOwner))).toEqual({
+      language: 'fr',
+      entityType: 'node',
+      entityId: '7',
+      template: { bundle: 'article', viewMode: 'full' },
+    });
+  });
+
+  it('follows the route for writes without loaded data', () => {
+    window.history.pushState(
+      {},
+      '',
+      '/canvas/editor/canvas_page/1?language=fr',
+    );
+    expect(getRequestTranslation(api('mutation', null))).toEqual({
+      language: 'fr',
+      entityType: 'canvas_page',
+      entityId: '1',
+    });
   });
 });

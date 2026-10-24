@@ -63,6 +63,12 @@ trait EntityFormTrait {
     }
     \assert($form_display instanceof EntityFormDisplay);
     $form_state = new FormState();
+    // Build the form for the given translation. Without this, the form falls
+    // back to the negotiated content language, which differs when the editor
+    // edits a forked translation.
+    // @see \Drupal\Core\Entity\ContentEntityForm::initFormLangcodes()
+    // @see \Drupal\canvas\EventSubscriber\ForkedTranslationEditRequestSubscriber
+    $form_state->set('langcode', $entity->language()->getId());
     $form->setFormDisplay($form_display, $form_state);
     return $form_state;
   }

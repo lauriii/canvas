@@ -203,6 +203,14 @@ class AutoSaveManager implements EventSubscriberInterface {
   }
 
   public function saveEntity(EntityInterface $entity, ?string $clientId = NULL): void {
+    // An edited forked config translation stages its config override, plus the
+    // base entity, which the override is listed and published with.
+    // @see \Drupal\canvas\Entity\ComponentTreeConfigEntityBase::forEditingForkedTranslation()
+    if ($entity instanceof ComponentTreeConfigEntityBase && ($langcode = $entity->getEditedForkedTranslation()) !== NULL) {
+      $this->saveEntity($entity->getTranslation($langcode), $clientId);
+      $this->saveEntity($entity->withoutForkedTranslationEditing(), $clientId);
+      return;
+    }
     $key = $this->getAutoSaveKey($entity);
     $data = self::normalizeEntity($entity);
     $data_hash = self::generateHash($data);
@@ -222,7 +230,11 @@ class AutoSaveManager implements EventSubscriberInterface {
     // \array_diff($data_hash, $original_hash)
     // \array_diff($original_hash, $data_hash)
     // @endcode
-    if ($original_hash !== NULL && \hash_equals($original_hash, $data_hash) && !$has_form_violations) {
+    if ($original_hash !== NULL && \hash_equals($original_hash, $data_hash) && !$has_form_violations
+      // A config entity's draft also lists, publishes and discards its staged
+      // config translations, so it is kept while any of them is pending.
+      // @see \Drupal\canvas\Controller\ApiAutoSaveController::post()
+      && !self::hasStagedTranslationDrafts($entity)) {
       // We've reset back to the original values. Clear the auto-save entry but
       // keep the hash.
       $this->delete($entity);
@@ -447,7 +459,37 @@ class AutoSaveManager implements EventSubscriberInterface {
     return self::generateHash(self::normalizeEntity($original));
   }
 
+  /**
+   * Whether a config entity has staged (auto-saved) config translations.
+   */
+  private static function hasStagedTranslationDrafts(EntityInterface $entity): bool {
+    if (!$entity instanceof ComponentTreeConfigEntityBase) {
+      return FALSE;
+    }
+    foreach (\array_keys($entity->getTranslationLanguages(include_default: FALSE)) as $langcode) {
+      if (!$entity->getTranslation($langcode)->isNew()) {
+        return TRUE;
+      }
+    }
+    return FALSE;
+  }
+
   public function getAutoSaveEntity(EntityInterface $entity, bool $bypass_cache = FALSE): AutoSaveEntity {
+    // The base entity's draft, editing the same forked config translation.
+    // @see \Drupal\canvas\Entity\ComponentTreeConfigEntityBase::forEditingForkedTranslation()
+    if ($entity instanceof ComponentTreeConfigEntityBase && ($langcode = $entity->getEditedForkedTranslation()) !== NULL) {
+      $draft = $this->getAutoSaveEntity($entity->withoutForkedTranslationEditing(), $bypass_cache);
+      if ($draft->isEmpty()) {
+        return $draft;
+      }
+      \assert($draft->entity instanceof ComponentTreeConfigEntityBase);
+      return new AutoSaveEntity(
+        entity: $draft->entity->forEditingForkedTranslation($langcode),
+        hash: $draft->hash,
+        clientId: $draft->clientId,
+        updated: $draft->updated,
+      );
+    }
     $key = $this->getAutoSaveKey($entity);
     if (!$bypass_cache) {
       $cached = $this->cache->get($key);
