@@ -12,6 +12,7 @@ use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Entity\RevisionableStorageInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\FieldItemListInterface;
@@ -22,6 +23,11 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  * Hook implementations for content_translation integration.
  */
 final readonly class ContentTranslationHooks {
+
+  /**
+   * Revisions (or entities) per batch when marking divergent translations.
+   */
+  private const int MARK_DIVERGENT_BATCH_SIZE = 50;
 
   public function __construct(
     private ModuleHandlerInterface $moduleHandler,
@@ -179,15 +185,39 @@ final readonly class ContentTranslationHooks {
    * not marked, and those values are (and already were, before forks
    * existed) overwritten by the input synchronization on the next save.
    *
+   * Every revision is inspected and updated in place, so reverting to an older
+   * revision cannot re-enter synchronization with a divergent tree either.
+   * Processes a bounded batch per call; call it until it returns TRUE.
+   *
    * Must only be called when ::translationForksEnabled() is TRUE.
    *
-   * @see canvas_post_update_0023_mark_divergent_component_tree_translations_forked()
+   * @param array<string, mixed> $sandbox
+   *   Batch state, kept between calls.
+   *
+   * @return bool
+   *   TRUE when every entity type has been processed.
+   *
+   * @see canvas_post_update_0031_mark_divergent_component_tree_translations_forked()
    */
-  public static function markDivergentComponentTreeTranslationsForked(): void {
+  public static function markDivergentComponentTreeTranslationsForked(array &$sandbox): bool {
     $entity_type_manager = \Drupal::entityTypeManager();
-    $entity_field_manager = \Drupal::service(EntityFieldManagerInterface::class);
-    \assert($entity_field_manager instanceof EntityFieldManagerInterface);
     $fork_field_name = ComponentTreeTranslationFork::FIELD_NAME;
+    if (!isset($sandbox['fields'])) {
+      $entity_field_manager = \Drupal::service(EntityFieldManagerInterface::class);
+      \assert($entity_field_manager instanceof EntityFieldManagerInterface);
+      $sandbox['fields'] = [];
+      foreach ($entity_field_manager->getFieldMapByFieldType(ComponentTreeItem::PLUGIN_ID) as $entity_type_id => $fields) {
+        $entity_type = $entity_type_manager->getDefinition($entity_type_id);
+        if ($entity_type instanceof ContentEntityTypeInterface && $entity_type->isTranslatable()) {
+          $sandbox['fields'][$entity_type_id] = \array_map('strval', \array_keys($fields));
+        }
+      }
+      $sandbox['last_id'] = 0;
+    }
+    $entity_type_id = \array_key_first($sandbox['fields']);
+    if ($entity_type_id === NULL) {
+      return TRUE;
+    }
 
     // The raw values of the columns shared across symmetric translations.
     // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem::propertyDefinitions()
@@ -197,46 +227,65 @@ final readonly class ContentTranslationHooks {
       $items->getValue(),
     );
 
-    // ponytail: unbatched full scan; sites carrying the experimental flag
-    // module are dev-scale today. Batch per entity type if that changes.
-    $field_map = $entity_field_manager->getFieldMapByFieldType(ComponentTreeItem::PLUGIN_ID);
-    foreach ($field_map as $entity_type_id => $fields) {
-      $entity_type = $entity_type_manager->getDefinition($entity_type_id);
-      if (!$entity_type instanceof ContentEntityTypeInterface || !$entity_type->isTranslatable()) {
+    $entity_type = $entity_type_manager->getDefinition($entity_type_id);
+    \assert($entity_type instanceof ContentEntityTypeInterface);
+    $storage = $entity_type_manager->getStorage($entity_type_id);
+    $revisionable = $entity_type->isRevisionable() && $storage instanceof RevisionableStorageInterface;
+    $id_key = (string) $entity_type->getKey($revisionable ? 'revision' : 'id');
+    $query = $storage->getQuery()->accessCheck(FALSE)
+      ->condition($id_key, $sandbox['last_id'], '>')
+      ->sort($id_key)
+      ->range(0, self::MARK_DIVERGENT_BATCH_SIZE);
+    if ($revisionable) {
+      \assert($storage instanceof RevisionableStorageInterface);
+      $ids = \array_keys($query->allRevisions()->execute());
+      $entities = $storage->loadMultipleRevisions($ids);
+    }
+    else {
+      $ids = \array_values($query->execute());
+      $entities = $storage->loadMultiple($ids);
+    }
+
+    foreach ($entities as $entity) {
+      if (!$entity instanceof ContentEntityInterface || !$entity->hasField($fork_field_name)) {
         continue;
       }
-      $storage = $entity_type_manager->getStorage($entity_type_id);
-      $ids = $storage->getQuery()->accessCheck(FALSE)->execute();
-      foreach ($storage->loadMultiple($ids) as $entity) {
-        if (!$entity instanceof ContentEntityInterface || !$entity->hasField($fork_field_name)) {
+      $default_translation = $entity->getUntranslated();
+      $changed = FALSE;
+      foreach ($entity->getTranslationLanguages(FALSE) as $langcode => $language) {
+        $translation = $entity->getTranslation($langcode);
+        if (ComponentTreeTranslationFork::isForkedTranslation($translation)) {
           continue;
         }
-        $default_translation = $entity->getUntranslated();
-        $changed = FALSE;
-        foreach ($entity->getTranslationLanguages(FALSE) as $langcode => $language) {
-          $translation = $entity->getTranslation($langcode);
-          if (ComponentTreeTranslationFork::isForkedTranslation($translation)) {
-            continue;
+        foreach ($sandbox['fields'][$entity_type_id] as $field_name) {
+          if ($translation->hasField($field_name)
+            && $extract_tree($translation->get($field_name)) !== $extract_tree($default_translation->get($field_name))) {
+            $translation->set($fork_field_name, TRUE);
+            $changed = TRUE;
+            break;
           }
-          foreach (\array_keys($fields) as $field_name) {
-            $field_name = (string) $field_name;
-            if (!$translation->hasField($field_name)) {
-              continue;
-            }
-            if ($extract_tree($translation->get($field_name)) !== $extract_tree($default_translation->get($field_name))) {
-              $translation->set($fork_field_name, TRUE);
-              $changed = TRUE;
-              break;
-            }
-          }
-        }
-        if ($changed) {
-          // The just-set fork flags shield the divergent trees from the
-          // synchronization this save would otherwise apply.
-          $entity->save();
         }
       }
+      if ($changed) {
+        // Update the revision in place: this records what already happened.
+        // The just-set fork flags shield the divergent trees from the
+        // synchronization this save would otherwise apply.
+        if ($revisionable) {
+          $entity->setNewRevision(FALSE);
+        }
+        $entity->setSyncing(TRUE);
+        $entity->save();
+      }
     }
+    $storage->resetCache();
+
+    if (\count($ids) < self::MARK_DIVERGENT_BATCH_SIZE) {
+      unset($sandbox['fields'][$entity_type_id]);
+      $sandbox['last_id'] = 0;
+      return $sandbox['fields'] === [];
+    }
+    $sandbox['last_id'] = \end($ids);
+    return FALSE;
   }
 
   /**
@@ -288,7 +337,9 @@ final readonly class ContentTranslationHooks {
     if (\array_intersect(['canvas', 'content_translation', 'canvas_dev_translation'], $modules) !== []
       && self::translationForksEnabled()) {
       self::installForkFieldStorageDefinitions();
-      self::markDivergentComponentTreeTranslationsForked();
+      // Module installation cannot be batched; the batches still bound memory.
+      $sandbox = [];
+      while (!self::markDivergentComponentTreeTranslationsForked($sandbox));
     }
 
     // During config sync, the override comes from the synced config itself.

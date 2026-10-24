@@ -834,5 +834,5 @@ function canvas_post_update_0031_mark_divergent_component_tree_translations_fork
   if (!ContentTranslationHooks::translationForksEnabled()) {
     return;
   }
-  ContentTranslationHooks::markDivergentComponentTreeTranslationsForked();
+  $sandbox['#finished'] = ContentTranslationHooks::markDivergentComponentTreeTranslationsForked($sandbox) ? 1 : 0;
 }

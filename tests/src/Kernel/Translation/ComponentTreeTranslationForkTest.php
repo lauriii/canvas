@@ -9,11 +9,14 @@ namespace Drupal\Tests\canvas\Kernel\Translation;
 use Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer;
 use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Hook\ContentTranslationHooks;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\content_translation\BundleTranslationSettingsInterface;
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\RevisionableStorageInterface;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -42,6 +45,7 @@ use PHPUnit\Framework\Attributes\TestWith;
  * @see \Drupal\canvas\ContentTranslation\ComponentTreeFieldSymmetricalTranslationSynchronizer
  */
 #[CoversClass(ComponentTreeFieldSymmetricalTranslationSynchronizer::class)]
+#[CoversClass(ContentTranslationHooks::class)]
 #[Group('canvas')]
 #[Group('canvas_data_model')]
 #[Group('canvas_translation')]
@@ -288,6 +292,85 @@ final class ComponentTreeTranslationForkTest extends ContentComponentTreeSymmetr
     $entity = $entity_storage->loadUnchanged($entity_id);
     \assert($entity instanceof ContentEntityInterface);
     self::assertSame('_self', self::tree($entity->getTranslation('fr'), $field_name)->getComponentTreeItemByUuid(self::CTA_UUID)?->getInputs()['target'] ?? NULL);
+  }
+
+  /**
+   * Tests marking revisions whose translated trees diverged as forked.
+   *
+   * Sites that translated Canvas fields before symmetric synchronization was
+   * guaranteed can have divergent translated trees without a fork flag, also
+   * in older revisions.
+   */
+  public function testMarkDivergentTranslationsForked(): void {
+    $this->setUpSymmetricalContentTranslation(Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID, 'components');
+    $storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage(Page::ENTITY_TYPE_ID);
+    \assert($storage instanceof RevisionableStorageInterface);
+    $entity = $this->createEntityWithDefaultTranslation(Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID, 'components', $storage);
+    $entity->save();
+    $entity_id = $entity->id();
+    \assert($entity_id !== NULL);
+    $fr = $this->addSeededTranslation($entity, 'fr', 'components', 'Cliquez ici');
+    $fr->save();
+
+    // A revision whose French tree diverged, then a symmetric one.
+    $entity = $storage->loadUnchanged($entity_id);
+    \assert($entity instanceof ContentEntityInterface);
+    $fr = $entity->getTranslation('fr');
+    $fr->set(ComponentTreeTranslationFork::FIELD_NAME, TRUE);
+    $fr->set('components', []);
+    $fr->setNewRevision(TRUE);
+    $fr->save();
+    $divergent_revision_id = $fr->getRevisionId();
+    \assert($divergent_revision_id !== NULL);
+    $fr->set(ComponentTreeTranslationFork::FIELD_NAME, FALSE);
+    ComponentTreeTranslationFork::resyncFromDefaultTranslation($fr);
+    $fr->setNewRevision(TRUE);
+    $fr->save();
+    $symmetric_revision_id = $fr->getRevisionId();
+    \assert($symmetric_revision_id !== NULL);
+    // Divergence from before the fork flag existed.
+    $this->container->get(Connection::class)->update('canvas_page_field_revision')
+      ->fields([ComponentTreeTranslationFork::FIELD_NAME => 0])
+      ->condition('revision_id', $divergent_revision_id)
+      ->condition('langcode', 'fr')
+      ->execute();
+    $storage->resetCache();
+    $revision = $storage->loadRevision($divergent_revision_id);
+    \assert($revision instanceof ContentEntityInterface);
+    self::assertFalse(ComponentTreeTranslationFork::isForkedTranslation($revision->getTranslation('fr')));
+
+    \Drupal::moduleHandler()->loadInclude('canvas', 'php', 'canvas.post_update');
+    $sandbox = [];
+    do {
+      canvas_post_update_0031_mark_divergent_component_tree_translations_forked($sandbox);
+    } while ($sandbox['#finished'] < 1);
+
+    // Only the divergent revision is marked, in place.
+    $revision = $storage->loadRevision($divergent_revision_id);
+    \assert($revision instanceof ContentEntityInterface);
+    self::assertTrue(ComponentTreeTranslationFork::isForkedTranslation($revision->getTranslation('fr')));
+    self::assertTrue(self::tree($revision->getTranslation('fr'), 'components')->isEmpty());
+    $revision = $storage->loadRevision($symmetric_revision_id);
+    \assert($revision instanceof ContentEntityInterface);
+    self::assertFalse(ComponentTreeTranslationFork::isForkedTranslation($revision->getTranslation('fr')));
+    $entity = $storage->loadUnchanged($entity_id);
+    \assert($entity instanceof ContentEntityInterface);
+    self::assertSame($symmetric_revision_id, $entity->getRevisionId());
+  }
+
+  /**
+   * Tests that the update installs the fork field's storage definitions.
+   */
+  public function testUpdateInstallsForkField(): void {
+    // Every translatable entity type gets the field, so each needs tables.
+    $this->installEntitySchema('media');
+    $update_manager = \Drupal::entityDefinitionUpdateManager();
+    // A site that had the flag module enabled before the field existed.
+    ContentTranslationHooks::uninstallForkFieldStorageDefinitions();
+    self::assertNull($update_manager->getFieldStorageDefinition(ComponentTreeTranslationFork::FIELD_NAME, Page::ENTITY_TYPE_ID));
+    \Drupal::moduleHandler()->loadInclude('canvas', 'install');
+    canvas_update_11201();
+    self::assertNotNull($update_manager->getFieldStorageDefinition(ComponentTreeTranslationFork::FIELD_NAME, Page::ENTITY_TYPE_ID));
   }
 
 }
