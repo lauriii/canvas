@@ -458,7 +458,7 @@ abstract class ComponentTreeConfigEntityBase extends ConfigEntityBase implements
     $copy = clone $this;
     $copy->editedForkedTranslation = $langcode;
     // The typed data adapter wraps the entity it was created for.
-    $copy->typedData = NULL;
+    unset($copy->typedData);
     return $copy;
   }
 
@@ -470,7 +470,7 @@ abstract class ComponentTreeConfigEntityBase extends ConfigEntityBase implements
   public function withoutForkedTranslationEditing(): static {
     $copy = clone $this;
     $copy->editedForkedTranslation = NULL;
-    $copy->typedData = NULL;
+    unset($copy->typedData);
     return $copy;
   }
 

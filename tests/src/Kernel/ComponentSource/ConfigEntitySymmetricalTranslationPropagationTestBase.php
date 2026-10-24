@@ -60,7 +60,7 @@ abstract class ConfigEntitySymmetricalTranslationPropagationTestBase extends Tra
   protected const string TRANSLATED_COMPONENT_INSTANCE_UUID = self::COMPONENT_INSTANCE_UUID;
 
   /**
-   * @var ComponentTreeItemListArray
+   * @phpstan-var ComponentTreeItemListArray
    * @todo Move to TranslationPropagationTestBase
    */
   protected array $translatableComponentTree = [
