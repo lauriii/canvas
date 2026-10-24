@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
-import { useParams } from 'react-router';
+import { useParams, useSearchParams } from 'react-router';
 import { skipToken } from '@reduxjs/toolkit/query';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { selectPageDataOwner } from '@/features/pageData/pageDataSlice';
 import { clearSelection } from '@/features/ui/uiSlice';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
@@ -18,6 +19,26 @@ const LayoutLoader = () => {
   const dispatch = useAppDispatch();
   const isInitialized = useAppSelector(selectIsInitialized);
   const { entityId, entityType } = useParams();
+  // The forked translation being edited, if any. The base query names it on
+  // every layout request, so switching it loads a different layout.
+  // @see \Drupal\canvas\EventSubscriber\ForkedTranslationEditRequestSubscriber
+  const [searchParams] = useSearchParams();
+  const editorLanguage = searchParams.get('language') ?? '';
+  const pageDataOwner = useAppSelector(selectPageDataOwner);
+
+  // Switching the translation of the entity open in the editor reloads the
+  // app, so its layout, page data, and undo history are never mixed across
+  // translations, not even for one render.
+  // ponytail: a full reload; switch in place if reloads become a UX problem.
+  useEffect(() => {
+    if (
+      pageDataOwner?.entityType === entityType &&
+      pageDataOwner?.entityId === entityId &&
+      (pageDataOwner?.langcode ?? '') !== editorLanguage
+    ) {
+      window.location.reload();
+    }
+  }, [pageDataOwner, entityType, entityId, editorLanguage]);
 
   const {
     data: fetchedLayout,
@@ -41,7 +62,7 @@ const LayoutLoader = () => {
     if (entityId && entityType) {
       refetch();
     }
-  }, [refetch, entityType, entityId, dispatch]);
+  }, [refetch, entityType, entityId, editorLanguage, dispatch]);
 
   useEffect(() => {
     if (isError && error && !isFetching) {

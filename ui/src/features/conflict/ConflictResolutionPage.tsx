@@ -213,6 +213,7 @@ const EnabledConflictResolutionPage = () => {
           entityType: 'canvas_page',
           entityId: String(activeChange.entity_id),
           conflictToResolve: conflictId,
+          langcode: activeChange.langcode,
         }).unwrap();
       } else {
         await discardChange({

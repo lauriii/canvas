@@ -6,6 +6,7 @@ namespace Drupal\canvas\Controller;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
+use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
 use Drupal\canvas\ContentTranslation\SymmetricalTranslationSynchronizationTrait;
 use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\Entity\AutoSavePublishAwareInterface;
@@ -194,6 +195,10 @@ final class ApiAutoSaveController extends ApiControllerBase {
    * pulls in every other pending translation auto-save of the same entity so
    * they are validated, access-checked, applied, and consumed together.
    *
+   * A draft whose own snapshot is forked shares no structure with its
+   * siblings, so it is its own publish unit: it neither pulls in siblings nor
+   * gets pulled in by them.
+   *
    * @param array<string, AutoSaveEntry> $selected
    *   The auto-save entries the client selected to publish, with 'entity'.
    * @param array<string, AutoSaveEntry> $all
@@ -206,19 +211,65 @@ final class ApiAutoSaveController extends ApiControllerBase {
     $expanded = $selected;
     foreach ($selected as $entry) {
       $entity = $entry['entity'] ?? NULL;
-      if (!$entity instanceof ContentEntityInterface) {
+      if (!$entity instanceof ContentEntityInterface || self::isForkedTranslationDraft($entity)) {
         continue;
       }
       foreach ($all as $key => $candidate) {
         $candidate_entity = $candidate['entity'] ?? NULL;
         if ($candidate_entity instanceof ContentEntityInterface
           && $candidate_entity->getEntityTypeId() === $entity->getEntityTypeId()
-          && (string) $candidate_entity->id() === (string) $entity->id()) {
+          && (string) $candidate_entity->id() === (string) $entity->id()
+          && !self::isForkedTranslationDraft($candidate_entity)) {
           $expanded[$key] = $candidate;
         }
       }
     }
     return $expanded;
+  }
+
+  /**
+   * Whether an auto-save snapshot is a forked translation's draft.
+   *
+   * Such a draft owns its component tree, so it is published and discarded
+   * independently of its sibling translations' drafts.
+   */
+  private static function isForkedTranslationDraft(EntityInterface $snapshot): bool {
+    return $snapshot instanceof ContentEntityInterface
+      && ComponentTreeTranslationFork::isForkedTranslation($snapshot);
+  }
+
+  /**
+   * Whether an auto-save snapshot is a pending unfork listed on its own.
+   *
+   * A pending unfork (forked in storage, not in its snapshot) publishes and
+   * discards with the default translation's draft, since it will share its
+   * component tree again. It is listed on its own only while the default
+   * translation has no draft to list it under.
+   *
+   * @param array<string, AutoSaveEntry> $all
+   *   Every pending auto-save entry, with 'entity'.
+   */
+  private function isStandalonePendingUnfork(EntityInterface $snapshot, array $all): bool {
+    if (!$snapshot instanceof ContentEntityInterface || $snapshot->id() === NULL) {
+      return FALSE;
+    }
+    $stored = $this->entityTypeManager->getStorage($snapshot->getEntityTypeId())->load($snapshot->id());
+    $langcode = $snapshot->language()->getId();
+    if (!$stored instanceof ContentEntityInterface
+      || !$stored->hasTranslation($langcode)
+      || !ComponentTreeTranslationFork::isForkedTranslation($stored->getTranslation($langcode))) {
+      return FALSE;
+    }
+    foreach ($all as $item) {
+      $entity = $item['entity'] ?? NULL;
+      if (($item['is_default_translation'] ?? TRUE)
+        && $entity instanceof ContentEntityInterface
+        && $entity->getEntityTypeId() === $snapshot->getEntityTypeId()
+        && (string) $entity->id() === (string) $snapshot->id()) {
+        return FALSE;
+      }
+    }
+    return TRUE;
   }
 
   /**
@@ -241,7 +292,7 @@ final class ApiAutoSaveController extends ApiControllerBase {
    */
   private function getPublishableAutoSaves(bool $with_conflicts, ?CacheableMetadata $cache = NULL): array {
     $all = $this->autoSaveManager->getAllAutoSaveList(with_entities: TRUE, with_conflicts: $with_conflicts);
-    return \array_filter($all, function (array $item) use ($cache): bool {
+    return \array_filter($all, function (array $item) use ($cache, $all): bool {
       \assert($item['entity'] instanceof EntityInterface);
       $access = $item['entity']->access('view label', return_as_object: TRUE);
       if ($cache !== NULL) {
@@ -253,10 +304,16 @@ final class ApiAutoSaveController extends ApiControllerBase {
         $cache->addCacheableDependency($item['entity']);
         $cache->addCacheableDependency($access);
       }
-      // Hide non-default-translation auto-saves until langcode-aware discard
-      // lands and asymmetrical translation is supported.
+      // Hide symmetric non-default-translation auto-saves until per-language
+      // publish lands: they publish with the default translation's draft.
+      // Forked translations own their layout and are edited in the editor, so
+      // their drafts are listed. A pending unfork is listed under the default
+      // translation's draft when there is one.
       // @todo Remove this filtering in https://git.drupalcode.org/project/canvas/-/work_items/3591703.
-      return $access->isAllowed() && ($item['is_default_translation'] ?? TRUE);
+      return $access->isAllowed()
+        && (($item['is_default_translation'] ?? TRUE)
+          || self::isForkedTranslationDraft($item['entity'])
+          || $this->isStandalonePendingUnfork($item['entity'], $all));
     });
   }
 
@@ -307,6 +364,19 @@ final class ApiAutoSaveController extends ApiControllerBase {
         }
       }
     }
+
+    // Label non-default translation drafts with their language, so a forked
+    // translation's draft is distinguishable from the default translation's.
+    $filtered = \array_map(function (array $item): array {
+      $entity = $item['entity'];
+      if (!($item['is_default_translation'] ?? TRUE) && $entity instanceof ContentEntityInterface) {
+        $item['label'] = (string) new TranslatableMarkup('@label (@language)', [
+          '@label' => $item['label'],
+          '@language' => $entity->language()->getName(),
+        ]);
+      }
+      return $item;
+    }, $filtered);
 
     // Remove internal auto-save properties that are not used client side (like
     // 'data', 'client_id', 'entity', etc.). This will reduce the amount of data
@@ -553,22 +623,31 @@ final class ApiAutoSaveController extends ApiControllerBase {
     // cleanup (::post() deletes each published auto-save) and on
     // hook_entity_delete, where cascading would discard siblings mid-publish.
     // @see \Drupal\canvas\Hook\AutoSaveHooks::entityDelete()
-    // @todo The discard route carries no langcode, so it always upcasts the
-    //   default translation and cannot identify which one the editor acted on;
-    //   irrelevant while discard is atomic, revisit for asymmetric translation
-    //   in https://git.drupalcode.org/project/canvas/-/work_items/3591703
+    // The route upcasts the default translation unless the client names a
+    // forked translation with `?canvas_langcode=`.
+    // @see \Drupal\canvas\EventSubscriber\ForkedTranslationEditRequestSubscriber
     //
-    // Only discard entities whose auto-save is publishable — i.e. default-
-    // translation entries. Non-default-translation auto-saves are hidden from
-    // GET and must not be directly actionable here either. An entity with no
-    // publishable auto-save (either it does not exist or it is a non-default
-    // translation) is treated identically as not found.
+    // Only discard entities whose auto-save is publishable — default-
+    // translation and forked-translation entries. Symmetric
+    // non-default-translation auto-saves are hidden from GET and must not be
+    // directly actionable here either. An entity with no publishable auto-save
+    // is treated identically as not found.
     $publishable_auto_saves = $this->getPublishableAutoSaves(with_conflicts: FALSE);
     $key = AutoSaveManager::getAutoSaveKey($entity);
     if (!isset($publishable_auto_saves[$key])) {
       return new JsonResponse(data: ['error' => 'No auto-save data found for this entity.'], status: Response::HTTP_NOT_FOUND);
     }
-    $group = $this->autoSaveManager->getTranslationGroupAutoSaves($entity);
+    // A forked translation's draft is discarded on its own, and discarding any
+    // other member leaves forked translations' drafts pending.
+    // @see ::includeSiblingTranslationAutoSaves()
+    $snapshot = $publishable_auto_saves[$key]['entity'];
+    \assert($snapshot instanceof EntityInterface);
+    $group = self::isForkedTranslationDraft($snapshot)
+      ? [$snapshot]
+      : \array_filter(
+        $this->autoSaveManager->getTranslationGroupAutoSaves($entity),
+        static fn (EntityInterface $member): bool => !self::isForkedTranslationDraft($member),
+      );
     foreach ($group as $member) {
       $this->autoSaveManager->delete($member);
     }
@@ -825,6 +904,11 @@ final class ApiAutoSaveController extends ApiControllerBase {
         // over.
         // @see \Drupal\canvas\AutoSave\AutoSaveManager::isPersistedComputedField()
         $ignore_field = ($field->isComputed() && !AutoSaveManager::isPersistedComputedField($field)) || $original_field->equals($auto_save_entity->get($field_name));
+        // A forked translation's draft is published on its own, so its copy
+        // of a field shared with the default translation may be older than
+        // the stored value; only its own translatable fields are applied.
+        // @see ::includeSiblingTranslationAutoSaves()
+        $ignore_field |= self::isForkedTranslationDraft($auto_save_entity) && !$field->isTranslatable();
         $keys = ['id', 'revision_id', 'uuid', 'langcode', 'status', 'published'];
         $revision_keys = ['revision_created', 'revision_user'];
         foreach ($keys as $key) {

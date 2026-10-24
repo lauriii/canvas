@@ -21,7 +21,7 @@ export interface PendingChange {
   entity_type: string;
   entity_id: string | number;
   data_hash: string;
-  langcode: string;
+  langcode: string | null;
   label: string;
   updated: number;
   hasConflict?: boolean;
@@ -212,7 +212,10 @@ export const pendingChangesApi = createApi({
       DiscardPendingChangeArg
     >({
       query: (change: PendingChange) => ({
-        url: `/canvas/api/v0/auto-saves/${change.entity_type}/${change.entity_id}`,
+        // Name the translation: a forked translation's draft is discarded on
+        // its own. The backend ignores the parameter for entities without
+        // translations.
+        url: `/canvas/api/v0/auto-saves/${change.entity_type}/${change.entity_id}${change.langcode ? `?canvas_langcode=${encodeURIComponent(change.langcode)}` : ''}`,
         method: 'DELETE',
       }),
       async onQueryStarted(change, { dispatch, queryFulfilled }) {

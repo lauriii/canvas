@@ -42,6 +42,8 @@ export interface UpdateContentRequest {
   entityId: string;
   status?: boolean;
   conflictToResolve?: string;
+  // The translation to act on, when not the default one.
+  langcode?: string | null;
 }
 
 export interface ContentListResult {
@@ -193,8 +195,14 @@ export const contentApi = createApi({
       },
     }),
     updateContent: builder.mutation<void, UpdateContentRequest>({
-      query: ({ entityType, entityId, status, conflictToResolve }) => ({
-        url: `/canvas/api/v0/content/auto-save/${entityType}/${entityId}`,
+      query: ({
+        entityType,
+        entityId,
+        status,
+        conflictToResolve,
+        langcode,
+      }) => ({
+        url: `/canvas/api/v0/content/auto-save/${entityType}/${entityId}${langcode ? `?canvas_langcode=${encodeURIComponent(langcode)}` : ''}`,
         method: 'PATCH',
         body: buildUpdateContentBody({ status, conflictToResolve }),
       }),

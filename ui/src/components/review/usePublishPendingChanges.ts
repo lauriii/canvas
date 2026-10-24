@@ -1,8 +1,11 @@
 import { useCallback } from 'react';
 
-import { useAppDispatch } from '@/app/hooks';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { setUpdatePreview } from '@/features/layout/layoutModelSlice';
-import { setInitialPageData } from '@/features/pageData/pageDataSlice';
+import {
+  selectPageDataOwner,
+  setInitialPageData,
+} from '@/features/pageData/pageDataSlice';
 import { brandKitApi } from '@/services/brandKit';
 import { componentAndLayoutApi } from '@/services/componentAndLayout';
 import { contentApi } from '@/services/content';
@@ -41,6 +44,7 @@ export const usePublishPendingChanges = ({
   entityFormFields,
 }: PublishPendingChangesOptions = {}) => {
   const dispatch = useAppDispatch();
+  const pageDataOwner = useAppSelector(selectPageDataOwner);
   const [publishAllChanges, publishState] =
     usePublishAllPendingChangesMutation();
 
@@ -51,8 +55,16 @@ export const usePublishPendingChanges = ({
       }
 
       const changesToPublish = buildPendingChangesPayload(selectedChanges);
+      // A forked translation's draft publishes on its own, so only its own
+      // change counts for the page being edited.
       const isCurrentChanged = findInChanges(
-        changesToPublish,
+        pageDataOwner?.langcode
+          ? Object.fromEntries(
+              Object.entries(changesToPublish).filter(
+                ([, change]) => change.langcode === pageDataOwner.langcode,
+              ),
+            )
+          : changesToPublish,
         currentEntityId,
         currentEntityType,
       );
@@ -96,7 +108,9 @@ export const usePublishPendingChanges = ({
                 ...entityFormFields,
                 changed: Math.floor(new Date().getTime() / 1000),
               },
-              owner: {
+              // Keep the translation the data belongs to: a changed owner
+              // language reloads the editor.
+              owner: pageDataOwner ?? {
                 entityType: currentEntityType,
                 entityId: currentEntityId,
               },
@@ -165,6 +179,7 @@ export const usePublishPendingChanges = ({
       currentEntityType,
       dispatch,
       entityFormFields,
+      pageDataOwner,
       publishAllChanges,
     ],
   );

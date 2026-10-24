@@ -15,6 +15,17 @@
   text-overflow: ellipsis;
 }
 
+.languageItem {
+  flex: 1;
+  min-width: 0;
+}
+
+.forkedBadge {
+  flex-shrink: 0;
+  margin-inline-end: 4px;
+  font-weight: 500;
+}
+
 .dropdown.dropdown {
   min-width: 200px;
   padding: 8px;
