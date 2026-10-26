@@ -1,0 +1,17 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Formatted text list
+description: Multi-value HTML prop for Canvas AI kernel coverage of formatted text defaults.
+props:
+  type: object
+  properties:
+    paragraphs:
+      type: array
+      title: Paragraphs
+      maxItems: 3
+      items:
+        type: string
+        contentMediaType: text/html
+        x-formatting-context: block
+      examples:
+        - - '<p>First <strong>paragraph</strong></p>'
+          - '<p>Second paragraph</p>'
