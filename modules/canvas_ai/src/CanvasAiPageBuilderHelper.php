@@ -8,6 +8,8 @@ use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\SingleDirectoryComponent;
+use Drupal\canvas\Plugin\ComponentPluginManager;
+use Drupal\canvas\PropShape\PropShape;
 use Drupal\Component\Render\MarkupInterface;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\DiffArray;
@@ -20,7 +22,6 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Template\Attribute as TemplateAttribute;
-use Drupal\Core\Theme\ComponentPluginManager;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Yaml\Yaml;
 
@@ -39,7 +40,7 @@ class CanvasAiPageBuilderHelper {
   /**
    * Constructor.
    *
-   * @param \Drupal\Core\Theme\ComponentPluginManager $componentPluginManager
+   * @param \Drupal\canvas\Plugin\ComponentPluginManager $componentPluginManager
    *   The component plugin manager.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   The entity type manager.
@@ -673,9 +674,13 @@ class CanvasAiPageBuilderHelper {
         $default_value = $client_normalized["propSources"][$prop_name]["default_values"]["resolved"] ?? $prop_details['default'] ?? $prop_details['examples'][0] ?? NULL;
         // Default values of some props may have HTML markup as default value.
         // Convert it to string so that it can be safely YAML encoded when saving
-        // the CanvasAiComponentDescriptionSettingsForm config.
+        // the CanvasAiComponentDescriptionSettingsForm config. A multi-value
+        // formatted text prop has a list of markup objects as default value.
         if ($default_value instanceof MarkupInterface) {
           $default_value = (string) $default_value;
+        }
+        elseif (\is_array($default_value)) {
+          $default_value = \array_map(static fn (mixed $item): mixed => $item instanceof MarkupInterface ? (string) $item : $item, $default_value);
         }
         $prop_metadata = [
           'name' => $prop_details['title'] ?? $prop_name,
@@ -691,6 +696,7 @@ class CanvasAiPageBuilderHelper {
         if (isset($prop_details['enum'])) {
           $prop_metadata['enum'] = $prop_details['enum'];
         }
+        $prop_metadata += $this->getMultiValuePropMetadata($prop_details);
         $output[$source_id]['components'][$component_id]['props'][$prop_name] = $this->propMetadataNormalizer->normalize($prop_metadata, $prop_details);
       }
     }
@@ -717,11 +723,11 @@ class CanvasAiPageBuilderHelper {
     // Get the descriptions for props of the JS component.
     if (isset($component_data['propSources']) && \is_array($component_data['propSources'])) {
       $output[JsComponent::SOURCE_PLUGIN_ID]['components'][$component_id]['props'] = [];
-      $metadata_properties = [];
+      $sdc_properties = [];
       $metadata_required = [];
       $component_source = $component->getComponentSource();
       if ($component_source instanceof JsComponent) {
-        $metadata_properties = $component_source->getMetadata()->schema['properties'] ?? [];
+        $sdc_properties = $component_source->getJavaScriptComponent()->toSdcDefinition()['props']['properties'];
         $metadata_required = $component_source->getMetadata()->schema['required'] ?? [];
       }
       foreach ($component_data['propSources'] as $prop_name => $prop_details) {
@@ -738,15 +744,9 @@ class CanvasAiPageBuilderHelper {
         if (\in_array($prop_name, $metadata_required, TRUE)) {
           $prop_metadata['required'] = TRUE;
         }
-        $prop_schema = $prop_details['jsonSchema'] ?? [];
-        // The client-side prop schema strips meta:enum; pull labels from the
-        // component metadata to keep option labels aligned with the UI.
-        $metadata_schema = $metadata_properties[$prop_name] ?? [];
-        foreach (['meta:enum', 'x-translation-context'] as $key) {
-          if (!isset($prop_schema[$key]) && isset($metadata_schema[$key])) {
-            $prop_schema[$key] = $metadata_schema[$key];
-          }
-        }
+        // Resolve the references of the SDC prop schema, which keeps meta:enum.
+        $prop_schema = $this->componentPluginManager->resolveJsonSchemaReferences($sdc_properties[$prop_name] ?? []);
+        $prop_metadata += $this->getMultiValuePropMetadata($prop_schema);
         $output[JsComponent::SOURCE_PLUGIN_ID]['components'][$component_id]['props'][$prop_name] = $this->propMetadataNormalizer->normalize($prop_metadata, $prop_schema);
       }
     }
@@ -763,6 +763,34 @@ class CanvasAiPageBuilderHelper {
         ];
       }
     }
+  }
+
+  /**
+   * Gets the item schema and the item limits of a multi-value prop.
+   *
+   * @param array $prop_schema
+   *   The JSON schema of the prop.
+   *
+   * @return array
+   *   The 'items', 'minItems' and 'maxItems' keys the prop sets, with 'items'
+   *   the normalized item schema, including 'enum_options' when the items are
+   *   an enum. An empty array for a single-value prop.
+   */
+  private function getMultiValuePropMetadata(array $prop_schema): array {
+    if (($prop_schema['type'] ?? NULL) !== 'array') {
+      return [];
+    }
+    $metadata = [];
+    $item_schema = $prop_schema['items'] ?? [];
+    if (isset($item_schema['type'])) {
+      $metadata['items'] = $this->propMetadataNormalizer->normalize(PropShape::normalizePropSchema($item_schema), $item_schema);
+    }
+    foreach (['minItems', 'maxItems'] as $key) {
+      if (isset($prop_schema[$key])) {
+        $metadata[$key] = $prop_schema[$key];
+      }
+    }
+    return $metadata;
   }
 
   /**

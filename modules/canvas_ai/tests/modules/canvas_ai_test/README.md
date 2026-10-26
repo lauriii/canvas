@@ -27,3 +27,13 @@ never terminates: the loop falls back to `<slug>.json` and keeps hopping.
 
 @see \Drupal\canvas_ai_test\EventSubscriber\CanvasAiRequestInterceptor
 @see tests/src/Playwright/tests/isolatedPerTest/aiDev.spec.ts
+
+## Components
+
+`components/` holds SDCs for Kernel tests that no `canvas_test_sdc` component
+covers. They live here because `SingleDirectoryComponentTest::testDiscovery`
+lists every `canvas_test_sdc` component.
+
+- `formatted-text-list`: a multi-value formatted text prop.
+
+@see \Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall\GetComponentDetailsTest
