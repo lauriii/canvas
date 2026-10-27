@@ -139,12 +139,33 @@ class EntityFieldPropSourceTest extends PropSourceTestBase {
       'field_type' => 'list_string',
       'required' => TRUE,
     ])->save();
+    // Same, but with allowed values whose labels are TranslatableMarkup objects.
+    // @see \Drupal\Core\Locale\CountryManager::getStandardList()
+    FieldStorageConfig::create([
+      'field_name' => 'one_country',
+      'entity_type' => 'node',
+      'type' => 'list_string',
+      'cardinality' => 1,
+      'settings' => [
+        'allowed_values' => [],
+        'allowed_values_function' => 'Drupal\Core\Locale\CountryManager::getStandardList',
+      ],
+    ])->save();
+    FieldConfig::create([
+      'label' => 'A country',
+      'field_name' => 'one_country',
+      'entity_type' => 'node',
+      'bundle' => 'page',
+      'field_type' => 'list_string',
+      'required' => TRUE,
+    ])->save();
     $node = $this->createNode([
       'type' => 'page',
       'uid' => $user->id(),
       'field_image' => ['target_id' => 1],
       'field_photos' => [['target_id' => 2], ['target_id' => 1], ['target_id' => 3]],
       'one_from_an_string_list' => ['value' => 'sanitization_required'],
+      'one_country' => ['value' => 'BE'],
     ]);
 
     $original = EntityFieldPropSource::parse(match ($adapter_plugin_id) {
@@ -264,7 +285,10 @@ class EntityFieldPropSourceTest extends PropSourceTestBase {
    * @see \Drupal\Tests\canvas\Kernel\PropSource\PropSourceTestBase::langcodes()
    */
   public static function provider(): \Generator {
-    $list_string_key = "simple: FieldPropExpression, but for a `list_string` field type's Canvas-specific computed `label` property";
+    $list_string_keys = [
+      "simple: FieldPropExpression, but for a `list_string` field type's Canvas-specific computed `label` property",
+      "simple: FieldPropExpression, but for a `list_string` field type's Canvas-specific computed `label` property, with an `allowed_values_function`",
+    ];
     foreach (self::providerTest() as $scenario_key => $scenario) {
       // All scenarios must be tested in a monolingual context.
       yield $scenario_key => [...$scenario, 'langcode' => NULL];
@@ -273,10 +297,10 @@ class EntityFieldPropSourceTest extends PropSourceTestBase {
       // generating multilingual scenarios: if there's no references being
       // followed, there also cannot be any translation impact.
       if (!\str_contains($scenario['expression'], '␜␜')) {
-        // The one exception to the above rule: the test scenario with the
+        // The one exception to the above rule: the test scenarios with the
         // `list_string` field type, which has a very special way of generating
         // labels, and hence a special multilingual impact worth testing.
-        if ($scenario_key !== $list_string_key) {
+        if (!\in_array($scenario_key, $list_string_keys, TRUE)) {
           continue;
         }
       }
@@ -289,7 +313,7 @@ class EntityFieldPropSourceTest extends PropSourceTestBase {
       // machinery is inactive, so the context is absent.
       // @see \Drupal\canvas\Plugin\DataType\ListStringItemLabel::computeValue()
       // @see \Drupal\language\Config\LanguageConfigFactoryOverride::getCacheableMetadata()
-      if ($scenario_key === $list_string_key) {
+      if (\in_array($scenario_key, $list_string_keys, TRUE)) {
         $evaluation = $scenario['expected_evaluation_with_node_host_entity'];
         \assert($evaluation instanceof EvaluationResult);
         $scenario['expected_evaluation_with_node_host_entity'] = new EvaluationResult(
@@ -385,6 +409,54 @@ class EntityFieldPropSourceTest extends PropSourceTestBase {
         'config' => [
           'node.type.page',
           'field.field.node.page.one_from_an_string_list',
+        ],
+      ],
+    ];
+
+    yield "simple: FieldPropExpression, but for a `list_string` field type's Canvas-specific computed `label` property, with an `allowed_values_function`" => [
+      'permissions' => ['access content'],
+      'expression' => 'ℹ︎␜entity:node:page␝one_country␞␟label',
+      'adapter_plugin_id' => NULL,
+      'is_required' => TRUE,
+      'expected_array_representation' => [
+        'sourceType' => PropSource::EntityField->value,
+        'expression' => 'ℹ︎␜entity:node:page␝one_country␞␟label',
+      ],
+      'expected_expression_class' => FieldPropExpression::class,
+      'expected_evaluation_with_user_host_entity' => NULL,
+      'expected_user_access_denied_message' => NULL,
+      'expected_evaluation_with_node_host_entity' => new EvaluationResult(
+        'Belgium',
+        (new CacheableMetadata())
+          ->setCacheTags([
+            // The host entity.
+            'node:1',
+            // The bundle field that is evaluated.
+            'config:field.storage.node.one_country',
+          ])
+          ->setCacheContexts([
+            // Cache context added during the computing of the `label` field
+            // property.
+            // @see \Drupal\canvas\Plugin\DataType\ListStringItemLabel::computeValue
+            'languages:language_content',
+            // Cache context added by host entity access checking.
+            // @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::validateAccess()
+            'user.permissions',
+          ]),
+      ),
+      'expected_node_access_denied_message' => ["Access denied to entity while evaluating expression, ℹ︎␜entity:node:page␝one_country␞␟label, reason: The 'access content' permission is required."],
+      'expected_dependencies_expression_only' => [
+        'module' => ['node'],
+        'config' => [
+          'node.type.page',
+          'field.field.node.page.one_country',
+        ],
+      ],
+      'expected_dependencies_with_host_entity' => [
+        'module' => ['node'],
+        'config' => [
+          'node.type.page',
+          'field.field.node.page.one_country',
         ],
       ],
     ];

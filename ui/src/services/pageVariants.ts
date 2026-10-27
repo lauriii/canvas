@@ -170,19 +170,31 @@ export const buildDuplicateVariantPayload = ({
   const freshUuids = new Map(
     source.component_tree.map((item) => [item.uuid, uuidv4()]),
   );
-  const component_tree = source.component_tree.map((item) => ({
-    ...item,
-    uuid: freshUuids.get(item.uuid) ?? uuidv4(),
-    // Keep the tree's nesting intact by pointing each remapped child at its
-    // parent's new UUID.
-    ...(item.parent_uuid != null
-      ? { parent_uuid: freshUuids.get(item.parent_uuid) ?? item.parent_uuid }
-      : {}),
-  }));
+  // Rebuild each item from its storable keys only: the GET representation
+  // carries computed `inputs_resolved` and explicit `null`s for omitted
+  // optional keys, which the POST validation rejects.
+  const component_tree = source.component_tree.map(
+    (item): PageVariantComponentTreeItem => ({
+      uuid: freshUuids.get(item.uuid) ?? uuidv4(),
+      component_id: item.component_id,
+      component_version: item.component_version,
+      inputs: item.inputs,
+      // Keep the tree's nesting intact by pointing each remapped child at its
+      // parent's new UUID.
+      ...(item.parent_uuid != null
+        ? { parent_uuid: freshUuids.get(item.parent_uuid) ?? item.parent_uuid }
+        : {}),
+      ...(item.slot != null ? { slot: item.slot } : {}),
+      ...(item.label != null ? { label: item.label } : {}),
+    }),
+  );
   return {
     id: generateUniqueVariantId(newLabel, existingIds),
     label: newLabel,
     description: source.description ?? '',
+    // A copy of a disabled template stays disabled rather than silently
+    // becoming selectable for pages.
+    status: source.status,
     component_tree,
   };
 };

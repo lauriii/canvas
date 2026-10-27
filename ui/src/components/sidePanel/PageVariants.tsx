@@ -371,6 +371,7 @@ const PageVariants = () => {
   const [setDefault] = useSetDefaultPageVariantMutation();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [duplicateError, setDuplicateError] = useState<string | null>(null);
   const [renameTarget, setRenameTarget] = useState<PageVariant | null>(null);
 
   const variantList = useMemo(
@@ -404,13 +405,14 @@ const PageVariants = () => {
   };
 
   const handleDuplicate = async (variant: PageVariant) => {
+    setDuplicateError(null);
     try {
       await createVariant(
         buildDuplicateVariantPayload({ source: variant, existingIds }),
       ).unwrap();
-    } catch {
-      // Duplicating a valid variant rarely fails; a dedicated error surface for
-      // it is a follow-up. The unwrapped rejection is intentionally ignored.
+    } catch (error) {
+      // Duplicate fires from a menu with no dialog, so report in the panel.
+      setDuplicateError(String(extractErrorMessageFromApiResponse(error)));
     }
   };
 
@@ -477,6 +479,14 @@ const PageVariants = () => {
             <ErrorCard
               title="An unexpected error has occurred while loading page templates."
               error={String(extractErrorMessageFromApiResponse(variantsError))}
+            />
+          )}
+          {duplicateError && (
+            <ErrorCard
+              title="An unexpected error has occurred while duplicating the page template."
+              error={duplicateError}
+              resetErrorBoundary={() => setDuplicateError(null)}
+              resetButtonText="Dismiss"
             />
           )}
           {!variantsError && variantList.length === 0 && (

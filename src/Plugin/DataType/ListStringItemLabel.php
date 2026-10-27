@@ -52,7 +52,10 @@ final class ListStringItemLabel extends StringData implements CacheableDependenc
     $this->cacheability->addCacheableDependency($list_item->getFieldDefinition()->getFieldStorageDefinition());
     $this->cacheability->addCacheContexts(['languages:' . LanguageInterface::TYPE_CONTENT]);
     $options = $list_item->getPossibleOptions();
-    return $options[$value];
+    // Labels returned by an `allowed_values_function` may be objects such as
+    // TranslatableMarkup.
+    // @see \Drupal\Core\Locale\CountryManager::getStandardList()
+    return (string) $options[$value];
   }
 
 }
