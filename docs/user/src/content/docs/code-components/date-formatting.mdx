@@ -1,0 +1,66 @@
+---
+title: Code Components - Date formatting
+---
+
+Canvas passes `date` and `date-time` props to your component as raw ISO strings,
+so you can compare or calculate with them. To display one in the visitor's
+language, use the `useDateFormatter()` hook from `drupal-canvas/react`.
+
+```jsx
+import { useDateFormatter } from 'drupal-canvas/react';
+
+export default function Event({ date, dateTime, range }) {
+  const formatDate = useDateFormatter();
+  return (
+    <div>
+      <p>{formatDate(date)}</p>
+      <p>{formatDate(dateTime)}</p>
+      <p>
+        {formatDate(range?.from)} - {formatDate(range?.to)}
+      </p>
+    </div>
+  );
+}
+```
+
+`formatDate()` returns an empty string for `null` or `undefined`, and returns a
+value it cannot parse unchanged.
+
+## Language
+
+The hook formats in the interface language of the site. It gets the language
+from the site context (`useSiteContext().langcode`), which Drupal-rendered
+pages, [Workbench](/code-components/workbench), and
+[Headless](/headless/setup) frontends all provide. Without a language, it
+formats in English.
+
+## What is shown
+
+By default, `formatDate()` uses the `short` style for the parts present in the
+value: the date for a `date` prop, and the date and time for a `date-time` prop.
+
+Pass an options object to choose and style the parts.
+
+```jsx
+const formatDate = useDateFormatter();
+
+formatDate(date, { dateStyle: 'long' });
+// January 15, 2026 (en)
+
+formatDate(dateTime, { dateStyle: 'medium', timeStyle: 'short' });
+formatDate(dateTime, { timeStyle: 'short' });
+// Only the time, for example 2:30 PM (en)
+```
+
+The options are `dateStyle` and `timeStyle`, each one of `'full'`, `'long'`,
+`'medium'` or `'short'` (typed as `CanvasDateFormatOptions`). Options for a part
+the value does not have are ignored. If none of the options apply, for example
+`timeStyle` on a `date` prop, the value is shown in the default `short` style.
+
+## Time zones
+
+Canvas stores dates without time zone information, so values are always
+formatted in UTC. A time entered as 11 PM is displayed as 11 PM, whatever the
+time zone of the visitor's browser. A value with an explicit offset, such as
+`2026-01-15T23:30:00-05:00`, is converted to UTC first and shows as
+`1/16/26, 4:30 AM` (en).

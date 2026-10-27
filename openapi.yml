@@ -3369,12 +3369,18 @@ paths:
                   - branding
                   - jsonapiSettings
                   - themeAssets
+                  - langcode
                   - capabilities
                 properties:
                   baseUrl:
                     type: string
                     format: uri-reference
                     description: The absolute base URL of the site.
+                  langcode:
+                    type: string
+                    description: >-
+                      The langcode of the interface language negotiated for
+                      the request. `useDateFormatter()` formats dates in this locale.
                   branding:
                     type: object
                     required:

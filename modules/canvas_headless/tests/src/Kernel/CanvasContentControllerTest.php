@@ -295,6 +295,7 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
         'logo' => ['url' => 'http://localhost/core/themes/stark/logo.svg'],
         'favicon' => ['url' => 'http://localhost/core/misc/favicon.ico', 'mimeType' => 'image/vnd.microsoft.icon'],
       ],
+      'langcode' => 'en',
     ], $data['context']['site']);
     self::assertContains('config:system.site', $response->getCacheableMetadata()->getCacheTags());
     self::assertContains('url.site', $response->getCacheableMetadata()->getCacheContexts());
@@ -1515,6 +1516,7 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
             'logo' => ['url' => 'http://localhost/core/themes/stark/logo.svg'],
             'favicon' => ['url' => 'http://localhost/core/misc/favicon.ico', 'mimeType' => 'image/vnd.microsoft.icon'],
           ],
+          'langcode' => 'en',
         ],
       ],
     ], self::responseData($without_entity));
@@ -1685,6 +1687,9 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
     self::assertSame('French draft title', $data['context']['page']['pageTitle']);
     self::assertSame('fr', $data['context']['page']['mainEntity']['requestedLanguage']);
     self::assertSame('fr', $data['context']['page']['mainEntity']['renderedLanguage']);
+    // The site language follows the negotiated language, so Headless formats
+    // dates like Drupal-rendered pages do.
+    self::assertSame('fr', $data['context']['site']['langcode']);
   }
 
   /**

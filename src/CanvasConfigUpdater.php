@@ -82,6 +82,7 @@ class CanvasConfigUpdater {
         'v0.baseUrl',
         'v0.branding',
         'v0.themeAssets',
+        'v0.langcode',
       ],
       'usePageContext' => [
         'v0.breadcrumbs',
@@ -91,6 +92,9 @@ class CanvasConfigUpdater {
       'useJsonApiClient' => [
         'v0.baseUrl',
         'v0.jsonapiSettings',
+      ],
+      'useDateFormatter' => [
+        'v0.langcode',
       ],
     ];
 

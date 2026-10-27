@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel\PropSource;
 
-// cspell:ignore Qqzr
+// cspell:ignore Kiritimati Qqzr
 
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
@@ -15,17 +15,21 @@ use Drupal\canvas\PropSource\StaticPropSource;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\content_translation\BundleTranslationSettingsInterface;
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Datetime\Element\Datetime;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\BooleanCheckboxWidget;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\EntityReferenceAutocompleteWidget;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\NumberWidget;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\UriWidget;
+use Drupal\Core\Form\FormState;
 use Drupal\Core\Language\LanguageInterface;
+use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\datetime_range\Plugin\Field\FieldWidget\DateRangeDatelistWidget;
 use Drupal\datetime_range\Plugin\Field\FieldWidget\DateRangeDefaultWidget;
 use Drupal\media_library\Plugin\Field\FieldWidget\MediaLibraryWidget;
 use Drupal\node\Entity\NodeType;
+use Drupal\Tests\system\Functional\Form\StubForm;
 use Drupal\user\Entity\User;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -802,6 +806,55 @@ class StaticPropSourceTest extends PropSourceTestBase {
     self::assertNotContains('languages:' . LanguageInterface::TYPE_CONTENT, $en_result->getCacheContexts());
     self::assertNotContains('languages:' . LanguageInterface::TYPE_CONTENT, $es_result->getCacheContexts());
     self::assertNotContains('languages:' . LanguageInterface::TYPE_CONTENT, $no_host_result->getCacheContexts());
+  }
+
+  /**
+   * Tests that the datetime widget shows the stored value, in any timezone.
+   *
+   * Canvas stores date(-time) prop values without timezone adjustments, so the
+   * form must show exactly what is stored, whatever the site timezone is.
+   */
+  #[DataProvider('providerDateWidgetTimezone')]
+  public function testDateWidgetIsTimezoneIndependent(string $timezone, string $datetime_type, string $stored_value, array $expected_date_and_time): void {
+    \date_default_timezone_set($timezone);
+
+    $prop_source = StaticPropSource::generate(
+      new FieldTypePropExpression('datetime', 'value'),
+      1,
+      ['datetime_type' => $datetime_type],
+    )->withValue($stored_value);
+    $widget = $prop_source->getWidget(
+      'irrelevant-for-this-test',
+      'irrelevant-for-this-test',
+      'my_prop',
+      $this->randomString(),
+      'datetime_default',
+    );
+    $form_state = new FormState();
+    $form_state->setFormObject(new StubForm('some_id', []));
+    $form = ['#parents' => []];
+    $widget_form = $prop_source->formTemporaryRemoveThisExclamationExclamationExclamation($widget, 'my_prop', FALSE, NULL, $form, $form_state);
+    $value = Datetime::valueCallback($widget_form['widget'][0]['value'], FALSE, $form_state);
+    self::assertSame($expected_date_and_time, ['date' => $value['date'], 'time' => $value['time']]);
+  }
+
+  public static function providerDateWidgetTimezone(): \Generator {
+    // Date-only values used to shift to the previous day in timezones with a
+    // positive UTC offset.
+    foreach (['UTC', 'Asia/Kolkata', 'Australia/Sydney', 'Pacific/Kiritimati', 'America/New_York', 'Pacific/Honolulu'] as $timezone) {
+      yield "$timezone: date" => [
+        $timezone,
+        DateTimeItem::DATETIME_TYPE_DATE,
+        '2026-10-03',
+        ['date' => '2026-10-03', 'time' => ''],
+      ];
+      yield "$timezone: date-time" => [
+        $timezone,
+        DateTimeItem::DATETIME_TYPE_DATETIME,
+        '2026-10-03T23:30:00Z',
+        ['date' => '2026-10-03', 'time' => '23:30:00'],
+      ];
+    }
   }
 
 }

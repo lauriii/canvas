@@ -69,9 +69,10 @@ export default function PageHeader() {
   (the primary Drupal entity, `null` on routes without one), including language
   and translation information. See
   [Main entity metadata](https://project.pages.drupalcode.org/canvas/code-components/data-fetching#main-entity-metadata).
-- Site context (`SiteContext`): `branding`, the Drupal `baseUrl`, and
-  `themeAssets`. Headless frontends receive empty theme asset URLs; that is
-  valid site context, so shared components must handle empty asset URLs.
+- Site context (`SiteContext`): `branding`, the Drupal `baseUrl`, `themeAssets`,
+  and the interface `langcode`. Headless frontends receive empty theme asset
+  URLs; that is valid site context, so shared components must handle empty asset
+  URLs.
 
 Call the hooks unconditionally at the top level of a function component or
 custom hook (React's rules of hooks) and handle `null` results.

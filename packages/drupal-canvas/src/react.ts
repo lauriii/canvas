@@ -6,6 +6,8 @@ export {
   useSiteContext,
 } from './context.js';
 export type { CanvasContextProviderProps } from './context.js';
+export { useDateFormatter } from './date-formatter.js';
+export type { CanvasDateFormatOptions, DateFormatter } from './date-utils.js';
 export {
   JsonApiClientProvider,
   useHasJsonApiClient,

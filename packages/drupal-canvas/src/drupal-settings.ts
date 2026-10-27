@@ -24,6 +24,7 @@ export interface CanvasDataV0 {
   mainEntity?: NonNullable<CanvasContext['page']>['mainEntity'];
   branding?: NonNullable<CanvasContext['site']>['branding'] | null;
   baseUrl?: string | null;
+  langcode?: string | null;
   themeAssets?: NonNullable<CanvasContext['site']>['themeAssets'] | null;
   jsonapiSettings?: { apiPrefix?: string } | null;
 }
@@ -52,7 +53,7 @@ const EMPTY_THEME_ASSETS = {
  *
  * Page context is available when Drupal attached any page-level key
  * (`pageTitle`, `breadcrumbs`, or `mainEntity`); site context when it attached
- * `branding`. Missing keys inside an available group take the same defaults
+ * `branding` or `langcode`. Missing keys inside an available group take the same defaults
  * as the legacy getters.
  */
 export function drupalSettingsToCanvasContext(
@@ -63,7 +64,8 @@ export function drupalSettingsToCanvasContext(
   }
   const hasPage =
     'pageTitle' in v0 || 'breadcrumbs' in v0 || 'mainEntity' in v0;
-  const hasSite = 'branding' in v0;
+  // A component that only formats dates asks for `langcode` alone.
+  const hasSite = 'branding' in v0 || 'langcode' in v0;
   return {
     page: hasPage
       ? {
@@ -81,6 +83,7 @@ export function drupalSettingsToCanvasContext(
           },
           baseUrl: v0.baseUrl || '/',
           themeAssets: v0.themeAssets || EMPTY_THEME_ASSETS,
+          ...(v0.langcode && { langcode: v0.langcode }),
         }
       : null,
   };

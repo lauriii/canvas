@@ -33,9 +33,10 @@ final class SiteDataController extends ApiControllerBase {
       $provider->getCanvasDataJsonApiSettingsV0(),
       $provider->getCanvasDataBrandingV0(),
       $provider->getCanvasDataBaseUrlV0(),
+      $provider->getCanvasDataLangcodeV0(),
     );
     $cacheability = new CacheableMetadata();
-    $cacheability->addCacheContexts(['url.site']);
+    $cacheability->addCacheContexts(['url.site', 'languages:language_interface']);
     $cacheability->addCacheableDependency($this->configFactory->get('system.site'));
     $cacheability->addCacheableDependency($this->configFactory->get('system.theme'));
     $cacheability->addCacheableDependency($this->configFactory->get('system.theme.global'));

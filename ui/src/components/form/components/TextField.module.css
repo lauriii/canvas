@@ -18,6 +18,11 @@
     outline-color: var(--focus-8);
   }
 }
+.root[type="date"],
+.root[type="time"] {
+  padding-inline: 7px;
+  text-indent: 0;
+}
 .wrap {
   display: flex;
   flex-direction: column;

@@ -171,6 +171,7 @@ const WORKBENCH_CONTEXT_RUNTIME_SOURCE = [
   '      branding: (siteData && siteData.branding) || { homeUrl: "", siteName: "", siteSlogan: "" },',
   '      baseUrl: (siteData && siteData.baseUrl) || fallbackBaseUrl,',
   '      themeAssets: (siteData && siteData.themeAssets) || WORKBENCH_EMPTY_THEME_ASSETS,',
+  '      ...(siteData && siteData.langcode ? { langcode: siteData.langcode } : {}),',
   '    },',
   '  };',
   '}',

@@ -111,6 +111,10 @@ export default defineConfig({
             { label: 'Built-in packages', slug: 'code-components/packages' },
             { label: 'Data fetching', slug: 'code-components/data-fetching' },
             {
+              label: 'Date formatting',
+              slug: 'code-components/date-formatting',
+            },
+            {
               label: 'Responsive images',
               slug: 'code-components/responsive-images',
             },

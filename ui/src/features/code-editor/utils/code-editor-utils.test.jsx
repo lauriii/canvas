@@ -767,6 +767,20 @@ describe('getDataDependenciesFromAst', () => {
     });
   });
 
+  it('should detect needed drupalSettings when using useDateFormatter', () => {
+    const code = `
+      // Random import.
+      import useSWR from 'swr';
+      // With different local identifier.
+      import { useDateFormatter as useFormatter } from 'drupal-canvas/react';
+    `;
+    const ast = parse(code, { sourceType: 'module' });
+    const result = getDataDependenciesFromAst(ast);
+    expect(result).to.deep.equal({
+      drupalSettings: ['v0.langcode'],
+    });
+  });
+
   it('should detect needed drupalSettings when using both getSiteData and JsonApiClient, and should prevent duplicates', () => {
     const code = `
       // Random import.
@@ -781,6 +795,48 @@ describe('getDataDependenciesFromAst', () => {
     expect(result).to.deep.equal({
       drupalSettings: ['v0.baseUrl', 'v0.jsonapiSettings', 'v0.branding'],
     });
+  });
+
+  it('detects langcode for namespace access to useDateFormatter', () => {
+    const ast = parse(
+      `import * as canvas from 'drupal-canvas/react'; canvas.useDateFormatter();`,
+      { sourceType: 'module' },
+    );
+    expect(getDataDependenciesFromAst(ast)).to.deep.equal({
+      drupalSettings: ['v0.langcode'],
+    });
+  });
+
+  it('combines date and context imports without duplicate settings', () => {
+    const ast = parse(
+      `import { useDateFormatter as useFormatter, useSiteContext } from 'drupal-canvas/react';
+       import * as canvas from 'drupal-canvas/react';
+       canvas.useDateFormatter();`,
+      { sourceType: 'module' },
+    );
+    expect(getDataDependenciesFromAst(ast)).to.deep.equal({
+      drupalSettings: [
+        'v0.langcode',
+        'v0.baseUrl',
+        'v0.branding',
+        'v0.themeAssets',
+      ],
+    });
+  });
+
+  it('does not attach runtime settings for the date options type', () => {
+    const ast = parse(
+      `import type { CanvasDateFormatOptions } from 'drupal-canvas';`,
+      { sourceType: 'module', plugins: ['typescript'] },
+    );
+    expect(getDataDependenciesFromAst(ast)).to.deep.equal({});
+  });
+
+  it('ignores date formatting imports from unrelated packages', () => {
+    const ast = parse(`import { useDateFormatter } from 'another-package';`, {
+      sourceType: 'module',
+    });
+    expect(getDataDependenciesFromAst(ast)).to.deep.equal({});
   });
 
   it('should detect needed drupalSettings for members of namespace imports', () => {
@@ -822,7 +878,25 @@ describe('getDataDependenciesFromAst', () => {
         'v0.baseUrl',
         'v0.branding',
         'v0.themeAssets',
+        'v0.langcode',
         'v0.jsonapiSettings',
+      ],
+    });
+  });
+
+  it('attaches langcode for a component that only uses useSiteContext', () => {
+    const ast = parse(
+      `import { useSiteContext } from 'drupal-canvas/react';
+       import * as canvas from 'drupal-canvas/react';
+       canvas.useSiteContext();`,
+      { sourceType: 'module' },
+    );
+    expect(getDataDependenciesFromAst(ast)).to.deep.equal({
+      drupalSettings: [
+        'v0.baseUrl',
+        'v0.branding',
+        'v0.themeAssets',
+        'v0.langcode',
       ],
     });
   });

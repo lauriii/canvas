@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+// cspell:ignore janvier
 
 /**
  * Server rendering of a live draft session with SWR fallback data, then
@@ -9,7 +10,7 @@
  */
 
 import { act } from 'react';
-import { useJsonApiClient } from 'drupal-canvas/react';
+import { useDateFormatter, useJsonApiClient } from 'drupal-canvas/react';
 import { hydrateRoot } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import useSWR, { SWRConfig } from 'swr';
@@ -182,5 +183,26 @@ describe('draft server rendering with SWR fallback and hydration', () => {
     );
     await expect(pending).rejects.toThrow(/getClient\(\)/);
     expect(serverFetch).not.toHaveBeenCalled();
+  });
+
+  it('formats dates in the site language of the context when rendering on the server', () => {
+    function EventDate() {
+      const formatDate = useDateFormatter();
+      return <time>{formatDate('2026-01-15', { dateStyle: 'long' })}</time>;
+    }
+    const render = (langcode?: string) =>
+      renderOnServer(
+        <CanvasComponentTree
+          tree={{ element: 'js-date', props: { canvasUuid: 'date' } }}
+          components={{ date: EventDate }}
+          context={{
+            ...context,
+            site: context.site && { ...context.site, langcode },
+          }}
+        />,
+      );
+    expect(render('fr')).toContain('15 janvier 2026');
+    expect(render('en')).toContain('January 15, 2026');
+    expect(render()).toContain('January 15, 2026');
   });
 });

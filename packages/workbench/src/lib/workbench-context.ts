@@ -46,6 +46,7 @@ export function createWorkbenchContext(
       },
       baseUrl: siteData?.baseUrl || fallbackBaseUrl,
       themeAssets: siteData?.themeAssets ?? EMPTY_THEME_ASSETS,
+      ...(siteData?.langcode && { langcode: siteData.langcode }),
     },
   };
 }
