@@ -246,8 +246,12 @@ export default function FormPropTypeLink({
         >
           <Select.Trigger id={`prop-link-type-${id}`} />
           <Select.Content>
-            <Select.Item value="relative">Relative path</Select.Item>
-            <Select.Item value="full">Full URL</Select.Item>
+            <Select.Item value="relative">
+              Internal links (relative and absolute URLs)
+            </Select.Item>
+            <Select.Item value="full">
+              External and internal links (absolute URLs)
+            </Select.Item>
           </Select.Content>
         </Select.Root>
       </FormElement>
