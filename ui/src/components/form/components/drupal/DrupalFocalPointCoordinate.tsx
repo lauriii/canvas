@@ -89,6 +89,7 @@ const DrupalFocalPointCoordinate = ({
           ...a2p(attributes, {}, { skipAttributes: ['value'] }),
           value:
             scrubValue ?? focalPoint?.draft?.[axis] ?? attributes.value ?? '',
+          placeholder: focalPoint?.inherited?.[axis]?.toString(),
         }}
       />
       <span className={styles.unit} aria-hidden="true">

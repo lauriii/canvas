@@ -28,6 +28,7 @@ use Drupal\canvas\InvalidComponentInputsPropSourceException;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType;
+use Drupal\canvas\MediaFocalPoints;
 use Drupal\canvas\MissingHostEntityException;
 use Drupal\canvas\Plugin\Adapter\AdapterInterface;
 use Drupal\canvas\Plugin\AdapterManager;
@@ -337,6 +338,8 @@ final class Layers {
         Selector::classname(JsonSchemaStringFormat::class),
         // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::hasFocalPoints()
         Selector::classname(JsonSchemaObjectRef::class),
+        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::addFocalPoints()
+        Selector::classname(MediaFocalPoints::class),
         Selector::classname(CanvasStaticPropSourceFieldWidget::class),
         // Canvas utilities.
         Selector::inNamespace('Drupal\canvas\Utility'),

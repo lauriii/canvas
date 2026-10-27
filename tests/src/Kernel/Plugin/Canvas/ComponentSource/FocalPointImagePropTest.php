@@ -14,7 +14,9 @@ use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\File\FileExists;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\StreamWrapper\PublicStream;
+use Drupal\crop\Entity\Crop;
 use Drupal\file\Entity\File;
+use Drupal\image\Plugin\Field\FieldType\ImageItem;
 use Drupal\media\Entity\Media;
 use Drupal\Tests\canvas\Kernel\ApiLayoutControllerTestBase;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
@@ -212,6 +214,78 @@ final class FocalPointImagePropTest extends ApiLayoutControllerTestBase {
     self::assertCount(3, $sources);
     self::assertStringContainsString('image-1', $sources[0]);
     self::assertStringContainsString('image-2', $sources[1]);
+  }
+
+  /**
+   * Tests that images inherit the Focal Point module's point for their media.
+   *
+   * @see \Drupal\canvas\MediaFocalPoints
+   */
+  public function testFocalPointModuleDefault(): void {
+    $this->enableModules(['crop', 'focal_point']);
+    $this->installEntitySchema('crop');
+    $this->installConfig(['crop', 'focal_point']);
+    // Set a focal point on the second image, as the Focal Point module's image
+    // widget does: in pixels on the original image.
+    $media = Media::load($this->media[1]);
+    \assert($media instanceof Media);
+    $item = $media->get('field_media_image')->first();
+    \assert($item instanceof ImageItem);
+    $file = $item->entity;
+    \assert($file instanceof File);
+    $width = (int) $item->get('width')->getValue();
+    $height = (int) $item->get('height')->getValue();
+    $crop = Crop::create([
+      'type' => 'focal_point',
+      'entity_type' => 'file',
+      'entity_id' => $file->id(),
+      'uri' => $file->getFileUri(),
+      'x' => (int) \round($width * 0.3),
+      'y' => (int) \round($height * 0.4),
+      'width' => 0,
+      'height' => 0,
+    ]);
+    $crop->save();
+
+    $component = Component::load('sdc.canvas_test_focal_point.focal-point-image');
+    \assert($component instanceof ComponentInterface);
+    $page = self::createPage(
+      $component,
+      // Its own focal point wins over the media's.
+      ['target_id' => $this->media[1], 'focal_point' => ['x' => 25, 'y' => 75]],
+      [['target_id' => $this->media[1]], ['target_id' => $this->media[0]]],
+    );
+    $item = $page->getComponentTree()->getComponentTreeItemByUuid('5f18db31-fa2f-4f4e-a377-dc0c6a0b7dc4');
+    \assert($item !== NULL);
+    $source = $component->getComponentSource();
+    $input = $source->getExplicitInput($item->getUuid(), $item);
+    self::assertSame(['x' => 25, 'y' => 75], $input['resolved']['image']->value['focalPoint']);
+    self::assertSame(
+      [['x' => 30, 'y' => 40], ['x' => 50, 'y' => 50]],
+      \array_column($input['resolved']['gallery']->value, 'focalPoint'),
+    );
+    // Moving or adding a focal point in the media library updates the page.
+    self::assertContains('crop:' . $crop->id(), $input['resolved']['gallery']->getCacheTags());
+    self::assertContains('crop_list', $input['resolved']['gallery']->getCacheTags());
+
+    // The picker shows the inherited point.
+    $json = self::decodeResponse($this->request(Request::create(
+      '/canvas/api/v0/form/component-instance/canvas_page/' . $page->id(),
+      'PATCH',
+      [
+        'form_canvas_tree' => json_encode([
+          'nodeType' => 'component',
+          'slots' => [],
+          'type' => "{$component->id()}@{$component->getActiveVersion()}",
+          'uuid' => $item->getUuid(),
+        ], JSON_THROW_ON_ERROR),
+        'form_canvas_props' => json_encode($source->inputToClientModel($input), JSON_THROW_ON_ERROR),
+        'form_canvas_selected' => $item->getUuid(),
+      ],
+    )));
+    $inherited = (new Crawler($json['html']))->filter('[data-canvas-focal-point-src]')
+      ->each(static fn (Crawler $node): string => (string) $node->attr('data-canvas-focal-point-inherited'));
+    self::assertSame(['30,40', '30,40', ''], $inherited);
   }
 
 }

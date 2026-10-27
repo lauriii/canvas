@@ -110,6 +110,12 @@
   transform: translate(-50%, -50%) scale(1.2);
 }
 
+/* A point inherited from the media item: hollow until set here. */
+.inherited {
+  border-style: dashed;
+  background-color: transparent;
+}
+
 /* Glide for keyboard, typed and reset changes, but follow the pointer. */
 .frame:not(.dragging) .dot,
 .frame:not(.dragging) .guideX,

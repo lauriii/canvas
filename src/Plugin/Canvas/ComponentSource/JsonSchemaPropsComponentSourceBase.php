@@ -12,6 +12,7 @@ use Drupal\canvas\Entity\EmptyTargetEntityProviderInterface;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\InvalidComponentInputsPropSourceException;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
+use Drupal\canvas\MediaFocalPoints;
 use Drupal\canvas\MissingHostEntityException;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
@@ -118,6 +119,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
     private readonly LoggerChannelInterface $logger,
     protected readonly PropShapeRepositoryInterface $propShapeRepository,
     private readonly ColorResolver $colorResolver,
+    private readonly MediaFocalPoints $mediaFocalPoints,
   ) {
     \assert(\array_key_exists('local_source_id', $configuration));
     parent::__construct($configuration, $plugin_id, $plugin_definition);
@@ -138,6 +140,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       $container->get('logger.channel.canvas'),
       $container->get(PropShapeRepositoryInterface::class),
       $container->get(ColorResolver::class),
+      $container->get(MediaFocalPoints::class),
     );
   }
 
@@ -508,7 +511,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
 
     foreach ($resolved_values as $prop => $result) {
       if ($this->hasFocalPoints($prop)) {
-        $resolved_values[$prop] = self::addFocalPoints($result, $values[$prop]['value'] ?? NULL);
+        $resolved_values[$prop] = $this->addFocalPoints($result, $values[$prop]['value'] ?? NULL);
       }
     }
 
@@ -687,15 +690,16 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
   /**
    * Adds each image's focal point to its resolved value.
    *
-   * Images without a stored focal point get the center, so components can
-   * always crop with it.
+   * Images without a stored focal point get the one the Focal Point module
+   * stores for the image, if any, or else the center, so components can always
+   * crop with it.
    *
    * @param \Drupal\canvas\PropExpressions\StructuredData\EvaluationResult $result
    *   The evaluated image prop: an image or a list of images.
    * @param mixed $stored
    *   The stored value: `{target_id, focal_point}` or a list of those.
    */
-  private static function addFocalPoints(EvaluationResult $result, mixed $stored): EvaluationResult {
+  private function addFocalPoints(EvaluationResult $result, mixed $stored): EvaluationResult {
     if (!\is_array($result->value) || $result->value === []) {
       return $result;
     }
@@ -703,17 +707,21 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
     $is_list = \array_is_list($result->value);
     $images = $is_list ? $result->value : [$result->value];
     $stored = \array_is_list($stored) ? $stored : [$stored];
+    $cacheability = CacheableMetadata::createFromObject($result);
     $with_focal_points = [];
     foreach ($images as $delta => $image) {
       if (\is_array($image)) {
-        $image['focalPoint'] = self::validFocalPoint($stored[$delta]['focal_point'] ?? NULL) ?? ['x' => 50, 'y' => 50];
+        $media_id = $stored[$delta]['target_id'] ?? NULL;
+        $image['focalPoint'] = self::validFocalPoint($stored[$delta]['focal_point'] ?? NULL)
+          ?? (\is_int($media_id) || \is_string($media_id) ? $this->mediaFocalPoints->get($media_id, $cacheability) : NULL)
+          ?? ['x' => 50, 'y' => 50];
       }
       $with_focal_points[$delta] = $image;
     }
     // The evaluation result types only describe scalar object properties, not
     // nested objects such as `focalPoint`.
     // @phpstan-ignore argument.type
-    return new EvaluationResult($is_list ? $with_focal_points : $with_focal_points[0], $result);
+    return new EvaluationResult($is_list ? $with_focal_points : $with_focal_points[0], $cacheability);
   }
 
   /**
@@ -732,7 +740,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
    * @see ui/src/components/form/components/drupal/DrupalFocalPoint.tsx
    * @see ui/src/utils/transforms.ts
    */
-  private static function addFocalPointInputs(array &$widget, StaticPropSource $source): void {
+  private function addFocalPointInputs(array &$widget, StaticPropSource $source): void {
     $points = [];
     foreach ($source->fieldItemList as $item) {
       $value = $item->getValue();
@@ -753,11 +761,15 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       catch (\Exception) {
         $image = NULL;
       }
+      // The point used while this image has none of its own. The component
+      // instance form is not cached, so its cacheability is not needed.
+      $inherited = $this->mediaFocalPoints->get($target_id, new CacheableMetadata());
       $element = [
         '#type' => 'container',
         '#theme_wrappers' => ['container__focal_point'],
         '#attributes' => [
           'data-canvas-focal-point-src' => \is_array($image) ? ($image['src'] ?? '') : '',
+          'data-canvas-focal-point-inherited' => $inherited ? $inherited['x'] . ',' . $inherited['y'] : '',
         ],
         // After the item's own controls (such as its remove button), so it
         // wraps below them.
@@ -1177,7 +1189,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($widget, $sdc_prop_name, $is_required, $entity_object_for_field_widget, $form, $form_state);
       $form[$sdc_prop_name]['#disabled'] = $disabled;
       if ($this->hasFocalPoints($sdc_prop_name) && $field_widget_plugin_id === 'media_library_widget' && !$disabled && isset($form[$sdc_prop_name]['widget']['selection'])) {
-        self::addFocalPointInputs($form[$sdc_prop_name]['widget'], $source);
+        $this->addFocalPointInputs($form[$sdc_prop_name]['widget'], $source);
       }
 
       if ($entity instanceof ContentTemplate) {

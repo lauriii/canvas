@@ -40,6 +40,8 @@ const FocalPointContext = createContext<{
   register: (axis: Axis, registration: CoordinateRegistration) => void;
   // The point being dragged or nudged, before it is committed.
   draft: FocalPoint | null;
+  // The point used while the image has none of its own.
+  inherited: FocalPoint | null;
 } | null>(null);
 
 export const useFocalPointContext = () => useContext(FocalPointContext);
@@ -57,8 +59,19 @@ const toPercent = (value: unknown): number | null => {
 const clampPercent = (value: number) =>
   Math.round(Math.min(100, Math.max(0, value)));
 
-export const formatFocalPoint = (point: FocalPoint | null) =>
-  point ? `${point.x}%, ${point.y}%` : 'Not set';
+export const formatFocalPoint = (
+  point: FocalPoint | null,
+  inherited: FocalPoint | null = null,
+) =>
+  point ? `${point.x}%, ${point.y}%` : inherited ? 'From media' : 'Not set';
+
+/**
+ * Parses an `x,y` focal point, such as the one an image inherits.
+ */
+export const parseFocalPoint = (value?: string): FocalPoint | null => {
+  const [x = null, y = null] = (value ?? '').split(',').map(toPercent);
+  return x !== null && y !== null ? { x, y } : null;
+};
 
 // Arrow keys move the point by 1%, or 10% with Shift; the change is committed
 // once nudging pauses, so holding a key sends one update.
@@ -73,6 +86,9 @@ const NUDGES: Record<string, [number, number]> = {
 /**
  * Shows an image with a draggable focal point marker above the x and y inputs.
  *
+ * While the image has no focal point of its own, the marker shows the one it
+ * inherits, such as the Focal Point module's point for the media item.
+ *
  * The x and y inputs (`children`) are the real, react-hook-form connected
  * form elements. They register with this component so that dragging the
  * marker updates them through the regular form pipeline.
@@ -81,10 +97,12 @@ const NUDGES: Record<string, [number, number]> = {
  */
 const FocalPointPicker = ({
   src,
+  inherited = null,
   onPointChange,
   children,
 }: {
   src?: string;
+  inherited?: FocalPoint | null;
   onPointChange?: (
     point: FocalPoint | null,
     registrations: Partial<Record<Axis, CoordinateRegistration>>,
@@ -100,8 +118,8 @@ const FocalPointPicker = ({
   // The point shown while dragging, and until the inputs have caught up.
   const [draft, setDraft] = useState<FocalPoint | null>(null);
   const [dragging, setDragging] = useState(false);
-  // The x value still to commit once the y value has rendered.
-  const [pendingX, setPendingX] = useState<number | null>(null);
+  // The x value still to commit once the y value has rendered; empty clears.
+  const [pendingX, setPendingX] = useState<number | '' | null>(null);
   const nudgeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => clearTimeout(nudgeTimer.current ?? undefined), []);
 
@@ -114,8 +132,12 @@ const FocalPointPicker = ({
   const x = toPercent(coordinates.x?.value);
   const y = toPercent(coordinates.y?.value);
   const stored = x !== null && y !== null ? { x, y } : null;
-  const point = draft ?? stored;
-  const contextValue = useMemo(() => ({ register, draft }), [register, draft]);
+  const point = draft ?? stored ?? inherited;
+  const isInherited = !draft && !stored && !!inherited;
+  const contextValue = useMemo(
+    () => ({ register, draft, inherited }),
+    [register, draft, inherited],
+  );
 
   useEffect(() => {
     onPointChange?.(stored, coordinates);
@@ -145,16 +167,17 @@ const FocalPointPicker = ({
     setPendingX(null);
   }, [pendingX, coordinates.x]);
 
-  const commit = (next: FocalPoint) => {
+  // Commits a point, or clears it so the image inherits one again.
+  const commit = (next: FocalPoint | null) => {
     const yName = coordinates.y?.name;
     if (!coordinates.x?.fieldContext || !yName || !formContext) {
       setDraft(null);
       return;
     }
     const formId = formContext.formId as FormId;
-    rhfContext?.setValue(yName, next.y);
-    dispatchFieldValue(dispatch, formId, yName, next.y);
-    setPendingX(next.x);
+    rhfContext?.setValue(yName, next?.y ?? '');
+    dispatchFieldValue(dispatch, formId, yName, next?.y ?? '');
+    setPendingX(next?.x ?? '');
   };
 
   const pointFromEvent = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -186,6 +209,11 @@ const FocalPointPicker = ({
     commit({ x: 50, y: 50 });
   };
 
+  const reset = () => {
+    setDraft(null);
+    commit(null);
+  };
+
   return (
     <FocalPointContext.Provider value={contextValue}>
       <div
@@ -193,7 +221,7 @@ const FocalPointPicker = ({
         data-canvas-focal-point-frame
         role="group"
         tabIndex={0}
-        aria-label={`Focal point ${formatFocalPoint(point)}. Drag on the image or use the arrow keys to move it.`}
+        aria-label={`Focal point ${point ? `${point.x}%, ${point.y}%` : 'not set'}${isInherited ? ' from media' : ''}. Drag on the image or use the arrow keys to move it.`}
         onKeyDown={nudge}
         onDoubleClick={center}
         onPointerDown={(e) => {
@@ -241,7 +269,7 @@ const FocalPointPicker = ({
               aria-hidden="true"
             />
             <span
-              className={styles.dot}
+              className={clsx(styles.dot, isInherited && styles.inherited)}
               style={{ left: `${point.x}%`, top: `${point.y}%` }}
               aria-hidden="true"
             />
@@ -262,15 +290,23 @@ const FocalPointPicker = ({
             )}
           </>
         )}
-        <button
-          type="button"
-          className={styles.reset}
-          onClick={center}
-          aria-label="Reset focal point to center"
-          title="Reset to center"
-        >
-          <ResetIcon />
-        </button>
+        {stored && (
+          <button
+            type="button"
+            className={styles.reset}
+            onClick={reset}
+            aria-label={
+              inherited
+                ? "Reset focal point to the media's focal point"
+                : 'Reset focal point to center'
+            }
+            title={
+              inherited ? "Reset to the media's focal point" : 'Reset to center'
+            }
+          >
+            <ResetIcon />
+          </button>
+        )}
       </div>
       <div className={styles.inputs}>{children}</div>
     </FocalPointContext.Provider>
