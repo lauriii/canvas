@@ -147,6 +147,7 @@ paths:
                           siteName: Example site
                           siteSlogan: ''
                         baseUrl: https://example.com
+                        langcode: en
                         themeAssets:
                           logo:
                             url: https://example.com/core/themes/olivero/logo.svg
@@ -623,7 +624,7 @@ components:
         site:
           type: object
           additionalProperties: false
-          required: [branding, baseUrl, themeAssets]
+          required: [branding, baseUrl, themeAssets, langcode]
           properties:
             branding:
               type: object
@@ -638,6 +639,11 @@ components:
                   type: string
             baseUrl:
               type: string
+            langcode:
+              type: string
+              description: >-
+                The langcode of the interface language negotiated for the
+                request. `useDateFormatter()` formats dates in this locale.
             themeAssets:
               description: >-
                 Assets from Drupal's configured default theme, without request

@@ -41,7 +41,7 @@ final class CanvasContentContextBuilder {
    *   entity as the content and the document head. NULL for routes without
    *   an entity, where the route's title and parameters apply.
    *
-   * @return array{page: array{pageTitle: string, breadcrumbs: array, mainEntity: array|null}, site: array{branding: array, baseUrl: string, themeAssets: array}}
+   * @return array{page: array{pageTitle: string, breadcrumbs: array, mainEntity: array|null}, site: array{branding: array, baseUrl: string, themeAssets: array, langcode: string}}
    *   The context, shaped like `CanvasContext` in the `drupal-canvas` package.
    */
   public function build(RefinableCacheableDependencyInterface $cacheability, ?ContentEntityInterface $rendered_entity = NULL): array {
@@ -68,9 +68,11 @@ final class CanvasContentContextBuilder {
 
     $branding = $provider->getCanvasDataBrandingV0()[$v0]['branding'];
     $base_url = $provider->getCanvasDataBaseUrlV0()[$v0]['baseUrl'];
+    // The interface language is what `useDateFormatter()` formats dates in.
+    $langcode = $provider->getCanvasDataLangcodeV0()[$v0]['langcode'];
     $cacheability->addCacheableDependency($this->configFactory->get('system.site'));
     $cacheability->addCacheableDependency(
-      (new CacheableMetadata())->addCacheContexts(['url.site', 'route']),
+      (new CacheableMetadata())->addCacheContexts(['url.site', 'route', 'languages:language_interface']),
     );
 
     $theme_config = $this->configFactory->get('system.theme');
@@ -105,6 +107,7 @@ final class CanvasContentContextBuilder {
         'branding' => $branding,
         'baseUrl' => $base_url,
         'themeAssets' => $theme_assets,
+        'langcode' => $langcode,
       ],
     ];
   }

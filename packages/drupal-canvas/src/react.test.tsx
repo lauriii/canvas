@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
 import * as context from './context';
+import * as dateFormatter from './date-formatter';
 import * as root from './index';
 import * as clientContext from './jsonapi-client-context';
 import * as react from './react';
@@ -14,6 +15,7 @@ import type {
 const names = [
   'CanvasContextProvider',
   'JsonApiClientProvider',
+  'useDateFormatter',
   'useHasCanvasContext',
   'useHasJsonApiClient',
   'useJsonApiClient',
@@ -26,7 +28,9 @@ describe('React entry point', () => {
     expect(Object.keys(react).sort()).toEqual(names);
     for (const [name, value] of Object.entries(react)) {
       expect(value).toBe(
-        { ...context, ...clientContext }[name as keyof typeof react],
+        { ...context, ...dateFormatter, ...clientContext }[
+          name as keyof typeof react
+        ],
       );
       expect(root).not.toHaveProperty(name);
     }

@@ -63,6 +63,28 @@ describe('drupalSettings to context', () => {
     ).toEqual(themeAssets);
   });
 
+  it('carries the site language into the site context', () => {
+    expect(
+      drupalSettingsToCanvasContext({
+        branding: { homeUrl: '/', siteName: 'Site', siteSlogan: '' },
+        langcode: 'fr',
+      }).site?.langcode,
+    ).toBe('fr');
+    // A component that only formats dates asks for `langcode` alone.
+    expect(drupalSettingsToCanvasContext({ langcode: 'fr' })).toEqual({
+      page: null,
+      site: {
+        branding: { homeUrl: '', siteName: '', siteSlogan: '' },
+        baseUrl: '/',
+        themeAssets: { logo: { url: '' }, favicon: { url: '', mimeType: '' } },
+        langcode: 'fr',
+      },
+    });
+    expect(
+      drupalSettingsToCanvasContext({ branding: null, langcode: null }).site,
+    ).not.toHaveProperty('langcode');
+  });
+
   it('builds the JSON:API runtime configuration', () => {
     expect(drupalSettingsToJsonApiRuntimeConfig(null)).toBeNull();
     expect(drupalSettingsToJsonApiRuntimeConfig({ branding: null })).toBeNull();

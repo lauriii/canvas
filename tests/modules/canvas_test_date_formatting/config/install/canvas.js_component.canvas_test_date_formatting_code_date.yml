@@ -1,0 +1,37 @@
+uuid: 9d694e35-f39b-4203-b43d-8eac59c21fe6
+langcode: en
+status: true
+dependencies:
+  enforced: {  }
+machineName: canvas_test_date_formatting_code_date
+name: 'Using useDateFormatter'
+required: {  }
+props: {  }
+slots: {  }
+js:
+  original: |-
+    import { useDateFormatter } from 'drupal-canvas/react';
+
+    const WithFormattedDate = () => {
+      const formatDate = useDateFormatter();
+      return <div id="code-date-formatted">{formatDate('2026-01-15')}</div>;
+    };
+
+    export default WithFormattedDate;
+  compiled: |
+    import { jsx as _jsx } from "react/jsx-runtime";
+    import { useDateFormatter } from 'drupal-canvas/react';
+    const WithFormattedDate = ()=>{
+        const formatDate = useDateFormatter();
+        return /*#__PURE__*/ _jsx("div", {
+            id: "code-date-formatted",
+            children: formatDate('2026-01-15')
+        });
+    };
+    export default WithFormattedDate;
+css:
+  original: ''
+  compiled: ''
+dataDependencies:
+  drupalSettings:
+    - v0.langcode

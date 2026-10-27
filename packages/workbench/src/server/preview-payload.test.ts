@@ -587,6 +587,9 @@ props:
       'const canvasContext = createWorkbenchContext(canvasResolvedSiteData, canvasPreviewOrigin);',
     );
     expect(source).toContain(
+      '...(siteData && siteData.langcode ? { langcode: siteData.langcode } : {})',
+    );
+    expect(source).toContain(
       'const canvasJsonApiConfig = createWorkbenchJsonApiConfig(canvasResolvedSiteData, canvasPreviewOrigin);',
     );
     expect(source).not.toContain('canvasLegacySettings');
@@ -626,6 +629,21 @@ props:
     );
     expect(html).toContain(
       'window.drupalSettings.canvasData.v0.baseUrl = canvasPreviewBaseUrl;',
+    );
+  });
+
+  it('copies the site language into the bootstrap settings', () => {
+    const html = buildIframeHtml(
+      'console.log("runtime");',
+      '',
+      { baseUrl: null, jsonapiPrefix: null },
+      { baseUrl: 'https://canvas.example.test', langcode: 'fr' },
+    );
+    expect(html).toContain(
+      'for (const [key, value] of Object.entries({"langcode":"fr"}))',
+    );
+    expect(html).toContain(
+      'if (window.drupalSettings.canvasData.v0[key] === undefined) { window.drupalSettings.canvasData.v0[key] = value; }',
     );
   });
 

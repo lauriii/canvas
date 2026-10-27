@@ -18,7 +18,13 @@ const DATA_DEPENDENCY_MAP: Record<string, string[]> = {
   getSiteData: ['v0.baseUrl', 'v0.branding'],
   getPageData: ['v0.breadcrumbs', 'v0.pageTitle', 'v0.mainEntity'],
   useJsonApiClient: ['v0.baseUrl', 'v0.jsonapiSettings'],
-  useSiteContext: ['v0.baseUrl', 'v0.branding', 'v0.themeAssets'],
+  useSiteContext: [
+    'v0.baseUrl',
+    'v0.branding',
+    'v0.themeAssets',
+    'v0.langcode',
+  ],
+  useDateFormatter: ['v0.langcode'],
   usePageContext: ['v0.breadcrumbs', 'v0.pageTitle', 'v0.mainEntity'],
 };
 

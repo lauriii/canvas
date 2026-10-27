@@ -55,8 +55,8 @@ export default function PageHeader() {
 ```
 
 `usePageContext()` returns `{ pageTitle, breadcrumbs, mainEntity }`;
-`useSiteContext()` returns `{ branding, baseUrl, themeAssets }`. Call the hooks
-unconditionally at the top level of a function component or custom hook
+`useSiteContext()` returns `{ branding, baseUrl, themeAssets, langcode }`. Call
+the hooks unconditionally at the top level of a function component or custom hook
 (React's rules of hooks). They return `null` when the rendering integration
 supplies no such data, for example a component rendered without a provider.
 

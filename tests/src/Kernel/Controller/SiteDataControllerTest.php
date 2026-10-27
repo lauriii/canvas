@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas\Kernel\Controller;
 
 use Drupal\canvas\Controller\SiteDataController;
 use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -43,6 +44,7 @@ class SiteDataControllerTest extends CanvasKernelTestBase {
     $data = static::decodeResponse($response);
     self::assertIsString($data['baseUrl']);
     self::assertNotEmpty($data['baseUrl']);
+    self::assertSame('en', $data['langcode']);
     self::assertSame('Test Canvas Site', $data['branding']['siteName']);
     self::assertSame('Test Slogan', $data['branding']['siteSlogan']);
     self::assertIsString($data['branding']['homeUrl']);
@@ -55,6 +57,9 @@ class SiteDataControllerTest extends CanvasKernelTestBase {
     self::assertArrayNotHasKey('mainEntity', $data);
     self::assertArrayNotHasKey('pageTitle', $data);
     self::assertSame(['contextHooks' => TRUE], $data['capabilities']);
+    // The langcode depends on the negotiated interface language.
+    self::assertInstanceOf(CacheableJsonResponse::class, $response);
+    self::assertContains('languages:language_interface', $response->getCacheableMetadata()->getCacheContexts());
   }
 
   public function testGetAllowedForAnonymousUser(): void {
@@ -68,6 +73,7 @@ class SiteDataControllerTest extends CanvasKernelTestBase {
     self::assertArrayHasKey('branding', $data);
     self::assertArrayHasKey('themeAssets', $data);
     self::assertArrayHasKey('jsonapiSettings', $data);
+    self::assertArrayHasKey('langcode', $data);
   }
 
 }

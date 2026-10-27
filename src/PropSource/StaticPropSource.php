@@ -605,13 +605,17 @@ final class StaticPropSource extends PropSourceBase {
           // @see \Drupal\Core\Field\FieldItemList::__get()
           // @see \Drupal\datetime\Plugin\Field\FieldType\DateTimeItem::propertyDefinitions()
           // @phpstan-ignore property.notFound
-          $widget_form['widget'][$i]['value']['#default_value'] = new DrupalDateTime($this->fieldItemList[$i]->value);
+          $widget_form['widget'][$i]['value']['#default_value'] = new DrupalDateTime($this->fieldItemList[$i]->value, 'UTC');
 
           // No timezone adjusting takes place when entering or storing date
           // values. It assumes the date time selected is literally the date
           // time stored. Because of that, the form render needs to assume UTC
           // as well, otherwise the input values will be different upon
-          // reloading the form.
+          // reloading the form. That includes parsing values that lack a
+          // timezone (such as date-only `2026-10-03`) as UTC: otherwise they
+          // would be parsed in the current timezone, and in a timezone with a
+          // positive UTC offset converting back to UTC would show the previous
+          // day.
           // @see https://drupal.org/i/3501281
           $widget_form['widget'][$i]['value']['#date_timezone'] = 'UTC';
         }

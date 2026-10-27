@@ -130,6 +130,11 @@ export interface SiteData {
   };
   baseUrl: string;
   themeAssets: ThemeAssets;
+  /**
+   * The interface language of the site, e.g. `fr`. `useDateFormatter()`
+   * formats dates in it. Absent when the integration did not supply it.
+   */
+  langcode?: string;
 }
 
 /**

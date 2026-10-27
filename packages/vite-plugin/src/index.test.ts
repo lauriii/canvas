@@ -73,6 +73,12 @@ describe('drupal-canvas vite plugin', () => {
     },
   );
 
+  it('exposes the site language from the site-data response', async () => {
+    const { plugin } = createPlugin({ langcode: 'fr' });
+    await runBuildStart(plugin);
+    expect(plugin.api.getCanvasSiteData().langcode).toBe('fr');
+  });
+
   it('does not retry a rejected metadata request with different credentials', async () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.stubEnv('CANVAS_ACCESS_TOKEN', 'fixture-env-token');

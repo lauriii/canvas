@@ -45,6 +45,21 @@ describe('Workbench context', () => {
     });
   });
 
+  it('carries the site language into the site context', () => {
+    expect(
+      createWorkbenchContext(
+        { baseUrl: 'https://drupal.example', langcode: 'fr' },
+        'http://localhost:5173',
+      ).site?.langcode,
+    ).toBe('fr');
+    expect(
+      createWorkbenchContext(
+        { baseUrl: 'https://drupal.example' },
+        'http://localhost:5173',
+      ).site,
+    ).not.toHaveProperty('langcode');
+  });
+
   it('falls back like the legacy getters without site data', () => {
     const context = createWorkbenchContext(null, 'http://localhost:5173');
     expect(context.site).toEqual({

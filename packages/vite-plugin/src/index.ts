@@ -24,6 +24,8 @@ const RESOLVED_CANVAS_SITE_DATA_MODULE_ID = `\0${CANVAS_SITE_DATA_MODULE_ID}`;
 /** The site-level data the plugin exposes. */
 export interface CanvasSiteData {
   baseUrl?: string;
+  /** The interface language `useDateFormatter()` formats dates in. */
+  langcode?: string;
   jsonapiSettings?: { apiPrefix: string } | null;
   branding?: { homeUrl: string; siteName: string; siteSlogan: string };
   themeAssets?: {

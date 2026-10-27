@@ -27,7 +27,11 @@ final class CanvasConfigUpdaterDataDependenciesTest extends CanvasKernelTestBase
     ];
     yield 'context hooks' => [
       "import { usePageContext, useSiteContext, useJsonApiClient } from 'drupal-canvas/react';",
-      ['v0.baseUrl', 'v0.branding', 'v0.themeAssets', 'v0.breadcrumbs', 'v0.pageTitle', 'v0.mainEntity', 'v0.jsonapiSettings'],
+      ['v0.baseUrl', 'v0.branding', 'v0.themeAssets', 'v0.langcode', 'v0.breadcrumbs', 'v0.pageTitle', 'v0.mainEntity', 'v0.jsonapiSettings'],
+    ];
+    yield 'date formatting' => [
+      "import { useDateFormatter } from 'drupal-canvas/react';",
+      ['v0.langcode'],
     ];
     yield 'no data APIs' => [
       "import { cn } from 'drupal-canvas';",
