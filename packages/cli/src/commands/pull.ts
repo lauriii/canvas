@@ -39,7 +39,10 @@ import {
   diagnoseLegacyApiUsage,
   migrateGetterCalls,
 } from '../utils/getter-codemod';
-import { mergePackageJsonDependencies } from '../utils/merge-package-json';
+import {
+  mergePackageJsonDependencies,
+  removeHeadlessSdkDependencies,
+} from '../utils/merge-package-json';
 import { pageVariantToAuthoredSpec } from '../utils/page-variants';
 import { pageToAuthoredSpec } from '../utils/pages';
 import { stripProjectedContentEntityReferencePropKeys } from '../utils/process-component-files';
@@ -1103,6 +1106,9 @@ export function createAssetsPullTask(
       }
       if (packageJson) {
         try {
+          // A headless codebase may have pushed this manifest. Its Headless SDK
+          // dependencies would make the next push treat components as external.
+          const pulledPackageJson = removeHeadlessSdkDependencies(packageJson);
           if (skipOverwrite && packageJsonExists) {
             results.push({
               itemName: 'package.json',
@@ -1110,8 +1116,9 @@ export function createAssetsPullTask(
               details: [{ content: 'Skipped (already exists)' }],
             });
           } else if (!packageJsonExists) {
-            // No local file to preserve: write the pulled manifest verbatim.
-            await fs.writeFile(packageJsonPath, packageJson, 'utf-8');
+            // No local file to preserve: write the pulled manifest, minus any
+            // Headless SDK dependencies.
+            await fs.writeFile(packageJsonPath, pulledPackageJson, 'utf-8');
             packageJsonChanged = true;
             results.push({ itemName: 'package.json', success: true });
           } else {
@@ -1120,7 +1127,7 @@ export function createAssetsPullTask(
             const local = await fs.readFile(packageJsonPath, 'utf-8');
             const { output, added } = mergePackageJsonDependencies(
               local,
-              packageJson,
+              pulledPackageJson,
             );
             if (output === null) {
               results.push({

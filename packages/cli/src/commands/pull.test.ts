@@ -5,6 +5,7 @@ import yaml from 'js-yaml';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { parse } from '@babel/parser';
 import * as p from '@clack/prompts';
+import { detectHeadlessSdk } from '@drupal-canvas/discovery';
 
 import { setConfig } from '../config';
 import { readValidatedComponentMetadata } from '../utils/component-metadata';
@@ -1673,6 +1674,95 @@ export default function Header() { return <h1>{page.pageTitle}</h1>; }`,
       expect(
         await fs.readFile(path.join(tmpDir, 'package.json'), 'utf-8'),
       ).toBe(invalid);
+    });
+
+    describe('Headless SDK dependencies in the pulled package.json', () => {
+      // A manifest pushed from a headless codebase.
+      const headlessPackageJson = JSON.stringify({
+        name: 'headless-app',
+        scripts: { dev: 'next dev' },
+        dependencies: {
+          '@drupal-canvas/headless': '^0.1.0',
+          '@drupal-canvas/headless-next': '^0.1.0',
+          '@drupal-canvas/headlessui': '^1.0.0',
+          'class-variance-authority': '^0.7.1',
+        },
+        devDependencies: {
+          '@drupal-canvas/headless-react': '^0.1.0',
+          typescript: '^5.0.0',
+        },
+      });
+
+      async function pullPackageJson() {
+        const api = mockApiService('', headlessPackageJson);
+        const task = createAssetsPullTask(api, globalCssPath, false, tmpDir);
+        await task.prepare();
+        const results = await task.execute();
+        const written = JSON.parse(
+          await fs.readFile(path.join(tmpDir, 'package.json'), 'utf-8'),
+        );
+        return { results, written };
+      }
+
+      it('should not write them into a new package.json', async () => {
+        const { written } = await pullPackageJson();
+
+        expect(written).toEqual({
+          name: 'headless-app',
+          scripts: { dev: 'next dev' },
+          dependencies: {
+            '@drupal-canvas/headlessui': '^1.0.0',
+            'class-variance-authority': '^0.7.1',
+          },
+          devDependencies: { typescript: '^5.0.0' },
+        });
+        expect(detectHeadlessSdk(tmpDir)).toBe(false);
+      });
+
+      it('should not merge them into an existing package.json', async () => {
+        await fs.writeFile(
+          path.join(tmpDir, 'package.json'),
+          JSON.stringify({ name: 'my-project', dependencies: {} }),
+          'utf-8',
+        );
+
+        const { results, written } = await pullPackageJson();
+
+        expect(written.dependencies).toEqual({
+          '@drupal-canvas/headlessui': '^1.0.0',
+          'class-variance-authority': '^0.7.1',
+        });
+        expect(
+          results.results
+            .filter((r) => r.itemType === 'Dependency')
+            .map((r) => r.itemName),
+        ).toEqual(['@drupal-canvas/headlessui', 'class-variance-authority']);
+        expect(detectHeadlessSdk(tmpDir)).toBe(false);
+      });
+
+      it('should keep Headless SDK dependencies the local package.json declares', async () => {
+        await fs.writeFile(
+          path.join(tmpDir, 'package.json'),
+          JSON.stringify({
+            name: 'my-headless-app',
+            dependencies: { '@drupal-canvas/headless-next': '^0.2.0' },
+            devDependencies: { '@drupal-canvas/headless': '^0.2.0' },
+          }),
+          'utf-8',
+        );
+
+        const { written } = await pullPackageJson();
+
+        expect(written.dependencies).toEqual({
+          '@drupal-canvas/headless-next': '^0.2.0',
+          '@drupal-canvas/headlessui': '^1.0.0',
+          'class-variance-authority': '^0.7.1',
+        });
+        expect(written.devDependencies).toEqual({
+          '@drupal-canvas/headless': '^0.2.0',
+        });
+        expect(detectHeadlessSdk(tmpDir)).toBe(true);
+      });
     });
 
     it('should skip writing package.json with skipOverwrite when it already exists', async () => {
