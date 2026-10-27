@@ -11,6 +11,21 @@ export interface PageVariantComponentTreeItem {
   // Markers carry no inputs, so this is an empty list, but other components
   // store a keyed map of resolved inputs.
   inputs: Record<string, unknown> | unknown[];
+  label?: string;
+}
+
+// A component instance as emitted by the Canvas config HTTP API on read. Unlike
+// the write shape, optional keys may be explicitly `null` and computed
+// properties such as `inputs_resolved` are included. It is not a valid POST
+// body: rebuild the storable keys instead of passing it through.
+export interface PageVariantComponentTreeItemResponse extends Omit<
+  PageVariantComponentTreeItem,
+  'parent_uuid' | 'slot' | 'label'
+> {
+  parent_uuid?: string | null;
+  slot?: string | null;
+  label?: string | null;
+  inputs_resolved?: unknown;
 }
 
 // The client-side representation of a `page_variant` config entity, as returned
@@ -20,7 +35,7 @@ export interface PageVariant {
   label: string | null;
   description: string | null;
   status: boolean;
-  component_tree: PageVariantComponentTreeItem[];
+  component_tree: PageVariantComponentTreeItemResponse[];
 }
 
 // The list response from `/canvas/api/v0/config/page_variant`, keyed by id.
@@ -31,6 +46,8 @@ export interface CreatePageVariantPayload {
   id: string;
   label: string;
   description: string;
+  // Omitted on create, where the server defaults to enabled.
+  status?: boolean;
   component_tree: PageVariantComponentTreeItem[];
 }
 

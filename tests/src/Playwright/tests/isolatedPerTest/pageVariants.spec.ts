@@ -104,6 +104,68 @@ test.describe('Page variants', () => {
     await canvas.publishAllChanges(['Marketing']);
   });
 
+  test('duplicate a page template', async ({ page, drupal, canvas }) => {
+    await drupal.login({ username: 'editor', password: 'editor' });
+    await canvas.openCanvas(await canvas.createCanvas());
+    await createMarketingVariant(page);
+
+    // Disable the source so the copy can be checked to keep its status.
+    let menu = await openVariantMenu(page, 'marketing');
+    const patch = waitForVariantMutation(page, 'marketing', 'PATCH');
+    await menu.getByRole('menuitem', { name: 'Disable' }).click();
+    await patch;
+
+    // The source's GET representation carries computed and null-valued keys
+    // that the POST validation rejects; the duplicate must not send them.
+    const created = page.waitForResponse(
+      (response) =>
+        response.url().endsWith('/canvas/api/v0/config/page_variant') &&
+        response.request().method() === 'POST',
+    );
+    menu = await openVariantMenu(page, 'marketing');
+    await menu.getByRole('menuitem', { name: 'Duplicate' }).click();
+    const response = await created;
+    expect(response.status()).toBe(201);
+    const body = response.request().postDataJSON();
+    for (const item of body.component_tree) {
+      expect(item).not.toHaveProperty('inputs_resolved');
+      for (const value of Object.values(item)) {
+        expect(value).not.toBeNull();
+      }
+    }
+
+    const copy = page.getByTestId('canvas-page-variant-marketing_copy');
+    await expect(copy).toContainText('Marketing (copy)');
+    await expect(copy.getByText('Disabled')).toBeVisible();
+    await expect(page.getByTestId('canvas-error-card')).toHaveCount(0);
+
+    // A rejected duplicate is reported in the panel and can be dismissed.
+    await page.route('**/canvas/api/v0/config/page_variant', (route) =>
+      route.request().method() === 'POST'
+        ? route.fulfill({
+            status: 422,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              errors: [
+                {
+                  detail: 'Duplicate rejected.',
+                  source: { pointer: 'id' },
+                },
+              ],
+            }),
+          })
+        : route.fallback(),
+    );
+    menu = await openVariantMenu(page, 'marketing');
+    await menu.getByRole('menuitem', { name: 'Duplicate' }).click();
+    const errorCard = page.getByTestId('canvas-error-card');
+    await expect(errorCard).toContainText(
+      'An unexpected error has occurred while duplicating the page template.',
+    );
+    await errorCard.getByRole('button', { name: 'Dismiss' }).click();
+    await expect(errorCard).toHaveCount(0);
+  });
+
   test('refresh the Page data form after page template mutations', async ({
     page,
     drupal,

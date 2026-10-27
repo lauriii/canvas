@@ -135,7 +135,11 @@ describe('buildDuplicateVariantPayload', () => {
         uuid: 'uuid-template',
         component_id: 'sdc.canvas.page_template',
         component_version: 'v1',
+        parent_uuid: null,
+        slot: null,
+        label: null,
         inputs: [],
+        inputs_resolved: [],
       },
       {
         uuid: 'uuid-marker',
@@ -143,7 +147,9 @@ describe('buildDuplicateVariantPayload', () => {
         component_version: 'v1',
         parent_uuid: 'uuid-template',
         slot: 'content',
+        label: null,
         inputs: [],
+        inputs_resolved: [],
       },
     ],
   };
@@ -157,6 +163,7 @@ describe('buildDuplicateVariantPayload', () => {
     expect(payload.id).toBe('homepage_copy_2');
     expect(payload.label).toBe('Homepage (copy)');
     expect(payload.description).toBe('The default layout.');
+    expect(payload.status).toBe(true);
 
     // No instance identity is shared with the source: a duplicate that reused
     // the source's UUIDs — especially the "Page content" marker's — would let a
@@ -175,6 +182,32 @@ describe('buildDuplicateVariantPayload', () => {
     expect(payload.component_tree[1].parent_uuid).toBe(
       payload.component_tree[0].uuid,
     );
+  });
+
+  it('emits only storable keys, without inputs_resolved or null optional keys', () => {
+    const payload = buildDuplicateVariantPayload({ source, existingIds: [] });
+    expect(Object.keys(payload.component_tree[0]).sort()).toEqual([
+      'component_id',
+      'component_version',
+      'inputs',
+      'uuid',
+    ]);
+    expect(Object.keys(payload.component_tree[1]).sort()).toEqual([
+      'component_id',
+      'component_version',
+      'inputs',
+      'parent_uuid',
+      'slot',
+      'uuid',
+    ]);
+  });
+
+  it('preserves the source status', () => {
+    const payload = buildDuplicateVariantPayload({
+      source: { ...source, status: false },
+      existingIds: [],
+    });
+    expect(payload.status).toBe(false);
   });
 
   it('honors an explicit label override', () => {
