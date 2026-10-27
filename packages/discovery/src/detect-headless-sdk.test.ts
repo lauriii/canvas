@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { detectHeadlessSdk } from './detect-headless-sdk';
+import { detectHeadlessSdk, isHeadlessSdkPackage } from './detect-headless-sdk';
 
 describe('detectHeadlessSdk', () => {
   let tmpDir: string;
@@ -56,5 +56,27 @@ describe('detectHeadlessSdk', () => {
   it('returns false when package.json is invalid JSON', async () => {
     await fs.writeFile(path.join(tmpDir, 'package.json'), '{ not json');
     expect(detectHeadlessSdk(tmpDir)).toBe(false);
+  });
+});
+
+describe('isHeadlessSdkPackage', () => {
+  it.each(['@drupal-canvas/headless', '@drupal-canvas/headless-next'])(
+    'matches %s',
+    (name) => {
+      expect(isHeadlessSdkPackage(name)).toBe(true);
+    },
+  );
+
+  it.each([
+    '@drupal-canvas/headlessui',
+    '@drupal-canvas/head',
+    '@drupal-canvas/cli',
+    '@drupal-canvas/eslint-config',
+    '@other/headless',
+    '@other/headless-next',
+    'headless',
+    'drupal-canvas-headless',
+  ])('does not match %s', (name) => {
+    expect(isHeadlessSdkPackage(name)).toBe(false);
   });
 });

@@ -4,7 +4,14 @@ import { resolve } from 'node:path';
 // The core Canvas Headless SDK package and prefix for its framework adapters.
 const HEADLESS_SDK_PACKAGE = '@drupal-canvas/headless';
 
-function isHeadlessSdkPackage(packageName: string): boolean {
+/**
+ * Checks whether a package name is the Canvas Headless SDK or one of its
+ * framework adapters, e.g. `@drupal-canvas/headless-next`.
+ *
+ * @param packageName - The npm package name.
+ * @returns True for `@drupal-canvas/headless` and `@drupal-canvas/headless-*`.
+ */
+export function isHeadlessSdkPackage(packageName: string): boolean {
   return (
     packageName === HEADLESS_SDK_PACKAGE ||
     packageName.startsWith(`${HEADLESS_SDK_PACKAGE}-`)

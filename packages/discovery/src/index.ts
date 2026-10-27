@@ -44,7 +44,7 @@ export type {
 } from './brand-kit-colors';
 export { DEFAULT_CANVAS_CONFIG, resolveCanvasConfig } from './config';
 export type { CanvasConfigWarning } from './config';
-export { detectHeadlessSdk } from './detect-headless-sdk';
+export { detectHeadlessSdk, isHeadlessSdkPackage } from './detect-headless-sdk';
 export { getContentEntityReferenceTarget } from './content-entity-reference';
 export type { ContentEntityReferenceTarget } from './content-entity-reference';
 export {
