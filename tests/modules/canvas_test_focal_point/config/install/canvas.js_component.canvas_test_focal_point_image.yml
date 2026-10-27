@@ -1,0 +1,69 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+    - canvas_test_focal_point
+machineName: canvas_test_focal_point_image
+name: Focal point image (code)
+required:
+- image
+props:
+  image:
+    title: Image
+    type: object
+    $ref: json-schema-definitions://canvas.module/image-with-focal-point
+    examples:
+    - src: https://placehold.co/1200x600.png
+      width: 1200
+      height: 600
+      alt: A placeholder
+  gallery:
+    title: Gallery
+    type: array
+    items:
+      type: object
+      $ref: json-schema-definitions://canvas.module/image-with-focal-point
+slots: {}
+js:
+  original: |
+    import { Image } from 'drupal-canvas';
+
+    // Each image carries its focal point, which Image applies.
+    const FocalPointImage = ({ image, gallery = [] }) => (
+      <div>
+        <Image {...image} style={{ width: 300, height: 150 }} />
+        {gallery.map((item, i) => (
+          <Image key={i} {...item} style={{ width: 100, height: 100 }} />
+        ))}
+      </div>
+    );
+
+    export default FocalPointImage;
+  compiled: |
+    import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+    import { Image } from 'drupal-canvas';
+    // Each image carries its focal point, which Image applies.
+    const FocalPointImage = ({ image, gallery = [] })=>/*#__PURE__*/ _jsxs("div", {
+            children: [
+                /*#__PURE__*/ _jsx(Image, {
+                    ...image,
+                    style: {
+                        width: 300,
+                        height: 150
+                    }
+                }),
+                gallery.map((item, i)=>/*#__PURE__*/ _jsx(Image, {
+                        ...item,
+                        style: {
+                            width: 100,
+                            height: 100
+                        }
+                    }, i))
+            ]
+        });
+    export default FocalPointImage;
+css:
+  original: ''
+  compiled: ''
+dataDependencies: {}

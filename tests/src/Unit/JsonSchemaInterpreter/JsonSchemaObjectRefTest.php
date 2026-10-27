@@ -28,6 +28,8 @@ final class JsonSchemaObjectRefTest extends UnitTestCase {
     $this->assertIsArray($choices, 'The `$ref` Choice constraint exists in canvas.json_schema.prop_shape.object.');
 
     $enum_values = \array_map(static fn (JsonSchemaObjectRef $case): string => $case->value, JsonSchemaObjectRef::cases());
+    // Standardizes to the image shape, so it is not a case of its own.
+    $enum_values[] = JsonSchemaObjectRef::IMAGE_WITH_FOCAL_POINT;
 
     sort($choices);
     sort($enum_values);

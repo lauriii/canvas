@@ -1,0 +1,23 @@
+{#
+/**
+ * @file
+ * Canvas Stark override for the focal point of an image in a media widget.
+ *
+ * Renders the x and y inputs inside the focal point picker.
+ *
+ * Available variables:
+ * - attributes: HTML attributes, including the image to preview and the
+ *   point it inherits from its media item (`x,y`, or empty).
+ * - children: The x and y inputs.
+ *
+ * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::addFocalPointInputs()
+ *
+ * @ingroup themeable
+ */
+#}
+<drupal-canvas-focal-point
+  src="{{ attributes['data-canvas-focal-point-src'] }}"
+  inherited="{{ attributes['data-canvas-focal-point-inherited'] }}"
+>
+  {{ children }}
+</drupal-canvas-focal-point>

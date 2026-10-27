@@ -1,0 +1,17 @@
+{#
+/**
+ * @file
+ * Canvas Stark override for the x and y inputs of an image's focal point.
+ *
+ * Available variables:
+ * - attributes: A list of HTML attributes for the input element.
+ * - children: Optional additional rendered elements.
+ *
+ * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::addFocalPointInputs()
+ *
+ * @ingroup themeable
+ */
+#}
+<drupal-canvas-focal-point-coordinate
+  attributes="{{ attributes }}"
+></drupal-canvas-focal-point-coordinate>{{ children }}

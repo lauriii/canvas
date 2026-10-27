@@ -814,7 +814,10 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
    * @return \Generator<int, string>
    */
   private static function imagesInExamples(array $schema): \Generator {
-    $is_image = ($schema['$ref'] ?? NULL) === 'json-schema-definitions://canvas.module/image';
+    $is_image = \in_array($schema['$ref'] ?? NULL, [
+      JsonSchemaObjectRef::Image->value,
+      JsonSchemaObjectRef::IMAGE_WITH_FOCAL_POINT,
+    ], TRUE);
     foreach ($schema['examples'] ?? [] as $value) {
       if (!\is_array($value)) {
         continue;

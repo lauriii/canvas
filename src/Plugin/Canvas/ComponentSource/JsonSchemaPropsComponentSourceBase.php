@@ -11,6 +11,8 @@ use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\EmptyTargetEntityProviderInterface;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\InvalidComponentInputsPropSourceException;
+use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
+use Drupal\canvas\MediaFocalPoints;
 use Drupal\canvas\MissingHostEntityException;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
@@ -117,6 +119,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
     private readonly LoggerChannelInterface $logger,
     protected readonly PropShapeRepositoryInterface $propShapeRepository,
     private readonly ColorResolver $colorResolver,
+    private readonly MediaFocalPoints $mediaFocalPoints,
   ) {
     \assert(\array_key_exists('local_source_id', $configuration));
     parent::__construct($configuration, $plugin_id, $plugin_definition);
@@ -137,6 +140,7 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       $container->get('logger.channel.canvas'),
       $container->get(PropShapeRepositoryInterface::class),
       $container->get(ColorResolver::class),
+      $container->get(MediaFocalPoints::class),
     );
   }
 
@@ -505,6 +509,12 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       }
     }
 
+    foreach ($resolved_values as $prop => $result) {
+      if ($this->hasFocalPoints($prop)) {
+        $resolved_values[$prop] = $this->addFocalPoints($result, $values[$prop]['value'] ?? NULL);
+      }
+    }
+
     // @phpstan-ignore staticMethod.alreadyNarrowedType
     \assert(Inspector::assertAllObjects($resolved_values, EvaluationResult::class));
     return [
@@ -640,6 +650,156 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       $props_for_validation[$prop_name] = $value['cssColorValue'];
     }
     return $props_for_validation;
+  }
+
+  /**
+   * Whether a prop stores a focal point per image.
+   *
+   * True for props that reference the image-with-focal-point shape, or a list
+   * of them. Each image's stored value gains `focal_point: {x, y}`,
+   * percentages from its top left corner, and its resolved value gains
+   * `focalPoint: {x, y}`, the center when not set.
+   *
+   * @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef::IMAGE_WITH_FOCAL_POINT
+   */
+  protected function hasFocalPoints(string $prop_name): bool {
+    // SDC metadata has its `$ref`s resolved: look for the focal point there.
+    $is_image_with_focal_point = static fn (array $schema): bool => ($schema['$ref'] ?? NULL) === JsonSchemaObjectRef::IMAGE_WITH_FOCAL_POINT
+      || isset($schema['properties']['focalPoint']);
+    $prop = $this->getMetadata()->schema['properties'][$prop_name] ?? [];
+    return $is_image_with_focal_point($prop) || $is_image_with_focal_point($prop['items'] ?? []);
+  }
+
+  /**
+   * Returns a stored focal point if it is valid.
+   *
+   * @return array{x: int|float, y: int|float}|null
+   */
+  private static function validFocalPoint(mixed $point): ?array {
+    if (!\is_array($point)) {
+      return NULL;
+    }
+    foreach (['x', 'y'] as $axis) {
+      if (!\is_numeric($point[$axis] ?? NULL) || $point[$axis] < 0 || $point[$axis] > 100) {
+        return NULL;
+      }
+    }
+    return ['x' => 0 + $point['x'], 'y' => 0 + $point['y']];
+  }
+
+  /**
+   * Adds each image's focal point to its resolved value.
+   *
+   * Images without a stored focal point get the one the Focal Point module
+   * stores for the image, if any, or else the center, so components can always
+   * crop with it.
+   *
+   * @param \Drupal\canvas\PropExpressions\StructuredData\EvaluationResult $result
+   *   The evaluated image prop: an image or a list of images.
+   * @param mixed $stored
+   *   The stored value: `{target_id, focal_point}` or a list of those.
+   */
+  private function addFocalPoints(EvaluationResult $result, mixed $stored): EvaluationResult {
+    if (!\is_array($result->value) || $result->value === []) {
+      return $result;
+    }
+    $stored = \is_array($stored) ? $stored : [];
+    $is_list = \array_is_list($result->value);
+    $images = $is_list ? $result->value : [$result->value];
+    $stored = \array_is_list($stored) ? $stored : [$stored];
+    $cacheability = CacheableMetadata::createFromObject($result);
+    $with_focal_points = [];
+    foreach ($images as $delta => $image) {
+      if (\is_array($image)) {
+        $media_id = $stored[$delta]['target_id'] ?? NULL;
+        $image['focalPoint'] = self::validFocalPoint($stored[$delta]['focal_point'] ?? NULL)
+          ?? (\is_int($media_id) || \is_string($media_id) ? $this->mediaFocalPoints->get($media_id, $cacheability) : NULL)
+          ?? ['x' => 50, 'y' => 50];
+      }
+      $with_focal_points[$delta] = $image;
+    }
+    // The evaluation result types only describe scalar object properties, not
+    // nested objects such as `focalPoint`.
+    // @phpstan-ignore argument.type
+    return new EvaluationResult($is_list ? $with_focal_points : $with_focal_points[0], $cacheability);
+  }
+
+  /**
+   * Adds focal point inputs to each image selected in a media library widget.
+   *
+   * The inputs render inside each selected image but are named by media ID,
+   * `<prop>[focal_points][media_<ID>][x]`, rather than by position: positions
+   * change when images are reordered or removed. The same image used twice
+   * shares one focal point.
+   *
+   * @param array<int|string, mixed> $widget
+   *   The media library widget element.
+   * @param \Drupal\canvas\PropSource\StaticPropSource $source
+   *   The prop's stored value.
+   *
+   * @see ui/src/components/form/components/drupal/DrupalFocalPoint.tsx
+   * @see ui/src/utils/transforms.ts
+   */
+  private function addFocalPointInputs(array &$widget, StaticPropSource $source): void {
+    $points = [];
+    foreach ($source->fieldItemList as $item) {
+      $value = $item->getValue();
+      $points[$value['target_id'] ?? ''] ??= self::validFocalPoint($value['focal_point'] ?? NULL);
+    }
+    $parents = [...$widget['#field_parents'], $widget['#field_name'], 'focal_points'];
+    foreach (Element::children($widget['selection']) as $delta) {
+      $target_id = $widget['selection'][$delta]['target_id']['#value'] ?? NULL;
+      if ($target_id === NULL) {
+        continue;
+      }
+      $point = $points[$target_id] ?? NULL;
+      // The picker previews this image at full size.
+      try {
+        $image = $source->withValue(['target_id' => $target_id])->evaluate(NULL, is_required: FALSE)->value;
+        $image = \is_array($image) && \array_is_list($image) ? ($image[0] ?? NULL) : $image;
+      }
+      catch (\Exception) {
+        $image = NULL;
+      }
+      // The point used while this image has none of its own. The component
+      // instance form is not cached, so its cacheability is not needed.
+      $inherited = $this->mediaFocalPoints->get($target_id, new CacheableMetadata());
+      $element = [
+        '#type' => 'container',
+        '#theme_wrappers' => ['container__focal_point'],
+        '#attributes' => [
+          'data-canvas-focal-point-src' => \is_array($image) ? ($image['src'] ?? '') : '',
+          'data-canvas-focal-point-inherited' => $inherited ? $inherited['x'] . ',' . $inherited['y'] : '',
+        ],
+        // After the item's own controls (such as its remove button), so it
+        // wraps below them.
+        '#weight' => 100,
+        // Edited as a unit, not as multivalue inputs.
+        // @see \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::markMultivalueFormElements()
+        '#canvas_focal_point' => TRUE,
+      ];
+      $titles = [
+        'x' => new TranslatableMarkup('Horizontal position (%)'),
+        'y' => new TranslatableMarkup('Vertical position (%)'),
+      ];
+      foreach ($titles as $axis => $title) {
+        $element[$axis] = [
+          '#type' => 'number',
+          '#theme' => 'input__number__focal_point',
+          // A non-numeric key, so the client does not read the media IDs as a
+          // list.
+          '#parents' => [...$parents, 'media_' . $target_id, $axis],
+          '#title' => $title,
+          // The picker labels the inputs "X" and "Y" inside the field.
+          '#title_display' => 'invisible',
+          '#min' => 0,
+          '#max' => 100,
+          '#step' => 'any',
+          '#value' => $point[$axis] ?? '',
+        ];
+      }
+      $widget['selection'][$delta]['focal_point'] = $element;
+    }
   }
 
   /**
@@ -1028,6 +1188,9 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       }
       $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($widget, $sdc_prop_name, $is_required, $entity_object_for_field_widget, $form, $form_state);
       $form[$sdc_prop_name]['#disabled'] = $disabled;
+      if ($this->hasFocalPoints($sdc_prop_name) && $field_widget_plugin_id === 'media_library_widget' && !$disabled && isset($form[$sdc_prop_name]['widget']['selection'])) {
+        $this->addFocalPointInputs($form[$sdc_prop_name]['widget'], $source);
+      }
 
       if ($entity instanceof ContentTemplate) {
         $could_use_dynamic_prop_source = !empty($suggestions[$sdc_prop_name]);
@@ -1063,13 +1226,18 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
 
       $widget_definition = $this->fieldWidgetPluginManager->getDefinition($widget->getPluginId());
       if (\array_key_exists('canvas', $widget_definition) && \array_key_exists('transforms', $widget_definition['canvas'])) {
+        $widget_transforms = $widget_definition['canvas']['transforms'];
+        // Keep each image's focal point next to its media ID.
+        if ($this->hasFocalPoints($sdc_prop_name) && $field_widget_plugin_id === 'media_library_widget') {
+          $widget_transforms = ['mediaFocalPoint' => []];
+        }
         $transforms[$sdc_prop_name] = \array_map(
           static fn (array $transform): array =>
           [
             ...$transform,
             'multiple' => $default_static_source->getCardinality() !== 1,
           ],
-          $widget_definition['canvas']['transforms']);
+          $widget_transforms);
       }
       else {
         throw new \LogicException(\sprintf(

@@ -176,7 +176,8 @@
           display: none;
         }
 
-        img {
+        /* Not the image in an item's focal point picker. */
+        img:not([data-canvas-focal-point] img) {
           display: block;
           width: var(--canvas-media-item-width);
           height: var(--canvas-media-item-height);

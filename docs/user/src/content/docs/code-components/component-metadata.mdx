@@ -68,6 +68,37 @@ examples:
     height: 1180
 ```
 
+#### Focal point
+
+Use the `image-with-focal-point` definition instead of `image`, for one image or
+a list of images, to let editors set a focal point on each image. They drag a
+marker on the image in its media field. The image then has a `focalPoint` with
+`x` and `y` percentages from its top left corner.
+
+When an image has no focal point of its own, it uses the one set on its media
+item with the [Focal Point](https://www.drupal.org/project/focal_point) module,
+if that module is installed, or else the center (`50`, `50`). A focal point set
+in Canvas applies only to that component, and leaves the media item's unchanged.
+
+```yaml
+type: object
+$ref: json-schema-definitions://canvas.module/image-with-focal-point
+```
+
+The `Image` component crops around it, so spreading the image is enough:
+
+```jsx
+import { Image } from 'drupal-canvas';
+
+<Image {...image} style={{ width: 300, height: 200 }} />
+```
+
+In Twig, use it for CSS `object-position`:
+
+```twig
+<img src="{{ image.src }}" style="object-fit: cover; object-position: {{ image.focalPoint.x }}% {{ image.focalPoint.y }}%" />
+```
+
 ### Video
 
 Reference to a video object with metadata like dimensions and file URL. Only the

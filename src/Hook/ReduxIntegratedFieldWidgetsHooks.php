@@ -269,6 +269,13 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
    */
   private function markMultivalueFormElements(array &$element, string $field_label, int $cardinality): void {
     foreach (Element::children($element) as $key) {
+      // An image's focal point inputs are edited as a unit by the focal point
+      // picker, not as multivalue inputs.
+      // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::addFocalPointInputs()
+      if (!empty($element[$key]['#canvas_focal_point'])) {
+        continue;
+      }
+
       // Mark input elements.
       if (isset($element[$key]['#type']) &&
           \in_array($element[$key]['#type'], ['textfield', 'number', 'url', 'entity_autocomplete', 'submit', 'select'], TRUE)) {

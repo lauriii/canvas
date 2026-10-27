@@ -453,8 +453,51 @@ const mediaSelection: Transformer<
   return multiple ? selectionValues : selectionValues[0];
 };
 
+// Replaces `mediaSelection` and `mainProperty` for media library widgets on
+// image props with focal points: returns `{target_id, focal_point: {x, y}}` per
+// selected image. Focal points are inputs keyed by media ID next to the
+// selection, `focal_points[media_<ID>][x]`; an incomplete or out of range one
+// is left out.
+// @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef::IMAGE_WITH_FOCAL_POINT
+const mediaFocalPoint: Transformer<
+  BaseTransformOptions,
+  null | PropsValues | Array<PropsValues>
+> = (value, options) => {
+  const points = ((value as PropsValues | null)?.focal_points ??
+    {}) as PropsValues;
+  const selection = mediaSelection(value, options, {} as StaticPropSource);
+  const records: Array<unknown> =
+    options.multiple && typeof selection !== 'string'
+      ? normalizeMultipleRecords(selection)
+      : [selection];
+  const items = records.flatMap((record) => {
+    if (record === null || typeof record !== 'object') {
+      return [];
+    }
+    const { target_id: targetId } = record as PropsValues;
+    if (targetId === undefined || targetId === null || targetId === '') {
+      return [];
+    }
+    const { x, y } = (points[`media_${targetId}`] ?? {}) as PropsValues;
+    const point = { x: Number(x), y: Number(y) };
+    const isValid =
+      x !== '' &&
+      y !== '' &&
+      x != null &&
+      y != null &&
+      [point.x, point.y].every((n) => n >= 0 && n <= 100);
+    return [
+      isValid
+        ? { target_id: targetId, focal_point: point }
+        : { target_id: targetId },
+    ];
+  });
+  return options.multiple ? items : (items[0] ?? null);
+};
+
 const transforms = {
   mainProperty,
+  mediaFocalPoint,
   firstRecord,
   dateTime,
   dateRange,
