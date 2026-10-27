@@ -508,7 +508,11 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
     $scoped_map = $this->getScopedDependencies($component, $autoSave, $isPreview);
     $import_maps[ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS] = \array_merge($import_maps[ImportMapResponseAttachmentsProcessor::SCOPED_IMPORTS], $scoped_map);
 
-    $build['#attached']['library'] = \array_merge($build['#attached']['library'], $this->getDependencyLibraries($component, $autoSave, $isPreview));
+    $dependencies = $this->getDependencyComponents($component, $autoSave, $isPreview);
+    $build['#attached']['library'] = \array_merge($build['#attached']['library'], \array_values(\array_map(
+      static fn(JavaScriptComponent $dependency): string => $dependency->getAssetLibrary($isPreview),
+      $dependencies,
+    )));
 
     if (\count($build['#attached']['library']) === 0) {
       unset($build['#attached']['library']);
@@ -579,6 +583,19 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
       ->merge($props_bubbleable_metadata);
     if ($headless_settings !== NULL) {
       $bubbleable_metadata->addCacheableDependency($headless_settings);
+    }
+    // `useTranslation()` reads the translations of the strings this component
+    // and the components it imports pass to `t()` and `formatPlural()`.
+    // @see packages/drupal-canvas/src/drupal-settings.ts
+    $translatables = [$component];
+    foreach ($dependencies as $dependency) {
+      $translatable = $isPreview ? ($this->loadAutoSaveEntity($dependency, TRUE)->entity ?? $dependency) : $dependency;
+      \assert($translatable instanceof JavaScriptComponent);
+      $translatables[] = $translatable;
+    }
+    $translations = $this->codeComponentDataProvider->getCanvasDataTranslationsV0($translatables, $bubbleable_metadata);
+    if ($translations !== []) {
+      $bubbleable_metadata->addAttachments(['drupalSettings' => [CodeComponentDataProvider::CANVAS_DATA_KEY => $translations]]);
     }
     // When this component reads `canvasData.v0.mainEntity`, its data embeds the
     // per-language translation list, derived from the enabled-language list and
@@ -767,8 +784,14 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
     return $scoped_dependencies;
   }
 
-  private function getDependencyLibraries(JavaScriptComponent $component, AutoSaveEntity $autoSave, bool $isPreview, array $seen = []): array {
-    $libraries = [];
+  /**
+   * The code components a component imports, directly or indirectly.
+   *
+   * @return array<string, \Drupal\canvas\Entity\JavaScriptComponent>
+   *   The published components, keyed by ID.
+   */
+  private function getDependencyComponents(JavaScriptComponent $component, AutoSaveEntity $autoSave, bool $isPreview, array $seen = []): array {
+    $dependencies = [];
     foreach ($component->getComponentDependencies($autoSave, $isPreview) as $js_component_dependency_name => $js_component_dependency) {
       if (\in_array($js_component_dependency_name, $seen, TRUE)) {
         // Recursion or already processed by another dependency.
@@ -777,10 +800,10 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
       $seen[] = $js_component_dependency_name;
       \assert($js_component_dependency instanceof JavaScriptComponent);
       $dependencyAutoSave = $this->loadAutoSaveEntity($js_component_dependency, $isPreview);
-      $libraries[] = $js_component_dependency->getAssetLibrary($isPreview);
-      $libraries = array_merge($libraries, $this->getDependencyLibraries($js_component_dependency, $dependencyAutoSave, $isPreview, $seen));
+      $dependencies[$js_component_dependency_name] = $js_component_dependency;
+      $dependencies += $this->getDependencyComponents($js_component_dependency, $dependencyAutoSave, $isPreview, $seen);
     }
-    return $libraries;
+    return $dependencies;
   }
 
   public function setJavaScriptComponent(?JavaScriptComponent $jsComponent): static {

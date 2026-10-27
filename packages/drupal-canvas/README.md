@@ -89,7 +89,33 @@ import { CanvasContextProvider } from 'drupal-canvas/react';
 ```
 
 The `CanvasContext` type describes the provider's value:
-`{ page: PageContext | null; site: SiteContext | null }`.
+`{ page: PageContext | null; site: SiteContext | null; translations?: Translations | null }`.
+
+### `useTranslation`
+
+Translate interface strings with `t()` and `formatPlural()`, which have the same
+signatures as `Drupal.t()` and `Drupal.formatPlural()`. They work in every
+frontend mode: they read the translations from the context. Without a
+translation, they return the source string.
+
+```jsx
+import { useTranslation } from 'drupal-canvas/react';
+
+export default function Greeting({ name, count }) {
+  const { t, formatPlural } = useTranslation();
+  return (
+    <p>
+      {t('Hello @name', { '@name': name })}{' '}
+      {formatPlural(count, '1 new message', '@count new messages')}
+    </p>
+  );
+}
+```
+
+Drupal finds the strings in the component source, so pass string literals and
+keep the names `t` and `formatPlural`. Both return plain text: placeholders
+insert values without HTML, and `%` does not add `<em>` markup. See
+[Translation](https://project.pages.drupalcode.org/canvas/code-components/translation).
 
 ### `getPageData` and `getSiteData` (deprecated)
 

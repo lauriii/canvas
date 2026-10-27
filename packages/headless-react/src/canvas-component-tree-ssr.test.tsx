@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// cspell:ignore janvier
+// cspell:ignore janvier Bonjour fichier fichiers
 
 /**
  * Server rendering of a live draft session with SWR fallback data, then
@@ -10,7 +10,11 @@
  */
 
 import { act } from 'react';
-import { useDateFormatter, useJsonApiClient } from 'drupal-canvas/react';
+import {
+  useDateFormatter,
+  useJsonApiClient,
+  useTranslation,
+} from 'drupal-canvas/react';
 import { hydrateRoot } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import useSWR, { SWRConfig } from 'swr';
@@ -204,5 +208,56 @@ describe('draft server rendering with SWR fallback and hydration', () => {
     expect(render('fr')).toContain('15 janvier 2026');
     expect(render('en')).toContain('January 15, 2026');
     expect(render()).toContain('January 15, 2026');
+  });
+
+  it('translates with the context translations on the server and hydrates without mismatch', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    function Greeting() {
+      const { t, formatPlural } = useTranslation();
+      const greeting = t('Hello @name', { '@name': 'Ada' });
+      return (
+        <p>{`${greeting}, ${formatPlural(2, '1 file', '@count files')}`}</p>
+      );
+    }
+    // The translations travel with the page context, so the server and the
+    // browser render the same text.
+    const translated = (
+      <CanvasComponentTree
+        tree={{ element: 'js-greeting', props: { canvasUuid: 'greeting' } }}
+        components={{ greeting: Greeting }}
+        context={{
+          ...context,
+          translations: {
+            strings: {
+              '': {
+                'Hello @name': 'Bonjour @name',
+                '1 file\x03@count files': '1 fichier\x03@count fichiers',
+              },
+            },
+            pluralFormula: { 0: 0, 1: 0, default: 1 },
+          },
+        }}
+      />
+    );
+    const html = renderOnServer(translated);
+    expect(html).toContain('Bonjour Ada, 2 fichiers');
+
+    (
+      globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+    ).IS_REACT_ACT_ENVIRONMENT = true;
+    const container = document.createElement('div');
+    container.innerHTML = html;
+    document.body.append(container);
+    const recoverable: unknown[] = [];
+    await act(async () => {
+      hydrateRoot(container, translated, {
+        onRecoverableError: (cause) => recoverable.push(cause),
+      });
+    });
+    expect(recoverable).toEqual([]);
+    expect(
+      error.mock.calls.map(([message]) => String(message)),
+    ).not.toContainEqual(expect.stringMatching(/hydration/i));
+    expect(container.textContent).toBe('Bonjour Ada, 2 fichiers');
   });
 });

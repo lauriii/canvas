@@ -26,6 +26,7 @@ use Drupal\canvas\Resource\CanvasResourceLink;
 use Drupal\canvas\Resource\CanvasResourceLinkCollection;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\Component\Assertion\Inspector;
+use Drupal\Component\Gettext\PoItem;
 use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Cache\Cache;
@@ -1070,6 +1071,49 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
     );
     $js_component_ids = \array_map(fn($dependency) => mb_substr($dependency, mb_strlen($this->getConfigPrefix()) + 1), $js_dependencies);
     return self::loadMultiple($js_component_ids);
+  }
+
+  /**
+   * The strings the component source translates with `useTranslation()`.
+   *
+   * Like Drupal core's JavaScript string parsing, this matches `t()` and
+   * `formatPlural()` calls in the source code: only string literals are found,
+   * and the functions must keep those names.
+   *
+   * @return list<array{source: string, context: string}>
+   *   The unique strings, each with its context (`''` when none). Plural
+   *   strings join their singular and plural forms with PoItem::DELIMITER.
+   *
+   * @see _locale_parse_js_file()
+   */
+  public function getTranslatableStrings(): array {
+    $source = $this->js['original'] ?? '';
+    if (!\str_contains($source, 'useTranslation')) {
+      return [];
+    }
+    $string = '\'(?:\\\\.|[^\'\\\\])*\'|"(?:\\\\.|[^"\\\\])*"';
+    // The remaining arguments, or the count, up to one level of parentheses.
+    $arguments = '((?:[^()]|\([^()]*\))*)';
+    $count = '(?:[^,()]|\([^()]*\))+';
+    $found = [];
+    \preg_match_all('/(?<![\w$])t\(\s*(' . $string . ')' . $arguments . '\)/s', $source, $matches, PREG_SET_ORDER);
+    foreach ($matches as [, $literal, $rest]) {
+      $found[] = [self::unquote($literal), $rest];
+    }
+    \preg_match_all('/(?<![\w$])formatPlural\(' . $count . ',\s*(' . $string . ')\s*,\s*(' . $string . ')' . $arguments . '\)/s', $source, $matches, PREG_SET_ORDER);
+    foreach ($matches as [, $singular, $plural, $rest]) {
+      $found[] = [self::unquote($singular) . PoItem::DELIMITER . self::unquote($plural), $rest];
+    }
+    $strings = [];
+    foreach ($found as [$source_string, $rest]) {
+      $context = \preg_match('/\bcontext\s*:\s*(' . $string . ')/', $rest, $context_match) ? self::unquote($context_match[1]) : '';
+      $strings[$context . "\x04" . $source_string] = ['source' => $source_string, 'context' => $context];
+    }
+    return \array_values($strings);
+  }
+
+  private static function unquote(string $literal): string {
+    return \stripcslashes(\substr($literal, 1, -1));
   }
 
   public function getCacheTags() {

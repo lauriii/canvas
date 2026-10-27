@@ -42,6 +42,7 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\Core\Session\PermissionCheckerInterface;
+use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\TempStore\PrivateTempStoreFactory;
 use Drupal\Core\Theme\ThemeInitializationInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
@@ -408,6 +409,7 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
       $this->container->get(LanguageManagerInterface::class),
       $this->container,
       $settings,
+      $this->container->get(TranslationInterface::class),
     ));
     $response = $this->renderContentPath('/user/login');
     self::assertSame('http://localhost/core/themes/stark/logo.svg', self::responseData($response)['context']['site']['themeAssets']['logo']['url']);

@@ -30,7 +30,12 @@ import {
 } from './runtime.js';
 import { cn } from './utils.js';
 
-export type { CanvasContext, PageContext, SiteContext } from './context.js';
+export type {
+  CanvasContext,
+  PageContext,
+  SiteContext,
+  Translations,
+} from './context.js';
 export type {
   BreadcrumbLink,
   EntityMetadata,

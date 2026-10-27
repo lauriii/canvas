@@ -115,6 +115,10 @@ export default defineConfig({
               slug: 'code-components/date-formatting',
             },
             {
+              label: 'Translation',
+              slug: 'code-components/translation',
+            },
+            {
               label: 'Responsive images',
               slug: 'code-components/responsive-images',
             },

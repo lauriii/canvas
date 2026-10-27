@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas;
 
+use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\Component\Gettext\PoItem;
 use Drupal\Core\Breadcrumb\ChainBreadcrumbBuilderInterface;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -14,7 +16,9 @@ use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Link;
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\TypedData\TranslatableInterface;
+use Drupal\locale\PluralFormulaInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -41,6 +45,7 @@ readonly final class CodeComponentDataProvider {
     private LanguageManagerInterface $languageManager,
     private ContainerInterface $container,
     private ThemeSettingsProvider $themeSettingsProvider,
+    private TranslationInterface $stringTranslation,
   ) {}
 
   /**
@@ -76,6 +81,52 @@ readonly final class CodeComponentDataProvider {
         'langcode' => $this->languageManager->getCurrentLanguage(LanguageInterface::TYPE_INTERFACE)->getId(),
       ],
     ];
+  }
+
+  /**
+   * Returns the translations of code components' strings for V0.
+   *
+   * The strings are those the components pass to `t()` and `formatPlural()`;
+   * translating them also registers them for translators. Only translated
+   * strings are returned, in the interface language, together with its plural
+   * formula when a plural string is translated.
+   *
+   * @param list<\Drupal\canvas\Entity\JavaScriptComponent> $components
+   *   The code components to translate the strings of.
+   * @param \Drupal\Core\Cache\RefinableCacheableDependencyInterface $cacheability
+   *   Receives the cacheability of the translations.
+   *
+   * @return array[]
+   *   Shaped like `Translations` in the `drupal-canvas` package, or an empty
+   *   array when nothing is translated.
+   *
+   * @see \Drupal\canvas\Entity\JavaScriptComponent::getTranslatableStrings()
+   * @see locale_get_plural()
+   */
+  public function getCanvasDataTranslationsV0(array $components, RefinableCacheableDependencyInterface $cacheability): array {
+    $translations = [];
+    foreach ($components as $component) {
+      \assert($component instanceof JavaScriptComponent);
+      foreach ($component->getTranslatableStrings() as ['source' => $source, 'context' => $context]) {
+        // Locale invalidates this tag when translations change.
+        $cacheability->addCacheContexts(['languages:language_interface'])->addCacheTags(['locale']);
+        $translation = (string) $this->stringTranslation->translate($source, [], ['context' => $context]);
+        if ($translation === $source) {
+          continue;
+        }
+        $translations['strings'][$context][$source] = $translation;
+        // Only the Locale module stores plural formulas.
+        if (\str_contains($source, PoItem::DELIMITER) && !isset($translations['pluralFormula']) && $this->container->has(PluralFormulaInterface::class)) {
+          $plural_formula = $this->container->get(PluralFormulaInterface::class);
+          \assert($plural_formula instanceof PluralFormulaInterface);
+          $formula = $plural_formula->getFormula($this->languageManager->getCurrentLanguage(LanguageInterface::TYPE_INTERFACE)->getId());
+          if (\is_array($formula)) {
+            $translations['pluralFormula'] = $formula;
+          }
+        }
+      }
+    }
+    return $translations === [] ? [] : [self::V0 => ['translations' => $translations]];
   }
 
   /**

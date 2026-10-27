@@ -7,9 +7,10 @@
  * @see docs/adr/0021-code-component-runtime-compatibility-across-frontend-modes.md
  */
 
-import { createContext, useContext, useEffect } from 'react';
+import { createContext, useContext, useEffect, useMemo } from 'react';
 
 import { reportCanvasData } from './data-inspection.js';
+import { formatPlural, translate } from './translation.js';
 import { warnOnce } from './warnings.js';
 
 import type { ReactNode } from 'react';
@@ -18,11 +19,13 @@ import type {
   PageContext,
   SiteContext,
 } from './context-types.js';
+import type { FormatPluralFunction, TranslateFunction } from './translation.js';
 
 export type {
   CanvasContext,
   PageContext,
   SiteContext,
+  Translations,
 } from './context-types.js';
 
 export interface CanvasContextProviderProps {
@@ -100,6 +103,40 @@ export function useSiteContext(): SiteContext | null {
     }
   }, [context, site]);
   return site;
+}
+
+/**
+ * Returns `t()` and `formatPlural()`, which translate strings into the page's
+ * interface language with the same signatures as `Drupal.t()` and
+ * `Drupal.formatPlural()`. Drupal finds the strings to translate in the
+ * component source: pass string literals, not variables, and keep the names
+ * `t` and `formatPlural`.
+ *
+ * Without a translation for a string, they return the source string. Without
+ * a provider they also warn once.
+ *
+ * @example
+ * const { t, formatPlural } = useTranslation();
+ * t('Hello @name', { '@name': name });
+ * formatPlural(count, '1 item', '@count items');
+ */
+export function useTranslation(): {
+  t: TranslateFunction;
+  formatPlural: FormatPluralFunction;
+} {
+  const context = useContext(Context);
+  if (context === undefined) {
+    warnOnce(`useTranslation(): ${MISSING_PROVIDER_WARNING}`);
+  }
+  const translations = context?.translations;
+  return useMemo(
+    () => ({
+      t: (str, args, options) => translate(translations, str, args, options),
+      formatPlural: (count, singular, plural, args, options) =>
+        formatPlural(translations, count, singular, plural, args, options),
+    }),
+    [translations],
+  );
 }
 
 /**

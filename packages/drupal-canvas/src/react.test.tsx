@@ -21,6 +21,7 @@ const names = [
   'useJsonApiClient',
   'usePageContext',
   'useSiteContext',
+  'useTranslation',
 ];
 
 describe('React entry point', () => {

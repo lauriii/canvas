@@ -1,0 +1,99 @@
+---
+title: Code Components - Translation
+---
+
+To show interface text in the visitor's language, use the `useTranslation()`
+hook from `drupal-canvas/react`. Its `t()` and `formatPlural()` functions have
+the same signatures as `Drupal.t()` and `Drupal.formatPlural()`.
+
+```jsx
+import { useTranslation } from 'drupal-canvas/react';
+
+export default function Greeting({ name, count }) {
+  const { t, formatPlural } = useTranslation();
+  return (
+    <div>
+      <p>{t('Hello @name', { '@name': name })}</p>
+      <p>{t('May', {}, { context: 'Long month name' })}</p>
+      <p>{formatPlural(count, '1 new message', '@count new messages')}</p>
+    </div>
+  );
+}
+```
+
+Without a translation, both functions return the source string.
+
+## Plurals
+
+`formatPlural(count, singular, plural, args, options)` picks the right form for
+`count` and replaces `@count` with it. Use it instead of choosing between two
+`t()` strings yourself: many languages have more than two plural forms, and
+translators can provide all of them for one `formatPlural()` string.
+
+Drupal uses the plural rules of the language's imported translations. Without
+them, a translation uses its first form for 1 and its second for other
+counts.
+
+## Writing translatable strings
+
+Drupal finds the strings to translate in the component source, like it does for
+`Drupal.t()` in JavaScript files:
+
+- Pass string literals in single or double quotes: the first argument of `t()`,
+  and the singular and plural arguments of `formatPlural()`. Drupal cannot find
+  strings in variables or template literals.
+- Keep the names `t` and `formatPlural`: write
+  `const { t, formatPlural } = useTranslation();`.
+- Put changing values in placeholders, not in the string.
+
+Strings in components that a component imports are found too.
+
+## Placeholders
+
+`t()` and `formatPlural()` replace placeholders with the values you pass. It returns plain text, and
+React escapes it when it renders it. Unlike `Drupal.t()`, all placeholder
+prefixes (`@`, `%` and `:`) insert the value as is: `%` does not add `<em>`
+markup.
+
+## Translating the strings
+
+The strings appear on the _User interface translation_ page
+(`/admin/config/regional/translate`) when the component is published. Translate
+them there, as you would any other interface string.
+
+The list stays in sync with the component, whether it is changed in the code
+editor, pushed with the Canvas CLI, or deployed with a configuration import. A
+string that no component uses anymore is removed, with its translations. Strings
+that Drupal also uses elsewhere, or that have translations imported from a
+`.po` file, are kept.
+
+## Frontend modes
+
+The hook reads the translations from the Canvas context, so the same component
+works in each frontend mode:
+
+- **Drupal-rendered pages**: Drupal attaches the translations of each rendered
+  component's strings, in the interface language of the page.
+- **[Workbench](/code-components/workbench)**: strings are shown untranslated.
+- **[Headless](/headless/setup)**: the application passes the translations as
+  `context.translations` to `CanvasComponentTree` or `CanvasContextProvider`.
+  The shape is the same as Drupal's `drupalTranslations`: `strings` holds
+  translated strings keyed by context (`''` when none), then by source string.
+  Plural strings join their forms with `\x03`. The optional `pluralFormula`
+  maps a count to the index of its plural form, with a `default`.
+
+```js
+const context = {
+  ...page.context,
+  translations: {
+    strings: {
+      '': {
+        'Hello @name': 'Bonjour @name',
+        '1 new message\x03@count new messages':
+          '1 nouveau message\x03@count nouveaux messages',
+      },
+    },
+    pluralFormula: { 0: 0, 1: 0, default: 1 },
+  },
+};
+```
