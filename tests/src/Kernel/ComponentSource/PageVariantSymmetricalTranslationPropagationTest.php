@@ -75,6 +75,17 @@ final class PageVariantSymmetricalTranslationPropagationTest extends ConfigEntit
 
   /**
    * {@inheritdoc}
+   */
+  protected function editorLayoutPath(): string {
+    \assert($this->entity instanceof PageVariant);
+    return Url::fromRoute('canvas.api.layout.get', [
+      'entity_type' => PageVariant::ENTITY_TYPE_ID,
+      'entity' => $this->entity->id(),
+    ])->toString();
+  }
+
+  /**
+   * {@inheritdoc}
    *
    * A page variant is previewed directly through the generic layout GET
    * endpoint; unlike a ContentTemplate, it needs no preview entity.

@@ -7,19 +7,27 @@ namespace Drupal\Tests\canvas\Kernel\ComponentSource;
 // cspell:ignore Hola mundo opcional optionnel editado
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Controller\ApiAutoSaveController;
+use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
+use Drupal\canvas\Entity\ComponentTreeEntityInterface;
 use Drupal\canvas\Entity\StagedLanguageConfigOverride;
+use Drupal\canvas\EventSubscriber\ForkedTranslationEditRequestSubscriber;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponentDiscovery;
 use Drupal\Core\Access\AccessResultReasonInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Routing\RouteBuilderInterface;
+use Drupal\Core\Url;
 use Drupal\language\Config\LanguageConfigOverride;
 use Drupal\language\ConfigurableLanguageManagerInterface;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\Tests\canvas\Traits\DataProviderWithComponentTreeTrait;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
  * Shared tests for config entity translation propagation kernel tests.
@@ -52,7 +60,7 @@ abstract class ConfigEntitySymmetricalTranslationPropagationTestBase extends Tra
   protected const string TRANSLATED_COMPONENT_INSTANCE_UUID = self::COMPONENT_INSTANCE_UUID;
 
   /**
-   * @var ComponentTreeItemListArray
+   * @phpstan-var ComponentTreeItemListArray
    * @todo Move to TranslationPropagationTestBase
    */
   protected array $translatableComponentTree = [
@@ -71,6 +79,8 @@ abstract class ConfigEntitySymmetricalTranslationPropagationTestBase extends Tra
     // TRICKY: no extra modules are needed: Drupal core provides the no-UI
     // translation infrastructure in the `language` module.
     // @see \Drupal\language\Config\LanguageConfigFactoryOverride
+    // Provides the config translation fork routes.
+    'canvas_dev_translation',
   ];
 
   /**
@@ -723,6 +733,220 @@ abstract class ConfigEntitySymmetricalTranslationPropagationTestBase extends Tra
   }
 
   /**
+   * The editor's layout URL path for the config entity under test.
+   */
+  abstract protected function editorLayoutPath(): string;
+
+  /**
+   * Allows fork requests for the ES translation, as a config translator.
+   */
+  private function setUpForkRequests(): void {
+    // Provides the `translate configuration` permission that the fork routes
+    // require.
+    $this->container->get(ModuleInstallerInterface::class)->install(['config_translation']);
+    $this->config('language.negotiation')->set('url.prefixes', ['en' => '', 'es' => 'es'])->save();
+    $this->container->get('kernel')->rebuildContainer();
+    // Router must be built before UserCreationTrait::setUpCurrentUser()
+    // triggers FilterPermissions::permissions() URL generation.
+    $this->container->get(RouteBuilderInterface::class)->rebuild();
+    $this->setUpCurrentUser([], [...$this->previewAndPublishPermissions(), 'translate configuration']);
+  }
+
+  /**
+   * The config translation fork or unfork URL.
+   */
+  private function configForkUrl(string $langcode, bool $unfork = FALSE): string {
+    \assert($this->entity instanceof ComponentTreeConfigEntityBase);
+    return Url::fromRoute(
+      $unfork ? 'canvas.api.config.translation.unfork' : 'canvas.api.config.translation.fork',
+      [
+        'canvas_config_entity_type_id' => $this->entity->getEntityTypeId(),
+        'config_entity' => $this->entity->id(),
+      ],
+      ['language' => \Drupal::languageManager()->getLanguage($langcode)],
+    )->toString();
+  }
+
+  /**
+   * Publishes every pending auto-save through the publish controller.
+   */
+  private function publishAllAutoSaves(): void {
+    $auto_save_manager = $this->container->get(AutoSaveManager::class);
+    \assert($auto_save_manager instanceof AutoSaveManager);
+    $payload = [];
+    foreach ($auto_save_manager->getAllAutoSaveList(FALSE, FALSE) as $key => $info) {
+      $payload[$key] = ['data_hash' => $info['data_hash']];
+    }
+    $request = Request::create('/canvas/api/v0/auto-saves/publish', 'POST', content: (string) \json_encode($payload));
+    $controller = \Drupal::classResolver(ApiAutoSaveController::class);
+    \assert($controller instanceof ApiAutoSaveController);
+    $response = $controller->post($request);
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+    self::assertSame([], $auto_save_manager->getAllAutoSaveList(FALSE, FALSE));
+  }
+
+  /**
+   * Tests forking a config translation, publishing it, and unforking it.
+   */
+  public function testForkLifecycle(): void {
+    $uuid = static::TRANSLATED_COMPONENT_INSTANCE_UUID;
+    $second_uuid = '33333333-3333-4333-8333-333333333333';
+    $this->createComponentTreeTranslation('es', self::ES_TRANSLATION_INPUTS);
+    $this->setUpForkRequests();
+
+    // The fork lives in the staged override until it is published.
+    $response = $this->request(Request::create($this->configForkUrl('es'), 'POST'));
+    self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode(), (string) $response->getContent());
+    $entity = $this->reloadEntity();
+    self::assertFalse($entity->isForkedTranslation('es', stored_only: TRUE));
+    $draft = $this->container->get(AutoSaveManager::class)->getAutoSaveEntity($entity)->entity;
+    \assert($draft instanceof ComponentTreeConfigEntityBase);
+    self::assertTrue($draft->isForkedTranslation('es'));
+    $this->publishAllAutoSaves();
+    $entity = $this->reloadEntity();
+    self::assertTrue($entity->isForkedTranslation('es', stored_only: TRUE));
+    self::assertSame('Hola mundo', $entity->getTranslatedComponentTree('es')->getComponentTreeItemByUuid($uuid)?->getInputs()['required_text'] ?? NULL);
+
+    // A structural change to the base tree no longer reaches the fork.
+    $tree = $entity->getComponentTree();
+    $copy = $tree->getComponentTreeItemByUuid($uuid)?->getValue();
+    self::assertIsArray($copy);
+    $entity->setComponentTree([...$tree->getValue(), ['uuid' => $second_uuid] + $copy]);
+    self::assertEntityIsValid($entity);
+    $entity->save();
+    $entity = $this->reloadEntity();
+    self::assertNotNull($entity->getComponentTree()->getComponentTreeItemByUuid($second_uuid)?->getUuid());
+    self::assertNull($entity->getTranslatedComponentTree('es')->getComponentTreeItemByUuid($second_uuid)?->getUuid());
+    // Loaded with the translation's config overrides, e.g. to render it, the
+    // fork's tree replaces the base tree.
+    $language_manager = \Drupal::languageManager();
+    \assert($language_manager instanceof ConfigurableLanguageManagerInterface);
+    $language_manager->setConfigOverrideLanguage($language_manager->getLanguage('es'));
+    // Saving a config override does not reset the config factory's cache of
+    // config already loaded with that language's overrides in this request.
+    \Drupal::configFactory()->reset($entity->getConfigDependencyName());
+    $rendered = $this->container->get(EntityTypeManagerInterface::class)->getStorage($entity->getEntityTypeId())->loadUnchanged((string) $entity->id());
+    $language_manager->setConfigOverrideLanguage($language_manager->getDefaultLanguage());
+    \assert($rendered instanceof ComponentTreeEntityInterface);
+    self::assertNull($rendered->getComponentTree()->getComponentTreeItemByUuid($second_uuid)?->getUuid());
+    self::assertSame('Hola mundo', $rendered->getComponentTree()->getComponentTreeItemByUuid($uuid)?->getInputs()['required_text'] ?? NULL);
+
+    // Unforking translates the base tree again, keeping the translated inputs,
+    // and publishing drops the fork from the stored override.
+    $response = $this->request(Request::create($this->configForkUrl('es', unfork: TRUE), 'DELETE'));
+    self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode(), (string) $response->getContent());
+    $this->publishAllAutoSaves();
+    $entity = $this->reloadEntity();
+    self::assertFalse($entity->isForkedTranslation('es', stored_only: TRUE));
+    self::assertNull($this->getStoredTranslation('es')->get(ComponentTreeConfigEntityBase::FORKED_COMPONENT_TREE));
+    $translated = $entity->getTranslatedComponentTree('es');
+    self::assertNotNull($translated->getComponentTreeItemByUuid($second_uuid)?->getUuid());
+    self::assertSame('Hola mundo', $translated->getComponentTreeItemByUuid($uuid)?->getInputs()['required_text'] ?? NULL);
+  }
+
+  /**
+   * Tests editing a forked config translation through the editor's layout API.
+   */
+  public function testEditForkedTranslation(): void {
+    $uuid = static::TRANSLATED_COMPONENT_INSTANCE_UUID;
+    $this->createComponentTreeTranslation('es', self::ES_TRANSLATION_INPUTS);
+    $this->setUpForkRequests();
+    $path = $this->editorLayoutPath();
+    $es_path = $path . '?' . ForkedTranslationEditRequestSubscriber::QUERY_KEY . '=es';
+
+    // A symmetric translation is read-only in the editor.
+    try {
+      $this->request(Request::create($es_path));
+      $this->fail('Expected access denied for a symmetric translation.');
+    }
+    catch (AccessDeniedHttpException $e) {
+      self::assertSame('Only forked translations can be edited in the Canvas editor.', $e->getMessage());
+    }
+
+    // A forked one is edited like the base config: its model is the fork's.
+    $response = $this->request(Request::create($this->configForkUrl('es'), 'POST'));
+    self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode(), (string) $response->getContent());
+    $response = $this->request(Request::create($es_path));
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+    $json = \json_decode((string) $response->getContent(), TRUE, flags: JSON_THROW_ON_ERROR);
+    self::assertArrayHasKey($uuid, $json['model']);
+    self::assertStringContainsString('Hola mundo', \json_encode($json['model'][$uuid], JSON_THROW_ON_ERROR));
+
+    // Removing a component instance removes it from the fork only.
+    foreach ($json['layout'] as &$region) {
+      $region['components'] = \array_values(\array_filter($region['components'], static fn (array $component): bool => $component['uuid'] !== $uuid));
+    }
+    unset($region, $json['model'][$uuid]);
+    $request = Request::create($es_path, 'POST', content: \json_encode([
+      'layout' => $json['layout'],
+      'model' => $json['model'],
+      'autoSaves' => $json['autoSaves'],
+      'clientInstanceId' => 'test-client',
+    ], JSON_THROW_ON_ERROR));
+    $request->headers->set('Content-Type', 'application/json');
+    $response = $this->request($request);
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+    $entity = $this->reloadEntity();
+    $draft = $this->container->get(AutoSaveManager::class)->getAutoSaveEntity($entity)->entity;
+    \assert($draft instanceof ComponentTreeConfigEntityBase);
+    self::assertNull($draft->getTranslatedComponentTree('es')->getComponentTreeItemByUuid($uuid)?->getUuid());
+    self::assertNotNull($draft->getComponentTree()->getComponentTreeItemByUuid($uuid)?->getUuid());
+    $response = $this->request(Request::create($path));
+    $json = \json_decode((string) $response->getContent(), TRUE, flags: JSON_THROW_ON_ERROR);
+    self::assertArrayHasKey($uuid, $json['model']);
+    // The layout API reports the draft-aware fork state, with an unfork link.
+    self::assertSame(['es'], $json['translations']['forked']);
+    self::assertStringContainsString('/translations/fork', $json['translations']['links']['es'][CanvasUriDefinitions::LINK_REL_UNFORK] ?? '');
+  }
+
+  /**
+   * Tests that component version updates update a fork's tree in full.
+   */
+  public function testForkedTranslationComponentUpdate(): void {
+    $uuid = static::TRANSLATED_COMPONENT_INSTANCE_UUID;
+    $this->createComponentTreeTranslation('es', self::ES_TRANSLATION_INPUTS);
+    $this->setUpForkRequests();
+    $response = $this->request(Request::create($this->configForkUrl('es'), 'POST'));
+    self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode(), (string) $response->getContent());
+    $this->publishAllAutoSaves();
+
+    $this->removeOptionalProp();
+    $entity = $this->reloadEntity();
+    $manager = $this->container->get(ComponentSourceManager::class);
+    \assert($manager instanceof ComponentSourceManager);
+    self::assertTrue($manager->updateComponentInstances($entity->getComponentTree()));
+    $fork = ComponentTreeConfigEntityBase::decodeForkedComponentTree($entity->getTranslation('es')->getData(ComponentTreeConfigEntityBase::FORKED_COMPONENT_TREE));
+    self::assertIsArray($fork);
+    $component = Component::load(JsComponentDiscovery::getComponentConfigEntityId($this->jsComponent->id()));
+    self::assertNotNull($component);
+    self::assertSame($component->getActiveVersion(), $fork[$uuid]['component_version'] ?? NULL);
+    self::assertArrayNotHasKey('optional_text', $fork[$uuid]['inputs']);
+    self::assertSame('Hola mundo', $fork[$uuid]['inputs']['required_text']);
+  }
+
+  /**
+   * Tests that a fork's tree is validated as the translation's tree.
+   */
+  public function testInvalidForkedTreeRejected(): void {
+    $uuid = static::TRANSLATED_COMPONENT_INSTANCE_UUID;
+    // Attaches the translation validator.
+    // @see \Drupal\canvas\Hook\ConfigTranslationHooks::entityTypeAlter()
+    $this->container->get(ModuleInstallerInterface::class)->install(['config_translation']);
+    $this->createComponentTreeTranslation('es', self::ES_TRANSLATION_INPUTS);
+    $entity = $this->reloadEntity();
+    $fork = ComponentTreeConfigEntityBase::decodeForkedComponentTree(ComponentTreeConfigEntityBase::encodeForkedComponentTree($entity->getTranslatedComponentTree('es')));
+    self::assertIsArray($fork);
+    $fork[$uuid]['component_id'] = 'js.does_not_exist';
+    $entity->getTranslation('es')->setData(ComponentTreeConfigEntityBase::FORKED_COMPONENT_TREE, \json_encode($fork, JSON_THROW_ON_ERROR));
+    $messages = \array_map(
+      static fn ($violation): string => \strip_tags((string) $violation->getMessage()),
+      \iterator_to_array($entity->getTypedData()->validate()),
+    );
+    self::assertNotEmpty($messages);
+    self::assertStringContainsString('[es] [component_tree.', \implode("\n", $messages));
+  }
+
+  /**
    * {@inheritdoc}
    */
   protected function reloadEntity(): ComponentTreeConfigEntityBase {
@@ -731,7 +955,7 @@ abstract class ConfigEntitySymmetricalTranslationPropagationTestBase extends Tra
     return $reloaded;
   }
 
-  private function getStoredTranslation(string $langcode): LanguageConfigOverride {
+  protected function getStoredTranslation(string $langcode): LanguageConfigOverride {
     \assert($this->entity instanceof ComponentTreeConfigEntityBase);
     $language_manager = \Drupal::languageManager();
     \assert($language_manager instanceof ConfigurableLanguageManagerInterface);

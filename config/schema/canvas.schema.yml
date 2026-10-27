@@ -391,6 +391,14 @@ canvas.page_variant.*:
         # A page variant must contain exactly one "Page content" marker.
         # @see \Drupal\canvas\Plugin\Canvas\ComponentSource\Marker::PAGE_CONTENT_COMPONENT_ID
         PageVariantHasContentMarker: ~
+    forked_component_tree:
+      type: string
+      label: 'Forked component tree'
+      # Empty in the base config. A forked language's config override sets it
+      # to that language's complete component tree, JSON-encoded, which then
+      # replaces the merged component tree for that language.
+      # @see \Drupal\canvas\Entity\ComponentTreeConfigEntityBase::$forked_component_tree
+      requiredKey: false
 
 # Site-wide Drupal Canvas settings.
 canvas.settings:
@@ -1209,6 +1217,14 @@ canvas.content_template.*.*.*:
               - marker.page_content
             presence: ~
       label: 'Component tree'
+    forked_component_tree:
+      type: string
+      label: 'Forked component tree'
+      # Empty in the base config. A forked language's config override sets it
+      # to that language's complete component tree, JSON-encoded, which then
+      # replaces the merged component tree for that language.
+      # @see \Drupal\canvas\Entity\ComponentTreeConfigEntityBase::$forked_component_tree
+      requiredKey: false
     exposed_slots:
       type: sequence
       # This is ordered by key because the keys are the machine names assigned to the

@@ -43,9 +43,10 @@ final class StagedLanguageConfigOverrideStorage extends ConfigEntityStorage {
     else {
       $data = $entity->getData();
       \assert(\is_array($data));
-      foreach ($data as $key => $value) {
-        $override->set($key, $value);
-      }
+      // Replace, not merge: the staged override started from the stored one,
+      // so a top-level key it no longer has (e.g. a forked component tree
+      // dropped by unforking) must not survive.
+      $override->setData($data);
       $override->save();
     }
   }

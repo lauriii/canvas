@@ -175,7 +175,8 @@ jobs:
           cd "$MODULE_DIR"
           npm ci
           # The UI depends on headless-host, which imports the headless core's
-          # compiled dist.
+          # compiled dist, which in turn imports the drupal-canvas library's.
+          npm run build -w drupal-canvas
           npm run build -w @drupal-canvas/headless
           npm run build -w ui
       - name: Playwright (one spec, headless chromium)
@@ -210,4 +211,6 @@ jobs:
           export DRUPAL_ROOT_CORE="$DRUPAL_ROOT/web/core"
           cd "$MODULE_DIR/ui"
           npx cypress install
-          npx cypress run --browser electron --spec tests/e2e/canary.cy.js
+          # CI runs on the pull request's merge with 1.x, which removed the
+          # canary spec while porting Cypress tests to Playwright.
+          npx cypress run --browser electron --spec tests/e2e/empty-canvas.cy.js

@@ -1,3 +1,4 @@
+import { defaultSerializeQueryArgs } from '@reduxjs/toolkit/query';
 import { fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import { fetchCsrfToken } from '@/utils/csrf';
@@ -8,6 +9,7 @@ import type {
   BaseQueryFn,
   FetchArgs,
   FetchBaseQueryError,
+  SerializeQueryArgs,
 } from '@reduxjs/toolkit/query/react';
 import type { RootState } from '@/app/store';
 import type { AppConfiguration } from '@/features/configuration/configurationSlice';
@@ -140,6 +142,128 @@ export const replaceEntityParamsInUrl = (
   return newUrl;
 };
 
+/**
+ * The language of the forked translation open in the entity editor, if any.
+ *
+ * Forked translations own their layout, so the entity editor edits them like
+ * the default translation, with the language in the `?language=` query of the
+ * editor route. Symmetric translations are only previewed, on the preview
+ * route, so they never yield an editor language.
+ */
+export const getEditorLanguage = (href: string): string => {
+  const url = new URL(href, 'http://localhost');
+  return /\/canvas\/(?:editor|template)\//.test(url.pathname)
+    ? (url.searchParams.get('language') ?? '')
+    : '';
+};
+
+// The entity-scoped editor API paths whose route entity the backend swaps for
+// the translation named by `canvas_langcode`. Requests on behalf of a listed
+// pending change (discard, content auto-save) name its translation themselves.
+// @see \Drupal\canvas\EventSubscriber\ForkedTranslationEditRequestSubscriber::ROUTE_ENTITY_PARAMETERS
+const EDITOR_ENTITY_API_PATH =
+  /canvas\/api\/v0\/(?:layout|form\/component-instance|form\/content-entity)\/([^/?]+)\/([^/?]+)(?:[/?]|$)/;
+// The content template editor API paths: the template ID, then the preview
+// entity ID.
+const TEMPLATE_EDITOR_API_PATH =
+  /canvas\/api\/v0\/(?:layout-content-template|form\/component-instance\/content_template)\/([^/?]+)\/([^/?]+)(?:[/?]|$)/;
+
+/**
+ * Names a forked translation on editor API requests for its entity.
+ */
+export const addEditorLanguageToUrl = (
+  url: string,
+  language: string | undefined,
+  entityType: string | undefined,
+  entityId: string | undefined,
+  // On the content template editor: the template's bundle and view mode.
+  template?: { bundle: string; viewMode: string },
+): string => {
+  // Previews of a translation name it with their own hint, and are allowed for
+  // every translation, forked or not. A URL that already names a translation
+  // keeps it.
+  if (
+    !language ||
+    url.includes('canvas_preview_langcode=') ||
+    url.includes('canvas_langcode=')
+  ) {
+    return url;
+  }
+  const match = template
+    ? url.match(TEMPLATE_EDITOR_API_PATH)
+    : url.match(EDITOR_ENTITY_API_PATH);
+  const expected = template
+    ? [`${entityType}.${template.bundle}.${template.viewMode}`, entityId]
+    : [entityType, entityId];
+  if (!match || match[1] !== expected[0] || match[2] !== expected[1]) {
+    return url;
+  }
+  return `${url}${url.includes('?') ? '&' : '?'}canvas_langcode=${encodeURIComponent(language)}`;
+};
+
+/**
+ * The translation an editor API request acts on.
+ *
+ * Reads follow the editor route, which decides what to load. Writes follow the
+ * translation the editor's data was loaded for, so a write that races a
+ * language switch can never send one translation's data to another. Without
+ * loaded data (e.g. after a failed refetch), writes follow the route too, so
+ * they never fall back to the default translation while a fork is open.
+ */
+export const getRequestTranslation = (
+  api: BaseQueryApi,
+): {
+  language?: string;
+  entityType?: string;
+  entityId?: string;
+  template?: { bundle: string; viewMode: string };
+} => {
+  const { entityType, entityId, templateBundle, templateViewMode } =
+    extractEntityParams(window.location.href);
+  // Content templates have no page data owner: the route decides.
+  if (templateBundle && templateViewMode) {
+    return {
+      language: getEditorLanguage(window.location.href),
+      entityType,
+      entityId,
+      template: { bundle: templateBundle, viewMode: templateViewMode },
+    };
+  }
+  const owner = (api.getState() as Partial<RootState>).pageDataOwner;
+  if (api.type === 'mutation' && owner) {
+    return {
+      language: owner.langcode,
+      entityType: owner.entityType,
+      entityId: owner.entityId,
+    };
+  }
+  return {
+    language: getEditorLanguage(window.location.href),
+    entityType,
+    entityId,
+  };
+};
+
+/**
+ * Cache key for queries the base query names the edited translation on.
+ *
+ * The default translation and a forked translation of the same entity are
+ * different data, so the editor language is part of the cache key.
+ */
+export const serializeEditorQueryArgs: SerializeQueryArgs<any> = ({
+  queryArgs,
+  endpointDefinition,
+  endpointName,
+}) =>
+  defaultSerializeQueryArgs({
+    queryArgs: {
+      ...queryArgs,
+      editorLanguage: getEditorLanguage(window.location.href),
+    },
+    endpointDefinition,
+    endpointName,
+  });
+
 const rawBaseQuery = (appConfiguration: AppConfiguration) => {
   const { baseUrl } = appConfiguration;
   const defaultQuery = fetchBaseQuery({
@@ -162,12 +286,19 @@ const rawBaseQuery = (appConfiguration: AppConfiguration) => {
     const url = typeof arg == 'string' ? arg : arg.url;
     const { entityType, entityId, templateBundle, templateViewMode } =
       extractEntityParams(window.location.href);
-    const newUrl = replaceEntityParamsInUrl(
-      url,
-      entityType,
-      entityId,
-      templateBundle,
-      templateViewMode,
+    const translation = getRequestTranslation(api);
+    const newUrl = addEditorLanguageToUrl(
+      replaceEntityParamsInUrl(
+        url,
+        entityType,
+        entityId,
+        templateBundle,
+        templateViewMode,
+      ),
+      translation.language,
+      translation.entityType,
+      translation.entityId,
+      translation.template,
     );
     const newArg = typeof arg == 'string' ? newUrl : { ...arg, url: newUrl };
     return defaultQuery(newArg, api, extraOptions);

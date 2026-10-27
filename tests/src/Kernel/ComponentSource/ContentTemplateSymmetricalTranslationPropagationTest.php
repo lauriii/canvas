@@ -84,6 +84,19 @@ final class ContentTemplateSymmetricalTranslationPropagationTest extends ConfigE
 
   /**
    * {@inheritdoc}
+   */
+  protected function editorLayoutPath(): string {
+    \assert($this->entity instanceof ContentTemplate);
+    $node = Node::create(['type' => 'article', 'title' => 'Preview node', 'status' => TRUE]);
+    $node->save();
+    return Url::fromRoute('canvas.api.layout.get.content_template', [
+      'entity' => $this->entity->id(),
+      'preview_entity' => $node->id(),
+    ])->toString();
+  }
+
+  /**
+   * {@inheritdoc}
    *
    * A ContentTemplate is previewed through its dedicated layout GET endpoint,
    * passing a preview node of the template's target bundle.
