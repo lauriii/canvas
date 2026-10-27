@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   decodeEntities,
   isMediaId,
+  isMediaIdList,
   progressToHtml,
   removeMediaFields,
 } from './placementUtils';
@@ -33,11 +34,28 @@ describe('isMediaId', () => {
   });
 });
 
+describe('isMediaIdList', () => {
+  it('accepts non-empty lists of numeric IDs only', () => {
+    expect(isMediaIdList([1, 2, 3])).toBe(true);
+    expect(isMediaIdList(['1', 2])).toBe(true);
+    expect(isMediaIdList([])).toBe(false);
+    expect(isMediaIdList([1, 'https://example.com/a.jpg'])).toBe(false);
+    expect(isMediaIdList([{ src: 'a.jpg', alt: 'a' }])).toBe(false);
+    expect(isMediaIdList(5)).toBe(false);
+  });
+});
+
 describe('removeMediaFields', () => {
   it('keeps a media ID and every non-media prop', () => {
     expect(
       removeMediaFields(hero, { fieldValues: { heading: 'Hi', media: 3 } }),
     ).toEqual({ fieldValues: { heading: 'Hi', media: 3 } });
+  });
+
+  it('keeps a list of media IDs', () => {
+    expect(
+      removeMediaFields(hero, { fieldValues: { media: [1, 2, 3] } }),
+    ).toEqual({ fieldValues: { media: [1, 2, 3] } });
   });
 
   it('drops values a media-bound prop cannot store', () => {
@@ -46,6 +64,8 @@ describe('removeMediaFields', () => {
       { src: 'a.jpg', alt: 'a' },
       'https://example.com/a.jpg',
       '',
+      [],
+      [1, { src: 'a.jpg', alt: 'a' }],
     ]) {
       expect(
         removeMediaFields(hero, { fieldValues: { heading: 'Hi', media } }),

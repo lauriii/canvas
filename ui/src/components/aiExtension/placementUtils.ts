@@ -30,11 +30,21 @@ export const isMediaId = (value: unknown): boolean =>
   (typeof value === 'string' && /^\d+$/.test(value));
 
 /**
+ * Whether a value is a list of media IDs, as stored on a multi-value
+ * media-bound prop.
+ *
+ * An empty list is not: it would leave the component without images.
+ */
+export const isMediaIdList = (value: unknown): boolean =>
+  Array.isArray(value) && value.length > 0 && value.every(isMediaId);
+
+/**
  * Drops values a media-bound prop cannot store from a component's fieldValues.
  *
  * The component then falls back to the example image from its definition. A
- * media ID is a valid value for a media-bound prop, so it is kept. Block
- * components have no propSources, so their fieldValues are returned unchanged.
+ * media ID, or a list of them for a multi-value prop, is a valid value for a
+ * media-bound prop, so it is kept. Block components have no propSources, so
+ * their fieldValues are returned unchanged.
  *
  * @todo Refactor this after https://www.drupal.org/i/3552000 is fixed.
  */
@@ -48,7 +58,7 @@ export function removeMediaFields<
   const fieldValues = componentInst.fieldValues || {};
   for (const [key, value] of Object.entries(fieldValues)) {
     const prop = (componentDef as PropSourceComponent).propSources[key];
-    if (!isMediaBoundProp(prop) || isMediaId(value)) {
+    if (!isMediaBoundProp(prop) || isMediaId(value) || isMediaIdList(value)) {
       newFieldValues[key] = value;
     }
   }
