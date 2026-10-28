@@ -42,3 +42,15 @@
   color: var(--slate-11);
   font-size: var(--font-size-2);
 }
+
+/* Wraps deep-chat, so the selected component chip can be positioned over its
+   input box. It fills the height deep-chat filled as a flex item, which gives
+   deep-chat's height: 100% a definite height to resolve against, and is only
+   as wide as deep-chat. */
+.aiWizardChat {
+  position: relative;
+  flex: 1;
+  align-self: flex-start;
+  min-height: 0;
+  isolation: isolate;
+}

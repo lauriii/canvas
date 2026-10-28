@@ -41,6 +41,7 @@ import {
   selectPageData,
   updatePageDataExternally,
 } from '@/features/pageData/pageDataSlice';
+import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
 import {
   useCreateCodeComponentMutation,
   useGetComponentsQuery,
@@ -50,14 +51,21 @@ import { getBaseUrl, getDrupalSettings } from '@/utils/drupal-globals';
 import fixtureProps from '../../../../modules/canvas_ai/src/PropsSchema.json';
 import ActiveToolPill from './ActiveToolPill';
 import AiToolSelector from './AiToolSelector';
+import {
+  TEXT_INPUT_BOTTOM_PADDING,
+  TEXT_INPUT_HEIGHT,
+  TEXT_PADDING_TOP_WITH_CHIP,
+} from './chatInputLayout';
 import { buildCurrentLayout } from './currentLayout';
 import { progressToHtml, removeMediaFields } from './placementUtils';
+import SelectedComponentChip from './SelectedComponentChip';
 
 import type { CustomButton } from 'deep-chat/dist/types/customButton';
 import type { LayoutModelSliceState } from '@/features/layout/layoutModelSlice';
 import type { CodeComponent } from '@/types/CodeComponent';
 import type { CanvasComponent } from '@/types/Component';
 import type { ProgressStatus } from './placementUtils';
+import type { TurnScope } from './SelectedComponentChip';
 
 import styles from './AiWizard.module.css';
 
@@ -408,10 +416,12 @@ const DEEP_CHAT_TEXT_INPUT = {
     text: {
       padding: '16px',
     },
+    // The selected component chip is positioned from this size; see
+    // chatInputLayout.ts.
     container: {
-      height: '167px',
+      height: `${TEXT_INPUT_HEIGHT}px`,
       width: '100%',
-      padding: '0 0 40px 0',
+      padding: `0 0 ${TEXT_INPUT_BOTTOM_PADDING}px 0`,
     },
   },
 } as const;
@@ -569,6 +579,12 @@ const DEEP_CHAT_AUXILIARY_STYLE = `
   .text-message h5 {
     font-size: var(--font-size-1);
   }
+  /* Moves the typed text and the placeholder below the selected component
+     chip, which sits over the top of the input box. The text padding is an
+     inline style, hence !important. */
+  :host([data-has-selection]) #text-input {
+    padding-top: ${TEXT_PADDING_TOP_WITH_CHIP}px !important;
+  }
   .custom-button {
     margin-left: 40px;
   }
@@ -694,12 +710,15 @@ const AiWizardDev = () => {
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
   const selectedToolRef = useRef(selectedTool);
   const [isToolSelectorOpen, setIsToolSelectorOpen] = useState(false);
-  // Whether a turn is running. The Tool is fixed for the whole turn (the
-  // controller rejects a hop that resolves another agent), so the Tools menu
-  // trigger and the active Tool pill are disabled while this is set. Mirrored
-  // into a ref for the trigger's click handler, whose identity must not
-  // change (see customButtons below).
-  const [isTurnInProgress, setIsTurnInProgress] = useState(false);
+  // The running turn's scope, set when its message is sent and cleared when
+  // the turn ends, so a turn is running exactly while it is set. The selected
+  // component chip shows it, locked. The Tool is fixed for the whole turn
+  // (the controller rejects a hop that resolves another agent), so the Tools
+  // menu trigger and the active Tool pill are disabled while a turn runs.
+  // Mirrored into a ref for the trigger's click handler, whose identity must
+  // not change (see customButtons below).
+  const [turnScope, setTurnScope] = useState<TurnScope | null>(null);
+  const isTurnInProgress = turnScope !== null;
   const isTurnInProgressRef = useRef(isTurnInProgress);
 
   // Identifies the conversation, sent as `conversation_id` with every turn.
@@ -1062,13 +1081,17 @@ const AiWizardDev = () => {
           answered: false,
         };
         turnRef.current = turn;
-        setIsTurnInProgress(true);
         // The component the user had selected when they sent the message is
         // the scope of the request for the whole turn. Placing a component
         // selects it, so reading the selection again on later hops would tell
         // the agent the user narrowed the request to what it just placed.
-        const activeComponentUuid =
-          store.getState().ui.selection.items[0] ?? '';
+        // Only a single selection is a scope, the same one the selected
+        // component chip shows.
+        const scopedComponentUuid =
+          selectSelectedComponentUuid(store.getState()) ?? null;
+        setTurnScope({ componentUuid: scopedComponentUuid });
+        // The request carries '' when the turn has no component.
+        const activeComponentUuid = scopedComponentUuid ?? '';
         // The Tool is fixed for the turn as well: every hop must resolve the
         // agent that parked the state, or the controller rejects it.
         const selectedTool = selectedToolRef.current;
@@ -1258,7 +1281,7 @@ const AiWizardDev = () => {
         turnRef.current = null;
         // Also runs when the turn was stopped or the component unmounted, so
         // neither can leave the selection locked.
-        setIsTurnInProgress(false);
+        setTurnScope(null);
       }
       setTimeout(() => {
         chatElementRef.current?.disableSubmitButton();
@@ -1365,25 +1388,32 @@ const AiWizardDev = () => {
             disabled={isTurnInProgress}
           />
         )}
-        <MemoDeepChat
-          ref={chatElementRef}
-          history={
-            initialHistoryRef.current.length > 0
-              ? initialHistoryRef.current
-              : undefined
-          }
-          images={DEEP_CHAT_IMAGES}
-          requestBodyLimits={DEEP_CHAT_REQUEST_BODY_LIMITS}
-          connect={connectConfig}
-          onInput={handleTextInput}
-          onComponentRender={handleComponentRender}
-          textInput={DEEP_CHAT_TEXT_INPUT}
-          style={DEEP_CHAT_STYLE}
-          messageStyles={DEEP_CHAT_MESSAGE_STYLES}
-          submitButtonStyles={DEEP_CHAT_SUBMIT_BUTTON_STYLES}
-          auxiliaryStyle={DEEP_CHAT_AUXILIARY_STYLE}
-          customButtons={customButtons}
-        />
+        {/* Positions the chip over deep-chat's input box. */}
+        <Flex direction="column" className={styles.aiWizardChat}>
+          <SelectedComponentChip
+            turnScope={turnScope}
+            chatElementRef={chatElementRef}
+          />
+          <MemoDeepChat
+            ref={chatElementRef}
+            history={
+              initialHistoryRef.current.length > 0
+                ? initialHistoryRef.current
+                : undefined
+            }
+            images={DEEP_CHAT_IMAGES}
+            requestBodyLimits={DEEP_CHAT_REQUEST_BODY_LIMITS}
+            connect={connectConfig}
+            onInput={handleTextInput}
+            onComponentRender={handleComponentRender}
+            textInput={DEEP_CHAT_TEXT_INPUT}
+            style={DEEP_CHAT_STYLE}
+            messageStyles={DEEP_CHAT_MESSAGE_STYLES}
+            submitButtonStyles={DEEP_CHAT_SUBMIT_BUTTON_STYLES}
+            auxiliaryStyle={DEEP_CHAT_AUXILIARY_STYLE}
+            customButtons={customButtons}
+          />
+        </Flex>
         {tools.length > 0 && (
           <AiToolSelector
             tools={tools}
