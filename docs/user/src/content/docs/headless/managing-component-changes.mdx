@@ -1,0 +1,169 @@
+---
+title: Headless - Managing component changes
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+Your frontend app defines its components: their names, props, and slots.
+Canvas keeps a copy of each definition in Drupal and updates it during
+synchronization. This page explains what that means for pages that use the
+component, and how to roll back. It also covers registering more than one
+frontend, which is another way the same component can change.
+
+## How changes reach Canvas
+
+Canvas picks up component changes by syncing. A sync reads each component's
+name, status, props, required props, and slots from your app and stores them
+in Drupal. It doesn't copy your app's code.
+
+A sync happens automatically when someone with the **Administer Canvas Headless
+frontends** permission opens the Canvas editor or switches frontends. Editors
+without that permission never trigger a sync; they see the definitions from the
+last one.
+
+A sync takes effect immediately and site-wide. Unlike page edits, it has no
+draft and nothing to publish.
+
+When you open the editor or switch frontends and the sync changes any component
+definitions, Canvas refreshes the open page in the editor without reloading
+your browser, to update its components where Canvas can convert their existing
+values. A sync by another editor doesn't refresh your open page; you see its
+changes the next time you load the editor.
+
+## Which component a change updates
+
+Canvas matches components by `machineName`. A changed definition with the same
+machine name replaces the existing component's name, status, props (including
+their titles and descriptions), required props, and slots.
+
+Changing `machineName` creates a different component instead. The old
+component remains in Canvas and on existing pages, but disappears from your
+app's component library after syncing.
+
+## What happens to your pages
+
+A sync stores the latest component definitions in Drupal. It doesn't bulk
+upgrade the components already placed on your pages. Pages you aren't editing
+keep their stored component versions and values; a visitor viewing the
+published website doesn't upgrade them either.
+
+**Opening a page in the Canvas editor** compares its components with the latest
+synced definitions and updates the ones it can, as an unpublished change. Any
+editor who can edit the page can trigger this, not just someone with sync
+permission. If you sync today and someone opens another page in the Canvas
+editor next week, that page's components are updated then. The refresh after a
+sync in your own editor updates the page you have open the same way.
+
+Each component instance records a **component version**: its prop structure,
+required props, example defaults, and slots, not a release of your app's code.
+The name, status, and prop titles aren't part of a version: Canvas always uses
+the ones from the latest sync.
+
+Where an instance can be updated, Canvas keeps existing values where possible
+and makes these adjustments in the unpublished page:
+
+- Values of removed props are dropped, and so are components placed in a
+  removed slot.
+- Missing or invalid values for required props are filled from the prop's
+  example value, including when a prop is added or becomes required.
+- If a list prop now allows fewer items, the extra items are dropped.
+
+If a change requires incompatible storage, for example changing free text to a
+fixed list of options, Canvas leaves the instance on its previous version, with
+its existing values.
+
+**Publishing the page** applies those changes to the published page. Dropped
+prop values and slot content are then gone from the page.
+
+Keeping the published page's stored values doesn't guarantee its appearance
+stays the same until publishing. Canvas filters outgoing props using the
+current definition, so a sync can change what a published page sends without
+republishing it. How the page looks also depends on the code your app runs now.
+
+## Rolling back
+
+To return a page to how it was before a change, restore the component's
+definition first and discard the page's changes second.
+
+<Steps>
+
+1. Restore the exact earlier definition in your app, for example its earlier
+   `component.yml`, then have someone with the **Administer Canvas Headless
+   frontends** permission open the editor to sync it. Canvas then uses the
+   earlier version again.
+
+2. Open the page, select the **Review changes** button in the top bar (for
+   example **Review 1 change**), and choose **Discard changes** for the page.
+   The page goes back to its published version.
+
+</Steps>
+
+<Aside type="caution">
+Doing these steps in the other order does not work. If you discard first, the
+next time anyone opens the page in the editor Canvas updates its components
+again.
+</Aside>
+
+Rolling back has limits:
+
+- Discarding removes all unpublished changes to the page, including its
+  translations, not only the component update.
+- A page that was never published has no published version to go back to.
+- If the updated page was already published, dropped prop values and removed
+  slot content cannot be recovered this way.
+- The restored definition must match the earlier one exactly. A difference in
+  props, required props, prop examples, or slots creates a new version instead
+  of restoring the earlier one. A different name, status, or prop title alone
+  does not.
+
+## Using more than one frontend
+
+You can register more than one frontend app on the **Headless frontends**
+screen and switch between them in the editor toolbar.
+
+<Aside>
+You can also register local development, staging, and production versions of
+the same app. These frontends share the same component definitions in Drupal.
+</Aside>
+
+Frontends that use the same `machineName` share one component in Canvas. Each
+frontend renders it with its own code, but they share its definition, which
+controls what editors see and which props Canvas sends to each frontend. The
+most recent sync wins, whichever frontend it came from.
+To keep components independent, give them different machine names.
+
+### Switching frontends
+
+For editors with the **Administer Canvas Headless frontends** permission,
+switching to another frontend also syncs it. If that changes any component
+definitions, the open page refreshes in the editor, as after any sync.
+
+To restore an earlier definition, someone with the sync permission can switch
+to a frontend that still provides it. Then discard the page's changes as
+described in [Rolling back](#rolling-back).
+
+### When a frontend doesn't have a component
+
+The component library shows only components from the active frontend's latest
+sync. When you switch frontends, the library changes to match.
+
+A component already on a page stays there when you switch to a frontend that
+doesn't have it:
+
+- The page still stores the component and its prop values. Switching
+  frontends, or syncing one that doesn't have the component, doesn't remove it.
+- That frontend renders nothing in the component's place, including anything
+  placed in its slots. This applies to the preview and to its published pages.
+  The frontend logs an error that names the missing component.
+- You can still select the component in the **Layers** panel to edit its props
+  or remove it.
+
+Switching back to a frontend that has the component shows it again.
+
+### Limitations
+
+- Everyone sees the last sync. An editor previewing one frontend can see the
+  name and props another frontend synced, until an administrator syncs their
+  frontend again.
+- Two administrators working with different frontends at the same time keep
+  overriding each other's definitions.

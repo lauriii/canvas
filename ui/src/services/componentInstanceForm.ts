@@ -17,6 +17,7 @@ let lastArgInUseByAnyComponent: string | undefined = '';
 export const componentInstanceFormApi = createApi({
   reducerPath: 'componentInstanceFormApi',
   baseQuery,
+  tagTypes: ['ComponentInstanceForm'],
   endpoints: (builder) => ({
     getComponentInstanceForm: builder.query<
       { html: string; transforms: TransformConfig },
@@ -47,6 +48,7 @@ export const componentInstanceFormApi = createApi({
           },
         };
       },
+      providesTags: ['ComponentInstanceForm'],
       async onQueryStarted(queryString, { queryFulfilled }): Promise<void> {
         // Force any ajax calls to wait.
         pushCanvasLayoutRequest();

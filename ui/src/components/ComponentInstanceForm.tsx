@@ -296,6 +296,7 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
   );
   const previousModelRef = useRef<EvaluatedComponentModel | null>(null);
   const previousSelectedComponentRef = useRef<string | null>(null);
+  const previousSelectedComponentTypeRef = useRef<string | null>(null);
   const previousLatestUndoRedoActionIdRef = useRef<string | null>(null);
 
   const buildPreparedModel = (
@@ -381,6 +382,7 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
     const builtPreparedModel = buildPreparedModel(selectedModel, component);
     const prevModel = previousModelRef.current;
     const prevSelectedComponent = previousSelectedComponentRef.current;
+    const prevSelectedComponentType = previousSelectedComponentTypeRef.current;
     const prevLatestUndoRedoActionId =
       previousLatestUndoRedoActionIdRef.current;
 
@@ -404,11 +406,13 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
     // Only build and update formQueryString if:
     // - First render (!prevModel)
     // - Component changed (user selected different component)
+    // - Component version changed (a reloaded layout upgraded the instance)
     // - Undo/redo occurred (latestUndoRedoActionId changed)
     // - Source changed
     const shouldUpdate =
       !prevModel ||
       prevSelectedComponent !== selectedComponent ||
+      prevSelectedComponentType !== node.type ||
       prevLatestUndoRedoActionId !== latestUndoRedoActionId ||
       sourceChanged;
 
@@ -430,6 +434,7 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
     // This allows subsequent runs to detect if the model actually changed
     previousModelRef.current = builtPreparedModel;
     previousSelectedComponentRef.current = selectedComponent;
+    previousSelectedComponentTypeRef.current = node.type;
     previousLatestUndoRedoActionIdRef.current = latestUndoRedoActionId;
 
     setComponentSource(components?.[selectedComponentType]?.source || '');

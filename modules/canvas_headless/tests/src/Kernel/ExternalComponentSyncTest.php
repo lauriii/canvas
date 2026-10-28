@@ -361,9 +361,14 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
   }
 
   /**
-   * Tests that conflicting external definitions across frontends are rejected.
+   * Tests that the most recent synchronization wins across frontends.
+   *
+   * Frontends share external components by machine name. Synchronizing a
+   * frontend overrides the shared metadata, both frontends keep the component
+   * in their own lists, and synchronizing the first frontend again
+   * reactivates its earlier Component version.
    */
-  public function testCrossFrontendConflict(): void {
+  public function testCrossFrontendLastSyncWins(): void {
     $this->installConfig(['canvas_headless']);
     $frontend_a = FrontendUrl::fromConfig(self::FRONTEND_URL);
     $frontend_b = FrontendUrl::fromConfig(self::SECOND_FRONTEND_URL);
@@ -387,32 +392,67 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
       $this->container->get(PropShapeRepositoryInterface::class),
     );
 
-    $result = $synchronizer->synchronize($frontend_a, self::conflictMetadataPayload('Original name', 'integer'));
+    $payload_a = self::sharedMetadataPayload('Original name', 'integer');
+    $result = $synchronizer->synchronize($frontend_a, $payload_a);
     self::assertSame([], $result['errors']);
+    self::assertSame(2, $result['created']);
+    $version_a = Component::load('js.heroBanner')?->getActiveVersion();
+    self::assertNotNull($version_a);
+
+    // The second frontend overrides the name, prop titles and prop shapes of
+    // the shared component instead of being rejected.
+    $payload_b = self::sharedMetadataPayload('Overriding name', 'number');
+    \assert(isset($payload_b['components'][0]['props']['anchorId']));
+    $payload_b['components'][0]['props']['anchorId']['title'] = 'Section';
+    $result = $synchronizer->synchronize($frontend_b, $payload_b);
+    self::assertSame([], $result['errors']);
+    self::assertSame(1, $result['updated']);
+    self::assertSame(1, $result['unchanged']);
+    self::assertSame(['js.heroBanner', 'js.cardWithSlot'], $result['components']);
+    $component = JavaScriptComponent::load('heroBanner');
+    self::assertInstanceOf(JavaScriptComponent::class, $component);
+    self::assertSame('Overriding name', $component->label());
+    $props = $component->getProps();
+    self::assertIsArray($props);
+    self::assertSame('Section', $props['anchorId']['title']);
+    self::assertSame('number', $props['level']['type']);
+    $canvas_component = Component::load('js.heroBanner');
+    self::assertInstanceOf(Component::class, $canvas_component);
+    self::assertSame('Overriding name', $canvas_component->label());
+    $version_b = $canvas_component->getActiveVersion();
+    self::assertNotSame($version_a, $version_b);
     self::assertSame([[
       'url' => self::FRONTEND_URL,
       'components' => ['js.heroBanner', 'js.cardWithSlot'],
     ], [
       'url' => self::SECOND_FRONTEND_URL,
-      'components' => [],
+      'components' => ['js.heroBanner', 'js.cardWithSlot'],
     ],
     ], $this->config('canvas_headless.settings')->get('frontends'));
 
-    $result = $synchronizer->synchronize($frontend_b, self::conflictMetadataPayload('Conflicting name', 'number'));
-    self::assertCount(1, $result['errors']);
-    self::assertSame(1, $result['unchanged']);
-    self::assertStringContainsString("External component 'heroBanner'", $result['errors'][0]);
-    self::assertStringContainsString(self::FRONTEND_URL, $result['errors'][0]);
-    self::assertStringContainsString(self::SECOND_FRONTEND_URL, $result['errors'][0]);
+    // Synchronizing the first frontend again restores its metadata and
+    // reactivates its earlier Component version, which remains valid and
+    // loadable alongside the second frontend's version.
+    $result = $synchronizer->synchronize($frontend_a, $payload_a);
+    self::assertSame([], $result['errors']);
+    self::assertSame(1, $result['updated']);
     self::assertSame('Original name', JavaScriptComponent::load('heroBanner')?->label());
-    self::assertSame([[
-      'url' => self::FRONTEND_URL,
-      'components' => ['js.heroBanner', 'js.cardWithSlot'],
-    ], [
-      'url' => self::SECOND_FRONTEND_URL,
-      'components' => ['js.cardWithSlot'],
-    ],
-    ], $this->config('canvas_headless.settings')->get('frontends'));
+    $canvas_component = Component::load('js.heroBanner');
+    self::assertInstanceOf(Component::class, $canvas_component);
+    self::assertSame('Original name', $canvas_component->label());
+    self::assertSame($version_a, $canvas_component->getActiveVersion());
+    self::assertContains($version_b, $canvas_component->getVersions());
+    self::assertEntityIsValid($canvas_component);
+    $canvas_component->save();
+    $canvas_component = Component::load('js.heroBanner');
+    self::assertInstanceOf(Component::class, $canvas_component);
+    self::assertSame($version_a, $canvas_component->getActiveVersion());
+    self::assertSame($version_b, $canvas_component->loadVersion($version_b)->getLoadedVersion());
+
+    // An unchanged resynchronization is a no-op.
+    $result = $synchronizer->synchronize($frontend_a, $payload_a);
+    self::assertSame(2, $result['unchanged']);
+    self::assertSame(0, $result['updated']);
   }
 
   /**
@@ -501,9 +541,9 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
   }
 
   /**
-   * Builds a valid payload fixture for cross-frontend conflict tests.
+   * Builds a valid payload fixture for cross-frontend synchronization tests.
    */
-  private static function conflictMetadataPayload(string $name, string $level_type): array {
+  private static function sharedMetadataPayload(string $name, string $level_type): array {
     $payload = self::metadataPayload($name, $level_type);
     $payload['components'] = [
       $payload['components'][0],

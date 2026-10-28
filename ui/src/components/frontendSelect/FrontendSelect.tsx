@@ -9,7 +9,15 @@ import {
   Text,
 } from '@radix-ui/themes';
 
+import { useAppDispatch } from '@/app/hooks';
+import { FORM_TYPES } from '@/features/form/constants';
+import { clearFieldValues } from '@/features/form/formStateSlice';
+import { setInitialized } from '@/features/layout/layoutModelSlice';
+import useComponentSelection from '@/hooks/useComponentSelection';
+import { componentAndLayoutApi } from '@/services/componentAndLayout';
+import { componentInstanceFormApi } from '@/services/componentInstanceForm';
 import { useSyncComponentsMutation } from '@/services/headlessComponentSync';
+import { waitForPreviewRequests } from '@/services/preview';
 import {
   getCanvasSettings,
   setCanvasHeadlessFrontend,
@@ -34,6 +42,7 @@ const formatActiveFrontend = (frontendUrl: string) => {
 };
 
 const FrontendSelect = ({ settings }: FrontendSelectProps) => {
+  const dispatch = useAppDispatch();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [syncIndicatorState, setSyncIndicatorState] =
     useState<SyncIndicatorState>('hidden');
@@ -49,6 +58,14 @@ const FrontendSelect = ({ settings }: FrontendSelectProps) => {
   );
   const canSyncComponents =
     getCanvasSettings().canAdministerHeadlessFrontends === true;
+  const { unsetSelectedComponent } = useComponentSelection();
+  // The synchronization below finishes after the editor may have navigated,
+  // so keep the latest callback: it removes the selected component from the
+  // current URL.
+  const unsetSelectedComponentRef = useRef(unsetSelectedComponent);
+  useEffect(() => {
+    unsetSelectedComponentRef.current = unsetSelectedComponent;
+  });
 
   useEffect(() => {
     const clearTimers = () => {
@@ -90,10 +107,40 @@ const FrontendSelect = ({ settings }: FrontendSelectProps) => {
     lastStartedFrontend.current = settings.frontendUrl;
     void syncComponents(settings.frontendUrl)
       .unwrap()
+      .then(async ({ created, updated }) => {
+        // Frontends share component definitions, so a synchronization can
+        // change components placed in the open layout. Reload the layout, as
+        // when discarding changes to the open page, so the editor shows them
+        // upgraded to the synchronized definitions. The upgrade can remove the
+        // selected component, so clear the selection too.
+        if (created + updated > 0) {
+          await waitForPreviewRequests();
+          // The synchronization's own invalidations refetch component lists.
+          // A layout invalidation would wait for them, while the editor
+          // re-seeded from the earlier layout, so let them settle first.
+          await Promise.allSettled([
+            ...dispatch(componentAndLayoutApi.util.getRunningQueriesThunk()),
+            ...dispatch(componentAndLayoutApi.util.getRunningMutationsThunk()),
+          ]);
+          dispatch(
+            componentAndLayoutApi.util.invalidateTags([{ type: 'Layout' }]),
+          );
+          // Prop titles and other metadata can change without a new component
+          // version, so cached forms may be outdated even when the layout is not.
+          dispatch(
+            componentInstanceFormApi.util.invalidateTags([
+              'ComponentInstanceForm',
+            ]),
+          );
+          dispatch(setInitialized(false));
+          dispatch(clearFieldValues(FORM_TYPES.COMPONENT_INSTANCE_FORM));
+          unsetSelectedComponentRef.current();
+        }
+      })
       .catch(() => {
         // The synchronization lifecycle reports failures through notifications.
       });
-  }, [canSyncComponents, settings.frontendUrl, syncComponents]);
+  }, [canSyncComponents, dispatch, settings.frontendUrl, syncComponents]);
 
   const handleFrontendChange = (frontendUrl: string) => {
     if (isSyncing) {
