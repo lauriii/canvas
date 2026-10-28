@@ -203,20 +203,28 @@ test.describe('AI dev chat', () => {
 
   test('Page builder agent turns', async ({ page, drupal, canvas, ai }) => {
     // Count the requests to hold each turn to the number of hops it should
-    // have sent to the backend. Request 3, the second hop of the "Approved"
-    // turn below, is held until the test releases it: Playwright waits for a
+    // have sent to the backend. Request 4, the third hop of the "Approved"
+    // turn below, and request 6, the second hop of the "Update the headings"
+    // turn, are held until the test releases them: Playwright waits for a
     // state to arrive and cannot catch one that has already flipped, so
-    // without the hold the turn could end before its in-progress state is
+    // without the holds a turn could end before its in-progress state is
     // asserted on.
     let requests = 0;
     let releaseSecondPlacementHop!: () => void;
     const secondPlacementHop = new Promise<void>((resolve) => {
       releaseSecondPlacementHop = resolve;
     });
+    let releaseHeadingsUpdateHop!: () => void;
+    const headingsUpdateHop = new Promise<void>((resolve) => {
+      releaseHeadingsUpdateHop = resolve;
+    });
     await page.route('**/admin/api/canvas/ai-dev', async (route) => {
       requests += 1;
-      if (requests === 3) {
+      if (requests === 4) {
         await secondPlacementHop;
+      }
+      if (requests === 6) {
+        await headingsUpdateHop;
       }
       await route.continue();
     });
@@ -240,6 +248,9 @@ test.describe('AI dev chat', () => {
     const removeButton = pill.getByRole('button', {
       name: 'Remove the selected tool',
     });
+    // The selected component chip, at the top of the chat input box. Its
+    // name is prefixed for screen readers, and that prefix is in its text.
+    const chip = page.getByTestId('canvas-ai-selected-component');
 
     // The user selects the page builder agent as the Tool. Selecting it closes
     // the menu and shows it in the pill.
@@ -292,6 +303,15 @@ test.describe('AI dev chat', () => {
     await expect(toolsTrigger).toBeDisabled();
     await toolsTrigger.dispatchEvent('click');
     await expect(menu).toBeHidden();
+
+    // The first batch has landed, and placing selects each component in turn,
+    // so the last component of that batch is selected now. Nothing was
+    // selected when the message was sent, so the chip, which shows the turn's
+    // scope rather than the live selection, stays hidden.
+    await expect(page).toHaveURL(
+      /\/component\/00000000-0000-4000-8000-000000000003/,
+    );
+    await expect(chip).toBeHidden();
 
     releaseSecondPlacementHop();
     await expect(answer.last()).toHaveText(
@@ -353,14 +373,89 @@ test.describe('AI dev chat', () => {
       /Call to Absolute Action/,
     ]);
 
-    // The user asks for an edit. Hop 1 narrates and hop 2 returns
-    // `component_updates` keyed by the placed headings' UUIDs; the new text
-    // renders in the preview.
+    // The turn left nothing selected, so the chip is hidden. Selecting a
+    // component shows it in the chip, and its button clears the selection.
+    await expect(chip).toBeHidden();
+    await canvas.clickPreviewComponent('sdc.canvas_test_sdc.heading');
+    await expect(chip).toHaveText('Selected component: Heading');
+    // The chip sits inside the top of the input box, and the placeholder
+    // starts below it. The chip's offsets and the input box's size come from
+    // chatInputLayout.ts, and the chip's height from the preview name tag, so
+    // a change to any of them that misplaces the chip fails here.
+    // @see ui/src/components/aiExtension/chatInputLayout.ts
+    const inputBoxLocator = chat.locator('#text-input-container');
+    const expectChipInInputBox = () =>
+      expect(async () => {
+        const chipBox = (await chip.boundingBox())!;
+        const inputBox = (await inputBoxLocator.boundingBox())!;
+        const textTop = await chat
+          .locator('#text-input')
+          .evaluate(
+            (el) =>
+              el.getBoundingClientRect().top +
+              parseFloat(getComputedStyle(el).paddingTop),
+          );
+        expect(chipBox.y).toBeGreaterThan(inputBox.y);
+        expect(chipBox.x).toBeGreaterThan(inputBox.x);
+        expect(chipBox.x + chipBox.width).toBeLessThan(
+          inputBox.x + inputBox.width,
+        );
+        expect(chipBox.y + chipBox.height).toBeLessThanOrEqual(textTop);
+      }).toPass();
+    await expectChipInInputBox();
+    // In a short window, for example with the browser's developer tools
+    // docked below the page, deep-chat is shorter than the input box: the box
+    // stays at the top of the chat and its bottom is cut off. The chip stays
+    // on the box.
+    const viewport = page.viewportSize()!;
+    await page.setViewportSize({ width: viewport.width, height: 450 });
+    await expect(async () => {
+      const chatBox = (await chat.boundingBox())!;
+      const inputBox = (await inputBoxLocator.boundingBox())!;
+      expect(inputBox.y + inputBox.height).toBeGreaterThan(
+        chatBox.y + chatBox.height,
+      );
+    }).toPass();
+    await expectChipInInputBox();
+    await page.setViewportSize(viewport);
+    const deselectHeading = chip.getByRole('button', {
+      name: 'Deselect Heading',
+    });
+    await expect(deselectHeading).toBeEnabled();
+    await deselectHeading.click();
+    await expect(chip).toBeHidden();
+    await expect(page).not.toHaveURL(/\/component\//);
+
+    // The user selects a heading again and asks for an edit. Hop 1 narrates
+    // and hop 2 returns `component_updates` keyed by the placed headings'
+    // UUIDs; the new text renders in the preview.
     // @see modules/canvas_ai/tests/modules/canvas_ai_test/fixtures/update_the_headings.json
     // @see modules/canvas_ai/tests/modules/canvas_ai_test/fixtures/update_the_headings-2.json
+    await canvas.clickPreviewComponent('sdc.canvas_test_sdc.heading');
+    await expect(chip).toHaveText('Selected component: Heading');
     await ai.submitQuery('Update the headings');
+
+    // The heading is the turn's scope. While the turn runs, the chip is locked
+    // on it: its button is disabled, and selecting another component does not
+    // change it.
+    await expect(deselectHeading).toBeDisabled();
+    await canvas.clickPreviewComponent('sdc.canvas_test_sdc.my-hero');
+    await expect(page).toHaveURL(
+      /\/component\/00000000-0000-4000-8000-000000000001/,
+    );
+    await expect(chip).toHaveText('Selected component: Heading');
+
+    releaseHeadingsUpdateHop();
     await expect(answer.last()).toHaveText('Both headings are updated.');
     expect(requests).toBe(6);
+    // The turn placed nothing, so it kept the selection. Once it ended, the
+    // chip follows the selection again and can be cleared. Clearing it also
+    // brings back the page data form, which the next turn fills in.
+    await expect(chip).toHaveText('Selected component: Hero');
+    const deselectHero = chip.getByRole('button', { name: 'Deselect Hero' });
+    await expect(deselectHero).toBeEnabled();
+    await deselectHero.click();
+    await expect(chip).toBeHidden();
     await canvas.testInPreviewFrame(
       '[data-component-id="canvas_test_sdc:heading"]',
       async (headings) => {
