@@ -54,11 +54,6 @@ export interface DrupalSettings {
     entityTypeLabels: {
       [entityType: string]: string | { [key: string]: string };
     };
-    globalAssets: {
-      css: string;
-      jsHeader: string;
-      jsFooter: string;
-    };
     viewports?: {
       [viewportId: string]: number | string;
     };

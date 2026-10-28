@@ -16,12 +16,18 @@ use Symfony\Component\HttpFoundation\RequestStack;
  * This theme negotiator uses the `canvas_stark` theme for Drupal Canvas routes
  * serving forms that are intended to be rendered using React, to guarantee
  * predictable markup. Otherwise the Redux integration is likely to break.
+ * It also applies to the routes booting the Canvas editor.
  *
  * This also achieves an intentional side effect: nothing of Drupal themes
  * is visible in the component instance form or entity fields forms displayed in
  * Drupal Canvas: `stark` defines no templates, and hence relies on all
  * default templates only.
  *
+ * Using `canvas_stark` for the editor means the site's front-end theme (e.g.
+ * its `libraries-override`) cannot affect it. Component previews still use the
+ * front-end theme.
+ *
+ * @see \Drupal\canvas\Controller\ApiUiPreviewAssetsController
  * @see ui/src/components/form/twig-to-jsx-component-map.js
  * @see ui/src/components/form/withRHF.tsx
  */
@@ -40,7 +46,7 @@ final class CanvasThemeNegotiator implements ThemeNegotiatorInterface {
   public function applies(RouteMatchInterface $route_match) {
     $route_name = $route_match->getRouteName() ?? '';
     $use_admin_theme = (bool) $this->requestStack->getCurrentRequest()?->query->has('use_admin_theme');
-    $use_canvas_stark = str_starts_with($route_name, 'canvas.api.form.');
+    $use_canvas_stark = str_starts_with($route_name, 'canvas.api.form.') || str_starts_with($route_name, 'canvas.boot.');
     return $use_canvas_stark || $use_admin_theme;
   }
 

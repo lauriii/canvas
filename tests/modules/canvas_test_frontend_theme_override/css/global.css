@@ -1,0 +1,4 @@
+/* The front-end theme's own styling, which component previews must load. */
+body {
+  font-family: serif;
+}
