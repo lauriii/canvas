@@ -1,0 +1,6 @@
+global:
+  css:
+    theme:
+      css/global.css: {}
+  dependencies:
+    - core/drupalSettings

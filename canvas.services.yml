@@ -242,6 +242,7 @@ services:
       $translationSynchronizer: '@?content_translation.synchronizer'
   Drupal\canvas\Controller\ApiUiContentEntityReferenceControllers: {}
   Drupal\canvas\Controller\ApiUiContentTemplateControllers: {}
+  Drupal\canvas\Controller\ApiUiPreviewAssetsController: {}
   Drupal\canvas\Controller\ApiUsageControllers: {}
   Drupal\canvas\Controller\AddPageController: {}
   Drupal\canvas\Controller\ViewModeDisplayController: {}

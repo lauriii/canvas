@@ -4069,6 +4069,32 @@ paths:
                     teaser:
                       label: Teaser
                       hasTemplate: true
+  /canvas/api/v0/ui/preview-assets:
+    get:
+      summary: Gets the global assets to load in component preview iframes, rendered with the front-end theme.
+      responses:
+        '200':
+          description: Rendered asset markup.
+          content:
+            application/json:
+              schema:
+                title: Component preview assets
+                type: object
+                required:
+                  - css
+                  - jsHeader
+                  - jsFooter
+                additionalProperties: false
+                properties:
+                  css:
+                    type: string
+                    description: Rendered CSS asset markup.
+                  jsHeader:
+                    type: string
+                    description: Rendered header JS asset markup.
+                  jsFooter:
+                    type: string
+                    description: Rendered footer JS asset markup.
   /canvas/api/v0/usage/color/{color}/details:
     get:
       summary: Get detailed usage information for a specific color.

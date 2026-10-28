@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Controller;
 
-use Drupal\canvas\AssetRenderer;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\canvas\Config\ThemeSettingsDiscovery;
@@ -23,7 +22,6 @@ use Drupal\canvas\Resource\CanvasResourceLink;
 use Drupal\canvas\Resource\CanvasResourceLinkCollection;
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Access\AccessResult;
-use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Asset\LibraryDiscoveryInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -48,7 +46,6 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 final class CanvasController {
 
   public function __construct(
-    private readonly AssetRenderer $assetRenderer,
     protected ThemeManagerInterface $themeManager,
     protected readonly ConfigFactoryInterface $configFactory,
     #[Autowire(service: 'plugin.manager.field.widget')]
@@ -110,18 +107,6 @@ HTML;
   public function __invoke(?string $entity_type, ?EntityInterface $entity) : HtmlResponse {
     // @phpstan-ignore-next-line function.alreadyNarrowedType
     \assert($this->validateTransformAssetLibraries());
-    // List of libraries to load in the preview iframe.
-    $preview_libraries = [
-      'system/base',
-      ...$this->themeManager->getActiveTheme()->getLibraries(),
-    ];
-
-    // Assets for the preview <iframe>s. They will be rendered by
-    // \Drupal\canvas\AssetRenderer and added to `drupalSettings` in
-    // the response. They are used when rendering the preview <iframe>s.
-    // @see ui/src/components/ComponentPreview.tsx
-    $preview_assets = (new AttachedAssets())->setLibraries($preview_libraries);
-
     $canvas_module_path = $this->moduleHandler->getModule('canvas')->getPath();
     $dev_mode = $this->moduleHandler->moduleExists('canvas_dev_mode');
     // @todo Remove the use of 'canvas_dev_cd' flag in https://git.drupalcode.org/project/canvas/-/work_items/3591732
@@ -248,14 +233,6 @@ HTML;
             'pageExtensions' => $page_extensions,
             'aiExtensionAvailable' => $ai_extension_available,
             'personalizationExtensionAvailable' => $personalization_extension_available,
-          // Allow for perfect component previews, by letting the client side
-          // know what global assets to load in component preview <iframe>s.
-          // @see ui/src/components/ComponentPreview.tsx
-            'globalAssets' => [
-              'css' => $this->assetRenderer->renderCssAssets($preview_assets),
-              'jsHeader' => $this->assetRenderer->renderJsHeaderAssets($preview_assets),
-              'jsFooter' => $this->assetRenderer->renderJsFooterAssets($preview_assets),
-            ],
             'canvasModulePath' => $canvas_module_path,
             'permissions' => [
               'pageVariants' => $this->currentUser->hasPermission(PageVariant::ADMIN_PERMISSION),

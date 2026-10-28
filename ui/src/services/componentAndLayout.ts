@@ -178,6 +178,14 @@ export const componentAndLayoutApi = createApi({
         );
       },
     }),
+    // Global assets for component preview <iframe>s, rendered with the
+    // front-end theme.
+    getPreviewAssets: builder.query<
+      { css: string; jsHeader: string; jsFooter: string },
+      void
+    >({
+      query: () => `/canvas/api/v0/ui/preview-assets`,
+    }),
     getComponentUsageList: builder.query<ComponentUsageListResponse, void>({
       query: () => `/canvas/api/v0/usage/component`,
     }),
@@ -836,4 +844,5 @@ export const {
   useGetViewModesQuery,
   useGetPreviewContentEntitiesQuery,
   useDeletePageTranslationMutation,
+  useGetPreviewAssetsQuery,
 } = componentAndLayoutApi;

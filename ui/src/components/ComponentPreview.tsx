@@ -8,7 +8,8 @@ import {
   COMPONENT_PREVIEW_IFRAME_WIDTH,
   COMPONENT_PREVIEW_WIDTH,
 } from '@/components/componentPreviewSizing';
-import { getBaseUrl, getDrupalSettings } from '@/utils/drupal-globals';
+import { useGetPreviewAssetsQuery } from '@/services/componentAndLayout';
+import { getBaseUrl } from '@/utils/drupal-globals';
 
 import type { CanvasComponent } from '@/types/Component';
 import type { Pattern } from '@/types/Pattern';
@@ -19,7 +20,6 @@ interface ComponentPreviewProps {
   componentListItem: CanvasComponent | Pattern;
 }
 
-const drupalSettings = getDrupalSettings();
 const baseUrl = getBaseUrl();
 
 // Helper to convert asset paths to absolute.
@@ -63,12 +63,12 @@ const ComponentPreview: React.FC<ComponentPreviewProps> = ({
   componentListItem,
 }) => {
   const component = componentListItem;
+  const { data: previewAssets, error: previewAssetsError } =
+    useGetPreviewAssetsQuery();
 
-  const css = drupalSettings?.canvas.globalAssets.css + component.css;
-  const js_footer =
-    drupalSettings?.canvas.globalAssets.jsFooter + component.js_footer;
-  const js_header =
-    drupalSettings?.canvas.globalAssets.jsHeader + component.js_header;
+  const css = (previewAssets?.css ?? '') + component.css;
+  const js_footer = (previewAssets?.jsFooter ?? '') + component.js_footer;
+  const js_header = (previewAssets?.jsHeader ?? '') + component.js_header;
 
   const markup = component.default_markup;
   const base_url = window.location.origin + baseUrl;
@@ -263,6 +263,21 @@ const ComponentPreview: React.FC<ComponentPreviewProps> = ({
       }
     };
   }, [hydrationComponentId]);
+
+  useEffect(() => {
+    if (previewAssetsError) {
+      console.error(
+        'Failed to load component preview assets:',
+        previewAssetsError,
+      );
+    }
+  }, [previewAssetsError]);
+
+  // Without the front-end theme's global assets the preview would render, and
+  // be measured, unstyled. Show no preview until they have loaded.
+  if (!previewAssets) {
+    return null;
+  }
 
   return (
     <div

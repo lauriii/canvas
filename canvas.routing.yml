@@ -869,6 +869,17 @@ canvas.api.ui.content_template.view_modes.list:
   options:
     _format: 'json'
 
+canvas.api.ui.preview_assets:
+  path: '/canvas/api/v0/ui/preview-assets'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiUiPreviewAssetsController'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _canvas_ui_access: 'TRUE'
+  methods: [GET]
+  options:
+    _format: 'json'
+
 canvas.api.usage.color.individual.details:
   path: '/canvas/api/v0/usage/color/{color}/details'
   defaults:
