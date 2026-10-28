@@ -147,6 +147,10 @@ export default defineConfig({
             { label: 'Introduction', slug: 'headless' },
             { label: 'Setup', slug: 'headless/setup' },
             { label: 'Multilingual sites', slug: 'headless/multilingual-sites' },
+            {
+              label: 'Managing component changes',
+              slug: 'headless/managing-component-changes',
+            },
             { label: 'FAQ', slug: 'headless/faq' },
           ],
         },

@@ -246,8 +246,9 @@ Headless frontends** permission.
    ready to drag onto a page. Drupal will not let anyone rename it or flip its
    status there: an external component's identity belongs to the app that
    implements it. Change `machineName` later and Canvas treats it as a
-   different component, registering the new name and deactivating the old
-   entry.
+   different component, registering the new name. The old component remains
+   in Canvas and on existing pages, but disappears from this app’s component
+   library after syncing.
 
 </Steps>
 
@@ -288,3 +289,5 @@ still go over JSON:API, through the same client.
   components that already exist on your site into the app's codebase.
 - [Multilingual sites](/headless/multilingual-sites) - configure language
   negotiation, translation links, and frontend routing.
+- [Managing component changes](/headless/managing-component-changes) - how
+  pages pick up changed component definitions, also across frontends.
