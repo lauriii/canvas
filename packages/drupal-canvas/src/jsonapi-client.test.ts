@@ -28,6 +28,18 @@ function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
   });
 }
 
+// A JSON body with the given media type, or none.
+function typedResponse(
+  body: unknown,
+  status: number,
+  contentType: string | null,
+): Response {
+  return new Response(new TextEncoder().encode(JSON.stringify(body)), {
+    status,
+    headers: contentType ? { 'Content-Type': contentType } : {},
+  });
+}
+
 function fakeFetch(
   handler: (url: string, init?: RequestInit) => Response | Promise<Response>,
 ): { fetch: typeof fetch; calls: FetchCall[] } {
@@ -45,16 +57,82 @@ function fakeFetch(
   return { fetch: fetchImpl, calls };
 }
 
+// Drupal links every resource of a revisionable type to its working copy.
+function articleLinks(id: string) {
+  const self = `https://drupal.example/jsonapi/node/article/${id}`;
+  return {
+    self: { href: `${self}?resourceVersion=id%3A1` },
+    'working-copy': { href: `${self}?resourceVersion=rel%3Aworking-copy` },
+  };
+}
+
 function articleCollection() {
   return {
     jsonapi: { version: '1.0' },
     data: [
-      { type: 'node--article', id: 'a', attributes: { title: 'Published A' } },
-      { type: 'node--article', id: 'b', attributes: { title: 'Published B' } },
+      {
+        type: 'node--article',
+        id: 'a',
+        attributes: { title: 'Published A' },
+        links: articleLinks('a'),
+      },
+      {
+        type: 'node--article',
+        id: 'b',
+        attributes: { title: 'Published B' },
+        links: articleLinks('b'),
+      },
     ],
     links: {
       next: {
         href: 'https://drupal.example/jsonapi/node/article?page[offset]=2',
+      },
+    },
+  };
+}
+
+// Drupal's answer to a versioned read of a type without revisions.
+function notImplementedResponse(): Response {
+  return jsonResponse(
+    {
+      jsonapi: { version: '1.0' },
+      errors: [
+        {
+          title: 'Not Implemented',
+          status: '501',
+          detail:
+            'Resource versioning is not yet supported for this resource type.',
+        },
+      ],
+    },
+    { status: 501 },
+  );
+}
+
+// A resource of a type without revisions links to itself only.
+function userDocument(id: string, overrides: Record<string, unknown> = {}) {
+  return {
+    jsonapi: { version: '1.0' },
+    data: {
+      type: 'user--user',
+      id,
+      attributes: { display_name: `User ${id}` },
+      links: {
+        self: { href: `https://drupal.example/jsonapi/user/user/${id}` },
+      },
+      ...overrides,
+    },
+  };
+}
+
+function memoryCache(): { cache: Cache; store: Map<string, unknown> } {
+  const store = new Map<string, unknown>();
+  return {
+    store,
+    cache: {
+      get: async <T>(key: string) => store.get(key) as T,
+      set: async (key: string, value: unknown) => {
+        store.set(key, value);
       },
     },
   };
@@ -1064,5 +1142,379 @@ describe('createJsonApiClient', () => {
     expect(
       keys.some((key) => key.startsWith('rel:working-copy:session:42:')),
     ).toBe(true);
+  });
+
+  it('hydrates only collection items that link to a working copy', async () => {
+    const { fetch, calls } = fakeFetch((url) => {
+      if (url.includes('/node/article/a?')) {
+        return jsonResponse({
+          data: {
+            type: 'node--article',
+            id: 'a',
+            attributes: { title: 'Draft A' },
+            links: articleLinks('a'),
+          },
+        });
+      }
+      if (url.includes('/user/user?')) {
+        return jsonResponse({
+          data: [userDocument('u1').data, userDocument('u2').data],
+        });
+      }
+      const [a, b] = articleCollection().data;
+      return jsonResponse({
+        data: [
+          a,
+          { ...b, links: { self: { href: 'https://drupal.example/b' } } },
+          { type: 'node--article', id: 'c', attributes: { title: 'C' } },
+        ],
+      });
+    });
+    const client = createJsonApiClient({
+      baseUrl: 'https://drupal.example',
+      resourceVersion: 'rel:working-copy',
+      serializer: null,
+      fetch,
+    });
+    const articles = (await client.getCollection('node--article')) as {
+      data: Array<{ attributes: { title: string } }>;
+    };
+    expect(articles.data.map((item) => item.attributes.title)).toEqual([
+      'Draft A',
+      'Published B',
+      'C',
+    ]);
+    const users = (await client.getCollection('user--user', {
+      queryString: 'fields[user--user]=display_name',
+    })) as { data: Array<{ id: string }> };
+    expect(users.data.map((item) => item.id)).toEqual(['u1', 'u2']);
+    expect(calls.map((call) => call.url)).toEqual([
+      'https://drupal.example/jsonapi/node/article',
+      'https://drupal.example/jsonapi/node/article/a?resourceVersion=rel%3Aworking-copy',
+      'https://drupal.example/jsonapi/user/user?fields[user--user]=display_name',
+    ]);
+  });
+
+  it('reads resources of types without revisions without the resource version', async () => {
+    const { cache, store } = memoryCache();
+    const { fetch, calls } = fakeFetch((url) => {
+      if (url.includes('resourceVersion=')) {
+        return url.includes('/user/user/')
+          ? notImplementedResponse()
+          : jsonResponse({
+              data: {
+                type: 'node--article',
+                id: 'a',
+                attributes: { title: 'Draft A' },
+                links: articleLinks('a'),
+              },
+            });
+      }
+      return jsonResponse(userDocument(url.includes('/u2') ? 'u2' : 'u1'));
+    });
+    const client = createJsonApiClient({
+      baseUrl: 'https://drupal.example',
+      resourceVersion: 'rel:working-copy',
+      cache,
+      cacheScope: 'session:1',
+      fetch,
+    });
+    const user = await client.getResource('user--user', 'u1', {
+      locale: 'de',
+      queryString: 'fields[user--user]=display_name',
+    });
+    expect(user).toMatchObject({ id: 'u1', display_name: 'User u1' });
+    expect(calls.map((call) => call.url)).toEqual([
+      'https://drupal.example/de/jsonapi/user/user/u1?fields[user--user]=display_name&resourceVersion=rel%3Aworking-copy',
+      'https://drupal.example/de/jsonapi/user/user/u1?fields[user--user]=display_name',
+    ]);
+    // Cached under the unversioned read, in the client's scope.
+    expect([...store.keys()]).toEqual([
+      expect.stringMatching(/^rel:working-copy:session:1:de--user--user--u1--/),
+    ]);
+    // Served from the cache; other resources of the type skip the version.
+    await client.getResource('user--user', 'u1', {
+      locale: 'de',
+      queryString: 'fields[user--user]=display_name',
+    });
+    await client.getResource('user--user', 'u2', { disableCache: true });
+    // Revisionable types keep reading working copies.
+    const article = await client.getResource('node--article', 'a');
+    expect(article).toMatchObject({ title: 'Draft A' });
+    expect(calls.slice(2).map((call) => call.url)).toEqual([
+      'https://drupal.example/jsonapi/user/user/u2',
+      'https://drupal.example/jsonapi/node/article/a?resourceVersion=rel%3Aworking-copy',
+    ]);
+    // Path lookups read through getResource().
+    const router = fakeFetch((url) =>
+      url.includes('translate-path')
+        ? jsonResponse({
+            resolved: 'https://drupal.example/user/1',
+            isHomePath: false,
+            entity: {
+              canonical: 'https://drupal.example/user/1',
+              type: 'user',
+              bundle: 'user',
+              id: '1',
+              uuid: 'u1',
+            },
+            label: 'User u1',
+            jsonapi: {
+              individual: 'https://drupal.example/jsonapi/user/user/u1',
+              resourceName: 'user--user',
+              basePath: '/jsonapi',
+              entryPoint: 'https://drupal.example/jsonapi',
+            },
+          })
+        : url.includes('resourceVersion=')
+          ? notImplementedResponse()
+          : jsonResponse(userDocument('u1')),
+    );
+    const byPath = await createJsonApiClient({
+      baseUrl: 'https://drupal.example',
+      resourceVersion: 'rel:working-copy',
+      fetch: router.fetch,
+    }).getResourceByPath('/user/1');
+    expect(byPath).toMatchObject({ id: 'u1', display_name: 'User u1' });
+    expect(router.calls.map((call) => call.url)).toEqual([
+      'https://drupal.example/router/translate-path?path=/user/1',
+      'https://drupal.example/jsonapi/user/user/u1?resourceVersion=rel%3Aworking-copy',
+      'https://drupal.example/jsonapi/user/user/u1',
+    ]);
+  });
+
+  it('keeps the original response when the unversioned read is not the requested resource of a type without revisions', async () => {
+    const original = await notImplementedResponse().json();
+    const retries: Array<[string, () => Response | Promise<Response>]> = [
+      [
+        'revisionable',
+        () =>
+          jsonResponse(
+            userDocument('u1', {
+              links: {
+                self: { href: 'https://drupal.example/u1' },
+                'working-copy': { href: 'https://drupal.example/u1' },
+              },
+            }),
+          ),
+      ],
+      ['other type', () => jsonResponse(userDocument('u1', { type: 'x--y' }))],
+      ['other id', () => jsonResponse(userDocument('u2'))],
+      ['no links', () => jsonResponse(userDocument('u1', { links: null }))],
+      ['collection', () => jsonResponse({ data: [userDocument('u1').data] })],
+      [
+        'error',
+        () => jsonResponse({ errors: [{ status: '403' }] }, { status: 403 }),
+      ],
+      ['not JSON', () => new Response('<html></html>', { status: 200 })],
+      ['HTML', () => typedResponse(userDocument('u1'), 200, 'text/html')],
+      [
+        'plain text',
+        () => typedResponse(userDocument('u1'), 200, 'text/plain'),
+      ],
+      ['no media type', () => typedResponse(userDocument('u1'), 200, null)],
+    ];
+    for (const [name, retry] of retries) {
+      const { cache, store } = memoryCache();
+      const { fetch, calls } = fakeFetch((url) =>
+        url.includes('resourceVersion=') ? notImplementedResponse() : retry(),
+      );
+      const client = createJsonApiClient({
+        baseUrl: 'https://drupal.example',
+        resourceVersion: 'rel:working-copy',
+        cache,
+        cacheScope: 'session:1',
+        serializer: null,
+        fetch,
+      });
+      expect(await client.getResource('user--user', 'u1'), name).toEqual(
+        original,
+      );
+      // Nothing is cached or remembered: the next read probes again.
+      await client.getResource('user--user', 'u1');
+      expect(
+        calls.map((call) => call.url.includes('resourceVersion=')),
+        name,
+      ).toEqual([true, false, true, false]);
+      expect(store.size, name).toBe(0);
+    }
+  });
+
+  it('throws failures of the unversioned read without remembering the type', async () => {
+    const { fetch } = fakeFetch((url) =>
+      url.includes('resourceVersion=')
+        ? notImplementedResponse()
+        : jsonResponse(
+            { error: 'draft_session_expired', message: 'Session expired.' },
+            {
+              status: 401,
+              headers: {
+                [JSONAPI_PROXY_SESSION_HEADER]: JSONAPI_PROXY_SESSION_EXPIRED,
+              },
+            },
+          ),
+    );
+    const client = createJsonApiClient({
+      baseUrl: 'https://drupal.example',
+      proxyUrl: '/api/canvas/jsonapi',
+      resourceVersion: 'rel:working-copy',
+      fetch,
+    });
+    await expect(client.getResource('user--user', 'u1')).rejects.toSatisfy(
+      isDraftSessionError,
+    );
+
+    const { cache, store } = memoryCache();
+    const network = fakeFetch((url) => {
+      if (url.includes('resourceVersion=')) {
+        return notImplementedResponse();
+      }
+      throw new TypeError('fetch failed');
+    });
+    const networkClient = createJsonApiClient({
+      baseUrl: 'https://drupal.example',
+      resourceVersion: 'rel:working-copy',
+      cache,
+      cacheScope: 'session:1',
+      fetch: network.fetch,
+    });
+    await expect(networkClient.getResource('user--user', 'u1')).rejects.toThrow(
+      'fetch failed',
+    );
+    await expect(networkClient.getResource('user--user', 'u1')).rejects.toThrow(
+      'fetch failed',
+    );
+    expect(
+      network.calls.map((call) => call.url.includes('resourceVersion=')),
+    ).toEqual([true, false, true, false]);
+    expect(store.size).toBe(0);
+  });
+
+  it('repeats a versioned read only after a 501 with the JSON:API media type', async () => {
+    const original = await notImplementedResponse().json();
+    for (const contentType of ['text/html', 'text/plain', null]) {
+      const { cache, store } = memoryCache();
+      const { fetch, calls } = fakeFetch((url) =>
+        url.includes('resourceVersion=')
+          ? typedResponse(original, 501, contentType)
+          : jsonResponse(userDocument('u1')),
+      );
+      const client = createJsonApiClient({
+        baseUrl: 'https://drupal.example',
+        resourceVersion: 'rel:working-copy',
+        cache,
+        cacheScope: 'session:1',
+        serializer: null,
+        fetch,
+      });
+      const name = String(contentType);
+      expect(await client.getResource('user--user', 'u1'), name).toEqual(
+        original,
+      );
+      await client.getResource('user--user', 'u1');
+      expect(
+        calls.map((call) => call.url.includes('resourceVersion=')),
+        name,
+      ).toEqual([true, true]);
+      expect(store.size, name).toBe(0);
+    }
+    // Media type parameters are allowed.
+    const mediaType = 'application/vnd.api+json; charset=utf-8';
+    const { fetch, calls } = fakeFetch((url) =>
+      url.includes('resourceVersion=')
+        ? typedResponse(original, 501, mediaType)
+        : typedResponse(userDocument('u1'), 200, mediaType),
+    );
+    const client = createJsonApiClient({
+      baseUrl: 'https://drupal.example',
+      resourceVersion: 'rel:working-copy',
+      fetch,
+    });
+    expect(await client.getResource('user--user', 'u1')).toMatchObject({
+      id: 'u1',
+    });
+    await client.getResource('user--user', 'u2');
+    expect(calls.map((call) => call.url.includes('resourceVersion='))).toEqual([
+      true,
+      false,
+      false,
+    ]);
+  });
+
+  it('repeats a versioned read only after a JSON:API 501 the client caused', async () => {
+    const original = (status: number) =>
+      jsonResponse({ errors: [{ status: String(status) }] }, { status });
+    for (const [name, respond, options] of [
+      ['403', () => original(403)],
+      ['404', () => original(404)],
+      ['500', () => original(500)],
+      [
+        '501 without a 501 error',
+        () =>
+          original(500)
+            .json()
+            .then((body) => jsonResponse(body, { status: 501 })),
+      ],
+      [
+        'caller-selected version',
+        notImplementedResponse,
+        {
+          queryString: 'resourceVersion=rel%3Alatest-version',
+        },
+      ],
+      ['raw response', notImplementedResponse, { rawResponse: true }],
+    ] as Array<[string, () => Response | Promise<Response>, GetOptions?]>) {
+      const { fetch, calls } = fakeFetch(respond);
+      const client = createJsonApiClient({
+        baseUrl: 'https://drupal.example',
+        resourceVersion: 'rel:working-copy',
+        serializer: null,
+        fetch,
+      });
+      await client.getResource('user--user', 'u1', options);
+      expect(calls, name).toHaveLength(1);
+    }
+    // Failures that throw keep throwing, without a second request.
+    for (const [name, respond, check] of [
+      [
+        'HTML 501',
+        () => new Response('<html>Not Implemented</html>', { status: 501 }),
+        (error: unknown) => error instanceof SyntaxError,
+      ],
+      [
+        'network',
+        () => {
+          throw new TypeError('fetch failed');
+        },
+        (error: unknown) => error instanceof TypeError,
+      ],
+      [
+        'rejected session',
+        () =>
+          jsonResponse(
+            { error: 'draft_session_expired' },
+            {
+              status: 401,
+              headers: {
+                [JSONAPI_PROXY_SESSION_HEADER]: JSONAPI_PROXY_SESSION_EXPIRED,
+              },
+            },
+          ),
+        isDraftSessionError,
+      ],
+    ] as Array<[string, () => Response, (error: unknown) => boolean]>) {
+      const { fetch, calls } = fakeFetch(respond);
+      const client = createJsonApiClient({
+        baseUrl: 'https://drupal.example',
+        proxyUrl: '/api/canvas/jsonapi',
+        resourceVersion: 'rel:working-copy',
+        fetch,
+      });
+      await expect(
+        client.getResource('user--user', 'u1'),
+        name,
+      ).rejects.toSatisfy(check);
+      expect(calls, name).toHaveLength(1);
+    }
   });
 });
