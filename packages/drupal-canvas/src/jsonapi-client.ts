@@ -279,6 +279,9 @@ export class CanvasJsonApiClient extends UpstreamJsonApiClient {
   /** Where JSON:API requests go (base URL, prefix, foreign site or not). */
   private readonly apiBase: ResolvedJsonApiBase;
 
+  /** Resource types Drupal reads without revisions (see `getResource()`). */
+  private readonly unversionedTypes = new Set<string>();
+
   constructor(config: JsonApiClientConfig) {
     const baseUrl = normalizeBaseUrl(config.baseUrl);
     const apiUrl = config.apiUrl ? normalizeBaseUrl(config.apiUrl) : undefined;
@@ -449,24 +452,100 @@ export class CanvasJsonApiClient extends UpstreamJsonApiClient {
     };
   }
 
+  /**
+   * Resource reads apply the configured resource version. Drupal answers a
+   * versioned read of a resource type without revisions with 501 Not
+   * Implemented; the read is then repeated once without the version. When
+   * that returns the requested JSON:API resource without a `working-copy`
+   * link (which Drupal adds to every revisionable resource), the type is read
+   * without the version from then on. Any other response keeps the original
+   * one; a failed request throws as any read does. Raw responses and
+   * caller-selected versions bypass this.
+   */
   override async getResource<T>(
     type: string,
     resourceId: string,
     options?: GetOptions,
-  ) {
-    return super.getResource<T>(
-      type,
+  ): Promise<T | RawApiResponseWithData<T>> {
+    const versioned =
+      options?.rawResponse || this.unversionedTypes.has(type)
+        ? options
+        : this.withResourceVersion(options);
+    if (versioned === options) {
+      return super.getResource<T>(type, resourceId, options);
+    }
+    const { entityTypeId, bundleId } =
+      UpstreamJsonApiClient.getEntityTypeIdAndBundleId(type);
+    const localeSegment = options?.locale || this.defaultLocale;
+    if (!options?.disableCache) {
+      const cached = await this.getCachedResponse<T>(
+        await UpstreamJsonApiClient.createCacheKey({
+          entityTypeId,
+          bundleId,
+          resourceId,
+          localeSegment,
+          queryString: versioned?.queryString,
+        }),
+      );
+      if (cached) {
+        return cached;
+      }
+    }
+    // The raw read parses, caches, and fails exactly like an ordinary read,
+    // and exposes the response status.
+    const { response, json } = (await super.getResource<T>(type, resourceId, {
+      ...versioned,
+      rawResponse: true,
+    })) as RawApiResponseWithData<T>;
+    if (!(await isNotImplementedResponse(response))) {
+      return json;
+    }
+    const url = await this.createURL({
+      localeSegment,
+      entityTypeId,
+      bundleId,
       resourceId,
-      options?.rawResponse ? options : this.withResourceVersion(options),
+      queryString: options?.queryString,
+    });
+    const retry = await this.fetch(
+      url,
+      options?.disableAuthentication ? { credentials: 'omit' } : {},
     );
+    if (retry.error) {
+      throw retry.error;
+    }
+    const document: unknown =
+      retry.response.ok && isJsonApiResponse(retry.response)
+        ? await retry.response
+            .clone()
+            .json()
+            .catch(() => null)
+        : null;
+    if (!isUnversionedResourceDocument(document, type, resourceId)) {
+      return json;
+    }
+    this.unversionedTypes.add(type);
+    return (await this.processApiResponseAndParseBody<T>(
+      retry.response,
+      await UpstreamJsonApiClient.createCacheKey({
+        entityTypeId,
+        bundleId,
+        resourceId,
+        localeSegment,
+        queryString: options?.queryString,
+      }),
+      options,
+    )) as T;
   }
 
   /**
-   * Collection reads at a resource version fetch each item's working copy in
-   * a separate request, because Drupal returns default revisions in
-   * collections. Working copies are merged into the raw document before the
-   * serializer runs. A failing ordinary item fetch keeps the original item;
-   * draft-session errors propagate. Raw responses bypass this.
+   * Collection reads at a resource version fetch the working copy of each
+   * item that links to one in a separate request, because Drupal returns
+   * default revisions in collections. Items of types without revisions have
+   * no `working-copy` link and are kept. Working copies are merged into the
+   * raw document before the serializer runs. A failing ordinary item fetch
+   * keeps the original item; draft-session errors propagate. Raw responses
+   * bypass this.
    *
    * An omitted or false rawResponse returns the deserialized T. A literal
    * true returns the response wrapper; a dynamic flag retains both types.
@@ -583,7 +662,7 @@ export class CanvasJsonApiClient extends UpstreamJsonApiClient {
     }
     const data = await Promise.all(
       document.data.map(async (item) => {
-        if (typeof item?.id !== 'string') {
+        if (typeof item?.id !== 'string' || !hasWorkingCopyLink(item)) {
           return item;
         }
         const url = await this.createURL({
@@ -650,6 +729,66 @@ export class CanvasJsonApiClient extends UpstreamJsonApiClient {
           : {}),
     };
   }
+}
+
+/**
+ * Whether a resource object links to its working copy, which Drupal does for
+ * every resource of a revisionable type, including under sparse fieldsets.
+ */
+function hasWorkingCopyLink(resource: object): boolean {
+  const links = (resource as { links?: unknown }).links;
+  return typeof links === 'object' && links !== null && 'working-copy' in links;
+}
+
+/** Whether a response declares the JSON:API media type. */
+function isJsonApiResponse(response: Response): boolean {
+  const mediaType = response.headers.get('content-type')?.split(';')[0];
+  return mediaType?.trim().toLowerCase() === 'application/vnd.api+json';
+}
+
+/**
+ * Whether a response is Drupal's JSON:API 501 Not Implemented error, which
+ * answers a versioned read of a resource type without revisions.
+ */
+async function isNotImplementedResponse(response: Response): Promise<boolean> {
+  if (response.status !== 501 || !isJsonApiResponse(response)) {
+    return false;
+  }
+  try {
+    const document = (await response.json()) as { errors?: unknown };
+    return (
+      Array.isArray(document?.errors) &&
+      document.errors.some(
+        (error: unknown) => (error as { status?: unknown })?.status === '501',
+      )
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Whether a document holds the requested resource as a resource object of a
+ * type without revisions: it has links, but none to a working copy.
+ */
+function isUnversionedResourceDocument(
+  document: unknown,
+  type: string,
+  resourceId: string,
+): boolean {
+  const data = (document as { data?: unknown } | null)?.data as
+    (JsonApiResourceIdentifier & { links?: unknown }) | null | undefined;
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    !Array.isArray(data) &&
+    data.type === type &&
+    data.id === resourceId &&
+    typeof data.links === 'object' &&
+    data.links !== null &&
+    !Array.isArray(data.links) &&
+    !hasWorkingCopyLink(data)
+  );
 }
 
 function isCollectionDocument(
