@@ -8,6 +8,7 @@ use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\Yaml\Exception\ParseException;
 
 /**
@@ -18,6 +19,7 @@ use Symfony\Component\Yaml\Exception\ParseException;
  * @see https://www.drupal.org/project/canvas/issues/3572865
  */
 #[Group('canvas_ai')]
+#[RunTestsInSeparateProcesses]
 final class CanvasAiDefaultInformationToolsTest extends CanvasKernelTestBase {
 
   use UserCreationTrait;

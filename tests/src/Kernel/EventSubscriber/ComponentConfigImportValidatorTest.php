@@ -18,6 +18,7 @@ use Drupal\Core\Config\StorageInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests that config imports cannot delete in-use Canvas components.
@@ -25,6 +26,7 @@ use PHPUnit\Framework\Attributes\Group;
  * @see \Drupal\canvas\EventSubscriber\ComponentConfigImportValidator
  */
 #[Group('canvas')]
+#[RunTestsInSeparateProcesses]
 final class ComponentConfigImportValidatorTest extends CanvasKernelTestBase {
 
   use UserCreationTrait;

@@ -11,12 +11,14 @@ use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Kernel tests for CanvasEntityByUuidConverter::convert().
  */
 #[CoversClass(CanvasEntityByUuidConverter::class)]
 #[Group('canvas')]
+#[RunTestsInSeparateProcesses]
 final class CanvasEntityByUuidConverterTest extends CanvasKernelTestBase {
 
   use PageTrait;

@@ -9,11 +9,13 @@ use Drupal\canvas_ai\CanvasAiPermissions;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests for the GetPropsType function call plugin.
  */
 #[Group('canvas_ai')]
+#[RunTestsInSeparateProcesses]
 final class GetPropsTypeTest extends CanvasKernelTestBase {
 
   use UserCreationTrait;

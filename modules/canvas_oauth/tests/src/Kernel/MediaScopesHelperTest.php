@@ -11,12 +11,14 @@ use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests OAuth2 scope creation for media types.
  */
 #[CoversClass(MediaScopesHelper::class)]
 #[Group('canvas_oauth')]
+#[RunTestsInSeparateProcesses]
 class MediaScopesHelperTest extends CanvasKernelTestBase {
 
   use MediaTypeCreationTrait;

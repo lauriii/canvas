@@ -14,10 +14,12 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\views\Entity\View;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 #[CoversClass(BlockManagerDecorator::class)]
 #[Group('canvas')]
 #[Group('canvas_component_sources')]
+#[RunTestsInSeparateProcesses]
 final class BlockManagerDecoratorTest extends CanvasKernelTestBase {
 
   use GenerateComponentConfigTrait;

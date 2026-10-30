@@ -1647,7 +1647,7 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
   /**
    * Tests translated routes render the corresponding translation auto-save.
    */
-  #[\PHPUnit\Framework\Attributes\DataProvider('previewLanguageNegotiationCases')]
+  #[DataProvider('previewLanguageNegotiationCases')]
   public function testPreviewRendersTranslatedAutoSave(string $path_prefix, bool $session): void {
     ConfigurableLanguage::createFromLangcode('fr')->save();
     $page = $this->createPage();
@@ -1695,7 +1695,7 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
   /**
    * Tests draft trees plus translation overrides for both template kinds.
    */
-  #[\PHPUnit\Framework\Attributes\DataProvider('previewLanguageNegotiationCases')]
+  #[DataProvider('previewLanguageNegotiationCases')]
   public function testTranslatedTemplateDrafts(string $path_prefix, bool $session): void {
     ConfigurableLanguage::createFromLangcode('fr')->save();
     $this->config('language.negotiation')->set('url.prefixes', ['en' => 'en', 'fr' => 'fr'])->save();
@@ -2017,7 +2017,7 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
   /**
    * Access is checked on the requested translation, including its auto-save.
    */
-  #[\PHPUnit\Framework\Attributes\DataProvider('inaccessibleTranslationCases')]
+  #[DataProvider('inaccessibleTranslationCases')]
   public function testInaccessiblePreviewTranslation(bool $draft): void {
     ConfigurableLanguage::createFromLangcode('fr')->save();
     $this->config('language.negotiation')->set('url.prefixes', ['en' => '', 'fr' => 'fr'])->save();
@@ -2042,7 +2042,7 @@ final class CanvasContentControllerTest extends CanvasKernelTestBase {
   /**
    * Transport redirects retain context and queries without duplicating the base.
    */
-  #[\PHPUnit\Framework\Attributes\DataProvider('previewInstallationBases')]
+  #[DataProvider('previewInstallationBases')]
   public function testLanguageRedirectAliasesAndBasePath(string $base, string $script): void {
     ConfigurableLanguage::createFromLangcode('fr')->save();
     $this->config('language.negotiation')->set('url.prefixes', ['en' => 'en', 'fr' => 'fr'])->save();

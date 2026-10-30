@@ -8,11 +8,13 @@ use Drupal\canvas\Entity\AssetLibrary;
 use Drupal\canvas\GlobalImports;
 use Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests that GlobalImports includes manifest entries in the import map.
  */
 #[Group("canvas")]
+#[RunTestsInSeparateProcesses]
 class GlobalImportsManifestTest extends CanvasKernelTestBase {
 
   /**

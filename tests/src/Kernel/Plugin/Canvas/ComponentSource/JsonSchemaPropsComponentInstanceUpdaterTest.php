@@ -27,6 +27,7 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentInstanceUpdater.
@@ -35,6 +36,7 @@ use PHPUnit\Framework\Attributes\Group;
 #[Group('canvas')]
 #[Group('canvas_component_sources')]
 #[Group('canvas_data_model')]
+#[RunTestsInSeparateProcesses]
 class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
 
   use ConstraintViolationsTestTrait;

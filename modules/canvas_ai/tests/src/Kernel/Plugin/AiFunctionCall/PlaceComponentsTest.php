@@ -22,6 +22,7 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests for the PlaceComponents function call plugin.
@@ -33,6 +34,7 @@ use PHPUnit\Framework\Attributes\Group;
  * @see \Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall\SetAIGeneratedComponentStructureTest
  */
 #[Group('canvas_ai')]
+#[RunTestsInSeparateProcesses]
 final class PlaceComponentsTest extends CanvasKernelTestBase {
 
   use CreateTestJsComponentTrait;

@@ -8,12 +8,14 @@ use Drupal\canvas_personalization\Entity\Segment;
 use Drupal\canvas_personalization\Plugin\Condition\UtmParameters;
 use Drupal\Tests\canvas_personalization\Kernel\Config\SegmentValidationTest;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests Utm Parameters Validation.
  */
 #[Group('canvas')]
 #[Group('canvas_personalization')]
+#[RunTestsInSeparateProcesses]
 final class UtmParametersValidationTest extends SegmentValidationTest {
 
   protected function setUp(): void {

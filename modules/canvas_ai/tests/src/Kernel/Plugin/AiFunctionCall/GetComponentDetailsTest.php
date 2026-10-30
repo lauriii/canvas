@@ -18,12 +18,14 @@ use Drupal\Tests\canvas_ai\Traits\FunctionalCallTestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\Yaml\Yaml;
 
 /**
  * Tests for the GetComponentDetails function call plugin.
  */
 #[Group('canvas_ai')]
+#[RunTestsInSeparateProcesses]
 final class GetComponentDetailsTest extends CanvasKernelTestBase {
 
   use CreateTestJsComponentTrait;

@@ -9,12 +9,14 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\Tests\BrowserTestBase;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Functional test for the Canvas Dev AI Agents & Tools settings form.
  */
 #[Group('canvas')]
 #[Group('canvas_ai')]
+#[RunTestsInSeparateProcesses]
 final class CanvasDevAiAgentSelectionFormTest extends BrowserTestBase {
 
   /**

@@ -17,6 +17,7 @@ use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\Tests\canvas\Traits\CrawlerTrait;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * @legacy-covers \Drupal\canvas\EventSubscriber\RecipeSubscriber
@@ -27,6 +28,7 @@ use PHPUnit\Framework\Attributes\Group;
  */
 #[Group('canvas')]
 #[Group('canvas_personalization')]
+#[RunTestsInSeparateProcesses]
 final class RecipeTest extends KernelTestBase {
 
   use ContribStrictConfigSchemaTestTrait;

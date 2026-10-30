@@ -17,6 +17,7 @@ use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Route;
@@ -26,6 +27,7 @@ use Symfony\Component\Routing\Route;
  */
 #[CoversClass(CanvasOauthAuthenticationProvider::class)]
 #[Group('canvas_oauth')]
+#[RunTestsInSeparateProcesses]
 class CanvasOauthAuthenticationProviderTest extends CanvasKernelTestBase {
 
   /**

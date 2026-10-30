@@ -12,6 +12,7 @@ use JsonSchema\DraftIdentifiers;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests CanvasColorStringConstraint validation paths.
@@ -28,6 +29,7 @@ use PHPUnit\Framework\Attributes\Group;
  */
 #[Group('canvas')]
 #[CoversClass(CanvasColorStringConstraint::class)]
+#[RunTestsInSeparateProcesses]
 final class CanvasColorStringConstraintTest extends CanvasKernelTestBase {
 
   /**

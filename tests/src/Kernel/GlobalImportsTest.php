@@ -8,12 +8,14 @@ use Drupal\canvas\GlobalImports;
 use Drupal\Tests\canvas\Kernel\Traits\CacheBustingTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests GlobalImports.
  */
 #[CoversClass(GlobalImports::class)]
 #[Group('canvas')]
+#[RunTestsInSeparateProcesses]
 final class GlobalImportsTest extends CanvasKernelTestBase {
 
   use CacheBustingTrait;

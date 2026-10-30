@@ -23,6 +23,7 @@ use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\PageTrait;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\Session;
@@ -38,6 +39,7 @@ use Symfony\Component\Routing\Route;
 #[CoversFunction('canvas_page_template_component_ensure_component')]
 #[CoversFunction('canvas_page_template_component_install')]
 #[Group('canvas')]
+#[RunTestsInSeparateProcesses]
 final class PageTemplateComponentTest extends CanvasKernelTestBase {
 
   use PageTrait;

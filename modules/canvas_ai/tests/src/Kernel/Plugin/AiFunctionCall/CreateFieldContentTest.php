@@ -7,6 +7,7 @@ namespace Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall;
 use Drupal\canvas_ai\Plugin\AiFunctionCall\CreateFieldContent;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests for the CreateFieldContent function call plugin.
@@ -17,6 +18,7 @@ use PHPUnit\Framework\Attributes\Group;
  * @see \Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall\SetPageValueTest
  */
 #[Group('canvas_ai')]
+#[RunTestsInSeparateProcesses]
 final class CreateFieldContentTest extends CanvasKernelTestBase {
 
   /**

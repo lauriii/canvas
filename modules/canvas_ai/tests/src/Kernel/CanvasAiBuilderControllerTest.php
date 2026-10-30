@@ -14,6 +14,7 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -22,6 +23,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 #[Group('canvas_ai')]
 #[CoversClass(CanvasBuilder::class)]
+#[RunTestsInSeparateProcesses]
 final class CanvasAiBuilderControllerTest extends CanvasKernelTestBase {
 
   use RequestTrait;
