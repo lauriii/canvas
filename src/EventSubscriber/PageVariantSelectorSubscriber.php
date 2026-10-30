@@ -102,6 +102,8 @@ final class PageVariantSelectorSubscriber implements EventSubscriberInterface {
     $variant = $this->resolver->resolve(
       $route_entity,
       $content_template,
+      $is_preview,
+      $event,
     );
 
     // Which variant resolves depends on the default-variant setting (and, for a
