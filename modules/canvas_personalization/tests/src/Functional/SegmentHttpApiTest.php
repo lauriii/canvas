@@ -13,6 +13,7 @@ use Drupal\Tests\canvas\Traits\ContribStrictConfigSchemaTestTrait;
 use Drupal\user\UserInterface;
 use GuzzleHttp\RequestOptions;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests Segment Http Api.
@@ -24,6 +25,7 @@ use PHPUnit\Framework\Attributes\Group;
  */
 #[Group('canvas')]
 #[Group('canvas_personalization')]
+#[RunTestsInSeparateProcesses]
 class SegmentHttpApiTest extends HttpApiTestBase {
 
   use ContribStrictConfigSchemaTestTrait;

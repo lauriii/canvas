@@ -10,12 +10,14 @@ use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests Drupal\canvas\Utility\ColorResolver.
  */
 #[CoversClass(ColorResolver::class)]
 #[Group('canvas')]
+#[RunTestsInSeparateProcesses]
 final class ColorResolverTest extends CanvasKernelTestBase {
 
   /**

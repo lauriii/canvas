@@ -9,12 +9,14 @@ use Drupal\canvas\Entity\JavaScriptComponent;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests the import-based data dependency backfill for code components.
  */
 #[CoversClass(CanvasConfigUpdater::class)]
 #[Group('canvas')]
+#[RunTestsInSeparateProcesses]
 final class CanvasConfigUpdaterDataDependenciesTest extends CanvasKernelTestBase {
 
   /**

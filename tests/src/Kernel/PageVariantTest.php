@@ -40,6 +40,7 @@ use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\Routing\Route;
@@ -62,6 +63,7 @@ use Symfony\Component\Validator\ConstraintViolationInterface;
  */
 #[CoversClass(PageVariant::class)]
 #[Group('canvas')]
+#[RunTestsInSeparateProcesses]
 final class PageVariantTest extends CanvasKernelTestBase {
 
   use GenerateComponentConfigTrait;

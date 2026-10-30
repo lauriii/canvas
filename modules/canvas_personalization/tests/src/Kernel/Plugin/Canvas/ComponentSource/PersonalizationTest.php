@@ -21,6 +21,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Depends;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests Drupal\canvas_personalization\Plugin\Canvas\ComponentSource\Personalization.
@@ -29,6 +30,7 @@ use PHPUnit\Framework\Attributes\Group;
  */
 #[CoversClass(Personalization::class)]
 #[Group('canvas_personalization')]
+#[RunTestsInSeparateProcesses]
 final class PersonalizationTest extends ComponentSourceTestBase {
 
   use SingleDirectoryComponentTreeTestTrait;

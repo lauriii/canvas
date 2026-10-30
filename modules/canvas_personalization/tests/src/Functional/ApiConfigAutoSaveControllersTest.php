@@ -15,6 +15,7 @@ use Drupal\user\UserInterface;
 use GuzzleHttp\RequestOptions;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests the details of auto-saving config entities, NOT the "live" version.
@@ -23,6 +24,7 @@ use PHPUnit\Framework\Attributes\Group;
  */
 #[Group('canvas')]
 #[Group('canvas_personalization')]
+#[RunTestsInSeparateProcesses]
 class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
 
   use ContribStrictConfigSchemaTestTrait;

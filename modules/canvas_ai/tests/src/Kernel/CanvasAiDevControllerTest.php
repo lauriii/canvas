@@ -23,6 +23,7 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
@@ -33,6 +34,7 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
  */
 #[Group('canvas_ai')]
 #[CoversClass(CanvasDevAiBuilder::class)]
+#[RunTestsInSeparateProcesses]
 final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
 
   use CanvasAiDevHopTrait;

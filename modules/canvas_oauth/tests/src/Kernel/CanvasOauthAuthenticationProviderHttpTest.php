@@ -28,6 +28,7 @@ use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\simple_oauth\Kernel\AuthorizedRequestBase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -37,6 +38,7 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
  * Tests API endpoints where the Canvas OAuth authentication provider is applied.
  */
 #[Group('canvas_oauth')]
+#[RunTestsInSeparateProcesses]
 class CanvasOauthAuthenticationProviderHttpTest extends AuthorizedRequestBase {
 
   use CreateTestJsComponentTrait;

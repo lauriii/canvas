@@ -21,6 +21,7 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\Yaml\Yaml;
 
 /**
@@ -33,6 +34,7 @@ use Symfony\Component\Yaml\Yaml;
  * @see \Drupal\Tests\canvas_ai\Kernel\Plugin\AiFunctionCall\PlaceComponentsTest
  */
 #[Group('canvas_ai')]
+#[RunTestsInSeparateProcesses]
 final class SetAIGeneratedComponentStructureTest extends CanvasKernelTestBase {
 
   use CreateTestJsComponentTrait;

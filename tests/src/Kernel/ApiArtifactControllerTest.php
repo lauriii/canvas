@@ -13,6 +13,7 @@ use Drupal\file\Upload\InputStreamFileWriterInterface;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
@@ -21,6 +22,7 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
  * Tests the ApiArtifactController for push/pull API endpoints.
  */
 #[Group('canvas')]
+#[RunTestsInSeparateProcesses]
 class ApiArtifactControllerTest extends CanvasKernelTestBase {
 
   use RequestTrait;

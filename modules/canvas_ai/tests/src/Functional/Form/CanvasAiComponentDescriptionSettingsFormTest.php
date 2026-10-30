@@ -16,6 +16,7 @@ use Drupal\Core\Url;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\canvas\Traits\CreateTestJsComponentTrait;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\Yaml\Yaml;
 
 /**
@@ -23,6 +24,7 @@ use Symfony\Component\Yaml\Yaml;
  */
 #[Group('canvas')]
 #[Group('canvas_ai')]
+#[RunTestsInSeparateProcesses]
 final class CanvasAiComponentDescriptionSettingsFormTest extends BrowserTestBase {
 
   use CreateTestJsComponentTrait;

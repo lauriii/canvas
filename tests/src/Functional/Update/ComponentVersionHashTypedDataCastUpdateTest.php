@@ -10,6 +10,7 @@ use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 #[CoversMethod(CanvasConfigUpdater::class, 'needsComponentVersionHashRecomputationForListFloatDefaultValue')]
 #[CoversMethod(CanvasConfigUpdater::class, 'updateListFloatComponentVersionHash')]
@@ -17,6 +18,7 @@ use PHPUnit\Framework\Attributes\Group;
 #[CoversFunction('canvas_post_update_0019_recompute_list_float_component_version_hashes')]
 #[Group('canvas')]
 #[Group('canvas_data_model')]
+#[RunTestsInSeparateProcesses]
 final class ComponentVersionHashTypedDataCastUpdateTest extends CanvasUpdatePathTestBase {
 
   use ConstraintViolationsTestTrait;

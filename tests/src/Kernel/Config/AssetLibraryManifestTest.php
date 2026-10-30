@@ -12,11 +12,13 @@ use Drupal\file\FileInterface;
 use Drupal\file\FileUsage\FileUsageInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests the imports and assets properties on AssetLibrary.
  */
 #[Group("canvas")]
+#[RunTestsInSeparateProcesses]
 class AssetLibraryManifestTest extends CanvasKernelTestBase {
 
   /**

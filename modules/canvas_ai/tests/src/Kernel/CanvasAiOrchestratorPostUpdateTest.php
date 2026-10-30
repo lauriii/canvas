@@ -9,11 +9,13 @@ use Drupal\Core\Config\StorageCacheInterface;
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests the orchestrator agent post-update hooks keep system-managed keys.
  */
 #[Group('canvas_ai')]
+#[RunTestsInSeparateProcesses]
 final class CanvasAiOrchestratorPostUpdateTest extends CanvasKernelTestBase {
 
   private const ORCHESTRATOR = 'ai_agents.ai_agent.canvas_ai_orchestrator';

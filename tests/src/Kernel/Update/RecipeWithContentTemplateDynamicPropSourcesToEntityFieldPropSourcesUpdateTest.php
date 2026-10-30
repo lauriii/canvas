@@ -12,6 +12,7 @@ use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\canvas\Functional\Update\ContentTemplateDynamicPropSourcesToEntityFieldPropSourcesUpdateTest;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Proves that no update path is necessary for exported content templates.
@@ -23,6 +24,7 @@ use PHPUnit\Framework\Attributes\IgnoreDeprecations;
  * @legacy-covers \canvas_post_update_0013_update_dynamic_prop_sources_to_entity_field_prop_sources
  */
 #[Group('canvas')]
+#[RunTestsInSeparateProcesses]
 final class RecipeWithContentTemplateDynamicPropSourcesToEntityFieldPropSourcesUpdateTest extends KernelTestBase {
 
   use RecipeTestTrait;

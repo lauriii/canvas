@@ -10,6 +10,7 @@ use Drupal\file\FileInterface;
 use Drupal\user\UserInterface;
 use GuzzleHttp\RequestOptions;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -19,6 +20,7 @@ use Symfony\Component\HttpFoundation\Response;
  * @legacy-covers \Drupal\canvas\Controller\ApiArtifactController
  */
 #[Group('canvas')]
+#[RunTestsInSeparateProcesses]
 final class AssetLibraryFontUploadControllerTest extends HttpApiTestBase {
 
   /**

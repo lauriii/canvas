@@ -9,11 +9,13 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Proves that newly created image media source fields do not depend on Canvas.
  */
 #[Group('canvas')]
+#[RunTestsInSeparateProcesses]
 final class ImageMediaSourceFieldConfigDependenciesTest extends CanvasKernelTestBase {
 
   use MediaTypeCreationTrait;

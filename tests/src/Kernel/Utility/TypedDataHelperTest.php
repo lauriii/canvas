@@ -19,10 +19,12 @@ use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use Drupal\user\Entity\User;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\Attributes\TestWith;
 
 #[CoversClass(TypedDataHelper::class)]
 #[Group('canvas')]
+#[RunTestsInSeparateProcesses]
 final class TypedDataHelperTest extends CanvasKernelTestBase {
 
   use ContentTypeCreationTrait;

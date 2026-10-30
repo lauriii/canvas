@@ -18,10 +18,12 @@ use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\language\ConfigurableLanguageManagerInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 #[Group('canvas')]
 #[Group('canvas_translation')]
 #[CoversClass(CanvasStaticPropSourceFieldWidget::class)]
+#[RunTestsInSeparateProcesses]
 class ConfigWithComponentTreeConfigTranslationUiTest extends ConfigWithComponentTreeTranslationTestBase {
 
   public function test(): void {

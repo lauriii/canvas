@@ -13,11 +13,13 @@ use Drupal\Tests\canvas_ai\Traits\FunctionalCallTestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests for the EditComponentJs function call plugin.
  */
 #[Group('canvas_ai')]
+#[RunTestsInSeparateProcesses]
 final class EditComponentJsTest extends CanvasKernelTestBase {
 
   use FunctionalCallTestTrait;

@@ -11,6 +11,7 @@ use Drupal\Core\Config\Schema\SchemaIncompleteException;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests for the CanvasAiChatHelper service.
@@ -20,6 +21,7 @@ use PHPUnit\Framework\Attributes\Group;
  * behave as documented.
  */
 #[Group('canvas_ai')]
+#[RunTestsInSeparateProcesses]
 final class CanvasAiChatHelperTest extends CanvasKernelTestBase {
 
   /**

@@ -17,6 +17,7 @@ use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests the Agents & Tools settings form and the Tools it exposes.
@@ -27,6 +28,7 @@ use PHPUnit\Framework\Attributes\Group;
 #[Group('canvas_ai')]
 #[CoversClass(CanvasDevAiAgentSelectionForm::class)]
 #[CoversClass(CanvasDevAiHooks::class)]
+#[RunTestsInSeparateProcesses]
 final class CanvasDevAiAgentSelectionTest extends CanvasKernelTestBase {
 
   /**

@@ -12,6 +12,7 @@ use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * @see \Drupal\canvas\Plugin\Field\FieldTypeOverride\StringLongItemOverride
@@ -19,6 +20,7 @@ use PHPUnit\Framework\Attributes\Group;
 #[CoversClass(StringLongItemOverride::class)]
 #[Group('canvas')]
 #[Group('canvas_shape_matching')]
+#[RunTestsInSeparateProcesses]
 final class StringLongItemOverrideTest extends CanvasKernelTestBase {
 
   /**

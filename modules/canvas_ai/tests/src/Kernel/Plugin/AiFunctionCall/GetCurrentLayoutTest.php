@@ -13,11 +13,13 @@ use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
 use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests for the GetCurrentLayout function call plugin.
  */
 #[Group('canvas_ai')]
+#[RunTestsInSeparateProcesses]
 final class GetCurrentLayoutTest extends CanvasKernelTestBase {
 
   use UserCreationTrait;
