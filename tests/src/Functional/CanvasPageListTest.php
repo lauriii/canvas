@@ -135,8 +135,9 @@ class CanvasPageListTest extends FunctionalTestBase {
     $storage = $this->container->get(EntityTypeManagerInterface::class)
       ->getStorage(Page::ENTITY_TYPE_ID);
     $this->assertInstanceOf(RevisionableStorageInterface::class, $storage);
-    $url = $storage->loadRevision($v1)?->toUrl('revision');
-    $this->assertNotEmpty($url);
+    $old_version = $storage->loadRevision($v1);
+    $this->assertInstanceOf(Page::class, $old_version);
+    $url = $old_version->toUrl('revision');
     $this->drupalGet($url);
     $assert_session->statusCodeEquals(200);
     $assert_session->pageTextNotContains('An incredible improvement.');
@@ -153,6 +154,26 @@ class CanvasPageListTest extends FunctionalTestBase {
     // Ditto for anonymous users.
     $this->drupalLogout();
     $this->drupalGet($url);
+    $assert_session->statusCodeEquals(403);
+
+    // Log back in with the ability to delete pages, and ensure we have access
+    // to delete the old revision.
+    $account = $this->createUser([Page::DELETE_PERMISSION]);
+    $this->assertInstanceOf(AccountInterface::class, $account);
+    $this->drupalLogin($account);
+    $this->drupalGet($old_version->toUrl('revision-delete-form'));
+    $assert_session->statusCodeEquals(200);
+
+    // Editors can view and revert revisions, but not delete them.
+    $editor = $this->createUser([Page::EDIT_PERMISSION]);
+    $this->assertInstanceOf(AccountInterface::class, $editor);
+    $this->drupalLogin($editor);
+    $this->drupalGet($old_version->toUrl('revision-delete-form'));
+    $assert_session->statusCodeEquals(403);
+
+    // Nobody can delete the default revision.
+    $this->drupalLogin($account);
+    $this->drupalGet($page->toUrl('revision-delete-form'));
     $assert_session->statusCodeEquals(403);
   }
 

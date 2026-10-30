@@ -34,7 +34,7 @@ final class PageAccessControlHandler extends EntityAccessControlHandler {
       'update', 'view all revisions', 'view revision', 'revert' => $access->orIf(
         AccessResult::allowedIfHasPermission($account, Page::EDIT_PERMISSION)
       ),
-      'delete' => $access->orIf(
+      'delete', 'delete revision' => $access->orIf(
         AccessResult::allowedIfHasPermission($account, Page::DELETE_PERMISSION)
       ),
       default => $access,
