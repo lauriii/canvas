@@ -7,6 +7,7 @@ namespace Drupal\canvas\EventSubscriber;
 use Drupal\canvas\Audit\ComponentAudit;
 use Drupal\canvas\Audit\RevisionAuditEnum;
 use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\VersionedConfigEntityBase;
 use Drupal\Core\Config\ConfigImporterEvent;
 use Drupal\Core\Config\ConfigImportValidateEventSubscriberBase;
 use Drupal\Core\Config\ConfigManagerInterface;
@@ -46,10 +47,16 @@ final class ComponentConfigImportValidator extends ConfigImportValidateEventSubs
    */
   public function onConfigImporterValidate(ConfigImporterEvent $event): void {
     $config_importer = $event->getConfigImporter();
-    $delete_list = $config_importer->getStorageComparer()->getChangelist('delete');
+    $storage_comparer = $config_importer->getStorageComparer();
+    $delete_list = $storage_comparer->getChangelist('delete');
     if ($delete_list === []) {
       return;
     }
+    // Configuration whose UUID differs between the active and the incoming
+    // configuration is deleted and created again under the same name, for
+    // example when an update created it separately on each environment.
+    // @see \Drupal\Core\Config\StorageComparer::addChangelistUpdate()
+    $recreate_list = array_intersect($delete_list, $storage_comparer->getChangelist('create'));
 
     // Gather the Component config entities endangered by this import, keyed by
     // config name so the same Component is never reported twice.
@@ -60,7 +67,7 @@ final class ComponentConfigImportValidator extends ConfigImportValidateEventSubs
     foreach ($delete_list as $name) {
       if ($this->configManager->getEntityTypeIdByName($name) === Component::ENTITY_TYPE_ID) {
         $component = $this->configManager->loadConfigEntityByName($name);
-        if ($component instanceof Component) {
+        if ($component instanceof Component && !(\in_array($name, $recreate_list, TRUE) && self::isRecreatedWithAllVersions($component, $storage_comparer->getSourceStorage()->read($name)))) {
           $endangered[$name] = $component;
         }
         continue;
@@ -97,6 +104,33 @@ final class ComponentConfigImportValidator extends ConfigImportValidateEventSubs
         '%id' => $component->id(),
       ]));
     }
+  }
+
+  /**
+   * Checks whether a recreated Component keeps everything its usages need.
+   *
+   * Content references Components by ID and version, not by UUID. Recreating a
+   * Component with the same source and all of its versions therefore keeps
+   * every usage working.
+   *
+   * @param \Drupal\canvas\Entity\Component $component
+   *   The active Component that is deleted and created again.
+   * @param array<string, mixed>|false $incoming
+   *   The incoming configuration for the same name.
+   *
+   * @return bool
+   *   TRUE if the incoming configuration has the same source and every version
+   *   of the active Component, FALSE otherwise.
+   */
+  private static function isRecreatedWithAllVersions(Component $component, array|false $incoming): bool {
+    if ($incoming === FALSE || ($incoming['source'] ?? NULL) !== $component->get('source') || !isset($incoming['active_version'])) {
+      return FALSE;
+    }
+    $incoming_versions = [
+      (string) $incoming['active_version'],
+      ...\array_map('strval', \array_diff(\array_keys($incoming['versioned_properties'] ?? []), [VersionedConfigEntityBase::ACTIVE_VERSION])),
+    ];
+    return \array_diff($component->getVersions(), $incoming_versions) === [];
   }
 
 }
