@@ -17,6 +17,7 @@ use Drupal\Core\Config\StorageCacheInterface;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
@@ -141,6 +142,92 @@ final class ComponentConfigImportValidatorTest extends CanvasKernelTestBase {
   }
 
   /**
+   * Recreating an in-use Component with the same versions is allowed.
+   */
+  #[DataProvider('providerRecreateBackingConfig')]
+  public function testAllowedWhenInUseComponentRecreatedWithSameVersions(bool $recreate_backing_config): void {
+    [$js_component_id, $component] = $this->createEnabledJsComponent();
+    $this->createPageUsing($component);
+    $new_uuid = $this->container->get('uuid')->generate();
+
+    $this->stageRecreate($component, static fn (array $data): array => ['uuid' => $new_uuid] + $data);
+    if ($recreate_backing_config) {
+      $sync = $this->container->get('config.storage.sync');
+      $backing_config_name = 'canvas.js_component.' . $js_component_id;
+      $data = $sync->read($backing_config_name);
+      self::assertIsArray($data);
+      $data['uuid'] = $this->container->get('uuid')->generate();
+      $sync->write($backing_config_name, $data);
+    }
+    $this->configImporter()->import();
+
+    $recreated = Component::load($component->id());
+    self::assertInstanceOf(Component::class, $recreated);
+    self::assertSame($new_uuid, $recreated->uuid());
+    self::assertSame($component->getVersions(), $recreated->getVersions());
+  }
+
+  /**
+   * Whether the backing code component also receives a different UUID.
+   *
+   * @return array<string, array{bool}>
+   *   The backing configuration recreation cases.
+   */
+  public static function providerRecreateBackingConfig(): array {
+    return [
+      'without backing config recreation' => [FALSE],
+      'with backing config recreation' => [TRUE],
+    ];
+  }
+
+  /**
+   * Losing active or historical versions when recreating a Component is blocked.
+   */
+  #[DataProvider('providerMissingComponentVersion')]
+  public function testBlockedWhenRecreatedComponentLosesVersions(bool $remove_active_version): void {
+    [$js_component_id, $component] = $this->createEnabledJsComponent();
+    $historical_version = $component->getActiveVersion();
+    $this->createPageUsing($component);
+
+    // Adding a slot creates a new version while retaining the original one.
+    $js_component = JavaScriptComponent::load($js_component_id);
+    self::assertInstanceOf(JavaScriptComponent::class, $js_component);
+    $js_component->set('slots', ['content' => ['title' => 'Content']])->save();
+    $component = Component::load($component->id());
+    self::assertInstanceOf(Component::class, $component);
+    self::assertCount(2, $component->getVersions());
+    $this->createPageUsing($component);
+    $new_uuid = $this->container->get('uuid')->generate();
+
+    $importer = $this->stageRecreate($component, static function (array $data) use ($new_uuid, $historical_version, $remove_active_version): array {
+      $data['uuid'] = $new_uuid;
+      if ($remove_active_version) {
+        $data['active_version'] = '0000aaaa1111bbbb';
+      }
+      else {
+        unset($data['versioned_properties'][$historical_version]);
+      }
+      return $data;
+    });
+
+    self::assertImportBlocked($importer);
+    self::assertSame($component->uuid(), Component::load($component->id())?->uuid());
+  }
+
+  /**
+   * Provides missing active and historical component versions.
+   *
+   * @return array<string, array{bool}>
+   *   Whether to remove the active version instead of the historical version.
+   */
+  public static function providerMissingComponentVersion(): array {
+    return [
+      'active version missing' => [TRUE],
+      'historical version missing' => [FALSE],
+    ];
+  }
+
+  /**
    * Creates and enables a code component with no props or slots.
    *
    * @return array{string, \Drupal\canvas\Entity\Component}
@@ -220,6 +307,24 @@ final class ComponentConfigImportValidatorTest extends CanvasKernelTestBase {
     if ($deleted_component_names !== []) {
       self::removeComponentsFromFolders($sync, $deleted_component_names);
     }
+    return $this->configImporter();
+  }
+
+  /**
+   * Stages sync storage that recreates the given Component on import.
+   *
+   * @param \Drupal\canvas\Entity\Component $component
+   *   The Component to recreate.
+   * @param callable(array): array $alter
+   *   Alters the Component's exported data, and must change its UUID.
+   */
+  private function stageRecreate(Component $component, callable $alter): ConfigImporter {
+    $sync = $this->container->get('config.storage.sync');
+    $this->copyConfig($this->container->get(StorageCacheInterface::class), $sync);
+    $name = $component->getConfigDependencyName();
+    $data = $sync->read($name);
+    \assert(\is_array($data));
+    $sync->write($name, $alter($data));
     return $this->configImporter();
   }
 
