@@ -40,6 +40,12 @@ Variants are managed and edited entirely in the editor:
 - Content templates select theirs from the "Page template" submenu in the
   Templates panel, backed by `pageVariant` on the content template config HTTP
   API.
+- Modules select one for anything without a selection, before the site default
+  applies, by subscribing to `\Drupal\canvas\Event\PageVariantSelectionEvent`
+  (for example by route, response status, or user role). Listeners add the
+  cacheability their selection depends on to the event. The event is
+  dispatched wherever a variant is resolved: front-end pages, editor previews,
+  and the headless content API.
 
 ## Concepts
 
@@ -60,13 +66,14 @@ Variants are managed and edited entirely in the editor:
   template component renders the theme's `page.html.twig`, which ships with it),
   no second anchor is added.
 - **Rendering**: when a variant resolves for a request (entity selection, then
-  content template selection, then the site default), the `canvas` display
-  variant renders the variant's tree through the bare `canvas_page_variant`
-  template, replacing the theme's `page.html.twig`. The theme's
-  `html.html.twig` (head, body attributes, page top and bottom, for example the
-  admin toolbar) still wraps the output. When no variant resolves, enabled
-  legacy global regions for the active theme render as a backward-compatibility
-  fallback. Core block layout renders the page when no such regions exist.
+  content template selection, then a module's selection, then the site
+  default), the `canvas` display variant renders the variant's tree through the
+  bare `canvas_page_variant` template, replacing the theme's `page.html.twig`.
+  The theme's `html.html.twig` (head, body attributes, page top and bottom, for
+  example the admin toolbar) still wraps the output. When no variant resolves,
+  enabled legacy global regions for the active theme render as a
+  backward-compatibility fallback. Core block layout renders the page when no
+  such regions exist.
 - **The default variant** is read and set through
   `/canvas/api/v0/settings/default-page-variant` (the generic config entity API
   cannot write simple config). A staged config update can also change

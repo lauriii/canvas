@@ -101,7 +101,7 @@ final class EmbeddedPreviewSubscriber implements EventSubscriberInterface {
     if ($content_template !== NULL) {
       $event->addCacheableDependency($content_template);
     }
-    $variant = $view_mode === 'full' ? $this->pageVariantResolver->resolve($entity, $content_template) : NULL;
+    $variant = $view_mode === 'full' ? $this->pageVariantResolver->resolve($entity, $content_template, cacheability: $event) : NULL;
     if ($variant !== NULL) {
       $event->addCacheableDependency($variant);
       if (!CanvasContentEntityRenderer::isHeadlessCompatiblePageVariant($variant)) {

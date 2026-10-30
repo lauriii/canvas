@@ -71,6 +71,7 @@ final class CanvasContentEntityRenderer {
       $entity,
       $template,
       $is_preview,
+      $cacheability,
     );
     if ($variant === NULL) {
       return [

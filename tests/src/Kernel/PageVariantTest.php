@@ -13,6 +13,7 @@ use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\PageVariant;
+use Drupal\canvas\Event\PageVariantSelectionEvent;
 use Drupal\canvas\EventSubscriber\PageVariantSelectorSubscriber;
 use Drupal\canvas\PageVariantResolver;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
@@ -40,6 +41,7 @@ use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\Routing\Route;
@@ -722,6 +724,114 @@ final class PageVariantTest extends CanvasKernelTestBase {
     $resolved = $resolver->resolve($node);
     self::assertInstanceOf(PageVariant::class, $resolved);
     self::assertSame('site_default', $resolved->id());
+  }
+
+  /**
+   * Tests modules selecting a variant between the template and site default.
+   *
+   * @see \Drupal\canvas\Event\PageVariantSelectionEvent
+   */
+  public function testModuleSelection(): void {
+    foreach (['site_default', 'chosen', 'by_module'] as $id) {
+      PageVariant::create(['id' => $id, 'label' => $id, 'component_tree' => [self::markerInstance()]])->save();
+    }
+    $this->config('canvas.settings')->set(PageVariant::DEFAULT_SETTING, 'site_default')->save();
+    $by_module = PageVariant::load('by_module');
+    self::assertInstanceOf(PageVariant::class, $by_module);
+    $chosen = PageVariant::load('chosen');
+    self::assertInstanceOf(PageVariant::class, $chosen);
+
+    // A module that selects its variant (by role, say) unless told not to, and
+    // records what it was asked.
+    $listener = new class($by_module) {
+
+      public bool $select = TRUE;
+
+      /**
+       * @var list<array{string|\Stringable|null, bool}>
+       */
+      private array $calls = [];
+
+      public function __construct(private readonly PageVariant $variant) {}
+
+      public function __invoke(PageVariantSelectionEvent $event): void {
+        $this->calls[] = [$event->entity?->label(), $event->isPreview];
+        $event->addCacheContexts(['user.roles']);
+        if ($this->select) {
+          $event->setVariant($this->variant);
+        }
+      }
+
+      /**
+       * Returns, and forgets, the entity labels and preview flags asked about.
+       *
+       * @return list<array{string|\Stringable|null, bool}>
+       */
+      public function takeCalls(): array {
+        [$calls, $this->calls] = [$this->calls, []];
+        return $calls;
+      }
+
+    };
+    $dispatcher = $this->container->get(EventDispatcherInterface::class);
+    self::assertInstanceOf(EventDispatcherInterface::class, $dispatcher);
+    $dispatcher->addListener(PageVariantSelectionEvent::class, $listener);
+    $resolver = $this->container->get(PageVariantResolver::class);
+    self::assertInstanceOf(PageVariantResolver::class, $resolver);
+
+    // It applies to routes without an entity (a 404, the login page), and the
+    // caller receives its cacheability.
+    $cacheability = new CacheableMetadata();
+    self::assertSame('by_module', $resolver->resolve(NULL, cacheability: $cacheability)?->id());
+    self::assertSame(['user.roles'], $cacheability->getCacheContexts());
+    self::assertSame([[NULL, FALSE]], $listener->takeCalls());
+
+    // It applies instead of the site default to pages without a selection.
+    self::assertSame('by_module', $resolver->resolve(Page::create(['title' => 'No selection']))?->id());
+    self::assertSame([['No selection', FALSE]], $listener->takeCalls());
+
+    // A page's own selection, and a template's, win: modules aren't asked.
+    self::assertSame('chosen', $resolver->resolve(Page::create(['title' => 'Own', 'page_variant' => 'chosen']))?->id());
+    ContentTemplate::create([
+      'content_entity_type_id' => 'node',
+      'content_entity_type_bundle' => 'helpful',
+      'content_entity_type_view_mode' => 'full',
+      'page_variant' => 'chosen',
+      'status' => TRUE,
+    ])->save();
+    self::assertSame('chosen', $resolver->resolve(Node::create(['type' => 'helpful', 'title' => 'Templated']))?->id());
+    self::assertSame([], $listener->takeCalls());
+
+    // Without a module's selection the site default applies, still varying by
+    // what the module checked.
+    $listener->select = FALSE;
+    $cacheability = new CacheableMetadata();
+    self::assertSame('site_default', $resolver->resolve(NULL, cacheability: $cacheability)?->id());
+    self::assertSame(['user.roles'], $cacheability->getCacheContexts());
+
+    // The first module to select a variant wins.
+    $listener->select = TRUE;
+    $dispatcher->addListener(PageVariantSelectionEvent::class, static fn (PageVariantSelectionEvent $event) => $event->setVariant($chosen), -10);
+    self::assertSame('by_module', $resolver->resolve(NULL)?->id());
+
+    // Previews render the selected variant's valid auto-saved draft.
+    $draft = clone $by_module;
+    $draft->set('label', 'by_module draft');
+    $this->container->get(AutoSaveManager::class)->saveEntity($draft);
+    $listener->takeCalls();
+    self::assertSame('by_module draft', $resolver->resolve(NULL, is_preview: TRUE)?->label());
+    self::assertSame([[NULL, TRUE]], $listener->takeCalls());
+
+    // Front-end pages render it, varying by the module's cacheability.
+    $subscriber = $this->container->get(PageVariantSelectorSubscriber::class);
+    self::assertInstanceOf(PageVariantSelectorSubscriber::class, $subscriber);
+    $event = new PageDisplayVariantSelectionEvent('simple_page', new RouteMatch('canvas.test', new Route('/user/login'), [], []));
+    $subscriber->onSelectPageDisplayVariant($event);
+    self::assertSame([
+      CanvasPageVariant::PREVIEW_KEY => FALSE,
+      CanvasPageVariant::VARIANT_ID_KEY => 'by_module',
+    ], $event->getPluginConfiguration());
+    self::assertContains('user.roles', $event->getCacheContexts());
   }
 
   /**
