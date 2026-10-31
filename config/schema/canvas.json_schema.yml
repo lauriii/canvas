@@ -147,6 +147,16 @@ canvas.json_schema.prop_shape.string:
         Choice:
           choices:
             - 'text/html'
+    # Only supported for icon props: either the icon shape's base pattern, or
+    # a generated pack-scope pattern such as `^(phosphor|heroicons):.+$`.
+    # @see \Drupal\canvas\Icon\IconPropShape
+    pattern:
+      requiredKey: false
+      type: string
+      label: 'Pattern'
+      constraints:
+        Regex:
+          pattern: '/^\^\(([a-z0-9_]+(\|[a-z0-9_]+)*)\):\.\+\$$|^\^\[a-z0-9_\]\+:\.\+\$$/'
     # @see docs/shape-matching-into-field-types.md#3.2
     'x-formatting-context':
       requiredKey: false
@@ -163,11 +173,13 @@ canvas.json_schema.prop_shape.string:
       type: string
       label: '$ref'
       constraints:
-        # The literal URI below MUST be kept in sync with
-        # \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape().
+        # The literal URIs below MUST be kept in sync with
+        # \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
+        # and \Drupal\canvas\Icon\IconPropShape.
         Choice:
           choices:
             - 'json-schema-definitions://canvas.module/color'
+            - 'json-schema-definitions://canvas.module/icon'
     'x-canvas-color-picker':
       requiredKey: false
       type: string

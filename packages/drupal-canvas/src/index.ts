@@ -9,6 +9,7 @@ import {
   sortMenu as sortLinksetMenu,
 } from './drupal-utils.js';
 import FormattedText from './FormattedText.js';
+import Icon from './Icon.js';
 import {
   createJsonApiClient,
   DraftSessionError,
@@ -49,6 +50,7 @@ export type { CanvasRuntimeEnvironment } from './runtime.js';
 
 export {
   FormattedText,
+  Icon,
   Image,
   Region,
   RegionsProvider,
