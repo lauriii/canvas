@@ -1,9 +1,21 @@
 import { useRef } from 'react';
 import clsx from 'clsx';
 
+import { useAppStore } from '@/app/hooks';
 import { useFieldContext } from '@/components/form/contexts/FieldContext';
+import { selectLayout } from '@/features/layout/layoutModelSlice';
+import {
+  findComponentByUuid,
+  getDisplayNameForNode,
+} from '@/features/layout/layoutUtils';
 import useMutationObserver from '@/hooks/useMutationObserver';
 import { a2p } from '@/local_packages/utils';
+import { useGetComponentsQuery } from '@/services/componentAndLayout';
+import {
+  collectPageAnchors,
+  filterPageAnchors,
+  getPreviewDocument,
+} from '@/utils/pageAnchors';
 import { resolveEntityUri } from '@/utils/transforms';
 
 import type { Attributes } from '@/types/DrupalAttribute';
@@ -11,6 +23,15 @@ import type { Attributes } from '@/types/DrupalAttribute';
 import styles from './TextField.module.css';
 
 const { jQuery } = window;
+
+// Core's autocomplete renders suggestion labels as HTML.
+// @see core/misc/autocomplete.js::renderItem()
+const escapeHtml = (text: string) =>
+  text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 
 const TextFieldAutocomplete = ({
   className = '',
@@ -29,6 +50,71 @@ const TextFieldAutocomplete = ({
 
   const inputRef = useRef<HTMLInputElement>(null);
   const fieldContext = useFieldContext();
+  const store = useAppStore();
+  const { data: components } = useGetComponentsQuery();
+  // The autocomplete options are patched once, so read the latest list.
+  const componentsRef = useRef(components);
+  componentsRef.current = components;
+  // Link inputs that accept internal links (`format: uri-reference`) also
+  // accept `#anchor` fragments. Inputs that only accept external URIs
+  // (`format: uri`) render as `type="url"` without autocomplete.
+  // @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat
+  const suggestsAnchors =
+    formId === 'component-instance-form' &&
+    attributes['data-canvas-resolve-entity-uri'] === 'true';
+
+  const getAnchors = (term: string) =>
+    filterPageAnchors(
+      collectPageAnchors(getPreviewDocument(), (uuid) =>
+        getDisplayNameForNode(
+          findComponentByUuid(selectLayout(store.getState()), uuid),
+          null,
+          componentsRef.current,
+        ),
+      ),
+      term,
+    );
+
+  // Offers anchors on the current page when the input is empty or starts
+  // with `#`, and defers to core's entity autocomplete otherwise.
+  const addAnchorSuggestions = (input: HTMLInputElement) => {
+    const instance = jQuery.data(input, 'ui-autocomplete');
+    if (!instance || instance.canvasAnchorSuggestions) {
+      return;
+    }
+    instance.canvasAnchorSuggestions = true;
+    const { source, search } = instance.options;
+    instance.option({
+      // Let an empty input open the suggestions. Core's search handler still
+      // rejects empty input, so this only takes effect when anchors exist.
+      minLength: 0,
+      search(event: Event, ui: unknown) {
+        if (getAnchors(input.value).length > 0) {
+          return true;
+        }
+        if (input.value === '') {
+          instance.close();
+          return false;
+        }
+        return search.call(this, event, ui);
+      },
+      source(
+        request: { term: string },
+        response: (items: Array<{ value: string; label: string }>) => void,
+      ) {
+        const anchors = getAnchors(request.term);
+        if (anchors.length === 0) {
+          return source.call(this, request, response);
+        }
+        response(
+          anchors.map(({ value, label }) => ({
+            value,
+            label: escapeHtml(label),
+          })),
+        );
+      },
+    });
+  };
 
   // This mutation observer responds to the addition of a
   // 'data-canvas-autocomplete-selected' attribute, which will have the value of the
@@ -81,6 +167,16 @@ const TextFieldAutocomplete = ({
           { skipAttributes: ['onBlur', 'onChange', 'value'] },
         )}
         className={clsx(styles.root, styles.autocomplete, className)}
+        onFocus={(event) => {
+          const input = event.currentTarget;
+          if (!suggestsAnchors) {
+            return;
+          }
+          addAnchorSuggestions(input);
+          if (input.value === '' && jQuery.data(input, 'ui-autocomplete')) {
+            jQuery(input).autocomplete('search', '');
+          }
+        }}
         ref={(node) => {
           if (node) {
             // @ts-ignore
