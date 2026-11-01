@@ -1,6 +1,10 @@
-import { createDraftServer } from '@drupal-canvas/headless/server';
+import {
+  createCacheInvalidationHandler,
+  createDraftServer,
+} from '@drupal-canvas/headless/server';
 
 import { nextDraftAdapter } from './adapter';
+import { expireCanvasTags } from './cache';
 
 import type { DraftConfig } from '@drupal-canvas/headless/server';
 
@@ -30,12 +34,18 @@ export interface DraftRouteHandlers {
     DELETE: (request: Request) => Promise<Response>;
     OPTIONS: (request: Request) => Promise<Response>;
   };
+  /**
+   * Mount at app/api/canvas/revalidate/route.ts, where Drupal announces
+   * invalidated cache tags to its configured frontends. Expires the entries
+   * cacheCanvasTags() tagged with them.
+   */
+  revalidate: { POST: (request: Request) => Promise<Response> };
 }
 
 /**
  * Creates the draft-mode route handlers: activation (redeems the
  * `?assertion=` preview URL), in-place renewal (POST `{assertion}`), exit,
- * and the same-origin JSON:API proxy. Configuration defaults to
+ * the same-origin JSON:API proxy, and cache invalidation. Configuration defaults to
  * CANVAS_SITE_URL, resolved per request.
  */
 export function createDraftRouteHandlers(
@@ -54,6 +64,12 @@ export function createDraftRouteHandlers(
       PATCH: proxy,
       DELETE: proxy,
       OPTIONS: proxy,
+    },
+    revalidate: {
+      POST: createCacheInvalidationHandler({
+        config,
+        invalidate: expireCanvasTags,
+      }),
     },
   };
 }
