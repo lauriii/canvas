@@ -38,6 +38,7 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
       new Response(204),
       new ConnectException('Connection refused', new Request('POST', 'https://down.example/api/canvas/revalidate')),
       new Response(500, [], 'A body that is not logged'),
+      new Response(301, ['Location' => 'https://elsewhere.example/']),
     ]));
     $handler->push(Middleware::history($history));
     $warnings = [];
@@ -51,6 +52,7 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
         ['url' => 'https://www.example.com', 'components' => []],
         ['url' => 'https://down.example', 'components' => []],
         ['url' => 'https://broken.example', 'components' => []],
+        ['url' => 'https://moved.example', 'components' => []],
         ['url' => 'javascript:alert(1)', 'components' => []],
       ],
       static fn () => new Client(['handler' => $handler]),
@@ -63,12 +65,12 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
     $invalidator->destruct();
 
     \assert(\is_array($history));
-    self::assertCount(3, $history);
+    self::assertCount(4, $history);
     $ids = [];
     foreach ($history as $index => $transaction) {
       $request = $transaction['request'];
       self::assertSame('POST', $request->getMethod());
-      self::assertSame(['https://www.example.com', 'https://down.example', 'https://broken.example'][$index] . '/api/canvas/revalidate', (string) $request->getUri());
+      self::assertSame(['https://www.example.com', 'https://down.example', 'https://broken.example', 'https://moved.example'][$index] . '/api/canvas/revalidate', (string) $request->getUri());
       self::assertFalse($request->hasHeader('Authorization'));
       self::assertFalse($transaction['options']['allow_redirects']);
       $ids[] = json_decode((string) $request->getBody(), TRUE, flags: JSON_THROW_ON_ERROR)['id'];
@@ -79,6 +81,7 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
     self::assertEqualsCanonicalizing([
       ['@url' => 'https://down.example/api/canvas/revalidate', '@message' => 'Connection refused'],
       ['@url' => 'https://broken.example/api/canvas/revalidate', '@message' => 'HTTP 500'],
+      ['@url' => 'https://moved.example/api/canvas/revalidate', '@message' => 'HTTP 301'],
     ], $warnings);
 
     $response = $invalidator->getTags($ids[0]);

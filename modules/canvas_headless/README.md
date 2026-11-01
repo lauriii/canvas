@@ -259,8 +259,12 @@ Errors use RFC 9457 Problem Details and the `application/problem+json` media typ
 
 ## Frontend cache invalidation
 
-Successful content, entity, and redirect responses include `cacheTags`: the
-response's Drupal cache tags. Frontends tag their cached copies with them.
+Successful content, entity, and redirect responses, and content API client
+errors (4xx), include `cacheTags` and `cacheMaxAge`: the response's Drupal cache
+tags and max-age (-1: no limit), including the dependencies of its cache
+contexts. Frontends cache by path, so they would otherwise miss, for example,
+a change to the anonymous role's permissions. Frontends tag their cached copies
+with the tags and keep them for at most the max-age.
 
 This needs no configuration. Drupal collects the cache tags invalidated during
 a request. After the response, it stores them for five minutes under a random
@@ -274,8 +278,10 @@ are not retried. See `createCacheInvalidationHandler()` in
 
 A cache rebuild (`drush cache:rebuild`), a router rebuild, or a request
 invalidating more than 1,000 tags announces `http_response` instead, which every
-response carries: frontends expire everything. Requests are not followed
-through redirects, and time out after five seconds.
+response carries: frontends expire everything. Redirects are not followed and
+are logged as failures; requests time out after five seconds. The Next.js
+adapter answers at once and reads the tags afterwards, so an announcement holds
+a PHP worker only briefly.
 
 ## Known limitations
 

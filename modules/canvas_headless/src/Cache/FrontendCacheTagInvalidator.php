@@ -11,6 +11,7 @@ use Drupal\Core\DestructableInterface;
 use Drupal\Core\Utility\Error;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Promise\Utils;
+use Psr\Http\Message\ResponseInterface;
 use Symfony\Component\DependencyInjection\Attribute\AutowireServiceClosure;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -154,16 +155,19 @@ final class FrontendCacheTagInvalidator implements CacheTagsInvalidatorInterface
       ]);
     }
     foreach (Utils::settle($promises)->wait() as $url => $result) {
-      if ($result['state'] === 'rejected') {
-        $reason = $result['reason'];
+      $reason = $result['state'] === 'rejected' ? $result['reason'] : $result['value'];
+      // Not the message of an error response: it quotes the body.
+      $message = match (TRUE) {
+        // Redirects, which are not followed, and 1xx.
+        $reason instanceof ResponseInterface => $reason->getStatusCode() >= 200 && $reason->getStatusCode() < 300 ? NULL : 'HTTP ' . $reason->getStatusCode(),
+        $reason instanceof RequestException && $reason->hasResponse() => 'HTTP ' . $reason->getResponse()?->getStatusCode(),
+        $reason instanceof \Throwable => $reason->getMessage(),
+        default => 'unknown error',
+      };
+      if ($message !== NULL) {
         ($this->loggerFactory)()->get('canvas_headless')->warning('Could not announce invalidated cache tags to @url: @message', [
           '@url' => $url,
-          // Not the message of an error response: it quotes the body.
-          '@message' => match (TRUE) {
-            $reason instanceof RequestException && $reason->hasResponse() => 'HTTP ' . $reason->getResponse()?->getStatusCode(),
-            $reason instanceof \Throwable => $reason->getMessage(),
-            default => 'unknown error',
-          },
+          '@message' => $message,
         ]);
       }
     }
