@@ -427,8 +427,12 @@ final class ApiLayoutController {
     // instance version aside of the model itself.
     $host_entity = self::resolveHostEntity($entity, $preview_entity);
     // A partial preview is only possible for instances in the entity's own
-    // tree: content templates and page regions render with more context.
-    $before = ($body['partialPreview'] ?? FALSE) && $entity_to_patch === $entity && $entity instanceof FieldableEntityInterface
+    // tree: content templates and page regions render with more context. A
+    // version change can change the instance's slots, so the layout too.
+    $before = ($body['partialPreview'] ?? FALSE)
+      && $entity_to_patch === $entity
+      && $entity instanceof FieldableEntityInterface
+      && $this->componentTreeLoader->load($entity)->getComponentTreeItemByUuid($componentInstanceUuid)?->getComponentVersion() === $version
       ? $this->renderComponentInstance($entity, $componentInstanceUuid)
       : NULL;
     $this->updateComponentInstance($entity_to_patch, $componentInstanceUuid, $version, $model, $host_entity);
@@ -446,9 +450,14 @@ final class ApiLayoutController {
       // Changed libraries and settings can be loaded into the page, given the
       // libraries it has. Other changed attachments need a full preview.
       $page_libraries = $body['pageLibraries'] ?? NULL;
-      $is_partial = isset($after['html']) && ($changed_attachments === [] || (
+      // Instances to update to their component's latest version change the
+      // layout and are updated while building it.
+      // @see ::buildRegion()
+      $is_partial = isset($after['html'])
+        && !$this->componentSourceManager->isComponentInstanceUpdateNeeded($this->componentTreeLoader->load($entity))
+        && ($changed_attachments === [] || (
         \is_string($page_libraries) && !\array_diff($changed_attachments, ['library', 'drupalSettings'])
-      ));
+        ));
       if ($is_partial) {
         $item = $this->componentTreeLoader->load($entity)->getComponentTreeItemByUuid($componentInstanceUuid);
         \assert($item instanceof ComponentTreeItem);
