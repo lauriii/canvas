@@ -130,7 +130,13 @@ export const injectPreviewAssets = (
     );
   });
   if (settingsElement) {
-    settingsElement.textContent = JSON.stringify(settings);
+    // Escape like Drupal's Json::encode(), so no value can end the element.
+    // These characters only occur inside JSON strings.
+    settingsElement.textContent = JSON.stringify(settings).replace(
+      /[<>&']/g,
+      (character) =>
+        `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`,
+    );
   }
   const doctype = document.doctype ? `<!DOCTYPE ${document.doctype.name}>` : '';
   return doctype + document.documentElement.outerHTML;
