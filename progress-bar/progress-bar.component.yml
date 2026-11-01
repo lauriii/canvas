@@ -1,0 +1,22 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Progress bar
+status: stable
+group: Examples
+props:
+  type: object
+  required:
+    - label
+    - percent
+  properties:
+    label:
+      type: string
+      title: Label
+      examples:
+        - 'Fundraising goal'
+    percent:
+      type: integer
+      title: Percent complete
+      minimum: 0
+      maximum: 100
+      examples:
+        - 60
