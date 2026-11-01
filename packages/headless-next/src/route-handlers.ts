@@ -1,5 +1,6 @@
-// A namespace import: Next.js 15.0 lacks after, and then answers Drupal
-// only after reading the tags.
+// A namespace import: Next.js 15.0 lacks after, and its build would break on
+// a missing named import. Without after, the handler answers Drupal only
+// after reading the tags.
 import * as nextServer from 'next/server';
 import {
   createCacheInvalidationHandler,
@@ -37,18 +38,12 @@ export interface DraftRouteHandlers {
     DELETE: (request: Request) => Promise<Response>;
     OPTIONS: (request: Request) => Promise<Response>;
   };
-  /**
-   * Mount at app/api/canvas/revalidate/route.ts, where Drupal announces
-   * invalidated cache tags to its configured frontends. Expires the entries
-   * cacheCanvasTags() tagged with them.
-   */
-  revalidate: { POST: (request: Request) => Promise<Response> };
 }
 
 /**
  * Creates the draft-mode route handlers: activation (redeems the
  * `?assertion=` preview URL), in-place renewal (POST `{assertion}`), exit,
- * the same-origin JSON:API proxy, and cache invalidation. Configuration defaults to
+ * and the same-origin JSON:API proxy. Configuration defaults to
  * CANVAS_SITE_URL, resolved per request.
  */
 export function createDraftRouteHandlers(
@@ -68,13 +63,25 @@ export function createDraftRouteHandlers(
       DELETE: proxy,
       OPTIONS: proxy,
     },
-    revalidate: {
-      POST: createCacheInvalidationHandler({
-        config,
-        invalidate: expireCanvasTags,
-        // Answer Drupal before reading the tags back from it.
-        defer: nextServer.after,
-      }),
-    },
+  };
+}
+
+/**
+ * Creates the cache invalidation route handler, for example at
+ * app/api/canvas/revalidate/route.ts. Drupal announces invalidated cache tags
+ * to the URLs in its `cache_invalidation_urls` setting; the handler expires
+ * the entries cacheCanvasTags() tagged with them. Configuration defaults to
+ * CANVAS_SITE_URL, resolved per request.
+ */
+export function createCacheInvalidationRouteHandler(
+  config?: Partial<DraftConfig>,
+): { POST: (request: Request) => Promise<Response> } {
+  return {
+    POST: createCacheInvalidationHandler({
+      config,
+      invalidate: expireCanvasTags,
+      // Answer Drupal before reading the tags back from it.
+      defer: nextServer.after,
+    }),
   };
 }

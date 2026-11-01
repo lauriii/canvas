@@ -1,5 +1,5 @@
-// A namespace import: Next.js 15 exports cacheTag and cacheLife only with
-// the unstable_ prefix, and a missing named import would break its build.
+// A namespace import: the package supports Next.js 15, which lacks cacheTag
+// and cacheLife, and a missing named import would break its build.
 import * as nextCache from 'next/cache';
 
 import type { Cacheability } from '@drupal-canvas/headless';
@@ -8,10 +8,11 @@ import type { Cacheability } from '@drupal-canvas/headless';
 const NEXT_CACHE_TAG_MAX_ITEMS = 128;
 
 /**
- * Applies a Canvas result's Drupal cacheability to the enclosing
- * `'use cache'` scope: its cache tags, so that the `revalidate` route
- * handler expires it when Drupal invalidates any of them, and its max-age.
- * Call it inside the cached function, after fetching:
+ * Applies the Drupal cacheability of Canvas results to the enclosing
+ * `'use cache'` scope: all their cache tags, so that the cache invalidation
+ * route expires it when Drupal invalidates any of them, and the shortest
+ * max-age. Call it once per scope, after fetching, with every result the
+ * entry depends on. Needs Next.js 16 Cache Components.
  *
  * ```ts
  * async function getPublishedPage(path: string) {
@@ -22,15 +23,22 @@ const NEXT_CACHE_TAG_MAX_ITEMS = 128;
  * }
  * ```
  */
-export function cacheCanvasTags(result: Cacheability): void {
-  const cacheTag = nextCache.cacheTag ?? nextCache.unstable_cacheTag;
-  const { cacheTags, cacheMaxAge } = result;
+export function cacheCanvasTags(...results: Cacheability[]): void {
+  const { cacheTag, cacheLife } = nextCache;
+  if (!cacheTag || !cacheLife) {
+    throw new Error('cacheCanvasTags() needs Next.js 16 Cache Components.');
+  }
+  const cacheTags = [...new Set(results.flatMap((result) => result.cacheTags))];
   for (let i = 0; i < cacheTags.length; i += NEXT_CACHE_TAG_MAX_ITEMS) {
     cacheTag(...cacheTags.slice(i, i + NEXT_CACHE_TAG_MAX_ITEMS));
   }
-  if (cacheMaxAge >= 0) {
-    const cacheLife = nextCache.cacheLife ?? nextCache.unstable_cacheLife;
-    cacheLife({ revalidate: cacheMaxAge, expire: cacheMaxAge });
+  // -1: no limit.
+  const maxAges = results
+    .map((result) => result.cacheMaxAge)
+    .filter((maxAge) => maxAge >= 0);
+  if (maxAges.length) {
+    const maxAge = Math.min(...maxAges);
+    cacheLife({ revalidate: maxAge, expire: maxAge });
   }
 }
 
