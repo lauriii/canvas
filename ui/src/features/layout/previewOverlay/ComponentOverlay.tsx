@@ -158,6 +158,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
       onClick={handleComponentClick}
       onKeyDown={handleKeyDown}
       data-canvas-selected={isSelected}
+      data-canvas-drop-item={component.uuid}
       className={clsx('componentOverlay', styles.componentOverlay, {
         [styles.selected]: isSelected,
         [styles.hovered]: isHovered,

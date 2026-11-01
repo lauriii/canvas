@@ -68,6 +68,7 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({ region }) => {
         `canvas--region-overlay__${region.id}`,
       )}
       style={overlayStyles}
+      data-canvas-drop-container={region.id}
       onMouseOver={handleItemMouseOver}
       onMouseOut={handleItemMouseOut}
     >
