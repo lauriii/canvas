@@ -199,6 +199,7 @@ Fetch the published page in a `'use cache'` function with
 `cacheCanvasTags()`. Keep draft sessions on `fetchPage()`:
 
 ```tsx
+import { notFound } from 'next/navigation';
 import {
   cacheCanvasTags,
   fetchPage,
@@ -216,6 +217,9 @@ async function getPublishedPage(path: string) {
 const page = (await getDraftData())
   ? await fetchPage(path)
   : await getPublishedPage(path);
+if (!page || 'notFound' in page) {
+  notFound();
+}
 ```
 
 Mount the `revalidate` route (step 3). Nothing else is needed: Drupal announces
@@ -223,9 +227,11 @@ invalidated cache tags to `/api/canvas/revalidate` on every configured frontend,
 and the route expires every entry tagged with one of them immediately (see the
 [Canvas Headless module README](../../modules/canvas_headless/README.md#frontend-cache-invalidation)).
 
-`cacheCanvasTags(null)` tags a missing page to expire whenever Drupal content is
-created or changed. `fetchPublishedPage()` throws for errors other than 403/404,
-so a transient failure is not cached.
+`cacheCanvasTags()` also caches for at most the result's Drupal max-age; with a
+max-age of 0 the entry is not kept. A page anonymous visitors cannot see is a
+`PageNotFound` with the error's cache tags, so it expires when, for example, the
+page is published. `fetchPublishedPage()` throws for other errors, so a
+transient failure is not cached.
 
 ## Data access
 

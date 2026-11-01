@@ -1,3 +1,6 @@
+// A namespace import: Next.js 15.0 lacks after, and then answers Drupal
+// only after reading the tags.
+import * as nextServer from 'next/server';
 import {
   createCacheInvalidationHandler,
   createDraftServer,
@@ -69,6 +72,8 @@ export function createDraftRouteHandlers(
       POST: createCacheInvalidationHandler({
         config,
         invalidate: expireCanvasTags,
+        // Answer Drupal before reading the tags back from it.
+        defer: nextServer.after,
       }),
     },
   };
