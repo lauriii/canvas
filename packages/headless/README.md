@@ -136,17 +136,20 @@ responses make `fetchPage()` return `null`.
 
 ## Cache tag invalidation
 
-Page, redirect, and entity results carry `cacheTags`, the Drupal cache tags they
-depend on. Cache published results with these tags, and expire them when Drupal
-reports the tags invalidated. Results from sites without cache tag support have
-an empty list.
+Page, redirect, and entity results carry their Drupal cacheability: `cacheTags`,
+the cache tags they depend on, and `cacheMaxAge`, the seconds they may be cached
+(-1: no limit). Both include the dependencies of the response's cache contexts,
+such as the anonymous role's permissions, because a cache keyed by path ignores
+the contexts. Cache published results for at most `cacheMaxAge` with these tags,
+and expire them when Drupal reports the tags invalidated. Results from sites
+without cache tag support have no tags and no limit.
 
 `fetchPublishedPage(path)` fetches a page as anonymous visitors see it without
 reading the current request, so the result is safe to store in a cache keyed by
-path. It returns `null` for a page anonymous visitors cannot see, and throws for
-other errors, so a cache does not keep a transient failure. A `null` result
-depends on the `4xx-response` and `http_response` tags. Use `fetchPage()` for
-draft sessions.
+path. A page anonymous visitors cannot see (403/404) is a `PageNotFound`
+(`{ notFound: true, status, cacheTags, cacheMaxAge }`) with the error's
+cacheability. Other errors throw, so a cache does not keep a transient failure.
+Use `fetchPage()` for draft sessions.
 
 Mount `createCacheInvalidationHandler()` from `@drupal-canvas/headless/server`
 as a POST route at `/api/canvas/revalidate`. Drupal announces invalidations to
@@ -168,8 +171,10 @@ export const POST = createCacheInvalidationHandler({
 The handler answers 204 after `invalidate` completes, 400 for a malformed
 announcement, 404 for an ID Drupal does not know, and 502 when Drupal cannot be
 reached. It throws (a framework 500) when `CANVAS_SITE_URL` is not configured or
-`invalidate` throws. The Next.js adapter connects this to the Next.js cache; see
-its README.
+`invalidate` throws. Pass `defer` (for example Next.js `after()`) to answer 202
+at once and read the tags afterwards, so that Drupal's announcing request does
+not wait for a second Drupal worker; failures are then logged. The Next.js
+adapter connects this to the Next.js cache; see its README.
 
 ## JSON:API for portable Code Components
 

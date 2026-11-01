@@ -707,6 +707,7 @@ describe('fetchPage', () => {
       },
     },
     cacheTags: ['canvas_page:1', 'http_response'],
+    cacheMaxAge: -1,
   };
 
   it('keeps a public component tree marker-free', async () => {
@@ -743,14 +744,38 @@ describe('fetchPage', () => {
     );
   });
 
-  it('throws, rather than caching null, when Drupal fails', async () => {
+  it('returns missing pages with their cacheability, and throws when Drupal fails', async () => {
     const fetchImpl = vi
       .fn()
+      .mockResolvedValueOnce(
+        Response.json(
+          {
+            type: 'about:blank',
+            title: 'Forbidden',
+            status: 403,
+            cacheTags: ['node:5', '4xx-response'],
+            cacheMaxAge: 60,
+          },
+          { status: 403 },
+        ),
+      )
+      // A site predating cacheability in errors.
       .mockResolvedValueOnce(new Response(null, { status: 404 }))
       .mockResolvedValueOnce(new Response(null, { status: 503 }));
     const { server } = makeServer(fetchImpl as unknown as typeof fetch);
 
-    await expect(server.fetchPublishedPage('/missing')).resolves.toBeNull();
+    await expect(server.fetchPublishedPage('/node/5')).resolves.toEqual({
+      notFound: true,
+      status: 403,
+      cacheTags: ['node:5', '4xx-response'],
+      cacheMaxAge: 60,
+    });
+    await expect(server.fetchPublishedPage('/missing')).resolves.toEqual({
+      notFound: true,
+      status: 404,
+      cacheTags: ['4xx-response', 'http_response'],
+      cacheMaxAge: -1,
+    });
     await expect(server.fetchPublishedPage('/example')).rejects.toThrow(
       'The Canvas content API answered 503.',
     );
@@ -778,6 +803,7 @@ describe('fetchPage', () => {
       ...legacyPage,
       context: { page: null, site: null },
       cacheTags: [],
+      cacheMaxAge: -1,
     });
   });
 
@@ -795,6 +821,7 @@ describe('fetchPage', () => {
       const redirect = {
         redirect: { external, url: target, statusCode: 301 },
         cacheTags: ['redirect_list'],
+        cacheMaxAge: -1,
       };
       const fetchImpl = vi.fn().mockResolvedValue(Response.json(redirect));
       const { server, seedSession } = makeServer(fetchImpl);
@@ -806,6 +833,7 @@ describe('fetchPage', () => {
         : '/old-location';
       await expect(server.fetchPage(path)).resolves.toEqual({
         cacheTags: ['redirect_list'],
+        cacheMaxAge: -1,
         redirect: {
           ...redirect.redirect,
           url:
@@ -1235,6 +1263,7 @@ describe('fetchEntity', () => {
       langcode: 'en',
     },
     cacheTags: ['node:2'],
+    cacheMaxAge: -1,
   };
 
   it('fetches one public entity in a specific view mode', async () => {

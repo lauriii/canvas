@@ -14,7 +14,7 @@ import { parsePreviewRequest, withPreviewContext } from '../preview-context';
 import { getSessionToken } from '../token';
 
 import type { DraftData } from '../draft-data';
-import type { PageResult } from '../page';
+import type { Cacheability, PageNotFound, PageResult } from '../page';
 import type { PreviewContext } from '../preview-context';
 
 /**
@@ -93,6 +93,7 @@ export async function fetchPage(
   // them; nothing then expires on invalidation.
   const raw = (await response.json()) as PageResult;
   raw.cacheTags ??= [];
+  raw.cacheMaxAge ??= -1;
   if (isPageRedirect(raw)) {
     // A local redirect remains inside this preview document. Keep its context
     // without adding frontend-only parameters to external destinations.
@@ -124,4 +125,43 @@ export async function fetchPage(
     };
   }
   return result;
+}
+
+/**
+ * Fetches a page as anonymous visitors see it (see fetchPage()), for caches
+ * keyed by path. A page anonymous visitors cannot see (403/404) is a
+ * PageNotFound with the error's cacheability; other errors throw, so that a
+ * cache does not keep a transient failure.
+ */
+export async function fetchPublishedPage(
+  requestUri: string,
+  options: { baseUrl: string; fetchImpl?: typeof fetch },
+): Promise<PageResult | PageNotFound> {
+  const { baseUrl, fetchImpl = fetch } = options;
+  let notFound: PageNotFound | undefined;
+  const page = await fetchPage(requestUri, {
+    baseUrl,
+    fetchImpl: async (input, init) => {
+      const response = await fetchImpl(input, init);
+      if (response.status === 403 || response.status === 404) {
+        const problem = (await response
+          .clone()
+          .json()
+          .catch(() => ({}))) as Partial<Cacheability>;
+        notFound = {
+          notFound: true,
+          status: response.status,
+          // Sites predating cacheability in errors: Drupal invalidates
+          // 4xx-response when content is created or changed.
+          cacheTags: problem.cacheTags ?? ['4xx-response', 'http_response'],
+          cacheMaxAge: problem.cacheMaxAge ?? -1,
+        };
+      } else if (!response.ok) {
+        throw new Error(`The Canvas content API answered ${response.status}.`);
+      }
+      return response;
+    },
+  });
+  // fetchPage() returns null only for the errors recorded above.
+  return page ?? (notFound as PageNotFound);
 }
