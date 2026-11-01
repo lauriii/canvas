@@ -27,6 +27,7 @@ import {
 import { useAppSelector } from '@/app/hooks';
 import EmptyStateCallout from '@/components/EmptyStateCallout';
 import InfiniteScrollObserver from '@/components/InfiniteScrollObserver';
+import { isHomepage, pinHomepageFirst } from '@/components/pageInfo/PageList';
 import { selectHomepagePath } from '@/features/configuration/configurationSlice';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { getModuleOperations } from '@/utils/contentOperations';
@@ -264,7 +265,7 @@ const NavigationItem = ({
         onClick={onSelect ? () => onSelect(item) : undefined}
       >
         <Box px="3" pt="1">
-          {item.internalPath === homepagePath ? <HomeIcon /> : <FileTextIcon />}
+          {isHomepage(item, homepagePath) ? <HomeIcon /> : <FileTextIcon />}
         </Box>
         <Flex flexGrow="1" align="center">
           <Text as="span" size="1">
@@ -360,7 +361,7 @@ const ContentGroup = ({
         gap="2"
         mt="2"
       >
-        {items.map((item) => (
+        {pinHomepageFirst(items, homepagePath).map((item) => (
           <NavigationItem
             key={`${item.id}-${item.status}`}
             item={item}
