@@ -1,0 +1,18 @@
+'$schema': 'https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json'
+name: Highlight
+status: stable
+group: Atom/Text
+description: Text that attaches a library only when highlighted.
+props:
+  type: object
+  required:
+    - text
+  properties:
+    text:
+      type: string
+      title: Text
+      examples: ['Some text']
+    highlighted:
+      type: boolean
+      title: Highlighted
+      examples: [false]
