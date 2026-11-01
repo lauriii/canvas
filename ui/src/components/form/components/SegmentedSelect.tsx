@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { SegmentedControl } from '@radix-ui/themes';
 
 import Select from '@/components/form/components/Select';
+import { useFieldContext } from '@/components/form/contexts/FieldContext';
 
 import type { Attributes } from '@/types/DrupalAttribute';
 
@@ -46,6 +47,7 @@ const SegmentedSelect = ({
   options?: Option[];
 }) => {
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const fieldContext = useFieldContext();
   const [labelledBy, setLabelledBy] = useState<string>();
 
   // The Drupal label points at the hidden select. Reuse it as the accessible
@@ -73,6 +75,19 @@ const SegmentedSelect = ({
         value={value}
         disabled={!!attributes.disabled}
         aria-labelledby={labelledBy}
+        // Forward what the hidden select carries for the visible control: the
+        // field description and the invalid-field outline.
+        aria-describedby={attributes['aria-describedby'] as string | undefined}
+        data-invalid-prop-value={attributes['data-invalid-prop-value']}
+        onBlur={(e) => {
+          // The hidden select never receives focus, so run its blur handling
+          // (touched state, validation) when focus leaves the segments.
+          if (!e.currentTarget.contains(e.relatedTarget)) {
+            fieldContext?.triggerBlur(
+              wrapperRef.current?.querySelector('select') ?? undefined,
+            );
+          }
+        }}
         onValueChange={(newValue) => {
           const select = wrapperRef.current?.querySelector('select');
           if (select) {

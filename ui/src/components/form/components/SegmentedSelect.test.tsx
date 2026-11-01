@@ -1,6 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Theme } from '@radix-ui/themes';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
+
+import { FieldContextProvider } from '@/components/form/contexts/FieldContext';
 
 import SegmentedSelect, { fitsSegmentedControl } from './SegmentedSelect';
 
@@ -65,5 +67,41 @@ describe('SegmentedSelect', () => {
     ).toBe('true');
     // The select stays the form element.
     expect(container.querySelector('select')?.value).toBe('left');
+  });
+
+  it('forwards the description, the invalid state and blur', () => {
+    const triggerBlur = vi.fn();
+    const { container } = render(
+      <Theme>
+        <FieldContextProvider
+          value={{ fieldName: 'align', triggerChange: vi.fn(), triggerBlur }}
+        >
+          <p id="edit-align--description">Text alignment</p>
+          <SegmentedSelect
+            attributes={{
+              id: 'edit-align',
+              name: 'align',
+              value: 'left',
+              'aria-describedby': 'edit-align--description',
+              'data-invalid-prop-value': 'true',
+            }}
+            options={[option('left', 'Left'), option('right', 'Right')]}
+          />
+        </FieldContextProvider>
+      </Theme>,
+    );
+    const group = screen.getByRole('group');
+    expect(group.getAttribute('aria-describedby')).toBe(
+      'edit-align--description',
+    );
+    expect(group.hasAttribute('data-invalid-prop-value')).toBe(true);
+
+    const left = screen.getByRole('radio', { name: 'Left' });
+    const right = screen.getByRole('radio', { name: 'Right' });
+    // Moving between segments is not a blur of the field.
+    fireEvent.blur(left, { relatedTarget: right });
+    expect(triggerBlur).not.toHaveBeenCalled();
+    fireEvent.blur(right, { relatedTarget: document.body });
+    expect(triggerBlur).toHaveBeenCalledWith(container.querySelector('select'));
   });
 });
