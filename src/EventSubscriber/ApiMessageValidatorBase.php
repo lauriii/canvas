@@ -5,13 +5,16 @@ declare(strict_types=1);
 namespace Drupal\canvas\EventSubscriber;
 
 use Drupal\canvas\Utility\ExceptionHelper;
+use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use League\OpenAPIValidation\PSR7\Exception\NoPath;
 use League\OpenAPIValidation\PSR7\Exception\ValidationFailed;
+use League\OpenAPIValidation\PSR7\SchemaFactory\YamlFileFactory;
 use League\OpenAPIValidation\PSR7\ValidatorBuilder;
 use Psr\Log\LoggerInterface;
 use Symfony\Bridge\PsrHttpMessage\HttpMessageFactoryInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -45,6 +48,8 @@ abstract class ApiMessageValidatorBase implements EventSubscriberInterface {
     private readonly RouteMatchInterface $currentRouteMatch,
     protected readonly HttpMessageFactoryInterface $httpMessageFactory,
     private readonly string $appRoot,
+    #[Autowire(service: 'cache.default')]
+    private readonly CacheBackendInterface $cache,
   ) {}
 
   /**
@@ -163,8 +168,18 @@ abstract class ApiMessageValidatorBase implements EventSubscriberInterface {
 
     \assert($this->validatorBuilder instanceof ValidatorBuilder);
 
-    return $this->validatorBuilder
-      ->fromYamlFile($openapi_spec_file);
+    // Parsing the file takes ~50ms, so keep the parsed schema until it changes.
+    $cid = 'canvas:openapi_schema:' . \filemtime($openapi_spec_file);
+    $cached = $this->cache->get($cid);
+    if ($cached === FALSE) {
+      $schema = (new YamlFileFactory($openapi_spec_file))->createSchema();
+      $this->cache->set($cid, $schema);
+    }
+    else {
+      $schema = $cached->data;
+    }
+
+    return $this->validatorBuilder->fromSchema($schema);
   }
 
   /**
