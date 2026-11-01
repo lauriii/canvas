@@ -154,12 +154,16 @@ paths:
                           favicon:
                             url: https://example.com/core/themes/olivero/favicon.ico
                             mimeType: image/vnd.microsoft.icon
+                    cacheTags: [node:12, config:user.role.anonymous, http_response]
+                    cacheMaxAge: -1
                 redirect:
                   value:
                     redirect:
                       external: false
                       url: /new-path
                       statusCode: 301
+                    cacheTags: [redirect_list, http_response]
+                    cacheMaxAge: -1
         '302':
           description: >-
             Non-cacheable, same-origin language negotiation transport redirect
@@ -241,6 +245,8 @@ paths:
                       id: '12'
                       uuid: 773942c6-3660-4c50-9a8d-e25966a69bff
                       langcode: en
+                    cacheTags: [node:12, http_response]
+                    cacheMaxAge: -1
         '400':
           $ref: '#/components/responses/ProblemDetailsResponse'
         '401':
@@ -560,7 +566,7 @@ components:
     CanvasContentResult:
       type: object
       additionalProperties: false
-      required: [content, head, route, context, cacheTags]
+      required: [content, head, route, context, cacheTags, cacheMaxAge]
       properties:
         content:
           oneOf:
@@ -575,6 +581,8 @@ components:
           $ref: '#/components/schemas/CanvasContext'
         cacheTags:
           $ref: '#/components/schemas/CacheTags'
+        cacheMaxAge:
+          $ref: '#/components/schemas/CacheMaxAge'
 
     CacheTags:
       description: >-
@@ -583,6 +591,13 @@ components:
       type: array
       items:
         type: string
+
+    CacheMaxAge:
+      description: >-
+        How many seconds the response may be cached; -1 for no limit. Like
+        `cacheTags`, it includes the cache contexts' dependencies.
+      type: integer
+      minimum: -1
 
     CanvasContext:
       description: >-
@@ -714,7 +729,7 @@ components:
     CanvasRedirectResult:
       type: object
       additionalProperties: false
-      required: [redirect, cacheTags]
+      required: [redirect, cacheTags, cacheMaxAge]
       properties:
         redirect:
           type: object
@@ -729,11 +744,13 @@ components:
               type: integer
         cacheTags:
           $ref: '#/components/schemas/CacheTags'
+        cacheMaxAge:
+          $ref: '#/components/schemas/CacheMaxAge'
 
     CanvasEntityResult:
       type: object
       additionalProperties: false
-      required: [content, managedByCanvas, entity, cacheTags]
+      required: [content, managedByCanvas, entity, cacheTags, cacheMaxAge]
       properties:
         content:
           oneOf:
@@ -746,6 +763,8 @@ components:
           $ref: '#/components/schemas/RoutedEntityRef'
         cacheTags:
           $ref: '#/components/schemas/CacheTags'
+        cacheMaxAge:
+          $ref: '#/components/schemas/CacheMaxAge'
 
     UnheadDocument:
       type: object
@@ -1005,6 +1024,12 @@ components:
         instance:
           type: string
           format: uri-reference
+        cacheTags:
+          description: Present on client errors (4xx).
+          $ref: '#/components/schemas/CacheTags'
+        cacheMaxAge:
+          description: Present on client errors (4xx).
+          $ref: '#/components/schemas/CacheMaxAge'
 
   responses:
     # Only the content API converts errors to Problem Details.

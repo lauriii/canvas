@@ -14,6 +14,7 @@ use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\Context\CacheContextsManager;
+use Drupal\Core\Cache\Context\ContextCacheKeys;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\EventSubscriber\FinishResponseSubscriber;
@@ -432,23 +433,38 @@ final class CanvasContentResponseSubscriberTest extends UnitTestCase {
   }
 
   /**
-   * Tests that successful content results list their final cache tags.
+   * Tests that content results and client errors list their cacheability.
    */
   public function testCacheTags(): void {
     $response = new CacheableJsonResponse(['content' => NULL, 'params' => new \stdClass()]);
-    $response->addCacheableDependency((new CacheableMetadata())->setCacheTags(['node:1']));
+    $response->addCacheableDependency((new CacheableMetadata())
+      ->setCacheTags(['node:1'])
+      ->setCacheContexts(['user.permissions'])
+      ->setCacheMaxAge(600));
     $event = $this->event($response);
-    $this->responseDispatcher()->dispatch($event, KernelEvents::RESPONSE);
+    // The cache contexts' own dependencies are included.
+    $contexts = (new CacheableMetadata())->setCacheTags(['config:user.role.anonymous'])->setCacheMaxAge(60);
+    $this->responseDispatcher(contexts: $contexts)->dispatch($event, KernelEvents::RESPONSE);
     self::assertSame(
-      '{"content":null,"params":{},"cacheTags":["node:1","http_response","config:core.extension","route_match"]}',
+      '{"content":null,"params":{},"cacheTags":["node:1","http_response","config:core.extension","route_match","config:user.role.anonymous"],"cacheMaxAge":60}',
       $event->getResponse()->getContent(),
     );
 
-    // Subrequests and errors are left alone.
+    // A cached 404 expires with the tags it depends on.
+    $not_found = new CanvasContentProblemResponse(404);
+    $not_found->addCacheableDependency((new CacheableMetadata())->setCacheTags(['4xx-response']));
+    $not_found_event = $this->event($not_found);
+    $this->responseDispatcher()->dispatch($not_found_event, KernelEvents::RESPONSE);
+    self::assertSame(
+      '{"type":"about:blank","title":"Not Found","status":404,"cacheTags":["4xx-response","http_response","config:core.extension","route_match"],"cacheMaxAge":-1}',
+      $not_found_event->getResponse()->getContent(),
+    );
+
+    // Subrequests and server errors are left alone.
     $subrequest = new CacheableJsonResponse(['content' => NULL]);
     $this->responseDispatcher()->dispatch($this->event($subrequest, request_type: HttpKernelInterface::SUB_REQUEST), KernelEvents::RESPONSE);
     self::assertSame('{"content":null}', $subrequest->getContent());
-    $error_event = $this->event(new CacheableJsonResponse(['content' => NULL], 404));
+    $error_event = $this->event(new CacheableJsonResponse(['content' => NULL], 500));
     $this->responseDispatcher()->dispatch($error_event, KernelEvents::RESPONSE);
     self::assertArrayNotHasKey('cacheTags', json_decode((string) $error_event->getResponse()->getContent(), TRUE, flags: JSON_THROW_ON_ERROR));
   }
@@ -638,7 +654,7 @@ final class CanvasContentResponseSubscriberTest extends UnitTestCase {
   /**
    * Registers the real Canvas and core response listeners at their priorities.
    */
-  private function responseDispatcher(bool $allow_cache = TRUE): EventDispatcher {
+  private function responseDispatcher(bool $allow_cache = TRUE, ?CacheableMetadata $contexts = NULL): EventDispatcher {
     $language_manager = $this->createMock(LanguageManagerInterface::class);
     $language_manager->method('getCurrentLanguage')->willReturn(new Language(['id' => 'en']));
     $request_policy = $this->createMock(RequestPolicyInterface::class);
@@ -646,7 +662,7 @@ final class CanvasContentResponseSubscriberTest extends UnitTestCase {
     $time = $this->createMock(TimeInterface::class);
     $time->method('getRequestTime')->willReturn(1700000000);
     $dispatcher = new EventDispatcher();
-    $dispatcher->addSubscriber($this->subscriber());
+    $dispatcher->addSubscriber($this->subscriber(contexts: $contexts));
     $dispatcher->addSubscriber(new FinishResponseSubscriber(
       $language_manager,
       $this->getConfigFactoryStub(['system.performance' => ['cache.page.max_age' => 300]]),
@@ -663,6 +679,7 @@ final class CanvasContentResponseSubscriberTest extends UnitTestCase {
    */
   private function subscriber(
     bool $with_redirect = FALSE,
+    ?CacheableMetadata $contexts = NULL,
   ): CanvasContentResponseSubscriber {
     $entity_type_manager = $this->createMock(EntityTypeManagerInterface::class);
     $entity_type_manager->method('hasDefinition')
@@ -675,7 +692,11 @@ final class CanvasContentResponseSubscriberTest extends UnitTestCase {
         ->with('redirect')
         ->willReturn($redirect);
     }
-    return new CanvasContentResponseSubscriber($entity_type_manager);
+    // Cache contexts' cacheability, which the real manager collects.
+    $cache_contexts_manager = $this->createMock(CacheContextsManager::class);
+    $cache_contexts_manager->method('convertTokensToKeys')
+      ->willReturnCallback(static fn (): ContextCacheKeys => (new ContextCacheKeys([]))->addCacheableDependency($contexts ?? new CacheableMetadata()));
+    return new CanvasContentResponseSubscriber($entity_type_manager, $cache_contexts_manager);
   }
 
   /**

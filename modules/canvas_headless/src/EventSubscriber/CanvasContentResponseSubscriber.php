@@ -12,9 +12,11 @@ use Drupal\canvas_headless\Controller\CanvasEntityController;
 use Drupal\canvas_headless\PreviewLanguageRedirectResponse;
 use Drupal\canvas_headless\StackMiddleware\CanvasContentApiRequest;
 use Drupal\Component\Utility\UrlHelper;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\CacheableResponseInterface;
+use Drupal\Core\Cache\Context\CacheContextsManager;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -51,6 +53,7 @@ final class CanvasContentResponseSubscriber implements EventSubscriberInterface 
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly CacheContextsManager $cacheContextsManager,
   ) {}
 
   /**
@@ -171,26 +174,32 @@ final class CanvasContentResponseSubscriber implements EventSubscriberInterface 
   }
 
   /**
-   * Adds the final cache tags to successful JSON responses.
+   * Lists the final cacheability in content results and client errors.
    *
-   * Frontends tag what they cache with these, and expire it when Drupal
-   * reports the tags invalidated.
+   * Frontends cache by path, so the cache contexts' own dependencies are
+   * included: for example the anonymous role's permissions. They tag what
+   * they cache with `cacheTags`, expire it when Drupal reports the tags
+   * invalidated, and keep it for at most `cacheMaxAge` seconds (-1: no
+   * limit).
    *
    * @see \Drupal\canvas_headless\Cache\FrontendCacheTagInvalidator
    */
-  public static function addCacheTags(ResponseEvent $event): void {
+  public function addCacheTags(ResponseEvent $event): void {
     $response = $event->getResponse();
     if (
       !$event->isMainRequest() ||
       !self::isContentApiRequest($event->getRequest()) ||
       !$response instanceof CacheableJsonResponse ||
-      !$response->isSuccessful()
+      !($response->isSuccessful() || $response->isClientError())
     ) {
       return;
     }
+    $cacheability = $response->getCacheableMetadata();
+    $contexts = $this->cacheContextsManager->convertTokensToKeys($cacheability->getCacheContexts());
     // Decode to objects so that empty objects stay objects.
     $data = json_decode((string) $response->getContent(), flags: JSON_THROW_ON_ERROR);
-    $data->cacheTags = $response->getCacheableMetadata()->getCacheTags();
+    $data->cacheTags = Cache::mergeTags($cacheability->getCacheTags(), $contexts->getCacheTags());
+    $data->cacheMaxAge = Cache::mergeMaxAges($cacheability->getCacheMaxAge(), $contexts->getCacheMaxAge());
     $response->setData($data);
   }
 
