@@ -30,6 +30,10 @@ interface IFrameSwapperProps {
    */
   headStyles: string;
   setIsReloading: Dispatch<SetStateAction<boolean>>;
+  /**
+   * Counts updates applied in place, which complete without reloading.
+   */
+  setInPlaceUpdates: Dispatch<SetStateAction<number>>;
   interactive: boolean;
 }
 
@@ -52,7 +56,7 @@ const applyHeadStyles = (frame: HTMLIFrameElement | null, css: string) => {
 
 const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
   (
-    { srcDocument, headStyles, setIsReloading, interactive },
+    { srcDocument, headStyles, setIsReloading, setInPlaceUpdates, interactive },
     ref: Ref<HTMLIFrameElement>,
   ) => {
     const iFrameRefs = useRef<(HTMLIFrameElement | null)[]>([]);
@@ -204,6 +208,7 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
         applyInPlaceUpdate(activeIFrame.contentDocument, inPlaceUpdate)
       ) {
         activeSrcDocumentRef.current = srcDocument;
+        setInPlaceUpdates((count) => count + 1);
         return;
       }
       activeSrcDocumentRef.current = null;
@@ -249,7 +254,13 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
         inactiveIFrame?.removeEventListener('load', swapIFrames);
         activeIFrame?.removeEventListener('load', swapIFrames);
       };
-    }, [srcDocument, setIsReloading, swapIFrames, getIFrames]);
+    }, [
+      srcDocument,
+      setIsReloading,
+      setInPlaceUpdates,
+      swapIFrames,
+      getIFrames,
+    ]);
 
     const commonIFrameProps = {
       className: clsx(styles.preview, {
