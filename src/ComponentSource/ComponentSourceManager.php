@@ -351,6 +351,26 @@ final class ComponentSourceManager extends DefaultPluginManager {
    * @return bool
    *   TRUE if at least one item was updated.
    */
+
+  /**
+   * Whether ::updateComponentInstances() would change any instance in a tree.
+   */
+  public function isComponentInstanceUpdateNeeded(ComponentTreeItemList $tree): bool {
+    foreach ($tree as $item) {
+      \assert($item instanceof ComponentTreeItem);
+      $updater_class = $item->getComponent()?->getComponentSource()->getPluginDefinition()['updater'] ?? FALSE;
+      if (!$updater_class) {
+        continue;
+      }
+      $updater = $this->classResolver->getInstanceFromDefinition($updater_class);
+      \assert($updater instanceof ComponentInstanceUpdaterInterface);
+      if ($updater->isUpdateNeeded($item) && $updater->canUpdate($item)) {
+        return TRUE;
+      }
+    }
+    return FALSE;
+  }
+
   private function runUpdatersOnComponentTreeItemList(ComponentTreeItemList $tree): bool {
     $wasModified = FALSE;
     foreach ($tree as $item) {
