@@ -253,6 +253,36 @@ paths:
           $ref: '#/components/responses/ProblemDetailsResponse'
       security: []
 
+  /canvas-headless/cache-invalidation/{id}:
+    get:
+      summary: Read announced invalidated cache tags
+      description: |
+        Returns the cache tags invalidated in one Drupal request. Drupal
+        announces the ID to every configured frontend as
+        `POST {frontend}/api/canvas/revalidate` with the JSON body
+        `{"id": "..."}`. IDs expire after five minutes.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The invalidated cache tags.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [tags]
+                properties:
+                  tags:
+                    $ref: '#/components/schemas/CacheTags'
+        '404':
+          $ref: '#/components/responses/DrupalErrorResponse'
+      security: []
+
   /canvas-headless/assertion:
     post:
       summary: Mint a preview assertion
@@ -530,7 +560,7 @@ components:
     CanvasContentResult:
       type: object
       additionalProperties: false
-      required: [content, head, route, context]
+      required: [content, head, route, context, cacheTags]
       properties:
         content:
           oneOf:
@@ -543,6 +573,16 @@ components:
           $ref: '#/components/schemas/CanvasRouteContext'
         context:
           $ref: '#/components/schemas/CanvasContext'
+        cacheTags:
+          $ref: '#/components/schemas/CacheTags'
+
+    CacheTags:
+      description: >-
+        The response's Drupal cache tags. Frontends tag cached results with
+        them, and expire it when Drupal announces the tags invalidated.
+      type: array
+      items:
+        type: string
 
     CanvasContext:
       description: >-
@@ -674,7 +714,7 @@ components:
     CanvasRedirectResult:
       type: object
       additionalProperties: false
-      required: [redirect]
+      required: [redirect, cacheTags]
       properties:
         redirect:
           type: object
@@ -687,11 +727,13 @@ components:
               type: string
             statusCode:
               type: integer
+        cacheTags:
+          $ref: '#/components/schemas/CacheTags'
 
     CanvasEntityResult:
       type: object
       additionalProperties: false
-      required: [content, managedByCanvas, entity]
+      required: [content, managedByCanvas, entity, cacheTags]
       properties:
         content:
           oneOf:
@@ -702,6 +744,8 @@ components:
           type: boolean
         entity:
           $ref: '#/components/schemas/RoutedEntityRef'
+        cacheTags:
+          $ref: '#/components/schemas/CacheTags'
 
     UnheadDocument:
       type: object

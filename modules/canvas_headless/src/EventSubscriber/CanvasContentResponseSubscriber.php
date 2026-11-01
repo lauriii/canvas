@@ -171,6 +171,30 @@ final class CanvasContentResponseSubscriber implements EventSubscriberInterface 
   }
 
   /**
+   * Adds the final cache tags to successful JSON responses.
+   *
+   * Frontends tag what they cache with these, and expire it when Drupal
+   * reports the tags invalidated.
+   *
+   * @see \Drupal\canvas_headless\Cache\FrontendCacheTagInvalidator
+   */
+  public static function addCacheTags(ResponseEvent $event): void {
+    $response = $event->getResponse();
+    if (
+      !$event->isMainRequest() ||
+      !self::isContentApiRequest($event->getRequest()) ||
+      !$response instanceof CacheableJsonResponse ||
+      !$response->isSuccessful()
+    ) {
+      return;
+    }
+    // Decode to objects so that empty objects stay objects.
+    $data = json_decode((string) $response->getContent(), flags: JSON_THROW_ON_ERROR);
+    $data->cacheTags = $response->getCacheableMetadata()->getCacheTags();
+    $response->setData($data);
+  }
+
+  /**
    * {@inheritdoc}
    */
   public static function getSubscribedEvents(): array {
@@ -180,6 +204,7 @@ final class CanvasContentResponseSubscriber implements EventSubscriberInterface 
         ['addCacheability', 8],
         ['convertRedirect', -11],
         ['addAuthorizationVary', -12],
+        ['addCacheTags', -13],
       ],
     ];
   }

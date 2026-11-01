@@ -162,6 +162,8 @@ final class CanvasEntityControllerTest extends CanvasKernelTestBase {
       'uuid' => $node->uuid(),
       'langcode' => 'en',
     ], $data['entity']);
+    self::assertSame($response->getCacheableMetadata()->getCacheTags(), $data['cacheTags']);
+    self::assertContains('node:' . $node->id(), $data['cacheTags']);
   }
 
   /**
