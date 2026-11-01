@@ -3,9 +3,12 @@ import { createApi } from '@reduxjs/toolkit/query/react';
 
 import { setPostPreviewCompleted } from '@/components/review/PublishReview.slice';
 import {
+  selectLayout,
+  selectModel,
   setLayoutModel,
   setTranslations,
 } from '@/features/layout/layoutModelSlice';
+import { spliceComponentHtml } from '@/features/layout/preview/inPlaceUpdate';
 import {
   setHtml,
   setSnapshotHTML,
@@ -40,11 +43,20 @@ export type UpdateComponentResultType = {
   errors?: Array<ConflictError>;
 };
 
+// The response to a PATCH with partialPreview: the updated instance's preview
+// markup and model only.
+type PartialUpdateComponentResultType = {
+  component: { uuid: string; html: string };
+  model: any;
+  autoSaves: AutoSavesHash;
+};
+
 export type UpdateComponentQueryArg = {
   type: EditorFrameContext;
   componentInstanceUuid: string;
   componentType: string;
   model: Omit<ComponentModel, 'name'> | Omit<EvaluatedComponentModel, 'name'>;
+  partialPreview?: boolean;
 };
 
 export const previewApi = createApi({
@@ -147,7 +159,7 @@ export const previewApi = createApi({
       },
     }),
     updateComponent: builder.mutation<
-      UpdateComponentResultType,
+      UpdateComponentResultType | PartialUpdateComponentResultType,
       UpdateComponentQueryArg
     >({
       query: ({ type, ...body }) => {
@@ -160,13 +172,15 @@ export const previewApi = createApi({
         } else if (type === 'pattern') {
           url = 'canvas/api/v0/layout-pattern/{entity_id}';
         }
+        // Only entities support a partial preview.
+        const { partialPreview = type === 'entity', ...rest } = body;
         return {
           url,
           method: 'PATCH',
-          body,
+          body: partialPreview ? { ...rest, partialPreview } : rest,
         };
       },
-      async onQueryStarted(body, { dispatch, queryFulfilled }) {
+      async onQueryStarted(arg, { dispatch, getState, queryFulfilled }) {
         // Force any ajax calls to wait.
         pushCanvasLayoutRequest();
         let data: any;
@@ -183,7 +197,7 @@ export const previewApi = createApi({
           // Tell ajax calls they're good to go regardless of success/failure.
           popCanvasLayoutRequest();
         }
-        const { html, layout, model, autoSaves } = data;
+        const { model, autoSaves } = data;
         dispatch(
           pendingChangesApi.util.invalidateTags([
             { type: 'PendingChanges', id: 'LIST' },
@@ -194,11 +208,37 @@ export const previewApi = createApi({
         // preview snapshot, which selectPreviewHtml prefers while set.
         dispatch(setSnapshotHTML(''));
         dispatch(setSnapshotTitle(''));
-        dispatch(setHtml(html));
+        const state = getState() as RootState;
+        if ('component' in data) {
+          const html = spliceComponentHtml(state.preview.html, data.component);
+          if (html === null) {
+            // The current preview lacks the instance: get the whole page.
+            dispatch(
+              previewApi.endpoints.updateComponent.initiate({
+                ...arg,
+                partialPreview: false,
+              }),
+            );
+            return;
+          }
+          dispatch(setHtml(html));
+        } else {
+          dispatch(setHtml(data.html));
+        }
         handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         // Pass update preview false to prevent a subsequent preview update,
         // we have the data here.
-        dispatch(setLayoutModel({ layout, model, updatePreview: false }));
+        dispatch(
+          setLayoutModel(
+            'component' in data
+              ? {
+                  layout: selectLayout(state),
+                  model: { ...selectModel(state), ...model },
+                  updatePreview: false,
+                }
+              : { layout: data.layout, model, updatePreview: false },
+          ),
+        );
       },
     }),
   }),
