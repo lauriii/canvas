@@ -266,22 +266,49 @@ contexts. Frontends cache by path, so they would otherwise miss, for example,
 a change to the anonymous role's permissions. Frontends tag their cached copies
 with the tags and keep them for at most the max-age.
 
-This needs no configuration. Drupal collects the cache tags invalidated during
-a request. After the response, it stores them for five minutes under a random
-ID and sends `POST {frontend URL}/api/canvas/revalidate` with `{"id": "..."}`
-to every configured frontend. The frontend reads the tags from
-`GET /canvas-headless/cache-invalidation/{id}` and expires its cached copies.
-No secret is shared: the ID is unguessable and expires, and the tags come from
-Drupal. Failed announcements are logged to the `canvas_headless` channel and
-are not retried. See `createCacheInvalidationHandler()` in
-`@drupal-canvas/headless`.
+Frontends opt in by adding the full URL of their invalidation route to
+`canvas_headless.settings:cache_invalidation_urls`, which is separate from the
+preview frontend list, for example:
+
+```bash
+drush config:set canvas_headless.settings cache_invalidation_urls.0 https://www.example.com/api/canvas/revalidate
+```
+
+Drupal collects the cache tags invalidated during a request. After the
+response, it stores them for five minutes under a random ID per URL, and sends
+`POST {"id": "..."}` to each URL. The frontend reads the tags with
+`POST /canvas-headless/cache-invalidation` and the same JSON body, then expires
+its cached copies. An ID can be read once. No secret is shared: the ID is
+unguessable, single-use and expires, and the tags come from Drupal. See
+`createCacheInvalidationHandler()` in `@drupal-canvas/headless`.
 
 A cache rebuild (`drush cache:rebuild`), a router rebuild, or a request
 invalidating more than 1,000 tags announces `http_response` instead, which every
-response carries: frontends expire everything. Redirects are not followed and
-are logged as failures; requests time out after five seconds. The Next.js
-adapter answers at once and reads the tags afterwards, so an announcement holds
-a PHP worker only briefly.
+response carries: frontends expire everything. Redirects are not followed;
+requests time out after five seconds. The Next.js adapter answers at once and
+reads the tags afterwards, so an announcement holds a PHP worker only briefly.
+
+A failed announcement is logged to the `canvas_headless` channel, and the URL
+is remembered. Its next announcement, from the next request that invalidates
+tags or from cron, is `http_response`, so the frontend expires everything it
+may have missed.
+
+### Cache invalidation limitations
+
+- Every content API response depends on `route_match`, `config:core.extension`
+  and, with the Redirect module, `redirect_list`. Saving a path alias or a
+  redirect, or rebuilding the router, therefore expires every cached page.
+- If a reverse proxy or CDN caches the content API in front of Drupal, the
+  frontend can refetch its stale copy before that cache is purged, and keep
+  it. Exclude the content API from that cache, or purge it before Drupal
+  answers.
+- Drupal announces once per request, at the end. A long drush command or
+  migration announces when it finishes, usually `http_response`.
+- `drush cache:rebuild` waits for the announcement, up to two seconds per URL
+  that cannot be reached.
+- A forged announcement makes the frontend send Drupal one request, which
+  Drupal answers with 404.
+- Next.js drops tags longer than 256 characters.
 
 ## Known limitations
 

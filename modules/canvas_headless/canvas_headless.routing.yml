@@ -17,13 +17,13 @@ canvas_headless.entity:
   requirements:
     _access: 'TRUE'
 
-# The cache tags invalidated in one request. Drupal announces only the ID to
-# the configured frontends; the unguessable, short-lived ID is the credential.
+# Returns, once, the cache tags announced to a frontend under the `id` in the
+# JSON body. The unguessable, short-lived, single-use ID is the credential.
 canvas_headless.cache_invalidation:
-  path: '/canvas-headless/cache-invalidation/{id}'
+  path: '/canvas-headless/cache-invalidation'
   defaults:
-    _controller: 'Drupal\canvas_headless\Cache\FrontendCacheTagInvalidator::getTags'
-  methods: [GET]
+    _controller: 'Drupal\canvas_headless\Controller\CacheInvalidationController'
+  methods: [POST]
   requirements:
     _access: 'TRUE'
   options:

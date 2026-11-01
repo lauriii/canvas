@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas_headless\Kernel;
 
 use Drupal\canvas_headless\Cache\FrontendCacheTagInvalidator;
+use Drupal\canvas_headless\Controller\CacheInvalidationController;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\DestructableInterface;
 use Drupal\Core\Routing\RouteBuilderInterface;
@@ -17,6 +18,8 @@ use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Tests announcing invalidated cache tags through the real container.
@@ -39,12 +42,12 @@ final class FrontendCacheTagInvalidationTest extends CanvasKernelTestBase {
   ];
 
   /**
-   * Tests that a deferred router rebuild is announced and can be read back.
+   * Tests that a deferred router rebuild is announced and can be read once.
    */
   public function testAnnouncesDeferredRouterRebuild(): void {
     $this->installConfig(['canvas_headless']);
     $this->config('canvas_headless.settings')
-      ->set('frontends', [['url' => 'https://www.example.com', 'components' => []]])
+      ->set('cache_invalidation_urls', ['https://www.example.com/api/canvas/revalidate'])
       ->save();
     $history = [];
     $handler = HandlerStack::create(new MockHandler([new Response(204)]));
@@ -72,11 +75,16 @@ final class FrontendCacheTagInvalidationTest extends CanvasKernelTestBase {
     $id = json_decode((string) $history[0]['request']->getBody(), flags: JSON_THROW_ON_ERROR)->id;
 
     $route = $this->container->get(RouteProviderInterface::class)->getRouteByName('canvas_headless.cache_invalidation');
-    $this->assertSame('/canvas-headless/cache-invalidation/{id}', $route->getPath());
-    $this->assertSame(FrontendCacheTagInvalidator::class . '::getTags', $route->getDefault('_controller'));
+    $this->assertSame('/canvas-headless/cache-invalidation', $route->getPath());
+    $this->assertSame(['POST'], $route->getMethods());
+    $this->assertSame(CacheInvalidationController::class, $route->getDefault('_controller'));
     $this->assertTrue($route->getOption('no_cache'));
-    $response = $this->container->get(FrontendCacheTagInvalidator::class)->getTags($id);
-    $this->assertSame('{"tags":["http_response"]}', $response->getContent());
+    $controller = $this->container->get(CacheInvalidationController::class);
+    $read = static fn (mixed $id) => $controller(Request::create('/canvas-headless/cache-invalidation', 'POST', content: (string) json_encode(['id' => $id])));
+    $this->assertSame('{"tags":["http_response"]}', $read($id)->getContent());
+    // Single use.
+    $this->expectException(NotFoundHttpException::class);
+    $read($id);
   }
 
 }

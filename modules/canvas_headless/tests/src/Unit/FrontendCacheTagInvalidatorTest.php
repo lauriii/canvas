@@ -6,7 +6,9 @@ namespace Drupal\Tests\canvas_headless\Unit;
 
 use Drupal\canvas_headless\Cache\FrontendCacheTagInvalidator;
 use Drupal\Core\KeyValueStore\KeyValueExpirableFactoryInterface;
+use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
 use Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface;
+use Drupal\Core\KeyValueStore\MemoryStorage;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Tests\UnitTestCase;
@@ -20,7 +22,6 @@ use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use Psr\Log\LogLevel;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Tests announcing invalidated cache tags to headless frontends.
@@ -30,7 +31,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
 
   /**
-   * Tests that tags are announced once per request to every frontend.
+   * Tests that tags are announced once per request to every opted-in URL.
    */
   public function testAnnouncesCollectedTags(): void {
     $history = [];
@@ -47,16 +48,20 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
       $warnings[] = $context;
     });
 
+    $values = [];
+    $failed = new MemoryStorage('failed');
     $invalidator = $this->invalidator(
       [
-        ['url' => 'https://www.example.com', 'components' => []],
-        ['url' => 'https://down.example', 'components' => []],
-        ['url' => 'https://broken.example', 'components' => []],
-        ['url' => 'https://moved.example', 'components' => []],
-        ['url' => 'javascript:alert(1)', 'components' => []],
+        'https://www.example.com/api/canvas/revalidate',
+        'https://down.example/api/canvas/revalidate',
+        'https://broken.example/api/canvas/revalidate',
+        'https://moved.example/api/canvas/revalidate',
+        'javascript:alert(1)',
       ],
       static fn () => new Client(['handler' => $handler]),
       $this->loggerFactory($logger),
+      $values,
+      $failed,
     );
     $invalidator->invalidateTags(['node:1', 'node_list']);
     $invalidator->invalidateTags(['node:1', 'config:system.site', '123']);
@@ -75,8 +80,12 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
       self::assertFalse($transaction['options']['allow_redirects']);
       $ids[] = json_decode((string) $request->getBody(), TRUE, flags: JSON_THROW_ON_ERROR)['id'];
     }
-    self::assertCount(1, array_unique($ids));
+    // One ID per URL, each storing the tags; numeric tags stay strings.
+    self::assertCount(4, array_unique($ids));
     self::assertMatchesRegularExpression('/^[\w-]{43}$/', $ids[0]);
+    foreach ($ids as $id) {
+      self::assertSame(['node:1', 'node_list', 'config:system.site', '123'], $values[$id]);
+    }
     // In completion order.
     self::assertEqualsCanonicalizing([
       ['@url' => 'https://down.example/api/canvas/revalidate', '@message' => 'Connection refused'],
@@ -84,12 +93,56 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
       ['@url' => 'https://moved.example/api/canvas/revalidate', '@message' => 'HTTP 301'],
     ], $warnings);
 
-    $response = $invalidator->getTags($ids[0]);
-    // Numeric tags stay strings.
-    self::assertSame('{"tags":["node:1","node_list","config:system.site","123"]}', $response->getContent());
-    self::assertTrue($response->headers->hasCacheControlDirective('no-store'));
-    $this->expectException(NotFoundHttpException::class);
-    $invalidator->getTags('unknown');
+    // Failed URLs are remembered.
+    self::assertEqualsCanonicalizing([
+      'https://down.example/api/canvas/revalidate' => TRUE,
+      'https://broken.example/api/canvas/revalidate' => TRUE,
+      'https://moved.example/api/canvas/revalidate' => TRUE,
+    ], $failed->getAll());
+  }
+
+  /**
+   * Tests that a URL that missed an announcement is told to expire everything.
+   */
+  public function testRetriesFailedUrls(): void {
+    $history = [];
+    $handler = HandlerStack::create(new MockHandler([
+      new Response(500),
+      new Response(204),
+      new Response(204),
+      new Response(204),
+    ]));
+    $handler->push(Middleware::history($history));
+    $values = [];
+    $failed = new MemoryStorage('failed');
+    $logger = $this->createMock(LoggerChannelInterface::class);
+    $invalidator = $this->invalidator(
+      ['https://www.example.com/api/canvas/revalidate'],
+      static fn () => new Client(['handler' => $handler]),
+      $this->loggerFactory($logger),
+      $values,
+      $failed,
+    );
+
+    // Nothing failed yet: cron announces nothing.
+    $invalidator->retryFailed();
+    self::assertSame([], $values);
+
+    $invalidator->invalidateTags(['node:1']);
+    $invalidator->destruct();
+    self::assertSame(['https://www.example.com/api/canvas/revalidate'], \array_keys($failed->getAll()));
+
+    // The next announcement, here from cron, expires everything.
+    $invalidator->retryFailed();
+    self::assertSame([], $failed->getAll());
+    // Then announcements carry the invalidated tags again.
+    $invalidator->invalidateTags(['node:2']);
+    $invalidator->destruct();
+    $invalidator->retryFailed();
+
+    \assert(\is_array($history));
+    self::assertCount(3, $history);
+    self::assertSame([['node:1'], ['http_response'], ['node:2']], array_values($values));
   }
 
   /**
@@ -99,7 +152,7 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
     $handler = HandlerStack::create(new MockHandler([new Response(204), new Response(204)]));
     $store = [];
     $invalidator = $this->invalidator(
-      [['url' => 'https://www.example.com', 'components' => []]],
+      ['https://www.example.com/api/canvas/revalidate'],
       static fn () => new Client(['handler' => $handler]),
       $this->createMock(LoggerChannelFactoryInterface::class),
       $store,
@@ -121,7 +174,7 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
     $logger = $this->createMock(LoggerChannelInterface::class);
     $logger->expects($this->once())->method('log')->with(LogLevel::ERROR);
     $invalidator = $this->invalidator(
-      [['url' => 'https://www.example.com', 'components' => []]],
+      ['https://www.example.com/api/canvas/revalidate'],
       static fn () => throw new \RuntimeException('The HTTP client is broken.'),
       $this->loggerFactory($logger),
     );
@@ -130,7 +183,7 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
   }
 
   /**
-   * Tests that nothing is announced without frontends.
+   * Tests that nothing is announced without opted-in URLs.
    */
   public function testWithoutFrontends(): void {
     $invalidator = $this->invalidator(
@@ -153,25 +206,27 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
   }
 
   /**
-   * Creates the invalidator with the given frontends and in-memory storage.
+   * Creates the invalidator with the given URLs and in-memory storage.
    *
+   * @param list<string> $urls
+   *   The cache invalidation URLs.
    * @param array<string, mixed> $values
-   *   The stored values, by key; expiry is not covered.
+   *   The stored tags, by ID; expiry is not covered.
    */
-  private function invalidator(array $frontends, \Closure $http_client, LoggerChannelFactoryInterface $logger_factory, array &$values = []): FrontendCacheTagInvalidator {
+  private function invalidator(array $urls, \Closure $http_client, LoggerChannelFactoryInterface $logger_factory, array &$values = [], ?MemoryStorage $failed = NULL): FrontendCacheTagInvalidator {
     $store = $this->createMock(KeyValueStoreExpirableInterface::class);
     $store->method('setWithExpire')->willReturnCallback(function (string $key, mixed $value) use (&$values): void {
       $values[$key] = $value;
     });
-    $store->method('get')->willReturnCallback(function (string $key) use (&$values): mixed {
-      return $values[$key] ?? NULL;
-    });
     $key_value_expirable = $this->createMock(KeyValueExpirableFactoryInterface::class);
     $key_value_expirable->method('get')->willReturn($store);
+    $key_value = $this->createMock(KeyValueFactoryInterface::class);
+    $key_value->method('get')->willReturn($failed ?? new MemoryStorage('failed'));
     return new FrontendCacheTagInvalidator(
       $http_client,
-      fn () => $this->getConfigFactoryStub(['canvas_headless.settings' => ['frontends' => $frontends]]),
+      fn () => $this->getConfigFactoryStub(['canvas_headless.settings' => ['cache_invalidation_urls' => $urls]]),
       fn () => $key_value_expirable,
+      fn () => $key_value,
       fn () => $logger_factory,
     );
   }

@@ -60,6 +60,14 @@ class CanvasHeadlessHooks {
   }
 
   /**
+   * Tells frontends that missed an announcement to expire everything.
+   */
+  #[Hook('cron')]
+  public function cron(): void {
+    $this->frontendCacheTagInvalidator->retryFailed();
+  }
+
+  /**
    * Lets field expressions read the exact entity authorized by a preview route.
    *
    * Providers may authorize previews through create/update or revision access

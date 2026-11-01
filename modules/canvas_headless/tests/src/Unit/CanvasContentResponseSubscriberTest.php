@@ -460,6 +460,11 @@ final class CanvasContentResponseSubscriberTest extends UnitTestCase {
       $not_found_event->getResponse()->getContent(),
     );
 
+    // Other client errors are not cached.
+    $bad_request_event = $this->event(new CanvasContentProblemResponse(400));
+    $this->responseDispatcher()->dispatch($bad_request_event, KernelEvents::RESPONSE);
+    self::assertArrayNotHasKey('cacheTags', json_decode((string) $bad_request_event->getResponse()->getContent(), TRUE, flags: JSON_THROW_ON_ERROR));
+
     // Subrequests and server errors are left alone.
     $subrequest = new CacheableJsonResponse(['content' => NULL]);
     $this->responseDispatcher()->dispatch($this->event($subrequest, request_type: HttpKernelInterface::SUB_REQUEST), KernelEvents::RESPONSE);

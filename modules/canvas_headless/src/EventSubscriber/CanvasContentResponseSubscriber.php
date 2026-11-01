@@ -174,7 +174,7 @@ final class CanvasContentResponseSubscriber implements EventSubscriberInterface 
   }
 
   /**
-   * Lists the final cacheability in content results and client errors.
+   * Lists the final cacheability in content results, 403s and 404s.
    *
    * Frontends cache by path, so the cache contexts' own dependencies are
    * included: for example the anonymous role's permissions. They tag what
@@ -190,7 +190,7 @@ final class CanvasContentResponseSubscriber implements EventSubscriberInterface 
       !$event->isMainRequest() ||
       !self::isContentApiRequest($event->getRequest()) ||
       !$response instanceof CacheableJsonResponse ||
-      !($response->isSuccessful() || $response->isClientError())
+      !($response->isSuccessful() || $response->isForbidden() || $response->isNotFound())
     ) {
       return;
     }
