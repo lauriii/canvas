@@ -1,0 +1,7 @@
+{% if anchor is not empty %}
+  {% set attributes = attributes.setAttribute('id', anchor) %}
+{% endif %}
+<section {{ attributes.addClass('page-section') }}>
+  <h2>{{ heading }}</h2>
+  {% block content %}{% endblock %}
+</section>
