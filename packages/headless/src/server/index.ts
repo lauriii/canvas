@@ -46,6 +46,10 @@ export {
 export { createApiPrefixResolver } from './site-data';
 export { fetchPage } from './content-api';
 export {
+  createCacheInvalidationHandler,
+  type CacheInvalidationOptions,
+} from './cache-invalidation';
+export {
   isPageRedirect,
   serializeJsonForHtml,
   type CanvasComponentTreeElement,

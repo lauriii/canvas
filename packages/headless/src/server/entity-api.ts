@@ -73,6 +73,8 @@ export async function fetchEntity(options: {
     return null;
   }
   const result = (await response.json()) as EntityResult;
+  // Sites running a Canvas version that predates cache tags answer without.
+  result.cacheTags ??= [];
   if (liveDraft && result.managedByCanvas) {
     return {
       ...result,

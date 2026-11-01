@@ -89,7 +89,10 @@ export async function fetchPage(
   if (!response.ok) {
     return null;
   }
+  // Sites running a Canvas version that predates cache tags answer without
+  // them; nothing then expires on invalidation.
   const raw = (await response.json()) as PageResult;
+  raw.cacheTags ??= [];
   if (isPageRedirect(raw)) {
     // A local redirect remains inside this preview document. Keep its context
     // without adding frontend-only parameters to external destinations.

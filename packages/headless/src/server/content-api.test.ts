@@ -107,6 +107,7 @@ describe('isPageRedirect', () => {
           url: '/new-location',
           statusCode: 301,
         },
+        cacheTags: [],
       }),
     ).toBe(true);
     expect(
@@ -114,6 +115,7 @@ describe('isPageRedirect', () => {
         content: { element: 'canvas-page' },
         head: { title: 'Page' },
         context: { page: null, site: null },
+        cacheTags: [],
         route: {
           name: 'entity.canvas_page.canonical',
           requestUri: '/page',
@@ -155,6 +157,7 @@ describe('isPageRedirect', () => {
         content: null,
         head: { title: 'Empty page' },
         context: { page: null, site: null },
+        cacheTags: [],
         route: {
           name: 'user.login',
           requestUri: '/user/login',
@@ -311,6 +314,7 @@ describe('request-local preview context', () => {
         fetchImpl,
       });
       expect(result).toEqual({
+        cacheTags: [],
         redirect: {
           ...redirect,
           url: expected

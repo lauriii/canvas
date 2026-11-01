@@ -102,6 +102,8 @@ export interface Page {
   head: PageHead;
   route: DrupalRoute;
   context: CanvasContext;
+  /** Drupal cache tags; see createCacheInvalidationHandler(). */
+  cacheTags: string[];
 }
 
 /** A redirect Drupal resolved before routed content. */
@@ -111,6 +113,8 @@ export interface PageRedirect {
     url: string;
     statusCode: number;
   };
+  /** Drupal cache tags; see createCacheInvalidationHandler(). */
+  cacheTags: string[];
 }
 
 /** Drupal's content or redirect result for one frontend request URI. */

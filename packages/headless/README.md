@@ -134,6 +134,43 @@ empty managed tree also has `content` set to `null`, but keeps
 `route.managedByCanvas` set to `true`. Route-not-found and access-denied
 responses make `fetchPage()` return `null`.
 
+## Cache tag invalidation
+
+Page, redirect, and entity results carry `cacheTags`, the Drupal cache tags they
+depend on. Cache published results with these tags, and expire them when Drupal
+reports the tags invalidated. Results from sites without cache tag support have
+an empty list.
+
+`fetchPublishedPage(path)` fetches a page as anonymous visitors see it without
+reading the current request, so the result is safe to store in a cache keyed by
+path. It returns `null` for a page anonymous visitors cannot see, and throws for
+other errors, so a cache does not keep a transient failure. A `null` result
+depends on the `4xx-response` and `http_response` tags. Use `fetchPage()` for
+draft sessions.
+
+Mount `createCacheInvalidationHandler()` from `@drupal-canvas/headless/server`
+as a POST route at `/api/canvas/revalidate`. Drupal announces invalidations to
+that path on every configured frontend; the handler reads the invalidated tags
+from `CANVAS_SITE_URL` and passes them to your `invalidate` callback. No secret
+or Drupal setting is needed (see the
+[Canvas Headless module README](../../modules/canvas_headless/README.md#frontend-cache-invalidation)):
+
+```ts
+import { createCacheInvalidationHandler } from '@drupal-canvas/headless/server';
+
+// For example, behind a CDN that purges by tag: send
+// `Cache-Tag: ${page.cacheTags.join(',')}` with each page response.
+export const POST = createCacheInvalidationHandler({
+  invalidate: (tags) => purgeCdnTags(tags),
+});
+```
+
+The handler answers 204 after `invalidate` completes, 400 for a malformed
+announcement, 404 for an ID Drupal does not know, and 502 when Drupal cannot be
+reached. It throws (a framework 500) when `CANVAS_SITE_URL` is not configured or
+`invalidate` throws. The Next.js adapter connects this to the Next.js cache; see
+its README.
+
 ## JSON:API for portable Code Components
 
 To write a component that also works in Drupal and Workbench, use the supplied
@@ -290,6 +327,7 @@ mostly wiring:
    // POST /api/draft/renew           -> server.renewDraftSession(request)
    // POST /api/disable-draft         -> server.disableDraftMode()
    // ANY  /api/canvas/jsonapi/**     -> server.handleJsonApiProxy(request)
+   // POST /api/canvas/revalidate     -> createCacheInvalidationHandler(...)
    ```
 
 3. Mount `createComponentMetadataHandler()` from
