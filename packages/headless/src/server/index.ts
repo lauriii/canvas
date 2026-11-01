@@ -50,6 +50,7 @@ export {
   type CacheInvalidationOptions,
 } from './cache-invalidation';
 export {
+  type Cacheability,
   isPageRedirect,
   serializeJsonForHtml,
   type CanvasComponentTreeElement,
@@ -64,6 +65,7 @@ export {
   type PageHeadLink,
   type PageHeadMeta,
   type PageHeadScript,
+  type PageNotFound,
   type PageRedirect,
   type PageResult,
 } from '../page';

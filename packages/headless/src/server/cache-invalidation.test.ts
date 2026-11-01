@@ -73,6 +73,25 @@ describe('createCacheInvalidationHandler', () => {
     expect(invalidate).not.toHaveBeenCalled();
   });
 
+  it('answers before reading the tags when deferring', async () => {
+    const tasks: Array<() => Promise<void>> = [];
+    const invalidate = vi.fn();
+    const fetchImpl = vi.fn(async () => Response.json({ tags: ['node:1'] }));
+    const handle = createCacheInvalidationHandler({
+      invalidate,
+      config: { baseUrl: 'https://drupal.example' },
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      defer: (task) => tasks.push(task),
+    });
+
+    expect((await handle(announce({ id: 'abc' }))).status).toBe(202);
+    expect((await handle(announce({ id: '../x' }))).status).toBe(400);
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(tasks).toHaveLength(1);
+    await tasks[0]();
+    expect(invalidate).toHaveBeenCalledWith(['node:1']);
+  });
+
   it('refuses other methods', async () => {
     const { handle } = handler(async () => Response.json({ tags: [] }));
     const response = await handle(

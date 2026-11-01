@@ -95,26 +95,39 @@ export interface DrupalRoute {
 export type CanvasContext = CanvasContextData;
 
 /**
+ * How long a result may be cached, and what invalidates it; see
+ * createCacheInvalidationHandler().
+ */
+export interface Cacheability {
+  /** Drupal cache tags. */
+  cacheTags: string[];
+  /** Seconds the result may be cached; -1 for no limit. */
+  cacheMaxAge: number;
+}
+
+/**
  * Drupal's resolved-and-rendered answer for a request URI.
  */
-export interface Page {
+export interface Page extends Cacheability {
   content: CanvasComponentTreeElement | null;
   head: PageHead;
   route: DrupalRoute;
   context: CanvasContext;
-  /** Drupal cache tags; see createCacheInvalidationHandler(). */
-  cacheTags: string[];
 }
 
 /** A redirect Drupal resolved before routed content. */
-export interface PageRedirect {
+export interface PageRedirect extends Cacheability {
   redirect: {
     external: boolean;
     url: string;
     statusCode: number;
   };
-  /** Drupal cache tags; see createCacheInvalidationHandler(). */
-  cacheTags: string[];
+}
+
+/** A page anonymous visitors cannot see, from fetchPublishedPage(). */
+export interface PageNotFound extends Cacheability {
+  notFound: true;
+  status: 403 | 404;
 }
 
 /** Drupal's content or redirect result for one frontend request URI. */

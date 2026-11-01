@@ -108,6 +108,7 @@ describe('isPageRedirect', () => {
           statusCode: 301,
         },
         cacheTags: [],
+        cacheMaxAge: -1,
       }),
     ).toBe(true);
     expect(
@@ -116,6 +117,7 @@ describe('isPageRedirect', () => {
         head: { title: 'Page' },
         context: { page: null, site: null },
         cacheTags: [],
+        cacheMaxAge: -1,
         route: {
           name: 'entity.canvas_page.canonical',
           requestUri: '/page',
@@ -158,6 +160,7 @@ describe('isPageRedirect', () => {
         head: { title: 'Empty page' },
         context: { page: null, site: null },
         cacheTags: [],
+        cacheMaxAge: -1,
         route: {
           name: 'user.login',
           requestUri: '/user/login',
@@ -315,6 +318,7 @@ describe('request-local preview context', () => {
       });
       expect(result).toEqual({
         cacheTags: [],
+        cacheMaxAge: -1,
         redirect: {
           ...redirect,
           url: expected

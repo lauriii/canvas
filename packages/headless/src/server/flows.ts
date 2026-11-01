@@ -23,7 +23,7 @@ import {
 } from '../draft-data';
 import { parsePreviewRequest } from '../preview-context';
 import { resolveDraftConfig } from './config';
-import { fetchPage } from './content-api';
+import { fetchPage, fetchPublishedPage } from './content-api';
 import { buildClearedDraftCookie, buildDraftCookie } from './cookies';
 import { fetchEntity } from './entity-api';
 import {
@@ -42,7 +42,7 @@ import type {
 } from 'drupal-canvas/jsonapi-client';
 import type { DraftData } from '../draft-data';
 import type { EntityResult } from '../entity';
-import type { PageResult } from '../page';
+import type { PageNotFound, PageResult } from '../page';
 import type { PreviewContext } from '../preview-context';
 import type { DraftServerAdapter } from './adapter';
 import type { DraftConfig } from './config';
@@ -254,11 +254,11 @@ export interface DraftServer {
   /**
    * Fetches a page as anonymous visitors see it, without reading the current
    * request: for framework caches keyed by path, which must not depend on
-   * cookies or headers. Tag the cached copy with the result's cacheTags.
-   * Returns null for 403/404, and throws for other errors, so that a cache
-   * does not keep a transient failure.
+   * cookies or headers. Cache the result for at most its cacheMaxAge, and
+   * tag it with its cacheTags. 403/404 is a PageNotFound, and other errors
+   * throw, so that a cache does not keep a transient failure.
    */
-  fetchPublishedPage(path: string): Promise<PageResult | null>;
+  fetchPublishedPage(path: string): Promise<PageResult | PageNotFound>;
   /** Fetches one entity by type and ID, optionally in a specific view mode. */
   fetchEntity(options: {
     type: string;
@@ -530,19 +530,7 @@ export function createDraftServer(options: DraftServerOptions): DraftServer {
     },
 
     fetchPublishedPage: (path) =>
-      fetchPage(path, {
-        baseUrl: getConfig().baseUrl,
-        // A cache would keep a null for a transient error.
-        fetchImpl: async (input, init) => {
-          const response = await fetchImpl(input, init);
-          if (!response.ok && ![403, 404].includes(response.status)) {
-            throw new Error(
-              `The Canvas content API answered ${response.status}.`,
-            );
-          }
-          return response;
-        },
-      }),
+      fetchPublishedPage(path, { baseUrl: getConfig().baseUrl, fetchImpl }),
 
     async fetchEntity(options): Promise<EntityResult | null> {
       const draftData = await getDraftData();

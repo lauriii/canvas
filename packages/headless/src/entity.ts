@@ -3,13 +3,15 @@
  * Isomorphic rendered-entity contracts and helpers.
  */
 
-import type { CanvasComponentTreeElement, DrupalRouteEntity } from './page';
+import type {
+  Cacheability,
+  CanvasComponentTreeElement,
+  DrupalRouteEntity,
+} from './page';
 
 /** Drupal's rendered answer for one explicit entity target. */
-export interface EntityResult {
+export interface EntityResult extends Cacheability {
   content: CanvasComponentTreeElement | null;
   managedByCanvas: boolean;
   entity: DrupalRouteEntity;
-  /** Drupal cache tags; see createCacheInvalidationHandler(). */
-  cacheTags: string[];
 }

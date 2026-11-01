@@ -24,6 +24,13 @@ export interface CacheInvalidationOptions {
   config?: Partial<DraftConfig>;
   /** Fetch implementation, injectable for tests. */
   fetchImpl?: typeof fetch;
+  /**
+   * Runs a task after the response, for example Next.js `after()`. With it,
+   * the handler answers 202 at once and reads the tags afterwards: Drupal's
+   * announcing request then never waits for a Drupal worker to answer the
+   * read. Failures are logged.
+   */
+  defer?: (task: () => Promise<void>) => void;
 }
 
 /**
@@ -31,24 +38,14 @@ export interface CacheInvalidationOptions {
  * `/api/canvas/revalidate`). Answers 204 once `invalidate` completes, 400 for
  * a malformed announcement, 404 when Drupal knows no such ID, and 502 when
  * Drupal cannot be reached. Throws when the configuration is invalid or
- * `invalidate` throws.
+ * `invalidate` throws. With `defer`, answers 202 for every well-formed
+ * announcement instead.
  */
 export function createCacheInvalidationHandler(
   options: CacheInvalidationOptions,
 ): (request: Request) => Promise<Response> {
-  const { invalidate } = options;
-  return async (request) => {
-    if (request.method !== 'POST') {
-      return new Response(null, { status: 405, headers: { Allow: 'POST' } });
-    }
-    const body = (await request.json().catch(() => null)) as {
-      id?: unknown;
-    } | null;
-    const id = body?.id;
-    if (typeof id !== 'string' || !/^[\w-]{1,128}$/.test(id)) {
-      return new Response('Expected {"id": string}.', { status: 400 });
-    }
-
+  const { invalidate, defer } = options;
+  const invalidateAnnounced = async (id: string): Promise<Response> => {
     const { baseUrl } = resolveDraftConfig(options.config);
     // Resolved per request: frameworks may replace the global fetch later.
     const fetchImpl = options.fetchImpl ?? fetch;
@@ -73,5 +70,29 @@ export function createCacheInvalidationHandler(
     }
     await invalidate(tags);
     return new Response(null, { status: 204 });
+  };
+  return async (request) => {
+    if (request.method !== 'POST') {
+      return new Response(null, { status: 405, headers: { Allow: 'POST' } });
+    }
+    const body = (await request.json().catch(() => null)) as {
+      id?: unknown;
+    } | null;
+    const id = body?.id;
+    if (typeof id !== 'string' || !/^[\w-]{1,128}$/.test(id)) {
+      return new Response('Expected {"id": string}.', { status: 400 });
+    }
+    if (!defer) {
+      return invalidateAnnounced(id);
+    }
+    defer(async () => {
+      const response = await invalidateAnnounced(id);
+      if (response.status !== 204) {
+        console.warn(
+          `Canvas cache invalidation ${id}: ${response.status} ${await response.text()}`,
+        );
+      }
+    });
+    return new Response(null, { status: 202 });
   };
 }
