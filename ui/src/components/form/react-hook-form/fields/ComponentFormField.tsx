@@ -57,10 +57,8 @@ export const ComponentFormField = <P extends Record<string, any>>({
   const componentFormInputInfo = useComponentFormInputInfo(fieldName);
   const {
     dispatch,
-    components,
     transforms,
     inputAndUiData,
-    selectedComponentType,
     selectedComponent,
     propName,
     isScalarProp,
@@ -87,10 +85,9 @@ export const ComponentFormField = <P extends Record<string, any>>({
     );
     return (newFormState: PropsValues) => {
       // Scalar props of code components update the preview client-side, and
-      // the handler debounces their PATCH itself.
-      const shouldDebounce =
-        !isScalarProp ||
-        components?.[selectedComponentType]?.source !== 'Code component';
+      // the handler debounces their PATCH itself. Other scalar props PATCH
+      // right away: usePatchComponent() paces the requests.
+      const shouldDebounce = !isScalarProp;
       if (shouldDebounce) {
         debounceFormStateToLayoutModelStore(
           newFormState,

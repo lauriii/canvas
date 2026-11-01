@@ -19,6 +19,7 @@ import {
   popCanvasLayoutRequest,
   pushCanvasLayoutRequest,
 } from '@/services/baseQuery';
+import { createPatchScheduler } from '@/services/patchScheduler';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
 import { getEntityTitle } from '@/utils/entityTitle';
@@ -58,6 +59,13 @@ export type UpdateComponentQueryArg = {
   model: Omit<ComponentModel, 'name'> | Omit<EvaluatedComponentModel, 'name'>;
   partialPreview?: boolean;
 };
+
+// Paces PATCHes from usePatchComponent(). Sends through the newest
+// updateComponent trigger.
+let sendPatch: (arg: UpdateComponentQueryArg) => PromiseLike<unknown>;
+const patchScheduler = createPatchScheduler<UpdateComponentQueryArg>((arg) =>
+  sendPatch(arg),
+);
 
 export const previewApi = createApi({
   reducerPath: 'previewApi',
@@ -198,11 +206,16 @@ export const previewApi = createApi({
           popCanvasLayoutRequest();
         }
         const { model, autoSaves } = data;
-        dispatch(
-          pendingChangesApi.util.invalidateTags([
-            { type: 'PendingChanges', id: 'LIST' },
-          ]),
-        );
+        // A queued PATCH for this instance will bring a newer model. Applying
+        // this one would undo what was typed since this one was sent.
+        const isOutdated = patchScheduler.has(arg.componentInstanceUuid);
+        if (!isOutdated) {
+          dispatch(
+            pendingChangesApi.util.invalidateTags([
+              { type: 'PendingChanges', id: 'LIST' },
+            ]),
+          );
+        }
         // Clear any stale snapshot (e.g. from a prior language/template preview)
         // so selectPreviewHtml returns this fresh editor html instead of the
         // preview snapshot, which selectPreviewHtml prefers while set.
@@ -226,6 +239,9 @@ export const previewApi = createApi({
           dispatch(setHtml(data.html));
         }
         handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+        if (isOutdated) {
+          return;
+        }
         // Pass update preview false to prevent a subsequent preview update,
         // we have the data here.
         dispatch(
@@ -288,7 +304,8 @@ export const usePatchComponent = () => {
       return Promise.resolve({ data: undefined }) as any;
     }
     lastBody = stringBody;
-    return updateComponent(arg);
+    sendPatch = updateComponent;
+    patchScheduler.schedule(selectedComponent, arg);
   };
 };
 
