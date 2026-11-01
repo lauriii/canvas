@@ -88,10 +88,10 @@ export function spliceComponentHtml(
   );
 }
 
-const parseElements = (document: Document, html: string) => {
+const parseFragment = (document: Document, html: string) => {
   const template = document.createElement('template');
   template.innerHTML = html;
-  return [...template.content.children];
+  return template;
 };
 
 /**
@@ -107,28 +107,34 @@ function updateIslandProps(
   const liveElements = live.filter(
     (node): node is Element => node.nodeType === Node.ELEMENT_NODE,
   );
-  const [before, ...restBefore] = parseElements(document, previousHtml);
-  const [after, ...restAfter] = parseElements(document, html);
   const [island] = liveElements;
+  const fragments = [previousHtml, html].map((markup) =>
+    parseFragment(document, markup),
+  );
+  const [before, after] = fragments.map(({ content }) =>
+    content.children.length === 1 &&
+    content.firstElementChild?.localName === 'canvas-island'
+      ? content.firstElementChild
+      : null,
+  );
+  const props = after?.getAttribute('props');
   if (
     liveElements.length !== 1 ||
-    restBefore.length ||
-    restAfter.length ||
     island.localName !== 'canvas-island' ||
-    before?.localName !== 'canvas-island' ||
-    after?.localName !== 'canvas-island' ||
-    before.innerHTML !== after.innerHTML
+    !before ||
+    !after ||
+    props == null
   ) {
     return false;
   }
-  const changed = [
-    ...before.getAttributeNames(),
-    ...after.getAttributeNames(),
-  ].filter((name) => before.getAttribute(name) !== after.getAttribute(name));
-  if (changed.some((name) => name !== 'props')) {
+  // Everything else, including text and comments beside the island, must be
+  // unchanged.
+  before.removeAttribute('props');
+  after.removeAttribute('props');
+  if (fragments[0].innerHTML !== fragments[1].innerHTML) {
     return false;
   }
-  island.setAttribute('props', after.getAttribute('props')!);
+  island.setAttribute('props', props);
   return true;
 }
 

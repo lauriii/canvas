@@ -136,13 +136,20 @@ describe('applyInPlaceUpdate', () => {
     expect(live.getAttribute('props')).toBe('{"a":2}');
     expect(live.innerHTML).toBe('<p>Hydrated</p>');
 
-    // Other changes replace the island.
+    // Other changes, including text beside the island, replace the island.
     applyInPlaceUpdate(doc, {
       componentUuid: 'card',
-      html: island('{"a":2}', '<template></template>'),
-      previousHtml: island('{"a":2}'),
+      html: `${island('{"a":3}')}new text`,
+      previousHtml: `${island('{"a":2}')}old text`,
     });
-    expect(doc.querySelector('canvas-island')).not.toBe(live);
+    const replaced = doc.querySelector('canvas-island');
+    expect(replaced).not.toBe(live);
+    applyInPlaceUpdate(doc, {
+      componentUuid: 'card',
+      html: `${island('{"a":3}', '<template></template>')}new text`,
+      previousHtml: `${island('{"a":3}')}new text`,
+    });
+    expect(doc.querySelector('canvas-island')).not.toBe(replaced);
   });
 
   it('declines an unknown instance', () => {
