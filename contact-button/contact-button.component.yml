@@ -1,0 +1,22 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Contact button
+status: stable
+group: Examples
+props:
+  type: object
+  required:
+    - label
+    - href
+  properties:
+    label:
+      type: string
+      title: Label
+      examples:
+        - 'Email us'
+    href:
+      type: string
+      format: uri-reference
+      title: Link
+      description: 'A page, a URL, an email address or a phone number.'
+      examples:
+        - 'mailto:hello@example.com'
