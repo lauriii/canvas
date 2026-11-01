@@ -1,0 +1,41 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Callout
+status: stable
+group: Examples
+props:
+  type: object
+  required:
+    - text
+    - variant
+  properties:
+    text:
+      type: string
+      title: Text
+      examples:
+        - 'Your changes have been saved.'
+    variant:
+      type: string
+      title: Variant
+      enum:
+        - info
+        - success
+        - warning
+      meta:enum:
+        info: Info
+        success: Success
+        warning: Warning
+      examples:
+        - info
+    align:
+      type: string
+      title: Alignment
+      enum:
+        - left
+        - center
+        - right
+      meta:enum:
+        left: Left
+        center: Center
+        right: Right
+      examples:
+        - left

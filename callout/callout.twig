@@ -1,0 +1,4 @@
+{% set colors = {info: '#e6f0ff', success: '#e3f7e9', warning: '#fff4d6'} %}
+<div {{ attributes }} style="padding: 1rem 1.25rem; border-radius: 8px; background: {{ colors[variant] }}; text-align: {{ align|default('left') }};">
+  {{ text }}
+</div>
