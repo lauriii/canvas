@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { hasSliderRange } from './NumberSlider';
+import { getSliderStep, hasSliderRange } from './NumberSlider';
 
 describe('hasSliderRange', () => {
   it.each([
@@ -15,5 +15,16 @@ describe('hasSliderRange', () => {
     [{ min: '-2147483648', max: '2147483648' }, false],
   ])('%j → %s', (attributes, expected) => {
     expect(hasSliderRange(attributes)).toBe(expected);
+  });
+});
+
+describe('getSliderStep', () => {
+  it.each([
+    [{ min: '0', max: '3' }, 1],
+    [{ min: '0', max: '3', step: '' }, 1],
+    [{ min: '0', max: '10', step: '0.5' }, 0.5],
+    [{ min: '0', max: '1', step: 'any' }, 0.01],
+  ])('%j → %s', (attributes, expected) => {
+    expect(getSliderStep(attributes)).toBe(expected);
   });
 });

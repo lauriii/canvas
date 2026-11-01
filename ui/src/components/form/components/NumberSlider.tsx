@@ -25,6 +25,21 @@ export const hasSliderRange = (attributes: Attributes): boolean => {
 };
 
 /**
+ * The slider step for a number input.
+ *
+ * Follows the native default of 1 when `step` is missing or invalid.
+ * `step="any"` (decimals without a set scale) has no slider equivalent, so
+ * use 100 steps across the range.
+ */
+export const getSliderStep = (attributes: Attributes): number => {
+  if (attributes.step === 'any') {
+    return (Number(attributes.max) - Number(attributes.min)) / 100;
+  }
+  const step = Number(attributes.step);
+  return step > 0 ? step : 1;
+};
+
+/**
  * Renders a slider next to a number input that has a min and a max.
  *
  * The number input stays the form element and still allows exact values. A
@@ -43,25 +58,31 @@ const NumberSlider = ({
   const fieldRef = useRef<HTMLDivElement>(null);
   const min = Number(attributes.min);
   const max = Number(attributes.max);
-  const step = Number(attributes.step);
   const value = Number(attributes.value);
 
   return (
     <Flex align="center" gap="3">
+      <div ref={fieldRef} style={{ flex: '0 0 5rem' }}>
+        {children}
+      </div>
       <Slider
         size="1"
         min={min}
         max={max}
-        // `step="any"` (decimals without a set scale) has no slider equivalent.
-        step={step > 0 ? step : (max - min) / 100}
+        step={getSliderStep(attributes)}
         value={[attributes.value === '' || isNaN(value) ? min : value]}
         disabled={!!attributes.disabled}
         // The number input is the labelled form element; avoid announcing the
         // same value twice.
         aria-hidden
+        // Radix Themes passes this to the thumb, which takes keyboard focus.
         tabIndex={-1}
+        // The number input comes first in the DOM, so that a lookup of the
+        // field's first <input> finds it rather than the slider's own hidden
+        // <input>, rendered inside forms. Show the slider first.
+        // @see DrupalInputMultivalueForm
+        style={{ order: -1 }}
         onValueChange={([newValue]) => {
-          // Not the slider's own hidden <input>, rendered inside forms.
           const input = fieldRef.current?.querySelector('input');
           if (input) {
             // TextField intercepts the native setter to dispatch a change
@@ -74,9 +95,6 @@ const NumberSlider = ({
           }
         }}
       />
-      <div ref={fieldRef} style={{ flex: '0 0 5rem' }}>
-        {children}
-      </div>
     </Flex>
   );
 };
