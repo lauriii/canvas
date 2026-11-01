@@ -122,13 +122,6 @@ export const { GET, HEAD, POST, PATCH, DELETE, OPTIONS } =
   createDraftRouteHandlers().jsonApiProxy;
 ```
 
-```ts
-// app/api/canvas/revalidate/route.ts
-import { createDraftRouteHandlers } from '@drupal-canvas/headless-next';
-
-export const POST = createDraftRouteHandlers().revalidate.POST;
-```
-
 The jsonapi route is the same-origin JSON:API proxy portable Code Components
 reach Drupal through (see `@drupal-canvas/headless`); mount it at the path
 configured by `CANVAS_JSONAPI_PROXY_PATH` (default `/api/canvas/jsonapi`).
@@ -190,9 +183,11 @@ client.
 ## Caching published pages
 
 Published pages can stay in the Next.js cache until Drupal changes what they
-show. This uses
+show. Set `cacheComponents: true` in `next.config.ts`.
+
+Cache invalidation needs Next.js 16 with
 [Cache Components](https://nextjs.org/docs/app/getting-started/cache-components)
-(`cacheComponents: true` in `next.config.ts`, Next.js 16).
+enabled. The rest of this package also supports Next.js 15.
 
 Fetch the published page in a `'use cache'` function with
 `fetchPublishedPage()`, which reads no cookies or headers. Tag the entry with
@@ -205,6 +200,7 @@ import {
   fetchPage,
   fetchPublishedPage,
   getDraftData,
+  isPageNotFound,
 } from '@drupal-canvas/headless-next';
 
 async function getPublishedPage(path: string) {
@@ -217,21 +213,40 @@ async function getPublishedPage(path: string) {
 const page = (await getDraftData())
   ? await fetchPage(path)
   : await getPublishedPage(path);
-if (!page || 'notFound' in page) {
+if (!page || isPageNotFound(page)) {
   notFound();
 }
 ```
 
-Mount the `revalidate` route (step 3). Nothing else is needed: Drupal announces
-invalidated cache tags to `/api/canvas/revalidate` on every configured frontend,
-and the route expires every entry tagged with one of them immediately (see the
-[Canvas Headless module README](../../modules/canvas_headless/README.md#frontend-cache-invalidation)).
+Mount the cache invalidation route:
 
-`cacheCanvasTags()` also caches for at most the result's Drupal max-age; with a
-max-age of 0 the entry is not kept. A page anonymous visitors cannot see is a
-`PageNotFound` with the error's cache tags, so it expires when, for example, the
-page is published. `fetchPublishedPage()` throws for other errors, so a
-transient failure is not cached.
+```ts
+// app/api/canvas/revalidate/route.ts
+import { createCacheInvalidationRouteHandler } from '@drupal-canvas/headless-next';
+
+export const { POST } = createCacheInvalidationRouteHandler();
+```
+
+Then add the route's full URL, for example
+`https://www.example.com/api/canvas/revalidate`, to Drupal's
+`canvas_headless.settings:cache_invalidation_urls` (see the
+[Canvas Headless module README](../../modules/canvas_headless/README.md#frontend-cache-invalidation)).
+Drupal announces invalidated cache tags to that URL. The route answers at once,
+then reads the tags in `after()` and expires every entry tagged with one of
+them.
+
+`cacheCanvasTags()` also caches for at most the result's Drupal max-age. Call it
+once per `'use cache'` scope, with every result the entry depends on, for
+example `cacheCanvasTags(page, menu)`: it applies all their tags and the
+shortest max-age. With a max-age under five minutes, Next.js leaves the entry
+out of prerendering, so render it inside `<Suspense>`. A page anonymous visitors
+cannot see is a `PageNotFound` with the error's cache tags, so it expires when,
+for example, the page is published. `fetchPublishedPage()` throws for other
+errors, so a transient failure is not cached.
+
+`revalidateTag()` expires entries only in the Next.js cache of the instance that
+receives the announcement. Running several instances needs a shared
+[cache handler](https://nextjs.org/docs/app/api-reference/config/next-config-js/cacheHandlers).
 
 ## Data access
 
