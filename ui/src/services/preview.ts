@@ -72,10 +72,13 @@ export type UpdateComponentQueryArg = {
 };
 
 // Paces PATCHes from usePatchComponent() and usePatchProp(). Sends through the
-// newest updateComponent trigger.
+// newest updateComponent trigger, after any full-layout POST in flight.
 let sendPatch: (arg: UpdateComponentQueryArg) => PromiseLike<unknown>;
-const patchScheduler = createPatchScheduler<UpdateComponentQueryArg>((arg) =>
-  sendPatch(arg),
+const patchScheduler = createPatchScheduler<UpdateComponentQueryArg>(
+  async (arg) => {
+    await postInFlight?.catch(() => {});
+    return sendPatch(arg);
+  },
 );
 
 /**
@@ -90,7 +93,10 @@ let needsFullPreview = false;
 
 // Per component instance, the newest successful response whose model was not
 // applied because a newer PATCH was queued. Applied if that PATCH fails.
-const supersededResponses = new Map<string, { model: any; layout?: any }>();
+const supersededResponses = new Map<
+  string,
+  { response: { model: any; layout?: any }; editorUrl?: string }
+>();
 
 // Resolves once the previous updateComponent response is applied. Responses
 // are applied in turn, each after loading the assets it needs.
@@ -281,7 +287,10 @@ export const previewApi = createApi({
           const superseded = supersededResponses.get(uuid);
           if (superseded && !patchScheduler.has(uuid)) {
             supersededResponses.delete(uuid);
-            applyModel(superseded);
+            // Not if the editor moved to another entity since.
+            if (!isOtherEntity(superseded.editorUrl)) {
+              applyModel(superseded.response);
+            }
           }
           return;
         } finally {
@@ -344,7 +353,10 @@ export const previewApi = createApi({
           handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
           const response = 'component' in data ? { model } : data;
           if (isOutdated) {
-            supersededResponses.set(uuid, response);
+            supersededResponses.set(uuid, {
+              response,
+              editorUrl: arg.editorUrl,
+            });
             return;
           }
           supersededResponses.delete(uuid);
@@ -419,11 +431,14 @@ export const usePatchComponent = () => {
  * Only valid for EvaluatedComponentModel instances (components with source
  * data). Does nothing if the current model is not evaluated.
  */
+// Prop changes from usePatchProp(), each built after the previous one is saved.
+let propPatches: Promise<void> = Promise.resolve();
+
 export const usePatchProp = () => {
   const [updateComponent] = useUpdateComponentMutation();
   const store = useAppStore();
 
-  return async (
+  const patchProp = async (
     inputUIData: InputUIData,
     propName: string,
     sourceValue: PropSource | PropSource['value'],
@@ -465,7 +480,11 @@ export const usePatchProp = () => {
       },
       true,
     );
+    await sendQueuedComponentPatches();
   };
+
+  return (...args: Parameters<typeof patchProp>) =>
+    (propPatches = propPatches.then(() => patchProp(...args)));
 };
 
 // A selector that returns the current updateComponent mutation loading state
@@ -497,6 +516,9 @@ type PostPreviewArg = {
 // queued request executes when the active one completes.
 let activePreviewRequest: Promise<PostPreviewResult> | null = null;
 let pendingPreviewArg: PostPreviewArg | null = null;
+// Only the HTTP request of the active postPreview, which component PATCHes
+// wait for. activePreviewRequest also covers sending queued PATCHes first.
+let postInFlight: Promise<PostPreviewResult> | null = null;
 
 // Incremented each time a postPreview request completes successfully.
 // Used to detect whether an error has been superseded by a later success.
@@ -531,6 +553,7 @@ export function useQueuedPostPreviewMutation(
   ReturnType<typeof usePostPreviewMutation>[1],
 ] {
   const [postPreview, mutationState] = usePostPreviewMutation(options);
+  const store = useAppStore();
 
   const queuedPostPreview = async (
     arg: PostPreviewArg,
@@ -545,10 +568,25 @@ export function useQueuedPostPreviewMutation(
       pendingPreviewArg = null;
     }
 
-    activePreviewRequest = postPreview(arg).unwrap();
+    activePreviewRequest = (async () => {
+      // Component changes waiting to be sent would otherwise be undone by
+      // this layout, or saved before it and overwritten. Take their saved
+      // models.
+      await sendQueuedComponentPatches();
+      const savedModel = selectModel(store.getState());
+      const model = Object.fromEntries(
+        Object.entries(arg.model).map(([uuid, componentModel]) => [
+          uuid,
+          savedModel[uuid] ?? componentModel,
+        ]),
+      );
+      postInFlight = postPreview({ ...arg, model }).unwrap();
+      return postInFlight;
+    })();
     try {
       return await activePreviewRequest;
     } finally {
+      postInFlight = null;
       activePreviewRequest = null;
       if (pendingPreviewArg) {
         const nextArg = pendingPreviewArg;
