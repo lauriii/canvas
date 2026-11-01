@@ -494,3 +494,40 @@ test.describe('Perform CRUD operations on components', () => {
     );
   });
 });
+
+test.describe('Link props', () => {
+  test.use({ modules: ['canvas_test_sdc', 'canvas_test_page_anchors'] });
+
+  test('Suggest anchors on the page', async ({ page, drupal, canvas }) => {
+    await drupal.login({ username: 'editor', password: 'editor' });
+    await canvas.openCanvas(await canvas.createCanvas());
+    await canvas.openLibraryPanel();
+    // The section renders its `anchor` prop example, `pricing`, as an id.
+    await canvas.addComponent({ name: 'Page section' });
+    await canvas.openLibraryPanel();
+    await canvas.addComponent({ name: 'Link button' });
+
+    const link = page.getByLabel('Link', { exact: true });
+    const suggestions = page.locator('ul.ui-autocomplete li');
+    // An empty link field suggests the anchors on the page.
+    await link.fill('');
+    await page.getByLabel('Text', { exact: true }).click();
+    await link.click();
+    await expect(suggestions).toHaveText(['Page section: #pricing']);
+
+    // Typing anything other than `#` searches content as before.
+    await link.fill('Canvas');
+    await expect(suggestions.filter({ hasText: '#pricing' })).toHaveCount(0);
+
+    await link.fill('#pri');
+    await expect(suggestions).toHaveText(['Page section: #pricing']);
+    await suggestions.click();
+    await expect(link).toHaveValue('#pricing');
+    await canvas.testInPreviewFrame(
+      '[data-component-id="canvas_test_page_anchors:button"]',
+      async (button) => {
+        await expect(button).toHaveAttribute('href', '#pricing');
+      },
+    );
+  });
+});
