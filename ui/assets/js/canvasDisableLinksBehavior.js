@@ -63,6 +63,11 @@
     Drupal.behaviors.canvasDisableLinks = {
       attach(context) {
         // Binding these events to the body means they will handle dynamically/asynchronously added elements.
+        // Element contexts (e.g. a component updated in place) are covered by
+        // the listeners bound when the document was attached.
+        if (!context.body) {
+          return;
+        }
 
         once('canvasDisableLinksClick', context.body).forEach((el) => {
           el.addEventListener('click', handleClick);
@@ -78,6 +83,9 @@
         });
       },
       detach(context) {
+        if (!context.body) {
+          return;
+        }
         context.body.removeEventListener('click', handleClick);
         context.body.removeEventListener('keydown', handleKeydown);
         context.body.removeEventListener('submit', handleSubmit);
