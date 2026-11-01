@@ -218,6 +218,11 @@ final class ApiLayoutController {
       // Which page variant renders this entity, so the editor can offer to
       // jump to editing it. NULL when core block layout renders the page.
       $data['resolvedPageVariant'] = $this->pageVariantResolver->resolve($entity)?->id();
+      // What the "Site default" option of a page's own selection resolves to,
+      // so the editor can follow an unsaved switch to it.
+      if ($entity instanceof Page) {
+        $data['defaultPageVariant'] = $this->pageVariantResolver->resolveDefault($entity)?->id();
+      }
 
       // Determine if there's an unsaved status change by comparing the current
       // entity (which may be autosaved) with the original stored entity.

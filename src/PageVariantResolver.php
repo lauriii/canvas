@@ -84,6 +84,32 @@ final class PageVariantResolver {
         }
       }
     }
+    return $this->resolveDefault($entity, $is_preview, $cacheability);
+  }
+
+  /**
+   * Resolves what "Site default" means for the given route entity.
+   *
+   * This is the variant that renders when neither the entity nor its content
+   * template selects one: a module's selection, else the site default. The
+   * editor shows it for a page set to "Site default", so choosing that option
+   * keeps modules' selections in effect.
+   *
+   * @param \Drupal\Core\Entity\FieldableEntityInterface|null $entity
+   *   The content entity being rendered on the route, if any.
+   * @param bool $is_preview
+   *   Whether to return a valid auto-saved draft of the resolved variant.
+   * @param \Drupal\Core\Cache\RefinableCacheableDependencyInterface|null $cacheability
+   *   Receives the cacheability that modules' selections depend on.
+   *
+   * @return \Drupal\canvas\Entity\PageVariant|null
+   *   The resolved variant, or NULL when none applies (core block layout).
+   */
+  public function resolveDefault(
+    ?FieldableEntityInterface $entity,
+    bool $is_preview = FALSE,
+    ?RefinableCacheableDependencyInterface $cacheability = NULL,
+  ): ?PageVariant {
     // 3. A module's selection, e.g. by the route or the current user.
     $event = $this->eventDispatcher->dispatch(new PageVariantSelectionEvent($entity, $is_preview));
     $cacheability?->addCacheableDependency($event);

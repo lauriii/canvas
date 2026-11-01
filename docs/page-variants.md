@@ -45,7 +45,10 @@ Variants are managed and edited entirely in the editor:
   (for example by route, response status, or user role). Listeners add the
   cacheability their selection depends on to the event. The event is
   dispatched wherever a variant is resolved: front-end pages, editor previews,
-  and the headless content API.
+  and the headless content API. A page set to "Site default" keeps a module's
+  selection: the editor's Layers panel and "Edit template" link follow
+  `PageVariantResolver::resolveDefault()`, exposed as `defaultPageVariant` in
+  the page's layout response.
 
 ## Concepts
 

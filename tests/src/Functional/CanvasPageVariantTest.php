@@ -558,6 +558,7 @@ class CanvasPageVariantTest extends FunctionalTestBase {
     $layout_response_decoded = json_decode($canvas_ui_session->getPage()->getContent(), TRUE);
     $this->assertArrayHasKey('html', $layout_response_decoded);
     $this->assertSame(self::VARIANT_ID, $layout_response_decoded['resolvedPageVariant']);
+    $this->assertSame(self::VARIANT_ID, $layout_response_decoded['defaultPageVariant']);
 
     // Canvas UI: 1. The draft version of the JavaScriptComponent is rendered
     // in the page variant's layout preview. (The Canvas UI must preview all

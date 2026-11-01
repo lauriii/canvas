@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Entity;
 
+use Drupal\canvas\PageVariantResolver;
 use Drupal\Core\Entity\ContentEntityForm;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
@@ -23,11 +24,17 @@ final class CanvasPageForm extends ContentEntityForm {
   protected LanguageManagerInterface $languageManager;
 
   /**
+   * The page variant resolver.
+   */
+  protected PageVariantResolver $pageVariantResolver;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): self {
     $instance = parent::create($container);
     $instance->languageManager = $container->get(LanguageManagerInterface::class);
+    $instance->pageVariantResolver = $container->get(PageVariantResolver::class);
     return $instance;
   }
 
@@ -134,8 +141,9 @@ final class CanvasPageForm extends ContentEntityForm {
     // the same permission, so without it the shortcut only leads to a 403.
     $entity = $this->getEntity();
     \assert($entity instanceof Page);
+    // "Site default" also lets modules select the variant.
     $selected = $entity->get('page_variant')->value
-      ?? $this->config('canvas.settings')->get(PageVariant::DEFAULT_SETTING);
+      ?? $this->pageVariantResolver->resolveDefault($entity)?->id();
     if (\is_string($selected)
       && $this->currentUser()->hasPermission(PageVariant::ADMIN_PERMISSION)
       && PageVariant::load($selected) !== NULL) {

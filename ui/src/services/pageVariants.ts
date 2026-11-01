@@ -45,8 +45,9 @@ export const PAGE_CONTENT_MARKER_ID = 'marker.page_content';
 
 // Resolves the page variant shown in the Layers panel. The page data form can
 // contain an unsaved selection that is newer than the layout GET response.
-// Empty values mean "Site default"; while that setting is loading, retain the
-// layout response so the layer does not briefly disappear.
+// Empty values mean "Site default", which resolves to a module's selection
+// before the configured default; while that is loading, retain the layout
+// response so the layer does not briefly disappear.
 export const resolvePageVariantSelection = (
   resolvedPageVariant: string | null | undefined,
   selectedPageVariant: unknown,

@@ -46,6 +46,9 @@ export type LayoutApiResponse = RootLayoutModel & {
   // For content entities: the page variant rendering this entity, null when
   // core block layout renders the page. Absent for config entities.
   resolvedPageVariant?: string | null;
+  // For canvas_page entities: the page variant rendering the page when it is
+  // set to "Site default", which includes a module's selection.
+  defaultPageVariant?: string | null;
 };
 
 export type TemplateViewMode = {

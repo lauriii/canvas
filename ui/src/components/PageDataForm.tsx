@@ -20,10 +20,7 @@ import hyperscriptify from '@/local_packages/hyperscriptify';
 import propsify from '@/local_packages/hyperscriptify/propsify/standard/index.js';
 import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
 import { useGetPageDataFormQuery } from '@/services/pageDataForm';
-import {
-  PAGE_VARIANT_ENTITY_TYPE,
-  useGetDefaultPageVariantQuery,
-} from '@/services/pageVariants';
+import { PAGE_VARIANT_ENTITY_TYPE } from '@/services/pageVariants';
 import { AJAX_UPDATE_FORM_STATE_EVENT } from '@/types/Ajax';
 import parseHyperscriptifyTemplate from '@/utils/parse-hyperscriptify-template';
 
@@ -51,14 +48,15 @@ const PageDataFormRenderer = () => {
   } = useGetPageDataFormQuery(
     entityId && entityType ? { entityId, entityType } : skipToken,
   );
-  const { isFetching: isFetchingLayout } = useGetPageLayoutQuery(
+  const { data: layout, isFetching: isFetchingLayout } = useGetPageLayoutQuery(
     entityId && entityType ? { entityId, entityType } : skipToken,
   );
 
   const formRef = useRef<HTMLDivElement>(null);
   const { navigateToEditor } = useEditorNavigation();
-  const { data: defaultVariant } = useGetDefaultPageVariantQuery();
-  const defaultVariantId = defaultVariant?.default_page_variant ?? null;
+  // What "Site default" resolves to for this page, including a module's
+  // selection.
+  const defaultVariantId = layout?.defaultPageVariant ?? null;
   // The edit-template link is server-rendered Drupal markup, not a react
   // router <Link>; intercept it so it navigates without a full page load.
   const interceptEditTemplateLink = useCallback(
@@ -72,7 +70,7 @@ const PageDataFormRenderer = () => {
       // Edit the template currently chosen in the form — which may be an
       // unsaved, pending selection — rather than the server-rendered href,
       // which reflects the saved selection. An empty or "_none" value means
-      // "site default", which edits the configured default variant.
+      // "site default", which edits the variant it resolves to.
       const select = link
         .closest('[data-testid="canvas-page-data-form"]')
         ?.querySelector<HTMLSelectElement>('select[name="page_variant"]');

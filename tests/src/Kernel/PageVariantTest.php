@@ -802,6 +802,10 @@ final class PageVariantTest extends CanvasKernelTestBase {
     self::assertSame('chosen', $resolver->resolve(Node::create(['type' => 'helpful', 'title' => 'Templated']))?->id());
     self::assertSame([], $listener->takeCalls());
 
+    // Their "Site default" option still means a module's selection first.
+    self::assertSame('by_module', $resolver->resolveDefault(Page::create(['title' => 'Own', 'page_variant' => 'chosen']))?->id());
+    self::assertSame([['Own', FALSE]], $listener->takeCalls());
+
     // Without a module's selection the site default applies, still varying by
     // what the module checked.
     $listener->select = FALSE;

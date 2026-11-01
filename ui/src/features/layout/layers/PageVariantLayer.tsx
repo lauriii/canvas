@@ -11,7 +11,6 @@ import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
 import {
   PAGE_VARIANT_ENTITY_TYPE,
   resolvePageVariantSelection,
-  useGetDefaultPageVariantQuery,
   useGetPageVariantsQuery,
 } from '@/services/pageVariants';
 import { hasPermission } from '@/utils/permissions';
@@ -51,14 +50,10 @@ const PageVariantLayer = ({ children }: { children: React.ReactNode }) => {
   const { data: variants } = useGetPageVariantsQuery(undefined, {
     skip: !isEntityEditorRoute || !canEditVariants,
   });
-  const { data: defaultVariant } = useGetDefaultPageVariantQuery(undefined, {
-    skip: !isEntityEditorRoute || !canEditVariants,
-  });
-
   const variantId = resolvePageVariantSelection(
     layout?.resolvedPageVariant,
     pageData.page_variant,
-    defaultVariant?.default_page_variant,
+    layout?.defaultPageVariant,
   );
   if (!isEntityEditorRoute || !variantId) {
     return children;

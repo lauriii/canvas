@@ -2908,6 +2908,10 @@ paths:
                     type: [string, "null"]
                     # @see \Drupal\canvas\PageVariantResolver
                     description: For content entities, the page variant that renders this entity (null when core block layout renders the page). Absent when editing config entities.
+                  defaultPageVariant:
+                    type: [string, "null"]
+                    # @see \Drupal\canvas\PageVariantResolver::resolveDefault()
+                    description: For canvas_page entities, the page variant that renders the page when it is set to "Site default" (a module's selection, else the site default; null when core block layout renders the page). Absent for other entities.
                   updated:
                     type: integer
                     title: Updated timestamp
@@ -4722,6 +4726,8 @@ components:
         # Response-only in practice; accepted here so layout GET responses can
         # round-trip into POST bodies, like isNew/isPublished/translations.
         resolvedPageVariant:
+          type: [string, "null"]
+        defaultPageVariant:
           type: [string, "null"]
     AutoSaveConcurrencyControl:
       title: Auto Save Concurrency Control
