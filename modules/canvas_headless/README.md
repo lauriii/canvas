@@ -257,6 +257,26 @@ Errors use RFC 9457 Problem Details and the `application/problem+json` media typ
 
 `detail` is included when an additional explanation is available.
 
+## Frontend cache invalidation
+
+Successful content, entity, and redirect responses include `cacheTags`: the
+response's Drupal cache tags. Frontends tag their cached copies with them.
+
+This needs no configuration. Drupal collects the cache tags invalidated during
+a request. After the response, it stores them for five minutes under a random
+ID and sends `POST {frontend URL}/api/canvas/revalidate` with `{"id": "..."}`
+to every configured frontend. The frontend reads the tags from
+`GET /canvas-headless/cache-invalidation/{id}` and expires its cached copies.
+No secret is shared: the ID is unguessable and expires, and the tags come from
+Drupal. Failed announcements are logged to the `canvas_headless` channel and
+are not retried. See `createCacheInvalidationHandler()` in
+`@drupal-canvas/headless`.
+
+A cache rebuild (`drush cache:rebuild`), a router rebuild, or a request
+invalidating more than 1,000 tags announces `http_response` instead, which every
+response carries: frontends expire everything. Requests are not followed
+through redirects, and time out after five seconds.
+
 ## Known limitations
 
 - Canonical routes render the default revision. Use revision or latest-version

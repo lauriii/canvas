@@ -425,6 +425,32 @@ final class CanvasContentResponseSubscriberTest extends UnitTestCase {
     self::assertSame(['Cookie'], $redirect->getVary());
     self::assertSame(['Cookie', 'Authorization'], $response->getVary());
     self::assertSame('max-age=300, public', $response->headers->get('Cache-Control'));
+    self::assertSame(
+      ['http_response', 'config:core.extension', 'route_match'],
+      json_decode((string) $response->getContent(), TRUE, flags: JSON_THROW_ON_ERROR)['cacheTags'],
+    );
+  }
+
+  /**
+   * Tests that successful content results list their final cache tags.
+   */
+  public function testCacheTags(): void {
+    $response = new CacheableJsonResponse(['content' => NULL, 'params' => new \stdClass()]);
+    $response->addCacheableDependency((new CacheableMetadata())->setCacheTags(['node:1']));
+    $event = $this->event($response);
+    $this->responseDispatcher()->dispatch($event, KernelEvents::RESPONSE);
+    self::assertSame(
+      '{"content":null,"params":{},"cacheTags":["node:1","http_response","config:core.extension","route_match"]}',
+      $event->getResponse()->getContent(),
+    );
+
+    // Subrequests and errors are left alone.
+    $subrequest = new CacheableJsonResponse(['content' => NULL]);
+    $this->responseDispatcher()->dispatch($this->event($subrequest, request_type: HttpKernelInterface::SUB_REQUEST), KernelEvents::RESPONSE);
+    self::assertSame('{"content":null}', $subrequest->getContent());
+    $error_event = $this->event(new CacheableJsonResponse(['content' => NULL], 404));
+    $this->responseDispatcher()->dispatch($error_event, KernelEvents::RESPONSE);
+    self::assertArrayNotHasKey('cacheTags', json_decode((string) $error_event->getResponse()->getContent(), TRUE, flags: JSON_THROW_ON_ERROR));
   }
 
   /**
@@ -442,6 +468,7 @@ final class CanvasContentResponseSubscriberTest extends UnitTestCase {
     self::assertSame([], $content->getCacheableMetadata()->getCacheTags());
     $this->responseDispatcher()->dispatch($content_event, KernelEvents::RESPONSE);
     self::assertSame(['Cookie'], $content->getVary());
+    self::assertSame('{"content":"ordinary"}', $content->getContent());
 
     $redirect = new TrustedRedirectResponse('/another-route');
     $redirect_event = $this->event(
