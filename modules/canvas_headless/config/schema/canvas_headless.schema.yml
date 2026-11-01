@@ -1,3 +1,34 @@
+# An absolute frontend URL, in the form FrontendUrl accepts.
+canvas_headless.frontend_url:
+  type: uri
+  label: 'Frontend URL'
+  constraints:
+    NotBlank: {  }
+    # Only an unambiguous absolute http(s) URL is acceptable. The
+    # value becomes the editor frame's iframe src and a redirect
+    # target, so an executable scheme (javascript:, data:) would
+    # run script in the Drupal origin. Backslashes, credentials
+    # (@), queries (?), fragments (#), and literal or percent-
+    # encoded dot path segments are refused as parser-differential
+    # vectors — a browser and PHP's parse_url disagree on the host
+    # of "https://evil.test\@trusted.example" and on the path of
+    # "https://example.com/a/../app".
+    # The host must be spelled the way a browser would spell it: a
+    # canonical dotted-quad IPv4 literal, or letter/digit/hyphen
+    # labels whose final label starts with a letter. That refuses
+    # the host forms browsers silently rewrite (percent-encoding,
+    # IPv4 number forms like 0x7f000001, non-ASCII IDN), any of
+    # which would navigate the iframe to one origin while
+    # postMessage checks compared against another. It must also not
+    # end with a slash, because the draft path is appended verbatim
+    # and would produce a double slash. Case-insensitive, because
+    # FrontendUrl lowercases scheme and host — the one rewrite
+    # browsers also perform. FrontendUrl accepts exactly this set
+    # at runtime, for values that never pass through validation.
+    Regex:
+      pattern: '~^(?!https?://[^/]+(?:/[^/]*)*/(?:(?:\.|%2e){1,2})(?:/|$))https?://(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}|(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?)(?::\d+)?(/[^\s\\@?#]*[^/\s\\@?#])?$~i'
+      message: 'The frontend URL must be an absolute http:// or https:// URL whose host is a hostname or a dotted-quad IPv4 address, with no credentials, query, fragment, dot path segments, or trailing slash.'
+
 canvas_headless.settings:
   type: config_object
   label: 'Drupal Canvas Headless settings'
@@ -12,34 +43,8 @@ canvas_headless.settings:
         label: 'Frontend'
         mapping:
           url:
-            type: uri
+            type: canvas_headless.frontend_url
             label: 'Frontend base URL'
-            constraints:
-              NotBlank: {  }
-              # Only an unambiguous absolute http(s) URL is acceptable. The
-              # value becomes the editor frame's iframe src and a redirect
-              # target, so an executable scheme (javascript:, data:) would
-              # run script in the Drupal origin. Backslashes, credentials
-              # (@), queries (?), fragments (#), and literal or percent-
-              # encoded dot path segments are refused as parser-differential
-              # vectors — a browser and PHP's parse_url disagree on the host
-              # of "https://evil.test\@trusted.example" and on the path of
-              # "https://example.com/a/../app".
-              # The host must be spelled the way a browser would spell it: a
-              # canonical dotted-quad IPv4 literal, or letter/digit/hyphen
-              # labels whose final label starts with a letter. That refuses
-              # the host forms browsers silently rewrite (percent-encoding,
-              # IPv4 number forms like 0x7f000001, non-ASCII IDN), any of
-              # which would navigate the iframe to one origin while
-              # postMessage checks compared against another. It must also not
-              # end with a slash, because the draft path is appended verbatim
-              # and would produce a double slash. Case-insensitive, because
-              # FrontendUrl lowercases scheme and host — the one rewrite
-              # browsers also perform. FrontendUrl accepts exactly this set
-              # at runtime, for values that never pass through validation.
-              Regex:
-                pattern: '~^(?!https?://[^/]+(?:/[^/]*)*/(?:(?:\.|%2e){1,2})(?:/|$))https?://(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}|(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?)(?::\d+)?(/[^\s\\@?#]*[^/\s\\@?#])?$~i'
-                message: 'The frontend URL must be an absolute http:// or https:// URL whose host is a hostname or a dotted-quad IPv4 address, with no credentials, query, fragment, dot path segments, or trailing slash.'
           components:
             type: sequence
             label: 'Frontend-managed Canvas component IDs'
@@ -53,6 +58,15 @@ canvas_headless.settings:
                   # components, for example `js.hero-banner`.
                   pattern: '/^js\.[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*$/'
                   message: 'The %value component ID is not valid. It must be a code component ID, such as js.hero-banner.'
+    cache_invalidation_urls:
+      type: sequence
+      label: 'Cache invalidation URLs'
+      # Opt-in: only these URLs are told about invalidated cache tags, for
+      # example https://www.example.com/api/canvas/revalidate.
+      requiredKey: false
+      sequence:
+        type: canvas_headless.frontend_url
+        label: 'Cache invalidation URL'
     assertion_expiration:
       type: integer
       label: 'Preview assertion expiration time in seconds'

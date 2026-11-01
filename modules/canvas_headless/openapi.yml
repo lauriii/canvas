@@ -259,20 +259,24 @@ paths:
           $ref: '#/components/responses/ProblemDetailsResponse'
       security: []
 
-  /canvas-headless/cache-invalidation/{id}:
-    get:
+  /canvas-headless/cache-invalidation:
+    post:
       summary: Read announced invalidated cache tags
       description: |
-        Returns the cache tags invalidated in one Drupal request. Drupal
-        announces the ID to every configured frontend as
-        `POST {frontend}/api/canvas/revalidate` with the JSON body
-        `{"id": "..."}`. IDs expire after five minutes.
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
+        Returns the cache tags invalidated in one Drupal request, once. Drupal
+        announces the ID to every URL in
+        `canvas_headless.settings:cache_invalidation_urls` with the same JSON
+        body. IDs expire after five minutes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id:
+                  type: string
       responses:
         '200':
           description: The invalidated cache tags.
@@ -1025,10 +1029,10 @@ components:
           type: string
           format: uri-reference
         cacheTags:
-          description: Present on client errors (4xx).
+          description: Present on 403 and 404 responses.
           $ref: '#/components/schemas/CacheTags'
         cacheMaxAge:
-          description: Present on client errors (4xx).
+          description: Present on 403 and 404 responses.
           $ref: '#/components/schemas/CacheMaxAge'
 
   responses:
