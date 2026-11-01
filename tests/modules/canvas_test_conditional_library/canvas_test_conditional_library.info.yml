@@ -1,0 +1,6 @@
+name: 'Test conditional library'
+type: module
+description: 'Provides an SDC that attaches a library depending on a prop.'
+dependencies:
+  - canvas:canvas
+package: Testing

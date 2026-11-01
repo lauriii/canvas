@@ -1,0 +1,4 @@
+{% if highlighted %}
+  {{ attach_library('canvas_test_conditional_library/highlight') }}
+{% endif %}
+<p{{ attributes.addClass(highlighted ? 'canvas-test-highlight') }}>{{ text }}</p>

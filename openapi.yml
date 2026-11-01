@@ -2990,6 +2990,34 @@ paths:
                         $ref: '#/components/schemas/Model'
                       autoSaves:
                         $ref: '#/components/schemas/AutoSaveConcurrencyControl'
+                      assets:
+                        type: object
+                        description: >
+                          Present when the instance's libraries or settings
+                          changed: what the page lacks, as the attributes of
+                          the elements to add in order, and the settings to
+                          merge into drupalSettings.
+                        required:
+                          - css
+                          - jsHeader
+                          - jsFooter
+                          - settings
+                        additionalProperties: false
+                        properties:
+                          css:
+                            type: array
+                            items:
+                              type: object
+                          jsHeader:
+                            type: array
+                            items:
+                              type: object
+                          jsFooter:
+                            type: array
+                            items:
+                              type: object
+                          settings:
+                            type: object
         '401':
           description: Unauthorized (unauthenticated) response.
           $ref: '#/components/responses/UnauthorizedErrorResponse'
@@ -6430,6 +6458,12 @@ components:
                   Requests only the updated component instance's preview markup
                   instead of the whole page. The response falls back to the
                   whole page when that is not possible.
+              pageLibraries:
+                type: string
+                description: >
+                  The preview page's `drupalSettings.ajaxPageState.libraries`.
+                  With partialPreview, lets the response add libraries and
+                  settings the updated instance needs and the page lacks.
     NewContentRequest:
           content:
             application/json:

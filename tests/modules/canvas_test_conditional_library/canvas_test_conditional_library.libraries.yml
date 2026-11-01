@@ -1,0 +1,13 @@
+highlight:
+  css:
+    theme:
+      css/highlight.css: {}
+  js:
+    js/highlight.js: {}
+  dependencies:
+    - core/drupal
+    - core/drupalSettings
+    - core/once
+  drupalSettings:
+    canvasTestHighlight:
+      color: gold
