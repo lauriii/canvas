@@ -17,11 +17,13 @@ export {
   type ComponentMetadataHandlerOptions,
 } from './component-metadata';
 export { toNextMetadata } from './head';
+export { cacheCanvasTags } from './cache';
 export {
   disableDraftMode,
   enableDraftMode,
   fetchEntity,
   fetchPage,
+  fetchPublishedPage,
   getClient,
   getDraftClient,
   getDraftConfig,

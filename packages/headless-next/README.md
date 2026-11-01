@@ -122,9 +122,16 @@ export const { GET, HEAD, POST, PATCH, DELETE, OPTIONS } =
   createDraftRouteHandlers().jsonApiProxy;
 ```
 
-The last route is the same-origin JSON:API proxy portable Code Components reach
-Drupal through (see `@drupal-canvas/headless`); mount it at the path configured
-by `CANVAS_JSONAPI_PROXY_PATH` (default `/api/canvas/jsonapi`).
+```ts
+// app/api/canvas/revalidate/route.ts
+import { createDraftRouteHandlers } from '@drupal-canvas/headless-next';
+
+export const POST = createDraftRouteHandlers().revalidate.POST;
+```
+
+The jsonapi route is the same-origin JSON:API proxy portable Code Components
+reach Drupal through (see `@drupal-canvas/headless`); mount it at the path
+configured by `CANVAS_JSONAPI_PROXY_PATH` (default `/api/canvas/jsonapi`).
 
 **4. Root layout** — the `CanvasRuntime` server component supplies the request's
 nonsecret JSON:API runtime configuration to every `CanvasComponentTree` below
@@ -179,6 +186,46 @@ session**. Requests made through that client during server rendering fail with
 `ServerRenderingDraftFetchError`; prefetch draft data with the SDK's
 `getClient()` as described above. Public pages get a direct, unauthenticated
 client.
+
+## Caching published pages
+
+Published pages can stay in the Next.js cache until Drupal changes what they
+show. This uses
+[Cache Components](https://nextjs.org/docs/app/getting-started/cache-components)
+(`cacheComponents: true` in `next.config.ts`, Next.js 16).
+
+Fetch the published page in a `'use cache'` function with
+`fetchPublishedPage()`, which reads no cookies or headers. Tag the entry with
+`cacheCanvasTags()`. Keep draft sessions on `fetchPage()`:
+
+```tsx
+import {
+  cacheCanvasTags,
+  fetchPage,
+  fetchPublishedPage,
+  getDraftData,
+} from '@drupal-canvas/headless-next';
+
+async function getPublishedPage(path: string) {
+  'use cache';
+  const page = await fetchPublishedPage(path);
+  cacheCanvasTags(page);
+  return page;
+}
+
+const page = (await getDraftData())
+  ? await fetchPage(path)
+  : await getPublishedPage(path);
+```
+
+Mount the `revalidate` route (step 3). Nothing else is needed: Drupal announces
+invalidated cache tags to `/api/canvas/revalidate` on every configured frontend,
+and the route expires every entry tagged with one of them immediately (see the
+[Canvas Headless module README](../../modules/canvas_headless/README.md#frontend-cache-invalidation)).
+
+`cacheCanvasTags(null)` tags a missing page to expire whenever Drupal content is
+created or changed. `fetchPublishedPage()` throws for errors other than 403/404,
+so a transient failure is not cached.
 
 ## Data access
 
