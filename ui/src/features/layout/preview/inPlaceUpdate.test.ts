@@ -26,6 +26,7 @@ describe('findInPlaceUpdate', () => {
     expect(findInPlaceUpdate(page(), page({ card: 'New card' }))).toEqual({
       componentUuid: 'card',
       html: '<p>New card</p>',
+      previousHtml: '<p>Card</p>',
     });
   });
 
@@ -33,6 +34,7 @@ describe('findInPlaceUpdate', () => {
     expect(findInPlaceUpdate(page(), page({ heading: 'Hi' }))).toEqual({
       componentUuid: 'heading',
       html: '<h1>Hi</h1>',
+      previousHtml: '<h1>Hello</h1>',
     });
   });
 
@@ -42,6 +44,7 @@ describe('findInPlaceUpdate', () => {
     ).toEqual({
       componentUuid: 'section',
       html: expect.stringMatching(/^<section>.*<h1>Hi<\/h1>.*New card.*/),
+      previousHtml: expect.stringMatching(/^<section>.*<h1>Hello<\/h1>/),
     });
   });
 
@@ -77,6 +80,7 @@ describe('applyInPlaceUpdate', () => {
       applyInPlaceUpdate(doc, {
         componentUuid: 'card',
         html: '<p>New card</p>',
+        previousHtml: '<p>Card</p>',
       }),
     ).toBe(true);
 
@@ -98,11 +102,46 @@ describe('applyInPlaceUpdate', () => {
     );
   });
 
+  it('updates the props of an island instead of replacing it', () => {
+    const island = (props: string, child = '<script></script>') =>
+      `<canvas-island uid="card" props='${props}'>${child}</canvas-island>`;
+    const doc = document.implementation.createHTMLDocument();
+    doc.documentElement.innerHTML = page({ card: '' }).replace(
+      '<p></p>',
+      island('{"a":1}'),
+    );
+    const live = doc.querySelector('canvas-island')!;
+    live.innerHTML = '<p>Hydrated</p>';
+
+    expect(
+      applyInPlaceUpdate(doc, {
+        componentUuid: 'card',
+        html: island('{"a":2}'),
+        previousHtml: island('{"a":1}'),
+      }),
+    ).toBe(true);
+    expect(doc.querySelector('canvas-island')).toBe(live);
+    expect(live.getAttribute('props')).toBe('{"a":2}');
+    expect(live.innerHTML).toBe('<p>Hydrated</p>');
+
+    // Other changes replace the island.
+    applyInPlaceUpdate(doc, {
+      componentUuid: 'card',
+      html: island('{"a":2}', '<template></template>'),
+      previousHtml: island('{"a":2}'),
+    });
+    expect(doc.querySelector('canvas-island')).not.toBe(live);
+  });
+
   it('declines an unknown instance', () => {
     const doc = document.implementation.createHTMLDocument();
     doc.documentElement.innerHTML = page();
     expect(
-      applyInPlaceUpdate(doc, { componentUuid: 'missing', html: '' }),
+      applyInPlaceUpdate(doc, {
+        componentUuid: 'missing',
+        html: '',
+        previousHtml: '',
+      }),
     ).toBe(false);
   });
 });

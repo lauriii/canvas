@@ -9,6 +9,7 @@ import {
 export interface InPlaceUpdate {
   componentUuid: string;
   html: string;
+  previousHtml: string;
 }
 
 const commentMarker = (position: 'start' | 'end', id: string) =>
@@ -59,6 +60,7 @@ export function findInPlaceUpdate(
         return {
           componentUuid: id,
           html: next.slice(contentStart, end - previous.length + next.length),
+          previousHtml: previous.slice(contentStart, end),
         };
       }
     }
@@ -67,10 +69,55 @@ export function findInPlaceUpdate(
   return null;
 }
 
+const parseElements = (document: Document, html: string) => {
+  const template = document.createElement('template');
+  template.innerHTML = html;
+  return [...template.content.children];
+};
+
+/**
+ * Updates the props of a live Canvas island when they are all that changed.
+ * Replacing the island instead would render it empty until it hydrates again.
+ */
+function updateIslandProps(
+  document: Document,
+  live: Node[],
+  previousHtml: string,
+  html: string,
+): boolean {
+  const liveElements = live.filter(
+    (node): node is Element => node.nodeType === Node.ELEMENT_NODE,
+  );
+  const [before, ...restBefore] = parseElements(document, previousHtml);
+  const [after, ...restAfter] = parseElements(document, html);
+  const [island] = liveElements;
+  if (
+    liveElements.length !== 1 ||
+    restBefore.length ||
+    restAfter.length ||
+    island.localName !== 'canvas-island' ||
+    before?.localName !== 'canvas-island' ||
+    after?.localName !== 'canvas-island' ||
+    before.innerHTML !== after.innerHTML
+  ) {
+    return false;
+  }
+  const changed = [
+    ...before.getAttributeNames(),
+    ...after.getAttributeNames(),
+  ].filter((name) => before.getAttribute(name) !== after.getAttribute(name));
+  if (changed.some((name) => name !== 'props')) {
+    return false;
+  }
+  island.setAttribute('props', after.getAttribute('props')!);
+  return true;
+}
+
 /**
  * Replaces a component instance's markup in a live preview document.
  *
- * Detaches Drupal behaviors from the old markup and attaches them to the
+ * A Canvas island whose props alone changed keeps its element. Otherwise
+ * this detaches Drupal behaviors from the old markup and attaches them to the
  * markers' parent element, which contains the new markup. Inserted scripts
  * run and Canvas islands hydrate on insertion, as on a full load. Returns
  * false when the instance's markers are not siblings in the document, so the
@@ -78,7 +125,7 @@ export function findInPlaceUpdate(
  */
 export function applyInPlaceUpdate(
   document: Document,
-  { componentUuid, html }: InPlaceUpdate,
+  { componentUuid, html, previousHtml }: InPlaceUpdate,
 ): boolean {
   const boundary = discoverCanvasBoundaries(document, {
     templateMarkers: false,
@@ -100,6 +147,9 @@ export function applyInPlaceUpdate(
     node = node.nextSibling
   ) {
     removed.push(node);
+  }
+  if (updateIslandProps(document, removed, previousHtml, html)) {
+    return true;
   }
   removed
     .filter((node) => node.nodeType === Node.ELEMENT_NODE)
