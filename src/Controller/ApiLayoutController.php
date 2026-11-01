@@ -33,6 +33,7 @@ use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Render\Markup;
+use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\Core\Url;
@@ -72,6 +73,7 @@ final class ApiLayoutController {
     private readonly LanguageManagerInterface $languageManager,
     private readonly AccountProxyInterface $currentUser,
     private readonly PageVariantResolver $pageVariantResolver,
+    private readonly RendererInterface $renderer,
   ) {
     $theme = $this->themeManager->getActiveTheme()->getName();
     $theme_regions = system_region_list($theme);
@@ -353,7 +355,7 @@ final class ApiLayoutController {
   /**
    * Updates single component instance's auto-save entry and returns a preview.
    */
-  public function patch(Request $request, FieldableEntityInterface|ComponentTreeConfigEntityBase $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
+  public function patch(Request $request, FieldableEntityInterface|ComponentTreeConfigEntityBase $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope|JsonResponse {
     \assert(!$entity instanceof ContentTemplate || !\is_null($preview_entity));
     $body = \json_decode($request->getContent(), TRUE, flags: JSON_THROW_ON_ERROR);
     if (!\array_key_exists('componentInstanceUuid', $body)) {
@@ -411,8 +413,32 @@ final class ApiLayoutController {
     // Update the entity & auto-save it. We might be updating a component
     // instance version aside of the model itself.
     $host_entity = self::resolveHostEntity($entity, $preview_entity);
+    // A partial preview is only possible for instances in the entity's own
+    // tree: content templates and page regions render with more context.
+    $before = ($body['partialPreview'] ?? FALSE) && $entity_to_patch === $entity && $entity instanceof FieldableEntityInterface
+      ? $this->renderComponentInstance($entity, $componentInstanceUuid)
+      : NULL;
     $this->updateComponentInstance($entity_to_patch, $componentInstanceUuid, $version, $model, $host_entity);
     $this->autoSaveManager->saveEntity($entity_to_patch, $clientInstanceId);
+
+    if ($before !== NULL) {
+      \assert($entity instanceof FieldableEntityInterface);
+      $after = $this->renderComponentInstance($entity, $componentInstanceUuid);
+      // Assets or settings the rest of the page lacks need a full preview.
+      if ($after !== NULL && $after['attached'] == $before['attached']) {
+        $item = $this->componentTreeLoader->load($entity)->getComponentTreeItemByUuid($componentInstanceUuid);
+        \assert($item instanceof ComponentTreeItem);
+        $source = $item->getComponent()?->getComponentSource();
+        $data = [
+          'component' => ['uuid' => $componentInstanceUuid, 'html' => $after['html']],
+          'model' => $source?->requiresExplicitInput()
+            ? [$componentInstanceUuid => $source->inputToClientModel($source->getExplicitInput($componentInstanceUuid, $item, $host_entity))]
+            : new \stdClass(),
+          'autoSaves' => $this->getAutoSaveHashes(array_merge([$entity], self::getEditableRegions($entity))),
+        ];
+        return new JsonResponse($data);
+      }
+    }
 
     // Inform the UI of the updated reality.
     $data = $this->buildLayoutAndModel($entity, preview_entity: $host_entity);
@@ -531,6 +557,22 @@ final class ApiLayoutController {
         )),
       ],
     );
+  }
+
+  /**
+   * Renders one component instance as it appears in the preview.
+   *
+   * @return array{html: string, attached: array}|null
+   *   The markup, including the instance's preview markers, and the assets and
+   *   settings it attaches. NULL if the entity's tree lacks the instance.
+   */
+  private function renderComponentInstance(FieldableEntityInterface $entity, string $component_instance_uuid): ?array {
+    $element = $this->componentTreeLoader->load($entity)->toRenderableInstance($entity, $component_instance_uuid);
+    if ($element === NULL) {
+      return NULL;
+    }
+    $html = (string) $this->renderer->renderInIsolation($element);
+    return ['html' => $html, 'attached' => $element['#attached'] ?? []];
   }
 
   private function buildPreviewRenderable(FieldableEntityInterface|ComponentTreeConfigEntityBase $entity, ?FieldableEntityInterface $preview_entity = NULL): array {
