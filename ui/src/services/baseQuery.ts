@@ -1,6 +1,6 @@
 import { fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
-import { fetchCsrfToken } from '@/utils/csrf';
+import { fetchCsrfToken, forgetCsrfToken } from '@/utils/csrf';
 import { getCanvasSettings } from '@/utils/drupal-globals';
 
 import type {
@@ -170,7 +170,14 @@ const rawBaseQuery = (appConfiguration: AppConfiguration) => {
       templateViewMode,
     );
     const newArg = typeof arg == 'string' ? newUrl : { ...arg, url: newUrl };
-    return defaultQuery(newArg, api, extraOptions);
+    const result = await defaultQuery(newArg, api, extraOptions);
+    // The cached CSRF token is stale if the session changed. Drupal rejects
+    // the request before handling it, so it is safe to send again.
+    if (api.type === 'mutation' && result.error?.status === 403) {
+      forgetCsrfToken(baseUrl);
+      return defaultQuery(newArg, api, extraOptions);
+    }
+    return result;
   };
 };
 
