@@ -251,6 +251,14 @@ export interface DraftServer {
     path: string,
     previewContext?: PreviewContext,
   ): Promise<PageResult | null>;
+  /**
+   * Fetches a page as anonymous visitors see it, without reading the current
+   * request: for framework caches keyed by path, which must not depend on
+   * cookies or headers. Tag the cached copy with the result's cacheTags.
+   * Returns null for 403/404, and throws for other errors, so that a cache
+   * does not keep a transient failure.
+   */
+  fetchPublishedPage(path: string): Promise<PageResult | null>;
   /** Fetches one entity by type and ID, optionally in a specific view mode. */
   fetchEntity(options: {
     type: string;
@@ -520,6 +528,21 @@ export function createDraftServer(options: DraftServerOptions): DraftServer {
         fetchImpl,
       });
     },
+
+    fetchPublishedPage: (path) =>
+      fetchPage(path, {
+        baseUrl: getConfig().baseUrl,
+        // A cache would keep a null for a transient error.
+        fetchImpl: async (input, init) => {
+          const response = await fetchImpl(input, init);
+          if (!response.ok && ![403, 404].includes(response.status)) {
+            throw new Error(
+              `The Canvas content API answered ${response.status}.`,
+            );
+          }
+          return response;
+        },
+      }),
 
     async fetchEntity(options): Promise<EntityResult | null> {
       const draftData = await getDraftData();

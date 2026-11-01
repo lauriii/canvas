@@ -706,6 +706,7 @@ describe('fetchPage', () => {
         langcode: 'en',
       },
     },
+    cacheTags: ['canvas_page:1', 'http_response'],
   };
 
   it('keeps a public component tree marker-free', async () => {
@@ -721,6 +722,37 @@ describe('fetchPage', () => {
         cache: 'no-store',
         headers: { Accept: 'application/json' },
       }),
+    );
+  });
+
+  it('fetches published pages without the draft session or preview context', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(Response.json(page));
+    const { server, seedSession } = makeServer(
+      fetchImpl as unknown as typeof fetch,
+    );
+    seedSession(liveDraftData());
+
+    await expect(
+      server.fetchPublishedPage('/example?_canvas_viewMode=teaser'),
+    ).resolves.toEqual(page);
+    expect(fetchImpl).toHaveBeenCalledWith(
+      new URL(
+        'https://drupal.example/canvas/content-api?requestUri=%2Fexample',
+      ),
+      expect.objectContaining({ headers: { Accept: 'application/json' } }),
+    );
+  });
+
+  it('throws, rather than caching null, when Drupal fails', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 404 }))
+      .mockResolvedValueOnce(new Response(null, { status: 503 }));
+    const { server } = makeServer(fetchImpl as unknown as typeof fetch);
+
+    await expect(server.fetchPublishedPage('/missing')).resolves.toBeNull();
+    await expect(server.fetchPublishedPage('/example')).rejects.toThrow(
+      'The Canvas content API answered 503.',
     );
   });
 
@@ -745,6 +777,7 @@ describe('fetchPage', () => {
     await expect(server.fetchPage('/example')).resolves.toEqual({
       ...legacyPage,
       context: { page: null, site: null },
+      cacheTags: [],
     });
   });
 
@@ -759,7 +792,10 @@ describe('fetchPage', () => {
       const target = external
         ? 'https://elsewhere.example/new-location'
         : '/new-location?filter=a%20b#section';
-      const redirect = { redirect: { external, url: target, statusCode: 301 } };
+      const redirect = {
+        redirect: { external, url: target, statusCode: 301 },
+        cacheTags: ['redirect_list'],
+      };
       const fetchImpl = vi.fn().mockResolvedValue(Response.json(redirect));
       const { server, seedSession } = makeServer(fetchImpl);
       seedSession(
@@ -769,6 +805,7 @@ describe('fetchPage', () => {
         ? '/old-location?_canvas_excludeAutoSave=true'
         : '/old-location';
       await expect(server.fetchPage(path)).resolves.toEqual({
+        cacheTags: ['redirect_list'],
         redirect: {
           ...redirect.redirect,
           url:
@@ -1197,6 +1234,7 @@ describe('fetchEntity', () => {
       uuid: 'node-uuid',
       langcode: 'en',
     },
+    cacheTags: ['node:2'],
   };
 
   it('fetches one public entity in a specific view mode', async () => {

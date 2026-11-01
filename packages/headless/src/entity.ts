@@ -10,4 +10,6 @@ export interface EntityResult {
   content: CanvasComponentTreeElement | null;
   managedByCanvas: boolean;
   entity: DrupalRouteEntity;
+  /** Drupal cache tags; see createCacheInvalidationHandler(). */
+  cacheTags: string[];
 }
