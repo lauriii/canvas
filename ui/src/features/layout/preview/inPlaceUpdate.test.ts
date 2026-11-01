@@ -91,7 +91,11 @@ describe('applyInPlaceUpdate', () => {
       null,
       'unload',
     );
-    expect(Drupal.attachBehaviors).toHaveBeenCalledWith(doc.querySelector('p'));
+    // The context contains the new root element, so selector-based behaviors
+    // targeting it find it.
+    expect(Drupal.attachBehaviors).toHaveBeenCalledWith(
+      doc.querySelector('section'),
+    );
   });
 
   it('declines an unknown instance', () => {

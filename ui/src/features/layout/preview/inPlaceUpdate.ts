@@ -70,10 +70,11 @@ export function findInPlaceUpdate(
 /**
  * Replaces a component instance's markup in a live preview document.
  *
- * Detaches Drupal behaviors from the old markup and attaches them to the new
- * markup. Inserted scripts run and Canvas islands hydrate on insertion, as on
- * a full load. Returns false when the instance's markers are not siblings in
- * the document, so the caller must load the whole document instead.
+ * Detaches Drupal behaviors from the old markup and attaches them to the
+ * markers' parent element, which contains the new markup. Inserted scripts
+ * run and Canvas islands hydrate on insertion, as on a full load. Returns
+ * false when the instance's markers are not siblings in the document, so the
+ * caller must load the whole document instead.
  */
 export function applyInPlaceUpdate(
   document: Document,
@@ -105,11 +106,13 @@ export function applyInPlaceUpdate(
     .forEach((element) => Drupal?.detachBehaviors(element, null, 'unload'));
 
   const fragment = range.createContextualFragment(html);
-  const added = [...fragment.childNodes];
   range.deleteContents();
   parent.insertBefore(fragment, boundary.end);
-  added
-    .filter((node) => node.nodeType === Node.ELEMENT_NODE)
-    .forEach((element) => Drupal?.attachBehaviors(element));
+  // Behaviors find their targets below the context, so the context must
+  // contain the new markup's root elements. once() keeps unchanged siblings
+  // from being initialized twice.
+  if (parent.nodeType === Node.ELEMENT_NODE) {
+    Drupal?.attachBehaviors(parent);
+  }
   return true;
 }
