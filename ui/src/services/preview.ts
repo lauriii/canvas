@@ -11,6 +11,10 @@ import {
 } from '@/features/layout/layoutModelSlice';
 import { spliceComponentHtml } from '@/features/layout/preview/inPlaceUpdate';
 import {
+  getPreviewLibraries,
+  loadPreviewAssets,
+} from '@/features/layout/preview/previewAssets';
+import {
   setHtml,
   setSnapshotHTML,
   setSnapshotTitle,
@@ -34,6 +38,7 @@ import type {
   PropSource,
   ResolvedValues,
 } from '@/features/layout/layoutModelSlice';
+import type { PreviewAssets } from '@/features/layout/preview/previewAssets';
 import type { EditorFrameContext } from '@/features/ui/uiSlice';
 import type { ConflictError } from '@/services/pendingChangesApi';
 import type { AutoSavesHash } from '@/types/AutoSaves';
@@ -53,6 +58,7 @@ type PartialUpdateComponentResultType = {
   component: { uuid: string; html: string };
   model: any;
   autoSaves: AutoSavesHash;
+  assets?: PreviewAssets;
 };
 
 export type UpdateComponentQueryArg = {
@@ -85,6 +91,10 @@ let needsFullPreview = false;
 // Per component instance, the newest successful response whose model was not
 // applied because a newer PATCH was queued. Applied if that PATCH fails.
 const supersededResponses = new Map<string, { model: any; layout?: any }>();
+
+// Resolves once the previous updateComponent response is applied. Responses
+// are applied in turn, each after loading the assets it needs.
+let responsesApplied: Promise<void> = Promise.resolve();
 
 const isOtherEntity = (editorUrl?: string) =>
   editorUrl !== undefined &&
@@ -215,13 +225,19 @@ export const previewApi = createApi({
             templateViewMode,
           );
         }
-        // Only entities support a partial preview.
+        // Only entities support a partial preview. The page's libraries let
+        // the response add the libraries the updated instance needs.
+        const pageLibraries = getPreviewLibraries();
         return {
           url,
           method: 'PATCH',
           body:
             type === 'entity' && !needsFullPreview
-              ? { ...body, partialPreview: true }
+              ? {
+                  ...body,
+                  partialPreview: true,
+                  ...(pageLibraries && { pageLibraries }),
+                }
               : body,
         };
       },
@@ -273,53 +289,69 @@ export const previewApi = createApi({
           popCanvasLayoutRequest();
         }
         const { model, autoSaves } = data;
-        // The editor moved to another entity since this change was made.
-        if (isOtherEntity(arg.editorUrl)) {
-          handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
-          return;
-        }
-        // A queued PATCH for this instance will bring a newer model. Applying
-        // this one would undo what was typed since this one was sent.
-        const isOutdated = patchScheduler.has(uuid);
-        if (!isOutdated) {
-          dispatch(
-            pendingChangesApi.util.invalidateTags([
-              { type: 'PendingChanges', id: 'LIST' },
-            ]),
-          );
-        }
-        // Clear any stale snapshot (e.g. from a prior language/template preview)
-        // so selectPreviewHtml returns this fresh editor html instead of the
-        // preview snapshot, which selectPreviewHtml prefers while set.
-        dispatch(setSnapshotHTML(''));
-        dispatch(setSnapshotTitle(''));
-        const state = getState() as RootState;
-        if ('component' in data) {
-          const html = spliceComponentHtml(state.preview.html, data.component);
-          if (html === null) {
-            // The current preview lacks the instance: send the change again,
-            // in turn with other changes, for the whole page.
-            needsFullPreview = true;
-            if (!patchScheduler.has(uuid)) {
-              sendPatch ??= (patch) =>
-                dispatch(previewApi.endpoints.updateComponent.initiate(patch));
-              patchScheduler.schedule(uuid, arg, true);
-            }
+        const previousResponseApplied = responsesApplied;
+        let markApplied = () => {};
+        responsesApplied = new Promise((resolve) => (markApplied = resolve));
+        try {
+          await previousResponseApplied;
+          // The editor moved to another entity since this change was made.
+          if (isOtherEntity(arg.editorUrl)) {
+            handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
             return;
           }
-          dispatch(setHtml(html));
-        } else {
-          needsFullPreview = false;
-          dispatch(setHtml(data.html));
+          if ('assets' in data && data.assets) {
+            await loadPreviewAssets(data.assets);
+          }
+          // A queued PATCH for this instance will bring a newer model. Applying
+          // this one would undo what was typed since this one was sent.
+          const isOutdated = patchScheduler.has(uuid);
+          if (!isOutdated) {
+            dispatch(
+              pendingChangesApi.util.invalidateTags([
+                { type: 'PendingChanges', id: 'LIST' },
+              ]),
+            );
+          }
+          // Clear any stale snapshot (e.g. from a prior language/template preview)
+          // so selectPreviewHtml returns this fresh editor html instead of the
+          // preview snapshot, which selectPreviewHtml prefers while set.
+          dispatch(setSnapshotHTML(''));
+          dispatch(setSnapshotTitle(''));
+          const state = getState() as RootState;
+          if ('component' in data) {
+            const html = spliceComponentHtml(
+              state.preview.html,
+              data.component,
+            );
+            if (html === null) {
+              // The current preview lacks the instance: send the change again,
+              // in turn with other changes, for the whole page.
+              needsFullPreview = true;
+              if (!patchScheduler.has(uuid)) {
+                sendPatch ??= (patch) =>
+                  dispatch(
+                    previewApi.endpoints.updateComponent.initiate(patch),
+                  );
+                patchScheduler.schedule(uuid, arg, true);
+              }
+              return;
+            }
+            dispatch(setHtml(html));
+          } else {
+            needsFullPreview = false;
+            dispatch(setHtml(data.html));
+          }
+          handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+          const response = 'component' in data ? { model } : data;
+          if (isOutdated) {
+            supersededResponses.set(uuid, response);
+            return;
+          }
+          supersededResponses.delete(uuid);
+          applyModel(response);
+        } finally {
+          markApplied();
         }
-        handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
-        const response = 'component' in data ? { model } : data;
-        if (isOutdated) {
-          supersededResponses.set(uuid, response);
-          return;
-        }
-        supersededResponses.delete(uuid);
-        applyModel(response);
       },
     }),
   }),
