@@ -69,6 +69,25 @@ export function findInPlaceUpdate(
   return null;
 }
 
+/**
+ * Replaces a component instance's markup, including its markers, in a preview
+ * document. Returns null if the document lacks the instance.
+ */
+export function spliceComponentHtml(
+  document: string,
+  { uuid, html }: { uuid: string; html: string },
+): string | null {
+  const start = document.indexOf(commentMarker('start', uuid));
+  const endMarker = commentMarker('end', uuid);
+  const end = document.indexOf(endMarker, start);
+  if (start === -1 || end === -1) {
+    return null;
+  }
+  return (
+    document.slice(0, start) + html + document.slice(end + endMarker.length)
+  );
+}
+
 const parseElements = (document: Document, html: string) => {
   const template = document.createElement('template');
   template.innerHTML = html;
