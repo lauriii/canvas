@@ -1,6 +1,14 @@
-import { createDraftServer } from '@drupal-canvas/headless/server';
+// A namespace import: Next.js 15.0 lacks after, and its build would break on
+// a missing named import. Without after, the handler answers Drupal only
+// after reading the tags.
+import * as nextServer from 'next/server';
+import {
+  createCacheInvalidationHandler,
+  createDraftServer,
+} from '@drupal-canvas/headless/server';
 
 import { nextDraftAdapter } from './adapter';
+import { expireCanvasTags } from './cache';
 
 import type { DraftConfig } from '@drupal-canvas/headless/server';
 
@@ -55,5 +63,25 @@ export function createDraftRouteHandlers(
       DELETE: proxy,
       OPTIONS: proxy,
     },
+  };
+}
+
+/**
+ * Creates the cache invalidation route handler, for example at
+ * app/api/canvas/revalidate/route.ts. Drupal announces invalidated cache tags
+ * to the URLs in its `cache_invalidation_urls` setting; the handler expires
+ * the entries cacheCanvasTags() tagged with them. Configuration defaults to
+ * CANVAS_SITE_URL, resolved per request.
+ */
+export function createCacheInvalidationRouteHandler(
+  config?: Partial<DraftConfig>,
+): { POST: (request: Request) => Promise<Response> } {
+  return {
+    POST: createCacheInvalidationHandler({
+      config,
+      invalidate: expireCanvasTags,
+      // Answer Drupal before reading the tags back from it.
+      defer: nextServer.after,
+    }),
   };
 }

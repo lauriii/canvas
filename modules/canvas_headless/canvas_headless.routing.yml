@@ -17,6 +17,18 @@ canvas_headless.entity:
   requirements:
     _access: 'TRUE'
 
+# Returns, once, the cache tags announced to a frontend under the `id` in the
+# JSON body. The unguessable, short-lived, single-use ID is the credential.
+canvas_headless.cache_invalidation:
+  path: '/canvas-headless/cache-invalidation'
+  defaults:
+    _controller: 'Drupal\canvas_headless\Controller\CacheInvalidationController'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+  options:
+    no_cache: TRUE
+
 # Session renewal. Same-origin JSON endpoint for the Canvas editor's
 # JavaScript: it fetches a fresh assertion here and relays it into the
 # embedded app via postMessage. POST with header-based CSRF protection,

@@ -154,12 +154,16 @@ paths:
                           favicon:
                             url: https://example.com/core/themes/olivero/favicon.ico
                             mimeType: image/vnd.microsoft.icon
+                    cacheTags: [node:12, config:user.role.anonymous, http_response]
+                    cacheMaxAge: -1
                 redirect:
                   value:
                     redirect:
                       external: false
                       url: /new-path
                       statusCode: 301
+                    cacheTags: [redirect_list, http_response]
+                    cacheMaxAge: -1
         '302':
           description: >-
             Non-cacheable, same-origin language negotiation transport redirect
@@ -241,6 +245,8 @@ paths:
                       id: '12'
                       uuid: 773942c6-3660-4c50-9a8d-e25966a69bff
                       langcode: en
+                    cacheTags: [node:12, http_response]
+                    cacheMaxAge: -1
         '400':
           $ref: '#/components/responses/ProblemDetailsResponse'
         '401':
@@ -251,6 +257,40 @@ paths:
           $ref: '#/components/responses/ProblemDetailsResponse'
         '500':
           $ref: '#/components/responses/ProblemDetailsResponse'
+      security: []
+
+  /canvas-headless/cache-invalidation:
+    post:
+      summary: Read announced invalidated cache tags
+      description: |
+        Returns the cache tags invalidated in one Drupal request, once. Drupal
+        announces the ID to every URL in
+        `canvas_headless.settings:cache_invalidation_urls` with the same JSON
+        body. IDs expire after five minutes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id:
+                  type: string
+      responses:
+        '200':
+          description: The invalidated cache tags.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [tags]
+                properties:
+                  tags:
+                    $ref: '#/components/schemas/CacheTags'
+        '404':
+          $ref: '#/components/responses/DrupalErrorResponse'
       security: []
 
   /canvas-headless/assertion:
@@ -530,7 +570,7 @@ components:
     CanvasContentResult:
       type: object
       additionalProperties: false
-      required: [content, head, route, context]
+      required: [content, head, route, context, cacheTags, cacheMaxAge]
       properties:
         content:
           oneOf:
@@ -543,6 +583,25 @@ components:
           $ref: '#/components/schemas/CanvasRouteContext'
         context:
           $ref: '#/components/schemas/CanvasContext'
+        cacheTags:
+          $ref: '#/components/schemas/CacheTags'
+        cacheMaxAge:
+          $ref: '#/components/schemas/CacheMaxAge'
+
+    CacheTags:
+      description: >-
+        The response's Drupal cache tags. Frontends tag cached results with
+        them, and expire it when Drupal announces the tags invalidated.
+      type: array
+      items:
+        type: string
+
+    CacheMaxAge:
+      description: >-
+        How many seconds the response may be cached; -1 for no limit. Like
+        `cacheTags`, it includes the cache contexts' dependencies.
+      type: integer
+      minimum: -1
 
     CanvasContext:
       description: >-
@@ -674,7 +733,7 @@ components:
     CanvasRedirectResult:
       type: object
       additionalProperties: false
-      required: [redirect]
+      required: [redirect, cacheTags, cacheMaxAge]
       properties:
         redirect:
           type: object
@@ -687,11 +746,15 @@ components:
               type: string
             statusCode:
               type: integer
+        cacheTags:
+          $ref: '#/components/schemas/CacheTags'
+        cacheMaxAge:
+          $ref: '#/components/schemas/CacheMaxAge'
 
     CanvasEntityResult:
       type: object
       additionalProperties: false
-      required: [content, managedByCanvas, entity]
+      required: [content, managedByCanvas, entity, cacheTags, cacheMaxAge]
       properties:
         content:
           oneOf:
@@ -702,6 +765,10 @@ components:
           type: boolean
         entity:
           $ref: '#/components/schemas/RoutedEntityRef'
+        cacheTags:
+          $ref: '#/components/schemas/CacheTags'
+        cacheMaxAge:
+          $ref: '#/components/schemas/CacheMaxAge'
 
     UnheadDocument:
       type: object
@@ -961,6 +1028,12 @@ components:
         instance:
           type: string
           format: uri-reference
+        cacheTags:
+          description: Present on 403 and 404 responses.
+          $ref: '#/components/schemas/CacheTags'
+        cacheMaxAge:
+          description: Present on 403 and 404 responses.
+          $ref: '#/components/schemas/CacheMaxAge'
 
   responses:
     # Only the content API converts errors to Problem Details.

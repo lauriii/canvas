@@ -59,6 +59,8 @@ export { parsePreviewRequest, withPreviewContext } from './preview-context';
 export type { PreviewContext } from './preview-context';
 export { getSessionToken, type AccessToken } from './token';
 export {
+  type Cacheability,
+  isPageNotFound,
   isPageRedirect,
   serializeJsonForHtml,
   type CanvasComponentTreeElement,
@@ -73,6 +75,7 @@ export {
   type PageHeadLink,
   type PageHeadMeta,
   type PageHeadScript,
+  type PageNotFound,
   type PageRedirect,
   type PageResult,
 } from './page';

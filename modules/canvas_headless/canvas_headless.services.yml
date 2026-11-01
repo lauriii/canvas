@@ -45,5 +45,12 @@ services:
     decoration_on_invalid: ignore
   Drupal\canvas_headless\Controller\CanvasContentController: {}
   Drupal\canvas_headless\Controller\CanvasEntityController: {}
+  Drupal\canvas_headless\Controller\CacheInvalidationController: {}
   Drupal\canvas_headless\File\CanvasContentFileUrlGenerator:
     decorates: file_url_generator
+  Drupal\canvas_headless\Cache\FrontendCacheTagInvalidator:
+    tags:
+      - { name: cache_tags_invalidator }
+      # Last, to also announce what other destructors invalidate (for example
+      # a deferred router rebuild).
+      - { name: needs_destruction, priority: -1000 }
