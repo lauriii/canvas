@@ -10,6 +10,10 @@ import clsx from 'clsx';
 
 import { useAppSelector } from '@/app/hooks';
 import { COMPONENT_PREVIEW_UPDATE_EVENT } from '@/components/form/react-hook-form/fields/componentPreviewEvents';
+import {
+  applyInPlaceUpdate,
+  findInPlaceUpdate,
+} from '@/features/layout/preview/inPlaceUpdate';
 import { selectDragging } from '@/features/ui/uiSlice';
 
 import type { Dispatch, Ref, SetStateAction } from 'react';
@@ -59,6 +63,12 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
     // without re-running (and so reloading) the srcdoc effect on style changes.
     const headStylesRef = useRef(headStyles);
     headStylesRef.current = headStyles;
+    // The markup loading in the inactive iframe, and the markup the active
+    // iframe shows once no swap is pending. A change confined to one component
+    // instance is applied to the active iframe in place, without a swap.
+    const loadingSrcDocumentRef = useRef<string | null>(null);
+    const swappedSrcDocumentRef = useRef<string | null>(null);
+    const activeSrcDocumentRef = useRef<string | null>(null);
 
     // Keep already-loaded preview documents in step when the styles change.
     useEffect(() => {
@@ -100,6 +110,16 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
 
       iframe.style.display = '';
 
+      const loadedSrcDocument = loadingSrcDocumentRef.current;
+      const swap = () => {
+        // A newer document may have started loading since this one did.
+        swappedSrcDocumentRef.current =
+          loadingSrcDocumentRef.current === loadedSrcDocument
+            ? loadedSrcDocument
+            : null;
+        setWhichActive((current) => 1 - current);
+      };
+
       const startTime = Date.now();
       const checkIFrameContent = () => {
         // Find all <template>s pending hydration by Astro. Once hydration is complete, there should be no pending templates remaining.
@@ -109,7 +129,7 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
 
         // Ensure there are no pending templates (non-hydrated astro-islands) before swapping in the iframe.
         if (pendingTemplates === 0) {
-          setWhichActive((current) => 1 - current);
+          swap();
         } else if (Date.now() - startTime < 1000) {
           // If the hydration still hasn't finished and 1 second hasn't yet elapsed, try again after the next animation frame.
           requestAnimationFrame(checkIFrameContent);
@@ -118,7 +138,7 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
           console.warn(
             'Astro hydration in iFrame did not complete within 1 second, swapping anyway.',
           );
-          setWhichActive((current) => 1 - current);
+          swap();
         }
       };
 
@@ -165,14 +185,32 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
 
     useEffect(() => {
       whichActiveRef.current = whichActive;
+      activeSrcDocumentRef.current = swappedSrcDocumentRef.current;
       setIsReloading(false);
     }, [getIFrames, setIsReloading, whichActive]);
 
     // Run when the srcDocument changes
     useEffect(() => {
+      const { activeIFrame, inactiveIFrame } = getIFrames();
+
+      const previousSrcDocument = activeSrcDocumentRef.current;
+      const inPlaceUpdate =
+        previousSrcDocument === null
+          ? null
+          : findInPlaceUpdate(previousSrcDocument, srcDocument);
+      if (
+        inPlaceUpdate &&
+        activeIFrame.contentDocument &&
+        applyInPlaceUpdate(activeIFrame.contentDocument, inPlaceUpdate)
+      ) {
+        activeSrcDocumentRef.current = srcDocument;
+        return;
+      }
+      activeSrcDocumentRef.current = null;
+      loadingSrcDocumentRef.current = srcDocument;
+
       // Important to change a state ensure parent re-renders (and re-calls hooks) once the iframe is swapped.
       setIsReloading(true);
-      const { activeIFrame, inactiveIFrame } = getIFrames();
 
       // Insert the head styles into the markup itself, so a loading document
       // renders with them from its first paint.
