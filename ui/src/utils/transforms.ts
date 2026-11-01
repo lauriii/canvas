@@ -190,8 +190,14 @@ export const resolveEntityUri = (uri: string): string => {
  */
 export const resolveLinkUri = (uri: string): string => {
   const typed = uri.trim();
+  // An autocomplete selection like "2026 (123)" can look like a phone number.
+  if (parseSingleEntityAutocompleteSelection(typed) !== null) {
+    return resolveEntityUri(uri);
+  }
   if (/^[^\s@:/?#]+@[^\s@:/?#]+\.[^\s@:/?#]+$/.test(typed)) {
-    return `mailto:${typed}`;
+    // Percent-encode characters such as a literal "%", which `mailto:` URIs
+    // would otherwise decode.
+    return `mailto:${encodeURI(typed)}`;
   }
   // A phone number needs a leading "+" or a separator, so that bare numbers
   // (for example entity IDs) stay untouched.

@@ -9,6 +9,9 @@ describe('resolveLinkUri', () => {
     ['+1 (555) 123-4567', 'tel:+15551234567'],
     ['555-123-4567', 'tel:5551234567'],
     ['Example (3)', 'entity:node/3'],
+    // An autocomplete selection that also looks like a phone number.
+    ['2026 (123)', 'entity:node/123'],
+    ['user%25@example.com', 'mailto:user%2525@example.com'],
     ['https://example.com', 'https://example.com'],
     ['mailto:hello@example.com', 'mailto:hello@example.com'],
     ['tel:+15551234567', 'tel:+15551234567'],
