@@ -4,6 +4,7 @@ import { createApi } from '@reduxjs/toolkit/query/react';
 import { useAppStore } from '@/app/hooks';
 import { setPostPreviewCompleted } from '@/components/review/PublishReview.slice';
 import {
+  isEvaluatedComponentModel,
   selectLayout,
   selectModel,
   setLayoutModel,
@@ -77,7 +78,9 @@ let sendPatch: (arg: UpdateComponentQueryArg) => PromiseLike<unknown>;
 const patchScheduler = createPatchScheduler<UpdateComponentQueryArg>(
   async (arg) => {
     await postInFlight?.catch(() => {});
-    return sendPatch(arg);
+    await sendPatch(arg);
+    // Until the response is applied, the store holds the previous model.
+    await responsesApplied;
   },
 );
 
@@ -271,38 +274,42 @@ export const previewApi = createApi({
             ),
           );
         };
-        // Force any ajax calls to wait.
-        pushCanvasLayoutRequest();
-        let data: any;
-        let meta: any;
-        try {
-          ({ data, meta } = await queryFulfilled);
-        } catch {
-          // If the request fails (e.g. the server rejects an invalid field
-          // value), we must still release the lock so that subsequent Drupal
-          // AJAX calls are not permanently blocked.
-          // @see https://www.drupal.org/project/canvas/issues/3579026
-          // The model of a successful response this one superseded is now the
-          // newest saved one.
-          const superseded = supersededResponses.get(uuid);
-          if (superseded && !patchScheduler.has(uuid)) {
-            supersededResponses.delete(uuid);
-            // Not if the editor moved to another entity since.
-            if (!isOtherEntity(superseded.editorUrl)) {
-              applyModel(superseded.response);
-            }
-          }
-          return;
-        } finally {
-          // Tell ajax calls they're good to go regardless of success/failure.
-          popCanvasLayoutRequest();
-        }
-        const { model, autoSaves } = data;
+        // Responses are applied in the order their requests started. The
+        // scheduler waits for this before sending the next PATCH.
         const previousResponseApplied = responsesApplied;
         let markApplied = () => {};
         responsesApplied = new Promise((resolve) => (markApplied = resolve));
         try {
+          // Force any ajax calls to wait.
+          pushCanvasLayoutRequest();
+          let result: Awaited<typeof queryFulfilled> | undefined;
+          try {
+            result = await queryFulfilled;
+          } catch {
+            // If the request fails (e.g. the server rejects an invalid field
+            // value), we must still release the lock so that subsequent Drupal
+            // AJAX calls are not permanently blocked.
+            // @see https://www.drupal.org/project/canvas/issues/3579026
+          } finally {
+            // Tell ajax calls they're good to go regardless of success/failure.
+            popCanvasLayoutRequest();
+          }
           await previousResponseApplied;
+          if (!result) {
+            // The model of a successful response this one superseded is now
+            // the newest saved one.
+            const superseded = supersededResponses.get(uuid);
+            if (superseded && !patchScheduler.has(uuid)) {
+              supersededResponses.delete(uuid);
+              // Not if the editor moved to another entity since.
+              if (!isOtherEntity(superseded.editorUrl)) {
+                applyModel(superseded.response);
+              }
+            }
+            return;
+          }
+          const { data, meta } = result as { data: any; meta: any };
+          const { model, autoSaves } = data;
           // The editor moved to another entity since this change was made.
           if (isOtherEntity(arg.editorUrl)) {
             handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
@@ -310,6 +317,10 @@ export const previewApi = createApi({
           }
           if ('assets' in data && data.assets) {
             await loadPreviewAssets(data.assets);
+            if (isOtherEntity(arg.editorUrl)) {
+              handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+              return;
+            }
           }
           // A queued PATCH for this instance will bring a newer model. Applying
           // this one would undo what was typed since this one was sent.
@@ -439,6 +450,7 @@ export const usePatchProp = () => {
   const store = useAppStore();
 
   const patchProp = async (
+    editorUrl: string,
     inputUIData: InputUIData,
     propName: string,
     sourceValue: PropSource | PropSource['value'],
@@ -452,10 +464,14 @@ export const usePatchProp = () => {
     } = inputUIData;
 
     // Build on the model after queued changes are saved; otherwise sending
-    // them would undo this change.
+    // them would undo this change. If the editor moved to another entity
+    // meanwhile, the store holds that entity's models instead.
     await sendQueuedComponentPatches();
-    const selectedModel = selectModel(store.getState())[selectedComponent];
-    if (!selectedModel || !('source' in selectedModel)) {
+    const selectedModel: ComponentModel | EvaluatedComponentModel | undefined =
+      isOtherEntity(editorUrl)
+        ? inputUIData.model?.[selectedComponent]
+        : selectModel(store.getState())[selectedComponent];
+    if (!selectedModel || !isEvaluatedComponentModel(selectedModel)) {
       return;
     }
 
@@ -476,15 +492,23 @@ export const usePatchProp = () => {
             [propName]: resolvedValue,
           },
         },
-        editorUrl: window.location.href,
+        editorUrl,
       },
       true,
     );
     await sendQueuedComponentPatches();
   };
 
-  return (...args: Parameters<typeof patchProp>) =>
-    (propPatches = propPatches.then(() => patchProp(...args)));
+  return (
+    ...args: Parameters<typeof patchProp> extends [string, ...infer Rest]
+      ? Rest
+      : never
+  ) => {
+    const editorUrl = window.location.href;
+    return (propPatches = propPatches.then(() =>
+      patchProp(editorUrl, ...args),
+    ));
+  };
 };
 
 // A selector that returns the current updateComponent mutation loading state
