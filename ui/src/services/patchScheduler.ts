@@ -25,6 +25,7 @@ export function createPatchScheduler<T>(
   let firstQueuedAt = 0;
   let lastChangeAt = -Infinity;
   let averageGap: number | undefined;
+  const idleWaiters: Array<() => void> = [];
 
   const flush = () => {
     timer = undefined;
@@ -46,14 +47,21 @@ export function createPatchScheduler<T>(
         isDue = false;
         flush();
       }
+      if (!sending && !queued.size) {
+        // Let response handlers finish before waiters read their results.
+        setTimeout(() => idleWaiters.splice(0).forEach((resolve) => resolve()));
+      }
     });
   };
 
   return {
     /**
      * Queues a change, replacing any change for the same key not yet sent.
+     *
+     * @param urgent - Send without waiting for a pause, for example for a change
+     *   that is not typing.
      */
-    schedule(key: string, value: T) {
+    schedule(key: string, value: T, urgent = false) {
       const now = Date.now();
       const gap = now - lastChangeAt;
       lastChangeAt = now;
@@ -68,7 +76,7 @@ export function createPatchScheduler<T>(
       }
       queued.set(key, value);
       clearTimeout(timer);
-      if (averageGap === undefined && !sending) {
+      if (urgent || (averageGap === undefined && !sending)) {
         timer = setTimeout(flush, 0);
         return;
       }
@@ -85,5 +93,21 @@ export function createPatchScheduler<T>(
      * Whether a change for this key waits to be sent.
      */
     has: (key: string) => queued.has(key),
+    /**
+     * Sends every waiting change now. Resolves once none waits or is in flight.
+     */
+    drain(): Promise<void> {
+      if (!sending && !queued.size) {
+        return Promise.resolve();
+      }
+      clearTimeout(timer);
+      timer = undefined;
+      if (sending) {
+        isDue = true;
+      } else {
+        flush();
+      }
+      return new Promise((resolve) => idleWaiters.push(resolve));
+    },
   };
 }

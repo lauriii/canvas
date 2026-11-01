@@ -6,7 +6,7 @@ import {
   DEFAULT_REGION,
   selectEditorFrameContext,
 } from '@/features/ui/uiSlice';
-import { previewApi } from '@/services/preview';
+import { previewApi, sendQueuedComponentPatches } from '@/services/preview';
 import { hasSlotDefinitions, isPropSourceComponent } from '@/types/Component';
 import {
   getCanvasSettings,
@@ -713,6 +713,8 @@ export const updateExistingComponentValues =
   (payload: any): AppThunk =>
   async (dispatch, getState) => {
     const { componentSelectionUtils } = canvasSettings;
+    // Queued changes would otherwise undo this update.
+    await sendQueuedComponentPatches();
     const state = getState();
     const components: ComponentsList | undefined = state?.componentAndLayoutApi
       ?.queries?.['getComponents(undefined)']?.data as
@@ -811,6 +813,8 @@ export const _linkPropToEntityValue =
     inputUIData: InputUIData;
   }): AppThunk =>
   async (dispatch, getState) => {
+    // Queued changes would otherwise undo this update.
+    await sendQueuedComponentPatches();
     const state = getState();
     const components: ComponentsList | undefined = state?.componentAndLayoutApi
       ?.queries?.['getComponents(undefined)']?.data as

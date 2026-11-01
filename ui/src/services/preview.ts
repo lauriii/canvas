@@ -1,6 +1,7 @@
 import { createSelector } from '@reduxjs/toolkit';
 import { createApi } from '@reduxjs/toolkit/query/react';
 
+import { useAppStore } from '@/app/hooks';
 import { setPostPreviewCompleted } from '@/components/review/PublishReview.slice';
 import {
   selectLayout,
@@ -16,8 +17,10 @@ import {
 } from '@/features/pagePreview/previewSlice';
 import {
   baseQueryWithAutoSaves,
+  extractEntityParams,
   popCanvasLayoutRequest,
   pushCanvasLayoutRequest,
+  replaceEntityParamsInUrl,
 } from '@/services/baseQuery';
 import { createPatchScheduler } from '@/services/patchScheduler';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
@@ -57,15 +60,36 @@ export type UpdateComponentQueryArg = {
   componentInstanceUuid: string;
   componentType: string;
   model: Omit<ComponentModel, 'name'> | Omit<EvaluatedComponentModel, 'name'>;
-  partialPreview?: boolean;
+  // The editor URL when the change was made, for changes sent later. Without
+  // it, the entity is taken from the current URL when the request is sent.
+  editorUrl?: string;
 };
 
-// Paces PATCHes from usePatchComponent(). Sends through the newest
-// updateComponent trigger.
+// Paces PATCHes from usePatchComponent() and usePatchProp(). Sends through the
+// newest updateComponent trigger.
 let sendPatch: (arg: UpdateComponentQueryArg) => PromiseLike<unknown>;
 const patchScheduler = createPatchScheduler<UpdateComponentQueryArg>((arg) =>
   sendPatch(arg),
 );
+
+/**
+ * Sends component changes waiting in the queue, and resolves once their
+ * responses are applied. Call before reading a component's model to PATCH it.
+ */
+export const sendQueuedComponentPatches = () => patchScheduler.drain();
+
+// Set when the preview lacks an instance a partial preview was returned for,
+// until a PATCH returns the whole page.
+let needsFullPreview = false;
+
+// Per component instance, the newest successful response whose model was not
+// applied because a newer PATCH was queued. Applied if that PATCH fails.
+const supersededResponses = new Map<string, { model: any; layout?: any }>();
+
+const isOtherEntity = (editorUrl?: string) =>
+  editorUrl !== undefined &&
+  JSON.stringify(extractEntityParams(editorUrl)) !==
+    JSON.stringify(extractEntityParams(window.location.href));
 
 export const previewApi = createApi({
   reducerPath: 'previewApi',
@@ -170,7 +194,7 @@ export const previewApi = createApi({
       UpdateComponentResultType | PartialUpdateComponentResultType,
       UpdateComponentQueryArg
     >({
-      query: ({ type, ...body }) => {
+      query: ({ type, editorUrl, ...body }) => {
         let url = '';
         if (type === 'entity') {
           url = 'canvas/api/v0/layout/{entity_type}/{entity_id}';
@@ -180,15 +204,51 @@ export const previewApi = createApi({
         } else if (type === 'pattern') {
           url = 'canvas/api/v0/layout-pattern/{entity_id}';
         }
+        if (editorUrl) {
+          const { entityType, entityId, templateBundle, templateViewMode } =
+            extractEntityParams(editorUrl);
+          url = replaceEntityParamsInUrl(
+            url,
+            entityType,
+            entityId,
+            templateBundle,
+            templateViewMode,
+          );
+        }
         // Only entities support a partial preview.
-        const { partialPreview = type === 'entity', ...rest } = body;
         return {
           url,
           method: 'PATCH',
-          body: partialPreview ? { ...rest, partialPreview } : rest,
+          body:
+            type === 'entity' && !needsFullPreview
+              ? { ...body, partialPreview: true }
+              : body,
         };
       },
       async onQueryStarted(arg, { dispatch, getState, queryFulfilled }) {
+        const uuid = arg.componentInstanceUuid;
+        const applyModel = ({
+          model,
+          layout,
+        }: {
+          model: any;
+          layout?: any;
+        }) => {
+          const state = getState() as RootState;
+          // Pass update preview false to prevent a subsequent preview update,
+          // we have the data here.
+          dispatch(
+            setLayoutModel(
+              layout === undefined
+                ? {
+                    layout: selectLayout(state),
+                    model: { ...selectModel(state), ...model },
+                    updatePreview: false,
+                  }
+                : { layout, model, updatePreview: false },
+            ),
+          );
+        };
         // Force any ajax calls to wait.
         pushCanvasLayoutRequest();
         let data: any;
@@ -200,15 +260,27 @@ export const previewApi = createApi({
           // value), we must still release the lock so that subsequent Drupal
           // AJAX calls are not permanently blocked.
           // @see https://www.drupal.org/project/canvas/issues/3579026
+          // The model of a successful response this one superseded is now the
+          // newest saved one.
+          const superseded = supersededResponses.get(uuid);
+          if (superseded && !patchScheduler.has(uuid)) {
+            supersededResponses.delete(uuid);
+            applyModel(superseded);
+          }
           return;
         } finally {
           // Tell ajax calls they're good to go regardless of success/failure.
           popCanvasLayoutRequest();
         }
         const { model, autoSaves } = data;
+        // The editor moved to another entity since this change was made.
+        if (isOtherEntity(arg.editorUrl)) {
+          handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+          return;
+        }
         // A queued PATCH for this instance will bring a newer model. Applying
         // this one would undo what was typed since this one was sent.
-        const isOutdated = patchScheduler.has(arg.componentInstanceUuid);
+        const isOutdated = patchScheduler.has(uuid);
         if (!isOutdated) {
           dispatch(
             pendingChangesApi.util.invalidateTags([
@@ -225,36 +297,29 @@ export const previewApi = createApi({
         if ('component' in data) {
           const html = spliceComponentHtml(state.preview.html, data.component);
           if (html === null) {
-            // The current preview lacks the instance: get the whole page.
-            dispatch(
-              previewApi.endpoints.updateComponent.initiate({
-                ...arg,
-                partialPreview: false,
-              }),
-            );
+            // The current preview lacks the instance: send the change again,
+            // in turn with other changes, for the whole page.
+            needsFullPreview = true;
+            if (!patchScheduler.has(uuid)) {
+              sendPatch ??= (patch) =>
+                dispatch(previewApi.endpoints.updateComponent.initiate(patch));
+              patchScheduler.schedule(uuid, arg, true);
+            }
             return;
           }
           dispatch(setHtml(html));
         } else {
+          needsFullPreview = false;
           dispatch(setHtml(data.html));
         }
         handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+        const response = 'component' in data ? { model } : data;
         if (isOutdated) {
+          supersededResponses.set(uuid, response);
           return;
         }
-        // Pass update preview false to prevent a subsequent preview update,
-        // we have the data here.
-        dispatch(
-          setLayoutModel(
-            'component' in data
-              ? {
-                  layout: selectLayout(state),
-                  model: { ...selectModel(state), ...model },
-                  updatePreview: false,
-                }
-              : { layout: data.layout, model, updatePreview: false },
-          ),
-        );
+        supersededResponses.delete(uuid);
+        applyModel(response);
       },
     }),
   }),
@@ -295,6 +360,7 @@ export const usePatchComponent = () => {
       componentInstanceUuid: selectedComponent,
       componentType: `${selectedComponentType}@${version}`,
       model,
+      editorUrl: window.location.href,
     };
 
     // Prevent duplicate requests
@@ -319,12 +385,13 @@ export const usePatchComponent = () => {
  * site.
  *
  * Only valid for EvaluatedComponentModel instances (components with source
- * data). Returns null without patching if the current model is not evaluated.
+ * data). Does nothing if the current model is not evaluated.
  */
 export const usePatchProp = () => {
   const [updateComponent] = useUpdateComponentMutation();
+  const store = useAppStore();
 
-  return (
+  return async (
     inputUIData: InputUIData,
     propName: string,
     sourceValue: PropSource | PropSource['value'],
@@ -335,29 +402,37 @@ export const usePatchProp = () => {
       selectedComponentType,
       version,
       editorFrameContext,
-      model,
     } = inputUIData;
 
-    const selectedModel = model?.[selectedComponent];
+    // Build on the model after queued changes are saved; otherwise sending
+    // them would undo this change.
+    await sendQueuedComponentPatches();
+    const selectedModel = selectModel(store.getState())[selectedComponent];
     if (!selectedModel || !('source' in selectedModel)) {
-      return null;
+      return;
     }
 
-    return updateComponent({
-      type: editorFrameContext,
-      componentInstanceUuid: selectedComponent,
-      componentType: `${selectedComponentType}@${version}`,
-      model: {
-        source: {
-          ...selectedModel.source,
-          [propName]: sourceValue,
+    sendPatch = updateComponent;
+    patchScheduler.schedule(
+      selectedComponent,
+      {
+        type: editorFrameContext,
+        componentInstanceUuid: selectedComponent,
+        componentType: `${selectedComponentType}@${version}`,
+        model: {
+          source: {
+            ...selectedModel.source,
+            [propName]: sourceValue,
+          },
+          resolved: {
+            ...selectedModel.resolved,
+            [propName]: resolvedValue,
+          },
         },
-        resolved: {
-          ...selectedModel.resolved,
-          [propName]: resolvedValue,
-        },
+        editorUrl: window.location.href,
       },
-    });
+      true,
+    );
   };
 };
 

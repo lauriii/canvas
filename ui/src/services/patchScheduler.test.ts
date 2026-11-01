@@ -61,4 +61,31 @@ describe('createPatchScheduler', () => {
     expect(sent).toEqual(['a2', 'b1']);
     expect(maxInFlight).toBe(1);
   });
+
+  it('drains waiting changes and sends urgent ones right away', async () => {
+    const sent: string[] = [];
+    const scheduler = createPatchScheduler((value: string) => {
+      sent.push(value);
+      return new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    // Typing: the second change waits for a pause.
+    scheduler.schedule('a', 'a1');
+    await vi.advanceTimersByTimeAsync(10);
+    scheduler.schedule('a', 'a2');
+    expect(sent).toEqual(['a1']);
+
+    let drained = false;
+    scheduler.drain().then(() => (drained = true));
+    await vi.advanceTimersByTimeAsync(40);
+    expect(drained).toBe(false);
+    await vi.advanceTimersByTimeAsync(100);
+    expect(sent).toEqual(['a1', 'a2']);
+    expect(drained).toBe(true);
+
+    scheduler.schedule('a', 'a3');
+    scheduler.schedule('a', 'a4', true);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(sent).toEqual(['a1', 'a2', 'a4']);
+  });
 });
