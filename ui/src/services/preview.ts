@@ -17,6 +17,7 @@ import {
 } from '@/features/layout/preview/previewAssets';
 import {
   setHtml,
+  setPartialHtml,
   setSnapshotHTML,
   setSnapshotTitle,
 } from '@/features/pagePreview/previewSlice';
@@ -356,7 +357,7 @@ export const previewApi = createApi({
               }
               return;
             }
-            dispatch(setHtml(html));
+            dispatch(setPartialHtml({ html, assets: data.assets }));
           } else {
             needsFullPreview = false;
             dispatch(setHtml(data.html));

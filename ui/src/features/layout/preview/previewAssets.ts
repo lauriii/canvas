@@ -52,18 +52,27 @@ const mergeSettings = (
   });
 };
 
+const createElement = (
+  document: Document,
+  tagName: 'link' | 'script',
+  attributes: Record<string, string | boolean>,
+) => {
+  const element = document.createElement(tagName);
+  Object.entries(attributes).forEach(([name, value]) => {
+    if (value !== false) {
+      element.setAttribute(name, value === true ? '' : value);
+    }
+  });
+  return element;
+};
+
 const addElement = (
   parent: HTMLElement,
   tagName: 'link' | 'script',
   attributes: Record<string, string | boolean>,
 ) =>
   new Promise<void>((resolve) => {
-    const element = parent.ownerDocument.createElement(tagName);
-    Object.entries(attributes).forEach(([name, value]) => {
-      if (value !== false) {
-        element.setAttribute(name, value === true ? '' : value);
-      }
-    });
+    const element = createElement(parent.ownerDocument, tagName, attributes);
     element.addEventListener('load', () => resolve());
     element.addEventListener('error', () => resolve());
     parent.appendChild(element);
@@ -92,3 +101,37 @@ export const loadPreviewAssets = (assets: PreviewAssets) =>
       }
     }),
   );
+
+/**
+ * Adds assets to a preview document's HTML, for a frame created from it.
+ */
+export const injectPreviewAssets = (
+  html: string,
+  assetsList: PreviewAssets[],
+): string => {
+  if (!assetsList.length) {
+    return html;
+  }
+  const document = new DOMParser().parseFromString(html, 'text/html');
+  const settingsElement = document.querySelector(
+    'script[data-drupal-selector="drupal-settings-json"]',
+  );
+  const settings = JSON.parse(settingsElement?.textContent || '{}');
+  assetsList.forEach((assets) => {
+    mergeSettings(settings, assets.settings);
+    assets.css.forEach((attributes) =>
+      document.head.append(createElement(document, 'link', attributes)),
+    );
+    assets.jsHeader.forEach((attributes) =>
+      document.head.append(createElement(document, 'script', attributes)),
+    );
+    assets.jsFooter.forEach((attributes) =>
+      document.body.append(createElement(document, 'script', attributes)),
+    );
+  });
+  if (settingsElement) {
+    settingsElement.textContent = JSON.stringify(settings);
+  }
+  const doctype = document.doctype ? `<!DOCTYPE ${document.doctype.name}>` : '';
+  return doctype + document.documentElement.outerHTML;
+};
