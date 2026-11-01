@@ -148,14 +148,15 @@ without cache tag support have no tags and no limit.
 reading the current request, so the result is safe to store in a cache keyed by
 path. A page anonymous visitors cannot see (403/404) is a `PageNotFound`
 (`{ notFound: true, status, cacheTags, cacheMaxAge }`) with the error's
-cacheability. Other errors throw, so a cache does not keep a transient failure.
-Use `fetchPage()` for draft sessions.
+cacheability; `isPageNotFound()` tells it apart. Other errors throw, so a cache
+does not keep a transient failure. Use `fetchPage()` for draft sessions.
 
 Mount `createCacheInvalidationHandler()` from `@drupal-canvas/headless/server`
-as a POST route at `/api/canvas/revalidate`. Drupal announces invalidations to
-that path on every configured frontend; the handler reads the invalidated tags
-from `CANVAS_SITE_URL` and passes them to your `invalidate` callback. No secret
-or Drupal setting is needed (see the
+as a POST route, for example at `/api/canvas/revalidate`, and add its full URL
+to Drupal's `canvas_headless.settings:cache_invalidation_urls`. Drupal announces
+invalidations to that URL; the handler reads the invalidated tags, once, from
+`CANVAS_SITE_URL` and passes them to your `invalidate` callback. No secret is
+shared (see the
 [Canvas Headless module README](../../modules/canvas_headless/README.md#frontend-cache-invalidation)):
 
 ```ts
@@ -173,8 +174,8 @@ announcement, 404 for an ID Drupal does not know, and 502 when Drupal cannot be
 reached. It throws (a framework 500) when `CANVAS_SITE_URL` is not configured or
 `invalidate` throws. Pass `defer` (for example Next.js `after()`) to answer 202
 at once and read the tags afterwards, so that Drupal's announcing request does
-not wait for a second Drupal worker; failures are then logged. The Next.js
-adapter connects this to the Next.js cache; see its README.
+not wait for a second Drupal worker; failures are then logged, and Drupal is not
+told. The Next.js adapter connects this to the Next.js cache; see its README.
 
 ## JSON:API for portable Code Components
 

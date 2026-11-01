@@ -2,10 +2,10 @@
  * @file
  * The receiving end of Drupal's cache tag invalidation. After a request that
  * invalidates cache tags, the Canvas Headless module posts `{"id": "..."}` to
- * every configured frontend at `/api/canvas/revalidate`. The handler reads
- * the tags stored under that ID from the Drupal site (CANVAS_SITE_URL), so it
- * needs no shared secret: the announcement is only a hint, and the tags come
- * from Drupal itself. Content results carry the tags they depend on in
+ * every URL in its `cache_invalidation_urls` setting. The handler reads the
+ * tags stored under that ID from the Drupal site (CANVAS_SITE_URL), once, so
+ * it needs no shared secret: the announcement is only a hint, and the tags
+ * come from Drupal itself. Content results carry the tags they depend on in
  * `cacheTags`; an application tags its cached copies with them, and expires
  * the copies here.
  */
@@ -28,14 +28,14 @@ export interface CacheInvalidationOptions {
    * Runs a task after the response, for example Next.js `after()`. With it,
    * the handler answers 202 at once and reads the tags afterwards: Drupal's
    * announcing request then never waits for a Drupal worker to answer the
-   * read. Failures are logged.
+   * read. Failures are logged; a failed read is lost, and Drupal is not told.
    */
   defer?: (task: () => Promise<void>) => void;
 }
 
 /**
- * Creates the body of the cache invalidation route (POST
- * `/api/canvas/revalidate`). Answers 204 once `invalidate` completes, 400 for
+ * Creates the body of the cache invalidation route, for example POST
+ * `/api/canvas/revalidate`. Answers 204 once `invalidate` completes, 400 for
  * a malformed announcement, 404 when Drupal knows no such ID, and 502 when
  * Drupal cannot be reached. Throws when the configuration is invalid or
  * `invalidate` throws. With `defer`, answers 202 for every well-formed
@@ -49,9 +49,18 @@ export function createCacheInvalidationHandler(
     const { baseUrl } = resolveDraftConfig(options.config);
     // Resolved per request: frameworks may replace the global fetch later.
     const fetchImpl = options.fetchImpl ?? fetch;
+    // The ID travels in the body, so that access logs never record it.
     const response = await fetchImpl(
-      `${baseUrl}/canvas-headless/cache-invalidation/${id}`,
-      { headers: { Accept: 'application/json' }, cache: 'no-store' },
+      `${baseUrl}/canvas-headless/cache-invalidation`,
+      {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id }),
+        cache: 'no-store',
+      },
     ).catch(() => null);
     if (response?.status === 404) {
       return new Response('Unknown invalidation.', { status: 404 });
@@ -86,11 +95,15 @@ export function createCacheInvalidationHandler(
       return invalidateAnnounced(id);
     }
     defer(async () => {
-      const response = await invalidateAnnounced(id);
-      if (response.status !== 204) {
-        console.warn(
-          `Canvas cache invalidation ${id}: ${response.status} ${await response.text()}`,
-        );
+      try {
+        const response = await invalidateAnnounced(id);
+        if (response.status !== 204) {
+          console.warn(
+            `Canvas cache invalidation failed: ${response.status} ${await response.text()}`,
+          );
+        }
+      } catch (error) {
+        console.error('Canvas cache invalidation failed:', error);
       }
     });
     return new Response(null, { status: 202 });

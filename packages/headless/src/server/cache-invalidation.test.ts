@@ -32,8 +32,12 @@ describe('createCacheInvalidationHandler', () => {
 
     expect(response.status).toBe(204);
     expect(fetchImpl).toHaveBeenCalledWith(
-      'https://drupal.example/cms/canvas-headless/cache-invalidation/abc_-1',
-      expect.objectContaining({ cache: 'no-store' }),
+      'https://drupal.example/cms/canvas-headless/cache-invalidation',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ id: 'abc_-1' }),
+        cache: 'no-store',
+      }),
     );
     expect(invalidate).toHaveBeenCalledWith(['node:1', 'node_list']);
   });
@@ -90,6 +94,14 @@ describe('createCacheInvalidationHandler', () => {
     expect(tasks).toHaveLength(1);
     await tasks[0]();
     expect(invalidate).toHaveBeenCalledWith(['node:1']);
+
+    // A deferred failure is logged, not thrown.
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    invalidate.mockRejectedValueOnce(new Error('The cache is down.'));
+    await handle(announce({ id: 'abc' }));
+    await expect(tasks[1]()).resolves.toBeUndefined();
+    expect(error).toHaveBeenCalledOnce();
+    error.mockRestore();
   });
 
   it('refuses other methods', async () => {
