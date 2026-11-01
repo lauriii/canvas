@@ -442,6 +442,25 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       Media::load(4)?->field_media_image->src_with_alternate_widths->getGeneratedUrl(),
     ], $images);
 
+    // A partial preview renders only the instance, as it appears in the whole
+    // page. Content templates fall back to the whole page.
+    $response = $this->request(Request::create($url, method: 'PATCH', content: \json_encode(['partialPreview' => TRUE] + $updateImageClientData, JSON_THROW_ON_ERROR)));
+    $partial = self::decodeResponse($response);
+    if ($entity instanceof ContentTemplate) {
+      self::assertArrayHasKey('html', $partial);
+    }
+    else {
+      $uuid = CanvasTestSetup::UUID_STATIC_IMAGE;
+      self::assertSame(['component', 'model', 'autoSaves'], \array_keys($partial));
+      self::assertSame($uuid, $partial['component']['uuid']);
+      $start = \strpos($data['html'], "<!-- canvas-start-$uuid -->");
+      $end_marker = "<!-- canvas-end-$uuid -->";
+      $end = \strpos($data['html'], $end_marker);
+      \assert($start !== FALSE && $end !== FALSE);
+      self::assertSame(\substr($data['html'], $start, $end + \strlen($end_marker) - $start), $partial['component']['html']);
+      self::assertSame($data['model'][$uuid], $partial['model'][$uuid]);
+    }
+
     unset($updateImageClientData['clientInstanceId']);
     $updateImageClientData += $this->getPatchContentsDefaults([$entity]);
     $this->assertRequestAutoSaveConflict(Request::create($url, method: 'PATCH', content: \json_encode($updateImageClientData, JSON_THROW_ON_ERROR)));
