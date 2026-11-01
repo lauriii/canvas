@@ -51,6 +51,7 @@ export {
 } from './cache-invalidation';
 export {
   type Cacheability,
+  isPageNotFound,
   isPageRedirect,
   serializeJsonForHtml,
   type CanvasComponentTreeElement,

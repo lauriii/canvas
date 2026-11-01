@@ -124,7 +124,10 @@ export interface PageRedirect extends Cacheability {
   };
 }
 
-/** A page anonymous visitors cannot see, from fetchPublishedPage(). */
+/**
+ * A page anonymous visitors cannot see, from fetchPublishedPage(): Drupal
+ * answered 404, or 403 for content that exists but is not public.
+ */
 export interface PageNotFound extends Cacheability {
   notFound: true;
   status: 403 | 404;
@@ -134,8 +137,17 @@ export interface PageNotFound extends Cacheability {
 export type PageResult = Page | PageRedirect;
 
 /** Distinguishes redirect results without inspecting framework state. */
-export function isPageRedirect(result: PageResult): result is PageRedirect {
+export function isPageRedirect(
+  result: PageResult | PageNotFound,
+): result is PageRedirect {
   return 'redirect' in result;
+}
+
+/** Distinguishes a page anonymous visitors cannot see (403/404). */
+export function isPageNotFound(
+  result: PageResult | PageNotFound,
+): result is PageNotFound {
+  return 'notFound' in result;
 }
 
 /**
