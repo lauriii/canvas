@@ -19,6 +19,7 @@ import {
 import { FORM_TYPES } from '@/features/form/constants';
 import {
   selectFieldError,
+  selectFormErrors,
   selectFormValues,
 } from '@/features/form/formStateSlice';
 
@@ -69,6 +70,9 @@ export const ComponentFormField = <P extends Record<string, any>>({
   const formState = useAppSelector((state) =>
     selectFormValues(state, FORM_TYPES.COMPONENT_INSTANCE_FORM),
   );
+  const formErrors = useAppSelector((state) =>
+    selectFormErrors(state, FORM_TYPES.COMPONENT_INSTANCE_FORM),
+  );
 
   // Memo attributes to prevent re-renders when only the object
   // reference changes but the values are identical.
@@ -85,7 +89,18 @@ export const ComponentFormField = <P extends Record<string, any>>({
     const debounceFormStateToLayoutModelStore = useDebouncedFormState(
       formStateToLayoutModelStore,
     );
-    return (newFormState: PropsValues) => {
+    // A change to one field updates all props from the whole form state. Leave
+    // out the other fields whose current value was rejected, so their last
+    // valid value stays in use instead of being sent anyway.
+    const withoutRejectedValues = (values: PropsValues): PropsValues =>
+      Object.fromEntries(
+        Object.entries(values).filter(
+          ([name]) => name === fieldName || !(name in formErrors),
+        ),
+      );
+    return (changedFormState: PropsValues) => {
+      const newFormState = withoutRejectedValues(changedFormState);
+      const validFormState = withoutRejectedValues(formState);
       const elementType =
         props.attributes?.type || props.attributes?.['data-canvas-type'];
       // Debounce isn't needed for elements that only have an on/off state.
@@ -97,10 +112,14 @@ export const ComponentFormField = <P extends Record<string, any>>({
         debounceFormStateToLayoutModelStore(
           newFormState,
           inputAndUiData,
-          formState,
+          validFormState,
         );
       } else {
-        formStateToLayoutModelStore(newFormState, inputAndUiData, formState);
+        formStateToLayoutModelStore(
+          newFormState,
+          inputAndUiData,
+          validFormState,
+        );
       }
     };
   })();

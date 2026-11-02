@@ -183,6 +183,12 @@ export const selectFormValues = createSelector(
     formState[formId]?.values || {},
 );
 
+export const selectFormErrors = createSelector(
+  [selectFormState, selectFormStateForForm],
+  (formState: FormStateSliceState, formId: FormId) =>
+    formState[formId]?.errors || {},
+);
+
 export const selectFieldValue = createSelector(
   [selectFormState, selectFieldIdentifiers],
   (formState: FormStateSliceState, identifiers: FieldIdentifier) =>
