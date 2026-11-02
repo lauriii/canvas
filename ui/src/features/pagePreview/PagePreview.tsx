@@ -13,7 +13,7 @@ import {
 import { useHeadlessDraftSession } from '@/features/layout/preview/useHeadlessDraftSession';
 import { selectPageData } from '@/features/pageData/pageDataSlice';
 import {
-  selectPreviewHtml,
+  selectPreviewDocument,
   setSnapshotHTML,
   setSnapshotTitle,
 } from '@/features/pagePreview/previewSlice';
@@ -82,7 +82,7 @@ const PagePreview = () => {
   const updatePreview = useAppSelector(selectUpdatePreview);
   const model = useAppSelector(selectModel);
   const entity_form_fields = useAppSelector(selectPageData);
-  const frameSrcDoc = useAppSelector(selectPreviewHtml);
+  const frameSrcDoc = useAppSelector(selectPreviewDocument);
   const [postPreview] = useQueuedPostPreviewMutation();
   const { entityId, entityType, bundle, viewMode, width } = useParams();
   const [searchParams] = useSearchParams();

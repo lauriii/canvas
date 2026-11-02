@@ -14,6 +14,8 @@ import {
   applyInPlaceUpdate,
   findInPlaceUpdate,
 } from '@/features/layout/preview/inPlaceUpdate';
+import { injectPreviewAssets } from '@/features/layout/preview/previewAssets';
+import { selectAddedPreviewAssets } from '@/features/pagePreview/previewSlice';
 import { selectDragging } from '@/features/ui/uiSlice';
 
 import type { Dispatch, Ref, SetStateAction } from 'react';
@@ -67,6 +69,11 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
     // without re-running (and so reloading) the srcdoc effect on style changes.
     const headStylesRef = useRef(headStyles);
     headStylesRef.current = headStyles;
+    // Assets partial previews added to the live markup, which a document
+    // loaded from srcDocument needs too. Compared markup leaves them out.
+    const addedAssets = useAppSelector(selectAddedPreviewAssets);
+    const addedAssetsRef = useRef(addedAssets);
+    addedAssetsRef.current = addedAssets;
     // The markup loading in the inactive iframe, and the markup the active
     // iframe shows once no swap is pending. A change confined to one component
     // instance is applied to the active iframe in place, without a swap.
@@ -219,7 +226,10 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
 
       // Insert the head styles into the markup itself, so a loading document
       // renders with them from its first paint.
-      const srcDocumentWithStyles = srcDocument.replace(
+      const srcDocumentWithStyles = injectPreviewAssets(
+        srcDocument,
+        addedAssetsRef.current,
+      ).replace(
         /<\/head>/i,
         () =>
           `<style id="${HEAD_STYLES_ID}">${headStylesRef.current}</style></head>`,

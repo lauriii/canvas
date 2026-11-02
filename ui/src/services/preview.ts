@@ -10,7 +10,12 @@ import {
 } from '@/features/layout/layoutModelSlice';
 import { spliceComponentHtml } from '@/features/layout/preview/inPlaceUpdate';
 import {
+  getPreviewLibraries,
+  loadPreviewAssets,
+} from '@/features/layout/preview/previewAssets';
+import {
   setHtml,
+  setPartialHtml,
   setSnapshotHTML,
   setSnapshotTitle,
 } from '@/features/pagePreview/previewSlice';
@@ -30,6 +35,7 @@ import type {
   PropSource,
   ResolvedValues,
 } from '@/features/layout/layoutModelSlice';
+import type { PreviewAssets } from '@/features/layout/preview/previewAssets';
 import type { EditorFrameContext } from '@/features/ui/uiSlice';
 import type { ConflictError } from '@/services/pendingChangesApi';
 import type { AutoSavesHash } from '@/types/AutoSaves';
@@ -49,6 +55,7 @@ type PartialUpdateComponentResultType = {
   component: { uuid: string; html: string };
   model: any;
   autoSaves: AutoSavesHash;
+  assets?: PreviewAssets;
 };
 
 export type UpdateComponentQueryArg = {
@@ -58,6 +65,11 @@ export type UpdateComponentQueryArg = {
   model: Omit<ComponentModel, 'name'> | Omit<EvaluatedComponentModel, 'name'>;
   partialPreview?: boolean;
 };
+
+// Resolves once the previous updateComponent response is applied. Responses
+// are applied in the order their requests started, each after loading the
+// assets it needs.
+let responsesApplied: Promise<void> = Promise.resolve();
 
 export const previewApi = createApi({
   reducerPath: 'previewApi',
@@ -173,72 +185,97 @@ export const previewApi = createApi({
           url = 'canvas/api/v0/layout-pattern/{entity_id}';
         }
         // Only entities support a partial preview.
+        // The page's libraries let the response add the libraries the updated
+        // instance needs.
         const { partialPreview = type === 'entity', ...rest } = body;
+        const pageLibraries = getPreviewLibraries();
         return {
           url,
           method: 'PATCH',
-          body: partialPreview ? { ...rest, partialPreview } : rest,
+          body: partialPreview
+            ? {
+                ...rest,
+                partialPreview,
+                ...(pageLibraries && { pageLibraries }),
+              }
+            : rest,
         };
       },
       async onQueryStarted(arg, { dispatch, getState, queryFulfilled }) {
-        // Force any ajax calls to wait.
-        pushCanvasLayoutRequest();
-        let data: any;
-        let meta: any;
+        const previousResponseApplied = responsesApplied;
+        let markApplied = () => {};
+        responsesApplied = new Promise((resolve) => (markApplied = resolve));
         try {
-          ({ data, meta } = await queryFulfilled);
-        } catch {
-          // If the request fails (e.g. the server rejects an invalid field
-          // value), we must still release the lock so that subsequent Drupal
-          // AJAX calls are not permanently blocked.
-          // @see https://www.drupal.org/project/canvas/issues/3579026
-          return;
-        } finally {
-          // Tell ajax calls they're good to go regardless of success/failure.
-          popCanvasLayoutRequest();
-        }
-        const { model, autoSaves } = data;
-        dispatch(
-          pendingChangesApi.util.invalidateTags([
-            { type: 'PendingChanges', id: 'LIST' },
-          ]),
-        );
-        // Clear any stale snapshot (e.g. from a prior language/template preview)
-        // so selectPreviewHtml returns this fresh editor html instead of the
-        // preview snapshot, which selectPreviewHtml prefers while set.
-        dispatch(setSnapshotHTML(''));
-        dispatch(setSnapshotTitle(''));
-        const state = getState() as RootState;
-        if ('component' in data) {
-          const html = spliceComponentHtml(state.preview.html, data.component);
-          if (html === null) {
-            // The current preview lacks the instance: get the whole page.
-            dispatch(
-              previewApi.endpoints.updateComponent.initiate({
-                ...arg,
-                partialPreview: false,
-              }),
-            );
+          // Force any ajax calls to wait.
+          pushCanvasLayoutRequest();
+          let result: Awaited<typeof queryFulfilled> | undefined;
+          try {
+            result = await queryFulfilled;
+          } catch {
+            // If the request fails (e.g. the server rejects an invalid field
+            // value), we must still release the lock so that subsequent Drupal
+            // AJAX calls are not permanently blocked.
+            // @see https://www.drupal.org/project/canvas/issues/3579026
+          } finally {
+            // Tell ajax calls they're good to go regardless of success/failure.
+            popCanvasLayoutRequest();
+          }
+          await previousResponseApplied;
+          if (!result) {
             return;
           }
-          dispatch(setHtml(html));
-        } else {
-          dispatch(setHtml(data.html));
+          const { data, meta } = result as { data: any; meta: any };
+          const { model, autoSaves } = data;
+          if ('assets' in data && data.assets) {
+            await loadPreviewAssets(data.assets);
+          }
+          dispatch(
+            pendingChangesApi.util.invalidateTags([
+              { type: 'PendingChanges', id: 'LIST' },
+            ]),
+          );
+          // Clear any stale snapshot (e.g. from a prior language/template preview)
+          // so selectPreviewHtml returns this fresh editor html instead of the
+          // preview snapshot, which selectPreviewHtml prefers while set.
+          dispatch(setSnapshotHTML(''));
+          dispatch(setSnapshotTitle(''));
+          const state = getState() as RootState;
+          if ('component' in data) {
+            const html = spliceComponentHtml(
+              state.preview.html,
+              data.component,
+            );
+            if (html === null) {
+              // The current preview lacks the instance: get the whole page.
+              dispatch(
+                previewApi.endpoints.updateComponent.initiate({
+                  ...arg,
+                  partialPreview: false,
+                }),
+              );
+              return;
+            }
+            dispatch(setPartialHtml({ html, assets: data.assets }));
+          } else {
+            dispatch(setHtml(data.html));
+          }
+          handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+          // Pass update preview false to prevent a subsequent preview update,
+          // we have the data here.
+          dispatch(
+            setLayoutModel(
+              'component' in data
+                ? {
+                    layout: selectLayout(state),
+                    model: { ...selectModel(state), ...model },
+                    updatePreview: false,
+                  }
+                : { layout: data.layout, model, updatePreview: false },
+            ),
+          );
+        } finally {
+          markApplied();
         }
-        handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
-        // Pass update preview false to prevent a subsequent preview update,
-        // we have the data here.
-        dispatch(
-          setLayoutModel(
-            'component' in data
-              ? {
-                  layout: selectLayout(state),
-                  model: { ...selectModel(state), ...model },
-                  updatePreview: false,
-                }
-              : { layout: data.layout, model, updatePreview: false },
-          ),
-        );
       },
     }),
   }),
