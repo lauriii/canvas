@@ -168,15 +168,20 @@ abstract class ApiMessageValidatorBase implements EventSubscriberInterface {
 
     \assert($this->validatorBuilder instanceof ValidatorBuilder);
 
-    // Parsing the file takes ~50ms, so keep the parsed schema until it changes.
-    $cid = 'canvas:openapi_schema:' . \filemtime($openapi_spec_file);
-    $cached = $this->cache->get($cid);
-    if ($cached === FALSE) {
-      $schema = (new YamlFileFactory($openapi_spec_file))->createSchema();
-      $this->cache->set($cid, $schema);
-    }
-    else {
-      $schema = $cached->data;
+    // Parsing the file takes ~50ms, so keep the parsed schema until the file's
+    // content changes, in one cache entry. The request and response validators
+    // share it within a request.
+    static $schema;
+    if (!isset($schema)) {
+      $hash = \hash_file('xxh64', $openapi_spec_file);
+      $cached = $this->cache->get('canvas:openapi_schema');
+      if ($cached !== FALSE && $cached->data['hash'] === $hash) {
+        $schema = $cached->data['schema'];
+      }
+      else {
+        $schema = (new YamlFileFactory($openapi_spec_file))->createSchema();
+        $this->cache->set('canvas:openapi_schema', ['hash' => $hash, 'schema' => $schema]);
+      }
     }
 
     return $this->validatorBuilder->fromSchema($schema);
