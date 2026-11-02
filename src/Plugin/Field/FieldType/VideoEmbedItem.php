@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Drupal\canvas\Plugin\Field\FieldType;
 
 use Drupal\canvas\TypedData\VideoEmbedIframeUrl;
+use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Field\Attribute\FieldType;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\Plugin\Field\FieldType\UriItem;
+use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\media\OEmbed\ProviderException;
@@ -59,17 +61,39 @@ final class VideoEmbedItem extends UriItem {
   /**
    * {@inheritdoc}
    *
-   * Also accepts an example value of the `video-embed` prop shape: its `src`
-   * is then the URL of the video page, from which `iframe_url` is computed.
+   * Also accepts a value of the `video-embed` prop shape, `{src: …}`:
+   * - an example value, whose `src` is the URL of the video page;
+   * - a resolved value, whose `src` is the iframe URL computed from the video
+   *   URL: the client may send a prop's resolved value back as its value.
    *
    * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentDiscoveryBase::computeDefaultFieldValue()
+   * @see \Drupal\canvas\TypedData\VideoEmbedIframeUrl
+   * @see ui/src/features/layout/layoutModelSlice.ts::syncPropSourcesToResolvedValues()
    */
   // @phpstan-ignore-next-line method.childParameterType
   public function setValue($values, $notify = TRUE): void {
     if (\is_array($values) && \array_key_exists('src', $values) && !\array_key_exists('value', $values)) {
-      $values = ['value' => $values['src']];
+      $values = ['value' => self::getVideoUrl((string) $values['src'])];
     }
     parent::setValue($values, $notify);
+  }
+
+  /**
+   * Gets the video URL from a URL that may be an oEmbed iframe URL.
+   *
+   * @param string $url
+   *   The URL of a video page, or of core's oEmbed iframe for one.
+   *
+   * @return string
+   *   The URL of the video page.
+   */
+  private static function getVideoUrl(string $url): string {
+    $parsed = UrlHelper::parse($url);
+    $iframe_path = \Drupal::service(RouteProviderInterface::class)->getRouteByName('media.oembed_iframe')->getPath();
+    if (\str_ends_with($parsed['path'], $iframe_path) && \is_string($parsed['query']['url'] ?? NULL)) {
+      return $parsed['query']['url'];
+    }
+    return $url;
   }
 
   /**

@@ -914,6 +914,9 @@ class StaticPropSourceTest extends PropSourceTestBase {
     // An SDC example value contains the video URL as `src`.
     // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentDiscoveryBase::computeDefaultFieldValue()
     self::assertSame($video_url, $prop_source->withValue(['src' => $video_url])->getValue());
+    // A resolved value contains the iframe URL as `src`.
+    $iframe_url = $prop_source->evaluate(NULL, is_required: TRUE)->value['src'];
+    self::assertSame($video_url, $prop_source->withValue(['src' => $iframe_url])->getValue());
 
     // The widget only accepts URLs of the allowed providers.
     $widget = $prop_source->getWidget('irrelevant-for-this-test', 'irrelevant-for-this-test', 'my_prop', $this->randomString(), NULL);
