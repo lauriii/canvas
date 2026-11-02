@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\canvas\Hook;
 
 use Drupal\canvas\Form\ComponentInstanceForm;
-use Drupal\canvas\Plugin\Field\FieldType\CanvasObjectItem;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Asset\LibraryDiscoveryInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
@@ -254,11 +253,11 @@ class ReduxIntegratedFieldWidgetsHooks implements TrustedCallbackInterface {
       $cardinality = $field_definition->getFieldStorageDefinition()->getCardinality();
       // Mark all input elements within multivalue widgets and add field
       // title.
-      // Object properties with an `enum` are single-valued: keep their select
-      // a plain select, rather than a multiple value select.
+      // Each item of an object list is a group of single-valued properties:
+      // render those as plain form elements, not as multiple value items.
       // @see \Drupal\canvas\Plugin\Field\FieldWidget\CanvasObjectWidget
-      $types = $widget_type === CanvasObjectItem::PLUGIN_ID
-        ? ['textfield', 'number', 'url', 'submit']
+      $types = $widget_type === 'canvas_object'
+        ? ['submit']
         : ['textfield', 'number', 'url', 'entity_autocomplete', 'submit', 'select'];
       $this->markMultivalueFormElements($widget, $field_label, $cardinality, $types);
     }
