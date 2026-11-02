@@ -22,7 +22,7 @@ import {
 import { toPropName } from '@/components/form/react-hook-form/fields/componentFormData';
 import { isEvaluatedComponentModel } from '@/features/layout/layoutModelSlice';
 import useInputUIData from '@/hooks/useInputUIData';
-import { usePatchComponent, usePatchProp } from '@/services/preview';
+import { usePatchComponentModel, usePatchProp } from '@/services/preview';
 import { isAjaxing } from '@/utils/isAjaxing';
 
 import type { ReactNode } from 'react';
@@ -91,7 +91,7 @@ const DrupalMediaListContainer = ({
   const inputUIData = useInputUIData();
   const { selectedComponent, selectedComponentType, model, components } =
     inputUIData;
-  const patchComponent = usePatchComponent();
+  const patchComponentModel = usePatchComponentModel();
   const patchProp = usePatchProp();
   const selectedModel = useMemo(
     () => model?.[selectedComponent] || null,
@@ -230,16 +230,13 @@ const DrupalMediaListContainer = ({
       if (!componentData || !propSourceData) {
         return;
       }
-      const removeModel = buildRemoveModel(
-        selectedModel,
-        propName,
-        propSourceData,
-      );
-
       setTimeout(() => {
         const interval = setInterval(() => {
           if (!isAjaxing()) {
-            patchComponent(inputUIData, removeModel);
+            // Build on the model saved after queued changes.
+            patchComponentModel(inputUIData, (savedModel) =>
+              buildRemoveModel(savedModel, propName, propSourceData),
+            );
             clearInterval(interval);
           }
         });
@@ -278,7 +275,7 @@ const DrupalMediaListContainer = ({
     selectedComponent,
     selectedComponentType,
     selectedModel,
-    patchComponent,
+    patchComponentModel,
   ]);
 
   // Create sensors scoped to this sortable list - both pointer and keyboard

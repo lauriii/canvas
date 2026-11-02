@@ -6,7 +6,7 @@ import {
   DEFAULT_REGION,
   selectEditorFrameContext,
 } from '@/features/ui/uiSlice';
-import { previewApi, sendQueuedComponentPatches } from '@/services/preview';
+import { previewApi, runComponentWrite } from '@/services/preview';
 import { hasSlotDefinitions, isPropSourceComponent } from '@/types/Component';
 import {
   getCanvasSettings,
@@ -711,99 +711,102 @@ export const addNewComponentToLayout =
 
 export const updateExistingComponentValues =
   (payload: any): AppThunk =>
-  async (dispatch, getState) => {
-    const { componentSelectionUtils } = canvasSettings;
-    // Queued changes would otherwise undo this update.
-    await sendQueuedComponentPatches();
-    const state = getState();
-    const components: ComponentsList | undefined = state?.componentAndLayoutApi
-      ?.queries?.['getComponents(undefined)']?.data as
-      ComponentsList | undefined;
-    if (!components) {
-      console.warn('No components list found, cannot update component values.');
-      return;
-    }
-
-    let resetSelection: string | undefined = undefined;
-    const { values, componentToUpdateId, sources = {} } = payload;
-    const selectionItems = state?.ui?.selection?.items;
-
-    // If the component being updated is currently selected, it is temporarily
-    // deselected, then re-selected after the value update. This ensures the
-    // form re-renders with the updated values.
-    if (
-      Array.isArray(selectionItems) &&
-      selectionItems.includes(componentToUpdateId)
-    ) {
-      resetSelection = componentToUpdateId;
-      componentSelectionUtils.setSelectedComponent(null);
-    }
-
-    const layout = selectLayout(state);
-    const model = selectModel(state)[componentToUpdateId];
-    const node = findComponentByUuid(layout, componentToUpdateId);
-    const [selectedComponentType, version] = (
-      node ? (node.type as string) : 'noop'
-    ).split('@');
-
-    const componentMetadata = components[selectedComponentType];
-    // Exit early if attempting to update a prop that does not exist.
-    Object.keys(values).forEach((key) => {
-      if (!(componentMetadata as PropSourceComponent)?.propSources?.[key]) {
+  (dispatch, getState) =>
+    // Read the model and save the change as one component write, so queued
+    // or concurrent changes cannot undo it.
+    runComponentWrite(async () => {
+      const { componentSelectionUtils } = canvasSettings;
+      const state = getState();
+      const components: ComponentsList | undefined = state
+        ?.componentAndLayoutApi?.queries?.['getComponents(undefined)']?.data as
+        ComponentsList | undefined;
+      if (!components) {
         console.warn(
-          `Component ${selectedComponentType} does not have a prop named ${key}. Update cancelled.`,
+          'No components list found, cannot update component values.',
         );
         return;
       }
-    });
 
-    // Resolved will be updated in all cases.
-    const resolved = {
-      ...model.resolved,
-      ...values,
-    };
+      let resetSelection: string | undefined = undefined;
+      const { values, componentToUpdateId, sources = {} } = payload;
+      const selectionItems = state?.ui?.selection?.items;
 
-    const type = selectEditorFrameContext(state);
-    const valuePayload = {
-      type,
-      componentInstanceUuid: componentToUpdateId,
-      componentType: `${selectedComponentType}@${version}`,
-      model: {
-        ...model,
-        resolved,
-      },
-    };
+      // If the component being updated is currently selected, it is temporarily
+      // deselected, then re-selected after the value update. This ensures the
+      // form re-renders with the updated values.
+      if (
+        Array.isArray(selectionItems) &&
+        selectionItems.includes(componentToUpdateId)
+      ) {
+        resetSelection = componentToUpdateId;
+        componentSelectionUtils.setSelectedComponent(null);
+      }
 
-    // If the model includes source data, the model value needs to be processed
-    // to account for that.
-    if (isEvaluatedComponentModel(model) && componentMetadata) {
-      const updatedSource = {
-        ...model.source,
-        ...sources,
+      const layout = selectLayout(state);
+      const model = selectModel(state)[componentToUpdateId];
+      const node = findComponentByUuid(layout, componentToUpdateId);
+      const [selectedComponentType, version] = (
+        node ? (node.type as string) : 'noop'
+      ).split('@');
+
+      const componentMetadata = components[selectedComponentType];
+      // Exit early if attempting to update a prop that does not exist.
+      Object.keys(values).forEach((key) => {
+        if (!(componentMetadata as PropSourceComponent)?.propSources?.[key]) {
+          console.warn(
+            `Component ${selectedComponentType} does not have a prop named ${key}. Update cancelled.`,
+          );
+          return;
+        }
+      });
+
+      // Resolved will be updated in all cases.
+      const resolved = {
+        ...model.resolved,
+        ...values,
       };
 
-      valuePayload.model = {
-        source: syncPropSourcesToResolvedValues(
-          updatedSource,
-          componentMetadata,
+      const type = selectEditorFrameContext(state);
+      const valuePayload = {
+        type,
+        componentInstanceUuid: componentToUpdateId,
+        componentType: `${selectedComponentType}@${version}`,
+        model: {
+          ...model,
           resolved,
-        ),
-        resolved,
+        },
       };
-    }
-    await dispatch(
-      previewApi.endpoints.updateComponent.initiate(valuePayload, {
-        fixedCacheKey: componentToUpdateId,
-      }),
-    );
 
-    // If resetSelection is not undefined, it means a component was deselected
-    // before it's values were updated, and should be re-selected now that the
-    // update is complete.
-    if (resetSelection) {
-      componentSelectionUtils.setSelectedComponent(resetSelection);
-    }
-  };
+      // If the model includes source data, the model value needs to be processed
+      // to account for that.
+      if (isEvaluatedComponentModel(model) && componentMetadata) {
+        const updatedSource = {
+          ...model.source,
+          ...sources,
+        };
+
+        valuePayload.model = {
+          source: syncPropSourcesToResolvedValues(
+            updatedSource,
+            componentMetadata,
+            resolved,
+          ),
+          resolved,
+        };
+      }
+      await dispatch(
+        previewApi.endpoints.updateComponent.initiate(valuePayload, {
+          fixedCacheKey: componentToUpdateId,
+        }),
+      );
+
+      // If resetSelection is not undefined, it means a component was deselected
+      // before it's values were updated, and should be re-selected now that the
+      // update is complete.
+      if (resetSelection) {
+        componentSelectionUtils.setSelectedComponent(resetSelection);
+      }
+    });
 
 export const _linkPropToEntityValue =
   (payload: {
@@ -812,63 +815,66 @@ export const _linkPropToEntityValue =
     newSource: PropSource;
     inputUIData: InputUIData;
   }): AppThunk =>
-  async (dispatch, getState) => {
-    // Queued changes would otherwise undo this update.
-    await sendQueuedComponentPatches();
-    const state = getState();
-    const components: ComponentsList | undefined = state?.componentAndLayoutApi
-      ?.queries?.['getComponents(undefined)']?.data as
-      ComponentsList | undefined;
-    if (!components) {
-      console.warn('No components list found, cannot update component values.');
-      return;
-    }
+  (dispatch, getState) =>
+    // Read the model and save the change as one component write, so queued
+    // or concurrent changes cannot undo it.
+    runComponentWrite(async () => {
+      const state = getState();
+      const components: ComponentsList | undefined = state
+        ?.componentAndLayoutApi?.queries?.['getComponents(undefined)']?.data as
+        ComponentsList | undefined;
+      if (!components) {
+        console.warn(
+          'No components list found, cannot update component values.',
+        );
+        return;
+      }
 
-    const { propName, componentToUpdateId, newSource, inputUIData } = payload;
-    const { selectedComponentType, version } = inputUIData;
-    const model = selectModel(state)[componentToUpdateId];
-    const componentMetadata = components[selectedComponentType];
-    // Exit early if attempting to update a prop that does not exist.
-    if (
-      !(componentMetadata as PropSourceComponent)?.propSources?.[propName] ||
-      !model
-    ) {
-      console.warn(
-        `Component ${selectedComponentType} does not have a prop named ${propName}. Update cancelled.`,
-      );
-      return;
-    }
+      const { propName, componentToUpdateId, newSource, inputUIData } = payload;
+      const { selectedComponentType, version } = inputUIData;
+      const model = selectModel(state)[componentToUpdateId];
+      const componentMetadata = components[selectedComponentType];
+      // Exit early if attempting to update a prop that does not exist.
+      if (
+        !(componentMetadata as PropSourceComponent)?.propSources?.[propName] ||
+        !model
+      ) {
+        console.warn(
+          `Component ${selectedComponentType} does not have a prop named ${propName}. Update cancelled.`,
+        );
+        return;
+      }
 
-    // Only components with an evaluated model have a source to be updated.
-    if (isEvaluatedComponentModel(model) && componentMetadata) {
-      const source = {
-        ...model.source,
-        [propName]: newSource,
-      };
-      const resolved = {
-        ...model.resolved,
-      };
-      // Do not provide a resolved value with the newly linked prop.
-      delete resolved[propName];
+      // Only components with an evaluated model have a source to be updated.
+      if (isEvaluatedComponentModel(model) && componentMetadata) {
+        const source = {
+          ...model.source,
+          [propName]: newSource,
+        };
+        const resolved = {
+          ...model.resolved,
+        };
+        // Do not provide a resolved value with the newly linked prop.
+        delete resolved[propName];
 
-      const valuePayload = {
-        type: 'template' as EditorFrameContext,
-        componentInstanceUuid: componentToUpdateId,
-        componentType: `${selectedComponentType}@${version}`,
-        model: {
-          ...model,
-          resolved,
-          source,
-        },
-      };
+        const valuePayload = {
+          type: 'template' as EditorFrameContext,
+          componentInstanceUuid: componentToUpdateId,
+          componentType: `${selectedComponentType}@${version}`,
+          model: {
+            ...model,
+            resolved,
+            source,
+          },
+        };
 
-      await dispatch(
-        previewApi.endpoints.updateComponent.initiate(valuePayload, {
-          fixedCacheKey: componentToUpdateId,
-        }),
-      );
-    }
-  };
+        await dispatch(
+          previewApi.endpoints.updateComponent.initiate(valuePayload, {
+            fixedCacheKey: componentToUpdateId,
+          }),
+        );
+      }
+    });
 
 export const addNewPatternToLayout =
   (payload: AddNewPatternPayload, setSelectedComponent: Function): AppThunk =>

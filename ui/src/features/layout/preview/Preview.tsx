@@ -3,7 +3,7 @@ import { useErrorBoundary } from 'react-error-boundary';
 import { useParams } from 'react-router';
 import { skipToken } from '@reduxjs/toolkit/query';
 
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { useAppDispatch, useAppSelector, useAppStore } from '@/app/hooks';
 import { selectAutoSavesHash } from '@/components/review/PublishReview.slice';
 import {
   selectIsInitialized,
@@ -35,8 +35,10 @@ import {
   usePostTemplateLayoutMutation,
 } from '@/services/componentAndLayout';
 import {
+  runComponentWrite,
   selectUpdateComponentLoadingState,
   useQueuedPostPreviewMutation,
+  withSavedModels,
 } from '@/services/preview';
 import { isAjaxing } from '@/utils/isAjaxing';
 
@@ -44,6 +46,7 @@ import type React from 'react';
 
 const Preview: React.FC = () => {
   const dispatch = useAppDispatch();
+  const store = useAppStore();
   const layout = useAppSelector(selectLayout);
   const updatePreview = useAppSelector(selectUpdatePreview);
   const model = useAppSelector(selectModel);
@@ -123,17 +126,23 @@ const Preview: React.FC = () => {
             entityType,
           });
         } else if (context === 'template') {
-          await postTemplatePreview({
-            layout,
-            model,
-            entity_form_fields,
-          }).unwrap();
+          // Like entity POSTs, a component write that takes the models saved
+          // by queued component changes.
+          await runComponentWrite(() =>
+            postTemplatePreview({
+              layout,
+              model: withSavedModels(model, selectModel(store.getState())),
+              entity_form_fields,
+            }).unwrap(),
+          );
         } else if (context === 'pattern') {
-          await postPatternPreview({
-            layout,
-            model,
-            entity_form_fields,
-          }).unwrap();
+          await runComponentWrite(() =>
+            postPatternPreview({
+              layout,
+              model: withSavedModels(model, selectModel(store.getState())),
+              entity_form_fields,
+            }).unwrap(),
+          );
         }
       } catch (err) {
         showBoundary(err);
@@ -149,6 +158,7 @@ const Preview: React.FC = () => {
       postTemplatePreview,
       postPatternPreview,
       showBoundary,
+      store,
     ],
   );
 
