@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas\Kernel\PropSource;
 
 // cspell:ignore Kiritimati Qqzr
 
+use Drupal\canvas\Plugin\Field\FieldWidget\VideoEmbedUrlWidget;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldTypePropExpression;
@@ -24,10 +25,15 @@ use Drupal\Core\Field\Plugin\Field\FieldWidget\StringTextfieldWidget;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\UriWidget;
 use Drupal\Core\Form\FormState;
 use Drupal\Core\Language\LanguageInterface;
+use Drupal\Core\Url;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\datetime_range\Plugin\Field\FieldWidget\DateRangeDatelistWidget;
 use Drupal\datetime_range\Plugin\Field\FieldWidget\DateRangeDefaultWidget;
+use Drupal\media\IFrameUrlHelper;
+use Drupal\media\OEmbed\Provider;
+use Drupal\media\OEmbed\ProviderRepositoryInterface;
 use Drupal\media_library\Plugin\Field\FieldWidget\MediaLibraryWidget;
+use Drupal\media_test_oembed\ProviderRepository as TestProviderRepository;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\system\Functional\Form\StubForm;
 use Drupal\user\Entity\User;
@@ -42,6 +48,15 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[Group('canvas_data_model__prop_expressions')]
 #[RunTestsInSeparateProcesses]
 class StaticPropSourceTest extends PropSourceTestBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  protected static $modules = [
+    // Avoids fetching oEmbed providers from the internet.
+    // @see ::testVideoEmbed()
+    'media_test_oembed',
+  ];
 
   #[DataProvider('providerTest')]
   public function test(
@@ -836,6 +851,77 @@ class StaticPropSourceTest extends PropSourceTestBase {
     $widget_form = $prop_source->formTemporaryRemoveThisExclamationExclamationExclamation($widget, 'my_prop', FALSE, NULL, $form, $form_state);
     $value = Datetime::valueCallback($widget_form['widget'][0]['value'], FALSE, $form_state);
     self::assertSame($expected_date_and_time, ['date' => $value['date'], 'time' => $value['time']]);
+  }
+
+  /**
+   * Tests that a video URL evaluates to the URL of core's oEmbed iframe.
+   *
+   * @see \Drupal\canvas\Plugin\Field\FieldType\VideoEmbedItem
+   * @see \Drupal\canvas\TypedData\VideoEmbedIframeUrl
+   * @see \Drupal\canvas\Plugin\Field\FieldWidget\VideoEmbedUrlWidget
+   */
+  public function testVideoEmbed(): void {
+    $provider_repository = $this->container->get(ProviderRepositoryInterface::class);
+    \assert($provider_repository instanceof TestProviderRepository);
+    $provider_repository->setProvider(new Provider('YouTube', 'https://www.youtube.com/', [
+      [
+        'url' => 'https://www.youtube.com/oembed',
+        'schemes' => ['https://*.youtube.com/watch*', 'https://youtu.be/*'],
+      ],
+    ]));
+    // A provider that the `oembed:video` media source does not allow.
+    $provider_repository->setProvider(new Provider('Flickr', 'https://www.flickr.com/', [
+      [
+        'url' => 'https://www.flickr.com/services/oembed/',
+        'schemes' => ['https://*.flickr.com/photos/*'],
+      ],
+    ]));
+
+    $video_url = 'https://www.youtube.com/watch?v=aqz-KE-bpKQ';
+    $prop_source = StaticPropSource::parse([
+      'sourceType' => 'static:field_item:canvas_video_embed',
+      'value' => $video_url,
+      'expression' => 'ℹ︎canvas_video_embed␟{src↠iframe_url}',
+    ]);
+
+    $result = $prop_source->evaluate(NULL, is_required: TRUE);
+    \assert(\is_array($result->value) && \is_string($result->value['src']));
+    $src = UrlHelper::parse($result->value['src']);
+    self::assertSame(Url::fromRoute('media.oembed_iframe', [], ['absolute' => TRUE])->toString(), $src['path']);
+    self::assertSame([
+      'url' => $video_url,
+      'max_width' => '0',
+      'max_height' => '0',
+      'hash' => $this->container->get(IFrameUrlHelper::class)->getHash($video_url, 0, 0),
+    ], $src['query']);
+    self::assertSame(['config:media.settings'], $result->getCacheTags());
+    self::assertContains('url.site', $result->getCacheContexts());
+
+    // The iframe domain configured for oEmbed content is respected.
+    $this->config('media.settings')->set('iframe_domain', 'https://media.example.com')->save();
+    $result = $prop_source->withValue($video_url)->evaluate(NULL, is_required: TRUE);
+    \assert(\is_array($result->value) && \is_string($result->value['src']));
+    self::assertStringStartsWith('https://media.example.com/', $result->value['src']);
+
+    // URLs of other providers or no provider get no iframe URL, so core never
+    // renders their HTML.
+    foreach (['https://www.flickr.com/photos/some-photo', 'https://example.com/video'] as $other_url) {
+      self::assertSame([], $prop_source->withValue($other_url)->evaluate(NULL, is_required: FALSE)->value);
+    }
+
+    // An SDC example value contains the video URL as `src`.
+    // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentDiscoveryBase::computeDefaultFieldValue()
+    self::assertSame($video_url, $prop_source->withValue(['src' => $video_url])->getValue());
+
+    // The widget only accepts URLs of the allowed providers.
+    $widget = $prop_source->getWidget('irrelevant-for-this-test', 'irrelevant-for-this-test', 'my_prop', $this->randomString(), NULL);
+    self::assertInstanceOf(VideoEmbedUrlWidget::class, $widget);
+    $form_state = new FormState();
+    $form_state->setFormObject(new StubForm('some_id', []));
+    $form = ['#parents' => []];
+    $widget_form = $prop_source->formTemporaryRemoveThisExclamationExclamationExclamation($widget, 'my_prop', FALSE, NULL, $form, $form_state);
+    self::assertSame('https://.*\.youtube\.com/watch.*|https://youtu\.be/.*', $widget_form['widget'][0]['value']['#pattern']);
+    self::assertSame($video_url, $widget_form['widget'][0]['value']['#default_value']);
   }
 
   public static function providerDateWidgetTimezone(): \Generator {

@@ -1,0 +1,7 @@
+name: 'Canvas Test Video Embed'
+type: module
+description: 'Provides an SDC that embeds a video from a URL, such as a YouTube URL.'
+package: Testing
+dependencies:
+  - canvas:canvas
+  - drupal:media
