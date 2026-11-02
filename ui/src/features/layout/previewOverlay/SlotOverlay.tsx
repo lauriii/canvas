@@ -86,6 +86,8 @@ const SlotOverlay: React.FC<SlotOverlayProps> = ({
         [styles.dropTarget]: slotId === targetSlot,
       })}
       data-canvas-type="slot"
+      data-canvas-drop-container={slotId}
+      data-canvas-stack-direction={slotGeometry.stackDirection}
       style={style}
     >
       {(targetSlot === slotId || isHovered) && (

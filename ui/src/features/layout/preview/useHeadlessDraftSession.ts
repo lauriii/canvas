@@ -11,7 +11,7 @@ import {
   createHeadlessPreviewHost,
 } from '@drupal-canvas/headless-host';
 
-import { fetchCsrfToken } from '@/utils/csrf';
+import { fetchCsrfToken, forgetCsrfToken } from '@/utils/csrf';
 import { getBaseUrl } from '@/utils/drupal-globals';
 
 import type { RefObject } from 'react';
@@ -171,19 +171,26 @@ export function useHeadlessDraftSession(
 
   const fetchAssertion = useCallback(
     async (params: Record<string, string>): Promise<string> => {
-      const csrfToken = await fetchCsrfToken(getBaseUrl());
-
+      const baseUrl = getBaseUrl();
       const url = new URL(assertionUrl, window.location.origin);
       Object.entries(params).forEach(([name, value]) =>
         url.searchParams.set(name, value),
       );
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'X-CSRF-Token': csrfToken,
-        },
-      });
+      const post = async () =>
+        fetch(url, {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'X-CSRF-Token': await fetchCsrfToken(baseUrl),
+          },
+        });
+      let response = await post();
+      // The cached CSRF token is stale if the session changed. Drupal rejects
+      // the request before handling it, so it is safe to send again.
+      if (response.status === 403) {
+        forgetCsrfToken(baseUrl);
+        response = await post();
+      }
       if (!response.ok) {
         throw new Error(`Assertion endpoint answered ${response.status}`);
       }

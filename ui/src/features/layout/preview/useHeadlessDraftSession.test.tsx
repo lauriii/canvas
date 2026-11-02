@@ -19,12 +19,23 @@ const hostEvents = vi.hoisted(
   () => [] as Array<(event: HeadlessPreviewHostEvent) => void>,
 );
 
+const hostAssertionFetchers = vi.hoisted(
+  () => [] as Array<(params: Record<string, string>) => Promise<string>>,
+);
+
 vi.mock('@drupal-canvas/headless-host', () => ({
   CANVAS_COMPONENT_PREVIEW_PATH: '/api/canvas/component-preview',
   CANVAS_COMPONENT_PREVIEW_QUERY: 'componentId',
   createHeadlessPreviewHost: vi.fn(
-    ({ onEvent }: { onEvent: (event: HeadlessPreviewHostEvent) => void }) => {
+    ({
+      onEvent,
+      fetchAssertion,
+    }: {
+      onEvent: (event: HeadlessPreviewHostEvent) => void;
+      fetchAssertion: (params: Record<string, string>) => Promise<string>;
+    }) => {
       hostEvents.push(onEvent);
+      hostAssertionFetchers.push(fetchAssertion);
       return hostMocks;
     },
   ),
@@ -42,6 +53,38 @@ describe('useHeadlessDraftSession', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hostEvents.length = 0;
+    hostAssertionFetchers.length = 0;
+  });
+
+  it('fetches a new CSRF token when the assertion endpoint rejects one', async () => {
+    const tokens = ['stale-token', 'new-token'];
+    const sentTokens: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string | URL, init?: RequestInit) => {
+        if (String(url).endsWith('session/token')) {
+          return new Response(tokens.shift());
+        }
+        const token = new Headers(init?.headers).get('X-CSRF-Token')!;
+        sentTokens.push(token);
+        return token === 'new-token'
+          ? Response.json({ assertion: 'signed' })
+          : new Response('', { status: 403 });
+      }),
+    );
+    try {
+      const iframeRef = { current: document.createElement('iframe') };
+      const preview = renderHook(() =>
+        useHeadlessDraftSession(iframeRef, settings, 'canvas_page', '7'),
+      );
+      await expect(hostAssertionFetchers[0]({ entity: '7' })).resolves.toBe(
+        'signed',
+      );
+      expect(sentTokens).toEqual(['stale-token', 'new-token']);
+      preview.unmount();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('isolates read-only preview sessions by language', () => {

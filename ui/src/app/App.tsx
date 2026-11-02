@@ -18,6 +18,7 @@ import Toast from '@/components/Toast';
 import Topbar from '@/components/topbar/Topbar';
 import useExtensions from '@/features/extensions/useExtensions';
 import DragEventsHandler from '@/features/layout/previewOverlay/DragEventsHandler';
+import { findPreviewDropZoneId } from '@/features/layout/previewOverlay/previewDropTarget';
 import NotificationToastManager from '@/features/notifications/NotificationToastManager';
 import useNavigationListener from '@/hooks/useNavigationListener';
 import useRouteSync from '@/hooks/useRouteSync';
@@ -35,8 +36,39 @@ function customCollisionDetectionAlgorithm(
   args: Parameters<CollisionDetection>[0],
 ): ReturnType<CollisionDetection> {
   // When dragging in the layers, use the rectIntersection as it works best.
-  if (args.active.data.current?.origin === 'layers') {
+  const origin = args.active.data.current?.origin;
+  if (origin === 'layers') {
     return rectIntersection(args);
+  }
+
+  // Over the editor pane, resolve the drop target from the pointer position
+  // alone, so it doesn't depend on the drag preview's offset rect or on
+  // hitting a thin drop zone band. See findPreviewDropZoneId(). Over the pane
+  // but outside the previewed page there is no target, so dropping cancels.
+  const pointer = args.pointerCoordinates;
+  const pane = document.querySelector('[data-canvas-editor-pane="true"]');
+  const root = document.querySelector<HTMLElement>(
+    '.canvas--viewport-overlay [data-canvas-drop-container]',
+  );
+  const within = (el: Element, p: { x: number; y: number }) => {
+    const r = el.getBoundingClientRect();
+    return p.x >= r.left && p.x <= r.right && p.y >= r.top && p.y <= r.bottom;
+  };
+  if (
+    (origin === 'overlay' || origin === 'library') &&
+    pointer &&
+    pane &&
+    root &&
+    within(pane, pointer)
+  ) {
+    if (within(root.closest('.canvas--viewport-overlay')!, pointer)) {
+      const id = findPreviewDropZoneId(root, pointer, args.active.id);
+      const droppable = args.droppableContainers.find((d) => d.id === id);
+      return droppable
+        ? [{ id: droppable.id, data: { droppableContainer: droppable } }]
+        : [];
+    }
+    return [];
   }
 
   // First, let's see if there are any collisions with the pointer
