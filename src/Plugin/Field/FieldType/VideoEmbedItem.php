@@ -74,6 +74,18 @@ final class VideoEmbedItem extends UriItem {
 
   /**
    * {@inheritdoc}
+   *
+   * The iframe URL is computed with the Media module's oEmbed services, so
+   * components using this field type depend on it.
+   *
+   * @see \Drupal\canvas\TypedData\VideoEmbedIframeUrl
+   */
+  public static function calculateStorageDependencies(FieldStorageDefinitionInterface $field_definition): array {
+    return ['module' => ['media']];
+  }
+
+  /**
+   * {@inheritdoc}
    */
   public static function generateSampleValue(FieldDefinitionInterface $field_definition) {
     return ['value' => 'https://www.youtube.com/watch?v=15Nqbic6HZs'];

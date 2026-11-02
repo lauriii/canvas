@@ -895,6 +895,8 @@ class StaticPropSourceTest extends PropSourceTestBase {
       'hash' => $this->container->get(IFrameUrlHelper::class)->getHash($video_url, 0, 0),
     ], $src['query']);
     self::assertSame(['config:media.settings'], $result->getCacheTags());
+    // Removing the Media module must be blocked while this is in use.
+    self::assertContains('media', $prop_source->calculateDependencies()['module'] ?? []);
     self::assertContains('url.site', $result->getCacheContexts());
 
     // The iframe domain configured for oEmbed content is respected.
