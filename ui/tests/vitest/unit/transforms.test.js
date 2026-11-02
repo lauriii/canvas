@@ -758,6 +758,31 @@ describe('Transforms - objectProperties', () => {
     ).toEqual([{ quote: 'Only a quote', featured: false }]);
   });
 
+  it('Should omit items that lack a required property', () => {
+    expect(
+      transforms.objectProperties(
+        {
+          0: { quote: 'Complete', author: 'Ada' },
+          1: { quote: 'Still typing', author: '' },
+        },
+        { multiple: true },
+        {
+          ...fieldData,
+          sourceTypeSettings: {
+            ...fieldData.sourceTypeSettings,
+            storage: {
+              properties: {
+                quote: { type: 'string' },
+                author: { type: 'string' },
+              },
+              required: ['quote', 'author'],
+            },
+          },
+        },
+      ),
+    ).toEqual([{ quote: 'Complete', author: 'Ada' }]);
+  });
+
   it('Should support a single object', () => {
     expect(
       transforms.objectProperties(

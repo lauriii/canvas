@@ -461,13 +461,16 @@ export interface ObjectPropShape extends StaticPropSource {
         string,
         { type: 'string' | 'integer' | 'number' | 'boolean' }
       >;
+      required?: string[];
     };
   };
 }
 
 // Builds objects from the per-property form values of the `canvas_object`
-// widget: casts each value to its JSON schema type, and omits empty values
-// and empty objects (such as an unfilled new item).
+// widget: casts each value to its JSON schema type, and omits empty values,
+// empty objects (such as an unfilled new item) and objects that lack a
+// required property (such as an item that is still being filled in).
+// Rendering those would fail component validation.
 // @see \Drupal\canvas\Plugin\Field\FieldWidget\CanvasObjectWidget
 const objectProperties: Transformer<
   BaseTransformOptions,
@@ -476,6 +479,7 @@ const objectProperties: Transformer<
   ObjectPropShape
 > = (value, options, propSource) => {
   const properties = propSource?.sourceTypeSettings?.storage?.properties ?? {};
+  const required = propSource?.sourceTypeSettings?.storage?.required ?? [];
   const records: Array<PropsValues | null> = options.multiple
     ? normalizeMultipleRecords(value)
     : [(value ?? null) as PropsValues | null];
@@ -500,7 +504,9 @@ const objectProperties: Transformer<
     });
     // An object with only `false` values is as empty as an unfilled one.
     // @see \Drupal\canvas\Plugin\Field\FieldType\CanvasObjectItem::isEmpty()
-    return Object.values(object).some((v) => v !== false) ? object : null;
+    const isEmpty = !Object.values(object).some((v) => v !== false);
+    const isIncomplete = required.some((name) => !(name in object));
+    return isEmpty || isIncomplete ? null : object;
   });
   if (options.multiple) {
     return objects.filter((object): object is PropsValues => object !== null);
