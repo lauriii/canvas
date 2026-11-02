@@ -337,15 +337,15 @@ const EditorFrame: React.FC = () => {
       return;
     }
     if (scalingContainerRef.current && editorPaneRef.current) {
-      // hardcoded value of 68 to account for the height of the UI (top bar 48px) + 20px gap.
-      const previewHeight =
-        scalingContainerRef.current.getBoundingClientRect().height;
+      // Measure the preview's actual offset in the pane. Deriving it from the
+      // pane's scrollHeight is unreliable, because content can briefly
+      // overflow the frame while the preview loads.
+      const previewTop =
+        scalingContainerRef.current.getBoundingClientRect().top -
+        editorPaneRef.current.getBoundingClientRect().top +
+        editorPaneRef.current.scrollTop;
 
-      // Calculate the center offset inside the editorFrame.
-      const editorFrameHeight = editorPaneRef.current.scrollHeight;
-      const centerOffset = (editorFrameHeight - previewHeight) / 2;
-
-      const y = centerOffset - 50;
+      const y = previewTop - 50;
       const x = getHalfwayScrollPosition(editorPaneRef.current);
 
       // Scroll the preview to the middle top.
