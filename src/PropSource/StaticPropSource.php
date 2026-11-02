@@ -383,7 +383,9 @@ final class StaticPropSource extends PropSourceBase {
       $item_definition->getPropertyDefinitions(),
       fn (DataDefinitionInterface $prop_definition) => !$prop_definition->isComputed(),
     );
-    match (count($stored_props)) {
+    // TRICKY: field types without a main property always store all properties.
+    // @see \Drupal\canvas\Plugin\Field\FieldType\CanvasObjectItem
+    match ($item_definition->getMainPropertyName() === NULL ? 0 : count($stored_props)) {
       // If this field type has only a single stored property, then:
       // - it MUST be the field type's main property
       // - the property name SHOULD be omitted from the stored value
@@ -473,7 +475,9 @@ final class StaticPropSource extends PropSourceBase {
       $item_definition->getPropertyDefinitions(),
       fn (DataDefinitionInterface $prop_definition) => !$prop_definition->isComputed(),
     );
-    return match (count($stored_props)) {
+    // TRICKY: field types without a main property always store all properties.
+    // @see \Drupal\canvas\Plugin\Field\FieldType\CanvasObjectItem
+    return match ($item_definition->getMainPropertyName() === NULL ? 0 : count($stored_props)) {
       1 => $field_item_value[$this->getFieldItemDefinition()->getMainPropertyName()] ?? NULL,
       default => $field_item_value,
     };

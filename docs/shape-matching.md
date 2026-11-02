@@ -479,6 +479,52 @@ Explanation:
   `[http, https]` conveys the URI must be resolvable by web browsers. (As opposed to something like Drupal's `public` or
   `private`, or other proprietary URI schemes.)
 
+#### 3.2.4 Objects with scalar properties, and lists of them ("repeaters")
+
+A prop of `type: object` that has no `$ref`, but `properties` that are all simple scalars, is stored using the
+`canvas_object` `field type`: every JSON schema property becomes a `field prop`. Combined with `type: array`, this
+results in a list of objects, edited using a "repeater": the multiple value form of the `canvas_object` `field widget`
+allows adding, removing and reordering items, and shows one form element per property for each item.
+
+Example:
+```yaml
+testimonials:
+  type: array
+  maxItems: 6
+  items:
+    type: object
+    required: [quote, author]
+    properties:
+      quote:
+        type: string
+        title: Quote
+      author:
+        type: string
+        title: Author
+      rating:
+        type: integer
+        title: Rating
+        minimum: 1
+        maximum: 5
+```
+
+Supported property shapes:
+- `type: string`, optionally with `enum`, `maxLength`, or a `format` of `date`, `email`, `idn-email`, `uri` or `iri`
+- `type: integer`, optionally with `enum`, `minimum` and `maximum`
+- `type: number`, optionally with `minimum` and `maximum`
+- `type: boolean`
+
+Each property's `title`, `description` and `meta:enum` are used to label its form element.
+
+Not (yet) supported: nested objects or arrays, references (images, videos, entities …), relative URIs
+(`uri-reference`, `iri-reference`), rich text, and translation. Objects with a `$ref` are only ever matched on that
+`$ref` (for example `date-range`), never as arbitrary objects.
+
+See:
+- `\Drupal\canvas\Plugin\Field\FieldType\CanvasObjectItem`
+- `\Drupal\canvas\Plugin\Field\FieldWidget\CanvasObjectWidget`
+- the `objectProperties` transform in [Redux-integrated field widgets](redux-integrated-field-widgets.md#34-transforms)
+
 #### 3.2.3 (Content) Entity objects
 A prop that wishes to receive a (content) entity object can use the
 `json-schema-definitions://canvas.module/content-entity-reference` well-known prop shape.

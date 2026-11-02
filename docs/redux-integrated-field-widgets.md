@@ -197,8 +197,7 @@ Supported:
 | 🟢️ | single      |  N   |    N     | N:1  |  N   |   N   | `DateTimeDefaultWidget` | Transforms     | \                                                                            |
 | 🔴 | multiple    |  N   |    N     | 1:1  |  N   |   N   |           `ImageWidget` |                | [#3499550](https://www.drupal.org/project/canvas/issues/3499550) |
 | ∅  | multiple    |  N   |    N     | N:1  |  N   |   N   |         Does not exist? |                | \                                                                            |
-| 🔴 | multiple    |  Y   |    N     | 1:1  |  N   |   N   |                         |                | [#3467870](https://www.drupal.org/project/canvas/issues/3467870) |
-| 🔴 | multiple    |  Y   |    N     | 1:1  |  N   |   N   |                         |                | [#3467870](https://www.drupal.org/project/canvas/issues/3467870) |
+| 🟢 | multiple    |  Y   |    N     | 1:1  |  N   |   N   |    `CanvasObjectWidget` | Transforms     | [#3467870](https://www.drupal.org/project/canvas/issues/3467870) |
 
 Legend:
 - 🟢 = supported
@@ -233,6 +232,8 @@ Built-in transforms include:
 - `dateTime` - which will combine child `date` and `time` fields into a valid ISO-8601 datetime string
 - `dateRange` - which will combine start/end date parts into `value` and `end_value`
 - `entityAutocompleteTargetId` - which parses an autocomplete input like `"Example (3)"` and returns `"3"`
+- `objectProperties` - which builds objects from the per-property form elements of the `canvas_object` widget, cast to
+  the JSON schema type of each property (see [shape matching 3.2.4](shape-matching.md#324-objects-with-scalar-properties-and-lists-of-them-repeaters))
 
 ℹ️ The completeness of this is tested by `\Drupal\Tests\canvas\Kernel\EcosystemSupport\FieldWidgetSupportTest`.
 

@@ -67,6 +67,7 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
     // Modules providing additional SDCs.
     'sdc_test',
     'sdc_test_all_props',
+    'canvas_test_list_of_objects',
     // To be able to create a MediaType (which creates its source field).
     // @see ::testArrayPropShapeInheritsItemPropShapeCacheTags()
     'field',
@@ -252,7 +253,33 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
    * @return \Drupal\canvas\PropShape\StorablePropShape[]
    */
   public static function getExpectedStorablePropShapes(): array {
+    $testimonial = self::getTestimonialItemSchema();
+    $testimonial_storage = [
+      'properties' => PropShape::normalize($testimonial)->schema['properties'],
+      'required' => ['quote', 'author'],
+    ];
+    $testimonial_expression = new FieldTypeObjectPropsExpression('canvas_object', [
+      'quote' => new FieldTypePropExpression('canvas_object', 'quote'),
+      'author' => new FieldTypePropExpression('canvas_object', 'author'),
+      'role' => new FieldTypePropExpression('canvas_object', 'role'),
+      'rating' => new FieldTypePropExpression('canvas_object', 'rating'),
+      'featured' => new FieldTypePropExpression('canvas_object', 'featured'),
+    ]);
     return [
+      // @see tests/modules/canvas_test_list_of_objects/components/testimonials/testimonials.component.yml
+      PropShape::normalize($testimonial)->uniquePropSchemaKey() => new StorablePropShape(
+        shape: PropShape::normalize($testimonial),
+        fieldTypeProp: $testimonial_expression,
+        fieldWidget: 'canvas_object',
+        fieldStorageSettings: $testimonial_storage,
+      ),
+      PropShape::normalize(['type' => 'array', 'items' => $testimonial, 'maxItems' => 6])->uniquePropSchemaKey() => new StorablePropShape(
+        shape: PropShape::normalize(['type' => 'array', 'items' => $testimonial, 'maxItems' => 6]),
+        fieldTypeProp: $testimonial_expression,
+        fieldWidget: 'canvas_object',
+        cardinality: 6,
+        fieldStorageSettings: $testimonial_storage,
+      ),
       'type=boolean' => new StorablePropShape(
         shape: new PropShape(['type' => 'boolean']),
         fieldTypeProp: new FieldTypePropExpression('boolean', 'value'),
@@ -971,6 +998,30 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
         cardinality: FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
         fieldWidget: 'string_textfield',
       ),
+    ];
+  }
+
+  /**
+   * The raw item schema of the `testimonials` prop.
+   *
+   * @see tests/modules/canvas_test_list_of_objects/components/testimonials/testimonials.component.yml
+   */
+  private static function getTestimonialItemSchema(): array {
+    return [
+      'type' => 'object',
+      'required' => ['quote', 'author'],
+      'properties' => [
+        'quote' => ['type' => 'string', 'title' => 'Quote'],
+        'author' => ['type' => 'string', 'title' => 'Author'],
+        'role' => [
+          'type' => 'string',
+          'title' => 'Role',
+          'enum' => ['customer', 'partner', 'employee'],
+          'meta:enum' => ['customer' => 'Customer', 'partner' => 'Partner', 'employee' => 'Employee'],
+        ],
+        'rating' => ['type' => 'integer', 'title' => 'Rating', 'minimum' => 1, 'maximum' => 5],
+        'featured' => ['type' => 'boolean', 'title' => 'Featured'],
+      ],
     ];
   }
 

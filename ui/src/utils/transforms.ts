@@ -453,8 +453,64 @@ const mediaSelection: Transformer<
   return multiple ? selectionValues : selectionValues[0];
 };
 
+export interface ObjectPropShape extends StaticPropSource {
+  sourceTypeSettings: {
+    storage: {
+      // @see \Drupal\canvas\Plugin\Field\FieldType\CanvasObjectItem
+      properties: Record<
+        string,
+        { type: 'string' | 'integer' | 'number' | 'boolean' }
+      >;
+    };
+  };
+}
+
+// Builds objects from the per-property form values of the `canvas_object`
+// widget: casts each value to its JSON schema type, and omits empty values
+// and empty objects (such as an unfilled new item).
+// @see \Drupal\canvas\Plugin\Field\FieldWidget\CanvasObjectWidget
+const objectProperties: Transformer<
+  BaseTransformOptions,
+  null | PropsValues | Array<PropsValues>,
+  PropsValuesOrArrayOfPropsValues,
+  ObjectPropShape
+> = (value, options, propSource) => {
+  const properties = propSource?.sourceTypeSettings?.storage?.properties ?? {};
+  const records: Array<PropsValues | null> = options.multiple
+    ? normalizeMultipleRecords(value)
+    : [(value ?? null) as PropsValues | null];
+  const objects = records.map((record) => {
+    if (record === null || typeof record !== 'object') {
+      return null;
+    }
+    const object: PropsValues = {};
+    Object.entries(properties).forEach(([name, { type }]) => {
+      const raw = record[name];
+      if (raw === undefined || raw === null || raw === '') {
+        return;
+      }
+      object[name] =
+        type === 'string'
+          ? String(raw)
+          : cast(
+              raw,
+              { to: type === 'boolean' ? 'boolean' : type },
+              propSource,
+            );
+    });
+    // An object with only `false` values is as empty as an unfilled one.
+    // @see \Drupal\canvas\Plugin\Field\FieldType\CanvasObjectItem::isEmpty()
+    return Object.values(object).some((v) => v !== false) ? object : null;
+  });
+  if (options.multiple) {
+    return objects.filter((object): object is PropsValues => object !== null);
+  }
+  return objects[0] ?? null;
+};
+
 const transforms = {
   mainProperty,
+  objectProperties,
   firstRecord,
   dateTime,
   dateRange,

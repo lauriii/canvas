@@ -12,6 +12,7 @@ use Drupal\canvas\Entity\EmptyTargetEntityProviderInterface;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\InvalidComponentInputsPropSourceException;
 use Drupal\canvas\MissingHostEntityException;
+use Drupal\canvas\Plugin\Field\FieldType\CanvasObjectItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
@@ -1011,6 +1012,12 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
           $field_widget_settings['folders'] = $folders;
         }
       }
+      // Label each object property's form element: PropShape::standardize()
+      // strips `title`, `description` and `meta:enum`.
+      if ($field_widget_plugin_id === CanvasObjectItem::PLUGIN_ID) {
+        $object_schema = $component_schema['properties'][$sdc_prop_name]['items'] ?? $component_schema['properties'][$sdc_prop_name];
+        $field_widget_settings = ['properties' => $object_schema['properties'] ?? []];
+      }
       $widget = $source->getWidget($component->id(), $component->getLoadedVersion(), $sdc_prop_name, $label, $field_widget_plugin_id, $description, $field_widget_settings);
       $is_required = $static_prop_source_field_definition['required'];
       // For array props: JSON Schema `required: [prop]` means "the key must be
@@ -1326,6 +1333,10 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
     }
 
     \assert($storable_prop_shape->fieldTypeProp instanceof ObjectPropExpressionInterface);
+    // This field type's properties depend on storage settings, and are scalars.
+    if ($storable_prop_shape->fieldTypeProp->getFieldType() === CanvasObjectItem::PLUGIN_ID) {
+      return FALSE;
+    }
     foreach ($storable_prop_shape->fieldTypeProp->getObjectExpressions() as $sub_expr) {
       if ($sub_expr instanceof ReferencePropExpressionInterface) {
         return TRUE;
