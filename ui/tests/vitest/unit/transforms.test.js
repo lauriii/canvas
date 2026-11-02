@@ -783,6 +783,40 @@ describe('Transforms - objectProperties', () => {
     ).toEqual([{ quote: 'Complete', author: 'Ada' }]);
   });
 
+  it('Should keep objects with only boolean properties that are all false', () => {
+    const booleansOnly = {
+      ...fieldData,
+      sourceTypeSettings: {
+        ...fieldData.sourceTypeSettings,
+        storage: { properties: { enabled: { type: 'boolean' } } },
+      },
+    };
+    expect(
+      transforms.objectProperties(
+        { 0: { enabled: 'false' } },
+        { multiple: true },
+        booleansOnly,
+      ),
+    ).toEqual([{ enabled: false }]);
+  });
+
+  it('Should unwrap delta 0 of a single object', () => {
+    expect(
+      transforms.objectProperties(
+        [{ quote: 'Hi', rating: '3' }],
+        { multiple: false },
+        fieldData,
+      ),
+    ).toEqual({ quote: 'Hi', rating: 3 });
+    expect(
+      transforms.objectProperties(
+        { 0: { quote: 'Hi' } },
+        { multiple: false },
+        fieldData,
+      ),
+    ).toEqual({ quote: 'Hi' });
+  });
+
   it('Should support a single object', () => {
     expect(
       transforms.objectProperties(

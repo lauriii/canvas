@@ -480,9 +480,22 @@ const objectProperties: Transformer<
 > = (value, options, propSource) => {
   const properties = propSource?.sourceTypeSettings?.storage?.properties ?? {};
   const required = propSource?.sourceTypeSettings?.storage?.required ?? [];
+  // A single object's widget submits delta 0, like any field widget.
+  const single = Array.isArray(value) ? value[0] : value;
   const records: Array<PropsValues | null> = options.multiple
     ? normalizeMultipleRecords(value)
-    : [(value ?? null) as PropsValues | null];
+    : [
+        ((single as PropsValues | undefined)?.[0] ??
+          single ??
+          null) as PropsValues | null,
+      ];
+  const propertySchemas = Object.values(properties);
+  // FALSE is what an unchecked checkbox submits, so it only makes an object
+  // non-empty when all of its properties are booleans.
+  // @see \Drupal\canvas\Plugin\Field\FieldType\CanvasObjectItem::isEmpty()
+  const onlyBooleans =
+    propertySchemas.length > 0 &&
+    propertySchemas.every(({ type }) => type === 'boolean');
   const objects = records.map((record) => {
     if (record === null || typeof record !== 'object') {
       return null;
@@ -502,9 +515,9 @@ const objectProperties: Transformer<
               propSource,
             );
     });
-    // An object with only `false` values is as empty as an unfilled one.
-    // @see \Drupal\canvas\Plugin\Field\FieldType\CanvasObjectItem::isEmpty()
-    const isEmpty = !Object.values(object).some((v) => v !== false);
+    const isEmpty = onlyBooleans
+      ? Object.keys(object).length === 0
+      : !Object.values(object).some((v) => v !== false);
     const isIncomplete = required.some((name) => !(name in object));
     return isEmpty || isIncomplete ? null : object;
   });

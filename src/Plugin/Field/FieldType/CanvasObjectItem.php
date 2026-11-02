@@ -96,9 +96,13 @@ final class CanvasObjectItem extends FieldItemBase {
    */
   public function isEmpty(): bool {
     // An item without any value other than '' or FALSE is empty: that is what
-    // an unfilled set of form elements submits.
+    // an unfilled set of form elements submits. For an object with only
+    // boolean properties, FALSE is a value: `{enabled: false}` is not empty.
+    $properties = $this->getSetting('properties') ?? [];
+    $only_booleans = $properties !== [] && \array_filter($properties, static fn (array $schema): bool => $schema['type'] !== 'boolean') === [];
+    $empty_values = $only_booleans ? [NULL, ''] : [NULL, '', FALSE];
     foreach ($this->getValue() as $value) {
-      if (!\in_array($value, [NULL, '', FALSE], TRUE)) {
+      if (!\in_array($value, $empty_values, TRUE)) {
         return FALSE;
       }
     }
