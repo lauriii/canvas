@@ -3,6 +3,7 @@ import clsx from 'clsx';
 
 import { useAppStore } from '@/app/hooks';
 import { useFieldContext } from '@/components/form/contexts/FieldContext';
+import { FORM_TYPES } from '@/features/form/constants';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import {
   findComponentByUuid,
@@ -60,7 +61,7 @@ const TextFieldAutocomplete = ({
   // (`format: uri`) render as `type="url"` without autocomplete.
   // @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat
   const suggestsAnchors =
-    formId === 'component-instance-form' &&
+    formId === FORM_TYPES.COMPONENT_INSTANCE_FORM &&
     attributes['data-canvas-resolve-entity-uri'] === 'true';
 
   const getAnchors = (term: string) =>
@@ -210,7 +211,7 @@ const TextFieldAutocomplete = ({
               const { value } = inputRef.current;
               inputRef.current.removeAttribute('data-canvas-no-update');
               fieldContext?.triggerChange(
-                formId === 'component-instance-form'
+                formId === FORM_TYPES.COMPONENT_INSTANCE_FORM
                   ? resolveEntityUri(value)
                   : value,
                 inputRef.current,

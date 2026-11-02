@@ -1,3 +1,4 @@
+// cspell:ignore über Cber
 import { describe, expect, it } from 'vitest';
 
 import { collectPageAnchors, filterPageAnchors } from './pageAnchors';
@@ -31,6 +32,21 @@ describe('collectPageAnchors', () => {
       { value: '#pricing-heading', label: 'Section: #pricing-heading' },
       { value: '#faq', label: 'Accordion: #faq' },
       { value: '#unnamed', label: '#unnamed' },
+    ]);
+  });
+
+  it('percent-encodes ids that are not valid in a URI fragment', () => {
+    const doc = document.implementation.createHTMLDocument();
+    doc.body.innerHTML = `
+      <div data-canvas-uuid="uuid-1">
+        <span id="über-uns"></span><span id="heading[1]"></span>
+        <span id="discount50%"></span>
+      </div>
+    `;
+    expect(collectPageAnchors(doc, () => '')).toEqual([
+      { value: '#%C3%BCber-uns', label: '#über-uns' },
+      { value: '#heading%5B1%5D', label: '#heading[1]' },
+      { value: '#discount50%25', label: '#discount50%' },
     ]);
   });
 

@@ -1,3 +1,4 @@
+// cspell:ignore über
 export interface PageAnchor {
   // The URI fragment, including the leading `#`.
   value: string;
@@ -54,7 +55,9 @@ export const collectPageAnchors = (
           .canvasUuid ?? '';
       const name = getComponentName(uuid);
       anchors.push({
-        value: `#${id}`,
+        // Percent-encode the id, as ids such as `über-uns` are not valid in a
+        // URI fragment. Browsers decode the fragment to find the element.
+        value: `#${encodeURIComponent(id)}`,
         label: name ? `${name}: #${id}` : `#${id}`,
       });
     });
