@@ -4,7 +4,7 @@ import {
 } from '@/features/layout/layoutModelSlice';
 import { setPreviewBackgroundUpdate } from '@/features/pagePreview/previewSlice';
 
-import { getPropsValues } from './componentFormData';
+import { DEBOUNCE_TIMEOUT, getPropsValues } from './componentFormData';
 import { ComponentPreviewUpdateEvent } from './componentPreviewEvents';
 
 import type { PropsValues } from '@drupal-canvas/types';
@@ -108,6 +108,20 @@ export const createComponentFormStateHandler = (
         deps.polledBackgroundUpdate.current = setTimeout(
           updateBackend,
           POLLED_BACKGROUND_TIMEOUT,
+        ) as any as number;
+        return;
+      }
+      // Scalar props of code components skip the form's debounce for the
+      // client-side update. Without one, for example in headless mode,
+      // debounce their PATCH here instead.
+      // @see ComponentFormField
+      if (deps.isScalarProp && deps.component.source === 'Code component') {
+        if (deps.polledBackgroundUpdate.current !== null) {
+          clearTimeout(deps.polledBackgroundUpdate.current);
+        }
+        deps.polledBackgroundUpdate.current = setTimeout(
+          updateBackend,
+          DEBOUNCE_TIMEOUT,
         ) as any as number;
         return;
       }
