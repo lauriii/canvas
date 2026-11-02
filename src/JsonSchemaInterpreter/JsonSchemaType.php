@@ -512,10 +512,7 @@ enum JsonSchemaType: string {
         // @see docs/shape-matching.md#3.2.4
         self::isObjectWithScalarProperties($schema) => new StorablePropShape(
           shape: $shape,
-          fieldTypeProp: new FieldTypeObjectPropsExpression(CanvasObjectItem::PLUGIN_ID, \array_map(
-            static fn (string $name) => new FieldTypePropExpression(CanvasObjectItem::PLUGIN_ID, $name),
-            array_combine(\array_keys($schema['properties']), \array_keys($schema['properties'])),
-          )),
+          fieldTypeProp: new FieldTypeObjectPropsExpression(CanvasObjectItem::PLUGIN_ID, self::objectPropertyExpressions($schema)),
           fieldWidget: CanvasObjectItem::PLUGIN_ID,
           fieldStorageSettings: [
             'properties' => $schema['properties'],
@@ -525,6 +522,24 @@ enum JsonSchemaType: string {
         default => NULL,
       },
     };
+  }
+
+  /**
+   * Maps each property of an object with scalar properties to its field prop.
+   *
+   * @param array<string, mixed> $schema
+   *   A schema accepted by ::isObjectWithScalarProperties().
+   *
+   * @return non-empty-array<string, \Drupal\canvas\PropExpressions\StructuredData\FieldTypePropExpression>
+   *   The field type prop expressions, keyed by property name.
+   */
+  private static function objectPropertyExpressions(array $schema): array {
+    $expressions = [];
+    foreach (\array_keys($schema['properties']) as $name) {
+      $expressions[(string) $name] = new FieldTypePropExpression(CanvasObjectItem::PLUGIN_ID, (string) $name);
+    }
+    \assert($expressions !== []);
+    return $expressions;
   }
 
   /**
@@ -540,7 +555,8 @@ enum JsonSchemaType: string {
    * @see \Drupal\canvas\Plugin\Field\FieldWidget\CanvasObjectWidget
    */
   private static function isObjectWithScalarProperties(array $schema): bool {
-    if (empty($schema['properties']) || !empty(array_diff(\array_keys($schema), ['type', 'properties', 'required', 'additionalProperties']))) {
+    $allowed_object_keys = ['type', 'properties', 'required', 'additionalProperties'];
+    if (empty($schema['properties']) || !empty(array_diff(\array_keys($schema), $allowed_object_keys))) {
       return FALSE;
     }
     foreach ($schema['properties'] as $property_schema) {
@@ -557,7 +573,8 @@ enum JsonSchemaType: string {
       // Relative URIs (`uri-reference`, `iri-reference`) are omitted: those
       // need URL rewriting for example values.
       // @see \Drupal\canvas\PropSource\DefaultRelativeUrlPropSource
-      if (\array_key_exists('format', $property_schema) && !\in_array($property_schema['format'], ['date', 'email', 'idn-email', 'uri', 'iri'], TRUE)) {
+      $allowed_formats = ['date', 'email', 'idn-email', 'uri', 'iri'];
+      if (\array_key_exists('format', $property_schema) && !\in_array($property_schema['format'], $allowed_formats, TRUE)) {
         return FALSE;
       }
     }

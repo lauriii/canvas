@@ -65,7 +65,8 @@ final class CanvasObjectWidget extends WidgetBase {
    * Maps a scalar property's JSON schema to a form element.
    *
    * @param array<string, mixed> $schema
-   *   A property schema accepted by JsonSchemaType::isObjectWithScalarProperties().
+   *   A property schema accepted by
+   *   JsonSchemaType::isObjectWithScalarProperties().
    * @param array<string|int, string> $enum_labels
    *   The `meta:enum` labels, if any.
    *
@@ -97,6 +98,7 @@ final class CanvasObjectWidget extends WidgetBase {
         'date' => ['#type' => 'date'],
         default => ['#type' => 'textfield', '#maxlength' => $schema['maxLength'] ?? NULL],
       },
+      default => throw new \LogicException('Unsupported property type.'),
     };
   }
 

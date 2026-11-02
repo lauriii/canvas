@@ -30,7 +30,7 @@ use Drupal\Core\TypedData\DataDefinition;
   id: self::PLUGIN_ID,
   label: new TranslatableMarkup('Object'),
   description: new TranslatableMarkup('An object with scalar properties, for component props.'),
-  default_widget: CanvasObjectItem::PLUGIN_ID,
+  default_widget: self::PLUGIN_ID,
   no_ui: TRUE,
 )]
 final class CanvasObjectItem extends FieldItemBase {
@@ -85,6 +85,7 @@ final class CanvasObjectItem extends FieldItemBase {
         'integer' => ['type' => 'int', 'size' => 'big'],
         'number' => ['type' => 'float', 'size' => 'big'],
         'boolean' => ['type' => 'int', 'size' => 'tiny'],
+        default => throw new \LogicException(\sprintf('Unsupported property type for "%s".', $name)),
       };
     }
     return ['columns' => $columns];
