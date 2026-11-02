@@ -15,6 +15,7 @@ props:
     testimonials:
       type: array
       title: Testimonials
+      minItems: 1
       maxItems: 6
       items:
         type: object

@@ -157,6 +157,7 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
       new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'minItems' => 2]),
       new PropShape(['type' => 'array', 'items' => ['type' => 'number']]),
       new PropShape(['type' => 'array', 'items' => ['type' => 'number'], 'maxItems' => 3]),
+      PropShape::normalize(['type' => 'array', 'items' => self::getTestimonialItemSchema(), 'minItems' => 1, 'maxItems' => 6]),
       new PropShape(['type' => 'array', 'items' => ['type' => 'string']]),
       PropShape::normalize(['type' => 'array', 'items' => ['type' => 'string', 'enum' => ['option_one', 'option_two', 'option_three', 'option_four'], 'meta:enum' => ['option_one' => 'Option One', 'option_two' => 'Option Two', 'option_three' => 'Option Three', 'option_four' => 'Option Four']]]),
       PropShape::normalize(['type' => 'array', 'items' => ['type' => 'string', 'enum' => ['option_one', 'option_two', 'option_three', 'option_four'], 'meta:enum' => ['option_one' => 'Option One', 'option_two' => 'Option Two', 'option_three' => 'Option Three', 'option_four' => 'Option Four']], 'maxItems' => 3]),
@@ -190,6 +191,7 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
       JsonSchemaObjectRef::Image->asPropShape(),
       new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/shoe-icon']),
       JsonSchemaObjectRef::Video->asPropShape(),
+      PropShape::normalize(self::getTestimonialItemSchema()),
       new PropShape(['type' => 'string']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/color']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/heading-element']),
@@ -273,8 +275,8 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
         fieldWidget: 'canvas_object',
         fieldStorageSettings: $testimonial_storage,
       ),
-      PropShape::normalize(['type' => 'array', 'items' => $testimonial, 'maxItems' => 6])->uniquePropSchemaKey() => new StorablePropShape(
-        shape: PropShape::normalize(['type' => 'array', 'items' => $testimonial, 'maxItems' => 6]),
+      PropShape::normalize(['type' => 'array', 'items' => $testimonial, 'minItems' => 1, 'maxItems' => 6])->uniquePropSchemaKey() => new StorablePropShape(
+        shape: PropShape::normalize(['type' => 'array', 'items' => $testimonial, 'minItems' => 1, 'maxItems' => 6]),
         fieldTypeProp: $testimonial_expression,
         fieldWidget: 'canvas_object',
         cardinality: 6,
@@ -1406,10 +1408,12 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
     $repository = \Drupal::service(PropShapeRepositoryInterface::class);
     \assert($repository instanceof CacheCollectorInterface);
     \assert($repository instanceof PropShapeRepositoryInterface);
-    // A prop shape no field type can store: cached as NULL.
+    // A prop shape no field type can store: cached as NULL. Objects with only
+    // scalar properties are storable, but a nested array is not.
+    // @see \Drupal\canvas\Plugin\Field\FieldType\CanvasObjectItem
     $non_storable_shape = PropShape::normalize([
       'type' => 'object',
-      'properties' => ['x' => ['type' => 'string']],
+      'properties' => ['x' => ['type' => 'array', 'items' => ['type' => 'string']]],
     ]);
     self::assertNull($repository->getStorablePropShape($non_storable_shape));
     // End of the request: the cache is written, including the NULL.
