@@ -415,7 +415,14 @@ class AutoSaveManager implements EventSubscriberInterface {
    * @return array{autoSaveStartingPoint: int|string|null, hash: string|null}
    */
   public function getClientAutoSaveData(EntityInterface $entity): array {
-    $autoSaveEntity = $this->getAutoSaveEntity($entity);
+    // Only the hash is needed. When the auto-saved entity is not memoized, for
+    // example right after ::saveEntity(), read the hash from the stored entry
+    // instead of rebuilding the entity in ::getAutoSaveEntity().
+    $key = $this->getAutoSaveKey($entity);
+    $cached = $this->cache->get($key);
+    $hash = $cached
+      ? $cached->data->hash
+      : ($this->autoSaveStore->get($key)['data_hash'] ?? NULL);
 
     // We need to load the stored entity to be able to construct the auto-save
     // starting point.
@@ -434,7 +441,7 @@ class AutoSaveManager implements EventSubscriberInterface {
     }
     return [
       'autoSaveStartingPoint' => $autoSaveStartRevision,
-      'hash' => $autoSaveEntity->hash,
+      'hash' => $hash,
     ];
   }
 
