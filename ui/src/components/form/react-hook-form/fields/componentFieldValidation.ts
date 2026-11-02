@@ -307,7 +307,11 @@ export const parseNewValue = (
     // Nested updates for array props (for example multivalue `_weight` and
     // `value` subfields) should bypass per-field transforms. Transforms will
     // be applied at the entire-prop level.
-    isNestedArraySubfield
+    isNestedArraySubfield ||
+    // Keep an emptied input with a `pattern` empty, rather than replacing it
+    // with the default value of a required prop: validation rejects it.
+    // @see \Drupal\canvas\Plugin\Field\FieldWidget\VideoEmbedUrlWidget
+    (rawValue === '' && target instanceof HTMLInputElement && target.pattern)
   ) {
     return rawValue;
   }
@@ -332,6 +336,21 @@ export const validateNewValue = (
   inputAndUiData: any,
 ) => {
   const target = e.target as HTMLInputElement;
+  // Some widgets restrict their input with a `pattern` attribute, for example
+  // the video embed URL widget. Its prop shape is an object, so the JSON
+  // Schema validation below is skipped for it. An empty required input is
+  // invalid too: otherwise the default value replaces what is being typed.
+  // @see \Drupal\canvas\Plugin\Field\FieldWidget\VideoEmbedUrlWidget
+  if (
+    target.pattern &&
+    (target.validity?.patternMismatch || target.validity?.valueMissing)
+  ) {
+    return {
+      valid: false,
+      errors: null,
+      errorMessage: target.title || target.validationMessage,
+    };
+  }
   if (!shouldSkipPropValidation(fieldName, target, inputAndUiData, newValue)) {
     const schemas = getPropSchemas(inputAndUiData);
     const schema = schemas?.[toPropName(fieldName, selectedComponent)];
