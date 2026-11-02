@@ -197,7 +197,7 @@ final class PropShape {
    * @todo Before making this a public API that allows contrib to define more well-known prop shapes, actually spec it out beyond "/schema.json in extension root and define $defs". It is too undefined to be a reliable public API right now
    */
   private static function getWellKnownPropShapes(): array {
-    static $known_normalized;
+    $known_normalized = &drupal_static(__METHOD__);
     if (isset($known_normalized)) {
       return $known_normalized;
     }
