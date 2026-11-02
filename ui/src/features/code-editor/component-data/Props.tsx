@@ -36,6 +36,7 @@ import FormPropTypeDate from '@/features/code-editor/component-data/forms/FormPr
 import FormPropTypeDocument from '@/features/code-editor/component-data/forms/FormPropTypeDocument';
 import FormPropTypeEnum from '@/features/code-editor/component-data/forms/FormPropTypeEnum';
 import FormPropTypeFormattedText from '@/features/code-editor/component-data/forms/FormPropTypeFormattedText';
+import FormPropTypeGroupObject from '@/features/code-editor/component-data/forms/FormPropTypeGroupObject';
 import FormPropTypeImage from '@/features/code-editor/component-data/forms/FormPropTypeImage';
 import FormPropTypeLink, {
   DEFAULT_LINK_EXAMPLES,
@@ -238,6 +239,7 @@ export default function Props() {
                           'x-allowed-entity-type-id': undefined,
                           'x-allowed-bundle': undefined,
                           entityFieldExpressions: undefined,
+                          properties: undefined,
                           example: defaultExample,
                           allowMultiple: false,
                           items: undefined,
@@ -430,6 +432,16 @@ export default function Props() {
                     prop['x-canvas-color-picker'] ?? 'kit-only'
                   }
                   x-canvas-color-folders={prop['x-canvas-color-folders']}
+                />
+              );
+            case 'group':
+              return (
+                <FormPropTypeGroupObject
+                  id={prop.id}
+                  properties={prop.properties ?? []}
+                  allowMultiple={prop.allowMultiple}
+                  isDisabled={disabledPropIds.has(prop.id)}
+                  required={required.includes(prop.id)}
                 />
               );
             case 'date':

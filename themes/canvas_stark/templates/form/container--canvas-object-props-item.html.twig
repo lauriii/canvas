@@ -1,0 +1,20 @@
+{#
+/**
+ * @file
+ * Canvas Stark override of one item of a multi-value group prop.
+ *
+ * This wraps the sub-property widgets and the "Remove" submit button of one
+ * item of a multi-value custom object ("group") prop, so the client can
+ * present the item as a compact row whose widgets open in a popover.
+ *
+ * Available variables:
+ * - attributes: HTML attributes for the containing element.
+ * - children: The rendered child elements of the container.
+ *
+ * @see template_preprocess_container()
+ * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::buildObjectPropForm()
+ *
+ * @ingroup themeable
+ */
+#}
+<drupal-canvas-object-props-item attributes="{{ attributes }}">{{ children }}</drupal-canvas-object-props-item>

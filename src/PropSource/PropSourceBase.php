@@ -11,7 +11,7 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 /**
  * @internal
  *
- * @phpstan-type PropSourceTypePrefix 'static'|'dynamic'|'adapter'|'default-relative-url'
+ * @phpstan-type PropSourceTypePrefix 'static'|'dynamic'|'adapter'|'default-relative-url'|'object-props'
  * @phpstan-type PropSourceArray array{sourceType: string, expression: string, value?: mixed|array<string, mixed>, sourceTypeSettings?: array{instance?: array<string, mixed>, storage?: array<string, mixed>, adapter?: string}}
  * TRICKY: adapters can be chained/nested, PHPStan does not allow expressing
  * that.
