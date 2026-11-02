@@ -124,6 +124,24 @@ describe('applyInPlaceUpdate', () => {
     expect(live.getAttribute('props')).toBe('{"a":2}');
     expect(live.innerHTML).toBe('<p>Hydrated</p>');
 
+    // Props equal to the live ones, however encoded, are left alone: setting
+    // them would re-render the island.
+    live.setAttribute('props', '{"b":"\\"x\\"","a":"2"}');
+    const setAttribute = vi.spyOn(live, 'setAttribute');
+    applyInPlaceUpdate(doc, {
+      componentUuid: 'card',
+      html: island('{"a":"2","b":"\\"x\\""}'),
+      previousHtml: island('{"a":2}'),
+    });
+    expect(setAttribute).not.toHaveBeenCalled();
+    applyInPlaceUpdate(doc, {
+      componentUuid: 'card',
+      html: island('{"a":"3","b":"\\"x\\""}'),
+      previousHtml: island('{"a":"2","b":"\\"x\\""}'),
+    });
+    expect(setAttribute).toHaveBeenCalledOnce();
+    setAttribute.mockRestore();
+
     // Other changes, including text beside the island, replace the island.
     applyInPlaceUpdate(doc, {
       componentUuid: 'card',

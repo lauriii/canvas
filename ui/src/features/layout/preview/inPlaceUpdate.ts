@@ -69,6 +69,23 @@ export function findInPlaceUpdate(
   return null;
 }
 
+// Decodes a Canvas island's props attribute, whose values are JSON-encoded
+// individually, so equal props compare equal however they were encoded.
+const decodeIslandProps = (props: string | null) => {
+  try {
+    const decoded = Object.entries(JSON.parse(props ?? '{}')).map(
+      ([name, value]) => [
+        name,
+        typeof value === 'string' ? JSON.parse(value) : value,
+      ],
+    );
+    decoded.sort(([a], [b]) => (a < b ? -1 : 1));
+    return JSON.stringify(decoded);
+  } catch {
+    return props;
+  }
+};
+
 const parseFragment = (document: Document, html: string) => {
   const template = document.createElement('template');
   template.innerHTML = html;
@@ -115,7 +132,13 @@ function updateIslandProps(
   if (fragments[0].innerHTML !== fragments[1].innerHTML) {
     return false;
   }
-  island.setAttribute('props', props);
+  // Changing props re-renders the island from scratch, so only change them
+  // if they differ, for example not after a client-side update set them.
+  if (
+    decodeIslandProps(island.getAttribute('props')) !== decodeIslandProps(props)
+  ) {
+    island.setAttribute('props', props);
+  }
   return true;
 }
 
