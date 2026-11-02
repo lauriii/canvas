@@ -1,8 +1,10 @@
 import { createSelector } from '@reduxjs/toolkit';
 import { createApi } from '@reduxjs/toolkit/query/react';
 
+import { useAppStore } from '@/app/hooks';
 import { setPostPreviewCompleted } from '@/components/review/PublishReview.slice';
 import {
+  isEvaluatedComponentModel,
   selectLayout,
   selectModel,
   setLayoutModel,
@@ -21,9 +23,12 @@ import {
 } from '@/features/pagePreview/previewSlice';
 import {
   baseQueryWithAutoSaves,
+  extractEntityParams,
   popCanvasLayoutRequest,
   pushCanvasLayoutRequest,
+  replaceEntityParamsInUrl,
 } from '@/services/baseQuery';
+import { createPatchScheduler } from '@/services/patchScheduler';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
 import { getEntityTitle } from '@/utils/entityTitle';
@@ -63,13 +68,48 @@ export type UpdateComponentQueryArg = {
   componentInstanceUuid: string;
   componentType: string;
   model: Omit<ComponentModel, 'name'> | Omit<EvaluatedComponentModel, 'name'>;
-  partialPreview?: boolean;
+  // The editor URL when the change was made, for changes sent later. Without
+  // it, the entity is taken from the current URL when the request is sent.
+  editorUrl?: string;
 };
 
+// Paces PATCHes from usePatchComponent() and usePatchProp(). Sends through the
+// newest updateComponent trigger, after any full-layout POST in flight.
+let sendPatch: (arg: UpdateComponentQueryArg) => PromiseLike<unknown>;
+const patchScheduler = createPatchScheduler<UpdateComponentQueryArg>(
+  async (arg) => {
+    await postInFlight?.catch(() => {});
+    await sendPatch(arg);
+    // Until the response is applied, the store holds the previous model.
+    await responsesApplied;
+  },
+);
+
+/**
+ * Sends component changes waiting in the queue, and resolves once their
+ * responses are applied. Call before reading a component's model to PATCH it.
+ */
+export const sendQueuedComponentPatches = () => patchScheduler.drain();
+
+// Set when the preview lacks an instance a partial preview was returned for,
+// until a PATCH returns the whole page.
+let needsFullPreview = false;
+
+// Per component instance, the newest successful response whose model was not
+// applied because a newer PATCH was queued. Applied if that PATCH fails.
+const supersededResponses = new Map<
+  string,
+  { response: { model: any; layout?: any }; editorUrl?: string }
+>();
+
 // Resolves once the previous updateComponent response is applied. Responses
-// are applied in the order their requests started, each after loading the
-// assets it needs.
+// are applied in turn, each after loading the assets it needs.
 let responsesApplied: Promise<void> = Promise.resolve();
+
+const isOtherEntity = (editorUrl?: string) =>
+  editorUrl !== undefined &&
+  JSON.stringify(extractEntityParams(editorUrl)) !==
+    JSON.stringify(extractEntityParams(window.location.href));
 
 export const previewApi = createApi({
   reducerPath: 'previewApi',
@@ -174,7 +214,7 @@ export const previewApi = createApi({
       UpdateComponentResultType | PartialUpdateComponentResultType,
       UpdateComponentQueryArg
     >({
-      query: ({ type, ...body }) => {
+      query: ({ type, editorUrl, ...body }) => {
         let url = '';
         if (type === 'entity') {
           url = 'canvas/api/v0/layout/{entity_type}/{entity_id}';
@@ -184,24 +224,59 @@ export const previewApi = createApi({
         } else if (type === 'pattern') {
           url = 'canvas/api/v0/layout-pattern/{entity_id}';
         }
-        // Only entities support a partial preview.
-        // The page's libraries let the response add the libraries the updated
-        // instance needs.
-        const { partialPreview = type === 'entity', ...rest } = body;
+        if (editorUrl) {
+          const { entityType, entityId, templateBundle, templateViewMode } =
+            extractEntityParams(editorUrl);
+          url = replaceEntityParamsInUrl(
+            url,
+            entityType,
+            entityId,
+            templateBundle,
+            templateViewMode,
+          );
+        }
+        // Only entities support a partial preview. The page's libraries let
+        // the response add the libraries the updated instance needs.
         const pageLibraries = getPreviewLibraries();
         return {
           url,
           method: 'PATCH',
-          body: partialPreview
-            ? {
-                ...rest,
-                partialPreview,
-                ...(pageLibraries && { pageLibraries }),
-              }
-            : rest,
+          body:
+            type === 'entity' && !needsFullPreview
+              ? {
+                  ...body,
+                  partialPreview: true,
+                  ...(pageLibraries && { pageLibraries }),
+                }
+              : body,
         };
       },
       async onQueryStarted(arg, { dispatch, getState, queryFulfilled }) {
+        const uuid = arg.componentInstanceUuid;
+        const applyModel = ({
+          model,
+          layout,
+        }: {
+          model: any;
+          layout?: any;
+        }) => {
+          const state = getState() as RootState;
+          // Pass update preview false to prevent a subsequent preview update,
+          // we have the data here.
+          dispatch(
+            setLayoutModel(
+              layout === undefined
+                ? {
+                    layout: selectLayout(state),
+                    model: { ...selectModel(state), ...model },
+                    updatePreview: false,
+                  }
+                : { layout, model, updatePreview: false },
+            ),
+          );
+        };
+        // Responses are applied in the order their requests started. The
+        // scheduler waits for this before sending the next PATCH.
         const previousResponseApplied = responsesApplied;
         let markApplied = () => {};
         responsesApplied = new Promise((resolve) => (markApplied = resolve));
@@ -222,18 +297,42 @@ export const previewApi = createApi({
           }
           await previousResponseApplied;
           if (!result) {
+            // The model of a successful response this one superseded is now
+            // the newest saved one.
+            const superseded = supersededResponses.get(uuid);
+            if (superseded && !patchScheduler.has(uuid)) {
+              supersededResponses.delete(uuid);
+              // Not if the editor moved to another entity since.
+              if (!isOtherEntity(superseded.editorUrl)) {
+                applyModel(superseded.response);
+              }
+            }
             return;
           }
           const { data, meta } = result as { data: any; meta: any };
           const { model, autoSaves } = data;
+          // The editor moved to another entity since this change was made.
+          if (isOtherEntity(arg.editorUrl)) {
+            handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+            return;
+          }
           if ('assets' in data && data.assets) {
             await loadPreviewAssets(data.assets);
+            if (isOtherEntity(arg.editorUrl)) {
+              handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+              return;
+            }
           }
-          dispatch(
-            pendingChangesApi.util.invalidateTags([
-              { type: 'PendingChanges', id: 'LIST' },
-            ]),
-          );
+          // A queued PATCH for this instance will bring a newer model. Applying
+          // this one would undo what was typed since this one was sent.
+          const isOutdated = patchScheduler.has(uuid);
+          if (!isOutdated) {
+            dispatch(
+              pendingChangesApi.util.invalidateTags([
+                { type: 'PendingChanges', id: 'LIST' },
+              ]),
+            );
+          }
           // Clear any stale snapshot (e.g. from a prior language/template preview)
           // so selectPreviewHtml returns this fresh editor html instead of the
           // preview snapshot, which selectPreviewHtml prefers while set.
@@ -246,33 +345,34 @@ export const previewApi = createApi({
               data.component,
             );
             if (html === null) {
-              // The current preview lacks the instance: get the whole page.
-              dispatch(
-                previewApi.endpoints.updateComponent.initiate({
-                  ...arg,
-                  partialPreview: false,
-                }),
-              );
+              // The current preview lacks the instance: send the change again,
+              // in turn with other changes, for the whole page.
+              needsFullPreview = true;
+              if (!patchScheduler.has(uuid)) {
+                sendPatch ??= (patch) =>
+                  dispatch(
+                    previewApi.endpoints.updateComponent.initiate(patch),
+                  );
+                patchScheduler.schedule(uuid, arg, true);
+              }
               return;
             }
             dispatch(setPartialHtml({ html, assets: data.assets }));
           } else {
+            needsFullPreview = false;
             dispatch(setHtml(data.html));
           }
           handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
-          // Pass update preview false to prevent a subsequent preview update,
-          // we have the data here.
-          dispatch(
-            setLayoutModel(
-              'component' in data
-                ? {
-                    layout: selectLayout(state),
-                    model: { ...selectModel(state), ...model },
-                    updatePreview: false,
-                  }
-                : { layout: data.layout, model, updatePreview: false },
-            ),
-          );
+          const response = 'component' in data ? { model } : data;
+          if (isOutdated) {
+            supersededResponses.set(uuid, {
+              response,
+              editorUrl: arg.editorUrl,
+            });
+            return;
+          }
+          supersededResponses.delete(uuid);
+          applyModel(response);
         } finally {
           markApplied();
         }
@@ -316,6 +416,7 @@ export const usePatchComponent = () => {
       componentInstanceUuid: selectedComponent,
       componentType: `${selectedComponentType}@${version}`,
       model,
+      editorUrl: window.location.href,
     };
 
     // Prevent duplicate requests
@@ -325,7 +426,8 @@ export const usePatchComponent = () => {
       return Promise.resolve({ data: undefined }) as any;
     }
     lastBody = stringBody;
-    return updateComponent(arg);
+    sendPatch = updateComponent;
+    patchScheduler.schedule(selectedComponent, arg);
   };
 };
 
@@ -339,12 +441,17 @@ export const usePatchComponent = () => {
  * site.
  *
  * Only valid for EvaluatedComponentModel instances (components with source
- * data). Returns null without patching if the current model is not evaluated.
+ * data). Does nothing if the current model is not evaluated.
  */
+// Prop changes from usePatchProp(), each built after the previous one is saved.
+let propPatches: Promise<void> = Promise.resolve();
+
 export const usePatchProp = () => {
   const [updateComponent] = useUpdateComponentMutation();
+  const store = useAppStore();
 
-  return (
+  const patchProp = async (
+    editorUrl: string,
     inputUIData: InputUIData,
     propName: string,
     sourceValue: PropSource | PropSource['value'],
@@ -355,29 +462,53 @@ export const usePatchProp = () => {
       selectedComponentType,
       version,
       editorFrameContext,
-      model,
     } = inputUIData;
 
-    const selectedModel = model?.[selectedComponent];
-    if (!selectedModel || !('source' in selectedModel)) {
-      return null;
+    // Build on the model after queued changes are saved; otherwise sending
+    // them would undo this change. If the editor moved to another entity
+    // meanwhile, the store holds that entity's models instead.
+    await sendQueuedComponentPatches();
+    const selectedModel: ComponentModel | EvaluatedComponentModel | undefined =
+      isOtherEntity(editorUrl)
+        ? inputUIData.model?.[selectedComponent]
+        : selectModel(store.getState())[selectedComponent];
+    if (!selectedModel || !isEvaluatedComponentModel(selectedModel)) {
+      return;
     }
 
-    return updateComponent({
-      type: editorFrameContext,
-      componentInstanceUuid: selectedComponent,
-      componentType: `${selectedComponentType}@${version}`,
-      model: {
-        source: {
-          ...selectedModel.source,
-          [propName]: sourceValue,
+    sendPatch = updateComponent;
+    patchScheduler.schedule(
+      selectedComponent,
+      {
+        type: editorFrameContext,
+        componentInstanceUuid: selectedComponent,
+        componentType: `${selectedComponentType}@${version}`,
+        model: {
+          source: {
+            ...selectedModel.source,
+            [propName]: sourceValue,
+          },
+          resolved: {
+            ...selectedModel.resolved,
+            [propName]: resolvedValue,
+          },
         },
-        resolved: {
-          ...selectedModel.resolved,
-          [propName]: resolvedValue,
-        },
+        editorUrl,
       },
-    });
+      true,
+    );
+    await sendQueuedComponentPatches();
+  };
+
+  return (
+    ...args: Parameters<typeof patchProp> extends [string, ...infer Rest]
+      ? Rest
+      : never
+  ) => {
+    const editorUrl = window.location.href;
+    return (propPatches = propPatches.then(() =>
+      patchProp(editorUrl, ...args),
+    ));
   };
 };
 
@@ -410,6 +541,9 @@ type PostPreviewArg = {
 // queued request executes when the active one completes.
 let activePreviewRequest: Promise<PostPreviewResult> | null = null;
 let pendingPreviewArg: PostPreviewArg | null = null;
+// Only the HTTP request of the active postPreview, which component PATCHes
+// wait for. activePreviewRequest also covers sending queued PATCHes first.
+let postInFlight: Promise<PostPreviewResult> | null = null;
 
 // Incremented each time a postPreview request completes successfully.
 // Used to detect whether an error has been superseded by a later success.
@@ -444,6 +578,7 @@ export function useQueuedPostPreviewMutation(
   ReturnType<typeof usePostPreviewMutation>[1],
 ] {
   const [postPreview, mutationState] = usePostPreviewMutation(options);
+  const store = useAppStore();
 
   const queuedPostPreview = async (
     arg: PostPreviewArg,
@@ -458,10 +593,25 @@ export function useQueuedPostPreviewMutation(
       pendingPreviewArg = null;
     }
 
-    activePreviewRequest = postPreview(arg).unwrap();
+    activePreviewRequest = (async () => {
+      // Component changes waiting to be sent would otherwise be undone by
+      // this layout, or saved before it and overwritten. Take their saved
+      // models.
+      await sendQueuedComponentPatches();
+      const savedModel = selectModel(store.getState());
+      const model = Object.fromEntries(
+        Object.entries(arg.model).map(([uuid, componentModel]) => [
+          uuid,
+          savedModel[uuid] ?? componentModel,
+        ]),
+      );
+      postInFlight = postPreview({ ...arg, model }).unwrap();
+      return postInFlight;
+    })();
     try {
       return await activePreviewRequest;
     } finally {
+      postInFlight = null;
       activePreviewRequest = null;
       if (pendingPreviewArg) {
         const nextArg = pendingPreviewArg;

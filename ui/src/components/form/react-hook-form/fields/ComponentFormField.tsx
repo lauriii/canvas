@@ -57,10 +57,8 @@ export const ComponentFormField = <P extends Record<string, any>>({
   const componentFormInputInfo = useComponentFormInputInfo(fieldName);
   const {
     dispatch,
-    components,
     transforms,
     inputAndUiData,
-    selectedComponentType,
     selectedComponent,
     propName,
     isScalarProp,
@@ -86,13 +84,10 @@ export const ComponentFormField = <P extends Record<string, any>>({
       formStateToLayoutModelStore,
     );
     return (newFormState: PropsValues) => {
-      const elementType =
-        props.attributes?.type || props.attributes?.['data-canvas-type'];
-      // Debounce isn't needed for elements that only have an on/off state.
-      const shouldDebounce =
-        !isScalarProp ||
-        components?.[selectedComponentType]?.source !== 'Code component' ||
-        !['checkbox', 'radio'].includes(elementType as string);
+      // Scalar props of code components update the preview client-side, and
+      // the handler debounces their PATCH itself. Other scalar props PATCH
+      // right away: usePatchComponent() paces the requests.
+      const shouldDebounce = !isScalarProp;
       if (shouldDebounce) {
         debounceFormStateToLayoutModelStore(
           newFormState,
