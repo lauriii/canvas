@@ -249,7 +249,8 @@ class AutoSaveManagerTest extends CanvasKernelTestBase {
    *
    * Repeated reads returning the same object instance proves no serialize /
    * unserialize round-trip happens (which would recompute computed fields like
-   * metatag's and recurse).
+   * metatag's and recurse). ::getClientAutoSaveData() needs only the hash, so
+   * it does not rebuild the entity when it is not memoized.
    *
    * @see \Drupal\canvas\AutoSave\AutoSaveManager::getAutoSaveEntity()
    */
@@ -265,14 +266,25 @@ class AutoSaveManagerTest extends CanvasKernelTestBase {
 
     $autoSave = $this->container->get(AutoSaveManager::class);
     \assert($autoSave instanceof AutoSaveManager);
+    self::assertNull($autoSave->getClientAutoSaveData($page)['hash']);
     $page->set('title', 'Changed title');
     $autoSave->saveEntity($page);
+
+    // Reading the client auto-save data right after saving reads the hash from
+    // the stored entry, without rebuilding the auto-saved entity.
+    $memory_cache = $this->container->get('canvas.auto_save.entity_memory_cache');
+    $client_data = $autoSave->getClientAutoSaveData($page);
+    self::assertNotNull($client_data['hash']);
+    self::assertFalse((bool) $memory_cache->get(AutoSaveManager::getAutoSaveKey($page)), 'The auto-saved entity was rebuilt.');
 
     $first = $autoSave->getAutoSaveEntity($page);
     self::assertFalse($first->isEmpty());
     $second = $autoSave->getAutoSaveEntity($page);
     self::assertSame($first, $second);
     self::assertSame($first->entity, $second->entity);
+    // Once memoized, the hash comes from the auto-saved entity, and matches.
+    self::assertSame($client_data['hash'], $first->hash);
+    self::assertSame($client_data, $autoSave->getClientAutoSaveData($page));
   }
 
   /**
