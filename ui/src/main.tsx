@@ -25,6 +25,7 @@ import '@/styles/radix-themes';
 import '@/styles/index.css';
 
 import { AJAX_UPDATE_FORM_STATE_EVENT } from '@/types/Ajax';
+import { fetchCsrfToken } from '@/utils/csrf';
 import {
   getBaseUrl,
   getCanvasSettings,
@@ -57,6 +58,10 @@ const appConfiguration: AppConfiguration = {
   devMode: canvasSettings.devMode || false,
   homepagePath: canvasSettings.homepagePath,
 };
+
+// Fetch the CSRF token while the editor loads, so the first mutation does not
+// wait for it. A failed fetch is not cached: the first mutation tries again.
+fetchCsrfToken(appConfiguration.baseUrl).catch(() => {});
 
 jQuery(document).on('ajaxStop', () => {
   // When all ajax is finished, ajaxStop is triggered using jQuery's trigger.
