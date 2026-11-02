@@ -1214,6 +1214,21 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
 
     // The file widget built its rows, proving it received ImageItems.
     self::assertArrayHasKey('widget', $image_form);
+
+    // The same field type with other storage settings must not share a
+    // prototype either: `canvas_object` derives its properties from them.
+    $repository = $this->container->get(PropShapeRepositoryInterface::class);
+    $testimonial_shape = $repository->getStorablePropShape(PropShape::normalize(self::getTestimonialItemSchema()));
+    $stat_shape = $repository->getStorablePropShape(PropShape::normalize([
+      'type' => 'object',
+      'properties' => ['count' => ['type' => 'integer']],
+    ]));
+    self::assertNotNull($testimonial_shape);
+    self::assertNotNull($stat_shape);
+    $this->buildTemporaryWidgetForm($testimonial_shape);
+    $stat_form = $this->buildTemporaryWidgetForm($stat_shape);
+    self::assertArrayHasKey('count', $stat_form['widget'][0]);
+    self::assertArrayNotHasKey('quote', $stat_form['widget'][0]);
   }
 
   /**

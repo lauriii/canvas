@@ -551,10 +551,13 @@ final class StaticPropSource extends PropSourceBase {
       // plus the field path, and re-parenting gives every prop field the same
       // root. Left unnamed they would share one prototype, so a later field
       // gets an earlier field's item type (e.g. an image field getting an
-      // IntegerItem). Keying by field type lets same-typed fields share a
-      // prototype while different types stay apart.
+      // IntegerItem). Keying by field type and storage settings lets fields
+      // with identical definitions share a prototype while others stay apart:
+      // some field types derive their properties from storage settings.
       // @see \Drupal\Core\TypedData\TypedDataManager::getPropertyInstance()
-      $field->setContext($field_definition->getType(), EntityAdapter::createFromEntity($host_entity));
+      // @see \Drupal\canvas\Plugin\Field\FieldType\CanvasObjectItem::propertyDefinitions()
+      $prototype_name = $field_definition->getType() . '__' . \hash('xxh3', \serialize($field_definition->getFieldStorageDefinition()->getSettings()));
+      $field->setContext($prototype_name, EntityAdapter::createFromEntity($host_entity));
     }
 
     // Initialize widget state with existing items for widgets that rely on it.
