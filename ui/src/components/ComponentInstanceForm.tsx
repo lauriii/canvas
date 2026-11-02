@@ -6,12 +6,13 @@ import React, {
   useState,
 } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
-import { Spinner, Text } from '@radix-ui/themes';
+import { Text } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import EmptyStateCallout from '@/components/EmptyStateCallout';
 import { getPropsValues } from '@/components/form/react-hook-form/fields/componentFormData';
 import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map';
+import FormSkeleton from '@/components/FormSkeleton';
 import { FORM_TYPES } from '@/features/form/constants';
 import {
   clearFieldValues,
@@ -253,18 +254,20 @@ const ComponentInstanceFormRenderer: React.FC<
   // Drupal functionality like Autocomplete work in this React-rendered form.
   useDrupalBehaviors(formRef, jsxFormContent, isFetching);
 
+  // Display the placeholder only when a new component is being fetched.
+  const isLoadingNewComponent =
+    isFetching && currentComponentId !== selectedComponent;
+
   return (
-    <Spinner
-      size="3"
-      // Display the spinner only when a new component is being fetched.
-      loading={isFetching && currentComponentId !== selectedComponent}
-    >
+    <>
+      {isLoadingNewComponent && <FormSkeleton />}
       {/* Wrap the JSX form in a ref, so we can send it as a stable DOM element
           argument to Drupal.attachBehaviors() anytime jsxFormContent changes.
           See the useEffect just above this. */}
       {/* Don't accept pointer events while the component is updating */}
       <div
         style={{
+          display: isLoadingNewComponent ? 'none' : undefined,
           pointerEvents: skip ? 'none' : 'all',
         }}
         ref={formRef}
@@ -275,7 +278,7 @@ const ComponentInstanceFormRenderer: React.FC<
           </TransformsContext.Provider>
         )}
       </div>
-    </Spinner>
+    </>
   );
 };
 

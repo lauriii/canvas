@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
 import { useParams } from 'react-router';
-import { Box, Spinner } from '@radix-ui/themes';
 import { skipToken } from '@reduxjs/toolkit/query';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map';
+import FormSkeleton from '@/components/FormSkeleton';
 import { FORM_TYPES } from '@/features/form/constants';
 import { selectFormValues } from '@/features/form/formStateSlice';
 import { setUpdatePreview } from '@/features/layout/layoutModelSlice';
@@ -213,11 +213,7 @@ const PageDataFormRenderer = () => {
   }, [formState, dispatch]);
 
   if (isFetching || isFetchingLayout || !pageDataExists) {
-    return (
-      <Spinner size="3" loading={true}>
-        <Box mt="9" />
-      </Spinner>
-    );
+    return <FormSkeleton />;
   }
 
   /* Wrap the JSX form in a ref, so we can send it as a stable DOM element
