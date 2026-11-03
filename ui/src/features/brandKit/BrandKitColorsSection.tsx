@@ -51,10 +51,17 @@ const BrandKitColorsSection = () => {
   // Folder creation state
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
 
-  // Suppresses the DropdownMenu's onCloseAutoFocus focus-return in two cases:
-  //   1. A popover is being opened (focus-return would fire interact-outside and close it)
+  // Suppresses the menus' onCloseAutoFocus focus-return in two cases:
+  //   1. A popover is being opened (focus-return would fire interact-outside
+  //      and close it, or blur the field the user is already editing)
   //   2. The folder name input is being shown (it should receive focus instead)
   const suppressAutoFocusRef = useRef(false);
+  const handleMenuCloseAutoFocus = (e: Event) => {
+    if (suppressAutoFocusRef.current) {
+      e.preventDefault();
+      suppressAutoFocusRef.current = false;
+    }
+  };
 
   // Add color popover state
   const [isAddColorPopoverOpen, setIsAddColorPopoverOpen] = useState(false);
@@ -177,17 +184,7 @@ const BrandKitColorsSection = () => {
               <ChevronDownIcon />
             </Button>
           </DropdownMenu.Trigger>
-          <DropdownMenu.Content
-            onCloseAutoFocus={(e) => {
-              // Prevent the dropdown from returning focus to the trigger
-              // when we're creating a folder or opening a popover, so our
-              // input/popover can receive focus.
-              if (suppressAutoFocusRef.current) {
-                e.preventDefault();
-                suppressAutoFocusRef.current = false;
-              }
-            }}
-          >
+          <DropdownMenu.Content onCloseAutoFocus={handleMenuCloseAutoFocus}>
             <DropdownMenu.Item
               onClick={() => {
                 suppressAutoFocusRef.current = true;
@@ -249,9 +246,11 @@ const BrandKitColorsSection = () => {
             key={folder.id}
             folder={folder}
             deleteWarning="Cannot delete folder containing colors"
+            onMenuCloseAutoFocus={handleMenuCloseAutoFocus}
             extraMenuItems={
               <UnifiedMenu.Item
                 onClick={() => {
+                  suppressAutoFocusRef.current = true;
                   setAddColorFolderId(folder.id);
                   setIsAddColorPopoverOpen(true);
                 }}

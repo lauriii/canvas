@@ -26,6 +26,8 @@ interface SidebarFolderProps {
   count?: number;
   // If menuItems are provided, wrap in ContextMenu and DropdownMenu
   menuItems?: React.ReactNode;
+  // Called when either menu closes; prevent default to keep focus elsewhere
+  onMenuCloseAutoFocus?: (event: Event) => void;
   className?: string;
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -45,6 +47,7 @@ const SidebarFolder: React.FC<SidebarFolderProps> = ({
   errorSlot,
   count,
   menuItems,
+  onMenuCloseAutoFocus,
   className,
   isOpen: isOpenProp,
   onOpenChange,
@@ -175,7 +178,10 @@ const SidebarFolder: React.FC<SidebarFolderProps> = ({
                 </span>
               </button>
             </DropdownMenu.Trigger>
-            <UnifiedMenu.Content menuType="dropdown">
+            <UnifiedMenu.Content
+              menuType="dropdown"
+              onCloseAutoFocus={onMenuCloseAutoFocus}
+            >
               {menuItems}
             </UnifiedMenu.Content>
           </DropdownMenu.Root>
@@ -217,7 +223,12 @@ const SidebarFolder: React.FC<SidebarFolderProps> = ({
     rowWithContextMenu = (
       <ContextMenu.Root>
         <ContextMenu.Trigger>{folderRow}</ContextMenu.Trigger>
-        <UnifiedMenu.Content menuType="context" align="start" side="right">
+        <UnifiedMenu.Content
+          menuType="context"
+          align="start"
+          side="right"
+          onCloseAutoFocus={onMenuCloseAutoFocus}
+        >
           {menuItems}
         </UnifiedMenu.Content>
       </ContextMenu.Root>

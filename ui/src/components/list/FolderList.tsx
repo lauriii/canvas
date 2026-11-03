@@ -37,11 +37,13 @@ const FolderList = ({
   folder,
   children,
   extraMenuItems,
+  onMenuCloseAutoFocus,
   deleteWarning,
 }: {
   folder: FolderInList;
   children: ReactNode;
   extraMenuItems?: ReactNode;
+  onMenuCloseAutoFocus?: (event: Event) => void;
   deleteWarning?: string;
 }) => {
   const [isRenaming, setIsRenaming] = useState(false);
@@ -295,6 +297,7 @@ const FolderList = ({
       errorSlot={errorSlot}
       count={getItemsLength()}
       menuItems={isRenaming ? undefined : menuItems}
+      onMenuCloseAutoFocus={onMenuCloseAutoFocus}
       isOpen={isFolderOpen}
       onOpenChange={setIsFolderOpen}
       onNameDoubleClick={handleNameDoubleClick}
