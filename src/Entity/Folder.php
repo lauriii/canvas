@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Drupal\canvas\Entity;
 
 use Drupal\canvas\ClientSideRepresentation;
+use Drupal\canvas\EntityHandlers\ContentCreatorVisibleCanvasConfigEntityAccessControlHandler;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\Attribute\ConfigEntityType;
-use Drupal\Core\Entity\EntityAccessControlHandler;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 
@@ -20,7 +20,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
   label_collection: new TranslatableMarkup('Folders'),
   admin_permission: self::ADMIN_PERMISSION,
   handlers: [
-    'access' => EntityAccessControlHandler::class,
+    'access' => ContentCreatorVisibleCanvasConfigEntityAccessControlHandler::class,
   ],
   entity_keys: [
     'id' => 'uuid',
