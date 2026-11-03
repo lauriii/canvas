@@ -1,8 +1,35 @@
-# The component catalog the agent's default information tool fetches is not
-# among the messages: it feeds the system prompt, which echoai does not match.
-# A whole-page request stops at the plan gate: a text-only plan, no tool call.
+# Turn 3, request 3: the edit succeeded, so the agent writes the closing
+# confirmation and ends the turn.
 request:
   messages:
+    -
+      role: user
+      text: 'Create me a landing page for a university site'
+      images: {  }
+      remote_files: {  }
+      tools: null
+      tool_id: null
+    -
+      role: assistant
+      text: 'Here is the plan: a hero at the top with a heading below it. Shall I build it?'
+      images: {  }
+      remote_files: {  }
+      tools: null
+      tool_id: null
+    -
+      role: user
+      text: 'Yes, build it'
+      images: {  }
+      remote_files: {  }
+      tools: null
+      tool_id: null
+    -
+      role: assistant
+      text: 'The hero and its heading are on the page.'
+      images: {  }
+      remote_files: {  }
+      tools: null
+      tool_id: null
     -
       role: user
       text: |-
@@ -11,12 +38,59 @@ request:
         </context>
 
         <user_message>
-        Create me a landing page for a university site
+        Change the hero heading to Hello
         </user_message>
       images: {  }
       remote_files: {  }
       tools: null
       tool_id: null
+    -
+      role: assistant
+      text: 'Updating the hero heading.'
+      images: {  }
+      remote_files: {  }
+      tools:
+        -
+          id: call_5
+          type: function
+          function:
+            name: edit_components
+            arguments: '{"component_edits":[{"component_uuid":"00000000-0000-4000-8000-000000000099","props":"heading: \u0022Hello\u0022"}]}'
+      tool_id: null
+    -
+      role: tool
+      text: |-
+        Nothing was applied. Fix every error listed below and call the tool again.
+
+        ## Edit 0
+        - Component 00000000-0000-4000-8000-000000000099 was not found on the page.
+      images: {  }
+      remote_files: {  }
+      tools: null
+      tool_id: call_5
+    -
+      role: assistant
+      text: 'Using the UUID that is on the page.'
+      images: {  }
+      remote_files: {  }
+      tools:
+        -
+          id: call_6
+          type: function
+          function:
+            name: edit_components
+            arguments: '{"component_edits":[{"component_uuid":"00000000-0000-4000-8000-000000000001","props":"heading: \u0022Hello\u0022"}]}'
+      tool_id: null
+    -
+      role: tool
+      text: |
+        The updates were applied successfully.
+        00000000-0000-4000-8000-000000000001:
+            heading: Hello
+      images: {  }
+      remote_files: {  }
+      tools: null
+      tool_id: call_6
   debug_data: {  }
   chat_tools:
     -
@@ -134,7 +208,7 @@ request:
 response:
   normalized:
     role: assistant
-    text: 'Here is the plan: 1) Hero — the welcome and the main call to action. 2) Programs — three cards on the main study areas. 3) Campus life — what a week looks like. 4) Admissions — how to apply, with dates. 5) Contact — where to ask questions. Shall I build it?'
+    text: 'The hero heading now says Hello.'
     images: {  }
     remote_files: {  }
     tools: null

@@ -1,7 +1,21 @@
-# The component catalog the agent's default information tool fetches is not
-# among the messages: it feeds the system prompt, which echoai does not match.
+# Turn 2, request 1: the agent places the hero, but asks for 'below'
+# without a reference_uuid. The tool returns the validation error.
 request:
   messages:
+    -
+      role: user
+      text: 'Create me a landing page for a university site'
+      images: {  }
+      remote_files: {  }
+      tools: null
+      tool_id: null
+    -
+      role: assistant
+      text: 'Here is the plan: a hero at the top with a heading below it. Shall I build it?'
+      images: {  }
+      remote_files: {  }
+      tools: null
+      tool_id: null
     -
       role: user
       text: |-
@@ -10,7 +24,7 @@ request:
         </context>
 
         <user_message>
-        Add a hero with a heading under it
+        Yes, build it
         </user_message>
       images: {  }
       remote_files: {  }
@@ -133,16 +147,16 @@ request:
 response:
   normalized:
     role: assistant
-    text: 'Adding the hero banner now.'
+    text: 'Placing the hero now.'
     images: {  }
     remote_files: {  }
     tools:
       -
-        id: call_1
+        id: call_2
         type: function
         function:
           name: place_components
-          arguments: '{"operations":[{"target":"content","placement":"inside","components":"- sdc.canvas_test_sdc.my-hero:\n    props:\n      heading: \"Build Faster with Canvas\"\n      subheading: \"Everything you need to launch a page.\"\n      cta1: \"Get started\"\n      cta1href: \"https://example.com\"\n      cta2: \"Learn more\""}]}'
+          arguments: '{"operations":[{"target":"content","placement":"below","components":"- sdc.canvas_test_sdc.my-hero:\n    props:\n      heading: \"Welcome to the university\"\n      cta1href: \"https://example.com\""}]}'
     tool_id: null
   rawOutput: null
   metadata: {  }

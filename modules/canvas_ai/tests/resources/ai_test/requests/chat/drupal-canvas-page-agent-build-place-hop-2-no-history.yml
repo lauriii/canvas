@@ -1,7 +1,21 @@
-# The component catalog the agent's default information tool fetches is not
-# among the messages: it feeds the system prompt, which echoai does not match.
+# Turn 2, request 2: the error named the missing key, so the agent places
+# the hero 'inside' the empty content region. The tool succeeds.
 request:
   messages:
+    -
+      role: user
+      text: 'Create me a landing page for a university site'
+      images: {  }
+      remote_files: {  }
+      tools: null
+      tool_id: null
+    -
+      role: assistant
+      text: 'Here is the plan: a hero at the top with a heading below it. Shall I build it?'
+      images: {  }
+      remote_files: {  }
+      tools: null
+      tool_id: null
     -
       role: user
       text: |-
@@ -10,7 +24,7 @@ request:
         </context>
 
         <user_message>
-        Add a hero with a heading under it
+        Yes, build it
         </user_message>
       images: {  }
       remote_files: {  }
@@ -18,51 +32,7 @@ request:
       tool_id: null
     -
       role: assistant
-      text: 'Adding the hero banner now.'
-      images: {  }
-      remote_files: {  }
-      tools:
-        -
-          id: call_1
-          type: function
-          function:
-            name: place_components
-            arguments: '{"operations":[{"target":"content","placement":"inside","components":"- sdc.canvas_test_sdc.my-hero:\n    props:\n      heading: \u0022Build Faster with Canvas\u0022\n      subheading: \u0022Everything you need to launch a page.\u0022\n      cta1: \u0022Get started\u0022\n      cta1href: \u0022https:\/\/example.com\u0022\n      cta2: \u0022Learn more\u0022"}]}'
-      tool_id: null
-    -
-      role: tool
-      text: |-
-        Components placed successfully.
-        The placed components with their assigned UUIDs:
-        operations:
-          -
-            target: content
-            placement: inside
-            components:
-              -
-                sdc.canvas_test_sdc.my-hero:
-                  props:
-                    heading: 'Build Faster with Canvas'
-                    subheading: 'Everything you need to launch a page.'
-                    cta1: 'Get started'
-                    cta1href: 'https://example.com'
-                    cta2: 'Learn more'
-                  uuid: 00000000-0000-4000-8000-000000000001
-
-        The expected page layout after placement (UUID tree):
-        content:
-          00000000-0000-4000-8000-000000000001: {  }
-
-        These UUIDs are valid immediately — use them as reference_uuid for the next section in this same turn. The page layout you were given at the start of this turn does not list them yet and will only do so from your next turn, so for anything placed during this turn this result is authoritative and that layout is not. This is expected, not a sign that the layout is missing or that you should wait.
-
-        This result is a continuation point, not a stopping point: if any section from your approved plan is still unplaced, your next output MUST be the next place_components call — a turn with text and no tool call would freeze the build here. Only once every planned section is on the page do you stop and write the closing confirmation.
-      images: {  }
-      remote_files: {  }
-      tools: null
-      tool_id: call_1
-    -
-      role: assistant
-      text: 'Adding the heading under the hero now.'
+      text: 'Placing the hero now.'
       images: {  }
       remote_files: {  }
       tools:
@@ -71,34 +41,15 @@ request:
           type: function
           function:
             name: place_components
-            arguments: '{"operations":[{"target":"content","placement":"below","reference_uuid":"00000000-0000-4000-8000-000000000001","components":"- sdc.canvas_test_sdc.heading:\n    props:\n      text: \u0022Why teams choose Canvas\u0022\n      element: \u0022h2\u0022"}]}'
+            arguments: '{"operations":[{"target":"content","placement":"below","components":"- sdc.canvas_test_sdc.my-hero:\n    props:\n      heading: \u0022Welcome to the university\u0022\n      cta1href: \u0022https:\/\/example.com\u0022"}]}'
       tool_id: null
     -
       role: tool
       text: |-
-        Components placed successfully.
-        The placed components with their assigned UUIDs:
-        operations:
-          -
-            target: content
-            placement: below
-            reference_uuid: 00000000-0000-4000-8000-000000000001
-            components:
-              -
-                sdc.canvas_test_sdc.heading:
-                  props:
-                    text: 'Why teams choose Canvas'
-                    element: h2
-                  uuid: 00000000-0000-4000-8000-000000000002
+        Nothing was applied. Fix every error listed below and call the tool again.
 
-        The expected page layout after placement (UUID tree):
-        content:
-          00000000-0000-4000-8000-000000000001: {  }
-          00000000-0000-4000-8000-000000000002: {  }
-
-        These UUIDs are valid immediately — use them as reference_uuid for the next section in this same turn. The page layout you were given at the start of this turn does not list them yet and will only do so from your next turn, so for anything placed during this turn this result is authoritative and that layout is not. This is expected, not a sign that the layout is missing or that you should wait.
-
-        This result is a continuation point, not a stopping point: if any section from your approved plan is still unplaced, your next output MUST be the next place_components call — a turn with text and no tool call would freeze the build here. Only once every planned section is on the page do you stop and write the closing confirmation.
+        ## Operation 0
+        - The reference_uuid must be provided for above/below placement.
       images: {  }
       remote_files: {  }
       tools: null
@@ -220,10 +171,16 @@ request:
 response:
   normalized:
     role: assistant
-    text: 'The hero and its heading are in place.'
+    text: 'Correcting the placement.'
     images: {  }
     remote_files: {  }
-    tools: null
+    tools:
+      -
+        id: call_3
+        type: function
+        function:
+          name: place_components
+          arguments: '{"operations":[{"target":"content","placement":"inside","components":"- sdc.canvas_test_sdc.my-hero:\n    props:\n      heading: \"Welcome to the university\"\n      cta1href: \"https://example.com\""}]}'
     tool_id: null
   rawOutput: null
   metadata: {  }

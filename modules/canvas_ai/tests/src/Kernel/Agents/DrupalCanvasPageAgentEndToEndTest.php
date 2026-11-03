@@ -22,6 +22,7 @@ use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\canvas_ai\Kernel\Traits\CanvasAiDevHopTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\DependencyInjection\Reference;
@@ -161,63 +162,6 @@ final class DrupalCanvasPageAgentEndToEndTest extends CanvasKernelTestBase {
   }
 
   /**
-   * A whole-page request ends the turn at the plan gate, placing nothing.
-   *
-   * The plan is the agent's answer; the frontend must not send another hop.
-   */
-  public function testWholePageRequestStopsAtThePlanGate(): void {
-    // fixture: tests/resources/ai_test/requests/chat/drupal-canvas-page-agent-plan-gate.yml.
-    $hop = $this->hop([
-      'messages' => [['role' => 'user', 'text' => 'Create me a landing page for a university site']],
-      'current_layout' => self::emptyLayout(),
-    ]);
-    $this->assertTrue($hop['status']);
-    $this->assertFalse($hop['should_continue']);
-    $this->assertArrayNotHasKey('operations', $hop);
-    $this->assertSame('Here is the plan: 1) Hero — the welcome and the main call to action. 2) Programs — three cards on the main study areas. 3) Campus life — what a week looks like. 4) Admissions — how to apply, with dates. 5) Contact — where to ask questions. Shall I build it?', $hop['message']);
-    $this->assertSame('', $hop['progress']);
-  }
-
-  /**
-   * An edit turn returns the component_updates the client applies.
-   *
-   * Hop 1 parks the edit_components call; hop 2 executes it against the
-   * layout, returns the updates and closes the turn.
-   */
-  public function testEditTurnReturnsComponentUpdates(): void {
-    $messages = [['role' => 'user', 'text' => 'Change the hero heading to Hello']];
-    $layout = [
-      'regions' => [
-        'content' => [
-          'nodePathPrefix' => [0],
-          'components' => [
-            [
-              'name' => 'sdc.canvas_test_sdc.my-hero',
-              'uuid' => self::HERO_UUID,
-              'props' => ['heading' => 'Build Faster with Canvas', 'cta1href' => 'https://example.com'],
-            ],
-          ],
-        ],
-      ],
-    ];
-
-    // fixture: tests/resources/ai_test/requests/chat/drupal-canvas-page-agent-edit-hop-1.yml.
-    $hop1 = $this->hop(['messages' => $messages, 'current_layout' => $layout]);
-    $this->assertTrue($hop1['status']);
-    $this->assertTrue($hop1['should_continue']);
-    $this->assertArrayNotHasKey('component_updates', $hop1);
-    $this->assertSame('Changing the hero heading now.', $hop1['progress']);
-
-    // fixture: tests/resources/ai_test/requests/chat/drupal-canvas-page-agent-edit-hop-2.yml.
-    $hop2 = $this->hop(['messages' => $messages, 'current_layout' => $layout]);
-    $this->assertTrue($hop2['status']);
-    $this->assertFalse($hop2['should_continue']);
-    $this->assertSame(['component_updates' => [self::HERO_UUID => ['heading' => 'Hello']]], ['component_updates' => $hop2['component_updates']]);
-    $this->assertArrayNotHasKey('operations', $hop2);
-    $this->assertSame('The hero heading now says Hello.', $hop2['message']);
-  }
-
-  /**
    * Title and description set in one hop reach the client together.
    *
    * The set_page_value tool writes one key per call, so a hop that sets both
@@ -241,6 +185,15 @@ final class DrupalCanvasPageAgentEndToEndTest extends CanvasKernelTestBase {
       'description[0][value]' => 'Visit us',
     ], $hop2['canvas_page_data']);
     $this->assertSame('The title and description are set.', $hop2['message']);
+
+    // This turn ran with keep_tool_calls_in_history off, so nothing was kept
+    // for the conversation: the next turn rebuilds from the client transcript.
+    // The checkpoint is keyed by request ID, which ::hop() defaults to
+    // 'test-request'.
+    self::assertNull(
+      $this->container->get(CanvasAiTempStore::class)
+        ->getStoredConversationState('test-conversation', 'test-request'),
+    );
   }
 
   /**
@@ -251,57 +204,93 @@ final class DrupalCanvasPageAgentEndToEndTest extends CanvasKernelTestBase {
   }
 
   /**
-   * Builds the hero section one placement call per hop, chaining on its UUID.
-   *
-   * The turn takes three hops driven the way the dev wizard drives them, with
-   * the layout each hop sends reflecting the operations the client applied so
-   * far:
-   * - Hop 1 only narrates and parks the first place_components call.
-   * - Hop 2 executes it against the empty page and returns the hero placement
-   *   with its backend-assigned UUID; the model reads that UUID from the tool
-   *   result and parks the second call placing the heading below the hero.
-   * - Hop 3 sends the layout containing the hero — without it the `below`
-   *   placement could not resolve — and returns the heading placement plus the
-   *   closing answer.
-   *
-   * With the site opted in, the clean turn end keeps the conversation state,
-   * with each placement result cut down to its success sentence.
-   *
-   * @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::trimKeptToolResults()
+   * Provides the 'keep tool calls in history' setting values.
    */
-  public function testSequentialPlacementAcrossHops(): void {
-    $this->config('canvas_dev_ai.settings')->set('keep_tool_calls_in_history', TRUE)->save();
-    $messages = [['role' => 'user', 'text' => 'Add a hero with a heading under it']];
-    $empty_layout = [
-      'regions' => [
-        'content' => [
-          'nodePathPrefix' => [0],
-          'components' => [],
-        ],
+  public static function providerPageBuilding(): array {
+    return [
+      'tool calls kept in history' => [TRUE],
+      'tool calls not kept in history' => [FALSE],
+    ];
+  }
+
+  /**
+   * Tests the agent end to end with 'keep tool calls in history' on and off.
+   *
+   * One conversation plans a page, builds it, then edits it. With the option
+   * on, each turn resumes the agent state the previous turn's kept tool calls
+   * left behind; a kept tool result is trimmed only when it succeeded, and a
+   * failure keeps its error text. With it off, each turn rebuilds from the
+   * client's text-only transcript.
+   *
+   * @see \Drupal\canvas_dev_ai\Form\CanvasDevAiAgentSelectionForm
+   * @see https://git.drupalcode.org/project/canvas/-/work_items/3592032
+   * @see https://git.drupalcode.org/project/canvas/-/work_items/3592082
+   */
+  #[DataProvider('providerPageBuilding')]
+  public function testPageBuilding(bool $keep_tool_calls_in_history): void {
+    $this->config('canvas_dev_ai.settings')->set('keep_tool_calls_in_history', $keep_tool_calls_in_history)->save();
+
+    // Record what the model is sent, so each turn can be asserted on the
+    // request that opened it.
+    $inputs = [];
+    $this->container->get(EventDispatcherInterface::class)->addListener(
+      PreGenerateResponseEvent::EVENT_NAME,
+      static function (PreGenerateResponseEvent $event) use (&$inputs): void {
+        $inputs[] = $event->getInput();
+      },
+    );
+
+    // Turn 1: the agent reads the hero's and heading's metadata, then answers
+    // with the plan.
+    // fixture: tests/resources/ai_test/requests/chat/drupal-canvas-page-agent-build-plan-hop-1.yml, then -hop-2.yml.
+    $turn1 = $this->driveTurn([
+      'messages' => [['role' => 'user', 'text' => 'Create me a landing page for a university site']],
+      'current_layout' => self::emptyLayout(),
+      'request_id' => 'turn-1',
+      'conversation_id' => 'conversation-1',
+    ]);
+    self::assertCount(2, $turn1);
+    self::assertTrue($turn1[1]['status']);
+    self::assertFalse($turn1[1]['should_continue']);
+    self::assertArrayNotHasKey('operations', $turn1[1]);
+    self::assertSame('Here is the plan: a hero at the top with a heading below it. Shall I build it?', $turn1[1]['message']);
+    self::assertSame('Looking up the hero and heading components.', $turn1[1]['progress']);
+
+    // Turn 2: the user approves. The hero placement fails, then succeeds; the
+    // heading is placed below it, using the UUID from the hero's tool result.
+    $turn2_first_request = \count($inputs);
+    $turn2_prompt = [
+      'messages' => [
+        ['role' => 'user', 'text' => 'Create me a landing page for a university site'],
+        ['role' => 'assistant', 'text' => 'Here is the plan: a hero at the top with a heading below it. Shall I build it?'],
+        ['role' => 'user', 'text' => 'Yes, build it'],
       ],
+      'current_layout' => self::emptyLayout(),
+      'request_id' => 'turn-2',
+      'conversation_id' => 'conversation-1',
+      'last_successful_request_id' => 'turn-1',
     ];
 
-    // fixture: tests/resources/ai_test/requests/chat/drupal-canvas-page-agent-place-hop-1.yml.
-    $hop1 = $this->hop([
-      'messages' => $messages,
-      'current_layout' => $empty_layout,
-    ]);
-    $this->assertTrue($hop1['status']);
-    $this->assertTrue($hop1['should_continue']);
-    $this->assertArrayNotHasKey('operations', $hop1);
-    $this->assertSame('Adding the hero banner now.', $hop1['progress']);
+    // fixture: tests/resources/ai_test/requests/chat/drupal-canvas-page-agent-build-place-hop-1.yml when $keep_tool_calls_in_history is TRUE,
+    // drupal-canvas-page-agent-build-place-hop-1-no-history.yml when FALSE.
+    $hop1 = $this->hop($turn2_prompt);
+    self::assertTrue($hop1['should_continue']);
+    self::assertArrayNotHasKey('operations', $hop1);
+    self::assertSame('Placing the hero now.', $hop1['progress']);
 
-    // fixture: tests/resources/ai_test/requests/chat/drupal-canvas-page-agent-place-hop-2.yml.
-    // The client has no operations to apply yet, so it re-sends the same
-    // layout; the parked hero placement executes against it during this hop.
-    $hop2 = $this->hop([
-      'messages' => $messages,
-      'current_layout' => $empty_layout,
-    ]);
-    $this->assertTrue($hop2['status']);
-    $this->assertTrue($hop2['should_continue']);
-    $this->assertSame("Adding the hero banner now.\n\nAdding the heading under the hero now.", $hop2['progress']);
-    $this->assertSame([
+    // fixture: tests/resources/ai_test/requests/chat/drupal-canvas-page-agent-build-place-hop-2.yml when $keep_tool_calls_in_history is TRUE,
+    // drupal-canvas-page-agent-build-place-hop-2-no-history.yml when FALSE.
+    $hop2 = $this->hop($turn2_prompt);
+    self::assertTrue($hop2['should_continue']);
+    // The failed placement returns no operations.
+    self::assertArrayNotHasKey('operations', $hop2);
+
+    // fixture: tests/resources/ai_test/requests/chat/drupal-canvas-page-agent-build-place-hop-3.yml when $keep_tool_calls_in_history is TRUE,
+    // drupal-canvas-page-agent-build-place-hop-3-no-history.yml when FALSE.
+    $hop3 = $this->hop($turn2_prompt);
+    // The hero's operations reach the client while the turn continues.
+    self::assertTrue($hop3['should_continue']);
+    self::assertSame([
       'operations' => [
         [
           'operation' => 'ADD',
@@ -311,50 +300,34 @@ final class DrupalCanvasPageAgentEndToEndTest extends CanvasKernelTestBase {
               'uuid' => self::HERO_UUID,
               'nodePath' => [0, 0],
               'fieldValues' => [
-                'heading' => 'Build Faster with Canvas',
-                'subheading' => 'Everything you need to launch a page.',
-                'cta1' => 'Get started',
+                'heading' => 'Welcome to the university',
                 'cta1href' => 'https://example.com',
-                'cta2' => 'Learn more',
               ],
             ],
           ],
         ],
       ],
-    ], ['operations' => $hop2['operations']]);
+    ], ['operations' => $hop3['operations']]);
 
-    // fixture: tests/resources/ai_test/requests/chat/drupal-canvas-page-agent-place-hop-3.yml.
-    // The client applied hop 2's operations before sending this hop, so the
-    // layout now contains the hero the second placement references.
-    $hop3 = $this->hop([
-      'messages' => $messages,
-      'current_layout' => [
-        'regions' => [
-          'content' => [
-            'nodePathPrefix' => [0],
-            'components' => [
-              [
-                'name' => 'sdc.canvas_test_sdc.my-hero',
-                'uuid' => self::HERO_UUID,
-                'props' => [
-                  'heading' => 'Build Faster with Canvas',
-                  'subheading' => 'Everything you need to launch a page.',
-                  'cta1' => 'Get started',
-                  'cta1href' => 'https://example.com',
-                  'cta2' => 'Learn more',
-                ],
-              ],
-            ],
-          ],
-        ],
-      ],
-    ]);
-    $this->assertTrue($hop3['status']);
-    $this->assertFalse($hop3['should_continue']);
-    $this->assertSame('The hero and its heading are in place.', $hop3['message']);
-    // The final hop narrates the earlier hops only; its own text is the answer.
-    $this->assertSame("Adding the hero banner now.\n\nAdding the heading under the hero now.", $hop3['progress']);
-    $this->assertSame([
+    // fixture: tests/resources/ai_test/requests/chat/drupal-canvas-page-agent-build-place-hop-4.yml when $keep_tool_calls_in_history is TRUE,
+    // drupal-canvas-page-agent-build-place-hop-4-no-history.yml when FALSE.
+    // The client applied hop 3's operations, so the layout holds the hero
+    // the heading is placed below.
+    $hero = [
+      'name' => 'sdc.canvas_test_sdc.my-hero',
+      'uuid' => self::HERO_UUID,
+      'props' => ['heading' => 'Welcome to the university', 'cta1href' => 'https://example.com'],
+    ];
+    $turn2_prompt['current_layout']['regions']['content']['components'] = [$hero];
+    $hop4 = $this->hop($turn2_prompt);
+    self::assertTrue($hop4['status']);
+    self::assertFalse($hop4['should_continue']);
+    self::assertSame('The hero and its heading are on the page.', $hop4['message']);
+    self::assertSame(
+      "Placing the hero now.\n\nCorrecting the placement.\n\nAdding the heading below the hero.",
+      $hop4['progress'],
+    );
+    self::assertSame([
       'operations' => [
         [
           'operation' => 'ADD',
@@ -364,135 +337,131 @@ final class DrupalCanvasPageAgentEndToEndTest extends CanvasKernelTestBase {
               'uuid' => self::HEADING_UUID,
               'nodePath' => [0, 1],
               'fieldValues' => [
-                'text' => 'Why teams choose Canvas',
+                'text' => 'Why study with us',
                 'element' => 'h2',
               ],
             ],
           ],
         ],
       ],
-    ], ['operations' => $hop3['operations']]);
+    ], ['operations' => $hop4['operations']]);
 
-    // The turn ended clean with the setting on, so its state was kept for
-    // the conversation — with each place_components result cut down to its
-    // success sentence, shedding the UUIDs, predicted layout and guidance
-    // that only served this turn. Both placements ran their tool during
-    // this turn, so both results are trimmed.
-    $conversation = $this->container->get(CanvasAiTempStore::class)->getStoredConversationState('test-conversation', 'test-request');
-    self::assertNotNull($conversation);
-    $tool_messages = \array_values(\array_filter(
-      $conversation['state']['chat_history'],
-      static fn (array $message): bool => $message['role'] === 'tool',
-    ));
-    self::assertCount(2, $tool_messages);
-    self::assertSame(PlaceComponents::SUCCESS_MESSAGE, $tool_messages[0]['text']);
-    self::assertSame(PlaceComponents::SUCCESS_MESSAGE, $tool_messages[1]['text']);
-  }
+    $turn2_first_input = $inputs[$turn2_first_request];
+    self::assertInstanceOf(ChatInput::class, $turn2_first_input);
+    $messages = $turn2_first_input->getMessages();
+    $roles = \array_map(static fn (ChatMessage $message): string => $message->getRole(), $messages);
+    if ($keep_tool_calls_in_history) {
+      // The request that opened turn 2 carries turn 1's history: the user
+      // message, the metadata call and its result, the plan, then this turn's
+      // user message.
+      self::assertSame(['user', 'assistant', 'tool', 'assistant', 'user'], $roles);
+      self::assertSame('get_component_details', $messages[1]->toArray()['tools'][0]['function']['name']);
+    }
+    else {
+      // The request that opened turn 2 carries the client's text-only
+      // transcript.
+      self::assertSame(['user', 'assistant', 'user'], $roles);
+    }
+    self::assertStringContainsString('Yes, build it', (string) \end($messages)->getText());
 
-  /**
-   * Turn 2 resumes the agent history turn 1 built, tool messages included.
-   *
-   * The dev wizard sends the same conversation_id with every turn of one chat.
-   * With the site opted in, the backend resumes the agent from the state turn
-   * 1 finished with instead of rebuilding it from the client transcript, which
-   * carries text only, so the model's first request of turn 2 still holds the
-   * edit_components call turn 1 made and its result: the agent need not repeat
-   * that work. The kept result is cut to its success sentence — the dump of
-   * the applied updates only served the turn that made them.
-   *
-   * @see https://git.drupalcode.org/project/canvas/-/work_items/3592032
-   * @see https://git.drupalcode.org/project/canvas/-/work_items/3592082
-   */
-  public function testSecondTurnResumesTheHistoryOfTheFirst(): void {
-    // Off after install: keeping the history costs tokens on every later turn.
-    // @see \Drupal\canvas_dev_ai\Form\CanvasDevAiAgentSelectionForm
-    $this->config('canvas_dev_ai.settings')->set('keep_tool_calls_in_history', TRUE)->save();
+    // The component catalog feeds the system prompt, not the messages.
+    self::assertStringContainsString('sdc.canvas_test_sdc.banner', $turn2_first_input->getSystemPrompt());
+    self::assertStringContainsString('get_component_context', $turn2_first_input->getSystemPrompt());
+    foreach ($messages as $message) {
+      self::assertStringNotContainsString('sdc.canvas_test_sdc.banner', (string) $message->getText());
+    }
 
-    $layout = [
-      'regions' => [
-        'content' => [
-          'nodePathPrefix' => [0],
-          'components' => [
-            [
-              'name' => 'sdc.canvas_test_sdc.my-hero',
-              'uuid' => self::HERO_UUID,
-              'props' => ['heading' => 'Build Faster with Canvas', 'cta1href' => 'https://example.com'],
-            ],
-          ],
-        ],
+    // Turn 3: the user asks for a change. The first edit names a UUID that is
+    // not on the page.
+    // fixture: tests/resources/ai_test/requests/chat/drupal-canvas-page-agent-build-edit-hop-1.yml, -hop-2.yml, then -hop-3.yml when $keep_tool_calls_in_history is TRUE,
+    // drupal-canvas-page-agent-build-edit-hop-1-no-history.yml, -hop-2-no-history.yml, then -hop-3-no-history.yml when FALSE.
+    $turn3_first_request = \count($inputs);
+    $turn3_layout = self::emptyLayout();
+    $turn3_layout['regions']['content']['components'] = [
+      $hero,
+      [
+        'name' => 'sdc.canvas_test_sdc.heading',
+        'uuid' => self::HEADING_UUID,
+        'props' => ['text' => 'Why study with us', 'element' => 'h2'],
       ],
     ];
-
-    // Turn 1 is the edit turn: hop 1 parks the edit_components call, hop 2
-    // executes it and closes the turn.
-    // fixtures: tests/resources/ai_test/requests/chat/
-    // drupal-canvas-page-agent-edit-hop-1.yml and drupal-canvas-page-agent-edit-hop-2.yml.
-    $responses = $this->driveTurn([
-      'messages' => [['role' => 'user', 'text' => 'Change the hero heading to Hello']],
-      'current_layout' => $layout,
-      'request_id' => 'turn-1',
-      'conversation_id' => 'conversation-1',
-    ]);
-    self::assertCount(2, $responses);
-    self::assertSame('The hero heading now says Hello.', $responses[1]['message']);
-
-    // Record what the model is sent on the next turn.
-    $inputs = [];
-    $this->container->get(EventDispatcherInterface::class)->addListener(
-      PreGenerateResponseEvent::EVENT_NAME,
-      static function (PreGenerateResponseEvent $event) use (&$inputs): void {
-        $inputs[] = $event->getInput();
-      },
-    );
-
-    // Turn 2 sends a new request_id under the same conversation_id, naming
-    // turn 1 as the turn the client accepted, with the transcript the client
-    // holds: text only, as the wizard keeps it. The agent parks another
-    // edit_components call straight away, without reading the component
-    // again; the second hop runs it and closes the turn.
-    // fixtures: tests/resources/ai_test/requests/chat/
-    // drupal-canvas-page-agent-history-turn-2-hop-1.yml and -hop-2.yml.
-    $layout['regions']['content']['components'][0]['props']['heading'] = 'Hello';
-    $responses = $this->driveTurn([
+    $turn3 = $this->driveTurn([
       'messages' => [
+        ['role' => 'user', 'text' => 'Create me a landing page for a university site'],
+        ['role' => 'assistant', 'text' => 'Here is the plan: a hero at the top with a heading below it. Shall I build it?'],
+        ['role' => 'user', 'text' => 'Yes, build it'],
+        ['role' => 'assistant', 'text' => 'The hero and its heading are on the page.'],
         ['role' => 'user', 'text' => 'Change the hero heading to Hello'],
-        ['role' => 'assistant', 'text' => 'The hero heading now says Hello.'],
-        ['role' => 'user', 'text' => 'Now make it say Goodbye'],
       ],
-      'current_layout' => $layout,
-      'request_id' => 'turn-2',
+      'current_layout' => $turn3_layout,
+      'request_id' => 'turn-3',
       'conversation_id' => 'conversation-1',
-      'last_successful_request_id' => 'turn-1',
+      'last_successful_request_id' => 'turn-2',
     ]);
-    self::assertCount(2, $responses);
-    self::assertSame('Changing the hero heading again now.', $responses[0]['progress']);
-    self::assertSame([self::HERO_UUID => ['heading' => 'Goodbye']], $responses[1]['component_updates']);
-    self::assertSame('The hero heading now says Goodbye.', $responses[1]['message']);
-
-    // The model's first request of turn 2 carries the history turn 1 built:
-    // its user message, the edit_components call, its result — the success
-    // sentence alone, with turn 1's dump of the applied updates cut off —
-    // and the answer, then this turn's user message. The component catalog
-    // is not among them: the agent's default information tools feed the
-    // system prompt.
-    self::assertCount(2, $inputs);
-    $input = $inputs[0];
-    self::assertInstanceOf(ChatInput::class, $input);
-    $messages = $input->getMessages();
+    self::assertCount(3, $turn3);
+    // The edit is parked first, so the opening hop carries no updates.
+    self::assertTrue($turn3[0]['should_continue']);
+    self::assertArrayNotHasKey('component_updates', $turn3[0]);
+    // The failed edit returns no updates.
+    self::assertArrayNotHasKey('component_updates', $turn3[1]);
+    self::assertFalse($turn3[2]['should_continue']);
+    self::assertSame([self::HERO_UUID => ['heading' => 'Hello']], $turn3[2]['component_updates']);
+    self::assertArrayNotHasKey('operations', $turn3[2]);
+    self::assertSame('The hero heading now says Hello.', $turn3[2]['message']);
+    // The narration from the failed call and its correction both carry
+    // forward; the closing answer is stripped from the end separately.
     self::assertSame(
-      ['user', 'assistant', 'tool', 'assistant', 'user'],
-      \array_map(static fn (ChatMessage $message): string => $message->getRole(), $messages),
+      "Updating the hero heading.\n\nUsing the UUID that is on the page.",
+      $turn3[2]['progress'],
     );
-    self::assertStringContainsString('Change the hero heading to Hello', $messages[0]->getText());
-    self::assertSame('edit_components', $messages[1]->toArray()['tools'][0]['function']['name']);
-    self::assertSame('call_1', $messages[2]->getToolsId());
-    self::assertSame(EditComponents::SUCCESS_MESSAGE, $messages[2]->getText());
-    self::assertSame('The hero heading now says Hello.', $messages[3]->getText());
-    self::assertStringContainsString('Now make it say Goodbye', $messages[4]->getText());
 
-    // Assert that the component catalog is present in the system prompt.
-    self::assertStringContainsString('sdc.canvas_test_sdc.banner', $input->getSystemPrompt());
-    self::assertStringContainsString('get_component_context', $input->getSystemPrompt());
+    $turn3_first_input = $inputs[$turn3_first_request];
+    self::assertInstanceOf(ChatInput::class, $turn3_first_input);
+    $messages = $turn3_first_input->getMessages();
+    $roles = \array_map(static fn (ChatMessage $message): string => $message->getRole(), $messages);
+    $conversation = $this->container->get(CanvasAiTempStore::class)
+      ->getStoredConversationState('conversation-1', 'turn-3');
+    if ($keep_tool_calls_in_history) {
+      // The request that opened turn 3 carries both earlier turns. The failed
+      // placement keeps its error text; the successful ones are cut to their
+      // success sentence, since the UUID dump only served the turn that made
+      // it.
+      self::assertSame(
+        ['user', 'assistant', 'tool', 'assistant', 'user', 'assistant', 'tool', 'assistant', 'tool', 'assistant', 'tool', 'assistant', 'user'],
+        $roles,
+      );
+      self::assertStringContainsString(
+        'The reference_uuid must be provided for above/below placement.',
+        $messages[6]->getText(),
+      );
+      // CanvasDevAiBuilder::trimKeptToolResults() trims them when turn 2 is
+      // stored.
+      self::assertSame(PlaceComponents::SUCCESS_MESSAGE, $messages[8]->getText());
+      self::assertSame(PlaceComponents::SUCCESS_MESSAGE, $messages[10]->getText());
+
+      // Turn 3 ended clean, so its state was kept for the conversation. The
+      // edit result it holds is cut to its success sentence; the failed one
+      // before it keeps the error, which is what a later turn needs to see.
+      self::assertNotNull($conversation);
+      $tool_texts = \array_values(\array_map(
+        static fn (array $message): string => $message['text'],
+        \array_filter(
+          $conversation['state']['chat_history'],
+          static fn (array $message): bool => $message['role'] === 'tool',
+        ),
+      ));
+      self::assertSame(EditComponents::SUCCESS_MESSAGE, \end($tool_texts));
+      self::assertStringContainsString(
+        'was not found on the page.',
+        $tool_texts[\count($tool_texts) - 2],
+      );
+    }
+    else {
+      // The request that opened turn 3 carries the client's text-only
+      // transcript, and nothing was kept for the conversation.
+      self::assertSame(['user', 'assistant', 'user', 'assistant', 'user'], $roles);
+      self::assertNull($conversation);
+    }
   }
 
 }

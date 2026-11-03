@@ -1,8 +1,35 @@
-# Hop 2 of the second turn of a conversation: the parked edit_components call
-# ran, and the agent closes the turn. See drupal-canvas-page-agent-history-turn-2-hop-1.yml
-# for how the component catalog reaches the agent.
+# Turn 3, request 1: the agent edits a UUID that is not on the page.
+# The tool returns the validation error.
 request:
   messages:
+    -
+      role: user
+      text: 'Create me a landing page for a university site'
+      images: {  }
+      remote_files: {  }
+      tools: null
+      tool_id: null
+    -
+      role: assistant
+      text: 'Here is the plan: a hero at the top with a heading below it. Shall I build it?'
+      images: {  }
+      remote_files: {  }
+      tools: null
+      tool_id: null
+    -
+      role: user
+      text: 'Yes, build it'
+      images: {  }
+      remote_files: {  }
+      tools: null
+      tool_id: null
+    -
+      role: assistant
+      text: 'The hero and its heading are on the page.'
+      images: {  }
+      remote_files: {  }
+      tools: null
+      tool_id: null
     -
       role: user
       text: |-
@@ -17,70 +44,6 @@ request:
       remote_files: {  }
       tools: null
       tool_id: null
-    -
-      role: assistant
-      text: 'Changing the hero heading now.'
-      images: {  }
-      remote_files: {  }
-      tools:
-        -
-          id: call_1
-          type: function
-          function:
-            name: edit_components
-            arguments: '{"component_edits":[{"component_uuid":"00000000-0000-4000-8000-000000000001","props":"heading: \u0022Hello\u0022"}]}'
-      tool_id: null
-    -
-      role: tool
-      text: 'The updates were applied successfully.'
-      images: {  }
-      remote_files: {  }
-      tools: null
-      tool_id: call_1
-    -
-      role: assistant
-      text: 'The hero heading now says Hello.'
-      images: {  }
-      remote_files: {  }
-      tools: null
-      tool_id: null
-    -
-      role: user
-      text: |-
-        <context>
-        The user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. Page description is empty.
-        </context>
-
-        <user_message>
-        Now make it say Goodbye
-        </user_message>
-      images: {  }
-      remote_files: {  }
-      tools: null
-      tool_id: null
-    -
-      role: assistant
-      text: 'Changing the hero heading again now.'
-      images: {  }
-      remote_files: {  }
-      tools:
-        -
-          id: call_2
-          type: function
-          function:
-            name: edit_components
-            arguments: '{"component_edits":[{"component_uuid":"00000000-0000-4000-8000-000000000001","props":"heading: \u0022Goodbye\u0022"}]}'
-      tool_id: null
-    -
-      role: tool
-      text: |
-        The updates were applied successfully.
-        00000000-0000-4000-8000-000000000001:
-            heading: Goodbye
-      images: {  }
-      remote_files: {  }
-      tools: null
-      tool_id: call_2
   debug_data: {  }
   chat_tools:
     -
@@ -198,10 +161,16 @@ request:
 response:
   normalized:
     role: assistant
-    text: 'The hero heading now says Goodbye.'
+    text: 'Updating the hero heading.'
     images: {  }
     remote_files: {  }
-    tools: null
+    tools:
+      -
+        id: call_5
+        type: function
+        function:
+          name: edit_components
+          arguments: '{"component_edits":[{"component_uuid":"00000000-0000-4000-8000-000000000099","props":"heading: \"Hello\""}]}'
     tool_id: null
   rawOutput: null
   metadata: {  }
