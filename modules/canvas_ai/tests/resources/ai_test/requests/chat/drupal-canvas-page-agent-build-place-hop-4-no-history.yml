@@ -1,48 +1,17 @@
-# Hop 1 of the second turn of a conversation: the agent resumes the history
-# turn 1 built (its edit_components call and result included, see messages 2
-# and 3 — the result cut to its success sentence when turn 1 ended) and parks
-# a new edit_components call without reading the component again. The
-# component catalog the agent's default information tool fetches is not among
-# the messages: it feeds the system prompt, which echoai does not match.
+# Turn 2, request 4: both placements succeeded, so the agent writes the
+# closing confirmation and ends the turn.
 request:
   messages:
     -
       role: user
-      text: |-
-        <context>
-        The user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. Page description is empty.
-        </context>
-
-        <user_message>
-        Change the hero heading to Hello
-        </user_message>
+      text: 'Create me a landing page for a university site'
       images: {  }
       remote_files: {  }
       tools: null
       tool_id: null
     -
       role: assistant
-      text: 'Changing the hero heading now.'
-      images: {  }
-      remote_files: {  }
-      tools:
-        -
-          id: call_1
-          type: function
-          function:
-            name: edit_components
-            arguments: '{"component_edits":[{"component_uuid":"00000000-0000-4000-8000-000000000001","props":"heading: \u0022Hello\u0022"}]}'
-      tool_id: null
-    -
-      role: tool
-      text: 'The updates were applied successfully.'
-      images: {  }
-      remote_files: {  }
-      tools: null
-      tool_id: call_1
-    -
-      role: assistant
-      text: 'The hero heading now says Hello.'
+      text: 'Here is the plan: a hero at the top with a heading below it. Shall I build it?'
       images: {  }
       remote_files: {  }
       tools: null
@@ -55,12 +24,120 @@ request:
         </context>
 
         <user_message>
-        Now make it say Goodbye
+        Yes, build it
         </user_message>
       images: {  }
       remote_files: {  }
       tools: null
       tool_id: null
+    -
+      role: assistant
+      text: 'Placing the hero now.'
+      images: {  }
+      remote_files: {  }
+      tools:
+        -
+          id: call_2
+          type: function
+          function:
+            name: place_components
+            arguments: '{"operations":[{"target":"content","placement":"below","components":"- sdc.canvas_test_sdc.my-hero:\n    props:\n      heading: \u0022Welcome to the university\u0022\n      cta1href: \u0022https:\/\/example.com\u0022"}]}'
+      tool_id: null
+    -
+      role: tool
+      text: |-
+        Nothing was applied. Fix every error listed below and call the tool again.
+
+        ## Operation 0
+        - The reference_uuid must be provided for above/below placement.
+      images: {  }
+      remote_files: {  }
+      tools: null
+      tool_id: call_2
+    -
+      role: assistant
+      text: 'Correcting the placement.'
+      images: {  }
+      remote_files: {  }
+      tools:
+        -
+          id: call_3
+          type: function
+          function:
+            name: place_components
+            arguments: '{"operations":[{"target":"content","placement":"inside","components":"- sdc.canvas_test_sdc.my-hero:\n    props:\n      heading: \u0022Welcome to the university\u0022\n      cta1href: \u0022https:\/\/example.com\u0022"}]}'
+      tool_id: null
+    -
+      role: tool
+      text: |-
+        Components placed successfully.
+        The placed components with their assigned UUIDs:
+        operations:
+          -
+            target: content
+            placement: inside
+            components:
+              -
+                sdc.canvas_test_sdc.my-hero:
+                  props:
+                    heading: 'Welcome to the university'
+                    cta1href: 'https://example.com'
+                  uuid: 00000000-0000-4000-8000-000000000001
+
+        The expected page layout after placement (UUID tree):
+        content:
+          00000000-0000-4000-8000-000000000001: {  }
+
+        These UUIDs are valid immediately — use them as reference_uuid for the next section in this same turn. The page layout you were given at the start of this turn does not list them yet and will only do so from your next turn, so for anything placed during this turn this result is authoritative and that layout is not. This is expected, not a sign that the layout is missing or that you should wait.
+
+        This result is a continuation point, not a stopping point: if any section from your approved plan is still unplaced, your next output MUST be the next place_components call — a turn with text and no tool call would freeze the build here. Only once every planned section is on the page do you stop and write the closing confirmation.
+      images: {  }
+      remote_files: {  }
+      tools: null
+      tool_id: call_3
+    -
+      role: assistant
+      text: 'Adding the heading below the hero.'
+      images: {  }
+      remote_files: {  }
+      tools:
+        -
+          id: call_4
+          type: function
+          function:
+            name: place_components
+            arguments: '{"operations":[{"target":"content","placement":"below","reference_uuid":"00000000-0000-4000-8000-000000000001","components":"- sdc.canvas_test_sdc.heading:\n    props:\n      text: \u0022Why study with us\u0022\n      element: \u0022h2\u0022"}]}'
+      tool_id: null
+    -
+      role: tool
+      text: |-
+        Components placed successfully.
+        The placed components with their assigned UUIDs:
+        operations:
+          -
+            target: content
+            placement: below
+            reference_uuid: 00000000-0000-4000-8000-000000000001
+            components:
+              -
+                sdc.canvas_test_sdc.heading:
+                  props:
+                    text: 'Why study with us'
+                    element: h2
+                  uuid: 00000000-0000-4000-8000-000000000002
+
+        The expected page layout after placement (UUID tree):
+        content:
+          00000000-0000-4000-8000-000000000001: {  }
+          00000000-0000-4000-8000-000000000002: {  }
+
+        These UUIDs are valid immediately — use them as reference_uuid for the next section in this same turn. The page layout you were given at the start of this turn does not list them yet and will only do so from your next turn, so for anything placed during this turn this result is authoritative and that layout is not. This is expected, not a sign that the layout is missing or that you should wait.
+
+        This result is a continuation point, not a stopping point: if any section from your approved plan is still unplaced, your next output MUST be the next place_components call — a turn with text and no tool call would freeze the build here. Only once every planned section is on the page do you stop and write the closing confirmation.
+      images: {  }
+      remote_files: {  }
+      tools: null
+      tool_id: call_4
   debug_data: {  }
   chat_tools:
     -
@@ -178,16 +255,10 @@ request:
 response:
   normalized:
     role: assistant
-    text: 'Changing the hero heading again now.'
+    text: 'The hero and its heading are on the page.'
     images: {  }
     remote_files: {  }
-    tools:
-      -
-        id: call_2
-        type: function
-        function:
-          name: edit_components
-          arguments: '{"component_edits":[{"component_uuid":"00000000-0000-4000-8000-000000000001","props":"heading: \"Goodbye\""}]}'
+    tools: null
     tool_id: null
   rawOutput: null
   metadata: {  }

@@ -1,0 +1,221 @@
+# Turn 2, request 2: the error named the missing key, so the agent places
+# the hero 'inside' the empty content region. The tool succeeds.
+request:
+  messages:
+  - role: user
+    text: '<context>
+
+      The user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. Page description is empty.
+
+      </context>
+
+
+      <user_message>
+
+      Create me a landing page for a university site
+
+      </user_message>'
+    images: {}
+    remote_files: {}
+    tools: null
+    tool_id: null
+  - role: assistant
+    text: Looking up the hero and heading components.
+    images: {}
+    remote_files: {}
+    tools:
+    - id: call_1
+      type: function
+      function:
+        name: get_component_details
+        arguments: '{"component_ids_list":["sdc.canvas_test_sdc.my-hero","sdc.canvas_test_sdc.heading"]}'
+    tool_id: null
+  - role: tool
+    text: "sdc.canvas_test_sdc.my-hero:\n  id: sdc.canvas_test_sdc.my-hero\n  name: Hero\n  description: 'A Hero section with inline styles for testing purposes'\n  group: ''\n  props:\n    heading:\n      name: Heading\n      description: 'The main heading of the hero'\n      type: string\n      default: 'There goes my hero'\n      required: true\n    subheading:\n      name: Sub-heading\n      description: 'See the <a href=\"https://www.example.com/icons\">icon library</a> for icons.'\n      type: string\n      default: 'Watch him as he goes!'\n    cta1:\n      name: 'CTA 1 text'\n      description: 'No description available'\n      type: string\n      default: View\n    cta1href:\n      name: 'CTA 1 link'\n      description: 'No description available'\n      type: string\n      default: 'https://example.com'\n      required: true\n    cta2:\n      name: 'CTA 2 text'\n      description: 'No description available'\n      type: string\n      default: Click\n  slots: 'No slots'\nsdc.canvas_test_sdc.heading:\n  id: sdc.canvas_test_sdc.heading\n  name: Heading\n  description: 'A heading element'\n  group: Atom/Text\n  props:\n    text:\n      name: Text\n      description: 'The heading text.'\n      type: string\n      default: 'A heading element'\n      required: true\n    style:\n      name: Style\n      description: 'The heading style to use.'\n      type: string\n      default: primary\n      enum: [primary, secondary]\n      enum_options: [{ label: Primary, value: primary }, { label: Secondary, value: secondary }]\n    element:\n      name: Element\n      description: 'The HTML element to use.'\n      type: string\n      default: h1\n      required: true\n      enum: [div, h1, h2, h3, h4, h5, h6]\n      enum_options: [{ label: Container, value: div }, { label: 'Header 1', value: h1 }, { label: 'Header 2', value: h2 }, { label: 'Header 3', value: h3 }, { label: 'Header 4', value: h4 }, { label: 'Header 5', value: h5 }, { label: 'Header 6', value: h6 }]\n  slots: 'No slots'\n"
+    images: {}
+    remote_files: {}
+    tools: null
+    tool_id: call_1
+  - role: assistant
+    text: 'Here is the plan: a hero at the top with a heading below it. Shall I build it?'
+    images: {}
+    remote_files: {}
+    tools: null
+    tool_id: null
+  - role: user
+    text: '<context>
+
+      The user is currently working on a canvas_page entity. User has not selected any particular component from the page. Page title is empty. Page description is empty.
+
+      </context>
+
+
+      <user_message>
+
+      Yes, build it
+
+      </user_message>'
+    images: {}
+    remote_files: {}
+    tools: null
+    tool_id: null
+  - role: assistant
+    text: Placing the hero now.
+    images: {}
+    remote_files: {}
+    tools:
+    - id: call_2
+      type: function
+      function:
+        name: place_components
+        arguments: '{"operations":[{"target":"content","placement":"below","components":"- sdc.canvas_test_sdc.my-hero:\n    props:\n      heading: \u0022Welcome to the university\u0022\n      cta1href: \u0022https:\/\/example.com\u0022"}]}'
+    tool_id: null
+  - role: tool
+    text: 'Nothing was applied. Fix every error listed below and call the tool again.
+
+
+      ## Operation 0
+
+      - The reference_uuid must be provided for above/below placement.'
+    images: {}
+    remote_files: {}
+    tools: null
+    tool_id: call_2
+  debug_data: {}
+  chat_tools:
+  - type: function
+    function:
+      name: place_components
+      description: Places a section of components onto the current page. Call this once per section/row. Each placement operation targets a region or slot and carries the components to place there. Components are not added to the page unless this tool is called. It may return validation errors if a target, placement, or component is invalid.
+      parameters:
+        type: object
+        properties:
+          operations:
+            name: operations
+            type: array
+            description: Placement operations The placements to apply, one entry per target position.
+            minItems: 1
+            items:
+              type: object
+              properties:
+                target:
+                  name: target
+                  type: string
+                  description: Target The region name, such as 'content', or 'parent-uuid/slot_name' to place inside a component's slot.
+                placement:
+                  name: placement
+                  type: string
+                  description: Placement Whether to place the components 'inside' a target that has no children yet, or 'above'/'below' the component named by reference_uuid.
+                  enum:
+                  - above
+                  - below
+                  - inside
+                reference_uuid:
+                  name: reference_uuid
+                  type: string
+                  description: Reference UUID The UUID of the component to place above or below. Required for 'above' and 'below'; omit it for 'inside'.
+                components:
+                  name: components
+                  type: string
+                  description: Components The components to place, as a YAML list starting at the top level. Each entry is a single-key map of the component ID to its 'props' and, when the component has slots, its 'slots'.
+              required:
+              - target
+              - placement
+              - components
+        required:
+        - operations
+  - type: function
+    function:
+      name: edit_components
+      description: 'Updates the props of one or more components already on the page. Provide a list of edits; each edit targets one component by its ''component_uuid'' and carries a ''props'' YAML block of ''prop_name: value'' pairs to set on it. Include only the props being changed. May return validation errors if a UUID is not on the page or a prop value is invalid.'
+      parameters:
+        type: object
+        properties:
+          component_edits:
+            name: component_edits
+            type: array
+            description: Component edits A list of component edits, one entry per component to update.
+            minItems: 1
+            items:
+              type: object
+              properties:
+                component_uuid:
+                  name: component_uuid
+                  type: string
+                  description: Component UUID The UUID of a component already present on the page.
+                props:
+                  name: props
+                  type: string
+                  description: 'Prop changes A YAML block of ''prop_name: value'' pairs to set on this component. Include only the props being changed; nested values (e.g. an image object) are allowed.'
+              required:
+              - component_uuid
+              - props
+        required:
+        - component_edits
+  - type: function
+    function:
+      name: get_component_details
+      description: Returns the description, props, and slots of specific components identified by id. Use this to get the full metadata of components you have already shortlisted — e.g. after browsing the catalog with get_component_context — so you have the exact props and slots needed to place or configure them.
+      parameters:
+        type: object
+        properties:
+          component_ids_list:
+            name: component_ids_list
+            type: array
+            description: Component IDs The ids of the components to fetch details for, e.g. sdc.canvas_test_sdc.my-hero.
+            minItems: 1
+            items:
+              name: component_ids_list
+              type: string
+              description: Component IDs The ids of the components to fetch details for, e.g. sdc.canvas_test_sdc.my-hero.
+  - type: function
+    function:
+      name: set_page_value
+      description: Sets the title or SEO meta description of the current page. Set "key" to "title" or "description", and "value" to the text to write. Use this whenever the page title or meta description should be created or changed.
+      parameters:
+        type: object
+        properties:
+          key:
+            name: key
+            type: string
+            description: 'Page value key The page value to set. Allowed values: ''title'', ''description''.'
+            enum:
+            - title
+            - description
+          value:
+            name: value
+            type: string
+            description: Value The text value to set for the given key.
+        required:
+        - key
+        - value
+  chat_structured_json_schema: {}
+  chat_strict_schema: false
+response:
+  normalized:
+    role: assistant
+    text: Correcting the placement.
+    images: {}
+    remote_files: {}
+    tools:
+    - id: call_3
+      type: function
+      function:
+        name: place_components
+        arguments: '{"operations":[{"target":"content","placement":"inside","components":"- sdc.canvas_test_sdc.my-hero:\n    props:\n      heading: \"Welcome to the university\"\n      cta1href: \"https://example.com\""}]}'
+    tool_id: null
+  rawOutput: null
+  metadata: {}
+  tokenUsage:
+    input: 0
+    output: 0
+    total: 0
+    reasoning: 0
+    cached: 0
+  rateLimits:
+    rateLimitMaxRequests: null
+    rateLimitMaxTokens: null
+    rateLimitRemainingRequests: null
+    rateLimitRemainingTokens: null
+    rateLimitResetRequests: null
+    rateLimitResetTokens: null

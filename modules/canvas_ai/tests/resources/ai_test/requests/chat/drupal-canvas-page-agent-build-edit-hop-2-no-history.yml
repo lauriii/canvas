@@ -1,8 +1,35 @@
-# The component catalog the agent's default information tool fetches is not
-# among the messages: it feeds the system prompt, which echoai does not match.
-# Hop 2 of an edit turn: the edit result is in the history and the agent closes the turn.
+# Turn 3, request 2: the error named the UUID, so the agent edits the hero
+# that is on the page. The tool succeeds.
 request:
   messages:
+    -
+      role: user
+      text: 'Create me a landing page for a university site'
+      images: {  }
+      remote_files: {  }
+      tools: null
+      tool_id: null
+    -
+      role: assistant
+      text: 'Here is the plan: a hero at the top with a heading below it. Shall I build it?'
+      images: {  }
+      remote_files: {  }
+      tools: null
+      tool_id: null
+    -
+      role: user
+      text: 'Yes, build it'
+      images: {  }
+      remote_files: {  }
+      tools: null
+      tool_id: null
+    -
+      role: assistant
+      text: 'The hero and its heading are on the page.'
+      images: {  }
+      remote_files: {  }
+      tools: null
+      tool_id: null
     -
       role: user
       text: |-
@@ -19,27 +46,28 @@ request:
       tool_id: null
     -
       role: assistant
-      text: 'Changing the hero heading now.'
+      text: 'Updating the hero heading.'
       images: {  }
       remote_files: {  }
       tools:
         -
-          id: call_1
+          id: call_5
           type: function
           function:
             name: edit_components
-            arguments: '{"component_edits":[{"component_uuid":"00000000-0000-4000-8000-000000000001","props":"heading: \u0022Hello\u0022"}]}'
+            arguments: '{"component_edits":[{"component_uuid":"00000000-0000-4000-8000-000000000099","props":"heading: \u0022Hello\u0022"}]}'
       tool_id: null
     -
       role: tool
-      text: |
-        The updates were applied successfully.
-        00000000-0000-4000-8000-000000000001:
-            heading: Hello
+      text: |-
+        Nothing was applied. Fix every error listed below and call the tool again.
+
+        ## Edit 0
+        - Component 00000000-0000-4000-8000-000000000099 was not found on the page.
       images: {  }
       remote_files: {  }
       tools: null
-      tool_id: call_1
+      tool_id: call_5
   debug_data: {  }
   chat_tools:
     -
@@ -157,10 +185,16 @@ request:
 response:
   normalized:
     role: assistant
-    text: 'The hero heading now says Hello.'
+    text: 'Using the UUID that is on the page.'
     images: {  }
     remote_files: {  }
-    tools: null
+    tools:
+      -
+        id: call_6
+        type: function
+        function:
+          name: edit_components
+          arguments: '{"component_edits":[{"component_uuid":"00000000-0000-4000-8000-000000000001","props":"heading: \"Hello\""}]}'
     tool_id: null
   rawOutput: null
   metadata: {  }
