@@ -6,14 +6,19 @@ namespace Drupal\Tests\canvas\Kernel\Config;
 
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
+use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Folder;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
+use Drupal\Tests\user\Traits\UserCreationTrait;
+use Drupal\user\Entity\User;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 #[Group('canvas')]
 #[RunTestsInSeparateProcesses]
 class FolderTest extends CanvasKernelTestBase {
+
+  use UserCreationTrait;
 
   protected Folder $entity;
 
@@ -127,6 +132,26 @@ class FolderTest extends CanvasKernelTestBase {
     \assert($default_folder_id instanceof Folder);
     Component::load('sdc.canvas_test_sdc.attributes')?->delete();
     $this->assertNotContains('sdc.canvas_test_sdc.attributes', Folder::load($default_folder_id->id())?->get('items'));
+  }
+
+  /**
+   * Users who can see components can also see the folders grouping them.
+   */
+  public function testViewAccess(): void {
+    $this->installEntitySchema('user');
+    $this->installEntitySchema('path_alias');
+    // Occupy uid 1, which bypasses access checks.
+    $this->createUser();
+    // Any permission that grants Canvas UI access works. This one is simplest.
+    $canvas_user = $this->createUser([ContentTemplate::ADMIN_PERMISSION]);
+    $other_user = $this->createUser();
+    \assert($canvas_user instanceof User && $other_user instanceof User);
+
+    self::assertTrue($this->entity->access('view', $canvas_user));
+    self::assertTrue($this->entity->access('view label', $canvas_user));
+    self::assertFalse($this->entity->access('update', $canvas_user));
+    self::assertFalse($this->entity->access('delete', $canvas_user));
+    self::assertFalse($this->entity->access('view', $other_user));
   }
 
 }
