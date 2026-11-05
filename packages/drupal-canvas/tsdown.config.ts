@@ -19,4 +19,8 @@ export default defineConfig({
     neverBundle: ['react', 'react/jsx-runtime', '@drupal-canvas/discovery'],
   },
   dts: true,
+  // Let an entry that other entries import (e.g. jsonapi-client) keep its own
+  // code instead of being split into a hashed shared chunk. The entry may
+  // then export extra names.
+  inputOptions: { preserveEntrySignatures: 'allow-extension' },
 });
