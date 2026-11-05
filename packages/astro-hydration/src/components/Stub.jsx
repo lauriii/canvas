@@ -29,7 +29,7 @@ const {
 } = await import('drupal-canvas/drupal-utils');
 const Image = await import('drupal-canvas/next-image-standalone');
 const { cn } = await import('drupal-canvas/utils');
-const { JsonApiClient } = await import('drupal-canvas/jsonapi-client');
+const { ...jsonApiClient } = await import('drupal-canvas/jsonapi-client');
 const { getNodePath, sortMenu } = await import('drupal-canvas/jsonapi-utils');
 
 // Only load in the browser: Astro evaluates this module during SSR/build when
