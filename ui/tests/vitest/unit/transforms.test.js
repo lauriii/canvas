@@ -710,3 +710,127 @@ describe('Transforms - dateRange', () => {
     });
   });
 });
+
+describe('Transforms - objectProperties', () => {
+  const fieldData = {
+    expression: '',
+    sourceType: 'static:field_item:canvas_object',
+    sourceTypeSettings: {
+      storage: {
+        properties: {
+          quote: { type: 'string' },
+          rating: { type: 'integer', minimum: 1, maximum: 5 },
+          score: { type: 'number' },
+          featured: { type: 'boolean' },
+        },
+      },
+      cardinality: -1,
+    },
+  };
+
+  it('Should cast values, sort by weight and drop helpers', () => {
+    expect(
+      transforms.objectProperties(
+        {
+          0: { quote: 'First', rating: '5', featured: 'true', _weight: '1' },
+          1: { quote: 'Second', score: '2.5', featured: 'false', _weight: '0' },
+          add_more: '+ Add new',
+        },
+        { multiple: true },
+        fieldData,
+      ),
+    ).toEqual([
+      { quote: 'Second', score: 2.5, featured: false },
+      { quote: 'First', rating: 5, featured: true },
+    ]);
+  });
+
+  it('Should omit empty values and empty items', () => {
+    expect(
+      transforms.objectProperties(
+        {
+          0: { quote: 'Only a quote', rating: '', featured: 'false' },
+          1: { quote: '', rating: '', score: '', featured: 'false' },
+        },
+        { multiple: true },
+        fieldData,
+      ),
+    ).toEqual([{ quote: 'Only a quote', featured: false }]);
+  });
+
+  it('Should omit items that lack a required property', () => {
+    expect(
+      transforms.objectProperties(
+        {
+          0: { quote: 'Complete', author: 'Ada' },
+          1: { quote: 'Still typing', author: '' },
+        },
+        { multiple: true },
+        {
+          ...fieldData,
+          sourceTypeSettings: {
+            ...fieldData.sourceTypeSettings,
+            storage: {
+              properties: {
+                quote: { type: 'string' },
+                author: { type: 'string' },
+              },
+              required: ['quote', 'author'],
+            },
+          },
+        },
+      ),
+    ).toEqual([{ quote: 'Complete', author: 'Ada' }]);
+  });
+
+  it('Should keep objects with only boolean properties that are all false', () => {
+    const booleansOnly = {
+      ...fieldData,
+      sourceTypeSettings: {
+        ...fieldData.sourceTypeSettings,
+        storage: { properties: { enabled: { type: 'boolean' } } },
+      },
+    };
+    expect(
+      transforms.objectProperties(
+        { 0: { enabled: 'false' } },
+        { multiple: true },
+        booleansOnly,
+      ),
+    ).toEqual([{ enabled: false }]);
+  });
+
+  it('Should unwrap delta 0 of a single object', () => {
+    expect(
+      transforms.objectProperties(
+        [{ quote: 'Hi', rating: '3' }],
+        { multiple: false },
+        fieldData,
+      ),
+    ).toEqual({ quote: 'Hi', rating: 3 });
+    expect(
+      transforms.objectProperties(
+        { 0: { quote: 'Hi' } },
+        { multiple: false },
+        fieldData,
+      ),
+    ).toEqual({ quote: 'Hi' });
+  });
+
+  it('Should support a single object', () => {
+    expect(
+      transforms.objectProperties(
+        { quote: 'Hi', rating: '3' },
+        { multiple: false },
+        fieldData,
+      ),
+    ).toEqual({ quote: 'Hi', rating: 3 });
+    expect(
+      transforms.objectProperties(
+        { quote: '', featured: 'false' },
+        { multiple: false },
+        fieldData,
+      ),
+    ).toBeNull();
+  });
+});

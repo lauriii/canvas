@@ -87,7 +87,10 @@ class EphemeralPropShapeRepository implements PropShapeRepositoryInterface {
       // decision relies solely on the final (fully resolved) JSON schema.
       $json_schema_type = JsonSchemaType::from($shape->schema['type']);
       $storable_prop_shape = JsonSchemaType::from($shape->schema['type'])->computeStorablePropShape($shape, $this);
-      if ($storable_prop_shape === NULL) {
+      // Except for objects: those are matched on `$ref` alone (by Canvas, or by
+      // hook_canvas_storable_prop_shape_alter() implementations such as for
+      // `date-range`). Resolving would match them as arbitrary objects.
+      if ($storable_prop_shape === NULL && ($json_schema_type !== JsonSchemaType::Object || !\array_key_exists('$ref', $shape->schema))) {
         $resolved_prop_shape = PropShape::normalize($shape->resolvedSchema);
         $storable_prop_shape = $json_schema_type->computeStorablePropShape($resolved_prop_shape, $this);
       }

@@ -1482,6 +1482,97 @@ canvas.color.*:
       type: weight
       label: 'Weight'
 
+# @see \Drupal\canvas\Plugin\Field\FieldType\CanvasObjectItem
+# @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::computeStorablePropShape()
+field.storage_settings.canvas_object:
+  type: field.storage_settings.*
+  label: 'Object settings'
+  mapping:
+    properties:
+      type: sequence
+      label: 'JSON schema of each object property'
+      sequence:
+        type: canvas.object_property.[type]
+    required:
+      type: sequence
+      label: 'Required object properties'
+      sequence:
+        type: string
+        label: 'Property name'
+
+# The subset of JSON schema that CanvasObjectItem supports for its properties.
+# @see \Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType::isObjectWithScalarProperties()
+canvas.object_property.*:
+  type: mapping
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    type:
+      type: string
+      label: 'JSON Schema Type'
+      constraints:
+        Choice:
+          choices:
+            - 'string'
+            - 'integer'
+            - 'number'
+            - 'boolean'
+canvas.object_property.string:
+  type: canvas.object_property.*
+  mapping:
+    enum:
+      requiredKey: false
+      type: sequence
+      sequence:
+        type: string
+    format:
+      requiredKey: false
+      type: string
+      constraints:
+        Choice:
+          choices:
+            - 'date'
+            - 'email'
+            - 'idn-email'
+            - 'uri'
+            - 'iri'
+    maxLength:
+      requiredKey: false
+      type: integer
+canvas.object_property.integer:
+  type: canvas.object_property.*
+  mapping:
+    enum:
+      requiredKey: false
+      type: sequence
+      sequence:
+        type: integer
+    minimum:
+      requiredKey: false
+      type: integer
+    maximum:
+      requiredKey: false
+      type: integer
+canvas.object_property.number:
+  type: canvas.object_property.*
+  mapping:
+    minimum:
+      requiredKey: false
+      type: float
+    maximum:
+      requiredKey: false
+      type: float
+canvas.object_property.boolean:
+  type: canvas.object_property.*
+
+field.value.canvas_object:
+  # The keys depend on the sibling `field_storage_settings`.
+  class: '\Drupal\canvas\Config\Schema\CanvasObjectFieldValue'
+  type: mapping
+  label: 'Object'
+  constraints:
+    FullyValidatable: ~
+
 field.widget_settings.canvas_color_picker:
   type: mapping
   label: 'Canvas Color Picker widget settings'
