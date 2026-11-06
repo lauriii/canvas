@@ -1,0 +1,24 @@
+'$schema': 'https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json'
+name: Video embed
+status: stable
+group: Atom/Media
+description: Plays a video from a video sharing site, such as YouTube or Vimeo.
+props:
+  type: object
+  required:
+    - video
+    - title
+  properties:
+    video:
+      title: Video
+      type: object
+      $ref: json-schema-definitions://canvas.module/video-embed
+      # The URL of the video page: Canvas computes the embed URL from it.
+      examples:
+        - src: https://www.youtube.com/watch?v=aqz-KE-bpKQ
+    title:
+      title: Title
+      description: Describes the video to screen reader users.
+      type: string
+      examples:
+        - Big Buck Bunny
