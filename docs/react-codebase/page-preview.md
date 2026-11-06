@@ -40,6 +40,8 @@ In [`uiSlice.ts`](/web/modules/canvas/ui/src/features/ui/uiSlice.ts) see the pro
 ## The `<iframe>` and the `<IFrameSwapper>`
 The `<IFrameSwapper>` is so named because it renders two `<iframe>` elements and swaps between them. This approach allows loading the new page into a hidden `<iframe>` and swapping it in only once it has finished loading. This prevents [flickering](https://www.drupal.org/project/canvas/issues/3469677), layout shifts, and/or any [FOUC](https://en.wikipedia.org/wiki/Flash_of_unstyled_content) issues.
 
+When the new HTML differs from the active `<iframe>`'s HTML only inside one component instance's `<!-- canvas-start-… -->` and `<!-- canvas-end-… -->` markers, no swap happens. The `<IFrameSwapper>` replaces that instance's markup in the active `<iframe>` instead, and detaches and re-attaches Drupal behaviors for it. Any other difference (for example new assets in `<head>` or changed `drupalSettings`) loads the whole document. See `inPlaceUpdate.ts`.
+
 This 'swapping' implementation detail is intended to be transparent to the wider app outside the `<IFrameSwapper>` because the currently active `<iframe>` is exposed using a [customized dynamic ref](https://react.dev/reference/react/useImperativeHandle).
 
 ## The UI
