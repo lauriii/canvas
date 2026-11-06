@@ -1,0 +1,20 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Link button
+description: A button-styled link to a page, a URL, or a section on this page.
+props:
+  type: object
+  required:
+    - text
+    - href
+  properties:
+    text:
+      type: string
+      title: Text
+      examples:
+        - See pricing
+    href:
+      type: string
+      title: Link
+      format: uri-reference
+      examples:
+        - '#pricing'
