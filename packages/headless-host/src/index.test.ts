@@ -628,6 +628,11 @@ describe('createHeadlessPreviewHost', () => {
       `${FRONTEND_ORIGIN}/api/canvas/component-preview?componentId=js.example`,
     );
 
+    expect(events).toHaveBeenCalledExactlyOnceWith({
+      type: 'geometry',
+      geometry: [],
+      reset: true,
+    });
     expect(iframe.src).toBe(
       `${FRONTEND_ORIGIN}/api/canvas/component-preview?componentId=js.example`,
     );
@@ -787,6 +792,23 @@ describe('createHeadlessPreviewHost', () => {
       geometry,
     });
 
+    events.mockClear();
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        origin: FRONTEND_ORIGIN,
+        source: iframe.contentWindow,
+        data: {
+          type: HEADLESS_GEOMETRY_MESSAGE,
+          geometry: [],
+          hostSessionId,
+        },
+      }),
+    );
+    expect(events).toHaveBeenCalledExactlyOnceWith({
+      type: 'geometry',
+      geometry: [],
+    });
+
     host.destroy();
   });
 
@@ -893,7 +915,11 @@ describe('createHeadlessPreviewHost', () => {
     });
 
     expect(events).toHaveBeenCalledTimes(malformedSnapshots.length);
-    expect(events).toHaveBeenCalledWith({ type: 'geometry', geometry: [] });
+    expect(events).toHaveBeenCalledWith({
+      type: 'geometry',
+      geometry: [],
+      reset: true,
+    });
     host.destroy();
   });
 
@@ -907,16 +933,23 @@ describe('createHeadlessPreviewHost', () => {
           resolveAssertion = resolve;
         }),
     );
+    const events = vi.fn();
     const host = createHeadlessPreviewHost({
       iframe,
       frontendOrigin: FRONTEND_ORIGIN,
       draftUrl: 'https://app.example/api/draft',
       fetchAssertion,
+      onEvent: events,
     });
 
     const activation = host.activate({
       entity_type: 'canvas_page',
       entity: 'new-page',
+    });
+    expect(events).toHaveBeenCalledExactlyOnceWith({
+      type: 'geometry',
+      geometry: [],
+      reset: true,
     });
     window.dispatchEvent(
       new MessageEvent('message', {
@@ -962,6 +995,7 @@ describe('createHeadlessPreviewHost', () => {
     expect(events).toHaveBeenCalledExactlyOnceWith({
       type: 'geometry',
       geometry: [],
+      reset: true,
     });
     const statusRequest = postMessage.mock.calls[0][0] as {
       type: string;

@@ -63,7 +63,8 @@ Where an instance can be updated, Canvas keeps existing values where possible
 and makes these adjustments in the unpublished page:
 
 - Values of removed props are dropped, and so are components placed in a
-  removed slot.
+  removed slot (except the Page content marker in page templates, which
+  moves after its former container).
 - Missing or invalid values for required props are filled from the prop's
   example value, including when a prop is added or becomes required.
 - If a list prop now allows fewer items, the extra items are dropped.

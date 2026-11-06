@@ -29,6 +29,8 @@ export interface HeadlessDraftSession {
   contentHeight: number | null;
   /** Whether the active document has reported its first content height. */
   contentHeightReady: boolean;
+  /** Whether the active document has reported its editable regions. */
+  geometryReady: boolean;
   geometry: CanvasGeometry[];
 }
 
@@ -223,6 +225,7 @@ export function useHeadlessDraftSession(
     setStatusText(WAITING_TEXT);
     setContentHeightReady(false);
     setGeometry([]);
+    setGeometrySessionKey(null);
     const host = createHeadlessPreviewHost({
       iframe,
       frontendOrigin,
@@ -231,7 +234,10 @@ export function useHeadlessDraftSession(
       onEvent: (event) => {
         if (event.type === 'geometry') {
           setGeometry(event.geometry);
-          setGeometrySessionKey(sessionKey);
+          setGeometrySessionKey(event.reset ? null : sessionKey);
+          if (event.reset) {
+            setContentHeightReady(false);
+          }
         } else {
           if (!isComponentPreview) {
             if (event.type === 'active') {
@@ -335,6 +341,9 @@ export function useHeadlessDraftSession(
     statusText,
     contentHeight: currentSessionHeight,
     contentHeightReady: heightSessionKey === sessionKey && contentHeightReady,
+    geometryReady:
+      geometrySessionKey === sessionKey &&
+      (!isComponentPreview || mainPreviewActive),
     geometry: currentSessionGeometry,
   };
 }

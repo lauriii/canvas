@@ -122,6 +122,15 @@ abstract class ComponentTreeConfigEntityBase extends ConfigEntityBase implements
     $this->stagedOverrides = [];
     if ($property_name === 'component_tree') {
       $value = self::componentTreeInstancesInputsMustBeArrays($value);
+      // Typed-data mutations can leave explicit NULL placement properties.
+      // Config represents these by omitting the optional keys.
+      foreach ($value as $sequence_key => $component_instance) {
+        foreach (['parent_uuid', 'slot'] as $placement_property) {
+          if (\array_key_exists($placement_property, $component_instance) && $component_instance[$placement_property] === NULL) {
+            unset($value[$sequence_key][$placement_property]);
+          }
+        }
+      }
     }
     return parent::set($property_name, $value);
   }

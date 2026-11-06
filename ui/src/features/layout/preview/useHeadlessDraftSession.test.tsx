@@ -18,6 +18,7 @@ const hostMocks = vi.hoisted(() => ({
 const hostEvents = vi.hoisted(
   () => [] as Array<(event: HeadlessPreviewHostEvent) => void>,
 );
+const hostHeights = vi.hoisted(() => [] as Array<(height: number) => void>);
 
 const hostAssertionFetchers = vi.hoisted(
   () => [] as Array<(params: Record<string, string>) => Promise<string>>,
@@ -30,12 +31,15 @@ vi.mock('@drupal-canvas/headless-host', () => ({
     ({
       onEvent,
       fetchAssertion,
+      onHeight,
     }: {
       onEvent: (event: HeadlessPreviewHostEvent) => void;
       fetchAssertion: (params: Record<string, string>) => Promise<string>;
+      onHeight: (height: number) => void;
     }) => {
       hostEvents.push(onEvent);
       hostAssertionFetchers.push(fetchAssertion);
+      hostHeights.push(onHeight);
       return hostMocks;
     },
   ),
@@ -54,6 +58,7 @@ describe('useHeadlessDraftSession', () => {
     vi.clearAllMocks();
     hostEvents.length = 0;
     hostAssertionFetchers.length = 0;
+    hostHeights.length = 0;
   });
 
   it('fetches a new CSRF token when the assertion endpoint rejects one', async () => {
@@ -114,6 +119,115 @@ describe('useHeadlessDraftSession', () => {
       entity: '7',
       language: 'en',
     });
+    preview.unmount();
+  });
+
+  it('distinguishes an empty geometry report from a frontend that has not reported yet', () => {
+    const iframeRef = { current: document.createElement('iframe') };
+    const preview = renderHook(
+      ({ currentSettings }) =>
+        useHeadlessDraftSession(iframeRef, currentSettings, 'canvas_page', '7'),
+      { initialProps: { currentSettings: settings } },
+    );
+    expect(preview.result.current.geometryReady).toBe(false);
+    act(() => hostEvents[0]({ type: 'geometry', geometry: [] }));
+    expect(preview.result.current.geometryReady).toBe(true);
+
+    preview.rerender({
+      currentSettings: {
+        ...settings,
+        frontendUrl: 'https://other.example',
+        frontendOrigin: 'https://other.example',
+        draftUrl: 'https://other.example/api/draft',
+      },
+    });
+    expect(preview.result.current.geometryReady).toBe(false);
+    act(() => hostEvents[1]({ type: 'geometry', geometry: [] }));
+    expect(preview.result.current.geometryReady).toBe(true);
+    preview.unmount();
+  });
+
+  it.each(['height', 'geometry'] as const)(
+    'waits for fresh document reports after a reset when %s arrives first',
+    (firstReport) => {
+      const iframeRef = { current: document.createElement('iframe') };
+      const preview = renderHook(() =>
+        useHeadlessDraftSession(iframeRef, settings, 'canvas_page', '7'),
+      );
+      const geometry = [
+        {
+          type: 'region' as const,
+          id: 'content',
+          markerFormat: 'template' as const,
+          rect: {
+            top: 0,
+            right: 800,
+            bottom: 1200,
+            left: 0,
+            width: 800,
+            height: 1200,
+          },
+        },
+      ];
+      act(() => {
+        hostEvents[0]({ type: 'geometry', geometry });
+        hostHeights[0](1200);
+      });
+      expect(preview.result.current.geometry).toEqual(geometry);
+      expect(preview.result.current.geometryReady).toBe(true);
+      expect(preview.result.current.contentHeightReady).toBe(true);
+
+      act(() => hostEvents[0]({ type: 'geometry', geometry: [], reset: true }));
+      expect(preview.result.current.geometry).toEqual([]);
+      expect(preview.result.current.geometryReady).toBe(false);
+      expect(preview.result.current.contentHeightReady).toBe(false);
+      expect(preview.result.current.contentHeight).toBe(1200);
+
+      const reportHeight = () => hostHeights[0](800);
+      const reportGeometry = () =>
+        hostEvents[0]({ type: 'geometry', geometry: [] });
+      act(firstReport === 'height' ? reportHeight : reportGeometry);
+      expect(preview.result.current.contentHeightReady).toBe(
+        firstReport === 'height',
+      );
+      expect(preview.result.current.geometryReady).toBe(
+        firstReport === 'geometry',
+      );
+
+      act(firstReport === 'height' ? reportGeometry : reportHeight);
+      expect(preview.result.current.contentHeightReady).toBe(true);
+      expect(preview.result.current.geometryReady).toBe(true);
+      expect(preview.result.current.geometry).toEqual([]);
+      expect(preview.result.current.contentHeight).toBe(800);
+      preview.unmount();
+    },
+  );
+
+  it('clears document readiness when recreating a host for the same session', () => {
+    const iframeRef = { current: document.createElement('iframe') };
+    const preview = renderHook(
+      ({ currentIframeRef }) =>
+        useHeadlessDraftSession(currentIframeRef, settings, 'canvas_page', '7'),
+      { initialProps: { currentIframeRef: iframeRef } },
+    );
+    act(() => {
+      hostEvents[0]({ type: 'geometry', geometry: [] });
+      hostHeights[0](1200);
+    });
+    expect(preview.result.current.geometryReady).toBe(true);
+    expect(preview.result.current.contentHeightReady).toBe(true);
+
+    preview.rerender({
+      currentIframeRef: { current: document.createElement('iframe') },
+    });
+    expect(hostMocks.destroy).toHaveBeenCalledOnce();
+    expect(preview.result.current.geometryReady).toBe(false);
+    expect(preview.result.current.contentHeightReady).toBe(false);
+    expect(preview.result.current.contentHeight).toBe(1200);
+    act(() => hostHeights[1](800));
+    expect(preview.result.current.geometryReady).toBe(false);
+    act(() => hostEvents[1]({ type: 'geometry', geometry: [] }));
+    expect(preview.result.current.geometryReady).toBe(true);
     preview.unmount();
   });
 

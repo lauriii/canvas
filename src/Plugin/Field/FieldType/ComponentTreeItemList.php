@@ -210,6 +210,21 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
     return NULL;
   }
 
+  /**
+   * Moves an item after another while preserving references held by updaters.
+   */
+  public function moveItemAfter(ComponentTreeItem $item, ComponentTreeItem $after): void {
+    \assert($item !== $after && $item->getParent() === $this && $after->getParent() === $this);
+    $delta = $this->getComponentTreeDeltaByUuid($item->getUuid());
+    \assert($delta !== NULL);
+    \array_splice($this->list, $delta, 1);
+    $after_delta = $this->getComponentTreeDeltaByUuid($after->getUuid());
+    \assert($after_delta !== NULL);
+    \array_splice($this->list, $after_delta + 1, 0, [$item]);
+    $this->rekey();
+    $this->onChange((string) ($after_delta + 1));
+  }
+
   public function getComponentIdList(): array {
     return \array_unique(\array_column($this->getValue(), 'component_id'));
   }

@@ -5,6 +5,8 @@
  * consistently and to preserve Canvas instance identity.
  */
 
+import { parseCanvasCommentMarker } from '@drupal-canvas/preview-geometry';
+
 import type {
   CanvasComponentTreeElement,
   CanvasComponentTreeSlot,
@@ -49,8 +51,8 @@ export function normalizeCanvasComponentTreeSlot(
 
 /**
  * Whether a slot has no Canvas child components and needs an editor placeholder.
- * String-only values are component defaults/examples, which editor rendering
- * replaces with the empty-slot placeholder.
+ * Markup without Canvas component boundaries is a component default/example,
+ * which editor rendering replaces with the empty-slot placeholder.
  */
 export function isCanvasComponentTreeSlotEmpty(
   slot: CanvasComponentTreeSlot | undefined,
@@ -112,6 +114,11 @@ function isCanvasSlotDefaultChild(
   child: string | CanvasComponentTreeElement,
 ): boolean {
   if (typeof child === 'string') {
+    for (const [, comment] of child.matchAll(/<!--([\s\S]*?)-->/g)) {
+      if (parseCanvasCommentMarker(comment)?.type === 'component') {
+        return false;
+      }
+    }
     return true;
   }
   if (child.element !== 'drupal-markup') {

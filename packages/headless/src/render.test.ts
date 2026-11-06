@@ -41,6 +41,16 @@ describe('headless component rendering helpers', () => {
     expect(isCanvasComponentTreeSlotEmpty(['', '  '])).toBe(true);
     expect(isCanvasComponentTreeSlotEmpty('<p>Default body</p>')).toBe(true);
     expect(
+      isCanvasComponentTreeSlotEmpty(
+        '<!-- Example content --><p>Default body</p>',
+      ),
+    ).toBe(true);
+    expect(
+      isCanvasComponentTreeSlotEmpty(
+        '<!-- canvas-slot-start-card/content --><p>Default body</p><!-- canvas-slot-end-card/content -->',
+      ),
+    ).toBe(true);
+    expect(
       isCanvasComponentTreeSlotEmpty({
         element: 'drupal-markup',
         slots: { default: '<p>Default body</p>' },
@@ -56,6 +66,26 @@ describe('headless component rendering helpers', () => {
       ]),
     ).toBe(false);
     expect(isCanvasComponentTreeSlotEmpty({ element: 'js-card' })).toBe(false);
+    const marker =
+      '<!-- canvas-start-page-content --><div class="canvas--page-content-marker-placeholder">Page content</div><!-- canvas-end-page-content -->';
+    expect(isCanvasComponentTreeSlotEmpty(marker)).toBe(false);
+    expect(
+      isCanvasComponentTreeSlotEmpty({
+        element: 'drupal-markup',
+        slots: { default: marker },
+      }),
+    ).toBe(false);
+    expect(
+      isCanvasComponentTreeSlotEmpty({
+        element: 'drupal-markup',
+        slots: {
+          default: [
+            '<p>Default body</p>',
+            { element: 'drupal-markup', slots: { default: marker } },
+          ],
+        },
+      }),
+    ).toBe(false);
   });
 
   it('identifies top-level regions without rendered page content', () => {
