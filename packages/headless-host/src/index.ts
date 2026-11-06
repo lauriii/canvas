@@ -121,7 +121,12 @@ export type HeadlessPreviewHostEvent =
   | { type: 'renew-failed' }
   | { type: 'recovering' }
   | { type: 'recovery-failed' }
-  | { type: 'geometry'; geometry: CanvasGeometry[] };
+  | {
+      type: 'geometry';
+      geometry: CanvasGeometry[];
+      /** Distinguishes a host reset from a valid empty frontend report. */
+      reset?: true;
+    };
 
 export interface HeadlessNavigationOptions {
   /** Whether the source link used `target="_blank"`. */
@@ -226,7 +231,7 @@ export function createHeadlessPreviewHost(
     active = false;
     canHandshakeOnLoad = false;
     hostSessionId = null;
-    emit({ type: 'geometry', geometry: [] });
+    emit({ type: 'geometry', geometry: [], reset: true });
     const assertion = await fetchAssertion(params);
     // A slower activation or recovery must not overwrite a newer navigation.
     if (destroyed || generation !== loadGeneration) {
@@ -342,7 +347,7 @@ export function createHeadlessPreviewHost(
   const onIframeLoad = () => {
     // A reload replaces the app document while preserving the iframe and host.
     // Start a new protocol session before accepting messages from that document.
-    emit({ type: 'geometry', geometry: [] });
+    emit({ type: 'geometry', geometry: [], reset: true });
     active = false;
     // Height reports are ignored while a probe is active. A document that
     // reloads mid-probe never sends the restore message, so end the probe
@@ -393,7 +398,7 @@ export function createHeadlessPreviewHost(
     active = false;
     canHandshakeOnLoad = true;
     hostSessionId = null;
-    emit({ type: 'geometry', geometry: [] });
+    emit({ type: 'geometry', geometry: [], reset: true });
     iframe.src = target.toString();
   };
 
@@ -511,12 +516,11 @@ export function createHeadlessPreviewHost(
 
       case HEADLESS_GEOMETRY_MESSAGE:
         if (active) {
-          emit({
-            type: 'geometry',
-            geometry: isCanvasGeometrySnapshot(event.data.geometry)
-              ? event.data.geometry
-              : [],
-          });
+          emit(
+            isCanvasGeometrySnapshot(event.data.geometry)
+              ? { type: 'geometry', geometry: event.data.geometry }
+              : { type: 'geometry', geometry: [], reset: true },
+          );
         }
         break;
 

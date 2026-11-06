@@ -9,9 +9,12 @@ use Drupal\canvas\ComponentSource\ComponentSourceInterface;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\JavaScriptComponent;
+use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
+use Drupal\canvas\PageVariantMigration;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentInstanceUpdater;
+use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemListInstantiatorTrait;
@@ -19,6 +22,7 @@ use Drupal\canvas\PropShape\PersistentPropShapeRepository;
 use Drupal\canvas\PropShape\PropShapeRepositoryInterface;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\Component\Serialization\Json;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Traits\ConstraintViolationsTestTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
@@ -405,6 +409,120 @@ class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
       [self::class, 'assertFavoriteAnimalsArrayPropUnchanged'],
       self::IS_NO_BC_BREAK,
     ];
+  }
+
+  /**
+   * Slot removal keeps Page content next to its former container.
+   */
+  #[DataProvider('providerPageContentSlotRemoval')]
+  public function testPageContentSlotRemoval(bool $nested_container, int $marker_depth, bool $affected): void {
+    $this->generateComponentConfig();
+    $marker = PageVariantMigration::ensurePageContentMarker();
+    $wrapper = Component::load('sdc.canvas_test_sdc.props-slots');
+    self::assertInstanceOf(Component::class, $wrapper);
+    $uuid = $this->container->get('uuid');
+    $outer_uuid = $uuid->generate();
+    $sibling_uuid = $uuid->generate();
+    $inner_uuids = [];
+    $marker_uuid = $uuid->generate();
+    $removed_uuid = $uuid->generate();
+    $wrapper_item = static fn(string $id, ?string $parent = NULL, ?string $slot = NULL): array => [
+      'uuid' => $id,
+      'component_id' => $wrapper->id(),
+      'component_version' => $wrapper->getActiveVersion(),
+      ...($parent === NULL ? [] : ['parent_uuid' => $parent, 'slot' => $slot]),
+      'inputs' => ['heading' => 'Container'],
+    ];
+    $parent_uuid = $nested_container ? $outer_uuid : NULL;
+    $parent_slot = $nested_container ? 'the_body' : NULL;
+    $tree = $nested_container ? [$wrapper_item($outer_uuid)] : [];
+    $tree[] = [
+      'uuid' => self::COMPONENT_INSTANCE_UUID,
+      'component_id' => 'js.test',
+      'component_version' => self::ORIGINAL_VERSION_HASH,
+      ...($parent_uuid === NULL ? [] : ['parent_uuid' => $parent_uuid, 'slot' => $parent_slot]),
+      'inputs' => ['required_text' => 'Keep this container'],
+    ];
+    // Store the following sibling before the marker to test sibling ordering
+    // independently of the flat list's descendant order.
+    $tree[] = $wrapper_item($sibling_uuid, $parent_uuid, $parent_slot);
+    $marker_parent_uuid = self::COMPONENT_INSTANCE_UUID;
+    $marker_slot = 'test-slot';
+    for ($depth = 0; $depth < $marker_depth; $depth++) {
+      $inner_uuid = $uuid->generate();
+      $inner_uuids[] = $inner_uuid;
+      $tree[] = $wrapper_item($inner_uuid, $marker_parent_uuid, $marker_slot);
+      $marker_parent_uuid = $inner_uuid;
+      $marker_slot = 'the_body';
+    }
+    $tree[] = [
+      'uuid' => $marker_uuid,
+      'component_id' => Marker::PAGE_CONTENT_COMPONENT_ID,
+      'component_version' => $marker->getActiveVersion(),
+      'parent_uuid' => $affected ? $marker_parent_uuid : $sibling_uuid,
+      'slot' => $affected ? $marker_slot : 'the_body',
+      'inputs' => [],
+    ];
+    $tree[] = $wrapper_item($removed_uuid, $marker_parent_uuid, $marker_slot);
+    $variant = PageVariant::create([
+      'id' => 'slot_removal',
+      'label' => 'Slot removal',
+      'component_tree' => $tree,
+    ]);
+    self::assertEntityIsValid($variant);
+    $this->removeSlot();
+    $component_tree = $variant->getComponentTree();
+    $instance = $component_tree->getComponentTreeItemByUuid(self::COMPONENT_INSTANCE_UUID);
+    self::assertNotNull($instance);
+    $marker_instance = $component_tree->getComponentTreeItemByUuid($marker_uuid);
+    self::assertNotNull($marker_instance);
+
+    $updater = new JsonSchemaPropsComponentInstanceUpdater();
+    self::assertSame(ComponentInstanceUpdateAttemptResult::Latest, $updater->update($instance));
+
+    self::assertSame($marker_instance, $component_tree->getComponentTreeItemByUuid($marker_uuid));
+    self::assertSame($affected ? $parent_uuid : $sibling_uuid, $marker_instance->getParentUuid());
+    self::assertSame($affected ? $parent_slot : 'the_body', $marker_instance->getSlot());
+    self::assertNull($component_tree->getComponentTreeItemByUuid($removed_uuid));
+    foreach ($inner_uuids as $inner_uuid) {
+      self::assertNull($component_tree->getComponentTreeItemByUuid($inner_uuid));
+    }
+    $siblings = \array_values(\array_filter($component_tree->getValue(), static fn(array $item): bool => ($item['parent_uuid'] ?? NULL) === $parent_uuid && ($item['slot'] ?? NULL) === $parent_slot));
+    self::assertSame(
+      $affected ? [self::COMPONENT_INSTANCE_UUID, $marker_uuid, $sibling_uuid] : [self::COMPONENT_INSTANCE_UUID, $sibling_uuid],
+      \array_column($siblings, 'uuid'),
+    );
+    $variant->setComponentTree($component_tree->getValue());
+    self::assertEntityIsValid($variant);
+    $stored_marker = \array_values(\array_filter($variant->get('component_tree'), static fn(array $item): bool => $item['uuid'] === $marker_uuid))[0];
+    if ($affected && !$nested_container) {
+      self::assertArrayNotHasKey('parent_uuid', $stored_marker);
+      self::assertArrayNotHasKey('slot', $stored_marker);
+    }
+    else {
+      self::assertSame($affected ? $parent_uuid : $sibling_uuid, $stored_marker['parent_uuid']);
+      self::assertSame($affected ? $parent_slot : 'the_body', $stored_marker['slot']);
+    }
+    $variant->save();
+    $variant_id = $variant->id();
+    self::assertNotNull($variant_id);
+    $storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage(PageVariant::ENTITY_TYPE_ID);
+    $storage->resetCache([$variant_id]);
+    $reloaded_variant = $storage->load($variant_id);
+    self::assertInstanceOf(PageVariant::class, $reloaded_variant);
+    self::assertSame($variant->get('component_tree'), $reloaded_variant->get('component_tree'));
+    self::assertEntityIsValid($reloaded_variant);
+    self::assertSame(ComponentInstanceUpdateAttemptResult::NotNeeded, $updater->update($instance));
+  }
+
+  public static function providerPageContentSlotRemoval(): iterable {
+    yield 'root container, direct marker' => [FALSE, 0, TRUE];
+    yield 'nested container, direct marker' => [TRUE, 0, TRUE];
+    yield 'root container, nested marker' => [FALSE, 1, TRUE];
+    yield 'nested container, nested marker' => [TRUE, 1, TRUE];
+    yield 'root container, deeply nested marker' => [FALSE, 2, TRUE];
+    yield 'nested container, deeply nested marker' => [TRUE, 2, TRUE];
+    yield 'marker in an unaffected slot' => [FALSE, 0, FALSE];
   }
 
   protected static function assertOptionalBecameRequiredWithDefault(ComponentTreeItem $component_instance): void {

@@ -7,6 +7,8 @@ import {
   useState,
 } from 'react';
 import { useParams } from 'react-router';
+import { ExclamationTriangleIcon } from '@radix-ui/react-icons';
+import { Callout } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { usePreviewGeometryUpdater } from '@/features/layout/preview/PreviewGeometryContext';
@@ -77,25 +79,28 @@ const HeadlessPreviewFrame: React.FC<HeadlessPreviewFrameProps> = ({
   // floors the "full" view mode, mirroring the same-origin Viewport.
   const effectiveMinHeight =
     viewMode && viewMode !== 'full' ? 0 : viewportMinHeight;
-  const { statusText, contentHeight, contentHeightReady, geometry } =
-    useHeadlessDraftSession(
-      iframeRef,
-      settings,
-      entityType,
-      entityId,
-      autoSavesHash,
-      effectiveMinHeight,
-      { viewMode },
-    );
+  const {
+    statusText,
+    contentHeight,
+    contentHeightReady,
+    geometryReady,
+    geometry,
+  } = useHeadlessDraftSession(
+    iframeRef,
+    settings,
+    entityType,
+    entityId,
+    autoSavesHash,
+    effectiveMinHeight,
+    { viewMode },
+  );
 
   // Floors at effectiveMinHeight (the selected device-viewport preset for the
   // "full" view mode, or 0 for content-sized view modes) so a shorter piece of
   // content never shrinks the frame below the simulated device height — the
   // same floor useSyncIframeHeightToContent keeps for the same-origin preview.
+  // Retain the previous height while a reloaded document reports its height.
   const effectiveHeight = Math.max(contentHeight ?? 0, effectiveMinHeight);
-  const iframeHeight = contentHeightReady
-    ? effectiveHeight
-    : effectiveMinHeight;
 
   useEffect(() => {
     if (contentHeightReady) {
@@ -157,6 +162,27 @@ const HeadlessPreviewFrame: React.FC<HeadlessPreviewFrameProps> = ({
       >
         {statusText}
       </p>
+      {active &&
+        contentHeightReady &&
+        geometryReady &&
+        !geometry.some(
+          ({ type, id }) => type === 'region' && id === 'content',
+        ) && (
+          <Callout.Root
+            color="amber"
+            role="status"
+            className={styles.headlessWarning}
+          >
+            <Callout.Icon>
+              <ExclamationTriangleIcon />
+            </Callout.Icon>
+            <Callout.Text>
+              The active frontend did not render an editable content region.
+              Check the page template&apos;s components and the slot containing
+              Page content, or switch to a compatible frontend.
+            </Callout.Text>
+          </Callout.Root>
+        )}
       <div
         ref={previewContainerRef}
         data-testid={
@@ -184,7 +210,7 @@ const HeadlessPreviewFrame: React.FC<HeadlessPreviewFrameProps> = ({
           onLoad={() => dispatch(setFirstLoadComplete(true))}
           style={
             {
-              '--canvas-headless-preview-height': `${iframeHeight}px`,
+              '--canvas-headless-preview-height': `${effectiveHeight}px`,
               display: 'block',
               width: '100%',
               // The host temporarily replaces height during viewport probes. A
@@ -215,6 +241,9 @@ const HeadlessPreviewFrame: React.FC<HeadlessPreviewFrameProps> = ({
  * shared preview geometry travel over the origin-checked postMessage protocol.
  * The app measures its own document; Canvas converts those rectangles and
  * renders its standard interactive overlays here.
+ * A reported preview without a content region shows a warning because Canvas
+ * cannot provide the page's drag-and-drop area without that region.
+ * The warning sits above the preview without moving the measured iframe.
  *
  * Page changes are double-buffered: the current iframe remains visible while
  * the next page activates and reports its height, then the new iframe replaces

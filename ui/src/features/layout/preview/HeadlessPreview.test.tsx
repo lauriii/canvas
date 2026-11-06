@@ -12,10 +12,26 @@ import type { HeadlessPreviewHostEvent } from '@drupal-canvas/headless-host';
 import type { HeadlessSettings } from '@drupal-canvas/types';
 
 let latestOnHeight: ((height: number) => void) | undefined;
+let latestOnEvent: ((event: HeadlessPreviewHostEvent) => void) | undefined;
 let navigateTo: ReturnType<typeof useNavigate> | undefined;
 const setViewportHeight = vi.fn();
 const activate = vi.fn().mockResolvedValue(undefined);
 const PREVIEW_HEIGHT_PROPERTY = '--canvas-headless-preview-height';
+const contentGeometry = [
+  {
+    type: 'region' as const,
+    id: 'content',
+    markerFormat: 'template' as const,
+    rect: {
+      top: 0,
+      left: 0,
+      right: 800,
+      bottom: 50,
+      width: 800,
+      height: 50,
+    },
+  },
+];
 
 vi.mock('@/features/layout/preview/PreviewGeometryContext', () => ({
   usePreviewGeometryUpdater: () => ({
@@ -40,6 +56,7 @@ vi.mock('@drupal-canvas/headless-host', () => ({
       onHeight?: (height: number) => void;
     }) => {
       latestOnHeight = onHeight;
+      latestOnEvent = onEvent;
       return {
         activate,
         attach: vi.fn(),
@@ -150,6 +167,73 @@ describe('HeadlessPreview', () => {
       value: '500px',
     });
   });
+
+  it('warns only after the frontend reports no editable content region and clears the warning when it returns', () => {
+    renderPreview(500);
+    const warning = /did not render an editable content region/;
+    expect(screen.queryByText(warning)).not.toBeInTheDocument();
+
+    act(() => latestOnEvent?.({ type: 'geometry', geometry: [] }));
+    expect(screen.queryByText(warning)).not.toBeInTheDocument();
+    act(() => latestOnHeight?.(500));
+    expect(screen.getByText(warning)).toBeInTheDocument();
+
+    act(() =>
+      latestOnEvent?.({
+        type: 'geometry',
+        geometry: contentGeometry,
+      }),
+    );
+    expect(screen.queryByText(warning)).not.toBeInTheDocument();
+  });
+
+  it.each(['height', 'geometry'] as const)(
+    'waits for fresh reports after a reload when %s arrives first',
+    (firstReport) => {
+      renderPreview(500);
+      const warning = /did not render an editable content region/;
+      const iframe = screen.getByTestId('canvas-headless-iframe');
+      act(() => {
+        latestOnEvent?.({ type: 'geometry', geometry: contentGeometry });
+        latestOnHeight?.(1200);
+      });
+
+      // A healthy reload must not flash the warning while its new document
+      // reports height and geometry in either order.
+      act(() =>
+        latestOnEvent?.({ type: 'geometry', geometry: [], reset: true }),
+      );
+      expect(screen.queryByText(warning)).not.toBeInTheDocument();
+      expect(getPreviewHeight(iframe).value).toBe('1200px');
+      expect(screen.getByTestId('canvas-headless-viewport')).toHaveStyle({
+        height: '1200px',
+      });
+      const reportHeight = () => latestOnHeight?.(800);
+      const reportGeometry = () =>
+        latestOnEvent?.({ type: 'geometry', geometry: contentGeometry });
+      act(firstReport === 'height' ? reportHeight : reportGeometry);
+      expect(screen.queryByText(warning)).not.toBeInTheDocument();
+      act(firstReport === 'height' ? reportGeometry : reportHeight);
+      expect(screen.queryByText(warning)).not.toBeInTheDocument();
+      expect(getPreviewHeight(iframe).value).toBe('800px');
+
+      // An actual empty snapshot still warns after both new reports arrive.
+      act(() =>
+        latestOnEvent?.({ type: 'geometry', geometry: [], reset: true }),
+      );
+      const reportEmptyGeometry = () =>
+        latestOnEvent?.({ type: 'geometry', geometry: [] });
+      act(firstReport === 'height' ? reportHeight : reportEmptyGeometry);
+      expect(screen.queryByText(warning)).not.toBeInTheDocument();
+      act(firstReport === 'height' ? reportEmptyGeometry : reportHeight);
+      expect(screen.getByText(warning)).toBeInTheDocument();
+
+      act(() =>
+        latestOnEvent?.({ type: 'geometry', geometry: [], reset: true }),
+      );
+      expect(screen.queryByText(warning)).not.toBeInTheDocument();
+    },
+  );
 
   it('follows reported content height when it exceeds viewportMinHeight', () => {
     renderPreview(500);

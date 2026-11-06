@@ -236,10 +236,27 @@ final class JsonSchemaPropsComponentInstanceUpdater implements ComponentInstance
       $component_tree_list = $component_instance->getParent();
       \assert($component_tree_list instanceof ComponentTreeItemList);
       $component_uuid = $component_instance->getUuid();
-      $component_tree_list->filter(static function (ComponentTreeItem $item) use ($component_uuid, $removed_slot_names): bool {
-        $slot = $item->getSlot();
-        return !($slot !== NULL && $item->getParentUuid() === $component_uuid && \in_array($slot, $removed_slot_names, TRUE));
-      });
+      $removed_items = [];
+      // Collect affected descendants while the tree is still intact.
+      foreach ($component_tree_list as $item) {
+        \assert($item instanceof ComponentTreeItem);
+        for ($ancestor = $item; $ancestor !== NULL; $ancestor = $ancestor->getParentComponentTreeItem()) {
+          if ($ancestor->getParentUuid() === $component_uuid && \in_array($ancestor->getSlot(), $removed_slot_names, TRUE)) {
+            $removed_items[$item->getUuid()] = $item;
+            break;
+          }
+        }
+      }
+      // Move Page content after its container, then drop the removed subtrees.
+      foreach ($removed_items as $uuid => $item) {
+        if ($item->getComponentId() === Marker::PAGE_CONTENT_COMPONENT_ID) {
+          $item->set('parent_uuid', $component_instance->getParentUuid());
+          $item->set('slot', $component_instance->getSlot());
+          $component_tree_list->moveItemAfter($item, $component_instance);
+          unset($removed_items[$uuid]);
+        }
+      }
+      $component_tree_list->filter(static fn(ComponentTreeItem $item): bool => !isset($removed_items[$item->getUuid()]));
     }
 
     // Update the version to the active version.
