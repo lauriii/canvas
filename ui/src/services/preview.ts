@@ -831,15 +831,19 @@ let pendingPreviewArg: PostPreviewArg | null = null;
 let previewSuccessCount = 0;
 
 /**
- * Waits for all active or queued preview requests to complete.
+ * Waits for all active or queued preview requests and component changes to
+ * complete.
  *
  * Required before operations that move the auto-save entry (like changing the
- * langcode) to ensure requests-in-progress aren't written to the old key.
+ * langcode) to ensure requests-in-progress aren't written to the old key. Run
+ * the operation itself with runComponentWrite(), so later changes wait for it.
  */
 export async function waitForPreviewRequests(): Promise<void> {
   while (activePreviewRequest) {
     await activePreviewRequest.catch(() => {});
   }
+  // Queued and in-flight component changes too.
+  await runComponentWrite(async () => {});
 }
 
 /**

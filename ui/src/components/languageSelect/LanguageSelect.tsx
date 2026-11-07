@@ -38,7 +38,7 @@ import {
   useGetPageLayoutQuery,
 } from '@/services/componentAndLayout';
 import { useSetLangcodeMutation } from '@/services/content';
-import { waitForPreviewRequests } from '@/services/preview';
+import { runComponentWrite, waitForPreviewRequests } from '@/services/preview';
 import { getCanvasPermissions, getLanguages } from '@/utils/drupal-globals';
 import { getEntityTitle } from '@/utils/entityTitle';
 
@@ -200,10 +200,14 @@ const LanguageSelect = () => {
     }
     try {
       await waitForPreviewRequests();
-      await setLangcode({
-        entityId,
-        langcode: languageId,
-      }).unwrap();
+      // Component changes made meanwhile wait, rather than saving to the old
+      // auto-save entry.
+      await runComponentWrite(() =>
+        setLangcode({
+          entityId,
+          langcode: languageId,
+        }).unwrap(),
+      );
       // Reset isInitialized so LayoutLoader treats the next getPageLayout response
       // as fresh and re-seeds the form via setInitialLayoutModel (see LayoutLoader.tsx).
       dispatch(setInitialized(false));
