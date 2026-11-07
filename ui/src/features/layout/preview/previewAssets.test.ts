@@ -1,6 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { injectPreviewAssets } from '@/features/layout/preview/previewAssets';
+import {
+  injectPreviewAssets,
+  loadPreviewAssets,
+} from '@/features/layout/preview/previewAssets';
 
 describe('injectPreviewAssets', () => {
   it('adds assets and merges settings into a document', () => {
@@ -51,5 +54,62 @@ describe('injectPreviewAssets', () => {
     });
     // No value ends the settings element early.
     expect(result.querySelectorAll('script:not([src])')).toHaveLength(1);
+  });
+});
+
+describe('injectPreviewAssets ordering and duplicates', () => {
+  it('adds header scripts after the page scripts and skips present assets', () => {
+    const html =
+      '<!DOCTYPE html><html><head><link rel="stylesheet" href="/a.css"></head>' +
+      '<body><script src="/core.js"></script></body></html>';
+    const result = new DOMParser().parseFromString(
+      injectPreviewAssets(html, [
+        {
+          css: [{ rel: 'stylesheet', href: '/a.css' }],
+          jsHeader: [{ src: '/header.js' }],
+          jsFooter: [{ src: '/core.js' }, { src: '/footer.js' }],
+          settings: {},
+        },
+      ]),
+      'text/html',
+    );
+    expect(result.querySelectorAll('link[href="/a.css"]')).toHaveLength(1);
+    expect(
+      [...result.querySelectorAll('script[src]')].map((script) =>
+        script.getAttribute('src'),
+      ),
+    ).toEqual(['/core.js', '/header.js', '/footer.js']);
+  });
+});
+
+describe('loadPreviewAssets', () => {
+  it('merges copies of settings, skips nomodule waits and attaches behaviors', async () => {
+    const iframe = document.createElement('iframe');
+    iframe.dataset.canvasSwapActive = 'true';
+    document.body.append(iframe);
+    const preview = iframe.contentWindow as any;
+    preview.Drupal = { attachBehaviors: vi.fn() };
+    try {
+      const settings = Object.freeze({ widget: Object.freeze({ a: 1 }) });
+      await loadPreviewAssets({
+        css: [],
+        jsHeader: [],
+        jsFooter: [{ src: '/legacy.js', nomodule: true }],
+        settings,
+      });
+      // A later merge into the same namespace must not hit frozen objects.
+      await loadPreviewAssets({
+        css: [],
+        jsHeader: [],
+        jsFooter: [],
+        settings: { widget: { b: 2 } },
+      });
+      expect(preview.drupalSettings.widget).toEqual({ a: 1, b: 2 });
+      expect(preview.Drupal.attachBehaviors).toHaveBeenCalledExactlyOnceWith(
+        preview.document,
+      );
+    } finally {
+      iframe.remove();
+    }
   });
 });
