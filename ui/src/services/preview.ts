@@ -402,6 +402,7 @@ export const previewApi = createApi({
       async onQueryStarted(arg, { dispatch, getState, queryFulfilled }) {
         const startFullHtmlVersion = (getState() as RootState).preview
           .fullHtmlVersion;
+        const startLayout = selectLayout(getState() as RootState);
         const uuid = arg.componentInstanceUuid;
         const key = instanceKey(uuid, arg.editorUrl);
         const applyModel = ({
@@ -547,7 +548,18 @@ export const previewApi = createApi({
             return;
           }
           supersededModels.delete(key);
-          applyModel('component' in data ? { model } : data);
+          // A structural edit since this request started, such as a move or a
+          // delete, waits for a layout POST. Keep it, and apply only this
+          // instance's model.
+          const layoutChanged =
+            selectLayout(getState() as RootState) !== startLayout;
+          applyModel(
+            'component' in data
+              ? { model }
+              : layoutChanged
+                ? { model: instanceModel ? { [uuid]: instanceModel } : {} }
+                : data,
+          );
         } finally {
           markApplied();
           // Tell ajax calls they're good to go regardless of success/failure.
