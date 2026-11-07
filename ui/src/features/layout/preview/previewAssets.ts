@@ -47,7 +47,9 @@ const mergeSettings = (
     if (isObject(value) && isObject(current)) {
       mergeSettings(current, value);
     } else {
-      target[key] = value;
+      // A copy: values from responses and the store are frozen, and later
+      // merges must be able to change them.
+      target[key] = structuredClone(value);
     }
   });
 };
@@ -66,16 +68,49 @@ const createElement = (
   return element;
 };
 
+// The URL of a stylesheet or script, to tell whether a document has it.
+const assetUrl = (attributes: Record<string, string | boolean>) =>
+  String(attributes.href ?? attributes.src ?? '');
+
+const hasAsset = (
+  document: Document,
+  attributes: Record<string, string | boolean>,
+) =>
+  [
+    ...document.querySelectorAll<HTMLLinkElement | HTMLScriptElement>(
+      'link[href], script[src]',
+    ),
+  ].some(
+    (element) =>
+      element.getAttribute('href') === assetUrl(attributes) ||
+      element.getAttribute('src') === assetUrl(attributes),
+  );
+
+// Long enough for a slow asset, short enough not to stop later responses.
+const ASSET_TIMEOUT = 10000;
+
+// Adds an asset the document lacks. Resolves once it loads, fails, will not
+// load, or takes longer than ASSET_TIMEOUT.
 const addElement = (
   parent: HTMLElement,
   tagName: 'link' | 'script',
   attributes: Record<string, string | boolean>,
 ) =>
   new Promise<void>((resolve) => {
-    const element = createElement(parent.ownerDocument, tagName, attributes);
+    const { ownerDocument } = parent;
+    if (hasAsset(ownerDocument, attributes)) {
+      resolve();
+      return;
+    }
+    const element = createElement(ownerDocument, tagName, attributes);
     element.addEventListener('load', () => resolve());
     element.addEventListener('error', () => resolve());
+    setTimeout(resolve, ASSET_TIMEOUT);
     parent.appendChild(element);
+    // Browsers that support modules skip nomodule scripts without an event.
+    if (tagName === 'script' && attributes.nomodule) {
+      resolve();
+    }
   });
 
 /**
@@ -99,6 +134,16 @@ export const loadPreviewAssets = (assets: PreviewAssets) =>
       for (const attributes of assets.jsFooter) {
         await addElement(body, 'script', attributes);
       }
+      // New scripts may define behaviors for markup the preview already has,
+      // for example when only a prop changed which libraries are attached.
+      // once() keeps other behaviors from attaching twice.
+      if (assets.jsHeader.length || assets.jsFooter.length) {
+        (
+          window as unknown as {
+            Drupal?: { attachBehaviors: (context: Document) => void };
+          }
+        ).Drupal?.attachBehaviors(window.document);
+      }
     }),
   );
 
@@ -117,16 +162,22 @@ export const injectPreviewAssets = (
     'script[data-drupal-selector="drupal-settings-json"]',
   );
   const settings = JSON.parse(settingsElement?.textContent || '{}');
+  const add = (
+    parent: HTMLElement,
+    tagName: 'link' | 'script',
+    attributes: Record<string, string | boolean>,
+  ) => {
+    if (!hasAsset(document, attributes)) {
+      parent.append(createElement(document, tagName, attributes));
+    }
+  };
   assetsList.forEach((assets) => {
     mergeSettings(settings, assets.settings);
-    assets.css.forEach((attributes) =>
-      document.head.append(createElement(document, 'link', attributes)),
-    );
-    assets.jsHeader.forEach((attributes) =>
-      document.head.append(createElement(document, 'script', attributes)),
-    );
-    assets.jsFooter.forEach((attributes) =>
-      document.body.append(createElement(document, 'script', attributes)),
+    assets.css.forEach((attributes) => add(document.head, 'link', attributes));
+    // Added header scripts go after the page's own scripts too: they may
+    // depend on libraries the page loads in its footer.
+    [...assets.jsHeader, ...assets.jsFooter].forEach((attributes) =>
+      add(document.body, 'script', attributes),
     );
   });
   if (settingsElement) {

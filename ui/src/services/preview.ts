@@ -196,10 +196,6 @@ export const runComponentWrite = async <T>(
   }
 };
 
-// Set when the preview lacks an instance a partial preview was returned for,
-// until a PATCH returns the whole page.
-let needsFullPreview = false;
-
 // Identifies a component instance on the entity an editor URL edits. The same
 // instance UUID can exist on several entities, for example after duplication.
 const instanceKey = (uuid: string, editorUrl = window.location.href) =>
@@ -356,7 +352,7 @@ export const previewApi = createApi({
           url,
           method: 'PATCH',
           body:
-            type === 'entity' && !needsFullPreview
+            type === 'entity'
               ? {
                   ...body,
                   partialPreview: true,
@@ -464,21 +460,22 @@ export const previewApi = createApi({
               data.component,
             );
             if (html === null) {
-              // The current preview lacks the instance: send the change again,
-              // in turn with other changes, for the whole page.
-              needsFullPreview = true;
-              if (!patchScheduler.has(key)) {
-                sendPatch ??= (patch) =>
-                  dispatch(
-                    previewApi.endpoints.updateComponent.initiate(patch),
-                  );
-                patchScheduler.schedule(key, arg, true);
+              // The current preview lacks the instance: read the whole page,
+              // rather than saving the change again over newer ones.
+              const { entityType, entityId } = extractEntityParams(
+                window.location.href,
+              );
+              const response = await fetch(
+                `${state.configuration.baseUrl}canvas/api/v0/layout/${entityType}/${entityId}`,
+                { headers: { Accept: 'application/json' } },
+              );
+              if (response.ok) {
+                dispatch(setHtml((await response.json()).html));
               }
-              return;
+            } else {
+              dispatch(setPartialHtml({ html, assets: data.assets }));
             }
-            dispatch(setPartialHtml({ html, assets: data.assets }));
           } else {
-            needsFullPreview = false;
             dispatch(setHtml(data.html));
           }
           handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
