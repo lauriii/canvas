@@ -33,6 +33,9 @@ use Drupal\Core\Form\FormState;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\link\LinkItemInterface;
 use Drupal\link\LinkTitleVisibility;
+use Drupal\media\OEmbed\Provider;
+use Drupal\media\OEmbed\ProviderRepositoryInterface;
+use Drupal\media_test_oembed\ProviderRepository as TestProviderRepository;
 use Drupal\Tests\canvas\Kernel\Traits\VfsPublicStreamUrlTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\system\Functional\Form\StubForm;
@@ -68,6 +71,10 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
     // Modules providing additional SDCs.
     'sdc_test',
     'sdc_test_all_props',
+    'canvas_test_video_embed',
+    // Avoids fetching oEmbed providers from the internet.
+    // @see ::setUp()
+    'media_test_oembed',
     // To be able to create a MediaType (which creates its source field).
     // @see ::testArrayPropShapeInheritsItemPropShapeCacheTags()
     'field',
@@ -96,6 +103,15 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
     ]);
     // @see \Drupal\file\Plugin\Field\FieldType\FileItem::generateSampleValue()
     $this->installEntitySchema('file');
+    // @see \Drupal\canvas\Plugin\Field\FieldType\VideoEmbedItem::getAllowedEndpoints()
+    $provider_repository = $this->container->get(ProviderRepositoryInterface::class);
+    \assert($provider_repository instanceof TestProviderRepository);
+    $provider_repository->setProvider(new Provider('YouTube', 'https://www.youtube.com/', [
+      [
+        'url' => 'https://www.youtube.com/oembed',
+        'schemes' => ['https://*.youtube.com/watch*', 'https://youtu.be/*'],
+      ],
+    ]));
   }
 
   /**
@@ -190,6 +206,7 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
       JsonSchemaObjectRef::Image->asPropShape(),
       new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/shoe-icon']),
       JsonSchemaObjectRef::Video->asPropShape(),
+      JsonSchemaObjectRef::VideoEmbed->asPropShape(),
       new PropShape(['type' => 'string']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/color']),
       new PropShape(['type' => 'string', '$ref' => 'json-schema-definitions://canvas.module/heading-element']),
@@ -381,6 +398,13 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
         ]),
         fieldInstanceSettings: ['file_extensions' => 'mp4'],
         fieldWidget: 'file_generic',
+      ),
+      'type=object&$ref=' . JsonSchemaObjectRef::VideoEmbed->value => new StorablePropShape(
+        shape: JsonSchemaObjectRef::VideoEmbed->asPropShape(),
+        fieldTypeProp: new FieldTypeObjectPropsExpression('canvas_video_embed', [
+          'src' => new FieldTypePropExpression('canvas_video_embed', 'iframe_url'),
+        ]),
+        fieldWidget: 'canvas_video_embed_url',
       ),
       'type=object&$ref=' . JsonSchemaObjectRef::Document->value => new StorablePropShape(
         shape: JsonSchemaObjectRef::Document->asPropShape(),

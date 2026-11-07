@@ -1,6 +1,7 @@
 import {
   coerceValueForSchema,
   shouldSkipPropValidation,
+  validateNewValue,
   validateProp,
 } from '@/components/form/react-hook-form/fields/componentFieldValidation';
 import {
@@ -842,6 +843,76 @@ describe('shouldSkipPropValidation', () => {
     expect(
       shouldSkipPropValidation(target.name, target, inputAndUiData, '7'),
     ).to.equal(true);
+  });
+});
+
+describe('validateNewValue', () => {
+  // The video embed URL widget restricts its input with a `pattern`. Its prop
+  // shape is an object, which JSON Schema validation skips.
+  const buildVideoEmbedEvent = (value) => {
+    const form = document.createElement('form');
+    const input = document.createElement('input');
+    input.type = 'url';
+    input.name = 'canvas_component_props[comp1][video][0][value]';
+    input.pattern = 'https://.*\\.youtube\\.com/watch.*|https://vimeo\\.com/.*';
+    input.title = 'Paste the URL of a video on YouTube, Vimeo.';
+    input.value = value;
+    form.appendChild(input);
+    return { target: input };
+  };
+  const inputAndUiData = {
+    selectedComponent: 'comp1',
+    selectedComponentType: 'sdc.video',
+    components: {
+      'sdc.video': {
+        propSources: {
+          video: {
+            jsonSchema: {
+              type: 'object',
+              $ref: 'json-schema-definitions://canvas.module/video-embed',
+            },
+          },
+        },
+      },
+    },
+  };
+
+  it('rejects an empty required value', () => {
+    const e = buildVideoEmbedEvent('');
+    e.target.required = true;
+    expect(
+      validateNewValue(e, '', e.target.name, 'comp1', inputAndUiData).valid,
+    ).toBe(false);
+  });
+
+  it('rejects a value that does not match the pattern, using the title', () => {
+    const e = buildVideoEmbedEvent('https://example.com/video');
+    expect(
+      validateNewValue(
+        e,
+        e.target.value,
+        e.target.name,
+        'comp1',
+        inputAndUiData,
+      ),
+    ).to.deep.equal({
+      valid: false,
+      errors: null,
+      errorMessage: 'Paste the URL of a video on YouTube, Vimeo.',
+    });
+  });
+
+  it('accepts a value that matches the pattern', () => {
+    const e = buildVideoEmbedEvent('https://www.youtube.com/watch?v=abc');
+    expect(
+      validateNewValue(
+        e,
+        e.target.value,
+        e.target.name,
+        'comp1',
+        inputAndUiData,
+      ),
+    ).to.deep.equal({ valid: true, errors: null });
   });
 });
 

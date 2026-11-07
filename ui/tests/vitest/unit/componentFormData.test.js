@@ -100,3 +100,56 @@ describe('componentFormData - getPropsValues propSource fallback', () => {
     expect(propsValues.date_time).toBe('2026-01-15T14:30:00.000Z');
   });
 });
+
+describe('componentFormData - getPropsValues empty required object prop', () => {
+  const selectedComponent = 'test-uuid';
+  const selectedComponentType = 'sdc.test.object-props';
+  const component = (defaultValues) => ({
+    [selectedComponentType]: {
+      id: selectedComponentType,
+      source: 'sdc',
+      propSources: {
+        video: {
+          expression: '',
+          sourceType: 'static:field_item:canvas_video_embed',
+          required: true,
+          jsonSchema: { type: 'object' },
+          default_values: defaultValues,
+        },
+      },
+    },
+  });
+  const getVideo = (defaultValues) =>
+    getPropsValues(
+      { [`canvas_component_props[${selectedComponent}][video][0][value]`]: '' },
+      {
+        selectedComponent,
+        selectedComponentType,
+        components: component(defaultValues),
+        layout: [],
+        version: '1.0',
+        model: { [selectedComponent]: { resolved: {}, source: {} } },
+      },
+      { video: { mainProperty: {} } },
+    ).propsValues.video;
+
+  it('falls back to the default source value of a single-value widget', () => {
+    expect(
+      getVideo({
+        source: [{ value: 'https://www.youtube.com/watch?v=aqz-KE-bpKQ' }],
+        resolved: { src: 'https://example.com/media/oembed?url=…' },
+      }),
+    ).toBe('https://www.youtube.com/watch?v=aqz-KE-bpKQ');
+  });
+
+  it('falls back to the resolved example otherwise', () => {
+    const resolved = { src: '/image.png', alt: 'Example' };
+    expect(getVideo({ source: [], resolved })).toEqual(resolved);
+    expect(
+      getVideo({
+        source: [{ value: '2026-01-01', end_value: '2026-01-02' }],
+        resolved,
+      }),
+    ).toEqual(resolved);
+  });
+});

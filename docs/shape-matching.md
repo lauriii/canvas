@@ -590,3 +590,25 @@ For shape matching, a custom object shape is matched via its scalar leaves
 (`EntityFieldPropSourceMatcher::matchEntityPropsForObjectUsingScalars()`), exactly like the well-known object shapes:
 each `entity field` whose `field prop`s cover the group's required sub-properties is suggested as a
 `field object props expression` (e.g. `ℹ︎␜entity:node:article␝field_duration␞␟{from↠value,to↠end_value}`).
+
+#### 3.2.5 Video embeds
+
+The `json-schema-definitions://canvas.module/video-embed` well-known prop shape receives `{src: …}`: the URL of
+Drupal core's oEmbed iframe (the `media.oembed_iframe` route) for a video on a video sharing site, such as YouTube.
+
+```yaml
+video:
+  type: object
+  $ref: json-schema-definitions://canvas.module/video-embed
+  examples:
+    - src: https://www.youtube.com/watch?v=aqz-KE-bpKQ
+```
+
+- Only available when the Media module is installed: see `ShapeMatchingHooks::mediaStorablePropShapeAlter()`.
+- The `canvas_video_embed` field type stores the URL of the video page that the Content Creator pastes into the
+  `canvas_video_embed_url` widget. Its computed `iframe_url` property adds core's hash to the iframe URL. Core then
+  renders the provider's embed HTML inside that iframe, so components never render provider HTML.
+- Only URLs of the providers allowed by core's `oembed:video` media source (YouTube and Vimeo) are accepted. Other URLs
+  get no `iframe_url`. The widget's `pattern` attribute lets the UI reject them before they reach the preview.
+- In `examples`, `src` is the URL of the video page.
+- There is no `static prop source` that uses Remote video media entities yet.
