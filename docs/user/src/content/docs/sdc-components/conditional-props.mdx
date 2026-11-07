@@ -37,10 +37,21 @@ props:
 
 Operators can be combined: `count: { gte: 2, lt: 5 }`.
 
+- Values compare loosely: `2` matches `'2'`. `contains` is case-sensitive.
+- For a prop with multiple values (`type: array`), use `contains` or `filled`:
+  a value or `not` compares the whole list.
+- Tests must fit the prop: a value of an enum must be one of its values, a
+  `boolean` prop can only be compared with `true` or `false` (not `yes`),
+  `gt`, `gte`, `lt` and `lte` need an `integer` or `number` prop, and
+  `contains` a `string` or `array` prop.
+
 ## Combining conditions
 
 All tests must pass. Use `anyOf` for "or", `allOf` for a list of conditions
 that must all pass, and `not` to invert a condition. They can be nested.
+
+`anyOf`, `allOf` and `not` are reserved: a component with conditions cannot
+have props with these names.
 
 ```yaml
     small_print:
@@ -62,9 +73,12 @@ that must all pass, and `not` to invert a condition. They can be nested.
   depends on, so it shows up next to the control that reveals it.
 - Hiding a prop keeps its value, and the component still receives it. Check the
   controlling prop in the template: `{% if show_button %}`.
+- A prop with an invalid value stays visible, so the content author can fix it.
+  A required prop can have a condition: it keeps its value while hidden.
 - Canvas validates conditions when it discovers the component. A condition that
   refers to a missing prop, uses an unknown operator, or depends on itself makes
   the component unavailable, with the reason in the component list.
 
 Code components get the same conditions from the **Show only when…** button
-under each prop in the code editor.
+under each prop in the code editor. Renaming or removing a prop there updates
+the conditions that refer to it.

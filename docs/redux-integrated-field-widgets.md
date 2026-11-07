@@ -411,5 +411,6 @@ One example is additional logic required for autocomplete. Although the form ele
 A prop with `x-canvas-visible-if` is shown only while its condition passes. See `\Drupal\canvas\JsonSchemaInterpreter\PropVisibilityCondition` for the syntax and its validation.
 - When any prop of a component has a condition, `JsonSchemaPropsComponentSourceBase::buildComponentInstanceForm()` adds `data-canvas-prop` to the wrapper of every prop, and `data-canvas-visible-if` (the condition, as JSON) to the props that have one.
 - `ui/src/hooks/usePropVisibility.ts` evaluates the conditions with `ui/src/utils/propVisibility.ts` and sets `hidden` on the wrappers. It reads props with a single control (text, number, select, radios, checkbox, switch) from the form element, so props appear as soon as the user changes a value. Other props use the model's resolved value.
-- Hidden props keep their values. Only the form changes.
-- Code components store conditions as JSON in config. `JavaScriptComponent::toSdcDefinition()` decodes them; `JavaScriptComponent::updateFromClientSide()` encodes them. The code editor's "Show when" builder is `ui/src/features/code-editor/component-data/forms/FormPropVisibility.tsx`.
+- Hidden props keep their values. Only the form changes. A prop with an invalid value (`data-invalid-prop-value`) stays visible. Changes are announced in a `role="status"` region.
+- Drupal's `#states` is not used: it supports fewer tests, and is not applied to the React-rendered form.
+- Code components store conditions as JSON in config. `JavaScriptComponent::toSdcDefinition()` decodes them; `JavaScriptComponent::updateFromClientSide()` encodes them. The code editor's "Show only when…" builder is `ui/src/features/code-editor/component-data/forms/FormPropVisibility.tsx`.
