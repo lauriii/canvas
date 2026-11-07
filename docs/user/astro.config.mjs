@@ -162,6 +162,10 @@ export default defineConfig({
             { label: 'Slots', slug: 'sdc-components/slots' },
             { label: 'Image', slug: 'sdc-components/image' },
             {
+              label: 'Options from site data',
+              slug: 'sdc-components/options-from-site-data',
+            },
+            {
               label: 'Validations',
               slug: 'sdc-components/validations',
             },
