@@ -406,3 +406,10 @@ However, if there is Vanilla JS that impacts the layout of elements within the f
 Some of the complexity introduced by Drupal Canvas based component + entity forms is not due to them being rendered in React, but instead because of the need to accommodate auto-save and real time preview updates. Reshaping of data that would occur on form submission is instead done in real time, which necessitates some extra plumbing such as the [3.4 Transforms](#34-transforms) covered earlier in this document.
 
 One example is additional logic required for autocomplete. Although the form element is rerendering to display the autocomplete suggestions, additional logic is required to ensure the autocomplete suggestion process is not triggering a preview update until a selection is made.
+
+#### 3.5.4 Prop visibility conditions
+A prop with `x-canvas-visible-if` is shown only while its condition passes. See `\Drupal\canvas\JsonSchemaInterpreter\PropVisibilityCondition` for the syntax and its validation.
+- When any prop of a component has a condition, `JsonSchemaPropsComponentSourceBase::buildComponentInstanceForm()` adds `data-canvas-prop` to the wrapper of every prop, and `data-canvas-visible-if` (the condition, as JSON) to the props that have one.
+- `ui/src/hooks/usePropVisibility.ts` evaluates the conditions with `ui/src/utils/propVisibility.ts` and sets `hidden` on the wrappers. It reads props with a single control (text, number, select, radios, checkbox, switch) from the form element, so props appear as soon as the user changes a value. Other props use the model's resolved value.
+- Hidden props keep their values. Only the form changes.
+- Code components store conditions as JSON in config. `JavaScriptComponent::toSdcDefinition()` decodes them; `JavaScriptComponent::updateFromClientSide()` encodes them. The code editor's "Show when" builder is `ui/src/features/code-editor/component-data/forms/FormPropVisibility.tsx`.

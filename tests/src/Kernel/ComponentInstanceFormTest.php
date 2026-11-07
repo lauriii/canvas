@@ -11,6 +11,7 @@ use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Form\ComponentInstanceForm;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
+use Drupal\canvas\JsonSchemaInterpreter\PropVisibilityCondition;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
@@ -473,6 +474,65 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
 
     $response = $this->getCrawlerForFormRequest('/canvas/api/v0/form/component-instance/canvas_page/' . $page->id(), $component, json_decode('undefined'));
     self::assertSame("Component is missing. Fix the component or copy values to a new component. $fyi", $response->text());
+  }
+
+  /**
+   * Tests that the form carries prop visibility conditions for the UI.
+   *
+   * @see \Drupal\canvas\JsonSchemaInterpreter\PropVisibilityCondition
+   * @see ui/src/hooks/usePropVisibility.ts
+   */
+  public function testPropVisibilityConditions(): void {
+    $page = Page::create(['title' => $this->randomMachineName()]);
+    self::assertSame(SAVED_NEW, $page->save());
+
+    $props = [
+      'showBadge' => ['type' => 'boolean', 'title' => 'Show badge', 'examples' => [FALSE]],
+      'badgeText' => ['type' => 'string', 'title' => 'Badge text', 'examples' => ['New']],
+    ];
+    $code_component = JavaScriptComponent::create([
+      'machineName' => 'banner',
+      'name' => 'Banner',
+      'status' => TRUE,
+      'props' => $props,
+      'slots' => [],
+      'js' => [
+        'original' => '',
+        'compiled' => '',
+      ],
+      'css' => [
+        'original' => '',
+        'compiled' => '',
+      ],
+      'dataDependencies' => [],
+    ]);
+    // The client side sends a condition as a map, which config stores as JSON.
+    $props['badgeText'][PropVisibilityCondition::KEY] = ['showBadge' => TRUE];
+    $code_component->updateFromClientSide(['props' => $props]);
+    self::assertSame('{"showBadge":true}', $code_component->get('props')['badgeText'][PropVisibilityCondition::KEY]);
+    self::assertCount(0, $code_component->getTypedData()->validate());
+    $code_component->save();
+    self::assertSame(['showBadge' => TRUE], $code_component->normalizeForClientSide()->values['props']['badgeText'][PropVisibilityCondition::KEY]);
+
+    $component = Component::load(JsComponent::componentIdFromJavascriptComponentId($code_component->id()));
+    self::assertInstanceOf(Component::class, $component);
+    $crawler = $this->getCrawlerForFormRequest(
+      '/canvas/api/v0/form/component-instance/canvas_page/' . $page->id(),
+      $component,
+      $this->getFormCanvasPropsForComponent($component->id()),
+    );
+    // Every prop is marked, so the UI can read the values of the props that
+    // conditions refer to.
+    self::assertCount(1, $crawler->filter('[data-canvas-prop="showBadge"]:not([data-canvas-visible-if])'));
+    self::assertSame('{"showBadge":true}', $crawler->filter('[data-canvas-prop="badgeText"]')->attr('data-canvas-visible-if'));
+
+    // A condition that refers to a missing prop makes the code component
+    // invalid.
+    $props['badgeText'][PropVisibilityCondition::KEY] = ['badge' => TRUE];
+    $code_component->updateFromClientSide(['props' => $props]);
+    $violations = $code_component->getTypedData()->validate();
+    self::assertCount(1, $violations);
+    self::assertSame('Prop "badgeText": `x-canvas-visible-if` refers to "badge", which is not a prop of this component.', (string) $violations->get(0)->getMessage());
   }
 
   /**
