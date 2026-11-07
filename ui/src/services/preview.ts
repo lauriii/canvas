@@ -570,8 +570,13 @@ export const previewApi = createApi({
           dispatch(setSnapshotTitle(''));
           const state = getState() as RootState;
           // The queued change is already shown client-side, newer than this
-          // response's markup. Keep it, but record the assets.
-          if (isOutdated && patchScheduler.get(key)?.previewShowsChange) {
+          // response's markup. Keep it, but record the assets. Whole-page
+          // markup can also update other instances, so it is applied.
+          if (
+            'component' in data &&
+            isOutdated &&
+            patchScheduler.get(key)?.previewShowsChange
+          ) {
             if ('assets' in data && data.assets) {
               dispatch(
                 setPartialHtml({
