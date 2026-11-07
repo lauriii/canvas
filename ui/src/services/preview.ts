@@ -21,6 +21,7 @@ import {
 } from '@/features/pagePreview/previewSlice';
 import {
   baseQueryWithAutoSaves,
+  extractEntityParams,
   popCanvasLayoutRequest,
   pushCanvasLayoutRequest,
 } from '@/services/baseQuery';
@@ -246,16 +247,21 @@ export const previewApi = createApi({
               data.component,
             );
             if (html === null) {
-              // The current preview lacks the instance: get the whole page.
-              dispatch(
-                previewApi.endpoints.updateComponent.initiate({
-                  ...arg,
-                  partialPreview: false,
-                }),
+              // The current preview lacks the instance: read the whole page,
+              // rather than saving the change again over newer ones.
+              const { entityType, entityId } = extractEntityParams(
+                window.location.href,
               );
-              return;
+              const response = await fetch(
+                `${state.configuration.baseUrl}canvas/api/v0/layout/${entityType}/${entityId}`,
+                { headers: { Accept: 'application/json' } },
+              );
+              if (response.ok) {
+                dispatch(setHtml((await response.json()).html));
+              }
+            } else {
+              dispatch(setPartialHtml({ html, assets: data.assets }));
             }
-            dispatch(setPartialHtml({ html, assets: data.assets }));
           } else {
             dispatch(setHtml(data.html));
           }
