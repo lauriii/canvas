@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createComponentFormStateHandler } from '@/components/form/react-hook-form/fields/componentFormHandlers';
+import {
+  createComponentFormStateHandler,
+  flushBackendUpdate,
+} from '@/components/form/react-hook-form/fields/componentFormHandlers';
 import { COMPONENT_PREVIEW_UPDATE_EVENT } from '@/components/form/react-hook-form/fields/componentPreviewEvents';
 
 import type { ComponentPreviewUpdateEvent } from '@/components/form/react-hook-form/fields/componentPreviewEvents';
@@ -12,6 +15,7 @@ const createHandler = (source: string) => {
     propSources: { text: { jsonSchema: { type: 'string' } } },
   };
   const patchComponent = vi.fn();
+  const pending = { current: null };
   const handler = createComponentFormStateHandler({
     dispatch: vi.fn(),
     transforms: { text: {} },
@@ -19,7 +23,7 @@ const createHandler = (source: string) => {
     selectedComponent: uuid,
     propName: 'text',
     isScalarProp: true,
-    polledBackgroundUpdate: { current: null },
+    polledBackgroundUpdate: pending,
     component,
     patchComponent,
     editorFrameContext: 'entity',
@@ -38,7 +42,7 @@ const createHandler = (source: string) => {
   } as any;
   const type = (text: string) =>
     handler({ text }, inputAndUiData, { text: '' });
-  return { patchComponent, type };
+  return { patchComponent, type, pending };
 };
 
 describe('createComponentFormStateHandler', () => {
@@ -82,5 +86,25 @@ describe('createComponentFormStateHandler', () => {
     );
     type('a');
     expect(patchComponent).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends a waiting PATCH when its field goes away, on the same entity', () => {
+    window.history.pushState({}, '', '/canvas/editor/canvas_page/1');
+    const { patchComponent, type, pending } = createHandler('Code component');
+    type('a');
+    flushBackendUpdate(pending);
+    expect(patchComponent).toHaveBeenCalledOnce();
+    vi.advanceTimersByTime(1000);
+    expect(patchComponent).toHaveBeenCalledOnce();
+
+    // Not after navigating to another entity, nor for a deleted component.
+    type('ab');
+    window.history.pushState({}, '', '/canvas/editor/canvas_page/2');
+    flushBackendUpdate(pending);
+    window.history.pushState({}, '', '/canvas/editor/canvas_page/1');
+    type('abc');
+    flushBackendUpdate(pending, () => false);
+    vi.advanceTimersByTime(1000);
+    expect(patchComponent).toHaveBeenCalledOnce();
   });
 });

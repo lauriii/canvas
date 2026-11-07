@@ -3,6 +3,7 @@ import {
   syncPropSourcesToResolvedValues,
 } from '@/features/layout/layoutModelSlice';
 import { setPreviewBackgroundUpdate } from '@/features/pagePreview/previewSlice';
+import { extractEntityParams } from '@/services/baseQuery';
 
 import { DEBOUNCE_TIMEOUT, getPropsValues } from './componentFormData';
 import { ComponentPreviewUpdateEvent } from './componentPreviewEvents';
@@ -12,6 +13,58 @@ import type { Dispatch } from '@reduxjs/toolkit';
 import type { InputUIData } from '@/types/Form';
 
 export const POLLED_BACKGROUND_TIMEOUT = 1000;
+
+/**
+ * A PATCH waiting to be sent, and the editor URL it was made on.
+ */
+export interface PendingBackendUpdate {
+  timer: ReturnType<typeof setTimeout>;
+  send: () => void;
+  editorUrl: string;
+}
+
+const scheduleBackendUpdate = (
+  pending: React.MutableRefObject<PendingBackendUpdate | null>,
+  send: () => void,
+  delay: number,
+) => {
+  if (pending.current) {
+    clearTimeout(pending.current.timer);
+  }
+  pending.current = {
+    timer: setTimeout(() => {
+      pending.current = null;
+      send();
+    }, delay),
+    send,
+    editorUrl: window.location.href,
+  };
+};
+
+/**
+ * Sends a waiting PATCH right away, for example when its field goes away.
+ *
+ * Drops it if the editor moved to another entity, whose URL the PATCH would
+ * resolve to, or if `isCurrent()` says the change no longer applies.
+ */
+export const flushBackendUpdate = (
+  pending: React.MutableRefObject<PendingBackendUpdate | null>,
+  isCurrent: () => boolean = () => true,
+) => {
+  const update = pending.current;
+  if (!update) {
+    return;
+  }
+  clearTimeout(update.timer);
+  pending.current = null;
+  if (
+    JSON.stringify(extractEntityParams(update.editorUrl)) ===
+      JSON.stringify(extractEntityParams(window.location.href)) &&
+    isCurrent()
+  ) {
+    update.send();
+  }
+};
 
 /**
  * Dependencies needed for component form state handling.
@@ -24,7 +77,7 @@ interface ComponentFormHandlerDependencies {
   selectedComponent: string;
   propName: string;
   isScalarProp: boolean;
-  polledBackgroundUpdate: React.MutableRefObject<number | null>;
+  polledBackgroundUpdate: React.MutableRefObject<PendingBackendUpdate | null>;
   component: any;
   patchComponent: (inputUiData: InputUIData, params: any) => void;
   editorFrameContext: string;
@@ -97,18 +150,16 @@ export const createComponentFormStateHandler = (
         });
       };
       if (backgroundPreviewUpdate) {
-        if (deps.polledBackgroundUpdate.current !== null) {
-          clearTimeout(deps.polledBackgroundUpdate.current);
-        }
         // If we're doing a background update, debounce that so we don't make
         // multiple requests for a single update. If we're not doing a
         // background preview update, we should schedule this immediately -
         // debouncing in withRHF will handle preventing this firing too
         // many times in succession.
-        deps.polledBackgroundUpdate.current = setTimeout(
+        scheduleBackendUpdate(
+          deps.polledBackgroundUpdate,
           updateBackend,
           POLLED_BACKGROUND_TIMEOUT,
-        ) as any as number;
+        );
         return;
       }
       // Scalar props of code components skip the form's debounce for the
@@ -116,13 +167,11 @@ export const createComponentFormStateHandler = (
       // debounce their PATCH here instead.
       // @see ComponentFormField
       if (deps.isScalarProp && deps.component.source === 'Code component') {
-        if (deps.polledBackgroundUpdate.current !== null) {
-          clearTimeout(deps.polledBackgroundUpdate.current);
-        }
-        deps.polledBackgroundUpdate.current = setTimeout(
+        scheduleBackendUpdate(
+          deps.polledBackgroundUpdate,
           updateBackend,
           DEBOUNCE_TIMEOUT,
-        ) as any as number;
+        );
         return;
       }
       updateBackend();
