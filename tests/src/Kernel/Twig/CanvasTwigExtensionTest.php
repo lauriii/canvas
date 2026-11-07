@@ -127,6 +127,41 @@ final class CanvasTwigExtensionTest extends CanvasKernelTestBase {
     }
   }
 
+  /**
+   * Tests prop boundaries around prints through value-preserving filters.
+   *
+   * @legacy-covers \Drupal\canvas\Twig\CanvasPropVisitor
+   */
+  #[DataProvider('providerFilteredPrints')]
+  public function testFilteredPropPrintBoundaries(string $template, bool $has_boundaries): void {
+    $out = (string) $this->container->get('twig')
+      ->createTemplate($template)
+      ->render([
+        'text' => 'Hello',
+        'canvas_uuid' => 'the-uuid',
+        'canvas_is_preview' => TRUE,
+      ]);
+    $marked = '<p><!-- canvas-prop-start-the-uuid/text -->Hello<!-- canvas-prop-end-the-uuid/text --></p>';
+    if ($has_boundaries) {
+      self::assertSame($marked, $out);
+    }
+    else {
+      self::assertStringNotContainsString('canvas-prop-start-', $out);
+    }
+  }
+
+  public static function providerFilteredPrints(): iterable {
+    yield 'bare variable' => ['<p>{{ text }}</p>', TRUE];
+    yield 'default' => ["<p>{{ text|default('') }}</p>", TRUE];
+    yield 'raw' => ['<p>{{ text|raw }}</p>', TRUE];
+    yield 'chained value-preserving filters' => ["<p>{{ text|default('x')|e }}</p>", TRUE];
+    yield 'value-changing filter' => ['<p>{{ text|upper }}</p>', FALSE];
+    yield 'HTML escaping strategy' => ["<p>{{ text|e('html') }}</p>", TRUE];
+    yield 'other escaping strategy' => ["<p>{{ text|e('js') }}</p>", FALSE];
+    yield 'value-changing filter after default' => ["<p>{{ text|default('')|upper }}</p>", FALSE];
+    yield 'attribute value' => ['<p title="{{ text|default(\'\') }}">x</p>', FALSE];
+  }
+
   public static function providerComponents(): iterable {
 
     $sdc = [

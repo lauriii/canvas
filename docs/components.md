@@ -92,6 +92,9 @@ significant amount of metadata, which is reduced significantly thanks to:
 - `\Drupal\canvas\ComponentSource\ComponentSourceInterface::preSaveItem()`
 - `\Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::collapse()`
 
+Text props can also be edited directly in the preview. See [Inline text editing for component
+developers](inline-editing.md) for which props qualify and how templates affect it.
+
 #### 3.1.2 Criteria for `SDC` `component`s
 
 For an `SDC` to be compatible/eligible for use in Canvas, it:
@@ -175,6 +178,10 @@ refer to "blocks" and not "block plugins", under the hood, they actually _are_ b
 available field types against the JSON schema of its explicit inputs ("props"). For details, see the [`Canvas Shape Matching
 into Field Types` doc](shape-matching-into-field-types.md). (It shares this infrastructure with the `SDC` `Component
 Source Plugin`.)
+
+Text props of `JS` `component`s are edited in the preview when their rendered text can be found; mark the element that
+renders a prop with `data-canvas-prop` to make that explicit. See [Inline text editing for component
+developers](inline-editing.md).
 
 #### 3.3.2 Criteria for `JS` `component`s
 

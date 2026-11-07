@@ -28,6 +28,24 @@ export interface Selection {
   items: string[];
 }
 
+/**
+ * A prop being edited in place on the canvas.
+ *
+ * Transient UI state, never part of undo history: while a session is active
+ * the preview DOM holds the in-progress value, and the layout model is written
+ * once when the session ends.
+ */
+export interface TextEditSession {
+  componentUuid: string;
+  propName: string;
+  /** Where to place the caret, in preview iframe CSS pixels. */
+  point?: { x: number; y: number };
+  /** A deletion to apply once the text is editable, at its end. */
+  applyKey?: 'Backspace' | 'Delete';
+  /** Select the word at `point`, as a double-click does. */
+  selectWord?: boolean;
+}
+
 export const DEFAULT_REGION = 'content' as const;
 
 export enum EditorFrameMode {
@@ -69,6 +87,18 @@ export interface uiSliceState {
   hoveredComponent: string | undefined; //uuid of component
   updatingComponent: string | undefined; //uuid of component
   selection: Selection;
+  textEditSession: TextEditSession | null;
+  /** Inline text commits sent but not yet answered by the server. */
+  inlineTextCommitsPending: number;
+  /**
+   * Changes when the component instance form must show the model's current
+   * values, after they were changed outside the form.
+   */
+  componentFormRevision: number;
+  /** Whether a new preview document is loading, before it is swapped in. */
+  previewLoading: boolean;
+  /** The text-edit session that ended last, and when. */
+  lastTextEditSession: (TextEditSession & { endedAt: number }) | null;
   collapsedLayers: string[];
   targetSlot: string | undefined; //uuid of slot being hovered when dragging
   viewportWidth: number;
@@ -133,6 +163,11 @@ export const initialState: uiSliceState = {
     consecutive: false,
     items: [],
   },
+  textEditSession: null,
+  inlineTextCommitsPending: 0,
+  lastTextEditSession: null,
+  componentFormRevision: 0,
+  previewLoading: false,
   collapsedLayers: [],
   PreviouslyEdited: { name: '', path: '' },
 };
@@ -355,6 +390,38 @@ export const uiSlice = createAppSlice({
     unsetEditorFrameContext: create.reducer((state) => {
       state.editorFrameContext = EditorFrameContext.NONE;
     }),
+    startTextEditSession: create.reducer(
+      (state, action: PayloadAction<TextEditSession>) => {
+        state.textEditSession = action.payload;
+      },
+    ),
+    endTextEditSession: create.reducer((state) => {
+      if (state.textEditSession) {
+        state.lastTextEditSession = {
+          componentUuid: state.textEditSession.componentUuid,
+          propName: state.textEditSession.propName,
+          endedAt: Date.now(),
+        };
+      }
+      state.textEditSession = null;
+    }),
+    setPreviewLoading: create.reducer(
+      (state, action: PayloadAction<boolean>) => {
+        state.previewLoading = action.payload;
+      },
+    ),
+    refreshComponentForm: create.reducer((state) => {
+      state.componentFormRevision += 1;
+    }),
+    inlineTextCommitStarted: create.reducer((state) => {
+      state.inlineTextCommitsPending += 1;
+    }),
+    inlineTextCommitSettled: create.reducer((state) => {
+      state.inlineTextCommitsPending = Math.max(
+        0,
+        state.inlineTextCommitsPending - 1,
+      );
+    }),
     clearSelection: create.reducer((state) => {
       state.selection.items.length = 0;
     }),
@@ -479,6 +546,28 @@ export const uiSlice = createAppSlice({
         ? ui.selection.items[0]
         : undefined;
     },
+    selectTextEditSession: (ui): TextEditSession | null => {
+      return ui.textEditSession;
+    },
+    /**
+     * Whether text is being edited in place or its commit is in flight. While
+     * true, the preview document is held, and undo and the component hotkeys
+     * are off, so they cannot act on a value the server has not seen yet.
+     */
+    selectPreviewLoading: (ui): boolean => {
+      return ui.previewLoading;
+    },
+    selectComponentFormRevision: (ui): number => {
+      return ui.componentFormRevision;
+    },
+    selectLastTextEditSession: (
+      ui,
+    ): (TextEditSession & { endedAt: number }) | null => {
+      return ui.lastTextEditSession;
+    },
+    selectIsInlineTextBusy: (ui): boolean => {
+      return !!ui.textEditSession || ui.inlineTextCommitsPending > 0;
+    },
     selectCollapsedLayers: (ui): string[] => {
       return ui.collapsedLayers;
     },
@@ -523,6 +612,12 @@ export const {
   clearUndoRedoHistory,
   clearSelection,
   setSelection,
+  startTextEditSession,
+  endTextEditSession,
+  inlineTextCommitStarted,
+  inlineTextCommitSettled,
+  refreshComponentForm,
+  setPreviewLoading,
   setPreviouslyEdited,
   unsetPreviouslyEdited,
   setCollapsedLayers,
@@ -552,6 +647,11 @@ export const {
   selectRedoItem,
   selectSelection,
   selectIsMultiSelect,
+  selectTextEditSession,
+  selectIsInlineTextBusy,
+  selectLastTextEditSession,
+  selectComponentFormRevision,
+  selectPreviewLoading,
   selectCollapsedLayers,
   selectPreviouslyEdited,
   selectCurrentRoute,

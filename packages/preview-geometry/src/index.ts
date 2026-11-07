@@ -8,11 +8,13 @@ export {
   CANVAS_EMPTY_REGION_PLACEHOLDER_CLASS,
   CANVAS_EMPTY_SLOT_PLACEHOLDER_CLASS,
   discoverCanvasBoundaries,
+  discoverCanvasPropBoundaries,
   formatCanvasCommentMarker,
   getCanvasTemplateMarkerAttributes,
   parseCanvasCommentMarker,
   type CanvasMarker,
   type CanvasMarkerPosition,
+  type CanvasPropBoundary,
   type CanvasTemplateMarkerAttributes,
 } from './markers';
 export {

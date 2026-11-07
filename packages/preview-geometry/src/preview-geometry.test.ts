@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createCanvasGeometryObserver,
   discoverCanvasBoundaries,
+  discoverCanvasPropBoundaries,
   formatCanvasCommentMarker,
   getCanvasStackDirection,
   getCanvasTemplateMarkerAttributes,
@@ -164,6 +165,58 @@ describe('preview marker discovery', () => {
     `;
 
     expect(discoverCanvasBoundaries(document)).toEqual([]);
+  });
+
+  it('pairs prop markers, including nested and unmatched ones', () => {
+    document.body.innerHTML = `
+      <!-- canvas-start-c1 -->
+      <h2><!-- canvas-prop-start-c1/heading -->Title<!-- canvas-prop-end-c1/heading --></h2>
+      <div>
+        <!-- canvas-prop-start-c1/text -->
+        <p>Outer <!-- canvas-prop-start-c1/text -->inner<!-- canvas-prop-end-c1/text --></p>
+        <!-- canvas-prop-end-c1/text -->
+      </div>
+      <!-- canvas-prop-start-c1/unmatched -->
+      <!-- canvas-prop-start-malformed -->
+      <!-- canvas-end-c1 -->
+    `;
+
+    const boundaries = discoverCanvasPropBoundaries(document);
+    expect(
+      boundaries.map(({ id, componentUuid, propName, start, end }) => ({
+        id,
+        componentUuid,
+        propName,
+        between: start.nextSibling?.textContent,
+        endParent: end.parentElement?.localName,
+      })),
+    ).toEqual([
+      {
+        id: 'c1/heading',
+        componentUuid: 'c1',
+        propName: 'heading',
+        between: 'Title',
+        endParent: 'h2',
+      },
+      {
+        id: 'c1/text',
+        componentUuid: 'c1',
+        propName: 'text',
+        between: 'inner',
+        endParent: 'p',
+      },
+      {
+        id: 'c1/text',
+        componentUuid: 'c1',
+        propName: 'text',
+        between: expect.any(String),
+        endParent: 'div',
+      },
+    ]);
+    // Prop markers never leak into the measured boundary types.
+    expect(discoverCanvasBoundaries(document).map(({ type }) => type)).toEqual([
+      'component',
+    ]);
   });
 });
 

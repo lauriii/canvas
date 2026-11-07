@@ -23,6 +23,10 @@
     pointer-events: none;
     opacity: 0;
   }
+
+  &.isEditingText {
+    pointer-events: none;
+  }
 }
 
 
@@ -89,6 +93,110 @@
     backdrop-filter: grayscale(80%) opacity(40%);
     background: #fff;
     mix-blend-mode: color;
+  }
+
+  /* The text being edited is underneath; let pointer events through to it,
+     including where ancestor overlays cover it. Sibling overlays keep their
+     own pointer-events, so other components stay clickable. */
+  &.editingText,
+  &:has(.editingText) {
+    pointer-events: none;
+  }
+
+  /* The text's own focus ring marks what is edited; a second box around the
+     component would only double it. */
+  &.editingText {
+    outline-color: transparent;
+  }
+
+  &.inlineEditable {
+    cursor: text;
+  }
+
+  .inlineTextHint {
+    position: absolute;
+    pointer-events: none;
+    border-radius: 2px;
+    outline: 1px dashed var(--accent-9);
+    outline-offset: 3px;
+  }
+
+  .inlineTextHintLabel {
+    position: absolute;
+    /* The component's name tag takes the top-left corner. */
+    right: -4px;
+    bottom: calc(100% + 6px);
+    padding: 1px 6px;
+    white-space: nowrap;
+    color: var(--accent-contrast);
+    border-radius: 4px;
+    background: var(--accent-9);
+    font-size: 11px;
+    line-height: 16px;
+  }
+
+  .inlineDebugEditable,
+  .inlineDebugRejected {
+    position: absolute;
+    pointer-events: auto;
+    outline: 1px dashed var(--green-9);
+
+    & span {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      padding: 0 4px;
+      white-space: nowrap;
+      color: var(--green-11);
+      background: var(--color-panel-solid, #fff);
+      font: 10px/14px var(--code-font-family, monospace);
+    }
+  }
+
+  .inlineDebugRejected {
+    outline-color: var(--red-9);
+
+    & span {
+      color: var(--red-11);
+    }
+  }
+
+  .inlineAddTexts {
+    position: absolute;
+    z-index: 2;
+    top: calc(100% + 4px);
+    left: 0;
+    display: flex;
+    gap: 4px;
+  }
+
+  .inlineAddText {
+    padding: 1px 8px;
+    cursor: pointer;
+    pointer-events: auto;
+    color: var(--accent-11);
+    border: 1px dashed var(--accent-8);
+    border-radius: 4px;
+    background: var(--color-panel-solid, #fff);
+    font-size: 11px;
+    line-height: 18px;
+
+    &:hover {
+      background: var(--accent-a3);
+    }
+  }
+
+  .inlinePanelHint {
+    position: absolute;
+    z-index: 2;
+    padding: 4px 8px;
+    transform: translate(-50%, calc(-100% - 8px));
+    white-space: nowrap;
+    pointer-events: none;
+    color: var(--gray-1);
+    border-radius: 6px;
+    background: var(--gray-12);
+    font-size: 12px;
   }
 
   &.updating {
