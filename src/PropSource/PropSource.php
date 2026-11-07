@@ -41,6 +41,7 @@ enum PropSource: string {
   case Dynamic = 'dynamic';
   case EntityField = 'entity-field';
   case Static = 'static';
+  case ObjectProps = 'object-props';
   case HostEntityUrl = 'host-entity-url';
   case HostEntity = 'host-entity';
 
@@ -64,6 +65,7 @@ enum PropSource: string {
       HostEntityUrlPropSource::class => self::HostEntityUrl->value,
       HostEntityPropSource::class => self::HostEntity->value,
       StaticPropSource::class => self::Static->value,
+      ObjectPropsSource::class => self::ObjectProps->value,
       EntityFieldPropSource::class => self::EntityField->value,
       default => throw new \LogicException('Unknown prop source class.'),
     };
@@ -111,6 +113,10 @@ enum PropSource: string {
       // @phpstan-ignore-next-line argument.type
       self::Adapter => AdaptedPropSource::parse($prop_source),
       self::Static => StaticPropSource::parse($prop_source),
+      // The ObjectPropsSource composes one StaticPropSource per sub-property
+      // of a custom object prop ("group").
+      // @see docs/adr/0021-object-props-in-code-components.md
+      self::ObjectProps => ObjectPropsSource::parse($prop_source),
       self::EntityField, self::Dynamic => EntityFieldPropSource::parse($prop_source),
       default => throw new \LogicException('Unknown source type.'),
     };

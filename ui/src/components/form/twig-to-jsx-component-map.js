@@ -16,6 +16,10 @@ import DrupalMediaLibraryFieldset from '@/components/form/components/drupal/Drup
 import DrupalMediaLibraryItem from '@/components/form/components/drupal/DrupalMediaLibraryItem.tsx';
 import DrupalMediaListContainer from '@/components/form/components/drupal/DrupalMediaListContainer.tsx';
 import DrupalMultivalueSubmit from '@/components/form/components/drupal/DrupalMultivalueSubmit';
+import {
+  DrupalObjectPropsItem,
+  DrupalObjectPropsItemList,
+} from '@/components/form/components/drupal/DrupalObjectPropsGroup';
 import DrupalPathWidget from '@/components/form/components/drupal/DrupalPathWidget';
 import { DrupalRadioGroup } from '@/components/form/components/drupal/DrupalRadio';
 import DrupalSelect from '@/components/form/components/drupal/DrupalSelect';
@@ -65,6 +69,8 @@ const twigToJSXComponentMap = {
   'drupal-canvas-media-library-item': DrupalMediaLibraryItem,
   'drupal-canvas-media-library-fieldset': DrupalMediaLibraryFieldset,
   'drupal-canvas-multivalue-submit': DrupalMultivalueSubmit,
+  'drupal-canvas-object-props-item-list': DrupalObjectPropsItemList,
+  'drupal-canvas-object-props-item': DrupalObjectPropsItem,
 };
 
 export default twigToJSXComponentMap;
