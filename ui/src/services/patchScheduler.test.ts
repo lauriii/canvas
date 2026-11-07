@@ -65,6 +65,25 @@ describe('createPatchScheduler', () => {
     expect(sent).toEqual(['delayed', 'drained']);
   });
 
+  it('drains only changes queued before the drain', async () => {
+    const events: string[] = [];
+    const scheduler = createPatchScheduler((value: string) => {
+      events.push(`send ${value}`);
+      return new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    scheduler.schedule('a', 'a1', true);
+    await vi.advanceTimersByTimeAsync(0);
+    const drained = scheduler.drain().then(() => events.push('drained'));
+    // For example an edit to an instance the write after the drain inserts.
+    scheduler.schedule('b', 'b1', true);
+    await vi.advanceTimersByTimeAsync(50);
+    await drained;
+    expect(events).toEqual(['send a1', 'drained']);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(events).toEqual(['send a1', 'drained', 'send b1']);
+  });
+
   it('sends one request at a time, including for other keys', async () => {
     let inFlight = 0;
     let maxInFlight = 0;

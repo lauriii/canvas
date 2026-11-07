@@ -25,7 +25,9 @@ export function createPatchScheduler<T>(
   let firstQueuedAt = 0;
   let lastChangeAt = -Infinity;
   let averageGap: number | undefined;
-  const idleWaiters: Array<() => void> = [];
+  // Sends finished so far, and drain() callers waiting for a number of them.
+  let sent = 0;
+  const drainWaiters: Array<{ until: number; resolve: () => void }> = [];
 
   const flush = () => {
     timer = undefined;
@@ -43,14 +45,20 @@ export function createPatchScheduler<T>(
     sending = true;
     Promise.resolve(send(value)).finally(() => {
       sending = false;
-      if (isDue || (queued.size && timer === undefined)) {
-        isDue = false;
-        flush();
+      sent++;
+      // At once, so waiters continue before later changes are sent. A send
+      // resolves once its response is applied.
+      for (let i = drainWaiters.length - 1; i >= 0; i--) {
+        if (drainWaiters[i].until <= sent) {
+          drainWaiters.splice(i, 1)[0].resolve();
+        }
       }
-      if (!sending && !queued.size) {
-        // At once, so earlier waiters continue before any later caller. A
-        // send resolves once its response is applied.
-        idleWaiters.splice(0).forEach((resolve) => resolve());
+      if (drainWaiters.length) {
+        flush();
+      } else if (isDue || (queued.size && timer === undefined)) {
+        isDue = false;
+        // After what resolved waiters run next, such as a layout write.
+        timer = setTimeout(flush, 0);
       }
     });
   };
@@ -104,20 +112,25 @@ export function createPatchScheduler<T>(
      */
     get: (key: string) => queued.get(key),
     /**
-     * Sends every waiting change now. Resolves once none waits or is in flight.
+     * Sends every change waiting or in flight now. Resolves once they are
+     * sent; changes queued later wait for what runs next.
      */
     drain(): Promise<void> {
-      if (!sending && !queued.size) {
+      // Keys keep their place when a change replaces a waiting one, so the
+      // next sends are these changes.
+      const count = (sending ? 1 : 0) + queued.size;
+      if (!count) {
         return Promise.resolve();
       }
       clearTimeout(timer);
       timer = undefined;
-      if (sending) {
-        isDue = true;
-      } else {
+      const drained = new Promise<void>((resolve) =>
+        drainWaiters.push({ until: sent + count, resolve }),
+      );
+      if (!sending) {
         flush();
       }
-      return new Promise((resolve) => idleWaiters.push(resolve));
+      return drained;
     },
   };
 }
