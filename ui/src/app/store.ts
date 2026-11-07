@@ -114,7 +114,6 @@ const rootReducer = combineSlices(
   {
     layoutModel: historyEraser<LayoutModelSliceState>(
       undoable(layoutModelReducer, {
-        // redux-undo's limit includes the present state.
         limit: UNDO_HISTORY_LIMIT + 1,
         undoType: '@@redux-undo/layoutModel_UNDO',
         redoType: '@@redux-undo/layoutModel_REDO',

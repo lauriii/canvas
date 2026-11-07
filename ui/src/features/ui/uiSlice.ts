@@ -191,8 +191,12 @@ const getNewScaleIndex = (
 /**
  * The number of steps that can be undone.
  *
- * Each undoable slice keeps at least this many steps of its own history, so
- * every item in the undo stack can be undone.
+ * `pushUndo` keeps at most this many items in the undo stack, across all
+ * undoable slices. The items for one slice are a subset of these, so each slice
+ * must keep at least this many past states for every item to stay undoable.
+ * Every `undoable()` slice in `store.ts` must therefore set
+ * `limit: UNDO_HISTORY_LIMIT + 1`: redux-undo's `limit` counts the present
+ * state as well as the past states.
  */
 export const UNDO_HISTORY_LIMIT = 50;
 
