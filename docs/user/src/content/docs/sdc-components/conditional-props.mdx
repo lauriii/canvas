@@ -58,8 +58,8 @@ that must all pass, and `not` to invert a condition. They can be nested.
 - A prop that is hidden counts as empty in the conditions of other props. So
   "Second button text" with `button_count: { gte: 2 }` stays hidden while
   `button_count` itself is hidden.
-- Props with a condition are indented under the props they depend on, and
-  highlighted when they appear.
+- A prop appears where it is in the schema. List it right after the props it
+  depends on, so it shows up next to the control that reveals it.
 - Hiding a prop keeps its value, and the component still receives it. Check the
   controlling prop in the template: `{% if show_button %}`.
 - Canvas validates conditions when it discovers the component. A condition that

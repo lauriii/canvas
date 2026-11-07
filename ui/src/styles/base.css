@@ -46,26 +46,19 @@ element-prop {
   align-items: center;
 }
 
-/* Props with an `x-canvas-visible-if` condition depend on other props, so they
- are indented. They are highlighted as they appear.
+/* Props with an `x-canvas-visible-if` condition fade in as they appear, right
+ below the props they depend on.
  @see ui/src/hooks/usePropVisibility.ts */
-[data-canvas-visible-if] {
-  /* Keeps the margin of the form item inside, so the borders of consecutive
-   props join. */
-  display: flow-root;
-  margin-inline-start: calc(var(--space-1) + (var(--canvas-prop-depth, 1) - 1) * var(--space-4));
-  padding-inline-start: var(--space-3);
-  border-inline-start: 2px solid var(--accent-a6);
-}
 [data-canvas-prop][hidden] {
   display: none !important;
 }
 [data-canvas-revealed] {
-  animation: canvas-prop-reveal 1s ease-out;
+  animation: canvas-prop-reveal 150ms ease-out;
 }
 @keyframes canvas-prop-reveal {
   from {
-    background-color: var(--accent-a4);
+    transform: translateY(-4px);
+    opacity: 0;
   }
 }
 @media (prefers-reduced-motion: reduce) {

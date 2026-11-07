@@ -1,6 +1,6 @@
 import { useLayoutEffect } from 'react';
 
-import { computeDepths, computeVisibility } from '@/utils/propVisibility';
+import { computeVisibility } from '@/utils/propVisibility';
 
 import type { RefObject } from 'react';
 import type { VisibilityCondition } from '@/utils/propVisibility';
@@ -78,23 +78,18 @@ export const usePropVisibility = (
         }
       });
       const visibility = computeVisibility(conditions, values);
-      const depths = computeDepths(conditions);
       wrappers.forEach((wrapper) => {
         const propName = wrapper.dataset.canvasProp as string;
         const visible = visibility[propName];
         if (visible === undefined) {
           return;
         }
-        wrapper.style.setProperty(
-          '--canvas-prop-depth',
-          String(depths[propName]),
-        );
         const wasHidden = wrapper.hidden;
         wrapper.hidden = !visible;
-        // Briefly highlights props as they appear, so the user notices them.
+        // Fades props in as they appear.
         if (wasHidden && visible) {
           wrapper.dataset.canvasRevealed = '';
-          setTimeout(() => delete wrapper.dataset.canvasRevealed, 1000);
+          setTimeout(() => delete wrapper.dataset.canvasRevealed, 200);
         }
       });
     };

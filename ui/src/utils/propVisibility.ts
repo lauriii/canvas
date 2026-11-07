@@ -91,46 +91,6 @@ export const passesCondition = (
   });
 
 /**
- * Lists the props that a condition refers to.
- */
-export const referencedProps = (condition: VisibilityCondition): string[] =>
-  Object.entries(condition).flatMap(([key, test]) => {
-    if (key === 'anyOf' || key === 'allOf') {
-      return (test as VisibilityCondition[]).flatMap(referencedProps);
-    }
-    if (key === 'not') {
-      return referencedProps(test as VisibilityCondition);
-    }
-    return [key];
-  });
-
-/**
- * Computes how deeply each prop with a condition is nested.
- *
- * A prop that depends on props without a condition has depth 1; one that
- * depends on a prop of depth 1 has depth 2, and so on.
- */
-export const computeDepths = (
-  conditions: Record<string, VisibilityCondition>,
-): Record<string, number> => {
-  const depths: Record<string, number> = {};
-  const depthOf = (propName: string): number => {
-    if (!(propName in conditions)) {
-      return 0;
-    }
-    if (!(propName in depths)) {
-      // Guards against cycles, which the server already rejects.
-      depths[propName] = 1;
-      depths[propName] =
-        1 + Math.max(0, ...referencedProps(conditions[propName]).map(depthOf));
-    }
-    return depths[propName];
-  };
-  Object.keys(conditions).forEach(depthOf);
-  return depths;
-};
-
-/**
  * Computes which props are visible.
  *
  * A hidden prop counts as empty in the conditions of other props: "Second
