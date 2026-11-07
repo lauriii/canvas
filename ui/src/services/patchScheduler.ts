@@ -48,12 +48,9 @@ export function createPatchScheduler<T>(
         flush();
       }
       if (!sending && !queued.size) {
-        // Let response handlers finish before waiters read their results.
-        setTimeout(() => {
-          if (!sending && !queued.size) {
-            idleWaiters.splice(0).forEach((resolve) => resolve());
-          }
-        });
+        // At once, so earlier waiters continue before any later caller. A
+        // send resolves once its response is applied.
+        idleWaiters.splice(0).forEach((resolve) => resolve());
       }
     });
   };
