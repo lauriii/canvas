@@ -315,12 +315,12 @@ function Section({
   'aria-labelledby'?: string;
 }) {
   return (
-    <>
+    <Box mt="4" mb="4">
       <Divider />
-      <Flex direction="column" gap="2" mb="4" {...attributes}>
+      <Flex direction="column" gap="2" mt="3" {...attributes}>
         {children}
       </Flex>
-    </>
+    </Box>
   );
 }
 
