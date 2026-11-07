@@ -127,9 +127,10 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
       iframe.style.display = '';
 
       const loadedSrcDocument = loadingSrcDocumentRef.current;
-      const swap = () => {
+      const swap = async () => {
         // Assets that partial previews added while this document loaded only
-        // reached the frame it replaces.
+        // reached the frame it replaces. Load them in order before the frame
+        // shows, as a later batch may depend on an earlier one.
         const loadedAssets = loadingAssetsRef.current;
         const addedAssets = addedAssetsRef.current;
         if (
@@ -137,9 +138,9 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
           addedAssets.length > loadedAssets.length &&
           loadedAssets.every((assets, index) => addedAssets[index] === assets)
         ) {
-          addedAssets
-            .slice(loadedAssets.length)
-            .forEach((assets) => loadAssetsInto(iframe.contentWindow!, assets));
+          for (const assets of addedAssets.slice(loadedAssets.length)) {
+            await loadAssetsInto(iframe.contentWindow, assets);
+          }
         }
         // A newer document may have started loading since this one did.
         swappedSrcDocumentRef.current =
