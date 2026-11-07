@@ -141,4 +141,16 @@ describe('findPreviewDropZoneId', () => {
     unfreezeDropTargets();
     expect(findPreviewDropZoneId(list, { x: 200, y: 460 }, 't')).toBeNull();
   });
+
+  it('changes the drop target only when the pointer is clearly past it', () => {
+    const viewport = el({}, [0, 0, 400, 1000], [root]);
+    freezeDropTargets(viewport);
+    // The boundary between before and after a is at y 50.
+    expect(find(200, 45)).toBe('a_top');
+    expect(find(200, 55)).toBe('a_top');
+    expect(find(200, 70)).toBe('a_bottom');
+    expect(find(200, 45)).toBe('a_bottom');
+    expect(find(200, 30)).toBe('a_top');
+    unfreezeDropTargets();
+  });
 });

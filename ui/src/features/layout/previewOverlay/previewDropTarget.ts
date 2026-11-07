@@ -6,6 +6,12 @@ import type { UniqueIdentifier } from '@dnd-kit/core';
 // slot.
 const EDGE_THRESHOLD = 12;
 
+// Once the drop target changes, it changes again only when the pointer is this
+// many pixels past where it would. Otherwise a hand that is held still, which
+// is never quite still, moves the dragged component back and forth across the
+// boundary between two drop targets.
+const HYSTERESIS = 12;
+
 interface Point {
   x: number;
   y: number;
@@ -16,6 +22,8 @@ let frozen: {
   viewport: Element;
   origin: DOMRect;
   rects: WeakMap<Element, DOMRect>;
+  // The drop target last resolved, if any.
+  last?: string | null;
 } | null = null;
 
 /**
@@ -91,8 +99,9 @@ const isHorizontal = (container: HTMLElement) =>
  * represents that insertion point, so drop handling is unchanged.
  *
  * Over the dragged component, the drop target is where it was. Its slots are
- * not drop targets. Drop targets are resolved against the layout at the
- * start of the drag (see freezeDropTargets()).
+ * not drop targets. During a drag, drop targets are resolved against the
+ * layout at its start (see freezeDropTargets()), and change only once the
+ * pointer is clearly past the boundary between two of them.
  *
  * @param root
  *   The overlay element of the root region (marked data-canvas-drop-container).
@@ -106,6 +115,39 @@ const isHorizontal = (container: HTMLElement) =>
  *   when the drag started (dropping there is a no-op).
  */
 export function findPreviewDropZoneId(
+  root: HTMLElement,
+  point: Point,
+  activeId: UniqueIdentifier,
+): string | null {
+  const id = resolveDropZoneId(root, point, activeId);
+  if (!frozen) {
+    return id;
+  }
+  const { last } = frozen;
+  if (
+    last !== undefined &&
+    id !== last &&
+    [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ].some(
+      ([dx, dy]) =>
+        resolveDropZoneId(
+          root,
+          { x: point.x + dx * HYSTERESIS, y: point.y + dy * HYSTERESIS },
+          activeId,
+        ) === last,
+    )
+  ) {
+    return last;
+  }
+  frozen.last = id;
+  return id;
+}
+
+function resolveDropZoneId(
   root: HTMLElement,
   point: Point,
   activeId: UniqueIdentifier,
