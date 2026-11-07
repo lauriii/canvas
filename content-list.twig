@@ -1,0 +1,9 @@
+<section{{ attributes.addClass('content-list') }} style="padding:2rem;border:1px solid #ddd;border-radius:12px;font-family:system-ui">
+  <h2 style="margin:0 0 .5rem">{{ heading }}</h2>
+  <dl style="display:grid;grid-template-columns:max-content 1fr;gap:.25rem 1rem;margin:0">
+    <dt>Category</dt><dd>{{ category ?: '—' }}</dd>
+    <dt>Author</dt><dd>{{ author ?: '—' }}</dd>
+    <dt>Also include</dt><dd>{{ topics ? topics|join(', ') : '—' }}</dd>
+    <dt>Featured story</dt><dd>{{ featured ?: '—' }}</dd>
+  </dl>
+</section>

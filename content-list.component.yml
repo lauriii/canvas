@@ -1,0 +1,44 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Content list
+status: stable
+group: Widget examples
+description: Lists stories, filtered by options that come from the site.
+props:
+  type: object
+  required: [heading]
+  properties:
+    heading:
+      type: string
+      title: Heading
+      examples: ['Latest stories']
+    category:
+      type: string
+      title: Category
+      description: Tags, as a tree.
+      x-canvas-options:
+        source: entity
+        entity_type: taxonomy_term
+        bundles: [tags]
+    author:
+      type: integer
+      title: Author
+      x-canvas-options:
+        source: entity
+        entity_type: user
+    topics:
+      type: array
+      title: Also include
+      items:
+        type: string
+        x-canvas-options:
+          source: entity
+          entity_type: taxonomy_term
+          bundles: [tags]
+    featured:
+      type: string
+      title: Featured story
+      description: Promoted articles, from the "Featured articles" view.
+      x-canvas-options:
+        source: view
+        view: featured_articles
+        display: entity_reference_1
