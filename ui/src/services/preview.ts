@@ -545,21 +545,41 @@ export const previewApi = createApi({
             if (instanceModel) {
               supersededModels.set(key, instanceModel);
             }
+          } else {
+            supersededModels.delete(key);
+          }
+          if ('component' in data) {
+            if (!isOutdated) {
+              applyModel({ model });
+            }
             return;
           }
-          supersededModels.delete(key);
-          // A structural edit since this request started, such as a move or a
-          // delete, waits for a layout POST. Keep it, and apply only this
-          // instance's model.
-          const layoutChanged =
-            selectLayout(getState() as RootState) !== startLayout;
-          applyModel(
-            'component' in data
-              ? { model }
-              : layoutChanged
-                ? { model: instanceModel ? { [uuid]: instanceModel } : {} }
-                : data,
-          );
+          // A whole-page response can also update other instances, for example
+          // to their component's latest version. An outdated instance keeps
+          // its current model.
+          const current = selectModel(getState() as RootState);
+          const serverModels: Record<string, any> = { ...model };
+          if (isOutdated) {
+            delete serverModels[uuid];
+          }
+          if (selectLayout(getState() as RootState) === startLayout) {
+            applyModel({
+              layout: data.layout,
+              model: {
+                ...serverModels,
+                ...(isOutdated && current[uuid] && { [uuid]: current[uuid] }),
+              },
+            });
+          } else {
+            // A structural edit since this request started, such as a move or
+            // a delete, waits for a layout POST. Keep it, and update only the
+            // instances it kept.
+            applyModel({
+              model: Object.fromEntries(
+                Object.entries(serverModels).filter(([id]) => id in current),
+              ),
+            });
+          }
         } finally {
           markApplied();
           // Tell ajax calls they're good to go regardless of success/failure.
