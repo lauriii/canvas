@@ -76,7 +76,7 @@ abstract class ApiMessageValidatorBase implements EventSubscriberInterface {
     }
 
     try {
-      $validatorBuilder = $this->getConfiguredValidatorBuilder();
+      $validatorBuilder = $this->getConfiguredValidatorBuilder($event->getRequest());
       $this->validate($validatorBuilder, $event);
     }
     catch (NoPath $e) {
@@ -156,8 +156,11 @@ abstract class ApiMessageValidatorBase implements EventSubscriberInterface {
 
   /**
    * Gets the validator builder configured with the module's OpenAPI schema.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request whose messages are validated.
    */
-  private function getConfiguredValidatorBuilder(): ValidatorBuilder {
+  private function getConfiguredValidatorBuilder(Request $request): ValidatorBuilder {
     $openapi_spec_file = \sprintf(
       '%s/%s/openapi.yml',
       $this->appRoot,
@@ -170,21 +173,23 @@ abstract class ApiMessageValidatorBase implements EventSubscriberInterface {
 
     // Parsing the file takes ~50ms, so keep the parsed schema until the file's
     // content changes, in one cache entry. The request and response validators
-    // share it within a request.
-    static $schema;
-    if (!isset($schema)) {
+    // share it per request, so the file is hashed once per request, also when
+    // one process handles several, as kernel tests do.
+    static $schemas;
+    $schemas ??= new \WeakMap();
+    if (!isset($schemas[$request])) {
       $hash = \hash_file('xxh64', $openapi_spec_file);
       $cached = $this->cache->get('canvas:openapi_schema');
       if ($cached !== FALSE && $cached->data['hash'] === $hash) {
-        $schema = $cached->data['schema'];
+        $schemas[$request] = $cached->data['schema'];
       }
       else {
-        $schema = (new YamlFileFactory($openapi_spec_file))->createSchema();
-        $this->cache->set('canvas:openapi_schema', ['hash' => $hash, 'schema' => $schema]);
+        $schemas[$request] = (new YamlFileFactory($openapi_spec_file))->createSchema();
+        $this->cache->set('canvas:openapi_schema', ['hash' => $hash, 'schema' => $schemas[$request]]);
       }
     }
 
-    return $this->validatorBuilder->fromSchema($schema);
+    return $this->validatorBuilder->fromSchema($schemas[$request]);
   }
 
   /**
