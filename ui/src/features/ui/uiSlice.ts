@@ -188,6 +188,18 @@ const getNewScaleIndex = (
   return Math.max(0, Math.min(scaleValues.length - 1, currentIndex));
 };
 
+/**
+ * The number of steps that can be undone.
+ *
+ * `pushUndo` keeps at most this many items in the undo stack, across all
+ * undoable slices. The items for one slice are a subset of these, so each slice
+ * must keep at least this many past states for every item to stay undoable.
+ * Every `undoable()` slice in `store.ts` must therefore set
+ * `limit: UNDO_HISTORY_LIMIT + 1`: redux-undo's `limit` counts the present
+ * state as well as the past states.
+ */
+export const UNDO_HISTORY_LIMIT = 50;
+
 // If you are not using async thunks you can use the standalone `createSlice`.
 export const uiSlice = createAppSlice({
   name: 'ui',
@@ -198,6 +210,9 @@ export const uiSlice = createAppSlice({
     pushUndo: create.reducer(
       (state, action: PayloadAction<UndoRedoStackItem>) => {
         state.undoStack.push(action.payload);
+        if (state.undoStack.length > UNDO_HISTORY_LIMIT) {
+          state.undoStack.shift();
+        }
         state.redoStack = [];
         // Reset metadata when a new action is pushed (not an undo/redo)
         state.undoRedoMetadata = {

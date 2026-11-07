@@ -14,6 +14,7 @@ import {
   selectRedoItem,
   selectUndoItem,
   initialState as uiInitialState,
+  UNDO_HISTORY_LIMIT,
   UndoRedoActionCreators,
 } from '@/features/ui/uiSlice';
 
@@ -695,5 +696,124 @@ describe('Undo/redo timeline works across slices', () => {
     // And the undo of the deleteNode 'insertNode' should also have triggered a
     // re-fetching of the preview so updatePreview should be true.
     expect(layoutState.present.updatePreview).to.eq(true);
+  });
+});
+
+describe('Undo history is capped', () => {
+  const makeCappedStore = () =>
+    makeStore({
+      pageData: { present: pageData, past: [], future: [] },
+      layoutModel: { present: layout, past: [], future: [] },
+      ui: {
+        ...uiInitialState,
+        currentRoute: { pathname: '/', search: '', hash: '' },
+      },
+    });
+  const editLayout = (store, i) =>
+    store.dispatch(
+      setLayoutModel({
+        ...layout,
+        model: {
+          'static-static-card1ab': {
+            ...layout.model['static-static-card1ab'],
+            text: `Text ${i}`,
+          },
+        },
+      }),
+    );
+  const editPageData = (store, i) =>
+    store.dispatch(setPageData({ title: [{ value: `Title ${i}` }] }));
+  const layoutText = (store) =>
+    selectLayoutHistory(store.getState()).present.model['static-static-card1ab']
+      .text;
+  const pageTitle = (store) =>
+    selectPageDataHistory(store.getState()).present.title[0].value;
+  // Mirrors useUndoRedo(): undo/redo the slice of the next stack item, if any.
+  const undo = (store) => {
+    const item = selectUndoItem(store.getState());
+    if (item) {
+      store.dispatch(UndoRedoActionCreators.undo(item.targetSlice));
+    }
+  };
+  const redo = (store) => {
+    const item = selectRedoItem(store.getState());
+    if (item) {
+      store.dispatch(UndoRedoActionCreators.redo(item.targetSlice));
+    }
+  };
+  const edits = UNDO_HISTORY_LIMIT + 10;
+
+  it('Should keep only the last UNDO_HISTORY_LIMIT layoutModel steps, all of them undoable', () => {
+    const store = makeCappedStore();
+    for (let i = 1; i <= edits; i++) {
+      editLayout(store, i);
+    }
+    expect(store.getState().ui.undoStack).to.have.length(UNDO_HISTORY_LIMIT);
+    expect(selectLayoutHistory(store.getState()).past).to.have.length(
+      UNDO_HISTORY_LIMIT,
+    );
+    for (let i = 0; i < UNDO_HISTORY_LIMIT; i++) {
+      undo(store);
+    }
+    expect(selectUndoItem(store.getState())).to.be.undefined;
+    expect(layoutText(store)).to.equal(`Text ${edits - UNDO_HISTORY_LIMIT}`);
+  });
+
+  it('Should keep only the last UNDO_HISTORY_LIMIT pageData steps, all of them undoable', () => {
+    const store = makeCappedStore();
+    for (let i = 1; i <= edits; i++) {
+      editPageData(store, i);
+    }
+    expect(store.getState().ui.undoStack).to.have.length(UNDO_HISTORY_LIMIT);
+    expect(selectPageDataHistory(store.getState()).past).to.have.length(
+      UNDO_HISTORY_LIMIT,
+    );
+    for (let i = 0; i < UNDO_HISTORY_LIMIT; i++) {
+      undo(store);
+    }
+    expect(selectUndoItem(store.getState())).to.be.undefined;
+    expect(pageTitle(store)).to.equal(`Title ${edits - UNDO_HISTORY_LIMIT}`);
+  });
+
+  it('Should cap the combined timeline when edits are spread across slices', () => {
+    const store = makeCappedStore();
+    const editsPerSlice = 30;
+    for (let i = 1; i <= editsPerSlice; i++) {
+      editLayout(store, i);
+    }
+    for (let i = 1; i <= editsPerSlice; i++) {
+      editPageData(store, i);
+    }
+    expect(store.getState().ui.undoStack).to.have.length(UNDO_HISTORY_LIMIT);
+
+    for (let i = 0; i < UNDO_HISTORY_LIMIT; i++) {
+      undo(store);
+    }
+    // The oldest 10 layoutModel edits fell off the combined timeline.
+    expect(layoutText(store)).to.equal(
+      `Text ${2 * editsPerSlice - UNDO_HISTORY_LIMIT}`,
+    );
+    expect(pageTitle(store)).to.equal(pageData.title[0].value);
+    expect(selectPageDataHistory(store.getState()).past).to.have.length(0);
+    expect(selectUndoItem(store.getState())).to.be.undefined;
+
+    // One more undo changes nothing.
+    const stateBefore = store.getState();
+    undo(store);
+    expect(selectLayoutHistory(store.getState())).to.equal(
+      selectLayoutHistory(stateBefore),
+    );
+    expect(selectPageDataHistory(store.getState())).to.equal(
+      selectPageDataHistory(stateBefore),
+    );
+    expect(store.getState().ui.redoStack).to.have.length(UNDO_HISTORY_LIMIT);
+
+    for (let i = 0; i < UNDO_HISTORY_LIMIT; i++) {
+      redo(store);
+    }
+    expect(layoutText(store)).to.equal(`Text ${editsPerSlice}`);
+    expect(pageTitle(store)).to.equal(`Title ${editsPerSlice}`);
+    expect(selectRedoItem(store.getState())).to.be.undefined;
+    expect(store.getState().ui.undoStack).to.have.length(UNDO_HISTORY_LIMIT);
   });
 });
