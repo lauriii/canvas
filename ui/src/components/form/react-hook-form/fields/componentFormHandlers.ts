@@ -68,7 +68,7 @@ export const flushBackendUpdate = async (
     isCurrent()
   ) {
     await update.send();
-    // ponytail: one macrotask lets the response handler apply the model; a promise from the handler if this ever falls short.
+    // ponytail: one timer tick lets the response handler apply the model; a promise from the handler if this ever falls short.
     await new Promise((resolve) => setTimeout(resolve));
   }
 };
