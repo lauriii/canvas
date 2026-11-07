@@ -124,4 +124,15 @@ describe('rebaseComponentModel', () => {
       resolved: { text: 'ab', image: [] },
     });
   });
+
+  it('keeps an edit back to the base value when the edited props are known', () => {
+    // Typed "b" after "a", then backspaced before the "ab" response arrived.
+    const base = { source: {}, resolved: { text: 'a', title: 'x' } };
+    const changed = { source: {}, resolved: { text: 'a', title: 'x' } };
+    const latest = { source: {}, resolved: { text: 'ab', title: 'y' } };
+    expect(rebaseComponentModel(base, changed, latest, ['text'])).toEqual({
+      source: {},
+      resolved: { text: 'a', title: 'y' },
+    });
+  });
 });

@@ -26,7 +26,11 @@ interface ComponentFormHandlerDependencies {
   isScalarProp: boolean;
   polledBackgroundUpdate: React.MutableRefObject<number | null>;
   component: any;
-  patchComponent: (inputUiData: InputUIData, params: any) => void;
+  patchComponent: (
+    inputUiData: InputUIData,
+    params: any,
+    editedProps?: string[],
+  ) => void;
   editorFrameContext: string;
   version: string;
 }
@@ -87,14 +91,18 @@ export const createComponentFormStateHandler = (
       //    in onQueryStarted in preview.ts
       // @see \Drupal\Core\Field\WidgetInterface::massageFormValues()
       const updateBackend = () => {
-        deps.patchComponent(newInputAndUiData, {
-          source: syncPropSourcesToResolvedValues(
-            selectedModel.source,
-            deps.component,
+        deps.patchComponent(
+          newInputAndUiData,
+          {
+            source: syncPropSourcesToResolvedValues(
+              selectedModel.source,
+              deps.component,
+              resolved,
+            ),
             resolved,
-          ),
-          resolved,
-        });
+          },
+          [deps.propName],
+        );
       };
       if (backgroundPreviewUpdate) {
         if (deps.polledBackgroundUpdate.current !== null) {
@@ -114,9 +122,13 @@ export const createComponentFormStateHandler = (
       updateBackend();
       return;
     }
-    deps.patchComponent(newInputAndUiData, {
-      ...selectedModel,
-      resolved,
-    });
+    deps.patchComponent(
+      newInputAndUiData,
+      {
+        ...selectedModel,
+        resolved,
+      },
+      [deps.propName],
+    );
   };
 };

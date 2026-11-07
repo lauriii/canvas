@@ -1,13 +1,13 @@
 import { useCallback } from 'react';
 
 import { useAppDispatch, useAppSelector, useAppStore } from '@/app/hooks';
-import { selectModel } from '@/features/layout/layoutModelSlice';
 import {
   selectRedoItem,
   selectUndoItem,
   UndoRedoActionCreators,
 } from '@/features/ui/uiSlice';
-import { recordSavedModels, runComponentWrite } from '@/services/preview';
+import { isOtherEntity } from '@/services/baseQuery';
+import { clearSavedModels, runComponentWrite } from '@/services/preview';
 
 interface UndoRedoState {
   isUndoable: boolean;
@@ -25,37 +25,31 @@ export function useUndoRedo(): UndoRedoState {
 
   // As component writes, so changes waiting to be sent are saved and added to
   // the history first, rather than saved over the restored state afterwards.
-  const dispatchUndo = useCallback(
-    () =>
-      runComponentWrite(async () => {
-        const item = selectUndoItem(store.getState());
-        if (item) {
-          dispatch(UndoRedoActionCreators.undo(item.targetSlice));
-          // Changes queued next build on the restored models, which the
-          // following layout POST saves.
-          recordSavedModels(
-            window.location.href,
-            selectModel(store.getState()),
-          );
-        }
-      }),
-    [dispatch, store],
-  );
+  const dispatchUndo = useCallback(() => {
+    // Undo is for the entity edited now, even if it waits.
+    const editorUrl = window.location.href;
+    return runComponentWrite(async () => {
+      const item = selectUndoItem(store.getState());
+      if (item && !isOtherEntity(editorUrl)) {
+        dispatch(UndoRedoActionCreators.undo(item.targetSlice));
+        // Recorded saved models predate the restored ones, which the
+        // following layout POST saves. Changes queued next build on their own
+        // models instead.
+        clearSavedModels();
+      }
+    });
+  }, [dispatch, store]);
 
-  const dispatchRedo = useCallback(
-    () =>
-      runComponentWrite(async () => {
-        const item = selectRedoItem(store.getState());
-        if (item) {
-          dispatch(UndoRedoActionCreators.redo(item.targetSlice));
-          recordSavedModels(
-            window.location.href,
-            selectModel(store.getState()),
-          );
-        }
-      }),
-    [dispatch, store],
-  );
+  const dispatchRedo = useCallback(() => {
+    const editorUrl = window.location.href;
+    return runComponentWrite(async () => {
+      const item = selectRedoItem(store.getState());
+      if (item && !isOtherEntity(editorUrl)) {
+        dispatch(UndoRedoActionCreators.redo(item.targetSlice));
+        clearSavedModels();
+      }
+    });
+  }, [dispatch, store]);
 
   const dispatchClearUndoRedoHistory = useCallback(() => {
     dispatch(UndoRedoActionCreators.clearHistory('layoutModel'));

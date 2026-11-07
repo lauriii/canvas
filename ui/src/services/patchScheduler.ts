@@ -98,6 +98,10 @@ export function createPatchScheduler<T>(
      */
     has: (key: string) => queued.has(key),
     /**
+     * The change for this key waiting to be sent, if any.
+     */
+    get: (key: string) => queued.get(key),
+    /**
      * Sends every waiting change now. Resolves once none waits or is in flight.
      */
     drain(): Promise<void> {
@@ -133,14 +137,17 @@ const withoutValue = (source: unknown) => {
  * Rebases a changed component model onto a newer version of the model it was
  * made on.
  *
- * A prop counts as changed if its resolved value or its source (other than
- * the source's copy of the value) differs from `base`. Changed props keep
- * the change; all others take their source and value from `latest`.
+ * Edited props keep the change; all others take their source and value from
+ * `latest`. Without `editedProps`, a prop counts as edited if its resolved
+ * value or its source (other than the source's copy of the value) differs
+ * from `base`. That misses an edit back to the base value, so pass the edited
+ * props when known.
  */
 export const rebaseComponentModel = (
   base: { source: object; resolved: object },
   changed: { source: object; resolved: object },
   latest: { source: object; resolved: object },
+  editedProps?: string[],
 ) => {
   const [baseSource, baseResolved, changedSource, changedResolved] = [
     base.source,
@@ -156,10 +163,14 @@ export const rebaseComponentModel = (
     ...Object.keys(changedSource),
     ...Object.keys(changedResolved),
   ]).forEach((name) => {
-    if (
-      isEqual(baseResolved[name], changedResolved[name]) &&
-      isEqual(withoutValue(baseSource[name]), withoutValue(changedSource[name]))
-    ) {
+    const isEdited = editedProps
+      ? editedProps.includes(name)
+      : !isEqual(baseResolved[name], changedResolved[name]) ||
+        !isEqual(
+          withoutValue(baseSource[name]),
+          withoutValue(changedSource[name]),
+        );
+    if (!isEdited) {
       return;
     }
     [

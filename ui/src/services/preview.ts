@@ -76,6 +76,8 @@ export type UpdateComponentQueryArg = {
   editorUrl?: string;
   // The model a queued form change was made on. Not sent.
   baseModel?: ComponentModel | EvaluatedComponentModel;
+  // The props a queued form change edited, if known. Not sent.
+  editedProps?: string[];
 };
 
 // Component writes run one at a time: each reads the saved models, sends its
@@ -96,8 +98,8 @@ const runExclusive = <T>(write: () => Promise<T>): Promise<T> => {
  * Returns a component instance's newest saved model on the entity an editor
  * URL edits, if known.
  *
- * It is the model of the newest successful write, loaded layout or undo/redo
- * for that entity. The editor's own models can belong to another entity while
+ * It is the model of the newest successful write or loaded layout for that
+ * entity, if no undo or redo cleared it since. The editor's own models can belong to another entity while
  * a layout reloads, and lack responses withheld for queued changes.
  */
 export const getSavedModel = (
@@ -107,8 +109,7 @@ export const getSavedModel = (
   savedModels.get(instanceKey(uuid, editorUrl));
 
 /**
- * Records the models a full-layout write saved, a layout loaded, or undo or
- * redo restored for an entity.
+ * Records the models a write saved or a layout loaded for an entity.
  */
 export const recordSavedModels = (
   editorUrl: string,
@@ -117,6 +118,12 @@ export const recordSavedModels = (
   Object.entries(model).forEach(([uuid, componentModel]) =>
     savedModels.set(instanceKey(uuid, editorUrl), componentModel),
   );
+
+/**
+ * Forgets every recorded saved model, for example after undo or redo, whose
+ * restored models the next layout POST saves.
+ */
+export const clearSavedModels = () => savedModels.clear();
 
 /**
  * Takes the saved models of a layout's component instances on its entity.
@@ -157,6 +164,7 @@ const rebaseOnSavedModel = (
       baseModel,
       model as EvaluatedComponentModel,
       saved,
+      arg.editedProps,
     ) as EvaluatedComponentModel,
   };
 };
@@ -335,7 +343,13 @@ export const previewApi = createApi({
       UpdateComponentResultType | PartialUpdateComponentResultType,
       UpdateComponentQueryArg
     >({
-      query: ({ type, editorUrl, baseModel: _baseModel, ...body }) => {
+      query: ({
+        type,
+        editorUrl,
+        baseModel: _baseModel,
+        editedProps: _editedProps,
+        ...body
+      }) => {
         let url = '';
         if (type === 'entity') {
           url = 'canvas/api/v0/layout/{entity_type}/{entity_id}';
@@ -442,11 +456,19 @@ export const previewApi = createApi({
           const { data, meta } = result as { data: any; meta: any };
           const { model, autoSaves } = data;
           const instanceModel = model?.[uuid];
-          if (instanceModel) {
-            savedModels.set(key, instanceModel);
+          if ('component' in data) {
+            if (instanceModel) {
+              savedModels.set(key, instanceModel);
+            }
+          } else if (model) {
+            // A whole-page response can also update other instances, for
+            // example to their component's latest version.
+            recordSavedModels(arg.editorUrl ?? window.location.href, model);
           }
           // The editor moved to another entity since this change was made.
           if (isOtherEntity(arg.editorUrl)) {
+            // This model is newer than one kept for if a later PATCH fails.
+            supersededModels.delete(key);
             handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
             return;
           }
@@ -542,6 +564,7 @@ export const usePatchComponent = () => {
   return (
     inputUIData: InputUIData,
     model: UpdateComponentQueryArg['model'],
+    editedProps?: string[],
   ) => {
     const {
       selectedComponent,
@@ -550,6 +573,8 @@ export const usePatchComponent = () => {
       editorFrameContext,
     } = inputUIData;
 
+    // A change replacing a queued one also carries the queued one's edits.
+    const queued = patchScheduler.get(instanceKey(selectedComponent));
     const arg = {
       type: editorFrameContext,
       componentInstanceUuid: selectedComponent,
@@ -557,6 +582,10 @@ export const usePatchComponent = () => {
       model,
       editorUrl: window.location.href,
       baseModel: inputUIData.model?.[selectedComponent],
+      editedProps:
+        editedProps && (!queued || queued.editedProps)
+          ? [...new Set([...(queued?.editedProps ?? []), ...editedProps])]
+          : undefined,
     };
 
     // Prevent duplicate requests
