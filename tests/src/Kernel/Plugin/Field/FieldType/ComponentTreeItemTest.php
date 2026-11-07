@@ -112,6 +112,10 @@ class ComponentTreeItemTest extends CanvasKernelTestBase {
       self::assertSame($component->getActiveVersion(), $item_list->get(0)->getComponentVersion());
       self::assertSame($component->getVersions()[0], $item_list->get(0)->getComponentVersion());
       self::assertSame($component->getVersions()[1], $item_list->get(1)->getComponentVersion());
+      // The referenced Component config entity is loaded at the stored
+      // version, not at the active version.
+      self::assertSame($component->getVersions()[0], $item_list->get(0)->getComponent()?->getLoadedVersion());
+      self::assertSame($component->getVersions()[1], $item_list->get(1)->getComponent()?->getLoadedVersion());
     };
 
     // Create a component tree item list using the oldest version; then try
@@ -126,6 +130,49 @@ class ComponentTreeItemTest extends CanvasKernelTestBase {
     // same result. Anything else would be data loss.
     self::assertFalse($component_tree->isEmpty());
     $set_values($component_tree);
+
+    // Iteration 3: setting a different version and different inputs on an
+    // existing item recomputes its resolved inputs.
+    $item = $component_tree->get(1);
+    \assert($item instanceof ComponentTreeItem);
+    self::assertSame(['heading' => 'This is really tricky for a first-timer …'], $item->get('inputs_resolved')->getValue());
+    $component_tree->setValue([
+      $component_tree->get(0)?->getValue(),
+      [
+        'uuid' => '947c196f-f108-43fd-a446-03a08100d572',
+        'component_id' => 'sdc.canvas_test_sdc.props-slots',
+        'component_version' => $component->getVersions()[0],
+        'inputs' => [
+          'heading' => '… but eventually it all makes sense.',
+        ],
+      ],
+    ]);
+    self::assertSame($item, $component_tree->get(1));
+    self::assertSame($component->getVersions()[0], $item->getComponentVersion());
+    self::assertSame($component->getVersions()[0], $item->getComponent()?->getLoadedVersion());
+    self::assertSame(['heading' => '… but eventually it all makes sense.'], $item->get('inputs_resolved')->getValue());
+
+    // Iteration 4: a stored component version of a deleted Component config
+    // entity references nothing, and validation reports it.
+    $component->delete();
+    $component_tree->setValue([
+      [
+        'uuid' => '947c196f-f108-43fd-a446-03a08100d572',
+        'component_id' => 'sdc.canvas_test_sdc.props-slots',
+        'component_version' => $component->getVersions()[1],
+        'inputs' => [
+          'heading' => 'This is really tricky for a first-timer …',
+        ],
+      ],
+    ]);
+    $item = $component_tree->get(0);
+    \assert($item instanceof ComponentTreeItem);
+    self::assertSame($component->getVersions()[1], $item->getComponentVersion());
+    self::assertNull($item->getComponent());
+    self::assertNull($item->get('inputs_resolved')->getValue());
+    self::assertSame([
+      '0.component_id' => "The 'canvas.component.sdc.canvas_test_sdc.props-slots' config does not exist.",
+    ], self::violationsToArray($component_tree->validate()));
   }
 
   /**
