@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { conditionToRules, rulesToCondition } from './visibilityRules';
+import {
+  conditionToRules,
+  operatorsFor,
+  replacePropInCondition,
+  rulesToCondition,
+} from './visibilityRules';
 
+import type { VisibilityCondition } from '@/utils/propVisibility';
 import type { VisibilityRules } from './visibilityRules';
 
 describe('visibility rules', () => {
@@ -78,5 +84,56 @@ describe('visibility rules', () => {
     [{ anyOf: [{ show: true, count: 2 }, { title: { filled: true } }] }],
   ])('cannot represent %j', (condition) => {
     expect(conditionToRules(condition as never)).toBeNull();
+  });
+});
+
+describe('incomplete rules', () => {
+  it('leaves out rules without a value', () => {
+    expect(
+      rulesToCondition({
+        match: 'all',
+        rules: [
+          { prop: 'show', operator: 'on' },
+          { prop: 'count', operator: 'gt' },
+          { prop: 'title', operator: 'is', value: '' },
+        ],
+      }),
+    ).toEqual({ show: true });
+  });
+});
+
+describe('operatorsFor', () => {
+  it('offers contains for props with multiple values', () => {
+    expect(operatorsFor('listText', true)).toEqual([
+      'contains',
+      'filled',
+      'empty',
+    ]);
+    expect(operatorsFor('listText')).toContain('is');
+  });
+});
+
+describe('replacePropInCondition', () => {
+  const condition: VisibilityCondition = {
+    show: true,
+    anyOf: [{ count: { gte: 2 } }, { show: false }],
+    not: { show: false },
+  };
+
+  it('follows a renamed prop', () => {
+    expect(replacePropInCondition(condition, 'show', 'visible')).toEqual({
+      visible: true,
+      anyOf: [{ count: { gte: 2 } }, { visible: false }],
+      not: { visible: false },
+    });
+  });
+
+  it('drops the tests of a removed prop', () => {
+    expect(replacePropInCondition(condition, 'show', null)).toEqual({
+      anyOf: [{ count: { gte: 2 } }],
+    });
+    expect(
+      replacePropInCondition({ show: true }, 'show', null),
+    ).toBeUndefined();
   });
 });
