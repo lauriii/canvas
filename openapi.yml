@@ -3494,54 +3494,6 @@ paths:
                     examples:
                       - Missing data
                       - Missing clientInstanceId
-  /canvas/api/v0/ui/options-sources:
-    get:
-      summary: Lists the options sources that code component props can use.
-      responses:
-        '200':
-          description: Options sources, each with the `x-canvas-options` value to use.
-          content:
-            application/json:
-              schema:
-                title: Options sources
-                type: object
-                required:
-                  - data
-                additionalProperties: false
-                properties:
-                  data:
-                    type: array
-                    items:
-                      type: object
-                      required:
-                        - group
-                        - label
-                        - options
-                      additionalProperties: false
-                      properties:
-                        group:
-                          type: string
-                          description: Human-readable label of the options source plugin.
-                        label:
-                          type: string
-                          description: Human-readable label of this configuration.
-                        options:
-                          type: object
-                          description: The `x-canvas-options` value, with the keys of the source.
-                          additionalProperties: true
-                          required:
-                            - source
-                          properties:
-                            source:
-                              type: string
-              example:
-                data:
-                  - group: Entities
-                    label: 'Taxonomy term: Tags'
-                    options:
-                      source: entity
-                      entity_type: taxonomy_term
-                      bundles: [tags]
   /canvas/api/v0/ui/content-entity-reference:
     get:
       summary: Lists fieldable content entity types and their bundles the current user can view.
@@ -4117,6 +4069,54 @@ paths:
                     teaser:
                       label: Teaser
                       hasTemplate: true
+  /canvas/api/v0/ui/options-sources:
+    get:
+      summary: Lists the options sources that code component props can use.
+      responses:
+        '200':
+          description: Options sources, each with the `x-canvas-options` value to use.
+          content:
+            application/json:
+              schema:
+                title: Options sources
+                type: object
+                required:
+                  - data
+                additionalProperties: false
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - group
+                        - label
+                        - options
+                      additionalProperties: false
+                      properties:
+                        group:
+                          type: string
+                          description: Human-readable label of the options source plugin.
+                        label:
+                          type: string
+                          description: Human-readable label of this configuration.
+                        options:
+                          type: object
+                          description: The `x-canvas-options` value, with the keys of the source.
+                          additionalProperties: true
+                          required:
+                            - source
+                          properties:
+                            source:
+                              type: string
+              example:
+                data:
+                  - group: Entities
+                    label: 'Taxonomy term: Tags'
+                    options:
+                      source: entity
+                      entity_type: taxonomy_term
+                      bundles: [tags]
   /canvas/api/v0/ui/preview-assets:
     get:
       summary: Gets the global assets to load in component preview iframes, rendered with the front-end theme.
