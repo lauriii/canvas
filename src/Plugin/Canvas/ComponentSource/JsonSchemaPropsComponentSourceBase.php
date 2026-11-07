@@ -13,6 +13,7 @@ use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\InvalidComponentInputsPropSourceException;
 use Drupal\canvas\JsonSchemaInterpreter\PropVisibilityCondition;
 use Drupal\canvas\MissingHostEntityException;
+use Drupal\canvas\OptionsSource\OptionsSourceInterface;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
@@ -440,6 +441,25 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       unset($prop_field_definition);
     }
     return $settings;
+  }
+
+  /**
+   * Gets where an explicit input prop's options come from, if from site data.
+   *
+   * @return array<string, mixed>|null
+   *   The prop's `x-canvas-options`, or NULL if it has none.
+   *
+   * @see \Drupal\canvas\OptionsSource\OptionsSourceInterface
+   */
+  public function getOptionsSourceForExplicitInputProp(string $prop_name): ?array {
+    $shape = $this->getExplicitInputDefinitions()['shapes'][$prop_name] ?? NULL;
+    if ($shape === NULL) {
+      return NULL;
+    }
+    $schema = (new PropShape($shape))->resolvedSchema;
+    // For multiple values, the options apply to each item.
+    $item_schema = ($schema['type'] ?? NULL) === 'array' ? ($schema['items'] ?? []) : $schema;
+    return $item_schema[OptionsSourceInterface::KEY] ?? NULL;
   }
 
   /**

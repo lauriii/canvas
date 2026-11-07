@@ -24,6 +24,8 @@ services:
       - { name: stream_wrapper, scheme: json-schema-definitions }
   Drupal\canvas\Plugin\AdapterManager:
     parent: default_plugin_manager
+  Drupal\canvas\OptionsSource\OptionsSourceManager:
+    parent: default_plugin_manager
   Drupal\canvas\ComponentDependencyUninstallValidator:
     public: true
     tags:
@@ -241,6 +243,7 @@ services:
       # controller buildable when it is not installed (argument is then NULL).
       $translationSynchronizer: '@?content_translation.synchronizer'
   Drupal\canvas\Controller\ApiUiContentEntityReferenceControllers: {}
+  Drupal\canvas\Controller\ApiUiOptionsSourcesController: {}
   Drupal\canvas\Controller\ApiUiContentTemplateControllers: {}
   Drupal\canvas\Controller\ApiUiPreviewAssetsController: {}
   Drupal\canvas\Controller\ApiUsageControllers: {}

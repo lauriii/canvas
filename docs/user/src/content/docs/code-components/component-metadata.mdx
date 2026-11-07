@@ -182,6 +182,25 @@ UI.
 
 Enum values cannot contain dots.
 
+### List: from site
+
+A list of options that come from the site, such as the terms of a vocabulary or
+the results of a view. Choose where the options come from in **Options from**.
+The component receives the ID of the chosen option.
+
+```yaml
+type: string
+x-canvas-options:
+  source: entity
+  entity_type: taxonomy_term
+  bundles:
+    - tags
+```
+
+These props must be optional. See
+[Options from site data](/sdc-components/options-from-site-data) for all
+sources.
+
 ### Content entity reference
 
 Reference to a selected Drupal content entity as a structured object. Use this

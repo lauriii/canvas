@@ -32,6 +32,7 @@ const derivedPropTypes = [
       !prop.format &&
       !prop.contentMediaType &&
       !prop['x-formatting-context'] &&
+      !prop['x-canvas-options'] &&
       (!prop.enum || prop.enum.length === 0),
     init: {
       type: 'string',
@@ -165,6 +166,15 @@ const derivedPropTypes = [
     init: {
       type: 'integer',
       enum: [],
+    },
+  },
+  {
+    type: 'siteOptions' as const,
+    displayName: 'List: from site',
+    derive: (prop: CodeComponentPropSerialized) =>
+      prop.type === 'string' && !!prop['x-canvas-options'],
+    init: {
+      type: 'string',
     },
   },
   {

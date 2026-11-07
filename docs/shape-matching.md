@@ -612,3 +612,23 @@ video:
   get no `iframe_url`. The widget's `pattern` attribute lets the UI reject them before they reach the preview.
 - In `examples`, `src` is the URL of the video page.
 - There is no `static prop source` that uses Remote video media entities yet.
+
+#### 3.2.6 Options from site data
+
+A `type: string` or `type: integer` prop (or the `items` of a `type: array` prop) with `x-canvas-options` is stored like an
+`enum` prop: `list_string` or `list_integer` with the `canvas_load_allowed_values_for_component_prop` allowed values
+function, and the `options_select` widget. Instead of `enum` + `meta:enum`, an `OptionsSource` plugin lists the options when
+the form is built. `x-canvas-options.source` is the plugin ID; its other keys are the plugin's configuration:
+
+```yaml
+category:
+  type: string
+  title: Category
+  x-canvas-options:
+    source: entity
+    entity_type: taxonomy_term
+    bundles: [tags]
+```
+
+Because the shape includes `x-canvas-options`, each source configuration is a distinct prop shape. Such props must be
+optional, and cannot have `enum`. See `\Drupal\canvas\OptionsSource\OptionsSourceInterface`.

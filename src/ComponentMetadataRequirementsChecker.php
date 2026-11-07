@@ -6,6 +6,8 @@ namespace Drupal\canvas;
 
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\JsonSchemaInterpreter\PropVisibilityCondition;
+use Drupal\canvas\OptionsSource\OptionsSourceInterface;
+use Drupal\canvas\OptionsSource\OptionsSourceManager;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
 use Drupal\canvas\PropShape\EphemeralPropShapeRepository;
@@ -73,6 +75,27 @@ final class ComponentMetadataRequirementsChecker {
       $is_array_prop_type = \in_array('array', $prop_types, TRUE);
       if ($is_array_prop_type && isset($prop['items']['enum']) && \in_array('', $prop['items']['enum'], TRUE)) {
         $messages[] = \sprintf('Prop "%s" has an empty enum value in items.', $prop_name);
+      }
+
+      // Options from site data.
+      // @see \Drupal\canvas\OptionsSource\OptionsSourceInterface
+      $item_schema = $is_array_prop_type ? ($prop['items'] ?? []) : $prop;
+      if (\array_key_exists(OptionsSourceInterface::KEY, $prop) && $is_array_prop_type) {
+        $messages[] = \sprintf('Prop "%s": move `%s` into `items`, because it applies to each value.', $prop_name, OptionsSourceInterface::KEY);
+        continue;
+      }
+      if (\array_key_exists(OptionsSourceInterface::KEY, $item_schema)) {
+        $prefix = \sprintf('Prop "%s": `%s`:', $prop_name, OptionsSourceInterface::KEY);
+        $options_messages = match (TRUE) {
+          !\in_array(((array) ($item_schema['type'] ?? NULL))[0] ?? NULL, ['string', 'integer'], TRUE) => ['Needs a prop of type string or integer, or a list of them.'],
+          \array_key_exists('enum', $item_schema) => ['Replaces `enum`: remove `enum`.'],
+          \in_array($prop_name, $required_props, TRUE) => ['Needs an optional prop, because the site may have no options to choose from.'],
+          default => \Drupal::service(OptionsSourceManager::class)->validatePropSchema($item_schema[OptionsSourceInterface::KEY]),
+        };
+        if ($options_messages) {
+          $messages = [...$messages, ...\array_map(fn (string $message) => "$prefix $message", $options_messages)];
+          continue;
+        }
       }
 
       // Required props must have examples — except content-entity-reference

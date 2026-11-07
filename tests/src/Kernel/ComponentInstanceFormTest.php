@@ -12,6 +12,7 @@ use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Form\ComponentInstanceForm;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\JsonSchemaInterpreter\PropVisibilityCondition;
+use Drupal\canvas\OptionsSource\OptionsSourceInterface;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
@@ -26,6 +27,8 @@ use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Form\FormState;
 use Drupal\Core\Url;
+use Drupal\taxonomy\Entity\Term;
+use Drupal\taxonomy\Entity\Vocabulary;
 use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
 use Drupal\Tests\canvas\TestSite\CanvasTestSetup;
 use Drupal\Tests\node\Traits\NodeCreationTrait;
@@ -569,6 +572,70 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     $reloaded = JavaScriptComponent::load($code_component->id());
     self::assertInstanceOf(JavaScriptComponent::class, $reloaded);
     self::assertSame('{"showBadge":false}', $reloaded->get('props')['badgeText'][PropVisibilityCondition::KEY]);
+  }
+
+  /**
+   * Tests props whose options come from site data.
+   *
+   * @see \Drupal\canvas\OptionsSource\OptionsSourceInterface
+   * @see \Drupal\canvas\Plugin\Canvas\OptionsSource\EntityOptionsSource
+   */
+  public function testOptionsFromSiteData(): void {
+    $this->container->get(ModuleInstallerInterface::class)->install(['taxonomy']);
+    $this->setUpCurrentUser(permissions: ['access content', Page::EDIT_PERMISSION]);
+    Vocabulary::create(['vid' => 'tags', 'name' => 'Tags'])->save();
+    $design = Term::create(['vid' => 'tags', 'name' => 'Design']);
+    $design->save();
+    $color = Term::create(['vid' => 'tags', 'name' => 'Color & type', 'parent' => [$design->id()]]);
+    $color->save();
+    $page = Page::create(['title' => $this->randomMachineName()]);
+    self::assertSame(SAVED_NEW, $page->save());
+
+    $props = [
+      'category' => [
+        'type' => 'string',
+        'title' => 'Category',
+        OptionsSourceInterface::KEY => ['source' => 'entity', 'entity_type' => 'taxonomy_term', 'bundles' => ['tags']],
+      ],
+    ];
+    $code_component = JavaScriptComponent::create([
+      'machineName' => 'teaser',
+      'name' => 'Teaser',
+      'status' => TRUE,
+      'props' => $props,
+      'slots' => [],
+      'js' => ['original' => '', 'compiled' => ''],
+      'css' => ['original' => '', 'compiled' => ''],
+      'dataDependencies' => [],
+    ]);
+    self::assertCount(0, $code_component->getTypedData()->validate());
+    $code_component->save();
+
+    // The form offers the terms, as a tree, by ID.
+    $component = Component::load(JsComponent::componentIdFromJavascriptComponentId($code_component->id()));
+    self::assertInstanceOf(Component::class, $component);
+    $crawler = $this->getCrawlerForFormRequest(
+      '/canvas/api/v0/form/component-instance/canvas_page/' . $page->id(),
+      $component,
+      $this->getFormCanvasPropsForComponent($component->id()),
+    );
+    // Short lists may render as radios.
+    $options = $crawler->filter('select[name$="[category]"] option, input[type="radio"][name$="[category]"]');
+    self::assertSame(['_none', $design->id(), $color->id()], $options->each(fn (Crawler $option) => $option->attr('value')));
+    self::assertStringContainsString('-Color & type', $crawler->filter('.field--name-category')->text());
+
+    // Invalid sources make the code component invalid.
+    $assert_invalid = function (array $prop, array $required, string $expected_message) use ($code_component): void {
+      $code_component->set('props', ['category' => $prop])->set('required', $required);
+      $messages = \array_map(fn ($violation) => (string) $violation->getMessage(), iterator_to_array($code_component->getTypedData()->validate()));
+      self::assertContains($expected_message, $messages);
+    };
+    $prop = $props['category'];
+    $prefix = 'Prop "category": `x-canvas-options`: ';
+    $assert_invalid([OptionsSourceInterface::KEY => ['source' => 'entity', 'entity_type' => 'taxonomy_term', 'bundles' => ['topics']]] + $prop, [], $prefix . '`bundles` lists "topics", which "taxonomy_term" does not have.');
+    $assert_invalid([OptionsSourceInterface::KEY => ['source' => 'entity', 'entity_type' => 'term']] + $prop, [], $prefix . '`entity_type` must be an existing entity type, but is "term".');
+    $assert_invalid([OptionsSourceInterface::KEY => ['source' => 'vocabulary']] + $prop, [], $prefix . 'The source "vocabulary" does not exist. Available sources: entity, view.');
+    $assert_invalid(['examples' => ['1']] + $prop, ['category'], $prefix . 'Needs an optional prop, because the site may have no options to choose from.');
   }
 
   /**
