@@ -4,6 +4,7 @@ import { useDraggable } from '@dnd-kit/core';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ComponentContextMenu from '@/features/layout/preview/ComponentContextMenu';
+import ComponentToolbar from '@/features/layout/preview/ComponentToolbar';
 import { ComponentNameTag } from '@/features/layout/preview/NameTag';
 import { usePreviewDom } from '@/features/layout/preview/PreviewDomContext';
 import { usePreviewGeometry } from '@/features/layout/preview/PreviewGeometryContext';
@@ -15,6 +16,7 @@ import {
   selectEditorViewPortScale,
   selectIsComponentHovered,
   selectIsComponentUpdating,
+  selectSelectedComponentUuid,
   setHoveredComponent,
   unsetHoveredComponent,
 } from '@/features/ui/uiSlice';
@@ -95,6 +97,10 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   const isSelected = useAppSelector((state) =>
     selectComponentIsSelected(state, component.uuid),
   );
+  // The toolbar is for a single selected component.
+  const hasToolbar =
+    useAppSelector(selectSelectedComponentUuid) === component.uuid &&
+    !isDragging;
 
   function handleComponentClick(event: React.MouseEvent<HTMLElement>) {
     event.stopPropagation();
@@ -184,7 +190,21 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
           data-canvas-overlay="true"
         />
       </ComponentContextMenu>
-      {(isHovered || isSelected) && (
+      {hasToolbar && (
+        <ComponentToolbar
+          component={component}
+          name={name}
+          parentSlot={parentSlot}
+          index={index}
+          siblingCount={
+            (parentSlot ?? parentRegion)?.components.length ?? index + 1
+          }
+          horizontal={stackDirection.startsWith('h')}
+          inside={componentGeometry.rect.top * editorViewPortScale < 30}
+          dragListeners={listeners}
+        />
+      )}
+      {!hasToolbar && (isHovered || isSelected) && (
         <div className={clsx(styles.canvasNameTag)}>
           <ComponentNameTag
             name={name}

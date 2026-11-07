@@ -1,0 +1,72 @@
+.toolbar {
+  position: absolute;
+  z-index: 2;
+  top: -30px;
+  left: -2px;
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 3px;
+  white-space: nowrap;
+  pointer-events: all;
+  color: #fff;
+  border-radius: 6px;
+  background-color: var(--color-outline-component);
+  box-shadow: 0 2px 8px rgb(0, 0, 0, 0.18);
+  font-size: 12px;
+  gap: 1px;
+
+  &.inside {
+    top: 4px;
+    left: 4px;
+  }
+}
+
+.name {
+  display: flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 6px 0 3px;
+  cursor: grab;
+  border-radius: 4px;
+  gap: 4px;
+
+  &:hover {
+    background-color: rgb(255, 255, 255, 0.16);
+  }
+}
+
+.divider {
+  width: 1px;
+  height: 14px;
+  margin: 0 3px;
+  background-color: rgb(255, 255, 255, 0.35);
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+
+  &:hover:not(:disabled) {
+    background-color: rgb(255, 255, 255, 0.2);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: -2px;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.4;
+  }
+}
