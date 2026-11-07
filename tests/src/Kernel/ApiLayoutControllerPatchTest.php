@@ -15,6 +15,7 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\Storage\ComponentTreeLoader;
+use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -442,6 +443,25 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
       Media::load(4)?->field_media_image->src_with_alternate_widths->getGeneratedUrl(),
     ], $images);
 
+    // A partial preview renders only the instance, as it appears in the whole
+    // page. Content templates fall back to the whole page.
+    $response = $this->request(Request::create($url, method: 'PATCH', content: \json_encode(['partialPreview' => TRUE] + $updateImageClientData, JSON_THROW_ON_ERROR)));
+    $partial = self::decodeResponse($response);
+    if ($entity instanceof ContentTemplate) {
+      self::assertArrayHasKey('html', $partial);
+    }
+    else {
+      $uuid = CanvasTestSetup::UUID_STATIC_IMAGE;
+      self::assertSame(['component', 'model', 'autoSaves'], \array_keys($partial));
+      self::assertSame($uuid, $partial['component']['uuid']);
+      $start = \strpos($data['html'], "<!-- canvas-start-$uuid -->");
+      $end_marker = "<!-- canvas-end-$uuid -->";
+      $end = \strpos($data['html'], $end_marker);
+      \assert($start !== FALSE && $end !== FALSE);
+      self::assertSame(\substr($data['html'], $start, $end + \strlen($end_marker) - $start), $partial['component']['html']);
+      self::assertSame($data['model'][$uuid], $partial['model'][$uuid]);
+    }
+
     unset($updateImageClientData['clientInstanceId']);
     $updateImageClientData += $this->getPatchContentsDefaults([$entity]);
     $this->assertRequestAutoSaveConflict(Request::create($url, method: 'PATCH', content: \json_encode($updateImageClientData, JSON_THROW_ON_ERROR)));
@@ -451,6 +471,72 @@ final class ApiLayoutControllerPatchTest extends ApiLayoutControllerTestBase {
     foreach (['node', ContentTemplate::ENTITY_TYPE_ID] as $entity_type) {
       yield "$entity_type: fresh state" => [$entity_type, FALSE];
       yield "$entity_type: existing auto-save" => [$entity_type, TRUE];
+    }
+  }
+
+  /**
+   * A partial preview adds the libraries and settings the page lacks.
+   */
+  public function testPartialPreviewAddsMissingLibraries(): void {
+    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_test_conditional_library']);
+    $entity = $this->getTestEntity('node');
+    \assert($entity instanceof Node);
+    $this->setUpCurrentUser([], ['administer url aliases', self::getAdminPermission($entity)]);
+    $uuid = 'b9c0a3a5-0d3b-4c1e-9d8e-2b6f4a7c1e55';
+    $component = Component::load('sdc.canvas_test_conditional_library.highlight');
+    \assert($component instanceof Component);
+    $tree = $this->container->get(ComponentTreeLoader::class)->load($entity);
+    $tree->appendItem([
+      'uuid' => $uuid,
+      'component_id' => $component->id(),
+      'component_version' => $component->getActiveVersion(),
+      'inputs' => ['text' => 'Some text', 'highlighted' => FALSE],
+    ]);
+    $entity->save();
+    $url = $this->getLayoutUrl($entity)->toString();
+
+    $data = self::decodeResponse($this->parentRequest(Request::create($url)));
+    $settings = \json_decode((new Crawler($data['html']))->filter('script[data-drupal-selector="drupal-settings-json"]')->text(), TRUE);
+    $page_libraries = $settings['ajaxPageState']['libraries'];
+    self::assertNotContains('canvas_test_conditional_library/highlight', \explode(',', UrlHelper::uncompressQueryParameter($page_libraries)));
+
+    $model = $data['model'][$uuid];
+    $model['source']['highlighted']['value'] = TRUE;
+    $model['resolved']['highlighted'] = TRUE;
+    $patch = [
+      'model' => $model,
+      'componentType' => $component->id() . '@' . $component->getActiveVersion(),
+      'componentInstanceUuid' => $uuid,
+      'partialPreview' => TRUE,
+    ] + $this->getPatchContentsDefaults([$entity]);
+
+    // Without the page's libraries, the response is the whole page.
+    $response = $this->request(Request::create($url, method: 'PATCH', content: \json_encode($patch, JSON_THROW_ON_ERROR)));
+    self::assertArrayHasKey('html', self::decodeResponse($response));
+
+    $model['source']['highlighted']['value'] = FALSE;
+    $model['resolved']['highlighted'] = FALSE;
+    $this->request(Request::create($url, method: 'PATCH', content: \json_encode(['model' => $model] + $patch, JSON_THROW_ON_ERROR)));
+
+    $response = $this->request(Request::create($url, method: 'PATCH', content: \json_encode(['pageLibraries' => $page_libraries] + $patch, JSON_THROW_ON_ERROR)));
+    $data = self::decodeResponse($response);
+    self::assertSame(['component', 'model', 'autoSaves', 'assets'], \array_keys($data));
+    self::assertStringContainsString('canvas-test-highlight', $data['component']['html']);
+    $assets = $data['assets'];
+    self::assertNotEmpty($assets['css']);
+    self::assertNotEmpty(\array_merge($assets['jsHeader'], $assets['jsFooter']));
+    self::assertSame(['color' => 'gold'], $assets['settings']['canvasTestHighlight']);
+    self::assertArrayNotHasKey('path', $assets['settings']);
+    self::assertContains('canvas_test_conditional_library/highlight', \explode(',', UrlHelper::uncompressQueryParameter($assets['settings']['ajaxPageState']['libraries'])));
+    // Libraries the page has are not loaded again: each asset is the new
+    // library's own file, or an aggregate that excludes the page's libraries.
+    $sources = \array_merge(
+      \array_column($assets['css'], 'href'),
+      \array_column(\array_merge($assets['jsHeader'], $assets['jsFooter']), 'src'),
+    );
+    self::assertNotEmpty($sources);
+    foreach ($sources as $source) {
+      self::assertMatchesRegularExpression('#canvas_test_conditional_library/|[?&]exclude=#', $source);
     }
   }
 

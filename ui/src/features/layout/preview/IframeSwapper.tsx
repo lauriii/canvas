@@ -14,6 +14,11 @@ import {
   applyInPlaceUpdate,
   findInPlaceUpdate,
 } from '@/features/layout/preview/inPlaceUpdate';
+import {
+  injectPreviewAssets,
+  loadAssetsInto,
+} from '@/features/layout/preview/previewAssets';
+import { selectAddedPreviewAssets } from '@/features/pagePreview/previewSlice';
 import { selectDragging } from '@/features/ui/uiSlice';
 
 import type { Dispatch, Ref, SetStateAction } from 'react';
@@ -67,6 +72,13 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
     // without re-running (and so reloading) the srcdoc effect on style changes.
     const headStylesRef = useRef(headStyles);
     headStylesRef.current = headStyles;
+    // Assets partial previews added to the live markup, which a document
+    // loaded from srcDocument needs too. Compared markup leaves them out.
+    const addedAssets = useAppSelector(selectAddedPreviewAssets);
+    const addedAssetsRef = useRef(addedAssets);
+    addedAssetsRef.current = addedAssets;
+    // The added assets the loading document was written with.
+    const loadingAssetsRef = useRef(addedAssets);
     // The markup loading in the inactive iframe, and the markup the active
     // iframe shows once no swap is pending. A change confined to one component
     // instance is applied to the active iframe in place, without a swap.
@@ -115,12 +127,27 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
       iframe.style.display = '';
 
       const loadedSrcDocument = loadingSrcDocumentRef.current;
-      const swap = () => {
-        // A newer document may have started loading since this one did.
-        swappedSrcDocumentRef.current =
-          loadingSrcDocumentRef.current === loadedSrcDocument
-            ? loadedSrcDocument
-            : null;
+      const swap = async () => {
+        // Assets that partial previews added while this document loaded only
+        // reached the frame it replaces. Load them in order before the frame
+        // shows, as a later batch may depend on an earlier one.
+        const loadedAssets = loadingAssetsRef.current;
+        const addedAssets = addedAssetsRef.current;
+        if (
+          iframe.contentWindow &&
+          addedAssets.length > loadedAssets.length &&
+          loadedAssets.every((assets, index) => addedAssets[index] === assets)
+        ) {
+          for (const assets of addedAssets.slice(loadedAssets.length)) {
+            await loadAssetsInto(iframe.contentWindow, assets);
+          }
+        }
+        // A newer document started loading into this iframe since this one
+        // did. Its own load event swaps it in.
+        if (loadingSrcDocumentRef.current !== loadedSrcDocument) {
+          return;
+        }
+        swappedSrcDocumentRef.current = loadedSrcDocument;
         setWhichActive((current) => 1 - current);
       };
 
@@ -213,13 +240,17 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
       }
       activeSrcDocumentRef.current = null;
       loadingSrcDocumentRef.current = srcDocument;
+      loadingAssetsRef.current = addedAssetsRef.current;
 
       // Important to change a state ensure parent re-renders (and re-calls hooks) once the iframe is swapped.
       setIsReloading(true);
 
       // Insert the head styles into the markup itself, so a loading document
       // renders with them from its first paint.
-      const srcDocumentWithStyles = srcDocument.replace(
+      const srcDocumentWithStyles = injectPreviewAssets(
+        srcDocument,
+        addedAssetsRef.current,
+      ).replace(
         /<\/head>/i,
         () =>
           `<style id="${HEAD_STYLES_ID}">${headStylesRef.current}</style></head>`,

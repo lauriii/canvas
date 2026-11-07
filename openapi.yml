@@ -2941,31 +2941,83 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - html
-                  - entity_form_fields
-                  - model
-                  - layout
-                  - autoSaves
-                properties:
-                  html:
-                    type: string
-                    description: The HTML preview.
-                  layout:
-                    type: array
-                    description: Layout regions
-                    items:
-                      type: object
-                      schema:
-                        $ref: '#/components/schemas/LayoutSlot'
-                  model:
-                    $ref: '#/components/schemas/Model'
-                  entity_form_fields:
-                    type: object
-                    description: The full entity data.
-                  autoSaves:
-                    $ref: '#/components/schemas/AutoSaveConcurrencyControl'
+                oneOf:
+                  - type: object
+                    required:
+                      - html
+                      - entity_form_fields
+                      - model
+                      - layout
+                      - autoSaves
+                    properties:
+                      html:
+                        type: string
+                        description: The HTML preview.
+                      layout:
+                        type: array
+                        description: Layout regions
+                        items:
+                          type: object
+                          schema:
+                            $ref: '#/components/schemas/LayoutSlot'
+                      model:
+                        $ref: '#/components/schemas/Model'
+                      entity_form_fields:
+                        type: object
+                        description: The full entity data.
+                      autoSaves:
+                        $ref: '#/components/schemas/AutoSaveConcurrencyControl'
+                  - type: object
+                    description: The response to a request with partialPreview.
+                    required:
+                      - component
+                      - model
+                      - autoSaves
+                    additionalProperties: false
+                    properties:
+                      component:
+                        type: object
+                        required:
+                          - uuid
+                          - html
+                        properties:
+                          uuid:
+                            type: string
+                          html:
+                            type: string
+                            description: The instance's preview markup, including its preview markers.
+                      model:
+                        $ref: '#/components/schemas/Model'
+                      autoSaves:
+                        $ref: '#/components/schemas/AutoSaveConcurrencyControl'
+                      assets:
+                        type: object
+                        description: >
+                          Present when the instance's libraries or settings
+                          changed: what the page lacks, as the attributes of
+                          the elements to add in order, and the settings to
+                          merge into drupalSettings.
+                        required:
+                          - css
+                          - jsHeader
+                          - jsFooter
+                          - settings
+                        additionalProperties: false
+                        properties:
+                          css:
+                            type: array
+                            items:
+                              type: object
+                          jsHeader:
+                            type: array
+                            items:
+                              type: object
+                          jsFooter:
+                            type: array
+                            items:
+                              type: object
+                          settings:
+                            type: object
         '401':
           description: Unauthorized (unauthenticated) response.
           $ref: '#/components/responses/UnauthorizedErrorResponse'
@@ -6400,6 +6452,18 @@ components:
               clientInstanceId:
                 type: string
                 description: Client instance ID for the layout preview
+              partialPreview:
+                type: boolean
+                description: >
+                  Requests only the updated component instance's preview markup
+                  instead of the whole page. The response falls back to the
+                  whole page when that is not possible.
+              pageLibraries:
+                type: string
+                description: >
+                  The preview page's `drupalSettings.ajaxPageState.libraries`.
+                  With partialPreview, lets the response add libraries and
+                  settings the updated instance needs and the page lacks.
     NewContentRequest:
           content:
             application/json:

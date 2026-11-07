@@ -7,6 +7,7 @@ namespace Drupal\canvas\Controller;
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\canvas\ClientDataToEntityConverter;
+use Drupal\canvas\CodeComponentDataProvider;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
@@ -23,6 +24,11 @@ use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Render\PreviewEnvelope;
 use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Component\Utility\UrlHelper;
+use Drupal\Core\Asset\AssetCollectionRendererInterface;
+use Drupal\Core\Asset\AssetResolverInterface;
+use Drupal\Core\Asset\AttachedAssets;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
@@ -33,11 +39,13 @@ use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Render\Markup;
+use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\language\ConfigurableLanguageManagerInterface;
 use GuzzleHttp\Psr7\Query;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -72,6 +80,13 @@ final class ApiLayoutController {
     private readonly LanguageManagerInterface $languageManager,
     private readonly AccountProxyInterface $currentUser,
     private readonly PageVariantResolver $pageVariantResolver,
+    private readonly RendererInterface $renderer,
+    private readonly AssetResolverInterface $assetResolver,
+    private readonly ConfigFactoryInterface $configFactory,
+    #[Autowire(service: 'asset.css.collection_renderer')]
+    private readonly AssetCollectionRendererInterface $cssCollectionRenderer,
+    #[Autowire(service: 'asset.js.collection_renderer')]
+    private readonly AssetCollectionRendererInterface $jsCollectionRenderer,
   ) {
     $theme = $this->themeManager->getActiveTheme()->getName();
     $theme_regions = system_region_list($theme);
@@ -353,7 +368,7 @@ final class ApiLayoutController {
   /**
    * Updates single component instance's auto-save entry and returns a preview.
    */
-  public function patch(Request $request, FieldableEntityInterface|ComponentTreeConfigEntityBase $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope {
+  public function patch(Request $request, FieldableEntityInterface|ComponentTreeConfigEntityBase $entity, ?ContentEntityInterface $preview_entity = NULL): PreviewEnvelope|JsonResponse {
     \assert(!$entity instanceof ContentTemplate || !\is_null($preview_entity));
     $body = \json_decode($request->getContent(), TRUE, flags: JSON_THROW_ON_ERROR);
     if (!\array_key_exists('componentInstanceUuid', $body)) {
@@ -411,8 +426,56 @@ final class ApiLayoutController {
     // Update the entity & auto-save it. We might be updating a component
     // instance version aside of the model itself.
     $host_entity = self::resolveHostEntity($entity, $preview_entity);
+    // A partial preview is only possible for instances in the entity's own
+    // tree: content templates and page regions render with more context. A
+    // version change can change the instance's slots, so the layout too.
+    $before = ($body['partialPreview'] ?? FALSE)
+      && $entity_to_patch === $entity
+      && $entity instanceof FieldableEntityInterface
+      && $this->componentTreeLoader->load($entity)->getComponentTreeItemByUuid($componentInstanceUuid)?->getComponentVersion() === $version
+      ? $this->renderComponentInstance($entity, $componentInstanceUuid)
+      : NULL;
     $this->updateComponentInstance($entity_to_patch, $componentInstanceUuid, $version, $model, $host_entity);
     $this->autoSaveManager->saveEntity($entity_to_patch, $clientInstanceId);
+
+    if ($before !== NULL) {
+      \assert($entity instanceof FieldableEntityInterface);
+      $after = $this->renderComponentInstance($entity, $componentInstanceUuid) ?? ['attached' => []];
+      $changed_attachments = [];
+      foreach (\array_keys($before['attached'] + $after['attached']) as $key) {
+        if (($before['attached'][$key] ?? NULL) !== ($after['attached'][$key] ?? NULL)) {
+          $changed_attachments[] = $key;
+        }
+      }
+      // Changed libraries and settings can be loaded into the page, given the
+      // libraries it has. Other changed attachments need a full preview.
+      $page_libraries = $body['pageLibraries'] ?? NULL;
+      // Instances to update to their component's latest version change the
+      // layout and are updated while building it.
+      // @see ::buildRegion()
+      $is_partial = isset($after['html'])
+        && !$this->componentSourceManager->isComponentInstanceUpdateNeeded($this->componentTreeLoader->load($entity))
+        && ($changed_attachments === [] || (
+        \is_string($page_libraries) && !\array_diff($changed_attachments, ['library', 'drupalSettings'])
+        ));
+      if ($is_partial) {
+        $item = $this->componentTreeLoader->load($entity)->getComponentTreeItemByUuid($componentInstanceUuid);
+        \assert($item instanceof ComponentTreeItem);
+        $source = $item->getComponent()?->getComponentSource();
+        $data = [
+          'component' => ['uuid' => $componentInstanceUuid, 'html' => $after['html']],
+          'model' => $source?->requiresExplicitInput()
+            ? [$componentInstanceUuid => $source->inputToClientModel($source->getExplicitInput($componentInstanceUuid, $item, $host_entity))]
+            : new \stdClass(),
+          'autoSaves' => $this->getAutoSaveHashes(array_merge([$entity], self::getEditableRegions($entity))),
+        ];
+        if ($changed_attachments !== []) {
+          \assert(\is_string($page_libraries));
+          $data['assets'] = $this->buildMissingAssets($request, $after['attached'], $page_libraries);
+        }
+        return new JsonResponse($data);
+      }
+    }
 
     // Inform the UI of the updated reality.
     $data = $this->buildLayoutAndModel($entity, preview_entity: $host_entity);
@@ -533,6 +596,70 @@ final class ApiLayoutController {
     );
   }
 
+  /**
+   * Builds the assets and settings of attachments that a page lacks.
+   *
+   * Works like the asset commands of Drupal's AJAX responses.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The current request.
+   * @param array $attached
+   *   The attachments.
+   * @param string $page_libraries
+   *   The page's `drupalSettings.ajaxPageState.libraries`.
+   *
+   * @return array{css: array, jsHeader: array, jsFooter: array, settings: array|\stdClass}
+   *   The attributes of the `<link>` and `<script>` elements to add, in order,
+   *   and the settings to merge into `drupalSettings`.
+   *
+   * @see \Drupal\Core\Ajax\AjaxResponseAttachmentsProcessor::buildAttachmentsCommands()
+   */
+  private function buildMissingAssets(Request $request, array $attached, string $page_libraries): array {
+    $performance = $this->configFactory->get('system.performance');
+    $language = $this->languageManager->getCurrentLanguage();
+    $loaded_libraries = UrlHelper::uncompressQueryParameter($page_libraries);
+    // Aggregated assets exclude the page's libraries only when the request
+    // lists them, as Drupal's AJAX requests do.
+    // @see \Drupal\Core\StackMiddleware\AjaxPageState
+    // @see \Drupal\Core\Asset\JsCollectionOptimizerLazy::optimize()
+    $request->attributes->set('ajax_page_state', ['libraries' => $loaded_libraries]);
+    $assets = (new AttachedAssets())
+      ->setLibraries($attached['library'] ?? [])
+      ->setAlreadyLoadedLibraries(\explode(',', $loaded_libraries))
+      // Makes system_js_settings_alter() update the page's library list.
+      ->setSettings(['ajaxPageState' => []] + ($attached['drupalSettings'] ?? []));
+    $css = $this->assetResolver->getCssAssets($assets, (bool) $performance->get('css.preprocess'), $language);
+    [$js_header, $js_footer] = $this->assetResolver->getJsAssets($assets, (bool) $performance->get('js.preprocess'), $language);
+    $settings = $js_header['drupalSettings']['data'] ?? $js_footer['drupalSettings']['data'] ?? [];
+    unset($js_header['drupalSettings'], $js_footer['drupalSettings']);
+    // Leave out settings that describe this request rather than the page, as
+    // Drupal's AJAX responses do with `path`.
+    unset($settings['path'], $settings[CodeComponentDataProvider::CANVAS_DATA_KEY]);
+    $attributes = static fn (array $render_array): array => \array_column($render_array, '#attributes');
+    return [
+      'css' => $css ? $attributes($this->cssCollectionRenderer->render($css)) : [],
+      'jsHeader' => $js_header ? $attributes($this->jsCollectionRenderer->render($js_header)) : [],
+      'jsFooter' => $js_footer ? $attributes($this->jsCollectionRenderer->render($js_footer)) : [],
+      'settings' => $settings ?: new \stdClass(),
+    ];
+  }
+
+  /**
+   * Renders one component instance as it appears in the preview.
+   *
+   * @return array{html: string, attached: array}|null
+   *   The markup, including the instance's preview markers, and the assets and
+   *   settings it attaches. NULL if the entity's tree lacks the instance.
+   */
+  private function renderComponentInstance(FieldableEntityInterface $entity, string $component_instance_uuid): ?array {
+    $element = $this->componentTreeLoader->load($entity)->toRenderableInstance($entity, $component_instance_uuid);
+    if ($element === NULL) {
+      return NULL;
+    }
+    $html = (string) $this->renderer->renderInIsolation($element);
+    return ['html' => $html, 'attached' => $element['#attached'] ?? []];
+  }
+
   private function buildPreviewRenderable(FieldableEntityInterface|ComponentTreeConfigEntityBase $entity, ?FieldableEntityInterface $preview_entity = NULL): array {
     $varies_by_language = FALSE;
     if ($entity instanceof ContentTemplate) {
@@ -576,6 +703,10 @@ final class ApiLayoutController {
       : Markup::create('<!-- canvas-region-start-content --><div class="canvas--region-empty-placeholder"></div>');
     $build['#suffix'] = Markup::create('<!-- canvas-region-end-content -->');
     $build['#attached']['library'][] = 'canvas/preview';
+    // Makes system_js_settings_alter() list the page's libraries, which
+    // partial previews need to add only the assets the page lacks.
+    // @see ::buildMissingAssets()
+    $build['#attached']['drupalSettings']['ajaxPageState'] = [];
     if ($varies_by_language) {
       $build['#cache']['contexts'][] = 'languages:' . LanguageInterface::TYPE_INTERFACE;
     }

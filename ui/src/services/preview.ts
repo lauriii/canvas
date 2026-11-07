@@ -3,18 +3,28 @@ import { createApi } from '@reduxjs/toolkit/query/react';
 
 import { setPostPreviewCompleted } from '@/components/review/PublishReview.slice';
 import {
+  selectLayout,
+  selectModel,
   setLayoutModel,
   setTranslations,
 } from '@/features/layout/layoutModelSlice';
+import { spliceComponentHtml } from '@/features/layout/preview/inPlaceUpdate';
+import {
+  getPreviewLibraries,
+  loadPreviewAssets,
+} from '@/features/layout/preview/previewAssets';
 import {
   setHtml,
+  setPartialHtml,
   setSnapshotHTML,
   setSnapshotTitle,
 } from '@/features/pagePreview/previewSlice';
 import {
   baseQueryWithAutoSaves,
+  extractEntityParams,
   popCanvasLayoutRequest,
   pushCanvasLayoutRequest,
+  replaceEntityParamsInUrl,
 } from '@/services/baseQuery';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
@@ -27,6 +37,7 @@ import type {
   PropSource,
   ResolvedValues,
 } from '@/features/layout/layoutModelSlice';
+import type { PreviewAssets } from '@/features/layout/preview/previewAssets';
 import type { EditorFrameContext } from '@/features/ui/uiSlice';
 import type { ConflictError } from '@/services/pendingChangesApi';
 import type { AutoSavesHash } from '@/types/AutoSaves';
@@ -40,12 +51,76 @@ export type UpdateComponentResultType = {
   errors?: Array<ConflictError>;
 };
 
+// The response to a PATCH with partialPreview: the updated instance's preview
+// markup and model only.
+type PartialUpdateComponentResultType = {
+  component: { uuid: string; html: string };
+  model: any;
+  autoSaves: AutoSavesHash;
+  assets?: PreviewAssets;
+};
+
 export type UpdateComponentQueryArg = {
   type: EditorFrameContext;
   componentInstanceUuid: string;
   componentType: string;
   model: Omit<ComponentModel, 'name'> | Omit<EvaluatedComponentModel, 'name'>;
+  partialPreview?: boolean;
 };
+
+// The whole-page version that updateComponent responses set last. A newer one
+// came from elsewhere, for example a layout POST.
+let ownFullHtmlVersion = 0;
+
+// The layout endpoint of each editor context.
+const layoutUrls: Partial<Record<EditorFrameContext, string>> = {
+  entity: 'canvas/api/v0/layout/{entity_type}/{entity_id}',
+  template:
+    'canvas/api/v0/layout-content-template/{entity_type}.{template_bundle}.{template_view_mode}/{entity_id}',
+  pattern: 'canvas/api/v0/layout-pattern/{entity_id}',
+};
+
+// Reads and sets the whole preview of the edited entity, template or pattern,
+// without saving. Returns the read layout data, if set.
+const readWholePreview = async (
+  dispatch: any,
+  getState: () => unknown,
+  type: EditorFrameContext,
+) => {
+  const { preview, configuration } = getState() as RootState;
+  const { entityType, entityId, templateBundle, templateViewMode } =
+    extractEntityParams(window.location.href);
+  const response = await fetch(
+    configuration.baseUrl +
+      replaceEntityParamsInUrl(
+        layoutUrls[type] ?? '',
+        entityType,
+        entityId,
+        templateBundle,
+        templateViewMode,
+      ),
+    { headers: { Accept: 'application/json' } },
+  );
+  // A whole page set while this read was in flight, for example by a layout
+  // POST, may be newer than what this read returns.
+  if (
+    response.ok &&
+    (getState() as RootState).preview.fullHtmlVersion ===
+      preview.fullHtmlVersion
+  ) {
+    const data = await response.json();
+    dispatch(setHtml(data.html));
+    handleAutoSavesHashUpdate(dispatch, data.autoSaves, {
+      request: { url: response.url },
+    });
+    return data as { model?: Record<string, any> };
+  }
+};
+
+// Resolves once the previous updateComponent response is applied. Responses
+// are applied in the order their requests started, each after loading the
+// assets it needs.
+let responsesApplied: Promise<void> = Promise.resolve();
 
 export const previewApi = createApi({
   reducerPath: 'previewApi',
@@ -147,58 +222,131 @@ export const previewApi = createApi({
       },
     }),
     updateComponent: builder.mutation<
-      UpdateComponentResultType,
+      UpdateComponentResultType | PartialUpdateComponentResultType,
       UpdateComponentQueryArg
     >({
       query: ({ type, ...body }) => {
-        let url = '';
-        if (type === 'entity') {
-          url = 'canvas/api/v0/layout/{entity_type}/{entity_id}';
-        } else if (type === 'template') {
-          url =
-            'canvas/api/v0/layout-content-template/{entity_type}.{template_bundle}.{template_view_mode}/{entity_id}';
-        } else if (type === 'pattern') {
-          url = 'canvas/api/v0/layout-pattern/{entity_id}';
-        }
+        const url = layoutUrls[type] ?? '';
+        // Only entities support a partial preview.
+        // The page's libraries let the response add the libraries the updated
+        // instance needs.
+        const { partialPreview = type === 'entity', ...rest } = body;
+        const pageLibraries = getPreviewLibraries();
         return {
           url,
           method: 'PATCH',
-          body,
+          body: partialPreview
+            ? {
+                ...rest,
+                partialPreview,
+                ...(pageLibraries && { pageLibraries }),
+              }
+            : rest,
         };
       },
-      async onQueryStarted(body, { dispatch, queryFulfilled }) {
-        // Force any ajax calls to wait.
+      async onQueryStarted(arg, { dispatch, getState, queryFulfilled }) {
+        const startFullHtmlVersion = (getState() as RootState).preview
+          .fullHtmlVersion;
+        const previousResponseApplied = responsesApplied;
+        let markApplied = () => {};
+        responsesApplied = new Promise((resolve) => (markApplied = resolve));
+        // Force any ajax calls to wait until this response is applied.
         pushCanvasLayoutRequest();
-        let data: any;
-        let meta: any;
         try {
-          ({ data, meta } = await queryFulfilled);
-        } catch {
-          // If the request fails (e.g. the server rejects an invalid field
-          // value), we must still release the lock so that subsequent Drupal
-          // AJAX calls are not permanently blocked.
-          // @see https://www.drupal.org/project/canvas/issues/3579026
-          return;
+          let result: Awaited<typeof queryFulfilled> | undefined;
+          try {
+            result = await queryFulfilled;
+          } catch {
+            // If the request fails (e.g. the server rejects an invalid field
+            // value), the lock is still released below, so that subsequent
+            // Drupal AJAX calls are not permanently blocked.
+            // @see https://www.drupal.org/project/canvas/issues/3579026
+          }
+          await previousResponseApplied;
+          if (!result) {
+            return;
+          }
+          const { data, meta } = result as { data: any; meta: any };
+          const { model, autoSaves } = data;
+          if ('assets' in data && data.assets) {
+            await loadPreviewAssets(data.assets);
+          }
+          const { preview } = getState() as RootState;
+          // A whole page set from elsewhere since this request started, for
+          // example by a layout POST, is newer than this response: its markup
+          // and models would undo it. Read the current whole page instead.
+          // The read does not count as this endpoint's own page, so later
+          // responses that started before it are read again too.
+          if (
+            preview.fullHtmlVersion !== startFullHtmlVersion &&
+            preview.fullHtmlVersion !== ownFullHtmlVersion
+          ) {
+            const read = await readWholePreview(dispatch, getState, arg.type);
+            // The edited instance's saved model, which may include this
+            // response's change if it was saved after the newer page.
+            const savedModel = read?.model?.[arg.componentInstanceUuid];
+            if (savedModel) {
+              const state = getState() as RootState;
+              dispatch(
+                setLayoutModel({
+                  layout: selectLayout(state),
+                  model: {
+                    ...selectModel(state),
+                    [arg.componentInstanceUuid]: savedModel,
+                  },
+                  updatePreview: false,
+                }),
+              );
+            }
+            return;
+          }
+          dispatch(
+            pendingChangesApi.util.invalidateTags([
+              { type: 'PendingChanges', id: 'LIST' },
+            ]),
+          );
+          // Clear any stale snapshot (e.g. from a prior language/template preview)
+          // so selectPreviewHtml returns this fresh editor html instead of the
+          // preview snapshot, which selectPreviewHtml prefers while set.
+          dispatch(setSnapshotHTML(''));
+          dispatch(setSnapshotTitle(''));
+          const state = getState() as RootState;
+          if ('component' in data) {
+            const html = spliceComponentHtml(
+              state.preview.html,
+              data.component,
+            );
+            if (html === null) {
+              // The current preview lacks the instance: read the whole page,
+              // rather than saving the change again over newer ones.
+              await readWholePreview(dispatch, getState, arg.type);
+            } else {
+              dispatch(setPartialHtml({ html, assets: data.assets }));
+            }
+          } else {
+            dispatch(setHtml(data.html));
+          }
+          ownFullHtmlVersion = (getState() as RootState).preview
+            .fullHtmlVersion;
+          handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+          // Pass update preview false to prevent a subsequent preview update,
+          // we have the data here.
+          dispatch(
+            setLayoutModel(
+              'component' in data
+                ? {
+                    layout: selectLayout(state),
+                    model: { ...selectModel(state), ...model },
+                    updatePreview: false,
+                  }
+                : { layout: data.layout, model, updatePreview: false },
+            ),
+          );
         } finally {
+          markApplied();
           // Tell ajax calls they're good to go regardless of success/failure.
           popCanvasLayoutRequest();
         }
-        const { html, layout, model, autoSaves } = data;
-        dispatch(
-          pendingChangesApi.util.invalidateTags([
-            { type: 'PendingChanges', id: 'LIST' },
-          ]),
-        );
-        // Clear any stale snapshot (e.g. from a prior language/template preview)
-        // so selectPreviewHtml returns this fresh editor html instead of the
-        // preview snapshot, which selectPreviewHtml prefers while set.
-        dispatch(setSnapshotHTML(''));
-        dispatch(setSnapshotTitle(''));
-        dispatch(setHtml(html));
-        handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
-        // Pass update preview false to prevent a subsequent preview update,
-        // we have the data here.
-        dispatch(setLayoutModel({ layout, model, updatePreview: false }));
       },
     }),
   }),

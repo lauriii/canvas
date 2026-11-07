@@ -42,6 +42,8 @@ The `<IFrameSwapper>` is so named because it renders two `<iframe>` elements and
 
 When the new HTML differs from the active `<iframe>`'s HTML only inside one component instance's `<!-- canvas-start-… -->` and `<!-- canvas-end-… -->` markers, no swap happens. The `<IFrameSwapper>` replaces that instance's markup in the active `<iframe>` instead, and detaches and re-attaches Drupal behaviors for it. Any other difference (for example new assets in `<head>` or changed `drupalSettings`) loads the whole document. See `inPlaceUpdate.ts`.
 
+A PATCH of one component instance on an entity sends `partialPreview`. It also sends the page's `drupalSettings.ajaxPageState.libraries`. The server then returns only that instance's markup. If the instance's libraries or settings changed, the response adds the CSS, JavaScript and settings the page lacks. `previewAssets.ts` loads them into the preview `<iframe>`s like Drupal's AJAX `add_css`, `add_js` and `settings` commands, before the markup is applied. The preview slice keeps them until the next whole page, and documents created from the stored HTML include them (`selectPreviewDocument`). Other changed attachments return the whole page. `updateComponent` splices the markup into the stored HTML, so the in-place path above applies it.
+
 This 'swapping' implementation detail is intended to be transparent to the wider app outside the `<IFrameSwapper>` because the currently active `<iframe>` is exposed using a [customized dynamic ref](https://react.dev/reference/react/useImperativeHandle).
 
 ## The UI

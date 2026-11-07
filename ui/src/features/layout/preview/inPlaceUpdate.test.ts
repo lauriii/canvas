@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   applyInPlaceUpdate,
   findInPlaceUpdate,
+  spliceComponentHtml,
 } from '@/features/layout/preview/inPlaceUpdate';
 
 const page = ({
@@ -59,6 +60,17 @@ describe('findInPlaceUpdate', () => {
 
   it('returns null for identical documents', () => {
     expect(findInPlaceUpdate(page(), page())).toBeNull();
+  });
+});
+
+describe('spliceComponentHtml', () => {
+  it('replaces the instance including its markers', () => {
+    const html =
+      '<!-- canvas-start-card --><p>New card</p><!-- canvas-end-card -->';
+    expect(spliceComponentHtml(page(), { uuid: 'card', html })).toBe(
+      page({ card: 'New card' }),
+    );
+    expect(spliceComponentHtml(page(), { uuid: 'missing', html })).toBeNull();
   });
 });
 
