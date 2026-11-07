@@ -23,15 +23,19 @@ export function useUndoRedo(): UndoRedoState {
 
   const dispatchUndo = useCallback(() => {
     if (undoItem) {
-      // Waiting PATCHes were built on the models undo replaces.
-      cancelBackendUpdates();
+      // Waiting PATCHes were built on the component models undo replaces.
+      if (undoItem.targetSlice === 'layoutModel') {
+        cancelBackendUpdates();
+      }
       dispatch(UndoRedoActionCreators.undo(undoItem.targetSlice));
     }
   }, [dispatch, undoItem]);
 
   const dispatchRedo = useCallback(() => {
     if (redoItem) {
-      cancelBackendUpdates();
+      if (redoItem.targetSlice === 'layoutModel') {
+        cancelBackendUpdates();
+      }
       dispatch(UndoRedoActionCreators.redo(redoItem.targetSlice));
     }
   }, [dispatch, redoItem]);
