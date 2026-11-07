@@ -1,8 +1,17 @@
-import { useAppDispatch } from '@/app/hooks';
+import { v4 as uuidv4 } from 'uuid';
+
+import { useAppDispatch, useAppStore } from '@/app/hooks';
 import {
   _addNewComponentToLayout,
   addNewPatternToLayout,
+  selectLayout,
 } from '@/features/layout/layoutModelSlice';
+import { commitLivePreview } from '@/features/layout/preview/livePreview';
+import {
+  getPreviewDocument,
+  insertPreviewComponent,
+  movePreviewComponent,
+} from '@/features/layout/preview/optimisticPreview';
 import useComponentSelection from '@/hooks/useComponentSelection';
 
 import type { DragEndEvent } from '@dnd-kit/core';
@@ -10,6 +19,7 @@ import type { Pattern } from '@/types/Pattern';
 
 export function useDropFromLibraryHandler() {
   const dispatch = useAppDispatch();
+  const store = useAppStore();
   const { setSelectedComponent } = useComponentSelection();
 
   function handleNewDrop(event: DragEndEvent) {
@@ -21,17 +31,36 @@ export function useDropFromLibraryHandler() {
     }
     const type = event.active.data?.current?.type;
     if (type === 'component' || type === 'dynamicComponent') {
-      // @todo We should optimistically insert newItem.default_markup into to the new location in the iFrames dom.
+      const uuid = uuidv4();
       dispatch(
         _addNewComponentToLayout(
           {
             to: dropPath,
             component: newItem,
+            predefinedUUID: uuid,
           },
           setSelectedComponent,
         ),
       );
+      // Show the component right away instead of after the new preview is
+      // rendered: keep the markup the live preview shows, or insert it.
+      const layout = selectLayout(store.getState());
+      const livePreviewDocument = commitLivePreview(uuid);
+      if (livePreviewDocument) {
+        livePreviewDocument.head.insertAdjacentHTML(
+          'beforeend',
+          newItem.css ?? '',
+        );
+        movePreviewComponent(livePreviewDocument, layout, uuid);
+      } else {
+        const previewDocument = getPreviewDocument();
+        if (previewDocument && newItem.default_markup) {
+          insertPreviewComponent(previewDocument, layout, uuid, newItem);
+        }
+      }
     } else if (type === 'pattern') {
+      // The live preview stays, outlined, until the new preview is rendered.
+      commitLivePreview();
       dispatch(
         addNewPatternToLayout(
           {

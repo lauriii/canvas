@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { kebabCase } from 'lodash';
 import { useDroppable } from '@dnd-kit/core';
 
 import { useAppSelector } from '@/app/hooks';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
+import { selectDragging } from '@/features/ui/uiSlice';
 
 import type React from 'react';
 import type { RegionNode } from '@/features/layout/layoutModelSlice';
@@ -18,7 +18,9 @@ export interface RegionDropZoneProps {
 const RegionDropZone: React.FC<RegionDropZoneProps> = (props) => {
   const { region, position } = props;
   const layout = useAppSelector(selectLayout);
-  const [activeOrigin, setActiveOrigin] = useState('');
+  // Only components from the preview or the library can be dropped here.
+  const { previewDragging, listDragging } = useAppSelector(selectDragging);
+  const acceptsActive = previewDragging || listDragging;
   const accepts = ['overlay', 'library'];
 
   const regionIndex = layout.findIndex((r) => r.id === region.id);
@@ -31,27 +33,15 @@ const RegionDropZone: React.FC<RegionDropZoneProps> = (props) => {
   }
 
   const positionLabel = position === 'before' ? 'start' : 'end';
-  const {
-    setNodeRef: setDropRef,
-    isOver,
-    active,
-  } = useDroppable({
+  const { setNodeRef: setDropRef, isOver } = useDroppable({
     id: `${region.id}_${position}`,
-    disabled: !accepts.includes(activeOrigin),
+    disabled: !acceptsActive,
     data: {
       region: region,
       path: regionPath,
       accepts,
     },
   });
-
-  useEffect(() => {
-    if (active) {
-      setActiveOrigin(active.data?.current?.origin);
-    } else {
-      setActiveOrigin('');
-    }
-  }, [active]);
 
   const dropzoneStyle = styles[position];
 

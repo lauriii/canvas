@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { kebabCase } from 'lodash';
 import TemplateIcon from '@assets/icons/template.svg?react';
@@ -8,7 +7,10 @@ import { Text } from '@radix-ui/themes';
 
 import { useAppSelector } from '@/app/hooks';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
-import { selectEditorFrameContext } from '@/features/ui/uiSlice';
+import {
+  selectDragging,
+  selectEditorFrameContext,
+} from '@/features/ui/uiSlice';
 import { useTemplateCaption } from '@/hooks/useTemplateCaption';
 
 import type React from 'react';
@@ -22,8 +24,9 @@ export interface EmptyRegionDropZoneProps {
 const EmptyRegionDropZone: React.FC<EmptyRegionDropZoneProps> = (props) => {
   const { region } = props;
   const layout = useAppSelector(selectLayout);
-  const [activeName, setActiveName] = useState('');
-  const [activeOrigin, setActiveOrigin] = useState('');
+  // Only components from the preview or the library can be dropped here.
+  const { previewDragging, listDragging } = useAppSelector(selectDragging);
+  const acceptsActive = previewDragging || listDragging;
   const isTemplateRoute =
     useAppSelector(selectEditorFrameContext) === 'template';
 
@@ -37,7 +40,7 @@ const EmptyRegionDropZone: React.FC<EmptyRegionDropZoneProps> = (props) => {
     active,
   } = useDroppable({
     id: region.id,
-    disabled: !accepts.includes(activeOrigin),
+    disabled: !acceptsActive,
     data: {
       region: region,
       path: regionPath,
@@ -47,21 +50,7 @@ const EmptyRegionDropZone: React.FC<EmptyRegionDropZoneProps> = (props) => {
 
   const templateCaption = useTemplateCaption();
 
-  useEffect(() => {
-    if (isOver && active) {
-      setActiveName(active.data?.current?.name);
-    } else {
-      setActiveName('');
-    }
-  }, [active, isOver]);
-
-  useEffect(() => {
-    if (active) {
-      setActiveOrigin(active.data?.current?.origin);
-    } else {
-      setActiveOrigin('');
-    }
-  }, [active]);
+  const activeName = isOver ? active?.data?.current?.name : '';
 
   return (
     <div className={styles.emptyPageContainer}>

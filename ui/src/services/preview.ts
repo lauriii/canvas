@@ -76,7 +76,11 @@ export const previewApi = createApi({
               { type: 'PendingChanges', id: 'LIST' },
             ]),
           );
-          dispatch(setHtml(html));
+          // A newer layout has been requested: the preview already shows it
+          // (see optimisticPreview.ts), so this one would flash a stale state.
+          if (!latestPreviewArg || arg === latestPreviewArg) {
+            dispatch(setHtml(html));
+          }
           handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
           previewSuccessCount++;
           dispatch(setPostPreviewCompleted(true));
@@ -333,6 +337,8 @@ type PostPreviewArg = {
 // queued request executes when the active one completes.
 let activePreviewRequest: Promise<PostPreviewResult> | null = null;
 let pendingPreviewArg: PostPreviewArg | null = null;
+// The most recently requested preview; responses to earlier ones are stale.
+let latestPreviewArg: PostPreviewArg | null = null;
 
 // Incremented each time a postPreview request completes successfully.
 // Used to detect whether an error has been superseded by a later success.
@@ -371,6 +377,7 @@ export function useQueuedPostPreviewMutation(
   const queuedPostPreview = async (
     arg: PostPreviewArg,
   ): Promise<PostPreviewResult> => {
+    latestPreviewArg = arg;
     if (activePreviewRequest) {
       pendingPreviewArg = arg;
       await activePreviewRequest.catch(() => {});

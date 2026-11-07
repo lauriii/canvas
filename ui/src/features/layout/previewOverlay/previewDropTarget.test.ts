@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { findPreviewDropZoneId } from '@/features/layout/previewOverlay/previewDropTarget';
+import {
+  findPreviewDropZoneId,
+  freezeDropTargets,
+  unfreezeDropTargets,
+} from '@/features/layout/previewOverlay/previewDropTarget';
 
 type Box = [left: number, top: number, width: number, height: number];
 
@@ -107,8 +111,46 @@ describe('findPreviewDropZoneId', () => {
   });
 
   it('returns null where a drop would not move the dragged component', () => {
-    expect(find(200, 200, 'd')).toBeNull();
     expect(find(200, 350, 'd')).toBeNull();
+    // Over d itself.
+    expect(find(200, 200, 'd')).toBeNull();
     expect(find(200, 450, 'd')).toBe('e_bottom');
+  });
+
+  it('resolves against the layout at the start of the drag', () => {
+    const list = slot(
+      'list',
+      [0, 0, 400, 500],
+      [item('t', [0, 0, 400, 400]), item('s', [0, 400, 400, 100])],
+    );
+    const viewport = el({}, [0, 0, 400, 500], [list]);
+    freezeDropTargets(viewport);
+    // Showing t after s moves s up, and t under the pointer. Over where t
+    // is shown, it would otherwise move back.
+    const [t, s] = Array.from(list.children) as HTMLElement[];
+    s.getBoundingClientRect = () => new DOMRect(0, 0, 400, 100);
+    t.getBoundingClientRect = () => new DOMRect(0, 100, 400, 400);
+    expect(findPreviewDropZoneId(list, { x: 200, y: 460 }, 't')).toBe(
+      's_bottom',
+    );
+    // Scrolling moves the frozen layout with the page.
+    viewport.getBoundingClientRect = () => new DOMRect(0, -100, 400, 500);
+    expect(findPreviewDropZoneId(list, { x: 200, y: 360 }, 't')).toBe(
+      's_bottom',
+    );
+    unfreezeDropTargets();
+    expect(findPreviewDropZoneId(list, { x: 200, y: 460 }, 't')).toBeNull();
+  });
+
+  it('changes the drop target only when the pointer is clearly past it', () => {
+    const viewport = el({}, [0, 0, 400, 1000], [root]);
+    freezeDropTargets(viewport);
+    // The boundary between before and after a is at y 50.
+    expect(find(200, 45)).toBe('a_top');
+    expect(find(200, 55)).toBe('a_top');
+    expect(find(200, 70)).toBe('a_bottom');
+    expect(find(200, 45)).toBe('a_bottom');
+    expect(find(200, 30)).toBe('a_top');
+    unfreezeDropTargets();
   });
 });

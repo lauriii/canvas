@@ -19,6 +19,7 @@ import {
 } from '@/features/layout/layoutModelSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import { selectActivePanel } from '@/features/ui/primaryPanelSlice';
+import { selectDragging } from '@/features/ui/uiSlice';
 import { useCanvasHeadlessSettings } from '@/hooks/useCanvasHeadlessSettings';
 import useComponentSelection from '@/hooks/useComponentSelection';
 
@@ -70,6 +71,7 @@ const ListItem: React.FC<{
   const { componentId: selectedComponent } = useParams();
   const { setSelectedComponent } = useComponentSelection();
   const activePanel = useAppSelector(selectActivePanel);
+  const { isDragging: isDraggingAnything } = useAppSelector(selectDragging);
   const headlessSettings = useCanvasHeadlessSettings();
   const canPreview =
     supportsPreview(item) ||
@@ -240,7 +242,12 @@ const ListItem: React.FC<{
   return (
     <div key={itemId} {...wrapperProps}>
       <Tooltip.Provider>
-        <Tooltip.Root delayDuration={0}>
+        <Tooltip.Root
+          delayDuration={0}
+          // The preview would cover the page while something is dragged over
+          // it.
+          open={isDraggingAnything ? false : undefined}
+        >
           <Tooltip.Trigger asChild={true} style={{ width: '100%' }}>
             <div>{renderItem()}</div>
           </Tooltip.Trigger>
