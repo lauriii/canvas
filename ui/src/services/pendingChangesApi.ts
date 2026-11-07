@@ -1,5 +1,5 @@
 // Need to use the React-specific entry point to import createApi
-import { createApi } from '@reduxjs/toolkit/query/react';
+import { createApi, QueryStatus } from '@reduxjs/toolkit/query/react';
 
 import {
   setConflicts,
@@ -8,6 +8,10 @@ import {
 } from '@/components/review/PublishReview.slice';
 import { baseQuery } from '@/services/baseQuery';
 import { componentAndLayoutApi } from '@/services/componentAndLayout';
+import { getCurrentUserId } from '@/utils/drupal-globals';
+
+import type { ThunkAction, UnknownAction } from '@reduxjs/toolkit';
+import type { AutoSavesHash } from '@/types/AutoSaves';
 
 interface Owner {
   name: string;
@@ -271,3 +275,88 @@ export const {
   usePublishAllPendingChangesMutation,
   useDiscardPendingChangeMutation,
 } = pendingChangesApi;
+
+type PendingChangesState = {
+  [pendingChangesApi.reducerPath]: ReturnType<typeof pendingChangesApi.reducer>;
+};
+
+/**
+ * Updates the cached pending changes from an auto-save PATCH response.
+ *
+ * Refetching the pending changes makes the server load every auto-save on the
+ * site. After a PATCH, the response `autoSaves` hashes are usually enough to
+ * update the cached list in place: only `data_hash` (needed to publish) and
+ * `updated` change for entries whose hash differs from the cached one. Entries
+ * with an unchanged hash, such as editable regions the PATCH did not touch, are
+ * left as they are. `updated` is set from the client clock, so it can differ
+ * from the server time until the next refetch.
+ *
+ * The list is invalidated (refetched) instead when:
+ * - there is no cached list yet;
+ * - the list query is in flight, because its response may predate this PATCH
+ *   and would overwrite the new hash. Invalidating fetches the list again
+ *   after that response arrives;
+ * - an entity gains or loses its auto-save. A key with a hash that is missing
+ *   from the cached list counts as gained. Entries the GET filters out (for
+ *   example, auto-saves the current user cannot access) therefore make every
+ *   PATCH that lists them fall back to invalidation;
+ * - the cached owner of a changed entry is not the current user (or the
+ *   current user is unknown), because the server makes the current user the
+ *   owner of the auto-save it saves.
+ *
+ * Only the PATCH path (`updateComponent`) uses this. `postPreview` still
+ * invalidates the list, because labels can change there.
+ *
+ * @param autoSaves
+ *   The `autoSaves` from the PATCH response, keyed by auto-save key. An empty
+ *   hash means the entity has no auto-save.
+ */
+export const syncPendingChangesFromAutoSaves =
+  (
+    autoSaves: AutoSavesHash | undefined,
+  ): ThunkAction<void, PendingChangesState, unknown, UnknownAction> =>
+  (dispatch, getState) => {
+    const { data: pending, status } =
+      pendingChangesApi.endpoints.getAllPendingChanges.select()(getState());
+    const currentUserId = getCurrentUserId();
+    let mustRefetch = !pending || status === QueryStatus.pending;
+    const changedHashes: [string, string][] = [];
+    for (const [key, { hash }] of Object.entries(autoSaves ?? {})) {
+      const cached = pending?.[key];
+      if (!hash || !cached) {
+        // An entity gained or lost its auto-save. An entity without a hash and
+        // without a listed auto-save (e.g. an untouched page region) is fine.
+        mustRefetch ||= !hash !== !cached;
+        continue;
+      }
+      if (cached.data_hash === hash) {
+        continue;
+      }
+      mustRefetch ||= Number(cached.owner.id) !== currentUserId;
+      changedHashes.push([key, hash]);
+    }
+    if (mustRefetch) {
+      dispatch(
+        pendingChangesApi.util.invalidateTags([
+          { type: 'PendingChanges', id: 'LIST' },
+        ]),
+      );
+      return;
+    }
+    if (changedHashes.length === 0) {
+      return;
+    }
+    const updated = Math.floor(Date.now() / 1000);
+    dispatch(
+      pendingChangesApi.util.updateQueryData(
+        'getAllPendingChanges',
+        undefined,
+        (draft) => {
+          for (const [key, hash] of changedHashes) {
+            draft[key].data_hash = hash;
+            draft[key].updated = updated;
+          }
+        },
+      ),
+    );
+  };
