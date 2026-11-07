@@ -255,10 +255,9 @@ const closeContextMenu = () => {
  * Panning is no problem as the context menu prevents scrolling with the mouse
  * wheel, and it is closed automatically when panning via clicking the mouse.
  *
- * This is rendered inside the menu content, so it only exists while the menu
- * is open. Every component instance has a (closed) context menu: closing them
- * all on mount or on zoom fires one event per instance, which every menu then
- * handles, freezing the UI on large pages.
+ * Rendered inside the menu content so it only mounts while the menu is open.
+ * Every component instance has a menu root that listens for `keydown` on
+ * `document`.
  */
 const CloseOnZoom = () => {
   const editorViewPortScale = useAppSelector(selectEditorViewPortScale);
