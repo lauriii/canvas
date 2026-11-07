@@ -152,3 +152,23 @@ export function insertPreviewComponent(
   insertBefore(position.anchor, fragment, position.container);
   return true;
 }
+
+/**
+ * Removes a component's markup from the preview.
+ *
+ * @param document
+ *   The preview document.
+ * @param uuid
+ *   The uuid of the removed component.
+ */
+export function removePreviewComponent(document: Document, uuid: string) {
+  const removed = discoverCanvasBoundaries(document).find(
+    (b) => b.type === 'component' && b.id === uuid,
+  );
+  if (removed && removed.start.parentNode === removed.end.parentNode) {
+    const range = document.createRange();
+    range.setStartBefore(removed.start);
+    range.setEndAfter(removed.end);
+    range.deleteContents();
+  }
+}
