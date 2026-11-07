@@ -169,7 +169,7 @@ export const previewApi = createApi({
           body,
         };
       },
-      async onQueryStarted(body, { dispatch, getState, queryFulfilled }) {
+      async onQueryStarted(body, { dispatch, queryFulfilled }) {
         // Force any ajax calls to wait.
         pushCanvasLayoutRequest();
         let data: any;
@@ -187,7 +187,7 @@ export const previewApi = createApi({
           popCanvasLayoutRequest();
         }
         const { html, layout, model, autoSaves } = data;
-        syncPendingChangesFromAutoSaves(dispatch, getState, autoSaves);
+        dispatch(syncPendingChangesFromAutoSaves(autoSaves));
         // Clear any stale snapshot (e.g. from a prior language/template preview)
         // so selectPreviewHtml returns this fresh editor html instead of the
         // preview snapshot, which selectPreviewHtml prefers while set.
