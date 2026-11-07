@@ -5,7 +5,9 @@ import {
   ArrowRightIcon,
   ArrowTopLeftIcon,
   ArrowUpIcon,
+  Component1Icon,
   CopyIcon,
+  DiscIcon,
   DotsHorizontalIcon,
   DragHandleDots2Icon,
   TrashIcon,
@@ -82,7 +84,15 @@ export const ComponentTag: React.FC<ComponentTagProps> = ({
 }) => {
   const label = (
     <div className={styles.name} {...dragListeners}>
-      <DragHandleDots2Icon aria-hidden />
+      {/* The type of the component, or where to grab it to drag it. */}
+      <span className={styles.icon} aria-hidden>
+        {isMarker ? (
+          <DiscIcon className={styles.typeIcon} />
+        ) : (
+          <Component1Icon className={styles.typeIcon} />
+        )}
+        <DragHandleDots2Icon className={styles.handle} />
+      </span>
       <span id={`${id}-name`}>{name}</span>
     </div>
   );

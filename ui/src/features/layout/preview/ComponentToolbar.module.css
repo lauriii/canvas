@@ -41,6 +41,24 @@
   }
 }
 
+/* The type icon, replaced by a drag handle while the name is hovered. */
+.icon {
+  display: grid;
+
+  & > * {
+    grid-area: 1 / 1;
+  }
+}
+
+.handle,
+.name:hover .typeIcon {
+  visibility: hidden;
+}
+
+.name:hover .handle {
+  visibility: visible;
+}
+
 .divider {
   width: 1px;
   height: 14px;
