@@ -216,7 +216,7 @@ function liftGhost(
     fontSize: context.fontSize,
     lineHeight: context.lineHeight,
     background: backgroundColor(parent),
-    boxShadow: '0 12px 32px rgb(0 0 0 / 0.2), 0 0 0 1px rgb(110 86 207 / 0.5)',
+    boxShadow: '0 4px 14px rgb(0 0 0 / 0.12), 0 0 0 1px rgb(110 86 207 / 0.5)',
     transformOrigin: `${origin.x - rect.left}px ${origin.y - rect.top}px`,
   });
   document.body.append(element);
@@ -248,7 +248,7 @@ function liftGhost(
         {
           translate: `${p.x - origin.x}px ${p.y - origin.y}px`,
           scale: String(1 + (scale - 1) * eased),
-          opacity: String(1 - 0.1 * eased),
+          opacity: String(1 - 0.04 * eased),
         },
       ]);
     }

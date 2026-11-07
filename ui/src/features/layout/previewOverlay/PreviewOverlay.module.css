@@ -46,7 +46,6 @@
   &.dropTarget {
     outline: 2px solid var(--color-outline-root);
     outline-offset: -2px;
-    background: color-mix(in sRGB, var(--color-outline-root) 6%, transparent);
   }
 }
 
@@ -96,7 +95,6 @@
   &.dragging {
     outline: 2px dashed var(--color-outline-component);
     outline-offset: -1px;
-    background: color-mix(in sRGB, var(--color-outline-component) 10%, transparent);
   }
 
   &.updating {
@@ -120,7 +118,6 @@
   &.dropTarget {
     outline: 2px solid var(--color-outline-slot);
     outline-offset: -2px;
-    background: color-mix(in sRGB, var(--color-outline-slot) 6%, transparent);
   }
 
   &.hovered {
