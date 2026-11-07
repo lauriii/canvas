@@ -1,0 +1,25 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Spacer
+status: stable
+group: Examples
+props:
+  type: object
+  required:
+    - height
+    - max_width
+  properties:
+    height:
+      type: integer
+      title: Height
+      minimum: 0
+      maximum: 2000
+      multipleOf: 50
+      examples:
+        - 100
+    max_width:
+      type: integer
+      title: Max width
+      minimum: 0
+      maximum: 10000
+      examples:
+        - 1200
