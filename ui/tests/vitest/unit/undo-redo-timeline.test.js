@@ -14,6 +14,7 @@ import {
   selectRedoItem,
   selectUndoItem,
   initialState as uiInitialState,
+  UNDO_HISTORY_LIMIT,
   UndoRedoActionCreators,
 } from '@/features/ui/uiSlice';
 
@@ -695,5 +696,29 @@ describe('Undo/redo timeline works across slices', () => {
     // And the undo of the deleteNode 'insertNode' should also have triggered a
     // re-fetching of the preview so updatePreview should be true.
     expect(layoutState.present.updatePreview).to.eq(true);
+  });
+});
+
+describe('Undo history is capped', () => {
+  it('Should keep only the last UNDO_HISTORY_LIMIT steps, all of them undoable', () => {
+    const store = makeStore({
+      pageData: { present: pageData, past: [], future: [] },
+      ui: {
+        ...uiInitialState,
+        currentRoute: { pathname: '/', search: '', hash: '' },
+      },
+    });
+    const edits = UNDO_HISTORY_LIMIT + 10;
+    for (let i = 1; i <= edits; i++) {
+      store.dispatch(setPageData({ title: [{ value: `Title ${i}` }] }));
+    }
+    expect(store.getState().ui.undoStack).to.have.length(UNDO_HISTORY_LIMIT);
+    for (let i = 0; i < UNDO_HISTORY_LIMIT; i++) {
+      store.dispatch(UndoRedoActionCreators.undo('pageData'));
+    }
+    expect(selectUndoItem(store.getState())).to.be.undefined;
+    expect(
+      selectPageDataHistory(store.getState()).present.title[0].value,
+    ).to.equal(`Title ${edits - UNDO_HISTORY_LIMIT}`);
   });
 });

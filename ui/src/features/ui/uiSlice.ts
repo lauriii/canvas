@@ -188,6 +188,14 @@ const getNewScaleIndex = (
   return Math.max(0, Math.min(scaleValues.length - 1, currentIndex));
 };
 
+/**
+ * The number of steps that can be undone.
+ *
+ * Each undoable slice keeps at least this many steps of its own history, so
+ * every item in the undo stack can be undone.
+ */
+export const UNDO_HISTORY_LIMIT = 50;
+
 // If you are not using async thunks you can use the standalone `createSlice`.
 export const uiSlice = createAppSlice({
   name: 'ui',
@@ -198,6 +206,9 @@ export const uiSlice = createAppSlice({
     pushUndo: create.reducer(
       (state, action: PayloadAction<UndoRedoStackItem>) => {
         state.undoStack.push(action.payload);
+        if (state.undoStack.length > UNDO_HISTORY_LIMIT) {
+          state.undoStack.shift();
+        }
         state.redoStack = [];
         // Reset metadata when a new action is pushed (not an undo/redo)
         state.undoRedoMetadata = {
