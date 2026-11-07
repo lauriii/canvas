@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { DragOverlay, useDndMonitor } from '@dnd-kit/core';
 import { restrictToFirstScrollableAncestor } from '@dnd-kit/modifiers';
@@ -53,6 +53,8 @@ const DragEventsHandler: React.FC = () => {
   const { handleFolderDrop } = useDropOnFolderHandler();
   const { handleNewDrop } = useDropFromLibraryHandler();
   const { handleExistingDrop } = useDropFromLayoutHandler();
+  // The slot or region the dragged component is in when the drag starts.
+  const homeContainer = useRef<string>();
 
   // Apply/remove folderAtBoundary class when state changes.
   useEffect(() => {
@@ -151,6 +153,9 @@ const DragEventsHandler: React.FC = () => {
     const origin = getOrigin(event);
     setDragOrigin(origin);
     startLivePreview(event, origin);
+    if (homeContainer.current) {
+      dispatch(setTargetSlot(homeContainer.current));
+    }
     // The dragged component itself shows where it will be dropped.
     window.document.body.classList.toggle(
       'canvas--live-drop-preview',
@@ -181,6 +186,7 @@ const DragEventsHandler: React.FC = () => {
       const uuid = String(event.active.id);
       const parent = findParent(selectLayout(store.getState()), uuid);
       if (parent && parent.nodeType !== NodeType.Component) {
+        homeContainer.current = parent.id;
         startMovePreview(previewDocument, uuid, {
           type: parent.nodeType === NodeType.Region ? 'region' : 'slot',
           id: parent.id,
@@ -196,7 +202,10 @@ const DragEventsHandler: React.FC = () => {
     if (isLivePreviewActive()) {
       showLivePreviewAt(over ? String(over.id) : null);
     }
-    const parentSlot = over?.data?.current?.parentSlot;
+    // Without a drop target, the dragged component is shown where it was.
+    const targetSlot =
+      over?.data?.current?.parentSlot?.id ??
+      (!over && isLivePreviewActive() ? homeContainer.current : undefined);
 
     // If dragging a folder and hovering over non-folder destination, prevent visual feedback.
     if (active.data?.current?.type === 'folder') {
@@ -206,14 +215,15 @@ const DragEventsHandler: React.FC = () => {
       }
     }
 
-    if (parentSlot) {
-      dispatch(setTargetSlot(parentSlot.id));
+    if (targetSlot) {
+      dispatch(setTargetSlot(targetSlot));
     } else {
       dispatch(unsetTargetSlot());
     }
   }
 
   function dragEndCancelCommon() {
+    homeContainer.current = undefined;
     window.document.body.classList.remove('canvas--live-drop-preview');
     dispatch(setPreviewDragging(false));
     dispatch(setListDragging(false));
