@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  cancelBackendUpdates,
   createComponentFormStateHandler,
   flushBackendUpdate,
 } from '@/components/form/react-hook-form/fields/componentFormHandlers';
@@ -9,21 +10,25 @@ import { COMPONENT_PREVIEW_UPDATE_EVENT } from '@/components/form/react-hook-for
 import type { ComponentPreviewUpdateEvent } from '@/components/form/react-hook-form/fields/componentPreviewEvents';
 
 const uuid = 'a1b2c3';
-const createHandler = (source: string) => {
+const field = (prop: string) =>
+  `canvas_component_props[${uuid}][${prop}][0][value]`;
+
+const createHandler = (source: string, propName = 'text') => {
   const component = {
     source,
-    propSources: { text: { jsonSchema: { type: 'string' } } },
+    propSources: {
+      text: { jsonSchema: { type: 'string' } },
+      title: { jsonSchema: { type: 'string' } },
+    },
   };
   const patchComponent = vi.fn();
-  const pending = { current: null };
   const handler = createComponentFormStateHandler({
     dispatch: vi.fn(),
-    transforms: { text: {} },
+    transforms: { text: { mainProperty: {} }, title: { mainProperty: {} } },
     selectedComponentType: 'test.component',
     selectedComponent: uuid,
-    propName: 'text',
+    propName,
     isScalarProp: true,
-    polledBackgroundUpdate: pending,
     component,
     patchComponent,
     editorFrameContext: 'entity',
@@ -35,32 +40,46 @@ const createHandler = (source: string) => {
     components: { 'test.component': component },
     model: {
       [uuid]: {
-        source: { text: { sourceType: 'static:field_item:string', value: '' } },
-        resolved: { text: '' },
+        source: {
+          text: { sourceType: 'static:field_item:string' },
+          title: { sourceType: 'static:field_item:string' },
+        },
+        resolved: { text: '', title: '' },
       },
     },
   } as any;
-  const type = (text: string) =>
-    handler({ text }, inputAndUiData, { text: '' });
-  return { patchComponent, type, pending };
+  // Each change carries the whole form, as the form fields do.
+  const type = (form: Record<string, string>) => {
+    const formState = Object.fromEntries(
+      Object.entries(form).map(([prop, value]) => [field(prop), value]),
+    );
+    handler(formState, inputAndUiData, formState);
+  };
+  const sentResolved = (call = 0) =>
+    patchComponent.mock.calls[call][1].resolved;
+  return { patchComponent, type, sentResolved };
 };
 
 describe('createComponentFormStateHandler', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    window.history.pushState({}, '', '/canvas/editor/canvas_page/1');
   });
   afterEach(() => {
+    cancelBackendUpdates();
     vi.useRealTimers();
   });
 
   it('debounces code component PATCHes without a client-side update', () => {
-    const { patchComponent, type } = createHandler('Code component');
-    type('a');
-    type('ab');
-    type('abc');
+    const { patchComponent, type, sentResolved } =
+      createHandler('Code component');
+    type({ text: 'a' });
+    type({ text: 'ab' });
+    type({ text: 'abc' });
     expect(patchComponent).not.toHaveBeenCalled();
     vi.advanceTimersByTime(400);
-    expect(patchComponent).toHaveBeenCalledTimes(1);
+    expect(patchComponent).toHaveBeenCalledOnce();
+    expect(sentResolved().text).toBe('abc');
   });
 
   it('debounces code component PATCHes longer after a client-side update', () => {
@@ -69,12 +88,12 @@ describe('createComponentFormStateHandler', () => {
     document.addEventListener(COMPONENT_PREVIEW_UPDATE_EVENT, listener);
     try {
       const { patchComponent, type } = createHandler('Code component');
-      type('a');
-      type('ab');
+      type({ text: 'a' });
+      type({ text: 'ab' });
       vi.advanceTimersByTime(400);
       expect(patchComponent).not.toHaveBeenCalled();
       vi.advanceTimersByTime(600);
-      expect(patchComponent).toHaveBeenCalledTimes(1);
+      expect(patchComponent).toHaveBeenCalledOnce();
     } finally {
       document.removeEventListener(COMPONENT_PREVIEW_UPDATE_EVENT, listener);
     }
@@ -84,26 +103,40 @@ describe('createComponentFormStateHandler', () => {
     const { patchComponent, type } = createHandler(
       'Single-Directory Component',
     );
-    type('a');
-    expect(patchComponent).toHaveBeenCalledTimes(1);
+    type({ text: 'a' });
+    expect(patchComponent).toHaveBeenCalledOnce();
   });
 
-  it('sends a waiting PATCH when its field goes away, on the same entity', () => {
-    window.history.pushState({}, '', '/canvas/editor/canvas_page/1');
-    const { patchComponent, type, pending } = createHandler('Code component');
-    type('a');
-    flushBackendUpdate(pending);
+  it('keeps only the newest waiting PATCH per component', () => {
+    const text = createHandler('Code component', 'text');
+    const title = createHandler('Code component', 'title');
+    text.type({ text: 'a', title: '' });
+    title.type({ text: 'a', title: 'b' });
+    flushBackendUpdate(uuid);
+    vi.advanceTimersByTime(1000);
+    expect(text.patchComponent).not.toHaveBeenCalled();
+    expect(title.patchComponent).toHaveBeenCalledOnce();
+    expect(title.sentResolved()).toEqual({ text: 'a', title: 'b' });
+  });
+
+  it('sends a waiting PATCH when the form goes away, on the same entity', () => {
+    const { patchComponent, type } = createHandler('Code component');
+    type({ text: 'a' });
+    flushBackendUpdate(uuid);
     expect(patchComponent).toHaveBeenCalledOnce();
     vi.advanceTimersByTime(1000);
     expect(patchComponent).toHaveBeenCalledOnce();
 
-    // Not after navigating to another entity, nor for a deleted component.
-    type('ab');
+    // Not after navigating to another entity, for a deleted component, or
+    // after undo or redo cancels it.
+    type({ text: 'ab' });
     window.history.pushState({}, '', '/canvas/editor/canvas_page/2');
-    flushBackendUpdate(pending);
+    flushBackendUpdate(uuid);
     window.history.pushState({}, '', '/canvas/editor/canvas_page/1');
-    type('abc');
-    flushBackendUpdate(pending, () => false);
+    type({ text: 'abc' });
+    flushBackendUpdate(uuid, () => false);
+    type({ text: 'abcd' });
+    cancelBackendUpdates();
     vi.advanceTimersByTime(1000);
     expect(patchComponent).toHaveBeenCalledOnce();
   });

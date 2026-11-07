@@ -14,49 +14,47 @@ import type { InputUIData } from '@/types/Form';
 
 export const POLLED_BACKGROUND_TIMEOUT = 1000;
 
-/**
- * A PATCH waiting to be sent, and the editor URL it was made on.
- */
-export interface PendingBackendUpdate {
-  timer: ReturnType<typeof setTimeout>;
-  send: () => void;
-  editorUrl: string;
-}
+// The PATCH waiting to be sent per component instance, and the editor URL it
+// was made on. Each is built from the whole form, so the newest replaces any
+// waiting one.
+const pendingBackendUpdates = new Map<
+  string,
+  { timer: ReturnType<typeof setTimeout>; send: () => void; editorUrl: string }
+>();
 
 const scheduleBackendUpdate = (
-  pending: React.MutableRefObject<PendingBackendUpdate | null>,
+  componentUuid: string,
   send: () => void,
   delay: number,
 ) => {
-  if (pending.current) {
-    clearTimeout(pending.current.timer);
-  }
-  pending.current = {
+  clearTimeout(pendingBackendUpdates.get(componentUuid)?.timer);
+  pendingBackendUpdates.set(componentUuid, {
     timer: setTimeout(() => {
-      pending.current = null;
+      pendingBackendUpdates.delete(componentUuid);
       send();
     }, delay),
     send,
     editorUrl: window.location.href,
-  };
+  });
 };
 
 /**
- * Sends a waiting PATCH right away, for example when its field goes away.
+ * Sends a component instance's waiting PATCH right away, for example when its
+ * form goes away.
  *
  * Drops it if the editor moved to another entity, whose URL the PATCH would
  * resolve to, or if `isCurrent()` says the change no longer applies.
  */
 export const flushBackendUpdate = (
-  pending: React.MutableRefObject<PendingBackendUpdate | null>,
+  componentUuid: string,
   isCurrent: () => boolean = () => true,
 ) => {
-  const update = pending.current;
+  const update = pendingBackendUpdates.get(componentUuid);
   if (!update) {
     return;
   }
   clearTimeout(update.timer);
-  pending.current = null;
+  pendingBackendUpdates.delete(componentUuid);
   if (
     JSON.stringify(extractEntityParams(update.editorUrl)) ===
       JSON.stringify(extractEntityParams(window.location.href)) &&
@@ -67,9 +65,14 @@ export const flushBackendUpdate = (
 };
 
 /**
- * Dependencies needed for component form state handling.
- * Provided by useComponentFormInputInfo and the component instance form.
+ * Drops every waiting PATCH, for example before undo or redo replaces the
+ * models they were built from.
  */
+export const cancelBackendUpdates = () => {
+  pendingBackendUpdates.forEach(({ timer }) => clearTimeout(timer));
+  pendingBackendUpdates.clear();
+};
+
 interface ComponentFormHandlerDependencies {
   dispatch: Dispatch;
   transforms: any;
@@ -77,7 +80,6 @@ interface ComponentFormHandlerDependencies {
   selectedComponent: string;
   propName: string;
   isScalarProp: boolean;
-  polledBackgroundUpdate: React.MutableRefObject<PendingBackendUpdate | null>;
   component: any;
   patchComponent: (inputUiData: InputUIData, params: any) => void;
   editorFrameContext: string;
@@ -156,7 +158,7 @@ export const createComponentFormStateHandler = (
         // debouncing in withRHF will handle preventing this firing too
         // many times in succession.
         scheduleBackendUpdate(
-          deps.polledBackgroundUpdate,
+          deps.selectedComponent,
           updateBackend,
           POLLED_BACKGROUND_TIMEOUT,
         );
@@ -168,7 +170,7 @@ export const createComponentFormStateHandler = (
       // @see ComponentFormField
       if (deps.isScalarProp && deps.component.source === 'Code component') {
         scheduleBackendUpdate(
-          deps.polledBackgroundUpdate,
+          deps.selectedComponent,
           updateBackend,
           DEBOUNCE_TIMEOUT,
         );

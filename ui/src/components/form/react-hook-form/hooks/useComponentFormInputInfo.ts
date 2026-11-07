@@ -10,7 +10,6 @@ import useInputUIData from '@/hooks/useInputUIData';
 import { useGetComponentsQuery } from '@/services/componentAndLayout';
 import { usePatchComponent } from '@/services/preview';
 
-import type { PendingBackendUpdate } from '@/components/form/react-hook-form/fields/componentFormHandlers';
 import type { PropSourceComponent } from '@/types/Component';
 
 /**
@@ -24,7 +23,6 @@ export const useComponentFormInputInfo = (fieldName: string) => {
   const editorFrameContext = useAppSelector(selectEditorFrameContext);
   const dispatch = useAppDispatch();
   const store = useAppStore();
-  const polledBackgroundUpdate = useRef<PendingBackendUpdate | null>(null);
   const { data: components } = useGetComponentsQuery();
   const transforms = useComponentTransforms();
   const inputAndUiData = useInputUIData();
@@ -32,14 +30,14 @@ export const useComponentFormInputInfo = (fieldName: string) => {
   const component = components?.[selectedComponentType] as PropSourceComponent;
   const patchComponent = usePatchComponent();
 
-  // A PATCH still waiting when the field goes away, for example when another
+  // A PATCH still waiting when the form goes away, for example when another
   // component is selected, is sent at once, unless its component was deleted.
   const selectedComponentRef = useRef(selectedComponent);
   selectedComponentRef.current = selectedComponent;
   useEffect(
     () => () =>
       flushBackendUpdate(
-        polledBackgroundUpdate,
+        selectedComponentRef.current,
         () => !!selectModel(store.getState())[selectedComponentRef.current],
       ),
     [store],
@@ -54,7 +52,6 @@ export const useComponentFormInputInfo = (fieldName: string) => {
   return {
     editorFrameContext,
     dispatch,
-    polledBackgroundUpdate,
     components,
     transforms,
     inputAndUiData,
