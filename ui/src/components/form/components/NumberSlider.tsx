@@ -4,12 +4,17 @@ import { Flex, Slider } from '@radix-ui/themes';
 import type { ReactNode } from 'react';
 import type { Attributes } from '@/types/DrupalAttribute';
 
-// Covers percentages, columns, opacity, rotation, font weights … but not e.g.
-// timestamps, where one slider pixel would span thousands of values.
-const MAX_SLIDER_RANGE = 1000;
+// The most values a slider offers. Covers e.g. 0–10000, or 0–100000 in steps
+// of 10 (`multipleOf: 10`), but not timestamps, where one slider pixel would
+// span millions of values. The number input next to the slider still accepts
+// exact values.
+const MAX_SLIDER_POSITIONS = 10000;
 
 /**
  * Whether a number input has a range that a slider can represent.
+ *
+ * A component sets the step with `multipleOf`.
+ * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::buildComponentInstanceForm()
  */
 export const hasSliderRange = (attributes: Attributes): boolean => {
   if (
@@ -21,7 +26,7 @@ export const hasSliderRange = (attributes: Attributes): boolean => {
     return false;
   }
   const range = Number(attributes.max) - Number(attributes.min);
-  return range > 0 && range <= MAX_SLIDER_RANGE;
+  return range > 0 && range / getSliderStep(attributes) <= MAX_SLIDER_POSITIONS;
 };
 
 /**

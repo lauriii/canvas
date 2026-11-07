@@ -404,7 +404,7 @@ However, if there is Vanilla JS that impacts the layout of elements within the f
 
 #### 3.5.3 Enhanced rendering of core widgets
 Some core widgets render with a more visual control. The original form element stays in the DOM and remains the form element: the visual control sets its value, which fires the same change event as direct input.
-- `number` with a `min` and a `max` at most 1000 apart renders a slider next to the number input. See `ui/src/components/form/components/NumberSlider.tsx`.
+- `number` with a `min` and a `max` renders a slider next to the number input, if that offers at most 10,000 positions. The step is the prop's `multipleOf`, otherwise 1 for integers and 100 steps across the range for numbers. See `ui/src/components/form/components/NumberSlider.tsx`.
 
 #### 3.5.4 Auto-save and real time preview considerations
 Some of the complexity introduced by Drupal Canvas based component + entity forms is not due to them being rendered in React, but instead because of the need to accommodate auto-save and real time preview updates. Reshaping of data that would occur on form submission is instead done in real time, which necessitates some extra plumbing such as the [3.4 Transforms](#34-transforms) covered earlier in this document.
