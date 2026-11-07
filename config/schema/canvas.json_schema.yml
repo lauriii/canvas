@@ -118,6 +118,10 @@ canvas.json_schema.prop_shape.string:
         # Do not allow NULL.
         constraints:
           NotNull: ~
+    x-canvas-options:
+      requiredKey: false
+      type: canvas.options_source.[source]
+      label: 'Options from site data'
     x-translation-context:
       requiredKey: false
       type: string
@@ -210,6 +214,10 @@ canvas.json_schema.prop_shape.integer:
         # Do not allow NULL.
         constraints:
           NotNull: ~
+    x-canvas-options:
+      requiredKey: false
+      type: canvas.options_source.[source]
+      label: 'Options from site data'
     x-translation-context:
       requiredKey: false
       type: string
@@ -358,3 +366,49 @@ canvas.json_schema.prop_examples.array.object:
   # @see \Drupal\Core\Validation\Plugin\Validation\Constraint\ValidKeysConstraintValidator
   constraints:
     FullyValidatable: ~
+
+# Options from site data. Each options source plugin defines the type for its
+# configuration.
+# @see \Drupal\canvas\OptionsSource\OptionsSourceInterface
+canvas.options_source.*:
+  type: mapping
+  label: 'Options source'
+  mapping:
+    source:
+      type: string
+      label: 'Source'
+
+canvas.options_source.entity:
+  type: canvas.options_source.*
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    entity_type:
+      type: string
+      label: 'Entity type'
+    bundles:
+      requiredKey: false
+      type: sequence
+      label: 'Bundles'
+      sequence:
+        type: string
+        label: 'Bundle'
+
+canvas.options_source.view:
+  type: canvas.options_source.*
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    view:
+      type: string
+      label: 'View'
+    display:
+      type: string
+      label: 'Display'
+    arguments:
+      requiredKey: false
+      type: sequence
+      label: 'Contextual filter values'
+      sequence:
+        type: string
+        label: 'Value'

@@ -312,6 +312,8 @@ final class Layers {
         // Canvas component source base classes and interfaces.
         Selector::inNamespace('Drupal\canvas\ComponentSource'),
         self::depsOfComponentSourceInterfaceImplementations(),
+        // Options from site data for enum-like props.
+        Selector::inNamespace('Drupal\canvas\OptionsSource'),
         // Component Source-specific exceptions.
         Selector::classname(InvalidComponentInputsPropSourceException::class),
         Selector::classname(MissingHostEntityException::class),

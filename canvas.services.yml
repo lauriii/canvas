@@ -24,6 +24,8 @@ services:
       - { name: stream_wrapper, scheme: json-schema-definitions }
   Drupal\canvas\Plugin\AdapterManager:
     parent: default_plugin_manager
+  Drupal\canvas\OptionsSource\OptionsSourceManager:
+    parent: default_plugin_manager
   Drupal\canvas\ComponentDependencyUninstallValidator:
     public: true
     tags:
