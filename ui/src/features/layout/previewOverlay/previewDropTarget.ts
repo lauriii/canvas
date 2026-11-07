@@ -10,7 +10,7 @@ const EDGE_THRESHOLD = 12;
 // many pixels past where it would. Otherwise a hand that is held still, which
 // is never quite still, moves the dragged component back and forth across the
 // boundary between two drop targets.
-const HYSTERESIS = 12;
+const HYSTERESIS = 8;
 
 interface Point {
   x: number;

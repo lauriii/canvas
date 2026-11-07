@@ -43,7 +43,7 @@ export const DROP_PREVIEW_ID = 'canvas-drop-preview';
  */
 export const LIVE_PREVIEW_ANIMATION = 'canvas-live-preview';
 
-const SLIDE = { duration: 160, easing: 'cubic-bezier(0.2, 0, 0, 1)' };
+const SLIDE = { duration: 120, easing: 'cubic-bezier(0.2, 0, 0, 1)' };
 // The copy of a large component under the pointer shrinks to fit this size,
 // down to 40% of its size, so it doesn't hide where it can be dropped.
 const GHOST = { width: 480, height: 280, minScale: 0.4 };
@@ -242,7 +242,7 @@ function liftGhost(
     const p = toPreview(document, ghost.pointer);
     if (p) {
       // Lift: shrink to size and add opacity over the first frames.
-      const t = Math.min(1, Math.max(0, time - ghost.startTime) / 150);
+      const t = Math.min(1, Math.max(0, time - ghost.startTime) / 100);
       const eased = 1 - (1 - t) ** 3;
       (ghost.animation.effect as KeyframeEffect).setKeyframes([
         {
