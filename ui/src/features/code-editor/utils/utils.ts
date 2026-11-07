@@ -513,6 +513,8 @@ export function serializeProps(props: CodeComponentProp[]) {
             processed['x-canvas-color-picker'] = xCanvasColorPicker;
           if (xCanvasColorFolders && xCanvasColorFolders.length > 0)
             processed['x-canvas-color-folders'] = xCanvasColorFolders;
+          if (prop['x-canvas-options'])
+            processed['x-canvas-options'] = prop['x-canvas-options'];
         }
         return { ...acc, [getPropMachineName(name)]: processed };
       },
@@ -577,6 +579,9 @@ export function deserializeProps(
     const actualXAllowedBundle = allowMultiple
       ? items?.['x-allowed-bundle']
       : xAllowedBundle;
+    const actualXCanvasOptions = allowMultiple
+      ? items?.['x-canvas-options']
+      : prop['x-canvas-options'];
 
     const isNumberType = ['integer', 'number'].includes(actualType);
     let example: CodeComponentProp['example'] = allowMultiple ? [] : '';
@@ -594,6 +599,7 @@ export function deserializeProps(
             'x-formatting-context': items['x-formatting-context'],
             'x-allowed-entity-type-id': items['x-allowed-entity-type-id'],
             'x-allowed-bundle': items['x-allowed-bundle'],
+            'x-canvas-options': items['x-canvas-options'],
             enum: items.enum,
             'meta:enum': items['meta:enum'],
           }
@@ -670,6 +676,9 @@ export function deserializeProps(
       }),
       ...(actualXAllowedBundle && {
         'x-allowed-bundle': actualXAllowedBundle,
+      }),
+      ...(actualXCanvasOptions && {
+        'x-canvas-options': actualXCanvasOptions,
       }),
       ...(xCanvasColorPicker && {
         'x-canvas-color-picker': xCanvasColorPicker,

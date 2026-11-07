@@ -41,6 +41,7 @@ import FormPropTypeLink, {
   DEFAULT_LINK_EXAMPLES,
   linkFormatMap,
 } from '@/features/code-editor/component-data/forms/FormPropTypeLink';
+import FormPropTypeSiteOptions from '@/features/code-editor/component-data/forms/FormPropTypeSiteOptions';
 import FormPropTypeTextField from '@/features/code-editor/component-data/forms/FormPropTypeTextField';
 import FormPropTypeVideo from '@/features/code-editor/component-data/forms/FormPropTypeVideo';
 import SortableList from '@/features/code-editor/component-data/SortableList';
@@ -213,12 +214,13 @@ export default function Props() {
                       'video',
                       'document',
                     ].includes(value);
-                    const isContentEntityReference =
-                      value === 'contentEntityReference';
+                    // These props must be optional.
+                    const mustBeOptional = [
+                      'contentEntityReference',
+                      'siteOptions',
+                    ].includes(value);
                     const defaultExample =
-                      isRequired &&
-                      !hasDedicatedExampleForm &&
-                      !isContentEntityReference
+                      isRequired && !hasDedicatedExampleForm && !mustBeOptional
                         ? DEFAULT_EXAMPLES[value]
                         : '';
                     dispatch(
@@ -237,6 +239,7 @@ export default function Props() {
                           'x-formatting-context': undefined,
                           'x-allowed-entity-type-id': undefined,
                           'x-allowed-bundle': undefined,
+                          'x-canvas-options': undefined,
                           entityFieldExpressions: undefined,
                           example: defaultExample,
                           allowMultiple: false,
@@ -253,7 +256,7 @@ export default function Props() {
                         } as Partial<CodeComponentProp>,
                       }),
                     );
-                    if (isRequired && isContentEntityReference) {
+                    if (isRequired && mustBeOptional) {
                       dispatch(toggleRequired({ propId: prop.id }));
                     }
                   }
@@ -273,7 +276,9 @@ export default function Props() {
             </FormElement>
           </Box>
 
-          {prop.derivedType !== 'contentEntityReference' && (
+          {!['contentEntityReference', 'siteOptions'].includes(
+            prop.derivedType ?? '',
+          ) && (
             <Flex direction="column" gap="2">
               <Label htmlFor={`prop-required-${prop.id}`}>Required</Label>
               <Switch
@@ -408,6 +413,14 @@ export default function Props() {
                   allowMultiple={prop.allowMultiple}
                   valueMode={prop.valueMode}
                   limitedCount={prop.limitedCount}
+                />
+              );
+            case 'siteOptions':
+              return (
+                <FormPropTypeSiteOptions
+                  id={prop.id}
+                  options={prop['x-canvas-options']}
+                  isDisabled={disabledPropIds.has(prop.id)}
                 />
               );
             case 'contentEntityReference':
