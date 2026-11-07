@@ -279,8 +279,7 @@ export function getPropsValues(
       return undefined;
     }
     const groupSource = source?.[segments[0]] as
-      | { sources?: Record<string, unknown> }
-      | undefined;
+      { sources?: Record<string, unknown> } | undefined;
     return groupSource?.sources?.[segments[segments.length - 1]];
   };
   const propsValues = Object.entries(
@@ -348,9 +347,12 @@ export function getPropsValues(
     }
     delete propsValues[key as keyof PropsValues];
     // Empty values are omitted from the composed object; the sub-property is
-    // then considered unpopulated.
+    // then considered unpopulated. That includes the empty option of an
+    // options widget: `_none` is not one of the sub-property's enum values.
+    // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\OptionsWidgetBase::EMPTY_VALUE
     const isEmptyValue =
       value === '' ||
+      value === '_none' ||
       value === null ||
       value === undefined ||
       (Array.isArray(value) && value.length === 0);

@@ -347,12 +347,12 @@ describe('Code editor utilities', () => {
 
     it('of type group object', () => {
       const result = deserializeProps([serializedPropsFixture.author]);
-      matchDeserializedProps(result, [30]);
+      matchDeserializedProps(result, [34]);
     });
 
     it('of type group object (multi-value)', () => {
       const result = deserializeProps([serializedPropsFixture.authors]);
-      matchDeserializedProps(result, [31]);
+      matchDeserializedProps(result, [35]);
     });
 
     describe('backwards compatibility: clears stale formattedText fields on type switch', () => {

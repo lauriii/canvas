@@ -1401,8 +1401,8 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
     \assert($repository instanceof PropShapeRepositoryInterface);
     // A prop shape no field type can store: cached as NULL.
     $non_storable_shape = PropShape::normalize([
-      'type' => 'object',
-      'properties' => ['x' => ['type' => 'string']],
+      'type' => 'string',
+      'format' => JsonSchemaStringFormat::Duration->value,
     ]);
     self::assertNull($repository->getStorablePropShape($non_storable_shape));
     // End of the request: the cache is written, including the NULL.

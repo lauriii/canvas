@@ -8,6 +8,7 @@ use Drupal\canvas\PropShape\PropShape;
 use Drupal\canvas\PropSource\EntityFieldPropSource;
 use Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\node\Entity\NodeType;
@@ -70,7 +71,7 @@ final class ObjectPropsFieldMappingTest extends CanvasKernelTestBase {
     }
     // The suggester (and hence the matcher's structural expectations) rely on
     // a form display existing.
-    \Drupal::service('entity_display.repository')->getFormDisplay('node', 'article')
+    \Drupal::service(EntityDisplayRepositoryInterface::class)->getFormDisplay('node', 'article')
       ->setComponent('field_street', ['type' => 'string_textfield'])
       ->setComponent('field_city', ['type' => 'string_textfield'])
       ->setComponent('field_duration', ['type' => 'daterange_default'])

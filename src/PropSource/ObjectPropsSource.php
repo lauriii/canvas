@@ -381,7 +381,7 @@ final class ObjectPropsSource extends PropSourceBase {
     return TRUE;
   }
 
-  public function asChoice(): string {
+  public function asChoice(): never {
     // Groups cannot be linked to a single structured data source; their
     // sub-properties can.
     // @see \Drupal\canvas\ShapeMatcher\EntityFieldPropSourceMatcher::matchEntityPropsForObjectUsingScalars()
