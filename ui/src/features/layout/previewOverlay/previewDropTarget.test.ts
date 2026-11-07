@@ -106,6 +106,26 @@ describe('findPreviewDropZoneId', () => {
     expect(find(200, 650)).toBe('h-slot');
   });
 
+  it('looks through the dragged component wherever it is shown', () => {
+    // a is shown at the bottom of c's slot, overlapping e: the pointer still
+    // resolves against the other components.
+    const shown = el(
+      { 'data-canvas-drop-container': 'region' },
+      [0, 0, 400, 1000],
+      [item('a', [10, 400, 380, 90]), item('b', [0, 0, 400, 100])],
+    );
+    expect(findPreviewDropZoneId(shown, { x: 200, y: 450 }, 'a')).toBe(
+      'b_bottom',
+    );
+    // That is where a is, so it is a no-op when a is first.
+    const first = el(
+      { 'data-canvas-drop-container': 'region' },
+      [0, 0, 400, 1000],
+      [item('a', [0, 100, 400, 100]), item('b', [0, 0, 400, 100])],
+    );
+    expect(findPreviewDropZoneId(first, { x: 200, y: 30 }, 'a')).toBeNull();
+  });
+
   it('returns null where a drop would not move the dragged component', () => {
     expect(find(200, 200, 'd')).toBeNull();
     expect(find(200, 350, 'd')).toBeNull();

@@ -25,6 +25,9 @@ const childItems = (container: HTMLElement) =>
     container.querySelectorAll<HTMLElement>(':scope > [data-canvas-drop-item]'),
   );
 
+const isActive = (el: HTMLElement, activeId: UniqueIdentifier) =>
+  el.dataset.canvasDropItem === activeId;
+
 const isHorizontal = (container: HTMLElement) =>
   !!container.dataset.canvasStackDirection?.startsWith('h');
 
@@ -37,6 +40,10 @@ const isHorizontal = (container: HTMLElement) =>
  * a drop target. The result is the id of the existing drop zone that
  * represents that insertion point, so drop handling is unchanged.
  *
+ * The dragged component is skipped: it is shown at its drop position while it
+ * is dragged (see livePreview.ts), so it would otherwise be under the pointer
+ * wherever it goes.
+ *
  * @param root
  *   The overlay element of the root region (marked data-canvas-drop-container).
  * @param point
@@ -45,8 +52,8 @@ const isHorizontal = (container: HTMLElement) =>
  *   The id of the dragged item; equals the component uuid for preview drags.
  *
  * @return
- *   The drop zone id, or NULL when the pointer is over the dragged component
- *   or the gaps directly next to it (dropping there is a no-op).
+ *   The drop zone id, or NULL for the position the dragged component is at
+ *   (dropping there is a no-op).
  */
 export function findPreviewDropZoneId(
   root: HTMLElement,
@@ -55,10 +62,11 @@ export function findPreviewDropZoneId(
 ): string | null {
   let container = root;
   for (;;) {
-    const hit = childItems(container).find((el) =>
-      contains(el.getBoundingClientRect(), point),
+    const hit = childItems(container).find(
+      (el) =>
+        !isActive(el, activeId) && contains(el.getBoundingClientRect(), point),
     );
-    if (!hit || hit.dataset.canvasDropItem === activeId) break;
+    if (!hit) break;
     const r = hit.getBoundingClientRect();
     const [start, size, pos] = isHorizontal(container)
       ? [r.left, r.width, point.x]
@@ -74,10 +82,15 @@ export function findPreviewDropZoneId(
     container = slot;
   }
 
-  const items = childItems(container);
+  const all = childItems(container);
+  // Where the dragged component is, in terms of the other components.
+  const current = all.findIndex((el) => isActive(el, activeId));
+  const items = all.filter((el) => !isActive(el, activeId));
   if (!items.length) {
     // Empty slots and regions use their own id for their drop zone.
-    return container.dataset.canvasDropContainer ?? null;
+    return current === -1
+      ? (container.dataset.canvasDropContainer ?? null)
+      : null;
   }
 
   const horizontal = isHorizontal(container);
@@ -92,16 +105,14 @@ export function findPreviewDropZoneId(
     ? point.x > r.left + r.width / 2
     : point.y > r.top + r.height / 2;
   const index = items.indexOf(nearest) + (after ? 1 : 0);
-  const before = items[index - 1]?.dataset.canvasDropItem;
-  if (
-    before === activeId ||
-    items[index]?.dataset.canvasDropItem === activeId
-  ) {
+  if (index === current) {
     return null;
   }
   // Only the first component has a leading drop zone; every other gap is
-  // represented by the trailing drop zone of the component before it.
+  // represented by the trailing drop zone of the component before it. When
+  // the dragged component is first, index 0 is its own position, so items[0]
+  // is the first component whenever a leading drop zone is returned.
   return index === 0
     ? `${items[0].dataset.canvasDropItem}_${horizontal ? 'left' : 'top'}`
-    : `${before}_${horizontal ? 'right' : 'bottom'}`;
+    : `${items[index - 1].dataset.canvasDropItem}_${horizontal ? 'right' : 'bottom'}`;
 }

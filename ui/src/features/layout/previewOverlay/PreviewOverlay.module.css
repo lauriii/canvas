@@ -85,10 +85,11 @@
     outline: 1px solid var(--color-outline-component);
   }
 
+  /* The dragged component, shown where it will be dropped. */
   &.dragging {
-    backdrop-filter: grayscale(80%) opacity(40%);
-    background: #fff;
-    mix-blend-mode: color;
+    outline: 2px dashed var(--color-outline-component);
+    outline-offset: -1px;
+    background: color-mix(in sRGB, var(--color-outline-component) 10%, transparent);
   }
 
   &.updating {
@@ -301,6 +302,11 @@
       height: 100%;
     }
   }
+}
+
+/* The dragged component itself shows where it will be dropped. */
+:global(.canvas--live-drop-preview) .componentDropZone.isOver::after {
+  display: none;
 }
 
 .slotDropZone {

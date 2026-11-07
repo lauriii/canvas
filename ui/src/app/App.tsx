@@ -17,6 +17,7 @@ import SavingOverlay from '@/components/SavingOverlay';
 import Toast from '@/components/Toast';
 import Topbar from '@/components/topbar/Topbar';
 import useExtensions from '@/features/extensions/useExtensions';
+import { isLivePreviewSettling } from '@/features/layout/preview/livePreview';
 import DragEventsHandler from '@/features/layout/previewOverlay/DragEventsHandler';
 import { findPreviewDropZoneId } from '@/features/layout/previewOverlay/previewDropTarget';
 import NotificationToastManager from '@/features/notifications/NotificationToastManager';
@@ -25,9 +26,12 @@ import useRouteSync from '@/hooks/useRouteSync';
 import { getCanvasSettings } from '@/utils/drupal-globals';
 
 import type React from 'react';
-import type { CollisionDetection } from '@dnd-kit/core';
+import type { Collision, CollisionDetection } from '@dnd-kit/core';
 
 import styles from '@/features/editor/App.module.css';
+
+// The last drop target resolved in the editor pane.
+let previewCollisions: Collision[] = [];
 
 // This uses the suggested composition here https://docs.dndkit.com/api-documentation/context-provider/collision-detection-algorithms#composition-of-existing-algorithms
 // the collision will use the mouse cursor's position, but if the mouse cursor is not in a valid dropzone it will fallback
@@ -61,14 +65,23 @@ function customCollisionDetectionAlgorithm(
     root &&
     within(pane, pointer)
   ) {
+    // The dragged component was just shown at its drop position (see
+    // livePreview.ts). Keep that target until the overlay has caught up with
+    // the reflowed page, so stale positions don't make it jump back and forth.
+    if (isLivePreviewSettling()) {
+      return previewCollisions;
+    }
+    previewCollisions = [];
     if (within(root.closest('.canvas--viewport-overlay')!, pointer)) {
       const id = findPreviewDropZoneId(root, pointer, args.active.id);
       const droppable = args.droppableContainers.find((d) => d.id === id);
-      return droppable
-        ? [{ id: droppable.id, data: { droppableContainer: droppable } }]
-        : [];
+      if (droppable) {
+        previewCollisions = [
+          { id: droppable.id, data: { droppableContainer: droppable } },
+        ];
+      }
     }
-    return [];
+    return previewCollisions;
   }
 
   // First, let's see if there are any collisions with the pointer

@@ -3,16 +3,19 @@ import _ from 'lodash';
 import { useAppDispatch, useAppSelector, useAppStore } from '@/app/hooks';
 import { moveNode, selectLayout } from '@/features/layout/layoutModelSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
+import { commitLivePreview } from '@/features/layout/preview/livePreview';
 import {
   getPreviewDocument,
   movePreviewComponent,
 } from '@/features/layout/preview/optimisticPreview';
+import useComponentSelection from '@/hooks/useComponentSelection';
 
 import type { DragEndEvent } from '@dnd-kit/core';
 
 export function useDropFromLayoutHandler() {
   const dispatch = useAppDispatch();
   const store = useAppStore();
+  const { setSelectedComponent } = useComponentSelection();
   const layout = useAppSelector(selectLayout);
 
   // There is an edge case where if an item is dragged into the space immediately after itself,
@@ -61,7 +64,9 @@ export function useDropFromLayoutHandler() {
     dispatch(moveNode({ uuid: activeUuid, to: dropPath }));
     // Show the move right away instead of after the new preview is rendered.
     // Only fall back to the 'pending move' state when that isn't possible.
-    const previewDocument = getPreviewDocument();
+    // The live preview already shows it there unless it was dropped outside
+    // the preview, so this usually doesn't change anything.
+    const previewDocument = commitLivePreview() ?? getPreviewDocument();
     const moved =
       previewDocument &&
       movePreviewComponent(
@@ -70,6 +75,8 @@ export function useDropFromLayoutHandler() {
         activeUuid,
       );
     afterDrag(elementsInsideIframe, !moved, activeUuid);
+    // Edit what was just moved, like a component added from the library.
+    setSelectedComponent(activeUuid, selectLayout(store.getState()));
   }
 
   return { handleExistingDrop };

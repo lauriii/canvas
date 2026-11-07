@@ -1,12 +1,19 @@
 import { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { DragOverlay, useDndMonitor } from '@dnd-kit/core';
-import {
-  restrictToFirstScrollableAncestor,
-  restrictToWindowEdges,
-} from '@dnd-kit/modifiers';
+import { restrictToFirstScrollableAncestor } from '@dnd-kit/modifiers';
 
-import { useAppDispatch } from '@/app/hooks';
+import { useAppDispatch, useAppStore } from '@/app/hooks';
+import { NodeType, selectLayout } from '@/features/layout/layoutModelSlice';
+import { findParent } from '@/features/layout/layoutUtils';
+import {
+  endLivePreview,
+  isLivePreviewActive,
+  showLivePreviewAt,
+  startInsertPreview,
+  startMovePreview,
+} from '@/features/layout/preview/livePreview';
+import { getPreviewDocument } from '@/features/layout/preview/optimisticPreview';
 import {
   setCodeDragging,
   setListDragging,
@@ -38,6 +45,7 @@ import styles from './DragOverlay.module.css';
 
 const DragEventsHandler: React.FC = () => {
   const dispatch = useAppDispatch();
+  const store = useAppStore();
   const [componentName, setComponentName] = useState('...');
   const [dragOrigin, setDragOrigin] = useState('');
   const [isDraggingFolder, setIsDraggingFolder] = useState(false);
@@ -124,7 +132,10 @@ const DragEventsHandler: React.FC = () => {
     ? [snapRightToCursor, restrictToFirstScrollableAncestor]
     : isDraggingFolder
       ? [restrictFolderToSidebar]
-      : [snapRightToCursor, restrictToWindowEdges];
+      : // The drag overlay is as large as the dragged component, so clamping
+        // it to the window would pin the label of a tall component to a
+        // corner instead of the cursor.
+        [snapRightToCursor];
 
   function handleDragStart(event: DragStartEvent) {
     initMouseTracking();
@@ -139,6 +150,12 @@ const DragEventsHandler: React.FC = () => {
     window.document.body.classList.add(styles.dragging);
     const origin = getOrigin(event);
     setDragOrigin(origin);
+    startLivePreview(event, origin);
+    // The dragged component itself shows where it will be dropped.
+    window.document.body.classList.toggle(
+      'canvas--live-drop-preview',
+      isLivePreviewActive(),
+    );
     if (origin === 'overlay') {
       dispatch(setPreviewDragging(true));
     } else if (origin === 'library') {
@@ -150,8 +167,33 @@ const DragEventsHandler: React.FC = () => {
     }
   }
 
+  // Shows the dragged component at its drop position while it is dragged.
+  function startLivePreview(
+    event: DragStartEvent,
+    origin: ReturnType<typeof getOrigin>,
+  ) {
+    const previewDocument = getPreviewDocument();
+    const data = event.active.data.current;
+    if (!previewDocument || !data) {
+      return;
+    }
+    if (origin === 'overlay') {
+      const uuid = String(event.active.id);
+      const parent = findParent(selectLayout(store.getState()), uuid);
+      if (parent && parent.nodeType !== NodeType.Component) {
+        startMovePreview(previewDocument, uuid, {
+          type: parent.nodeType === NodeType.Region ? 'region' : 'slot',
+          id: parent.id,
+        });
+      }
+    } else if (origin === 'library' && data.type !== 'folder') {
+      startInsertPreview(previewDocument, data.item?.default_markup, data.name);
+    }
+  }
+
   function handleDragOver(event: DragOverEvent) {
     const { over, active } = event;
+    showLivePreviewAt(over ? String(over.id) : null);
     const parentSlot = over?.data?.current?.parentSlot;
 
     // If dragging a folder and hovering over non-folder destination, prevent visual feedback.
@@ -170,6 +212,7 @@ const DragEventsHandler: React.FC = () => {
   }
 
   function dragEndCancelCommon() {
+    window.document.body.classList.remove('canvas--live-drop-preview');
     dispatch(setPreviewDragging(false));
     dispatch(setListDragging(false));
     dispatch(setTreeDragging(false));
@@ -185,6 +228,16 @@ const DragEventsHandler: React.FC = () => {
 
   function handleDragEnd(event: DragEndEvent) {
     dragEndCancelCommon();
+    try {
+      handleDrop(event);
+    } finally {
+      // Puts the dragged component back where it was, unless the drop
+      // handlers kept it where the live preview shows it.
+      endLivePreview();
+    }
+  }
+
+  function handleDrop(event: DragEndEvent) {
     const { over, active } = event;
     const elementsInsideIframe =
       active.data?.current?.elementsInsideIframe || [];
@@ -220,6 +273,7 @@ const DragEventsHandler: React.FC = () => {
 
   function handleDragCancel() {
     dragEndCancelCommon();
+    endLivePreview();
   }
 
   useDndMonitor({
