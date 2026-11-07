@@ -27,6 +27,12 @@ interface IFrameSwapperProps {
   headStyles: string;
   setIsReloading: Dispatch<SetStateAction<boolean>>;
   interactive: boolean;
+  /**
+   * Holds back new preview documents while text is edited in place: replacing
+   * the document would destroy the caret and the in-progress value. The latest
+   * document is applied as soon as the hold is released.
+   */
+  holdUpdates?: boolean;
 }
 
 const HEAD_STYLES_ID = 'canvas-preview-head-styles';
@@ -48,7 +54,13 @@ const applyHeadStyles = (frame: HTMLIFrameElement | null, css: string) => {
 
 const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
   (
-    { srcDocument, headStyles, setIsReloading, interactive },
+    {
+      srcDocument,
+      headStyles,
+      setIsReloading,
+      interactive,
+      holdUpdates = false,
+    },
     ref: Ref<HTMLIFrameElement>,
   ) => {
     const iFrameRefs = useRef<(HTMLIFrameElement | null)[]>([]);
@@ -59,6 +71,13 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
     // without re-running (and so reloading) the srcdoc effect on style changes.
     const headStylesRef = useRef(headStyles);
     headStylesRef.current = headStyles;
+    // While held, keep rendering the document from before the hold. Releasing
+    // the hold applies the latest document, and only if it changed.
+    const heldSrcDocumentRef = useRef(srcDocument);
+    if (!holdUpdates) {
+      heldSrcDocumentRef.current = srcDocument;
+    }
+    const documentToApply = heldSrcDocumentRef.current;
 
     // Keep already-loaded preview documents in step when the styles change.
     useEffect(() => {
@@ -176,7 +195,7 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
 
       // Insert the head styles into the markup itself, so a loading document
       // renders with them from its first paint.
-      const srcDocumentWithStyles = srcDocument.replace(
+      const srcDocumentWithStyles = documentToApply.replace(
         /<\/head>/i,
         () =>
           `<style id="${HEAD_STYLES_ID}">${headStylesRef.current}</style></head>`,
@@ -211,7 +230,7 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
         inactiveIFrame?.removeEventListener('load', swapIFrames);
         activeIFrame?.removeEventListener('load', swapIFrames);
       };
-    }, [srcDocument, setIsReloading, swapIFrames, getIFrames]);
+    }, [documentToApply, setIsReloading, swapIFrames, getIFrames]);
 
     const commonIFrameProps = {
       className: clsx(styles.preview, {

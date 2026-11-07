@@ -23,12 +23,16 @@ import {
   selectDragging,
   selectEditorViewPort,
   selectFirstLoadComplete,
+  selectIsInlineTextBusy,
+  selectLastTextEditSession,
   selectPanning,
+  selectTextEditSession,
   setEditorFrameModeEditing,
   setEditorFrameModeInteractive,
   setEditorFrameViewPort,
   setIsPanning,
   setIsZooming,
+  startTextEditSession,
 } from '@/features/ui/uiSlice';
 import useComponentSelection from '@/hooks/useComponentSelection';
 import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
@@ -106,6 +110,13 @@ const EditorFrame: React.FC = () => {
   const selectedComponentIsMarker =
     !!selectedNode &&
     componentSubtreeMatchesType(selectedNode, isMarkerComponentType);
+  // While text is edited in place, keys belong to the text and its toolbar,
+  // which lives in this document: Backspace there must not delete the
+  // component.
+  const isInlineTextBusy = useAppSelector(selectIsInlineTextBusy);
+  const isEditingText = !!useAppSelector(selectTextEditSession);
+  const componentHotkeys = { enabled: !isInlineTextBusy };
+  const lastTextEditSession = useAppSelector(selectLastTextEditSession);
   const panningModeRef = useRef(panningMode);
   const { copySelectedComponent, pasteAfterSelectedComponent } =
     useCopyPasteComponents();
@@ -149,6 +160,8 @@ const EditorFrame: React.FC = () => {
     {
       keydown: true,
       keyup: false,
+      // Space must press toolbar buttons, not start panning.
+      ...componentHotkeys,
       eventListenerOptions: { capture: true }, // ensure we capture the space key before other handlers (like selecting the current focused component)
     },
   );
@@ -156,6 +169,7 @@ const EditorFrame: React.FC = () => {
     keydown: false,
     keyup: true,
     preventDefault: true,
+    ...componentHotkeys,
   });
 
   // TODO This should have a better keyboard shortcut, but as the Interactive mode is still
@@ -163,25 +177,62 @@ const EditorFrame: React.FC = () => {
   useHotkeys('v', () => dispatch(setEditorFrameModeInteractive()), {
     keydown: true,
     keyup: false,
+    ...componentHotkeys,
   });
   useHotkeys('v', () => dispatch(setEditorFrameModeEditing()), {
     keydown: false,
     keyup: true,
   });
-  useHotkeys(['Backspace', 'Delete'], () => {
-    if (selectedComponent && !selectedComponentIsMarker) {
-      dispatch(deleteNode(selectedComponent));
-      unsetSelectedComponent();
-    }
-  });
-  useHotkeys('mod+c', () => {
-    if (!selectedComponentIsMarker) {
-      copySelectedComponent();
-    }
-  });
-  useHotkeys('mod+v', () => {
-    pasteAfterSelectedComponent();
-  });
+  useHotkeys(
+    ['Backspace', 'Delete'],
+    (event) => {
+      // Right after finishing a text edit, a Backspace is far more likely a
+      // correction of that text than a request to delete the component.
+      // That holds while its save is still in flight too.
+      if (isEditingText) {
+        return;
+      }
+      if (
+        lastTextEditSession &&
+        lastTextEditSession.componentUuid === selectedComponent &&
+        Date.now() - lastTextEditSession.endedAt < 2000
+      ) {
+        dispatch(
+          startTextEditSession({
+            componentUuid: lastTextEditSession.componentUuid,
+            propName: lastTextEditSession.propName,
+            applyKey: event.key === 'Delete' ? 'Delete' : 'Backspace',
+          }),
+        );
+        return;
+      }
+      if (isInlineTextBusy) {
+        return;
+      }
+      if (selectedComponent && !selectedComponentIsMarker) {
+        dispatch(deleteNode(selectedComponent));
+        unsetSelectedComponent();
+      }
+    },
+    // Always on: the handler itself checks the inline text state.
+    {},
+  );
+  useHotkeys(
+    'mod+c',
+    () => {
+      if (!selectedComponentIsMarker) {
+        copySelectedComponent();
+      }
+    },
+    componentHotkeys,
+  );
+  useHotkeys(
+    'mod+v',
+    () => {
+      pasteAfterSelectedComponent();
+    },
+    componentHotkeys,
+  );
 
   // Update the width/height of the editorFrame to accommodate the scaled viewport.
   // CSS transforms don't affect layout, so we manually sync the parent's dimensions.

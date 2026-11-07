@@ -8,6 +8,7 @@ import RegionOverlay from '@/features/layout/previewOverlay/RegionOverlay';
 import {
   selectDragging,
   selectEditorViewPortScale,
+  selectTextEditSession,
   selectZooming,
 } from '@/features/ui/uiSlice';
 import useResizeObserver from '@/hooks/useResizeObserver';
@@ -36,6 +37,7 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
   const [rect, setRect] = useState<Rect | null>(null);
   const { treeDragging } = useAppSelector(selectDragging);
   const isZooming = useAppSelector(selectZooming);
+  const isEditingText = !!useAppSelector(selectTextEditSession);
 
   const updateRect = useCallback(() => {
     // The top and left must equal the distance from the parent (positionAnchor, which is always static) to the iFrame.
@@ -99,6 +101,9 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
       ref={positionDivRef}
       className={clsx('canvas--viewport-overlay', styles.viewportOverlay, {
         [styles.isZooming]: isZooming,
+        // Let clicks reach the preview outside of component overlays, so
+        // clicking empty page space ends a text-edit session there.
+        [styles.isEditingText]: isEditingText,
       })}
       style={{
         top: `${rect.top}px`,

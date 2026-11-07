@@ -1,0 +1,293 @@
+.toolbar {
+  position: fixed;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  pointer-events: auto;
+  color: var(--gray-12);
+  border: 1px solid var(--gray-a5);
+  border-radius: 8px;
+  background: var(--color-panel-solid, #fff);
+  box-shadow:
+    0 1px 2px rgb(0, 0, 0, 0.06),
+    0 6px 18px -4px rgb(0, 0, 0, 0.18);
+  font-family: var(--default-font-family);
+  font-size: 13px;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  color: inherit;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+
+  &:hover {
+    background: var(--gray-a3);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-8);
+    outline-offset: -2px;
+  }
+
+  &.active {
+    color: var(--accent-11);
+    background: var(--accent-a4);
+  }
+}
+
+.labelButton {
+  height: 28px;
+  padding: 0 8px;
+  cursor: pointer;
+  color: inherit;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  font: inherit;
+
+  &:hover {
+    background: var(--gray-a3);
+  }
+
+  &.active {
+    color: var(--accent-11);
+    background: var(--accent-a4);
+  }
+}
+
+.button:disabled,
+.labelButton:disabled {
+  cursor: default;
+  opacity: 0.4;
+  background: transparent;
+}
+
+.separator {
+  width: 1px;
+  height: 18px;
+  margin: 0 3px;
+  background: var(--gray-a5);
+}
+
+.linkForm {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding-left: 6px;
+}
+
+.linkIcon {
+  flex: none;
+  color: var(--gray-10);
+}
+
+.linkInput {
+  width: min(360px, 60vw);
+  height: 28px;
+  padding: 0 4px;
+  color: inherit;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: inherit;
+
+  &[aria-invalid="true"] {
+    color: var(--red-11);
+  }
+}
+
+.textButton {
+  height: 26px;
+  padding: 0 10px;
+  cursor: pointer;
+  color: var(--accent-contrast);
+  border: 0;
+  border-radius: 5px;
+  background: var(--accent-9);
+  font: inherit;
+  font-weight: 500;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+
+.chipLabel {
+  padding: 0 6px;
+  white-space: nowrap;
+  color: var(--gray-11);
+  font-weight: 500;
+}
+
+.chipCount {
+  padding: 0 6px;
+  white-space: nowrap;
+  color: var(--gray-10);
+  font-variant-numeric: tabular-nums;
+}
+
+.chipCountOver {
+  color: var(--red-11);
+  font-weight: 500;
+}
+
+.linkPreview {
+  padding: 0 6px;
+  white-space: nowrap;
+  color: var(--accent-11);
+  font-size: 12px;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.notices {
+  position: fixed;
+  z-index: 11;
+  top: 60px;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(620px, calc(100vw - 32px));
+  padding: 4px 4px 4px 12px;
+  pointer-events: auto;
+  color: var(--gray-1);
+  border-radius: 8px;
+  background: var(--gray-12);
+  box-shadow: 0 6px 18px -4px rgb(0, 0, 0, 0.3);
+  font-family: var(--default-font-family);
+  font-size: 13px;
+}
+
+.noticeError {
+  background: var(--red-11);
+}
+
+.noticeAction {
+  flex: none;
+  padding: 2px 8px;
+  cursor: pointer;
+  color: inherit;
+  border: 1px solid rgb(255, 255, 255, 0.4);
+  border-radius: 5px;
+  background: transparent;
+  font: inherit;
+  font-weight: 500;
+}
+
+.noticeDismiss {
+  display: inline-flex;
+  flex: none;
+  padding: 4px;
+  cursor: pointer;
+  color: inherit;
+  border: 0;
+  background: transparent;
+}
+
+/* The sidebar field of a prop being edited on the canvas. Formatted text is
+   dimmed, as it shows the new value only after saving; plain text shows a copy
+   of what is typed. */
+:global([data-canvas-editing-on-canvas]) {
+  position: relative;
+
+  &:not(:has([data-canvas-sidebar-mirror])) {
+    opacity: 0.55;
+  }
+
+  &::after {
+    position: absolute;
+    top: 0;
+    right: 0;
+    content: "Editing on canvas";
+    color: var(--accent-11);
+    font-size: 12px;
+  }
+}
+
+.chipLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 260px;
+  height: 28px;
+  padding: 0 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  color: var(--gray-11);
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  font: inherit;
+
+  & span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &:hover {
+    background: var(--gray-a3);
+  }
+}
+
+.suggestions {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: -3px;
+  width: 100%;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border: 1px solid var(--gray-a5);
+  border-radius: 8px;
+  background: var(--color-panel-solid, #fff);
+  box-shadow: 0 6px 18px -4px rgb(0, 0, 0, 0.18);
+}
+
+.suggestion {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 8px;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.suggestionActive,
+.suggestion:hover {
+  background: var(--accent-a3);
+}
+
+.suggestionPath {
+  color: var(--gray-10);
+  font-size: 12px;
+}
+
+/* CKEditor 5 positions its badge for the editor's document, which is wrong for
+   an element in the preview. */
+:global(body[data-canvas-inline-rich-text] .ck-powered-by-balloon) {
+  display: none !important;
+}
