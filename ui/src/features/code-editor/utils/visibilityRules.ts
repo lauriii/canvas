@@ -47,7 +47,14 @@ export interface VisibilityRules {
 /**
  * The operators that make sense for a prop of the given derived type.
  */
-export const operatorsFor = (derivedType: string | null): Operator[] => {
+export const operatorsFor = (
+  derivedType: string | null,
+  allowMultiple = false,
+): Operator[] => {
+  // The value of a prop with multiple values is a list.
+  if (allowMultiple) {
+    return ['contains', 'filled', 'empty'];
+  }
   switch (derivedType) {
     case 'boolean':
       return ['on', 'off'];
@@ -96,7 +103,12 @@ export const rulesToCondition = ({
   match,
   rules,
 }: VisibilityRules): VisibilityCondition | undefined => {
-  const complete = rules.filter((rule) => rule.prop);
+  const complete = rules.filter(
+    (rule) =>
+      rule.prop &&
+      (OPERATORS_WITHOUT_VALUE.includes(rule.operator) ||
+        (rule.value !== undefined && rule.value !== '')),
+  );
   if (complete.length === 0) {
     return undefined;
   }
@@ -183,3 +195,62 @@ export const conditionToRules = (
   const rules = mapToRules(condition);
   return rules ? { match: 'all', rules } : null;
 };
+
+/**
+ * Points a condition at a renamed prop, or drops the tests of a removed prop.
+ *
+ * @param condition
+ *   The condition.
+ * @param from
+ *   The machine name of the renamed or removed prop.
+ * @param to
+ *   The new machine name, or null if the prop was removed.
+ *
+ * @returns
+ *   The updated condition, or undefined if nothing is left of it.
+ */
+export const replacePropInCondition = (
+  condition: VisibilityCondition,
+  from: string,
+  to: string | null,
+): VisibilityCondition | undefined => {
+  const updated: VisibilityCondition = {};
+  Object.entries(condition).forEach(([key, test]) => {
+    if (key === 'anyOf' || key === 'allOf') {
+      const conditions = (test as VisibilityCondition[])
+        .map((sub) => replacePropInCondition(sub, from, to))
+        .filter((sub): sub is VisibilityCondition => sub !== undefined);
+      if (conditions.length) {
+        updated[key] = conditions;
+      }
+    } else if (key === 'not') {
+      const inverted = replacePropInCondition(
+        test as VisibilityCondition,
+        from,
+        to,
+      );
+      if (inverted) {
+        updated.not = inverted;
+      }
+    } else if (key !== from) {
+      updated[key] = test;
+    } else if (to) {
+      updated[to] = test;
+    }
+  });
+  return Object.keys(updated).length ? updated : undefined;
+};
+
+/**
+ * Lists the props that a condition refers to.
+ */
+export const referencedProps = (condition: VisibilityCondition): string[] =>
+  Object.entries(condition).flatMap(([key, test]) => {
+    if (key === 'anyOf' || key === 'allOf') {
+      return (test as VisibilityCondition[]).flatMap(referencedProps);
+    }
+    if (key === 'not') {
+      return referencedProps(test as VisibilityCondition);
+    }
+    return [key];
+  });

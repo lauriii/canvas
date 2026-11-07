@@ -561,6 +561,14 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     $violations = $code_component->getTypedData()->validate();
     self::assertCount(1, $violations);
     self::assertSame('Prop "badgeText": `x-canvas-visible-if` refers to "badge", which is not a prop of this component.', (string) $violations->get(0)->getMessage());
+
+    // A condition set as a map without the client side, such as by a recipe,
+    // is stored as JSON too.
+    $props['badgeText'][PropVisibilityCondition::KEY] = ['showBadge' => FALSE];
+    $code_component->set('props', $props)->save();
+    $reloaded = JavaScriptComponent::load($code_component->id());
+    self::assertInstanceOf(JavaScriptComponent::class, $reloaded);
+    self::assertSame('{"showBadge":false}', $reloaded->get('props')['badgeText'][PropVisibilityCondition::KEY]);
   }
 
   /**
