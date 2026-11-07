@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { DragOverlay, useDndMonitor } from '@dnd-kit/core';
 import { restrictToFirstScrollableAncestor } from '@dnd-kit/modifiers';
@@ -9,6 +9,7 @@ import { findParent } from '@/features/layout/layoutUtils';
 import {
   endLivePreview,
   isLivePreviewActive,
+  LIVE_PREVIEW_SETTLE_MS,
   showLivePreviewAt,
   startInsertPreview,
   startMovePreview,
@@ -30,6 +31,7 @@ import { useDropOnFolderHandler } from '@/hooks/useDropOnFolderHandler';
 
 import {
   cleanupMouseTracking,
+  getTrackedPointerPosition,
   initMouseTracking,
   snapRightToCursor,
 } from './snapRightToCursor';
@@ -53,6 +55,11 @@ const DragEventsHandler: React.FC = () => {
   const { handleFolderDrop } = useDropOnFolderHandler();
   const { handleNewDrop } = useDropFromLibraryHandler();
   const { handleExistingDrop } = useDropFromLayoutHandler();
+  const recheck = useRef<{
+    timer?: ReturnType<typeof setTimeout>;
+    pointer?: string;
+    count: number;
+  }>({ count: 0 });
 
   // Apply/remove folderAtBoundary class when state changes.
   useEffect(() => {
@@ -191,9 +198,42 @@ const DragEventsHandler: React.FC = () => {
     }
   }
 
+  // The drop target is kept while the overlay catches up with the page
+  // reflowed by the live preview (see App.tsx), and drop targets are only
+  // resolved when the pointer moves. Resolve it again once the overlay has
+  // caught up, in case the pointer has stopped moving by then.
+  function scheduleRecheck() {
+    const pointer = getTrackedPointerPosition();
+    const state = recheck.current;
+    clearTimeout(state.timer);
+    if (!pointer) {
+      return;
+    }
+    // Guards against the target changing back and forth without the pointer
+    // moving.
+    const key = `${pointer.x},${pointer.y}`;
+    state.count = state.pointer === key ? state.count + 1 : 0;
+    state.pointer = key;
+    if (state.count > 3) {
+      return;
+    }
+    state.timer = setTimeout(() => {
+      window.document.dispatchEvent(
+        new PointerEvent('pointermove', {
+          clientX: pointer.x,
+          clientY: pointer.y,
+          bubbles: true,
+        }),
+      );
+    }, LIVE_PREVIEW_SETTLE_MS + 20);
+  }
+
   function handleDragOver(event: DragOverEvent) {
     const { over, active } = event;
-    showLivePreviewAt(over ? String(over.id) : null);
+    if (isLivePreviewActive()) {
+      showLivePreviewAt(over ? String(over.id) : null);
+      scheduleRecheck();
+    }
     const parentSlot = over?.data?.current?.parentSlot;
 
     // If dragging a folder and hovering over non-folder destination, prevent visual feedback.
@@ -212,6 +252,8 @@ const DragEventsHandler: React.FC = () => {
   }
 
   function dragEndCancelCommon() {
+    clearTimeout(recheck.current.timer);
+    recheck.current = { count: 0 };
     window.document.body.classList.remove('canvas--live-drop-preview');
     dispatch(setPreviewDragging(false));
     dispatch(setListDragging(false));

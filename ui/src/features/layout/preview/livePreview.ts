@@ -31,7 +31,7 @@ const PLACEHOLDER = {
 export const DROP_PREVIEW_ID = 'canvas-drop-preview';
 
 /** How long a new drop position is kept while the overlay catches up. */
-const SETTLE_MS = 80;
+export const LIVE_PREVIEW_SETTLE_MS = 80;
 
 interface Position {
   parent: Node;
@@ -220,7 +220,7 @@ export function showLivePreviewAt(dropZoneId: string | null): void {
   const { document, nodes, home, homeContainer } = session;
   session.undo.forEach((revert) => revert());
   session.undo = [];
-  settleUntil = performance.now() + SETTLE_MS;
+  settleUntil = performance.now() + LIVE_PREVIEW_SETTLE_MS;
 
   const boundaries = discoverCanvasBoundaries(document);
   // Positions outside the preview (e.g. in the layers panel) show the
