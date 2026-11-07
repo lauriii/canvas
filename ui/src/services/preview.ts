@@ -224,13 +224,14 @@ const layoutUrls: Partial<Record<EditorFrameContext, string>> = {
 // without saving.
 const readWholePreview = async (
   dispatch: any,
-  baseUrl: string,
+  getState: () => unknown,
   type: EditorFrameContext,
 ) => {
+  const { preview, configuration } = getState() as RootState;
   const { entityType, entityId, templateBundle, templateViewMode } =
     extractEntityParams(window.location.href);
   const response = await fetch(
-    baseUrl +
+    configuration.baseUrl +
       replaceEntityParamsInUrl(
         layoutUrls[type] ?? '',
         entityType,
@@ -240,7 +241,13 @@ const readWholePreview = async (
       ),
     { headers: { Accept: 'application/json' } },
   );
-  if (response.ok) {
+  // A whole page set while this read was in flight, for example by a layout
+  // POST, may be newer than what this read returns.
+  if (
+    response.ok &&
+    (getState() as RootState).preview.fullHtmlVersion ===
+      preview.fullHtmlVersion
+  ) {
     const { html, autoSaves } = await response.json();
     dispatch(setHtml(html));
     handleAutoSavesHashUpdate(dispatch, autoSaves, {
@@ -500,7 +507,7 @@ export const previewApi = createApi({
               ]),
             );
           }
-          const { preview, configuration } = getState() as RootState;
+          const { preview } = getState() as RootState;
           // A whole page set from elsewhere since this request started, for
           // example by a layout POST, is newer than this response: its markup
           // and models would undo it. Read the current whole page instead.
@@ -510,7 +517,7 @@ export const previewApi = createApi({
             preview.fullHtmlVersion !== startFullHtmlVersion &&
             preview.fullHtmlVersion !== ownFullHtmlVersion
           ) {
-            await readWholePreview(dispatch, configuration.baseUrl, arg.type);
+            await readWholePreview(dispatch, getState, arg.type);
             return;
           }
           // Clear any stale snapshot (e.g. from a prior language/template preview)
@@ -527,11 +534,7 @@ export const previewApi = createApi({
             if (html === null) {
               // The current preview lacks the instance: read the whole page,
               // rather than saving the change again over newer ones.
-              await readWholePreview(
-                dispatch,
-                state.configuration.baseUrl,
-                arg.type,
-              );
+              await readWholePreview(dispatch, getState, arg.type);
             } else {
               dispatch(setPartialHtml({ html, assets: data.assets }));
             }
