@@ -9,6 +9,8 @@ import {
 import { baseQuery } from '@/services/baseQuery';
 import { componentAndLayoutApi } from '@/services/componentAndLayout';
 
+import type { AutoSavesHash } from '@/types/AutoSaves';
+
 interface Owner {
   name: string;
   avatar: string | null;
@@ -271,3 +273,46 @@ export const {
   usePublishAllPendingChangesMutation,
   useDiscardPendingChangeMutation,
 } = pendingChangesApi;
+
+/**
+ * Updates the cached pending changes from an auto-save response.
+ *
+ * Refetching the pending changes makes the server load every auto-save on the
+ * site, so it is only done when an entity gains or loses its auto-save. When
+ * every auto-save in the response is already listed, only its `data_hash`
+ * (needed to publish) and `updated` time are updated.
+ */
+export const syncPendingChangesFromAutoSaves = (
+  dispatch: (action: any) => any,
+  getState: () => any,
+  autoSaves: AutoSavesHash | undefined,
+) => {
+  const pending =
+    pendingChangesApi.endpoints.getAllPendingChanges.select()(getState()).data;
+  const entries = Object.entries(autoSaves ?? {});
+  // An entry without a hash has no auto-save (e.g. an untouched page region).
+  const listChanged = entries.some(
+    ([key, { hash }]) => !hash !== !pending?.[key],
+  );
+  if (!pending || listChanged) {
+    dispatch(
+      pendingChangesApi.util.invalidateTags([
+        { type: 'PendingChanges', id: 'LIST' },
+      ]),
+    );
+    return;
+  }
+  dispatch(
+    pendingChangesApi.util.updateQueryData(
+      'getAllPendingChanges',
+      undefined,
+      (draft) => {
+        for (const [key, { hash }] of entries) {
+          if (!hash) continue;
+          draft[key].data_hash = hash;
+          draft[key].updated = Math.floor(Date.now() / 1000);
+        }
+      },
+    ),
+  );
+};

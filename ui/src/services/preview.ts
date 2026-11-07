@@ -16,7 +16,10 @@ import {
   popCanvasLayoutRequest,
   pushCanvasLayoutRequest,
 } from '@/services/baseQuery';
-import { pendingChangesApi } from '@/services/pendingChangesApi';
+import {
+  pendingChangesApi,
+  syncPendingChangesFromAutoSaves,
+} from '@/services/pendingChangesApi';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
 import { getEntityTitle } from '@/utils/entityTitle';
 
@@ -166,7 +169,7 @@ export const previewApi = createApi({
           body,
         };
       },
-      async onQueryStarted(body, { dispatch, queryFulfilled }) {
+      async onQueryStarted(body, { dispatch, getState, queryFulfilled }) {
         // Force any ajax calls to wait.
         pushCanvasLayoutRequest();
         let data: any;
@@ -184,11 +187,7 @@ export const previewApi = createApi({
           popCanvasLayoutRequest();
         }
         const { html, layout, model, autoSaves } = data;
-        dispatch(
-          pendingChangesApi.util.invalidateTags([
-            { type: 'PendingChanges', id: 'LIST' },
-          ]),
-        );
+        syncPendingChangesFromAutoSaves(dispatch, getState, autoSaves);
         // Clear any stale snapshot (e.g. from a prior language/template preview)
         // so selectPreviewHtml returns this fresh editor html instead of the
         // preview snapshot, which selectPreviewHtml prefers while set.
