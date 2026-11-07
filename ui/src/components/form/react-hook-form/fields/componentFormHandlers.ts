@@ -24,12 +24,12 @@ interface ComponentFormHandlerDependencies {
   selectedComponent: string;
   propName: string;
   isScalarProp: boolean;
-  polledBackgroundUpdate: React.MutableRefObject<number | null>;
   component: any;
   patchComponent: (
     inputUiData: InputUIData,
     params: any,
     editedProps?: string[],
+    delay?: number,
   ) => void;
   editorFrameContext: string;
   version: string;
@@ -90,36 +90,22 @@ export const createComponentFormStateHandler = (
       // b) Update both the preview and the model - see the pessimistic update
       //    in onQueryStarted in preview.ts
       // @see \Drupal\Core\Field\WidgetInterface::massageFormValues()
-      const updateBackend = () => {
-        deps.patchComponent(
-          newInputAndUiData,
-          {
-            source: syncPropSourcesToResolvedValues(
-              selectedModel.source,
-              deps.component,
-              resolved,
-            ),
+      // A background preview update already shows the change, so the PATCH
+      // can wait longer, which saves requests while the user types. The
+      // scheduler holds it, so undo and other component writes send it first.
+      deps.patchComponent(
+        newInputAndUiData,
+        {
+          source: syncPropSourcesToResolvedValues(
+            selectedModel.source,
+            deps.component,
             resolved,
-          },
-          [deps.propName],
-        );
-      };
-      if (backgroundPreviewUpdate) {
-        if (deps.polledBackgroundUpdate.current !== null) {
-          clearTimeout(deps.polledBackgroundUpdate.current);
-        }
-        // If we're doing a background update, debounce that so we don't make
-        // multiple requests for a single update. If we're not doing a
-        // background preview update, we should schedule this immediately -
-        // debouncing in withRHF will handle preventing this firing too
-        // many times in succession.
-        deps.polledBackgroundUpdate.current = setTimeout(
-          updateBackend,
-          POLLED_BACKGROUND_TIMEOUT,
-        ) as any as number;
-        return;
-      }
-      updateBackend();
+          ),
+          resolved,
+        },
+        [deps.propName],
+        backgroundPreviewUpdate ? POLLED_BACKGROUND_TIMEOUT : undefined,
+      );
       return;
     }
     deps.patchComponent(

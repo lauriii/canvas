@@ -44,6 +44,27 @@ describe('createPatchScheduler', () => {
     expect(scheduler.has('a')).toBe(false);
   });
 
+  it('holds a delayed change until the delay or a drain', async () => {
+    const sent: string[] = [];
+    const scheduler = createPatchScheduler((value: string) => {
+      sent.push(value);
+      return Promise.resolve();
+    });
+
+    scheduler.schedule('a', 'delayed', false, 1000);
+    await vi.advanceTimersByTimeAsync(999);
+    expect(sent).toEqual([]);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(sent).toEqual(['delayed']);
+
+    await vi.advanceTimersByTimeAsync(2000);
+    scheduler.schedule('a', 'drained', false, 1000);
+    const drained = scheduler.drain();
+    await vi.advanceTimersByTimeAsync(0);
+    await drained;
+    expect(sent).toEqual(['delayed', 'drained']);
+  });
+
   it('sends one request at a time, including for other keys', async () => {
     let inFlight = 0;
     let maxInFlight = 0;

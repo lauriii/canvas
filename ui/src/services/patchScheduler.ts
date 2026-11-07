@@ -64,8 +64,10 @@ export function createPatchScheduler<T>(
      *
      * @param urgent - Send without waiting for a pause, for example for a change
      *   that is not typing.
+     * @param delay - Wait at least this long, still at most MAX_WAIT ms, for
+     *   example for a change the preview already shows.
      */
-    schedule(key: string, value: T, urgent = false) {
+    schedule(key: string, value: T, urgent = false, delay = 0) {
       const now = Date.now();
       const gap = now - lastChangeAt;
       lastChangeAt = now;
@@ -80,13 +82,16 @@ export function createPatchScheduler<T>(
       }
       queued.set(key, value);
       clearTimeout(timer);
-      if (urgent || (averageGap === undefined && !sending)) {
+      if (urgent || (!delay && averageGap === undefined && !sending)) {
         timer = setTimeout(flush, 0);
         return;
       }
-      const pause = Math.min(
-        MAX_PAUSE,
-        Math.max(MIN_PAUSE, 1.5 * (averageGap ?? MIN_PAUSE)),
+      const pause = Math.max(
+        delay,
+        Math.min(
+          MAX_PAUSE,
+          Math.max(MIN_PAUSE, 1.5 * (averageGap ?? MIN_PAUSE)),
+        ),
       );
       timer = setTimeout(
         flush,

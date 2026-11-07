@@ -581,6 +581,7 @@ export const usePatchComponent = () => {
     inputUIData: InputUIData,
     model: UpdateComponentQueryArg['model'],
     editedProps?: string[],
+    delay?: number,
   ) => {
     const {
       selectedComponent,
@@ -612,7 +613,7 @@ export const usePatchComponent = () => {
     }
     lastBody = stringBody;
     sendPatch = updateComponent;
-    patchScheduler.schedule(instanceKey(selectedComponent), arg);
+    patchScheduler.schedule(instanceKey(selectedComponent), arg, false, delay);
   };
 };
 
