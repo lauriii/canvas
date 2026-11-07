@@ -541,8 +541,14 @@ export const previewApi = createApi({
             const read = await readWholePreview(dispatch, getState, arg.type);
             // The edited instance's saved model, which may include this
             // response's change if it was saved after the newer page.
+            // Not if the editor moved to another entity during the read, or
+            // a queued change brings a newer model.
             const savedModel = read?.model?.[arg.componentInstanceUuid];
-            if (savedModel) {
+            if (
+              savedModel &&
+              !isOtherEntity(arg.editorUrl) &&
+              !patchScheduler.has(key)
+            ) {
               const state = getState() as RootState;
               dispatch(
                 setLayoutModel({
@@ -598,6 +604,10 @@ export const previewApi = createApi({
             }
           } else {
             supersededModels.delete(key);
+          }
+          // The editor may have moved to another entity during an awaited read.
+          if (isOtherEntity(arg.editorUrl)) {
+            return;
           }
           if ('component' in data) {
             if (!isOutdated) {
