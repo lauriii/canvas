@@ -20,6 +20,11 @@
     top: 4px;
     left: 4px;
   }
+
+  /* The page variant "Page content" marker. */
+  &.marker {
+    background-color: var(--green-9);
+  }
 }
 
 .name {

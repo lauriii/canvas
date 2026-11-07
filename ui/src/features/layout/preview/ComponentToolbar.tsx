@@ -57,6 +57,57 @@ const ToolbarButton: React.FC<{
   </Tooltip>
 );
 
+interface ComponentTagProps {
+  name: string;
+  id: string;
+  isMarker: boolean;
+  inside: boolean;
+  dragListeners?: DraggableSyntheticListeners;
+  children?: React.ReactNode;
+}
+
+/**
+ * The name of a component in the preview, with its actions if any.
+ *
+ * The name of a hovered component and the toolbar of the selected one look
+ * the same and are in the same place: selecting a component adds its actions.
+ */
+export const ComponentTag: React.FC<ComponentTagProps> = ({
+  name,
+  id,
+  isMarker,
+  inside,
+  dragListeners,
+  children,
+}) => {
+  const label = (
+    <div className={styles.name} {...dragListeners}>
+      <DragHandleDots2Icon aria-hidden />
+      <span id={`${id}-name`}>{name}</span>
+    </div>
+  );
+  return (
+    <div
+      className={clsx(styles.toolbar, {
+        [styles.inside]: inside,
+        [styles.marker]: isMarker,
+      })}
+      data-testid={children ? 'canvas-component-toolbar' : 'canvas-name-tag'}
+      role={children ? 'toolbar' : undefined}
+      aria-label={children ? `${name} actions` : undefined}
+      // Clicks on the toolbar are not clicks on the component.
+      onClick={children ? (ev) => ev.stopPropagation() : undefined}
+    >
+      {dragListeners ? (
+        <Tooltip content="Drag to move">{label}</Tooltip>
+      ) : (
+        label
+      )}
+      {children}
+    </div>
+  );
+};
+
 /**
  * The actions for the selected component, shown on it in the preview.
  */
@@ -77,20 +128,13 @@ const ComponentToolbar: React.FC<ComponentToolbarProps> = ({
   const parentUuid = parentSlot?.id.split('/')[0];
 
   return (
-    <div
-      className={clsx(styles.toolbar, { [styles.inside]: inside })}
-      role="toolbar"
-      aria-label={`${name} actions`}
-      data-testid="canvas-component-toolbar"
-      // Clicks on the toolbar are not clicks on the component.
-      onClick={(ev) => ev.stopPropagation()}
+    <ComponentTag
+      name={name}
+      id={component.uuid}
+      isMarker={isMarker}
+      inside={inside}
+      dragListeners={dragListeners}
     >
-      <Tooltip content="Drag to move">
-        <div className={styles.name} {...dragListeners}>
-          <DragHandleDots2Icon aria-hidden />
-          <span>{name}</span>
-        </div>
-      </Tooltip>
       <span className={styles.divider} />
       {parentUuid && (
         <ToolbarButton
@@ -141,7 +185,7 @@ const ComponentToolbar: React.FC<ComponentToolbarProps> = ({
           menuType="dropdown"
         />
       </DropdownMenu.Root>
-    </div>
+    </ComponentTag>
   );
 };
 
