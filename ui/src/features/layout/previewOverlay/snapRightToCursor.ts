@@ -28,9 +28,6 @@ export function cleanupMouseTracking() {
   }
 }
 
-/** The current pointer position while dragging, NULL before it moved. */
-export const getTrackedPointerPosition = () => currentMousePosition;
-
 /**
  * Set up tracking of the current mouse position
  */

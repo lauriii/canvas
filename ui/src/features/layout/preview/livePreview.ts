@@ -30,9 +30,6 @@ const PLACEHOLDER = {
  */
 export const DROP_PREVIEW_ID = 'canvas-drop-preview';
 
-/** How long a new drop position is kept while the overlay catches up. */
-export const LIVE_PREVIEW_SETTLE_MS = 80;
-
 interface Position {
   parent: Node;
   before: Node | null;
@@ -53,10 +50,6 @@ interface Session {
 }
 
 let session: Session | null = null;
-let settleUntil = 0;
-
-/** Whether a drop position was just shown and the overlay may lag behind. */
-export const isLivePreviewSettling = () => performance.now() < settleUntil;
 
 /** Whether the dragged component is shown at its drop position. */
 export const isLivePreviewActive = () => session !== null;
@@ -220,7 +213,6 @@ export function showLivePreviewAt(dropZoneId: string | null): void {
   const { document, nodes, home, homeContainer } = session;
   session.undo.forEach((revert) => revert());
   session.undo = [];
-  settleUntil = performance.now() + LIVE_PREVIEW_SETTLE_MS;
 
   const boundaries = discoverCanvasBoundaries(document);
   // Positions outside the preview (e.g. in the layers panel) show the
@@ -283,7 +275,6 @@ export function commitLivePreview(uuid?: string): Document | null {
     });
   }
   session = null;
-  settleUntil = 0;
   return document;
 }
 
@@ -294,5 +285,4 @@ export function endLivePreview(): void {
   }
   showLivePreviewAt(null);
   session = null;
-  settleUntil = 0;
 }

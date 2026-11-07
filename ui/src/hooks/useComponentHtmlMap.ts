@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { flushSync } from 'react-dom';
 import { createCanvasGeometryObserver } from '@drupal-canvas/preview-geometry';
 
 import { usePreviewDomUpdater } from '@/features/layout/preview/PreviewDomContext';
@@ -31,7 +32,13 @@ export function useComponentHtmlMap(iframe: HTMLIFrameElement | null) {
       if (mutations.length === 0) {
         return;
       }
-      refreshDomMaps();
+      // Markup moved or added in the preview (e.g. by a drag) paints in this
+      // frame: update the overlay before that paint, instead of in the next
+      // animation frame, so outlines and drop targets never lag behind it.
+      flushSync(() => {
+        refreshDomMaps();
+        updateGeometry(geometryObserver.measure());
+      });
     });
 
     observer.observe(iframeDocument, {
