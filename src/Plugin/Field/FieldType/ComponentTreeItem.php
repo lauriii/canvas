@@ -474,10 +474,25 @@ class ComponentTreeItem extends FieldItemBase {
   public function setValue($values, $notify = TRUE): void {
     if (\is_array($values)) {
       parent::setValue($values, FALSE);
-      $pairs = [
-        ['component_id', 'component'],
-        ['parent_uuid', 'parent_item'],
-      ];
+      // When both the component ID and version are passed, reference that
+      // version directly. Syncing them via ::onChange() would load the
+      // Component config entity just to find its active version, for every
+      // item: that dominates the cost of hydrating large component trees.
+      $is_version_pinned = \is_string($values['component_id'] ?? NULL)
+        && \is_string($values['component_version'] ?? NULL)
+        && !isset($values['component']);
+      if ($is_version_pinned) {
+        $this->writePropertyValue('component', [
+          'target_id' => $values['component_id'],
+          'version' => $values['component_version'],
+        ]);
+        $inputs_resolved = $this->get('inputs_resolved');
+        \assert($inputs_resolved instanceof ResolvedComponentInputs);
+        $inputs_resolved->invalidateComputedValue();
+      }
+      $pairs = $is_version_pinned
+        ? [['parent_uuid', 'parent_item']]
+        : [['component_id', 'component'], ['parent_uuid', 'parent_item']];
       foreach ($pairs as $pair) {
         [$property1, $property2] = $pair;
         if (\array_key_exists($property1, $values) && !isset($values[$property2])) {
@@ -496,10 +511,10 @@ class ComponentTreeItem extends FieldItemBase {
           }
         }
       }
-      if (\array_key_exists('component_id', $values) || \array_key_exists('component', $values) && !\array_key_exists('component_version', $values)) {
+      if (!$is_version_pinned && (\array_key_exists('component_id', $values) || \array_key_exists('component', $values) && !\array_key_exists('component_version', $values))) {
         $this->onChange('component_id', FALSE);
       }
-      if (\array_key_exists('component_version', $values) && $this->getComponent()?->getLoadedVersion() !== $values['component_version']) {
+      if (!$is_version_pinned && \array_key_exists('component_version', $values) && $this->getComponent()?->getLoadedVersion() !== $values['component_version']) {
         $this->onChange('component_version', FALSE);
       }
     }
