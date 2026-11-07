@@ -31,6 +31,7 @@ import {
 } from '@/features/ui/uiSlice';
 import { useDrupalBehaviors } from '@/hooks/useDrupalBehaviors';
 import useInputUIData from '@/hooks/useInputUIData';
+import { usePropVisibility } from '@/hooks/usePropVisibility';
 import hyperscriptify from '@/local_packages/hyperscriptify';
 import propsify from '@/local_packages/hyperscriptify/propsify/standard/index.js';
 import { useGetComponentsQuery } from '@/services/componentAndLayout';
@@ -253,6 +254,12 @@ const ComponentInstanceFormRenderer: React.FC<
   // way it would be if it were added to the DOM by Drupal AJAX. This allows
   // Drupal functionality like Autocomplete work in this React-rendered form.
   useDrupalBehaviors(formRef, jsxFormContent, isFetching);
+
+  usePropVisibility(
+    formRef,
+    inputAndUiData.model?.[selectedComponentId]?.resolved,
+    jsxFormContent,
+  );
 
   // Display the placeholder only when a new component is being fetched.
   const isLoadingNewComponent =

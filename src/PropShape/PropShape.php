@@ -6,6 +6,7 @@ namespace Drupal\canvas\PropShape;
 
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType;
+use Drupal\canvas\JsonSchemaInterpreter\PropVisibilityCondition;
 use Drupal\canvas\Plugin\ComponentPluginManager;
 use Drupal\Component\Assertion\Inspector;
 use Drupal\Core\Extension\ModuleHandlerInterface;
@@ -148,6 +149,9 @@ final class PropShape {
     // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::buildComponentInstanceForm()
     unset($normalized_prop_schema['x-canvas-color-picker']);
     unset($normalized_prop_schema['x-canvas-color-folders']);
+    // Visibility conditions only affect the component instance form.
+    // @see \Drupal\canvas\JsonSchemaInterpreter\PropVisibilityCondition
+    unset($normalized_prop_schema[PropVisibilityCondition::KEY]);
 
     // TRICKY: In Drupal 11.4 and earlier, SDC appends `'object'` to every
     // prop's declared `type` (and then dedupes) so Twig can defer rendering

@@ -11,6 +11,7 @@ use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\EmptyTargetEntityProviderInterface;
 use Drupal\canvas\Entity\Pattern;
 use Drupal\canvas\InvalidComponentInputsPropSourceException;
+use Drupal\canvas\JsonSchemaInterpreter\PropVisibilityCondition;
 use Drupal\canvas\MissingHostEntityException;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
@@ -912,6 +913,10 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
   ): array {
     $transforms = [];
     $component_schema = $this->getMetadata()->schema ?? [];
+    $has_visibility_conditions = !empty(\array_filter(
+      $component_schema['properties'] ?? [],
+      static fn (array $prop_schema): bool => isset($prop_schema[PropVisibilityCondition::KEY]),
+    ));
 
     // @todo Uncomment this once it is guaranteed that the POST request to add
     // the component instance happens first.
@@ -1028,6 +1033,15 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       }
       $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($widget, $sdc_prop_name, $is_required, $entity_object_for_field_widget, $form, $form_state);
       $form[$sdc_prop_name]['#disabled'] = $disabled;
+      // The UI shows or hides the prop as its condition passes or fails, using
+      // the values of the other props.
+      // @see ui/src/hooks/usePropVisibility.ts
+      if ($has_visibility_conditions) {
+        $form[$sdc_prop_name]['#attributes']['data-canvas-prop'] = $sdc_prop_name;
+        if (isset($prop_schema[PropVisibilityCondition::KEY])) {
+          $form[$sdc_prop_name]['#attributes']['data-canvas-visible-if'] = \json_encode($prop_schema[PropVisibilityCondition::KEY], JSON_THROW_ON_ERROR);
+        }
+      }
 
       if ($entity instanceof ContentTemplate) {
         $could_use_dynamic_prop_source = !empty($suggestions[$sdc_prop_name]);

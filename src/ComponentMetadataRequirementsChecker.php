@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas;
 
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
+use Drupal\canvas\JsonSchemaInterpreter\PropVisibilityCondition;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\canvas\PropExpressions\Component\ComponentPropExpression;
 use Drupal\canvas\PropShape\EphemeralPropShapeRepository;
@@ -199,6 +200,8 @@ final class ComponentMetadataRequirementsChecker {
         $messages[] = \sprintf('Prop "%s" must have title', $prop_name);
       }
     }
+
+    $messages = [...$messages, ...PropVisibilityCondition::validateProps($metadata->schema['properties'] ?? [])];
 
     // Do not try computing any StorablePropShape if one or more fundamentals
     // are not right.
