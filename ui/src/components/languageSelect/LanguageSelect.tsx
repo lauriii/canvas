@@ -38,7 +38,7 @@ import {
   useGetPageLayoutQuery,
 } from '@/services/componentAndLayout';
 import { useSetLangcodeMutation } from '@/services/content';
-import { waitForPreviewRequests } from '@/services/preview';
+import { runComponentWrite, waitForPreviewRequests } from '@/services/preview';
 import { getCanvasPermissions, getLanguages } from '@/utils/drupal-globals';
 import { getEntityTitle } from '@/utils/entityTitle';
 
@@ -200,14 +200,26 @@ const LanguageSelect = () => {
     }
     try {
       await waitForPreviewRequests();
-      await setLangcode({
-        entityId,
-        langcode: languageId,
-      }).unwrap();
-      // Reset isInitialized so LayoutLoader treats the next getPageLayout response
-      // as fresh and re-seeds the form via setInitialLayoutModel (see LayoutLoader.tsx).
-      dispatch(setInitialized(false));
-      dispatch(componentAndLayoutApi.util.invalidateTags([{ type: 'Layout' }]));
+      // Component changes made meanwhile wait until the reloaded layout sets
+      // the new auto-save hashes, rather than saving to the old entry.
+      await runComponentWrite(async () => {
+        await setLangcode({
+          entityId,
+          langcode: languageId,
+        }).unwrap();
+        // Reset isInitialized so LayoutLoader treats the next getPageLayout response
+        // as fresh and re-seeds the form via setInitialLayoutModel (see LayoutLoader.tsx).
+        dispatch(setInitialized(false));
+        dispatch(
+          componentAndLayoutApi.util.invalidateTags([{ type: 'Layout' }]),
+        );
+        // ponytail: one timer tick each for the refetch to start and for its handler to set the hashes; await the query by its arguments if this falls short.
+        await new Promise((resolve) => setTimeout(resolve));
+        await Promise.allSettled(
+          dispatch(componentAndLayoutApi.util.getRunningQueriesThunk()),
+        );
+        await new Promise((resolve) => setTimeout(resolve));
+      });
     } catch (error) {
       console.error('Failed to switch the language:', error);
       setSwitchError(extractErrorMessageFromApiResponse(error));

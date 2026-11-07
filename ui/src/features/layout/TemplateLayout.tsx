@@ -5,6 +5,7 @@ import { skipToken } from '@reduxjs/toolkit/query';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { useGetTemplateLayoutQuery } from '@/services/componentAndLayout';
+import { recordSavedModels } from '@/services/preview';
 
 import {
   selectIsInitialized,
@@ -65,6 +66,8 @@ const TemplateLayout = () => {
           updatePreview: false,
         }),
       );
+      // Changes to this entity build on its loaded models.
+      recordSavedModels(window.location.href, model);
     }
   }, [
     layout,

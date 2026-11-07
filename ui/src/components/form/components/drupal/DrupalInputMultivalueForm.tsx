@@ -4,7 +4,7 @@ import { ArrowRightIcon, Cross2Icon, TrashIcon } from '@radix-ui/react-icons';
 import * as Popover from '@radix-ui/react-popover';
 import { Box, Button, Flex, Text } from '@radix-ui/themes';
 
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { useAppDispatch } from '@/app/hooks';
 import DrupalInput from '@/components/form/components/drupal/DrupalInput';
 import {
   DEBOUNCE_TIMEOUT,
@@ -12,9 +12,8 @@ import {
 } from '@/components/form/react-hook-form/fields/componentFormData';
 import { removeFieldValue } from '@/features/form/formStateSlice';
 import { isEvaluatedComponentModel } from '@/features/layout/layoutModelSlice';
-import { selectEditorFrameContext } from '@/features/ui/uiSlice';
 import useInputUIData from '@/hooks/useInputUIData';
-import { useUpdateComponentMutation } from '@/services/preview';
+import { usePatchComponentModel } from '@/services/preview';
 
 import {
   buildModelWithItemRemoved,
@@ -56,10 +55,9 @@ const DrupalInputMultivalueForm = ({
 }) => {
   const dispatch = useAppDispatch();
   const inputUIData = useInputUIData();
-  const [patchComponent] = useUpdateComponentMutation({
+  const patchComponentModel = usePatchComponentModel({
     fixedCacheKey: inputUIData?.selectedComponent || '-',
   });
-  const editorFrameContext = useAppSelector(selectEditorFrameContext);
   const isAutocomplete =
     attributes?.class instanceof Array &&
     attributes?.class?.includes('form-autocomplete');
@@ -187,12 +185,10 @@ const DrupalInputMultivalueForm = ({
           if (!model || !isEvaluatedComponentModel(model)) {
             return;
           }
-          patchComponent({
-            type: editorFrameContext,
-            componentInstanceUuid: inputUIData.selectedComponent,
-            componentType: `${inputUIData.selectedComponentType}@${inputUIData.version}`,
-            model: buildModelWithItemRemoved(model, propName, position ?? 0),
-          });
+          // Build on the model saved after queued changes.
+          patchComponentModel(inputUIData, (savedModel) =>
+            buildModelWithItemRemoved(savedModel, propName, position ?? 0),
+          );
           // Second call: now that the model is patched, invoke the real
           // Drupal AJAX click (no formId passed so the click is not suppressed).
           setTimeout(() => triggerDrupalRemoveButton(triggerElement));

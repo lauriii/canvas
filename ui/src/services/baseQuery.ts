@@ -12,8 +12,20 @@ import type {
 import type { RootState } from '@/app/store';
 import type { AppConfiguration } from '@/features/configuration/configurationSlice';
 
+// Fetch arguments that may name the editor URL a request is for. Without it,
+// URL placeholders and auto-save hashes are resolved from the current URL.
+export type EditorFetchArgs = FetchArgs & { editorUrl?: string };
+
+/**
+ * Whether an editor URL edits another entity than the current editor URL.
+ */
+export const isOtherEntity = (editorUrl?: string) =>
+  editorUrl !== undefined &&
+  JSON.stringify(extractEntityParams(editorUrl)) !==
+    JSON.stringify(extractEntityParams(window.location.href));
+
 export const baseQuery: BaseQueryFn<
-  string | FetchArgs,
+  string | EditorFetchArgs,
   unknown,
   FetchBaseQueryError
 > = async (args, api, extraOptions) => {
@@ -155,21 +167,23 @@ const rawBaseQuery = (appConfiguration: AppConfiguration) => {
     },
   });
   return async (
-    arg: string | FetchArgs,
+    arg: string | EditorFetchArgs,
     api: BaseQueryApi,
     extraOptions: object = {},
   ) => {
-    const url = typeof arg == 'string' ? arg : arg.url;
+    const { editorUrl = window.location.href, ...fetchArgs } =
+      typeof arg == 'string' ? { url: arg } : arg;
     const { entityType, entityId, templateBundle, templateViewMode } =
-      extractEntityParams(window.location.href);
+      extractEntityParams(editorUrl);
     const newUrl = replaceEntityParamsInUrl(
-      url,
+      fetchArgs.url,
       entityType,
       entityId,
       templateBundle,
       templateViewMode,
     );
-    const newArg = typeof arg == 'string' ? newUrl : { ...arg, url: newUrl };
+    const newArg =
+      typeof arg == 'string' ? newUrl : { ...fetchArgs, url: newUrl };
     return defaultQuery(newArg, api, extraOptions);
   };
 };
@@ -177,8 +191,12 @@ const rawBaseQuery = (appConfiguration: AppConfiguration) => {
 // Higher-order base query to inject the current autoSavesHash and clientInstanceId for all mutations (POST, PATCH, DELETE)
 // to allow the backend to recognize potential conflicts where the client is updating potentially out of date data.
 export const withAutoSavesInjection: (
-  baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError>,
-) => BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = (
+  baseQuery: BaseQueryFn<
+    string | EditorFetchArgs,
+    unknown,
+    FetchBaseQueryError
+  >,
+) => BaseQueryFn<string | EditorFetchArgs, unknown, FetchBaseQueryError> = (
   baseQuery,
 ) => {
   return (args, api, extraOptions) => {
@@ -204,7 +222,7 @@ export const withAutoSavesInjection: (
         const state = api.getState() as RootState;
         const { publishReview } = state;
         const { entityType, entityId, templateBundle, templateViewMode } =
-          extractEntityParams(window.location.href);
+          extractEntityParams(args.editorUrl ?? window.location.href);
         const autoSaveKey = replaceEntityParamsInUrl(
           url,
           entityType,
@@ -237,7 +255,7 @@ export const withAutoSavesInjection: (
 
 // Export a baseQuery with autoSaves injection by default
 export const baseQueryWithAutoSaves: BaseQueryFn<
-  string | FetchArgs,
+  string | EditorFetchArgs,
   unknown,
   FetchBaseQueryError
 > = withAutoSavesInjection(baseQuery);

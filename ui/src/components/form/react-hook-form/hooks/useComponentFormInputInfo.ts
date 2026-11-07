@@ -1,5 +1,3 @@
-import { useRef } from 'react';
-
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { useComponentTransforms } from '@/components/ComponentInstanceForm';
 import { toPropName } from '@/components/form/react-hook-form/fields/componentFormData';
@@ -20,7 +18,6 @@ import type { PropSourceComponent } from '@/types/Component';
 export const useComponentFormInputInfo = (fieldName: string) => {
   const editorFrameContext = useAppSelector(selectEditorFrameContext);
   const dispatch = useAppDispatch();
-  const polledBackgroundUpdate = useRef<number | null>(null);
   const { data: components } = useGetComponentsQuery();
   const transforms = useComponentTransforms();
   const inputAndUiData = useInputUIData();
@@ -37,7 +34,6 @@ export const useComponentFormInputInfo = (fieldName: string) => {
   return {
     editorFrameContext,
     dispatch,
-    polledBackgroundUpdate,
     components,
     transforms,
     inputAndUiData,

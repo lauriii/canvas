@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { clearSelection } from '@/features/ui/uiSlice';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
+import { recordSavedModels } from '@/services/preview';
 
 import {
   selectIsInitialized,
@@ -66,6 +67,8 @@ const LayoutLoader = () => {
           updatePreview: false,
         }),
       );
+      // Changes to this entity build on its loaded models.
+      recordSavedModels(window.location.href, fetchedLayout.model);
     }
   }, [
     fetchedLayout,

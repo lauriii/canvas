@@ -14,7 +14,7 @@ import {
   setSnapshotHTML,
   setSnapshotTitle,
 } from '@/features/pagePreview/previewSlice';
-import { baseQueryWithAutoSaves } from '@/services/baseQuery';
+import { baseQueryWithAutoSaves, isOtherEntity } from '@/services/baseQuery';
 import { brandKitApi } from '@/services/brandKit';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
@@ -344,16 +344,28 @@ export const componentAndLayoutApi = createApi({
     }),
     postTemplateLayout: builder.mutation<
       { html: string; autoSaves: AutoSavesHash },
-      { layout: any; model: any; entity_form_fields: any }
+      {
+        layout: any;
+        model: any;
+        entity_form_fields: any;
+        // The editor URL the layout is for, if not the current one.
+        editorUrl?: string;
+      }
     >({
-      query: (body) => ({
+      query: ({ editorUrl, ...body }) => ({
         url: 'canvas/api/v0/layout-content-template/{entity_type}.{template_bundle}.{template_view_mode}/{entity_id}',
         method: 'POST',
         body,
+        editorUrl,
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         const { data, meta } = await queryFulfilled;
         const { html, autoSaves } = data;
+        // The editor moved to another entity since this layout was sent.
+        if (isOtherEntity(arg.editorUrl)) {
+          handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+          return;
+        }
         dispatch(
           pendingChangesApi.util.invalidateTags([
             { type: 'PendingChanges', id: 'LIST' },
@@ -394,16 +406,28 @@ export const componentAndLayoutApi = createApi({
 
     postPatternLayout: builder.mutation<
       { html: string; autoSaves: AutoSavesHash },
-      { layout: any; model: any; entity_form_fields: any }
+      {
+        layout: any;
+        model: any;
+        entity_form_fields: any;
+        // The editor URL the layout is for, if not the current one.
+        editorUrl?: string;
+      }
     >({
-      query: (body) => ({
+      query: ({ editorUrl, ...body }) => ({
         url: 'canvas/api/v0/layout-pattern/{entity_id}',
         method: 'POST',
         body,
+        editorUrl,
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         const { data, meta } = await queryFulfilled;
         const { html, autoSaves } = data;
+        // The editor moved to another entity since this layout was sent.
+        if (isOtherEntity(arg.editorUrl)) {
+          handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+          return;
+        }
         dispatch(
           pendingChangesApi.util.invalidateTags([
             { type: 'PendingChanges', id: 'LIST' },

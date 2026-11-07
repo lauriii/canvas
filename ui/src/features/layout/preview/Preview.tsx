@@ -35,8 +35,11 @@ import {
   usePostTemplateLayoutMutation,
 } from '@/services/componentAndLayout';
 import {
+  recordSavedModels,
+  runComponentWrite,
   selectUpdateComponentLoadingState,
   useQueuedPostPreviewMutation,
+  withSavedModels,
 } from '@/services/preview';
 import { isAjaxing } from '@/utils/isAjaxing';
 
@@ -112,6 +115,8 @@ const Preview: React.FC = () => {
       if (!isInitializedRef.current) {
         return;
       }
+      // The layout is for the entity edited now, even if the request waits.
+      const editorUrl = window.location.href;
       try {
         // Execute Request
         if (context === 'entity' && entityId && entityType) {
@@ -121,19 +126,23 @@ const Preview: React.FC = () => {
             entity_form_fields,
             entityId,
             entityType,
+            editorUrl,
           });
-        } else if (context === 'template') {
-          await postTemplatePreview({
-            layout,
-            model,
-            entity_form_fields,
-          }).unwrap();
-        } else if (context === 'pattern') {
-          await postPatternPreview({
-            layout,
-            model,
-            entity_form_fields,
-          }).unwrap();
+        } else if (context === 'template' || context === 'pattern') {
+          // Like entity POSTs, a component write that takes the models saved
+          // by queued component changes.
+          const post =
+            context === 'template' ? postTemplatePreview : postPatternPreview;
+          await runComponentWrite(async () => {
+            const savedModel = withSavedModels(model, editorUrl);
+            await post({
+              layout,
+              model: savedModel,
+              entity_form_fields,
+              editorUrl,
+            }).unwrap();
+            recordSavedModels(editorUrl, savedModel);
+          });
         }
       } catch (err) {
         showBoundary(err);
