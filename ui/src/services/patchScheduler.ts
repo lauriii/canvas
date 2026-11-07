@@ -116,27 +116,62 @@ export function createPatchScheduler<T>(
   };
 }
 
+const isEqual = (a: unknown, b: unknown) =>
+  JSON.stringify(a) === JSON.stringify(b);
+
+// A prop source without its value, which only repeats the resolved value.
+const withoutValue = (source: unknown) => {
+  if (typeof source !== 'object' || source === null) {
+    return source;
+  }
+  const rest = { ...(source as Record<string, unknown>) };
+  delete rest.value;
+  return rest;
+};
+
 /**
- * Rebases a change onto a newer version of the values it was made on.
+ * Rebases a changed component model onto a newer version of the model it was
+ * made on.
  *
- * Values the change left as they were in `base` take their value from
- * `latest`; changed and removed ones keep the change.
+ * A prop counts as changed if its resolved value or its source (other than
+ * the source's copy of the value) differs from `base`. Changed props keep
+ * the change; all others take their source and value from `latest`.
  */
-export const rebaseModel = (
-  base: Record<string, unknown>,
-  changed: Record<string, unknown>,
-  latest: Record<string, unknown>,
-): Record<string, unknown> => {
-  const result = { ...latest };
-  new Set([...Object.keys(base), ...Object.keys(changed)]).forEach((name) => {
-    if (JSON.stringify(base[name]) === JSON.stringify(changed[name])) {
+export const rebaseComponentModel = (
+  base: { source: object; resolved: object },
+  changed: { source: object; resolved: object },
+  latest: { source: object; resolved: object },
+) => {
+  const [baseSource, baseResolved, changedSource, changedResolved] = [
+    base.source,
+    base.resolved,
+    changed.source,
+    changed.resolved,
+  ] as Record<string, unknown>[];
+  const source: Record<string, unknown> = { ...latest.source };
+  const resolved: Record<string, unknown> = { ...latest.resolved };
+  new Set([
+    ...Object.keys(baseSource),
+    ...Object.keys(baseResolved),
+    ...Object.keys(changedSource),
+    ...Object.keys(changedResolved),
+  ]).forEach((name) => {
+    if (
+      isEqual(baseResolved[name], changedResolved[name]) &&
+      isEqual(withoutValue(baseSource[name]), withoutValue(changedSource[name]))
+    ) {
       return;
     }
-    if (name in changed) {
-      result[name] = changed[name];
-    } else {
-      delete result[name];
-    }
+    [
+      [source, changedSource],
+      [resolved, changedResolved],
+    ].forEach(([target, from]) => {
+      if (name in from) {
+        target[name] = from[name];
+      } else {
+        delete target[name];
+      }
+    });
   });
-  return result;
+  return { source, resolved };
 };

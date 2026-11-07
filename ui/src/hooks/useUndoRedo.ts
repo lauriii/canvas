@@ -1,12 +1,13 @@
 import { useCallback } from 'react';
 
 import { useAppDispatch, useAppSelector, useAppStore } from '@/app/hooks';
+import { selectModel } from '@/features/layout/layoutModelSlice';
 import {
   selectRedoItem,
   selectUndoItem,
   UndoRedoActionCreators,
 } from '@/features/ui/uiSlice';
-import { runComponentWrite } from '@/services/preview';
+import { recordSavedModels, runComponentWrite } from '@/services/preview';
 
 interface UndoRedoState {
   isUndoable: boolean;
@@ -30,6 +31,12 @@ export function useUndoRedo(): UndoRedoState {
         const item = selectUndoItem(store.getState());
         if (item) {
           dispatch(UndoRedoActionCreators.undo(item.targetSlice));
+          // Changes queued next build on the restored models, which the
+          // following layout POST saves.
+          recordSavedModels(
+            window.location.href,
+            selectModel(store.getState()),
+          );
         }
       }),
     [dispatch, store],
@@ -41,6 +48,10 @@ export function useUndoRedo(): UndoRedoState {
         const item = selectRedoItem(store.getState());
         if (item) {
           dispatch(UndoRedoActionCreators.redo(item.targetSlice));
+          recordSavedModels(
+            window.location.href,
+            selectModel(store.getState()),
+          );
         }
       }),
     [dispatch, store],

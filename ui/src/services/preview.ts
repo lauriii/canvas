@@ -1,7 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit';
 import { createApi } from '@reduxjs/toolkit/query/react';
 
-import { useAppStore } from '@/app/hooks';
 import { setPostPreviewCompleted } from '@/components/review/PublishReview.slice';
 import {
   isEvaluatedComponentModel,
@@ -29,7 +28,10 @@ import {
   pushCanvasLayoutRequest,
   replaceEntityParamsInUrl,
 } from '@/services/baseQuery';
-import { createPatchScheduler, rebaseModel } from '@/services/patchScheduler';
+import {
+  createPatchScheduler,
+  rebaseComponentModel,
+} from '@/services/patchScheduler';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
 import { getEntityTitle } from '@/utils/entityTitle';
@@ -90,26 +92,23 @@ const runExclusive = <T>(write: () => Promise<T>): Promise<T> => {
   return result;
 };
 
-// The store's getState(), set by the hooks that send component writes.
-let getEditorState: () => RootState;
-
 /**
  * Returns a component instance's newest saved model on the entity an editor
  * URL edits, if known.
  *
- * For the current entity that is the editor's model. For another entity, it
- * is the model the newest successful write saved.
+ * It is the model of the newest successful write, loaded layout or undo/redo
+ * for that entity. The editor's own models can belong to another entity while
+ * a layout reloads, and lack responses withheld for queued changes.
  */
 export const getSavedModel = (
   uuid: string,
   editorUrl?: string,
 ): ComponentModel | EvaluatedComponentModel | undefined =>
-  isOtherEntity(editorUrl)
-    ? savedModels.get(instanceKey(uuid, editorUrl))
-    : selectModel(getEditorState())[uuid];
+  savedModels.get(instanceKey(uuid, editorUrl));
 
 /**
- * Records the models a full-layout write saved for an entity.
+ * Records the models a full-layout write saved, a layout loaded, or undo or
+ * redo restored for an entity.
  */
 export const recordSavedModels = (
   editorUrl: string,
@@ -152,21 +151,13 @@ const rebaseOnSavedModel = (
   ) {
     return arg;
   }
-  const changed = model as EvaluatedComponentModel;
   return {
     ...arg,
-    model: {
-      source: rebaseModel(
-        baseModel.source,
-        changed.source,
-        saved.source,
-      ) as EvaluatedComponentModel['source'],
-      resolved: rebaseModel(
-        baseModel.resolved,
-        changed.resolved,
-        saved.resolved,
-      ) as EvaluatedComponentModel['resolved'],
-    },
+    model: rebaseComponentModel(
+      baseModel,
+      model as EvaluatedComponentModel,
+      saved,
+    ) as EvaluatedComponentModel,
   };
 };
 
@@ -416,6 +407,12 @@ export const previewApi = createApi({
               // Not if the editor moved to another entity since.
               if (!isOtherEntity(arg.editorUrl)) {
                 applyModel({ model: { [uuid]: superseded } });
+                // Its draft is the saved one: publishing needs its hash.
+                dispatch(
+                  pendingChangesApi.util.invalidateTags([
+                    { type: 'PendingChanges', id: 'LIST' },
+                  ]),
+                );
               }
             }
             return;
@@ -513,7 +510,6 @@ let lastBody = {};
  */
 export const usePatchComponent = () => {
   const [updateComponent] = useUpdateComponentMutation();
-  getEditorState = useAppStore().getState;
 
   return (
     inputUIData: InputUIData,
@@ -559,7 +555,6 @@ export const usePatchComponentModel = (
   options?: Parameters<typeof useUpdateComponentMutation>[0],
 ) => {
   const [updateComponent] = useUpdateComponentMutation(options);
-  getEditorState = useAppStore().getState;
 
   return (
     inputUIData: InputUIData,
@@ -689,7 +684,6 @@ export function useQueuedPostPreviewMutation(
   ReturnType<typeof usePostPreviewMutation>[1],
 ] {
   const [postPreview, mutationState] = usePostPreviewMutation(options);
-  getEditorState = useAppStore().getState;
 
   const queuedPostPreview = async (
     requestArg: PostPreviewArg,

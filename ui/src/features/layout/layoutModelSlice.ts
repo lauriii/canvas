@@ -823,7 +823,8 @@ export const updateExistingComponentValues =
       // If resetSelection is not undefined, it means a component was deselected
       // before it's values were updated, and should be re-selected now that the
       // update is complete.
-      if (resetSelection) {
+      // Not if the editor moved to another entity during the request.
+      if (resetSelection && !isOtherEntity(editorUrl)) {
         componentSelectionUtils.setSelectedComponent(resetSelection);
       }
     });

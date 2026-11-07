@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createPatchScheduler, rebaseModel } from '@/services/patchScheduler';
+import {
+  createPatchScheduler,
+  rebaseComponentModel,
+} from '@/services/patchScheduler';
 
 describe('createPatchScheduler', () => {
   beforeEach(() => {
@@ -90,16 +93,35 @@ describe('createPatchScheduler', () => {
   });
 });
 
-describe('rebaseModel', () => {
-  it('keeps values changed meanwhile unless the change changed them too', () => {
-    const base = { text: 'a', image: 'cat.jpg', size: 'big' };
+describe('rebaseComponentModel', () => {
+  it('keeps props saved meanwhile unless the change edited them', () => {
+    const text = (value: string) => ({ sourceType: 'static', value });
     // Typed while the image was being removed, on the model with the image.
-    const changed = { text: 'ab', image: 'cat.jpg' };
-    const latest = { text: 'a', image: [], size: 'big', added: 1 };
-    expect(rebaseModel(base, changed, latest)).toEqual({
-      text: 'ab',
-      image: [],
-      added: 1,
+    // The outgoing sources repeat each value, the saved ones may not.
+    const base = {
+      source: {
+        text: { sourceType: 'static' },
+        image: { sourceType: 'media' },
+      },
+      resolved: { text: 'a', image: 'cat.jpg', size: 'big' },
+    };
+    const changed = {
+      source: {
+        text: text('ab'),
+        image: { sourceType: 'media', value: 'cat.jpg' },
+      },
+      resolved: { text: 'ab', image: 'cat.jpg' },
+    };
+    const latest = {
+      source: {
+        text: { sourceType: 'static' },
+        image: { sourceType: 'media' },
+      },
+      resolved: { text: 'a', image: [], size: 'big' },
+    };
+    expect(rebaseComponentModel(base, changed, latest)).toEqual({
+      source: { text: text('ab'), image: { sourceType: 'media' } },
+      resolved: { text: 'ab', image: [] },
     });
   });
 });
