@@ -110,13 +110,32 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
    * @todo Move this into a normalizer at https://www.drupal.org/i/3499632
    */
   public function getClientSideRepresentation(?FieldableEntityInterface $host_entity = NULL): array {
-    return $this->buildLayoutAndModel($this->componentTreeItemsIterator(self::inRootLevel()), $host_entity);
+    // Group the flat item list by parent slot once, so that building the tree
+    // is O(N) instead of rescanning every item for every slot.
+    $items_by_slot = [];
+    foreach ($this as $item) {
+      \assert($item instanceof ComponentTreeItem);
+      $items_by_slot[self::slotKey($item->getParentUuid(), $item->getSlot())][] = $item;
+    }
+    return $this->buildLayoutAndModel($items_by_slot[self::slotKey(NULL, NULL)] ?? [], $items_by_slot, $host_entity);
   }
 
   /**
+   * Keys the items of one slot, or of the root level when there is no parent.
+   */
+  private static function slotKey(?string $parent_uuid, ?string $slot_name): string {
+    return $parent_uuid === NULL ? '' : $parent_uuid . '/' . $slot_name;
+  }
+
+  /**
+   * @param iterable<\Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem> $tree_tier
+   * @param array<string, list<\Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem>> $items_by_slot
+   *   All items of this list, keyed by ::slotKey().
+   * @param \Drupal\Core\Entity\FieldableEntityInterface|null $host_entity
+   *
    * @todo Move this into a normalizer at https://www.drupal.org/i/3499632
    */
-  private function buildLayoutAndModel(iterable $tree_tier, ?FieldableEntityInterface $host_entity = NULL): array {
+  private function buildLayoutAndModel(iterable $tree_tier, array $items_by_slot, ?FieldableEntityInterface $host_entity = NULL): array {
     $built = ['layout' => [], 'model' => []];
     /** @var \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem $item */
     foreach ($tree_tier as $item) {
@@ -159,7 +178,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
           'name' => $slot_name,
           'nodeType' => 'slot',
         ];
-        $child_build = self::buildLayoutAndModel($this->componentTreeItemsIterator(self::isChildOfComponentTreeItemSlot($component_instance_uuid, (string) $slot_name)), $host_entity);
+        $child_build = $this->buildLayoutAndModel($items_by_slot[self::slotKey($component_instance_uuid, (string) $slot_name)] ?? [], $items_by_slot, $host_entity);
         $built['model'] += $child_build['model'];
         $component_instance_slot['components'] = $child_build['layout'];
         $item_layout_node['slots'][] = $component_instance_slot;
