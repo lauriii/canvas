@@ -47,12 +47,17 @@ interface Session {
   homeContainer?: { type: 'slot' | 'region'; id: string };
   // Reverts what showing the markup at its current position changed.
   undo: Array<() => void>;
+  // The drop zone id of the position the markup is shown at.
+  shownAt: string | null;
 }
 
 let session: Session | null = null;
 
 /** Whether the dragged component is shown at its drop position. */
 export const isLivePreviewActive = () => session !== null;
+
+/** The drop zone id of the position the dragged component is shown at. */
+export const getLivePreviewDropZoneId = () => session?.shownAt ?? null;
 
 const findBoundary = (boundaries: CanvasBoundary[], type: string, id: string) =>
   boundaries.find((b) => b.type === type && b.id === id);
@@ -112,6 +117,7 @@ export function startMovePreview(
     },
     homeContainer,
     undo: [],
+    shownAt: null,
   };
 }
 
@@ -155,7 +161,7 @@ export function startInsertPreview(
     ...Array.from(template.content.childNodes),
     marker('end'),
   ];
-  session = { document, nodes, home: null, undo: [] };
+  session = { document, nodes, home: null, undo: [], shownAt: null };
 }
 
 function resolve(
@@ -217,7 +223,9 @@ export function showLivePreviewAt(dropZoneId: string | null): void {
   const boundaries = discoverCanvasBoundaries(document);
   // Positions outside the preview (e.g. in the layers panel) show the
   // component where it was.
-  const target = (dropZoneId && resolve(boundaries, dropZoneId)) || home;
+  const resolved = dropZoneId ? resolve(boundaries, dropZoneId) : null;
+  session.shownAt = resolved ? dropZoneId : null;
+  const target = resolved || home;
   if (!target) {
     nodes.forEach((node) => node.parentNode?.removeChild(node));
     return;

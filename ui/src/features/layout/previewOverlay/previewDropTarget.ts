@@ -40,9 +40,11 @@ const isHorizontal = (container: HTMLElement) =>
  * a drop target. The result is the id of the existing drop zone that
  * represents that insertion point, so drop handling is unchanged.
  *
- * The dragged component is skipped: it is shown at its drop position while it
- * is dragged (see livePreview.ts), so it would otherwise be under the pointer
- * wherever it goes.
+ * The dragged component is shown at its drop position while it is dragged
+ * (see livePreview.ts). Over it, the drop target doesn't change: the pointer
+ * is already where the component is shown. Otherwise moving it can put
+ * another component under the pointer, which moves it back, and so on, e.g.
+ * in a grid that wraps. Its slots are not drop targets.
  *
  * @param root
  *   The overlay element of the root region (marked data-canvas-drop-container).
@@ -52,14 +54,15 @@ const isHorizontal = (container: HTMLElement) =>
  *   The id of the dragged item; equals the component uuid for preview drags.
  *
  * @return
- *   The drop zone id, or NULL for the position the dragged component is at
- *   (dropping there is a no-op).
+ *   The drop zone id, NULL for the position the dragged component was at when
+ *   the drag started (dropping there is a no-op), or undefined over the
+ *   dragged component, where the drop target doesn't change.
  */
 export function findPreviewDropZoneId(
   root: HTMLElement,
   point: Point,
   activeId: UniqueIdentifier,
-): string | null {
+): string | null | undefined {
   let container = root;
   for (;;) {
     const hit = childItems(container).find(
@@ -83,8 +86,12 @@ export function findPreviewDropZoneId(
   }
 
   const all = childItems(container);
-  // Where the dragged component is, in terms of the other components.
+  // Where the dragged component was, in terms of the other components: the
+  // overlay keeps the order of the layout while the component is dragged.
   const current = all.findIndex((el) => isActive(el, activeId));
+  if (current !== -1 && contains(all[current].getBoundingClientRect(), point)) {
+    return undefined;
+  }
   const items = all.filter((el) => !isActive(el, activeId));
   if (!items.length) {
     // Empty slots and regions use their own id for their drop zone.

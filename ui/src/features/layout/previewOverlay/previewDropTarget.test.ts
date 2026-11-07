@@ -106,29 +106,41 @@ describe('findPreviewDropZoneId', () => {
     expect(find(200, 650)).toBe('h-slot');
   });
 
-  it('looks through the dragged component wherever it is shown', () => {
-    // a is shown at the bottom of c's slot, overlapping e: the pointer still
-    // resolves against the other components.
+  it('keeps the dragged component where it is shown while over it', () => {
+    // a is shown at the bottom of the region, below b.
     const shown = el(
       { 'data-canvas-drop-container': 'region' },
       [0, 0, 400, 1000],
-      [item('a', [10, 400, 380, 90]), item('b', [0, 0, 400, 100])],
+      [item('b', [0, 0, 400, 100]), item('a', [0, 100, 400, 300])],
     );
-    expect(findPreviewDropZoneId(shown, { x: 200, y: 450 }, 'a')).toBe(
-      'b_bottom',
+    expect(
+      findPreviewDropZoneId(shown, { x: 200, y: 350 }, 'a'),
+    ).toBeUndefined();
+    expect(findPreviewDropZoneId(shown, { x: 200, y: 30 }, 'a')).toBe('b_top');
+    // A grid that wraps after two cards: a is shown in the last cell. Without
+    // a there, c would be nearest to the pointer, which would move a before
+    // c, putting c under the pointer, which would move a back.
+    const grid = slot(
+      'grid',
+      [0, 0, 400, 400],
+      [
+        item('b', [0, 0, 200, 200]),
+        item('c', [200, 0, 200, 200]),
+        item('d', [0, 200, 200, 200]),
+        item('a', [200, 200, 200, 200]),
+      ],
+      'horizontal-grid',
     );
-    // That is where a is, so it is a no-op when a is first.
-    const first = el(
-      { 'data-canvas-drop-container': 'region' },
-      [0, 0, 400, 1000],
-      [item('a', [0, 100, 400, 100]), item('b', [0, 0, 400, 100])],
-    );
-    expect(findPreviewDropZoneId(first, { x: 200, y: 30 }, 'a')).toBeNull();
+    expect(
+      findPreviewDropZoneId(grid, { x: 390, y: 210 }, 'a'),
+    ).toBeUndefined();
+    expect(findPreviewDropZoneId(grid, { x: 50, y: 300 }, 'a')).toBe('c_right');
   });
 
   it('returns null where a drop would not move the dragged component', () => {
-    expect(find(200, 200, 'd')).toBeNull();
     expect(find(200, 350, 'd')).toBeNull();
+    // Over d itself, the drop target doesn't change.
+    expect(find(200, 200, 'd')).toBeUndefined();
     expect(find(200, 450, 'd')).toBe('e_bottom');
   });
 });
