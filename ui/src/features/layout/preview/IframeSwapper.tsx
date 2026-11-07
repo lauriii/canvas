@@ -142,11 +142,12 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
             await loadAssetsInto(iframe.contentWindow, assets);
           }
         }
-        // A newer document may have started loading since this one did.
-        swappedSrcDocumentRef.current =
-          loadingSrcDocumentRef.current === loadedSrcDocument
-            ? loadedSrcDocument
-            : null;
+        // A newer document started loading into this iframe since this one
+        // did. Its own load event swaps it in.
+        if (loadingSrcDocumentRef.current !== loadedSrcDocument) {
+          return;
+        }
+        swappedSrcDocumentRef.current = loadedSrcDocument;
         setWhichActive((current) => 1 - current);
       };
 
