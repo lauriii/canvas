@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import clsx from 'clsx';
+import { shallowEqual } from 'react-redux';
 import { useDroppable } from '@dnd-kit/core';
 
 import { useAppSelector } from '@/app/hooks';
@@ -20,8 +21,9 @@ export interface SlotDropZoneProps {
 }
 const SlotDropZone: React.FC<SlotDropZoneProps> = (props) => {
   const { slot, position, parentComponent } = props;
-  const nodePath = useAppSelector((state) =>
-    selectNodePaths(state).get(slot.id),
+  const nodePath = useAppSelector(
+    (state) => selectNodePaths(state).get(slot.id),
+    shallowEqual,
   );
   const [activeOrigin, setActiveOrigin] = useState('');
   const accepts = ['overlay', 'library'];

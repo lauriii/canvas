@@ -915,11 +915,16 @@ export const layoutModelReducer = layoutModelSlice.reducer;
 // to be able to access the history, so we use the StateWithHistoryWrapper type.
 export const selectLayout = (state: StateWithHistoryWrapper) =>
   state.layoutModel.present.layout;
+
 /**
  * Selects the paths of all layout nodes, keyed by node identifier.
+ *
+ * The map and its path arrays are shared by every caller and must not be
+ * mutated: copy a path before changing it.
  */
-export const selectNodePaths = createSelector(selectLayout, (layout) =>
-  getNodePaths(layout),
+export const selectNodePaths = createSelector(
+  selectLayout,
+  (layout): ReadonlyMap<string, readonly number[]> => getNodePaths(layout),
 );
 export const selectModel = (state: StateWithHistoryWrapper) =>
   state.layoutModel.present.model;

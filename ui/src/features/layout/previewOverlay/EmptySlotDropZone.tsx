@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { kebabCase } from 'lodash';
+import { shallowEqual } from 'react-redux';
 import { useDroppable } from '@dnd-kit/core';
 import { BoxModelIcon } from '@radix-ui/react-icons';
 
@@ -23,8 +24,9 @@ export interface EmptySlotDropZoneProps {
 }
 const EmptySlotDropZone: React.FC<EmptySlotDropZoneProps> = (props) => {
   const { slot, slotName, parentComponent } = props;
-  const nodePath = useAppSelector((state) =>
-    selectNodePaths(state).get(slot.id),
+  const nodePath = useAppSelector(
+    (state) => selectNodePaths(state).get(slot.id),
+    shallowEqual,
   );
   const [activeName, setActiveName] = useState('');
   const [activeOrigin, setActiveOrigin] = useState('');

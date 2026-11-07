@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
+import { shallowEqual } from 'react-redux';
 import { useDroppable } from '@dnd-kit/core';
 
 import { useAppSelector } from '@/app/hooks';
@@ -25,7 +26,10 @@ const LayersDropZone: React.FC<LayersDropZoneProps> = (props) => {
   const type = 'uuid' in layer ? 'component' : 'slot';
   const id = 'uuid' in layer ? layer.uuid : layer.id;
 
-  const path = useAppSelector((state) => selectNodePaths(state).get(id));
+  const path = useAppSelector(
+    (state) => selectNodePaths(state).get(id),
+    shallowEqual,
+  );
   const dropPath = useMemo(() => {
     if (!path) {
       return null;
