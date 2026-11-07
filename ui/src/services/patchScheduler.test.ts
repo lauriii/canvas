@@ -84,6 +84,21 @@ describe('createPatchScheduler', () => {
     expect(events).toEqual(['send a1', 'drained', 'send b1']);
   });
 
+  it('resolves drains in the order they were called', async () => {
+    const events: string[] = [];
+    const scheduler = createPatchScheduler(
+      () => new Promise((resolve) => setTimeout(resolve, 50)),
+    );
+
+    scheduler.schedule('a', 'a1', true);
+    await vi.advanceTimersByTimeAsync(0);
+    const first = scheduler.drain().then(() => events.push('first'));
+    const second = scheduler.drain().then(() => events.push('second'));
+    await vi.advanceTimersByTimeAsync(50);
+    await Promise.all([first, second]);
+    expect(events).toEqual(['first', 'second']);
+  });
+
   it('sends one request at a time, including for other keys', async () => {
     let inFlight = 0;
     let maxInFlight = 0;

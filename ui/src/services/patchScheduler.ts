@@ -48,10 +48,9 @@ export function createPatchScheduler<T>(
       sent++;
       // At once, so waiters continue before later changes are sent. A send
       // resolves once its response is applied.
-      for (let i = drainWaiters.length - 1; i >= 0; i--) {
-        if (drainWaiters[i].until <= sent) {
-          drainWaiters.splice(i, 1)[0].resolve();
-        }
+      // In the order they started waiting, so earlier writes run first.
+      while (drainWaiters.length && drainWaiters[0].until <= sent) {
+        drainWaiters.shift()!.resolve();
       }
       if (drainWaiters.length) {
         flush();
