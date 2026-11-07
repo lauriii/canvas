@@ -142,6 +142,32 @@ describe('findPreviewDropZoneId', () => {
     expect(findPreviewDropZoneId(list, { x: 200, y: 460 }, 't')).toBeNull();
   });
 
+  it('moves the dragged component into the cell under the pointer in grids', () => {
+    // A grid that wraps after two cards.
+    const grid = slot(
+      'grid',
+      [0, 0, 400, 400],
+      [
+        item('a', [0, 0, 200, 200]),
+        item('b', [200, 0, 200, 200]),
+        item('c', [0, 200, 200, 200]),
+        item('d', [200, 200, 200, 200]),
+      ],
+      'horizontal-grid',
+    );
+    const at = (x: number, y: number, active: string) =>
+      findPreviewDropZoneId(grid, { x, y }, active);
+    // Also from the first half of a cell.
+    expect(at(220, 100, 'a')).toBe('b_right');
+    expect(at(220, 300, 'a')).toBe('d_right');
+    expect(at(20, 300, 'a')).toBe('c_right');
+    expect(at(380, 100, 'd')).toBe('a_right');
+    expect(at(180, 100, 'd')).toBe('a_left');
+    // Not a grid: before or after the component under the pointer.
+    expect(find(150, 550, 'g')).toBeNull();
+    expect(find(50, 550, 'g')).toBe('f_left');
+  });
+
   it('changes the drop target only when the pointer is clearly past it', () => {
     const viewport = el({}, [0, 0, 400, 1000], [root]);
     freezeDropTargets(viewport);

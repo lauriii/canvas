@@ -86,6 +86,11 @@ const childItems = (container: HTMLElement) =>
 const isActive = (el: HTMLElement, activeId: UniqueIdentifier) =>
   el.dataset.canvasDropItem === activeId;
 
+// Whether components are laid out in more than one row and column.
+const wraps = ([first, ...rest]: DOMRect[]) =>
+  rest.some((r) => r.top >= first.bottom - 1) &&
+  rest.some((r) => r.left >= first.right - 1 || r.right <= first.left + 1);
+
 const isHorizontal = (container: HTMLElement) =>
   !!container.dataset.canvasStackDirection?.startsWith('h');
 
@@ -197,7 +202,14 @@ function resolveDropZoneId(
   const after = horizontal
     ? point.x > r.left + r.width / 2
     : point.y > r.top + r.height / 2;
-  const index = items.indexOf(nearest) + (after ? 1 : 0);
+  // In a grid, or a row that wraps, the dragged component takes the place of
+  // the component under the pointer, so it is shown where the pointer is.
+  // Before or after it would put it in the cell before the pointer from the
+  // first half of every cell.
+  const index =
+    current !== -1 && wraps(all.map(rect))
+      ? all.indexOf(nearest)
+      : items.indexOf(nearest) + (after ? 1 : 0);
   if (index === current) {
     return null;
   }
