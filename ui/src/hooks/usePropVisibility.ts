@@ -18,14 +18,14 @@ const CONTROLS =
  *   The value, or undefined for props without a single control, which then use
  *   the model's value.
  */
-const readControl = (wrapper: HTMLElement): unknown => {
+export const readControl = (wrapper: HTMLElement): unknown => {
+  const controls = [...wrapper.querySelectorAll<HTMLInputElement>(CONTROLS)];
   // Boolean props render as a switch.
   // @see ui/src/components/form/components/drupal/DrupalToggle.tsx
-  const toggle = wrapper.querySelector('[role="switch"]');
-  if (toggle) {
-    return toggle.getAttribute('aria-checked') === 'true';
+  const toggles = wrapper.querySelectorAll('[role="switch"]');
+  if (toggles.length === 1 && controls.length === 0) {
+    return toggles[0].getAttribute('aria-checked') === 'true';
   }
-  const controls = [...wrapper.querySelectorAll<HTMLInputElement>(CONTROLS)];
   if (controls.length > 0 && controls.every((c) => c.type === 'radio')) {
     return controls.find((c) => c.checked)?.value ?? null;
   }
@@ -36,7 +36,32 @@ const readControl = (wrapper: HTMLElement): unknown => {
   if (control.type === 'checkbox') {
     return control.checked;
   }
-  return control.value;
+  // Optional selects offer "None".
+  // @see \Drupal\Core\Field\Plugin\Field\FieldWidget\OptionsWidgetBase::EMPTY_VALUE
+  return control.value === '_none' ? null : control.value;
+};
+
+const isInvalid = (wrapper: HTMLElement): boolean =>
+  wrapper.querySelector('[data-invalid-prop-value="true"]') !== null;
+
+const labelOf = (wrapper: HTMLElement): string =>
+  wrapper.querySelector('label')?.textContent?.replace('*', '').trim() ||
+  (wrapper.dataset.canvasProp as string);
+
+/**
+ * Announces props that appear or disappear to screen reader users.
+ */
+const announce = (message: string) => {
+  let region = document.getElementById('canvas-prop-visibility-status');
+  if (!region) {
+    region = document.createElement('div');
+    region.id = 'canvas-prop-visibility-status';
+    region.setAttribute('role', 'status');
+    region.style.cssText =
+      'position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap';
+    document.body.append(region);
+  }
+  region.textContent = message;
 };
 
 /**
@@ -61,7 +86,7 @@ export const usePropVisibility = (
     if (!form) {
       return;
     }
-    const apply = () => {
+    const apply = (userChange = false) => {
       const wrappers = [
         ...form.querySelectorAll<HTMLElement>('[data-canvas-prop]'),
       ];
@@ -78,6 +103,8 @@ export const usePropVisibility = (
         }
       });
       const visibility = computeVisibility(conditions, values);
+      const shown: string[] = [];
+      const hidden: string[] = [];
       wrappers.forEach((wrapper) => {
         const propName = wrapper.dataset.canvasProp as string;
         const visible = visibility[propName];
@@ -85,17 +112,31 @@ export const usePropVisibility = (
           return;
         }
         const wasHidden = wrapper.hidden;
-        wrapper.hidden = !visible;
-        // Fades props in as they appear.
-        if (wasHidden && visible) {
+        // A prop with an invalid value stays visible, so the user can fix it.
+        wrapper.hidden = !visible && !isInvalid(wrapper);
+        if (wasHidden && !wrapper.hidden) {
+          // Fades props in as they appear.
           wrapper.dataset.canvasRevealed = '';
           setTimeout(() => delete wrapper.dataset.canvasRevealed, 200);
+          shown.push(labelOf(wrapper));
+        } else if (!wasHidden && wrapper.hidden) {
+          hidden.push(labelOf(wrapper));
         }
       });
+      if (userChange && (shown.length || hidden.length)) {
+        announce(
+          [
+            shown.length && `Shown: ${shown.join(', ')}.`,
+            hidden.length && `Hidden: ${hidden.join(', ')}.`,
+          ]
+            .filter(Boolean)
+            .join(' '),
+        );
+      }
     };
     apply();
     // After React re-rendered the control, e.g. a switch after a click.
-    const scheduleApply = () => requestAnimationFrame(apply);
+    const scheduleApply = () => requestAnimationFrame(() => apply(true));
     const events = ['input', 'change', 'click'];
     events.forEach((event) => form.addEventListener(event, scheduleApply));
     return () => {
