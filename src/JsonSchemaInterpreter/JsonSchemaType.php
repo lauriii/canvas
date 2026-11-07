@@ -377,9 +377,10 @@ enum JsonSchemaType: string {
         // Require $ref to be resolved, because that might add some of the other
         // keywords.
         \array_key_exists('$ref', $schema) => NULL,
-        // `multipleOf` has no equivalent field type in Drupal core, so leave it
-        // to contrib.
-        \array_key_exists('multipleOf', $schema) => NULL,
+        // `multipleOf` has no equivalent field type in Drupal core, but needs
+        // none: JSON Schema validation enforces it, and the component instance
+        // form uses it as the number input's step.
+        // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::buildComponentInstanceForm()
         \array_key_exists('enum', $schema)=> new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('list_integer', 'value'), fieldWidget: 'options_select', fieldStorageSettings: [
           'allowed_values_function' => 'canvas_load_allowed_values_for_component_prop',
         ]),
@@ -410,8 +411,8 @@ enum JsonSchemaType: string {
           'min' => $schema['minimum'] ?? (\array_key_exists('exclusiveMinimum', $schema) ? $schema['exclusiveMinimum'] + 0.000001 : NULL),
           'max' => $schema['maximum'] ?? (\array_key_exists('exclusiveMaximum', $schema) ? $schema['exclusiveMaximum'] - 0.000001 : NULL),
         ]),
-        // Otherwise, it's an unrestricted integer.
-        // @todo `multipleOf` ⚠️
+        // Otherwise, it's an unrestricted number. Like for integers,
+        // `multipleOf` needs no field type support.
         TRUE => new StorablePropShape(shape: $shape, fieldTypeProp: new FieldTypePropExpression('float', 'value'), fieldWidget: 'number'),
       },
 
