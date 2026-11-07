@@ -117,7 +117,9 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       \assert($item instanceof ComponentTreeItem);
       $items_by_slot[self::slotKey($item->getParentUuid(), $item->getSlot())][] = $item;
     }
-    return $this->buildLayoutAndModel($items_by_slot[self::slotKey(NULL, NULL)] ?? [], $items_by_slot, $host_entity);
+    $model = [];
+    $layout = $this->buildLayoutAndModel($items_by_slot[self::slotKey(NULL, NULL)] ?? [], $items_by_slot, $model, $host_entity);
+    return ['layout' => $layout, 'model' => $model];
   }
 
   /**
@@ -134,17 +136,20 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
    *   The items of one slot (or of the root level), in delta order.
    * @param array<string, list<\Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem>> $items_by_slot
    *   All items of this list, keyed by ::slotKey().
+   * @param array<string, mixed> $model
+   *   The `model` being built, keyed by component instance UUID. The model of
+   *   this tier and of all its descendants is added to it, so that each
+   *   instance's model is written once regardless of tree depth.
    * @param \Drupal\Core\Entity\FieldableEntityInterface|null $host_entity
    *   The host entity, if any.
    *
-   * @return array{layout: list<array<string, mixed>>, model: array<string, mixed>}
-   *   The `layout` nodes of this tier and the `model` of all of their
-   *   descendants, keyed by component instance UUID.
+   * @return list<array<string, mixed>>
+   *   The `layout` nodes of this tier.
    *
    * @todo Move this into a normalizer at https://www.drupal.org/i/3499632
    */
-  private function buildLayoutAndModel(array $tree_tier, array $items_by_slot, ?FieldableEntityInterface $host_entity = NULL): array {
-    $built = ['layout' => [], 'model' => []];
+  private function buildLayoutAndModel(array $tree_tier, array $items_by_slot, array &$model, ?FieldableEntityInterface $host_entity = NULL): array {
+    $layout = [];
     foreach ($tree_tier as $item) {
       $item_layout_node = $item->getClientSideRepresentation();
       $component_instance_uuid = $item->getUuid();
@@ -160,7 +165,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       $source = $item->getComponent()?->getComponentSource();
       \assert($source instanceof ComponentSourceInterface);
       if ($source->requiresExplicitInput()) {
-        $built['model'][$component_instance_uuid] = $source->inputToClientModel($source->getExplicitInput($component_instance_uuid, $item, $host_entity));
+        $model[$component_instance_uuid] = $source->inputToClientModel($source->getExplicitInput($component_instance_uuid, $item, $host_entity));
       }
 
       // TRICKY: the server-side implementation (for storage efficiency) forbids
@@ -185,14 +190,12 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
           'name' => $slot_name,
           'nodeType' => 'slot',
         ];
-        $child_build = $this->buildLayoutAndModel($items_by_slot[self::slotKey($component_instance_uuid, (string) $slot_name)] ?? [], $items_by_slot, $host_entity);
-        $built['model'] += $child_build['model'];
-        $component_instance_slot['components'] = $child_build['layout'];
+        $component_instance_slot['components'] = $this->buildLayoutAndModel($items_by_slot[self::slotKey($component_instance_uuid, (string) $slot_name)] ?? [], $items_by_slot, $model, $host_entity);
         $item_layout_node['slots'][] = $component_instance_slot;
       }
-      $built['layout'][] = $item_layout_node;
+      $layout[] = $item_layout_node;
     }
-    return $built;
+    return $layout;
   }
 
   public static function isChildOfComponentTreeItemSlot(string $parent_uuid, string $slot_name): callable {
