@@ -296,6 +296,14 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
         fieldWidget: 'number',
         fieldInstanceSettings: ['max' => '', 'min' => 1],
       ),
+      // `multipleOf` is enforced by JSON Schema validation, and becomes the
+      // number input's step.
+      // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::buildComponentInstanceForm()
+      'type=integer&multipleOf=12' => new StorablePropShape(
+        shape: new PropShape(['type' => 'integer', 'multipleOf' => 12]),
+        fieldTypeProp: new FieldTypePropExpression('integer', 'value'),
+        fieldWidget: 'number',
+      ),
       'type=number' => new StorablePropShape(
         shape: new PropShape(['type' => 'number']),
         fieldTypeProp: new FieldTypePropExpression('float', 'value'),
@@ -982,7 +990,6 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
     return [
       'type=array&items[type]=integer&minItems=2' => new PropShape(['type' => 'array', 'items' => ['type' => 'integer'], 'minItems' => 2]),
       'type=object&$ref=json-schema-definitions://canvas.module/shoe-icon' => new PropShape(['type' => 'object', '$ref' => 'json-schema-definitions://canvas.module/shoe-icon']),
-      'type=integer&multipleOf=12' => new PropShape(['type' => 'integer', 'multipleOf' => 12]),
       'type=string&format=duration' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::Duration->value]),
       'type=string&format=hostname' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::Hostname->value]),
       'type=string&format=idn-hostname' => new PropShape(['type' => 'string', 'format' => JsonSchemaStringFormat::IdnHostname->value]),
@@ -1143,6 +1150,10 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
       elseif (isset($storable_prop_shape->shape->schema['items']['enum'])) {
         $randomized_prop_source = $prop_source->withValue([['value' => $storable_prop_shape->shape->schema['items']['enum'][0]]]);
       }
+      // A random number is rarely a multiple of `multipleOf`.
+      elseif (isset($storable_prop_shape->shape->schema['multipleOf'])) {
+        $randomized_prop_source = $prop_source->withValue($storable_prop_shape->shape->schema['multipleOf'] * 3);
+      }
 
       $random_value = $randomized_prop_source->getValue();
       $stored_randomized_prop_source = (string) $randomized_prop_source;
@@ -1271,11 +1282,10 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
     \assert($component instanceof ComponentEntity);
     self::assertCount(1, $component->getVersions());
     $settings = $component->getSettings();
-    if ($module_is_already_installed) {
-      self::assertArrayHasKey($prop_name, $settings['prop_field_definitions']);
-    }
-    else {
-      self::assertArrayNotHasKey($prop_name, $settings['prop_field_definitions']);
+    self::assertArrayHasKey($prop_name, $settings['prop_field_definitions']);
+    if (!$module_is_already_installed) {
+      // Canvas natively stores `multipleOf` integer props in integer fields.
+      self::assertSame('integer', $settings['prop_field_definitions'][$prop_name]['field_type']);
 
       // Now enable the 'canvas_test_storable_prop_shape_alter' module.
       // @see \Drupal\canvas_test_storable_prop_shape_alter\Hook\CanvasTestStorablePropShapeAlterHooks::storablePropShapeAlter()
@@ -1306,7 +1316,8 @@ class PropShapeRepositoryTest extends CanvasKernelTestBase {
     \assert($component instanceof ComponentEntity);
     self::assertCount($module_is_already_installed ? 2 : 3, $component->getVersions());
     $settings = $component->getSettings();
-    self::assertArrayNotHasKey($prop_name, $settings['prop_field_definitions']);
+    // Without the alter, the prop falls back to how Canvas natively stores it.
+    self::assertSame('integer', $settings['prop_field_definitions'][$prop_name]['field_type']);
   }
 
   /**

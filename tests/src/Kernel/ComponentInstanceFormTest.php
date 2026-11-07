@@ -83,6 +83,33 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     self::assertStringContainsString('The title for the cta', $crawler->text());
   }
 
+  /**
+   * Tests that `multipleOf` becomes the number input's step.
+   *
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::buildComponentInstanceForm()
+   */
+  public function testNumberStepFromMultipleOf(): void {
+    $this->container->get(ModuleInstallerInterface::class)->install(['sdc_test_all_props']);
+    $this->createNode(['type' => 'article', 'title' => 'Test node'])->save();
+
+    $component_id = 'sdc.sdc_test_all_props.all-props';
+    $component_entity = Component::load($component_id);
+    \assert($component_entity instanceof ComponentInterface);
+    $crawler = $this->getCrawlerForFormRequest(
+      '/canvas/api/v0/form/component-instance/node/1',
+      $component_entity,
+      $this->getFormCanvasPropsForComponent($component_id),
+    );
+    $multiple_of_input = $crawler->filter('[name*="[test_integer_by_the_dozen]"]');
+    self::assertCount(1, $multiple_of_input);
+    self::assertSame('12', $multiple_of_input->attr('step'));
+    // Without `multipleOf`, an integer input keeps the default step.
+    // @see \Drupal\Core\Render\Element\Number::getInfo()
+    $integer_input = $crawler->filter('[name*="[test_integer_range_minimum]"]');
+    self::assertCount(1, $integer_input);
+    self::assertSame('1', $integer_input->attr('step'));
+  }
+
   #[DataProvider('providerOptionalImages')]
   public function testOptionalImageAndHeading(string $component, array $values_to_set, array $expected_form_canvas_props): void {
     $actual_form_canvas_props = $this->getFormCanvasPropsForComponent($component);
