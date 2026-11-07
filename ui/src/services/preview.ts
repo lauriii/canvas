@@ -120,10 +120,13 @@ export const recordSavedModels = (
   );
 
 /**
- * Forgets every recorded saved model, for example after undo or redo, whose
- * restored models the next layout POST saves.
+ * Forgets every recorded saved model and unsaved edit, for example after undo
+ * or redo, whose restored models the next layout POST saves.
  */
-export const clearSavedModels = () => savedModels.clear();
+export const clearSavedModels = () => {
+  savedModels.clear();
+  unsavedEditedProps.clear();
+};
 
 /**
  * Takes the saved models of a layout's component instances on its entity.
@@ -172,9 +175,22 @@ const rebaseOnSavedModel = (
 // Paces PATCHes from usePatchComponent(). Sends through the newest
 // updateComponent trigger.
 let sendPatch: (arg: UpdateComponentQueryArg) => PromiseLike<unknown>;
-const patchScheduler = createPatchScheduler<UpdateComponentQueryArg>((arg) =>
-  runExclusive(() => Promise.resolve(sendPatch(rebaseOnSavedModel(arg)))),
-);
+// Per instance key, the props of sent changes not yet saved, because their
+// PATCH is in flight or failed. Later changes rebase these too.
+const unsavedEditedProps = new Map<string, Set<string>>();
+const patchScheduler = createPatchScheduler<UpdateComponentQueryArg>((arg) => {
+  const key = instanceKey(arg.componentInstanceUuid, arg.editorUrl);
+  const unsaved = unsavedEditedProps.get(key) ?? new Set<string>();
+  unsavedEditedProps.set(key, unsaved);
+  arg.editedProps?.forEach((prop) => unsaved.add(prop));
+  return runExclusive(async () => {
+    const result = await sendPatch(rebaseOnSavedModel(arg));
+    if (!(result as { error?: unknown }).error) {
+      arg.editedProps?.forEach((prop) => unsaved.delete(prop));
+    }
+    return result;
+  });
+});
 
 /**
  * Runs a component write after queued changes and earlier writes.
@@ -627,6 +643,7 @@ export const usePatchComponent = () => {
 
     // A change replacing a queued one also carries the queued one's edits.
     const queued = patchScheduler.get(instanceKey(selectedComponent));
+    const unsaved = unsavedEditedProps.get(instanceKey(selectedComponent));
     const arg = {
       type: editorFrameContext,
       componentInstanceUuid: selectedComponent,
@@ -636,7 +653,13 @@ export const usePatchComponent = () => {
       baseModel: inputUIData.model?.[selectedComponent],
       editedProps:
         editedProps && (!queued || queued.editedProps)
-          ? [...new Set([...(queued?.editedProps ?? []), ...editedProps])]
+          ? [
+              ...new Set([
+                ...(queued?.editedProps ?? []),
+                ...(unsaved ?? []),
+                ...editedProps,
+              ]),
+            ]
           : undefined,
     };
 
