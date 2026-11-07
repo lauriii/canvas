@@ -59,6 +59,7 @@ final class PropVisibilityConditionTest extends UnitTestCase {
     yield 'number operator on text' => [['layout' => ['gt' => 1]], [$prefix . '.layout.gt needs a number prop, but "layout" has type string.']];
     yield 'contains on a number' => [['count' => ['contains' => 1]], [$prefix . '.count.contains needs a text or list prop, but "count" has type integer.']];
     yield 'boolean compared with text' => [['show' => 'yes'], [$prefix . '.show compares the true/false prop "show" with "yes". Use true or false.']];
+    // cspell:ignore splt
     yield 'value not in enum' => [['layout' => 'splt'], [$prefix . '.layout compares "layout" with "splt", which is not one of its values: "stack", "split".']];
     yield 'not value not in enum' => [['layout' => ['not' => 'grid']], [$prefix . '.layout.not compares "layout" with "grid", which is not one of its values: "stack", "split".']];
     yield 'invalid anyOf' => [['anyOf' => ['show' => TRUE]], [$prefix . '.anyOf must be a list of conditions.']];
