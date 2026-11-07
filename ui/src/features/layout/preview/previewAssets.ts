@@ -43,6 +43,10 @@ const mergeSettings = (
   source: Record<string, unknown>,
 ) => {
   Object.entries(source).forEach(([key, value]) => {
+    // Keys that would reach or replace an object's prototype.
+    if (['__proto__', 'constructor', 'prototype'].includes(key)) {
+      return;
+    }
     const current = target[key];
     if (isObject(value) && isObject(current)) {
       mergeSettings(current, value);
@@ -122,30 +126,35 @@ const addElement = (
  */
 export const loadPreviewAssets = (assets: PreviewAssets) =>
   Promise.all(
-    getActivePreviewWindows().map(async (window) => {
-      const { head, body } = window.document;
-      mergeSettings(getSettings(window), assets.settings);
-      await Promise.all(
-        assets.css.map((attributes) => addElement(head, 'link', attributes)),
-      );
-      for (const attributes of assets.jsHeader) {
-        await addElement(head, 'script', attributes);
-      }
-      for (const attributes of assets.jsFooter) {
-        await addElement(body, 'script', attributes);
-      }
-      // New scripts may define behaviors for markup the preview already has,
-      // for example when only a prop changed which libraries are attached.
-      // once() keeps other behaviors from attaching twice.
-      if (assets.jsHeader.length || assets.jsFooter.length) {
-        (
-          window as unknown as {
-            Drupal?: { attachBehaviors: (context: Document) => void };
-          }
-        ).Drupal?.attachBehaviors(window.document);
-      }
-    }),
+    getActivePreviewWindows().map((window) => loadAssetsInto(window, assets)),
   );
+
+/**
+ * Loads assets into one preview window, like loadPreviewAssets().
+ */
+export const loadAssetsInto = async (window: Window, assets: PreviewAssets) => {
+  const { head, body } = window.document;
+  mergeSettings(getSettings(window), assets.settings);
+  await Promise.all(
+    assets.css.map((attributes) => addElement(head, 'link', attributes)),
+  );
+  for (const attributes of assets.jsHeader) {
+    await addElement(head, 'script', attributes);
+  }
+  for (const attributes of assets.jsFooter) {
+    await addElement(body, 'script', attributes);
+  }
+  // New scripts may define behaviors for markup the preview already has,
+  // for example when only a prop changed which libraries are attached.
+  // once() keeps other behaviors from attaching twice.
+  if (assets.jsHeader.length || assets.jsFooter.length) {
+    (
+      window as unknown as {
+        Drupal?: { attachBehaviors: (context: Document) => void };
+      }
+    ).Drupal?.attachBehaviors(window.document);
+  }
+};
 
 /**
  * Adds assets to a preview document's HTML, for a frame created from it.
