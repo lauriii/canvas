@@ -115,3 +115,28 @@ export function createPatchScheduler<T>(
     },
   };
 }
+
+/**
+ * Rebases a change onto a newer version of the values it was made on.
+ *
+ * Values the change left as they were in `base` take their value from
+ * `latest`; changed and removed ones keep the change.
+ */
+export const rebaseModel = (
+  base: Record<string, unknown>,
+  changed: Record<string, unknown>,
+  latest: Record<string, unknown>,
+): Record<string, unknown> => {
+  const result = { ...latest };
+  new Set([...Object.keys(base), ...Object.keys(changed)]).forEach((name) => {
+    if (JSON.stringify(base[name]) === JSON.stringify(changed[name])) {
+      return;
+    }
+    if (name in changed) {
+      result[name] = changed[name];
+    } else {
+      delete result[name];
+    }
+  });
+  return result;
+};

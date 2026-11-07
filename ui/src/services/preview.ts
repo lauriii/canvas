@@ -24,11 +24,12 @@ import {
 import {
   baseQueryWithAutoSaves,
   extractEntityParams,
+  isOtherEntity,
   popCanvasLayoutRequest,
   pushCanvasLayoutRequest,
   replaceEntityParamsInUrl,
 } from '@/services/baseQuery';
-import { createPatchScheduler } from '@/services/patchScheduler';
+import { createPatchScheduler, rebaseModel } from '@/services/patchScheduler';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
 import { getEntityTitle } from '@/utils/entityTitle';
@@ -71,6 +72,8 @@ export type UpdateComponentQueryArg = {
   // The editor URL when the change was made, for changes sent later. Without
   // it, the entity is taken from the current URL when the request is sent.
   editorUrl?: string;
+  // The model a queued form change was made on. Not sent.
+  baseModel?: ComponentModel | EvaluatedComponentModel;
 };
 
 // Component writes run one at a time: each reads the saved models, sends its
@@ -87,29 +90,92 @@ const runExclusive = <T>(write: () => Promise<T>): Promise<T> => {
   return result;
 };
 
-// Paces PATCHes from usePatchComponent(). Sends through the newest
-// updateComponent trigger.
-let sendPatch: (arg: UpdateComponentQueryArg) => PromiseLike<unknown>;
-const patchScheduler = createPatchScheduler<UpdateComponentQueryArg>((arg) =>
-  runExclusive(() => Promise.resolve(sendPatch(arg))),
-);
+// The store's getState(), set by the hooks that send component writes.
+let getEditorState: () => RootState;
 
 /**
- * Takes the saved models of a layout's component instances.
+ * Returns a component instance's newest saved model on the entity an editor
+ * URL edits, if known.
+ *
+ * For the current entity that is the editor's model. For another entity, it
+ * is the model the newest successful write saved.
+ */
+export const getSavedModel = (
+  uuid: string,
+  editorUrl?: string,
+): ComponentModel | EvaluatedComponentModel | undefined =>
+  isOtherEntity(editorUrl)
+    ? savedModels.get(instanceKey(uuid, editorUrl))
+    : selectModel(getEditorState())[uuid];
+
+/**
+ * Records the models a full-layout write saved for an entity.
+ */
+export const recordSavedModels = (
+  editorUrl: string,
+  model: Record<string, any>,
+) =>
+  Object.entries(model).forEach(([uuid, componentModel]) =>
+    savedModels.set(instanceKey(uuid, editorUrl), componentModel),
+  );
+
+/**
+ * Takes the saved models of a layout's component instances on its entity.
  *
  * A full-layout write runs after queued component changes are saved; models
  * captured before then would undo them.
  */
 export const withSavedModels = (
   model: Record<string, any>,
-  savedModel: Record<string, any>,
+  editorUrl: string,
 ) =>
   Object.fromEntries(
     Object.entries(model).map(([uuid, componentModel]) => [
       uuid,
-      savedModel[uuid] ?? componentModel,
+      getSavedModel(uuid, editorUrl) ?? componentModel,
     ]),
   );
+
+// Rebases a queued form change onto the instance's newest saved model, so a
+// change saved meanwhile (for example a removed image) is kept.
+const rebaseOnSavedModel = (
+  arg: UpdateComponentQueryArg,
+): UpdateComponentQueryArg => {
+  const { baseModel, model } = arg;
+  const saved = getSavedModel(arg.componentInstanceUuid, arg.editorUrl);
+  if (
+    !baseModel ||
+    !saved ||
+    !isEvaluatedComponentModel(saved) ||
+    !isEvaluatedComponentModel(baseModel) ||
+    !isEvaluatedComponentModel(model as ComponentModel)
+  ) {
+    return arg;
+  }
+  const changed = model as EvaluatedComponentModel;
+  return {
+    ...arg,
+    model: {
+      source: rebaseModel(
+        baseModel.source,
+        changed.source,
+        saved.source,
+      ) as EvaluatedComponentModel['source'],
+      resolved: rebaseModel(
+        baseModel.resolved,
+        changed.resolved,
+        saved.resolved,
+      ) as EvaluatedComponentModel['resolved'],
+    },
+  };
+};
+
+// Paces PATCHes from usePatchComponent(). Sends through the newest
+// updateComponent trigger.
+let sendPatch: (arg: UpdateComponentQueryArg) => PromiseLike<unknown>;
+const patchScheduler = createPatchScheduler<UpdateComponentQueryArg>((arg) =>
+  runExclusive(() => Promise.resolve(sendPatch(rebaseOnSavedModel(arg)))),
+);
 
 /**
  * Runs a component write after queued changes and earlier writes.
@@ -151,11 +217,6 @@ const savedModels = new Map<string, any>();
 // are applied in turn, each after loading the assets it needs.
 let responsesApplied: Promise<void> = Promise.resolve();
 
-const isOtherEntity = (editorUrl?: string) =>
-  editorUrl !== undefined &&
-  JSON.stringify(extractEntityParams(editorUrl)) !==
-    JSON.stringify(extractEntityParams(window.location.href));
-
 export const previewApi = createApi({
   reducerPath: 'previewApi',
   baseQuery: baseQueryWithAutoSaves,
@@ -168,18 +229,26 @@ export const previewApi = createApi({
         layout: any;
         model: any;
         entity_form_fields: any;
+        // The editor URL the layout is for, if not the current one.
+        editorUrl?: string;
       }
     >({
-      query: ({ entityType, entityId, ...body }) => ({
+      query: ({ entityType, entityId, editorUrl, ...body }) => ({
         url: `canvas/api/v0/layout/${entityType}/${entityId}`,
         method: 'POST',
         body,
+        editorUrl,
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         pushCanvasLayoutRequest();
         try {
           const { data, meta } = await queryFulfilled;
           const { html, autoSaves } = data;
+          // The editor moved to another entity since this layout was sent.
+          if (isOtherEntity(arg.editorUrl)) {
+            handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
+            return;
+          }
           dispatch(
             pendingChangesApi.util.invalidateTags([
               { type: 'PendingChanges', id: 'LIST' },
@@ -259,7 +328,7 @@ export const previewApi = createApi({
       UpdateComponentResultType | PartialUpdateComponentResultType,
       UpdateComponentQueryArg
     >({
-      query: ({ type, editorUrl, ...body }) => {
+      query: ({ type, editorUrl, baseModel: _baseModel, ...body }) => {
         let url = '';
         if (type === 'entity') {
           url = 'canvas/api/v0/layout/{entity_type}/{entity_id}';
@@ -447,6 +516,7 @@ let lastBody = {};
  */
 export const usePatchComponent = () => {
   const [updateComponent] = useUpdateComponentMutation();
+  getEditorState = useAppStore().getState;
 
   return (
     inputUIData: InputUIData,
@@ -465,6 +535,7 @@ export const usePatchComponent = () => {
       componentType: `${selectedComponentType}@${version}`,
       model,
       editorUrl: window.location.href,
+      baseModel: inputUIData.model?.[selectedComponent],
     };
 
     // Prevent duplicate requests
@@ -491,7 +562,7 @@ export const usePatchComponentModel = (
   options?: Parameters<typeof useUpdateComponentMutation>[0],
 ) => {
   const [updateComponent] = useUpdateComponentMutation(options);
-  const store = useAppStore();
+  getEditorState = useAppStore().getState;
 
   return (
     inputUIData: InputUIData,
@@ -509,11 +580,9 @@ export const usePatchComponentModel = (
     return runComponentWrite(async () => {
       // If the editor moved to another entity meanwhile, the store holds that
       // entity's models instead.
-      const savedModel: ComponentModel | EvaluatedComponentModel | undefined =
-        isOtherEntity(editorUrl)
-          ? (savedModels.get(instanceKey(selectedComponent, editorUrl)) ??
-            inputUIData.model?.[selectedComponent])
-          : selectModel(store.getState())[selectedComponent];
+      const savedModel =
+        getSavedModel(selectedComponent, editorUrl) ??
+        inputUIData.model?.[selectedComponent];
       if (!savedModel || !isEvaluatedComponentModel(savedModel)) {
         return;
       }
@@ -580,6 +649,8 @@ type PostPreviewArg = {
   entity_form_fields: any;
   entityId: string;
   entityType: string;
+  // The editor URL the layout is for. Defaults to the current one.
+  editorUrl?: string;
 };
 
 // Module-level queue state for postPreview requests.
@@ -621,11 +692,15 @@ export function useQueuedPostPreviewMutation(
   ReturnType<typeof usePostPreviewMutation>[1],
 ] {
   const [postPreview, mutationState] = usePostPreviewMutation(options);
-  const store = useAppStore();
+  getEditorState = useAppStore().getState;
 
   const queuedPostPreview = async (
-    arg: PostPreviewArg,
+    requestArg: PostPreviewArg,
   ): Promise<PostPreviewResult> => {
+    const arg = {
+      ...requestArg,
+      editorUrl: requestArg.editorUrl ?? window.location.href,
+    };
     if (activePreviewRequest) {
       pendingPreviewArg = arg;
       await activePreviewRequest.catch(() => {});
@@ -636,12 +711,12 @@ export function useQueuedPostPreviewMutation(
       pendingPreviewArg = null;
     }
 
-    activePreviewRequest = runComponentWrite(() =>
-      postPreview({
-        ...arg,
-        model: withSavedModels(arg.model, selectModel(store.getState())),
-      }).unwrap(),
-    );
+    activePreviewRequest = runComponentWrite(async () => {
+      const model = withSavedModels(arg.model, arg.editorUrl);
+      const result = await postPreview({ ...arg, model }).unwrap();
+      recordSavedModels(arg.editorUrl, model);
+      return result;
+    });
     try {
       return await activePreviewRequest;
     } finally {

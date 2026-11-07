@@ -3,7 +3,7 @@ import { useErrorBoundary } from 'react-error-boundary';
 import { useParams } from 'react-router';
 import { skipToken } from '@reduxjs/toolkit/query';
 
-import { useAppDispatch, useAppSelector, useAppStore } from '@/app/hooks';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { selectAutoSavesHash } from '@/components/review/PublishReview.slice';
 import {
   selectIsInitialized,
@@ -35,6 +35,7 @@ import {
   usePostTemplateLayoutMutation,
 } from '@/services/componentAndLayout';
 import {
+  recordSavedModels,
   runComponentWrite,
   selectUpdateComponentLoadingState,
   useQueuedPostPreviewMutation,
@@ -46,7 +47,6 @@ import type React from 'react';
 
 const Preview: React.FC = () => {
   const dispatch = useAppDispatch();
-  const store = useAppStore();
   const layout = useAppSelector(selectLayout);
   const updatePreview = useAppSelector(selectUpdatePreview);
   const model = useAppSelector(selectModel);
@@ -115,6 +115,8 @@ const Preview: React.FC = () => {
       if (!isInitializedRef.current) {
         return;
       }
+      // The layout is for the entity edited now, even if the request waits.
+      const editorUrl = window.location.href;
       try {
         // Execute Request
         if (context === 'entity' && entityId && entityType) {
@@ -124,25 +126,23 @@ const Preview: React.FC = () => {
             entity_form_fields,
             entityId,
             entityType,
+            editorUrl,
           });
-        } else if (context === 'template') {
+        } else if (context === 'template' || context === 'pattern') {
           // Like entity POSTs, a component write that takes the models saved
           // by queued component changes.
-          await runComponentWrite(() =>
-            postTemplatePreview({
+          const post =
+            context === 'template' ? postTemplatePreview : postPatternPreview;
+          await runComponentWrite(async () => {
+            const savedModel = withSavedModels(model, editorUrl);
+            await post({
               layout,
-              model: withSavedModels(model, selectModel(store.getState())),
+              model: savedModel,
               entity_form_fields,
-            }).unwrap(),
-          );
-        } else if (context === 'pattern') {
-          await runComponentWrite(() =>
-            postPatternPreview({
-              layout,
-              model: withSavedModels(model, selectModel(store.getState())),
-              entity_form_fields,
-            }).unwrap(),
-          );
+              editorUrl,
+            }).unwrap();
+            recordSavedModels(editorUrl, savedModel);
+          });
         }
       } catch (err) {
         showBoundary(err);
@@ -158,7 +158,6 @@ const Preview: React.FC = () => {
       postTemplatePreview,
       postPatternPreview,
       showBoundary,
-      store,
     ],
   );
 

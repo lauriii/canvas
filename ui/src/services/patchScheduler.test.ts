@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createPatchScheduler } from '@/services/patchScheduler';
+import { createPatchScheduler, rebaseModel } from '@/services/patchScheduler';
 
 describe('createPatchScheduler', () => {
   beforeEach(() => {
@@ -87,5 +87,19 @@ describe('createPatchScheduler', () => {
     scheduler.schedule('a', 'a4', true);
     await vi.advanceTimersByTimeAsync(0);
     expect(sent).toEqual(['a1', 'a2', 'a4']);
+  });
+});
+
+describe('rebaseModel', () => {
+  it('keeps values changed meanwhile unless the change changed them too', () => {
+    const base = { text: 'a', image: 'cat.jpg', size: 'big' };
+    // Typed while the image was being removed, on the model with the image.
+    const changed = { text: 'ab', image: 'cat.jpg' };
+    const latest = { text: 'a', image: [], size: 'big', added: 1 };
+    expect(rebaseModel(base, changed, latest)).toEqual({
+      text: 'ab',
+      image: [],
+      added: 1,
+    });
   });
 });

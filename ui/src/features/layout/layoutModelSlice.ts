@@ -6,7 +6,12 @@ import {
   DEFAULT_REGION,
   selectEditorFrameContext,
 } from '@/features/ui/uiSlice';
-import { previewApi, runComponentWrite } from '@/services/preview';
+import { isOtherEntity } from '@/services/baseQuery';
+import {
+  getSavedModel,
+  previewApi,
+  runComponentWrite,
+} from '@/services/preview';
 import { hasSlotDefinitions, isPropSourceComponent } from '@/types/Component';
 import {
   getCanvasSettings,
@@ -27,6 +32,7 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 import type { StateWithHistory } from 'redux-undo';
 import type { AppThunk } from '@/app/store';
 import type { EditorFrameContext } from '@/features/ui/uiSlice';
+import type { UpdateComponentQueryArg } from '@/services/preview';
 import type {
   CanvasComponent,
   ComponentsList,
@@ -711,10 +717,19 @@ export const addNewComponentToLayout =
 
 export const updateExistingComponentValues =
   (payload: any): AppThunk =>
-  (dispatch, getState) =>
+  (dispatch, getState) => {
+    // The update is for the entity edited now, even if it waits.
+    const editorUrl = window.location.href;
+    const callState = getState();
+    const callModel = selectModel(callState)[payload.componentToUpdateId];
+    const node = findComponentByUuid(
+      selectLayout(callState),
+      payload.componentToUpdateId,
+    );
+    const type = selectEditorFrameContext(callState);
     // Read the model and save the change as one component write, so queued
     // or concurrent changes cannot undo it.
-    runComponentWrite(async () => {
+    return runComponentWrite(async () => {
       const { componentSelectionUtils } = canvasSettings;
       const state = getState();
       const components: ComponentsList | undefined = state
@@ -735,6 +750,7 @@ export const updateExistingComponentValues =
       // deselected, then re-selected after the value update. This ensures the
       // form re-renders with the updated values.
       if (
+        !isOtherEntity(editorUrl) &&
         Array.isArray(selectionItems) &&
         selectionItems.includes(componentToUpdateId)
       ) {
@@ -742,9 +758,13 @@ export const updateExistingComponentValues =
         componentSelectionUtils.setSelectedComponent(null);
       }
 
-      const layout = selectLayout(state);
-      const model = selectModel(state)[componentToUpdateId];
-      const node = findComponentByUuid(layout, componentToUpdateId);
+      const model = getSavedModel(componentToUpdateId, editorUrl) ?? callModel;
+      if (!model) {
+        console.warn(
+          `Component ${componentToUpdateId} not found. Update cancelled.`,
+        );
+        return;
+      }
       const [selectedComponentType, version] = (
         node ? (node.type as string) : 'noop'
       ).split('@');
@@ -766,8 +786,7 @@ export const updateExistingComponentValues =
         ...values,
       };
 
-      const type = selectEditorFrameContext(state);
-      const valuePayload = {
+      const valuePayload: UpdateComponentQueryArg = {
         type,
         componentInstanceUuid: componentToUpdateId,
         componentType: `${selectedComponentType}@${version}`,
@@ -775,6 +794,7 @@ export const updateExistingComponentValues =
           ...model,
           resolved,
         },
+        editorUrl,
       };
 
       // If the model includes source data, the model value needs to be processed
@@ -807,6 +827,7 @@ export const updateExistingComponentValues =
         componentSelectionUtils.setSelectedComponent(resetSelection);
       }
     });
+  };
 
 export const _linkPropToEntityValue =
   (payload: {
@@ -815,10 +836,13 @@ export const _linkPropToEntityValue =
     newSource: PropSource;
     inputUIData: InputUIData;
   }): AppThunk =>
-  (dispatch, getState) =>
+  (dispatch, getState) => {
+    // The update is for the entity edited now, even if it waits.
+    const editorUrl = window.location.href;
+    const callModel = selectModel(getState())[payload.componentToUpdateId];
     // Read the model and save the change as one component write, so queued
     // or concurrent changes cannot undo it.
-    runComponentWrite(async () => {
+    return runComponentWrite(async () => {
       const state = getState();
       const components: ComponentsList | undefined = state
         ?.componentAndLayoutApi?.queries?.['getComponents(undefined)']?.data as
@@ -832,7 +856,7 @@ export const _linkPropToEntityValue =
 
       const { propName, componentToUpdateId, newSource, inputUIData } = payload;
       const { selectedComponentType, version } = inputUIData;
-      const model = selectModel(state)[componentToUpdateId];
+      const model = getSavedModel(componentToUpdateId, editorUrl) ?? callModel;
       const componentMetadata = components[selectedComponentType];
       // Exit early if attempting to update a prop that does not exist.
       if (
@@ -866,6 +890,7 @@ export const _linkPropToEntityValue =
             resolved,
             source,
           },
+          editorUrl,
         };
 
         await dispatch(
@@ -875,6 +900,7 @@ export const _linkPropToEntityValue =
         );
       }
     });
+  };
 
 export const addNewPatternToLayout =
   (payload: AddNewPatternPayload, setSelectedComponent: Function): AppThunk =>
