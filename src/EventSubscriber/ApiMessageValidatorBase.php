@@ -5,13 +5,16 @@ declare(strict_types=1);
 namespace Drupal\canvas\EventSubscriber;
 
 use Drupal\canvas\Utility\ExceptionHelper;
+use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use League\OpenAPIValidation\PSR7\Exception\NoPath;
 use League\OpenAPIValidation\PSR7\Exception\ValidationFailed;
+use League\OpenAPIValidation\PSR7\SchemaFactory\YamlFileFactory;
 use League\OpenAPIValidation\PSR7\ValidatorBuilder;
 use Psr\Log\LoggerInterface;
 use Symfony\Bridge\PsrHttpMessage\HttpMessageFactoryInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -45,6 +48,8 @@ abstract class ApiMessageValidatorBase implements EventSubscriberInterface {
     private readonly RouteMatchInterface $currentRouteMatch,
     protected readonly HttpMessageFactoryInterface $httpMessageFactory,
     private readonly string $appRoot,
+    #[Autowire(service: 'cache.default')]
+    private readonly CacheBackendInterface $cache,
   ) {}
 
   /**
@@ -71,7 +76,7 @@ abstract class ApiMessageValidatorBase implements EventSubscriberInterface {
     }
 
     try {
-      $validatorBuilder = $this->getConfiguredValidatorBuilder();
+      $validatorBuilder = $this->getConfiguredValidatorBuilder($event->getRequest());
       $this->validate($validatorBuilder, $event);
     }
     catch (NoPath $e) {
@@ -151,8 +156,11 @@ abstract class ApiMessageValidatorBase implements EventSubscriberInterface {
 
   /**
    * Gets the validator builder configured with the module's OpenAPI schema.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request whose messages are validated.
    */
-  private function getConfiguredValidatorBuilder(): ValidatorBuilder {
+  private function getConfiguredValidatorBuilder(Request $request): ValidatorBuilder {
     $openapi_spec_file = \sprintf(
       '%s/%s/openapi.yml',
       $this->appRoot,
@@ -163,8 +171,25 @@ abstract class ApiMessageValidatorBase implements EventSubscriberInterface {
 
     \assert($this->validatorBuilder instanceof ValidatorBuilder);
 
-    return $this->validatorBuilder
-      ->fromYamlFile($openapi_spec_file);
+    // Parsing the file takes ~50ms, so keep the parsed schema until the file's
+    // content changes, in one cache entry. The request and response validators
+    // share it per request, so the file is hashed once per request, also when
+    // one process handles several, as kernel tests do.
+    static $schemas;
+    $schemas ??= new \WeakMap();
+    if (!isset($schemas[$request])) {
+      $hash = \hash_file('xxh64', $openapi_spec_file);
+      $cached = $this->cache->get('canvas:openapi_schema');
+      if ($cached !== FALSE && $cached->data['hash'] === $hash) {
+        $schemas[$request] = $cached->data['schema'];
+      }
+      else {
+        $schemas[$request] = (new YamlFileFactory($openapi_spec_file))->createSchema();
+        $this->cache->set('canvas:openapi_schema', ['hash' => $hash, 'schema' => $schemas[$request]]);
+      }
+    }
+
+    return $this->validatorBuilder->fromSchema($schemas[$request]);
   }
 
   /**
