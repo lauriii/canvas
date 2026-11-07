@@ -3,6 +3,7 @@ import {
   CANVAS_EMPTY_SLOT_PLACEHOLDER_CLASS,
   discoverCanvasBoundaries,
   formatCanvasCommentMarker,
+  unionCanvasRects,
 } from '@drupal-canvas/preview-geometry';
 
 import type { CanvasBoundary } from '@drupal-canvas/preview-geometry';
@@ -14,6 +15,11 @@ import type { CanvasBoundary } from '@drupal-canvas/preview-geometry';
  * library inserts its default markup. The page reflows around it, so what you
  * see is what you get when you let go. A drop commits the preview; otherwise
  * ending it puts the markup back where it was.
+ *
+ * A moved component also leaves a copy of itself under the pointer, which
+ * follows it every frame. The component itself stays dimmed where it will be
+ * dropped. When that changes, components slide to their new positions instead
+ * of jumping there.
  *
  * Drop positions are drop zone ids, as resolved by findPreviewDropZoneId().
  */
@@ -29,6 +35,33 @@ const PLACEHOLDER = {
  * The overlay outlines it like a dragged component (see DropPreviewOverlay).
  */
 export const DROP_PREVIEW_ID = 'canvas-drop-preview';
+
+/**
+ * The id of the animations that slide components to new positions.
+ *
+ * The overlay follows them frame by frame (see useComponentHtmlMap()).
+ */
+export const LIVE_PREVIEW_ANIMATION = 'canvas-live-preview';
+
+const SLIDE = { duration: 160, easing: 'cubic-bezier(0.2, 0, 0, 1)' };
+// The copy of a large component under the pointer shrinks to fit this size,
+// down to 40% of its size, so it doesn't hide where it can be dropped.
+const GHOST = { width: 480, height: 280, minScale: 0.4 };
+
+interface Point {
+  x: number;
+  y: number;
+}
+
+interface Ghost {
+  element: HTMLElement;
+  animation: Animation;
+  // The pointer position, in viewport coordinates of the editor.
+  pointer: Point;
+  startTime: number;
+  frame: number;
+  stop: () => void;
+}
 
 interface Position {
   parent: Node;
@@ -47,6 +80,12 @@ interface Session {
   homeContainer?: { type: 'slot' | 'region'; id: string };
   // Reverts what showing the markup at its current position changed.
   undo: Array<() => void>;
+  // The copy of the moved markup that follows the pointer.
+  ghost?: Ghost;
+  // Dim the moved markup.
+  dim: Animation[];
+  // Slide components to the position the markup is shown at.
+  slide: Animation[];
 }
 
 let session: Session | null = null;
@@ -64,6 +103,223 @@ function siblingsBetween(start: Node, end: Node): Node[] {
     if (n === end) return nodes;
   }
   return [];
+}
+
+const isElement = (node: Node): node is HTMLElement =>
+  node.nodeType === Node.ELEMENT_NODE;
+
+// Element.animate() is missing in test environments.
+const canAnimate = (document: Document) =>
+  typeof document.body?.animate === 'function';
+
+// The elements that render boxes, which can be measured and animated.
+const boxes = (el: Element): HTMLElement[] =>
+  getComputedStyle(el).display === 'contents'
+    ? Array.from(el.children).flatMap(boxes)
+    : [el as HTMLElement];
+
+// The rectangle of markup.
+function bounds(nodes: Node[]): DOMRect {
+  const r = unionCanvasRects(
+    nodes
+      .filter(isElement)
+      .flatMap(boxes)
+      .map((el) => el.getBoundingClientRect()),
+  );
+  return r ? new DOMRect(r.left, r.top, r.width, r.height) : new DOMRect();
+}
+
+// Maps a point in the editor viewport to the preview viewport.
+function toPreview(document: Document, point: Point): Point | null {
+  const frame = document.defaultView?.frameElement as HTMLElement | null;
+  if (!frame?.offsetWidth) {
+    return null;
+  }
+  const r = frame.getBoundingClientRect();
+  const scale = r.width / frame.offsetWidth;
+  return { x: (point.x - r.left) / scale, y: (point.y - r.top) / scale };
+}
+
+// The background a component is shown on.
+function backgroundColor(element: Element | null): string {
+  for (let el = element; el; el = el.parentElement) {
+    const color = getComputedStyle(el).backgroundColor;
+    if (!/^(transparent|rgba\(.*,\s*0\))$/.test(color)) {
+      return color;
+    }
+  }
+  return '#fff';
+}
+
+/**
+ * Lifts a copy of moved markup under the pointer.
+ *
+ * The copy is fixed in the preview viewport and moved by an animation, which
+ * changes no markup the overlay observes. Being a copy, it keeps the look of
+ * the component wherever the component itself is shown.
+ */
+function liftGhost(
+  document: Document,
+  nodes: Node[],
+  pointer: Point,
+): Ghost | undefined {
+  const elements = nodes.filter(isElement);
+  const origin = toPreview(document, pointer);
+  if (!elements.length || !origin || !canAnimate(document)) {
+    return undefined;
+  }
+  const rect = bounds(nodes);
+  const element = document.createElement('div');
+  element.setAttribute('aria-hidden', 'true');
+  element.inert = true;
+  elements.forEach((el) => {
+    const copy = el.cloneNode(true) as HTMLElement;
+    // Keep the copy out of what the overlay maps to components.
+    copy.removeAttribute('data-canvas-uuid');
+    copy
+      .querySelectorAll('[data-canvas-uuid]')
+      .forEach((c) => c.removeAttribute('data-canvas-uuid'));
+    copy.querySelectorAll('template[data-canvas-marker]').forEach((c) => {
+      c.remove();
+    });
+    const walker = document.createTreeWalker(copy, NodeFilter.SHOW_COMMENT);
+    const markers: Node[] = [];
+    while (walker.nextNode()) {
+      if (walker.currentNode.nodeValue?.trim().startsWith('canvas-')) {
+        markers.push(walker.currentNode);
+      }
+    }
+    markers.forEach((marker) => marker.parentNode?.removeChild(marker));
+    element.append(copy);
+  });
+  const parent = elements[0].parentElement ?? document.body;
+  const context = getComputedStyle(parent);
+  const scale = Math.min(
+    1,
+    Math.max(
+      GHOST.minScale,
+      Math.min(GHOST.width / rect.width, GHOST.height / rect.height),
+    ),
+  );
+  Object.assign(element.style, {
+    position: 'fixed',
+    left: `${rect.left}px`,
+    top: `${rect.top}px`,
+    width: `${rect.width}px`,
+    margin: '0',
+    zIndex: '2147483647',
+    pointerEvents: 'none',
+    overflow: 'hidden',
+    borderRadius: '6px',
+    color: context.color,
+    fontFamily: context.fontFamily,
+    fontSize: context.fontSize,
+    lineHeight: context.lineHeight,
+    background: backgroundColor(parent),
+    boxShadow: '0 12px 32px rgb(0 0 0 / 0.2), 0 0 0 1px rgb(110 86 207 / 0.5)',
+    transformOrigin: `${origin.x - rect.left}px ${origin.y - rect.top}px`,
+  });
+  document.body.append(element);
+  const ghost: Ghost = {
+    element,
+    pointer,
+    animation: element.animate([{ translate: '0 0', scale: '1' }], {
+      duration: 0,
+      fill: 'forwards',
+    }),
+    startTime: performance.now(),
+    frame: 0,
+    stop: () => {
+      cancelAnimationFrame(ghost.frame);
+      window.removeEventListener('pointermove', track, true);
+    },
+  };
+  const track = (event: PointerEvent) => {
+    ghost.pointer = { x: event.clientX, y: event.clientY };
+  };
+  window.addEventListener('pointermove', track, true);
+  const follow = (time: number) => {
+    const p = toPreview(document, ghost.pointer);
+    if (p) {
+      // Lift: shrink to size and add opacity over the first frames.
+      const t = Math.min(1, Math.max(0, time - ghost.startTime) / 150);
+      const eased = 1 - (1 - t) ** 3;
+      (ghost.animation.effect as KeyframeEffect).setKeyframes([
+        {
+          translate: `${p.x - origin.x}px ${p.y - origin.y}px`,
+          scale: String(1 + (scale - 1) * eased),
+          opacity: String(1 - 0.1 * eased),
+        },
+      ]);
+    }
+    ghost.frame = requestAnimationFrame(follow);
+  };
+  ghost.frame = requestAnimationFrame(follow);
+  return ghost;
+}
+
+/** Settles the copy of moved markup onto the markup, fading it out. */
+function dropGhost(ghost: Ghost, onto: Node[]) {
+  ghost.stop();
+  const { element } = ghost;
+  const target = bounds(onto);
+  const from = (ghost.animation.effect as KeyframeEffect).getKeyframes()[0];
+  const left = parseFloat(element.style.left);
+  const top = parseFloat(element.style.top);
+  element.animate(
+    [
+      { translate: from.translate, scale: from.scale, opacity: from.opacity },
+      {
+        translate: `${target.left - left}px ${target.top - top}px`,
+        scale: '1',
+        opacity: '0',
+      },
+    ],
+    { ...SLIDE, fill: 'forwards' },
+  );
+}
+
+// The elements of components, which slide to new positions.
+const componentElements = (boundaries: CanvasBoundary[]) =>
+  boundaries
+    .filter((b) => b.type === 'component')
+    .flatMap((b) => siblingsBetween(b.start, b.end).filter(isElement))
+    .flatMap(boxes);
+
+/**
+ * Slides elements from where they were shown to where they are now.
+ *
+ * @param before
+ *   Where the elements were shown, including any slide that was underway.
+ */
+function slide(before: Map<HTMLElement, DOMRect>, animations: Animation[]) {
+  const moved = new Map<HTMLElement, Point>();
+  before.forEach((was, el) => {
+    if (!el.isConnected) {
+      return;
+    }
+    const is = el.getBoundingClientRect();
+    moved.set(el, { x: was.left - is.left, y: was.top - is.top });
+  });
+  moved.forEach((delta, el) => {
+    // Nested components move with the component they are in.
+    let parent = el.parentElement;
+    while (parent && !moved.has(parent)) {
+      parent = parent.parentElement;
+    }
+    const outer = parent ? moved.get(parent)! : { x: 0, y: 0 };
+    const x = delta.x - outer.x;
+    const y = delta.y - outer.y;
+    if (Math.abs(x) < 0.5 && Math.abs(y) < 0.5) {
+      return;
+    }
+    animations.push(
+      el.animate([{ translate: `${x}px ${y}px` }, { translate: '0 0' }], {
+        ...SLIDE,
+        id: LIVE_PREVIEW_ANIMATION,
+      }),
+    );
+  });
 }
 
 function isComponentStart(node: Node): boolean {
@@ -87,11 +343,15 @@ function isComponentStart(node: Node): boolean {
  *   The dragged component.
  * @param homeContainer
  *   The slot or region the component is in.
+ * @param pointer
+ *   Where the component was picked up, in viewport coordinates of the editor.
+ *   A copy of the component follows the pointer from there.
  */
 export function startMovePreview(
   document: Document,
   uuid: string,
   homeContainer: { type: 'slot' | 'region'; id: string },
+  pointer?: Point,
 ): void {
   endLivePreview();
   const boundary = findBoundary(
@@ -112,7 +372,18 @@ export function startMovePreview(
     },
     homeContainer,
     undo: [],
+    dim: [],
+    slide: [],
   };
+  if (pointer && canAnimate(document)) {
+    session.ghost = liftGhost(document, nodes, pointer);
+    session.dim = nodes
+      .filter(isElement)
+      .flatMap(boxes)
+      .map((el) =>
+        el.animate([{ opacity: '0.4' }], { ...SLIDE, fill: 'forwards' }),
+      );
+  }
 }
 
 /**
@@ -165,7 +436,14 @@ export function startInsertPreview(
     ...Array.from(template.content.childNodes),
     marker('end'),
   ];
-  session = { document, nodes, home: null, undo: [] };
+  session = {
+    document,
+    nodes,
+    home: null,
+    undo: [],
+    dim: [],
+    slide: [],
+  };
 }
 
 function resolve(
@@ -227,9 +505,31 @@ export function showLivePreviewAt(dropZoneId: string | null): void {
   if (!session) {
     return;
   }
-  const { document, nodes, home, homeContainer } = session;
-  session.undo.forEach((revert) => revert());
-  session.undo = [];
+  const { document, nodes } = session;
+  // Where components are shown, mid-slide or not, to slide them from there.
+  const before = new Map<HTMLElement, DOMRect>();
+  if (canAnimate(document)) {
+    componentElements(discoverCanvasBoundaries(document)).forEach((el) =>
+      before.set(el, el.getBoundingClientRect()),
+    );
+    nodes
+      .filter(isElement)
+      .flatMap(boxes)
+      .forEach((el) => before.set(el, el.getBoundingClientRect()));
+  }
+  session.slide.forEach((animation) => animation.cancel());
+  session.slide = [];
+  try {
+    place(session, dropZoneId);
+  } finally {
+    slide(before, session.slide);
+  }
+}
+
+function place(current: Session, dropZoneId: string | null) {
+  const { document, nodes, home, homeContainer } = current;
+  current.undo.forEach((revert) => revert());
+  current.undo = [];
 
   const boundaries = discoverCanvasBoundaries(document);
   // Positions outside the preview (e.g. in the layers panel) show the
@@ -245,7 +545,7 @@ export function showLivePreviewAt(dropZoneId: string | null): void {
   // The markup replaces the placeholder of an empty container, unless it
   // renders nothing yet: the container would collapse.
   if (target.container && (home || nodes.some(hasSize))) {
-    hidePlaceholders(target.container, session.undo);
+    hidePlaceholders(target.container, current.undo);
   }
 
   // Keep the container the component left targetable: an empty one would
@@ -261,7 +561,7 @@ export function showLivePreviewAt(dropZoneId: string | null): void {
     const placeholder = document.createElement('div');
     placeholder.className = PLACEHOLDER[homeContainer.type];
     left.end.parentNode!.insertBefore(placeholder, left.end);
-    session.undo.push(() => placeholder.remove());
+    current.undo.push(() => placeholder.remove());
   }
 }
 
@@ -281,6 +581,7 @@ export function commitLivePreview(uuid?: string): Document | null {
     return null;
   }
   const { document, nodes, home } = session;
+  release(session);
   if (!home && uuid) {
     nodes[0].nodeValue = formatCanvasCommentMarker({
       type: 'component',
@@ -303,5 +604,16 @@ export function endLivePreview(): void {
     return;
   }
   showLivePreviewAt(null);
+  release(session);
   session = null;
+}
+
+// Settles the copy of the dragged markup onto it and stops dimming it.
+function release({ ghost, dim, nodes }: Session) {
+  dim.forEach((animation) => animation.reverse());
+  if (ghost) {
+    dropGhost(ghost, nodes);
+    // Not on the animation finishing: that never happens in a hidden tab.
+    setTimeout(() => ghost.element.remove(), SLIDE.duration);
+  }
 }

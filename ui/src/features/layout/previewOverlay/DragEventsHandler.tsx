@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { DragOverlay, useDndMonitor } from '@dnd-kit/core';
 import { restrictToFirstScrollableAncestor } from '@dnd-kit/modifiers';
+import { getEventCoordinates } from '@dnd-kit/utilities';
 
 import { useAppDispatch, useAppStore } from '@/app/hooks';
 import { NodeType, selectLayout } from '@/features/layout/layoutModelSlice';
@@ -194,10 +195,15 @@ const DragEventsHandler: React.FC = () => {
       const parent = findParent(selectLayout(store.getState()), uuid);
       if (parent && parent.nodeType !== NodeType.Component) {
         homeContainer.current = parent.id;
-        startMovePreview(previewDocument, uuid, {
-          type: parent.nodeType === NodeType.Region ? 'region' : 'slot',
-          id: parent.id,
-        });
+        startMovePreview(
+          previewDocument,
+          uuid,
+          {
+            type: parent.nodeType === NodeType.Region ? 'region' : 'slot',
+            id: parent.id,
+          },
+          getEventCoordinates(event.activatorEvent!) ?? undefined,
+        );
       }
     } else if (origin === 'library' && data.type !== 'folder') {
       startInsertPreview(previewDocument, data.item?.default_markup, data.name);
@@ -309,7 +315,10 @@ const DragEventsHandler: React.FC = () => {
       className={clsx(styles.dragOverlay)}
       dropAnimation={null}
     >
-      {!isDraggingFolder && <div>{componentName}</div>}
+      {/* A copy of a component dragged in the preview follows the pointer. */}
+      {!isDraggingFolder && dragOrigin !== 'overlay' && (
+        <div>{componentName}</div>
+      )}
     </DragOverlay>
   );
 };
