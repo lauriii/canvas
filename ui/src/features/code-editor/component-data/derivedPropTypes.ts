@@ -191,6 +191,16 @@ const derivedPropTypes = [
       example: '#ff0000ff',
     },
   },
+  {
+    type: 'group' as const,
+    displayName: 'Group object',
+    derive: (prop: CodeComponentPropSerialized) =>
+      prop.type === 'object' && !prop.$ref && !!prop.properties,
+    init: {
+      type: 'object',
+      properties: [],
+    },
+  },
 ];
 
 export default derivedPropTypes;

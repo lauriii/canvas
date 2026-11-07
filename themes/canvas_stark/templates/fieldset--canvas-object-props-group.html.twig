@@ -1,0 +1,45 @@
+{#
+/**
+ * @file
+ * Canvas Stark override for the group element of a custom object prop.
+ *
+ * Renders the group like a regular labeled field instead of a bordered
+ * fieldset: the group label above the sub-property widgets (or the item list
+ * of a multi-value group).
+ *
+ * Available variables: see fieldset.html.twig.
+ *
+ * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::buildObjectPropForm()
+ *
+ * @ingroup themeable
+ */
+#}
+{%
+  set classes = [
+    'js-form-item',
+    'form-item',
+    'js-form-wrapper',
+    'form-wrapper',
+  ]
+%}
+<div{{ attributes.addClass(classes) }}>
+  <canvas-drupal-label
+    title="{{ legend.title }}"
+    {% if prop_link_data %}
+      direct_linker_data="{{ prop_link_data }}"
+    {% endif  %}
+  >
+  </canvas-drupal-label>
+  {% if description_display == 'before' and description.content %}
+    <canvas-description{{ description.attributes.addClass('description') }} description="{{ description.content|render|e('html_attr') }}" />
+  {% endif %}
+  {% if errors %}
+    <div>
+      {{ errors }}
+    </div>
+  {% endif %}
+  {{ children }}
+  {% if description_display in ['after', 'invisible'] and description.content %}
+    <canvas-description{{ description.attributes.addClass('description') }} description="{{ description.content|render|e('html_attr') }}" />
+  {% endif %}
+</div>
