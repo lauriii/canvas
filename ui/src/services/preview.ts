@@ -240,7 +240,7 @@ const layoutUrls: Partial<Record<EditorFrameContext, string>> = {
 };
 
 // Reads and sets the whole preview of the edited entity, template or pattern,
-// without saving.
+// without saving. Returns the read layout data, if set.
 const readWholePreview = async (
   dispatch: any,
   getState: () => unknown,
@@ -267,11 +267,12 @@ const readWholePreview = async (
     (getState() as RootState).preview.fullHtmlVersion ===
       preview.fullHtmlVersion
   ) {
-    const { html, autoSaves } = await response.json();
-    dispatch(setHtml(html));
-    handleAutoSavesHashUpdate(dispatch, autoSaves, {
+    const data = await response.json();
+    dispatch(setHtml(data.html));
+    handleAutoSavesHashUpdate(dispatch, data.autoSaves, {
       request: { url: response.url },
     });
+    return data as { model?: Record<string, any> };
   }
 };
 
@@ -537,7 +538,23 @@ export const previewApi = createApi({
             preview.fullHtmlVersion !== startFullHtmlVersion &&
             preview.fullHtmlVersion !== ownFullHtmlVersion
           ) {
-            await readWholePreview(dispatch, getState, arg.type);
+            const read = await readWholePreview(dispatch, getState, arg.type);
+            // The edited instance's saved model, which may include this
+            // response's change if it was saved after the newer page.
+            const savedModel = read?.model?.[arg.componentInstanceUuid];
+            if (savedModel) {
+              const state = getState() as RootState;
+              dispatch(
+                setLayoutModel({
+                  layout: selectLayout(state),
+                  model: {
+                    ...selectModel(state),
+                    [arg.componentInstanceUuid]: savedModel,
+                  },
+                  updatePreview: false,
+                }),
+              );
+            }
             return;
           }
           // Clear any stale snapshot (e.g. from a prior language/template preview)

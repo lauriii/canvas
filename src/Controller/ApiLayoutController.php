@@ -443,7 +443,7 @@ final class ApiLayoutController {
       $after = $this->renderComponentInstance($entity, $componentInstanceUuid) ?? ['attached' => []];
       $changed_attachments = [];
       foreach (\array_keys($before['attached'] + $after['attached']) as $key) {
-        if (($before['attached'][$key] ?? NULL) != ($after['attached'][$key] ?? NULL)) {
+        if (($before['attached'][$key] ?? NULL) !== ($after['attached'][$key] ?? NULL)) {
           $changed_attachments[] = $key;
         }
       }
