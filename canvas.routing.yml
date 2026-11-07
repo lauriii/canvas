@@ -798,17 +798,6 @@ canvas.api.staged-update.auto-save.post:
     _canvas_entity_create_access: 'staged_config_update'
   methods: [POST]
 
-canvas.api.ui.options_sources:
-  path: '/canvas/api/v0/ui/options-sources'
-  defaults:
-    _controller: 'Drupal\canvas\Controller\ApiUiOptionsSourcesController'
-  requirements:
-    _canvas_authentication_required: TRUE
-    _canvas_ui_access: 'TRUE'
-  methods: [GET]
-  options:
-    _format: 'json'
-
 canvas.api.ui.content_entity_reference.content_entity_types:
   path: '/canvas/api/v0/ui/content-entity-reference'
   defaults:
@@ -876,6 +865,17 @@ canvas.api.ui.content_template.view_modes.list:
   requirements:
     _canvas_authentication_required: TRUE
     _canvas_entity_create_access: 'content_template'
+  methods: [GET]
+  options:
+    _format: 'json'
+
+canvas.api.ui.options_sources:
+  path: '/canvas/api/v0/ui/options-sources'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiUiOptionsSourcesController'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _canvas_ui_access: 'TRUE'
   methods: [GET]
   options:
     _format: 'json'
