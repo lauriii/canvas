@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { ContextMenu } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -42,7 +42,6 @@ export const ComponentContextMenuContent: React.FC<
   const dispatch = useAppDispatch();
   const { data: components } = useGetComponentsQuery();
   const componentName = useGetComponentName(component);
-  const editorViewPortScale = useAppSelector(selectEditorViewPortScale);
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const { setSelectedComponent, unsetSelectedComponent } =
     useComponentSelection();
@@ -163,23 +162,6 @@ export const ComponentContextMenuContent: React.FC<
     [component.type, navigateToCodeEditor],
   );
 
-  const closeContextMenu = () => {
-    // @todo https://www.drupal.org/i/3506657: There has to be a better way to close the context menu than firing an esc key press.
-    const escapeEvent = new KeyboardEvent('keydown', {
-      key: 'Escape',
-      code: 'Escape',
-      bubbles: true,
-      cancelable: true,
-    });
-    document.dispatchEvent(escapeEvent);
-  };
-
-  useEffect(() => {
-    // If the user zooms, close the context menu. Panning is no problem as the context menu prevents scrolling with the
-    // mouse wheel, and it is closed automatically when panning via clicking the mouse.
-    closeContextMenu();
-  }, [editorViewPortScale]);
-
   return (
     <UnifiedMenu.Content
       aria-label={`Context menu for ${componentName}`}
@@ -187,6 +169,7 @@ export const ComponentContextMenuContent: React.FC<
       align="start"
       side="right"
     >
+      <CloseOnZoom />
       <UnifiedMenu.Label>{componentName}</UnifiedMenu.Label>
       {isCodeComponent && !isExternal && (
         <PermissionCheck hasPermission="codeComponents">
@@ -253,6 +236,38 @@ export const ComponentContextMenuContent: React.FC<
       )}
     </UnifiedMenu.Content>
   );
+};
+
+const closeContextMenu = () => {
+  // @todo https://www.drupal.org/i/3506657: There has to be a better way to close the context menu than firing an esc key press.
+  const escapeEvent = new KeyboardEvent('keydown', {
+    key: 'Escape',
+    code: 'Escape',
+    bubbles: true,
+    cancelable: true,
+  });
+  document.dispatchEvent(escapeEvent);
+};
+
+/**
+ * Closes the open context menu when the user zooms.
+ *
+ * Panning is no problem as the context menu prevents scrolling with the mouse
+ * wheel, and it is closed automatically when panning via clicking the mouse.
+ *
+ * Rendered inside the menu content so it only mounts while the menu is open.
+ * Every component instance has a menu root that listens for `keydown` on
+ * `document`.
+ */
+const CloseOnZoom = () => {
+  const editorViewPortScale = useAppSelector(selectEditorViewPortScale);
+  const scaleWhenOpened = useRef(editorViewPortScale);
+  useEffect(() => {
+    if (editorViewPortScale !== scaleWhenOpened.current) {
+      closeContextMenu();
+    }
+  }, [editorViewPortScale]);
+  return null;
 };
 
 const ComponentContextMenu: React.FC<ComponentContextMenuProps> = ({
