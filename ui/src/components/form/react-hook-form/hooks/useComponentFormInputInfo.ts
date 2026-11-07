@@ -35,11 +35,12 @@ export const useComponentFormInputInfo = (fieldName: string) => {
   const selectedComponentRef = useRef(selectedComponent);
   selectedComponentRef.current = selectedComponent;
   useEffect(
-    () => () =>
-      flushBackendUpdate(
+    () => () => {
+      void flushBackendUpdate(
         selectedComponentRef.current,
         () => !!selectModel(store.getState())[selectedComponentRef.current],
-      ),
+      );
+    },
     [store],
   );
 

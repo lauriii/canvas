@@ -140,4 +140,21 @@ describe('createComponentFormStateHandler', () => {
     vi.advanceTimersByTime(1000);
     expect(patchComponent).toHaveBeenCalledOnce();
   });
+
+  it('resolves a flush once the PATCH is done, so a link can follow it', async () => {
+    const { patchComponent, type } = createHandler('Code component');
+    let finishPatch = () => {};
+    patchComponent.mockReturnValue(
+      new Promise<void>((resolve) => (finishPatch = resolve)),
+    );
+    type({ text: 'a' });
+    let flushed = false;
+    void flushBackendUpdate(uuid).then(() => (flushed = true));
+    await vi.advanceTimersByTimeAsync(100);
+    expect(patchComponent).toHaveBeenCalledOnce();
+    expect(flushed).toBe(false);
+    finishPatch();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(flushed).toBe(true);
+  });
 });

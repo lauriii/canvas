@@ -19,12 +19,16 @@ export const POLLED_BACKGROUND_TIMEOUT = 1000;
 // waiting one.
 const pendingBackendUpdates = new Map<
   string,
-  { timer: ReturnType<typeof setTimeout>; send: () => void; editorUrl: string }
+  {
+    timer: ReturnType<typeof setTimeout>;
+    send: () => unknown;
+    editorUrl: string;
+  }
 >();
 
 const scheduleBackendUpdate = (
   componentUuid: string,
-  send: () => void,
+  send: () => unknown,
   delay: number,
 ) => {
   clearTimeout(pendingBackendUpdates.get(componentUuid)?.timer);
@@ -40,12 +44,15 @@ const scheduleBackendUpdate = (
 
 /**
  * Sends a component instance's waiting PATCH right away, for example when its
- * form goes away.
+ * form goes away, or before a change built from the stored model, such as
+ * linking a prop.
  *
  * Drops it if the editor moved to another entity, whose URL the PATCH would
  * resolve to, or if `isCurrent()` says the change no longer applies.
+ *
+ * @returns A promise that resolves once the PATCH's response is applied.
  */
-export const flushBackendUpdate = (
+export const flushBackendUpdate = async (
   componentUuid: string,
   isCurrent: () => boolean = () => true,
 ) => {
@@ -60,7 +67,9 @@ export const flushBackendUpdate = (
       JSON.stringify(extractEntityParams(window.location.href)) &&
     isCurrent()
   ) {
-    update.send();
+    await update.send();
+    // ponytail: one macrotask lets the response handler apply the model; a promise from the handler if this ever falls short.
+    await new Promise((resolve) => setTimeout(resolve));
   }
 };
 
@@ -81,7 +90,7 @@ interface ComponentFormHandlerDependencies {
   propName: string;
   isScalarProp: boolean;
   component: any;
-  patchComponent: (inputUiData: InputUIData, params: any) => void;
+  patchComponent: (inputUiData: InputUIData, params: any) => unknown;
   editorFrameContext: string;
   version: string;
 }
@@ -141,7 +150,7 @@ export const createComponentFormStateHandler = (
       // b) Update both the preview and the model - see the pessimistic update
       //    in onQueryStarted in preview.ts
       // @see \Drupal\Core\Field\WidgetInterface::massageFormValues()
-      const updateBackend = () => {
+      const updateBackend = () =>
         deps.patchComponent(newInputAndUiData, {
           source: syncPropSourcesToResolvedValues(
             selectedModel.source,
@@ -150,7 +159,6 @@ export const createComponentFormStateHandler = (
           ),
           resolved,
         });
-      };
       if (backgroundPreviewUpdate) {
         // If we're doing a background update, debounce that so we don't make
         // multiple requests for a single update. If we're not doing a
