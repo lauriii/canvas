@@ -399,14 +399,9 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
         else {
           unset($this->props[$prop_name]['minItems']);
         }
-        // The client side sends visibility conditions as they are in the SDC
-        // definition; config stores them as JSON.
-        // @see ::toSdcDefinition()
-        if (\is_array($this->props[$prop_name][PropVisibilityCondition::KEY] ?? NULL)) {
-          $this->props[$prop_name][PropVisibilityCondition::KEY] = Json::encode($this->props[$prop_name][PropVisibilityCondition::KEY]);
-        }
       }
     }
+    $this->encodeVisibilityConditions();
 
     $code_fields = [
       'sourceCodeJs',
@@ -697,6 +692,21 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
   }
 
   /**
+   * Encodes visibility conditions given as maps, as config stores them as JSON.
+   *
+   * The client side sends them as they are in the SDC definition.
+   *
+   * @see ::toSdcDefinition()
+   */
+  private function encodeVisibilityConditions(): void {
+    foreach ($this->props ?? [] as $prop_name => $prop) {
+      if (\is_array($prop[PropVisibilityCondition::KEY] ?? NULL)) {
+        $this->props[$prop_name][PropVisibilityCondition::KEY] = Json::encode($prop[PropVisibilityCondition::KEY]);
+      }
+    }
+  }
+
+  /**
    * Resolves a content-entity-reference prop's target entity data definition.
    *
    * @param string $prop_name
@@ -947,6 +957,7 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
    */
   public function preSave(EntityStorageInterface $storage): void {
     parent::preSave($storage);
+    $this->encodeVisibilityConditions();
     static::getConfigUpdater()->updateJavaScriptComponent($this);
   }
 
