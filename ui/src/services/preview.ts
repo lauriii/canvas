@@ -24,6 +24,7 @@ import {
   extractEntityParams,
   popCanvasLayoutRequest,
   pushCanvasLayoutRequest,
+  replaceEntityParamsInUrl,
 } from '@/services/baseQuery';
 import { pendingChangesApi } from '@/services/pendingChangesApi';
 import { handleAutoSavesHashUpdate } from '@/utils/autoSaves';
@@ -71,11 +72,32 @@ export type UpdateComponentQueryArg = {
 // came from elsewhere, for example a layout POST.
 let ownFullHtmlVersion = 0;
 
-// Reads and sets the whole preview of the current entity, without saving.
-const readWholePreview = async (dispatch: any, baseUrl: string) => {
-  const { entityType, entityId } = extractEntityParams(window.location.href);
+// The layout endpoint of each editor context.
+const layoutUrls: Partial<Record<EditorFrameContext, string>> = {
+  entity: 'canvas/api/v0/layout/{entity_type}/{entity_id}',
+  template:
+    'canvas/api/v0/layout-content-template/{entity_type}.{template_bundle}.{template_view_mode}/{entity_id}',
+  pattern: 'canvas/api/v0/layout-pattern/{entity_id}',
+};
+
+// Reads and sets the whole preview of the edited entity, template or pattern,
+// without saving.
+const readWholePreview = async (
+  dispatch: any,
+  baseUrl: string,
+  type: EditorFrameContext,
+) => {
+  const { entityType, entityId, templateBundle, templateViewMode } =
+    extractEntityParams(window.location.href);
   const response = await fetch(
-    `${baseUrl}canvas/api/v0/layout/${entityType}/${entityId}`,
+    baseUrl +
+      replaceEntityParamsInUrl(
+        layoutUrls[type] ?? '',
+        entityType,
+        entityId,
+        templateBundle,
+        templateViewMode,
+      ),
     { headers: { Accept: 'application/json' } },
   );
   if (response.ok) {
@@ -196,15 +218,7 @@ export const previewApi = createApi({
       UpdateComponentQueryArg
     >({
       query: ({ type, ...body }) => {
-        let url = '';
-        if (type === 'entity') {
-          url = 'canvas/api/v0/layout/{entity_type}/{entity_id}';
-        } else if (type === 'template') {
-          url =
-            'canvas/api/v0/layout-content-template/{entity_type}.{template_bundle}.{template_view_mode}/{entity_id}';
-        } else if (type === 'pattern') {
-          url = 'canvas/api/v0/layout-pattern/{entity_id}';
-        }
+        const url = layoutUrls[type] ?? '';
         // Only entities support a partial preview.
         // The page's libraries let the response add the libraries the updated
         // instance needs.
@@ -228,20 +242,17 @@ export const previewApi = createApi({
         const previousResponseApplied = responsesApplied;
         let markApplied = () => {};
         responsesApplied = new Promise((resolve) => (markApplied = resolve));
+        // Force any ajax calls to wait until this response is applied.
+        pushCanvasLayoutRequest();
         try {
-          // Force any ajax calls to wait.
-          pushCanvasLayoutRequest();
           let result: Awaited<typeof queryFulfilled> | undefined;
           try {
             result = await queryFulfilled;
           } catch {
             // If the request fails (e.g. the server rejects an invalid field
-            // value), we must still release the lock so that subsequent Drupal
-            // AJAX calls are not permanently blocked.
+            // value), the lock is still released below, so that subsequent
+            // Drupal AJAX calls are not permanently blocked.
             // @see https://www.drupal.org/project/canvas/issues/3579026
-          } finally {
-            // Tell ajax calls they're good to go regardless of success/failure.
-            popCanvasLayoutRequest();
           }
           await previousResponseApplied;
           if (!result) {
@@ -256,13 +267,13 @@ export const previewApi = createApi({
           // A whole page set from elsewhere since this request started, for
           // example by a layout POST, is newer than this response: its markup
           // and models would undo it. Read the current whole page instead.
+          // The read does not count as this endpoint's own page, so later
+          // responses that started before it are read again too.
           if (
             preview.fullHtmlVersion !== startFullHtmlVersion &&
             preview.fullHtmlVersion !== ownFullHtmlVersion
           ) {
-            await readWholePreview(dispatch, configuration.baseUrl);
-            ownFullHtmlVersion = (getState() as RootState).preview
-              .fullHtmlVersion;
+            await readWholePreview(dispatch, configuration.baseUrl, arg.type);
             return;
           }
           dispatch(
@@ -284,7 +295,11 @@ export const previewApi = createApi({
             if (html === null) {
               // The current preview lacks the instance: read the whole page,
               // rather than saving the change again over newer ones.
-              await readWholePreview(dispatch, state.configuration.baseUrl);
+              await readWholePreview(
+                dispatch,
+                state.configuration.baseUrl,
+                arg.type,
+              );
             } else {
               dispatch(setPartialHtml({ html, assets: data.assets }));
             }
@@ -309,6 +324,8 @@ export const previewApi = createApi({
           );
         } finally {
           markApplied();
+          // Tell ajax calls they're good to go regardless of success/failure.
+          popCanvasLayoutRequest();
         }
       },
     }),
