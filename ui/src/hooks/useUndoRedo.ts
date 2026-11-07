@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { cancelBackendUpdates } from '@/components/form/react-hook-form/fields/componentFormHandlers';
 import {
   selectRedoItem,
   selectUndoItem,
@@ -22,12 +23,19 @@ export function useUndoRedo(): UndoRedoState {
 
   const dispatchUndo = useCallback(() => {
     if (undoItem) {
+      // Waiting PATCHes were built on the component models undo replaces.
+      if (undoItem.targetSlice === 'layoutModel') {
+        cancelBackendUpdates();
+      }
       dispatch(UndoRedoActionCreators.undo(undoItem.targetSlice));
     }
   }, [dispatch, undoItem]);
 
   const dispatchRedo = useCallback(() => {
     if (redoItem) {
+      if (redoItem.targetSlice === 'layoutModel') {
+        cancelBackendUpdates();
+      }
       dispatch(UndoRedoActionCreators.redo(redoItem.targetSlice));
     }
   }, [dispatch, redoItem]);

@@ -86,13 +86,11 @@ export const ComponentFormField = <P extends Record<string, any>>({
       formStateToLayoutModelStore,
     );
     return (newFormState: PropsValues) => {
-      const elementType =
-        props.attributes?.type || props.attributes?.['data-canvas-type'];
-      // Debounce isn't needed for elements that only have an on/off state.
+      // Scalar props of code components update the preview client-side, and
+      // the handler debounces their PATCH itself.
       const shouldDebounce =
         !isScalarProp ||
-        components?.[selectedComponentType]?.source !== 'Code component' ||
-        !['checkbox', 'radio'].includes(elementType as string);
+        components?.[selectedComponentType]?.source !== 'Code component';
       if (shouldDebounce) {
         debounceFormStateToLayoutModelStore(
           newFormState,

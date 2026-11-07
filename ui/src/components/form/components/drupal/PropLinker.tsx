@@ -4,6 +4,7 @@ import { CheckIcon, Link1Icon, LinkNone1Icon } from '@radix-ui/react-icons';
 import { DropdownMenu, Separator } from '@radix-ui/themes';
 
 import { useAppDispatch } from '@/app/hooks';
+import { flushBackendUpdate } from '@/components/form/react-hook-form/fields/componentFormHandlers';
 import {
   _linkPropToEntityValue,
   isEvaluatedComponentModel,
@@ -56,7 +57,10 @@ const PropLinker = ({ propName, linked, suggestions }: PropLinkerProps) => {
     return null;
   }
   const [linkerOpen, setLinkerOpen] = useState(false);
-  const handleFieldClick = (value: LinkSuggestion) => {
+  const handleFieldClick = async (value: LinkSuggestion) => {
+    // A change typed into the form just before is saved first. Sent later, it
+    // would restore the prop's static value over the link.
+    await flushBackendUpdate(selectedComponentId);
     dispatch(
       _linkPropToEntityValue({
         componentToUpdateId: selectedComponentId,
