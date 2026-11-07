@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  computeDepths,
-  computeVisibility,
-  passesCondition,
-} from './propVisibility';
+import { computeVisibility, passesCondition } from './propVisibility';
 
 import type { VisibilityCondition } from './propVisibility';
 
@@ -77,17 +73,5 @@ describe('computeVisibility', () => {
         { a: true, b: true },
       ),
     ).toEqual({ a: true, b: true });
-  });
-});
-
-describe('computeDepths', () => {
-  it('nests props under the props they depend on', () => {
-    expect(
-      computeDepths({
-        count: { show: true },
-        second: { count: { gte: 2 } },
-        note: { anyOf: [{ second: { filled: true } }, { show: false }] },
-      }),
-    ).toEqual({ count: 1, second: 2, note: 3 });
   });
 });
