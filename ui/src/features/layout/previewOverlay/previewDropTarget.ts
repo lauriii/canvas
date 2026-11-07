@@ -11,6 +11,56 @@ interface Point {
   y: number;
 }
 
+// Drop targets as they were laid out when the drag started.
+let frozen: {
+  viewport: Element;
+  origin: DOMRect;
+  rects: WeakMap<Element, DOMRect>;
+} | null = null;
+
+/**
+ * Resolves drop targets against the layout at the start of a drag.
+ *
+ * The dragged component is shown at its drop position while it is dragged
+ * (see livePreview.ts), which moves the other components. Resolving drop
+ * targets against where they were keeps the drop target a function of the
+ * pointer position alone: otherwise moving the component can put another
+ * component under the pointer, which moves it back, and so on.
+ *
+ * @param viewport
+ *   The overlay of the previewed page. It moves with the page when it
+ *   scrolls.
+ */
+export function freezeDropTargets(viewport: Element): void {
+  const rects = new WeakMap<Element, DOMRect>();
+  viewport
+    .querySelectorAll('[data-canvas-drop-item], [data-canvas-drop-container]')
+    .forEach((el) => rects.set(el, el.getBoundingClientRect()));
+  frozen = { viewport, origin: viewport.getBoundingClientRect(), rects };
+}
+
+/** Resolves drop targets against the current layout again. */
+export function unfreezeDropTargets(): void {
+  frozen = null;
+}
+
+// Reads the rectangles of drop targets, as frozen if they are.
+function rectReader(): (el: Element) => DOMRect {
+  if (!frozen) {
+    return (el) => el.getBoundingClientRect();
+  }
+  const { viewport, origin, rects } = frozen;
+  const now = viewport.getBoundingClientRect();
+  const dx = now.left - origin.left;
+  const dy = now.top - origin.top;
+  return (el) => {
+    const r = rects.get(el);
+    return r
+      ? new DOMRect(r.left + dx, r.top + dy, r.width, r.height)
+      : el.getBoundingClientRect();
+  };
+}
+
 const contains = (r: DOMRect, p: Point) =>
   p.x >= r.left && p.x <= r.right && p.y >= r.top && p.y <= r.bottom;
 
@@ -40,11 +90,9 @@ const isHorizontal = (container: HTMLElement) =>
  * a drop target. The result is the id of the existing drop zone that
  * represents that insertion point, so drop handling is unchanged.
  *
- * The dragged component is shown at its drop position while it is dragged
- * (see livePreview.ts). Over it, the drop target doesn't change: the pointer
- * is already where the component is shown. Otherwise moving it can put
- * another component under the pointer, which moves it back, and so on, e.g.
- * in a grid that wraps. Its slots are not drop targets.
+ * Over the dragged component, the drop target is where it was. Its slots are
+ * not drop targets. Drop targets are resolved against the layout at the
+ * start of the drag (see freezeDropTargets()).
  *
  * @param root
  *   The overlay element of the root region (marked data-canvas-drop-container).
@@ -54,23 +102,22 @@ const isHorizontal = (container: HTMLElement) =>
  *   The id of the dragged item; equals the component uuid for preview drags.
  *
  * @return
- *   The drop zone id, NULL for the position the dragged component was at when
- *   the drag started (dropping there is a no-op), or undefined over the
- *   dragged component, where the drop target doesn't change.
+ *   The drop zone id, or NULL for the position the dragged component was at
+ *   when the drag started (dropping there is a no-op).
  */
 export function findPreviewDropZoneId(
   root: HTMLElement,
   point: Point,
   activeId: UniqueIdentifier,
-): string | null | undefined {
+): string | null {
+  const rect = rectReader();
   let container = root;
   for (;;) {
     const hit = childItems(container).find(
-      (el) =>
-        !isActive(el, activeId) && contains(el.getBoundingClientRect(), point),
+      (el) => !isActive(el, activeId) && contains(rect(el), point),
     );
     if (!hit) break;
-    const r = hit.getBoundingClientRect();
+    const r = rect(hit);
     const [start, size, pos] = isHorizontal(container)
       ? [r.left, r.width, point.x]
       : [r.top, r.height, point.y];
@@ -80,7 +127,7 @@ export function findPreviewDropZoneId(
       hit.querySelectorAll<HTMLElement>(
         ':scope > [data-canvas-drop-container]',
       ),
-    ).find((el) => contains(el.getBoundingClientRect(), point));
+    ).find((el) => contains(rect(el), point));
     if (!slot) break;
     container = slot;
   }
@@ -89,8 +136,8 @@ export function findPreviewDropZoneId(
   // Where the dragged component was, in terms of the other components: the
   // overlay keeps the order of the layout while the component is dragged.
   const current = all.findIndex((el) => isActive(el, activeId));
-  if (current !== -1 && contains(all[current].getBoundingClientRect(), point)) {
-    return undefined;
+  if (current !== -1 && contains(rect(all[current]), point)) {
+    return null;
   }
   const items = all.filter((el) => !isActive(el, activeId));
   if (!items.length) {
@@ -102,12 +149,9 @@ export function findPreviewDropZoneId(
 
   const horizontal = isHorizontal(container);
   const nearest = items.reduce((a, b) =>
-    distance(b.getBoundingClientRect(), point) <
-    distance(a.getBoundingClientRect(), point)
-      ? b
-      : a,
+    distance(rect(b), point) < distance(rect(a), point) ? b : a,
   );
-  const r = nearest.getBoundingClientRect();
+  const r = rect(nearest);
   const after = horizontal
     ? point.x > r.left + r.width / 2
     : point.y > r.top + r.height / 2;

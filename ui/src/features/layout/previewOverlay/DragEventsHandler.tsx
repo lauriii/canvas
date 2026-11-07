@@ -28,6 +28,7 @@ import { useDropFromLayoutHandler } from '@/hooks/useDropFromLayoutHandler';
 import { useDropFromLibraryHandler } from '@/hooks/useDropFromLibraryHandler';
 import { useDropOnFolderHandler } from '@/hooks/useDropOnFolderHandler';
 
+import { freezeDropTargets, unfreezeDropTargets } from './previewDropTarget';
 import {
   cleanupMouseTracking,
   initMouseTracking,
@@ -152,6 +153,12 @@ const DragEventsHandler: React.FC = () => {
     window.document.body.classList.add(styles.dragging);
     const origin = getOrigin(event);
     setDragOrigin(origin);
+    const viewport = document
+      .querySelector('.canvas--viewport-overlay [data-canvas-drop-container]')
+      ?.closest('.canvas--viewport-overlay');
+    if (viewport) {
+      freezeDropTargets(viewport);
+    }
     startLivePreview(event, origin);
     if (homeContainer.current) {
       dispatch(setTargetSlot(homeContainer.current));
@@ -223,6 +230,7 @@ const DragEventsHandler: React.FC = () => {
   }
 
   function dragEndCancelCommon() {
+    unfreezeDropTargets();
     homeContainer.current = undefined;
     window.document.body.classList.remove('canvas--live-drop-preview');
     dispatch(setPreviewDragging(false));

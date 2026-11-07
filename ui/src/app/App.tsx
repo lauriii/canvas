@@ -17,7 +17,6 @@ import SavingOverlay from '@/components/SavingOverlay';
 import Toast from '@/components/Toast';
 import Topbar from '@/components/topbar/Topbar';
 import useExtensions from '@/features/extensions/useExtensions';
-import { getLivePreviewDropZoneId } from '@/features/layout/preview/livePreview';
 import DragEventsHandler from '@/features/layout/previewOverlay/DragEventsHandler';
 import { findPreviewDropZoneId } from '@/features/layout/previewOverlay/previewDropTarget';
 import NotificationToastManager from '@/features/notifications/NotificationToastManager';
@@ -63,12 +62,7 @@ function customCollisionDetectionAlgorithm(
     within(pane, pointer)
   ) {
     if (within(root.closest('.canvas--viewport-overlay')!, pointer)) {
-      let id = findPreviewDropZoneId(root, pointer, args.active.id);
-      // Over the dragged component, keep the position it is shown at (see
-      // livePreview.ts).
-      if (id === undefined) {
-        id = getLivePreviewDropZoneId();
-      }
+      const id = findPreviewDropZoneId(root, pointer, args.active.id);
       const droppable = args.droppableContainers.find((d) => d.id === id);
       return droppable
         ? [{ id: droppable.id, data: { droppableContainer: droppable } }]
