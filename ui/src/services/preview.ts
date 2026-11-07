@@ -78,6 +78,9 @@ export type UpdateComponentQueryArg = {
   baseModel?: ComponentModel | EvaluatedComponentModel;
   // The props a queued form change edited, if known. Not sent.
   editedProps?: string[];
+  // Whether the preview already shows the change, updated client-side. Not
+  // sent.
+  previewShowsChange?: boolean;
 };
 
 // Component writes run one at a time: each reads the saved models, sends its
@@ -392,6 +395,7 @@ export const previewApi = createApi({
         editorUrl,
         baseModel: _baseModel,
         editedProps: _editedProps,
+        previewShowsChange: _previewShowsChange,
         ...body
       }) => {
         let url = layoutUrls[type] ?? '';
@@ -542,7 +546,18 @@ export const previewApi = createApi({
           dispatch(setSnapshotHTML(''));
           dispatch(setSnapshotTitle(''));
           const state = getState() as RootState;
-          if ('component' in data) {
+          // The queued change is already shown client-side, newer than this
+          // response's markup. Keep it, but record the assets.
+          if (isOutdated && patchScheduler.get(key)?.previewShowsChange) {
+            if ('assets' in data && data.assets) {
+              dispatch(
+                setPartialHtml({
+                  html: state.preview.html,
+                  assets: data.assets,
+                }),
+              );
+            }
+          } else if ('component' in data) {
             const html = spliceComponentHtml(
               state.preview.html,
               data.component,
@@ -661,6 +676,7 @@ export const usePatchComponent = () => {
               ]),
             ]
           : undefined,
+      previewShowsChange: !!delay,
     };
 
     // Prevent duplicate requests
