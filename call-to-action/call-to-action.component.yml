@@ -1,0 +1,74 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Call to action
+status: stable
+group: Demo
+props:
+  type: object
+  required: [heading]
+  properties:
+    heading:
+      type: string
+      title: Heading
+      examples: ['Ready to start?']
+    show_buttons:
+      type: boolean
+      title: Show buttons
+      x-tab: content
+      examples: [true]
+    button_count:
+      type: integer
+      title: Number of buttons
+      x-tab: content
+      enum: [1, 2, 3]
+      meta:enum: {1: One, 2: Two, 3: Three}
+      examples: [1]
+      x-canvas-visible-if:
+        show_buttons: true
+    button_text:
+      type: string
+      title: Button text
+      examples: ['Get started']
+      x-canvas-visible-if:
+        show_buttons: true
+    button_link:
+      type: string
+      format: uri-reference
+      title: Button link
+      examples: ['#pricing']
+      x-canvas-visible-if:
+        show_buttons: true
+    second_text:
+      type: string
+      title: Second button text
+      examples: ['Learn more']
+      x-canvas-visible-if:
+        button_count: {gte: 2}
+    second_link:
+      type: string
+      format: uri-reference
+      title: Second button link
+      examples: ['#features']
+      x-canvas-visible-if:
+        button_count: {gte: 2}
+    third_text:
+      type: string
+      title: Third button text
+      examples: ['Contact us']
+      x-canvas-visible-if:
+        button_count: 3
+    third_link:
+      type: string
+      format: uri-reference
+      title: Third button link
+      examples: ['mailto:hello@example.com']
+      x-canvas-visible-if:
+        button_count: 3
+    note:
+      type: string
+      title: Small print
+      description: Shown under the buttons.
+      examples: ['No credit card required.']
+      x-canvas-visible-if:
+        anyOf:
+          - show_buttons: false
+          - button_count: {gte: 2}
