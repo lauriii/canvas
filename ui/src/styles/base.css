@@ -33,7 +33,8 @@ a.tabledrag-handle .handle.handle {
 }
 
 /* These fragments are used only for wrapping and should not impact layouts. */
-drupal-html-fragment, element-prop {
+drupal-html-fragment,
+element-prop {
   display: contents;
 }
 
@@ -43,4 +44,32 @@ drupal-html-fragment, element-prop {
 .canvas-linked-prop-label-wrapper--multiple-values {
   display: flex;
   align-items: center;
+}
+
+/* Props with an `x-canvas-visible-if` condition depend on other props, so they
+ are indented. They are highlighted as they appear.
+ @see ui/src/hooks/usePropVisibility.ts */
+[data-canvas-visible-if] {
+  /* Keeps the margin of the form item inside, so the borders of consecutive
+   props join. */
+  display: flow-root;
+  margin-inline-start: calc(var(--space-1) + (var(--canvas-prop-depth, 1) - 1) * var(--space-4));
+  padding-inline-start: var(--space-3);
+  border-inline-start: 2px solid var(--accent-a6);
+}
+[data-canvas-prop][hidden] {
+  display: none !important;
+}
+[data-canvas-revealed] {
+  animation: canvas-prop-reveal 1s ease-out;
+}
+@keyframes canvas-prop-reveal {
+  from {
+    background-color: var(--accent-a4);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-canvas-revealed] {
+    animation: none;
+  }
 }

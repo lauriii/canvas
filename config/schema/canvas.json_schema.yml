@@ -40,6 +40,15 @@ canvas.json_schema.prop.*:
       requiredKey: false
       type: label
       label: 'Human readable description for the component'
+    x-canvas-visible-if:
+      requiredKey: false
+      # JSON, because config schema cannot type the values of a condition: they
+      # may be strings, numbers, booleans or lists. The ComponentMetadataRequirementsChecker validates it, through the
+      # JsComponentHasValidAndSupportedSdcMetadata constraint.
+      # @see \Drupal\canvas\JsonSchemaInterpreter\PropVisibilityCondition
+      # @see \Drupal\canvas\Entity\JavaScriptComponent::toSdcDefinition()
+      type: string
+      label: 'When to show the prop in the component form, as JSON'
     examples:
       # This is NOT optional for required props. Rather than repeating that validation logic here, let the
       # JsComponentHasValidAndSupportedSdcMetadata constraint take care of that.

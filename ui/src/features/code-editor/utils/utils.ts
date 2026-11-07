@@ -635,6 +635,9 @@ function serializePropDefinition(
     if (xCanvasColorFolders && xCanvasColorFolders.length > 0)
       processed['x-canvas-color-folders'] = xCanvasColorFolders;
   }
+  if ('x-canvas-visible-if' in prop && prop['x-canvas-visible-if']) {
+    processed['x-canvas-visible-if'] = prop['x-canvas-visible-if'];
+  }
   return processed;
 }
 
@@ -871,6 +874,9 @@ function deserializePropDefinition(
       xCanvasColorFolders.length > 0 && {
         'x-canvas-color-folders': xCanvasColorFolders,
       }),
+    ...(prop['x-canvas-visible-if'] && {
+      'x-canvas-visible-if': prop['x-canvas-visible-if'],
+    }),
     derivedType,
     ...(allowMultiple && { allowMultiple: true, items }),
     ...(allowMultiple &&

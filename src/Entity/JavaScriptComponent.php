@@ -15,6 +15,7 @@ use Drupal\canvas\EntityHandlers\JavascriptComponentStorage;
 use Drupal\canvas\EntityHandlers\VisibleWhenDisabledCanvasConfigEntityAccessControlHandler;
 use Drupal\canvas\Exception\ConstraintViolationException;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
+use Drupal\canvas\JsonSchemaInterpreter\PropVisibilityCondition;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\PropExpressions\StructuredData\Coalescer;
 use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
@@ -27,6 +28,7 @@ use Drupal\canvas\Resource\CanvasResourceLinkCollection;
 use Drupal\canvas\TypedData\BetterEntityDataDefinition;
 use Drupal\Component\Assertion\Inspector;
 use Drupal\Component\Plugin\Exception\PluginNotFoundException;
+use Drupal\Component\Serialization\Json;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
@@ -397,6 +399,12 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
         else {
           unset($this->props[$prop_name]['minItems']);
         }
+        // The client side sends visibility conditions as they are in the SDC
+        // definition; config stores them as JSON.
+        // @see ::toSdcDefinition()
+        if (\is_array($this->props[$prop_name][PropVisibilityCondition::KEY] ?? NULL)) {
+          $this->props[$prop_name][PropVisibilityCondition::KEY] = Json::encode($this->props[$prop_name][PropVisibilityCondition::KEY]);
+        }
       }
     }
 
@@ -660,6 +668,14 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
     // entity remains unchanged and repeated calls are idempotent.
     // @see ::getContentEntityReferenceProps()
     // @see ::getReferencedTargetEntityDefinition()
+    // Config stores visibility conditions as JSON: config schema cannot type
+    // their values, which may be strings, numbers, booleans or lists.
+    // @see \Drupal\canvas\JsonSchemaInterpreter\PropVisibilityCondition
+    foreach ($definition['props']['properties'] as $prop_name => $prop) {
+      if (\is_string($prop[PropVisibilityCondition::KEY] ?? NULL)) {
+        $definition['props']['properties'][$prop_name][PropVisibilityCondition::KEY] = Json::decode($prop[PropVisibilityCondition::KEY]);
+      }
+    }
     foreach (\array_keys($this->getContentEntityReferenceProps()) as $prop_name) {
       // Skip projection for content-entity-reference props whose `entityFields`
       // entry is empty, unparseable, or targets a non-existent entity type.

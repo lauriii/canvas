@@ -27,6 +27,7 @@ use Drupal\canvas\Hook\ShapeMatchingHooks;
 use Drupal\canvas\InvalidComponentInputsPropSourceException;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaStringFormat;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaType;
+use Drupal\canvas\JsonSchemaInterpreter\PropVisibilityCondition;
 use Drupal\canvas\MissingHostEntityException;
 use Drupal\canvas\Plugin\Adapter\AdapterInterface;
 use Drupal\canvas\Plugin\AdapterManager;
@@ -328,6 +329,7 @@ final class Layers {
         Selector::classname(ContentTemplate::class),
         Selector::classname(EmptyTargetEntityProviderInterface::class),
         Selector::classname(Pattern::class),
+        Selector::classname(PropVisibilityCondition::class),
         // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::validateComponentInput()
         self::usesConstraintViolationValueObjects(),
         // For the translatability of inputs.

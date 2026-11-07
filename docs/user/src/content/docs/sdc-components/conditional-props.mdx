@@ -1,0 +1,70 @@
+---
+title: SDC components - Conditional props
+---
+
+A prop can be shown in the component form only when other props have certain
+values. For example, "Button text" only appears while "Show button" is on.
+
+Add `x-canvas-visible-if` to the prop. It maps the names of other props to a
+test of their value. The prop is shown when all tests pass.
+
+```yaml
+props:
+  type: object
+  properties:
+    show_button:
+      type: boolean
+      title: Show button
+      examples: [true]
+    button_text:
+      type: string
+      title: Button text
+      examples: ['Get started']
+      x-canvas-visible-if:
+        show_button: true
+```
+
+## Tests
+
+| Test | Shown when the value | Example |
+| --- | --- | --- |
+| A value | equals it | `layout: split` |
+| A list of values | equals one of them | `layout: [split, grid]` |
+| `not` | does not equal it, or any of a list | `layout: { not: stack }` |
+| `gt`, `gte`, `lt`, `lte` | is more than, at least, less than or at most a number | `count: { gte: 2 }` |
+| `contains` | is a text that contains it, or a list with it | `title: { contains: sale }` |
+| `filled` | is set (`true`) or empty (`false`) | `image: { filled: true }` |
+
+Operators can be combined: `count: { gte: 2, lt: 5 }`.
+
+## Combining conditions
+
+All tests must pass. Use `anyOf` for "or", `allOf` for a list of conditions
+that must all pass, and `not` to invert a condition. They can be nested.
+
+```yaml
+    small_print:
+      type: string
+      title: Small print
+      examples: ['No credit card required.']
+      x-canvas-visible-if:
+        anyOf:
+          - show_button: false
+          - button_count: { gte: 2 }
+```
+
+## How it works
+
+- A prop that is hidden counts as empty in the conditions of other props. So
+  "Second button text" with `button_count: { gte: 2 }` stays hidden while
+  `button_count` itself is hidden.
+- Props with a condition are indented under the props they depend on, and
+  highlighted when they appear.
+- Hiding a prop keeps its value, and the component still receives it. Check the
+  controlling prop in the template: `{% if show_button %}`.
+- Canvas validates conditions when it discovers the component. A condition that
+  refers to a missing prop, uses an unknown operator, or depends on itself makes
+  the component unavailable, with the reason in the component list.
+
+Code components get the same conditions from the **Show only when…** button
+under each prop in the code editor.

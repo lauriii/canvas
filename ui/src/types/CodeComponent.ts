@@ -1,4 +1,5 @@
 import type derivedPropTypes from '@/features/code-editor/component-data/derivedPropTypes';
+import type { VisibilityCondition } from '@/utils/propVisibility';
 
 export interface DataFetch {
   id: string;
@@ -101,6 +102,7 @@ export interface CodeComponentProp {
   'x-canvas-color-folders'?: string[];
   'x-allowed-entity-type-id'?: string;
   'x-allowed-bundle'?: string;
+  'x-canvas-visible-if'?: VisibilityCondition;
   allowMultiple?: boolean;
   valueMode?: ValueMode;
   limitedCount?: number;
@@ -178,6 +180,7 @@ export interface CodeComponentPropSerialized {
   'x-formatting-context'?: string;
   'x-allowed-entity-type-id'?: string;
   'x-allowed-bundle'?: string;
+  'x-canvas-visible-if'?: VisibilityCondition;
   maxItems?: number;
   // Nested props of a "Group object" prop: one full prop definition per
   // sub-property. At most one level deep.
