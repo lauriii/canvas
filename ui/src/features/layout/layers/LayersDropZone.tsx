@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
+import { shallowEqual } from 'react-redux';
 import { useDroppable } from '@dnd-kit/core';
 
 import { useAppSelector } from '@/app/hooks';
-import { selectLayout } from '@/features/layout/layoutModelSlice';
-import { findNodePathByUuid } from '@/features/layout/layoutUtils';
+import { selectNodePaths } from '@/features/layout/layoutModelSlice';
 
 import type {
   ComponentNode,
@@ -22,14 +22,15 @@ export interface LayersDropZoneProps {
 
 const LayersDropZone: React.FC<LayersDropZoneProps> = (props) => {
   const { layer, position, indent, parentSlot } = props;
-  const layout = useAppSelector(selectLayout);
   const [draggedItem, setDraggedItem] = useState('');
   const type = 'uuid' in layer ? 'component' : 'slot';
   const id = 'uuid' in layer ? layer.uuid : layer.id;
 
-  // Memoize the path calculation to prevent recalculating on every render
+  const path = useAppSelector(
+    (state) => selectNodePaths(state).get(id),
+    shallowEqual,
+  );
   const dropPath = useMemo(() => {
-    const path = findNodePathByUuid(layout, id);
     if (!path) {
       return null;
     }
@@ -43,7 +44,7 @@ const LayersDropZone: React.FC<LayersDropZoneProps> = (props) => {
     }
 
     return finalPath;
-  }, [layout, id, type, position]);
+  }, [path, type, position]);
 
   if (!dropPath) {
     throw new Error(`Unable to ascertain 'path' to component ${id}`);

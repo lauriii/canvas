@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { kebabCase } from 'lodash';
+import { shallowEqual } from 'react-redux';
 import { useDroppable } from '@dnd-kit/core';
 import { BoxModelIcon } from '@radix-ui/react-icons';
 
 import { useAppSelector } from '@/app/hooks';
-import { selectLayout } from '@/features/layout/layoutModelSlice';
-import { findNodePathByUuid } from '@/features/layout/layoutUtils';
+import { selectNodePaths } from '@/features/layout/layoutModelSlice';
 import useGetComponentName from '@/hooks/useGetComponentName';
 
 import type React from 'react';
@@ -24,12 +24,15 @@ export interface EmptySlotDropZoneProps {
 }
 const EmptySlotDropZone: React.FC<EmptySlotDropZoneProps> = (props) => {
   const { slot, slotName, parentComponent } = props;
-  const layout = useAppSelector(selectLayout);
+  const nodePath = useAppSelector(
+    (state) => selectNodePaths(state).get(slot.id),
+    shallowEqual,
+  );
   const [activeName, setActiveName] = useState('');
   const [activeOrigin, setActiveOrigin] = useState('');
   const parentComponentName = useGetComponentName(parentComponent);
 
-  const slotPath = findNodePathByUuid(layout, slot.id);
+  const slotPath = nodePath ? [...nodePath] : null;
   if (!slotPath) {
     throw new Error(`Unable to ascertain 'path' to component ${slot.id}`);
   }
