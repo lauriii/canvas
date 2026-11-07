@@ -1,13 +1,18 @@
 import _ from 'lodash';
 
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { useAppDispatch, useAppSelector, useAppStore } from '@/app/hooks';
 import { moveNode, selectLayout } from '@/features/layout/layoutModelSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
+import {
+  getPreviewDocument,
+  movePreviewComponent,
+} from '@/features/layout/preview/optimisticPreview';
 
 import type { DragEndEvent } from '@dnd-kit/core';
 
 export function useDropFromLayoutHandler() {
   const dispatch = useAppDispatch();
+  const store = useAppStore();
   const layout = useAppSelector(selectLayout);
 
   // There is an edge case where if an item is dragged into the space immediately after itself,
@@ -53,10 +58,18 @@ export function useDropFromLayoutHandler() {
     }
 
     // if we got this far, then we have a valid location to move the dragged component to!
-    // @todo We should optimistically move the elementsInsideIframe to the new location in the iFrames dom.
-    // for now, we pass true here which will put the elementsInsideIframe into a 'pending move' state.
-    afterDrag(elementsInsideIframe, true, activeUuid);
     dispatch(moveNode({ uuid: activeUuid, to: dropPath }));
+    // Show the move right away instead of after the new preview is rendered.
+    // Only fall back to the 'pending move' state when that isn't possible.
+    const previewDocument = getPreviewDocument();
+    const moved =
+      previewDocument &&
+      movePreviewComponent(
+        previewDocument,
+        selectLayout(store.getState()),
+        activeUuid,
+      );
+    afterDrag(elementsInsideIframe, !moved, activeUuid);
   }
 
   return { handleExistingDrop };
