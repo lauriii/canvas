@@ -219,6 +219,22 @@ describe('syncPendingChangesFromAutoSaves', () => {
     expect(getCount).toBe(1);
   });
 
+  it('matches the owner when the server sends its id as a string', async () => {
+    serverPending = {
+      [PENDING_KEY]: {
+        ...pendingChange,
+        owner: { ...pendingChange.owner, id: '2' as unknown as number },
+      },
+    };
+    const { store, actions } = await setUp();
+    store.dispatch(
+      syncPendingChangesFromAutoSaves({
+        [PENDING_KEY]: { autoSaveStartingPoint: '1', hash: 'hash-new' },
+      }),
+    );
+    expect(actions.some(isInvalidation)).toBe(false);
+  });
+
   it('leaves entries with an unchanged hash as they are', async () => {
     const region = {
       ...pendingChange,

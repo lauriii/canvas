@@ -332,7 +332,7 @@ export const syncPendingChangesFromAutoSaves =
       if (cached.data_hash === hash) {
         continue;
       }
-      mustRefetch ||= cached.owner.id !== currentUserId;
+      mustRefetch ||= Number(cached.owner.id) !== currentUserId;
       changedHashes.push([key, hash]);
     }
     if (mustRefetch) {
