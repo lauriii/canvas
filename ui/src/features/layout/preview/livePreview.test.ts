@@ -118,10 +118,16 @@ describe('live preview of a component from the library', () => {
     );
   });
 
-  it('shows a labeled box for components without markup', () => {
+  it('shows a labeled box for markup that renders nothing here', () => {
     const doc = preview();
     startInsertPreview(doc, undefined, 'Card');
     showLivePreviewAt('b_bottom');
     expect(doc.body.textContent).toContain('Card');
+    // An element the document doesn't define, e.g. a code component island
+    // on a page without code components.
+    startInsertPreview(doc, '<x-island>N</x-island>', 'Island');
+    showLivePreviewAt('b_bottom');
+    expect(doc.body.textContent).toContain('Island');
+    expect(doc.querySelector('x-island')).toBeNull();
   });
 });

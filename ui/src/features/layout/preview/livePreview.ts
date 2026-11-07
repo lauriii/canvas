@@ -127,7 +127,8 @@ export function startMovePreview(
  * @param document
  *   The preview document.
  * @param markup
- *   The default markup of the component. A labeled box is shown without it.
+ *   The default markup of the component. A labeled box is shown without it,
+ *   and instead of markup that can't render in the preview document.
  * @param name
  *   The name of the component.
  */
@@ -138,10 +139,19 @@ export function startInsertPreview(
 ): void {
   endLivePreview();
   const template = document.createElement('template');
-  if (markup) {
-    // Template content is inert: scripts in it don't run.
-    template.innerHTML = markup;
-  } else {
+  // Template content is inert: scripts in it don't run.
+  template.innerHTML = markup ?? '';
+  // Custom elements the document doesn't define render nothing, e.g. code
+  // components on a page that has none of them yet.
+  const renders =
+    markup &&
+    !Array.from(template.content.querySelectorAll('*')).some(
+      (el) =>
+        el.localName.includes('-') &&
+        !document.defaultView?.customElements.get(el.localName),
+    );
+  if (!renders) {
+    template.innerHTML = '';
     const box = document.createElement('div');
     box.textContent = name;
     box.style.cssText =
@@ -186,6 +196,13 @@ function resolve(
     ? { parent: container.end.parentNode, before: container.end, container }
     : null;
 }
+
+const hasSize = (node: Node) =>
+  node.nodeType === Node.ELEMENT_NODE &&
+  [node as Element, ...(node as Element).querySelectorAll('*')].some((el) => {
+    const { width, height } = el.getBoundingClientRect();
+    return width > 0 && height > 0;
+  });
 
 function hidePlaceholders(container: CanvasBoundary, undo: Session['undo']) {
   siblingsBetween(container.start, container.end).forEach((node) => {
@@ -233,7 +250,9 @@ export function showLivePreviewAt(dropZoneId: string | null): void {
   if (!target.before || !nodes.includes(target.before)) {
     nodes.forEach((node) => target.parent.insertBefore(node, target.before));
   }
-  if (target.container) {
+  // The markup replaces the placeholder of an empty container, unless it
+  // renders nothing yet: the container would collapse.
+  if (target.container && (home || nodes.some(hasSize))) {
     hidePlaceholders(target.container, session.undo);
   }
 
