@@ -8,6 +8,8 @@ import type { PreviewAssets } from '@/features/layout/preview/previewAssets';
 
 export interface PreviewState {
   html: string;
+  // Counts the times `html` was set to a whole page.
+  fullHtmlVersion: number;
   // Assets partial previews added to the live preview since `html` was last
   // set to a whole page.
   addedAssets: PreviewAssets[];
@@ -18,6 +20,7 @@ export interface PreviewState {
 
 export const initialState: PreviewState = {
   html: '',
+  fullHtmlVersion: 0,
   addedAssets: [],
   snapshotHTML: '',
   snapshotTitle: '',
@@ -30,6 +33,7 @@ const setHtmlReducer: CaseReducer<PreviewState, PayloadAction<string>> = (
 ) => ({
   ...state,
   html: action.payload,
+  fullHtmlVersion: state.fullHtmlVersion + 1,
   addedAssets: [],
 });
 

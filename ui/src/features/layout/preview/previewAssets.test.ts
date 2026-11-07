@@ -113,3 +113,21 @@ describe('loadPreviewAssets', () => {
     }
   });
 });
+
+describe('settings merging', () => {
+  it('ignores keys that would change object prototypes', () => {
+    const html =
+      '<!DOCTYPE html><html><head></head><body>' +
+      '<script type="application/json" data-drupal-selector="drupal-settings-json">{}</script>' +
+      '</body></html>';
+    injectPreviewAssets(html, [
+      {
+        css: [],
+        jsHeader: [],
+        jsFooter: [],
+        settings: JSON.parse('{"__proto__": {"polluted": true}}'),
+      },
+    ]);
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+  });
+});

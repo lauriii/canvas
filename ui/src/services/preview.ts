@@ -200,6 +200,26 @@ const supersededModels = new Map<string, any>();
 // build a change for an entity the editor has left.
 const savedModels = new Map<string, any>();
 
+// The whole-page version that updateComponent responses set last. A newer one
+// came from elsewhere, for example a layout POST.
+let ownFullHtmlVersion = 0;
+
+// Reads and sets the whole preview of the current entity, without saving.
+const readWholePreview = async (dispatch: any, baseUrl: string) => {
+  const { entityType, entityId } = extractEntityParams(window.location.href);
+  const response = await fetch(
+    `${baseUrl}canvas/api/v0/layout/${entityType}/${entityId}`,
+    { headers: { Accept: 'application/json' } },
+  );
+  if (response.ok) {
+    const { html, autoSaves } = await response.json();
+    dispatch(setHtml(html));
+    handleAutoSavesHashUpdate(dispatch, autoSaves, {
+      request: { url: response.url },
+    });
+  }
+};
+
 // Resolves once the previous updateComponent response is applied. Responses
 // are applied in turn, each after loading the assets it needs.
 let responsesApplied: Promise<void> = Promise.resolve();
@@ -353,6 +373,8 @@ export const previewApi = createApi({
         };
       },
       async onQueryStarted(arg, { dispatch, getState, queryFulfilled }) {
+        const startFullHtmlVersion = (getState() as RootState).preview
+          .fullHtmlVersion;
         const uuid = arg.componentInstanceUuid;
         const key = instanceKey(uuid, arg.editorUrl);
         const applyModel = ({
@@ -445,6 +467,19 @@ export const previewApi = createApi({
               ]),
             );
           }
+          const { preview, configuration } = getState() as RootState;
+          // A whole page set from elsewhere since this request started, for
+          // example by a layout POST, is newer than this response: its markup
+          // and models would undo it. Read the current whole page instead.
+          if (
+            preview.fullHtmlVersion !== startFullHtmlVersion &&
+            preview.fullHtmlVersion !== ownFullHtmlVersion
+          ) {
+            await readWholePreview(dispatch, configuration.baseUrl);
+            ownFullHtmlVersion = (getState() as RootState).preview
+              .fullHtmlVersion;
+            return;
+          }
           // Clear any stale snapshot (e.g. from a prior language/template preview)
           // so selectPreviewHtml returns this fresh editor html instead of the
           // preview snapshot, which selectPreviewHtml prefers while set.
@@ -459,22 +494,15 @@ export const previewApi = createApi({
             if (html === null) {
               // The current preview lacks the instance: read the whole page,
               // rather than saving the change again over newer ones.
-              const { entityType, entityId } = extractEntityParams(
-                window.location.href,
-              );
-              const response = await fetch(
-                `${state.configuration.baseUrl}canvas/api/v0/layout/${entityType}/${entityId}`,
-                { headers: { Accept: 'application/json' } },
-              );
-              if (response.ok) {
-                dispatch(setHtml((await response.json()).html));
-              }
+              await readWholePreview(dispatch, state.configuration.baseUrl);
             } else {
               dispatch(setPartialHtml({ html, assets: data.assets }));
             }
           } else {
             dispatch(setHtml(data.html));
           }
+          ownFullHtmlVersion = (getState() as RootState).preview
+            .fullHtmlVersion;
           handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
           if (isOutdated) {
             if (instanceModel) {

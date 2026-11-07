@@ -14,7 +14,10 @@ import {
   applyInPlaceUpdate,
   findInPlaceUpdate,
 } from '@/features/layout/preview/inPlaceUpdate';
-import { injectPreviewAssets } from '@/features/layout/preview/previewAssets';
+import {
+  injectPreviewAssets,
+  loadAssetsInto,
+} from '@/features/layout/preview/previewAssets';
 import { selectAddedPreviewAssets } from '@/features/pagePreview/previewSlice';
 import { selectDragging } from '@/features/ui/uiSlice';
 
@@ -74,6 +77,8 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
     const addedAssets = useAppSelector(selectAddedPreviewAssets);
     const addedAssetsRef = useRef(addedAssets);
     addedAssetsRef.current = addedAssets;
+    // The added assets the loading document was written with.
+    const loadingAssetsRef = useRef(addedAssets);
     // The markup loading in the inactive iframe, and the markup the active
     // iframe shows once no swap is pending. A change confined to one component
     // instance is applied to the active iframe in place, without a swap.
@@ -123,6 +128,19 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
 
       const loadedSrcDocument = loadingSrcDocumentRef.current;
       const swap = () => {
+        // Assets that partial previews added while this document loaded only
+        // reached the frame it replaces.
+        const loadedAssets = loadingAssetsRef.current;
+        const addedAssets = addedAssetsRef.current;
+        if (
+          iframe.contentWindow &&
+          addedAssets.length > loadedAssets.length &&
+          loadedAssets.every((assets, index) => addedAssets[index] === assets)
+        ) {
+          addedAssets
+            .slice(loadedAssets.length)
+            .forEach((assets) => loadAssetsInto(iframe.contentWindow!, assets));
+        }
         // A newer document may have started loading since this one did.
         swappedSrcDocumentRef.current =
           loadingSrcDocumentRef.current === loadedSrcDocument
@@ -220,6 +238,7 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
       }
       activeSrcDocumentRef.current = null;
       loadingSrcDocumentRef.current = srcDocument;
+      loadingAssetsRef.current = addedAssetsRef.current;
 
       // Important to change a state ensure parent re-renders (and re-calls hooks) once the iframe is swapped.
       setIsReloading(true);
