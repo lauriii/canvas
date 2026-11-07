@@ -172,8 +172,9 @@ const rawBaseQuery = (appConfiguration: AppConfiguration) => {
     const newArg = typeof arg == 'string' ? newUrl : { ...arg, url: newUrl };
     const result = await defaultQuery(newArg, api, extraOptions);
     // The cached CSRF token is stale if the session changed. Drupal rejects
-    // the request before handling it, so it is safe to send again.
-    if (api.type === 'mutation' && result.error?.status === 403) {
+    // the request before handling it, so it is safe to send again. Read the
+    // response status: a 403 with an HTML body is a parsing error.
+    if (api.type === 'mutation' && result.meta?.response?.status === 403) {
       forgetCsrfToken(baseUrl);
       return defaultQuery(newArg, api, extraOptions);
     }
