@@ -1729,6 +1729,93 @@ HTML,
     self::assertIsArray(\Drupal::service('serializer')->normalize($page));
   }
 
+  /**
+   * Tests the client-side layout and model of a tree with interleaved deltas.
+   *
+   * Children are listed in slot definition order, and within a slot in delta
+   * order. Items that are unreachable from the root are omitted.
+   *
+   * @legacy-covers ::getClientSideRepresentation
+   */
+  public function testGetClientSideRepresentation(): void {
+    $root_a = '4a1d6b0e-5b9c-4b8f-9d0e-000000000001';
+    $root_b = '4a1d6b0e-5b9c-4b8f-9d0e-000000000002';
+    $b_body = '4a1d6b0e-5b9c-4b8f-9d0e-000000000003';
+    $a_body_first = '4a1d6b0e-5b9c-4b8f-9d0e-000000000004';
+    $a_footer = '4a1d6b0e-5b9c-4b8f-9d0e-000000000005';
+    $a_body_second = '4a1d6b0e-5b9c-4b8f-9d0e-000000000006';
+    $orphan = '4a1d6b0e-5b9c-4b8f-9d0e-000000000007';
+    $undefined_slot = '4a1d6b0e-5b9c-4b8f-9d0e-000000000008';
+    $slots = 'sdc.canvas_test_sdc.props-slots';
+    $no_slots = 'sdc.canvas_test_sdc.props-no-slots';
+    $item = static fn (string $uuid, string $component_id, ?string $parent_uuid = NULL, ?string $slot = NULL): array => \array_filter([
+      'uuid' => $uuid,
+      'component_id' => $component_id,
+      'parent_uuid' => $parent_uuid,
+      'slot' => $slot,
+      'inputs' => ['heading' => $uuid],
+    ]);
+
+    $items = $this->createDanglingComponentTreeItemList();
+    $items->setValue([
+      $item($root_a, $slots),
+      $item($b_body, $no_slots, $root_b, 'the_body'),
+      $item($root_b, $slots),
+      $item($a_body_first, $no_slots, $root_a, 'the_body'),
+      $item($a_footer, $no_slots, $root_a, 'the_footer'),
+      $item($orphan, $no_slots, '4a1d6b0e-5b9c-4b8f-9d0e-00000000dead', 'the_body'),
+      $item($a_body_second, $no_slots, $root_a, 'the_body'),
+      $item($undefined_slot, $no_slots, $root_a, 'not_a_slot'),
+    ]);
+
+    $slots_version = Component::load($slots)?->getActiveVersion();
+    $no_slots_version = Component::load($no_slots)?->getActiveVersion();
+    $component_node = static fn (string $uuid, array $slots = []): array => [
+      'uuid' => $uuid,
+      'nodeType' => 'component',
+      'type' => \sprintf('%s@%s', \count($slots) > 0 ? 'sdc.canvas_test_sdc.props-slots' : 'sdc.canvas_test_sdc.props-no-slots', \count($slots) > 0 ? $slots_version : $no_slots_version),
+      'name' => NULL,
+      'slots' => \array_map(static fn (string $slot_name, array $components): array => [
+        'id' => $uuid . '/' . $slot_name,
+        'name' => $slot_name,
+        'nodeType' => 'slot',
+        'components' => $components,
+      ], \array_keys($slots), $slots),
+    ];
+    $model = static fn (string $uuid): array => [
+      'source' => [
+        'heading' => [
+          'sourceType' => 'static:field_item:string',
+          'expression' => 'ℹ︎string␟value',
+        ],
+      ],
+      'resolved' => ['heading' => $uuid],
+    ];
+
+    self::assertSame([
+      'layout' => [
+        $component_node($root_a, [
+          'the_body' => [$component_node($a_body_first), $component_node($a_body_second)],
+          'the_footer' => [$component_node($a_footer)],
+          'the_colophon' => [],
+        ]),
+        $component_node($root_b, [
+          'the_body' => [$component_node($b_body)],
+          'the_footer' => [],
+          'the_colophon' => [],
+        ]),
+      ],
+      'model' => [
+        $root_a => $model($root_a),
+        $a_body_first => $model($a_body_first),
+        $a_body_second => $model($a_body_second),
+        $a_footer => $model($a_footer),
+        $root_b => $model($root_b),
+        $b_body => $model($b_body),
+      ],
+    ], $items->getClientSideRepresentation());
+  }
+
   public static function providerInjectSubTreeItemList(): iterable {
     $initial_tree = [
       [
