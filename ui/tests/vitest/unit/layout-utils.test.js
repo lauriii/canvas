@@ -2,10 +2,12 @@
 import {
   areConsecutiveSiblings,
   componentExistsInLayout,
+  findNodePathByUuid,
   findParent,
   findParentInfo,
   findParentRegion,
   findSiblings,
+  getNodePaths,
   isChildNode,
   replaceUUIDsAndUpdateModel,
 } from '@/features/layout/layoutUtils';
@@ -25,6 +27,16 @@ describe('isChildNode', () => {
     expect(isChildNode(layout.layout, 'static-static-card2df')).to.be.false;
     expect(isChildNode(layout.layout, 'static-static-card1ab')).to.be.true;
     expect(isChildNode(layout.layout, 'idontexist')).to.be.null;
+  });
+});
+
+describe('getNodePaths', () => {
+  it('should map every node to the same path as findNodePathByUuid', () => {
+    const paths = getNodePaths(layout.layout);
+    expect(paths.size).to.be.greaterThan(10);
+    paths.forEach((path, id) => {
+      expect(path).to.deep.equal(findNodePathByUuid(layout.layout, id));
+    });
   });
 });
 

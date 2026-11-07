@@ -3,8 +3,7 @@ import clsx from 'clsx';
 import { useDroppable } from '@dnd-kit/core';
 
 import { useAppSelector } from '@/app/hooks';
-import { selectLayout } from '@/features/layout/layoutModelSlice';
-import { findNodePathByUuid } from '@/features/layout/layoutUtils';
+import { selectNodePaths } from '@/features/layout/layoutModelSlice';
 
 import type React from 'react';
 import type {
@@ -21,11 +20,13 @@ export interface SlotDropZoneProps {
 }
 const SlotDropZone: React.FC<SlotDropZoneProps> = (props) => {
   const { slot, position, parentComponent } = props;
-  const layout = useAppSelector(selectLayout);
+  const nodePath = useAppSelector((state) =>
+    selectNodePaths(state).get(slot.id),
+  );
   const [activeOrigin, setActiveOrigin] = useState('');
   const accepts = ['overlay', 'library'];
 
-  const slotPath = findNodePathByUuid(layout, slot.id);
+  const slotPath = nodePath ? [...nodePath] : null;
   if (!slotPath) {
     throw new Error(`Unable to ascertain 'path' to component ${slot.id}`);
   }

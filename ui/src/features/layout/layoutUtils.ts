@@ -306,6 +306,32 @@ export function findNodePathByUuid(
 }
 
 /**
+ * Maps every node identifier in a layout to its path, in a single walk.
+ *
+ * Use this instead of calling findNodePathByUuid() once per node, which is
+ * O(N²) for N nodes.
+ *
+ * @param nodes - The root nodes.
+ * @returns Paths keyed by node identifier (component UUID or slot ID).
+ */
+export function getNodePaths(
+  nodes: Array<LayoutNode>,
+  path: number[] = [],
+  paths: Map<string, number[]> = new Map(),
+): Map<string, number[]> {
+  nodes.forEach((node, i) => {
+    const nodePath = [...path, i];
+    const nodeId = getNodeIdentifier(node);
+    // Match findNodePathByUuid(), which returns the first match.
+    if (!paths.has(nodeId)) {
+      paths.set(nodeId, nodePath);
+    }
+    getNodePaths(getChildrenFromNode(node), nodePath, paths);
+  });
+  return paths;
+}
+
+/**
  * Remove a node from a Region by its UUID.
  * @param nodes - The root RegionNodes.
  * @param uuid - The UUID of the node to remove.

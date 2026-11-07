@@ -4,8 +4,7 @@ import { kebabCase } from 'lodash';
 import { useDroppable } from '@dnd-kit/core';
 
 import { useAppSelector } from '@/app/hooks';
-import { selectLayout } from '@/features/layout/layoutModelSlice';
-import { findNodePathByUuid } from '@/features/layout/layoutUtils';
+import { selectNodePaths } from '@/features/layout/layoutModelSlice';
 import useGetComponentName from '@/hooks/useGetComponentName';
 
 import type React from 'react';
@@ -23,7 +22,9 @@ export interface ComponentDropZoneProps {
 }
 const ComponentDropZone: React.FC<ComponentDropZoneProps> = (props) => {
   const { component, position, parentSlot } = props;
-  const layout = useAppSelector(selectLayout);
+  const nodePath = useAppSelector((state) =>
+    selectNodePaths(state).get(component.uuid),
+  );
   const [draggedItem, setDraggedItem] = useState('');
   const componentName = useGetComponentName(component);
   const [activeOrigin, setActiveOrigin] = useState('');
@@ -33,7 +34,7 @@ const ComponentDropZone: React.FC<ComponentDropZoneProps> = (props) => {
     return position === 'top' || position === 'left' ? 'before' : 'after';
   }
 
-  const dropPath = findNodePathByUuid(layout, component.uuid);
+  const dropPath = nodePath ? [...nodePath] : null;
   if (!dropPath) {
     throw new Error(
       `Unable to ascertain 'path' to component ${component.uuid}`,

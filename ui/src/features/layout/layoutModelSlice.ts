@@ -16,6 +16,7 @@ import {
 import {
   findComponentByUuid,
   findNodePathByUuid,
+  getNodePaths,
   insertNodeAtPath,
   moveNodeToPath,
   recurseNodes,
@@ -914,6 +915,12 @@ export const layoutModelReducer = layoutModelSlice.reducer;
 // to be able to access the history, so we use the StateWithHistoryWrapper type.
 export const selectLayout = (state: StateWithHistoryWrapper) =>
   state.layoutModel.present.layout;
+/**
+ * Selects the paths of all layout nodes, keyed by node identifier.
+ */
+export const selectNodePaths = createSelector(selectLayout, (layout) =>
+  getNodePaths(layout),
+);
 export const selectModel = (state: StateWithHistoryWrapper) =>
   state.layoutModel.present.model;
 export const selectLayoutHistory = (state: StateWithHistoryWrapper) =>
