@@ -7,6 +7,7 @@ import {
 
 import { NodeType } from '@/features/layout/layoutModelSlice';
 import { findParent } from '@/features/layout/layoutUtils';
+import { notePreviewEdit } from '@/features/layout/preview/previewEdits';
 
 import type { CanvasBoundary } from '@drupal-canvas/preview-geometry';
 import type { RegionNode } from '@/features/layout/layoutModelSlice';
@@ -111,6 +112,7 @@ export function movePreviewComponent(
   range.setStartBefore(moved.start);
   range.setEndAfter(moved.end);
   insertBefore(position.anchor, range.extractContents(), position.container);
+  notePreviewEdit();
   return true;
 }
 
@@ -140,17 +142,39 @@ export function insertPreviewComponent(
   if (!position) {
     return false;
   }
+  addPreviewCss(document, markup.css);
   // Template content is inert: scripts in it don't run.
   const template = document.createElement('template');
-  template.innerHTML = `${markup.css}<!--${formatCanvasCommentMarker({ type: 'component', position: 'start', id: uuid })}-->${markup.default_markup}<!--${formatCanvasCommentMarker({ type: 'component', position: 'end', id: uuid })}-->`;
-  const fragment = template.content;
-  // The CSS goes to the head, which is where the server-rendered preview has
-  // it too.
-  fragment
-    .querySelectorAll('link, style')
-    .forEach((el) => document.head.appendChild(el));
-  insertBefore(position.anchor, fragment, position.container);
+  template.innerHTML = `<!--${formatCanvasCommentMarker({ type: 'component', position: 'start', id: uuid })}-->${markup.default_markup}<!--${formatCanvasCommentMarker({ type: 'component', position: 'end', id: uuid })}-->`;
+  insertBefore(position.anchor, template.content, position.container);
+  notePreviewEdit();
   return true;
+}
+
+/**
+ * Adds the CSS of a component to the preview, unless it is there already.
+ *
+ * @param document
+ *   The preview document.
+ * @param css
+ *   The <link> and <style> elements of the component.
+ */
+export function addPreviewCss(document: Document, css: string) {
+  const template = document.createElement('template');
+  template.innerHTML = css;
+  template.content.querySelectorAll('link, style').forEach((el) => {
+    const present = Array.from(
+      document.head.querySelectorAll(el.localName),
+    ).some((other) =>
+      el.localName === 'link'
+        ? other.getAttribute('href') === el.getAttribute('href')
+        : other.textContent === el.textContent,
+    );
+    // The head, which is where the server-rendered preview has it too.
+    if (!present) {
+      document.head.appendChild(el);
+    }
+  });
 }
 
 /**
@@ -170,5 +194,6 @@ export function removePreviewComponent(document: Document, uuid: string) {
     range.setStartBefore(removed.start);
     range.setEndAfter(removed.end);
     range.deleteContents();
+    notePreviewEdit();
   }
 }

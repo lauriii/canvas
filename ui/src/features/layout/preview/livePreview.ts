@@ -6,6 +6,8 @@ import {
   unionCanvasRects,
 } from '@drupal-canvas/preview-geometry';
 
+import { notePreviewEdit } from '@/features/layout/preview/previewEdits';
+
 import type { CanvasBoundary } from '@drupal-canvas/preview-geometry';
 
 /**
@@ -634,7 +636,8 @@ function place(current: Session, dropZoneId: string | null) {
  *   render replaces it.
  *
  * @return
- *   The preview document, or NULL if there was no live preview.
+ *   The preview document, or NULL if there was no live preview or it doesn't
+ *   show the markup, e.g. because the drop was outside the preview.
  */
 export function commitLivePreview(uuid?: string): Document | null {
   if (!session) {
@@ -642,6 +645,17 @@ export function commitLivePreview(uuid?: string): Document | null {
   }
   const { document, nodes, home } = session;
   release(session);
+  session = null;
+  if (!nodes[0].isConnected) {
+    return null;
+  }
+  if (
+    !home ||
+    nodes[0].parentNode !== home.parent ||
+    nodes[nodes.length - 1].nextSibling !== home.before
+  ) {
+    notePreviewEdit();
+  }
   if (!home && uuid) {
     nodes[0].nodeValue = formatCanvasCommentMarker({
       type: 'component',
@@ -654,7 +668,6 @@ export function commitLivePreview(uuid?: string): Document | null {
       id: uuid,
     });
   }
-  session = null;
   return document;
 }
 

@@ -118,6 +118,16 @@ describe('live preview of a component from the library', () => {
     );
   });
 
+  it("isn't committed when it isn't shown", () => {
+    const doc = preview();
+    startInsertPreview(doc, '<p>N</p>', 'N');
+    showLivePreviewAt('a_bottom');
+    // E.g. dropped on the layers panel.
+    showLivePreviewAt(null);
+    expect(commitLivePreview('n')).toBeNull();
+    expect(text(doc)).toBe('A,B,D');
+  });
+
   it('shows a labeled box for markup that renders nothing here', () => {
     const doc = preview();
     startInsertPreview(doc, undefined, 'Card');

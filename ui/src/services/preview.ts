@@ -6,6 +6,7 @@ import {
   setLayoutModel,
   setTranslations,
 } from '@/features/layout/layoutModelSlice';
+import { previewEditCount } from '@/features/layout/preview/previewEdits';
 import {
   setHtml,
   setSnapshotHTML,
@@ -68,6 +69,7 @@ export const previewApi = createApi({
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         pushCanvasLayoutRequest();
+        const editsAtRequest = previewEditCount();
         try {
           const { data, meta } = await queryFulfilled;
           const { html, autoSaves } = data;
@@ -76,9 +78,13 @@ export const previewApi = createApi({
               { type: 'PendingChanges', id: 'LIST' },
             ]),
           );
-          // A newer layout has been requested: the preview already shows it
-          // (see optimisticPreview.ts), so this one would flash a stale state.
-          if (!latestPreviewArg || arg === latestPreviewArg) {
+          // The preview was edited since this was requested, and a newer
+          // layout has been requested: it shows the edit, which this would
+          // flash away.
+          if (
+            arg === latestPreviewArg ||
+            previewEditCount() === editsAtRequest
+          ) {
             dispatch(setHtml(html));
           }
           handleAutoSavesHashUpdate(dispatch, autoSaves, meta);

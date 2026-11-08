@@ -15,7 +15,10 @@ import {
   startInsertPreview,
   startMovePreview,
 } from '@/features/layout/preview/livePreview';
-import { getPreviewDocument } from '@/features/layout/preview/optimisticPreview';
+import {
+  addPreviewCss,
+  getPreviewDocument,
+} from '@/features/layout/preview/optimisticPreview';
 import {
   setCodeDragging,
   setListDragging,
@@ -209,6 +212,7 @@ const DragEventsHandler: React.FC = () => {
         );
       }
     } else if (origin === 'library' && data.type !== 'folder') {
+      addPreviewCss(previewDocument, data.item?.css ?? '');
       startInsertPreview(
         previewDocument,
         data.item?.default_markup,

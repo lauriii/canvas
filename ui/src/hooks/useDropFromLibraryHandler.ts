@@ -47,10 +47,7 @@ export function useDropFromLibraryHandler() {
       const layout = selectLayout(store.getState());
       const livePreviewDocument = commitLivePreview(uuid);
       if (livePreviewDocument) {
-        livePreviewDocument.head.insertAdjacentHTML(
-          'beforeend',
-          newItem.css ?? '',
-        );
+        // The live preview added the CSS when the drag started.
         movePreviewComponent(livePreviewDocument, layout, uuid);
       } else {
         const previewDocument = getPreviewDocument();
