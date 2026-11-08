@@ -16,9 +16,10 @@ import type { CanvasBoundary } from '@drupal-canvas/preview-geometry';
  * see is what you get when you let go. A drop commits the preview; otherwise
  * ending it puts the markup back where it was.
  *
- * A moved component also leaves a copy of itself under the pointer, which
- * follows it every frame. The component itself stays dimmed where it will be
- * dropped. When that changes, components slide to their new positions instead
+ * A copy of the dragged component follows the pointer every frame: lifted
+ * off a moved component, or appearing once a component from the library is
+ * first shown in the preview. The component itself stays dimmed where it will
+ * be dropped. When that changes, components slide to their new positions instead
  * of jumping there.
  *
  * Drop positions are drop zone ids, as resolved by findPreviewDropZoneId().
@@ -47,6 +48,8 @@ const SLIDE = { duration: 120, easing: 'cubic-bezier(0.2, 0, 0, 1)' };
 // The copy of a large component under the pointer shrinks to fit this size,
 // down to 40% of its size, so it doesn't hide where it can be dropped.
 const GHOST = { width: 480, height: 280, minScale: 0.4 };
+// Where the pointer holds the copy of a component from the library.
+const GRAB = { x: 12, y: 12 };
 
 interface Point {
   x: number;
@@ -56,11 +59,8 @@ interface Point {
 interface Ghost {
   element: HTMLElement;
   animation: Animation;
-  // The pointer position, in viewport coordinates of the editor.
-  pointer: Point;
   startTime: number;
   frame: number;
-  stop: () => void;
 }
 
 interface Position {
@@ -80,7 +80,10 @@ interface Session {
   homeContainer?: { type: 'slot' | 'region'; id: string };
   // Reverts what showing the markup at its current position changed.
   undo: Array<() => void>;
-  // The copy of the moved markup that follows the pointer.
+  // The pointer position, in viewport coordinates of the editor.
+  pointer?: Point;
+  untrack?: () => void;
+  // The copy of the dragged markup that follows the pointer.
   ghost?: Ghost;
   // Dim the moved markup.
   dim: Animation[];
@@ -92,6 +95,9 @@ let session: Session | null = null;
 
 /** Whether the dragged component is shown at its drop position. */
 export const isLivePreviewActive = () => session !== null;
+
+/** Whether a copy of the dragged component follows the pointer. */
+export const isLivePreviewCopyShown = () => !!session?.ghost;
 
 const findBoundary = (boundaries: CanvasBoundary[], type: string, id: string) =>
   boundaries.find((b) => b.type === type && b.id === id);
@@ -151,24 +157,43 @@ function backgroundColor(element: Element | null): string {
   return '#fff';
 }
 
+// Keeps track of the pointer while the session lasts.
+function track(current: Session, pointer: Point) {
+  current.pointer = pointer;
+  const move = (event: PointerEvent) => {
+    current.pointer = { x: event.clientX, y: event.clientY };
+  };
+  window.addEventListener('pointermove', move, true);
+  current.untrack = () => window.removeEventListener('pointermove', move, true);
+}
+
 /**
- * Lifts a copy of moved markup under the pointer.
+ * Lifts a copy of dragged markup under the pointer.
  *
  * The copy is fixed in the preview viewport and moved by an animation, which
  * changes no markup the overlay observes. Being a copy, it keeps the look of
  * the component wherever the component itself is shown.
+ *
+ * @param grab
+ *   Where in the copy the pointer holds it, if it appears there. Without it,
+ *   the copy is lifted off the markup where the pointer is.
  */
-function liftGhost(
-  document: Document,
-  nodes: Node[],
-  pointer: Point,
-): Ghost | undefined {
+function liftGhost(current: Session, grab?: Point): Ghost | undefined {
+  const { document, nodes } = current;
   const elements = nodes.filter(isElement);
-  const origin = toPreview(document, pointer);
-  if (!elements.length || !origin || !canAnimate(document)) {
+  const origin = current.pointer && toPreview(document, current.pointer);
+  const rect = bounds(nodes);
+  if (
+    !elements.length ||
+    !origin ||
+    !canAnimate(document) ||
+    !(rect.width && rect.height)
+  ) {
     return undefined;
   }
-  const rect = bounds(nodes);
+  const at = grab
+    ? { x: origin.x - grab.x, y: origin.y - grab.y }
+    : { x: rect.left, y: rect.top };
   const element = document.createElement('div');
   element.setAttribute('aria-hidden', 'true');
   element.inert = true;
@@ -203,8 +228,8 @@ function liftGhost(
   );
   Object.assign(element.style, {
     position: 'fixed',
-    left: `${rect.left}px`,
-    top: `${rect.top}px`,
+    left: `${at.x}px`,
+    top: `${at.y}px`,
     width: `${rect.width}px`,
     margin: '0',
     zIndex: '2147483647',
@@ -217,38 +242,30 @@ function liftGhost(
     lineHeight: context.lineHeight,
     background: backgroundColor(parent),
     boxShadow: '0 4px 14px rgb(0 0 0 / 0.12), 0 0 0 1px rgb(110 86 207 / 0.5)',
-    transformOrigin: `${origin.x - rect.left}px ${origin.y - rect.top}px`,
+    transformOrigin: `${origin.x - at.x}px ${origin.y - at.y}px`,
   });
   document.body.append(element);
   const ghost: Ghost = {
     element,
-    pointer,
     animation: element.animate([{ translate: '0 0', scale: '1' }], {
       duration: 0,
       fill: 'forwards',
     }),
     startTime: performance.now(),
     frame: 0,
-    stop: () => {
-      cancelAnimationFrame(ghost.frame);
-      window.removeEventListener('pointermove', track, true);
-    },
   };
-  const track = (event: PointerEvent) => {
-    ghost.pointer = { x: event.clientX, y: event.clientY };
-  };
-  window.addEventListener('pointermove', track, true);
+  // A lifted copy shrinks to size; one that appears fades in at size.
+  const from = grab ? { scale, opacity: 0 } : { scale: 1, opacity: 1 };
   const follow = (time: number) => {
-    const p = toPreview(document, ghost.pointer);
+    const p = current.pointer && toPreview(document, current.pointer);
     if (p) {
-      // Lift: shrink to size and add opacity over the first frames.
       const t = Math.min(1, Math.max(0, time - ghost.startTime) / 100);
       const eased = 1 - (1 - t) ** 3;
       (ghost.animation.effect as KeyframeEffect).setKeyframes([
         {
           translate: `${p.x - origin.x}px ${p.y - origin.y}px`,
-          scale: String(1 + (scale - 1) * eased),
-          opacity: String(1 - 0.04 * eased),
+          scale: String(from.scale + (scale - from.scale) * eased),
+          opacity: String(from.opacity + (0.96 - from.opacity) * eased),
         },
       ]);
     }
@@ -258,20 +275,27 @@ function liftGhost(
   return ghost;
 }
 
-/** Settles the copy of moved markup onto the markup, fading it out. */
+/**
+ * Settles the copy of dragged markup onto the markup, fading it out.
+ *
+ * Without markup shown, e.g. a canceled insert, it fades out where it is.
+ */
 function dropGhost(ghost: Ghost, onto: Node[]) {
-  ghost.stop();
+  cancelAnimationFrame(ghost.frame);
   const { element } = ghost;
   const target = bounds(onto);
   const from = (ghost.animation.effect as KeyframeEffect).getKeyframes()[0];
   const left = parseFloat(element.style.left);
   const top = parseFloat(element.style.top);
+  const shown = target.width && target.height;
   element.animate(
     [
       { translate: from.translate, scale: from.scale, opacity: from.opacity },
       {
-        translate: `${target.left - left}px ${target.top - top}px`,
-        scale: '1',
+        translate: shown
+          ? `${target.left - left}px ${target.top - top}px`
+          : from.translate,
+        scale: shown ? '1' : from.scale,
         opacity: '0',
       },
     ],
@@ -376,8 +400,16 @@ export function startMovePreview(
     slide: [],
   };
   if (pointer && canAnimate(document)) {
-    session.ghost = liftGhost(document, nodes, pointer);
-    session.dim = nodes
+    track(session, pointer);
+    lift(session);
+  }
+}
+
+// Lifts a copy of the dragged markup under the pointer, dimming the markup.
+function lift(current: Session, grab?: Point) {
+  current.ghost = liftGhost(current, grab);
+  if (current.ghost) {
+    current.dim = current.nodes
       .filter(isElement)
       .flatMap(boxes)
       .map((el) =>
@@ -396,11 +428,15 @@ export function startMovePreview(
  *   and instead of markup that can't render in the preview document.
  * @param name
  *   The name of the component.
+ * @param pointer
+ *   Where the drag started, in viewport coordinates of the editor. Once the
+ *   markup is shown in the preview, a copy of it follows the pointer.
  */
 export function startInsertPreview(
   document: Document,
   markup: string | undefined,
   name: string,
+  pointer?: Point,
 ): void {
   endLivePreview();
   const template = document.createElement('template');
@@ -444,6 +480,9 @@ export function startInsertPreview(
     dim: [],
     slide: [],
   };
+  if (pointer && canAnimate(document)) {
+    track(session, pointer);
+  }
 }
 
 function resolve(
@@ -523,6 +562,10 @@ export function showLivePreviewAt(dropZoneId: string | null): void {
     place(session, dropZoneId);
   } finally {
     slide(before, session.slide);
+  }
+  // The copy of inserted markup appears once the markup can be measured.
+  if (!session.home && !session.ghost && session.pointer) {
+    lift(session, GRAB);
   }
 }
 
@@ -609,7 +652,8 @@ export function endLivePreview(): void {
 }
 
 // Settles the copy of the dragged markup onto it and stops dimming it.
-function release({ ghost, dim, nodes }: Session) {
+function release({ ghost, dim, nodes, untrack }: Session) {
+  untrack?.();
   dim.forEach((animation) => animation.reverse());
   if (ghost) {
     dropGhost(ghost, nodes);

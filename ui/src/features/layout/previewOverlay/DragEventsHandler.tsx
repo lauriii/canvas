@@ -10,6 +10,7 @@ import { findParent } from '@/features/layout/layoutUtils';
 import {
   endLivePreview,
   isLivePreviewActive,
+  isLivePreviewCopyShown,
   showLivePreviewAt,
   startInsertPreview,
   startMovePreview,
@@ -52,6 +53,8 @@ const DragEventsHandler: React.FC = () => {
   const [dragOrigin, setDragOrigin] = useState('');
   const [isDraggingFolder, setIsDraggingFolder] = useState(false);
   const [isFolderAtBoundary, setIsFolderAtBoundary] = useState(false);
+  // Whether a copy of the dragged component follows the pointer in the preview.
+  const [isCopyShown, setIsCopyShown] = useState(false);
   const { handleFolderDrop } = useDropOnFolderHandler();
   const { handleNewDrop } = useDropFromLibraryHandler();
   const { handleExistingDrop } = useDropFromLayoutHandler();
@@ -206,7 +209,12 @@ const DragEventsHandler: React.FC = () => {
         );
       }
     } else if (origin === 'library' && data.type !== 'folder') {
-      startInsertPreview(previewDocument, data.item?.default_markup, data.name);
+      startInsertPreview(
+        previewDocument,
+        data.item?.default_markup,
+        data.name,
+        getEventCoordinates(event.activatorEvent!) ?? undefined,
+      );
     }
   }
 
@@ -215,6 +223,10 @@ const DragEventsHandler: React.FC = () => {
     if (isLivePreviewActive()) {
       showLivePreviewAt(over ? String(over.id) : null);
     }
+    // Drop zones in the preview have no destination.
+    setIsCopyShown(
+      isLivePreviewCopyShown() && !!over && !over.data.current?.destination,
+    );
     // Without a drop target, the dragged component is shown where it was.
     const targetSlot =
       over?.data?.current?.parentSlot?.id ??
@@ -246,6 +258,7 @@ const DragEventsHandler: React.FC = () => {
     dispatch(unsetTargetSlot());
     setIsDraggingFolder(false);
     setIsFolderAtBoundary(false);
+    setIsCopyShown(false);
     window.document.body.classList.remove(styles.dragging);
 
     // Ensure the mouse tracking is cleaned up
@@ -316,7 +329,7 @@ const DragEventsHandler: React.FC = () => {
       dropAnimation={null}
     >
       {/* A copy of a component dragged in the preview follows the pointer. */}
-      {!isDraggingFolder && dragOrigin !== 'overlay' && (
+      {!isDraggingFolder && dragOrigin !== 'overlay' && !isCopyShown && (
         <div>{componentName}</div>
       )}
     </DragOverlay>
