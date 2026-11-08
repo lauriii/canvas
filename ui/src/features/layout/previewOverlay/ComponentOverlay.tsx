@@ -4,6 +4,7 @@ import { useDraggable } from '@dnd-kit/core';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ComponentContextMenu from '@/features/layout/preview/ComponentContextMenu';
+import ComponentToolbar from '@/features/layout/preview/ComponentToolbar';
 import { ComponentNameTag } from '@/features/layout/preview/NameTag';
 import { usePreviewDom } from '@/features/layout/preview/PreviewDomContext';
 import { usePreviewGeometry } from '@/features/layout/preview/PreviewGeometryContext';
@@ -15,6 +16,7 @@ import {
   selectEditorViewPortScale,
   selectIsComponentHovered,
   selectIsComponentUpdating,
+  selectSelectedComponentUuid,
   setHoveredComponent,
   unsetHoveredComponent,
 } from '@/features/ui/uiSlice';
@@ -95,6 +97,10 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   const isSelected = useAppSelector((state) =>
     selectComponentIsSelected(state, component.uuid),
   );
+  // The toolbar is for a single selected component.
+  const hasToolbar =
+    useAppSelector(selectSelectedComponentUuid) === component.uuid &&
+    !isDragging;
 
   function handleComponentClick(event: React.MouseEvent<HTMLElement>) {
     event.stopPropagation();
@@ -144,6 +150,9 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   }
 
   const [componentType] = component.type.split('@');
+  // Components at the top of the page leave no room above them for their
+  // name and toolbar.
+  const inside = (componentGeometry?.rect.top ?? 0) * editorViewPortScale < 30;
 
   if (!componentGeometry || !parentGeometry) {
     return null;
@@ -184,18 +193,32 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
           data-canvas-overlay="true"
         />
       </ComponentContextMenu>
-      {(isHovered || isSelected) && (
-        <div className={clsx(styles.canvasNameTag)}>
-          <ComponentNameTag
-            name={name}
-            id={component.uuid}
-            nodeType={
-              isMarkerComponentType(component.type)
-                ? 'marker'
-                : component.nodeType
-            }
-          />
-        </div>
+      {hasToolbar && (
+        <ComponentToolbar
+          component={component}
+          name={name}
+          parentSlot={parentSlot}
+          index={index}
+          siblingCount={
+            (parentSlot ?? parentRegion)?.components.length ?? index + 1
+          }
+          horizontal={stackDirection.startsWith('h')}
+          inside={inside}
+          dragListeners={listeners}
+        />
+      )}
+      {!hasToolbar && (isHovered || isSelected) && (
+        <ComponentNameTag
+          name={name}
+          id={component.uuid}
+          nodeType={
+            isMarkerComponentType(component.type)
+              ? 'marker'
+              : component.nodeType
+          }
+          inside={inside}
+          dragListeners={listeners}
+        />
       )}
       {component.slots.map((slot: SlotNode) => (
         <SlotOverlay
