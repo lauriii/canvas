@@ -146,6 +146,21 @@ function toPreview(document: Document, point: Point): Point | null {
   return { x: (point.x - r.left) / scale, y: (point.y - r.top) / scale };
 }
 
+// Outlines empty slots like the overlay does, where the overlay doesn't: in
+// inserted markup and in copies.
+function outlineEmptySlots(root: ParentNode) {
+  root
+    .querySelectorAll<HTMLElement>(`.${CANVAS_EMPTY_SLOT_PLACEHOLDER_CLASS}`)
+    .forEach((el) => {
+      el.style.outline = '1px dashed #8e4ec6';
+      el.style.outlineOffset = '-5px';
+    });
+  // Slots of code components are in templates until they hydrate.
+  root
+    .querySelectorAll('template')
+    .forEach((template) => outlineEmptySlots(template.content));
+}
+
 // The background a component is shown on.
 function backgroundColor(element: Element | null): string {
   for (let el = element; el; el = el.parentElement) {
@@ -215,6 +230,7 @@ function liftGhost(current: Session, grab?: Point): Ghost | undefined {
       }
     }
     markers.forEach((marker) => marker.parentNode?.removeChild(marker));
+    outlineEmptySlots(copy);
     element.append(copy);
   });
   const parent = elements[0].parentElement ?? document.body;
@@ -459,6 +475,7 @@ export function startInsertPreview(
       'display:flex;align-items:center;justify-content:center;min-height:48px;font:500 13px/1 system-ui,sans-serif;color:#6e56cf;background:#f5f2ff;border-radius:4px;';
     template.content.append(box);
   }
+  outlineEmptySlots(template.content);
   const marker = (position: 'start' | 'end') =>
     document.createComment(
       formatCanvasCommentMarker({

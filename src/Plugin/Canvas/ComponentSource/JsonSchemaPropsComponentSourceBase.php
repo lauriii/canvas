@@ -51,6 +51,7 @@ use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Render\Component\Exception\ComponentNotFoundException;
 use Drupal\Core\Render\Component\Exception\InvalidComponentException;
 use Drupal\Core\Render\Element;
+use Drupal\Core\Render\Markup;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Theme\Component\ComponentMetadata;
 use Drupal\Core\Theme\Component\ComponentValidator;
@@ -1260,14 +1261,23 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       }
     }
 
+    $build = $this->renderComponent(
+      [self::EXPLICIT_INPUT_NAME => $default_props_for_default_markup],
+      $component->getSlotDefinitions(),
+      $component->uuid(),
+      TRUE
+    );
+    // Render slots as they are previewed when empty, which is how a component
+    // added to a component tree is previewed.
+    // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::renderify()
+    $this->setSlots($build, \array_map(
+      static fn() => ['#markup' => Markup::create(self::EMPTY_SLOT_PLACEHOLDER)],
+      $component->getSlotDefinitions(),
+    ));
+
     return [
       'source' => (string) $this->getSourceLabel(),
-      'build' => $this->renderComponent(
-        [self::EXPLICIT_INPUT_NAME => $default_props_for_default_markup],
-        $component->getSlotDefinitions(),
-        $component->uuid(),
-        TRUE
-      ),
+      'build' => $build,
       // Additional data only needed for SDCs.
       // @todo UI does not use any other metadata - should `slots` move to top level?
       'metadata' => ['slots' => $this->getSlotDefinitions()],
