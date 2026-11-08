@@ -38,21 +38,32 @@ interface OptionsSourceInterface extends PluginInspectionInterface {
   /**
    * Lists the options for the current user.
    *
+   * Runs, uncached, each time a component instance form is built. Return an
+   * empty list rather than throw when the configured data no longer exists.
+   *
    * @return array<string|int, string>
-   *   The labels of the options, keyed by the values that props receive.
+   *   The labels of the options, keyed by the values that props receive. Keys
+   *   must be integers for `type: integer` props. Labels of nested options are
+   *   paths, such as "Design › Typography", which the UI shows as a tree.
    */
   public function getOptions(): array;
 
   /**
    * Validates the configuration.
    *
+   * @param 'string'|'integer' $type
+   *   The JSON Schema type of the prop's values.
+   *
    * @return list<string>
-   *   Problems with the configuration, empty if it is valid.
+   *   Problems with the configuration, as sentences, empty if it is valid.
    */
-  public function validateConfiguration(): array;
+  public function validateConfiguration(string $type): array;
 
   /**
    * Lists configurations to offer in the code editor.
+   *
+   * Code component developers pick one of these as is, so return one for each
+   * useful configuration, or none if the source needs `component.yml`.
    *
    * @return list<array{label: string, configuration: array<string, mixed>}>
    *   Configurations of this source, each with a label such as "Tags".

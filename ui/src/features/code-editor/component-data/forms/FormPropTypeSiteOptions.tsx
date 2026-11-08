@@ -86,10 +86,16 @@ export default function FormPropTypeSiteOptions({
         <Text size="1" color="red">
           The options sources could not be loaded.
         </Text>
+      ) : !options && !isLoading ? (
+        <Text size="1" color="red">
+          Choose where the options come from. Until then, this prop is plain
+          text.
+        </Text>
       ) : (
         <Text size="1" color="gray">
-          The component receives the ID of the chosen option. Content authors
-          see the options as they are on the site.
+          The component receives the ID of the chosen option as text, such as
+          "12". These props are optional, because the site may have no options
+          to choose from.
         </Text>
       )}
     </FormElement>

@@ -8,6 +8,7 @@ import {
 } from '@/components/form/components/selectIndicators';
 import {
   formatTreeOptionLabel,
+  noOptionsMessage,
   PATH_SEPARATOR,
 } from '@/components/form/components/treeOptionLabel';
 import { useFieldContext } from '@/components/form/contexts/FieldContext';
@@ -34,7 +35,9 @@ export const needsSearchableSelect = (
   options: Option[],
 ): boolean =>
   !('multiple' in attributes) &&
-  (options.length >= MIN_OPTIONS ||
+  // Options from site data: how many there are varies.
+  ('data-canvas-options-source' in attributes ||
+    options.length >= MIN_OPTIONS ||
     options.some((option) => option.label.includes(PATH_SEPARATOR)));
 
 /**
@@ -95,7 +98,7 @@ const SearchableSelect = ({
         // Search the labels, not the IDs.
         filterOption={createFilter({ stringify: (option) => option.label })}
         formatOptionLabel={formatTreeOptionLabel}
-        noOptionsMessage={() => 'No matches'}
+        noOptionsMessage={noOptionsMessage}
         components={{
           DropdownIndicator,
           ClearIndicator,

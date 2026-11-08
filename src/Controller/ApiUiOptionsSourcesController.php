@@ -33,8 +33,7 @@ final class ApiUiOptionsSourcesController extends ApiControllerBase {
         ];
       }
     }
-    // ponytail: uncached, it is only requested when editing a code component
-    // prop. Add cache tags of the sources if it gets requested more often.
+    // Uncached: only the code editor requests it, when editing a prop.
     $response = new CacheableJsonResponse(['data' => $data]);
     $response->getCacheableMetadata()->setCacheMaxAge(0);
     return $response;

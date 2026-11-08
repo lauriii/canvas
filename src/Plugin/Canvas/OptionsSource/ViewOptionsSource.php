@@ -31,7 +31,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 #[OptionsSource(
   id: 'view',
-  label: new TranslatableMarkup('View'),
+  label: new TranslatableMarkup('Views'),
 )]
 final class ViewOptionsSource extends PluginBase implements OptionsSourceInterface, ContainerFactoryPluginInterface {
 
@@ -56,6 +56,10 @@ final class ViewOptionsSource extends PluginBase implements OptionsSourceInterfa
   }
 
   public function getOptions(): array {
+    // The Views module may have been uninstalled.
+    if (!$this->moduleHandler->moduleExists('views')) {
+      return [];
+    }
     $view = Views::getView($this->configuration['view']);
     $entity_type = $view?->getBaseEntityType();
     if ($entity_type === NULL || $entity_type === FALSE) {
@@ -80,7 +84,7 @@ final class ViewOptionsSource extends PluginBase implements OptionsSourceInterfa
     return $options;
   }
 
-  public function validateConfiguration(): array {
+  public function validateConfiguration(string $type): array {
     if (!$this->moduleHandler->moduleExists('views')) {
       return ['The "view" source needs the Views module.'];
     }
@@ -98,8 +102,8 @@ final class ViewOptionsSource extends PluginBase implements OptionsSourceInterfa
       return [\sprintf('`display` must be an "Entity Reference" display of the "%s" view, but is %s.', $view_id, json_encode($display_id))];
     }
     $arguments = $this->configuration['arguments'] ?? [];
-    if (!\is_array($arguments) || !array_is_list($arguments) || \array_filter($arguments, fn ($argument) => !\is_scalar($argument))) {
-      return ['`arguments` must be a list of contextual filter values.'];
+    if (!\is_array($arguments) || !array_is_list($arguments) || \array_filter($arguments, fn ($argument) => !\is_string($argument))) {
+      return ['`arguments` must be a list of contextual filter values, as text, such as `[\'5\']`.'];
     }
     return [];
   }

@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { needsSearchableSelect } from '@/components/form/components/SearchableSelect';
-import { formatTreeOptionLabel } from '@/components/form/components/treeOptionLabel';
+import {
+  formatTreeOptionLabel,
+  noOptionsMessage,
+} from '@/components/form/components/treeOptionLabel';
 
 const options = (labels: string[]) =>
   labels.map((label, index) => ({
@@ -26,6 +29,15 @@ describe('needsSearchableSelect', () => {
     ).toBe(true);
   });
 
+  it('searches options from site data, however many there are', () => {
+    expect(
+      needsSearchableSelect(
+        { 'data-canvas-options-source': 'true' },
+        options(['A']),
+      ),
+    ).toBe(true);
+  });
+
   it('leaves multiple-value selects alone', () => {
     expect(
       needsSearchableSelect({ multiple: true }, options([...'ABCDEFGH'])),
@@ -40,8 +52,16 @@ describe('formatTreeOptionLabel', () => {
     const rendered = formatTreeOptionLabel(nested, {
       context: 'menu',
       inputValue: '',
-    }) as { props: { children: string; style: object } };
-    expect(rendered.props.children).toBe('Color');
+    }) as {
+      props: {
+        children: [{ props: { children: string } }, string];
+        style: object;
+      };
+    };
+    const [parents, leaf] = rendered.props.children;
+    expect(leaf).toBe('Color');
+    // Screen readers still get the path.
+    expect(parents.props.children).toBe('Design › ');
     expect(rendered.props.style).toEqual({ paddingInlineStart: '16px' });
   });
 
@@ -52,5 +72,14 @@ describe('formatTreeOptionLabel', () => {
     expect(
       formatTreeOptionLabel(nested, { context: 'menu', inputValue: 'col' }),
     ).toBe('Design › Color');
+  });
+});
+
+describe('noOptionsMessage', () => {
+  it('tells an empty list from a search without matches', () => {
+    expect(noOptionsMessage({ inputValue: '' })).toBe(
+      'Nothing to choose from yet',
+    );
+    expect(noOptionsMessage({ inputValue: 'x' })).toBe('No matches');
   });
 });

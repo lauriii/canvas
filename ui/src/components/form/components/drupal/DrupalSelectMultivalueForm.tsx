@@ -6,7 +6,10 @@ import {
   ClearIndicator,
   DropdownIndicator,
 } from '@/components/form/components/selectIndicators';
-import { formatTreeOptionLabel } from '@/components/form/components/treeOptionLabel';
+import {
+  formatTreeOptionLabel,
+  noOptionsMessage,
+} from '@/components/form/components/treeOptionLabel';
 import { withRHF } from '@/components/form/react-hook-form/withRHF';
 import { a2p } from '@/local_packages/utils';
 
@@ -67,8 +70,9 @@ const HiddenSelect: React.FC<{
     },
   );
 
-  // Ensure value is always an array for multiple select.
-  const selectValue = nativeSelectProps.value;
+  // Ensure value is always an array for multiple select. Read it before a2p,
+  // which joins arrays with spaces (intended for CSS classes).
+  const selectValue = attributes.value ?? nativeSelectProps.value;
   const normalizedValue = Array.isArray(selectValue)
     ? selectValue
     : selectValue
@@ -193,7 +197,9 @@ const DrupalSelectMultivalueForm = ({
         aria-label={placeholderText}
         classNamePrefix="canvas-select"
         closeMenuOnSelect={false}
-        noOptionsMessage={() => 'No selection'}
+        noOptionsMessage={noOptionsMessage}
+        // Keep chosen options in the menu, so nested options stay a tree.
+        hideSelectedOptions={false}
         formatOptionLabel={formatTreeOptionLabel}
         components={{
           DropdownIndicator,

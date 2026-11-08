@@ -40,7 +40,7 @@
 
 .container [class*="canvas-select__multi-value__label"] {
   overflow: hidden;
-  max-width: 100px;
+  max-width: 100%;
   padding: 2px 4px;
   white-space: nowrap;
   text-overflow: ellipsis;

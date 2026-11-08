@@ -86,11 +86,14 @@ final class ComponentMetadataRequirementsChecker {
       }
       if (\array_key_exists(OptionsSourceInterface::KEY, $item_schema)) {
         $prefix = \sprintf('Prop "%s": `%s`:', $prop_name, OptionsSourceInterface::KEY);
+        $item_type = ((array) ($item_schema['type'] ?? NULL))[0] ?? NULL;
         $options_messages = match (TRUE) {
-          !\in_array(((array) ($item_schema['type'] ?? NULL))[0] ?? NULL, ['string', 'integer'], TRUE) => ['Needs a prop of type string or integer, or a list of them.'],
+          !\in_array($item_type, ['string', 'integer'], TRUE) => ['Needs a prop of type string or integer, or a list of them.'],
           \array_key_exists('enum', $item_schema) => ['Replaces `enum`: remove `enum`.'],
           \in_array($prop_name, $required_props, TRUE) => ['Needs an optional prop, because the site may have no options to choose from.'],
-          default => \Drupal::service(OptionsSourceManager::class)->validatePropSchema($item_schema[OptionsSourceInterface::KEY]),
+          // Examples are default values, but IDs differ between sites.
+          \array_key_exists('examples', $prop) => ['Remove `examples`: an example would become the default value, but option IDs differ between sites.'],
+          default => \Drupal::service(OptionsSourceManager::class)->validatePropSchema($item_schema[OptionsSourceInterface::KEY], $item_type),
         };
         if ($options_messages) {
           $messages = [...$messages, ...\array_map(fn (string $message) => "$prefix $message", $options_messages)];

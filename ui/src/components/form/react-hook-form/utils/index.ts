@@ -52,6 +52,13 @@ export const dispatchFieldError = (
 };
 
 export const getCurrentValueFromProps = (props: Record<string, any>) => {
+  // A multiple select has all its selected options as its value, not only the
+  // first one. Otherwise, the next change keeps only the first value.
+  if (props.options && props.attributes?.multiple) {
+    return props.options
+      .filter((opt: any) => opt.selected && opt.value !== '_none')
+      .map((opt: any) => opt.value);
+  }
   const selectedOption = props.options?.find((opt: any) => opt.selected);
   if (selectedOption) {
     return selectedOption.value;
