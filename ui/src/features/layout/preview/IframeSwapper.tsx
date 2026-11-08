@@ -10,6 +10,7 @@ import clsx from 'clsx';
 
 import { useAppSelector } from '@/app/hooks';
 import { COMPONENT_PREVIEW_UPDATE_EVENT } from '@/components/form/react-hook-form/fields/componentPreviewEvents';
+import { isLivePreviewActive } from '@/features/layout/preview/livePreview';
 import { PREVIEW_HEAD_STYLES_ID } from '@/features/layout/preview/optimisticPreview';
 import { previewEditCount } from '@/features/layout/preview/previewEdits';
 import { selectPreviewHtmlEditsAtRequest } from '@/features/pagePreview/previewSlice';
@@ -107,8 +108,14 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
 
         iframe.style.display = '';
 
-        const startTime = Date.now();
+        let startTime = Date.now();
         const checkIFrameContent = () => {
+          // Swapping would take the dragged component out of the user's hand.
+          if (isLivePreviewActive()) {
+            startTime = Date.now();
+            requestAnimationFrame(checkIFrameContent);
+            return;
+          }
           // The shown preview has been edited since this one was requested: it
           // is newer, and the render of the edit is on its way.
           if (previewEditCount() > editsAtLoadRef.current) {

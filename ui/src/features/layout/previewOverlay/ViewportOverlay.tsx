@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom';
 
 import { useAppSelector } from '@/app/hooks';
 import { selectContentRegion } from '@/features/layout/layoutModelSlice';
+import DropPreviewOverlay from '@/features/layout/previewOverlay/DropPreviewOverlay';
 import RegionOverlay from '@/features/layout/previewOverlay/RegionOverlay';
 import {
   selectDragging,
@@ -108,6 +109,7 @@ const ViewportOverlay: React.FC<ViewportOverlayProps> = (props) => {
       }}
     >
       <RegionOverlay region={contentRegion} />
+      <DropPreviewOverlay />
     </div>,
     portalRoot,
   );

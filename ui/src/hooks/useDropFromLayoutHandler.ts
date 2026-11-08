@@ -3,6 +3,7 @@ import _ from 'lodash';
 import { useAppDispatch, useAppStore } from '@/app/hooks';
 import { moveNode, selectLayout } from '@/features/layout/layoutModelSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
+import { commitLivePreview } from '@/features/layout/preview/livePreview';
 import {
   getPreviewDocument,
   movePreviewComponent,
@@ -62,7 +63,9 @@ export function useDropFromLayoutHandler() {
     }
 
     // if we got this far, then we have a valid location to move the dragged component to!
-    // The preview shows the move right away (see optimisticPreviewListener).
+    // The live preview usually shows it there already; the preview shows the
+    // move right away (see optimisticPreviewListener).
+    commitLivePreview();
     dispatch(moveNode({ uuid: activeUuid, to: dropPath }));
     // Only fall back to the 'pending move' state when the preview doesn't show
     // it, e.g. a headless one. Moving it again only checks that it is there.

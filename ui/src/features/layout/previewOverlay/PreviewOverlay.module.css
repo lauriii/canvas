@@ -91,10 +91,10 @@
     box-shadow: 0 0 0 2px rgb(255, 255, 255, 0.6);
   }
 
+  /* The dragged component, shown where it will be dropped. */
   &.dragging {
-    backdrop-filter: grayscale(80%) opacity(40%);
-    background: #fff;
-    mix-blend-mode: color;
+    outline: 2px dashed var(--color-outline-component);
+    outline-offset: -1px;
   }
 
   &.updating {
@@ -200,6 +200,23 @@
   --placeholder-accent: var(--blue-9);
   --placeholder-accent-tint: var(--blue-3);
   --placeholder-accent-text: var(--blue-12);
+}
+
+/* The dragged component itself shows where it will be dropped: nothing may
+ * cover it. */
+:global(.canvas--live-drop-preview) .componentDropZone.isOver::after {
+  display: none;
+}
+
+:global(.canvas--live-drop-preview) .emptyRegionDropZone.isOver,
+:global(.canvas--live-drop-preview) .emptySlotDropZone.isOver,
+:global(.canvas--live-drop-preview) .emptyPageDropZone.isOver {
+  color: transparent;
+  background: transparent;
+
+  svg {
+    display: none;
+  }
 }
 
 .componentDropZone {
