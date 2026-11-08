@@ -10,6 +10,7 @@ import clsx from 'clsx';
 
 import { useAppSelector } from '@/app/hooks';
 import { COMPONENT_PREVIEW_UPDATE_EVENT } from '@/components/form/react-hook-form/fields/componentPreviewEvents';
+import { previewEditCount } from '@/features/layout/preview/previewEdits';
 import { selectDragging } from '@/features/ui/uiSlice';
 
 import type { Dispatch, Ref, SetStateAction } from 'react';
@@ -53,6 +54,8 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
   ) => {
     const iFrameRefs = useRef<(HTMLIFrameElement | null)[]>([]);
     const whichActiveRef = useRef(0);
+    // Edits to the shown preview before the loading one was requested.
+    const editsAtLoadRef = useRef(0);
     const [whichActive, setWhichActive] = useState(0);
     const { isDragging } = useAppSelector(selectDragging);
     // Latest-value ref, so writing a new srcdoc picks up the current styles
@@ -102,6 +105,11 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
 
       const startTime = Date.now();
       const checkIFrameContent = () => {
+        // The shown preview has been edited since: it is newer than this one,
+        // and the render of the edit is on its way.
+        if (previewEditCount() !== editsAtLoadRef.current) {
+          return;
+        }
         // Find all <template>s pending hydration by Astro. Once hydration is complete, there should be no pending templates remaining.
         const pendingTemplates = iframe?.contentDocument?.querySelectorAll(
           'template[data-astro-template]',
@@ -172,6 +180,7 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
     useEffect(() => {
       // Important to change a state ensure parent re-renders (and re-calls hooks) once the iframe is swapped.
       setIsReloading(true);
+      editsAtLoadRef.current = previewEditCount();
       const { activeIFrame, inactiveIFrame } = getIFrames();
 
       // Insert the head styles into the markup itself, so a loading document

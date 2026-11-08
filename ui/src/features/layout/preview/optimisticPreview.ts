@@ -7,6 +7,7 @@ import {
 
 import { NodeType } from '@/features/layout/layoutModelSlice';
 import { findParent } from '@/features/layout/layoutUtils';
+import { notePreviewEdit } from '@/features/layout/preview/previewEdits';
 
 import type { CanvasBoundary } from '@drupal-canvas/preview-geometry';
 import type { RegionNode } from '@/features/layout/layoutModelSlice';
@@ -119,6 +120,7 @@ export function movePreviewComponent(
   range.setStartBefore(moved.start);
   range.setEndAfter(moved.end);
   insertBefore(position.anchor, range.extractContents(), position.container);
+  notePreviewEdit();
   return true;
 }
 
@@ -153,6 +155,7 @@ export function insertPreviewComponent(
   const template = document.createElement('template');
   template.innerHTML = `<!--${formatCanvasCommentMarker({ type: 'component', position: 'start', id: uuid })}-->${markup.default_markup}<!--${formatCanvasCommentMarker({ type: 'component', position: 'end', id: uuid })}-->`;
   insertBefore(position.anchor, template.content, position.container);
+  notePreviewEdit();
   return true;
 }
 
@@ -199,5 +202,6 @@ export function removePreviewComponent(document: Document, uuid: string) {
     range.setStartBefore(removed.start);
     range.setEndAfter(removed.end);
     range.deleteContents();
+    notePreviewEdit();
   }
 }

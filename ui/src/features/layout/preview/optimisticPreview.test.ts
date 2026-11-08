@@ -5,6 +5,7 @@ import {
   insertPreviewComponent,
   movePreviewComponent,
 } from '@/features/layout/preview/optimisticPreview';
+import { previewEditCount } from '@/features/layout/preview/previewEdits';
 
 import type {
   ComponentNode,
@@ -83,6 +84,7 @@ describe('movePreviewComponent', () => {
     const doc = preview();
     doc.body.insertBefore(doc.createTextNode(' '), doc.body.childNodes[4]);
     const a = doc.querySelector('p')!;
+    const edits = previewEditCount();
     expect(
       movePreviewComponent(
         doc,
@@ -91,6 +93,7 @@ describe('movePreviewComponent', () => {
       ),
     ).toBe(true);
     expect(doc.querySelector('p')).toBe(a);
+    expect(previewEditCount()).toBe(edits);
   });
 
   it('leaves the preview alone when markers are missing', () => {
@@ -105,6 +108,7 @@ describe('movePreviewComponent', () => {
 describe('insertPreviewComponent', () => {
   it('inserts the default markup with markers and moves CSS to the head', () => {
     const doc = preview();
+    const edits = previewEditCount();
     const markup = {
       default_markup: '<p>N</p><script>window.ran = true</script>',
       css: '<link rel="stylesheet" href="n.css">',
@@ -120,6 +124,7 @@ describe('insertPreviewComponent', () => {
     expect(text(doc)).toBe('A,N,B');
     expect(doc.head.querySelector('link[href="n.css"]')).not.toBeNull();
     expect(doc.body.innerHTML).toContain('<!--canvas-start-n--><p>N</p>');
+    expect(previewEditCount()).toBe(edits + 1);
     // The CSS of another instance is there already.
     insertPreviewComponent(
       doc,
