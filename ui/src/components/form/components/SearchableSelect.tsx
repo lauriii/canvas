@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import ReactSelect, { createFilter } from 'react-select';
 
-import Select from '@/components/form/components/Select';
 import {
   ClearIndicator,
   DropdownIndicator,
-} from '@/components/form/components/selectIndicators';
+  Option,
+  useLabelId,
+} from '@/components/form/components/reactSelectParts';
+import Select from '@/components/form/components/Select';
 import {
   formatTreeOptionLabel,
   noOptionsMessage,
@@ -17,7 +19,7 @@ import type { Attributes } from '@/types/DrupalAttribute';
 
 import styles from '@/components/form/components/drupal/DrupalSelectMultivalueForm.module.css';
 
-type Option = {
+type DrupalOption = {
   value: string;
   label: string;
   selected: boolean;
@@ -32,7 +34,7 @@ const MIN_OPTIONS = 8;
  */
 export const needsSearchableSelect = (
   attributes: Attributes,
-  options: Option[],
+  options: DrupalOption[],
 ): boolean =>
   !('multiple' in attributes) &&
   // Options from site data: how many there are varies.
@@ -54,22 +56,11 @@ const SearchableSelect = ({
   options = [],
 }: {
   attributes?: Attributes;
-  options?: Option[];
+  options?: DrupalOption[];
 }) => {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const fieldContext = useFieldContext();
-  const [labelledBy, setLabelledBy] = useState<string>();
-
-  // The Drupal label points at the hidden select. Reuse it as the accessible
-  // name of the search field.
-  useEffect(() => {
-    const id = attributes.id;
-    if (!id) return;
-    const label = document.querySelector(`label[for="${CSS.escape(`${id}`)}"]`);
-    if (!label) return;
-    label.id ||= `${id}--label`;
-    setLabelledBy(label.id);
-  }, [attributes.id]);
+  const labelledBy = useLabelId(attributes.id);
 
   const current = `${
     attributes.value ?? options.find((option) => option.selected)?.value ?? ''
@@ -91,7 +82,7 @@ const SearchableSelect = ({
         value={items.find((item) => item.value === selected) ?? null}
         isClearable={!!noneOption}
         isDisabled={!!attributes.disabled}
-        placeholder="Search…"
+        placeholder="Choose…"
         aria-labelledby={labelledBy}
         aria-describedby={attributes['aria-describedby'] as string | undefined}
         classNamePrefix="canvas-select"
@@ -102,6 +93,7 @@ const SearchableSelect = ({
         components={{
           DropdownIndicator,
           ClearIndicator,
+          Option,
           IndicatorSeparator: () => null,
         }}
         onChange={(item) => {

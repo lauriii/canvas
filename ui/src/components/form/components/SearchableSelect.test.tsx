@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { cleanup, render, screen } from '@testing-library/react';
 
 import { needsSearchableSelect } from '@/components/form/components/SearchableSelect';
 import {
@@ -66,12 +67,24 @@ describe('formatTreeOptionLabel', () => {
   });
 
   it('keeps the path for the chosen value and while searching', () => {
+    for (const meta of [
+      { context: 'value' as const, inputValue: '' },
+      { context: 'menu' as const, inputValue: 'col' },
+    ]) {
+      render(<>{formatTreeOptionLabel(nested, meta)}</>);
+      expect(screen.getByText('Design ›', { exact: false })).toBeTruthy();
+      expect(screen.getByText('Color')).toBeTruthy();
+      cleanup();
+    }
+  });
+
+  it('leaves labels without a path alone', () => {
     expect(
-      formatTreeOptionLabel(nested, { context: 'value', inputValue: '' }),
-    ).toBe('Design › Color');
-    expect(
-      formatTreeOptionLabel(nested, { context: 'menu', inputValue: 'col' }),
-    ).toBe('Design › Color');
+      formatTreeOptionLabel(
+        { label: 'News' },
+        { context: 'value', inputValue: '' },
+      ),
+    ).toBe('News');
   });
 });
 
