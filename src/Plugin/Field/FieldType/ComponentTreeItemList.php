@@ -45,7 +45,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
   /**
    * The markup a slot with no components renders in the editor, as its target.
    */
-  public const string EMPTY_SLOT_PLACEHOLDER = '<div class="canvas--slot-empty-placeholder"></div>';
+  public const string EMPTY_SLOT_PLACEHOLDER = ComponentSourceWithSlotsInterface::EMPTY_SLOT_PLACEHOLDER;
 
   /**
    * @var null|array<string, array{'edges': array<string, TRUE>}>

@@ -4839,9 +4839,10 @@ HTML
       ],
       'sdc.canvas_test_sdc.columns' => [
         'expected_output_selectors' => [
-          // TRICKY: there's no content to assert, because the preview by
-          // default doe snot use slot values.
+          // The preview does not use slot values: slots are empty, as in a
+          // component added to a component tree.
           'div[data-component-id="canvas_test_sdc:columns"]',
+          'div[data-component-id="canvas_test_sdc:columns"] .canvas--slot-empty-placeholder',
         ],
         'source' => 'Module component',
         'metadata' => [

@@ -12,6 +12,11 @@ namespace Drupal\canvas\ComponentSource;
 interface ComponentSourceWithSlotsInterface extends ComponentSourceInterface {
 
   /**
+   * The markup a slot with no components renders in the editor, as its target.
+   */
+  public const string EMPTY_SLOT_PLACEHOLDER = '<div class="canvas--slot-empty-placeholder"></div>';
+
+  /**
    * Gets information about the slots.
    *
    * @return array<string, array{'title': string, 'description'?: string, 'examples': array<mixed>}>
