@@ -3,6 +3,7 @@ import _ from 'lodash';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { moveNode, selectLayout } from '@/features/layout/layoutModelSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
+import { getPreviewDocument } from '@/features/layout/preview/optimisticPreview';
 
 import type { DragEndEvent } from '@dnd-kit/core';
 
@@ -53,10 +54,11 @@ export function useDropFromLayoutHandler() {
     }
 
     // if we got this far, then we have a valid location to move the dragged component to!
-    // @todo We should optimistically move the elementsInsideIframe to the new location in the iFrames dom.
-    // for now, we pass true here which will put the elementsInsideIframe into a 'pending move' state.
-    afterDrag(elementsInsideIframe, true, activeUuid);
+    // The preview shows the move right away (see optimisticPreviewListener).
     dispatch(moveNode({ uuid: activeUuid, to: dropPath }));
+    // Only fall back to the 'pending move' state when the preview can't show
+    // it, e.g. a headless one.
+    afterDrag(elementsInsideIframe, !getPreviewDocument(), activeUuid);
   }
 
   return { handleExistingDrop };
