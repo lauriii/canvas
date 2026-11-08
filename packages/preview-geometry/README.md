@@ -7,7 +7,8 @@ It provides:
 
 - marker formatting plus discovery and measurement of component, slot, and
   region boundaries;
-- an observer that reports geometry when preview layout changes;
+- an observer that reports geometry when preview layout changes, optionally
+  before markup changes paint and every frame while chosen animations run;
 - validation for serializable geometry snapshots;
 - the shared empty-slot and empty-region placeholder stylesheet.
 

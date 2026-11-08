@@ -536,6 +536,71 @@ ${'  Label  '}
     observer.disconnect();
   });
 
+  it('emits markup changes before the next frame when synchronous', async () => {
+    document.body.innerHTML = `
+      <!-- canvas-start-card -->
+      <article>Card</article>
+      <!-- canvas-end-card -->
+    `;
+    mockClientRects(document.querySelector('article')!, [
+      domRect(0, 0, 100, 20),
+    ]);
+    const requestAnimationFrame = vi.fn(() => 1);
+    vi.stubGlobal('requestAnimationFrame', requestAnimationFrame);
+    vi.stubGlobal('cancelAnimationFrame', vi.fn());
+    const onChange = vi.fn();
+    const observer = createCanvasGeometryObserver({
+      root: document,
+      onChange,
+      synchronous: true,
+    });
+
+    document.body.append(document.createElement('p'));
+    // Mutation observers are notified in a microtask, before any frame.
+    await Promise.resolve();
+    expect(onChange).toHaveBeenCalledTimes(2);
+    expect(requestAnimationFrame).not.toHaveBeenCalled();
+
+    observer.disconnect();
+  });
+
+  it('emits every frame while a followed animation runs', () => {
+    document.body.innerHTML = `
+      <!-- canvas-start-card -->
+      <article>Card</article>
+      <!-- canvas-end-card -->
+    `;
+    const article = document.querySelector('article')!;
+    let left = 0;
+    vi.spyOn(article, 'getClientRects').mockImplementation(
+      () => [domRect(left, 0, 100, 20)] as unknown as DOMRectList,
+    );
+    const frames: FrameRequestCallback[] = [];
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) =>
+      frames.push(callback),
+    );
+    vi.stubGlobal('cancelAnimationFrame', vi.fn());
+    const animation = { id: 'slide', playState: 'running' };
+    document.getAnimations = () => [animation as unknown as Animation];
+    const onChange = vi.fn();
+    const observer = createCanvasGeometryObserver({
+      root: document,
+      onChange,
+      followAnimation: (a) => a.id === 'slide',
+    });
+
+    expect(frames).toHaveLength(1);
+    left = 10;
+    frames.shift()!(0);
+    expect(onChange).toHaveBeenCalledTimes(2);
+    animation.playState = 'finished';
+    frames.shift()!(0);
+    expect(frames).toHaveLength(0);
+
+    observer.disconnect();
+    Reflect.deleteProperty(document, 'getAnimations');
+  });
+
   it('rediscovers resize targets only after child-list changes', async () => {
     document.body.innerHTML = `
       <!-- canvas-start-card -->

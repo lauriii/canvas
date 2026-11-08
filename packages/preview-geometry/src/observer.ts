@@ -17,7 +17,13 @@ import type {
 export function createCanvasGeometryObserver(
   options: CanvasGeometryObserverOptions,
 ): CanvasGeometryObserver {
-  const { root, onChange, ...measurementOptions } = options;
+  const {
+    root,
+    onChange,
+    synchronous = false,
+    followAnimation,
+    ...measurementOptions
+  } = options;
   const document = getOwnerDocument(root);
   const view = document.defaultView;
   if (!view) {
@@ -42,6 +48,14 @@ export function createCanvasGeometryObserver(
     if (forceSnapshot || snapshot !== previousSnapshot) {
       previousSnapshot = snapshot;
       onChange(geometry);
+    }
+    if (
+      followAnimation &&
+      document
+        .getAnimations?.()
+        .some((a) => a.playState === 'running' && followAnimation(a))
+    ) {
+      scheduleRefresh();
     }
   };
   const scheduleRefresh = (forceSnapshot = false) => {
@@ -70,12 +84,23 @@ export function createCanvasGeometryObserver(
   refreshResizeTargets();
 
   const mutationObserver = new view.MutationObserver((mutations) => {
-    if (mutations.some((mutation) => mutation.type === 'childList')) {
+    const childList = mutations.some(
+      (mutation) => mutation.type === 'childList',
+    );
+    if (childList) {
       refreshResizeTargets();
     }
     // A content refresh can leave every rectangle unchanged. Emit a fresh
     // snapshot so consumers can still treat the mutation as completion.
-    scheduleRefresh(true);
+    if (synchronous && childList) {
+      if (scheduledFrame !== null) {
+        view.cancelAnimationFrame(scheduledFrame);
+      }
+      forceNextSnapshot = true;
+      emit();
+    } else {
+      scheduleRefresh(true);
+    }
   });
   mutationObserver.observe(root, {
     attributes: true,
