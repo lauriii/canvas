@@ -1,14 +1,17 @@
 import _ from 'lodash';
 
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { useAppDispatch, useAppSelector, useAppStore } from '@/app/hooks';
 import { moveNode, selectLayout } from '@/features/layout/layoutModelSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import { getPreviewDocument } from '@/features/layout/preview/optimisticPreview';
+import useComponentSelection from '@/hooks/useComponentSelection';
 
 import type { DragEndEvent } from '@dnd-kit/core';
 
 export function useDropFromLayoutHandler() {
   const dispatch = useAppDispatch();
+  const store = useAppStore();
+  const { setSelectedComponent } = useComponentSelection();
   const layout = useAppSelector(selectLayout);
 
   // There is an edge case where if an item is dragged into the space immediately after itself,
@@ -59,6 +62,8 @@ export function useDropFromLayoutHandler() {
     // Only fall back to the 'pending move' state when the preview can't show
     // it, e.g. a headless one.
     afterDrag(elementsInsideIframe, !getPreviewDocument(), activeUuid);
+    // Edit what was just moved, like a component added from the library.
+    setSelectedComponent(activeUuid, selectLayout(store.getState()));
   }
 
   return { handleExistingDrop };
