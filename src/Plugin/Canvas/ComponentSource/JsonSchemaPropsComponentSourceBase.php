@@ -1049,6 +1049,27 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       $form[$sdc_prop_name] = $source->formTemporaryRemoveThisExclamationExclamationExclamation($widget, $sdc_prop_name, $is_required, $entity_object_for_field_widget, $form, $form_state);
       $form[$sdc_prop_name]['#disabled'] = $disabled;
 
+      // Options from site data.
+      // @see \Drupal\canvas\OptionsSource\OptionsSourceInterface
+      if (($form[$sdc_prop_name]['widget']['#type'] ?? NULL) === 'select' && $this->getOptionsSourceForExplicitInputProp($sdc_prop_name) !== NULL) {
+        $select = &$form[$sdc_prop_name]['widget'];
+        // The UI offers search however many options there are today.
+        $select['#attributes']['data-canvas-options-source'] = 'true';
+        // Keep a value that is no longer an option, such as a deleted term or
+        // one the current user cannot view. The widget drops it from its
+        // default value, so the select would fall back to "None", and the next
+        // change would clear the prop.
+        $stored_values = \array_map(strval(...), (array) ($source->getValue() ?? []));
+        $unavailable_values = \array_diff($stored_values, \array_map(strval(...), \array_keys($select['#options'] ?? [])));
+        foreach ($unavailable_values as $value) {
+          $select['#options'][$value] = new TranslatableMarkup('Unavailable (@id)', ['@id' => $value]);
+        }
+        if ($unavailable_values) {
+          $select['#default_value'] = !empty($select['#multiple']) ? $stored_values : reset($stored_values);
+        }
+        unset($select);
+      }
+
       if ($entity instanceof ContentTemplate) {
         $could_use_dynamic_prop_source = !empty($suggestions[$sdc_prop_name]);
 

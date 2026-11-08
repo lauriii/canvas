@@ -492,6 +492,10 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     $design->save();
     $color = Term::create(['vid' => 'tags', 'name' => 'Color & type', 'parent' => [$design->id()]]);
     $color->save();
+    // A term with several parents is in the tree once per parent.
+    $art = Term::create(['vid' => 'tags', 'name' => 'Art']);
+    $art->save();
+    $color->set('parent', [$design->id(), $art->id()])->save();
     $page = Page::create(['title' => $this->randomMachineName()]);
     self::assertSame(SAVED_NEW, $page->save());
 
@@ -525,8 +529,21 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     );
     // Short lists may render as radios.
     $options = $crawler->filter('select[name$="[category]"] option, input[type="radio"][name$="[category]"]');
-    self::assertSame(['_none', $design->id(), $color->id()], $options->each(fn (Crawler $option) => $option->attr('value')));
-    self::assertStringContainsString('Design › Color & type', $crawler->filter('.field--name-category')->text());
+    self::assertEqualsCanonicalizing(['_none', $art->id(), $design->id(), $color->id()], $options->each(fn (Crawler $option) => $option->attr('value')));
+    // The label is the path, not a dash per level, and not cut short.
+    self::assertMatchesRegularExpression('/(Art|Design) › Color & type/', $crawler->filter('.field--name-category')->text());
+    // The UI always offers search for options from site data.
+    self::assertSame('true', $crawler->filter('select[name$="[category]"]')->attr('data-canvas-options-source'));
+
+    // A stored value that is no longer an option, such as a deleted term,
+    // stays selected, so editing another prop does not clear it.
+    $form_canvas_props = $this->getFormCanvasPropsForComponent($component->id());
+    $form_canvas_props['source']['category']['value'] = '999';
+    $form_canvas_props['resolved']['category'] = '999';
+    $crawler = $this->getCrawlerForFormRequest('/canvas/api/v0/form/component-instance/canvas_page/' . $page->id(), $component, $form_canvas_props);
+    $unavailable = $crawler->filter('select[name$="[category]"] option[value="999"]');
+    self::assertSame('Unavailable (999)', $unavailable->text());
+    self::assertSame('selected', $unavailable->attr('selected'));
 
     // Invalid sources make the code component invalid.
     $assert_invalid = function (array $prop, array $required, string $expected_message) use ($code_component): void {
@@ -540,6 +557,8 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     $assert_invalid([OptionsSourceInterface::KEY => ['source' => 'entity', 'entity_type' => 'term']] + $prop, [], $prefix . '`entity_type` must be an existing entity type, but is "term".');
     $assert_invalid([OptionsSourceInterface::KEY => ['source' => 'vocabulary']] + $prop, [], $prefix . 'The source "vocabulary" does not exist. Available sources: entity, view.');
     $assert_invalid(['examples' => ['1']] + $prop, ['category'], $prefix . 'Needs an optional prop, because the site may have no options to choose from.');
+    $assert_invalid(['examples' => ['1']] + $prop, [], $prefix . 'Remove `examples`: an example would become the default value, but option IDs differ between sites.');
+    $assert_invalid(['type' => 'integer', OptionsSourceInterface::KEY => ['source' => 'entity', 'entity_type' => 'taxonomy_vocabulary']] + $prop, [], $prefix . '"taxonomy_vocabulary" has text IDs, such as machine names. Use `type: string`.');
   }
 
   /**

@@ -148,6 +148,14 @@ final class PropShape {
     // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::buildComponentInstanceForm()
     unset($normalized_prop_schema['x-canvas-color-picker']);
     unset($normalized_prop_schema['x-canvas-color-folders']);
+    // The order of an options source's keys does not change the shape.
+    // @see \Drupal\canvas\OptionsSource\OptionsSourceInterface
+    if (\is_array($normalized_prop_schema['x-canvas-options'] ?? NULL)) {
+      ksort($normalized_prop_schema['x-canvas-options']);
+    }
+    if (\is_array($normalized_prop_schema['items']['x-canvas-options'] ?? NULL)) {
+      ksort($normalized_prop_schema['items']['x-canvas-options']);
+    }
 
     // TRICKY: In Drupal 11.4 and earlier, SDC appends `'object'` to every
     // prop's declared `type` (and then dedupes) so Twig can defer rendering

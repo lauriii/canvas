@@ -50,17 +50,22 @@ final class OptionsSourceManager extends DefaultPluginManager {
   /**
    * Validates a prop's `x-canvas-options`.
    *
+   * @param mixed $options
+   *   The value of `x-canvas-options`.
+   * @param 'string'|'integer' $type
+   *   The JSON Schema type of the prop's values.
+   *
    * @return list<string>
    *   Problems, empty if it is valid.
    */
-  public function validatePropSchema(mixed $options): array {
+  public function validatePropSchema(mixed $options, string $type): array {
     if (!\is_array($options) || !\is_string($options['source'] ?? NULL)) {
       return ['Must be a map with a `source`, such as `{ source: entity, entity_type: taxonomy_term }`.'];
     }
     if (!$this->hasDefinition($options['source'])) {
       return [\sprintf('The source "%s" does not exist. Available sources: %s.', $options['source'], implode(', ', \array_keys($this->getDefinitions())))];
     }
-    return $this->createFromPropSchema($options)->validateConfiguration();
+    return $this->createFromPropSchema($options)->validateConfiguration($type);
   }
 
 }
