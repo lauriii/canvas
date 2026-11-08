@@ -270,7 +270,7 @@ configs.forEach((config) => {
         .should('not.exist');
 
       // Check for the correct placeholder text.
-      const expectedPlaceholder = `Select ${config.fieldLabel}`;
+      const expectedPlaceholder = 'Choose…';
 
       cy.get(`@${config.fieldAlias}`)
         .find('.canvas-select__placeholder')

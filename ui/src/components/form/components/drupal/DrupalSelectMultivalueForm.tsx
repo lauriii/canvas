@@ -5,7 +5,9 @@ import { Cross2Icon } from '@radix-ui/react-icons';
 import {
   ClearIndicator,
   DropdownIndicator,
-} from '@/components/form/components/selectIndicators';
+  Option,
+  useLabelId,
+} from '@/components/form/components/reactSelectParts';
 import {
   formatTreeOptionLabel,
   noOptionsMessage,
@@ -173,8 +175,7 @@ const DrupalSelectMultivalueForm = ({
     el.dispatchEvent(changeEvent);
   };
 
-  const fieldLabel = String(attributes['data-field-label'] || '');
-  const placeholderText = `Select ${fieldLabel}`;
+  const labelledBy = useLabelId(attributes.id);
 
   return (
     <div className={styles.container}>
@@ -193,8 +194,8 @@ const DrupalSelectMultivalueForm = ({
         options={reactSelectOptions}
         value={localSelectedValues}
         onChange={handleChange}
-        placeholder={placeholderText}
-        aria-label={placeholderText}
+        placeholder="Choose…"
+        aria-labelledby={labelledBy}
         classNamePrefix="canvas-select"
         closeMenuOnSelect={false}
         noOptionsMessage={noOptionsMessage}
@@ -204,6 +205,7 @@ const DrupalSelectMultivalueForm = ({
         components={{
           DropdownIndicator,
           MultiValueRemove,
+          Option,
           ClearIndicator,
           IndicatorSeparator: () => null,
         }}
