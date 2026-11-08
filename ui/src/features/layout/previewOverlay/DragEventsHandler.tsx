@@ -78,6 +78,16 @@ const DragEventsHandler: React.FC = () => {
     };
   }, [isFolderAtBoundary]);
 
+  // A drag the editor leaves (e.g. by navigating) never ends otherwise.
+  useEffect(
+    () => () => {
+      endLivePreview();
+      unfreezeDropTargets();
+      window.document.body.classList.remove('canvas--live-drop-preview');
+    },
+    [],
+  );
+
   const afterDrag = (
     elements: HTMLElement[] = [],
     successful?: boolean,

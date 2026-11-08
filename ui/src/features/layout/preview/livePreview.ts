@@ -47,6 +47,13 @@ export const DROP_PREVIEW_ID = 'canvas-drop-preview';
 export const LIVE_PREVIEW_ANIMATION = 'canvas-live-preview';
 
 const SLIDE = { duration: 120, easing: 'cubic-bezier(0.2, 0, 0, 1)' };
+const reducedMotion = () =>
+  window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
+// Animations other than following the pointer only run without reduced motion.
+const timing = () => ({
+  ...SLIDE,
+  duration: reducedMotion() ? 0 : SLIDE.duration,
+});
 // The copy of a large component under the pointer shrinks to fit this size,
 // down to 40% of its size, so it doesn't hide where it can be dropped.
 const GHOST = { width: 480, height: 280, minScale: 0.4 };
@@ -234,6 +241,14 @@ function liftGhost(current: Session, grab?: Point): Ghost | undefined {
     markers.forEach((marker) => marker.parentNode?.removeChild(marker));
     outlineEmptySlots(copy);
     element.append(copy);
+    // A copy of a code component would hydrate, running it a second time:
+    // keep only what it renders.
+    element.querySelectorAll('canvas-island').forEach((island) => {
+      const box = document.createElement('div');
+      box.style.display = 'contents';
+      box.append(...Array.from(island.childNodes));
+      island.replaceWith(box);
+    });
   });
   const parent = elements[0].parentElement ?? document.body;
   const context = getComputedStyle(parent);
@@ -262,6 +277,12 @@ function liftGhost(current: Session, grab?: Point): Ghost | undefined {
     boxShadow: '0 4px 14px rgb(0 0 0 / 0.12), 0 0 0 1px rgb(110 86 207 / 0.5)',
     transformOrigin: `${origin.x - at.x}px ${origin.y - at.y}px`,
   });
+  // A component too tall to fit is cropped, fading out at the bottom.
+  if (rect.height * scale > GHOST.height) {
+    element.style.height = `${GHOST.height / scale}px`;
+    element.style.maskImage =
+      'linear-gradient(#000 calc(100% - 64px), transparent)';
+  }
   document.body.append(element);
   const ghost: Ghost = {
     element,
@@ -277,7 +298,9 @@ function liftGhost(current: Session, grab?: Point): Ghost | undefined {
   const follow = (time: number) => {
     const p = current.pointer && toPreview(document, current.pointer);
     if (p) {
-      const t = Math.min(1, Math.max(0, time - ghost.startTime) / 100);
+      const t = reducedMotion()
+        ? 1
+        : Math.min(1, Math.max(0, time - ghost.startTime) / 100);
       const eased = 1 - (1 - t) ** 3;
       (ghost.animation.effect as KeyframeEffect).setKeyframes([
         {
@@ -317,7 +340,7 @@ function dropGhost(ghost: Ghost, onto: Node[]) {
         opacity: '0',
       },
     ],
-    { ...SLIDE, fill: 'forwards' },
+    { ...timing(), fill: 'forwards' },
   );
 }
 
@@ -357,7 +380,7 @@ function slide(before: Map<HTMLElement, DOMRect>, animations: Animation[]) {
     }
     animations.push(
       el.animate([{ translate: `${x}px ${y}px` }, { translate: '0 0' }], {
-        ...SLIDE,
+        ...timing(),
         id: LIVE_PREVIEW_ANIMATION,
       }),
     );
@@ -431,7 +454,7 @@ function lift(current: Session, grab?: Point) {
       .filter(isElement)
       .flatMap(boxes)
       .map((el) =>
-        el.animate([{ opacity: '0.4' }], { ...SLIDE, fill: 'forwards' }),
+        el.animate([{ opacity: '0.4' }], { ...timing(), fill: 'forwards' }),
       );
   }
 }
@@ -588,6 +611,23 @@ export function showLivePreviewAt(dropZoneId: string | null): void {
   }
 }
 
+// Moves a node, keeping the state of what is in it where the browser can, e.g.
+// so embedded iframes don't reload.
+function move(node: Node, parent: Node, before: Node | null) {
+  const moveBefore = (
+    parent as Node & { moveBefore?: (node: Node, child: Node | null) => void }
+  ).moveBefore;
+  if (moveBefore && node.isConnected && parent.isConnected) {
+    try {
+      moveBefore.call(parent, node, before);
+      return;
+    } catch {
+      // E.g. the node is in another document.
+    }
+  }
+  parent.insertBefore(node, before);
+}
+
 function place(current: Session, dropZoneId: string | null) {
   const { document, nodes, home, homeContainer } = current;
   current.undo.forEach((revert) => revert());
@@ -602,7 +642,7 @@ function place(current: Session, dropZoneId: string | null) {
     return;
   }
   if (!target.before || !nodes.includes(target.before)) {
-    nodes.forEach((node) => target.parent.insertBefore(node, target.before));
+    nodes.forEach((node) => move(node, target.parent, target.before));
   }
   // The markup replaces the placeholder of an empty container, unless it
   // renders nothing yet: the container would collapse.
