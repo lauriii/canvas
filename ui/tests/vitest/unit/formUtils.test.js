@@ -592,6 +592,51 @@ Value`,
     // Should be truncated to 2 items (maxItems: 2), not 3.
     expect(propsValues.tags).to.deep.equal(['red', 'green']);
   });
+
+  it('Should drop the empty option of props with options from site data', () => {
+    const options = { source: 'entity', entity_type: 'taxonomy_term' };
+    const { propsValues, selectedModel } = getPropsValues(
+      {
+        'canvas_component_props[all-props][category]': '_none',
+        'canvas_component_props[all-props][author]': '_none',
+        'canvas_component_props[all-props][topics][]': ['_none', '5'],
+        form_build_id: 'test-form-build-id',
+        form_token: 'test-form-token',
+        form_id: 'component_instance_form',
+      },
+      {
+        version: '82b745980fd23b55',
+        selectedComponent: 'all-props',
+        selectedComponentType: 'sdc.sdc_test_all_props.all-props',
+        layout: [],
+        model: {
+          'all-props': { resolved: { category: '6', author: 1 }, source: {} },
+        },
+        components: {
+          'sdc.sdc_test_all_props.all-props': {
+            propSources: {
+              category: {
+                jsonSchema: { type: 'string', 'x-canvas-options': options },
+              },
+              author: {
+                jsonSchema: { type: 'integer', 'x-canvas-options': options },
+              },
+              topics: {
+                jsonSchema: {
+                  type: 'array',
+                  items: { type: 'string', 'x-canvas-options': options },
+                },
+              },
+            },
+          },
+        },
+      },
+      {},
+    );
+    expect(propsValues).to.deep.equal({ topics: ['5'] });
+    // Picking the empty option clears the previous value.
+    expect(selectedModel.resolved).to.deep.equal({});
+  });
 });
 
 describe('coerceValueForSchema', () => {

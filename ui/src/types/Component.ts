@@ -28,6 +28,7 @@ export interface FieldDataItem {
     enum?: any[];
     format?: string;
     maxItems?: number;
+    'x-canvas-options'?: object;
     // For `type: array` props: the item schema. Multi-value group object
     // props carry their sub-property schemas in `items.properties`.
     items?: {
@@ -35,6 +36,7 @@ export interface FieldDataItem {
       properties?: object;
       enum?: any[];
       format?: string;
+      'x-canvas-options'?: object;
     };
   };
   default_values: DefaultValues;
