@@ -15,13 +15,15 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Plugin\PluginBase;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\taxonomy\TermStorageInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Offers the entities of a type, optionally of some bundles, by ID.
  *
  * Uses the entity type's default entity reference selection handler, so the
- * options respect access, and taxonomy terms are listed as a tree.
+ * options respect access. Taxonomy terms are listed in tree order, labeled with
+ * their path, such as "Design › Typography".
  *
  * @code
  * x-canvas-options:
@@ -76,7 +78,51 @@ final class EntityOptionsSource extends PluginBase implements OptionsSourceInter
         $options[$id] = Html::decodeEntities((string) $label);
       }
     }
-    return $options;
+    return $entity_type_id === 'taxonomy_term' ? $this->labelTermsWithTheirPath($options) : $options;
+  }
+
+  /**
+   * Labels terms with their path, such as "Design › Typography".
+   *
+   * The term selection handler lists terms as a tree, with a dash per level.
+   * A path keeps the parent visible once a term is chosen, and when searching.
+   *
+   * @param array<int|string, string> $options
+   *   Term labels as the term selection handler lists them, keyed by term ID.
+   *
+   * @return array<int|string, string>
+   *   The same options, in the same order, labeled with their path.
+   *
+   * @see \Drupal\taxonomy\Plugin\EntityReferenceSelection\TermSelection::getReferenceableEntities()
+   */
+  private function labelTermsWithTheirPath(array $options): array {
+    $storage = $this->entityTypeManager->getStorage('taxonomy_term');
+    \assert($storage instanceof TermStorageInterface);
+    $parents = [];
+    $names = [];
+    $vocabularies = $this->configuration['bundles'] ?? \array_keys($this->entityTypeBundleInfo->getBundleInfo('taxonomy_term'));
+    foreach ($vocabularies as $vocabulary) {
+      foreach ($storage->loadTree($vocabulary) as $term) {
+        // Without loading entities, terms are plain objects.
+        \assert($term instanceof \stdClass);
+        $parents[$term->tid] = (int) ($term->parents[0] ?? 0);
+        $names[$term->tid] = $term->name;
+        if (isset($options[$term->tid])) {
+          // Remove the selection handler's dash per level.
+          $options[$term->tid] = substr($options[$term->tid], $term->depth);
+        }
+      }
+    }
+    $paths = [];
+    foreach ($options as $id => $label) {
+      $path = [$label];
+      for ($parent = $parents[$id] ?? 0; $parent !== 0; $parent = $parents[$parent] ?? 0) {
+        // An inaccessible parent is not an option; use its untranslated name.
+        array_unshift($path, $options[$parent] ?? $names[$parent]);
+      }
+      $paths[$id] = implode(' › ', $path);
+    }
+    return $paths;
   }
 
   public function validateConfiguration(): array {

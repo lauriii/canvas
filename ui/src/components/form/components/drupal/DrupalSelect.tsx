@@ -1,3 +1,6 @@
+import SearchableSelect, {
+  needsSearchableSelect,
+} from '@/components/form/components/SearchableSelect';
 import SegmentedSelect, {
   fitsSegmentedControl,
 } from '@/components/form/components/SegmentedSelect';
@@ -23,6 +26,14 @@ const DrupalSelect: React.FC<DrupalSelectProps> = ({
   options = [],
 }) => {
   const formContext = useSafeFormContext();
+  // Long lists, such as options from site data, need search, and nested
+  // options read better as a tree.
+  if (
+    formContext?.formId === FORM_TYPES.COMPONENT_INSTANCE_FORM &&
+    needsSearchableSelect(attributes, options)
+  ) {
+    return <SearchableSelect options={options} attributes={attributes} />;
+  }
   // Short enum props (variant, size, alignment …) read better as a segmented
   // control than as a dropdown.
   if (

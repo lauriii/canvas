@@ -1,14 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import ReactSelect, { components } from 'react-select';
-import { ChevronDownIcon, Cross2Icon } from '@radix-ui/react-icons';
+import { Cross2Icon } from '@radix-ui/react-icons';
 
+import {
+  ClearIndicator,
+  DropdownIndicator,
+} from '@/components/form/components/selectIndicators';
+import { formatTreeOptionLabel } from '@/components/form/components/treeOptionLabel';
 import { withRHF } from '@/components/form/react-hook-form/withRHF';
 import { a2p } from '@/local_packages/utils';
 
 import type {
   ActionMeta,
-  ClearIndicatorProps,
-  DropdownIndicatorProps,
   MultiValue,
   MultiValueRemoveProps,
 } from 'react-select';
@@ -39,17 +42,6 @@ export interface DrupalSelectMultivalueFormProps {
 type ReactSelectOption = { value: string; label: string };
 
 /**
- * Custom dropdown indicator using Radix ChevronDownIcon.
- */
-const DropdownIndicator = (
-  props: DropdownIndicatorProps<ReactSelectOption, true>,
-) => (
-  <components.DropdownIndicator {...props}>
-    <ChevronDownIcon width={20} height={20} />
-  </components.DropdownIndicator>
-);
-
-/**
  * Custom multi-value remove button using Radix Cross2Icon.
  */
 const MultiValueRemove = (
@@ -58,17 +50,6 @@ const MultiValueRemove = (
   <components.MultiValueRemove {...props}>
     <Cross2Icon width={10} height={10} />
   </components.MultiValueRemove>
-);
-
-/**
- * Custom clear indicator using Radix Cross2Icon.
- */
-const ClearIndicator = (
-  props: ClearIndicatorProps<ReactSelectOption, true>,
-) => (
-  <components.ClearIndicator {...props}>
-    <Cross2Icon width={12} height={12} />
-  </components.ClearIndicator>
 );
 
 /**
@@ -213,6 +194,7 @@ const DrupalSelectMultivalueForm = ({
         classNamePrefix="canvas-select"
         closeMenuOnSelect={false}
         noOptionsMessage={() => 'No selection'}
+        formatOptionLabel={formatTreeOptionLabel}
         components={{
           DropdownIndicator,
           MultiValueRemove,
