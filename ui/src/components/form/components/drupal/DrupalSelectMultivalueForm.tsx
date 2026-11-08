@@ -6,7 +6,10 @@ import {
   ClearIndicator,
   DropdownIndicator,
 } from '@/components/form/components/selectIndicators';
-import { formatTreeOptionLabel } from '@/components/form/components/treeOptionLabel';
+import {
+  formatTreeOptionLabel,
+  noOptionsMessage,
+} from '@/components/form/components/treeOptionLabel';
 import { withRHF } from '@/components/form/react-hook-form/withRHF';
 import { a2p } from '@/local_packages/utils';
 
@@ -193,7 +196,9 @@ const DrupalSelectMultivalueForm = ({
         aria-label={placeholderText}
         classNamePrefix="canvas-select"
         closeMenuOnSelect={false}
-        noOptionsMessage={() => 'No selection'}
+        noOptionsMessage={noOptionsMessage}
+        // Keep chosen options in the menu, so nested options stay a tree.
+        hideSelectedOptions={false}
         formatOptionLabel={formatTreeOptionLabel}
         components={{
           DropdownIndicator,

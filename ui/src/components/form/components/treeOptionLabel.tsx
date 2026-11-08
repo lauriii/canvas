@@ -7,6 +7,21 @@ import type { ReactNode } from 'react';
  */
 export const PATH_SEPARATOR = ' › ';
 
+const VISUALLY_HIDDEN = {
+  position: 'absolute',
+  width: '1px',
+  height: '1px',
+  overflow: 'hidden',
+  clipPath: 'inset(50%)',
+  whiteSpace: 'nowrap',
+} as const;
+
+/**
+ * Says why a react-select menu is empty.
+ */
+export const noOptionsMessage = ({ inputValue }: { inputValue: string }) =>
+  inputValue ? 'No matches' : 'Nothing to choose from yet';
+
 /**
  * Shows nested options as an indented tree in the menu of a react-select.
  *
@@ -23,6 +38,10 @@ export const formatTreeOptionLabel = (
   }
   return (
     <span style={{ paddingInlineStart: `${(levels.length - 1) * 16}px` }}>
+      {/* Screen readers announce the parents, which sighted users see. */}
+      <span style={VISUALLY_HIDDEN}>
+        {levels.slice(0, -1).join(PATH_SEPARATOR) + PATH_SEPARATOR}
+      </span>
       {levels[levels.length - 1]}
     </span>
   );
