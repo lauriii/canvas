@@ -28,6 +28,12 @@ export interface FieldDataItem {
     enum?: any[];
     format?: string;
     maxItems?: number;
+    'x-canvas-options'?: object;
+    // For `type: array` props: the item schema.
+    items?: {
+      type: 'number' | 'integer' | 'string' | 'boolean' | 'array' | 'object';
+      'x-canvas-options'?: object;
+    };
   };
   default_values: DefaultValues;
   [x: string | number | symbol]: unknown;
