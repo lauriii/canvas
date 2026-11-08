@@ -837,6 +837,20 @@ describe('propInputData', () => {
 });
 
 describe('getCurrentValueFromProps', () => {
+  it('should return every selected option of a multiple select', () => {
+    expect(
+      getCurrentValueFromProps({
+        attributes: { multiple: 'multiple' },
+        options: [
+          { value: '_none', selected: false },
+          { value: '3', selected: true },
+          { value: '5', selected: false },
+          { value: '6', selected: true },
+        ],
+      }),
+    ).to.deep.equal(['3', '6']);
+  });
+
   it('should return false for an unchecked checkbox despite a truthy value attribute', () => {
     // An unchecked Drupal checkbox: #checked is false, but the checkbox
     // return value ("1") is present in attributes.value and #default_value.

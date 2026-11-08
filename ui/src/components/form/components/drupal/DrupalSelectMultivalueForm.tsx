@@ -70,8 +70,9 @@ const HiddenSelect: React.FC<{
     },
   );
 
-  // Ensure value is always an array for multiple select.
-  const selectValue = nativeSelectProps.value;
+  // Ensure value is always an array for multiple select. Read it before a2p,
+  // which joins arrays with spaces (intended for CSS classes).
+  const selectValue = attributes.value ?? nativeSelectProps.value;
   const normalizedValue = Array.isArray(selectValue)
     ? selectValue
     : selectValue
