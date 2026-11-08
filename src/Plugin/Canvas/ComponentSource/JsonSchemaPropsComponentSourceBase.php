@@ -1268,7 +1268,8 @@ abstract class JsonSchemaPropsComponentSourceBase extends ComponentSourceBase im
       TRUE
     );
     // Render slots as they are previewed when empty, which is how a component
-    // added to a component tree is previewed.
+    // added to a component tree is previewed. Only the component source knows
+    // how its slots render, so the editor can't add this to the markup.
     // @see \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList::renderify()
     $this->setSlots($build, \array_map(
       static fn() => ['#markup' => Markup::create(self::EMPTY_SLOT_PLACEHOLDER)],
