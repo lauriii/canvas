@@ -137,6 +137,11 @@ final class AssetLibraryAttachmentTest extends FunctionalTestBase {
     // Case 4: Route with _canvas_use_template_draft should use auto-saved version
     // library if it exists.
     $assert_library_global_library('/canvas/api/v0/layout/canvas_page/' . $page->id(), TRUE);
+    // The links carry the auto-saved version, so browsers can cache it.
+    // @see \Drupal\canvas\Asset\DraftAssetCollectionRenderer
+    $crawler = new Crawler(json_decode($this->drupalGet('/canvas/api/v0/layout/canvas_page/' . $page->id()), TRUE)['html']);
+    self::assertCount(1, $crawler->filter('link[href^="' . $auto_save_css_path . '"][href$="v=' . \hash('xxh64', '.auto-save-content{color:red}') . '"]'));
+    self::assertCount(1, $crawler->filter('script[src="' . $auto_save_js_path . '?v=' . \hash('xxh64', 'console.log("Auto-save Content")') . '"]'));
 
     // Case 5: Test that on regular page the content creator sees the regular
     // version even if the auto-save version exists.

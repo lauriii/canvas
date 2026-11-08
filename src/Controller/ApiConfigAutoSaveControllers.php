@@ -47,33 +47,49 @@ final class ApiConfigAutoSaveControllers extends ApiControllerBase {
 
   }
 
-  public function getCss(CanvasAssetInterface $canvas_config_entity): Response {
-    $auto_save = $this->autoSaveManager->getAutoSaveEntity($canvas_config_entity);
-    if (!$auto_save->isEmpty()) {
-      \assert($auto_save->entity instanceof CanvasAssetInterface);
-      $canvas_config_entity = $auto_save->entity;
-    }
-    $response = new Response($canvas_config_entity->getCss(), Response::HTTP_OK, [
-      'Content-Type' => 'text/css; charset=utf-8',
-    ]);
-    $response->setPrivate();
-    $response->headers->addCacheControlDirective('no-store');
-
-    return $response;
+  public function getCss(Request $request, CanvasAssetInterface $canvas_config_entity): Response {
+    return $this->getAsset($request, $canvas_config_entity, 'css', 'text/css; charset=utf-8');
   }
 
-  public function getJs(CanvasAssetInterface $canvas_config_entity): Response {
-    $auto_save = $this->autoSaveManager->getAutoSaveEntity($canvas_config_entity);
-    if (!$auto_save->isEmpty()) {
-      \assert($auto_save->entity instanceof CanvasAssetInterface);
-      $canvas_config_entity = $auto_save->entity;
-    }
-    $response = new Response($canvas_config_entity->getJs(), Response::HTTP_OK, [
-      'Content-Type' => 'text/javascript; charset=utf-8',
+  public function getJs(Request $request, CanvasAssetInterface $canvas_config_entity): Response {
+    return $this->getAsset($request, $canvas_config_entity, 'js', 'text/javascript; charset=utf-8');
+  }
+
+  /**
+   * Serves the auto-saved CSS or JS, else the saved one.
+   *
+   * Preview markup links to these with the asset's version in the `v` query
+   * parameter. Browsers may keep a response for such a URL forever, because a
+   * changed asset gets a new URL.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request.
+   * @param \Drupal\canvas\Entity\CanvasAssetInterface $entity
+   *   A code component, asset library or brand kit.
+   * @param 'css'|'js' $kind
+   *   Which of the two assets.
+   * @param string $content_type
+   *   The asset's media type.
+   *
+   * @return \Symfony\Component\HttpFoundation\Response
+   *   The asset.
+   *
+   * @see \Drupal\canvas\Asset\DraftAssetCollectionRenderer
+   * @see \Drupal\canvas\Entity\JavaScriptComponent::getComponentUrl()
+   */
+  private function getAsset(Request $request, CanvasAssetInterface $entity, string $kind, string $content_type): Response {
+    [$asset, $version] = $this->autoSaveManager->getDraftAsset($entity, $kind);
+    $response = new Response($asset, Response::HTTP_OK, [
+      'Content-Type' => $content_type,
     ]);
     $response->setPrivate();
-    $response->headers->addCacheControlDirective('no-store');
-
+    if ($request->query->get('v') === $version) {
+      $response->setMaxAge(31536000);
+      $response->headers->addCacheControlDirective('immutable');
+    }
+    else {
+      $response->headers->addCacheControlDirective('no-store');
+    }
     return $response;
   }
 

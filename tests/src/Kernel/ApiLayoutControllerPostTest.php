@@ -674,7 +674,7 @@ final class ApiLayoutControllerPostTest extends ApiLayoutControllerTestBase {
     self::assertEquals(Url::fromRoute('canvas.api.config.auto-save.get.js', [
       'canvas_config_entity_type_id' => JavaScriptComponent::ENTITY_TYPE_ID,
       'canvas_config_entity' => 'hey_there',
-    ])->toString(), $element->attr('component-url'));
+    ], ['query' => ['v' => \hash('xxh64', $code_component->getJs())]])->toString(), $element->attr('component-url'));
   }
 
   private static function getNewHeadingComponentModel(): array {

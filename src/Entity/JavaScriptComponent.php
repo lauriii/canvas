@@ -1033,10 +1033,14 @@ final class JavaScriptComponent extends ConfigEntityBase implements CanvasAssetI
     if (!$isPreview) {
       return $generator->generateString($this->getJsPath());
     }
+    // The version lets browsers cache the draft until it changes.
+    // @see \Drupal\canvas\Controller\ApiConfigAutoSaveControllers::getJs()
+    self::$autoSaveManagerForPreviews ??= \Drupal::service(AutoSaveManager::class);
+    [, $version] = self::$autoSaveManagerForPreviews->getDraftAsset($this, 'js');
     return Url::fromRoute('canvas.api.config.auto-save.get.js', [
       'canvas_config_entity_type_id' => self::ENTITY_TYPE_ID,
       'canvas_config_entity' => $this->id(),
-    ])->toString();
+    ], ['query' => ['v' => $version]])->toString();
   }
 
   /**
