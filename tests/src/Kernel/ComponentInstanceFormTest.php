@@ -515,7 +515,7 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     self::assertCount(0, $code_component->getTypedData()->validate());
     $code_component->save();
 
-    // The form offers the terms, as a tree, by ID.
+    // The form offers the terms in tree order, labeled with their path, by ID.
     $component = Component::load(JsComponent::componentIdFromJavascriptComponentId($code_component->id()));
     self::assertInstanceOf(Component::class, $component);
     $crawler = $this->getCrawlerForFormRequest(
@@ -526,7 +526,7 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     // Short lists may render as radios.
     $options = $crawler->filter('select[name$="[category]"] option, input[type="radio"][name$="[category]"]');
     self::assertSame(['_none', $design->id(), $color->id()], $options->each(fn (Crawler $option) => $option->attr('value')));
-    self::assertStringContainsString('-Color & type', $crawler->filter('.field--name-category')->text());
+    self::assertStringContainsString('Design › Color & type', $crawler->filter('.field--name-category')->text());
 
     // Invalid sources make the code component invalid.
     $assert_invalid = function (array $prop, array $required, string $expected_message) use ($code_component): void {
