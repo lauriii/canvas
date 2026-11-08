@@ -875,7 +875,8 @@ canvas.api.ui.options_sources:
     _controller: 'Drupal\canvas\Controller\ApiUiOptionsSourcesController'
   requirements:
     _canvas_authentication_required: TRUE
-    _canvas_ui_access: 'TRUE'
+    # Only the code editor uses it.
+    _permission: 'administer code components'
   methods: [GET]
   options:
     _format: 'json'

@@ -486,6 +486,9 @@ export function serializeProps(props: CodeComponentProp[]) {
             ...(xFormattingContext && {
               'x-formatting-context': xFormattingContext,
             }),
+            ...(prop['x-canvas-options'] && {
+              'x-canvas-options': prop['x-canvas-options'],
+            }),
             // Add enum/meta:enum inside items for array types
             ...(enumValues && {
               enum: enumValues
