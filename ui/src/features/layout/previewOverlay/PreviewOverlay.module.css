@@ -44,7 +44,8 @@
   }
 
   &.dropTarget {
-    outline: 1px dashed var(--color-outline-root);
+    outline: 2px solid var(--color-outline-root);
+    outline-offset: -2px;
   }
 }
 
@@ -54,7 +55,8 @@
   }
 
   &.dropTarget {
-    outline: 1px dashed var(--color-outline-page);
+    outline: 2px solid var(--color-outline-page);
+    outline-offset: -2px;
   }
 }
 
@@ -77,12 +79,16 @@
     display: none;
   }
 
-  &.selected {
-    outline: 1px dashed var(--color-outline-component);
-  }
-
   &.hovered {
     outline: 1px solid var(--color-outline-component);
+  }
+
+  /* After hovered: the selected component keeps its outline when hovered. */
+  &.selected {
+    outline: 2px solid var(--color-outline-component);
+    outline-offset: -1px;
+    /* Keeps the outline visible on dark designs. */
+    box-shadow: 0 0 0 1px rgb(255, 255, 255, 0.6);
   }
 
   &.dragging {
@@ -110,8 +116,8 @@
   outline: 1px solid transparent;
 
   &.dropTarget {
-    outline: 1px dashed var(--color-outline-slot);
-    outline-offset: -1px;
+    outline: 2px solid var(--color-outline-slot);
+    outline-offset: -2px;
   }
 
   &.hovered {
@@ -153,25 +159,16 @@
   background: none;
 }
 
-.emptySlotContainer {
-  color: var(--purple-9);
-  border: 1px solid var(--purple-9);
-
-}
-
-.emptyRegionContainer {
-  color: var(--green-9);
-  border: 1px solid var(--green-9);
-}
-
-.emptyPageContainer {
-  color: var(--blue-9);
-  border: 1px solid var(--blue-9);
-}
-
+/* Placeholders are drawn on top of any page design, so they don't let it show
+ * through: dark text on an opaque light background stays readable. Only the
+ * border and icon carry the slot, region or page color. */
 .emptyRegionDropZone,
 .emptySlotDropZone,
 .emptyPageDropZone {
+  --placeholder-accent: var(--purple-9);
+  --placeholder-accent-tint: var(--purple-3);
+  --placeholder-accent-text: var(--purple-12);
+
   position: absolute;
   display: flex;
   overflow: hidden;
@@ -181,54 +178,53 @@
   width: calc(100% - 8px);
   height: calc(100% - 8px);
   pointer-events: none;
-  background: rgb(255, 255, 255, 0.3);
+  color: var(--gray-12);
+  border: 1px dashed var(--placeholder-accent);
+  border-radius: 4px;
+  background: var(--color-panel-solid, #fff);
   font-size: 12px;
+  font-weight: 500;
   gap: var(--space-1);
   inset: 4px;
-  backdrop-filter: blur(30px);
 
   > div {
     white-space: nowrap;
   }
 
+  svg {
+    color: var(--placeholder-accent);
+  }
+
   &.isOver {
-    color: #fff;
-    background: var(--green-8);
+    color: var(--placeholder-accent-text);
+    border: 2px solid var(--placeholder-accent);
+    background: var(--placeholder-accent-tint);
   }
 }
 
 .emptyRegionDropZone {
+  --placeholder-accent: var(--green-9);
+  --placeholder-accent-tint: var(--green-3);
+  --placeholder-accent-text: var(--green-12);
+
   flex-direction: column;
   gap: 0;
-  border: 1px dashed var(--green-9);
-
-  &.isOver {
-    color: #fff;
-    background: var(--green-8);
-  }
 
   .regionMessage {
-    color: var(--green-7);
+    color: var(--gray-11);
   }
 }
 
 .emptyPageDropZone {
+  --placeholder-accent: var(--blue-9);
+  --placeholder-accent-tint: var(--blue-3);
+  --placeholder-accent-text: var(--blue-12);
+
   flex-direction: column;
   gap: 0;
-  border: 1px dashed var(--blue-9);
 
-  &.isOver {
-    color: #fff;
-    background: var(--blue-8);
-  }
-}
-
-.emptySlotDropZone {
-  border: 1px dashed var(--purple-9);
-
-  &.isOver {
-    color: #fff;
-    background: var(--purple-8);
+  .regionMessage {
+    color: var(--gray-11);
   }
 }
 
@@ -327,7 +323,7 @@
     &::after {
       top: 0;
       width: 100%;
-      height: 3px;
+      height: 4px;
     }
   }
 
@@ -339,7 +335,7 @@
     &::after {
       top: 0;
       width: 100%;
-      height: 3px;
+      height: 4px;
     }
   }
 }
@@ -368,7 +364,7 @@
     &::after {
       bottom: 0;
       width: 100%;
-      height: 3px;
+      height: 4px;
     }
   }
 
@@ -380,7 +376,7 @@
     &::after {
       top: 0;
       width: 100%;
-      height: 3px;
+      height: 4px;
     }
   }
 }
