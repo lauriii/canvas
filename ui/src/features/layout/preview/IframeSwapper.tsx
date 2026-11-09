@@ -10,7 +10,9 @@ import clsx from 'clsx';
 
 import { useAppSelector } from '@/app/hooks';
 import { COMPONENT_PREVIEW_UPDATE_EVENT } from '@/components/form/react-hook-form/fields/componentPreviewEvents';
+import { PREVIEW_HEAD_STYLES_ID } from '@/features/layout/preview/optimisticPreview';
 import { previewEditCount } from '@/features/layout/preview/previewEdits';
+import { selectPreviewHtmlEditsAtRequest } from '@/features/pagePreview/previewSlice';
 import { selectDragging } from '@/features/ui/uiSlice';
 
 import type { Dispatch, Ref, SetStateAction } from 'react';
@@ -30,17 +32,15 @@ interface IFrameSwapperProps {
   interactive: boolean;
 }
 
-const HEAD_STYLES_ID = 'canvas-preview-head-styles';
-
 const applyHeadStyles = (frame: HTMLIFrameElement | null, css: string) => {
   const previewDocument = frame?.contentDocument;
   if (!previewDocument?.head) {
     return;
   }
   const style =
-    previewDocument.getElementById(HEAD_STYLES_ID) ??
+    previewDocument.getElementById(PREVIEW_HEAD_STYLES_ID) ??
     previewDocument.createElement('style');
-  style.id = HEAD_STYLES_ID;
+  style.id = PREVIEW_HEAD_STYLES_ID;
   style.textContent = css;
   // Re-append even when the element already exists, so the block stays last in
   // the head if the document added stylesheets after it.
@@ -55,6 +55,9 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
     const iFrameRefs = useRef<(HTMLIFrameElement | null)[]>([]);
     const whichActiveRef = useRef(0);
     // Edits to the shown preview before the loading one was requested.
+    const editsAtRequest = useAppSelector(selectPreviewHtmlEditsAtRequest);
+    const editsAtRequestRef = useRef(editsAtRequest);
+    editsAtRequestRef.current = editsAtRequest;
     const editsAtLoadRef = useRef(0);
     const [whichActive, setWhichActive] = useState(0);
     const { isDragging } = useAppSelector(selectDragging);
@@ -89,51 +92,55 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
       return { activeIFrame, inactiveIFrame };
     }, []);
 
-    const swapIFrames = useCallback((e: Event) => {
-      // The event target is the iframe about to become active.
-      const iframe = e.target as HTMLIFrameElement | null;
-      if (!iframe?.srcdoc?.length) {
-        // The load event in some browsers (e.g., Safari) fires on page load if the srcdoc is empty, but we don't want to swap in that case.
-        return;
-      }
-
-      // The styles may have changed while this document was loading; the
-      // in-place update only reaches documents that have finished parsing.
-      applyHeadStyles(iframe, headStylesRef.current);
-
-      iframe.style.display = '';
-
-      const startTime = Date.now();
-      const checkIFrameContent = () => {
-        // The shown preview has been edited since: it is newer than this one,
-        // and the render of the edit is on its way.
-        if (previewEditCount() !== editsAtLoadRef.current) {
+    const swapIFrames = useCallback(
+      (e: Event) => {
+        // The event target is the iframe about to become active.
+        const iframe = e.target as HTMLIFrameElement | null;
+        if (!iframe?.srcdoc?.length) {
+          // The load event in some browsers (e.g., Safari) fires on page load if the srcdoc is empty, but we don't want to swap in that case.
           return;
         }
-        // Find all <template>s pending hydration by Astro. Once hydration is complete, there should be no pending templates remaining.
-        const pendingTemplates = iframe?.contentDocument?.querySelectorAll(
-          'template[data-astro-template]',
-        ).length;
 
-        // Ensure there are no pending templates (non-hydrated astro-islands) before swapping in the iframe.
-        if (pendingTemplates === 0) {
-          setWhichActive((current) => 1 - current);
-        } else if (Date.now() - startTime < 1000) {
-          // If the hydration still hasn't finished and 1 second hasn't yet elapsed, try again after the next animation frame.
-          requestAnimationFrame(checkIFrameContent);
-        } else {
-          // Fallback to ensure iframe is swapped after 1s in case the iframe content never loads (or is really slow).
-          console.warn(
-            'Astro hydration in iFrame did not complete within 1 second, swapping anyway.',
-          );
-          setWhichActive((current) => 1 - current);
-        }
-      };
+        // The styles may have changed while this document was loading; the
+        // in-place update only reaches documents that have finished parsing.
+        applyHeadStyles(iframe, headStylesRef.current);
 
-      // Continuously monitor the iframe content for non-hydrated templates every 'tick'.
-      // Only swap the iframe once all templates are hydrated or 1 second has elapsed.
-      requestAnimationFrame(checkIFrameContent);
-    }, []);
+        iframe.style.display = '';
+
+        const startTime = Date.now();
+        const checkIFrameContent = () => {
+          // The shown preview has been edited since this one was requested: it
+          // is newer, and the render of the edit is on its way.
+          if (previewEditCount() > editsAtLoadRef.current) {
+            setIsReloading(false);
+            return;
+          }
+          // Find all <template>s pending hydration by Astro. Once hydration is complete, there should be no pending templates remaining.
+          const pendingTemplates = iframe?.contentDocument?.querySelectorAll(
+            'template[data-astro-template]',
+          ).length;
+
+          // Ensure there are no pending templates (non-hydrated astro-islands) before swapping in the iframe.
+          if (pendingTemplates === 0) {
+            setWhichActive((current) => 1 - current);
+          } else if (Date.now() - startTime < 1000) {
+            // If the hydration still hasn't finished and 1 second hasn't yet elapsed, try again after the next animation frame.
+            requestAnimationFrame(checkIFrameContent);
+          } else {
+            // Fallback to ensure iframe is swapped after 1s in case the iframe content never loads (or is really slow).
+            console.warn(
+              'Astro hydration in iFrame did not complete within 1 second, swapping anyway.',
+            );
+            setWhichActive((current) => 1 - current);
+          }
+        };
+
+        // Continuously monitor the iframe content for non-hydrated templates every 'tick'.
+        // Only swap the iframe once all templates are hydrated or 1 second has elapsed.
+        requestAnimationFrame(checkIFrameContent);
+      },
+      [setIsReloading],
+    );
 
     // Sync the whichActiveRef to the whichActive state and then set isReloading back to false.
     useEffect(() => {
@@ -180,7 +187,7 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
     useEffect(() => {
       // Important to change a state ensure parent re-renders (and re-calls hooks) once the iframe is swapped.
       setIsReloading(true);
-      editsAtLoadRef.current = previewEditCount();
+      editsAtLoadRef.current = editsAtRequestRef.current;
       const { activeIFrame, inactiveIFrame } = getIFrames();
 
       // Insert the head styles into the markup itself, so a loading document
@@ -188,7 +195,7 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
       const srcDocumentWithStyles = srcDocument.replace(
         /<\/head>/i,
         () =>
-          `<style id="${HEAD_STYLES_ID}">${headStylesRef.current}</style></head>`,
+          `<style id="${PREVIEW_HEAD_STYLES_ID}">${headStylesRef.current}</style></head>`,
       );
 
       // Initialize active iframe if not already initialized

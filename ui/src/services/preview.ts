@@ -68,8 +68,8 @@ export const previewApi = createApi({
         body,
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
-        pushCanvasLayoutRequest();
         const editsAtRequest = previewEditCount();
+        pushCanvasLayoutRequest();
         try {
           const { data, meta } = await queryFulfilled;
           const { html, autoSaves } = data;
@@ -78,15 +78,7 @@ export const previewApi = createApi({
               { type: 'PendingChanges', id: 'LIST' },
             ]),
           );
-          // The preview was edited since this was requested, and a newer
-          // layout has been requested: it shows the edit, which this would
-          // flash away.
-          if (
-            arg === latestPreviewArg ||
-            previewEditCount() === editsAtRequest
-          ) {
-            dispatch(setHtml(html));
-          }
+          dispatch(setHtml(html, editsAtRequest));
           handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
           previewSuccessCount++;
           dispatch(setPostPreviewCompleted(true));
@@ -177,6 +169,7 @@ export const previewApi = createApi({
         };
       },
       async onQueryStarted(body, { dispatch, queryFulfilled }) {
+        const editsAtRequest = previewEditCount();
         // Force any ajax calls to wait.
         pushCanvasLayoutRequest();
         let data: any;
@@ -204,7 +197,7 @@ export const previewApi = createApi({
         // preview snapshot, which selectPreviewHtml prefers while set.
         dispatch(setSnapshotHTML(''));
         dispatch(setSnapshotTitle(''));
-        dispatch(setHtml(html));
+        dispatch(setHtml(html, editsAtRequest));
         handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         // Pass update preview false to prevent a subsequent preview update,
         // we have the data here.
@@ -343,8 +336,6 @@ type PostPreviewArg = {
 // queued request executes when the active one completes.
 let activePreviewRequest: Promise<PostPreviewResult> | null = null;
 let pendingPreviewArg: PostPreviewArg | null = null;
-// The most recently requested preview; responses to earlier ones are stale.
-let latestPreviewArg: PostPreviewArg | null = null;
 
 // Incremented each time a postPreview request completes successfully.
 // Used to detect whether an error has been superseded by a later success.
@@ -383,7 +374,6 @@ export function useQueuedPostPreviewMutation(
   const queuedPostPreview = async (
     arg: PostPreviewArg,
   ): Promise<PostPreviewResult> => {
-    latestPreviewArg = arg;
     if (activePreviewRequest) {
       pendingPreviewArg = arg;
       await activePreviewRequest.catch(() => {});
