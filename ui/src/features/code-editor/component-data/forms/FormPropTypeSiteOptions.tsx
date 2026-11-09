@@ -94,8 +94,8 @@ export default function FormPropTypeSiteOptions({
       ) : (
         <Text size="1" color="gray">
           The component receives the ID of the chosen option as text, such as
-          "12". These props are optional, because the site may have no options
-          to choose from.
+          "12" or "main". These props are optional, because the site may have no
+          options to choose from.
         </Text>
       )}
     </FormElement>

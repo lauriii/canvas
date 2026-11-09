@@ -44,6 +44,11 @@ final class EntityOptionsSource extends PluginBase implements OptionsSourceInter
    */
   private const array NOT_SUGGESTED = ['comment', 'block_content', 'shortcut'];
 
+  /**
+   * Entity types without bundles that authors pick from, such as a menu.
+   */
+  private const array SUGGESTED_WITHOUT_BUNDLES = ['menu', 'user'];
+
   public function __construct(
     array $configuration,
     string $plugin_id,
@@ -185,9 +190,10 @@ final class EntityOptionsSource extends PluginBase implements OptionsSourceInter
     $suggestions = [];
     foreach ($this->entityTypeManager->getDefinitions() as $entity_type_id => $entity_type) {
       // Suggest what content authors pick from: entities in site-configured
-      // bundles (vocabularies, content types, media types…) and users. Other
-      // entity types, such as menus, can be set in `component.yml`.
-      if ($entity_type_id === 'user') {
+      // bundles (vocabularies, content types, media types…), menus and users.
+      // Other entity types, such as image styles, can be set in
+      // `component.yml`.
+      if (\in_array($entity_type_id, self::SUGGESTED_WITHOUT_BUNDLES, TRUE)) {
         $suggestions[] = [
           'label' => (string) $entity_type->getLabel(),
           'configuration' => ['entity_type' => $entity_type_id],

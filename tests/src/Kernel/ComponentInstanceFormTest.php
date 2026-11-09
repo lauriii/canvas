@@ -12,6 +12,7 @@ use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Form\ComponentInstanceForm;
 use Drupal\canvas\JsonSchemaInterpreter\JsonSchemaObjectRef;
 use Drupal\canvas\OptionsSource\OptionsSourceInterface;
+use Drupal\canvas\OptionsSource\OptionsSourceManager;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\BlockComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\PropExpressions\StructuredData\Evaluator;
@@ -25,6 +26,7 @@ use Drupal\Core\Extension\ThemeInstallerInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Form\FormState;
 use Drupal\Core\Url;
+use Drupal\system\Entity\Menu;
 use Drupal\taxonomy\Entity\Term;
 use Drupal\taxonomy\Entity\Vocabulary;
 use Drupal\Tests\canvas\Kernel\Traits\CiModulePathTrait;
@@ -505,6 +507,12 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
         'title' => 'Category',
         OptionsSourceInterface::KEY => ['source' => 'entity', 'entity_type' => 'taxonomy_term', 'bundles' => ['tags']],
       ],
+      // Config entities have machine names as IDs.
+      'menu' => [
+        'type' => 'string',
+        'title' => 'Menu',
+        OptionsSourceInterface::KEY => ['source' => 'entity', 'entity_type' => 'menu'],
+      ],
     ];
     $code_component = JavaScriptComponent::create([
       'machineName' => 'teaser',
@@ -534,6 +542,14 @@ final class ComponentInstanceFormTest extends ApiLayoutControllerTestBase {
     self::assertMatchesRegularExpression('/(Art|Design) › Color & type/', $crawler->filter('.field--name-category')->text());
     // The UI always offers search for options from site data.
     self::assertSame('true', $crawler->filter('select[name$="[category]"]')->attr('data-canvas-options-source'));
+    $menus = $crawler->filter('select[name$="[menu]"] option, input[type="radio"][name$="[menu]"]');
+    self::assertEqualsCanonicalizing(['_none', ...\array_keys(Menu::loadMultiple())], $menus->each(fn (Crawler $option) => $option->attr('value')));
+    self::assertStringContainsString('Main navigation', $crawler->filter('.field--name-menu')->text());
+    // The code editor suggests menus.
+    $entity_source = $this->container->get(OptionsSourceManager::class)->createInstance('entity');
+    \assert($entity_source instanceof OptionsSourceInterface);
+    $suggestions = $entity_source->getSuggestions();
+    self::assertContains(['label' => 'Menu', 'configuration' => ['entity_type' => 'menu']], $suggestions);
 
     // A stored value that is no longer an option, such as a deleted term,
     // stays selected, so editing another prop does not clear it.
