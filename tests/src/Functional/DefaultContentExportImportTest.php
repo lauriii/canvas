@@ -22,6 +22,7 @@ use Drupal\Core\Entity\EntityRepository;
 use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\file\Entity\File;
 use Drupal\FunctionalTests\Core\Recipe\RecipeTestTrait;
+use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\media\Entity\Media;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
@@ -47,6 +48,7 @@ final class DefaultContentExportImportTest extends BrowserTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
+    'language',
     'media',
     'media_library',
     'canvas_test_sdc',
@@ -93,12 +95,30 @@ final class DefaultContentExportImportTest extends BrowserTestBase {
     $unreferenced_file = File::create(['uri' => $image_uri]);
     $unreferenced_file->save();
 
+    $media_type_id = $this->createMediaType('image')->id();
     $original_media = Media::create([
-      'bundle' => $this->createMediaType('image')->id(),
+      'bundle' => $media_type_id,
       'name' => 'Test image',
       'field_media_image' => $original_media_referenced_file,
     ]);
     $original_media->save();
+
+    // The page will be translated, and the translated component tree will
+    // reference a media entity of its own. This verifies that entity references
+    // in translated component trees are exported as dependencies and resolved
+    // again on import, independently of the default translation.
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+    $image_uri = $this->getRandomGenerator()
+      ->image(uniqid('public://') . '.png', '200x200', '400x400');
+    self::assertFileExists($image_uri);
+    $original_translated_media_referenced_file = File::create(['uri' => $image_uri]);
+    $original_translated_media_referenced_file->save();
+    $original_translated_media = Media::create([
+      'bundle' => $media_type_id,
+      'name' => 'Translated test image',
+      'field_media_image' => $original_translated_media_referenced_file,
+    ]);
+    $original_translated_media->save();
 
     /** @var \Drupal\canvas\PropShape\PropShapeRepositoryInterface $propShapeRepository */
     $propShapeRepository = \Drupal::service(PropShapeRepositoryInterface::class);
@@ -228,6 +248,65 @@ final class DefaultContentExportImportTest extends BrowserTestBase {
         ],
       ],
     ]);
+    // Translate the page. The translated component tree has the same
+    // structure, but its image component references a different media entity.
+    $original_page->addTranslation('fr', [
+      'title' => 'Export this translated page',
+      'components' => [
+        [
+          'uuid' => $head_sdc_uuid,
+          'component_id' => 'sdc.canvas_test_sdc.heading',
+          'component_version' => Component::load('sdc.canvas_test_sdc.heading')?->getActiveVersion(),
+          'inputs' => [
+            'text' => 'I lead with this, translated',
+            'style' => 'primary',
+            'element' => 'h1',
+          ],
+        ],
+        [
+          'uuid' => $image_sdc_uuid,
+          'component_id' => 'sdc.canvas_test_sdc.image',
+          'component_version' => Component::load('sdc.canvas_test_sdc.image')?->getActiveVersion(),
+          'inputs' => [
+            'image' => [
+              'target_id' => $original_translated_media->id(),
+            ],
+          ],
+        ],
+        [
+          'uuid' => $js_component_uuid,
+          'component_id' => $js_component->id(),
+          'component_version' => $original_js_component_active_version,
+          'inputs' => [
+            'name' => 'Gracie',
+          ],
+        ],
+        [
+          'uuid' => $local_file_sdc_uuid,
+          'component_id' => 'sdc.canvas_test_sdc.card-with-local-image',
+          'component_version' => Component::load('sdc.canvas_test_sdc.card-with-local-image')?->getActiveVersion(),
+          'inputs' => [
+            'src' => [
+              'target_id' => $original_directly_referenced_file->id(),
+            ],
+            'alt' => 'This is file 2, translated',
+            'loading' => 'lazy',
+          ],
+        ],
+        [
+          'uuid' => $block_component_uuid,
+          'component_id' => 'block.system_menu_block.main',
+          'component_version' => Component::load('block.system_menu_block.main')?->getActiveVersion(),
+          'inputs' => [
+            'label' => '',
+            'label_display' => '0',
+            'level' => 1,
+            'depth' => 3,
+            'expand_all_items' => TRUE,
+          ],
+        ],
+      ],
+    ]);
     $violations = $original_page->validate();
     self::assertCount(1, $violations);
     self::assertEquals($violations->get(0)->getMessage(), 'When using the default static prop source for a component input, you must use the collapsed input syntax.');
@@ -235,6 +314,10 @@ final class DefaultContentExportImportTest extends BrowserTestBase {
     $original_page->save();
     self::assertPageReferencesTargetEntity($original_page, $original_media, $image_sdc_uuid, 'image');
     self::assertPageReferencesTargetEntity($original_page, $original_directly_referenced_file, $local_file_sdc_uuid, 'src');
+    $original_translated_page = $original_page->getTranslation('fr');
+    self::assertInstanceOf(Page::class, $original_translated_page);
+    self::assertPageReferencesTargetEntity($original_translated_page, $original_translated_media, $image_sdc_uuid, 'image');
+    self::assertPageReferencesTargetEntity($original_translated_page, $original_directly_referenced_file, $local_file_sdc_uuid, 'src');
 
     $content_export_dir = $this->tempFilesDirectory . '/temp-content';
     self::assertTrue(mkdir($content_export_dir));
@@ -242,6 +325,7 @@ final class DefaultContentExportImportTest extends BrowserTestBase {
     // Save all the UUIDs because they should be the same after importing.
     $page_uuid = $original_page->uuid();
     $media_uuid = $original_media->uuid();
+    $translated_media_uuid = $original_translated_media->uuid();
     $directly_referenced_file_uuid = $original_directly_referenced_file->uuid();
     $unreferenced_file_uuid = $unreferenced_file->uuid();
     self::assertNotNull($unreferenced_file_uuid);
@@ -265,10 +349,12 @@ final class DefaultContentExportImportTest extends BrowserTestBase {
       $finder,
       [
         $original_media_referenced_file,
+        $original_translated_media_referenced_file,
         $original_directly_referenced_file,
         $original_user,
         $original_page,
         $original_media,
+        $original_translated_media,
       ],
     );
 
@@ -290,6 +376,16 @@ final class DefaultContentExportImportTest extends BrowserTestBase {
     // entities and the imported page now references the imported entities.
     self::assertPageReferencesTargetEntity($imported_entities[$page_uuid], $imported_entities[$media_uuid], $image_sdc_uuid, 'image');
     self::assertPageReferencesTargetEntity($imported_entities[$page_uuid], $imported_entities[$directly_referenced_file_uuid], $local_file_sdc_uuid, 'src');
+
+    // The translated component tree must reference the imported entities too:
+    // its own media entity, and the file shared with the default translation.
+    self::assertTrue($imported_entities[$page_uuid]->hasTranslation('fr'));
+    $imported_translated_page = $imported_entities[$page_uuid]->getTranslation('fr');
+    self::assertInstanceOf(Page::class, $imported_translated_page);
+    self::assertSame('Export this translated page', $imported_translated_page->label());
+    self::assertCount(0, $imported_translated_page->validate());
+    self::assertPageReferencesTargetEntity($imported_translated_page, $imported_entities[$translated_media_uuid], $image_sdc_uuid, 'image');
+    self::assertPageReferencesTargetEntity($imported_translated_page, $imported_entities[$directly_referenced_file_uuid], $local_file_sdc_uuid, 'src');
 
     // Update the code component to make the 'name' property required. This
     // should change the active version, but the previous export should still be
