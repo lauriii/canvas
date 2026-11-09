@@ -552,7 +552,7 @@ ${'  Label  '}
     const observer = createCanvasGeometryObserver({
       root: document,
       onChange,
-      synchronous: true,
+      synchronous: () => true,
     });
 
     document.body.append(document.createElement('p'));

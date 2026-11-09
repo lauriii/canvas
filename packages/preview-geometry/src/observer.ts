@@ -92,7 +92,10 @@ export function createCanvasGeometryObserver(
     }
     // A content refresh can leave every rectangle unchanged. Emit a fresh
     // snapshot so consumers can still treat the mutation as completion.
-    if (synchronous && childList) {
+    if (
+      childList &&
+      (typeof synchronous === 'function' ? synchronous() : synchronous)
+    ) {
       if (scheduledFrame !== null) {
         view.cancelAnimationFrame(scheduledFrame);
       }

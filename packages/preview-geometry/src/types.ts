@@ -61,9 +61,10 @@ export interface CanvasGeometryObserverOptions extends MeasureCanvasGeometryOpti
   onChange: (geometry: CanvasGeometry[]) => void;
   /**
    * Emits snapshots of added, moved or removed markup before the browser
-   * paints it, instead of in the next animation frame.
+   * paints it, instead of in the next animation frame. A function decides
+   * for each change.
    */
-  synchronous?: boolean;
+  synchronous?: boolean | (() => boolean);
   /**
    * Emits a snapshot every frame while a matching animation runs, which moves
    * elements without changing the markup.
