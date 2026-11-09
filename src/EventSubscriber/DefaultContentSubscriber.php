@@ -168,24 +168,45 @@ final class DefaultContentSubscriber implements EventSubscriberInterface {
       return;
     }
 
+    /** @var string[] $componentTreeFields */
     $componentTreeFields = \array_keys($this->componentTreeFieldMap[$event->metadata['entity_type']]);
-    foreach ($event->data as &$translation_data) {
-      foreach ($componentTreeFields as $field_name) {
-        // Skip if field not present.
-        if (!isset($translation_data[$field_name])) {
+    // The exported field values of the default translation are under the
+    // `default` key, every other translation has fields under
+    // `translations.<langcode>`. Entity references must be resolved in all of
+    // them.
+    // @see \Drupal\Core\DefaultContent\Importer::toEntity()
+    $this->processComponentTreesOnImport($event->data['default'], $componentTreeFields);
+    if (isset($event->data['translations'])) {
+      foreach ($event->data['translations'] as &$translation_data) {
+        $this->processComponentTreesOnImport($translation_data, $componentTreeFields);
+      }
+    }
+  }
+
+  /**
+   * Resolves exported entity references in one translation's component trees.
+   *
+   * @param array<string, mixed> $translation_data
+   *   The exported field values of one translation. Modified in place.
+   * @param string[] $component_tree_fields
+   *   The names of the component tree fields of the entity type.
+   */
+  private function processComponentTreesOnImport(array &$translation_data, array $component_tree_fields): void {
+    foreach ($component_tree_fields as $field_name) {
+      // Skip if field not present.
+      if (!isset($translation_data[$field_name])) {
+        continue;
+      }
+
+      foreach ($translation_data[$field_name] as &$item_data) {
+        // Skip if no inputs.
+        if (!isset($item_data['inputs'])) {
           continue;
         }
 
-        foreach ($translation_data[$field_name] as &$item_data) {
-          // Skip if no inputs.
-          if (!isset($item_data['inputs'])) {
-            continue;
-          }
-
-          foreach ($item_data['inputs'] as &$prop_input) {
-            if (\is_array($prop_input)) {
-              $prop_input = $this->processComponentInputOnImport($prop_input);
-            }
+        foreach ($item_data['inputs'] as &$prop_input) {
+          if (\is_array($prop_input)) {
+            $prop_input = $this->processComponentInputOnImport($prop_input);
           }
         }
       }
