@@ -168,6 +168,21 @@ describe('findPreviewDropZoneId', () => {
     expect(find(50, 550, 'g')).toBe('f_left');
   });
 
+  it("doesn't take a single column of narrow components for a grid", () => {
+    // A narrow centered component above narrow left-aligned ones.
+    const column = slot(
+      'column',
+      [0, 0, 400, 300],
+      [
+        item('a', [150, 0, 100, 100]),
+        item('b', [0, 100, 100, 100]),
+        item('c', [0, 200, 100, 100]),
+      ],
+    );
+    // The second half of b is after b, where c already is.
+    expect(findPreviewDropZoneId(column, { x: 50, y: 180 }, 'c')).toBeNull();
+  });
+
   it('changes the drop target only when the pointer is clearly past it', () => {
     const viewport = el({}, [0, 0, 400, 1000], [root]);
     freezeDropTargets(viewport);

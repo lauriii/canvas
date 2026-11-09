@@ -41,8 +41,6 @@ const EmptySlotDropZone: React.FC<EmptySlotDropZoneProps> = (props) => {
     return path;
   }, [layout, slot.id]);
 
-  const accepts = ['overlay', 'library'];
-
   const {
     setNodeRef: setDropRef,
     isOver,
@@ -54,7 +52,6 @@ const EmptySlotDropZone: React.FC<EmptySlotDropZoneProps> = (props) => {
       component: parentComponent,
       parentSlot: slot,
       path: slotPath,
-      accepts,
     },
   });
 

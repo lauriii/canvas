@@ -29,7 +29,6 @@ const ComponentDropZone: React.FC<ComponentDropZoneProps> = (props) => {
   // Only components from the preview or the library can be dropped here.
   const { previewDragging, listDragging } = useAppSelector(selectDragging);
   const acceptsActive = previewDragging || listDragging;
-  const accepts = ['overlay', 'library'];
 
   function getPositionRelation(position: ComponentDropZoneProps['position']) {
     return position === 'top' || position === 'left' ? 'before' : 'after';
@@ -56,7 +55,6 @@ const ComponentDropZone: React.FC<ComponentDropZoneProps> = (props) => {
       component: component,
       parentSlot: parentSlot,
       path: dropPath,
-      accepts,
     },
   });
 

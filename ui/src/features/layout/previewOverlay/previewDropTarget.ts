@@ -86,10 +86,15 @@ const childItems = (container: HTMLElement) =>
 const isActive = (el: HTMLElement, activeId: UniqueIdentifier) =>
   el.dataset.canvasDropItem === activeId;
 
-// Whether components are laid out in more than one row and column.
+// Whether components are laid out in more than one row and column: one is
+// beside the first and one is below it. In a single column, none is beside
+// another.
 const wraps = ([first, ...rest]: DOMRect[]) =>
-  rest.some((r) => r.top >= first.bottom - 1) &&
-  rest.some((r) => r.left >= first.right - 1 || r.right <= first.left + 1);
+  rest.some(
+    (r) =>
+      r.top < first.bottom - 1 &&
+      (r.left >= first.right - 1 || r.right <= first.left + 1),
+  ) && rest.some((r) => r.top >= first.bottom - 1);
 
 const isHorizontal = (container: HTMLElement) =>
   !!container.dataset.canvasStackDirection?.startsWith('h');
@@ -124,7 +129,8 @@ export function findPreviewDropZoneId(
   point: Point,
   activeId: UniqueIdentifier,
 ): string | null {
-  const id = resolveDropZoneId(root, point, activeId);
+  const rect = rectReader();
+  const id = resolveDropZoneId(root, point, activeId, rect);
   if (!frozen) {
     return id;
   }
@@ -143,6 +149,7 @@ export function findPreviewDropZoneId(
           root,
           { x: point.x + dx * HYSTERESIS, y: point.y + dy * HYSTERESIS },
           activeId,
+          rect,
         ) === last,
     )
   ) {
@@ -156,8 +163,8 @@ function resolveDropZoneId(
   root: HTMLElement,
   point: Point,
   activeId: UniqueIdentifier,
+  rect: (el: Element) => DOMRect,
 ): string | null {
-  const rect = rectReader();
   let container = root;
   for (;;) {
     const hit = childItems(container).find(

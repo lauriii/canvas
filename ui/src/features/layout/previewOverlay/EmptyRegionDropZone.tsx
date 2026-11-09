@@ -32,7 +32,6 @@ const EmptyRegionDropZone: React.FC<EmptyRegionDropZoneProps> = (props) => {
 
   const regionIndex = layout.findIndex((r) => r.id === region.id);
   const regionPath = [regionIndex, 0];
-  const accepts = ['overlay', 'library'];
 
   const {
     setNodeRef: setDropRef,
@@ -44,7 +43,6 @@ const EmptyRegionDropZone: React.FC<EmptyRegionDropZoneProps> = (props) => {
     data: {
       region: region,
       path: regionPath,
-      accepts,
     },
   });
 

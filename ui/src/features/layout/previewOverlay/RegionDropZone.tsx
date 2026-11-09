@@ -21,7 +21,6 @@ const RegionDropZone: React.FC<RegionDropZoneProps> = (props) => {
   // Only components from the preview or the library can be dropped here.
   const { previewDragging, listDragging } = useAppSelector(selectDragging);
   const acceptsActive = previewDragging || listDragging;
-  const accepts = ['overlay', 'library'];
 
   const regionIndex = layout.findIndex((r) => r.id === region.id);
   const regionPath = [regionIndex];
@@ -39,7 +38,6 @@ const RegionDropZone: React.FC<RegionDropZoneProps> = (props) => {
     data: {
       region: region,
       path: regionPath,
-      accepts,
     },
   });
 
