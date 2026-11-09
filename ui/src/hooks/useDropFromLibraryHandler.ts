@@ -56,8 +56,8 @@ export function useDropFromLibraryHandler() {
         }
       }
     } else if (type === 'pattern') {
-      // The live preview stays, outlined, until the new preview is rendered.
-      commitLivePreview();
+      // The markup of a pattern isn't kept: its markers aren't those of the
+      // components the pattern adds. The new preview shows them.
       dispatch(
         addNewPatternToLayout(
           {

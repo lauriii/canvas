@@ -60,6 +60,8 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
     const editsAtRequestRef = useRef(editsAtRequest);
     editsAtRequestRef.current = editsAtRequest;
     const editsAtLoadRef = useRef(0);
+    // Counts the documents loaded, so only the latest one is swapped in.
+    const loadRef = useRef(0);
     const [whichActive, setWhichActive] = useState(0);
     const { isDragging } = useAppSelector(selectDragging);
     // Latest-value ref, so writing a new srcdoc picks up the current styles
@@ -109,7 +111,12 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
         iframe.style.display = '';
 
         let startTime = Date.now();
+        const load = loadRef.current;
         const checkIFrameContent = () => {
+          // A newer document is loading.
+          if (load !== loadRef.current) {
+            return;
+          }
           // Swapping would take the dragged component out of the user's hand.
           if (isLivePreviewActive()) {
             startTime = Date.now();
@@ -195,6 +202,7 @@ const IFrameSwapper = forwardRef<HTMLIFrameElement, IFrameSwapperProps>(
       // Important to change a state ensure parent re-renders (and re-calls hooks) once the iframe is swapped.
       setIsReloading(true);
       editsAtLoadRef.current = editsAtRequestRef.current;
+      loadRef.current++;
       const { activeIFrame, inactiveIFrame } = getIFrames();
 
       // Insert the head styles into the markup itself, so a loading document

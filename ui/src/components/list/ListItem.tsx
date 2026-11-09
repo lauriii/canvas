@@ -72,6 +72,11 @@ const ListItem: React.FC<{
   const { setSelectedComponent } = useComponentSelection();
   const activePanel = useAppSelector(selectActivePanel);
   const { isDragging: isDraggingAnything } = useAppSelector(selectDragging);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  // A preview open when a drag starts doesn't open again when it ends.
+  if (isDraggingAnything && isPreviewOpen) {
+    setIsPreviewOpen(false);
+  }
   const headlessSettings = useCanvasHeadlessSettings();
   const canPreview =
     supportsPreview(item) ||
@@ -246,7 +251,8 @@ const ListItem: React.FC<{
           delayDuration={0}
           // The preview would cover the page while something is dragged over
           // it.
-          open={isDraggingAnything ? false : undefined}
+          open={isPreviewOpen && !isDraggingAnything}
+          onOpenChange={setIsPreviewOpen}
         >
           <Tooltip.Trigger asChild={true} style={{ width: '100%' }}>
             <div>{renderItem()}</div>
