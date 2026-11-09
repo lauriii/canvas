@@ -36,9 +36,17 @@ final class ComponentAudit extends ConfigAuditBase {
   /**
    * {@inheritdoc}
    */
-  protected function componentTreeUsesAuditTarget(ComponentTreeItemList $tree, ConfigEntityInterface $target): bool {
+  protected function componentTreeUsesAuditTarget(ComponentTreeItemList $tree, ConfigEntityInterface $target, array $version_ids = []): bool {
     \assert($target instanceof ComponentInterface);
-    return \in_array($target->id(), $tree->getComponentIdList(), TRUE);
+    if ($version_ids === []) {
+      return \in_array($target->id(), $tree->getComponentIdList(), TRUE);
+    }
+    foreach ($tree->componentTreeItemsIterator() as $item) {
+      if ($item->getComponentId() === $target->id() && \in_array($item->getComponentVersion(), $version_ids, TRUE)) {
+        return TRUE;
+      }
+    }
+    return FALSE;
   }
 
 }

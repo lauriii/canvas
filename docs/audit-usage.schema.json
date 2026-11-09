@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://git.drupalcode.org/project/canvas/-/raw/HEAD/docs/audit-usage.schema.json",
+  "title": "Canvas audit usage JSON report",
+  "description": "The `--format=json` output of `canvas:audit:usage`. See docs/cli.md.",
+  "type": "object",
+  "required": ["report_version", "target", "revisions", "usages"],
+  "additionalProperties": false,
+  "properties": {
+    "report_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Version of this envelope. See \\Drupal\\canvas\\Command\\AuditUsageCommand::REPORT_VERSION."
+    },
+    "target": {
+      "type": "string",
+      "description": "The target argument as given: a component source plugin ID, a component ID, or a component ID and version separated by `@`."
+    },
+    "revisions": {
+      "type": "string",
+      "enum": ["all", "default", "latest"],
+      "description": "Which content entity revisions were searched. Config entities and auto-saves are always searched."
+    },
+    "usages": {
+      "type": "array",
+      "description": "One entry per place a component version is used.",
+      "items": { "$ref": "#/$defs/usage" }
+    }
+  },
+  "$defs": {
+    "usage": {
+      "type": "object",
+      "required": ["component", "version", "kind", "entity_type", "id", "revision", "default", "latest", "label"],
+      "additionalProperties": false,
+      "properties": {
+        "component": { "type": "string", "description": "Component config entity ID." },
+        "version": { "type": "string", "description": "Component version ID." },
+        "kind": {
+          "type": "string",
+          "enum": ["content", "config", "auto-save"],
+          "description": "Where the usage was found: a content entity revision, a config entity, or an auto-save."
+        },
+        "entity_type": { "type": "string", "description": "Entity type ID of the entity using the component." },
+        "id": { "type": "string", "description": "Entity ID." },
+        "revision": { "type": ["string", "null"], "description": "Revision ID. Null for config and auto-save usages, and for non-revisionable content entities." },
+        "default": { "type": ["boolean", "null"], "description": "Whether the revision is the default revision. Null when `revision` is null." },
+        "latest": { "type": ["boolean", "null"], "description": "Whether the revision is the latest revision. Null when `revision` is null." },
+        "label": { "type": ["string", "null"], "description": "Entity label. For an auto-save usage, the label from the auto-save." }
+      }
+    }
+  }
+}
