@@ -1,31 +1,20 @@
 import clsx from 'clsx';
-import {
-  BoxModelIcon,
-  Component1Icon,
-  CubeIcon,
-  DiscIcon,
-  FileTextIcon,
-} from '@radix-ui/react-icons';
+import { BoxModelIcon, CubeIcon, FileTextIcon } from '@radix-ui/react-icons';
 
 import { useAppSelector } from '@/app/hooks';
 import {
   selectDragging,
   selectIsComponentHovered,
-  selectNoComponentIsHovered,
-  selectSelectedComponentUuid,
   selectTargetSlot,
 } from '@/features/ui/uiSlice';
 
 import styles from './NameTag.module.css';
 
+// Components have their own tag (see ComponentTag).
 const VARIANTS = {
-  component: <Component1Icon width={10} height={10} />,
   region: <CubeIcon width={10} height={10} />,
   slot: <BoxModelIcon width={10} height={10} />,
   page: <FileTextIcon width={10} height={10} />,
-  // The page variant "Page content" marker: the injection point for the
-  // route's main content.
-  marker: <DiscIcon width={10} height={10} />,
 };
 
 interface NameTagProps {
@@ -44,7 +33,6 @@ const NameTag: React.FC<NameTagProps> = (props) => {
         [styles.slot]: nodeType === 'slot',
         [styles.region]: nodeType === 'region',
         [styles.page]: nodeType === 'page',
-        [styles.marker]: nodeType === 'marker',
       })}
     >
       {VARIANTS[nodeType as keyof typeof VARIANTS]}
@@ -92,32 +80,4 @@ export const RegionNameTag: React.FC<NameTagProps> = (props) => {
   }
 
   return <NameTag name={name} id={id} nodeType={props.nodeType} />;
-};
-
-export const ComponentNameTag: React.FC<NameTagProps> = (props) => {
-  const { name, id } = props;
-  const selectedComponent = useAppSelector(selectSelectedComponentUuid);
-  const { isDragging } = useAppSelector(selectDragging);
-  const isSelected = id === selectedComponent;
-  const isHovered = useAppSelector((state) => {
-    return selectIsComponentHovered(state, id);
-  });
-  const noComponentIsHovered = useAppSelector(selectNoComponentIsHovered);
-
-  // Show the name of the hovered component or selected component when nothing else is hovered. Hide when dragging
-  // Desired result is that only one NameTag is shown at a time:
-  // either the selected or the hovered component or, when dragging, the target slot or region.
-  const showName =
-    !isDragging && ((isSelected && noComponentIsHovered) || isHovered);
-
-  if (!showName) {
-    return null;
-  }
-  return (
-    <NameTag
-      name={name}
-      id={id}
-      nodeType={props.nodeType === 'marker' ? 'marker' : 'component'}
-    />
-  );
 };

@@ -110,6 +110,7 @@ const SlotOverlay: React.FC<SlotOverlayProps> = ({
       {slot.components.map((childComponent: ComponentNode, index) => (
         <ComponentOverlay
           key={childComponent.uuid}
+          parentComponent={parentComponent}
           parentSlot={slot}
           component={childComponent}
           index={index}

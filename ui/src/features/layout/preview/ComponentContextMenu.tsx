@@ -1,28 +1,13 @@
-import { useCallback, useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { ContextMenu } from '@radix-ui/themes';
 
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { useAppSelector } from '@/app/hooks';
 import PermissionCheck from '@/components/PermissionCheck';
 import { UnifiedMenu } from '@/components/UnifiedMenu';
-import {
-  deleteNode,
-  duplicateNode,
-  shiftNode,
-} from '@/features/layout/layoutModelSlice';
-import { componentSubtreeMatchesType } from '@/features/layout/layoutUtils';
 import ComponentContextMenuMoveInto from '@/features/layout/preview/ComponentContextMenuMoveInto';
-import { setDialogOpen } from '@/features/ui/dialogSlice';
-import {
-  selectEditorViewPortScale,
-  selectSelectedComponentUuid,
-  unsetHoveredComponent,
-} from '@/features/ui/uiSlice';
-import useComponentSelection from '@/hooks/useComponentSelection';
-import useCopyPasteComponents from '@/hooks/useCopyPasteComponents';
-import useEditorNavigation from '@/hooks/useEditorNavigation';
+import { selectEditorViewPortScale } from '@/features/ui/uiSlice';
+import useComponentActions from '@/hooks/useComponentActions';
 import useGetComponentName from '@/hooks/useGetComponentName';
-import { useGetComponentsQuery } from '@/services/componentAndLayout';
-import { isMarkerComponentType } from '@/services/pageVariants';
 
 import type React from 'react';
 import type { ReactNode } from 'react';
@@ -39,129 +24,22 @@ export const ComponentContextMenuContent: React.FC<
     menuType?: UnifiedMenuType;
   }
 > = ({ component, menuType = 'context' }) => {
-  const dispatch = useAppDispatch();
-  const { data: components } = useGetComponentsQuery();
   const componentName = useGetComponentName(component);
   const editorViewPortScale = useAppSelector(selectEditorViewPortScale);
-  const selectedComponent = useAppSelector(selectSelectedComponentUuid);
-  const { setSelectedComponent, unsetSelectedComponent } =
-    useComponentSelection();
-  const componentUuid = component.uuid;
-  const { copySelectedComponent, pasteAfterSelectedComponent } =
-    useCopyPasteComponents();
-  const { navigateToCodeEditor } = useEditorNavigation();
-
-  // Check if this is a code component
-  const [componentType] = (component.type || '').split('@');
-  const isCodeComponent =
-    componentType &&
-    components &&
-    components[componentType]?.source === 'Code component';
-  const isExternal = Boolean(
-    componentType &&
-    components?.[componentType] &&
-    'type' in components[componentType] &&
-    components[componentType].type === 'external',
-  );
-  // Markers (e.g. a page variant's "Page content" marker) are intrinsic: they
-  // can only be repositioned, so every other mutating operation is hidden.
-  // The same applies to any ancestor whose slots contain a marker: deleting or
-  // duplicating it would delete or duplicate the marker with it.
-  const isMarker = componentSubtreeMatchesType(
-    component,
-    isMarkerComponentType,
-  );
-
-  const handleDeleteClick = useCallback(
-    (ev: React.MouseEvent<HTMLElement>) => {
-      ev.stopPropagation();
-      if (componentUuid) {
-        dispatch(deleteNode(componentUuid));
-        unsetSelectedComponent();
-      }
-      dispatch(unsetHoveredComponent());
-    },
-    [componentUuid, dispatch, unsetSelectedComponent],
-  );
-
-  const handleDuplicateClick = useCallback(
-    (ev: React.MouseEvent<HTMLElement>) => {
-      ev.stopPropagation();
-      dispatch(unsetHoveredComponent());
-
-      if (componentUuid) {
-        dispatch(duplicateNode({ uuid: componentUuid }));
-      }
-    },
-    [dispatch, componentUuid],
-  );
-
-  const handleCopyClick = useCallback(
-    (ev: React.MouseEvent<HTMLElement>) => {
-      ev.stopPropagation();
-      dispatch(unsetHoveredComponent());
-
-      if (componentUuid) {
-        copySelectedComponent(componentUuid);
-      }
-    },
-    [dispatch, componentUuid, copySelectedComponent],
-  );
-
-  const handlePasteClick = useCallback(
-    (ev: React.MouseEvent<HTMLElement>) => {
-      ev.stopPropagation();
-      dispatch(unsetHoveredComponent());
-
-      if (componentUuid) {
-        pasteAfterSelectedComponent(componentUuid);
-      }
-    },
-    [dispatch, componentUuid, pasteAfterSelectedComponent],
-  );
-
-  const handleMoveUpClick = useCallback(
-    (ev: React.MouseEvent<HTMLElement>) => {
-      ev.stopPropagation();
-      dispatch(unsetHoveredComponent());
-
-      dispatch(shiftNode({ uuid: componentUuid, direction: 'up' }));
-    },
-    [dispatch, componentUuid],
-  );
-
-  const handleMoveDownClick = useCallback(
-    (ev: React.MouseEvent<HTMLElement>) => {
-      ev.stopPropagation();
-      dispatch(unsetHoveredComponent());
-
-      dispatch(shiftNode({ uuid: componentUuid, direction: 'down' }));
-    },
-    [dispatch, componentUuid],
-  );
-
-  const handleCreatePatternClick = useCallback(
-    (e: React.MouseEvent<HTMLElement>) => {
-      e.stopPropagation();
-      if (componentUuid !== selectedComponent) {
-        setSelectedComponent(componentUuid);
-      }
-      dispatch(setDialogOpen('saveAsPattern'));
-    },
-    [componentUuid, dispatch, selectedComponent, setSelectedComponent],
-  );
-
-  const handleEditCodeClick = useCallback(
-    (ev: React.MouseEvent<HTMLElement>) => {
-      ev.stopPropagation();
-      if (component.type && component.type.startsWith('js.')) {
-        const machineNameAndVersion = component.type.substring(3);
-        const [machineName] = machineNameAndVersion.split('@');
-        navigateToCodeEditor(machineName);
-      }
-    },
-    [component.type, navigateToCodeEditor],
-  );
+  const {
+    components,
+    isCodeComponent,
+    isExternal,
+    isMarker,
+    deleteComponent: handleDeleteClick,
+    duplicateComponent: handleDuplicateClick,
+    copyComponent: handleCopyClick,
+    pasteAfterComponent: handlePasteClick,
+    moveUp: handleMoveUpClick,
+    moveDown: handleMoveDownClick,
+    createPattern: handleCreatePatternClick,
+    editCode: handleEditCodeClick,
+  } = useComponentActions(component);
 
   const closeContextMenu = () => {
     // @todo https://www.drupal.org/i/3506657: There has to be a better way to close the context menu than firing an esc key press.
@@ -174,10 +52,17 @@ export const ComponentContextMenuContent: React.FC<
     document.dispatchEvent(escapeEvent);
   };
 
+  // Only when the scale changes: not when the menu mounts, e.g. with the
+  // toolbar of a component that was just selected, which would close a dialog
+  // that was just opened.
+  const scale = useRef(editorViewPortScale);
   useEffect(() => {
     // If the user zooms, close the context menu. Panning is no problem as the context menu prevents scrolling with the
     // mouse wheel, and it is closed automatically when panning via clicking the mouse.
-    closeContextMenu();
+    if (scale.current !== editorViewPortScale) {
+      scale.current = editorViewPortScale;
+      closeContextMenu();
+    }
   }, [editorViewPortScale]);
 
   return (

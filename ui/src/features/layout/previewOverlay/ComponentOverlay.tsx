@@ -4,7 +4,8 @@ import { useDraggable } from '@dnd-kit/core';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ComponentContextMenu from '@/features/layout/preview/ComponentContextMenu';
-import { ComponentNameTag } from '@/features/layout/preview/NameTag';
+import { ComponentTag } from '@/features/layout/preview/ComponentTag';
+import ComponentToolbar from '@/features/layout/preview/ComponentToolbar';
 import { usePreviewDom } from '@/features/layout/preview/PreviewDomContext';
 import { usePreviewGeometry } from '@/features/layout/preview/PreviewGeometryContext';
 import ComponentDropZone from '@/features/layout/previewOverlay/ComponentDropZone';
@@ -15,6 +16,7 @@ import {
   selectEditorViewPortScale,
   selectIsComponentHovered,
   selectIsComponentUpdating,
+  selectSelectedComponentUuid,
   setHoveredComponent,
   unsetHoveredComponent,
 } from '@/features/ui/uiSlice';
@@ -34,6 +36,8 @@ import styles from './PreviewOverlay.module.css';
 
 export interface ComponentOverlayProps {
   component: ComponentNode;
+  // The component the slot the component is in belongs to.
+  parentComponent?: ComponentNode;
   parentSlot?: SlotNode;
   parentRegion?: RegionNode;
   index: number;
@@ -43,6 +47,7 @@ export interface ComponentOverlayProps {
 const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   const {
     component,
+    parentComponent,
     parentSlot,
     parentRegion,
     index,
@@ -95,6 +100,11 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   const isSelected = useAppSelector((state) =>
     selectComponentIsSelected(state, component.uuid),
   );
+  // The toolbar is for a single selected component.
+  const hasToolbar =
+    useAppSelector(
+      (state) => selectSelectedComponentUuid(state) === component.uuid,
+    ) && !isDragging;
 
   function handleComponentClick(event: React.MouseEvent<HTMLElement>) {
     event.stopPropagation();
@@ -114,6 +124,10 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    // Keys pressed in the toolbar are for its buttons.
+    if (event.target !== event.currentTarget) {
+      return;
+    }
     if (event.code === 'Enter' || (event.code === 'Space' && !event.repeat)) {
       event.preventDefault(); // Prevents scrolling when space is pressed
       event.stopPropagation(); // Prevents key firing on a parent component
@@ -144,6 +158,9 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   }
 
   const [componentType] = component.type.split('@');
+  // Components at the top of the page leave no room above them for their
+  // name and toolbar.
+  const inside = (componentGeometry?.rect.top ?? 0) * editorViewPortScale < 30;
 
   if (!componentGeometry || !parentGeometry) {
     return null;
@@ -184,18 +201,28 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
           data-canvas-overlay="true"
         />
       </ComponentContextMenu>
-      {(isHovered || isSelected) && (
-        <div className={clsx(styles.canvasNameTag)}>
-          <ComponentNameTag
-            name={name}
-            id={component.uuid}
-            nodeType={
-              isMarkerComponentType(component.type)
-                ? 'marker'
-                : component.nodeType
-            }
-          />
-        </div>
+      {hasToolbar && (
+        <ComponentToolbar
+          component={component}
+          name={name}
+          parentUuid={parentComponent?.uuid}
+          index={index}
+          siblingCount={
+            (parentSlot ?? parentRegion)?.components.length ?? index + 1
+          }
+          horizontal={stackDirection.startsWith('h')}
+          inside={inside}
+          dragListeners={listeners}
+        />
+      )}
+      {!hasToolbar && isHovered && !isDragging && (
+        <ComponentTag
+          name={name}
+          id={component.uuid}
+          isMarker={isMarkerComponentType(component.type)}
+          inside={inside}
+          dragListeners={listeners}
+        />
       )}
       {component.slots.map((slot: SlotNode) => (
         <SlotOverlay
