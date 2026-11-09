@@ -96,17 +96,21 @@ function canAutoScroll(element: Element): boolean {
   );
 }
 
+// Defined once: new options on each App render would give dnd-kit new sensors,
+// which re-renders every draggable and droppable (one per component instance).
+const POINTER_SENSOR_OPTIONS = {
+  // Require the mouse to move by 3 pixels before activating - without this you can't click to select a component
+  activationConstraint: {
+    distance: 3,
+  },
+};
+
 const App: React.FC = () => {
   useRouteSync();
   useExtensions();
   useNavigationListener();
 
-  const pointerSensor = useSensor(PointerSensor, {
-    // Require the mouse to move by 3 pixels before activating - without this you can't click to select a component
-    activationConstraint: {
-      distance: 3,
-    },
-  });
+  const pointerSensor = useSensor(PointerSensor, POINTER_SENSOR_OPTIONS);
   const sensors = useSensors(pointerSensor);
   return (
     <div className="canvas-app">
