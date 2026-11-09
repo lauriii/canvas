@@ -5,14 +5,8 @@ import { useAppSelector } from '@/app/hooks';
 import {
   selectDragging,
   selectIsComponentHovered,
-  selectNoComponentIsHovered,
-  selectSelectedComponentUuid,
   selectTargetSlot,
 } from '@/features/ui/uiSlice';
-
-import { ComponentTag } from './ComponentToolbar';
-
-import type { DraggableSyntheticListeners } from '@dnd-kit/core';
 
 import styles from './NameTag.module.css';
 
@@ -86,39 +80,4 @@ export const RegionNameTag: React.FC<NameTagProps> = (props) => {
   }
 
   return <NameTag name={name} id={id} nodeType={props.nodeType} />;
-};
-
-export const ComponentNameTag: React.FC<
-  NameTagProps & {
-    inside: boolean;
-    dragListeners?: DraggableSyntheticListeners;
-  }
-> = (props) => {
-  const { name, id, inside, dragListeners } = props;
-  const selectedComponent = useAppSelector(selectSelectedComponentUuid);
-  const { isDragging } = useAppSelector(selectDragging);
-  const isSelected = id === selectedComponent;
-  const isHovered = useAppSelector((state) => {
-    return selectIsComponentHovered(state, id);
-  });
-  const noComponentIsHovered = useAppSelector(selectNoComponentIsHovered);
-
-  // Show the name of the hovered component or selected component when nothing else is hovered. Hide when dragging
-  // Desired result is that only one NameTag is shown at a time:
-  // either the selected or the hovered component or, when dragging, the target slot or region.
-  const showName =
-    !isDragging && ((isSelected && noComponentIsHovered) || isHovered);
-
-  if (!showName) {
-    return null;
-  }
-  return (
-    <ComponentTag
-      name={name}
-      id={id}
-      isMarker={props.nodeType === 'marker'}
-      inside={inside}
-      dragListeners={dragListeners}
-    />
-  );
 };

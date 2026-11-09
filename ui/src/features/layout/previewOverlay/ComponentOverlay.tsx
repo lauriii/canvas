@@ -4,8 +4,8 @@ import { useDraggable } from '@dnd-kit/core';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import ComponentContextMenu from '@/features/layout/preview/ComponentContextMenu';
+import { ComponentTag } from '@/features/layout/preview/ComponentTag';
 import ComponentToolbar from '@/features/layout/preview/ComponentToolbar';
-import { ComponentNameTag } from '@/features/layout/preview/NameTag';
 import { usePreviewDom } from '@/features/layout/preview/PreviewDomContext';
 import { usePreviewGeometry } from '@/features/layout/preview/PreviewGeometryContext';
 import ComponentDropZone from '@/features/layout/previewOverlay/ComponentDropZone';
@@ -36,6 +36,8 @@ import styles from './PreviewOverlay.module.css';
 
 export interface ComponentOverlayProps {
   component: ComponentNode;
+  // The component the slot the component is in belongs to.
+  parentComponent?: ComponentNode;
   parentSlot?: SlotNode;
   parentRegion?: RegionNode;
   index: number;
@@ -45,6 +47,7 @@ export interface ComponentOverlayProps {
 const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   const {
     component,
+    parentComponent,
     parentSlot,
     parentRegion,
     index,
@@ -99,8 +102,9 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   );
   // The toolbar is for a single selected component.
   const hasToolbar =
-    useAppSelector(selectSelectedComponentUuid) === component.uuid &&
-    !isDragging;
+    useAppSelector(
+      (state) => selectSelectedComponentUuid(state) === component.uuid,
+    ) && !isDragging;
 
   function handleComponentClick(event: React.MouseEvent<HTMLElement>) {
     event.stopPropagation();
@@ -120,6 +124,10 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    // Keys pressed in the toolbar are for its buttons.
+    if (event.target !== event.currentTarget) {
+      return;
+    }
     if (event.code === 'Enter' || (event.code === 'Space' && !event.repeat)) {
       event.preventDefault(); // Prevents scrolling when space is pressed
       event.stopPropagation(); // Prevents key firing on a parent component
@@ -197,7 +205,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
         <ComponentToolbar
           component={component}
           name={name}
-          parentSlot={parentSlot}
+          parentUuid={parentComponent?.uuid}
           index={index}
           siblingCount={
             (parentSlot ?? parentRegion)?.components.length ?? index + 1
@@ -207,15 +215,11 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
           dragListeners={listeners}
         />
       )}
-      {!hasToolbar && (isHovered || isSelected) && (
-        <ComponentNameTag
+      {!hasToolbar && isHovered && !isDragging && (
+        <ComponentTag
           name={name}
           id={component.uuid}
-          nodeType={
-            isMarkerComponentType(component.type)
-              ? 'marker'
-              : component.nodeType
-          }
+          isMarker={isMarkerComponentType(component.type)}
           inside={inside}
           dragListeners={listeners}
         />

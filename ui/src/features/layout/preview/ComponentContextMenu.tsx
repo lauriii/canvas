@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { ContextMenu } from '@radix-ui/themes';
 
 import { useAppSelector } from '@/app/hooks';
@@ -52,10 +52,17 @@ export const ComponentContextMenuContent: React.FC<
     document.dispatchEvent(escapeEvent);
   };
 
+  // Only when the scale changes: not when the menu mounts, e.g. with the
+  // toolbar of a component that was just selected, which would close a dialog
+  // that was just opened.
+  const scale = useRef(editorViewPortScale);
   useEffect(() => {
     // If the user zooms, close the context menu. Panning is no problem as the context menu prevents scrolling with the
     // mouse wheel, and it is closed automatically when panning via clicking the mouse.
-    closeContextMenu();
+    if (scale.current !== editorViewPortScale) {
+      scale.current = editorViewPortScale;
+      closeContextMenu();
+    }
   }, [editorViewPortScale]);
 
   return (

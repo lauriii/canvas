@@ -1,36 +1,32 @@
-import clsx from 'clsx';
 import {
   ArrowDownIcon,
   ArrowLeftIcon,
   ArrowRightIcon,
   ArrowTopLeftIcon,
   ArrowUpIcon,
-  Component1Icon,
   CopyIcon,
-  DiscIcon,
   DotsHorizontalIcon,
-  DragHandleDots2Icon,
   TrashIcon,
 } from '@radix-ui/react-icons';
 import { DropdownMenu, Tooltip } from '@radix-ui/themes';
 
 import { ComponentContextMenuContent } from '@/features/layout/preview/ComponentContextMenu';
+import { ComponentTag } from '@/features/layout/preview/ComponentTag';
 import useComponentActions from '@/hooks/useComponentActions';
 import useComponentSelection from '@/hooks/useComponentSelection';
+import { isMarkerComponentType } from '@/services/pageVariants';
 
 import type React from 'react';
 import type { DraggableSyntheticListeners } from '@dnd-kit/core';
-import type {
-  ComponentNode,
-  SlotNode,
-} from '@/features/layout/layoutModelSlice';
+import type { ComponentNode } from '@/features/layout/layoutModelSlice';
 
 import styles from './ComponentToolbar.module.css';
 
 interface ComponentToolbarProps {
   component: ComponentNode;
   name: string;
-  parentSlot?: SlotNode;
+  // The component the component is in, if any.
+  parentUuid?: string;
   index: number;
   siblingCount: number;
   horizontal: boolean;
@@ -59,89 +55,30 @@ const ToolbarButton: React.FC<{
   </Tooltip>
 );
 
-interface ComponentTagProps {
-  name: string;
-  id: string;
-  isMarker: boolean;
-  inside: boolean;
-  dragListeners?: DraggableSyntheticListeners;
-  children?: React.ReactNode;
-}
-
-/**
- * The name of a component in the preview, with its actions if any.
- *
- * The name of a hovered component and the toolbar of the selected one look
- * the same and are in the same place: selecting a component adds its actions.
- */
-export const ComponentTag: React.FC<ComponentTagProps> = ({
-  name,
-  id,
-  isMarker,
-  inside,
-  dragListeners,
-  children,
-}) => {
-  const label = (
-    <div className={styles.name} {...dragListeners}>
-      {/* The type of the component, or where to grab it to drag it. */}
-      <span className={styles.icon} aria-hidden>
-        {isMarker ? (
-          <DiscIcon className={styles.typeIcon} />
-        ) : (
-          <Component1Icon className={styles.typeIcon} />
-        )}
-        <DragHandleDots2Icon className={styles.handle} />
-      </span>
-      <span id={`${id}-name`}>{name}</span>
-    </div>
-  );
-  return (
-    <div
-      className={clsx(styles.toolbar, {
-        [styles.inside]: inside,
-        [styles.marker]: isMarker,
-      })}
-      data-testid={children ? 'canvas-component-toolbar' : 'canvas-name-tag'}
-      role={children ? 'toolbar' : undefined}
-      aria-label={children ? `${name} actions` : undefined}
-      // Clicks on the toolbar are not clicks on the component.
-      onClick={children ? (ev) => ev.stopPropagation() : undefined}
-    >
-      {dragListeners ? (
-        <Tooltip content="Drag to move">{label}</Tooltip>
-      ) : (
-        label
-      )}
-      {children}
-    </div>
-  );
-};
-
 /**
  * The actions for the selected component, shown on it in the preview.
  */
 const ComponentToolbar: React.FC<ComponentToolbarProps> = ({
   component,
   name,
-  parentSlot,
+  parentUuid,
   index,
   siblingCount,
   horizontal,
   inside,
   dragListeners,
 }) => {
+  // Also true for components that contain a marker: they can't be
+  // duplicated or deleted either.
   const { isMarker, deleteComponent, duplicateComponent, moveUp, moveDown } =
     useComponentActions(component);
   const { setSelectedComponent } = useComponentSelection();
-  // Slot ids are the uuid of their component and the slot name.
-  const parentUuid = parentSlot?.id.split('/')[0];
 
   return (
     <ComponentTag
       name={name}
       id={component.uuid}
-      isMarker={isMarker}
+      isMarker={isMarkerComponentType(component.type)}
       inside={inside}
       dragListeners={dragListeners}
     >
