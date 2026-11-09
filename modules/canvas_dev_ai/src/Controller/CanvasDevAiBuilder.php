@@ -46,8 +46,9 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
  * agent's own history, tool calls and results included, is kept as a
  * checkpoint when a turn ends, with each placement result cut to its success
  * sentence. The client names the turn it last accepted, and the next turn
- * resumes that checkpoint. Otherwise every turn is seeded from the client
- * transcript, which carries text only.
+ * resumes that checkpoint, followed by the transcript messages that came
+ * after that turn, such as those of a turn the user stopped. Otherwise every
+ * turn is seeded from the client transcript, which carries text only.
  *
  * @internal
  */
@@ -463,6 +464,17 @@ final class CanvasDevAiBuilder extends ControllerBase {
         $resumed = $conversation['state'];
         $resumed['looped'] = 0;
         $agent->fromArray($resumed);
+        // The checkpoint ends with the resumed turn. The transcript also holds
+        // the turns the client did not accept since, such as one the user
+        // stopped. Their messages are added, so the agent reads them before
+        // the new message, as it does when seeded from the transcript.
+        $later_messages = self::getMessagesAfterTurn($messages, $conversation['message_count']);
+        if ($later_messages !== []) {
+          $agent->setChatHistory([
+            ...$agent->getChatHistory(),
+            ...$this->canvasAiChatHelper->toChatMessages($later_messages),
+          ]);
+        }
         return;
       }
     }
@@ -480,6 +492,8 @@ final class CanvasDevAiBuilder extends ControllerBase {
    * as the rest of their text only serves the turn that already ended. The
    * checkpoint this turn resumed from stays beside the new one: should the
    * client not accept this turn, the next one still names that checkpoint.
+   * The checkpoint also records how many transcript messages the turn was
+   * sent with, so the turn that resumes it can tell which came after.
    *
    * @param array $prompt
    *   The decoded prompt.
@@ -507,8 +521,37 @@ final class CanvasDevAiBuilder extends ControllerBase {
       $prompt['request_id'],
       $agent_id,
       self::trimKeptToolResults($agent->toArray()),
+      \count($prompt['messages']),
       self::getLastSuccessfulRequestId($prompt),
     );
+  }
+
+  /**
+   * Returns the transcript messages that came after a resumed turn.
+   *
+   * The checkpoint covers the first $message_count messages: the transcript
+   * the resumed turn was sent with. The messages after those, up to the next
+   * user message, are that turn's own narration and answer, which the
+   * checkpoint holds as well. Everything from that user message on is not in
+   * the checkpoint.
+   *
+   * @param array $messages
+   *   The client transcript, without the new turn's user message.
+   * @param int $message_count
+   *   The number of transcript messages the resumed turn was sent with.
+   *
+   * @return array
+   *   The messages from the first user message after the resumed turn's
+   *   replies, or an empty array when there is none.
+   */
+  private static function getMessagesAfterTurn(array $messages, int $message_count): array {
+    $after = \array_slice($messages, $message_count);
+    foreach ($after as $index => $message) {
+      if (($message['role'] ?? '') === 'user') {
+        return \array_slice($after, $index);
+      }
+    }
+    return [];
   }
 
   /**

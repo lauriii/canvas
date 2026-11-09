@@ -43,8 +43,24 @@ class CanvasAiChatHelper {
       $conversation_history = array_slice($conversation_history, -$max_messages);
     }
 
+    return $this->toChatMessages($conversation_history);
+  }
+
+  /**
+   * Converts client transcript messages into chat messages.
+   *
+   * Unlike ::getFilteredChatHistory(), this converts every message it is
+   * given: the maximum chat history messages setting is not applied.
+   *
+   * @param array $transcript
+   *   The messages, as the front-end sends them.
+   *
+   * @return \Drupal\ai\OperationType\Chat\ChatMessage[]
+   *   The messages that carry text or images, in order.
+   */
+  public function toChatMessages(array $transcript): array {
     $messages = [];
-    foreach ($conversation_history as $message) {
+    foreach ($transcript as $message) {
       if (!empty($message['files'])) {
         $images = [];
         foreach ($message['files'] as $file_info) {

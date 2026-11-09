@@ -150,16 +150,21 @@ class CanvasAiTempStore {
    *   The request ID of the turn whose checkpoint to resume: the turn the
    *   client last accepted.
    *
-   * @return array{agent_id: string, state: array}|null
-   *   The ID of the agent that ran that turn and the state as written by its
-   *   ::toArray(), or NULL when the conversation holds no checkpoint for it.
+   * @return array{agent_id: string, state: array, message_count: int}|null
+   *   The ID of the agent that ran that turn, the state as written by its
+   *   ::toArray() and the number of client transcript messages the turn was
+   *   sent with, or NULL when the conversation holds no checkpoint for it.
    */
   public function getStoredConversationState(string $conversation_id, string $request_id): ?array {
     $record = $this->getConversationCheckpoints($conversation_id)[$request_id] ?? NULL;
     if (!isset($record['agent_id'], $record['state'])) {
       return NULL;
     }
-    return ['agent_id' => $record['agent_id'], 'state' => $record['state']];
+    return [
+      'agent_id' => $record['agent_id'],
+      'state' => $record['state'],
+      'message_count' => $record['message_count'],
+    ];
   }
 
   /**
@@ -181,16 +186,24 @@ class CanvasAiTempStore {
    *   state: the history describes work the others never did.
    * @param array $state
    *   The state, as returned by the agent's ::toArray().
+   * @param int $message_count
+   *   The number of client transcript messages the turn was sent with, its own
+   *   user message included. The state already holds these, so a turn that
+   *   resumes it only adds the transcript messages that came after them.
    * @param string $resumed_request_id
    *   The request ID of the turn this turn resumed from, or an empty string
    *   when it started from the client transcript.
    *
    * @throws \Drupal\Core\TempStore\TempStoreException
    */
-  public function setStoredConversationState(string $conversation_id, string $request_id, string $agent_id, array $state, string $resumed_request_id = ''): void {
+  public function setStoredConversationState(string $conversation_id, string $request_id, string $agent_id, array $state, int $message_count, string $resumed_request_id = ''): void {
     $checkpoints = $this->getConversationCheckpoints($conversation_id);
     $stored = [
-      $request_id => ['agent_id' => $agent_id, 'state' => $state],
+      $request_id => [
+        'agent_id' => $agent_id,
+        'state' => $state,
+        'message_count' => $message_count,
+      ],
     ];
     if ($resumed_request_id !== $request_id && isset($checkpoints[$resumed_request_id])) {
       $stored[$resumed_request_id] = $checkpoints[$resumed_request_id];
