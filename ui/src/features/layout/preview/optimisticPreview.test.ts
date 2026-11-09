@@ -4,6 +4,7 @@ import { NodeType } from '@/features/layout/layoutModelSlice';
 import {
   insertPreviewComponent,
   movePreviewComponent,
+  PREVIEW_HEAD_STYLES_ID,
 } from '@/features/layout/preview/optimisticPreview';
 import { previewEditCount } from '@/features/layout/preview/previewEdits';
 
@@ -69,7 +70,7 @@ describe('movePreviewComponent', () => {
     expect(doc.body.lastElementChild!.textContent).toBe('A');
   });
 
-  it('moves a component into an empty slot and removes its placeholder', () => {
+  it('moves a component into an empty slot and hides its placeholder', () => {
     const doc = preview();
     movePreviewComponent(
       doc,
@@ -77,7 +78,10 @@ describe('movePreviewComponent', () => {
       'a',
     );
     expect(doc.querySelector('div > p')!.textContent).toBe('A');
-    expect(doc.querySelector('.canvas--slot-empty-placeholder')).toBeNull();
+    expect(
+      doc.querySelector<HTMLElement>('.canvas--slot-empty-placeholder')!.style
+        .display,
+    ).toBe('none');
   });
 
   it("doesn't touch a component that is shown in place already", () => {
@@ -133,5 +137,17 @@ describe('insertPreviewComponent', () => {
       markup,
     );
     expect(doc.head.querySelectorAll('link[href="n.css"]')).toHaveLength(1);
+  });
+
+  it('adds CSS before the styles kept last', () => {
+    const doc = preview();
+    doc.head.innerHTML = `<style id="${PREVIEW_HEAD_STYLES_ID}"></style>`;
+    insertPreviewComponent(
+      doc,
+      layout(component('a'), component('n'), component('b')),
+      'n',
+      { default_markup: '<p>N</p>', css: '<style>p{}</style>' },
+    );
+    expect(doc.head.lastElementChild!.id).toBe(PREVIEW_HEAD_STYLES_ID);
   });
 });

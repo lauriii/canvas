@@ -18,6 +18,63 @@ import type { RegionNode } from '@/features/layout/layoutModelSlice';
 // correcting anything this approximates.
 
 /**
+ * The id of the styles kept last in the head of the preview.
+ *
+ * @see IframeSwapper
+ */
+export const PREVIEW_HEAD_STYLES_ID = 'canvas-preview-head-styles';
+
+/** Finds the boundary of a component, slot or region by its id. */
+export const findBoundary = (
+  boundaries: CanvasBoundary[],
+  type: string,
+  id: string,
+) => boundaries.find((b) => b.type === type && b.id === id);
+
+/**
+ * Returns the nodes from one node to another sibling, both included.
+ *
+ * Empty if the second node doesn't follow the first one.
+ */
+export function siblingsBetween(start: Node, end: Node): Node[] {
+  const nodes: Node[] = [];
+  for (let n: Node | null = start; n; n = n.nextSibling) {
+    nodes.push(n);
+    if (n === end) return nodes;
+  }
+  return [];
+}
+
+/**
+ * Hides the placeholder of an empty slot or region.
+ *
+ * @param container
+ *   The slot or region.
+ * @param undo
+ *   Collects functions that show the placeholder again.
+ */
+export function hidePlaceholders(
+  container: CanvasBoundary,
+  undo: Array<() => void> = [],
+) {
+  siblingsBetween(container.start, container.end).forEach((node) => {
+    if (
+      node.nodeType === Node.ELEMENT_NODE &&
+      (node as HTMLElement).matches(
+        `.${CANVAS_EMPTY_SLOT_PLACEHOLDER_CLASS}, .${CANVAS_EMPTY_REGION_PLACEHOLDER_CLASS}`,
+      )
+    ) {
+      const el = node as HTMLElement;
+      const display = el.style.display;
+      el.style.display = 'none';
+      undo.push(() => {
+        el.style.display = display;
+      });
+    }
+  });
+}
+
+/**
  * Returns the document of the preview iframe that is currently shown.
  *
  * NULL for a headless (cross-origin) preview.
@@ -44,8 +101,7 @@ function findPosition(
     return null;
   }
   const boundaries = discoverCanvasBoundaries(document);
-  const find = (type: string, id: string) =>
-    boundaries.find((b) => b.type === type && b.id === id);
+  const find = (type: string, id: string) => findBoundary(boundaries, type, id);
   const next =
     parent.components[parent.components.findIndex((c) => c.uuid === uuid) + 1];
   const container = find(
@@ -67,20 +123,8 @@ function insertBefore(
   // The container is no longer empty.
   // ponytail: the container a moved component leaves isn't given a placeholder
   // when it becomes empty; the server-rendered preview adds it shortly after.
-  for (
-    let n = container?.start.nextSibling;
-    n && n !== container?.end;
-    n = n.nextSibling
-  ) {
-    if (
-      n.nodeType === Node.ELEMENT_NODE &&
-      (n as Element).matches(
-        `.${CANVAS_EMPTY_SLOT_PLACEHOLDER_CLASS}, .${CANVAS_EMPTY_REGION_PLACEHOLDER_CLASS}`,
-      )
-    ) {
-      n.parentNode!.removeChild(n);
-      break;
-    }
+  if (container) {
+    hidePlaceholders(container);
   }
 }
 
@@ -178,9 +222,13 @@ export function addPreviewCss(document: Document, css: string) {
         ? other.getAttribute('href') === el.getAttribute('href')
         : other.textContent === el.textContent,
     );
-    // The head, which is where the server-rendered preview has it too.
+    // The head, which is where the server-rendered preview has it too, before
+    // the styles that are kept last.
     if (!present) {
-      document.head.appendChild(el);
+      document.head.insertBefore(
+        el,
+        document.getElementById(PREVIEW_HEAD_STYLES_ID),
+      );
     }
   });
 }
@@ -194,8 +242,10 @@ export function addPreviewCss(document: Document, css: string) {
  *   The uuid of the removed component.
  */
 export function removePreviewComponent(document: Document, uuid: string) {
-  const removed = discoverCanvasBoundaries(document).find(
-    (b) => b.type === 'component' && b.id === uuid,
+  const removed = findBoundary(
+    discoverCanvasBoundaries(document),
+    'component',
+    uuid,
   );
   if (removed && removed.start.parentNode === removed.end.parentNode) {
     const range = document.createRange();
