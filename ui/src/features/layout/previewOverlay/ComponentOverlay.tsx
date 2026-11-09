@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import clsx from 'clsx';
 import { useDraggable } from '@dnd-kit/core';
 
@@ -18,8 +18,8 @@ import {
   setHoveredComponent,
   unsetHoveredComponent,
 } from '@/features/ui/uiSlice';
-import useComponentSelection from '@/hooks/useComponentSelection';
 import useGetComponentName from '@/hooks/useGetComponentName';
+import { useStableComponentSelection } from '@/hooks/useStableComponentSelection';
 import { isMarkerComponentType } from '@/services/pageVariants';
 
 import type React from 'react';
@@ -74,7 +74,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   const editorViewPortScale = useAppSelector(selectEditorViewPortScale);
   const dispatch = useAppDispatch();
   const { setSelectedComponent, handleComponentSelection } =
-    useComponentSelection();
+    useStableComponentSelection();
   const { isDragging } = useAppSelector(selectDragging);
   const name = useGetComponentName(component);
   const {
@@ -226,4 +226,6 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   );
 };
 
-export default ComponentOverlay;
+// Memoized: a page has one overlay per component instance, and selecting one
+// must not re-render the others.
+export default memo(ComponentOverlay);

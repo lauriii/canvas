@@ -22,6 +22,7 @@ import { findPreviewDropZoneId } from '@/features/layout/previewOverlay/previewD
 import NotificationToastManager from '@/features/notifications/NotificationToastManager';
 import useNavigationListener from '@/hooks/useNavigationListener';
 import useRouteSync from '@/hooks/useRouteSync';
+import { StableComponentSelectionProvider } from '@/hooks/useStableComponentSelection';
 import { getCanvasSettings } from '@/utils/drupal-globals';
 
 import type React from 'react';
@@ -143,12 +144,14 @@ const App: React.FC = () => {
             // from also scrolling it. See #3534972 and canAutoScroll above.
             autoScroll={{ canScroll: canAutoScroll }}
           >
-            <Flex className={styles.canvasContainer} gap="0">
-              <ErrorBoundary variant="page">
-                <AiPanel />
-                <Outlet />
-              </ErrorBoundary>
-            </Flex>
+            <StableComponentSelectionProvider>
+              <Flex className={styles.canvasContainer} gap="0">
+                <ErrorBoundary variant="page">
+                  <AiPanel />
+                  <Outlet />
+                </ErrorBoundary>
+              </Flex>
+            </StableComponentSelectionProvider>
             <Topbar />
             <DragEventsHandler />
             {import.meta.env.DEV && <DevTools />}

@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import clsx from 'clsx';
-import { useParams } from 'react-router';
 
 import { useAppSelector } from '@/app/hooks';
 import { SlotNameTag } from '@/features/layout/preview/NameTag';
@@ -10,6 +9,7 @@ import EmptySlotDropZone from '@/features/layout/previewOverlay/EmptySlotDropZon
 import {
   selectEditorViewPortScale,
   selectIsComponentHovered,
+  selectSelectedComponentUuid,
   selectTargetSlot,
 } from '@/features/ui/uiSlice';
 import useGetComponentName from '@/hooks/useGetComponentName';
@@ -47,7 +47,9 @@ const SlotOverlay: React.FC<SlotOverlayProps> = ({
     slotGeometry && parentGeometry
       ? slotGeometry.rect.top - parentGeometry.rect.top
       : 0;
-  const { componentId: selectedComponent } = useParams();
+  const isSelected = useAppSelector(
+    (state) => selectSelectedComponentUuid(state) === slotId,
+  );
   const isHovered = useAppSelector((state) => {
     return selectIsComponentHovered(state, slotId);
   });
@@ -81,7 +83,7 @@ const SlotOverlay: React.FC<SlotOverlayProps> = ({
     <div
       aria-label={`${slotName} (${parentComponentName})`}
       className={clsx('slotOverlay', styles.slotOverlay, {
-        [styles.selected]: slotId === selectedComponent,
+        [styles.selected]: isSelected,
         [styles.hovered]: isHovered,
         [styles.dropTarget]: slotId === targetSlot,
       })}

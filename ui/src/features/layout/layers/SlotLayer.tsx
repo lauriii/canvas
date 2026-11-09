@@ -39,9 +39,10 @@ const SlotLayer: React.FC<SlotLayerProps> = ({
 }) => {
   const dispatch = useAppDispatch();
   const slotName = useGetComponentName(slot, parentNode);
-  const collapsedLayers = useAppSelector(selectCollapsedLayers);
   const slotId = slot.id;
-  const isCollapsed = collapsedLayers.includes(slotId);
+  const isCollapsed = useAppSelector((state) =>
+    selectCollapsedLayers(state).includes(slotId),
+  );
 
   const handleItemMouseEnter = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
