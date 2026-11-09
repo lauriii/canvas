@@ -1,9 +1,12 @@
 import _ from 'lodash';
 
-import { useAppDispatch, useAppSelector, useAppStore } from '@/app/hooks';
+import { useAppDispatch, useAppStore } from '@/app/hooks';
 import { moveNode, selectLayout } from '@/features/layout/layoutModelSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
-import { getPreviewDocument } from '@/features/layout/preview/optimisticPreview';
+import {
+  getPreviewDocument,
+  movePreviewComponent,
+} from '@/features/layout/preview/optimisticPreview';
 import useComponentSelection from '@/hooks/useComponentSelection';
 
 import type { DragEndEvent } from '@dnd-kit/core';
@@ -12,7 +15,6 @@ export function useDropFromLayoutHandler() {
   const dispatch = useAppDispatch();
   const store = useAppStore();
   const { setSelectedComponent } = useComponentSelection();
-  const layout = useAppSelector(selectLayout);
 
   // There is an edge case where if an item is dragged into the space immediately after itself,
   // it's from and to position is not exactly the same, but the result is still that it doesn't
@@ -43,7 +45,10 @@ export function useDropFromLayoutHandler() {
       afterDrag(elementsInsideIframe, false);
       return;
     }
-    const currentPath = findNodePathByUuid(layout, activeUuid);
+    const currentPath = findNodePathByUuid(
+      selectLayout(store.getState()),
+      activeUuid,
+    );
     if (!currentPath) {
       throw new Error(`Unable to ascertain current path of dragged element.`);
     }
@@ -59,9 +64,17 @@ export function useDropFromLayoutHandler() {
     // if we got this far, then we have a valid location to move the dragged component to!
     // The preview shows the move right away (see optimisticPreviewListener).
     dispatch(moveNode({ uuid: activeUuid, to: dropPath }));
-    // Only fall back to the 'pending move' state when the preview can't show
-    // it, e.g. a headless one.
-    afterDrag(elementsInsideIframe, !getPreviewDocument(), activeUuid);
+    // Only fall back to the 'pending move' state when the preview doesn't show
+    // it, e.g. a headless one. Moving it again only checks that it is there.
+    const previewDocument = getPreviewDocument();
+    const shown =
+      !!previewDocument &&
+      movePreviewComponent(
+        previewDocument,
+        selectLayout(store.getState()),
+        activeUuid,
+      );
+    afterDrag(elementsInsideIframe, !shown, activeUuid);
     // Edit what was just moved, like a component added from the library.
     setSelectedComponent(activeUuid, selectLayout(store.getState()));
   }
