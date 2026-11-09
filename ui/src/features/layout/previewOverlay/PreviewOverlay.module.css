@@ -88,7 +88,7 @@
     outline: 2px solid var(--color-outline-component);
     outline-offset: -1px;
     /* Keeps the outline visible on dark designs. */
-    box-shadow: 0 0 0 1px rgb(255, 255, 255, 0.6);
+    box-shadow: 0 0 0 2px rgb(255, 255, 255, 0.6);
   }
 
   &.dragging {
@@ -125,29 +125,7 @@
   }
 }
 
-/* .emptySlotDropZone { */
-/*  position: absolute; */
-/*  display: flex; */
-/*  align-items: center; */
-/*  justify-content: center; */
-/*  width: calc(100% - 10px); */
-/*  height: calc(100% - 10px); */
-/*  pointer-events: none; */
-/*  color: #fff; */
-/*  border-radius: var(--radius-2); */
-/*  outline: 2px dashed var(--gray-5); */
-/*  background: linear-gradient(to bottom, #ccc, #efefef); */
-/*  font-size: 12px; */
-/*  inset: 5px; */
-
-/*  &.isOver { */
-/*    color: #fff; */
-/*    background: var(--purple-8); */
-/*  } */
-/* } */
-
 .emptySlotContainer,
-.emptyRegionContainer,
 .emptyPageContainer {
   position: absolute;
   display: flex;
@@ -202,11 +180,8 @@
   }
 }
 
-.emptyRegionDropZone {
-  --placeholder-accent: var(--green-9);
-  --placeholder-accent-tint: var(--green-3);
-  --placeholder-accent-text: var(--green-12);
-
+.emptyRegionDropZone,
+.emptyPageDropZone {
   flex-direction: column;
   gap: 0;
 
@@ -215,17 +190,16 @@
   }
 }
 
+.emptyRegionDropZone {
+  --placeholder-accent: var(--green-9);
+  --placeholder-accent-tint: var(--green-3);
+  --placeholder-accent-text: var(--green-12);
+}
+
 .emptyPageDropZone {
   --placeholder-accent: var(--blue-9);
   --placeholder-accent-tint: var(--blue-3);
   --placeholder-accent-text: var(--blue-12);
-
-  flex-direction: column;
-  gap: 0;
-
-  .regionMessage {
-    color: var(--gray-11);
-  }
 }
 
 .componentDropZone {
