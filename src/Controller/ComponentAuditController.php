@@ -262,7 +262,7 @@ final class ComponentAuditController {
   }
 
   public function createConfigTable(Component $component, string $config_entity_type_id, \Stringable $sectionTitle, \Stringable $emptyMessage, array $headers, callable $rowCallback): array {
-    $dependents = $this->componentAudit->getConfigEntityDependenciesUsingAuditTarget($component, $config_entity_type_id);
+    $dependents = $this->componentAudit->getConfigEntityDependenciesUsingAuditTarget($component, $config_entity_type_id, [$component->getLoadedVersion()]);
 
     $default_langcode = $this->languageManager->getDefaultLanguage()->getId();
     $has_translations = FALSE;

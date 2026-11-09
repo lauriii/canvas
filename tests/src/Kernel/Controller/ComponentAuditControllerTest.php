@@ -14,6 +14,7 @@ use Drupal\canvas\Entity\Pattern;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\Entity\EntityViewMode;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Render\HtmlResponse;
@@ -353,6 +354,47 @@ final class ComponentAuditControllerTest extends CanvasKernelTestBase {
     $this->assertTableCellContains('table-content', 2, 5, '2');
     $this->assertTableCellContains('table-content', 2, 6, '✔');
     $this->assertTableCellContains('table-content', 2, 7, '✔');
+  }
+
+  /**
+   * A config entity is listed only under the component version its tree uses.
+   */
+  public function testConfigUsagesListedUnderTheirVersionOnly(): void {
+    $this->setUpCurrentUser(permissions: ['administer themes', Component::ADMIN_PERMISSION]);
+    $component_id = 'sdc.canvas_test_sdc.my-cta';
+    $component = Component::load($component_id);
+    \assert($component instanceof Component);
+    $old_version = $component->getActiveVersion();
+    Pattern::create([
+      'id' => 'test_pattern',
+      'label' => 'Test Pattern',
+      'component_tree' => [
+        [
+          'uuid' => $this->container->get('uuid')->generate(),
+          'component_id' => $component_id,
+          'component_version' => $old_version,
+          'inputs' => ['text' => 'Hey there', 'href' => ['uri' => 'https://drupal.org/', 'options' => []]],
+        ],
+      ],
+    ])->save();
+    // Create a new version of the component; the pattern keeps the old one.
+    $this->container->get(ModuleInstallerInterface::class)->install(['canvas_test_storable_prop_shape_alter']);
+    $new_version = Component::load($component_id)?->getActiveVersion();
+    \assert(\is_string($new_version));
+    self::assertNotSame($old_version, $new_version);
+
+    $this->request(Request::create(Url::fromRoute('entity.component.audit', ['component' => $component_id])->toString()));
+    self::assertStringContainsString('Test Pattern', $this->versionSectionTableCell($old_version, 'table-pattern'));
+    self::assertStringContainsString('No patterns usage detected.', $this->versionSectionTableCell($new_version, 'table-pattern'));
+  }
+
+  /**
+   * Gets the first cell of a table in the given version's section of the page.
+   */
+  private function versionSectionTableCell(string $version, string $table_name): string {
+    $xpath_element = $this->xpath("//h2[@id=\"$version\"]/following-sibling::table[@name=\"$table_name\"][1]//tr[1]//td[1]");
+    \assert(\is_array($xpath_element) && \array_key_exists(0, $xpath_element));
+    return trim((string) $xpath_element[0]->asXML());
   }
 
   private function assertTableCellContains(string $table_name, int $row_index, int $column_index, string $needle): void {

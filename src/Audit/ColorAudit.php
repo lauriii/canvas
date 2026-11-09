@@ -48,7 +48,10 @@ final class ColorAudit extends ConfigAuditBase {
   /**
    * {@inheritdoc}
    */
-  protected function componentTreeUsesAuditTarget(ComponentTreeItemList $tree, ConfigEntityInterface $target): bool {
+  protected function componentTreeUsesAuditTarget(ComponentTreeItemList $tree, ConfigEntityInterface $target, array $version_ids = []): bool {
+    if ($version_ids !== []) {
+      throw new \LogicException('Colors have no versions.');
+    }
     return self::findColorUsagesInComponentTree($tree, self::getColorReference($target)) !== [];
   }
 

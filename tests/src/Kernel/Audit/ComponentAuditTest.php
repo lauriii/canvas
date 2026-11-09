@@ -164,9 +164,6 @@ class ComponentAuditTest extends ComponentAuditTestBase {
     self::assertCount(1, $config);
     self::assertEquals([$entity->id()], \array_values(\array_map(static fn(ConfigEntityInterface $entity): string|int|null => $entity->id(), $config)));
 
-    // @todo Uncomment this in https://www.drupal.org/i/3530051.
-    \assert($new_version != $old_version);
-    /*
     // 2. Active (i.e. new) version: no uses yet.
     $config = $audit->getConfigEntityDependenciesUsingAuditTarget($component, $config_entity_type_id, [$new_version]);
     self::assertEquals([], \array_values(\array_map(static fn(ConfigEntityInterface $entity): string|int|null => $entity->id(), $config)));
@@ -174,7 +171,6 @@ class ComponentAuditTest extends ComponentAuditTestBase {
     // 3. Old version.
     $config = $audit->getConfigEntityDependenciesUsingAuditTarget($component, $config_entity_type_id, [$old_version]);
     self::assertEquals([$entity->id()], \array_values(\array_map(static fn(ConfigEntityInterface $entity): string|int|null => $entity->id(), $config)));
-     */
   }
 
   public static function configProvider(): iterable {

@@ -54,8 +54,10 @@ abstract class ConfigAuditBase {
 
   /**
    * Checks whether a component tree uses the audit target.
+   *
+   * When version IDs are given, only uses of those versions count.
    */
-  abstract protected function componentTreeUsesAuditTarget(ComponentTreeItemList $tree, ConfigEntityInterface $target): bool;
+  abstract protected function componentTreeUsesAuditTarget(ComponentTreeItemList $tree, ConfigEntityInterface $target, array $version_ids = []): bool;
 
   /**
    * Confirms a loaded content revision uses the audit target.
@@ -146,9 +148,14 @@ abstract class ConfigAuditBase {
   }
 
   /**
+   * Returns config entities of the given type that use the audit target.
+   *
+   * The config dependency graph does not track versions. When version IDs are
+   * given, each dependent's component tree is inspected instead.
+   *
    * @return array<\Drupal\Core\Config\Entity\ConfigEntityInterface>
    */
-  public function getConfigEntityDependenciesUsingAuditTarget(ConfigEntityInterface $target, string $config_entity_type_id): array {
+  public function getConfigEntityDependenciesUsingAuditTarget(ConfigEntityInterface $target, string $config_entity_type_id, array $version_ids = []): array {
     $config_entity_definition = $this->entityTypeManager->getDefinition($config_entity_type_id);
     \assert($config_entity_definition instanceof ConfigEntityTypeInterface);
     $config_prefix = $config_entity_definition->getConfigPrefix() . '.';
@@ -156,6 +163,9 @@ abstract class ConfigAuditBase {
     $dependents = array_filter($dependents, fn(ConfigEntityDependency $dependency) => str_starts_with($dependency->getConfigDependencyName(), $config_prefix));
     $dependencies = \array_map(fn(ConfigEntityDependency $dependency): ?EntityInterface => $this->entityTypeManager->getStorage($config_entity_type_id)->load(str_replace($config_prefix, '', $dependency->getConfigDependencyName())), $dependents);
     \assert(Inspector::assertAllObjects($dependencies, ConfigEntityInterface::class));
+    if ($version_ids !== []) {
+      $dependencies = \array_filter($dependencies, fn (ConfigEntityInterface $dependency): bool => $dependency instanceof ComponentTreeEntityInterface && $this->componentTreeUsesAuditTarget($dependency->getComponentTree(), $target, $version_ids));
+    }
     return $dependencies;
   }
 
@@ -209,10 +219,6 @@ abstract class ConfigAuditBase {
    *   an entity ID.
    */
   public function getAutoSavesUsingAuditTarget(ConfigEntityInterface $target, array $version_ids = []): array {
-    if (!empty($version_ids)) {
-      // @todo Support checking specific versions of components.
-      throw new \LogicException('not yet implemented');
-    }
     $dependencies = [];
     foreach ($this->autoSaveManager->getAllAutoSaveList(with_entities: TRUE, with_conflicts: FALSE) as $autoSave) {
       $entity = $autoSave['entity'];
@@ -225,7 +231,7 @@ abstract class ConfigAuditBase {
         }
         continue;
       }
-      if ($this->componentTreeUsesAuditTarget($entity->getComponentTree(), $target)) {
+      if ($this->componentTreeUsesAuditTarget($entity->getComponentTree(), $target, $version_ids)) {
         $entity_type_id = $autoSave['entity_type'];
         $entity_id = $autoSave['entity_id'];
         $simulated_revision_id = 'auto-save-' . $autoSave['data_hash'];
@@ -273,7 +279,7 @@ abstract class ConfigAuditBase {
    * @return string[]
    *   Entity type IDs.
    */
-  protected function getComponentTreeConfigEntityTypeIds(): array {
+  public function getComponentTreeConfigEntityTypeIds(): array {
     return \array_keys(\array_filter($this->entityTypeManager->getDefinitions(), static fn (EntityTypeInterface $type): bool => $type instanceof ConfigEntityTypeInterface && $type->entityClassImplements(ComponentTreeEntityInterface::class)));
   }
 

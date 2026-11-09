@@ -14,7 +14,7 @@ The consequences vary by case, but could result in: some component instances fai
 
 ## `canvas:doctor`
 
-Requires Drupal >= 11.4, which ships the [`dr` CLI](https://www.drupal.org/node/3584928).
+One of the [Canvas CLI commands](cli.md); requires Drupal >= 11.4.
 
 ```sh
 vendor/bin/dr canvas:doctor --all-checks
@@ -80,7 +80,7 @@ Checks — a **system** check answers one environment/state question; a **data**
 - `--all-checks` — run every check; implies no interaction, safe in cron/CI.
 - `--cache`/`--no-cache` — caching is on by default (`--cache`): stored results are reused while still fresh. Pass `--no-cache` to ignore them and revalidate everything requested, guaranteeing an up-to-right-now answer; the fresh outcomes are still recorded for later reuse. Nothing is ever deleted.
 - `--details` — expand each unhealthy check into an enumerated list.
-- `--format=table|json` — `table` (default) is human-readable; `json` (see below) is for tooling. A progress bar shows only when `--format` is left unspecified on an interactive terminal.
+- `--format=table|json` — see [`cli.md`](cli.md).
 
 One of `--checks` or `--all-checks` is required. Exit codes, for gating a monitoring/CI check:
 
@@ -90,7 +90,7 @@ One of `--checks` or `--all-checks` is required. Exit codes, for gating a monito
 | `1` | At least one check found a **problem**. |
 | `2` | Invalid usage (unknown check, `--checks` omitted non-interactively). |
 
-JSON output: `--format=json` prints a single object, no progress bar or banner: a stable, versioned envelope. Every requested check — system and data alike — is a uniform entry under `HealthCheck`, keyed by check name. Shape:
+JSON output: every requested check — system and data alike — is a uniform entry under `HealthCheck`, keyed by check name. Shape:
 
 ```jsonc
 {
@@ -132,7 +132,7 @@ JSON output: `--format=json` prints a single object, no progress bar or banner: 
 }
 ```
 
-Full envelope: [`data-health.schema.json`](data-health.schema.json) (JSON Schema, draft 2020-12). **`report_version`** covers the envelope itself — `report_version`, `environment_fingerprint`, `overall`, and each `HealthCheck` entry's `type`/`status`/`total`/`healthy`/`cached`/`duration_s`; additive changes (a new key, a new check) do not bump it, a breaking change does, so pin your tooling to a `report_version` you have tested against. The `HealthCheck` map is open — a check added by a later release still validates against the generic entry. The exit code is authoritative; prefer gating on it over parsing `details`.
+Full envelope: [`data-health.schema.json`](data-health.schema.json). **`report_version`** covers the envelope; the `HealthCheck` map is open — a check added by a later release still validates against the generic entry. The exit code is authoritative; prefer gating on it over parsing `details`.
 
 Whether a check's `details` shape is dependable is expressed by the schema itself: a check with its own precise entry there freezes its `details` across releases, so you can validate against it; a check that only matches the generic entry (currently only `component_source_supports_schema_evolution`) makes no such promise, and its `details` may change without a `report_version` bump — consume it defensively.
 
