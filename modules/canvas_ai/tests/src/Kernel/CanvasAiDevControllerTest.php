@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas_ai\Kernel;
 
 use Drupal\ai\OperationType\Chat\ChatInput;
+use Drupal\ai\OperationType\Chat\ChatMessage;
+use Drupal\ai\OperationType\Chat\Tools\ToolsFunctionOutput;
 use Drupal\ai_agents\Entity\AiAgent;
 use Drupal\ai_agents\PluginBase\AiAgentEntityWrapper;
 use Drupal\ai_agents\PluginInterfaces\AiAgentInterface;
@@ -128,7 +130,7 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
     $temp_store = $this->container->get(CanvasAiTempStore::class);
     $temp_store->setStoredAgentState('test-request', 'canvas_agent', ['looped' => FALSE]);
     self::assertNotNull($temp_store->getStoredAgentState('test-request'));
-    $temp_store->setStoredConversationState('test-conversation', 'turn-1', 'canvas_agent', ['looped' => 1]);
+    $temp_store->setStoredConversationState('test-conversation', 'turn-1', 'canvas_agent', ['looped' => 1], 1);
 
     $agent = $this->createMock(AiAgentEntityWrapper::class);
     $agent->method('determineSolvability')
@@ -178,7 +180,7 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
     $this->setUpAiDevHops();
 
     $temp_store = $this->container->get(CanvasAiTempStore::class);
-    $temp_store->setStoredConversationState('test-conversation', 'turn-1', 'canvas_agent', ['looped' => 1]);
+    $temp_store->setStoredConversationState('test-conversation', 'turn-1', 'canvas_agent', ['looped' => 1], 1);
 
     // The agent gave up on loop 1, well inside the agent's max_loops of 50.
     $agent = $this->createMock(AiAgentEntityWrapper::class);
@@ -256,7 +258,7 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
     self::assertSame('The hero is placed.', $response['message']);
     $temp_store = $this->container->get(CanvasAiTempStore::class);
     self::assertNull($temp_store->getStoredAgentState('test-request'));
-    self::assertSame(['agent_id' => 'canvas_agent', 'state' => $state], $temp_store->getStoredConversationState('test-conversation', 'test-request'));
+    self::assertSame(['agent_id' => 'canvas_agent', 'state' => $state, 'message_count' => 1], $temp_store->getStoredConversationState('test-conversation', 'test-request'));
   }
 
   /**
@@ -330,8 +332,10 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
    * The turn names the turn the client last accepted as its
    * last_successful_request_id. That checkpoint is restored with its loop
    * counter reset, so the agent reads the new message, records its narration,
-   * and counts loops for this turn only; the client transcript is not used.
-   * The checkpoint stays beside the one this turn writes.
+   * and counts loops for this turn only. After turn 1, the client transcript
+   * holds only turn 1's answer, which the checkpoint already holds, so no
+   * message is added to it. The checkpoint stays beside the one this turn
+   * writes, which records the number of messages this turn was sent with.
    *
    * @see \Drupal\canvas_dev_ai\Controller\CanvasDevAiBuilder::prepareAgent()
    */
@@ -346,7 +350,7 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
       'looped' => 3,
       'chat_history' => [['role' => 'user', 'text' => 'Add a hero']],
       'provider_id' => 'echoai',
-    ]);
+    ], 1);
 
     $agent = $this->createMock(AiAgentEntityWrapper::class);
     $agent->expects(self::once())->method('fromArray')
@@ -373,7 +377,7 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
     self::assertSame('It is blue.', $response['message']);
     self::assertNotNull($temp_store->getStoredConversationState('test-conversation', 'turn-1'));
     self::assertSame(
-      ['agent_id' => 'canvas_agent', 'state' => ['looped' => 1, 'context_tools' => []]],
+      ['agent_id' => 'canvas_agent', 'state' => ['looped' => 1, 'context_tools' => []], 'message_count' => 3],
       $temp_store->getStoredConversationState('test-conversation', 'turn-2'),
     );
   }
@@ -397,7 +401,7 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
     $temp_store->setStoredConversationState('test-conversation', 'turn-1', 'canvas_agent', [
       'looped' => 3,
       'chat_history' => [['role' => 'user', 'text' => 'Add a hero']],
-    ]);
+    ], 1);
 
     $agent = $this->createMock(AiAgentEntityWrapper::class);
     $agent->expects(self::never())->method('fromArray');
@@ -428,6 +432,7 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
     self::assertSame([
       'agent_id' => 'canvas_component_agent',
       'state' => ['looped' => 1, 'context_tools' => []],
+      'message_count' => 3,
     ], $temp_store->getStoredConversationState('test-conversation', 'turn-2'));
     self::assertNotNull($temp_store->getStoredConversationState('test-conversation', 'turn-1'));
   }
@@ -452,7 +457,7 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
     $temp_store->setStoredConversationState('test-conversation', 'turn-1', 'canvas_agent', [
       'looped' => 3,
       'chat_history' => [['role' => 'user', 'text' => 'Add a hero']],
-    ]);
+    ], 1);
 
     $agent = $this->createMock(AiAgentEntityWrapper::class);
     // The setting is off, so the checkpoint the turn names is never read:
@@ -503,7 +508,7 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
     $temp_store->setStoredConversationState('test-conversation', 'turn-1', 'canvas_agent', [
       'looped' => 3,
       'chat_history' => [['role' => 'user', 'text' => 'Add a hero']],
-    ]);
+    ], 1);
 
     $agent = $this->createMock(AiAgentEntityWrapper::class);
     // No checkpoint matches the last_successful_request_id the turn sends, so
@@ -532,7 +537,7 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
     // dropped from the tempstore.
     self::assertNull($temp_store->getStoredConversationState('test-conversation', 'turn-1'));
     self::assertSame(
-      ['agent_id' => 'canvas_agent', 'state' => ['looped' => 1, 'context_tools' => []]],
+      ['agent_id' => 'canvas_agent', 'state' => ['looped' => 1, 'context_tools' => []], 'message_count' => 3],
       $temp_store->getStoredConversationState('test-conversation', 'turn-2'),
     );
   }
@@ -564,26 +569,62 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
     $this->setUpAiDevHops();
     $this->keepToolCallsInHistory();
 
+    // Store a successful interaction: the user asks to add a hero, the agent
+    // uses place_components, and returns a success message.
     $temp_store = $this->container->get(CanvasAiTempStore::class);
-    $accepted_history = [['role' => 'user', 'text' => 'Add a hero']];
+    $tool_call = new ToolsFunctionOutput(tool_id: 'place-components-1');
+    $tool_call->setName('place_components');
+    $assistant_tool_call = new ChatMessage('assistant', 'Adding hero');
+    $assistant_tool_call->setTools([$tool_call]);
+    $tool_result = new ChatMessage('tool', 'Components placed successfully.');
+    $tool_result->setToolsId('place-components-1');
+    $accepted_messages = [
+      new ChatMessage('user', 'Add a hero'),
+      $assistant_tool_call,
+      $tool_result,
+      new ChatMessage('assistant', 'The hero is placed.'),
+    ];
+    $accepted_history = \array_map(static fn (ChatMessage $message): array => $message->toArray(), $accepted_messages);
     $temp_store->setStoredConversationState('test-conversation', 'turn-1', 'canvas_agent', [
       'looped' => 2,
       'chat_history' => $accepted_history,
       'provider_id' => 'echoai',
-    ]);
+    ], 1);
 
-    // Turn 2 names turn 1 and ends on the server, as a turn the user stopped
-    // while its last hop was in flight still does.
+    // The user requests a footer in the same conversation, naming turn-1 as the
+    // last successful request. They cancel the request in the UI after it is
+    // sent, but the server continues processing: it resumes turn-1, places the
+    // footer, and stores the completed state under turn-2.
     $agent = $this->createMock(AiAgentEntityWrapper::class);
     $agent->method('determineSolvability')->willReturn(AiAgentInterface::JOB_SOLVABLE);
     $agent->method('isFinished')->willReturn(TRUE);
-    $agent->method('toArray')->willReturn(['looped' => 5, 'context_tools' => [], 'chat_history' => []]);
+    $footer_tool_call = new ToolsFunctionOutput(tool_id: 'place-components-2');
+    $footer_tool_call->setName('place_components');
+    $footer_assistant = new ChatMessage('assistant', 'Adding footer');
+    $footer_assistant->setTools([$footer_tool_call]);
+    $footer_result = new ChatMessage('tool', 'Components placed successfully.');
+    $footer_result->setToolsId('place-components-2');
+    $agent->method('toArray')->willReturn([
+      'looped' => 2,
+      'context_tools' => [],
+      'chat_history' => [
+        ...$accepted_history,
+        (new ChatMessage('user', 'Add a footer'))->toArray(),
+        $footer_assistant->toArray(),
+        $footer_result->toArray(),
+        (new ChatMessage('assistant', 'The footer is placed.'))->toArray(),
+      ],
+      'provider_id' => 'echoai',
+    ]);
     $agent->method('solve')->willReturn('The footer is placed.');
     $this->useMockedAgent($agent);
+
+    // Request the backend received with the last_successful_request_id as turn-1.
     $this->hop([
       'messages' => [
         ['role' => 'user', 'text' => 'Add a hero'],
-        ['role' => 'assistant', 'text' => 'The hero is placed.'],
+        ['role' => 'ai', 'html' => '<p>Adding hero.</p>'],
+        ['role' => 'ai', 'text' => 'The hero is placed.'],
         ['role' => 'user', 'text' => 'Add a footer'],
       ],
       'request_id' => 'turn-2',
@@ -591,12 +632,33 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
     ]);
     self::assertNotNull($temp_store->getStoredConversationState('test-conversation', 'turn-1'));
     self::assertNotNull($temp_store->getStoredConversationState('test-conversation', 'turn-2'));
+    $stored_turn = $temp_store->getStoredConversationState('test-conversation', 'turn-2');
+    self::assertSame(4, $stored_turn['message_count']);
+    self::assertSame([
+      ...$accepted_history,
+      (new ChatMessage('user', 'Add a footer'))->toArray(),
+      $footer_assistant->toArray(),
+      $footer_result->toArray(),
+      (new ChatMessage('assistant', 'The footer is placed.'))->toArray(),
+    ], $stored_turn['state']['chat_history']);
 
-    // Turn 3 still names turn 1, and resumes its state rather than turn 2's.
+    // After stopping the footer request, the user requests a blue background,
+    // stops again, and then requests a blue background with a button. The
+    // conversation stays the same and the last successful request remains
+    // turn-1. The server resumes turn-1's state and adds both interrupted
+    // requests and their interruption notices from the client transcript.
     $agent = $this->createMock(AiAgentEntityWrapper::class);
     $agent->expects(self::once())->method('fromArray')
       ->with(self::callback(static fn (array $state): bool => $state['looped'] === 0 && $state['chat_history'] === $accepted_history));
-    $agent->expects(self::never())->method('setChatHistory');
+    $agent->method('getChatHistory')->willReturn($accepted_messages);
+    $agent->expects(self::once())->method('setChatHistory')
+      ->with([
+        ...$accepted_messages,
+        new ChatMessage('user', 'Add a footer'),
+        new ChatMessage('assistant', 'You interrupted the agent. What would you like to change?'),
+        new ChatMessage('user', 'Add a footer with a blue background'),
+        new ChatMessage('assistant', 'You interrupted the agent. What would you like to change?'),
+      ]);
     $agent->method('determineSolvability')->willReturn(AiAgentInterface::JOB_SOLVABLE);
     $agent->method('isFinished')->willReturn(TRUE);
     $agent->method('toArray')->willReturn(['looped' => 1, 'context_tools' => []]);
@@ -605,10 +667,15 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
     $response = $this->hop([
       'messages' => [
         ['role' => 'user', 'text' => 'Add a hero'],
-        ['role' => 'assistant', 'text' => 'The hero is placed.'],
+        ['role' => 'ai', 'html' => '<p>Adding hero.</p>'],
+        ['role' => 'ai', 'text' => 'The hero is placed.'],
         ['role' => 'user', 'text' => 'Add a footer'],
-        ['role' => 'assistant', 'text' => 'You interrupted the agent. What would you like to change?'],
-        ['role' => 'user', 'text' => 'Try again'],
+        ['role' => 'ai', 'html' => '<p>Adding footer.</p>'],
+        ['role' => 'ai', 'text' => 'You interrupted the agent. What would you like to change?'],
+        ['role' => 'user', 'text' => 'Add a footer with a blue background'],
+        ['role' => 'ai', 'html' => '<p>Adding footer with a blue background.</p>'],
+        ['role' => 'ai', 'text' => 'You interrupted the agent. What would you like to change?'],
+        ['role' => 'user', 'text' => 'Add a footer with a blue background and a button'],
       ],
       'request_id' => 'turn-3',
       'last_successful_request_id' => 'turn-1',
@@ -618,6 +685,8 @@ final class CanvasAiDevControllerTest extends CanvasKernelTestBase {
     self::assertNotNull($temp_store->getStoredConversationState('test-conversation', 'turn-1'));
     self::assertNull($temp_store->getStoredConversationState('test-conversation', 'turn-2'));
     self::assertNotNull($temp_store->getStoredConversationState('test-conversation', 'turn-3'));
+    $stored_turn = $temp_store->getStoredConversationState('test-conversation', 'turn-3');
+    self::assertSame(10, $stored_turn['message_count']);
   }
 
   /**
