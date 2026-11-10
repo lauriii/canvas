@@ -47,13 +47,15 @@ export const SlotNameTag: React.FC<NameTagProps> = (props) => {
   const isHovered = useAppSelector((state) => {
     return selectIsComponentHovered(state, id);
   });
-  const targetSlot = useAppSelector(selectTargetSlot);
-  const isTarget = targetSlot === id;
+  // Booleans, so that a new drop target re-renders only the names it shows or
+  // hides.
+  const isTarget = useAppSelector((state) => selectTargetSlot(state) === id);
+  const noTarget = useAppSelector((state) => !selectTargetSlot(state));
 
   // Show the name of the slot when either the slot is hovered in the layers or when it's the target of drag and drop.
   // Desired result is that only one NameTag is shown at a time:
   // either the selected or the hovered component or, when dragging, the target slot or region.
-  const showName = isTarget || (!targetSlot && isHovered && !isDragging);
+  const showName = isTarget || (noTarget && isHovered && !isDragging);
 
   if (!showName) {
     return null;
@@ -67,13 +69,15 @@ export const RegionNameTag: React.FC<NameTagProps> = (props) => {
   const isHovered = useAppSelector((state) => {
     return selectIsComponentHovered(state, id);
   });
-  const targetSlot = useAppSelector(selectTargetSlot);
-  const isTarget = targetSlot === id;
+  // Booleans, so that a new drop target re-renders only the names it shows or
+  // hides.
+  const isTarget = useAppSelector((state) => selectTargetSlot(state) === id);
+  const noTarget = useAppSelector((state) => !selectTargetSlot(state));
 
   // Show the name of the region when either the region is hovered or when it's the target of drag and drop.
   // Desired result is that only one NameTag is shown at a time:
   // either the selected or the hovered component or, when dragging, the target slot or region.
-  const showName = isTarget || (!targetSlot && isHovered && !isDragging);
+  const showName = isTarget || (noTarget && isHovered && !isDragging);
 
   if (!showName) {
     return null;

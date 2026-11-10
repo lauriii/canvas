@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import clsx from 'clsx';
 import { kebabCase } from 'lodash';
 import TemplateIcon from '@assets/icons/template.svg?react';
@@ -75,4 +76,4 @@ const EmptyRegionDropZone: React.FC<EmptyRegionDropZoneProps> = (props) => {
   );
 };
 
-export default EmptyRegionDropZone;
+export default memo(EmptyRegionDropZone);

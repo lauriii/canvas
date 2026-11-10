@@ -28,7 +28,9 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({ region }) => {
   const { geometryMap } = usePreviewGeometry();
   const regionGeometry = geometryMap.region[region.id];
   const editorViewPortScale = useAppSelector(selectEditorViewPortScale);
-  const targetSlot = useAppSelector(selectTargetSlot);
+  const isTarget = useAppSelector(
+    (state) => selectTargetSlot(state) === region.id,
+  );
   const dispatch = useAppDispatch();
   const isHovered = useAppSelector((state) =>
     selectIsComponentHovered(state, region.id),
@@ -62,7 +64,7 @@ const RegionOverlay: React.FC<RegionOverlayProps> = ({ region }) => {
       className={clsx(
         styles.pageOverlay,
         {
-          [styles.dropTarget]: region.id === targetSlot,
+          [styles.dropTarget]: isTarget,
           [styles.hovered]: isHovered,
         },
         `canvas--region-overlay__${region.id}`,

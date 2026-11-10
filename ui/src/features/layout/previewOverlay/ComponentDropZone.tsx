@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import clsx from 'clsx';
 import { kebabCase } from 'lodash';
 import { useDroppable } from '@dnd-kit/core';
@@ -72,4 +72,4 @@ const ComponentDropZone: React.FC<ComponentDropZoneProps> = (props) => {
   );
 };
 
-export default ComponentDropZone;
+export default memo(ComponentDropZone);

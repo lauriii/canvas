@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import clsx from 'clsx';
 import { kebabCase } from 'lodash';
 import { useDroppable } from '@dnd-kit/core';
@@ -79,4 +79,4 @@ const EmptySlotDropZone: React.FC<EmptySlotDropZoneProps> = (props) => {
   );
 };
 
-export default EmptySlotDropZone;
+export default memo(EmptySlotDropZone);

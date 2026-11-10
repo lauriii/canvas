@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import clsx from 'clsx';
 import { useParams } from 'react-router';
 
@@ -51,7 +51,9 @@ const SlotOverlay: React.FC<SlotOverlayProps> = ({
   const isHovered = useAppSelector((state) => {
     return selectIsComponentHovered(state, slotId);
   });
-  const targetSlot = useAppSelector(selectTargetSlot);
+  const isTarget = useAppSelector(
+    (state) => selectTargetSlot(state) === slotId,
+  );
   const editorViewPortScale = useAppSelector(selectEditorViewPortScale);
   const slotName = useGetComponentName(slot, parentComponent);
   const parentComponentName = useGetComponentName(parentComponent);
@@ -83,14 +85,14 @@ const SlotOverlay: React.FC<SlotOverlayProps> = ({
       className={clsx('slotOverlay', styles.slotOverlay, {
         [styles.selected]: slotId === selectedComponent,
         [styles.hovered]: isHovered,
-        [styles.dropTarget]: slotId === targetSlot,
+        [styles.dropTarget]: isTarget,
       })}
       data-canvas-type="slot"
       data-canvas-drop-container={slotId}
       data-canvas-stack-direction={slotGeometry.stackDirection}
       style={style}
     >
-      {(targetSlot === slotId || isHovered) && (
+      {(isTarget || isHovered) && (
         <div className={clsx(styles.canvasNameTag, styles.canvasNameTagSlot)}>
           <SlotNameTag
             name={`${slotName} (${parentComponentName})`}
@@ -137,4 +139,4 @@ const SlotOverlay: React.FC<SlotOverlayProps> = ({
   );
 };
 
-export default SlotOverlay;
+export default memo(SlotOverlay);

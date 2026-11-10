@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import clsx from 'clsx';
 import { kebabCase } from 'lodash';
 import { useDroppable } from '@dnd-kit/core';
@@ -54,4 +55,4 @@ const RegionDropZone: React.FC<RegionDropZoneProps> = (props) => {
   );
 };
 
-export default RegionDropZone;
+export default memo(RegionDropZone);

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import clsx from 'clsx';
 import { useDraggable } from '@dnd-kit/core';
 
@@ -259,4 +259,4 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   );
 };
 
-export default ComponentOverlay;
+export default memo(ComponentOverlay);
