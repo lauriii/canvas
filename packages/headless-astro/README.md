@@ -95,6 +95,46 @@ loads Vite `.env` files during dev/build, with process values taking precedence;
 restart dev after edits. Supply production environment values separately and
 restart the server after changes. Rebuild/redeploy if the host embeds them.
 
+## Caching published pages
+
+Astro 7's
+[route cache](https://docs.astro.build/en/reference/configuration-reference/#cache)
+can keep published pages until Drupal changes what they show. Configure a
+`cache.provider` (for example `memoryCache()`), fetch the page with
+`fetchPublishedPage()`, which reads no cookies, and tag the response with
+`cacheCanvasTags()`:
+
+```astro
+---
+import {
+  cacheCanvasTags,
+  fetchPage,
+  fetchPublishedPage,
+  isDraftModeEnabled,
+  isPageNotFound,
+} from '@drupal-canvas/headless-astro';
+
+const page = isDraftModeEnabled(Astro)
+  ? await fetchPage(Astro, Astro.url.pathname)
+  : await fetchPublishedPage(Astro, Astro.url.pathname);
+cacheCanvasTags(Astro, ...(page ? [page] : []));
+if (!page || isPageNotFound(page)) {
+  return new Response(null, { status: 404 });
+}
+---
+```
+
+`cacheCanvasTags()` applies all the results' cache tags and the shortest Drupal
+max-age (no limit: one year), and never caches a draft session. The integration
+injects `/api/canvas/revalidate`; add its full URL, for example
+`https://www.example.com/api/canvas/revalidate`, to Drupal's
+`canvas_headless.settings:cache_invalidation_urls` (see the
+[Canvas Headless module README](../../modules/canvas_headless/README.md#frontend-cache-invalidation)).
+Drupal announces invalidated cache tags to it, and the route purges the entries
+tagged with them. Astro has no way to answer first, so Drupal waits for the
+route to read the tags back. The memory provider caches per server instance: use
+a shared provider when running several.
+
 ## Data access
 
 `getClient(Astro)` returns the draft-aware JSON:API client;

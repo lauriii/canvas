@@ -13,9 +13,11 @@ export {
   createAstroDraftAdapter,
   type AstroDraftContext,
 } from './adapter';
+export { cacheCanvasTags, type AstroCacheContext } from './cache';
 export {
   fetchEntity,
   fetchPage,
+  fetchPublishedPage,
   getClient,
   getDraftConfig,
   getDraftData,
@@ -29,8 +31,10 @@ export {
 export {
   getDraftEditorOrigin,
   getSessionToken,
+  isPageNotFound,
   isPageRedirect,
   type AccessToken,
+  type Cacheability,
   type CanvasComponentTreeElement,
   type CanvasComponentTreeSlot,
   type CanvasContext,
@@ -40,6 +44,7 @@ export {
   type EntityResult,
   type Page,
   type PageHead,
+  type PageNotFound,
   type PageRedirect,
   type PageResult,
 } from '@drupal-canvas/headless';
