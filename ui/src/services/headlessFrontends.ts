@@ -2,20 +2,20 @@ import { createApi } from '@reduxjs/toolkit/query/react';
 
 import { baseQuery } from './baseQuery';
 
+// Whether the cache tags Drupal invalidates reach a frontend.
 export interface CacheInvalidationStatus {
-  state: 'ok' | 'failing' | 'idle';
+  state: 'ok' | 'failing';
   // Unix timestamps, in seconds.
-  lastSuccess: number | null;
+  lastSuccess: number;
   lastFailure: number | null;
   lastError: string | null;
-  failures: number;
 }
 
 export interface StoredFrontend {
   url: string;
   components: string[];
-  cacheInvalidation: boolean;
-  // Null while cache invalidation is off for the frontend.
+  // Null until the frontend has read announced cache tags once: it may not
+  // cache pages at all.
   cacheInvalidationStatus: CacheInvalidationStatus | null;
 }
 
@@ -61,10 +61,9 @@ export const headlessFrontendsApi = createApi({
             (current) =>
               frontends.map((frontend) => ({
                 ...frontend,
-                cacheInvalidationStatus: frontend.cacheInvalidation
-                  ? (current.find((item) => item.url === frontend.url)
-                      ?.cacheInvalidationStatus ?? null)
-                  : null,
+                cacheInvalidationStatus:
+                  current.find((item) => item.url === frontend.url)
+                    ?.cacheInvalidationStatus ?? null,
               })),
           ),
         );
@@ -80,7 +79,7 @@ export const headlessFrontendsApi = createApi({
     // list is refetched afterwards because the test changes the status.
     testCacheInvalidation: builder.mutation<
       CacheInvalidationTestResult,
-      { url: string; expireAll?: boolean }
+      { url: string }
     >({
       query: (body) => ({
         url: '/canvas/api/v0/headless/frontends/cache-invalidation/test',

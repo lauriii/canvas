@@ -13,7 +13,6 @@ const OK_STATUS: CacheInvalidationStatus = {
   lastSuccess: 1_777_000_000,
   lastFailure: null,
   lastError: null,
-  failures: 0,
 };
 
 /** The frontends the fake server currently stores. */
@@ -110,18 +109,16 @@ const setup = async (frontends: StoredFrontend[]) => {
 };
 
 describe('headlessFrontendsApi', () => {
-  it('saves the cache invalidation switch of every frontend, without the status', async () => {
+  it('keeps the status of each frontend while a reordered list is being saved', async () => {
     const { store, read } = await setup([
       {
         url: 'https://one.example.com',
         components: ['card'],
-        cacheInvalidation: true,
         cacheInvalidationStatus: OK_STATUS,
       },
       {
         url: 'https://two.example.com',
         components: [],
-        cacheInvalidation: false,
         cacheInvalidationStatus: null,
       },
     ]);
@@ -130,12 +127,10 @@ describe('headlessFrontendsApi', () => {
       {
         url: 'https://two.example.com',
         components: [],
-        cacheInvalidation: true,
       },
       {
         url: 'https://one.example.com',
         components: ['card'],
-        cacheInvalidation: true,
       },
     ];
     void store.dispatch(
@@ -150,8 +145,8 @@ describe('headlessFrontendsApi', () => {
         body: { frontends },
       },
     ]);
-    // While the save is in flight the list already shows the new order and
-    // switches, and a frontend keeps the status it had.
+    // While the save is in flight the list already shows the new order, and
+    // a frontend keeps the status it had.
     expect(read()).toEqual([
       { ...frontends[0], cacheInvalidationStatus: null },
       { ...frontends[1], cacheInvalidationStatus: OK_STATUS },
@@ -167,7 +162,6 @@ describe('headlessFrontendsApi', () => {
       {
         url: 'https://one.example.com',
         components: [],
-        cacheInvalidation: true,
         cacheInvalidationStatus: OK_STATUS,
       },
     ];
@@ -175,15 +169,11 @@ describe('headlessFrontendsApi', () => {
 
     void store.dispatch(
       headlessFrontendsApi.endpoints.setFrontends.initiate([
-        {
-          url: 'https://one.example.com',
-          components: [],
-          cacheInvalidation: false,
-        },
+        { url: 'https://two.example.com', components: [] },
       ]),
     );
     await flush();
-    expect(read()?.[0].cacheInvalidationStatus).toBeNull();
+    expect(read()?.[0].url).toBe('https://two.example.com');
 
     // Only undoing the optimistic update can restore the list: the refetch
     // after the failed save fails too.
@@ -193,16 +183,15 @@ describe('headlessFrontendsApi', () => {
     expect(read()).toEqual(stored);
   });
 
-  it('tests cache invalidation for one frontend and reloads the list', async () => {
+  it('retries cache invalidation for one frontend and reloads the list', async () => {
     const { store, read } = await setup([
       {
         url: 'https://one.example.com',
         components: [],
-        cacheInvalidation: true,
         cacheInvalidationStatus: {
           ...OK_STATUS,
-          state: 'idle',
-          lastSuccess: null,
+          state: 'failing',
+          lastError: 'HTTP 500',
         },
       },
     ]);
@@ -215,7 +204,6 @@ describe('headlessFrontendsApi', () => {
       .dispatch(
         headlessFrontendsApi.endpoints.testCacheInvalidation.initiate({
           url: 'https://one.example.com',
-          expireAll: true,
         }),
       )
       .unwrap();
@@ -225,7 +213,7 @@ describe('headlessFrontendsApi', () => {
       {
         method: 'POST',
         path: '/canvas/api/v0/headless/frontends/cache-invalidation/test',
-        body: { url: 'https://one.example.com', expireAll: true },
+        body: { url: 'https://one.example.com' },
       },
     ]);
     expect(result).toEqual({

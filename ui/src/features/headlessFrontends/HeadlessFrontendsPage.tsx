@@ -9,6 +9,7 @@ import ErrorCard from '@/components/error/ErrorCard';
 import {
   useGetFrontendsQuery,
   useSetFrontendsMutation,
+  useTestCacheInvalidationMutation,
 } from '@/services/headlessFrontends';
 import { setCanvasHeadlessFrontends } from '@/utils/drupal-globals';
 
@@ -25,9 +26,33 @@ import type {
 
 import styles from './HeadlessFrontends.module.css';
 
+// The app's toasts are sized for a word or two. The messages here are
+// sentences that say what to fix, so they wrap and stay longer.
+const MESSAGE_TOAST = {
+  style: {
+    width: 'max-content',
+    maxWidth: 'min(480px, 90vw)',
+    height: 'auto',
+    whiteSpace: 'normal',
+    padding: 'var(--space-2) var(--space-3)',
+    textAlign: 'center',
+  },
+  duration: 8000,
+} as const;
+
 const HeadlessFrontendsPage = () => {
-  const { data: storedFrontends, isLoading, error } = useGetFrontendsQuery();
+  // The status Drupal reports changes without this screen: read it again
+  // when the screen is opened or returned to.
+  const {
+    data: storedFrontends,
+    isLoading,
+    error,
+  } = useGetFrontendsQuery(undefined, {
+    refetchOnFocus: true,
+    refetchOnMountOrArgChange: true,
+  });
   const [setFrontends, { isLoading: isSaving }] = useSetFrontendsMutation();
+  const [testCacheInvalidation, retry] = useTestCacheInvalidationMutation();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isSetupGuideOpen, setIsSetupGuideOpen] = useState(false);
   const [frontendToRemove, setFrontendToRemove] =
@@ -46,6 +71,7 @@ const HeadlessFrontendsPage = () => {
       id: frontend.url,
       url: frontend.url,
       status: statuses[frontend.url] ?? 'checking',
+      cacheInvalidationStatus: frontend.cacheInvalidationStatus,
     }),
   );
 
@@ -68,12 +94,18 @@ const HeadlessFrontendsPage = () => {
   };
 
   const handleAdd = async (url: string) => {
-    await saveList([...frontends, { id: url, url, status: 'checking' }]);
+    await saveList([
+      ...frontends,
+      { id: url, url, status: 'checking', cacheInvalidationStatus: null },
+    ]);
   };
 
   const handleReorder = (oldIndex: number, newIndex: number) => {
     void saveList(arrayMove(frontends, oldIndex, newIndex)).catch(() => {
-      toast.error('The frontend order could not be saved. Please try again.');
+      toast.error(
+        'The frontend order could not be saved. Please try again.',
+        MESSAGE_TOAST,
+      );
     });
   };
 
@@ -87,7 +119,31 @@ const HeadlessFrontendsPage = () => {
       setStatuses(({ [frontendToRemove?.url ?? '']: _, ...rest }) => rest);
       setFrontendToRemove(null);
     } catch {
-      toast.error('The frontend could not be removed. Please try again.');
+      toast.error(
+        'The frontend could not be removed. Please try again.',
+        MESSAGE_TOAST,
+      );
+    }
+  };
+
+  // Drupal announces to the frontend at once, and waits for it to read the
+  // cache tags. The list is refetched afterwards, with the new status.
+  const handleRetryCacheInvalidation = async (url: string) => {
+    try {
+      const result = await testCacheInvalidation({ url }).unwrap();
+      if (result.ok) {
+        toast.success(
+          'The frontend receives content updates again.',
+          MESSAGE_TOAST,
+        );
+      } else {
+        toast.error(result.message, MESSAGE_TOAST);
+      }
+    } catch {
+      toast.error(
+        'The frontend could not be contacted. Please try again.',
+        MESSAGE_TOAST,
+      );
     }
   };
 
@@ -153,6 +209,12 @@ const HeadlessFrontendsPage = () => {
                   )
                 }
                 onStatusChange={handleStatusChange}
+                onRetryCacheInvalidation={(id) =>
+                  void handleRetryCacheInvalidation(id)
+                }
+                retryingCacheInvalidation={
+                  retry.isLoading ? (retry.originalArgs?.url ?? null) : null
+                }
                 onOpenSetupGuide={() => setIsSetupGuideOpen(true)}
                 disabled={isSaving}
               />
