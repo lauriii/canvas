@@ -1,4 +1,6 @@
 // cspell:ignore über
+import { escape } from 'lodash';
+
 export interface PageAnchor {
   // The URI fragment, including the leading `#`.
   value: string;
@@ -65,7 +67,10 @@ export const collectPageAnchors = (
 };
 
 /**
- * Filters anchors by what was typed: empty, `#`, or `#` and part of an id.
+ * Filters anchors by what was typed: empty, `#`, or `#` and part of the label.
+ *
+ * The label holds the component name and the id, so `#faq` and `#accordion`
+ * both match `Accordion: #faq`.
  *
  * Returns no anchors for any other input, so typing a page title or URL
  * searches as before.
@@ -80,3 +85,16 @@ export const filterPageAnchors = (
   const needle = term.slice(1).toLowerCase();
   return anchors.filter(({ label }) => label.toLowerCase().includes(needle));
 };
+
+/**
+ * Turns anchors into jQuery UI autocomplete items.
+ *
+ * Core's autocomplete renders labels as HTML, and ids and component names are
+ * written by authors, so labels are escaped.
+ *
+ * @see core/misc/autocomplete.js::renderItem()
+ */
+export const toAutocompleteItems = (
+  anchors: PageAnchor[],
+): Array<{ value: string; label: string }> =>
+  anchors.map(({ value, label }) => ({ value, label: escape(label) }));

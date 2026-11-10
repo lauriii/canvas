@@ -5,7 +5,6 @@ props:
   type: object
   required:
     - text
-    - href
   properties:
     text:
       type: string
@@ -17,4 +16,4 @@ props:
       title: Link
       format: uri-reference
       examples:
-        - '#pricing'
+        - '#top'

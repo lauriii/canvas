@@ -1,7 +1,11 @@
 // cspell:ignore über Cber
 import { describe, expect, it } from 'vitest';
 
-import { collectPageAnchors, filterPageAnchors } from './pageAnchors';
+import {
+  collectPageAnchors,
+  filterPageAnchors,
+  toAutocompleteItems,
+} from './pageAnchors';
 
 const previewDocument = () => {
   const doc = document.implementation.createHTMLDocument();
@@ -71,5 +75,20 @@ describe('filterPageAnchors', () => {
     ['https://example.com/#pricing', 0],
   ])('filters %j to %i anchors', (term, count) => {
     expect(filterPageAnchors(anchors, term)).toHaveLength(count);
+  });
+});
+
+describe('toAutocompleteItems', () => {
+  it('escapes labels, which core renders as HTML', () => {
+    expect(
+      toAutocompleteItems([
+        { value: '#a%3Cb', label: 'Q&A: #<img/src=x/onerror=alert(1)>"' },
+      ]),
+    ).toEqual([
+      {
+        value: '#a%3Cb',
+        label: 'Q&amp;A: #&lt;img/src=x/onerror=alert(1)&gt;&quot;',
+      },
+    ]);
   });
 });

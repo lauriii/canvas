@@ -413,7 +413,7 @@ Some of the complexity introduced by Drupal Canvas based component + entity form
 
 One example is additional logic required for autocomplete. Although the form element is rerendering to display the autocomplete suggestions, additional logic is required to ensure the autocomplete suggestion process is not triggering a preview update until a selection is made.
 
-Link inputs in the component instance form that accept internal links (`format: uri-reference`) also suggest anchors on the current page. When the input is empty or starts with `#`, `TextFieldAutocomplete` lists the ids that components render in the active preview, such as `Page section: #pricing`. Picking one goes through the same selection path as an entity suggestion. Any other input uses core's entity autocomplete. See `ui/src/utils/pageAnchors.ts`.
+Link inputs in the component instance form that accept internal links (`format: uri-reference`) also suggest anchors on the current page. When the input is empty or starts with `#`, `TextFieldAutocomplete` lists the ids that components render in the active preview, such as `Page section: #pricing`. An empty input lists them when it gets focus, not after the author deletes its text, so that clearing the field is stored. Picking one goes through the same selection path as an entity suggestion. Typed text is stored when the list closes without a pick, such as on blur or Escape, or when no anchor matches. Any other input uses core's entity autocomplete. See `ui/src/utils/pageAnchors.ts`.
 
 #### 3.5.4 Prop visibility conditions
 A prop with `x-canvas-visible-if` is shown only while its condition passes. See `\Drupal\canvas\JsonSchemaInterpreter\PropVisibilityCondition` for the syntax and its validation.
