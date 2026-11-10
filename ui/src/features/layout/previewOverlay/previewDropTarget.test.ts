@@ -229,6 +229,114 @@ describe('findPreviewDropZoneId', () => {
     );
   });
 
+  it('targets an empty slot from around it in its component, and keeps a component in the component that holds it', () => {
+    // A header whose first slot is empty, between two other components.
+    const page = slot(
+      'page',
+      [0, 0, 400, 280],
+      [
+        item('top', [0, 0, 400, 100]),
+        item(
+          'header',
+          [0, 100, 400, 80],
+          [
+            slot('branding', [40, 116, 100, 48]),
+            slot(
+              'navigation',
+              [160, 116, 220, 48],
+              [
+                item('nav', [160, 116, 110, 48]),
+                item('logo', [270, 116, 110, 48]),
+              ],
+              'horizontal-flex',
+            ),
+          ],
+        ),
+        item('bottom', [0, 180, 400, 100]),
+      ],
+    );
+    const at = (x: number, y: number, active = 'new') =>
+      findPreviewDropZoneId(page, { x, y }, active);
+    // In the padding of the header, around the empty slot.
+    expect(at(20, 140)).toBe('branding');
+    expect(at(145, 140)).toBe('branding');
+    expect(at(60, 114)).toBe('branding');
+    // Near the edge of the header, and outside it: beside the header.
+    expect(at(60, 104)).toBe('top_bottom');
+    expect(at(60, 90)).toBe('top_bottom');
+    // Farther from the slot.
+    expect(at(5, 130)).toBe('top_bottom');
+    // Over the content of another slot.
+    expect(at(165, 140)).toBe('nav_left');
+    // The header holds the logo, which stays in the header until the pointer
+    // is near the edge of the header.
+    expect(at(5, 130, 'logo')).toBe('branding');
+    expect(at(395, 150, 'logo')).toBeNull();
+    expect(at(5, 105, 'logo')).toBe('top_bottom');
+
+    // Grids filled edge to edge by their empty slot.
+    const grids = slot(
+      'page',
+      [0, 0, 400, 84],
+      [
+        item('g1', [0, 0, 400, 42], [slot('g1-slot', [0, 1, 400, 40])]),
+        item('g2', [0, 42, 400, 42], [slot('g2-slot', [0, 43, 400, 40])]),
+      ],
+    );
+    const inGrids = (x: number, y: number) =>
+      findPreviewDropZoneId(grids, { x, y }, 'new');
+    expect(inGrids(200, 5)).toBe('g1_top');
+    expect(inGrids(200, 20)).toBe('g1-slot');
+    expect(inGrids(200, 40)).toBe('g1_bottom');
+    expect(inGrids(200, 80)).toBe('g2_bottom');
+
+    // A section whose slot holds only the dragged paragraph, between two
+    // other components.
+    const sections = slot(
+      'page',
+      [0, 0, 400, 300],
+      [
+        item('before', [0, 0, 400, 100]),
+        item(
+          'section',
+          [0, 100, 400, 100],
+          [
+            slot(
+              'section-slot',
+              [16, 116, 368, 68],
+              [item('p', [16, 116, 368, 68])],
+            ),
+          ],
+        ),
+        item('after', [0, 200, 400, 100]),
+      ],
+    );
+    const inSections = (x: number, y: number) =>
+      findPreviewDropZoneId(sections, { x, y }, 'p');
+    expect(inSections(200, 120)).toBeNull();
+    // In the padding of the section.
+    expect(inSections(5, 150)).toBeNull();
+    expect(inSections(200, 104)).toBe('before_bottom');
+    expect(inSections(200, 196)).toBe('section_bottom');
+
+    // A component whose only slot is collapsed holds the dragged component.
+    const collapsed = slot(
+      'page',
+      [0, 0, 400, 300],
+      [
+        item('first', [0, 0, 400, 100]),
+        item(
+          'box',
+          [0, 100, 400, 100],
+          [slot('box-slot', [20, 120, 360, 0], [item('q', [20, 120, 360, 0])])],
+        ),
+      ],
+    );
+    expect(findPreviewDropZoneId(collapsed, { x: 10, y: 140 }, 'q')).toBe(
+      'first_bottom',
+    );
+  });
+
   it('targets the gap next to a component outside its slots', () => {
     // A grid of cards with an image above their slot.
     const card = (id: string, x: number, y: number) =>

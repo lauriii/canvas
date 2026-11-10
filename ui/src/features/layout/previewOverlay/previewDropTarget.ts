@@ -12,6 +12,12 @@ const EDGE_THRESHOLD = 12;
 // boundary between two drop targets.
 const HYSTERESIS = 8;
 
+// Within this many pixels of an empty slot, in the component that has the
+// slot, the pointer targets the slot. A component is carried by where it was
+// grabbed, or by its name beside it, so the pointer is often next to the empty
+// slot the component is held over.
+const EMPTY_SLOT_REACH = 32;
+
 interface Point {
   x: number;
   y: number;
@@ -138,9 +144,11 @@ const isHorizontal = (container: HTMLElement) =>
  * Instead of hit-testing the thin drop zone bands at component edges, this
  * finds the deepest slot or region under the pointer and the insertion point
  * nearest to the pointer within it, so every pixel of the preview resolves to
- * a drop target. Inside the bounding box of the slots of a component, the
- * pointer is taken to be in the nearest slot. The result is the id of the existing drop zone that
- * represents that insertion point, so drop handling is unchanged.
+ * a drop target. Within a component, except near its edges, the pointer is
+ * taken to be in the nearest slot of the component when it is between its
+ * slots, near an empty slot, or in the component that holds the dragged
+ * component. The result is the id of the existing drop zone that represents
+ * that insertion point, so drop handling is unchanged.
  *
  * Over the dragged component, the drop target is where it was. Its slots are
  * not drop targets. During a drag, drop targets are resolved against the
@@ -193,40 +201,66 @@ export function findPreviewDropZoneId(
   return id;
 }
 
+// The slot or region the pointer is in.
+function containerUnder(
+  root: HTMLElement,
+  point: Point,
+  activeId: UniqueIdentifier,
+  rect: (el: Element) => DOMRect,
+): HTMLElement {
+  // The component that holds the dragged component.
+  const home = Array.from(
+    root.querySelectorAll<HTMLElement>('[data-canvas-drop-item]'),
+  )
+    .find((el) => isActive(el, activeId))
+    ?.parentElement?.closest('[data-canvas-drop-item]');
+  let container = root;
+  for (;;) {
+    const hit = childItems(container).find(
+      (el) => !isActive(el, activeId) && contains(rect(el), point),
+    );
+    if (!hit) return container;
+    const r = rect(hit);
+    const [start, size, pos] = isHorizontal(container)
+      ? [r.left, r.width, point.x]
+      : [r.top, r.height, point.y];
+    const edge = Math.min(EDGE_THRESHOLD, size / 4);
+    if (pos - start < edge || start + size - pos < edge) return container;
+    // Slots collapsed to no width or no height are not drop targets.
+    const slots = childrenOf(hit, '[data-canvas-drop-container]').filter(
+      (el) => rect(el).width && rect(el).height,
+    );
+    if (!slots.length) return container;
+    const rects = slots.map(rect);
+    const distanceTo = slotDistance(rects, point);
+    const under =
+      slots.find((el) => contains(rect(el), point)) ??
+      nearest(slots, (el) => distanceTo(rect(el)));
+    // Outside the bounding box of its slots, the pointer targets the gap next
+    // to the component, unless an empty slot is near or the component holds
+    // the dragged component. Between its slots, that gap is across the
+    // component from the pointer.
+    if (
+      !within(rects, point) &&
+      hit !== home &&
+      !(
+        !childItems(under).length &&
+        distance(rect(under), point) <= EMPTY_SLOT_REACH
+      )
+    ) {
+      return container;
+    }
+    container = under;
+  }
+}
+
 function resolveDropZoneId(
   root: HTMLElement,
   point: Point,
   activeId: UniqueIdentifier,
   rect: (el: Element) => DOMRect,
 ): string | null {
-  let container = root;
-  for (;;) {
-    const hit = childItems(container).find(
-      (el) => !isActive(el, activeId) && contains(rect(el), point),
-    );
-    if (!hit) break;
-    const r = rect(hit);
-    const [start, size, pos] = isHorizontal(container)
-      ? [r.left, r.width, point.x]
-      : [r.top, r.height, point.y];
-    const edge = Math.min(EDGE_THRESHOLD, size / 4);
-    if (pos - start < edge || start + size - pos < edge) break;
-    // Slots collapsed to no width or no height are not drop targets.
-    const slots = childrenOf(hit, '[data-canvas-drop-container]').filter(
-      (el) => rect(el).width && rect(el).height,
-    );
-    const rects = slots.map(rect);
-    // Outside the bounding box of its slots, the pointer targets the gap next
-    // to the component. Inside it, the pointer targets the slot it is in, or
-    // else the nearest slot: between two slots, the gap next to the component
-    // is across the component from the pointer.
-    if (!within(rects, point)) break;
-    const distanceTo = slotDistance(rects, point);
-    container =
-      slots.find((el) => contains(rect(el), point)) ??
-      nearest(slots, (el) => distanceTo(rect(el)));
-  }
-
+  const container = containerUnder(root, point, activeId, rect);
   const all = childItems(container);
   // Where the dragged component was, in terms of the other components: the
   // overlay keeps the order of the layout while the component is dragged.
