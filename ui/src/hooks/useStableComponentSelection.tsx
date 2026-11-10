@@ -25,8 +25,9 @@ const StableComponentSelectionContext =
  * layout, the selection, the selected component and dev mode in the store, so
  * each component that calls it re-renders on every navigation, selection
  * change and layout change.
- * Components rendered once per component instance (Layers rows, preview
- * overlays) use useStableComponentSelection() instead. The provider calls
+ * Components rendered once per component instance or per library component
+ * (Layers rows, preview overlays, Library items) use
+ * useStableComponentSelection() instead. The provider calls
  * useComponentSelection() once, and the handlers call its latest result.
  */
 export const StableComponentSelectionProvider = ({
