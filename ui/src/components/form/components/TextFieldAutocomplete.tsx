@@ -16,6 +16,7 @@ import {
   collectPageAnchors,
   filterPageAnchors,
   getPreviewDocument,
+  toAutocompleteItems,
 } from '@/utils/pageAnchors';
 import { resolveEntityUri } from '@/utils/transforms';
 
@@ -24,15 +25,6 @@ import type { Attributes } from '@/types/DrupalAttribute';
 import styles from './TextField.module.css';
 
 const { jQuery } = window;
-
-// Core's autocomplete renders suggestion labels as HTML.
-// @see core/misc/autocomplete.js::renderItem()
-const escapeHtml = (text: string) =>
-  text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 
 const TextFieldAutocomplete = ({
   className = '',
@@ -107,12 +99,7 @@ const TextFieldAutocomplete = ({
         if (anchors.length === 0) {
           return source.call(this, request, response);
         }
-        response(
-          anchors.map(({ value, label }) => ({
-            value,
-            label: escapeHtml(label),
-          })),
-        );
+        response(toAutocompleteItems(anchors));
       },
     });
   };
