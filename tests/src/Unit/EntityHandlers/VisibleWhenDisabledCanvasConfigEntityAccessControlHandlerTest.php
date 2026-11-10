@@ -13,6 +13,7 @@ use Drupal\canvas\EntityHandlers\VisibleWhenDisabledCanvasConfigEntityAccessCont
 use Drupal\Core\Access\AccessResultAllowed;
 use Drupal\Core\Access\AccessResultNeutral;
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Cache\Context\CacheContextsManager;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\ConfigManagerInterface;
@@ -69,7 +70,7 @@ final class VisibleWhenDisabledCanvasConfigEntityAccessControlHandlerTest extend
       ->method('access')
       ->willReturn($hasAccessToCanvas ? (new AccessResultAllowed())->addCacheContexts(['user.permissions']) : (new AccessResultNeutral())->addCacheContexts(['user.permissions']));
 
-    $component_audit_service = new ComponentAudit($configManager, $this->createMock(EntityTypeManagerInterface::class), $this->createMock(EntityFieldManagerInterface::class), $this->createMock(AutoSaveManager::class));
+    $component_audit_service = new ComponentAudit($configManager, $this->createMock(EntityTypeManagerInterface::class), $this->createMock(EntityFieldManagerInterface::class), $this->createMock(AutoSaveManager::class), $this->createMock(CacheBackendInterface::class));
     $sut = new VisibleWhenDisabledCanvasConfigEntityAccessControlHandler(
       $entityType,
       $configManager,

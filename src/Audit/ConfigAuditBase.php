@@ -35,6 +35,8 @@ use Drupal\Core\Entity\RevisionableStorageInterface;
  *
  * @internal
  * @todo Improve in https://www.drupal.org/project/canvas/issues/3522953.
+ *
+ * @phpstan-import-type AutoSaveEntry from \Drupal\canvas\AutoSave\AutoSaveManager
  */
 abstract class ConfigAuditBase {
 
@@ -177,7 +179,7 @@ abstract class ConfigAuditBase {
   public function hasUsages(ConfigEntityInterface $target, RevisionAuditEnum $which_revisions = RevisionAuditEnum::All): bool {
     // Special case: auto-saves.
     if ($which_revisions === RevisionAuditEnum::AutoSave) {
-      return !empty($this->getAutoSavesUsingAuditTarget($target));
+      return $this->hasAutoSaveUsages($target);
     }
 
     // @todo Field config default values
@@ -220,6 +222,33 @@ abstract class ConfigAuditBase {
    */
   public function getAutoSavesUsingAuditTarget(ConfigEntityInterface $target, array $version_ids = []): array {
     $dependencies = [];
+    foreach ($this->getAutoSavedComponentTrees() as [$autoSave, $tree]) {
+      if ($this->componentTreeUsesAuditTarget($tree, $target, $version_ids)) {
+        $entity_type_id = $autoSave['entity_type'];
+        $entity_id = $autoSave['entity_id'];
+        $simulated_revision_id = 'auto-save-' . $autoSave['data_hash'];
+        $dependencies[$entity_type_id][$simulated_revision_id] = $entity_id;
+      }
+    }
+    return $dependencies;
+  }
+
+  /**
+   * Checks if the audit target is used by an auto-saved component tree.
+   */
+  public function hasAutoSaveUsages(ConfigEntityInterface $target): bool {
+    return $this->getAutoSavesUsingAuditTarget($target) !== [];
+  }
+
+  /**
+   * Yields every auto-saved component tree, with the auto-save it belongs to.
+   *
+   * Each call rebuilds the entity of every auto-save on the site.
+   *
+   * @return \Generator<int, array{0: AutoSaveEntry, 1: ComponentTreeItemList}>
+   *   Pairs of an auto-save entry and its component tree.
+   */
+  protected function getAutoSavedComponentTrees(): \Generator {
     foreach ($this->autoSaveManager->getAllAutoSaveList(with_entities: TRUE, with_conflicts: FALSE) as $autoSave) {
       $entity = $autoSave['entity'];
       \assert(!\is_null($entity));
@@ -231,14 +260,8 @@ abstract class ConfigAuditBase {
         }
         continue;
       }
-      if ($this->componentTreeUsesAuditTarget($entity->getComponentTree(), $target, $version_ids)) {
-        $entity_type_id = $autoSave['entity_type'];
-        $entity_id = $autoSave['entity_id'];
-        $simulated_revision_id = 'auto-save-' . $autoSave['data_hash'];
-        $dependencies[$entity_type_id][$simulated_revision_id] = $entity_id;
-      }
+      yield [$autoSave, $entity->getComponentTree()];
     }
-    return $dependencies;
   }
 
   /**
