@@ -11,6 +11,23 @@ import useEditorNavigation from '@/hooks/useEditorNavigation';
 import type React from 'react';
 import type { Pattern } from '@/types/Pattern';
 
+/**
+ * The "Edit pattern" menu item.
+ *
+ * Radix mounts menu content only while the menu is open, so the router hooks
+ * in useEditorNavigation() run for the open menu only.
+ */
+const EditPatternMenuItem = ({ patternId }: { patternId: string }) => {
+  const { navigateToPatternEditor } = useEditorNavigation();
+  const handleEditClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    navigateToPatternEditor(patternId);
+  };
+  return (
+    <UnifiedMenu.Item onClick={handleEditClick}>Edit pattern</UnifiedMenu.Item>
+  );
+};
+
 const PatternItem: React.FC<{
   pattern: Pattern;
   onMenuOpenChange: (open: boolean) => void;
@@ -27,13 +44,6 @@ const PatternItem: React.FC<{
   } = props;
   const dispatch = useAppDispatch();
   const activePanel = useAppSelector(selectActivePanel);
-  const { navigateToPatternEditor } = useEditorNavigation();
-
-  const handleEditClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.stopPropagation();
-    navigateToPatternEditor(pattern.id);
-  };
-
   const handleRenameClick = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
     dispatch(
@@ -64,9 +74,7 @@ const PatternItem: React.FC<{
           <UnifiedMenu.Item disabled>No actions available</UnifiedMenu.Item>
         }
       >
-        <UnifiedMenu.Item onClick={handleEditClick}>
-          Edit pattern
-        </UnifiedMenu.Item>
+        <EditPatternMenuItem patternId={pattern.id} />
         <UnifiedMenu.Item onClick={handleRenameClick}>Rename</UnifiedMenu.Item>
         <UnifiedMenu.Item color="red" onClick={handleDeleteClick}>
           Delete pattern
