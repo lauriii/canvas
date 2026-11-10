@@ -80,6 +80,30 @@ runtime config. Nuxt loads `.env` during dev/build; supply production
 environment values separately. Restart after environment changes, or
 rebuild/redeploy if the Nitro preset or host embeds them.
 
+## Caching published pages
+
+Fetch a page for a path-keyed cache with `fetchPublishedPage(event, path)`,
+which reads no cookies. A page anonymous visitors cannot see is a `PageNotFound`
+(`isPageNotFound()`). Results carry `cacheTags` and `cacheMaxAge`: tag what you
+cache with them, for example a CDN's `Cache-Tag` response header, and keep it
+for at most the max-age. Nitro's own cache has no tags, so the app supplies the
+purge. Mount the invalidation route in `server/api/canvas/revalidate.post.ts`:
+
+```ts
+import { createCacheInvalidationRouteHandler } from '@drupal-canvas/headless-nuxt/server';
+
+export default createCacheInvalidationRouteHandler({
+  invalidate: (tags) => purgeCdnTags(tags),
+});
+```
+
+Then add the route's full URL, for example
+`https://www.example.com/api/canvas/revalidate`, to Drupal's
+`canvas_headless.settings:cache_invalidation_urls` (see the
+[Canvas Headless module README](../../modules/canvas_headless/README.md#frontend-cache-invalidation)).
+When the Nitro preset provides `event.waitUntil`, the route answers Drupal at
+once and reads the tags afterwards.
+
 ## Data access
 
 Data access happens in Nitro server routes, where the draft session cookies
