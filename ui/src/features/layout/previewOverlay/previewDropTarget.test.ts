@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   findPreviewDropZoneId,
   freezeDropTargets,
+  holdDropTargets,
   unfreezeDropTargets,
 } from '@/features/layout/previewOverlay/previewDropTarget';
 
@@ -406,6 +407,11 @@ describe('findPreviewDropZoneId', () => {
     expect(findPreviewDropZoneId(list, { x: 200, y: 360 }, 't')).toBe(
       's_bottom',
     );
+    // Unless the scroll keeps what is under the pointer in place: s is still
+    // at y 300 to 400, and t where it was before it.
+    viewport.getBoundingClientRect = () => new DOMRect(0, -150, 400, 500);
+    holdDropTargets(50);
+    expect(findPreviewDropZoneId(list, { x: 200, y: 320 }, 't')).toBeNull();
     unfreezeDropTargets();
     expect(findPreviewDropZoneId(list, { x: 200, y: 460 }, 't')).toBeNull();
   });

@@ -16,6 +16,7 @@ import {
   outlineEmptySlots,
   SLIDE,
   timing,
+  toPreview,
 } from '@/features/layout/preview/livePreviewGhost';
 import {
   findBoundary,
@@ -23,6 +24,7 @@ import {
   siblingsBetween,
 } from '@/features/layout/preview/optimisticPreview';
 import { notePreviewEdit } from '@/features/layout/preview/previewEdits';
+import { holdDropTargets } from '@/features/layout/previewOverlay/previewDropTarget';
 
 import type { CanvasBoundary } from '@drupal-canvas/preview-geometry';
 import type { Ghost, Point } from '@/features/layout/preview/livePreviewGhost';
@@ -126,15 +128,23 @@ const componentElements = (boundaries: CanvasBoundary[]) =>
  *
  * @param before
  *   Where the elements were shown, including any slide that was underway.
+ * @param animations
+ *   The animations of the slide are added to this.
+ * @param scrolled
+ *   How far the preview was scrolled since, in pixels of the preview.
  */
-function slide(before: Map<HTMLElement, DOMRect>, animations: Animation[]) {
+function slide(
+  before: Map<HTMLElement, DOMRect>,
+  animations: Animation[],
+  scrolled = 0,
+) {
   const moved = new Map<HTMLElement, Point>();
   before.forEach((was, el) => {
     if (!el.isConnected) {
       return;
     }
     const is = el.getBoundingClientRect();
-    moved.set(el, { x: was.left - is.left, y: was.top - is.top });
+    moved.set(el, { x: was.left - is.left, y: was.top - is.top + scrolled });
   });
   moved.forEach((delta, el) => {
     // Nested components move with the component they are in.
@@ -340,6 +350,65 @@ const hasSize = (node: Node) =>
  *   The drop zone id of the position, or NULL to show the component where it
  *   was when the drag started (or not at all if it is new).
  */
+// The innermost component under the pointer, other than the dragged one, and
+// where it is in the editor viewport.
+function anchorAt({ document, nodes, pointer }: Session) {
+  const point = pointer && toPreview(document, pointer);
+  if (!point) {
+    return null;
+  }
+  const under = componentElements(discoverCanvasBoundaries(document)).filter(
+    (el) => {
+      const r = el.getBoundingClientRect();
+      return (
+        !nodes.some((node) => node.contains(el)) &&
+        point.x >= r.left &&
+        point.x <= r.right &&
+        point.y >= r.top &&
+        point.y <= r.bottom
+      );
+    },
+  );
+  const el = under.find(
+    (one) => !under.some((other) => other !== one && one.contains(other)),
+  );
+  return el ? { el, top: viewportTop(el) } : null;
+}
+
+const viewportTop = (el: HTMLElement) => {
+  const frame = el.ownerDocument.defaultView!.frameElement as HTMLElement;
+  const r = frame.getBoundingClientRect();
+  return r.top + (el.getBoundingClientRect().top * r.width) / frame.offsetWidth;
+};
+
+/**
+ * Scrolls the preview so that a component stays where it was in the viewport.
+ *
+ * Showing the dragged component in another slot or region moves the
+ * components after where it was and after where it is shown. The component
+ * under the pointer stays under the pointer, where the drop targets are (see
+ * holdDropTargets()), instead of moving away from the pointer as the pointer
+ * moves toward it: a large component moved into a slot below it would move
+ * that slot up by its own height.
+ *
+ * @return
+ *   How far the preview was scrolled, in pixels of the preview.
+ */
+function keepInPlace(anchor: { el: HTMLElement; top: number }): number {
+  const frame = anchor.el.ownerDocument.defaultView!
+    .frameElement as HTMLElement;
+  const pane = frame.closest<HTMLElement>('[data-canvas-editor-pane]');
+  const moved = viewportTop(anchor.el) - anchor.top;
+  if (!pane || Math.abs(moved) < 0.5) {
+    return 0;
+  }
+  const from = pane.scrollTop;
+  pane.scrollTop = from + moved;
+  const scrolled = pane.scrollTop - from;
+  holdDropTargets(scrolled);
+  return (scrolled * frame.offsetWidth) / frame.getBoundingClientRect().width;
+}
+
 export function showLivePreviewAt(dropZoneId: string | null): void {
   if (!session) {
     return;
@@ -359,11 +428,20 @@ export function showLivePreviewAt(dropZoneId: string | null): void {
   }
   session.slide.forEach((animation) => animation.cancel());
   session.slide = [];
+  const anchor = anchorAt(session);
+  // Where the markup is shown, if anywhere.
+  const from = nodes[0].isConnected ? nodes[0].parentNode : null;
+  let scrolled = 0;
   try {
     place(session, dropZoneId);
   } finally {
+    // Within a slot or region, the components the markup passes make room
+    // for it under the pointer.
+    if (anchor && from && nodes[0].parentNode !== from) {
+      scrolled = keepInPlace(anchor);
+    }
     session.shownAt = bounds(nodes);
-    slide(before, session.slide);
+    slide(before, session.slide, scrolled);
   }
   // The copy of inserted markup appears once the markup can be measured.
   if (!session.home && !session.ghost && session.pointer) {

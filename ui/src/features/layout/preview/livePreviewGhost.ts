@@ -62,7 +62,7 @@ export function bounds(nodes: Node[]): DOMRect {
 }
 
 // Maps a point in the editor viewport to the preview viewport.
-function toPreview(document: Document, point: Point): Point | null {
+export function toPreview(document: Document, point: Point): Point | null {
   const frame = document.defaultView?.frameElement as HTMLElement | null;
   if (!frame?.offsetWidth) {
     return null;

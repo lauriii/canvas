@@ -55,6 +55,20 @@ export function freezeDropTargets(viewport: Element): void {
   frozen = { viewport, origin: viewport.getBoundingClientRect(), rects };
 }
 
+/**
+ * Keeps drop targets where they are in the viewport while the preview scrolls.
+ *
+ * @param scrolled
+ *   How far the preview was scrolled, in pixels, to keep what is under the
+ *   pointer where it is (see livePreview.ts).
+ */
+export function holdDropTargets(scrolled: number): void {
+  if (frozen) {
+    const { left, top, width, height } = frozen.origin;
+    frozen.origin = new DOMRect(left, top - scrolled, width, height);
+  }
+}
+
 /** Resolves drop targets against the current layout again. */
 export function unfreezeDropTargets(): void {
   frozen = null;
