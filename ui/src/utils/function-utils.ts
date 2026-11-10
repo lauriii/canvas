@@ -67,13 +67,20 @@ export function getHalfwayScrollPosition(parent: HTMLElement | null) {
 /** Maps component elements from the shared Canvas marker grammar. */
 export function mapCanvasDocument(document: Document): PreviewDomMaps {
   const maps: PreviewDomMaps = { componentsMap: {} };
+  // The innermost component of each element: it comes last.
+  const uuids = new Map<HTMLElement, string>();
   discoverCanvasBoundaries(document).forEach((boundary) => {
     if (boundary.type === 'component') {
       const elements = getBoundaryElements(boundary.start, boundary.end);
-      elements.forEach((element) => {
-        element.dataset.canvasUuid = boundary.id;
-      });
+      elements.forEach((element) => uuids.set(element, boundary.id));
       maps.componentsMap[boundary.id] = { elements };
+    }
+  });
+  // Writing an attribute, even with the value it has, is a mutation, which
+  // makes the overlay measure the preview again.
+  uuids.forEach((uuid, element) => {
+    if (element.dataset.canvasUuid !== uuid) {
+      element.dataset.canvasUuid = uuid;
     }
   });
 
