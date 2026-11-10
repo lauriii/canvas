@@ -1,10 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import {
+  endDropTargets,
   findPreviewDropZoneId,
-  freezeDropTargets,
   holdDropTargets,
-  unfreezeDropTargets,
+  previewDropZoneAt,
+  startDropTargets,
 } from '@/features/layout/previewOverlay/previewDropTarget';
 
 type Box = [left: number, top: number, width: number, height: number];
@@ -84,6 +85,8 @@ const find = (x: number, y: number, active = 'new') =>
   findPreviewDropZoneId(root, { x, y }, active);
 
 describe('findPreviewDropZoneId', () => {
+  afterEach(() => endDropTargets());
+
   it('picks the gap nearest to the pointer, without dead zones', () => {
     expect(find(200, 30)).toBe('a_top');
     expect(find(200, 70)).toBe('a_bottom');
@@ -386,34 +389,86 @@ describe('findPreviewDropZoneId', () => {
     expect(find(200, 450, 'd')).toBe('e_bottom');
   });
 
-  it('resolves against the layout at the start of the drag', () => {
-    const list = slot(
-      'list',
-      [0, 0, 400, 500],
-      [item('t', [0, 0, 400, 400]), item('s', [0, 400, 400, 100])],
+  it('keeps the drop target while the pointer is on the dragged component where it is shown', () => {
+    // A grid that wraps after two cards.
+    const [a, b, c, d] = [
+      item('a', [0, 0, 200, 200]),
+      item('b', [200, 0, 200, 200]),
+      item('c', [0, 200, 200, 200]),
+      item('d', [200, 200, 200, 200]),
+    ];
+    const grid = slot(
+      'grid',
+      [0, 0, 400, 400],
+      [a, b, c, d],
+      'horizontal-grid',
     );
+    const viewport = el({}, [0, 0, 400, 400], [grid]);
+    startDropTargets(viewport);
+    const at = (x: number, y: number) =>
+      findPreviewDropZoneId(grid, { x, y }, 'a');
+    expect(at(100, 100)).toBeNull();
+    expect(at(300, 100)).toBe('b_right');
+    // Showing a in the cell of b moves b to the first cell.
+    a.getBoundingClientRect = () => new DOMRect(200, 0, 200, 200);
+    b.getBoundingClientRect = () => new DOMRect(0, 0, 200, 200);
+    // On a, also where d is the nearest other card.
+    expect(at(300, 190)).toBe('b_right');
+    // On d: a takes its cell, and b and c move back by one.
+    expect(at(300, 300)).toBe('d_right');
+    c.getBoundingClientRect = () => new DOMRect(200, 0, 200, 200);
+    d.getBoundingClientRect = () => new DOMRect(0, 200, 200, 200);
+    a.getBoundingClientRect = () => new DOMRect(200, 200, 200, 200);
+    // Back toward where a was: on d again, which moves forward again.
+    expect(at(100, 300)).toBe('c_right');
+    d.getBoundingClientRect = () => new DOMRect(200, 200, 200, 200);
+    a.getBoundingClientRect = () => new DOMRect(0, 200, 200, 200);
+    // On b, in the cell a was in.
+    expect(at(100, 100)).toBeNull();
+    endDropTargets();
+
+    // A component from elsewhere takes the cell under the pointer, and is
+    // last past the last card.
+    a.getBoundingClientRect = () => new DOMRect(0, 0, 200, 200);
+    b.getBoundingClientRect = () => new DOMRect(200, 0, 200, 200);
+    c.getBoundingClientRect = () => new DOMRect(0, 200, 200, 200);
+    d.getBoundingClientRect = () => new DOMRect(200, 200, 100, 200);
+    startDropTargets(viewport);
+    expect(findPreviewDropZoneId(grid, { x: 150, y: 300 }, 'new')).toBe(
+      'b_right',
+    );
+    expect(findPreviewDropZoneId(grid, { x: 350, y: 300 }, 'new')).toBe(
+      'd_right',
+    );
+    endDropTargets();
+  });
+
+  it('resolves against where components are shown, also when the preview scrolls', () => {
+    const [t, s] = [item('t', [0, 0, 400, 400]), item('s', [0, 400, 400, 100])];
+    const list = slot('list', [0, 0, 400, 500], [t, s]);
     const viewport = el({}, [0, 0, 400, 500], [list]);
-    freezeDropTargets(viewport);
-    // Showing t after s moves s up, and t under the pointer. Over where t
-    // is shown, it would otherwise move back.
-    const [t, s] = Array.from(list.children) as HTMLElement[];
+    startDropTargets(viewport);
+    const at = (x: number, y: number) =>
+      findPreviewDropZoneId(list, { x, y }, 't');
+    expect(at(200, 460)).toBe('s_bottom');
+    // Showing t after s moves s up.
     s.getBoundingClientRect = () => new DOMRect(0, 0, 400, 100);
     t.getBoundingClientRect = () => new DOMRect(0, 100, 400, 400);
-    expect(findPreviewDropZoneId(list, { x: 200, y: 460 }, 't')).toBe(
-      's_bottom',
-    );
-    // Scrolling moves the frozen layout with the page.
-    viewport.getBoundingClientRect = () => new DOMRect(0, -100, 400, 500);
-    expect(findPreviewDropZoneId(list, { x: 200, y: 360 }, 't')).toBe(
-      's_bottom',
-    );
-    // Unless the scroll keeps what is under the pointer in place: s is still
-    // at y 300 to 400, and t where it was before it.
-    viewport.getBoundingClientRect = () => new DOMRect(0, -150, 400, 500);
-    holdDropTargets(50);
-    expect(findPreviewDropZoneId(list, { x: 200, y: 320 }, 't')).toBeNull();
-    unfreezeDropTargets();
-    expect(findPreviewDropZoneId(list, { x: 200, y: 460 }, 't')).toBeNull();
+    // On the first half of s, where t was when the drag started.
+    expect(at(200, 30)).toBeNull();
+    // The preview scrolls by 40 pixels to keep what is under the pointer in
+    // place: the pointer hasn't moved from where the drop target changed.
+    s.getBoundingClientRect = () => new DOMRect(0, -40, 400, 100);
+    t.getBoundingClientRect = () => new DOMRect(0, 60, 400, 400);
+    viewport.getBoundingClientRect = () => new DOMRect(0, -40, 400, 500);
+    holdDropTargets(40);
+    expect(at(200, 34)).toBeNull();
+    // Other scrolling moves another drop target under the pointer.
+    viewport.getBoundingClientRect = () => new DOMRect(0, -56, 400, 500);
+    s.getBoundingClientRect = () => new DOMRect(0, -56, 400, 100);
+    t.getBoundingClientRect = () => new DOMRect(0, 44, 400, 400);
+    expect(at(200, 34)).toBe('s_bottom');
+    endDropTargets();
   });
 
   it('moves the dragged component into the cell under the pointer in grids', () => {
@@ -469,47 +524,221 @@ describe('findPreviewDropZoneId', () => {
       ],
     );
     const viewport = el({}, [0, 0, 400, 240], [page]);
-    freezeDropTargets(viewport);
+    startDropTargets(viewport);
     const at = (x: number, y: number) =>
       findPreviewDropZoneId(page, { x, y }, 'new');
     // Coming from below: past the bottom edge band of the header.
     expect(at(200, 145)).toBe('header_bottom');
     expect(at(200, 124)).toBe('h-slot');
-    unfreezeDropTargets();
+    endDropTargets();
     // The edge bands of the header are a sixth of its height.
     expect(at(200, 104)).toBe('top_bottom');
     expect(at(200, 108)).toBe('h-slot');
   });
 
-  it('changes the drop target back only when the pointer is clearly past it', () => {
+  it('keeps the drop target in the empty slot it is shown in, and at the edge of the page', () => {
+    // A container with an empty slot, between two other components.
+    const [top, box, held] = [
+      item('top', [0, 0, 400, 100]),
+      item('box', [0, 100, 400, 100]),
+      slot('box-slot', [20, 120, 360, 60]),
+    ];
+    box.append(held);
+    const page = slot(
+      'page',
+      [0, 0, 400, 300],
+      [top, box, item('bottom', [0, 200, 400, 100])],
+    );
+    const viewport = el({}, [0, 0, 400, 300], [page]);
+    startDropTargets(viewport);
+    const at = (x: number, y: number) =>
+      findPreviewDropZoneId(page, { x, y }, 'new');
+    expect(at(300, 150)).toBe('box-slot');
+    // Shown in the slot, a small component is all the slot holds.
+    held.getBoundingClientRect = () => new DOMRect(20, 120, 100, 30);
+    box.getBoundingClientRect = () => new DOMRect(0, 100, 400, 70);
+    // Where the slot was, also near the edge the container has now.
+    expect(at(320, 160)).toBe('box-slot');
+    // Near the edge the container had.
+    expect(at(320, 104)).toBe('top_bottom');
+    endDropTargets();
+
+    // Shown as the first component of a container that its slot fills, the
+    // dragged component covers the edge of the container: the pointer near
+    // that edge still targets the gap before the container.
+    const [first, second, moved] = [
+      item('first', [0, 0, 400, 100]),
+      item('second', [0, 100, 400, 100]),
+      item('moved', [0, 200, 400, 100]),
+    ];
+    const filled = item(
+      'filled',
+      [0, 0, 400, 200],
+      [slot('filled-slot', [0, 0, 400, 200], [first, second])],
+    );
+    const rows = slot('rows', [0, 0, 400, 300], [filled, moved]);
+    startDropTargets(el({}, [0, 0, 400, 300], [rows]));
+    const drop = (x: number, y: number) =>
+      findPreviewDropZoneId(rows, { x, y }, 'moved');
+    expect(drop(200, 40)).toBe('first_top');
+    moved.getBoundingClientRect = () => new DOMRect(0, 0, 400, 100);
+    first.getBoundingClientRect = () => new DOMRect(0, 100, 400, 100);
+    second.getBoundingClientRect = () => new DOMRect(0, 200, 400, 100);
+    filled.getBoundingClientRect = () => new DOMRect(0, 0, 400, 300);
+    expect(drop(200, 30)).toBe('first_top');
+    expect(drop(200, 5)).toBe('filled_top');
+    endDropTargets();
+
+    // Leaving the previewed page shows the dragged component where it was:
+    // back on it there, it stays there.
+    const list = slot(
+      'list',
+      [0, 0, 400, 300],
+      [
+        item('a', [0, 0, 400, 100]),
+        item('b', [0, 100, 400, 100]),
+        item('c', [0, 200, 400, 100]),
+      ],
+    );
+    const pane = el(
+      { 'data-canvas-editor-pane': 'true' },
+      [0, 0, 600, 300],
+      [el({ class: 'canvas--viewport-overlay' }, [0, 0, 400, 300], [list])],
+    );
+    document.body.append(pane);
+    startDropTargets(pane.firstElementChild as HTMLElement);
+    expect(previewDropZoneAt({ x: 200, y: 20 }, 'c')).toBe('a_top');
+    expect(previewDropZoneAt({ x: 500, y: 250 }, 'c')).toBeNull();
+    expect(previewDropZoneAt({ x: 390, y: 250 }, 'c')).toBeNull();
+    pane.remove();
+  });
+
+  it('settles on what the pointer is on as the layout follows the drop target', () => {
+    // Lays components out as the preview does when the dragged component is
+    // shown at a drop target: in a column, or in a grid of three columns.
+    const simulate = (grid: boolean, sizes: number[], dragged: number) => {
+      const items = sizes.map((_, i) => item(`i${i}`, [0, 0, 0, 0]));
+      const list = slot(
+        'list',
+        [0, 0, 300, 2000],
+        items,
+        grid ? 'horizontal-grid' : 'vertical',
+      );
+      const order = (id: string | null) => {
+        const others = items.filter((_, i) => i !== dragged);
+        const match = id?.match(/^i(\d+)_(top|left|bottom|right)$/);
+        const index = match
+          ? others.indexOf(items[+match[1]]) +
+            (match[2] === 'bottom' || match[2] === 'right' ? 1 : 0)
+          : dragged;
+        others.splice(index, 0, items[dragged]);
+        return others;
+      };
+      const show = (id: string | null) => {
+        let y = 0;
+        order(id).forEach((node, i) => {
+          const size = sizes[items.indexOf(node)];
+          const box = grid
+            ? new DOMRect((i % 3) * 100, Math.floor(i / 3) * 100, 100, 100)
+            : new DOMRect(0, y, 300, size);
+          node.getBoundingClientRect = () => box;
+          y += size;
+        });
+        return order(id).indexOf(items[dragged]);
+      };
+      show(null);
+      startDropTargets(el({}, [0, 0, 300, 2000], [list]));
+      let point = { x: 50, y: 5 };
+      return {
+        // Moves the pointer in steps, showing each drop target, and returns
+        // where the dragged component ends up and how often it moved.
+        moveTo(x: number, y: number) {
+          let moves = 0;
+          let shown = -1;
+          let last: string | null | undefined;
+          for (let step = 1; step <= 40; step++) {
+            const at = {
+              x: point.x + ((x - point.x) * step) / 40,
+              y: point.y + ((y - point.y) * step) / 40,
+            };
+            const id = findPreviewDropZoneId(list, at, `i${dragged}`);
+            moves += step > 1 && id !== last ? 1 : 0;
+            last = id;
+            shown = show(id);
+          }
+          point = { x, y };
+          return { shown, moves };
+        },
+      };
+    };
+
+    // In a grid, the dragged component ends up in the cell the pointer is
+    // in, also on the way back to the cell it was in.
+    for (let dragged = 0; dragged < 5; dragged++) {
+      const grid = simulate(true, [100, 100, 100, 100, 100], dragged);
+      const cells = [4, 1, 3, 0, 2, 4, dragged];
+      expect(
+        cells.map(
+          (cell) =>
+            grid.moveTo((cell % 3) * 100 + 50, Math.floor(cell / 3) * 100 + 50)
+              .shown,
+        ),
+      ).toEqual(cells);
+      // In the empty cell after the last one, it is last.
+      expect(grid.moveTo(270, 150).shown).toBe(4);
+      expect(grid.moveTo(280, 160).moves).toBe(0);
+      endDropTargets();
+    }
+
+    // In a column of components of different heights, it moves one place at
+    // a time, and stays while the pointer moves about on it.
+    const sizes = [50, 300, 50, 120, 80];
+    for (let dragged = 0; dragged < 5; dragged++) {
+      const column = simulate(false, sizes, dragged);
+      const seen = new Set<number>();
+      for (const y of [595, 5, 595, 5]) {
+        for (let at = y === 5 ? 595 : 5; at !== y; at += y === 5 ? -10 : 10) {
+          const { shown, moves } = column.moveTo(150, at);
+          expect(moves).toBeLessThanOrEqual(1);
+          seen.add(shown);
+          expect(column.moveTo(160, at + 2).moves).toBe(0);
+        }
+      }
+      expect(seen.size).toBe(5);
+      endDropTargets();
+    }
+  });
+
+  it('changes the drop target only once the pointer has clearly moved', () => {
     const viewport = el({}, [0, 0, 400, 1000], [root]);
-    freezeDropTargets(viewport);
+    startDropTargets(viewport);
     // The boundary between before and after a is at y 50.
     expect(find(200, 45)).toBe('a_top');
-    // Moving on: at once.
-    expect(find(200, 55)).toBe('a_bottom');
-    // Back: only once clearly past the boundary.
-    expect(find(200, 45)).toBe('a_bottom');
-    expect(find(200, 55)).toBe('a_bottom');
+    expect(find(200, 53)).toBe('a_bottom');
+    // Not back, or on, within a few pixels of where it changed.
+    expect(find(200, 47)).toBe('a_bottom');
     expect(find(200, 30)).toBe('a_top');
-    // On to another target: at once.
     expect(find(200, 150)).toBe('d_top');
-    unfreezeDropTargets();
+    endDropTargets();
   });
 
   it('holds the drop target where three of them meet', () => {
-    const viewport = el({}, [0, 0, 400, 1000], [root]);
-    freezeDropTargets(viewport);
     // Near the corner of the row's top edge band and the boundary between
     // f and g, a hand held still doesn't move the dragged component around.
     const jitter = [
-      [95, 515],
-      [105, 515],
-      [100, 505],
+      [97, 513],
+      [103, 513],
+      [100, 507],
     ];
-    const seen = [...jitter, ...jitter, ...jitter].map(([x, y]) => find(x, y));
-    // It settles once it has changed there.
-    expect(new Set(seen.slice(2)).size).toBe(1);
-    unfreezeDropTargets();
+    expect(jitter.map(([x, y]) => find(x, y))).toEqual([
+      'f_left',
+      'f_right',
+      'c_bottom',
+    ]);
+    const viewport = el({}, [0, 0, 400, 1000], [root]);
+    startDropTargets(viewport);
+    const seen = [...jitter, ...jitter].map(([x, y]) => find(x, y));
+    expect(new Set(seen).size).toBe(1);
+    endDropTargets();
   });
 });

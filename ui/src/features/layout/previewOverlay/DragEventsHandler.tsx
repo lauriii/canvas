@@ -34,9 +34,9 @@ import { useDropFromLibraryHandler } from '@/hooks/useDropFromLibraryHandler';
 import { useDropOnFolderHandler } from '@/hooks/useDropOnFolderHandler';
 
 import {
-  freezeDropTargets,
+  endDropTargets,
   previewDropZoneAt,
-  unfreezeDropTargets,
+  startDropTargets,
 } from './previewDropTarget';
 import {
   cleanupMouseTracking,
@@ -57,7 +57,7 @@ import styles from './DragOverlay.module.css';
 // it was unless a drop handler kept it where it is shown.
 function endLiveDrag() {
   endLivePreview();
-  unfreezeDropTargets();
+  endDropTargets();
   window.document.body.classList.remove('canvas--live-drop-preview');
 }
 
@@ -177,9 +177,9 @@ const DragEventsHandler: React.FC = () => {
     setDragOrigin(origin);
     const viewport = document
       .querySelector('.canvas--viewport-overlay [data-canvas-drop-container]')
-      ?.closest('.canvas--viewport-overlay');
+      ?.closest<HTMLElement>('.canvas--viewport-overlay');
     if (viewport) {
-      freezeDropTargets(viewport);
+      startDropTargets(viewport);
     }
     startLivePreview(event, origin);
     if (homeContainer.current) {

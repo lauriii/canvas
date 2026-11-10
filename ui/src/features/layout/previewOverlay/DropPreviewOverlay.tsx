@@ -22,6 +22,7 @@ const DropPreviewOverlay: React.FC = () => {
   return (
     <div
       className={clsx(styles.componentOverlay, styles.dragging)}
+      data-canvas-drop-preview
       style={{
         top: rect.top * scale,
         left: rect.left * scale,

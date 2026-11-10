@@ -83,6 +83,8 @@ interface Session {
   home: Position | null;
   // The slot or region the markup was in when the drag started.
   homeContainer?: { type: 'slot' | 'region'; id: string };
+  // The size of the markup when the drag started.
+  homeSize?: DOMRect;
   // Reverts what showing the markup at its current position changed.
   undo: Array<() => void>;
   // The pointer position, in viewport coordinates of the editor.
@@ -247,6 +249,7 @@ export function startMovePreview(
       before: boundary.end.nextSibling,
     },
     homeContainer,
+    homeSize: bounds(nodes),
     undo: [],
     dim: [],
     slide: [],
@@ -417,10 +420,10 @@ const viewportTop = (el: HTMLElement) => {
  *
  * Showing the dragged component in another slot or region moves the
  * components after where it was and after where it is shown. The component
- * under the pointer stays under the pointer, where the drop targets are (see
- * holdDropTargets()), instead of moving away from the pointer as the pointer
- * moves toward it: a large component moved into a slot below it would move
- * that slot up by its own height.
+ * under the pointer stays under the pointer, instead of moving away from the
+ * pointer as the pointer moves toward it: a large component moved into a slot
+ * below it would move that slot up by its own height. The drop target doesn't
+ * change for it (see holdDropTargets()).
  *
  * @return
  *   How far the preview was scrolled, in pixels of the preview.
@@ -479,12 +482,22 @@ export function showLivePreviewAt(dropZoneId: string | null): void {
   try {
     place(session, dropZoneId);
   } finally {
-    // Within a slot or region, the components the markup passes make room
-    // for it under the pointer.
-    if (anchor && from && nodes[0].parentNode !== from) {
-      scrolled = keepInPlace(anchor);
-    }
     session.shownAt = bounds(nodes);
+    // Within a slot or region, the components the markup passes make room
+    // for it under the pointer. So does a component it is shown right
+    // before: nothing needs to be kept in place when the markup is shown
+    // under the pointer.
+    const pointer = session.pointer && toPreview(document, session.pointer);
+    const under =
+      pointer &&
+      pointer.x >= session.shownAt.left &&
+      pointer.x <= session.shownAt.right &&
+      pointer.y >= session.shownAt.top &&
+      pointer.y <= session.shownAt.bottom;
+    if (anchor && !under && from && nodes[0].parentNode !== from) {
+      scrolled = keepInPlace(anchor);
+      session.shownAt = bounds(nodes);
+    }
     // The slides start after the overlay is updated from the moved markup (see
     // useComponentHtmlMap()): a slide would show it where it was.
     const current = session;
@@ -555,6 +568,16 @@ function place(current: Session, dropZoneId: string | null) {
     placeholder.className = PLACEHOLDER[homeContainer.type];
     left.end.parentNode!.insertBefore(placeholder, left.end);
     current.undo.push(() => placeholder.remove());
+    // No larger than the component was: a container that grows when the
+    // component leaves it would put itself back under the pointer.
+    const size = placeholder.getBoundingClientRect();
+    const { width = 0, height = 0 } = current.homeSize ?? {};
+    if (width && width < size.width) {
+      placeholder.style.width = placeholder.style.minWidth = `${width}px`;
+    }
+    if (height && height < size.height) {
+      placeholder.style.height = placeholder.style.minHeight = `${height}px`;
+    }
   }
 }
 

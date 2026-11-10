@@ -6,13 +6,13 @@ import type { UniqueIdentifier } from '@dnd-kit/core';
 // a container that is filled edge to edge by its slot.
 const EDGE_THRESHOLD = 12;
 
-// The drop target changes back to the one before only when the pointer is this
-// many pixels past where it would, or a tenth of the size of the component
-// under the pointer if that is less. Otherwise a hand that is held still,
-// which is never quite still, moves the dragged component back and forth
-// across the boundary between two drop targets. In small components, a larger
-// margin would leave no room for the drop targets inside them. Other changes
-// are immediate, so the dragged component follows a moving pointer.
+// The drop target changes only once the pointer has moved this many pixels
+// from where it last changed, or a tenth of the size of the component under
+// the pointer if that is less. Otherwise a hand that is held still, which is
+// never quite still, moves the dragged component back and forth: showing it
+// at a drop position moves the other components, which can put another drop
+// position under the pointer. In small components, a larger margin would
+// leave no room for the drop targets inside them.
 const HYSTERESIS = 8;
 
 // Within this many pixels of an empty slot, in the component that has the
@@ -26,50 +26,59 @@ interface Point {
   y: number;
 }
 
-// Drop targets as they were laid out when the drag started.
-let frozen: {
-  viewport: Element;
-  origin: DOMRect;
-  rects: WeakMap<Element, DOMRect>;
-  // The drop target last resolved, if any, the one before it, and where the
-  // pointer was when it changed.
+const DROP_ELEMENTS = '[data-canvas-drop-item], [data-canvas-drop-container]';
+
+// The drag that drop targets are resolved for.
+let drag: {
+  viewport: HTMLElement;
+  // The slots and regions that were laid out as grids when the drag started.
+  grids: WeakSet<Element>;
+  // The drop target last resolved, if any, and where in the previewed page
+  // the pointer was when it changed.
   last?: string | null;
-  previous?: string | null;
   changedAt?: Point;
+  // Where in the previewed page the empty slot was that is the drop target.
+  // Shown in it, the dragged component can be smaller than its placeholder.
+  heldIn?: DOMRect;
 } | null = null;
 
 /**
- * Resolves drop targets against the layout at the start of a drag.
+ * Starts resolving drop targets for a drag.
  *
  * The dragged component is shown at its drop position while it is dragged
- * (see livePreview.ts), which moves the other components. Resolving drop
- * targets against where they were keeps the drop target a function of the
- * pointer position alone: otherwise moving the component can put another
- * component under the pointer, which moves it back, and so on.
+ * (see livePreview.ts), which moves the other components. Drop targets are
+ * resolved against where everything is shown, so the drop target is what the
+ * pointer is on. While the pointer is on the dragged component where it is
+ * shown, the drop target stays what it is.
  *
  * @param viewport
- *   The overlay of the previewed page. It moves with the page when it
- *   scrolls.
+ *   The overlay of the previewed page.
  */
-export function freezeDropTargets(viewport: Element): void {
-  const rects = new WeakMap<Element, DOMRect>();
+export function startDropTargets(viewport: HTMLElement): void {
+  const grids = new WeakSet<Element>();
   viewport
-    .querySelectorAll('[data-canvas-drop-item], [data-canvas-drop-container]')
-    .forEach((el) => rects.set(el, el.getBoundingClientRect()));
-  frozen = { viewport, origin: viewport.getBoundingClientRect(), rects };
+    .querySelectorAll<HTMLElement>('[data-canvas-drop-container]')
+    .forEach((container) => {
+      const rects = childItems(container).map((el) =>
+        el.getBoundingClientRect(),
+      );
+      if (rects.length && wraps(rects)) {
+        grids.add(container);
+      }
+    });
+  drag = { viewport, grids };
 }
 
 /**
- * Keeps drop targets where they are in the viewport while the preview scrolls.
+ * Keeps the drop target while the preview is scrolled under the pointer.
  *
  * @param scrolled
  *   How far the preview was scrolled, in pixels, to keep what is under the
  *   pointer where it is (see livePreview.ts).
  */
 export function holdDropTargets(scrolled: number): void {
-  if (frozen) {
-    const { left, top, width, height } = frozen.origin;
-    frozen.origin = new DOMRect(left, top - scrolled, width, height);
+  if (drag?.changedAt) {
+    drag.changedAt = { x: drag.changedAt.x, y: drag.changedAt.y + scrolled };
   }
 }
 
@@ -91,7 +100,7 @@ export function previewDropZoneAt(
   activeId: UniqueIdentifier,
 ): string | null | undefined {
   const viewport =
-    frozen?.viewport ??
+    drag?.viewport ??
     document
       .querySelector('.canvas--viewport-overlay [data-canvas-drop-container]')
       ?.closest('.canvas--viewport-overlay');
@@ -100,34 +109,58 @@ export function previewDropZoneAt(
   );
   const pane = viewport?.closest('[data-canvas-editor-pane="true"]');
   if (!root || !pane || !contains(pane.getBoundingClientRect(), point)) {
+    // Something else decides where the dragged component is shown.
+    if (drag) {
+      drag.last = drag.changedAt = drag.heldIn = undefined;
+    }
     return undefined;
   }
-  if (!contains(viewport!.getBoundingClientRect(), point)) {
+  const page = viewport!.getBoundingClientRect();
+  if (!contains(page, point)) {
+    // The dragged component is shown where it was.
+    if (drag) {
+      drag.last = null;
+      drag.changedAt = { x: point.x - page.left, y: point.y - page.top };
+      drag.heldIn = undefined;
+    }
     return null;
   }
   return findPreviewDropZoneId(root, point, activeId);
 }
 
-/** Resolves drop targets against the current layout again. */
-export function unfreezeDropTargets(): void {
-  frozen = null;
+/** Ends resolving drop targets for a drag. */
+export function endDropTargets(): void {
+  drag = null;
 }
 
-// Reads the rectangles of drop targets, as frozen if they are.
+// Reads where overlay elements are laid out. While a component is dragged,
+// they slide to new positions (see PreviewOverlay.module.css): where they are
+// laid out is where they end up, which their styles say.
 function rectReader(): (el: Element) => DOMRect {
-  if (!frozen) {
-    return (el) => el.getBoundingClientRect();
-  }
-  const { viewport, origin, rects } = frozen;
-  const now = viewport.getBoundingClientRect();
-  const dx = now.left - origin.left;
-  const dy = now.top - origin.top;
-  return (el) => {
-    const r = rects.get(el);
-    return r
-      ? new DOMRect(r.left + dx, r.top + dy, r.width, r.height)
-      : el.getBoundingClientRect();
+  const rects = new Map<Element, DOMRect>();
+  const read = (el: Element): DOMRect => {
+    let rect = rects.get(el);
+    if (!rect) {
+      const { top, left, width, height } = (el as HTMLElement).style ?? {};
+      const parent = (el as HTMLElement).offsetParent as HTMLElement | null;
+      if (parent && top && left && width && height) {
+        const base = parent.matches(DROP_ELEMENTS)
+          ? read(parent)
+          : parent.getBoundingClientRect();
+        rect = new DOMRect(
+          base.left + parent.clientLeft + parseFloat(left),
+          base.top + parent.clientTop + parseFloat(top),
+          parseFloat(width),
+          parseFloat(height),
+        );
+      } else {
+        rect = el.getBoundingClientRect();
+      }
+      rects.set(el, rect);
+    }
+    return rect;
   };
+  return read;
 }
 
 const contains = (r: DOMRect, p: Point) =>
@@ -205,10 +238,10 @@ const isHorizontal = (container: HTMLElement) =>
  * component. The result is the id of the existing drop zone that represents
  * that insertion point, so drop handling is unchanged.
  *
- * Over the dragged component, the drop target is where it was. Its slots are
- * not drop targets. During a drag, drop targets are resolved against the
- * layout at its start (see freezeDropTargets()), and change back to the one
- * before only once the pointer is clearly past the boundary between them.
+ * The slots of the dragged component are not drop targets. During a drag
+ * (see startDropTargets()), the drop target stays what it is while the
+ * pointer is on the dragged component where it is shown, and changes only
+ * once the pointer has moved clearly from where it last changed.
  *
  * @param root
  *   The overlay element of the root region (marked data-canvas-drop-container).
@@ -227,80 +260,123 @@ export function findPreviewDropZoneId(
   activeId: UniqueIdentifier,
 ): string | null {
   const rect = rectReader();
-  const [id, hit] = resolveDropZoneId(root, point, activeId, rect);
-  if (!frozen) {
-    return id;
+  const active = Array.from(
+    root.querySelectorAll<HTMLElement>('[data-canvas-drop-item]'),
+  ).find((el) => isActive(el, activeId));
+  if (!drag) {
+    const { id } = resolveDropZoneId(root, point, activeId, rect, { active });
+    return id === KEEP ? null : id;
   }
-  const { last, previous, changedAt } = frozen;
-  if (id === last) {
-    return id;
-  }
-  const x = Math.min(HYSTERESIS, (hit?.width ?? Infinity) / 10);
-  const y = Math.min(HYSTERESIS, (hit?.height ?? Infinity) / 10);
-  // Changing back, or changing again near where the drop target changed, as
-  // where three of them meet: only once clearly past the boundary.
-  const near =
-    !!changedAt &&
-    Math.abs(point.x - changedAt.x) <= 2 * x &&
-    Math.abs(point.y - changedAt.y) <= 2 * y;
+  const { last, changedAt, heldIn, viewport } = drag;
+  // The dragged component where it is shown: for one from the library, its
+  // outline.
+  const shown =
+    active ??
+    viewport.querySelector<HTMLElement>('[data-canvas-drop-preview]') ??
+    undefined;
+  const { id, hit, inner, edge, container } = resolveDropZoneId(
+    root,
+    point,
+    activeId,
+    rect,
+    { active, shown, last },
+  );
+  // In the previewed page, which can scroll under the pointer.
+  const origin = viewport.getBoundingClientRect();
+  const at = { x: point.x - origin.left, y: point.y - origin.top };
+  // The drop target stays what it is while the pointer is where the empty
+  // slot was that the dragged component is shown in. It also does while the
+  // pointer is on the dragged component where it is shown, or nearer to it
+  // than to the components beside it, except near the edge of a component:
+  // there, the pointer targets the gap next to that component all the same.
   if (
     last !== undefined &&
-    (id === previous || near) &&
-    [
-      [x, 0],
-      [-x, 0],
-      [0, y],
-      [0, -y],
-    ].some(
-      ([dx, dy]) =>
-        resolveDropZoneId(
-          root,
-          { x: point.x + dx, y: point.y + dy },
-          activeId,
-          rect,
-        )[0] === last,
-    )
+    ((heldIn && contains(heldIn, at)) ||
+      (!edge && (id === KEEP || (shown && contains(rect(shown), point)))))
   ) {
     return last;
   }
-  frozen.previous = last;
-  frozen.last = id;
-  frozen.changedAt = last === undefined ? undefined : point;
+  if (id === KEEP || id === last) {
+    return last ?? null;
+  }
+  if (last !== undefined && changedAt) {
+    const moved = Math.max(
+      Math.abs(at.x - changedAt.x) /
+        Math.min(HYSTERESIS, (hit?.width ?? Infinity) / 10),
+      Math.abs(at.y - changedAt.y) /
+        Math.min(HYSTERESIS, (hit?.height ?? Infinity) / 10),
+    );
+    if (moved < 1) {
+      return last;
+    }
+  }
+  drag.last = id;
+  drag.changedAt = at;
+  drag.heldIn = undefined;
+  if (inner && id !== null && id === container.dataset.canvasDropContainer) {
+    // The empty slot and what is within reach of it in its component, which
+    // is where the pointer targets the slot.
+    const slot = rect(container);
+    const left = Math.max(slot.left - EMPTY_SLOT_REACH, inner.left);
+    const top = Math.max(slot.top - EMPTY_SLOT_REACH, inner.top);
+    drag.heldIn = new DOMRect(
+      left - origin.left,
+      top - origin.top,
+      Math.min(slot.right + EMPTY_SLOT_REACH, inner.right) - left,
+      Math.min(slot.bottom + EMPTY_SLOT_REACH, inner.bottom) - top,
+    );
+  }
   return id;
 }
 
-// The slot or region the pointer is in, and the innermost component under the
-// pointer, if any.
+// The drop target stays what it is.
+const KEEP: unique symbol = Symbol('keep');
+
+// The dragged component: its overlay element if it is in the layout, what
+// shows where it is, and the drop target it is shown at.
+interface Dragged {
+  active?: HTMLElement;
+  shown?: HTMLElement;
+  last?: string | null;
+}
+
+// The slot or region the pointer is in, the innermost component under the
+// pointer, if any, and whether the pointer is near the edge of a component.
 function containerUnder(
   root: HTMLElement,
   point: Point,
   activeId: UniqueIdentifier,
   rect: (el: Element) => DOMRect,
-): [HTMLElement, DOMRect | undefined] {
+  { active }: Dragged,
+): { container: HTMLElement; hit?: DOMRect; inner?: DOMRect; edge: boolean } {
   // The component that holds the dragged component.
-  const home = Array.from(
-    root.querySelectorAll<HTMLElement>('[data-canvas-drop-item]'),
-  )
-    .find((el) => isActive(el, activeId))
-    ?.parentElement?.closest('[data-canvas-drop-item]');
+  const home = active?.parentElement?.closest('[data-canvas-drop-item]');
   let container = root;
   let r: DOMRect | undefined;
+  // The component under the pointer without its edges.
+  let inner: DOMRect | undefined;
   for (;;) {
     const hit = childItems(container).find(
       (el) => !isActive(el, activeId) && contains(rect(el), point),
     );
-    if (!hit) return [container, r];
+    if (!hit) return { container, hit: r, inner, edge: false };
     r = rect(hit);
-    const [start, size, pos] = isHorizontal(container)
+    const horizontal = isHorizontal(container);
+    const [start, size, pos] = horizontal
       ? [r.left, r.width, point.x]
       : [r.top, r.height, point.y];
     const edge = Math.min(EDGE_THRESHOLD, size / 6);
-    if (pos - start < edge || start + size - pos < edge) return [container, r];
+    inner = horizontal
+      ? new DOMRect(r.left + edge, r.top, r.width - 2 * edge, r.height)
+      : new DOMRect(r.left, r.top + edge, r.width, r.height - 2 * edge);
+    if (pos - start < edge || start + size - pos < edge) {
+      return { container, hit: r, inner, edge: true };
+    }
     // Slots collapsed to no width or no height are not drop targets.
     const slots = childrenOf(hit, '[data-canvas-drop-container]').filter(
       (el) => rect(el).width && rect(el).height,
     );
-    if (!slots.length) return [container, r];
+    if (!slots.length) return { container, hit: r, inner, edge: false };
     const rects = slots.map(rect);
     const distanceTo = slotDistance(rects, point);
     const under =
@@ -318,36 +394,93 @@ function containerUnder(
         distance(rect(under), point) <= EMPTY_SLOT_REACH
       )
     ) {
-      return [container, r];
+      return { container, hit: r, inner, edge: false };
     }
     container = under;
   }
 }
 
-// The drop zone for a pointer position, and the innermost component under the
-// pointer, if any.
+// The slot or region the dragged component is shown in, and before which of
+// the other components in it.
+function shownIn(
+  root: HTMLElement,
+  activeId: UniqueIdentifier,
+  { active, last }: Dragged,
+): { container: Element; index: number } | undefined {
+  const others = (container: HTMLElement) =>
+    childItems(container).filter((el) => !isActive(el, activeId));
+  if (last === undefined || last === null) {
+    // Where it was.
+    const container = active?.parentElement;
+    return container
+      ? { container, index: childItems(container).indexOf(active!) }
+      : undefined;
+  }
+  const containers = Array.from(
+    root.querySelectorAll<HTMLElement>('[data-canvas-drop-container]'),
+  );
+  const empty = [root, ...containers].find(
+    (el) => el.dataset.canvasDropContainer === last,
+  );
+  if (empty) {
+    return { container: empty, index: 0 };
+  }
+  const [, uuid, side] = last.match(/^(.+)_(top|left|bottom|right)$/) ?? [];
+  const beside = Array.from(
+    root.querySelectorAll<HTMLElement>('[data-canvas-drop-item]'),
+  ).find((el) => el.dataset.canvasDropItem === uuid);
+  const container = beside?.parentElement;
+  return container
+    ? {
+        container,
+        index:
+          others(container).indexOf(beside!) +
+          (side === 'bottom' || side === 'right' ? 1 : 0),
+      }
+    : undefined;
+}
+
+// innermost component under the pointer, if any, and whether the pointer is
+// near the edge of a component.
 function resolveDropZoneId(
   root: HTMLElement,
   point: Point,
   activeId: UniqueIdentifier,
   rect: (el: Element) => DOMRect,
-): [string | null, DOMRect | undefined] {
-  const [container, hit] = containerUnder(root, point, activeId, rect);
-  return [dropZoneIn(container, point, activeId, rect), hit];
+  dragged: Dragged,
+): {
+  id: string | null | typeof KEEP;
+  container: HTMLElement;
+  hit?: DOMRect;
+  inner?: DOMRect;
+  edge: boolean;
+} {
+  const under = containerUnder(root, point, activeId, rect, dragged);
+  return {
+    ...under,
+    id: dropZoneIn(root, under.container, point, activeId, rect, dragged),
+  };
 }
 
 // The drop zone nearest to the pointer in a slot or region.
 function dropZoneIn(
+  root: HTMLElement,
   container: HTMLElement,
   point: Point,
   activeId: UniqueIdentifier,
   rect: (el: Element) => DOMRect,
-): string | null {
+  dragged: Dragged,
+): string | null | typeof KEEP {
   const all = childItems(container);
   // Where the dragged component was, in terms of the other components: the
   // overlay keeps the order of the layout while the component is dragged.
   const current = all.findIndex((el) => isActive(el, activeId));
-  if (current !== -1 && contains(rect(all[current]), point)) {
+  // Before the dragged component is shown anywhere else.
+  if (
+    current !== -1 &&
+    dragged.last === undefined &&
+    contains(rect(all[current]), point)
+  ) {
     return null;
   }
   const items = all.filter((el) => !isActive(el, activeId));
@@ -359,19 +492,50 @@ function dropZoneIn(
   }
 
   const horizontal = isHorizontal(container);
-  const target = nearest(items, (el) => distance(rect(el), point));
+  // The dragged component, where it is shown among the others.
+  const at = dragged.shown ? shownIn(root, activeId, dragged) : undefined;
+  const shown = at?.container === container ? dragged.shown : undefined;
+  const candidates = shown ? [...items, shown] : items;
+  // In a grid, or a row that wraps, the dragged component takes the place of
+  // the component under the pointer, so it is shown where the pointer is.
+  // Before or after it would put it in the cell before the pointer from the
+  // first half of every cell. It goes after that component when it is shown
+  // before it, as the components between them then move back by one cell,
+  // and when the pointer is past the last component of a row.
+  const grid = drag
+    ? drag.grids.has(container)
+    : current !== -1 && wraps(all.map(rect));
+  let target: HTMLElement;
+  let past = false;
+  if (grid) {
+    // The row the pointer is in, or else the nearest one.
+    const gap = Math.min(...candidates.map((el) => gapY(rect(el), point)));
+    const row = candidates.filter((el) => gapY(rect(el), point) <= gap + 1);
+    target = nearest(row, (el) => gapX(rect(el), point));
+    past = point.x > rect(target).right;
+  } else {
+    const distanceTo = slotDistance(candidates.map(rect), point);
+    target = nearest(candidates, (el) => distanceTo(rect(el)));
+  }
+  // Nearer to the dragged component than to the components beside it: where
+  // it is shown is where the pointer is.
+  if (target === shown) {
+    return KEEP;
+  }
   const r = rect(target);
   const after = horizontal
     ? point.x > r.left + r.width / 2
     : point.y > r.top + r.height / 2;
-  // In a grid, or a row that wraps, the dragged component takes the place of
-  // the component under the pointer, so it is shown where the pointer is.
-  // Before or after it would put it in the cell before the pointer from the
-  // first half of every cell.
+  const from = shown ? at!.index : drag ? undefined : current;
   const index =
-    current !== -1 && wraps(all.map(rect))
-      ? all.indexOf(target)
-      : items.indexOf(target) + (after ? 1 : 0);
+    items.indexOf(target) +
+    ((
+      grid
+        ? past || (from !== undefined && from <= items.indexOf(target))
+        : after
+    )
+      ? 1
+      : 0);
   if (index === current) {
     return null;
   }
