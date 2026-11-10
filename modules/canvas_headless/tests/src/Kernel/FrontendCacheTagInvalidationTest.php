@@ -47,7 +47,10 @@ final class FrontendCacheTagInvalidationTest extends CanvasKernelTestBase {
   public function testAnnouncesDeferredRouterRebuild(): void {
     $this->installConfig(['canvas_headless']);
     $this->config('canvas_headless.settings')
-      ->set('cache_invalidation_urls', ['https://www.example.com/api/canvas/revalidate'])
+      ->set('frontends', [
+        ['url' => 'https://www.example.com', 'components' => [], 'cache_invalidation' => TRUE],
+        ['url' => 'https://disabled.example', 'components' => [], 'cache_invalidation' => FALSE],
+      ])
       ->save();
     $history = [];
     $handler = HandlerStack::create(new MockHandler([new Response(204)]));
@@ -81,7 +84,12 @@ final class FrontendCacheTagInvalidationTest extends CanvasKernelTestBase {
     $this->assertTrue($route->getOption('no_cache'));
     $controller = $this->container->get(CacheInvalidationController::class);
     $read = static fn (mixed $id) => $controller(Request::create('/canvas-headless/cache-invalidation', 'POST', content: (string) json_encode(['id' => $id])));
+    $invalidator = $this->container->get(FrontendCacheTagInvalidator::class);
+    // Announced, but not read yet.
+    $this->assertSame(['https://www.example.com'], \array_keys($invalidator->getStatus()));
+    $this->assertSame('idle', $invalidator->getStatus()['https://www.example.com']['state']);
     $this->assertSame('{"tags":["http_response"]}', $read($id)->getContent());
+    $this->assertSame('ok', $invalidator->getStatus()['https://www.example.com']['state']);
     // Single use.
     $this->expectException(NotFoundHttpException::class);
     $read($id);

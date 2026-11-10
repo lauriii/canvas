@@ -83,6 +83,7 @@ final class EmbeddedPreviewSubscriberTest extends CanvasKernelTestBase {
       ->set('frontends', [[
         'url' => 'https://frontend.example/app',
         'components' => [],
+        'cache_invalidation' => FALSE,
       ],
       ])
       ->save();

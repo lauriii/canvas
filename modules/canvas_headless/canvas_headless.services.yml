@@ -22,6 +22,7 @@ services:
   Drupal\canvas_headless\EventSubscriber\CanvasContentResponseSubscriber: {}
   Drupal\canvas_headless\EventSubscriber\DetachedPreviewRouteSubscriber: {}
   Drupal\canvas_headless\EventSubscriber\EmbeddedPreviewSubscriber: {}
+  Drupal\canvas_headless\EventSubscriber\CacheInvalidationConfigSubscriber: {}
   Drupal\canvas_headless\CanvasContentEntityRenderer: {}
   Drupal\canvas_headless\CanvasContentTranslationLinks:
     arguments:

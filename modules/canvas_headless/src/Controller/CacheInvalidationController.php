@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\canvas_headless\Controller;
 
 use Drupal\canvas_headless\Cache\FrontendCacheTagInvalidator;
-use Drupal\Core\KeyValueStore\KeyValueExpirableFactoryInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -18,7 +17,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 final class CacheInvalidationController {
 
   public function __construct(
-    private readonly KeyValueExpirableFactoryInterface $keyValueExpirable,
+    private readonly FrontendCacheTagInvalidator $frontendCacheTagInvalidator,
   ) {}
 
   /**
@@ -28,13 +27,11 @@ final class CacheInvalidationController {
    */
   public function __invoke(Request $request): JsonResponse {
     $id = json_decode($request->getContent(), TRUE)['id'] ?? NULL;
-    $store = $this->keyValueExpirable->get(FrontendCacheTagInvalidator::COLLECTION);
-    $tags = \is_string($id) ? $store->get($id) : NULL;
-    if (!\is_array($tags)) {
+    // Single use: a replayed ID finds nothing.
+    $tags = \is_string($id) ? $this->frontendCacheTagInvalidator->redeem($id) : NULL;
+    if ($tags === NULL) {
       throw new NotFoundHttpException();
     }
-    // Single use: a replayed ID finds nothing.
-    $store->delete($id);
     return new JsonResponse(['tags' => $tags], headers: ['Cache-Control' => 'no-store']);
   }
 

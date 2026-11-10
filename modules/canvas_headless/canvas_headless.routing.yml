@@ -98,6 +98,20 @@ canvas_headless.frontends.patch:
     no_cache: TRUE
     _auth: ['cookie']
 
+# Announces to one configured frontend, and reports whether it read the cache
+# tags from Drupal.
+canvas_headless.frontends.cache_invalidation_test:
+  path: '/canvas/api/v0/headless/frontends/cache-invalidation/test'
+  defaults:
+    _controller: 'Drupal\canvas_headless\Controller\FrontendsController::testCacheInvalidation'
+  methods: [POST]
+  requirements:
+    _permission: 'administer canvas headless frontends'
+    _csrf_request_header_token: 'TRUE'
+  options:
+    no_cache: TRUE
+    _auth: ['cookie']
+
 # The browser coordinates component synchronization because it can reach the
 # same frontend URL it embeds. Drupal issues the proof-by-redemption assertion,
 # validates and persists the returned metadata, and records lifecycle

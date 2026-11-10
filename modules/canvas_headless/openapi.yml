@@ -264,9 +264,11 @@ paths:
       summary: Read announced invalidated cache tags
       description: |
         Returns the cache tags invalidated in one Drupal request, once. Drupal
-        announces the ID to every URL in
-        `canvas_headless.settings:cache_invalidation_urls` with the same JSON
-        body. IDs expire after five minutes.
+        announces the ID to every configured frontend that has cache
+        invalidation enabled, by sending the same JSON body to
+        `/api/canvas/revalidate` below the frontend URL. IDs expire after five
+        minutes. A frontend that does not read the tags within 30 seconds is
+        told to expire everything later, by the tag `http_response`.
       requestBody:
         required: true
         content:
@@ -425,6 +427,8 @@ paths:
       description: |
         Replaces the entire ordered list of configured frontend URLs.
         Cookie authentication and an X-CSRF-Token request header are required.
+        A frontend whose `cacheInvalidation` is omitted keeps its value, or
+        starts with `false`.
       parameters:
         - $ref: '#/components/parameters/CsrfToken'
       requestBody:
@@ -449,7 +453,77 @@ paths:
         '403':
           $ref: '#/components/responses/DrupalErrorResponse'
         '422':
-          description: Invalid or duplicate frontend URL.
+          description: >-
+            Invalid or duplicate frontend URL, or a `cacheInvalidation` that is
+            not a boolean.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+
+  /canvas/api/v0/headless/frontends/cache-invalidation/test:
+    post:
+      summary: Test cache invalidation for a headless frontend
+      description: |
+        Announces to one configured frontend now, whether or not cache
+        invalidation is enabled for it, and waits up to five seconds for the
+        frontend to read the cache tags from Drupal. The announced tag is one
+        that no response carries, so nothing expires, unless `expireAll` is
+        true or the frontend missed an earlier announcement: then the tag is
+        `http_response`, and the frontend expires everything. A frontend
+        whose cache invalidation was just turned on missed what changed while
+        it was off, so its first test also announces `http_response`. A
+        frontend whose cache invalidation is off keeps no state.
+        Cookie authentication and an X-CSRF-Token request header are required.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: The URL of a configured frontend.
+                expireAll:
+                  type: boolean
+                  default: false
+                  description: Whether the frontend must expire everything.
+      responses:
+        '200':
+          description: The outcome of the test.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheInvalidationTestResult'
+              examples:
+                read:
+                  value:
+                    ok: true
+                    announced: true
+                    read: true
+                    message: The frontend received the announcement and read the cache tags.
+                notAnnounced:
+                  value:
+                    ok: false
+                    announced: false
+                    read: false
+                    message: The frontend answered HTTP 404.
+        '400':
+          description: Invalid payload shape.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '403':
+          $ref: '#/components/responses/DrupalErrorResponse'
+        '422':
+          description: The URL is not a configured frontend.
           content:
             application/json:
               schema:
@@ -877,6 +951,73 @@ components:
           type: array
           items:
             type: string
+        cacheInvalidation:
+          type: boolean
+          description: >-
+            Whether invalidated cache tags are announced to the frontend.
+            Always present in responses.
+        cacheInvalidationStatus:
+          description: >-
+            Present in responses only. Null when `cacheInvalidation` is false, or
+            when the current user lacks the `administer canvas headless
+            frontends` permission.
+          readOnly: true
+          oneOf:
+            - $ref: '#/components/schemas/CacheInvalidationStatus'
+            - type: 'null'
+
+    CacheInvalidationStatus:
+      type: object
+      additionalProperties: false
+      required: [state, lastSuccess, lastFailure, lastError, failures]
+      properties:
+        state:
+          type: string
+          enum: [ok, failing, idle]
+          description: >-
+            `failing` after an announcement failed or was not read, until the
+            frontend has read an announcement that expires everything; `idle`
+            while the frontend has never read announced cache tags; `ok`
+            otherwise.
+        lastSuccess:
+          oneOf:
+            - type: integer
+            - type: 'null'
+          description: Unix time the frontend last read announced cache tags.
+        lastFailure:
+          oneOf:
+            - type: integer
+            - type: 'null'
+          description: Unix time of the last failure.
+        lastError:
+          oneOf:
+            - type: string
+            - type: 'null'
+          description: The error of the last failure, if none succeeded since.
+        failures:
+          type: integer
+          minimum: 0
+          description: The number of consecutive failures.
+
+    CacheInvalidationTestResult:
+      type: object
+      additionalProperties: false
+      required: [ok, announced, read, message]
+      properties:
+        ok:
+          type: boolean
+          description: Whether the frontend read the announced cache tags.
+        announced:
+          type: boolean
+          description: Whether the frontend accepted the announcement.
+        read:
+          type: boolean
+          description: >-
+            Whether the frontend read the announced cache tags from Drupal
+            within five seconds.
+        message:
+          type: string
+          description: The outcome, for display.
 
     FrontendsPayload:
       type: object
