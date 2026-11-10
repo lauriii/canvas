@@ -175,7 +175,10 @@ reached. It throws (a framework 500) when `CANVAS_SITE_URL` is not configured or
 `invalidate` throws. Pass `defer` (for example Next.js `after()`) to answer 202
 at once and read the tags afterwards, so that Drupal's announcing request does
 not wait for a second Drupal worker; failures are then logged, and Drupal is not
-told. The Next.js adapter connects this to the Next.js cache; see its README.
+told. The adapters connect this to their frameworks: Next.js and Astro purge
+their own caches; Nuxt and TanStack Start pass the tags to an `invalidate`
+callback you write, such as a CDN purge. See their READMEs, and
+[how cache invalidation works](../../modules/canvas_headless/docs/headless-cache-invalidation.md).
 
 ## JSON:API for portable Code Components
 

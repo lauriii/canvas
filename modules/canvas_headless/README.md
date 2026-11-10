@@ -293,6 +293,9 @@ is remembered. Its next announcement, from the next request that invalidates
 tags or from cron, is `http_response`, so the frontend expires everything it
 may have missed.
 
+The flow, failure behavior, and per-framework support are described in
+[docs/headless-cache-invalidation.md](docs/headless-cache-invalidation.md).
+
 ### Cache invalidation limitations
 
 - Every content API response depends on `route_match`, `config:core.extension`
@@ -325,6 +328,9 @@ may have missed.
 
 ## Further reading
 
+- How headless cache invalidation works, its failure behavior, and framework support:
+  [docs/headless-cache-invalidation.md](docs/headless-cache-invalidation.md) and
+  [ADR-0022](../../docs/adr/0022-announced-cache-tag-invalidation-for-headless-frontends.md).
 - A concept-level walkthrough of the auth design — OAuth roles, JWT anatomy, the validation chain, the RFC map:
   [docs/headless-preview-auth.md](docs/headless-preview-auth.md).
 - The architectural decisions and their alternatives:
