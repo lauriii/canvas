@@ -55,7 +55,7 @@ final class SetPageValue extends FunctionCallBase implements ExecutableFunctionC
   /**
    * {@inheritdoc}
    */
-  public function execute(): void {
+  public function execute(?object $object = NULL): void {
     $key = $this->getContextValue('key');
     $value = $this->getContextValue('value');
 

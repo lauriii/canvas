@@ -105,15 +105,15 @@ final readonly class BlockManagerDecorator implements BlockManagerInterface, Fal
   /**
    * {@inheritdoc}
    */
-  public function getSortedDefinitions(?array $definitions = NULL): array {
-    return $this->decorated->getSortedDefinitions($definitions);
+  public function getSortedDefinitions(?array $definitions = NULL, string $label_key = 'label'): array {
+    return $this->decorated->getSortedDefinitions($definitions, $label_key);
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getGroupedDefinitions(?array $definitions = NULL): array {
-    return $this->decorated->getGroupedDefinitions($definitions);
+  public function getGroupedDefinitions(?array $definitions = NULL, string $label_key = 'label'): array {
+    return $this->decorated->getGroupedDefinitions($definitions, $label_key);
   }
 
   /**

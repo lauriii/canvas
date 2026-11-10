@@ -77,7 +77,7 @@ final class GetNodeFields extends FunctionCallBase implements ExecutableFunction
   /**
    * {@inheritdoc}
    */
-  public function execute(): void {
+  public function execute(?object $object = NULL): void {
     // Make sure that the user has the right permissions.
     if (!$this->currentUser->hasPermission(CanvasAiPermissions::USE_CANVAS_AI)) {
       throw new \Exception('The current user does not have the right permissions to run this tool.');

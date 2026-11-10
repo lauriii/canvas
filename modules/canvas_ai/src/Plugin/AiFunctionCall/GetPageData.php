@@ -54,7 +54,7 @@ class GetPageData extends FunctionCallBase implements ExecutableFunctionCallInte
   /**
    * {@inheritdoc}
    */
-  public function execute(): void {
+  public function execute(?object $object = NULL): void {
     $this->pageTitle = $this->getContextValue('page_title');
     $this->pageDescription = $this->getContextValue('page_description');
   }

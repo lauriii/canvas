@@ -26,7 +26,7 @@ class VerifyTaskCompletion extends FunctionCallBase implements ExecutableFunctio
   /**
    * {@inheritdoc}
    */
-  public function execute(): void {
+  public function execute(?object $object = NULL): void {
     // This tool doesn't need to do anything - it's a prompt engineering trick
     // The act of calling it forces the orchestrator to think through completion
     // It can be removed once the orchestrator is smart enough to do this on its own.
