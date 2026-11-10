@@ -120,6 +120,12 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
 
   function handleItemMouseOut(event: React.MouseEvent<HTMLDivElement>) {
     event.stopPropagation();
+    // The pointer is still over the component when it moves onto the name of
+    // the component. Removing the name then would put the pointer over the
+    // component again, which shows the name again, and so on.
+    if (event.currentTarget.contains(event.relatedTarget as Node | null)) {
+      return;
+    }
     dispatch(unsetHoveredComponent());
   }
 
