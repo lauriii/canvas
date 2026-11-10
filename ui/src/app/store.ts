@@ -34,6 +34,7 @@ import {
   pushUndo,
   setLatestUndoRedoActionId,
   uiSlice,
+  UNDO_HISTORY_LIMIT,
 } from '@/features/ui/uiSlice';
 import { assetLibraryApi } from '@/services/assetLibrary';
 import { brandKitApi } from '@/services/brandKit';
@@ -113,6 +114,7 @@ const rootReducer = combineSlices(
   {
     layoutModel: historyEraser<LayoutModelSliceState>(
       undoable(layoutModelReducer, {
+        limit: UNDO_HISTORY_LIMIT + 1,
         undoType: '@@redux-undo/layoutModel_UNDO',
         redoType: '@@redux-undo/layoutModel_REDO',
         clearHistoryType: '@@redux-undo/layoutModel_CLEAR_HISTORY',
@@ -133,6 +135,7 @@ const rootReducer = combineSlices(
     ),
     pageData: historyEraser<PageDataState>(
       undoable(pageDataReducer, {
+        limit: UNDO_HISTORY_LIMIT + 1,
         undoType: '@@redux-undo/pageData_UNDO',
         redoType: '@@redux-undo/pageData_REDO',
         clearHistoryType: '@@redux-undo/pageData_CLEAR_HISTORY',
