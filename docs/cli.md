@@ -22,7 +22,7 @@ Validates all of a site's Canvas data at once, plus a few environment and update
 vendor/bin/dr canvas:doctor --all-checks
 ```
 
-## `canvas:audit:usage`
+## `canvas:component:audit`
 
 The component audit service (`\Drupal\canvas\Audit\ComponentAudit`) finds where a `component` is used. It searches
 `component tree`s in content entity revisions, config entities and auto-saves. Searches can be narrowed to specific
@@ -35,12 +35,12 @@ The command exposes this on the command line. It accepts one of:
 - a `Component` config entity ID and version, separated by `@`: lists usages of that version only.
 
 ```sh
-vendor/bin/dr canvas:audit:usage sdc
-vendor/bin/dr canvas:audit:usage sdc.olivero.teaser
-vendor/bin/dr canvas:audit:usage sdc.olivero.teaser@a1b2c3d4e5f60718
+vendor/bin/dr canvas:component:audit sdc
+vendor/bin/dr canvas:component:audit sdc.olivero.teaser
+vendor/bin/dr canvas:component:audit sdc.olivero.teaser@a1b2c3d4e5f60718
 ```
 
 Use `--revisions=default` or `--revisions=latest` to search fewer content entity revisions (default: `all`), and
 `--format=json` for machine-readable output. The envelope has the `target` and `revisions` as given, and `usages`. Each
 usage has a `revision` ID and `default` and `latest` flags, which are `null` for config and auto-save usages. Schema:
-[`audit-usage.schema.json`](audit-usage.schema.json).
+[`component-audit.schema.json`](component-audit.schema.json).

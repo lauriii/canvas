@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://git.drupalcode.org/project/canvas/-/raw/HEAD/docs/audit-usage.schema.json",
-  "title": "Canvas audit usage JSON report",
-  "description": "The `--format=json` output of `canvas:audit:usage`. See docs/cli.md.",
+  "$id": "https://git.drupalcode.org/project/canvas/-/raw/HEAD/docs/component-audit.schema.json",
+  "title": "Canvas component audit JSON report",
+  "description": "The `--format=json` output of `canvas:component:audit`. See docs/cli.md.",
   "type": "object",
   "required": ["report_version", "target", "revisions", "usages"],
   "additionalProperties": false,
@@ -10,7 +10,7 @@
     "report_version": {
       "type": "integer",
       "const": 1,
-      "description": "Version of this envelope. See \\Drupal\\canvas\\Command\\AuditUsageCommand::REPORT_VERSION."
+      "description": "Version of this envelope. See \\Drupal\\canvas\\Command\\ComponentAuditCommand::REPORT_VERSION."
     },
     "target": {
       "type": "string",
