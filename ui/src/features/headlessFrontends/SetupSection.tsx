@@ -32,6 +32,8 @@ interface Framework {
   label: string;
   adapterPackage: string;
   docsUrl: string;
+  // Whether the adapter README has a "Caching published pages" section.
+  hasCachingDocs: boolean;
 }
 
 const PACKAGE_DOCS_BASE_URL =
@@ -43,30 +45,35 @@ const FRAMEWORKS: Framework[] = [
     label: 'Next.js',
     adapterPackage: '@drupal-canvas/headless-next',
     docsUrl: `${PACKAGE_DOCS_BASE_URL}/headless-next`,
+    hasCachingDocs: true,
   },
   {
     value: 'astro',
     label: 'Astro',
     adapterPackage: '@drupal-canvas/headless-astro',
     docsUrl: `${PACKAGE_DOCS_BASE_URL}/headless-astro`,
+    hasCachingDocs: true,
   },
   {
     value: 'nuxt',
     label: 'Nuxt',
     adapterPackage: '@drupal-canvas/headless-nuxt',
     docsUrl: `${PACKAGE_DOCS_BASE_URL}/headless-nuxt`,
+    hasCachingDocs: true,
   },
   {
     value: 'tanstack-start',
     label: 'TanStack Start',
     adapterPackage: '@drupal-canvas/headless-tanstack-start',
     docsUrl: `${PACKAGE_DOCS_BASE_URL}/headless-tanstack-start`,
+    hasCachingDocs: true,
   },
   {
     value: 'angular',
     label: 'Angular',
     adapterPackage: '@drupal-canvas/headless-angular',
     docsUrl: `${PACKAGE_DOCS_BASE_URL}/headless-angular`,
+    hasCachingDocs: false,
   },
 ];
 
@@ -210,6 +217,30 @@ const SetupSection = ({
           </Tabs.Content>
         </Box>
       </Tabs.Root>
+      {framework.hasCachingDocs && (
+        <Flex direction="column" gap="1">
+          <Text size="2" weight="bold">
+            Cache published pages
+          </Text>
+          <Text size="1" color="gray">
+            Your frontend can cache published pages and expire them when their
+            content changes. Turn on the &quot;Cache invalidation&quot; switch
+            of a frontend on this screen to have Drupal announce the changes to
+            it.
+          </Text>
+          <Text size="1">
+            <Link
+              href={`${framework.docsUrl}#caching-published-pages`}
+              target="_blank"
+              rel="noreferrer"
+              data-testid="canvas-headless-caching-docs-link"
+            >
+              Read how to cache published pages with {framework.label}{' '}
+              <ExternalLinkIcon width="12" height="12" />
+            </Link>
+          </Text>
+        </Flex>
+      )}
     </Flex>
   );
 };

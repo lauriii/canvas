@@ -138,14 +138,15 @@ describe('SetupSection', () => {
   });
 
   it.each([
-    ['Next.js', 'headless-next'],
-    ['Nuxt', 'headless-nuxt'],
-    ['Astro', 'headless-astro'],
-    ['TanStack Start', 'headless-tanstack-start'],
-    ['Angular', 'headless-angular'],
+    ['Next.js', 'headless-next', true],
+    ['Nuxt', 'headless-nuxt', true],
+    ['Astro', 'headless-astro', true],
+    ['TanStack Start', 'headless-tanstack-start', true],
+    // The Angular adapter README has no caching section.
+    ['Angular', 'headless-angular', false],
   ])(
-    'shows the %s adapter install command and links its guide',
-    async (framework, path) => {
+    'shows the %s adapter install command and links its guides',
+    async (framework, path, hasCachingDocs) => {
       const user = userEvent.setup();
 
       render(
@@ -165,6 +166,20 @@ describe('SetupSection', () => {
       expect(
         screen.getByTestId('canvas-headless-adapter-docs-link'),
       ).toHaveAttribute('href', `${PACKAGE_DOCS_BASE_URL}/${path}`);
+
+      if (hasCachingDocs) {
+        expect(screen.getByText('Cache published pages')).toBeVisible();
+        expect(
+          screen.getByTestId('canvas-headless-caching-docs-link'),
+        ).toHaveAttribute(
+          'href',
+          `${PACKAGE_DOCS_BASE_URL}/${path}#caching-published-pages`,
+        );
+      } else {
+        expect(
+          screen.queryByText('Cache published pages'),
+        ).not.toBeInTheDocument();
+      }
     },
   );
 });
