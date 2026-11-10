@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\canvas_headless\Cache;
 
+use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas_headless\FrontendUrl;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
@@ -106,6 +107,9 @@ final class FrontendCacheTagInvalidator implements CacheTagsInvalidatorInterface
     if (isset($this->tags['http_response'])) {
       return;
     }
+    // Published responses never carry the auto-save tag, and every editor
+    // auto-save invalidates it: announcing it would only cost a round trip.
+    $tags = array_diff($tags, [AutoSaveManager::CACHE_TAG]);
     $this->tags += array_fill_keys($tags, TRUE);
     if (isset($this->tags['http_response']) || \count($this->tags) > self::MAX_TAGS) {
       $this->tags = ['http_response' => TRUE];

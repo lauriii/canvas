@@ -158,6 +158,11 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
       $store,
     );
 
+    // Auto-save invalidations are not announced, so announce nothing for them.
+    $invalidator->invalidateTags(['canvas__auto_save']);
+    $invalidator->destruct();
+    self::assertSame([], $store);
+
     $invalidator->invalidateTags(['node:1', 'http_response']);
     $invalidator->invalidateTags(['node:2']);
     $invalidator->destruct();
