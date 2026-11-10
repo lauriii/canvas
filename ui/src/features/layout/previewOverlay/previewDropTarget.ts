@@ -1,15 +1,17 @@
 import type { UniqueIdentifier } from '@dnd-kit/core';
 
-// Within this many pixels of a component's leading/trailing edge, the pointer
-// targets the gap next to the component instead of the slots inside it. This
-// is what lets you drop beside a container that is filled edge to edge by its
-// slot.
+// Within this many pixels of a component's leading/trailing edge, or a sixth
+// of its size if that is less, the pointer targets the gap next to the
+// component instead of the slots inside it. This is what lets you drop beside
+// a container that is filled edge to edge by its slot.
 const EDGE_THRESHOLD = 12;
 
 // Once the drop target changes, it changes again only when the pointer is this
-// many pixels past where it would. Otherwise a hand that is held still, which
-// is never quite still, moves the dragged component back and forth across the
-// boundary between two drop targets.
+// many pixels past where it would, or a tenth of the size of the component
+// under the pointer if that is less. Otherwise a hand that is held still,
+// which is never quite still, moves the dragged component back and forth
+// across the boundary between two drop targets. In small components, a larger
+// margin would leave no room for the drop targets inside them.
 const HYSTERESIS = 8;
 
 // Within this many pixels of an empty slot, in the component that has the
@@ -172,27 +174,29 @@ export function findPreviewDropZoneId(
   activeId: UniqueIdentifier,
 ): string | null {
   const rect = rectReader();
-  const id = resolveDropZoneId(root, point, activeId, rect);
+  const [id, hit] = resolveDropZoneId(root, point, activeId, rect);
   if (!frozen) {
     return id;
   }
   const { last } = frozen;
+  const x = Math.min(HYSTERESIS, (hit?.width ?? Infinity) / 10);
+  const y = Math.min(HYSTERESIS, (hit?.height ?? Infinity) / 10);
   if (
     last !== undefined &&
     id !== last &&
     [
-      [1, 0],
-      [-1, 0],
-      [0, 1],
-      [0, -1],
+      [x, 0],
+      [-x, 0],
+      [0, y],
+      [0, -y],
     ].some(
       ([dx, dy]) =>
         resolveDropZoneId(
           root,
-          { x: point.x + dx * HYSTERESIS, y: point.y + dy * HYSTERESIS },
+          { x: point.x + dx, y: point.y + dy },
           activeId,
           rect,
-        ) === last,
+        )[0] === last,
     )
   ) {
     return last;
@@ -201,13 +205,14 @@ export function findPreviewDropZoneId(
   return id;
 }
 
-// The slot or region the pointer is in.
+// The slot or region the pointer is in, and the innermost component under the
+// pointer, if any.
 function containerUnder(
   root: HTMLElement,
   point: Point,
   activeId: UniqueIdentifier,
   rect: (el: Element) => DOMRect,
-): HTMLElement {
+): [HTMLElement, DOMRect | undefined] {
   // The component that holds the dragged component.
   const home = Array.from(
     root.querySelectorAll<HTMLElement>('[data-canvas-drop-item]'),
@@ -215,22 +220,23 @@ function containerUnder(
     .find((el) => isActive(el, activeId))
     ?.parentElement?.closest('[data-canvas-drop-item]');
   let container = root;
+  let r: DOMRect | undefined;
   for (;;) {
     const hit = childItems(container).find(
       (el) => !isActive(el, activeId) && contains(rect(el), point),
     );
-    if (!hit) return container;
-    const r = rect(hit);
+    if (!hit) return [container, r];
+    r = rect(hit);
     const [start, size, pos] = isHorizontal(container)
       ? [r.left, r.width, point.x]
       : [r.top, r.height, point.y];
-    const edge = Math.min(EDGE_THRESHOLD, size / 4);
-    if (pos - start < edge || start + size - pos < edge) return container;
+    const edge = Math.min(EDGE_THRESHOLD, size / 6);
+    if (pos - start < edge || start + size - pos < edge) return [container, r];
     // Slots collapsed to no width or no height are not drop targets.
     const slots = childrenOf(hit, '[data-canvas-drop-container]').filter(
       (el) => rect(el).width && rect(el).height,
     );
-    if (!slots.length) return container;
+    if (!slots.length) return [container, r];
     const rects = slots.map(rect);
     const distanceTo = slotDistance(rects, point);
     const under =
@@ -248,19 +254,31 @@ function containerUnder(
         distance(rect(under), point) <= EMPTY_SLOT_REACH
       )
     ) {
-      return container;
+      return [container, r];
     }
     container = under;
   }
 }
 
+// The drop zone for a pointer position, and the innermost component under the
+// pointer, if any.
 function resolveDropZoneId(
   root: HTMLElement,
   point: Point,
   activeId: UniqueIdentifier,
   rect: (el: Element) => DOMRect,
+): [string | null, DOMRect | undefined] {
+  const [container, hit] = containerUnder(root, point, activeId, rect);
+  return [dropZoneIn(container, point, activeId, rect), hit];
+}
+
+// The drop zone nearest to the pointer in a slot or region.
+function dropZoneIn(
+  container: HTMLElement,
+  point: Point,
+  activeId: UniqueIdentifier,
+  rect: (el: Element) => DOMRect,
 ): string | null {
-  const container = containerUnder(root, point, activeId, rect);
   const all = childItems(container);
   // Where the dragged component was, in terms of the other components: the
   // overlay keeps the order of the layout while the component is dragged.

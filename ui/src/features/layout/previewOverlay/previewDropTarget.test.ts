@@ -451,6 +451,30 @@ describe('findPreviewDropZoneId', () => {
     expect(findPreviewDropZoneId(column, { x: 50, y: 180 }, 'c')).toBeNull();
   });
 
+  it('leaves room for the drop targets inside small components', () => {
+    // A header as short as at half zoom, with an empty slot.
+    const page = slot(
+      'page',
+      [0, 0, 400, 240],
+      [
+        item('top', [0, 0, 400, 100]),
+        item('header', [0, 100, 400, 40], [slot('h-slot', [16, 108, 368, 24])]),
+        item('bottom', [0, 140, 400, 100]),
+      ],
+    );
+    const viewport = el({}, [0, 0, 400, 240], [page]);
+    freezeDropTargets(viewport);
+    const at = (x: number, y: number) =>
+      findPreviewDropZoneId(page, { x, y }, 'new');
+    // Coming from below: past the bottom edge band of the header.
+    expect(at(200, 145)).toBe('header_bottom');
+    expect(at(200, 124)).toBe('h-slot');
+    unfreezeDropTargets();
+    // The edge bands of the header are a sixth of its height.
+    expect(at(200, 104)).toBe('top_bottom');
+    expect(at(200, 108)).toBe('h-slot');
+  });
+
   it('changes the drop target only when the pointer is clearly past it', () => {
     const viewport = el({}, [0, 0, 400, 1000], [root]);
     freezeDropTargets(viewport);
