@@ -259,27 +259,41 @@ Errors use RFC 9457 Problem Details and the `application/problem+json` media typ
 
 ## Frontend cache invalidation
 
-Successful content, entity, and redirect responses, and content API client
-errors (4xx), include `cacheTags` and `cacheMaxAge`: the response's Drupal cache
+Successful content, entity, and redirect responses, and content API 403 and
+404 responses, include `cacheTags` and `cacheMaxAge`: the response's Drupal cache
 tags and max-age (-1: no limit), including the dependencies of its cache
 contexts. Frontends cache by path, so they would otherwise miss, for example,
 a change to the anonymous role's permissions. Frontends tag their cached copies
 with the tags and keep them for at most the max-age.
 
-Cache invalidation is a switch per frontend, and it is off by default. Open
-**Headless frontends** in Canvas and turn on **Cache invalidation** in the
-frontend's row. The switch needs the `administer canvas headless frontends`
-permission. It sets `cache_invalidation` on the frontend's entry in
-`canvas_headless.settings`, for example `frontends.0.cache_invalidation`.
-Drupal never announces to a frontend whose switch is off. An administrator can
-still test it; see below.
+When Drupal invalidates cache tags, it announces them to the frontends. A
+frontend then expires the copies it cached with those tags.
 
-The frontend serves the invalidation route at `/api/canvas/revalidate` under
-its registered URL. The path is fixed. For the frontend
-`https://www.example.com`, Drupal sends announcements to
-`https://www.example.com/api/canvas/revalidate`. See
-`createCacheInvalidationHandler()` in `@drupal-canvas/headless` and the adapter
-READMEs.
+### Nothing to configure
+
+Drupal announces to every frontend in the frontend list. That is the list on
+the **Headless frontends** screen in Canvas, stored in
+`canvas_headless.settings:frontends`. Cache invalidation has no setting, and no
+URL is entered for it.
+
+The path is fixed. Drupal sends announcements to `/api/canvas/revalidate` under
+the frontend's registered URL. For the frontend `https://www.example.com`, that
+is `https://www.example.com/api/canvas/revalidate`.
+
+A developer does this in the frontend:
+
+- Serves the invalidation route at that path. The Astro integration injects
+  it. In other frameworks, the application mounts the adapter's handler there.
+- Caches published pages with their `cacheTags`, for example with the
+  adapter's `cacheCanvasTags()`.
+
+The frontend also has to be in the frontend list, with the URL the route is
+served under. That includes a production frontend. Nothing is turned on in
+Drupal. See `createCacheInvalidationHandler()` in `@drupal-canvas/headless` and
+the adapter READMEs. To check a new setup, see
+[Troubleshooting](#troubleshooting).
+
+### How an announcement works
 
 Drupal collects the cache tags invalidated during a request. After the
 response, it stores them for five minutes under a random ID per frontend, and
@@ -294,60 +308,127 @@ response carries: frontends expire everything. Redirects are not followed;
 requests time out after five seconds. The Next.js adapter answers at once and
 reads the tags afterwards, so an announcement holds a PHP worker only briefly.
 
-### Test, Expire all, and status
+Until a frontend has read an announcement, every announcement to it is
+`http_response`. Drupal has no record of a frontend that was just added to the
+list, so the frontend may have missed anything. It therefore expires
+everything once.
 
-A frontend's row shows two actions and a status while its switch is on:
+### Connected frontends, and frontends that are not
 
-- **Test** sends one announcement and waits up to five seconds for the frontend
-  to read it. The announced tag is `canvas_headless:test`, which no response
-  carries, so nothing expires. A frontend that missed an invalidation is sent
-  `http_response` instead. Turning the switch on runs the test once. Tags
-  invalidated while the switch was off were not announced, so that first
-  announcement is `http_response`: the frontend expires everything once.
-- **Expire all** does the same with `http_response`: the frontend expires
-  everything it cached.
-- The status is **Waiting for changes** until the frontend reads its first
-  announcement, then **Active**. It is **Failing** from a failed announcement
-  until the frontend reads an `http_response` announcement made after it, and
-  shows the last error and its time. A test the frontend does not read is a
-  failure at once.
+A frontend is _connected_ once it has read announced cache tags from Drupal at
+least once. It stays connected until it is removed from the list.
 
-Both actions show a message with the result; see
-[Troubleshooting](#troubleshooting). The site's status report shows a warning
-while a frontend is failing. The warning lists each failing frontend with its
-last error and time. The status is only returned to users with the
+Not every frontend in the list reads announcements. A frontend may not cache
+pages, may not serve the route, or may be a local app that Drupal's server
+cannot reach. For such a frontend, a failed announcement is not a problem, and
+Drupal cannot tell it from a broken setup. Drupal therefore reports only a
+frontend that used to read announcements:
+
+- A connected frontend that stops reading announcements is reported and
+  logged. See [When updates stop arriving](#when-updates-stop-arriving).
+- A frontend that is not connected is not reported anywhere, and its failed
+  announcements are not logged.
+
+Drupal keeps announcing to a frontend that is not connected:
+
+- If the frontend answers with a redirect or an error status, for example 404,
+  Drupal does not wait. It announces again at the next request that
+  invalidates tags, and at the next cron run. The frontend therefore connects
+  at the first content change after its route exists.
+- If the frontend cannot be reached, Drupal waits before it announces again:
+  10 seconds, doubling with each consecutive failure, up to five minutes. The
+  same wait applies to a frontend that accepts announcements and never reads
+  the tags.
+
+### When updates stop arriving
+
+An announcement to a connected frontend fails when the frontend cannot be
+reached, or answers with a redirect or an error. It also fails when the
+frontend does not read the tags within 30 seconds. The status shows that at
+once. Drupal records it, starts the wait and logs it at the next announcement,
+cron run or retry.
+
+The **Headless frontends** screen shows one status in each frontend's row:
+
+- **Ready**, with a tooltip, for a connected frontend that reads its
+  announcements. The tooltip reads `Cached pages expire when content changes.
+  Last update received 5 minutes ago.`, with the time of the last read.
+- **Not receiving content updates**, a button in place of **Ready**, for a
+  connected frontend that is failing. Its tooltip reads `This frontend stopped
+  receiving content updates, so it may show outdated pages. Canvas keeps
+  trying, and tells it to expire its cached pages once it responds. Click to
+  try now.`, followed by the time of the last failure and the last error.
+- **Unreachable** or **Setup needed** when the browser's own check of the
+  frontend fails. That badge is shown, also for a frontend with a failure on
+  record.
+- **Ready**, without a tooltip, for a frontend that is not connected.
+
+Clicking **Not receiving content updates** announces to the frontend at once,
+and waits up to five seconds for the frontend to read the tags. A frontend
+with a failure on record is sent `http_response`. The result is shown as a
+message; see [Troubleshooting](#troubleshooting).
+
+The site's status report shows the warning **Drupal Canvas Headless cache
+invalidation** while a connected frontend has a failure on record. The warning
+lists each such frontend with its last error and time. A failed request to a
+connected frontend, and an announcement it did not read, are logged to the
+`canvas_headless` channel.
+
+The status is only returned to users with the
 `administer canvas headless frontends` permission: errors can name hosts of
-the site's network.
+the site's network. For other users, **Ready** has no tooltip.
 
-### Missed announcements
+After a failure, Drupal records that the frontend may have missed an
+invalidation. The frontend's next announcement, from the next request that
+invalidates tags or from cron, is `http_response`. The frontend then expires
+everything it may have missed. The record is cleared when the frontend reads
+that announcement.
 
-An announcement fails when the frontend cannot be reached, or answers with a
-redirect or an error. It also fails when the frontend does not read the tags
-within 30 seconds. Drupal detects that at the next announcement or cron run. A
-failed request is logged to the `canvas_headless` channel.
-
-Drupal records that the frontend may have missed an invalidation. The
-frontend's next announcement, from the next request that invalidates tags or
-from cron, is `http_response`. The frontend then expires everything it may have
-missed. The record is cleared when the frontend reads that announcement.
-
-After a failure, Drupal waits before it contacts the frontend again. The wait
-is 10 seconds and doubles with each consecutive failure, up to five minutes.
-For an announcement that was not read, the wait starts when the 30 seconds
-ran out. A miss noticed after the wait is repaired by the announcement that
-notices it; otherwise by the first announcement or cron run after the wait. Tags invalidated during the wait are not announced: the later
-`http_response` covers them. Test and Expire all ignore the wait. The wait ends
-when the frontend reads an announcement.
+Drupal also waits before it contacts the frontend again. The wait is 10
+seconds and doubles with each consecutive failure, up to five minutes. For an
+announcement that was not read, the wait starts when the 30 seconds ran out. A
+miss noticed after the wait is repaired by the announcement that notices it;
+otherwise by the first announcement or cron run after the wait. Tags
+invalidated during the wait are not announced: the later `http_response`
+covers them. The button ignores the wait. The wait ends when the frontend
+reads an announcement.
 
 The flow, failure behavior, and per-framework support are described in
 [docs/headless-cache-invalidation.md](docs/headless-cache-invalidation.md).
 
 ### Troubleshooting
 
-Test and Expire all answer with one of these messages:
+To check a new setup, change published content in Drupal. Then open the
+**Headless frontends** screen and hover **Ready** in the frontend's row. The
+screen reads the status again each time it is opened or returned to. A
+tooltip with the time of the last update means that the frontend read the
+announcement: it is connected.
 
-- `The frontend received the announcement and read the cache tags.` Cache
-  invalidation works.
+**Ready** without a tooltip means that the frontend has not read an
+announcement yet. Drupal reports and logs nothing for such a frontend. Check
+these causes:
+
+- The route is not served at `/api/canvas/revalidate` under the registered
+  frontend URL, or does not accept `POST`.
+- The registered URL redirects, for example to `https` or `www`.
+- Drupal's server cannot reach the frontend. A `localhost` URL only works when
+  the frontend runs on the Drupal server.
+- `CANVAS_SITE_URL` on the frontend does not point at this site, or the
+  frontend's server cannot reach it.
+- The user lacks the `administer canvas headless frontends` permission, which
+  the tooltip needs.
+
+If Drupal's server could not reach the frontend, Drupal waits up to five
+minutes before it announces again. Change content again after the wait.
+
+The messages below come from clicking **Not receiving content updates**. The
+button is only shown for a connected frontend. For any frontend in the list,
+`POST /canvas/api/v0/headless/frontends/cache-invalidation/test` returns the
+same messages in `message`; see [openapi.yml](openapi.yml).
+
+- `The frontend receives content updates again.` The frontend read the
+  announcement and expired its cached pages. The API's message is `The
+  frontend received the announcement and read the cache tags.`
 - `The frontend answered HTTP 404.` The route is not served at
   `/api/canvas/revalidate` under the registered frontend URL. Mount the route,
   or correct the registered URL, including any path prefix. A route that reads
@@ -374,10 +455,12 @@ Test and Expire all answer with one of these messages:
   happened. Check `CANVAS_SITE_URL`, and that the frontend's server can reach
   this site. Also check that the path is served by the invalidation route, not
   by a page that answers every request.
+- `The frontend could not be contacted. Please try again.` The browser's
+  request to Drupal failed. Reload the screen and click the button again.
 
-The **Failing** status shows the same errors without the leading words, for
-example `HTTP 404`. `The frontend did not read the announced cache tags.` has
-the same causes as the last message above.
+The button's tooltip and the status report show the same errors without the
+leading words, for example `HTTP 404`. `The frontend did not read the announced
+cache tags.` has the same causes as the message about `CANVAS_SITE_URL` above.
 
 ### Cache invalidation limitations
 
@@ -394,6 +477,14 @@ the same causes as the last message above.
   parallel: up to two seconds when a frontend cannot be reached, and up to
   five seconds when one is slow to answer. A frontend in its wait after a
   failure is not contacted.
+- Every frontend in the list is announced to. A frontend that is not connected
+  and answers with a redirect or an error status receives one request for each
+  request that invalidates tags. This lasts until it connects or stops
+  answering.
+- A frontend that never connected is not reported. A route that never worked
+  shows nothing: no status, no status report warning, and no log message.
+- The screen has no action that expires everything. To expire everything by
+  hand, rebuild Drupal's caches, which announces `http_response`.
 - A missed invalidation is repaired by the next request that invalidates tags,
   or by cron, once the wait after the failure has passed. The frontend serves
   the stale pages until then, so run cron often.

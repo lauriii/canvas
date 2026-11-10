@@ -2,14 +2,14 @@
  * @file
  * The receiving end of Drupal's cache tag invalidation. After a request that
  * invalidates cache tags, the Canvas Headless module posts `{"id": "..."}` to
- * `/api/canvas/revalidate` under the URL of every frontend that has cache
- * invalidation turned on. The handler reads the tags stored under that ID from
- * the Drupal site (CANVAS_SITE_URL), once, so it needs no shared secret: the
- * announcement is only a hint, and the tags come from Drupal itself. Drupal
- * notices an announcement whose tags are never read, and later announces
- * `http_response`, which expires everything. Content results carry the tags
- * they depend on in `cacheTags`; an application tags its cached copies with
- * them, and expires the copies here.
+ * `/api/canvas/revalidate` under the URL of every frontend registered in
+ * Canvas. Nothing is turned on in Drupal. The handler reads the tags stored
+ * under that ID from the Drupal site (CANVAS_SITE_URL), once, so it needs no
+ * shared secret: the announcement is only a hint, and the tags come from Drupal
+ * itself. Drupal notices an announcement whose tags are never read, and later
+ * announces `http_response`, which expires everything. Content results carry
+ * the tags they depend on in `cacheTags`; an application tags its cached copies
+ * with them, and expires the copies here.
  */
 
 import { resolveDraftConfig } from './config';

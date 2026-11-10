@@ -153,11 +153,9 @@ does not keep a transient failure. Use `fetchPage()` for draft sessions.
 
 Mount `createCacheInvalidationHandler()` from `@drupal-canvas/headless/server`
 as a POST route at `/api/canvas/revalidate` under the frontend URL registered in
-Canvas: Drupal announces to that path only. Then turn on cache invalidation for
-the frontend on the Canvas **Headless frontends** screen, and check the round
-trip with its **Test** button. Drupal announces invalidations to the route; the
-handler reads the invalidated tags, once, from `CANVAS_SITE_URL` and passes them
-to your `invalidate` callback. No secret is shared (see the
+Canvas: Drupal announces to that path only. The handler reads the invalidated
+tags, once, from `CANVAS_SITE_URL` and passes them to your `invalidate`
+callback. No secret is shared (see the
 [Canvas Headless module README](../../modules/canvas_headless/README.md#frontend-cache-invalidation)):
 
 ```ts
@@ -169,6 +167,13 @@ export const POST = createCacheInvalidationHandler({
   invalidate: (tags) => purgeCdnTags(tags),
 });
 ```
+
+Nothing is turned on in Drupal. Drupal announces invalidated cache tags to
+`/api/canvas/revalidate` under every frontend registered in Canvas. To confirm
+that the route works, change content in Drupal and check that the cached page
+updates. Or hover **Ready** in the frontend's row on the Canvas **Headless
+frontends** screen. Once the frontend has received an update, the tooltip shows
+when the last one arrived.
 
 The handler answers 204 after `invalidate` completes, 400 for a malformed
 announcement, 404 for an ID Drupal does not know, and 502 when Drupal cannot be

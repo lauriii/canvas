@@ -121,11 +121,10 @@ export function fetchPublishedPage(
 /**
  * Creates the cache invalidation route handler. Mount it at
  * `server/api/canvas/revalidate.post.ts`: Drupal announces invalidated cache
- * tags to /api/canvas/revalidate under every frontend with cache
- * invalidation turned on in Canvas. `invalidate` expires whatever the app
- * cached with them, for example a CDN purge. Nitro's
- * own cache has no tags, so the app brings its own. Answers at once when the
- * Nitro preset provides `event.waitUntil`.
+ * tags to /api/canvas/revalidate under every frontend registered in Canvas.
+ * `invalidate` expires whatever the app cached with them, for example a CDN
+ * purge. Nitro's own cache has no tags, so the app brings its own. Answers at
+ * once when the Nitro preset provides `event.waitUntil`.
  */
 export function createCacheInvalidationRouteHandler(
   options: Pick<CacheInvalidationOptions, 'invalidate' | 'config'>,
