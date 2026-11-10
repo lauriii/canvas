@@ -6,12 +6,13 @@ import type { UniqueIdentifier } from '@dnd-kit/core';
 // a container that is filled edge to edge by its slot.
 const EDGE_THRESHOLD = 12;
 
-// Once the drop target changes, it changes again only when the pointer is this
+// The drop target changes back to the one before only when the pointer is this
 // many pixels past where it would, or a tenth of the size of the component
 // under the pointer if that is less. Otherwise a hand that is held still,
 // which is never quite still, moves the dragged component back and forth
 // across the boundary between two drop targets. In small components, a larger
-// margin would leave no room for the drop targets inside them.
+// margin would leave no room for the drop targets inside them. Other changes
+// are immediate, so the dragged component follows a moving pointer.
 const HYSTERESIS = 8;
 
 // Within this many pixels of an empty slot, in the component that has the
@@ -30,8 +31,11 @@ let frozen: {
   viewport: Element;
   origin: DOMRect;
   rects: WeakMap<Element, DOMRect>;
-  // The drop target last resolved, if any.
+  // The drop target last resolved, if any, the one before it, and where the
+  // pointer was when it changed.
   last?: string | null;
+  previous?: string | null;
+  changedAt?: Point;
 } | null = null;
 
 /**
@@ -203,8 +207,8 @@ const isHorizontal = (container: HTMLElement) =>
  *
  * Over the dragged component, the drop target is where it was. Its slots are
  * not drop targets. During a drag, drop targets are resolved against the
- * layout at its start (see freezeDropTargets()), and change only once the
- * pointer is clearly past the boundary between two of them.
+ * layout at its start (see freezeDropTargets()), and change back to the one
+ * before only once the pointer is clearly past the boundary between them.
  *
  * @param root
  *   The overlay element of the root region (marked data-canvas-drop-container).
@@ -227,12 +231,21 @@ export function findPreviewDropZoneId(
   if (!frozen) {
     return id;
   }
-  const { last } = frozen;
+  const { last, previous, changedAt } = frozen;
+  if (id === last) {
+    return id;
+  }
   const x = Math.min(HYSTERESIS, (hit?.width ?? Infinity) / 10);
   const y = Math.min(HYSTERESIS, (hit?.height ?? Infinity) / 10);
+  // Changing back, or changing again near where the drop target changed, as
+  // where three of them meet: only once clearly past the boundary.
+  const near =
+    !!changedAt &&
+    Math.abs(point.x - changedAt.x) <= 2 * x &&
+    Math.abs(point.y - changedAt.y) <= 2 * y;
   if (
     last !== undefined &&
-    id !== last &&
+    (id === previous || near) &&
     [
       [x, 0],
       [-x, 0],
@@ -250,7 +263,9 @@ export function findPreviewDropZoneId(
   ) {
     return last;
   }
+  frozen.previous = last;
   frozen.last = id;
+  frozen.changedAt = last === undefined ? undefined : point;
   return id;
 }
 

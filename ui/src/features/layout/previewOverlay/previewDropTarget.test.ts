@@ -481,15 +481,35 @@ describe('findPreviewDropZoneId', () => {
     expect(at(200, 108)).toBe('h-slot');
   });
 
-  it('changes the drop target only when the pointer is clearly past it', () => {
+  it('changes the drop target back only when the pointer is clearly past it', () => {
     const viewport = el({}, [0, 0, 400, 1000], [root]);
     freezeDropTargets(viewport);
     // The boundary between before and after a is at y 50.
     expect(find(200, 45)).toBe('a_top');
-    expect(find(200, 55)).toBe('a_top');
-    expect(find(200, 70)).toBe('a_bottom');
+    // Moving on: at once.
+    expect(find(200, 55)).toBe('a_bottom');
+    // Back: only once clearly past the boundary.
     expect(find(200, 45)).toBe('a_bottom');
+    expect(find(200, 55)).toBe('a_bottom');
     expect(find(200, 30)).toBe('a_top');
+    // On to another target: at once.
+    expect(find(200, 150)).toBe('d_top');
+    unfreezeDropTargets();
+  });
+
+  it('holds the drop target where three of them meet', () => {
+    const viewport = el({}, [0, 0, 400, 1000], [root]);
+    freezeDropTargets(viewport);
+    // Near the corner of the row's top edge band and the boundary between
+    // f and g, a hand held still doesn't move the dragged component around.
+    const jitter = [
+      [95, 515],
+      [105, 515],
+      [100, 505],
+    ];
+    const seen = [...jitter, ...jitter, ...jitter].map(([x, y]) => find(x, y));
+    // It settles once it has changed there.
+    expect(new Set(seen.slice(2)).size).toBe(1);
     unfreezeDropTargets();
   });
 });
