@@ -38,6 +38,10 @@ vi.mock('@/utils/drupal-globals', () => ({
   }),
   getDrupalSettings: () => mockDrupalSettings,
   getCanvasSettings: () => mockDrupalSettings.canvas,
+  getCurrentUserId: () => {
+    const uid = mockDrupalSettings.user?.uid;
+    return uid === undefined ? undefined : Number(uid);
+  },
   getCanvasHeadlessSettings: () => mockDrupalSettings.canvas.headless,
   getBasePath: () => mockDrupalSettings.path.baseUrl,
   getBaseUrl: () => mockDrupalSettings.path.baseUrl,

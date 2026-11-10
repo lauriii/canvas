@@ -192,3 +192,15 @@ describe('setCanvasHeadlessFrontend', () => {
     ).toBeNull();
   });
 });
+
+describe('getCurrentUserId', () => {
+  it.each([
+    [{ uid: '2' }, 2],
+    [{ uid: 0 }, 0],
+    [undefined, undefined],
+  ])('returns the uid of %o as a number', async (user, expected) => {
+    const { getCurrentUserId } = await loadGlobals({});
+    Object.assign((window as any).drupalSettings, { user });
+    expect(getCurrentUserId()).toBe(expected);
+  });
+});
