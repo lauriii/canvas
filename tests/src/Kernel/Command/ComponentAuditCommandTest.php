@@ -7,7 +7,7 @@ namespace Drupal\Tests\canvas\Kernel\Command;
 use Drupal\canvas\Audit\ComponentAudit;
 use Drupal\canvas\Audit\RevisionAuditEnum;
 use Drupal\canvas\AutoSave\AutoSaveManager;
-use Drupal\canvas\Command\AuditUsageCommand;
+use Drupal\canvas\Command\ComponentAuditCommand;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
@@ -24,14 +24,14 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
 
 #[RunTestsInSeparateProcesses]
-#[CoversClass(AuditUsageCommand::class)]
+#[CoversClass(ComponentAuditCommand::class)]
 #[Group('canvas')]
-final class AuditUsageCommandTest extends ComponentAuditTestBase {
+final class ComponentAuditCommandTest extends ComponentAuditTestBase {
 
   /**
-   * The `canvas:audit:usage` command finds usages by source, ID and version.
+   * The `canvas:component:audit` command finds usages by source, ID and version.
    */
-  public function testAuditUsageCommand(): void {
+  public function testCommand(): void {
     // Auto-saving a page computes its path alias.
     $this->installEntitySchema('path_alias');
     $component_id = 'sdc.canvas_test_sdc.my-cta';
@@ -111,17 +111,17 @@ final class AuditUsageCommandTest extends ComponentAuditTestBase {
     ];
 
     // By component ID and version.
-    self::assertSame([$content_usage, $config_usage], $this->runAuditUsageCommand("$component_id@$old_version"));
-    self::assertSame([$auto_save_usage], $this->runAuditUsageCommand("$component_id@$new_version"));
+    self::assertSame([$content_usage, $config_usage], $this->runCommand("$component_id@$old_version"));
+    self::assertSame([$auto_save_usage], $this->runCommand("$component_id@$new_version"));
     // By component ID: all versions.
     $all_usages = [$content_usage, $config_usage, $auto_save_usage];
-    self::assertEqualsCanonicalizing($all_usages, $this->runAuditUsageCommand($component_id));
+    self::assertEqualsCanonicalizing($all_usages, $this->runCommand($component_id));
     // By component source: all components of that source.
-    self::assertEqualsCanonicalizing($all_usages, $this->runAuditUsageCommand('sdc'));
-    self::assertSame([], $this->runAuditUsageCommand('block'));
+    self::assertEqualsCanonicalizing($all_usages, $this->runCommand('sdc'));
+    self::assertSame([], $this->runCommand('block'));
     // Only the default revision: the first revision is no longer searched.
-    self::assertEqualsCanonicalizing([$config_usage, $auto_save_usage], $this->runAuditUsageCommand($component_id, ['--revisions' => 'default']));
-    self::assertEqualsCanonicalizing([$config_usage, $auto_save_usage], $this->runAuditUsageCommand($component_id, ['--revisions' => 'latest']));
+    self::assertEqualsCanonicalizing([$config_usage, $auto_save_usage], $this->runCommand($component_id, ['--revisions' => 'default']));
+    self::assertEqualsCanonicalizing([$config_usage, $auto_save_usage], $this->runCommand($component_id, ['--revisions' => 'latest']));
 
     // Invalid targets and options.
     $invalid_inputs = [
@@ -134,7 +134,7 @@ final class AuditUsageCommandTest extends ComponentAuditTestBase {
       ['target' => $component_id, '--revisions' => RevisionAuditEnum::AutoSave->value],
     ];
     foreach ($invalid_inputs as $invalid_input) {
-      $tester = $this->createAuditUsageCommandTester();
+      $tester = $this->createComponentAuditCommandTester();
       self::assertSame(Command::INVALID, $tester->execute($invalid_input), \json_encode($invalid_input, \JSON_THROW_ON_ERROR));
     }
 
@@ -153,10 +153,10 @@ final class AuditUsageCommandTest extends ComponentAuditTestBase {
       'default' => TRUE,
       'latest' => TRUE,
       'label' => 'Audited page (draft)',
-    ], $this->runAuditUsageCommand("$component_id@$new_version", ['--revisions' => 'latest']));
+    ], $this->runCommand("$component_id@$new_version", ['--revisions' => 'latest']));
 
     // The table format lists every usage, and the revision flags.
-    $tester = $this->createAuditUsageCommandTester();
+    $tester = $this->createComponentAuditCommandTester();
     self::assertSame(Command::SUCCESS, $tester->execute(['target' => $component_id]));
     self::assertStringContainsString("$revision_id3 (default, latest)", $tester->getDisplay());
     self::assertStringContainsString('4 usage(s) found.', $tester->getDisplay());
@@ -171,27 +171,27 @@ final class AuditUsageCommandTest extends ComponentAuditTestBase {
     $page->save();
 
     // Non-interactive: no target is an error, with usage guidance.
-    $tester = $this->createAuditUsageCommandTester();
+    $tester = $this->createComponentAuditCommandTester();
     self::assertSame(Command::INVALID, $tester->execute([], ['interactive' => FALSE]));
     self::assertStringContainsString('target', $tester->getDisplay());
 
     // Interactive: pick a source, then a component, then a version.
-    $tester = $this->createAuditUsageCommandTester();
+    $tester = $this->createComponentAuditCommandTester();
     $tester->setInputs(['sdc', $component_id, 'all']);
     self::assertSame(Command::SUCCESS, $tester->execute([], ['interactive' => TRUE]));
     self::assertStringContainsString((string) $page->id(), $tester->getDisplay());
     self::assertStringContainsString('1 usage(s) found.', $tester->getDisplay());
 
     // Interactive: a whole source. The fallback source is not offered.
-    $tester = $this->createAuditUsageCommandTester();
+    $tester = $this->createComponentAuditCommandTester();
     $tester->setInputs(['block', 'all']);
     self::assertSame(Command::SUCCESS, $tester->execute([], ['interactive' => TRUE]));
     self::assertStringContainsString('No usages found for block.', $tester->getDisplay());
     self::assertStringNotContainsString('fallback', $tester->getDisplay());
   }
 
-  private function createAuditUsageCommandTester(): CommandTester {
-    return new CommandTester(new AuditUsageCommand(
+  private function createComponentAuditCommandTester(): CommandTester {
+    return new CommandTester(new ComponentAuditCommand(
       $this->container->get(ComponentAudit::class),
       $this->container->get(EntityTypeManagerInterface::class),
       $this->container->get(ComponentSourceManager::class),
@@ -202,17 +202,17 @@ final class AuditUsageCommandTest extends ComponentAuditTestBase {
   /**
    * Runs the command with --format=json and returns the usages.
    *
-   * The whole report is validated against docs/audit-usage.schema.json.
+   * The whole report is validated against docs/component-audit.schema.json.
    */
-  private function runAuditUsageCommand(string $target, array $options = []): array {
-    $tester = $this->createAuditUsageCommandTester();
+  private function runCommand(string $target, array $options = []): array {
+    $tester = $this->createComponentAuditCommandTester();
     self::assertSame(Command::SUCCESS, $tester->execute(['target' => $target, '--format' => 'json'] + $options));
     $report = \json_decode($tester->getDisplay(), TRUE, flags: \JSON_THROW_ON_ERROR);
     $document = Validator::arrayToObjectRecursive($report);
     $validator = new Validator();
-    $validator->validate($document, (object) ['$ref' => 'file://' . \realpath(__DIR__ . '/../../../../docs/audit-usage.schema.json')]);
+    $validator->validate($document, (object) ['$ref' => 'file://' . \realpath(__DIR__ . '/../../../../docs/component-audit.schema.json')]);
     self::assertTrue($validator->isValid(), \json_encode($validator->getErrors(), \JSON_PRETTY_PRINT | \JSON_THROW_ON_ERROR));
-    self::assertSame(AuditUsageCommand::REPORT_VERSION, $report['report_version']);
+    self::assertSame(ComponentAuditCommand::REPORT_VERSION, $report['report_version']);
     self::assertSame($target, $report['target']);
     self::assertSame($options['--revisions'] ?? RevisionAuditEnum::All->value, $report['revisions']);
     return $report['usages'];

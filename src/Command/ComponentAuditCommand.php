@@ -30,22 +30,22 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * @phpstan-type Usage array{component: string, version: string, kind: 'content'|'config'|'auto-save', entity_type: string, id: string, revision: string|null, default: bool|null, latest: bool|null, label: string|null}
  * @internal
  * @see docs/cli.md
- * @see docs/audit-usage.schema.json
+ * @see docs/component-audit.schema.json
  * @see \Drupal\canvas\Controller\ComponentAuditController
  * @see https://www.drupal.org/node/3584928
  */
 #[AsCommand(
-  name: 'canvas:audit:usage',
+  name: 'canvas:component:audit',
   description: 'Lists where components are used: by component source, component ID, or component ID and version.',
 )]
-final class AuditUsageCommand extends Command {
+final class ComponentAuditCommand extends Command {
 
   /**
    * Version of the --format=json envelope. Bumped only on breaking changes.
    *
    * Adding a key to the envelope or to a usage is not a breaking change.
    *
-   * @see docs/audit-usage.schema.json
+   * @see docs/component-audit.schema.json
    */
   public const int REPORT_VERSION = 1;
 
