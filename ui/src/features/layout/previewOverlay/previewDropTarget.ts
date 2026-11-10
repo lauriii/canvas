@@ -72,16 +72,49 @@ function rectReader(): (el: Element) => DOMRect {
 const contains = (r: DOMRect, p: Point) =>
   p.x >= r.left && p.x <= r.right && p.y >= r.top && p.y <= r.bottom;
 
-const distance = (r: DOMRect, p: Point) =>
-  Math.hypot(
-    Math.max(r.left - p.x, 0, p.x - r.right),
-    Math.max(r.top - p.y, 0, p.y - r.bottom),
+const gapX = (r: DOMRect, p: Point) => Math.max(r.left - p.x, 0, p.x - r.right);
+
+const gapY = (r: DOMRect, p: Point) => Math.max(r.top - p.y, 0, p.y - r.bottom);
+
+const distance = (r: DOMRect, p: Point) => Math.hypot(gapX(r, p), gapY(r, p));
+
+const nearest = <T>(of: T[], distanceTo: (one: T) => number) =>
+  of.reduce((a, b) => (distanceTo(b) < distanceTo(a) ? b : a));
+
+// Whether a point is in the bounding box of rectangles.
+const within = (rects: DOMRect[], p: Point) =>
+  rects.some((r) => p.x >= r.left) &&
+  rects.some((r) => p.x <= r.right) &&
+  rects.some((r) => p.y >= r.top) &&
+  rects.some((r) => p.y <= r.bottom);
+
+// How far the pointer is from each of the slots of a component. Slots are as
+// large as their content, so below a short column the pointer can be closer
+// to the column beside it than to the one it is in. Slots that are all side
+// by side are compared by their horizontal distance alone, and slots that are
+// all above each other by their vertical distance alone. Any other
+// arrangement is compared by distance.
+function slotDistance(rects: DOMRect[], p: Point): (r: DOMRect) => number {
+  const apart = (from: 'left' | 'top', to: 'right' | 'bottom') =>
+    rects.every((a) =>
+      rects.every(
+        (b) => a === b || a[to] <= b[from] + 1 || b[to] <= a[from] + 1,
+      ),
+    );
+  const beside = apart('left', 'right');
+  const above = apart('top', 'bottom');
+  if (beside && !above) return (r) => gapX(r, p);
+  if (above && !beside) return (r) => gapY(r, p);
+  return (r) => distance(r, p);
+}
+
+const childrenOf = (el: HTMLElement, selector: string) =>
+  Array.from(el.children).filter((child): child is HTMLElement =>
+    child.matches(selector),
   );
 
 const childItems = (container: HTMLElement) =>
-  Array.from(
-    container.querySelectorAll<HTMLElement>(':scope > [data-canvas-drop-item]'),
-  );
+  childrenOf(container, '[data-canvas-drop-item]');
 
 const isActive = (el: HTMLElement, activeId: UniqueIdentifier) =>
   el.dataset.canvasDropItem === activeId;
@@ -105,7 +138,8 @@ const isHorizontal = (container: HTMLElement) =>
  * Instead of hit-testing the thin drop zone bands at component edges, this
  * finds the deepest slot or region under the pointer and the insertion point
  * nearest to the pointer within it, so every pixel of the preview resolves to
- * a drop target. The result is the id of the existing drop zone that
+ * a drop target. Inside the bounding box of the slots of a component, the
+ * pointer is taken to be in the nearest slot. The result is the id of the existing drop zone that
  * represents that insertion point, so drop handling is unchanged.
  *
  * Over the dragged component, the drop target is where it was. Its slots are
@@ -177,13 +211,20 @@ function resolveDropZoneId(
       : [r.top, r.height, point.y];
     const edge = Math.min(EDGE_THRESHOLD, size / 4);
     if (pos - start < edge || start + size - pos < edge) break;
-    const slot = Array.from(
-      hit.querySelectorAll<HTMLElement>(
-        ':scope > [data-canvas-drop-container]',
-      ),
-    ).find((el) => contains(rect(el), point));
-    if (!slot) break;
-    container = slot;
+    // Slots collapsed to no width or no height are not drop targets.
+    const slots = childrenOf(hit, '[data-canvas-drop-container]').filter(
+      (el) => rect(el).width && rect(el).height,
+    );
+    const rects = slots.map(rect);
+    // Outside the bounding box of its slots, the pointer targets the gap next
+    // to the component. Inside it, the pointer targets the slot it is in, or
+    // else the nearest slot: between two slots, the gap next to the component
+    // is across the component from the pointer.
+    if (!within(rects, point)) break;
+    const distanceTo = slotDistance(rects, point);
+    container =
+      slots.find((el) => contains(rect(el), point)) ??
+      nearest(slots, (el) => distanceTo(rect(el)));
   }
 
   const all = childItems(container);
@@ -202,10 +243,8 @@ function resolveDropZoneId(
   }
 
   const horizontal = isHorizontal(container);
-  const nearest = items.reduce((a, b) =>
-    distance(rect(b), point) < distance(rect(a), point) ? b : a,
-  );
-  const r = rect(nearest);
+  const target = nearest(items, (el) => distance(rect(el), point));
+  const r = rect(target);
   const after = horizontal
     ? point.x > r.left + r.width / 2
     : point.y > r.top + r.height / 2;
@@ -215,8 +254,8 @@ function resolveDropZoneId(
   // first half of every cell.
   const index =
     current !== -1 && wraps(all.map(rect))
-      ? all.indexOf(nearest)
-      : items.indexOf(nearest) + (after ? 1 : 0);
+      ? all.indexOf(target)
+      : items.indexOf(target) + (after ? 1 : 0);
   if (index === current) {
     return null;
   }

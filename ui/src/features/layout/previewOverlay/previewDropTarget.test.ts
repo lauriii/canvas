@@ -100,6 +100,166 @@ describe('findPreviewDropZoneId', () => {
     expect(find(200, 496)).toBe('c_bottom');
   });
 
+  it('targets the nearest slot inside the bounding box of the slots of a component', () => {
+    // A header with a slot at each end, between two other components.
+    const page = slot(
+      'page',
+      [0, 0, 400, 280],
+      [
+        item('top', [0, 0, 400, 100]),
+        item(
+          'header',
+          [0, 100, 400, 80],
+          [
+            slot(
+              'branding',
+              [20, 116, 100, 48],
+              [item('logo', [20, 116, 100, 48])],
+              'horizontal-flex',
+            ),
+            slot(
+              'navigation',
+              [200, 116, 180, 48],
+              [item('nav', [200, 116, 180, 48])],
+              'horizontal-flex',
+            ),
+            // Collapsed in the preview.
+            slot('collapsed', [20, 170, 100, 0]),
+          ],
+        ),
+        item('bottom', [0, 180, 400, 100]),
+      ],
+    );
+    const at = (x: number, y: number, active = 'new') =>
+      findPreviewDropZoneId(page, { x, y }, active);
+    expect(at(150, 140)).toBe('logo_right');
+    expect(at(170, 140)).toBe('nav_left');
+    // The slot the dragged component is alone in is where it was.
+    expect(at(150, 140, 'logo')).toBeNull();
+    expect(at(170, 140, 'logo')).toBe('nav_left');
+    // Outside the slots: beside the header.
+    expect(at(150, 114)).toBe('top_bottom');
+    expect(at(150, 166)).toBe('header_bottom');
+    expect(at(5, 130)).toBe('top_bottom');
+    expect(at(395, 150)).toBe('header_bottom');
+
+    // Columns of unequal height: slots are as tall as their content. They
+    // overlap by less than a pixel.
+    const columns = slot(
+      'page',
+      [0, 0, 400, 400],
+      [
+        item(
+          'columns',
+          [0, 0, 400, 400],
+          [
+            slot(
+              'short',
+              [0, 20, 210.5, 100],
+              [item('s', [0, 20, 210.5, 100])],
+            ),
+            slot(
+              'tall',
+              [210, 20, 190, 360],
+              [
+                item('t1', [210, 20, 190, 180]),
+                item('t2', [210, 200, 190, 180]),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+    // Below the short column, nearer to the tall one.
+    expect(findPreviewDropZoneId(columns, { x: 180, y: 300 }, 'new')).toBe(
+      's_bottom',
+    );
+    expect(findPreviewDropZoneId(columns, { x: 180, y: 300 }, 's')).toBeNull();
+
+    // A rail in a row, with a narrow slot below a wide one.
+    const row = slot(
+      'row',
+      [0, 0, 300, 400],
+      [
+        item('left', [0, 0, 100, 400]),
+        item(
+          'rail',
+          [100, 0, 100, 400],
+          [
+            slot('upper', [110, 20, 80, 100], [item('u', [110, 20, 80, 100])]),
+            slot(
+              'lower',
+              [110, 140, 30, 240],
+              [item('l', [110, 140, 30, 240])],
+            ),
+          ],
+        ),
+        item('right', [200, 0, 100, 400]),
+      ],
+      'horizontal-flex',
+    );
+    const inRow = (x: number, y: number) =>
+      findPreviewDropZoneId(row, { x, y }, 'new');
+    expect(inRow(150, 125)).toBe('u_bottom');
+    expect(inRow(150, 135)).toBe('l_top');
+    // Beside the narrow slot, nearer to the wide one.
+    expect(inRow(185, 150)).toBe('l_top');
+    // Outside the slots: beside the rail.
+    expect(inRow(150, 10)).toBe('left_right');
+    expect(inRow(195, 200)).toBe('rail_right');
+
+    // Slots that are neither all side by side nor all above each other.
+    const corners = slot(
+      'page',
+      [0, 0, 400, 400],
+      [
+        item(
+          'corners',
+          [0, 0, 400, 400],
+          [
+            slot('first', [20, 20, 100, 100]),
+            slot('last', [280, 280, 100, 100]),
+          ],
+        ),
+      ],
+    );
+    // Level with the last slot, and horizontally nearer to the first.
+    expect(findPreviewDropZoneId(corners, { x: 190, y: 330 }, 'new')).toBe(
+      'last',
+    );
+  });
+
+  it('targets the gap next to a component outside its slots', () => {
+    // A grid of cards with an image above their slot.
+    const card = (id: string, x: number, y: number) =>
+      item(
+        id,
+        [x, y, 200, 200],
+        [
+          slot(
+            `${id}-slot`,
+            [x + 10, y + 110, 180, 80],
+            [item(`${id}-text`, [x + 10, y + 110, 180, 80])],
+          ),
+        ],
+      );
+    const grid = slot(
+      'grid',
+      [0, 0, 400, 400],
+      [
+        card('a', 0, 0),
+        card('b', 200, 0),
+        card('c', 0, 200),
+        card('d', 200, 200),
+      ],
+      'horizontal-grid',
+    );
+    expect(findPreviewDropZoneId(grid, { x: 300, y: 50 }, 'a')).toBe('b_right');
+    expect(findPreviewDropZoneId(grid, { x: 300, y: 150 }, 'a')).toBe(
+      'b-text_top',
+    );
+  });
+
   it('follows the horizontal stack direction', () => {
     expect(find(50, 550)).toBe('f_left');
     expect(find(150, 550)).toBe('f_right');
