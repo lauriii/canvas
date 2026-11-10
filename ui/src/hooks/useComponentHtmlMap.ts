@@ -57,8 +57,9 @@ export function useComponentHtmlMap(iframe: HTMLIFrameElement | null) {
         return sync;
       },
       // Components slide to new positions while something is dragged (see
-      // livePreview.ts): follow them frame by frame.
-      followAnimation: (animation) => animation.id === LIVE_PREVIEW_ANIMATION,
+      // livePreview.ts), from where the overlay already shows them: the
+      // overlay slides there too (see PreviewOverlay.module.css).
+      awaitAnimation: (animation) => animation.id === LIVE_PREVIEW_ANIMATION,
       onChange: (geometry) => {
         const update = () => {
           if (stale) {

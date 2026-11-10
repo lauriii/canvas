@@ -33,7 +33,11 @@ import { useDropFromLayoutHandler } from '@/hooks/useDropFromLayoutHandler';
 import { useDropFromLibraryHandler } from '@/hooks/useDropFromLibraryHandler';
 import { useDropOnFolderHandler } from '@/hooks/useDropOnFolderHandler';
 
-import { freezeDropTargets, unfreezeDropTargets } from './previewDropTarget';
+import {
+  freezeDropTargets,
+  previewDropZoneAt,
+  unfreezeDropTargets,
+} from './previewDropTarget';
 import {
   cleanupMouseTracking,
   initMouseTracking,
@@ -208,6 +212,8 @@ const DragEventsHandler: React.FC = () => {
     if (!previewDocument || !data) {
       return;
     }
+    const at = (pointer: { x: number; y: number }) =>
+      previewDropZoneAt(pointer, event.active.id);
     if (origin === 'overlay') {
       const uuid = String(event.active.id);
       const parent = findParent(selectLayout(store.getState()), uuid);
@@ -221,6 +227,7 @@ const DragEventsHandler: React.FC = () => {
             id: parent.id,
           },
           getEventCoordinates(event.activatorEvent!) ?? undefined,
+          at,
         );
       }
     } else if (origin === 'library' && data.type !== 'folder') {
@@ -230,6 +237,7 @@ const DragEventsHandler: React.FC = () => {
         data.item?.default_markup,
         data.name,
         getEventCoordinates(event.activatorEvent!) ?? undefined,
+        at,
       );
     }
   }
@@ -281,6 +289,11 @@ const DragEventsHandler: React.FC = () => {
 
   function handleDragEnd(event: DragEndEvent) {
     dragEndCancelCommon();
+    // The drop goes where the drag and drop state has it, which can be a frame
+    // behind where the live preview shows the dragged component.
+    if (isLivePreviewActive()) {
+      showLivePreviewAt(event.over ? String(event.over.id) : null);
+    }
     try {
       handleDrop(event);
     } finally {

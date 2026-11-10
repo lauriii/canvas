@@ -21,7 +21,7 @@ export function createCanvasGeometryObserver(
     root,
     onChange,
     synchronous = false,
-    followAnimation,
+    awaitAnimation,
     ...measurementOptions
   } = options;
   const document = getOwnerDocument(root);
@@ -34,11 +34,28 @@ export function createCanvasGeometryObserver(
   let scheduledFrame: number | null = null;
   let previousSnapshot: string | null = null;
   let forceNextSnapshot = false;
+  let settling = false;
 
   const measure = () => measureCanvasGeometry(root, measurementOptions);
   const emit = () => {
     scheduledFrame = null;
     if (disconnected) {
+      return;
+    }
+    // Elements that are animated to new positions are measured once there.
+    const running = awaitAnimation
+      ? (document.getAnimations?.() ?? []).filter(
+          (a) => a.playState === 'running' && awaitAnimation(a),
+        )
+      : [];
+    if (running.length) {
+      if (!settling) {
+        settling = true;
+        Promise.allSettled(running.map((a) => a.finished)).then(() => {
+          settling = false;
+          scheduleRefresh();
+        });
+      }
       return;
     }
     const forceSnapshot = forceNextSnapshot;
@@ -48,14 +65,6 @@ export function createCanvasGeometryObserver(
     if (forceSnapshot || snapshot !== previousSnapshot) {
       previousSnapshot = snapshot;
       onChange(geometry);
-    }
-    if (
-      followAnimation &&
-      document
-        .getAnimations?.()
-        .some((a) => a.playState === 'running' && followAnimation(a))
-    ) {
-      scheduleRefresh();
     }
   };
   const scheduleRefresh = (forceSnapshot = false) => {
@@ -102,7 +111,11 @@ export function createCanvasGeometryObserver(
       forceNextSnapshot = true;
       emit();
     } else {
-      scheduleRefresh(true);
+      // Changed attributes report only changed geometry: a snapshot that is
+      // the same doesn't need to be emitted again.
+      scheduleRefresh(
+        mutations.some((mutation) => mutation.type !== 'attributes'),
+      );
     }
   });
   mutationObserver.observe(root, {

@@ -204,6 +204,18 @@
 
 /* The dragged component itself shows where it will be dropped: nothing may
  * cover it. */
+:global(.canvas--live-drop-preview) .componentOverlay,
+:global(.canvas--live-drop-preview) .slotOverlay {
+  /* Slide with the components while one is dragged (see livePreview.ts). */
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+  transition-duration: 120ms;
+  transition-property: top, left, width, height;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
 :global(.canvas--live-drop-preview) .componentDropZone.isOver::after {
   display: none;
 }

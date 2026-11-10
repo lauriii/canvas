@@ -61,7 +61,7 @@ export const DROP_PREVIEW_ID = 'canvas-drop-preview';
 /**
  * The id of the animations that slide components to new positions.
  *
- * The overlay follows them frame by frame (see useComponentHtmlMap()).
+ * The overlay waits for them to finish (see useComponentHtmlMap()).
  */
 export const LIVE_PREVIEW_ANIMATION = 'canvas-live-preview';
 
@@ -90,6 +90,8 @@ interface Session {
   untrack?: () => void;
   // The copy of the dragged markup that follows the pointer.
   ghost?: Ghost;
+  // The drop position the markup is shown at, NULL where it was.
+  shown?: string | null;
   // Where the markup is shown, once it has slid there.
   shownAt?: DOMRect;
   // Dim the moved markup.
@@ -106,14 +108,41 @@ export const isLivePreviewActive = () => session !== null;
 /** Whether a copy of the dragged component follows the pointer. */
 export const isLivePreviewCopyShown = () => !!session?.ghost;
 
-// Keeps track of the pointer while the session lasts.
-function track(current: Session, pointer: Point) {
+/**
+ * Resolves the drop position under a pointer position, in viewport
+ * coordinates of the editor. Undefined where the preview has none to offer.
+ */
+export type DropPositionAt = (pointer: Point) => string | null | undefined;
+
+// Keeps track of the pointer while the session lasts, and shows the markup at
+// the drop position under it in the frame the pointer gets there. Drag and
+// drop libraries resolve it later, once their state is updated.
+function track(current: Session, pointer: Point, at?: DropPositionAt) {
   current.pointer = pointer;
   const move = (event: PointerEvent) => {
     current.pointer = { x: event.clientX, y: event.clientY };
   };
   window.addEventListener('pointermove', move, true);
-  current.untrack = () => window.removeEventListener('pointermove', move, true);
+  // The drop position this loop showed last. Only when it changes is the
+  // markup shown somewhere else: something else may have shown it elsewhere.
+  let shown: string | null | undefined;
+  let frame = 0;
+  const showAtPointer = () => {
+    // Before the copy follows the pointer in the same frame.
+    frame = requestAnimationFrame(showAtPointer);
+    const id = current.pointer && at?.(current.pointer);
+    if (id !== undefined && id !== shown) {
+      shown = id;
+      showLivePreviewAt(id);
+    }
+  };
+  if (at) {
+    frame = requestAnimationFrame(showAtPointer);
+  }
+  current.untrack = () => {
+    window.removeEventListener('pointermove', move, true);
+    cancelAnimationFrame(frame);
+  };
 }
 
 // The elements of components, which slide to new positions.
@@ -198,6 +227,7 @@ export function startMovePreview(
   uuid: string,
   homeContainer: { type: 'slot' | 'region'; id: string },
   pointer?: Point,
+  at?: DropPositionAt,
 ): void {
   endLivePreview();
   const boundary = findBoundary(
@@ -222,7 +252,7 @@ export function startMovePreview(
     slide: [],
   };
   if (pointer && canAnimate(document)) {
-    track(session, pointer);
+    track(session, pointer, at);
     lift(session);
   }
 }
@@ -264,6 +294,7 @@ export function startInsertPreview(
   markup: string | undefined,
   name: string,
   pointer?: Point,
+  at?: DropPositionAt,
 ): void {
   endLivePreview();
   const template = document.createElement('template');
@@ -309,7 +340,7 @@ export function startInsertPreview(
     slide: [],
   };
   if (pointer && canAnimate(document)) {
-    track(session, pointer);
+    track(session, pointer, at);
   }
 }
 
@@ -406,13 +437,26 @@ function keepInPlace(anchor: { el: HTMLElement; top: number }): number {
   pane.scrollTop = from + moved;
   const scrolled = pane.scrollTop - from;
   holdDropTargets(scrolled);
+  // The overlay scrolls with the preview at once, but slides its outlines to
+  // their new positions (see PreviewOverlay.module.css): offset it so its
+  // outlines slide from where they were, like the components do.
+  pane
+    .querySelector<HTMLElement>(
+      '.canvas--viewport-overlay [data-canvas-drop-container]',
+    )
+    ?.animate(
+      [{ translate: `0 ${scrolled}px` }, { translate: '0 0' }],
+      timing(),
+    );
   return (scrolled * frame.offsetWidth) / frame.getBoundingClientRect().width;
 }
 
 export function showLivePreviewAt(dropZoneId: string | null): void {
-  if (!session) {
+  // Showing the markup where it is shown would only move it in place.
+  if (!session || session.shown === dropZoneId) {
     return;
   }
+  session.shown = dropZoneId;
   const { document, nodes } = session;
   // Where components are shown, mid-slide or not, to slide them from there.
   const before = new Map<HTMLElement, DOMRect>();
@@ -441,7 +485,16 @@ export function showLivePreviewAt(dropZoneId: string | null): void {
       scrolled = keepInPlace(anchor);
     }
     session.shownAt = bounds(nodes);
-    slide(before, session.slide, scrolled);
+    // The slides start after the overlay is updated from the moved markup (see
+    // useComponentHtmlMap()): a slide would show it where it was.
+    const current = session;
+    const animations = session.slide;
+    queueMicrotask(() => {
+      // Unless the markup was shown somewhere else since, or dropped.
+      if (current.slide === animations) {
+        slide(before, animations, scrolled);
+      }
+    });
   }
   // The copy of inserted markup appears once the markup can be measured.
   if (!session.home && !session.ghost && session.pointer) {
@@ -522,6 +575,10 @@ export function commitLivePreview(uuid?: string): Document | null {
     return null;
   }
   const { document, nodes, home } = session;
+  // The dropped markup is shown where it lands at once, so the overlay can
+  // outline it there right away.
+  session.slide.forEach((animation) => animation.finish());
+  session.slide = [];
   release(session);
   session = null;
   if (!nodes[0].isConnected) {

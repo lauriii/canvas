@@ -66,10 +66,10 @@ export interface CanvasGeometryObserverOptions extends MeasureCanvasGeometryOpti
    */
   synchronous?: boolean | (() => boolean);
   /**
-   * Emits a snapshot every frame while a matching animation runs, which moves
-   * elements without changing the markup.
+   * Waits for matching animations, which move elements without changing the
+   * markup, to finish before emitting a snapshot.
    */
-  followAnimation?: (animation: Animation) => boolean;
+  awaitAnimation?: (animation: Animation) => boolean;
 }
 
 export interface CanvasGeometryObserver {

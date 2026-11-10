@@ -564,7 +564,7 @@ ${'  Label  '}
     observer.disconnect();
   });
 
-  it('emits every frame while a followed animation runs', () => {
+  it('waits for an awaited animation to finish before emitting', async () => {
     document.body.innerHTML = `
       <!-- canvas-start-card -->
       <article>Card</article>
@@ -580,22 +580,40 @@ ${'  Label  '}
       frames.push(callback),
     );
     vi.stubGlobal('cancelAnimationFrame', vi.fn());
-    const animation = { id: 'slide', playState: 'running' };
-    document.getAnimations = () => [animation as unknown as Animation];
+    const animations: Animation[] = [];
+    document.getAnimations = () => animations;
     const onChange = vi.fn();
     const observer = createCanvasGeometryObserver({
       root: document,
       onChange,
-      followAnimation: (a) => a.id === 'slide',
+      awaitAnimation: (a) => a.id === 'slide',
     });
+    expect(onChange).toHaveBeenCalledTimes(1);
 
-    expect(frames).toHaveLength(1);
+    let finish!: () => void;
+    const slide = {
+      id: 'slide',
+      playState: 'running',
+      finished: new Promise<void>((resolve) => {
+        finish = resolve;
+      }),
+    };
+    animations.push(slide as unknown as Animation);
     left = 10;
+    observer.refresh();
+    frames.shift()!(0);
+    // Not while the element slides.
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(frames).toHaveLength(0);
+
+    slide.playState = 'finished';
+    finish();
+    await slide.finished;
+    await Promise.resolve();
+    expect(frames).toHaveLength(1);
     frames.shift()!(0);
     expect(onChange).toHaveBeenCalledTimes(2);
-    animation.playState = 'finished';
-    frames.shift()!(0);
-    expect(frames).toHaveLength(0);
+    expect(onChange.mock.lastCall![0][0].rect.left).toBe(10);
 
     observer.disconnect();
     Reflect.deleteProperty(document, 'getAnimations');

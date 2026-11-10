@@ -69,6 +69,41 @@ export function holdDropTargets(scrolled: number): void {
   }
 }
 
+/**
+ * Resolves the preview drop zone under a pointer position.
+ *
+ * @param point
+ *   The pointer position in viewport coordinates.
+ * @param activeId
+ *   The id of the dragged item.
+ *
+ * @return
+ *   The drop zone id (see findPreviewDropZoneId()). NULL over the editor pane
+ *   outside the previewed page, where nothing is a drop target. Undefined
+ *   outside the editor pane.
+ */
+export function previewDropZoneAt(
+  point: Point,
+  activeId: UniqueIdentifier,
+): string | null | undefined {
+  const viewport =
+    frozen?.viewport ??
+    document
+      .querySelector('.canvas--viewport-overlay [data-canvas-drop-container]')
+      ?.closest('.canvas--viewport-overlay');
+  const root = viewport?.querySelector<HTMLElement>(
+    '[data-canvas-drop-container]',
+  );
+  const pane = viewport?.closest('[data-canvas-editor-pane="true"]');
+  if (!root || !pane || !contains(pane.getBoundingClientRect(), point)) {
+    return undefined;
+  }
+  if (!contains(viewport!.getBoundingClientRect(), point)) {
+    return null;
+  }
+  return findPreviewDropZoneId(root, point, activeId);
+}
+
 /** Resolves drop targets against the current layout again. */
 export function unfreezeDropTargets(): void {
   frozen = null;
