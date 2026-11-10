@@ -34,14 +34,40 @@ interface ComponentContextMenuProps {
   component: ComponentNode;
 }
 
+/**
+ * The menu content. Every component instance has a (closed) menu in the
+ * preview and two in the Layers panel, so this renders only the menu shell.
+ * Radix mounts the shell's children only while the menu is open, so the
+ * hooks in ComponentContextMenuItems (router, selection, component list) run
+ * for the open menu only.
+ */
 export const ComponentContextMenuContent: React.FC<
   Pick<ComponentContextMenuProps, 'component'> & {
     menuType?: UnifiedMenuType;
   }
 > = ({ component, menuType = 'context' }) => {
+  const componentName = useGetComponentName(component);
+  return (
+    <UnifiedMenu.Content
+      aria-label={`Context menu for ${componentName}`}
+      menuType={menuType}
+      align="start"
+      side="right"
+    >
+      <CloseOnZoom />
+      <ComponentContextMenuItems
+        component={component}
+        componentName={componentName}
+      />
+    </UnifiedMenu.Content>
+  );
+};
+
+const ComponentContextMenuItems: React.FC<
+  Pick<ComponentContextMenuProps, 'component'> & { componentName: string }
+> = ({ component, componentName }) => {
   const dispatch = useAppDispatch();
   const { data: components } = useGetComponentsQuery();
-  const componentName = useGetComponentName(component);
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const { setSelectedComponent, unsetSelectedComponent } =
     useComponentSelection();
@@ -163,13 +189,7 @@ export const ComponentContextMenuContent: React.FC<
   );
 
   return (
-    <UnifiedMenu.Content
-      aria-label={`Context menu for ${componentName}`}
-      menuType={menuType}
-      align="start"
-      side="right"
-    >
-      <CloseOnZoom />
+    <>
       <UnifiedMenu.Label>{componentName}</UnifiedMenu.Label>
       {isCodeComponent && !isExternal && (
         <PermissionCheck hasPermission="codeComponents">
@@ -234,7 +254,7 @@ export const ComponentContextMenuContent: React.FC<
           </UnifiedMenu.Item>
         </>
       )}
-    </UnifiedMenu.Content>
+    </>
   );
 };
 

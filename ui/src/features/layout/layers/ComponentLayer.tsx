@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { memo, useCallback } from 'react';
 import clsx from 'clsx';
 import { useDraggable } from '@dnd-kit/core';
 import { CollapsibleContent } from '@radix-ui/react-collapsible';
@@ -21,8 +21,8 @@ import {
   toggleCollapsedLayer,
   unsetHoveredComponent,
 } from '@/features/ui/uiSlice';
-import useComponentSelection from '@/hooks/useComponentSelection';
 import useGetComponentName from '@/hooks/useGetComponentName';
+import { useStableComponentSelection } from '@/hooks/useStableComponentSelection';
 import { isMarkerComponentType } from '@/services/pageVariants';
 
 import type React from 'react';
@@ -53,11 +53,12 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
   const isHovered = useAppSelector((state) => {
     return selectIsComponentHovered(state, component.uuid);
   });
-  const collapsedLayers = useAppSelector(selectCollapsedLayers);
-  const { handleComponentSelection } = useComponentSelection();
+  const { handleComponentSelection } = useStableComponentSelection();
 
   const componentId = component.uuid;
-  const isCollapsed = collapsedLayers.includes(componentId);
+  const isCollapsed = useAppSelector((state) =>
+    selectCollapsedLayers(state).includes(componentId),
+  );
   const nodeName = useGetComponentName(component);
   const isSelected = useAppSelector((state) =>
     selectComponentIsSelected(state, componentId),
@@ -232,4 +233,6 @@ const ComponentLayer: React.FC<ComponentLayerProps> = ({
   );
 };
 
-export default ComponentLayer;
+// Memoized: a page has one row per component instance, and selecting one must
+// not re-render the others.
+export default memo(ComponentLayer);

@@ -78,6 +78,7 @@ function filterParentChildRelationships(
  * Handles selecting and deselecting components, managing multi-selection and ensuring the page URL is updated to
  * show the selectedComponent (when there is exactly one selected)
  * Also exposes functions to drupalSettings.canvas.componentSelectionUtils for extensions to use.
+ * Each caller re-renders on every navigation, selection change and layout change. Components rendered once per component instance use useStableComponentSelection() instead.
  */
 export function useComponentSelection() {
   const layout = useAppSelector(selectLayout);

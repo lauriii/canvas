@@ -1,7 +1,8 @@
 import { useCallback } from 'react';
 
+import { useAppSelector } from '@/app/hooks';
 import { getDisplayNameForNode } from '@/features/layout/layoutUtils';
-import { useGetComponentsQuery } from '@/services/componentAndLayout';
+import { componentAndLayoutApi } from '@/services/componentAndLayout';
 
 import type {
   ComponentNode,
@@ -11,11 +12,23 @@ import type {
 } from '@/features/layout/layoutModelSlice';
 import type { ComponentsList } from '@/types/Component';
 
+const selectComponents = componentAndLayoutApi.endpoints.getComponents.select();
+
+/**
+ * Returns the display name of a component or slot node.
+ *
+ * This runs once or more per component instance (Layers rows, preview
+ * overlays, context menus), and each caller's selector runs on every store
+ * update. useGetComponentsQuery() would build a chain of query state selectors
+ * per caller. This subscribes to the query without reading its state, and
+ * reads the data through one memoized selector that all callers share.
+ */
 const useGetComponentName = (
   node: LayoutChildNode | null,
   parentNode?: LayoutNode | null,
 ) => {
-  const { data: components } = useGetComponentsQuery();
+  componentAndLayoutApi.endpoints.getComponents.useQuerySubscription();
+  const components = useAppSelector((state) => selectComponents(state).data);
 
   // Helper to cast parentNode to ComponentNode if needed
   const getParentComponentNode = (

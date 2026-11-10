@@ -3,23 +3,33 @@ import { describe, expect, it, vi } from 'vitest';
 import { Theme } from '@radix-ui/themes';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 
+import { makeStore } from '@/app/store';
 import { NodeType } from '@/features/layout/layoutModelSlice';
 import ComponentContextMenu from '@/features/layout/preview/ComponentContextMenu';
 import {
   editorViewPortZoomIn,
   setEditorFrameViewPort,
 } from '@/features/ui/uiSlice';
+import { componentAndLayoutApi } from '@/services/componentAndLayout';
 import { renderWithProviders } from '@/utils/test-utils';
 
 import type { ComponentNode } from '@/features/layout/layoutModelSlice';
+import type { ComponentsList } from '@/types/Component';
 
-vi.mock('@/services/componentAndLayout', async () => {
-  const actual = await vi.importActual('@/services/componentAndLayout');
-  return {
-    ...actual,
-    useGetComponentsQuery: () => ({ data: {} }),
-  };
-});
+const COMPONENTS: ComponentsList = {
+  'sdc.example.card': {
+    id: 'sdc.example.card',
+    name: 'Card',
+    library: 'dynamic_components',
+    source: 'Block',
+    default_markup: '',
+    css: '',
+    js_header: '',
+    js_footer: '',
+    version: '0123456789abcdef',
+    broken: false,
+  },
+};
 
 const INSTANCE_COUNT = 5;
 
@@ -30,8 +40,20 @@ const componentNode = (index: number): ComponentNode => ({
   slots: [],
 });
 
-const renderMenus = () =>
-  renderWithProviders(
+/**
+ * Renders the menus with the component list already in the query cache, so no
+ * request starts.
+ */
+const renderMenus = async () => {
+  const store = makeStore();
+  await store.dispatch(
+    componentAndLayoutApi.util.upsertQueryData(
+      'getComponents',
+      undefined,
+      COMPONENTS,
+    ),
+  );
+  return renderWithProviders(
     <MemoryRouter>
       <Theme>
         {Array.from({ length: INSTANCE_COUNT }, (_, index) => (
@@ -41,7 +63,9 @@ const renderMenus = () =>
         ))}
       </Theme>
     </MemoryRouter>,
+    { store },
   );
+};
 
 /**
  * Returns a getter for the `keydown` events dispatched on `document` from now.
@@ -52,9 +76,9 @@ const spyOnKeydownDispatches = () => {
 };
 
 describe('ComponentContextMenu', () => {
-  it('does not dispatch keydown events from closed menus on mount or zoom', () => {
+  it('does not dispatch keydown events from closed menus on mount or zoom', async () => {
     const keydownDispatches = spyOnKeydownDispatches();
-    const { store } = renderMenus();
+    const { store } = await renderMenus();
 
     act(() => {
       store.dispatch(editorViewPortZoomIn());
@@ -65,10 +89,12 @@ describe('ComponentContextMenu', () => {
   });
 
   it('closes the open menu when the user zooms', async () => {
-    const { store } = renderMenus();
+    const { store } = await renderMenus();
 
     fireEvent.contextMenu(screen.getByText('Instance 2'));
-    expect(await screen.findByRole('menu')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('menu', { name: 'Context menu for Card' }),
+    ).toBeInTheDocument();
 
     act(() => {
       store.dispatch(editorViewPortZoomIn());
@@ -81,7 +107,7 @@ describe('ComponentContextMenu', () => {
 
   it('keeps the open menu open when the viewport pans without zooming', async () => {
     const keydownDispatches = spyOnKeydownDispatches();
-    const { store } = renderMenus();
+    const { store } = await renderMenus();
 
     fireEvent.contextMenu(screen.getByText('Instance 2'));
     expect(await screen.findByRole('menu')).toBeInTheDocument();
