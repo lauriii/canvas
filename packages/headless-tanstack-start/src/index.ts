@@ -15,6 +15,7 @@ export {
   TANSTACK_DRAFT_FLAG_COOKIE_NAME,
 } from './adapter';
 export {
+  createCacheInvalidationRouteHandler,
   createDraftRouteHandlers,
   type DraftRouteHandlers,
 } from './route-handlers';
@@ -25,6 +26,7 @@ export {
   enableDraftMode,
   fetchEntity,
   fetchPage,
+  fetchPublishedPage,
   getClient,
   getDraftClient,
   getDraftConfig,
@@ -41,8 +43,10 @@ export {
 export {
   getDraftEditorOrigin,
   getSessionToken,
+  isPageNotFound,
   isPageRedirect,
   type AccessToken,
+  type Cacheability,
   type CanvasComponentTreeElement,
   type CanvasComponentTreeSlot,
   type CanvasContext,
@@ -52,6 +56,7 @@ export {
   type DrupalRouteEntity,
   type Page,
   type PageHead,
+  type PageNotFound,
   type PageRedirect,
   type PageResult,
 } from '@drupal-canvas/headless';

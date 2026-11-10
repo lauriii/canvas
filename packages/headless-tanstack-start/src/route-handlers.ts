@@ -1,9 +1,13 @@
+import { createCacheInvalidationHandler } from '@drupal-canvas/headless/server';
+
 import {
   disableDraftMode,
   enableDraftMode,
   handleJsonApiProxy,
   renewDraftSession,
 } from './server';
+
+import type { CacheInvalidationOptions } from '@drupal-canvas/headless/server';
 
 /**
  * The shape a TanStack Start server route handler takes: the framework
@@ -78,4 +82,29 @@ export function createDraftRouteHandlers(): DraftRouteHandlers {
       OPTIONS: proxy,
     },
   };
+}
+
+/**
+ * Creates the cache invalidation route handler, for example at
+ * src/routes/api/canvas.revalidate.ts. Drupal announces invalidated cache
+ * tags to the URLs in its `cache_invalidation_urls` setting; `invalidate`
+ * expires whatever the app cached with them, for example a CDN purge.
+ * `fetchPublishedPage()` results carry the tags. Pass `defer` (for example a
+ * platform's `waitUntil`) to answer Drupal before reading the tags.
+ *
+ * ```ts
+ * export const Route = createFileRoute('/api/canvas/revalidate')({
+ *   server: {
+ *     handlers: createCacheInvalidationRouteHandler({
+ *       invalidate: (tags) => purgeCdnTags(tags),
+ *     }),
+ *   },
+ * });
+ * ```
+ */
+export function createCacheInvalidationRouteHandler(
+  options: Pick<CacheInvalidationOptions, 'invalidate' | 'config' | 'defer'>,
+): { POST: ServerRouteHandler } {
+  const handle = createCacheInvalidationHandler(options);
+  return { POST: ({ request }) => handle(request) };
 }

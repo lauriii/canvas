@@ -31,6 +31,7 @@ export const getPublicClient = server.getPublicClient;
 export const getDraftClient = server.getDraftClient;
 export const fetchEntity = server.fetchEntity;
 export const fetchPage = server.fetchPage;
+export const fetchPublishedPage = server.fetchPublishedPage;
 export const fetchComponentPreview = server.fetchComponentPreview;
 export const getJsonApiRuntimeConfig = server.getJsonApiRuntimeConfig;
 export const handleJsonApiProxy = server.handleJsonApiProxy;
