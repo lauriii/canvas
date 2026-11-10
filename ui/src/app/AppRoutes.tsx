@@ -26,6 +26,7 @@ import ReviewChangesPage from '@/features/review/ReviewChangesPage';
 import { EditorFrameContext } from '@/features/ui/uiSlice';
 import VersionPreview from '@/features/versionComparison/VersionPreview';
 import Welcome from '@/features/welcome/Welcome';
+import { SelectedCodeComponentProvider } from '@/hooks/useSelectedCodeComponent';
 import { getCanvasSettings } from '@/utils/drupal-globals';
 
 import type React from 'react';
@@ -37,7 +38,9 @@ interface AppRoutesInterface {
 const UiShell = ({ children }: { children: React.ReactNode }) => (
   <>
     <SideMenu />
-    <PrimaryPanel />
+    <SelectedCodeComponentProvider>
+      <PrimaryPanel />
+    </SelectedCodeComponentProvider>
     <Flex flexGrow="1" style={{ overflow: 'hidden', position: 'relative' }}>
       {children}
     </Flex>

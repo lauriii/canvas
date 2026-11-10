@@ -21,6 +21,25 @@ export type TemplateViewModeNavigation = Pick<
 };
 
 /**
+ * Constructs a URL path for the code editor.
+ *
+ * Exported so a component can build the URL without the router hooks in
+ * useEditorNavigation().
+ *
+ * @param machineName - The machine name of the component to edit.
+ * @returns The URL path string, or empty string if machineName is missing.
+ */
+export const urlForCodeEditor = (machineName?: string) => {
+  if (!machineName) {
+    console.warn(
+      '[useEditorNavigation] urlForCodeEditor called with undefined machineName',
+    );
+    return '';
+  }
+  return `/code-editor/component/${machineName}`;
+};
+
+/**
  * Hook for editor navigation functions.
  *
  * Provides a unified API for navigating between different editor views:
@@ -106,21 +125,6 @@ export function useEditorNavigation() {
   }, []);
 
   /**
-   * Constructs a URL path for the code editor.
-   * @param machineName - The machine name of the component to edit.
-   * @returns The URL path string, or empty string if machineName is missing.
-   */
-  const urlForCodeEditor = useCallback((machineName?: string) => {
-    if (!machineName) {
-      console.warn(
-        '[useEditorNavigation] urlForCodeEditor called with undefined machineName',
-      );
-      return '';
-    }
-    return `/code-editor/component/${machineName}`;
-  }, []);
-
-  /**
    * Navigates to the entity editor for a given entity.
    * @param entityType - The type of entity (e.g., 'node', 'canvas_page').
    * @param entityId - The ID of the entity to edit.
@@ -196,7 +200,7 @@ export function useEditorNavigation() {
       }
       navigate(urlForCodeEditor(machineName), options);
     },
-    [navigate, urlForCodeEditor],
+    [navigate],
   );
 
   /**

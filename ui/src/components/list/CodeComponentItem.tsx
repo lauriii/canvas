@@ -1,7 +1,6 @@
-import { useParams } from 'react-router';
 import { ContextMenu, HoverCard, Text } from '@radix-ui/themes';
 
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { useAppDispatch, useAppSelector, useAppStore } from '@/app/hooks';
 import PermissionCheck from '@/components/PermissionCheck';
 import SidebarNode from '@/components/sidePanel/SidebarNode';
 import UnifiedMenu from '@/components/UnifiedMenu';
@@ -14,7 +13,10 @@ import {
   openRenameDialog,
 } from '@/features/ui/codeComponentDialogSlice';
 import { selectActivePanel } from '@/features/ui/primaryPanelSlice';
-import useEditorNavigation from '@/hooks/useEditorNavigation';
+import useEditorNavigation, {
+  urlForCodeEditor,
+} from '@/hooks/useEditorNavigation';
+import { useSelectedCodeComponent } from '@/hooks/useSelectedCodeComponent';
 
 import type { CodeComponentSerialized } from '@/types/CodeComponent';
 import type { JSComponent } from '@/types/Component';
@@ -34,6 +36,23 @@ export function getComponentId(
   return (component as any).id || (component as any).machineName;
 }
 
+/**
+ * The "Edit code" menu item.
+ *
+ * Radix mounts menu content only while the menu is open, so the router hooks
+ * in useEditorNavigation() run for the open menu only.
+ */
+const EditCodeMenuItem = ({ machineName }: { machineName: string }) => {
+  const { navigateToCodeEditor } = useEditorNavigation();
+  const handleEditClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    navigateToCodeEditor(machineName);
+  };
+  return (
+    <UnifiedMenu.Item onClick={handleEditClick}>Edit code</UnifiedMenu.Item>
+  );
+};
+
 interface CodeComponentItemProps {
   component: JSComponent | CodeComponentSerialized;
   exposed: boolean;
@@ -43,6 +62,13 @@ interface CodeComponentItemProps {
   menuTitleItems?: React.ReactNode;
 }
 
+/**
+ * A code component item in the Library or Code panel.
+ *
+ * Every code component has an item, so an item does not subscribe to the
+ * layout or the route. The menu handlers read the layout from the store when
+ * they run.
+ */
 const CodeComponentItem: React.FC<CodeComponentItemProps> = ({
   component,
   exposed,
@@ -52,21 +78,22 @@ const CodeComponentItem: React.FC<CodeComponentItemProps> = ({
   menuTitleItems,
 }) => {
   const dispatch = useAppDispatch();
+  const store = useAppStore();
   const componentId = getComponentId(component);
   const machineName = removeJsPrefix(componentId);
-  const layout = useAppSelector(selectLayout);
-  const isComponentInLayout = componentExistsInLayout(layout, componentId);
-  const { navigateToCodeEditor, urlForCodeEditor } = useEditorNavigation();
-  const { codeComponentId: selectedComponent } = useParams();
+  const selectedComponent = useSelectedCodeComponent();
   const activePanel = useAppSelector(selectActivePanel);
   const isExternal = component.type === 'external';
+
+  const isComponentInLayout = () =>
+    componentExistsInLayout(selectLayout(store.getState()), componentId);
 
   // Menu item handlers
   const handleRemoveFromComponentsClick = (
     e: React.MouseEvent<HTMLDivElement>,
   ) => {
     e.stopPropagation();
-    if (isComponentInLayout) {
+    if (isComponentInLayout()) {
       dispatch(openInLayoutDialog());
     } else {
       dispatch(
@@ -80,15 +107,11 @@ const CodeComponentItem: React.FC<CodeComponentItemProps> = ({
   };
   const handleDeleteClick = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
-    if (isComponentInLayout) {
+    if (isComponentInLayout()) {
       dispatch(openInLayoutDialog());
     } else {
       dispatch(openDeleteDialog(component as CodeComponentSerialized));
     }
-  };
-  const handleEditClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.stopPropagation();
-    navigateToCodeEditor(machineName);
   };
 
   // Menu items for exposed code components. External components offer no
@@ -113,9 +136,7 @@ const CodeComponentItem: React.FC<CodeComponentItemProps> = ({
           <UnifiedMenu.Item onClick={handleRemoveFromComponentsClick}>
             Remove from components
           </UnifiedMenu.Item>
-          <UnifiedMenu.Item onClick={handleEditClick}>
-            Edit code
-          </UnifiedMenu.Item>
+          <EditCodeMenuItem machineName={machineName} />
           <UnifiedMenu.Item onClick={handleRenameClick}>
             Rename
           </UnifiedMenu.Item>
@@ -132,9 +153,7 @@ const CodeComponentItem: React.FC<CodeComponentItemProps> = ({
         <UnifiedMenu.Item disabled>No actions available</UnifiedMenu.Item>
       }
     >
-      {!isExternal && (
-        <UnifiedMenu.Item onClick={handleEditClick}>Edit code</UnifiedMenu.Item>
-      )}
+      {!isExternal && <EditCodeMenuItem machineName={machineName} />}
       {!isExternal && (
         <UnifiedMenu.Item onClick={handleRenameClick}>Rename</UnifiedMenu.Item>
       )}

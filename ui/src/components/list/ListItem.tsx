@@ -1,11 +1,10 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import clsx from 'clsx';
-import { useParams } from 'react-router';
 import { useDraggable } from '@dnd-kit/core';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { Theme } from '@radix-ui/themes';
 
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { useAppDispatch, useAppSelector, useAppStore } from '@/app/hooks';
 import ComponentPreview from '@/components/ComponentPreview';
 import HeadlessComponentPreview from '@/components/HeadlessComponentPreview';
 import CodeComponentItem from '@/components/list/CodeComponentItem';
@@ -19,8 +18,9 @@ import {
 } from '@/features/layout/layoutModelSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
 import { selectActivePanel } from '@/features/ui/primaryPanelSlice';
+import { selectSelectedComponentUuid } from '@/features/ui/uiSlice';
 import { useCanvasHeadlessSettings } from '@/hooks/useCanvasHeadlessSettings';
-import useComponentSelection from '@/hooks/useComponentSelection';
+import { useStableComponentSelection } from '@/hooks/useStableComponentSelection';
 
 import type React from 'react';
 import type { LayoutItemType } from '@/features/ui/primaryPanelSlice';
@@ -51,6 +51,13 @@ function isJSComponent(item: LibraryItem): item is JSComponent {
   return 'source' in item && (item as JSComponent).source === 'Code component';
 }
 
+/**
+ * An item in the Library or Code panel.
+ *
+ * Every library component has an item, so an item does not subscribe to the
+ * layout, the selection or the route. The Insert handler reads them from the
+ * store when it runs.
+ */
 const ListItem: React.FC<{
   item: LibraryItem;
   type:
@@ -63,12 +70,14 @@ const ListItem: React.FC<{
   const itemId = 'id' in item ? item.id : item.machineName;
   const dispatch = useAppDispatch();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const layout = useAppSelector(selectLayout);
+  const store = useAppStore();
+  const isLayoutEmpty = useAppSelector(
+    (state) => selectLayout(state).length === 0,
+  );
   const [previewingComponent, setPreviewingComponent] = useState<
     CanvasComponent | Pattern
   >();
-  const { componentId: selectedComponent } = useParams();
-  const { setSelectedComponent } = useComponentSelection();
+  const { setSelectedComponent } = useStableComponentSelection();
   const activePanel = useAppSelector(selectActivePanel);
   const headlessSettings = useCanvasHeadlessSettings();
   const canPreview =
@@ -90,6 +99,9 @@ const ListItem: React.FC<{
 
   const handleInsertClick = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
+    const state = store.getState();
+    const layout = selectLayout(state);
+    const selectedComponent = selectSelectedComponentUuid(state);
     // Insert relative to the current selection, or into the content region.
     const path: number[] | null = selectedComponent
       ? findNodePathByUuid(layout, selectedComponent)
@@ -136,10 +148,7 @@ const ListItem: React.FC<{
   const insertMenuItem = () => (
     // While the layout (re)loads the model has no regions to insert into; a
     // click then would be silently dropped, so offer Insert only when ready.
-    <UnifiedMenu.Item
-      onClick={handleInsertClick}
-      disabled={layout.length === 0}
-    >
+    <UnifiedMenu.Item onClick={handleInsertClick} disabled={isLayoutEmpty}>
       Insert
     </UnifiedMenu.Item>
   );
@@ -279,4 +288,4 @@ const ListItem: React.FC<{
   );
 };
 
-export default ListItem;
+export default memo(ListItem);
