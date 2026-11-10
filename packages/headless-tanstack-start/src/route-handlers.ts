@@ -103,7 +103,7 @@ export function createDraftRouteHandlers(): DraftRouteHandlers {
  * ```
  */
 export function createCacheInvalidationRouteHandler(
-  options: Pick<CacheInvalidationOptions, 'invalidate' | 'config' | 'defer'>,
+  options: CacheInvalidationOptions,
 ): { POST: ServerRouteHandler } {
   const handle = createCacheInvalidationHandler(options);
   return { POST: ({ request }) => handle(request) };
