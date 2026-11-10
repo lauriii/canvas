@@ -1,5 +1,3 @@
-import type { CacheInvalidationStatus } from '@/services/headlessFrontends';
-
 export type ConnectionStatus =
   'checking' | 'ready' | 'unreachable' | 'setup-needed';
 
@@ -7,8 +5,6 @@ export interface HeadlessFrontend {
   id: string;
   url: string;
   status: ConnectionStatus;
-  cacheInvalidation: boolean;
-  cacheInvalidationStatus: CacheInvalidationStatus | null;
 }
 
 export type PackageManager = 'npm' | 'pnpm' | 'yarn' | 'bun';

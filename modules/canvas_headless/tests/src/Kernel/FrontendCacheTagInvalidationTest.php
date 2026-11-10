@@ -6,8 +6,10 @@ namespace Drupal\Tests\canvas_headless\Kernel;
 
 use Drupal\canvas_headless\Cache\FrontendCacheTagInvalidator;
 use Drupal\canvas_headless\Controller\CacheInvalidationController;
+use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\DestructableInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Routing\RouteBuilderInterface;
 use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
@@ -47,10 +49,7 @@ final class FrontendCacheTagInvalidationTest extends CanvasKernelTestBase {
   public function testAnnouncesDeferredRouterRebuild(): void {
     $this->installConfig(['canvas_headless']);
     $this->config('canvas_headless.settings')
-      ->set('frontends', [
-        ['url' => 'https://www.example.com', 'components' => [], 'cache_invalidation' => TRUE],
-        ['url' => 'https://disabled.example', 'components' => [], 'cache_invalidation' => FALSE],
-      ])
+      ->set('frontends', [['url' => 'https://www.example.com', 'components' => []]])
       ->save();
     $history = [];
     $handler = HandlerStack::create(new MockHandler([new Response(204)]));
@@ -85,14 +84,51 @@ final class FrontendCacheTagInvalidationTest extends CanvasKernelTestBase {
     $controller = $this->container->get(CacheInvalidationController::class);
     $read = static fn (mixed $id) => $controller(Request::create('/canvas-headless/cache-invalidation', 'POST', content: (string) json_encode(['id' => $id])));
     $invalidator = $this->container->get(FrontendCacheTagInvalidator::class);
-    // Announced, but not read yet.
-    $this->assertSame(['https://www.example.com'], \array_keys($invalidator->getStatus()));
-    $this->assertSame('idle', $invalidator->getStatus()['https://www.example.com']['state']);
+    // Announced, but never read yet: the frontend is not connected.
+    $this->assertCount(0, $invalidator->getStatus());
     $this->assertSame('{"tags":["http_response"]}', $read($id)->getContent());
-    $this->assertSame('ok', $invalidator->getStatus()['https://www.example.com']['state']);
+    $this->assertSame(['https://www.example.com'], \array_keys($invalidator->getStatus()));
+    $this->assertSame(['ok'], array_column($invalidator->getStatus(), 'state'));
     // Single use.
     $this->expectException(NotFoundHttpException::class);
     $read($id);
+  }
+
+  /**
+   * Tests that a cache rebuild and cron announce.
+   */
+  public function testAnnouncesCacheRebuildAndCron(): void {
+    $this->installConfig(['canvas_headless']);
+    $this->config('canvas_headless.settings')
+      ->set('frontends', [['url' => 'https://www.example.com', 'components' => []]])
+      ->save();
+    $history = [];
+    $handler = HandlerStack::create(new MockHandler([new Response(204), new Response(204)]));
+    $handler->push(Middleware::history($history));
+    $this->container->set('http_client', new Client(['handler' => $handler]));
+    $module_handler = $this->container->get(ModuleHandlerInterface::class);
+    $invalidator = $this->container->get(FrontendCacheTagInvalidator::class);
+    $announced = static function () use (&$history, $invalidator): ?array {
+      \assert(\is_array($history));
+      return $invalidator->redeem(json_decode((string) end($history)['request']->getBody(), flags: JSON_THROW_ON_ERROR)->id);
+    };
+
+    // A cache rebuild is announced at once: the container that rebuilds may
+    // never be destructed.
+    $module_handler->invoke('canvas_headless', 'rebuild');
+    \assert(\is_array($history));
+    $this->assertCount(1, $history);
+    $this->assertSame(['http_response'], $announced());
+
+    // Cron announces to a frontend that missed an announcement, only.
+    $module_handler->invoke('canvas_headless', 'cron');
+    $this->assertCount(1, $history);
+    $states = $this->container->get('keyvalue')->get(FrontendCacheTagInvalidator::STATE_COLLECTION);
+    $key = Crypt::hashBase64('https://www.example.com');
+    $states->set($key, ['missed_at' => 1.0] + $states->get($key));
+    $module_handler->invoke('canvas_headless', 'cron');
+    $this->assertCount(2, $history);
+    $this->assertSame(['http_response'], $announced());
   }
 
 }

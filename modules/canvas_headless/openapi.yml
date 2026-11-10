@@ -264,11 +264,10 @@ paths:
       summary: Read announced invalidated cache tags
       description: |
         Returns the cache tags invalidated in one Drupal request, once. Drupal
-        announces the ID to every configured frontend that has cache
-        invalidation enabled, by sending the same JSON body to
-        `/api/canvas/revalidate` below the frontend URL. IDs expire after five
-        minutes. A frontend that does not read the tags within 30 seconds is
-        told to expire everything later, by the tag `http_response`.
+        announces the ID to every configured frontend, by sending the same JSON
+        body to `/api/canvas/revalidate` below the frontend URL. IDs expire
+        after five minutes. A frontend that does not read the tags within 30
+        seconds is told to expire everything later, by the tag `http_response`.
       requestBody:
         required: true
         content:
@@ -427,8 +426,6 @@ paths:
       description: |
         Replaces the entire ordered list of configured frontend URLs.
         Cookie authentication and an X-CSRF-Token request header are required.
-        A frontend whose `cacheInvalidation` is omitted keeps its value, or
-        starts with `false`.
       parameters:
         - $ref: '#/components/parameters/CsrfToken'
       requestBody:
@@ -453,9 +450,7 @@ paths:
         '403':
           $ref: '#/components/responses/DrupalErrorResponse'
         '422':
-          description: >-
-            Invalid or duplicate frontend URL, or a `cacheInvalidation` that is
-            not a boolean.
+          description: Invalid or duplicate frontend URL.
           content:
             application/json:
               schema:
@@ -465,15 +460,11 @@ paths:
     post:
       summary: Test cache invalidation for a headless frontend
       description: |
-        Announces to one configured frontend now, whether or not cache
-        invalidation is enabled for it, and waits up to five seconds for the
-        frontend to read the cache tags from Drupal. The announced tag is one
-        that no response carries, so nothing expires, unless `expireAll` is
-        true or the frontend missed an earlier announcement: then the tag is
-        `http_response`, and the frontend expires everything. A frontend
-        whose cache invalidation was just turned on missed what changed while
-        it was off, so its first test also announces `http_response`. A
-        frontend whose cache invalidation is off keeps no state.
+        Announces to one configured frontend now, and waits up to five seconds
+        for the frontend to read the cache tags from Drupal. The announced tag
+        is one that no response carries, so nothing expires, unless the
+        frontend missed an earlier announcement or never read one: then the
+        tag is `http_response`, and the frontend expires everything.
         Cookie authentication and an X-CSRF-Token request header are required.
       parameters:
         - $ref: '#/components/parameters/CsrfToken'
@@ -490,10 +481,6 @@ paths:
                   type: string
                   format: uri
                   description: The URL of a configured frontend.
-                expireAll:
-                  type: boolean
-                  default: false
-                  description: Whether the frontend must expire everything.
       responses:
         '200':
           description: The outcome of the test.
@@ -951,16 +938,12 @@ components:
           type: array
           items:
             type: string
-        cacheInvalidation:
-          type: boolean
-          description: >-
-            Whether invalidated cache tags are announced to the frontend.
-            Always present in responses.
         cacheInvalidationStatus:
           description: >-
-            Present in responses only. Null when `cacheInvalidation` is false, or
-            when the current user lacks the `administer canvas headless
-            frontends` permission.
+            Present in responses only. Whether invalidated cache tags, which
+            are announced to every frontend, arrive. Null until the frontend
+            has read announced cache tags once, and for users without the
+            `administer canvas headless frontends` permission.
           readOnly: true
           oneOf:
             - $ref: '#/components/schemas/CacheInvalidationStatus'
@@ -969,20 +952,17 @@ components:
     CacheInvalidationStatus:
       type: object
       additionalProperties: false
-      required: [state, lastSuccess, lastFailure, lastError, failures]
+      required: [state, lastSuccess, lastFailure, lastError]
       properties:
         state:
           type: string
-          enum: [ok, failing, idle]
+          enum: [ok, failing]
           description: >-
             `failing` after an announcement failed or was not read, until the
-            frontend has read an announcement that expires everything; `idle`
-            while the frontend has never read announced cache tags; `ok`
+            frontend has read an announcement that expires everything; `ok`
             otherwise.
         lastSuccess:
-          oneOf:
-            - type: integer
-            - type: 'null'
+          type: integer
           description: Unix time the frontend last read announced cache tags.
         lastFailure:
           oneOf:
@@ -994,10 +974,6 @@ components:
             - type: string
             - type: 'null'
           description: The error of the last failure, if none succeeded since.
-        failures:
-          type: integer
-          minimum: 0
-          description: The number of consecutive failures.
 
     CacheInvalidationTestResult:
       type: object

@@ -48,28 +48,3 @@ function canvas_headless_post_update_0001_assign_existing_external_components():
     $settings->set('frontends', $frontends)->save();
   }
 }
-
-/**
- * Adds the cache invalidation switch, turned off, to headless frontends.
- */
-function canvas_headless_post_update_0002_add_cache_invalidation_switch(): void {
-  $settings = \Drupal::configFactory()->getEditable('canvas_headless.settings');
-  $frontends = $settings->get('frontends');
-  if (!\is_array($frontends)) {
-    return;
-  }
-
-  $updated = FALSE;
-  foreach ($frontends as &$frontend) {
-    if (!\is_array($frontend) || array_key_exists('cache_invalidation', $frontend)) {
-      continue;
-    }
-    $frontend['cache_invalidation'] = FALSE;
-    $updated = TRUE;
-  }
-  unset($frontend);
-
-  if ($updated) {
-    $settings->set('frontends', $frontends)->save();
-  }
-}

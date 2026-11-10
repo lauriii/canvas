@@ -63,7 +63,7 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
   private MemoryStorage $states;
 
   /**
-   * Whether the frontends have a state: nothing was missed before the test.
+   * Whether the frontends are connected, and missed nothing before the test.
    */
   private bool $known = TRUE;
 
@@ -95,7 +95,7 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
   }
 
   /**
-   * Tests that tags are announced once per request to every enabled frontend.
+   * Tests that tags are announced once per request to every frontend.
    */
   public function testAnnouncesCollectedTags(): void {
     $warnings = [];
@@ -107,14 +107,11 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
     $invalidator = $this->invalidator(
       [
         // The canonical base URL is announced to.
-        ['url' => 'HTTPS://WWW.EXAMPLE.COM:443', 'components' => [], 'cache_invalidation' => TRUE],
-        ['url' => 'https://down.example/app', 'components' => [], 'cache_invalidation' => TRUE],
-        ['url' => 'https://broken.example', 'components' => [], 'cache_invalidation' => TRUE],
-        ['url' => 'https://moved.example', 'components' => [], 'cache_invalidation' => TRUE],
-        ['url' => 'javascript:alert(1)', 'components' => [], 'cache_invalidation' => TRUE],
-        ['url' => 'https://disabled.example', 'components' => [], 'cache_invalidation' => FALSE],
-        // An entry stored before the switch existed.
-        ['url' => 'https://legacy.example', 'components' => []],
+        ['url' => 'HTTPS://WWW.EXAMPLE.COM:443', 'components' => []],
+        ['url' => 'https://down.example/app', 'components' => []],
+        ['url' => 'https://broken.example', 'components' => []],
+        ['url' => 'https://moved.example', 'components' => []],
+        ['url' => 'javascript:alert(1)', 'components' => []],
       ],
       [
         new Response(204),
@@ -162,7 +159,7 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
       'failures' => 1,
       'last_error' => 'HTTP 500',
       'last_failure' => 1000,
-      'last_success' => NULL,
+      'last_success' => 900,
       'retry_after' => 1010,
     ];
     self::assertEquals([
@@ -172,7 +169,7 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
         'failures' => 0,
         'last_error' => NULL,
         'last_failure' => NULL,
-        'last_success' => NULL,
+        'last_success' => 900,
         'retry_after' => 0,
       ],
       'https://down.example/app' => ['last_error' => 'Connection refused'] + $failed,
@@ -180,10 +177,10 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
       'https://moved.example' => ['last_error' => 'HTTP 301'] + $failed,
     ], $this->allStates());
     self::assertSame([
-      self::FRONTEND => ['state' => 'idle', 'lastSuccess' => NULL, 'lastFailure' => NULL, 'lastError' => NULL, 'failures' => 0],
-      'https://down.example/app' => ['state' => 'failing', 'lastSuccess' => NULL, 'lastFailure' => 1000, 'lastError' => 'Connection refused', 'failures' => 1],
-      'https://broken.example' => ['state' => 'failing', 'lastSuccess' => NULL, 'lastFailure' => 1000, 'lastError' => 'HTTP 500', 'failures' => 1],
-      'https://moved.example' => ['state' => 'failing', 'lastSuccess' => NULL, 'lastFailure' => 1000, 'lastError' => 'HTTP 301', 'failures' => 1],
+      self::FRONTEND => ['state' => 'ok', 'lastSuccess' => 900, 'lastFailure' => NULL, 'lastError' => NULL],
+      'https://down.example/app' => ['state' => 'failing', 'lastSuccess' => 900, 'lastFailure' => 1000, 'lastError' => 'Connection refused'],
+      'https://broken.example' => ['state' => 'failing', 'lastSuccess' => 900, 'lastFailure' => 1000, 'lastError' => 'HTTP 500'],
+      'https://moved.example' => ['state' => 'failing', 'lastSuccess' => 900, 'lastFailure' => 1000, 'lastError' => 'HTTP 301'],
     ], $invalidator->getStatus());
   }
 
@@ -203,7 +200,7 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
     self::assertNull($invalidator->redeem($id));
     self::assertSame([], $this->values);
     self::assertSame([
-      self::FRONTEND => ['state' => 'ok', 'lastSuccess' => 1002, 'lastFailure' => NULL, 'lastError' => NULL, 'failures' => 0],
+      self::FRONTEND => ['state' => 'ok', 'lastSuccess' => 1002, 'lastFailure' => NULL, 'lastError' => NULL],
     ], $invalidator->getStatus());
     self::assertSame([], $this->state()['pending']);
   }
@@ -242,7 +239,7 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
     self::assertCount(2, $this->history);
     self::assertSame(['http_response'], $invalidator->redeem($this->announcedId(1)));
     self::assertSame([
-      self::FRONTEND => ['state' => 'ok', 'lastSuccess' => 1010, 'lastFailure' => 1000, 'lastError' => NULL, 'failures' => 0],
+      self::FRONTEND => ['state' => 'ok', 'lastSuccess' => 1010, 'lastFailure' => 1000, 'lastError' => NULL],
     ], $invalidator->getStatus());
     self::assertNull($this->state()['missed_at']);
     self::assertSame(0, $this->state()['retry_after']);
@@ -277,7 +274,12 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
    * Tests that announced tags that are not read count as missed.
    */
   public function testUnreadAnnouncementIsMissed(): void {
-    $invalidator = $this->invalidator([self::frontend()], [new Response(204), new Response(204), new Response(204)]);
+    $warnings = [];
+    $logger = $this->createMock(LoggerChannelInterface::class);
+    $logger->method('warning')->willReturnCallback(function (string $message, array $context) use (&$warnings): void {
+      $warnings[] = $context;
+    });
+    $invalidator = $this->invalidator([self::frontend()], [new Response(204), new Response(204), new Response(204)], $logger);
     $invalidator->invalidateTags(['node:1']);
     $invalidator->destruct();
     $unread = $this->announcedId(0);
@@ -286,10 +288,16 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
     $this->now = 1030.0;
     $invalidator->retryFailed();
     self::assertSame([$unread => 1000.0], $this->state()['pending']);
-    self::assertSame('idle', $invalidator->getStatus()[self::FRONTEND]['state']);
+    self::assertSame('ok', $invalidator->getStatus()[self::FRONTEND]['state']);
 
-    // It did not: that is a failure, so announcements back off.
+    // It did not: that is a failure, reported at once.
     $this->now = 1031.0;
+    self::assertSame(
+      ['state' => 'failing', 'lastSuccess' => 900, 'lastFailure' => 1030, 'lastError' => 'The frontend did not read the announced cache tags.'],
+      $invalidator->getStatus()[self::FRONTEND],
+    );
+    self::assertSame([], $warnings);
+    // It is recorded and logged by the next announcement, which backs off.
     $invalidator->invalidateTags(['node:2']);
     $invalidator->destruct();
     self::assertCount(1, $this->history);
@@ -299,10 +307,11 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
       'failures' => 1,
       'last_error' => 'The frontend did not read the announced cache tags.',
       'last_failure' => 1031,
-      'last_success' => NULL,
+      'last_success' => 900,
       // The wait started when the read timed out.
       'retry_after' => 1040,
     ], $this->state());
+    self::assertEquals([['@url' => self::FRONTEND . '/api/canvas/revalidate', '@message' => 'The frontend did not read the announced cache tags.']], $warnings);
 
     $this->now = 1040.0;
     $invalidator->retryFailed();
@@ -321,32 +330,53 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
   }
 
   /**
-   * Tests that a frontend without a state expires everything first.
+   * Tests a frontend that never read an announcement.
    */
-  public function testFrontendWithoutState(): void {
+  public function testNotConnected(): void {
     $this->known = FALSE;
-    $invalidator = $this->invalidator([self::frontend()], [new Response(204), new Response(204), new Response(204)]);
-    self::assertSame('idle', $invalidator->getStatus()[self::FRONTEND]['state']);
+    $logger = $this->createMock(LoggerChannelInterface::class);
+    $logger->expects($this->never())->method('warning');
+    $invalidator = $this->invalidator([self::frontend()], [
+      new Response(404),
+      new Response(404),
+      new ConnectException('Connection refused', new Request('POST', self::FRONTEND . '/api/canvas/revalidate')),
+      new Response(204),
+      new Response(204),
+    ], $logger);
 
-    // What changed before, for example while cache invalidation was disabled,
-    // was not announced. Cron repairs that.
-    $invalidator->retryFailed();
-    self::assertCount(1, $this->history);
-    // That is no failure.
-    self::assertSame('idle', $invalidator->getStatus()[self::FRONTEND]['state']);
-    self::assertSame(['http_response'], $invalidator->redeem($this->announcedId(0)));
-    self::assertSame('ok', $invalidator->getStatus()[self::FRONTEND]['state']);
-
-    // Forgetting the state starts over.
-    $invalidator->forget(self::FRONTEND);
+    // A frontend without the route is neither reported nor logged. It is
+    // asked again at once: it answers, so that is cheap.
     $invalidator->invalidateTags(['node:1']);
     $invalidator->destruct();
-    self::assertSame(['http_response'], $invalidator->redeem($this->announcedId(1)));
-    // Reading tags creates no state.
     $invalidator->invalidateTags(['node:2']);
     $invalidator->destruct();
-    $invalidator->forget(self::FRONTEND);
-    self::assertSame(['node:2'], $invalidator->redeem((string) array_key_last($this->values)));
+    self::assertCount(2, $this->history);
+    self::assertSame([], $invalidator->getStatus());
+    self::assertSame(0, $this->state()['retry_after']);
+    self::assertSame(0, $this->state()['failures']);
+
+    // One that cannot be reached is waited for, from the shortest wait.
+    $invalidator->invalidateTags(['node:3']);
+    $invalidator->destruct();
+    $invalidator->invalidateTags(['node:4']);
+    $invalidator->destruct();
+    self::assertCount(3, $this->history);
+    self::assertSame([], $invalidator->getStatus());
+    self::assertSame(1010, $this->state()['retry_after']);
+
+    // Once the route exists, the first announcement connects the frontend.
+    // What changed before was not announced: it expires everything.
+    $this->now = (float) $this->state()['retry_after'];
+    $invalidator->retryFailed();
+    self::assertCount(4, $this->history);
+    self::assertSame(['http_response'], $invalidator->redeem($this->announcedId(3)));
+    self::assertSame('ok', $invalidator->getStatus()[self::FRONTEND]['state']);
+
+    // Reading tags creates no state for a frontend that was removed.
+    $invalidator->invalidateTags(['node:5']);
+    $invalidator->destruct();
+    $this->states->deleteAll();
+    self::assertSame(['node:5'], $invalidator->redeem($this->announcedId(4)));
     self::assertSame([], $this->states->getAll());
   }
 
@@ -380,7 +410,7 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
     self::assertSame(['http_response'], $invalidator->redeem($earlier));
     self::assertSame(1011.0, $this->state()['missed_at']);
     self::assertSame([
-      self::FRONTEND => ['state' => 'failing', 'lastSuccess' => 1012, 'lastFailure' => 1011, 'lastError' => NULL, 'failures' => 0],
+      self::FRONTEND => ['state' => 'failing', 'lastSuccess' => 1012, 'lastFailure' => 1011, 'lastError' => NULL],
     ], $invalidator->getStatus());
 
     // Reading resets the backoff. An announcement made after the miss clears
@@ -428,14 +458,11 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
   }
 
   /**
-   * Tests that nothing is announced without enabled frontends.
+   * Tests that nothing is announced without frontends.
    */
   public function testWithoutFrontends(): void {
     $invalidator = $this->invalidator(
-      [
-        self::frontend(FALSE),
-        ['url' => 'https://legacy.example', 'components' => []],
-      ],
+      [],
       fn () => $this->fail('The HTTP client is not used.'),
     );
     $invalidator->invalidateTags(['node:1']);
@@ -444,7 +471,7 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
     self::assertSame([], $invalidator->getStatus());
     self::assertSame([], $this->states->getAll());
 
-    // The state of a frontend that receives no announcements is forgotten.
+    // The state of a removed frontend is forgotten.
     $this->states->set('unused', ['url' => 'https://removed.example']);
     $invalidator->deleteUnusedStates();
     self::assertSame([], $this->states->getAll());
@@ -525,7 +552,7 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
     $logger->expects($this->once())->method('log')->with(LogLevel::ERROR);
     $invalidator = $this->invalidator(
       [
-        ['url' => 'https://broken.example', 'components' => [], 'cache_invalidation' => TRUE],
+        ['url' => 'https://broken.example', 'components' => []],
         self::frontend(),
       ],
       [
@@ -551,14 +578,14 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
    */
   public function testTestRead(): void {
     $responses = new MockHandler();
-    $invalidator = $this->invalidator([self::frontend(), ['url' => 'https://disabled.example', 'components' => [], 'cache_invalidation' => FALSE]], $responses);
+    $invalidator = $this->invalidator([self::frontend()], $responses);
     $read = [];
     // The frontend reads the tags before it answers.
     $respond = static function (RequestInterface $request) use (&$read, $invalidator): Response {
       $read[] = $invalidator->redeem(json_decode((string) $request->getBody(), TRUE, flags: JSON_THROW_ON_ERROR)['id']);
       return new Response(204);
     };
-    $responses->append($respond, $respond, new Response(500), $respond, $respond, $respond);
+    $responses->append($respond, new Response(500), $respond, $respond);
     $expected = [
       'ok' => TRUE,
       'announced' => TRUE,
@@ -567,11 +594,10 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
     ];
 
     self::assertSame($expected, $invalidator->test(self::FRONTEND));
-    self::assertSame($expected, $invalidator->test(self::FRONTEND, TRUE));
     // A frontend that missed an announcement expires everything.
-    self::assertFalse($invalidator->test(self::FRONTEND)['ok']);
+    self::assertSame('The frontend answered HTTP 500.', $invalidator->test(self::FRONTEND)['message']);
     self::assertSame($expected, $invalidator->test(self::FRONTEND));
-    self::assertSame([[FrontendCacheTagInvalidator::TEST_TAG], ['http_response'], ['http_response']], $read);
+    self::assertSame([[FrontendCacheTagInvalidator::TEST_TAG], ['http_response']], $read);
     self::assertSame(self::FRONTEND . '/api/canvas/revalidate', (string) $this->history[0]['request']->getUri());
     self::assertNull($this->state()['missed_at']);
 
@@ -584,22 +610,16 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
     self::assertSame(['http_response'], end($read));
     self::assertNull($this->state()['missed_at']);
     self::assertSame('ok', $invalidator->getStatus()[self::FRONTEND]['state']);
-
-    // Cache invalidation does not have to be enabled. Such a frontend keeps
-    // no state, and has nothing to catch up on.
-    self::assertSame($expected, $invalidator->test('https://disabled.example'));
-    self::assertSame([FrontendCacheTagInvalidator::TEST_TAG], end($read));
-    self::assertSame([self::FRONTEND], \array_keys($this->allStates()));
   }
 
   /**
    * Returns a frontend entry of canvas_headless.settings.
    *
-   * @return array{url: string, components: list<string>, cache_invalidation: bool}
+   * @return array{url: string, components: list<string>}
    *   The frontend.
    */
-  private static function frontend(bool $cache_invalidation = TRUE): array {
-    return ['url' => self::FRONTEND, 'components' => [], 'cache_invalidation' => $cache_invalidation];
+  private static function frontend(): array {
+    return ['url' => self::FRONTEND, 'components' => []];
   }
 
   /**
@@ -683,7 +703,7 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
     if ($this->known) {
       foreach ($frontends as $frontend) {
         $url = FrontendUrl::fromConfig($frontend['url'])?->baseUrl;
-        if ($url !== NULL && ($frontend['cache_invalidation'] ?? FALSE)) {
+        if ($url !== NULL) {
           $this->states->set(Crypt::hashBase64($url), [
             'url' => $url,
             'missed_at' => NULL,
@@ -691,7 +711,8 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
             'failures' => 0,
             'last_error' => NULL,
             'last_failure' => NULL,
-            'last_success' => NULL,
+            // Connected: it read an announcement before the test.
+            'last_success' => 900,
             'retry_after' => 0,
           ]);
         }

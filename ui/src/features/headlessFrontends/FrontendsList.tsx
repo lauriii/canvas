@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import clsx from 'clsx';
-import { formatDistanceToNow } from 'date-fns';
 import {
   closestCenter,
   DndContext,
@@ -18,7 +17,6 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import {
   CheckCircledIcon,
-  ClockIcon,
   CrossCircledIcon,
   DragHandleDots2Icon,
   ExclamationTriangleIcon,
@@ -31,7 +29,6 @@ import {
   Flex,
   Link,
   Spinner,
-  Switch,
   Text,
   Tooltip,
 } from '@radix-ui/themes';
@@ -39,7 +36,6 @@ import {
 import { checkFrontendConnection } from './checkFrontendConnection';
 
 import type { DragEndEvent } from '@dnd-kit/core';
-import type { CacheInvalidationStatus } from '@/services/headlessFrontends';
 import type { ConnectionStatus, HeadlessFrontend } from './types';
 
 import styles from './HeadlessFrontends.module.css';
@@ -56,12 +52,8 @@ interface FrontendsListProps {
   onReorder: (oldIndex: number, newIndex: number) => void;
   onRemove: (id: string) => void;
   onStatusChange: (id: string, status: ConnectionStatus) => void;
-  onCacheInvalidationChange: (id: string, enabled: boolean) => void;
-  onTestCacheInvalidation: (id: string, expireAll: boolean) => void;
   onOpenSetupGuide: () => void;
   disabled: boolean;
-  // A cache invalidation test is running: no second one can be started.
-  isTesting: boolean;
 }
 
 const FrontendsList = ({
@@ -70,11 +62,8 @@ const FrontendsList = ({
   onReorder,
   onRemove,
   onStatusChange,
-  onCacheInvalidationChange,
-  onTestCacheInvalidation,
   onOpenSetupGuide,
   disabled,
-  isTesting,
 }: FrontendsListProps) => {
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -109,15 +98,8 @@ const FrontendsList = ({
               frontend={frontend}
               onRemove={() => onRemove(frontend.id)}
               onStatusChange={(status) => onStatusChange(frontend.id, status)}
-              onCacheInvalidationChange={(enabled) =>
-                onCacheInvalidationChange(frontend.id, enabled)
-              }
-              onTestCacheInvalidation={(expireAll) =>
-                onTestCacheInvalidation(frontend.id, expireAll)
-              }
               onOpenSetupGuide={onOpenSetupGuide}
               disabled={disabled}
-              isTesting={isTesting}
               data-testid={`canvas-headless-frontend-row-${index}`}
             />
           ))}
@@ -142,11 +124,8 @@ interface FrontendRowProps {
   frontend: HeadlessFrontend;
   onRemove: () => void;
   onStatusChange: (status: ConnectionStatus) => void;
-  onCacheInvalidationChange: (enabled: boolean) => void;
-  onTestCacheInvalidation: (expireAll: boolean) => void;
   onOpenSetupGuide: () => void;
   disabled: boolean;
-  isTesting: boolean;
   'data-testid'?: string;
 }
 
@@ -154,11 +133,8 @@ const FrontendRow = ({
   frontend,
   onRemove,
   onStatusChange,
-  onCacheInvalidationChange,
-  onTestCacheInvalidation,
   onOpenSetupGuide,
   disabled,
-  isTesting,
   'data-testid': dataTestId,
 }: FrontendRowProps) => {
   const {
@@ -243,56 +219,11 @@ const FrontendRow = ({
       <Text size="2" className={styles.frontendUrl}>
         {frontend.url}
       </Text>
-      <Flex
-        align="center"
-        justify="end"
-        wrap="wrap"
-        gapX="3"
-        gapY="2"
-        ml="auto"
-      >
+      <Flex align="center" gap="3" ml="auto" flexShrink="0">
         <ConnectionStatusIndicator
           status={frontend.status}
           onOpenSetupGuide={onOpenSetupGuide}
         />
-        <Text as="label" size="1" color="gray">
-          <Flex gap="1" align="center">
-            <Switch
-              size="1"
-              checked={frontend.cacheInvalidation}
-              onCheckedChange={onCacheInvalidationChange}
-              disabled={disabled}
-            />
-            Cache invalidation
-          </Flex>
-        </Text>
-        {frontend.cacheInvalidation && (
-          <>
-            <CacheInvalidationStatusIndicator
-              status={frontend.cacheInvalidationStatus}
-            />
-            <Button
-              size="1"
-              variant="soft"
-              color="gray"
-              onClick={() => onTestCacheInvalidation(false)}
-              disabled={disabled || isTesting}
-              aria-label="Test cache invalidation"
-            >
-              Test
-            </Button>
-            <Button
-              size="1"
-              variant="soft"
-              color="gray"
-              onClick={() => onTestCacheInvalidation(true)}
-              disabled={disabled || isTesting}
-              aria-label="Expire all cached pages"
-            >
-              Expire all
-            </Button>
-          </>
-        )}
         <Button
           onClick={onRemove}
           aria-label="Remove frontend"
@@ -368,65 +299,6 @@ const ConnectionStatusIndicator = ({
     <Badge size="1" color="green" variant="soft">
       <CheckCircledIcon width="12" height="12" />
       Ready
-    </Badge>
-  );
-};
-
-// Drupal's clock may run ahead of the browser's: never a time in the future.
-const formatRelativeTime = (timestamp: number) =>
-  formatDistanceToNow(new Date(Math.min(timestamp * 1000, Date.now())), {
-    addSuffix: true,
-  });
-
-const endWithPeriod = (text: string) =>
-  /[.!?]$/.test(text) ? text : `${text}.`;
-
-// The badges with a tooltip are focusable so the tooltip also opens from the
-// keyboard.
-const CacheInvalidationStatusIndicator = ({
-  status,
-}: {
-  status: CacheInvalidationStatus | null;
-}) => {
-  if (status?.state === 'failing') {
-    return (
-      <Tooltip
-        content={[
-          endWithPeriod(
-            status.lastError ?? 'A change may not have reached the frontend',
-          ),
-          status.lastFailure !== null &&
-            `Last failure: ${formatRelativeTime(status.lastFailure)}.`,
-          'The frontend is told to expire everything once it is reachable.',
-        ]
-          .filter(Boolean)
-          .join(' ')}
-      >
-        <Badge size="1" color="red" variant="soft" tabIndex={0}>
-          <CrossCircledIcon width="12" height="12" />
-          Failing
-        </Badge>
-      </Tooltip>
-    );
-  }
-  if (status?.state === 'ok' && status.lastSuccess !== null) {
-    return (
-      <Tooltip
-        content={`Last update read ${formatRelativeTime(status.lastSuccess)}`}
-      >
-        <Badge size="1" color="green" variant="soft" tabIndex={0}>
-          <CheckCircledIcon width="12" height="12" />
-          Active
-        </Badge>
-      </Tooltip>
-    );
-  }
-  // Also covers the moment between turning the switch on and Drupal reporting
-  // a status.
-  return (
-    <Badge size="1" color="gray" variant="soft">
-      <ClockIcon width="12" height="12" />
-      Waiting for changes
     </Badge>
   );
 };

@@ -24,12 +24,12 @@ use Symfony\Component\HttpFoundation\Response;
  * order is the display order, and the first entry is the editor's default
  * preview frontend. PATCH replaces the whole list: the screen manages the
  * list as one unit (add, remove, reorder), so item-level operations would
- * only add failure modes. Each frontend has a switch for announcing
- * invalidated cache tags to it.
+ * only add failure modes. Invalidated cache tags are announced to every
+ * frontend of the list; GET reports whether they arrive.
  *
  * @see \Drupal\canvas_headless\Cache\FrontendCacheTagInvalidator
  *
- * @phpstan-type Frontend array{url: string, components: list<string>, cacheInvalidation: bool, cacheInvalidationStatus: array{state: 'ok'|'failing'|'idle', lastSuccess: int|null, lastFailure: int|null, lastError: string|null, failures: int}|null}
+ * @phpstan-type Frontend array{url: string, components: list<string>, cacheInvalidationStatus: array{state: 'ok'|'failing', lastSuccess: int, lastFailure: int|null, lastError: string|null}|null}
  */
 final class FrontendsController implements ContainerInjectionInterface {
 
@@ -102,15 +102,9 @@ final class FrontendsController implements ContainerInjectionInterface {
         return new JsonResponse(['error' => \sprintf('"%s" is already in the list.', $url)], Response::HTTP_UNPROCESSABLE_ENTITY);
       }
       $seen_origins[$frontend->baseUrl] = TRUE;
-      // An omitted switch keeps its value.
-      $cache_invalidation = \array_key_exists('cacheInvalidation', $item) ? $item['cacheInvalidation'] : ($existing_frontends[$frontend->baseUrl]['cacheInvalidation'] ?? FALSE);
-      if (!\is_bool($cache_invalidation)) {
-        return new JsonResponse(['error' => \sprintf('The "cacheInvalidation" of frontend %d must be a boolean.', $delta)], Response::HTTP_UNPROCESSABLE_ENTITY);
-      }
       $frontends[] = [
         'url' => $url,
         'components' => $this->normalizeComponentIds($existing_frontends[$frontend->baseUrl]['components'] ?? []),
-        'cache_invalidation' => $cache_invalidation,
       ];
     }
 
@@ -127,9 +121,8 @@ final class FrontendsController implements ContainerInjectionInterface {
   public function testCacheInvalidation(Request $request): JsonResponse {
     $payload = json_decode($request->getContent(), TRUE);
     $url = \is_array($payload) ? ($payload['url'] ?? NULL) : NULL;
-    $expire_all = \is_array($payload) ? ($payload['expireAll'] ?? FALSE) : NULL;
-    if (!\is_string($url) || !\is_bool($expire_all)) {
-      return new JsonResponse(['error' => 'The request body must contain a "url" string, and "expireAll" must be a boolean.'], Response::HTTP_BAD_REQUEST);
+    if (!\is_string($url)) {
+      return new JsonResponse(['error' => 'The request body must contain a "url" string.'], Response::HTTP_BAD_REQUEST);
     }
     // Only configured frontends are contacted.
     $base_url = FrontendUrl::fromConfig($url)?->baseUrl;
@@ -137,7 +130,7 @@ final class FrontendsController implements ContainerInjectionInterface {
     if ($base_url === NULL || !\in_array($base_url, $configured, TRUE)) {
       return new JsonResponse(['error' => \sprintf('"%s" is not a configured frontend.', $url)], Response::HTTP_UNPROCESSABLE_ENTITY);
     }
-    return new JsonResponse($this->frontendCacheTagInvalidator->test($base_url, $expire_all));
+    return new JsonResponse($this->frontendCacheTagInvalidator->test($base_url));
   }
 
   /**
@@ -148,7 +141,7 @@ final class FrontendsController implements ContainerInjectionInterface {
    *
    * @return array
    *   The ordered frontends. `cacheInvalidationStatus` is NULL unless it is
-   *   included and cache invalidation is enabled.
+   *   included and the frontend ever read announced cache tags.
    *
    * @phpstan-return list<Frontend>
    */
@@ -157,7 +150,7 @@ final class FrontendsController implements ContainerInjectionInterface {
     if (!\is_array($stored)) {
       return [];
     }
-    // By canonical base URL, of the frontends with cache invalidation enabled.
+    // By canonical base URL, of the connected frontends.
     $status = $with_status ? $this->frontendCacheTagInvalidator->getStatus() : [];
     $frontends = [];
     foreach ($stored as $item) {
@@ -165,8 +158,6 @@ final class FrontendsController implements ContainerInjectionInterface {
         $frontends[] = [
           'url' => $item['url'],
           'components' => $this->normalizeComponentIds($item['components'] ?? []),
-          // Entries stored before the switch existed lack the key.
-          'cacheInvalidation' => ($item['cache_invalidation'] ?? FALSE) === TRUE,
           'cacheInvalidationStatus' => $status[FrontendUrl::fromConfig($item['url'])->baseUrl ?? ''] ?? NULL,
         ];
       }

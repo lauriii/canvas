@@ -121,11 +121,10 @@ class ConsumerProvisioningTest extends CanvasKernelTestBase {
 
     $this->config('canvas_headless.settings')
       ->set('frontends', [
-        ['url' => 'https://failing.example/app', 'components' => [], 'cache_invalidation' => TRUE],
-        ['url' => 'https://missed.example', 'components' => [], 'cache_invalidation' => TRUE],
-        ['url' => 'https://ok.example', 'components' => [], 'cache_invalidation' => TRUE],
-        ['url' => 'https://idle.example', 'components' => [], 'cache_invalidation' => TRUE],
-        ['url' => 'https://disabled.example', 'components' => [], 'cache_invalidation' => FALSE],
+        ['url' => 'https://failing.example/app', 'components' => []],
+        ['url' => 'https://missed.example', 'components' => []],
+        ['url' => 'https://ok.example', 'components' => []],
+        ['url' => 'https://never.example', 'components' => []],
       ])
       ->save();
     $state = [
@@ -139,8 +138,9 @@ class ConsumerProvisioningTest extends CanvasKernelTestBase {
     ];
     $states = $this->container->get('keyvalue')->get(FrontendCacheTagInvalidator::STATE_COLLECTION);
     $states->set(Crypt::hashBase64('https://ok.example'), ['url' => 'https://ok.example'] + $state);
-    // Not reported: cache invalidation is not enabled.
-    $states->set(Crypt::hashBase64('https://disabled.example'), ['url' => 'https://disabled.example', 'failures' => 1, 'last_error' => 'HTTP 404'] + $state);
+    // Not reported: the frontend never read an announcement, so it may have
+    // no such route.
+    $states->set(Crypt::hashBase64('https://never.example'), ['url' => 'https://never.example', 'missed_at' => 1700000100.0, 'failures' => 9, 'last_error' => 'HTTP 404', 'last_failure' => 1700000100, 'last_success' => NULL] + $state);
     self::assertSame([], \array_keys($this->requirements()));
 
     $states->set(Crypt::hashBase64('https://failing.example/app'), ['url' => 'https://failing.example/app', 'missed_at' => 1700000100.0, 'failures' => 3, 'last_error' => 'HTTP 500', 'last_failure' => 1700000100] + $state);
@@ -155,8 +155,7 @@ class ConsumerProvisioningTest extends CanvasKernelTestBase {
     self::assertStringContainsString('https://missed.example: An announcement did not reach the frontend (', $description);
     self::assertStringContainsString('Each frontend is told to expire everything once it is reachable.', $description);
     self::assertStringNotContainsString('ok.example', $description);
-    self::assertStringNotContainsString('idle.example', $description);
-    self::assertStringNotContainsString('disabled.example', $description);
+    self::assertStringNotContainsString('never.example', $description);
   }
 
   /**

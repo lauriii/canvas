@@ -198,12 +198,11 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
 
     // Configuring a frontend makes the external implementation authoritative.
     $this->config('canvas_headless.settings')
-      ->set('frontends', [['url' => self::FRONTEND_URL, 'components' => [], 'cache_invalidation' => TRUE]])
+      ->set('frontends', [['url' => self::FRONTEND_URL, 'components' => []]])
       ->save();
     self::assertSame([[
       'url' => self::FRONTEND_URL,
       'components' => [],
-      'cache_invalidation' => TRUE,
     ],
     ], $this->config('canvas_headless.settings')->get('frontends'));
     $external_build = $local_source->renderComponent([
@@ -214,11 +213,9 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
 
     $result = $synchronizer->synchronize($frontend, self::metadataPayload('Original name', 'integer'));
     self::assertSame(['js.heroBanner', 'js.cardWithSlot'], $result['components']);
-    // Synchronizing keeps the cache invalidation switch.
     self::assertSame([[
       'url' => self::FRONTEND_URL,
       'components' => ['js.heroBanner', 'js.cardWithSlot'],
-      'cache_invalidation' => TRUE,
     ],
     ], $this->config('canvas_headless.settings')->get('frontends'));
 
@@ -359,7 +356,6 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
     self::assertSame([[
       'url' => self::FRONTEND_URL,
       'components' => ['js.heroBanner'],
-      'cache_invalidation' => TRUE,
     ],
     ], $this->config('canvas_headless.settings')->get('frontends'));
   }
@@ -381,8 +377,8 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
 
     $this->config('canvas_headless.settings')
       ->set('frontends', [
-        ['url' => self::FRONTEND_URL, 'components' => [], 'cache_invalidation' => FALSE],
-        ['url' => self::SECOND_FRONTEND_URL, 'components' => [], 'cache_invalidation' => FALSE],
+        ['url' => self::FRONTEND_URL, 'components' => []],
+        ['url' => self::SECOND_FRONTEND_URL, 'components' => []],
       ])
       ->save();
 
@@ -428,11 +424,9 @@ final class ExternalComponentSyncTest extends CanvasKernelTestBase {
     self::assertSame([[
       'url' => self::FRONTEND_URL,
       'components' => ['js.heroBanner', 'js.cardWithSlot'],
-      'cache_invalidation' => FALSE,
     ], [
       'url' => self::SECOND_FRONTEND_URL,
       'components' => ['js.heroBanner', 'js.cardWithSlot'],
-      'cache_invalidation' => FALSE,
     ],
     ], $this->config('canvas_headless.settings')->get('frontends'));
 

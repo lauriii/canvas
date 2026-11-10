@@ -49,7 +49,7 @@ final class ExternalComponentSyncControllerTest extends CanvasKernelTestBase {
     $this->installEntitySchema('path_alias');
     $this->installConfig(['canvas_headless']);
     $this->config('canvas_headless.settings')
-      ->set('frontends', [['url' => self::FRONTEND_URL, 'components' => [], 'cache_invalidation' => FALSE]])
+      ->set('frontends', [['url' => self::FRONTEND_URL, 'components' => []]])
       ->save();
   }
 
@@ -82,7 +82,7 @@ final class ExternalComponentSyncControllerTest extends CanvasKernelTestBase {
       'components' => ['js.hello-card'],
     ], self::decode($response)['result']);
     self::assertInstanceOf(JavaScriptComponent::class, JavaScriptComponent::load('hello-card'));
-    self::assertSame([['url' => self::FRONTEND_URL, 'components' => ['js.hello-card'], 'cache_invalidation' => FALSE]], $this->config('canvas_headless.settings')->get('frontends'));
+    self::assertSame([['url' => self::FRONTEND_URL, 'components' => ['js.hello-card']]], $this->config('canvas_headless.settings')->get('frontends'));
     $notification = $this->latestNotification();
     self::assertSame('success', $notification['type']);
     self::assertSame('Component sync completed', $notification['title']);

@@ -53,9 +53,6 @@ canvas_headless.settings:
                   # components, for example `js.hero-banner`.
                   pattern: '/^js\.[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*$/'
                   message: 'The %value component ID is not valid. It must be a code component ID, such as js.hero-banner.'
-          cache_invalidation:
-            type: boolean
-            label: 'Announce invalidated cache tags'
     assertion_expiration:
       type: integer
       label: 'Preview assertion expiration time in seconds'

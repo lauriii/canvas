@@ -60,20 +60,16 @@ final class FrontendsControllerTest extends CanvasKernelTestBase {
     self::assertSame(Response::HTTP_OK, $response->getStatusCode());
     self::assertSame([
       'frontends' => [
-        ['url' => 'https://first.example/app', 'components' => [], 'cacheInvalidation' => FALSE, 'cacheInvalidationStatus' => NULL],
-        ['url' => 'http://127.0.0.1:3000', 'components' => [], 'cacheInvalidation' => FALSE, 'cacheInvalidationStatus' => NULL],
+        ['url' => 'https://first.example/app', 'components' => [], 'cacheInvalidationStatus' => NULL],
+        ['url' => 'http://127.0.0.1:3000', 'components' => [], 'cacheInvalidationStatus' => NULL],
       ],
     ], self::decode($response));
     self::assertSame(self::decode($response), self::decode($controller->get()));
-    self::assertSame([
-      ['url' => 'https://first.example/app', 'components' => [], 'cache_invalidation' => FALSE],
-      ['url' => 'http://127.0.0.1:3000', 'components' => [], 'cache_invalidation' => FALSE],
-    ], $this->config('canvas_headless.settings')->get('frontends'));
 
     $this->config('canvas_headless.settings')
       ->set('frontends', [
-        ['url' => 'https://first.example/app', 'components' => ['js.heroBanner'], 'cache_invalidation' => FALSE],
-        ['url' => 'http://127.0.0.1:3000', 'components' => ['js.card'], 'cache_invalidation' => FALSE],
+        ['url' => 'https://first.example/app', 'components' => ['js.heroBanner']],
+        ['url' => 'http://127.0.0.1:3000', 'components' => ['js.card']],
       ])
       ->save();
 
@@ -85,42 +81,29 @@ final class FrontendsControllerTest extends CanvasKernelTestBase {
     ]));
     self::assertSame([
       'frontends' => [
-        ['url' => 'http://127.0.0.1:3000', 'components' => ['js.card'], 'cacheInvalidation' => FALSE, 'cacheInvalidationStatus' => NULL],
-        ['url' => 'https://first.example/app', 'components' => ['js.heroBanner'], 'cacheInvalidation' => FALSE, 'cacheInvalidationStatus' => NULL],
+        ['url' => 'http://127.0.0.1:3000', 'components' => ['js.card'], 'cacheInvalidationStatus' => NULL],
+        ['url' => 'https://first.example/app', 'components' => ['js.heroBanner'], 'cacheInvalidationStatus' => NULL],
       ],
     ], self::decode($response));
   }
 
   /**
-   * Tests the cache invalidation switch of a frontend, and its status.
+   * Tests the cache invalidation status of the frontends.
    */
-  public function testCacheInvalidationSwitch(): void {
+  public function testCacheInvalidationStatus(): void {
     $this->installConfig(['canvas_headless']);
     $this->setPermissions(['administer canvas headless frontends']);
     $controller = FrontendsController::create($this->container);
-    $idle = ['state' => 'idle', 'lastSuccess' => NULL, 'lastFailure' => NULL, 'lastError' => NULL, 'failures' => 0];
-
-    $response = $controller->patch(self::request([
+    $controller->patch(self::request([
       'frontends' => [
-        ['url' => 'https://first.example/app', 'cacheInvalidation' => TRUE],
-        ['url' => 'https://second.example', 'cacheInvalidation' => FALSE],
+        ['url' => 'HTTPS://FIRST.EXAMPLE:443/app'],
+        ['url' => 'https://second.example'],
+        ['url' => 'https://third.example'],
       ],
     ]));
-    self::assertSame([
-      'frontends' => [
-        ['url' => 'https://first.example/app', 'components' => [], 'cacheInvalidation' => TRUE, 'cacheInvalidationStatus' => $idle],
-        ['url' => 'https://second.example', 'components' => [], 'cacheInvalidation' => FALSE, 'cacheInvalidationStatus' => NULL],
-      ],
-    ], self::decode($response));
-    self::assertSame(self::decode($response), self::decode($controller->get()));
-    self::assertSame([
-      ['url' => 'https://first.example/app', 'components' => [], 'cache_invalidation' => TRUE],
-      ['url' => 'https://second.example', 'components' => [], 'cache_invalidation' => FALSE],
-    ], $this->config('canvas_headless.settings')->get('frontends'));
 
-    // The status is that of the canonical base URL.
     $states = $this->container->get('keyvalue')->get(FrontendCacheTagInvalidator::STATE_COLLECTION);
-    $failing = [
+    $state = [
       'missed_at' => 1700000000.5,
       'pending' => [],
       'failures' => 2,
@@ -129,64 +112,40 @@ final class FrontendsControllerTest extends CanvasKernelTestBase {
       'last_success' => 1600000000,
       'retry_after' => 1700000020,
     ];
-    $states->set(Crypt::hashBase64('https://first.example/app'), ['url' => 'https://first.example/app'] + $failing);
-    // A frontend whose switch is off has no state; one that is turned on
-    // starts without one.
-    $states->set(Crypt::hashBase64('https://second.example'), ['url' => 'https://second.example'] + $failing);
-
-    // An omitted switch keeps its value, also for another spelling of the URL;
-    // a new frontend starts without cache invalidation.
-    $response = $controller->patch(self::request([
-      'frontends' => [
-        ['url' => 'https://third.example'],
-        ['url' => 'https://second.example', 'cacheInvalidation' => TRUE],
-        ['url' => 'HTTPS://FIRST.EXAMPLE:443/app'],
-      ],
-    ]));
-    $status = ['state' => 'failing', 'lastSuccess' => 1600000000, 'lastFailure' => 1700000000, 'lastError' => 'HTTP 500', 'failures' => 2];
+    // The status is that of the canonical base URL.
+    $states->set(Crypt::hashBase64('https://first.example/app'), ['url' => 'https://first.example/app'] + $state);
+    $states->set(Crypt::hashBase64('https://second.example'), ['url' => 'https://second.example', 'missed_at' => NULL, 'failures' => 0, 'last_error' => NULL] + $state);
+    // A frontend that never read an announcement has no status: it may have
+    // no such route.
+    $states->set(Crypt::hashBase64('https://third.example'), ['url' => 'https://third.example', 'last_success' => NULL] + $state);
     self::assertSame([
-      'frontends' => [
-        ['url' => 'https://third.example', 'components' => [], 'cacheInvalidation' => FALSE, 'cacheInvalidationStatus' => NULL],
-        ['url' => 'https://second.example', 'components' => [], 'cacheInvalidation' => TRUE, 'cacheInvalidationStatus' => $idle],
-        ['url' => 'HTTPS://FIRST.EXAMPLE:443/app', 'components' => [], 'cacheInvalidation' => TRUE, 'cacheInvalidationStatus' => $status],
-      ],
-    ], self::decode($response));
-    self::assertSame(['https://first.example/app'], array_column($states->getAll(), 'url'));
+      ['state' => 'failing', 'lastSuccess' => 1600000000, 'lastFailure' => 1700000000, 'lastError' => 'HTTP 500'],
+      ['state' => 'ok', 'lastSuccess' => 1600000000, 'lastFailure' => 1700000000, 'lastError' => NULL],
+      NULL,
+    ], array_column(self::decode($controller->get())['frontends'], 'cacheInvalidationStatus'));
 
     // Users who can only preview get no status: errors can name hosts of the
     // site's network.
     $this->setPermissions(['access canvas headless preview']);
     self::assertSame([NULL, NULL, NULL], array_column(self::decode(FrontendsController::create($this->container)->get())['frontends'], 'cacheInvalidationStatus'));
 
-    // The state of a frontend is forgotten when its switch is turned off, and
-    // when it is removed.
-    $controller->patch(self::request([
-      'frontends' => [
-        ['url' => 'https://first.example/app', 'cacheInvalidation' => FALSE],
-      ],
-    ]));
-    self::assertSame([], $states->getAll());
-    $response = $controller->patch(self::request([
-      'frontends' => [
-        ['url' => 'https://first.example/app', 'cacheInvalidation' => TRUE],
-      ],
-    ]));
-    self::assertSame($idle, self::decode($response)['frontends'][0]['cacheInvalidationStatus']);
-
-    // Changing the settings in any other way, such as a config import, does
-    // the same.
-    $key = Crypt::hashBase64('https://first.example/app');
-    $states->set($key, ['url' => 'https://first.example/app'] + $failing);
-    $settings = $this->config('canvas_headless.settings');
-    $settings->set('frontends.0.cache_invalidation', FALSE)->save();
-    self::assertSame([], $states->getAll());
-    $states->set($key, ['url' => 'https://first.example/app'] + $failing);
-    $settings->set('frontends.0.cache_invalidation', TRUE)->save();
-    self::assertSame([], $states->getAll());
-    // A frontend whose switch stays on keeps its state.
-    $states->set($key, ['url' => 'https://first.example/app'] + $failing);
-    $settings->set('frontends.0.components', [])->set('assertion_expiration', 61)->save();
-    self::assertSame([$key], \array_keys($states->getAll()));
+    // The state of a removed frontend is forgotten, however the list
+    // changes: also by a config import.
+    $this->config('canvas_headless.settings')
+      ->set('frontends', [['url' => 'https://second.example', 'components' => []]])
+      ->save();
+    self::assertSame(['https://second.example'], array_column($states->getAll(), 'url'));
+    // Other changes keep it.
+    $this->config('canvas_headless.settings')->set('assertion_expiration', 61)->save();
+    self::assertCount(1, $states->getAll());
+    // A frontend that is added never keeps a state, so that its first
+    // announcement expires everything: here one left by a request that still
+    // knew the removed frontend.
+    $states->set(Crypt::hashBase64('https://third.example'), ['url' => 'https://third.example'] + $state);
+    $this->config('canvas_headless.settings')
+      ->set('frontends', [['url' => 'https://second.example', 'components' => []], ['url' => 'https://third.example', 'components' => []]])
+      ->save();
+    self::assertSame(['https://second.example'], array_column($states->getAll(), 'url'));
   }
 
   /**
@@ -195,10 +154,7 @@ final class FrontendsControllerTest extends CanvasKernelTestBase {
   public function testCacheInvalidationTest(): void {
     $this->installConfig(['canvas_headless']);
     $this->config('canvas_headless.settings')
-      ->set('frontends', [
-        // A frontend can be tested before cache invalidation is enabled.
-        ['url' => 'https://first.example/app', 'components' => [], 'cache_invalidation' => FALSE],
-      ])
+      ->set('frontends', [['url' => 'https://first.example/app', 'components' => []]])
       ->save();
 
     $route = $this->container->get(RouteProviderInterface::class)->getRouteByName('canvas_headless.frontends.cache_invalidation_test');
@@ -218,12 +174,12 @@ final class FrontendsControllerTest extends CanvasKernelTestBase {
       return new FrontendResponse(204);
     };
     $history = [];
-    $handler = HandlerStack::create(new MockHandler([$respond, new FrontendResponse(404), $respond]));
+    $handler = HandlerStack::create(new MockHandler([$respond, $respond, new FrontendResponse(404), $respond]));
     $handler->push(Middleware::history($history));
     $this->container->set('http_client', new Client(['handler' => $handler]));
     $controller = FrontendsController::create($this->container);
 
-    foreach (['not JSON', '[]', '{"url": 1}', '{"url": "https://first.example/app", "expireAll": "yes"}'] as $malformed) {
+    foreach (['not JSON', '[]', '{"url": 1}'] as $malformed) {
       $response = $controller->testCacheInvalidation(Request::create('/canvas/api/v0/headless/frontends/cache-invalidation/test', 'POST', content: $malformed));
       self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode(), $malformed);
     }
@@ -235,17 +191,23 @@ final class FrontendsControllerTest extends CanvasKernelTestBase {
     \assert(\is_array($history));
     self::assertCount(0, $history);
 
-    // Another spelling of a configured frontend is that frontend.
-    $response = $controller->testCacheInvalidation(self::request(['url' => 'HTTPS://FIRST.EXAMPLE/app']));
-    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
-    self::assertSame([
+    // Another spelling of a configured frontend is that frontend. A frontend
+    // that never read an announcement may have missed anything: its first
+    // one expires everything.
+    $read_message = [
       'ok' => TRUE,
       'announced' => TRUE,
       'read' => TRUE,
       'message' => 'The frontend received the announcement and read the cache tags.',
-    ], self::decode($response));
+    ];
+    $response = $controller->testCacheInvalidation(self::request(['url' => 'HTTPS://FIRST.EXAMPLE/app']));
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    self::assertSame($read_message, self::decode($response));
 
-    $response = $controller->testCacheInvalidation(self::request(['url' => 'https://first.example/app', 'expireAll' => FALSE]));
+    // Then a test expires nothing.
+    self::assertSame($read_message, self::decode($controller->testCacheInvalidation(self::request(['url' => 'https://first.example/app']))));
+
+    $response = $controller->testCacheInvalidation(self::request(['url' => 'https://first.example/app']));
     self::assertSame(Response::HTTP_OK, $response->getStatusCode());
     self::assertSame([
       'ok' => FALSE,
@@ -254,13 +216,11 @@ final class FrontendsControllerTest extends CanvasKernelTestBase {
       'message' => 'The frontend answered HTTP 404.',
     ], self::decode($response));
 
-    $response = $controller->testCacheInvalidation(self::request(['url' => 'https://first.example/app', 'expireAll' => TRUE]));
-    self::assertTrue(self::decode($response)['ok']);
+    // After a failure, the frontend expires everything again.
+    self::assertSame($read_message, self::decode($controller->testCacheInvalidation(self::request(['url' => 'https://first.example/app']))));
 
-    // Testing a frontend whose switch is off keeps no state.
-    self::assertSame([[FrontendCacheTagInvalidator::TEST_TAG], ['http_response']], $read);
-    self::assertSame([], $this->container->get('keyvalue')->get(FrontendCacheTagInvalidator::STATE_COLLECTION)->getAll());
-    self::assertCount(3, $history);
+    self::assertSame([['http_response'], [FrontendCacheTagInvalidator::TEST_TAG], ['http_response']], $read);
+    self::assertCount(4, $history);
     self::assertSame('https://first.example/app/api/canvas/revalidate', (string) $history[0]['request']->getUri());
   }
 
@@ -289,17 +249,6 @@ final class FrontendsControllerTest extends CanvasKernelTestBase {
     self::assertSame([
       'error' => '"HTTPS://EXAMPLE.COM:443" is already in the list.',
     ], self::decode($response));
-
-    foreach (['yes', 1, NULL] as $cache_invalidation) {
-      $response = $controller->patch(self::request([
-        'frontends' => [['url' => 'https://example.com', 'cacheInvalidation' => $cache_invalidation]],
-      ]));
-      self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
-      self::assertSame([
-        'error' => 'The "cacheInvalidation" of frontend 0 must be a boolean.',
-      ], self::decode($response));
-    }
-    self::assertSame([], $this->config('canvas_headless.settings')->get('frontends'));
   }
 
   /**

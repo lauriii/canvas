@@ -16,11 +16,11 @@ use Psr\Http\Message\ResponseInterface;
 use Symfony\Component\DependencyInjection\Attribute\AutowireServiceClosure;
 
 /**
- * Announces invalidated cache tags to the frontends that opted in.
+ * Announces invalidated cache tags to the frontends.
  *
- * Tags invalidated during a request are stored under a random ID, and after
- * the response every frontend in `canvas_headless.settings:frontends` with
- * `cache_invalidation` enabled receives `POST {"id": "..."}` at
+ * Nothing is configured. Tags invalidated during a request are stored under a
+ * random ID, and after the response every frontend in
+ * `canvas_headless.settings:frontends` receives `POST {"id": "..."}` at
  * self::ROUTE_PATH. The frontend reads the tags once from
  * CacheInvalidationController, on the Drupal site it already trusts, and
  * expires whatever it cached with them; the tags come from the `cacheTags` of
@@ -34,6 +34,11 @@ use Symfony\Component\DependencyInjection\Attribute\AutowireServiceClosure;
  * request that invalidates tags or from cron, is `http_response`: the frontend
  * expires everything, including what it missed. Announcements back off while a
  * frontend keeps failing.
+ *
+ * A frontend is connected once it has read an announcement. One that never
+ * did, for example because it has no such route, is neither reported nor
+ * logged. If it answers at all, it is announced to again without a wait: it
+ * connects on the first change after its route exists.
  *
  * The service is destructed last, so it also announces the tags other
  * destructors invalidate, such as a deferred router rebuild.
@@ -239,35 +244,35 @@ final class FrontendCacheTagInvalidator implements CacheTagsInvalidatorInterface
   }
 
   /**
-   * Returns the status of the frontends with cache invalidation enabled.
+   * Returns the status of the connected frontends.
    *
-   * @return array<string, array{state: 'ok'|'failing'|'idle', lastSuccess: int|null, lastFailure: int|null, lastError: string|null, failures: int}>
-   *   The status by base URL. The state is `failing` after a failure, until
-   *   the frontend read an `http_response` announcement made after it, `idle`
-   *   when the frontend never read announced tags, and `ok` otherwise.
+   * @return array<string, array{state: 'ok'|'failing', lastSuccess: int, lastFailure: int|null, lastError: string|null}>
+   *   The status by base URL, of the frontends that ever read announced tags.
+   *   The state is `failing` after a failure, until the frontend read an
+   *   `http_response` announcement made after it.
    */
   public function getStatus(): array {
-    $urls = $this->enabledFrontends();
+    $urls = $this->frontends();
     if ($urls === []) {
       return [];
     }
     $states = ($this->keyValue)()->get(self::STATE_COLLECTION)->getMultiple(\array_map(self::stateKey(...), array_values($urls)));
+    $now = ($this->time)()->getCurrentMicroTime();
     $status = [];
     foreach ($urls as $url) {
       $stored = $states[self::stateKey($url)] ?? NULL;
       /** @phpstan-var FrontendState $state */
       $state = (\is_array($stored) ? $stored : []) + self::DEFAULT_STATE;
+      if ($state['last_success'] === NULL) {
+        continue;
+      }
+      // Not recorded yet: that waits for the next announcement.
+      $unread = array_filter($state['pending'], static fn (float $announced): bool => $announced < $now - self::READ_TIMEOUT);
       $status[$url] = [
-        'state' => match (TRUE) {
-          // A frontend without a state has a miss too, but no failure yet.
-          $state['failures'] > 0 || ($state['missed_at'] !== NULL && $state['last_failure'] !== NULL) => 'failing',
-          $state['last_success'] === NULL => 'idle',
-          default => 'ok',
-        },
+        'state' => $state['failures'] > 0 || $state['missed_at'] !== NULL || $unread !== [] ? 'failing' : 'ok',
         'lastSuccess' => $state['last_success'],
-        'lastFailure' => $state['last_failure'],
-        'lastError' => $state['last_error'],
-        'failures' => $state['failures'],
+        'lastFailure' => $unread === [] ? $state['last_failure'] : (int) max($unread) + self::READ_TIMEOUT,
+        'lastError' => $unread === [] ? $state['last_error'] : self::NOT_READ,
       ];
     }
     return $status;
@@ -276,103 +281,87 @@ final class FrontendCacheTagInvalidator implements CacheTagsInvalidatorInterface
   /**
    * Announces to one frontend now, and waits for it to read the tags.
    *
-   * Works without cache invalidation enabled for the frontend, so that it can
-   * be tested before it is enabled, and while announcements back off. Such a
-   * frontend keeps no state.
+   * Ignores the wait after a failure. The announced tag is self::TEST_TAG,
+   * which expires nothing; a frontend that missed an announcement is
+   * announced `http_response`.
    *
    * @param string $baseUrl
    *   The canonical base URL of a configured frontend.
-   * @param bool $expire_all
-   *   Whether to announce `http_response`, which expires everything, instead
-   *   of self::TEST_TAG, which expires nothing. A frontend that missed an
-   *   announcement is always announced `http_response`.
    *
    * @return array{ok: bool, announced: bool, read: bool, message: string}
    *   Whether the frontend accepted the announcement and read the tags, and a
    *   message describing the outcome.
+   *
+   * @phpstan-impure
    */
-  public function test(string $baseUrl, bool $expire_all = FALSE): array {
-    try {
-      // A frontend that receives no announcements has nothing to catch up on.
-      $id = $this->prepare($baseUrl, [$expire_all ? 'http_response' : self::TEST_TAG], ignore_backoff: TRUE, missed_without_state: isset($this->enabledFrontends()[$baseUrl]));
-      \assert(\is_string($id));
-      $error = $this->send([$baseUrl => $id])[$baseUrl];
-      if ($error !== NULL) {
-        return [
-          'ok' => FALSE,
-          'announced' => FALSE,
-          'read' => FALSE,
-          'message' => \is_int($error) ? "The frontend answered HTTP $error." : "The frontend could not be reached: $error",
-        ];
-      }
-      // A frontend that defers the read answers before it reads the tags.
-      // Only reading them removes the announced entry.
-      $time = ($this->time)();
-      $store = ($this->keyValueExpirable)()->get(self::COLLECTION);
-      $deadline = $time->getCurrentMicroTime() + self::TEST_TIMEOUT;
-      while ($store->get($id) !== NULL) {
-        if ($time->getCurrentMicroTime() >= $deadline) {
-          // The outcome is known now: do not leave it to a later announcement.
-          $unread = $this->update($baseUrl, function (array &$state) use ($id, $store, $time): bool {
-            // Read since the last check.
-            if ($store->get($id) === NULL) {
-              return FALSE;
-            }
-            unset($state['pending'][$id]);
-            self::fail($state, self::NOT_READ, $time->getCurrentMicroTime());
-            return TRUE;
-          });
-          if (!$unread) {
-            break;
-          }
-          $store->delete($id);
-          return [
-            'ok' => FALSE,
-            'announced' => TRUE,
-            'read' => FALSE,
-            'message' => 'The frontend accepted the announcement but did not read the cache tags from Drupal. Check that CANVAS_SITE_URL on the frontend points at this site.',
-          ];
-        }
-        usleep(100000);
-      }
+  public function test(string $baseUrl): array {
+    $id = $this->prepare($baseUrl, [self::TEST_TAG], ignore_backoff: TRUE);
+    \assert(\is_string($id));
+    $error = $this->send([$baseUrl => $id])[$baseUrl];
+    if ($error !== NULL) {
       return [
-        'ok' => TRUE,
-        'announced' => TRUE,
-        'read' => TRUE,
-        'message' => 'The frontend received the announcement and read the cache tags.',
+        'ok' => FALSE,
+        'announced' => FALSE,
+        'read' => FALSE,
+        'message' => \is_int($error) ? "The frontend answered HTTP $error." : "The frontend could not be reached: $error",
       ];
     }
-    finally {
-      // Enabling cache invalidation later starts without a state.
-      if (!isset($this->enabledFrontends()[$baseUrl])) {
-        $this->forget($baseUrl);
+    // A frontend that defers the read answers before it reads the tags.
+    // Only reading them removes the announced entry.
+    $time = ($this->time)();
+    $store = ($this->keyValueExpirable)()->get(self::COLLECTION);
+    $deadline = $time->getCurrentMicroTime() + self::TEST_TIMEOUT;
+    while ($store->get($id) !== NULL) {
+      if ($time->getCurrentMicroTime() >= $deadline) {
+        // The outcome is known now: do not leave it to a later announcement.
+        $unread = $this->update($baseUrl, function (array &$state) use ($id, $store, $time): bool {
+          // Read since the last check.
+          if ($store->get($id) === NULL) {
+            return FALSE;
+          }
+          unset($state['pending'][$id]);
+          self::fail($state, self::NOT_READ, $time->getCurrentMicroTime());
+          $this->logFailure($state, self::NOT_READ);
+          return TRUE;
+        });
+        if (!$unread) {
+          break;
+        }
+        $store->delete($id);
+        return [
+          'ok' => FALSE,
+          'announced' => TRUE,
+          'read' => FALSE,
+          'message' => 'The frontend accepted the announcement but did not read the cache tags from Drupal. Check that CANVAS_SITE_URL on the frontend points at this site.',
+        ];
       }
+      usleep(100000);
     }
+    return [
+      'ok' => TRUE,
+      'announced' => TRUE,
+      'read' => TRUE,
+      'message' => 'The frontend received the announcement and read the cache tags.',
+    ];
   }
 
   /**
-   * Forgets a frontend's state.
+   * Forgets the state of the frontends that were removed or added.
    *
-   * To call when cache invalidation is enabled for a frontend: what changed
-   * while it was disabled was not announced, so its first announcement has
-   * to be `http_response`.
+   * A frontend that is added (again) starts without a state, so that its
+   * first announcement expires everything.
    *
-   * @param string $baseUrl
-   *   The frontend's canonical base URL.
+   * @param mixed $previous
+   *   The `frontends` of canvas_headless.settings before they changed, if
+   *   known.
    */
-  public function forget(string $baseUrl): void {
-    ($this->keyValue)()->get(self::STATE_COLLECTION)->delete(self::stateKey($baseUrl));
-  }
-
-  /**
-   * Forgets the state of the frontends that receive no announcements.
-   *
-   * To call after a frontend was removed or its cache invalidation disabled.
-   */
-  public function deleteUnusedStates(): void {
+  public function deleteUnusedStates(mixed $previous = NULL): void {
     $states = ($this->keyValue)()->get(self::STATE_COLLECTION);
-    $enabled = $this->enabledFrontends();
-    $unused = array_filter($states->getAll(), static fn (mixed $state): bool => !\is_array($state) || !isset($enabled[$state['url'] ?? '']));
+    $frontends = $this->frontends();
+    if ($previous !== NULL) {
+      $frontends = array_intersect_key($frontends, self::baseUrls($previous));
+    }
+    $unused = array_filter($states->getAll(), static fn (mixed $state): bool => !\is_array($state) || !isset($frontends[$state['url'] ?? '']));
     $states->deleteMultiple(\array_keys($unused));
   }
 
@@ -384,20 +373,28 @@ final class FrontendCacheTagInvalidator implements CacheTagsInvalidatorInterface
   }
 
   /**
-   * Returns the frontends with cache invalidation enabled.
+   * Returns the frontends.
    *
    * @return array<string, string>
    *   The canonical base URLs, keyed by themselves.
    */
-  private function enabledFrontends(): array {
+  private function frontends(): array {
+    return self::baseUrls(($this->configFactory)()->get('canvas_headless.settings')->get('frontends'));
+  }
+
+  /**
+   * Returns the canonical base URLs of a frontend list.
+   *
+   * @param mixed $frontends
+   *   The `frontends` of canvas_headless.settings.
+   *
+   * @return array<string, string>
+   *   The canonical base URLs, keyed by themselves.
+   */
+  private static function baseUrls(mixed $frontends): array {
     $urls = [];
-    $frontends = ($this->configFactory)()->get('canvas_headless.settings')->get('frontends');
     foreach (\is_array($frontends) ? $frontends : [] as $frontend) {
-      // Entries stored before the switch existed lack the key.
-      if (!\is_array($frontend) || ($frontend['cache_invalidation'] ?? FALSE) !== TRUE) {
-        continue;
-      }
-      $url = FrontendUrl::fromConfig((string) ($frontend['url'] ?? ''))?->baseUrl;
+      $url = \is_array($frontend) ? FrontendUrl::fromConfig((string) ($frontend['url'] ?? ''))?->baseUrl : NULL;
       if ($url !== NULL) {
         $urls[$url] = $url;
       }
@@ -406,7 +403,7 @@ final class FrontendCacheTagInvalidator implements CacheTagsInvalidatorInterface
   }
 
   /**
-   * Announces the tags to the frontends with cache invalidation enabled.
+   * Announces the tags to the frontends.
    *
    * @param list<string> $tags
    *   The invalidated tags.
@@ -416,7 +413,7 @@ final class FrontendCacheTagInvalidator implements CacheTagsInvalidatorInterface
   private function announce(array $tags, bool $missed_only = FALSE): void {
     try {
       $ids = [];
-      foreach ($this->enabledFrontends() as $url) {
+      foreach ($this->frontends() as $url) {
         try {
           $id = $this->prepare($url, $tags, $missed_only);
           if ($id !== NULL) {
@@ -449,14 +446,12 @@ final class FrontendCacheTagInvalidator implements CacheTagsInvalidatorInterface
    *   Whether to announce only if the frontend missed an announcement.
    * @param bool $ignore_backoff
    *   Whether to announce even while announcements back off.
-   * @param bool $missed_without_state
-   *   Whether a frontend without a state may have missed everything.
    *
    * @return string|null
    *   The ID to announce, or NULL if there is nothing to announce now.
    */
-  private function prepare(string $url, array $tags, bool $missed_only = FALSE, bool $ignore_backoff = FALSE, bool $missed_without_state = TRUE): ?string {
-    return $this->update($url, missed_without_state: $missed_without_state, callback: function (array &$state) use ($url, $tags, $missed_only, $ignore_backoff): ?string {
+  private function prepare(string $url, array $tags, bool $missed_only = FALSE, bool $ignore_backoff = FALSE): ?string {
+    return $this->update($url, function (array &$state) use ($url, $tags, $missed_only, $ignore_backoff): ?string {
       $time = ($this->time)();
       $now = $time->getCurrentMicroTime();
       $unread = array_filter($state['pending'], static fn (float $announced): bool => $announced < $now - self::READ_TIMEOUT);
@@ -465,6 +460,7 @@ final class FrontendCacheTagInvalidator implements CacheTagsInvalidatorInterface
         // The wait starts when the read timed out, not when that is noticed:
         // a miss noticed after the wait is repaired by this announcement.
         self::fail($state, self::NOT_READ, $now, max($unread) + self::READ_TIMEOUT);
+        $this->logFailure($state, self::NOT_READ);
       }
       if ($missed_only && $state['missed_at'] === NULL) {
         return NULL;
@@ -530,17 +526,43 @@ final class FrontendCacheTagInvalidator implements CacheTagsInvalidatorInterface
       }
       $id = $ids[$url];
       $message = \is_int($error) ? "HTTP $error" : $error;
-      $this->update($url, function (array &$state) use ($id, $message): void {
+      $this->update($url, function (array &$state) use ($id, $message, $error): void {
         unset($state['pending'][$id]);
         self::fail($state, $message, ($this->time)()->getCurrentMicroTime());
+        $this->logFailure($state, $message);
+        // A frontend that never read an announcement, but answers, may only
+        // lack the route: that is no failure. Asking again is cheap, and
+        // connects it on the first change after the route exists.
+        if ($state['last_success'] === NULL && \is_int($error)) {
+          $state['failures'] = 0;
+          $state['retry_after'] = 0;
+        }
       });
       ($this->keyValueExpirable)()->get(self::COLLECTION)->delete($id);
-      ($this->loggerFactory)()->get('canvas_headless')->warning('Could not announce invalidated cache tags to @url: @message', [
-        '@url' => $url . self::ROUTE_PATH,
-        '@message' => $message,
-      ]);
     }
     return $errors;
+  }
+
+  /**
+   * Logs a failure of a connected frontend.
+   *
+   * A frontend that never read an announcement is not failing: it may have
+   * no such route.
+   *
+   * @param array $state
+   *   The frontend's state.
+   * @param string $error
+   *   The error.
+   *
+   * @phpstan-param FrontendState $state
+   */
+  private function logFailure(array $state, string $error): void {
+    if ($state['last_success'] !== NULL) {
+      ($this->loggerFactory)()->get('canvas_headless')->warning('Could not announce invalidated cache tags to @url: @message', [
+        '@url' => ($state['url'] ?? '') . self::ROUTE_PATH,
+        '@message' => $error,
+      ]);
+    }
   }
 
   /**
@@ -579,15 +601,13 @@ final class FrontendCacheTagInvalidator implements CacheTagsInvalidatorInterface
    *   Receives the state by reference, and changes it.
    * @param bool $create
    *   Whether to store a state for a frontend that has none.
-   * @param bool $missed_without_state
-   *   Whether a frontend without a state may have missed everything.
    *
    * @return mixed
    *   What the callback returns.
    *
    * @phpstan-param callable(FrontendState &$state): mixed $callback
    */
-  private function update(string $url, callable $callback, bool $create = TRUE, bool $missed_without_state = TRUE): mixed {
+  private function update(string $url, callable $callback, bool $create = TRUE): mixed {
     $lock = ($this->lock)();
     $key = self::stateKey($url);
     $name = 'canvas_headless.cache_invalidation:' . $key;
@@ -603,7 +623,7 @@ final class FrontendCacheTagInvalidator implements CacheTagsInvalidatorInterface
       $stored = \is_array($stored) ? $stored + self::DEFAULT_STATE : NULL;
       // Without a state, the frontend may have missed everything until now.
       /** @phpstan-var FrontendState $state */
-      $state = $stored ?? ['url' => $url, 'missed_at' => $missed_without_state ? ($this->time)()->getCurrentMicroTime() : NULL] + self::DEFAULT_STATE;
+      $state = $stored ?? ['url' => $url, 'missed_at' => ($this->time)()->getCurrentMicroTime()] + self::DEFAULT_STATE;
       $result = $callback($state);
       if ($state !== $stored && ($create || $stored !== NULL)) {
         $states->set($key, $state);

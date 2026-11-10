@@ -48,7 +48,7 @@ class SettingsValidationTest extends CanvasKernelTestBase {
    */
   public function testConstraintsRejectInvalidValues(): void {
     $violations = $this->validate([
-      'frontends' => [['url' => 'http://localhost:3000/', 'components' => [], 'cache_invalidation' => FALSE]],
+      'frontends' => [['url' => 'http://localhost:3000/', 'components' => []]],
       'assertion_expiration' => 3600,
     ]);
 
@@ -71,7 +71,7 @@ class SettingsValidationTest extends CanvasKernelTestBase {
   #[DataProvider('providerFrontendUrls')]
   public function testFrontendUrlRestriction(string $frontend_url, bool $valid): void {
     $violations = $this->validate([
-      'frontends' => [['url' => $frontend_url, 'components' => [], 'cache_invalidation' => FALSE]],
+      'frontends' => [['url' => $frontend_url, 'components' => []]],
       'assertion_expiration' => 60,
     ]);
 
@@ -137,7 +137,7 @@ class SettingsValidationTest extends CanvasKernelTestBase {
    */
   public function testUnknownAndMissingKeysAreRejected(): void {
     $violations = $this->validate([
-      'frontends' => [['url' => 'http://localhost:3000', 'components' => [], 'cache_invalidation' => FALSE]],
+      'frontends' => [['url' => 'http://localhost:3000', 'components' => []]],
       'component_metadata_url' => '/custom/components',
       'unknown_key' => 'whatever',
     ]);
@@ -150,7 +150,7 @@ class SettingsValidationTest extends CanvasKernelTestBase {
   }
 
   /**
-   * Tests that frontend items require their keys and allow nothing else.
+   * Tests that frontend items require the url key and allow nothing else.
    */
   public function testFrontendItemKeysAreValidated(): void {
     $violations = $this->validate([
@@ -162,7 +162,6 @@ class SettingsValidationTest extends CanvasKernelTestBase {
       'frontends.0' => [
         "'url' is a required key.",
         "'components' is a required key.",
-        "'cache_invalidation' is a required key.",
       ],
       'frontends.0.label' => ["'label' is not a supported key."],
     ], $violations);
@@ -176,7 +175,6 @@ class SettingsValidationTest extends CanvasKernelTestBase {
       'frontends' => [[
         'url' => 'http://localhost:3000',
         'components' => ['js.heroBanner', 'js.cardWithSlot'],
-        'cache_invalidation' => TRUE,
       ],
       ],
       'assertion_expiration' => 60,
@@ -186,28 +184,11 @@ class SettingsValidationTest extends CanvasKernelTestBase {
       'frontends' => [[
         'url' => 'http://localhost:3000',
         'components' => [TRUE],
-        'cache_invalidation' => TRUE,
       ],
       ],
       'assertion_expiration' => 60,
     ]);
     $this->assertArrayHasKey('frontends.0.components.0', $violations);
-  }
-
-  /**
-   * Tests that the cache invalidation switch of a frontend is a boolean.
-   */
-  public function testFrontendCacheInvalidationValidates(): void {
-    $violations = $this->validate([
-      'frontends' => [[
-        'url' => 'http://localhost:3000',
-        'components' => [],
-        'cache_invalidation' => 'yes',
-      ],
-      ],
-      'assertion_expiration' => 60,
-    ]);
-    $this->assertArrayHasKey('frontends.0.cache_invalidation', $violations);
   }
 
   /**

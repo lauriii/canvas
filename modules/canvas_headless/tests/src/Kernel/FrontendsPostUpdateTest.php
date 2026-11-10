@@ -82,12 +82,10 @@ final class FrontendsPostUpdateTest extends CanvasKernelTestBase {
     $storage->write('canvas_headless.settings', [
       'frontends' => [
         // Simulate a legacy entry from before per-frontend ownership existed.
-        // The update's save is validated against the current schema, which
-        // requires the cache invalidation switch.
-        ['url' => 'https://first.example/app', 'cache_invalidation' => FALSE],
+        ['url' => 'https://first.example/app'],
         // Simulate a frontend that already has explicit ownership and must not
         // be overwritten by the backfill.
-        ['url' => 'https://second.example/app', 'components' => ['js.existing'], 'cache_invalidation' => FALSE],
+        ['url' => 'https://second.example/app', 'components' => ['js.existing']],
       ],
       'assertion_expiration' => 60,
     ]);
@@ -98,9 +96,9 @@ final class FrontendsPostUpdateTest extends CanvasKernelTestBase {
     self::assertSame([
       // Legacy frontends receive every existing external component because the
       // old config shape had no way to record narrower ownership.
-      ['url' => 'https://first.example/app', 'components' => ['js.alpha', 'js.beta'], 'cache_invalidation' => FALSE],
+      ['url' => 'https://first.example/app', 'components' => ['js.alpha', 'js.beta']],
       // Already-migrated frontends keep their explicit ownership unchanged.
-      ['url' => 'https://second.example/app', 'components' => ['js.existing'], 'cache_invalidation' => FALSE],
+      ['url' => 'https://second.example/app', 'components' => ['js.existing']],
     ], $this->config('canvas_headless.settings')->get('frontends'));
   }
 
@@ -110,40 +108,14 @@ final class FrontendsPostUpdateTest extends CanvasKernelTestBase {
   public function testPostUpdateIsIdempotent(): void {
     $this->config('canvas_headless.settings')
       ->set('frontends', [
-        ['url' => 'https://first.example/app', 'components' => ['js.alpha'], 'cache_invalidation' => TRUE],
+        ['url' => 'https://first.example/app', 'components' => ['js.alpha']],
       ])
       ->save();
 
     canvas_headless_post_update_0001_assign_existing_external_components();
-    canvas_headless_post_update_0002_add_cache_invalidation_switch();
 
     self::assertSame([
-      ['url' => 'https://first.example/app', 'components' => ['js.alpha'], 'cache_invalidation' => TRUE],
-    ], $this->config('canvas_headless.settings')->get('frontends'));
-  }
-
-  /**
-   * Tests that existing frontends get the cache invalidation switch.
-   */
-  public function testPostUpdateAddsCacheInvalidationSwitch(): void {
-    $storage = $this->container->get(StorageCacheInterface::class);
-    $storage->write('canvas_headless.settings', [
-      'frontends' => [
-        // Simulate an entry from before the switch existed.
-        ['url' => 'https://first.example/app', 'components' => ['js.alpha']],
-        // Simulate a frontend whose switch was turned on since.
-        ['url' => 'https://second.example/app', 'components' => [], 'cache_invalidation' => TRUE],
-      ],
-      'assertion_expiration' => 60,
-    ]);
-    $this->container->get(ConfigFactoryInterface::class)->reset('canvas_headless.settings');
-
-    canvas_headless_post_update_0002_add_cache_invalidation_switch();
-
-    self::assertSame([
-      // Announcing invalidated cache tags is opt-in.
-      ['url' => 'https://first.example/app', 'components' => ['js.alpha'], 'cache_invalidation' => FALSE],
-      ['url' => 'https://second.example/app', 'components' => [], 'cache_invalidation' => TRUE],
+      ['url' => 'https://first.example/app', 'components' => ['js.alpha']],
     ], $this->config('canvas_headless.settings')->get('frontends'));
   }
 
