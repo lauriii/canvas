@@ -423,9 +423,7 @@ class ComponentTreeItem extends FieldItemBase {
     }
     // Invalidate the resolved computed property when its source data changes.
     if (\in_array($property_name, ['inputs', 'component_id', 'component_version'], TRUE)) {
-      $inputs_resolved = $this->get('inputs_resolved');
-      \assert($inputs_resolved instanceof ResolvedComponentInputs);
-      $inputs_resolved->invalidateComputedValue();
+      $this->invalidateResolvedInputs();
     }
     $pairs = [
       ['component_id', 'component'],
@@ -474,34 +472,28 @@ class ComponentTreeItem extends FieldItemBase {
   public function setValue($values, $notify = TRUE): void {
     if (\is_array($values)) {
       parent::setValue($values, FALSE);
-      $pairs = [
-        ['component_id', 'component'],
-        ['parent_uuid', 'parent_item'],
-      ];
-      foreach ($pairs as $pair) {
-        [$property1, $property2] = $pair;
-        if (\array_key_exists($property1, $values) && !isset($values[$property2])) {
-          $this->onChange($property1, FALSE);
+      // When both the component ID and version are passed as strings (as when
+      // setting values loaded from storage), reference that version directly.
+      // Syncing them via ::onChange() would load the Component config entity
+      // just to find its active version, for every item: that dominates the
+      // cost of loading large component trees.
+      if (\is_string($values['component_id'] ?? NULL) && \is_string($values['component_version'] ?? NULL) && !isset($values['component'])) {
+        $this->writePropertyValue('component', [
+          'target_id' => $values['component_id'],
+          'version' => $values['component_version'],
+        ]);
+        $this->invalidateResolvedInputs();
+      }
+      else {
+        $this->syncLinkedProperties($values, 'component_id', 'component');
+        if (\array_key_exists('component_id', $values) || \array_key_exists('component', $values) && !\array_key_exists('component_version', $values)) {
+          $this->onChange('component_id', FALSE);
         }
-        if (!\array_key_exists($property1, $values) && isset($values[$property2])) {
-          $this->onChange($property2, FALSE);
-        }
-        if (\array_key_exists($property1, $values) && isset($values[$property2])) {
-          // If both properties are passed, verify the passed values match.
-          $reference = $this->get($property2);
-          \assert($reference instanceof DataReferenceInterface);
-          $identifier = $reference->getTargetIdentifier();
-          if ($values[$property1] !== NULL && ($identifier != $values[$property1])) {
-            throw new \InvalidArgumentException(\sprintf('The %s id and %s passed do not match.', $property2, $property2));
-          }
+        if (\array_key_exists('component_version', $values) && $this->getComponent()?->getLoadedVersion() !== $values['component_version']) {
+          $this->onChange('component_version', FALSE);
         }
       }
-      if (\array_key_exists('component_id', $values) || \array_key_exists('component', $values) && !\array_key_exists('component_version', $values)) {
-        $this->onChange('component_id', FALSE);
-      }
-      if (\array_key_exists('component_version', $values) && $this->getComponent()?->getLoadedVersion() !== $values['component_version']) {
-        $this->onChange('component_version', FALSE);
-      }
+      $this->syncLinkedProperties($values, 'parent_uuid', 'parent_item');
     }
 
     // If inputs are missing, fall back to the default value of the non-computed
@@ -519,6 +511,46 @@ class ComponentTreeItem extends FieldItemBase {
       \assert(\is_string($name));
       $this->parent->onChange($name);
     }
+  }
+
+  /**
+   * Keeps an ID property and its linked reference property in sync.
+   *
+   * @param array $values
+   *   The values passed to ::setValue().
+   * @param 'component_id'|'parent_uuid' $id_property
+   *   The ID property name.
+   * @param 'component'|'parent_item' $reference_property
+   *   The reference property name.
+   *
+   * @throws \InvalidArgumentException
+   *   When both properties are passed and their values do not match.
+   */
+  private function syncLinkedProperties(array $values, string $id_property, string $reference_property): void {
+    if (\array_key_exists($id_property, $values) && !isset($values[$reference_property])) {
+      $this->onChange($id_property, FALSE);
+    }
+    if (!\array_key_exists($id_property, $values) && isset($values[$reference_property])) {
+      $this->onChange($reference_property, FALSE);
+    }
+    if (\array_key_exists($id_property, $values) && isset($values[$reference_property])) {
+      // If both properties are passed, verify the passed values match.
+      $reference = $this->get($reference_property);
+      \assert($reference instanceof DataReferenceInterface);
+      $identifier = $reference->getTargetIdentifier();
+      if ($values[$id_property] !== NULL && ($identifier != $values[$id_property])) {
+        throw new \InvalidArgumentException(\sprintf('The %s id and %s passed do not match.', $reference_property, $reference_property));
+      }
+    }
+  }
+
+  /**
+   * Invalidates the `inputs_resolved` computed property.
+   */
+  private function invalidateResolvedInputs(): void {
+    $inputs_resolved = $this->get('inputs_resolved');
+    \assert($inputs_resolved instanceof ResolvedComponentInputs);
+    $inputs_resolved->invalidateComputedValue();
   }
 
   public function getParentUuid(): ?string {
