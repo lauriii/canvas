@@ -206,6 +206,8 @@ export function liftGhost(
     background: backgroundColor(parent),
     boxShadow: '0 4px 14px rgb(0 0 0 / 0.12), 0 0 0 1px rgb(110 86 207 / 0.5)',
     transformOrigin: `${origin.x - at.x}px ${origin.y - at.y}px`,
+    // Its own layer, so moving it doesn't paint it or the page under it again.
+    willChange: 'translate, scale, opacity',
   });
   // A component too tall to fit is cropped, fading out at the bottom.
   if (rect.height * scale > GHOST.height) {
@@ -225,21 +227,26 @@ export function liftGhost(
   };
   // A lifted copy shrinks to size; one that appears fades in at size.
   const from = grab ? { scale, opacity: 0 } : { scale: 1, opacity: 1 };
+  const instant = reducedMotion();
+  let shown = '';
   const follow = (time: number) => {
     const at = pointer();
     const p = at && toPreview(document, at);
     if (p) {
-      const t = reducedMotion()
+      const t = instant
         ? 1
         : Math.min(1, Math.max(0, time - ghost.startTime) / 100);
       const eased = 1 - (1 - t) ** 3;
-      (ghost.animation.effect as KeyframeEffect).setKeyframes([
-        {
-          translate: `${p.x - origin.x}px ${p.y - origin.y}px`,
-          scale: String(from.scale + (scale - from.scale) * eased),
-          opacity: String(from.opacity + (0.96 - from.opacity) * eased),
-        },
-      ]);
+      const keyframe = {
+        translate: `${p.x - origin.x}px ${p.y - origin.y}px`,
+        scale: String(from.scale + (scale - from.scale) * eased),
+        opacity: String(from.opacity + (0.96 - from.opacity) * eased),
+      };
+      const key = `${keyframe.translate} ${keyframe.scale} ${keyframe.opacity}`;
+      if (key !== shown) {
+        shown = key;
+        (ghost.animation.effect as KeyframeEffect).setKeyframes([keyframe]);
+      }
     }
     ghost.frame = requestAnimationFrame(follow);
   };
