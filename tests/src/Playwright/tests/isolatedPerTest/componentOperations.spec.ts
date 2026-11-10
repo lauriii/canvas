@@ -508,26 +508,53 @@ test.describe('Link props', () => {
     await canvas.addComponent({ name: 'Link button' });
 
     const link = page.getByLabel('Link', { exact: true });
-    const suggestions = page.locator('ul.ui-autocomplete li');
-    // An empty link field suggests the anchors on the page.
+    // jQuery UI hides a closed list but keeps its items.
+    const suggestions = page.locator('ul.ui-autocomplete:visible li');
+    const expectHref = (href: string) =>
+      canvas.testInPreviewFrame(
+        '[data-component-id="canvas_test_page_anchors:button"]',
+        async (button) => {
+          await expect(button).toHaveAttribute('href', href);
+        },
+      );
+    await expectHref('#top');
+
+    // Picking an anchor stores it.
+    await link.fill('#pri');
+    await expect(suggestions).toHaveText(['Page section: #pricing']);
+    await suggestions.click();
+    await expect(link).toHaveValue('#pricing');
+    await expectHref('#pricing');
+
+    // A typed fragment that matches no anchor closes the list and is stored.
+    await link.fill('#prices');
+    await expect(suggestions).toHaveCount(0);
+    await expectHref('#prices');
+
+    // After a stored change, the field still suggests anchors.
+    await link.fill('#pri');
+    await expect(suggestions).toHaveText(['Page section: #pricing']);
+
+    // Clearing the field stores the empty value, without listing anchors.
     await link.fill('');
+    await expect(suggestions).toHaveCount(0);
+    await expectHref('');
+
+    // An empty field lists the anchors when it gets focus.
     await page.getByLabel('Text', { exact: true }).click();
     await link.click();
     await expect(suggestions).toHaveText(['Page section: #pricing']);
 
     // Typing anything other than `#` searches content as before.
-    await link.fill('Canvas');
-    await expect(suggestions.filter({ hasText: '#pricing' })).toHaveCount(0);
+    await link.fill('/about');
+    await expect(suggestions).toHaveCount(0);
+    await expectHref('/about');
 
-    await link.fill('#pri');
+    // An anchor typed in full is stored when the field loses focus, even
+    // while it is suggested.
+    await link.fill('#pricing');
     await expect(suggestions).toHaveText(['Page section: #pricing']);
-    await suggestions.click();
-    await expect(link).toHaveValue('#pricing');
-    await canvas.testInPreviewFrame(
-      '[data-component-id="canvas_test_page_anchors:button"]',
-      async (button) => {
-        await expect(button).toHaveAttribute('href', '#pricing');
-      },
-    );
+    await link.press('Tab');
+    await expectHref('#pricing');
   });
 });

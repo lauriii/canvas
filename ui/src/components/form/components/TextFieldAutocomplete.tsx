@@ -1,3 +1,4 @@
+// cspell:ignore autocompleteclose
 import { useRef } from 'react';
 import clsx from 'clsx';
 
@@ -42,6 +43,10 @@ const TextFieldAutocomplete = ({
   attributes['data-canvas-no-update'] = '';
 
   const inputRef = useRef<HTMLInputElement>(null);
+  // Whether the input holds typed text that is not stored yet.
+  const typedRef = useRef(false);
+  // Whether the input is listing anchors because it got focus.
+  const openingOnFocusRef = useRef(false);
   const fieldContext = useFieldContext();
   const store = useAppStore();
   const { data: components } = useGetComponentsQuery();
@@ -68,9 +73,37 @@ const TextFieldAutocomplete = ({
       term,
     );
 
+  // Stores the typed text. A lone `#` is the start of an anchor, and not a
+  // valid link yet.
+  const commitTyped = () => {
+    const input = inputRef.current;
+    if (!input || !typedRef.current || input.value === '#') {
+      return;
+    }
+    typedRef.current = false;
+    input.removeAttribute('data-canvas-no-update');
+    // The `link` transform resolves typed entity labels, such as
+    // `Example (3)`, to URIs.
+    // @see ui/src/utils/transforms.ts
+    fieldContext?.triggerChange(input.value, input);
+  };
+
   // Offers anchors on the current page when the input is empty or starts
   // with `#`, and defers to core's entity autocomplete otherwise.
   const addAnchorSuggestions = (input: HTMLInputElement) => {
+    // While anchors are listed, typed text is not stored: store it when the
+    // list closes without a pick, such as on blur or Escape. Bound to the
+    // element, so it outlives the autocomplete instance.
+    jQuery(input)
+      .off('autocompleteclose.canvasAnchors')
+      .on('autocompleteclose.canvasAnchors', () => {
+        // A pick is stored by the mutation observer below.
+        if (!input.hasAttribute('data-canvas-autocomplete-selected')) {
+          commitTyped();
+        }
+      });
+    // Drupal behaviors replace the autocomplete instance when the form is
+    // rebuilt, such as after a stored change, so check the instance.
     const instance = jQuery.data(input, 'ui-autocomplete');
     if (!instance || instance.canvasAnchorSuggestions) {
       return;
@@ -78,18 +111,25 @@ const TextFieldAutocomplete = ({
     instance.canvasAnchorSuggestions = true;
     const { source, search } = instance.options;
     instance.option({
-      // Let an empty input open the suggestions. Core's search handler still
-      // rejects empty input, so this only takes effect when anchors exist.
+      // Let an empty input open the suggestions.
       minLength: 0,
       search(event: Event, ui: unknown) {
-        if (getAnchors(input.value).length > 0) {
+        const { value } = input;
+        // An empty input lists anchors on focus only: once the author deleted
+        // the text, the empty value must be stored.
+        if (
+          (value !== '' || openingOnFocusRef.current) &&
+          getAnchors(value).length > 0
+        ) {
           return true;
         }
-        if (input.value === '') {
+        // Core rejects empty input and input that starts with `/`, `#` or `?`,
+        // but leaves an open list open, which would block storing the value.
+        const searching = value !== '' && search.call(this, event, ui);
+        if (!searching) {
           instance.close();
-          return false;
         }
-        return search.call(this, event, ui);
+        return searching;
       },
       source(
         request: { term: string },
@@ -120,6 +160,7 @@ const TextFieldAutocomplete = ({
               'data-canvas-autocomplete-selected',
             );
             if (selection) {
+              typedRef.current = false;
               // @see \Drupal\canvas\Hook\ReduxIntegratedFieldWidgetsHooks::fieldWidgetSingleElementLinkDefaultWidgetFormAlter()
               fieldContext?.triggerChange(selection);
 
@@ -162,7 +203,9 @@ const TextFieldAutocomplete = ({
           }
           addAnchorSuggestions(input);
           if (input.value === '' && jQuery.data(input, 'ui-autocomplete')) {
+            openingOnFocusRef.current = true;
             jQuery(input).autocomplete('search', '');
+            openingOnFocusRef.current = false;
           }
         }}
         ref={(node) => {
@@ -172,10 +215,14 @@ const TextFieldAutocomplete = ({
           }
         }}
         onChange={() => {
+          typedRef.current = true;
           // Default to setting the attribute that prevents preview and store
           // updates.
           if (inputRef.current) {
             inputRef.current.setAttribute('data-canvas-no-update', 'true');
+            if (suggestsAnchors) {
+              addAnchorSuggestions(inputRef.current);
+            }
           }
 
           const autocompleteDelay =
@@ -194,13 +241,8 @@ const TextFieldAutocomplete = ({
               inputRef.current &&
               jQuery(inputRef.current).data('ui-autocomplete') &&
               jQuery(inputRef.current).autocomplete('widget').is(':visible');
-            if (inputRef.current && !suggestionsOpen) {
-              const { value } = inputRef.current;
-              inputRef.current.removeAttribute('data-canvas-no-update');
-              // The `link` transform resolves typed entity labels, such as
-              // `Example (3)`, to URIs.
-              // @see ui/src/utils/transforms.ts
-              fieldContext?.triggerChange(value, inputRef.current);
+            if (!suggestionsOpen) {
+              commitTyped();
             }
           }, autocompleteDelay * 2);
         }}
