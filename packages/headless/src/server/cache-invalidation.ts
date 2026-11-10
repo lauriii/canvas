@@ -28,7 +28,8 @@ export interface CacheInvalidationOptions {
    * Runs a task after the response, for example Next.js `after()`. With it,
    * the handler answers 202 at once and reads the tags afterwards: Drupal's
    * announcing request then never waits for a Drupal worker to answer the
-   * read. Failures are logged; a failed read is lost, and Drupal is not told.
+   * read. Drupal is not told of a failed read, so the handler expires
+   * everything (`http_response`) instead, and logs the failure.
    */
   defer?: (task: () => Promise<void>) => void;
 }
@@ -97,11 +98,19 @@ export function createCacheInvalidationHandler(
     defer(async () => {
       try {
         const response = await invalidateAnnounced(id);
-        if (response.status !== 204) {
-          console.warn(
-            `Canvas cache invalidation failed: ${response.status} ${await response.text()}`,
-          );
+        if (response.status === 204 || response.status === 404) {
+          // 404: a forged or replayed ID. Drupal knows no tags to expire.
+          return;
         }
+        console.warn(
+          `Canvas cache invalidation failed: ${response.status} ${await response.text()}`,
+        );
+      } catch (error) {
+        console.error('Canvas cache invalidation failed:', error);
+      }
+      // The tags are lost, and Drupal cannot retry: expire everything.
+      try {
+        await invalidate(['http_response']);
       } catch (error) {
         console.error('Canvas cache invalidation failed:', error);
       }

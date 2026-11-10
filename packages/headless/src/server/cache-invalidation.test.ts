@@ -97,11 +97,27 @@ describe('createCacheInvalidationHandler', () => {
 
     // A deferred failure is logged, not thrown.
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    invalidate.mockReset();
     invalidate.mockRejectedValueOnce(new Error('The cache is down.'));
     await handle(announce({ id: 'abc' }));
     await expect(tasks[1]()).resolves.toBeUndefined();
     expect(error).toHaveBeenCalledOnce();
     error.mockRestore();
+
+    // Tags that cannot be read are lost, and Drupal is not told: expire
+    // everything. A forged ID (404) expires nothing.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    invalidate.mockReset();
+    fetchImpl.mockResolvedValueOnce(new Response(null, { status: 500 }));
+    await handle(announce({ id: 'abc' }));
+    await tasks[2]();
+    expect(invalidate).toHaveBeenCalledExactlyOnceWith(['http_response']);
+    invalidate.mockReset();
+    fetchImpl.mockResolvedValueOnce(new Response(null, { status: 404 }));
+    await handle(announce({ id: 'abc' }));
+    await tasks[3]();
+    expect(invalidate).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 
   it('refuses other methods', async () => {

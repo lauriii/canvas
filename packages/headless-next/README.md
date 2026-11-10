@@ -235,9 +235,11 @@ Drupal announces invalidated cache tags to that URL. The route answers at once,
 then reads the tags in `after()` and expires every entry tagged with one of
 them.
 
-`cacheCanvasTags()` also caches for at most the result's Drupal max-age. Call it
-once per `'use cache'` scope, with every result the entry depends on, for
-example `cacheCanvasTags(page, menu)`: it applies all their tags and the
+`cacheCanvasTags()` also caches for at most the result's Drupal max-age. When
+every result has no limit (-1), it sets no lifetime, so Next.js keeps its
+default cache lifetime and the entry may be refetched before Drupal invalidates
+it. Call it once per `'use cache'` scope, with every result the entry depends
+on, for example `cacheCanvasTags(page, menu)`: it applies all their tags and the
 shortest max-age. With a max-age under five minutes, Next.js leaves the entry
 out of prerendering, so render it inside `<Suspense>`. A page anonymous visitors
 cannot see is a `PageNotFound` with the error's cache tags, so it expires when,
