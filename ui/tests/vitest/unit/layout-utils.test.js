@@ -2,10 +2,12 @@
 import {
   areConsecutiveSiblings,
   componentExistsInLayout,
+  findNodePathByUuid,
   findParent,
   findParentInfo,
   findParentRegion,
   findSiblings,
+  getNodePaths,
   isChildNode,
   replaceUUIDsAndUpdateModel,
 } from '@/features/layout/layoutUtils';
@@ -25,6 +27,65 @@ describe('isChildNode', () => {
     expect(isChildNode(layout.layout, 'static-static-card2df')).to.be.false;
     expect(isChildNode(layout.layout, 'static-static-card1ab')).to.be.true;
     expect(isChildNode(layout.layout, 'idontexist')).to.be.null;
+  });
+});
+
+describe('getNodePaths', () => {
+  // Collects the identifier of every region, component and slot.
+  const collectIds = (nodes) =>
+    nodes.flatMap((node) =>
+      node.nodeType === 'component'
+        ? [node.uuid, ...collectIds(node.slots)]
+        : [node.id, ...collectIds(node.components)],
+    );
+
+  it('should map every node to the same path as findNodePathByUuid', () => {
+    const ids = collectIds(layout.layout);
+    const paths = getNodePaths(layout.layout);
+    expect(new Set(ids).size).to.equal(ids.length);
+    expect(paths.size).to.equal(ids.length);
+    ids.forEach((id) => {
+      expect(paths.get(id)).to.deep.equal(
+        findNodePathByUuid(layout.layout, id),
+      );
+    });
+  });
+
+  it('should include empty slots and keep the first match of a duplicated id', () => {
+    const nodes = [
+      {
+        nodeType: 'region',
+        id: 'content',
+        components: [
+          {
+            nodeType: 'component',
+            uuid: 'parent',
+            slots: [
+              { nodeType: 'slot', id: 'parent/empty', components: [] },
+              {
+                nodeType: 'slot',
+                id: 'parent/full',
+                components: [
+                  { nodeType: 'component', uuid: 'duplicate', slots: [] },
+                ],
+              },
+            ],
+          },
+          { nodeType: 'component', uuid: 'duplicate', slots: [] },
+        ],
+      },
+    ];
+    const paths = getNodePaths(nodes);
+    expect(Object.fromEntries(paths)).to.deep.equal({
+      content: [0],
+      parent: [0, 0],
+      'parent/empty': [0, 0, 0],
+      'parent/full': [0, 0, 1],
+      duplicate: [0, 0, 1, 0],
+    });
+    expect(paths.get('duplicate')).to.deep.equal(
+      findNodePathByUuid(nodes, 'duplicate'),
+    );
   });
 });
 

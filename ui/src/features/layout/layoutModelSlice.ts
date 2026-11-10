@@ -1,6 +1,6 @@
 // cspell:ignore uuidv
 import { v4 as uuidv4, validate as uuidValidate } from 'uuid';
-import { createSelector, createSlice } from '@reduxjs/toolkit';
+import { createSelector, createSlice, lruMemoize } from '@reduxjs/toolkit';
 
 import {
   DEFAULT_REGION,
@@ -16,6 +16,7 @@ import {
 import {
   findComponentByUuid,
   findNodePathByUuid,
+  getNodePaths,
   insertNodeAtPath,
   moveNodeToPath,
   recurseNodes,
@@ -914,6 +915,19 @@ export const layoutModelReducer = layoutModelSlice.reducer;
 // to be able to access the history, so we use the StateWithHistoryWrapper type.
 export const selectLayout = (state: StateWithHistoryWrapper) =>
   state.layoutModel.present.layout;
+
+/**
+ * Selects the paths of all layout nodes, keyed by node identifier.
+ *
+ * The map and its path arrays are shared by every caller and must not be
+ * mutated: copy a path before changing it. Only the map for the latest layout
+ * is cached, so layouts kept in the undo history do not each retain one.
+ */
+export const selectNodePaths = createSelector(
+  selectLayout,
+  (layout): ReadonlyMap<string, readonly number[]> => getNodePaths(layout),
+  { memoize: lruMemoize },
+);
 export const selectModel = (state: StateWithHistoryWrapper) =>
   state.layoutModel.present.model;
 export const selectLayoutHistory = (state: StateWithHistoryWrapper) =>
