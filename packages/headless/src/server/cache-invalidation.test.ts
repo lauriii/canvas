@@ -37,6 +37,7 @@ describe('createCacheInvalidationHandler', () => {
         method: 'POST',
         body: JSON.stringify({ id: 'abc_-1' }),
         cache: 'no-store',
+        signal: expect.any(AbortSignal),
       }),
     );
     expect(invalidate).toHaveBeenCalledWith(['node:1', 'node_list']);
@@ -95,28 +96,32 @@ describe('createCacheInvalidationHandler', () => {
     await tasks[0]();
     expect(invalidate).toHaveBeenCalledWith(['node:1']);
 
-    // A deferred failure is logged, not thrown.
+    // A deferred failure is logged, not thrown. Drupal counts tags that were
+    // read as delivered, so a failure to expire them expires everything.
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     invalidate.mockReset();
     invalidate.mockRejectedValueOnce(new Error('The cache is down.'));
     await handle(announce({ id: 'abc' }));
     await expect(tasks[1]()).resolves.toBeUndefined();
     expect(error).toHaveBeenCalledOnce();
+    expect(invalidate.mock.calls).toEqual([[['node:1']], [['http_response']]]);
     error.mockRestore();
 
-    // Tags that cannot be read are lost, and Drupal is not told: expire
-    // everything. A forged ID (404) expires nothing.
+    // Tags that cannot be read expire nothing: Drupal notices that they were
+    // not read, and announces `http_response` later. A forged announcement
+    // therefore cannot expire everything, with Drupal unreachable or not.
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     invalidate.mockReset();
     fetchImpl.mockResolvedValueOnce(new Response(null, { status: 500 }));
-    await handle(announce({ id: 'abc' }));
-    await tasks[2]();
-    expect(invalidate).toHaveBeenCalledExactlyOnceWith(['http_response']);
-    invalidate.mockReset();
+    fetchImpl.mockRejectedValueOnce(new TypeError('fetch failed'));
     fetchImpl.mockResolvedValueOnce(new Response(null, { status: 404 }));
-    await handle(announce({ id: 'abc' }));
-    await tasks[3]();
+    for (const task of [2, 3, 4]) {
+      await handle(announce({ id: 'abc' }));
+      await tasks[task]();
+    }
     expect(invalidate).not.toHaveBeenCalled();
+    // The 404 of a forged or replayed ID is not logged.
+    expect(warn).toHaveBeenCalledTimes(2);
     warn.mockRestore();
   });
 
