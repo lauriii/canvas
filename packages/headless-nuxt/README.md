@@ -97,12 +97,15 @@ export default createCacheInvalidationRouteHandler({
 });
 ```
 
-Then add the route's full URL, for example
-`https://www.example.com/api/canvas/revalidate`, to Drupal's
-`canvas_headless.settings:cache_invalidation_urls` (see the
+The route must be mounted at `/api/canvas/revalidate` under the frontend URL
+registered in Canvas: Drupal announces to that path only. Then turn on cache
+invalidation for the frontend on the Canvas **Headless frontends** screen, and
+check the round trip with its **Test** button (see the
 [Canvas Headless module README](../../modules/canvas_headless/README.md#frontend-cache-invalidation)).
 When the Nitro preset provides `event.waitUntil`, the route answers Drupal at
-once and reads the tags afterwards.
+once and reads the tags afterwards. A read that fails then is logged and expires
+nothing. Drupal detects tags that are not read within 30 seconds, and then
+announces `http_response`, which expires everything.
 
 ## Data access
 

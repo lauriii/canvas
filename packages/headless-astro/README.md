@@ -126,14 +126,16 @@ if (!page || isPageNotFound(page)) {
 
 `cacheCanvasTags()` applies all the results' cache tags and the shortest Drupal
 max-age (no limit: one year), and never caches a draft session. The integration
-injects `/api/canvas/revalidate`; add its full URL, for example
-`https://www.example.com/api/canvas/revalidate`, to Drupal's
-`canvas_headless.settings:cache_invalidation_urls` (see the
+injects the invalidation route at `/api/canvas/revalidate`. Drupal announces to
+that path under the frontend URL registered in Canvas, so register the URL the
+route is served under. Turn on cache invalidation for the frontend on the Canvas
+**Headless frontends** screen, and check the round trip with its **Test** button
+(see the
 [Canvas Headless module README](../../modules/canvas_headless/README.md#frontend-cache-invalidation)).
-Drupal announces invalidated cache tags to it, and the route purges the entries
-tagged with them. Astro has no way to answer first, so Drupal waits for the
-route to read the tags back. The memory provider caches per server instance: use
-a shared provider when running several.
+Drupal announces invalidated cache tags to the route, and the route purges the
+entries tagged with them. Astro has no way to answer first, so Drupal waits for
+the route to read the tags back. The memory provider caches per server instance:
+use a shared provider when running several.
 
 ## Data access
 

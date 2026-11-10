@@ -8,8 +8,8 @@ export const prerender = false;
 /**
  * Cache invalidation: Drupal POSTs `{id}`, and the tags read back from Drupal
  * are purged from Astro's route cache. Injected at /api/canvas/revalidate by
- * the canvas() integration; add its full URL to Drupal's
- * `canvas_headless.settings:cache_invalidation_urls`.
+ * the canvas() integration, the path Drupal announces to once cache
+ * invalidation is turned on for the frontend in Canvas.
  */
 export const POST: APIRoute = (context) =>
   createCacheInvalidationHandler({

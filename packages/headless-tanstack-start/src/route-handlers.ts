@@ -85,10 +85,11 @@ export function createDraftRouteHandlers(): DraftRouteHandlers {
 }
 
 /**
- * Creates the cache invalidation route handler, for example at
- * src/routes/api/canvas.revalidate.ts. Drupal announces invalidated cache
- * tags to the URLs in its `cache_invalidation_urls` setting; `invalidate`
- * expires whatever the app cached with them, for example a CDN purge.
+ * Creates the cache invalidation route handler. Mount it at
+ * src/routes/api/canvas.revalidate.ts: Drupal announces invalidated cache
+ * tags to /api/canvas/revalidate under every frontend with cache
+ * invalidation turned on in Canvas. `invalidate` expires whatever the app
+ * cached with them, for example a CDN purge.
  * `fetchPublishedPage()` results carry the tags. Pass `defer` (for example a
  * platform's `waitUntil`) to answer Drupal before reading the tags.
  *

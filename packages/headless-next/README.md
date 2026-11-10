@@ -227,13 +227,16 @@ import { createCacheInvalidationRouteHandler } from '@drupal-canvas/headless-nex
 export const { POST } = createCacheInvalidationRouteHandler();
 ```
 
-Then add the route's full URL, for example
-`https://www.example.com/api/canvas/revalidate`, to Drupal's
-`canvas_headless.settings:cache_invalidation_urls` (see the
+The route must be mounted at `/api/canvas/revalidate` under the frontend URL
+registered in Canvas: Drupal announces to that path only. Then turn on cache
+invalidation for the frontend on the Canvas **Headless frontends** screen, and
+check the round trip with its **Test** button (see the
 [Canvas Headless module README](../../modules/canvas_headless/README.md#frontend-cache-invalidation)).
-Drupal announces invalidated cache tags to that URL. The route answers at once,
+Drupal announces invalidated cache tags to the route. The route answers at once,
 then reads the tags in `after()` and expires every entry tagged with one of
-them.
+them. A read that fails is logged and expires nothing. Drupal detects tags that
+are not read within 30 seconds, and then announces `http_response`, which
+expires everything.
 
 `cacheCanvasTags()` also caches for at most the result's Drupal max-age. When
 every result has no limit (-1), it sets no lifetime, so Next.js keeps its

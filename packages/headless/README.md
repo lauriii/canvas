@@ -152,11 +152,12 @@ cacheability; `isPageNotFound()` tells it apart. Other errors throw, so a cache
 does not keep a transient failure. Use `fetchPage()` for draft sessions.
 
 Mount `createCacheInvalidationHandler()` from `@drupal-canvas/headless/server`
-as a POST route, for example at `/api/canvas/revalidate`, and add its full URL
-to Drupal's `canvas_headless.settings:cache_invalidation_urls`. Drupal announces
-invalidations to that URL; the handler reads the invalidated tags, once, from
-`CANVAS_SITE_URL` and passes them to your `invalidate` callback. No secret is
-shared (see the
+as a POST route at `/api/canvas/revalidate` under the frontend URL registered in
+Canvas: Drupal announces to that path only. Then turn on cache invalidation for
+the frontend on the Canvas **Headless frontends** screen, and check the round
+trip with its **Test** button. Drupal announces invalidations to the route; the
+handler reads the invalidated tags, once, from `CANVAS_SITE_URL` and passes them
+to your `invalidate` callback. No secret is shared (see the
 [Canvas Headless module README](../../modules/canvas_headless/README.md#frontend-cache-invalidation)):
 
 ```ts
@@ -171,13 +172,18 @@ export const POST = createCacheInvalidationHandler({
 
 The handler answers 204 after `invalidate` completes, 400 for a malformed
 announcement, 404 for an ID Drupal does not know, and 502 when Drupal cannot be
-reached. It throws (a framework 500) when `CANVAS_SITE_URL` is not configured or
-`invalidate` throws. Pass `defer` (for example Next.js `after()`) to answer 202
-at once and read the tags afterwards, so that Drupal's announcing request does
-not wait for a second Drupal worker; failures are then logged, and Drupal is not
-told. The adapters connect this to their frameworks: Next.js and Astro purge
-their own caches; Nuxt and TanStack Start pass the tags to an `invalidate`
-callback you write, such as a CDN purge. See their READMEs, and
+reached or does not answer within ten seconds. It throws (a framework 500) when
+`CANVAS_SITE_URL` is not configured or `invalidate` throws. Pass `defer` (for
+example Next.js `after()`) to answer 202 at once and read the tags afterwards,
+so that Drupal's announcing request does not wait for a second Drupal worker.
+Failures are then logged. A read that fails expires nothing: Drupal detects tags
+that are not read within 30 seconds, and then announces `http_response`, which
+expires everything. When `invalidate` throws after the read, the handler calls
+it again with `http_response`.
+
+The adapters connect this to their frameworks: Next.js and Astro purge their own
+caches; Nuxt and TanStack Start pass the tags to an `invalidate` callback you
+write, such as a CDN purge. See their READMEs, and
 [how cache invalidation works](../../modules/canvas_headless/docs/headless-cache-invalidation.md).
 
 ## JSON:API for portable Code Components
