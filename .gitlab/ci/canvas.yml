@@ -1,4 +1,32 @@
+# Forks can't read the main project's CI cache, so download a tarball
+# that the `cache dependencies` job publishes on the merge request's target
+# branch. Outside merge request pipelines, no cache is seeded. Each tarball is extracted to a
+# temporary directory first, so a failed download leaves no partial cache.
+.fork-cache: &fork-cache
+  - |
+    if [ "$CI_PROJECT_PATH" != "project/$CI_PARENT_PROJECT_NAME" ]; then
+      PARENT_API_URL="$CI_API_V4_URL/projects/project%2F$CI_PARENT_PROJECT_NAME"
+      for name in $FORK_CACHES; do
+        dir="$CI_PROJECT_DIR/.cache/$name"
+        [ -n "$(ls -A "$dir" 2>/dev/null)" ] && continue
+        tmp="$dir.tmp"
+        rm -rf "$tmp"
+        mkdir -p "$tmp"
+        if [ -n "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" ] \
+          && wget -q -O - "$PARENT_API_URL/jobs/artifacts/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME/raw/fork-cache/$name.tar.gz?job=cache%20dependencies" \
+          | tar -xz -C "$tmp"; then
+          rm -rf "$dir"
+          mv "$tmp" "$dir"
+          echo "Seeded .cache/$name from project/$CI_PARENT_PROJECT_NAME."
+        else
+          rm -rf "$tmp"
+          echo "Could not seed .cache/$name from project/$CI_PARENT_PROJECT_NAME; continuing without it."
+        fi
+      done
+    fi
+
 .canvas-ui: &canvas-ui
+  - *fork-cache
   - npm ci
   # The UI's build script runs through Turborepo, which builds its workspace
   # dependencies (headless, astro-hydration, and their dependencies) first.

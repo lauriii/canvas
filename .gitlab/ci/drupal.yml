@@ -9,7 +9,9 @@
 # This causes some very strange behavior and node.js scripts will refuse to
 # run in a lot of cases, so this is an alternative job.
 
-.drupal-setup-composer-install: &drupal-setup-composer-install # Move everything into a subdirectory
+.drupal-setup-composer-install: &drupal-setup-composer-install
+  - !reference [ .fork-cache ]
+  # Move everything into a subdirectory
   - mkdir tmp
   - find . -maxdepth 1 -type f -not -path "./tmp*" -exec mv {} tmp/ \;
   - find . -maxdepth 1 -type d -not -path "." -not -path "./tmp" -not -path "./.cache" -exec mv {}
@@ -44,6 +46,9 @@
   # Change to the project directory
   - cd $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME
   - git config --global --add safe.directory $CI_PROJECT_DIR/_drupal/web/modules/contrib/$CI_PARENT_PROJECT_NAME
+  # Link the module's .cache folder to the top level cache.
+  - mkdir -p $CI_PROJECT_DIR/.cache
+  - '[ -e .cache ] || ln -s $CI_PROJECT_DIR/.cache .cache'
 
 .drupal-webserver: &drupal-webserver # Setup webserver root
   - rm -rf /var/www/html

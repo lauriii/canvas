@@ -16,10 +16,14 @@ variables:
   E2E_TESTS_ENABLED: "true"
 
   PLAYWRIGHT_BROWSERS_PATH: $CI_PROJECT_DIR/.cache/ms-playwright
+  CYPRESS_CACHE_FOLDER: $CI_PROJECT_DIR/.cache/cypress
   COMPOSER_CACHE_DIR: $CI_PROJECT_DIR/.cache/composer
   npm_config_cache: $CI_PROJECT_DIR/.cache/npm
   # Persist Turborepo's task cache between jobs and pipelines.
   TURBO_CACHE_DIR: $CI_PROJECT_DIR/.cache/turbo
+  # The `.cache` directories that issue forks seed from the protected branch
+  # their merge request targets. See `.fork-cache`.
+  FORK_CACHES: composer npm turbo
 
   # Disable npm lifecycle scripts.
   npm_config_ignore_scripts: "true"
@@ -225,10 +229,6 @@ cache dependencies:
         - .cache/astro
         - .cache/tsc
         - .cache/turbo
-    - key: ${CI_PARENT_PROJECT_NAME}-phplint-${CI_COMMIT_REF_NAME}
-      paths:
-        - .cache/phpcs
-        - .cache/phpstan
     - key: ${CI_PARENT_PROJECT_NAME}-playwright-${CI_COMMIT_REF_NAME}
       fallback_keys:
         - ${CI_PARENT_PROJECT_NAME}-playwright-${CI_DEFAULT_BRANCH}
@@ -245,6 +245,19 @@ cache dependencies:
   script:
     - npx playwright install
     - npx cypress install
+    # Forks can't read the CI cache. See `.fork-cache`.
+    - |
+      if [ "$CI_PROJECT_PATH" = "project/$CI_PARENT_PROJECT_NAME" ] && [ "$CI_COMMIT_BRANCH" = "$CI_DEFAULT_BRANCH" ]; then
+        mkdir -p "$CI_PROJECT_DIR/fork-cache"
+        for name in $FORK_CACHES; do
+          [ -d "$CI_PROJECT_DIR/.cache/$name" ] || continue
+          tar -czf "$CI_PROJECT_DIR/fork-cache/$name.tar.gz" -C "$CI_PROJECT_DIR/.cache/$name" .
+        done
+      fi
+  artifacts:
+    paths:
+      - fork-cache/
+    expire_in: 30 days
 
 renovate:
   stage: validate
@@ -352,6 +365,7 @@ lint (php):
     - *mr-rule
   variables:
     COMPOSER_ROOT_VERSION: 0.0.0
+    FORK_CACHES: composer
   cache:
     - key: ${CI_PARENT_PROJECT_NAME}-default-${CI_COMMIT_REF_NAME}
       fallback_keys:
@@ -369,7 +383,7 @@ lint (php):
       paths:
         - .cache/phpcs
         - .cache/phpstan
-      policy: pull
+      policy: pull-push
   before_script:
     - !reference [ .drupal-files-with-dev-dependencies ]
     - mkdir -p test-results
@@ -405,10 +419,13 @@ lint (node):
   stage: validate
   image: *image-node
   needs: []
+  variables:
+    FORK_CACHES: npm turbo
   rules:
     - *push-rule
     - *mr-rule
   script:
+    - !reference [ .fork-cache ]
     - npm ci
     # Runs every lint:* script across the whole repository, plus type-check
     # in every workspace. Turborepo builds workspace dependencies first where
@@ -434,6 +451,7 @@ changesets:
     # `changeset status` diffs against the target branch, which requires
     # history beyond the default shallow clone.
     GIT_DEPTH: "0"
+    FORK_CACHES: npm
   rules:
     # The version MR consumes changesets and bumps versions; it is exempt.
     - *changeset-release-skip-rule
@@ -444,6 +462,7 @@ changesets:
         compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
   script:
     - git fetch origin $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
+    - !reference [ .fork-cache ]
     - npm ci
     - |
       if ! npx changeset status --since="origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"; then
@@ -598,6 +617,8 @@ phpunit (11.4 mysql):
 vitest:
   stage: test
   image: *image-node
+  variables:
+    FORK_CACHES: npm turbo
   rules:
     - *version-merge-skip-rule
     - *changeset-release-skip-rule
@@ -608,6 +629,7 @@ vitest:
         compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
     - *manual-rule
   script:
+    - !reference [ .fork-cache ]
     - npm ci
     - npm run test --workspace=@drupal-canvas/ui -- --reporter=junit --outputFile=$CI_PROJECT_DIR/ui-vitest-junit.xml
   artifacts:
@@ -653,7 +675,6 @@ vitest:
   variables:
     DRUPAL_PROJECT_FOLDER: "$CI_PROJECT_DIR/_drupal/web/modules/contrib/canvas"
     _TARGET_DB_TYPE: sqlite
-    CYPRESS_CACHE_FOLDER: $CI_PROJECT_DIR/_drupal/web/modules/contrib/canvas/.cache/cypress
     DRUPAL_TEST_WEBSERVER_USER: www-data
     DRUPAL_TEST_WEBDRIVER_AUTOSTART: true
     DRUPAL_TEST_WEBDRIVER_BINARY: "chromedriver"
@@ -1009,7 +1030,9 @@ pages-mr:
   variables:
     ASTRO_SITE: https://project.pages.drupalcode.org
     ASTRO_BASE: /$CI_PARENT_PROJECT_NAME/mr-$CI_MERGE_REQUEST_IID/
+    FORK_CACHES: npm turbo
   script:
+    - !reference [ .fork-cache ]
     - npm ci
     - npm run build --workspace=docs
   pages:
