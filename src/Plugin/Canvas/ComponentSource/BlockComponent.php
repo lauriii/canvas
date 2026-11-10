@@ -200,7 +200,7 @@ final class BlockComponent extends ComponentSourceBase implements ContainerFacto
         new class() implements BreadcrumbBuilderInterface {
           use StringTranslationTrait;
 
-          public function applies(RouteMatchInterface $route_match) {
+          public function applies(RouteMatchInterface $route_match, ?CacheableMetadata $cacheable_metadata = NULL) {
              return TRUE;
           }
 

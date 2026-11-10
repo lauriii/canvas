@@ -43,7 +43,7 @@ class EditFieldContent extends FunctionCallBase implements ExecutableFunctionCal
   /**
    * {@inheritdoc}
    */
-  public function execute(): void {
+  public function execute(?object $object = NULL): void {
     $this->setStructuredOutput([
       'refined_text' => $this->getContextValue('text_value'),
     ]);

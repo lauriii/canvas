@@ -43,7 +43,7 @@ final class CreateFieldContent extends FunctionCallBase implements ExecutableFun
   /**
    * {@inheritdoc}
    */
-  public function execute(): void {
+  public function execute(?object $object = NULL): void {
     $this->setStructuredOutput([
       'created_content' => $this->getContextValue('field_content'),
     ]);

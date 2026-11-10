@@ -11,3 +11,15 @@ parameters:
 			identifier: arguments.count
 			count: 1
 			path: src/Asset/AssetResolver.php
+
+		-
+			message: '#^Method Drupal\\Component\\Plugin\\CategorizingPluginManagerInterface\:\:getGroupedDefinitions\(\) invoked with 2 parameters, 0\-1 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: src/Block/BlockManagerDecorator.php
+
+		-
+			message: '#^Method Drupal\\Component\\Plugin\\CategorizingPluginManagerInterface\:\:getSortedDefinitions\(\) invoked with 2 parameters, 0\-1 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: src/Block/BlockManagerDecorator.php

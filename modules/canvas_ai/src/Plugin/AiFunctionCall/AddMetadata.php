@@ -37,7 +37,7 @@ class AddMetadata extends FunctionCallBase implements ExecutableFunctionCallInte
   /**
    * {@inheritdoc}
    */
-  public function execute(): void {
+  public function execute(?object $object = NULL): void {
     $this->setStructuredOutput([
       'metadata' => ['metatag_description' => $this->getContextValue('metadata')],
     ]);

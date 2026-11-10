@@ -6,6 +6,7 @@ namespace Drupal\canvas\Form;
 
 use Drupal\canvas\Audit\ComponentAudit;
 use Drupal\canvas\Entity\Component;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\Entity\ConfigEntityListBuilder;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
@@ -75,8 +76,8 @@ final class ComponentListBuilder extends ConfigEntityListBuilder {
     return $row + parent::buildRow($entity);
   }
 
-  public function getOperations(EntityInterface $entity): array {
-    return parent::getOperations($entity) + [
+  public function getOperations(EntityInterface $entity, ?CacheableMetadata $cacheability = NULL): array {
+    return parent::getOperations($entity, $cacheability) + [
       'audit' => [
         'title' => $this->t('Audit'),
         'url' => Url::fromRoute('entity.component.audit', ['component' => $entity->id()]),

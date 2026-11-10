@@ -80,7 +80,7 @@ final class GetEntityInformation extends FunctionCallBase implements ExecutableF
   /**
    * {@inheritdoc}
    */
-  public function execute(): void {
+  public function execute(?object $object = NULL): void {
     $this->entityId = $this->getContextValue('entity_id');
     $this->entityType = $this->getContextValue('entity_type');
     $this->selectedComponent = $this->getContextValue('selected_component') ?? '';
