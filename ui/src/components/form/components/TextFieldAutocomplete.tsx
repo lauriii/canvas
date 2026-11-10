@@ -210,12 +210,10 @@ const TextFieldAutocomplete = ({
             if (inputRef.current && !suggestionsOpen) {
               const { value } = inputRef.current;
               inputRef.current.removeAttribute('data-canvas-no-update');
-              fieldContext?.triggerChange(
-                formId === FORM_TYPES.COMPONENT_INSTANCE_FORM
-                  ? resolveEntityUri(value)
-                  : value,
-                inputRef.current,
-              );
+              // The `link` transform resolves typed entity labels, such as
+              // `Example (3)`, to URIs.
+              // @see ui/src/utils/transforms.ts
+              fieldContext?.triggerChange(value, inputRef.current);
             }
           }, autocompleteDelay * 2);
         }}
