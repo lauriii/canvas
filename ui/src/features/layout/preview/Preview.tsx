@@ -182,13 +182,35 @@ const Preview: React.FC = () => {
     },
   );
 
+  // The inputs of the request scheduled for the latest undo/redo, kept until
+  // the effect below runs again.
+  const undoRedoRequestRef = useRef<{
+    layout: typeof layout;
+    model: typeof model;
+    entity_form_fields: typeof entity_form_fields;
+  } | null>(null);
+
   // Effect: Trigger POSTing of layout, model and entity_form_fields when they change
   // to generate a new preview and create a new autoSave.
   useEffect(() => {
-    if (updatePreview || needsPreviewAfterUndoRedo) {
+    const undoRedoRequest = undoRedoRequestRef.current;
+    undoRedoRequestRef.current = null;
+    // Clearing the undo/redo flag runs this effect again. Undo/redo restores a
+    // state with updatePreview set, so skip that run when it would send the
+    // same inputs again.
+    const isUndoRedoRequestRepeat =
+      !needsPreviewAfterUndoRedo &&
+      undoRedoRequest?.layout === layout &&
+      undoRedoRequest.model === model &&
+      undoRedoRequest.entity_form_fields === entity_form_fields;
+    if (
+      (updatePreview || needsPreviewAfterUndoRedo) &&
+      !isUndoRedoRequestRepeat
+    ) {
       // If we're triggering because of undo/redo flag, clear it immediately
       if (needsPreviewAfterUndoRedo) {
         dispatch(clearPreviewAfterUndoRedo());
+        undoRedoRequestRef.current = { layout, model, entity_form_fields };
       }
 
       const context =
