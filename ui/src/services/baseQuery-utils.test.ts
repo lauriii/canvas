@@ -1,9 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  baseQuery,
   extractEntityParams,
   replaceEntityParamsInUrl,
 } from '@/services/baseQuery';
+import { forgetCsrfToken } from '@/utils/csrf';
+
+import type { BaseQueryApi } from '@reduxjs/toolkit/query/react';
 
 describe('extractEntityParams', () => {
   it('removes query parameters and hash fragments', () => {
@@ -66,5 +70,52 @@ describe('replaceEntityParamsInUrl', () => {
     const url = '/api/static/path';
     const result = replaceEntityParamsInUrl(url);
     expect(result).toBe('/api/static/path');
+  });
+});
+
+describe('baseQuery', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    forgetCsrfToken('http://localhost/');
+  });
+
+  it('fetches a new CSRF token when a mutation gets a 403 with an HTML body', async () => {
+    const tokens = ['stale-token', 'new-token'];
+    const sentTokens: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const request =
+          input instanceof Request ? input : new Request(input, init);
+        if (request.url.endsWith('session/token')) {
+          return new Response(tokens.shift());
+        }
+        const token = request.headers.get('X-CSRF-Token')!;
+        sentTokens.push(token);
+        return token === 'new-token'
+          ? Response.json({ saved: true })
+          : new Response('<html>Forbidden</html>', {
+              status: 403,
+              headers: { 'Content-Type': 'text/html' },
+            });
+      }),
+    );
+    const api = {
+      type: 'mutation',
+      endpoint: 'test',
+      getState: () => ({ configuration: { baseUrl: 'http://localhost/' } }),
+      signal: new AbortController().signal,
+      abort: vi.fn(),
+      dispatch: vi.fn(),
+    } as unknown as BaseQueryApi;
+
+    const result = await baseQuery(
+      { url: 'canvas/api/v0/test', method: 'POST', body: {} },
+      api,
+      {},
+    );
+
+    expect(result.data).toEqual({ saved: true });
+    expect(sentTokens).toEqual(['stale-token', 'new-token']);
   });
 });
