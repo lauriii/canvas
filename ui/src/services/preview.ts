@@ -6,6 +6,7 @@ import {
   setLayoutModel,
   setTranslations,
 } from '@/features/layout/layoutModelSlice';
+import { previewEditCount } from '@/features/layout/preview/previewEdits';
 import {
   setHtml,
   setSnapshotHTML,
@@ -67,6 +68,7 @@ export const previewApi = createApi({
         body,
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        const editsAtRequest = previewEditCount();
         pushCanvasLayoutRequest();
         try {
           const { data, meta } = await queryFulfilled;
@@ -76,7 +78,7 @@ export const previewApi = createApi({
               { type: 'PendingChanges', id: 'LIST' },
             ]),
           );
-          dispatch(setHtml(html));
+          dispatch(setHtml(html, editsAtRequest));
           handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
           previewSuccessCount++;
           dispatch(setPostPreviewCompleted(true));
@@ -167,6 +169,7 @@ export const previewApi = createApi({
         };
       },
       async onQueryStarted(body, { dispatch, queryFulfilled }) {
+        const editsAtRequest = previewEditCount();
         // Force any ajax calls to wait.
         pushCanvasLayoutRequest();
         let data: any;
@@ -194,7 +197,7 @@ export const previewApi = createApi({
         // preview snapshot, which selectPreviewHtml prefers while set.
         dispatch(setSnapshotHTML(''));
         dispatch(setSnapshotTitle(''));
-        dispatch(setHtml(html));
+        dispatch(setHtml(html, editsAtRequest));
         handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         // Pass update preview false to prevent a subsequent preview update,
         // we have the data here.
