@@ -8,6 +8,10 @@ export interface ContentStub {
   hasUnsavedStatusChange?: boolean;
   autoSaveLabel: string | null;
   autoSavePath: string;
+  // The language the page was created in.
+  langcode?: string;
+  // The titles of the page's translations, keyed by langcode.
+  translations?: Record<string, string>;
   links: {
     'delete-form'?: string;
     'edit-form'?: string;

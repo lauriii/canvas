@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import {
   ChevronDownIcon,
@@ -28,7 +28,7 @@ import { useAppSelector } from '@/app/hooks';
 import EmptyStateCallout from '@/components/EmptyStateCallout';
 import InfiniteScrollObserver from '@/components/InfiniteScrollObserver';
 import { selectHomepagePath } from '@/features/configuration/configurationSlice';
-import useEditorNavigation from '@/hooks/useEditorNavigation';
+import { useWorkingLanguage } from '@/hooks/useWorkingLanguage';
 import { getModuleOperations } from '@/utils/contentOperations';
 
 import type { FormEvent } from 'react';
@@ -235,7 +235,7 @@ const NavigationItem = ({
   onDelete?: (page: ContentStub) => void;
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { urlForEditor } = useEditorNavigation();
+  const { titleOf, urlForPage } = useWorkingLanguage();
 
   // Determine unpublished status:
   // - Show "Clock icon + Unpublish" if there's an unsaved status change to unpublished
@@ -258,7 +258,7 @@ const NavigationItem = ({
       data-canvas-page-id={item.id}
     >
       <Link
-        to={urlForEditor('canvas_page', item.id)}
+        to={urlForPage(item)}
         role={'listitem'}
         className={styles.pageLink}
         onClick={onSelect ? () => onSelect(item) : undefined}
@@ -268,7 +268,7 @@ const NavigationItem = ({
         </Box>
         <Flex flexGrow="1" align="center">
           <Text as="span" size="1">
-            {item.autoSaveLabel || item.title}{' '}
+            {titleOf(item)}{' '}
             <span className={styles.path}>
               {item.autoSavePath || item.path}
             </span>
@@ -339,6 +339,7 @@ const ContentGroup = ({
   onDelete?: (page: ContentStub) => void;
 }) => {
   const homepagePath = useAppSelector(selectHomepagePath);
+  const { workingLanguage, isMissing } = useWorkingLanguage();
   if (items.length === 0) {
     return (
       <EmptyStateCallout
@@ -360,18 +361,27 @@ const ContentGroup = ({
         gap="2"
         mt="2"
       >
-        {items.map((item) => (
-          <NavigationItem
-            key={`${item.id}-${item.status}`}
-            item={item}
-            homepagePath={homepagePath}
-            onSelect={onSelect}
-            onDuplicate={onDuplicate}
-            onSetHomepage={onSetHomepage}
-            onUnpublish={onUnpublish}
-            onPublish={onPublish}
-            onDelete={onDelete}
-          />
+        {items.map((item, index) => (
+          <Fragment key={`${item.id}-${item.status}`}>
+            {/* The pages that exist in the working language come first. */}
+            {workingLanguage &&
+              isMissing(item) &&
+              (index === 0 || !isMissing(items[index - 1])) && (
+                <Heading as="h5" size="1" color="gray" mt="2">
+                  Not in {workingLanguage.name}
+                </Heading>
+              )}
+            <NavigationItem
+              item={item}
+              homepagePath={homepagePath}
+              onSelect={onSelect}
+              onDuplicate={onDuplicate}
+              onSetHomepage={onSetHomepage}
+              onUnpublish={onUnpublish}
+              onPublish={onPublish}
+              onDelete={onDelete}
+            />
+          </Fragment>
         ))}
       </Flex>
     </div>

@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import clsx from 'clsx';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import BrandKitIcon from '@assets/icons/brand-kit.svg?react';
@@ -19,6 +19,7 @@ import { selectDialogOpen, setDialogClosed } from '@/features/ui/dialogSlice';
 import {
   selectActivePanel,
   setActivePanel,
+  setAiPanelClosed,
   unsetActivePanel,
 } from '@/features/ui/primaryPanelSlice';
 import { useCanvasHeadlessSettings } from '@/hooks/useCanvasHeadlessSettings';
@@ -78,6 +79,20 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
     (segments.includes('editor') && params.entityId !== undefined) ||
     (segments.includes('template') && params.previewEntityId !== undefined);
   const isOnExtensionPage = segments[0] === 'app';
+  // A page or template shown read-only in another language than its own:
+  // nothing can be added to it, and its layers are not loaded.
+  const isReadOnlyView = segments[0] === 'preview';
+
+  useEffect(() => {
+    if (!isReadOnlyView) {
+      return;
+    }
+    if (activePanel === 'library' || activePanel === 'layers') {
+      dispatch(unsetActivePanel());
+    }
+    // Its toggle is not in the top bar of a read-only view.
+    dispatch(setAiPanelClosed());
+  }, [isReadOnlyView, activePanel, dispatch]);
 
   const closeExtension = useCallback(() => {
     if (extensionDialogOpen) {
@@ -114,7 +129,7 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       id: 'library',
       icon: <PlusIcon />,
       label: 'Library',
-      enabled: true,
+      enabled: !isReadOnlyView,
       hidden: false,
     },
     {

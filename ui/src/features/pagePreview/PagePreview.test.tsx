@@ -23,13 +23,16 @@ vi.mock('@/features/layout/preview/useHeadlessDraftSession', () => ({
   useHeadlessDraftSession: mocks.session,
 }));
 vi.mock('@/services/componentAndLayout', () => ({
-  useGetPageLayoutQuery: vi.fn(),
+  useGetPageLayoutQuery: vi.fn(() => ({})),
 }));
 vi.mock('@/services/preview', () => ({
   useGetSnapshotPreviewQuery: mocks.snapshot,
   useQueuedPostPreviewMutation: () => [vi.fn()],
 }));
 vi.mock('@/utils/viewports', () => ({ getViewportSizes: () => [] }));
+vi.mock('@/components/languageSelect/LanguageBar', () => ({
+  default: () => <div data-testid="language-bar" />,
+}));
 
 describe('read-only Headless preview', () => {
   it.each([
@@ -59,6 +62,11 @@ describe('read-only Headless preview', () => {
         </MemoryRouter>,
       );
       expect(screen.getByTitle('Page preview')).not.toHaveAttribute('srcdoc');
+      // The bar explains a read-only view. Nothing loads the translations of
+      // a template in headless mode, so it has none.
+      expect(screen.queryAllByTestId('language-bar')).toHaveLength(
+        path.includes('/template/') ? 0 : 1,
+      );
       expect(mocks.session).toHaveBeenLastCalledWith(
         expect.any(Object),
         expect.any(Object),

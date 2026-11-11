@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import clsx from 'clsx';
 import { useErrorBoundary } from 'react-error-boundary';
 import { useLocation, useParams, useSearchParams } from 'react-router';
 import { AlertDialog, Button, Flex } from '@radix-ui/themes';
 import { skipToken } from '@reduxjs/toolkit/query';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import LanguageBar from '@/components/languageSelect/LanguageBar';
 import {
   selectLayout,
   selectModel,
@@ -43,7 +45,10 @@ const HeadlessPagePreview: React.FC<{
   width: string;
   viewMode?: string;
   language?: string;
-}> = ({ settings, width, viewMode, language }) => {
+  showLanguageBar?: boolean;
+}> = ({ settings, width, viewMode, language, showLanguageBar }) => {
+  // A view in another language is inside the editor's shell.
+  const inShell = !!language;
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const { entityId, entityType } = useParams();
   const { statusText } = useHeadlessDraftSession(
@@ -57,7 +62,13 @@ const HeadlessPagePreview: React.FC<{
   );
 
   return (
-    <div className={styles.PagePreviewContainer}>
+    <div
+      className={clsx(
+        styles.PagePreviewContainer,
+        inShell && styles.withLanguageBar,
+      )}
+    >
+      {showLanguageBar && <LanguageBar />}
       <p
         data-testid="canvas-headless-status"
         aria-live="polite"
@@ -99,6 +110,10 @@ const PagePreview = () => {
   // Determine template context from the URL path.
   const isContentTemplate = location.pathname.includes('/preview/template');
 
+  // A page or template shown in another language than its own is read-only:
+  // say why.
+  const showLanguageBar = !!language;
+
   const headlessSettings = useCanvasHeadlessSettings();
 
   // Only fetch the language preview when we are on a preview route.
@@ -109,14 +124,18 @@ const PagePreview = () => {
   // the generic /layout route, which only supports canvas_page entities, so it
   // is skipped for templates (their preview entity is rendered via the
   // snapshot query below).
-  useGetPageLayoutQuery(
+  const { fulfilledTimeStamp: layoutFetchedAt } = useGetPageLayoutQuery(
     entityId && entityType && !isContentTemplate
       ? { entityId, entityType }
       : skipToken,
   );
 
   // Language preview: auto-fetch whenever language/entity changes.
-  const { error: languagePreviewError } = useGetSnapshotPreviewQuery(
+  const {
+    error: languagePreviewError,
+    isUninitialized: isSnapshotSkipped,
+    refetch: refetchSnapshot,
+  } = useGetSnapshotPreviewQuery(
     {
       entityType: entityType!,
       entityId: entityId!,
@@ -134,6 +153,14 @@ const PagePreview = () => {
       refetchOnMountOrArgChange: true,
     },
   );
+
+  // The default-language layout clears the snapshot whenever it arrives, also
+  // when it is fetched again while this view is open: fetch the snapshot again.
+  useEffect(() => {
+    if (language && layoutFetchedAt && !isSnapshotSkipped) {
+      refetchSnapshot();
+    }
+  }, [language, layoutFetchedAt, isSnapshotSkipped, refetchSnapshot]);
 
   // Clear snapshot HTML and title when leaving language preview and handle errors.
   useEffect(() => {
@@ -154,7 +181,16 @@ const PagePreview = () => {
       // only supports canvas_page entities; skip it for a content template's
       // preview. In headless mode the app owns the rendering, so the srcdoc
       // HTML this generates would never be shown.
-      if (isContentTemplate || headlessSettings || !entityType || !entityId) {
+      // A view in another language is rendered by the snapshot query. The
+      // layout in the store can then be that of another page, because the
+      // page lists link straight to this route: it must not be posted.
+      if (
+        isContentTemplate ||
+        headlessSettings ||
+        language ||
+        !entityType ||
+        !entityId
+      ) {
         return;
       }
       try {
@@ -181,6 +217,7 @@ const PagePreview = () => {
     entityType,
     isContentTemplate,
     headlessSettings,
+    language,
     updatePreview,
     showBoundary,
   ]);
@@ -235,13 +272,21 @@ const PagePreview = () => {
         width={widthVal}
         viewMode={isContentTemplate ? viewMode : undefined}
         language={language || undefined}
+        // Nothing loads the translations of a template in headless mode.
+        showLanguageBar={showLanguageBar && !isContentTemplate}
       />
     );
   }
 
   return (
     <>
-      <div className={styles.PagePreviewContainer}>
+      <div
+        className={clsx(
+          styles.PagePreviewContainer,
+          showLanguageBar && styles.withLanguageBar,
+        )}
+      >
+        {showLanguageBar && <LanguageBar />}
         <div className={styles.controls}></div>
         <iframe
           title="Page preview"

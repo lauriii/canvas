@@ -36,6 +36,7 @@ import { usePaginatedContentList } from '@/hooks/usePaginatedContentList';
 import { useSmartRedirect } from '@/hooks/useSmartRedirect';
 import { useTemplateCaption } from '@/hooks/useTemplateCaption';
 import { useTemplateRef } from '@/hooks/useTemplateRef';
+import { useWorkingLanguage } from '@/hooks/useWorkingLanguage';
 import { componentAndLayoutApi } from '@/services/componentAndLayout';
 import {
   useCreateContentMutation,
@@ -105,6 +106,7 @@ const PageInfo = () => {
   });
 
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const { workingLanguage, isMultilingual } = useWorkingLanguage();
   // @todo: https://www.drupal.org/i/3513566 this needs to be generalized to check all content entity types.
   const canCreatePages =
     !!canvasSettings.contentEntityCreateOperations?.canvas_page?.canvas_page;
@@ -116,7 +118,11 @@ const PageInfo = () => {
     isSuccess: isGetPageItemsSuccess,
     hasMore,
     handleLoadMore,
-  } = usePaginatedContentList('canvas_page', searchTerm);
+  } = usePaginatedContentList(
+    'canvas_page',
+    searchTerm,
+    isMultilingual ? workingLanguage?.id : undefined,
+  );
 
   const [
     createContent,
@@ -163,6 +169,8 @@ const PageInfo = () => {
   function handleNewPage() {
     createContent({
       entity_type: 'canvas_page',
+      // New pages are created in the working language.
+      langcode: isMultilingual ? workingLanguage?.id : undefined,
     });
     setPopoverOpen(false);
   }

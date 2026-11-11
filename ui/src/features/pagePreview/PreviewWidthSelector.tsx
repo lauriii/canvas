@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useLocation, useNavigate, useParams } from 'react-router';
 import { WidthIcon } from '@radix-ui/react-icons';
 import { Button, DropdownMenu } from '@radix-ui/themes';
 
@@ -15,6 +15,8 @@ interface PreviewWidthSelectorProps {}
 const PreviewWidthSelector: React.FC<PreviewWidthSelectorProps> = (props) => {
   const navigate = useNavigate();
   const params = useParams();
+  // Keeps the query string: it holds the language of the preview.
+  const { search } = useLocation();
   const currentWidth = params.width || 'full';
   // Get viewport sizes (supports theme-level customization).
   const viewportSizes = useMemo(() => getViewportSizes(), []);
@@ -23,10 +25,12 @@ const PreviewWidthSelector: React.FC<PreviewWidthSelectorProps> = (props) => {
   const handlePreviewWidthChange = (val: string) => {
     if (isTemplatePreviewRoute) {
       navigate(
-        `/preview/template/${params.entityType}/${params.bundle}/${params.entityId}/${params.viewMode}/${val}`,
+        `/preview/template/${params.entityType}/${params.bundle}/${params.entityId}/${params.viewMode}/${val}${search}`,
       );
     } else {
-      navigate(`/preview/${params.entityType}/${params.entityId}/${val}`);
+      navigate(
+        `/preview/${params.entityType}/${params.entityId}/${val}${search}`,
+      );
     }
   };
 

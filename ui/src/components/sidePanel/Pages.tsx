@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
-import { useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import PageList from '@/components/pageInfo/PageList';
@@ -13,6 +13,7 @@ import {
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { usePaginatedContentList } from '@/hooks/usePaginatedContentList';
 import { useSmartRedirect } from '@/hooks/useSmartRedirect';
+import { useWorkingLanguage } from '@/hooks/useWorkingLanguage';
 import { componentAndLayoutApi } from '@/services/componentAndLayout';
 import {
   useCreateContentMutation,
@@ -35,6 +36,9 @@ const Pages = () => {
   const dispatch = useAppDispatch();
   const { entityType, entityId } = useParams();
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const navigate = useNavigate();
+  const { workingLanguage, isMultilingual, isMissing, titleOf, urlForPage } =
+    useWorkingLanguage();
 
   const canCreatePages =
     !!canvasSettings.contentEntityCreateOperations?.canvas_page?.canvas_page;
@@ -45,7 +49,11 @@ const Pages = () => {
     error: pageItemsError,
     hasMore,
     handleLoadMore,
-  } = usePaginatedContentList('canvas_page', searchTerm);
+  } = usePaginatedContentList(
+    'canvas_page',
+    searchTerm,
+    isMultilingual ? workingLanguage?.id : undefined,
+  );
 
   const [
     createContent,
@@ -76,6 +84,8 @@ const Pages = () => {
   function handleNewPage() {
     createContent({
       entity_type: 'canvas_page',
+      // New pages are created in the working language.
+      langcode: isMultilingual ? workingLanguage?.id : undefined,
     });
   }
 
@@ -105,7 +115,7 @@ const Pages = () => {
   }
 
   function handleOnSelect(item: ContentStub) {
-    navigateToEditor('canvas_page', item.id);
+    navigate(urlForPage(item));
   }
 
   async function handleUnpublishPage(item: ContentStub) {
@@ -208,6 +218,11 @@ const Pages = () => {
       pageItemsError={pageItemsError ? String(pageItemsError) : null}
       homepagePath={homepagePath}
       selectedPageId={selectedPageId}
+      workingLanguage={
+        isMultilingual && workingLanguage
+          ? { name: workingLanguage.name, isMissing, titleOf }
+          : undefined
+      }
       canCreatePages={canCreatePages}
       onNewPage={handleNewPage}
       onDeletePage={handleDeletePage}

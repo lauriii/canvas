@@ -1,495 +1,177 @@
-import { useEffect, useRef, useState } from 'react';
-import clsx from 'clsx';
+import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import {
-  CheckIcon,
   ChevronDownIcon,
-  DotsVerticalIcon,
   ExternalLinkIcon,
   GlobeIcon,
-  TrashIcon,
 } from '@radix-ui/react-icons';
-import {
-  Box,
-  Button,
-  DropdownMenu,
-  Flex,
-  Popover,
-  Separator,
-  Text,
-  TextField,
-} from '@radix-ui/themes';
-import { skipToken } from '@reduxjs/toolkit/query';
+import { Button, DropdownMenu, Flex, Text } from '@radix-ui/themes';
 
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import Dialog from '@/components/Dialog';
-import { extractErrorMessageFromApiResponse } from '@/features/error-handling/error-handling';
-import {
-  selectTranslations,
-  setInitialized,
-} from '@/features/layout/layoutModelSlice';
-import { selectPageData } from '@/features/pageData/pageDataSlice';
-import { selectSnapshotTitle } from '@/features/pagePreview/previewSlice';
-import { useTemplateCaption } from '@/hooks/useTemplateCaption';
+import { useAppSelector } from '@/app/hooks';
+import { selectTranslations } from '@/features/layout/layoutModelSlice';
 import { useTemplateRef } from '@/hooks/useTemplateRef';
 import {
-  componentAndLayoutApi,
-  useDeletePageTranslationMutation,
-  useGetPageLayoutQuery,
-} from '@/services/componentAndLayout';
-import { useSetLangcodeMutation } from '@/services/content';
-import { waitForPreviewRequests } from '@/services/preview';
+  rememberWorkingLanguage,
+  useWorkingLanguage,
+} from '@/hooks/useWorkingLanguage';
+import { PAGE_VARIANT_ENTITY_TYPE } from '@/services/pageVariants';
 import { getCanvasPermissions, getLanguages } from '@/utils/drupal-globals';
-import { getEntityTitle } from '@/utils/entityTitle';
 
 import styles from './LanguageSelect.module.css';
 
-interface DeleteTranslationDialogProps {
-  languageId: string | null;
-  url: string | undefined;
-  onSuccess: (languageId: string) => void;
-  onClose: () => void;
-}
-
-const DeleteTranslationDialog = ({
-  languageId,
-  url,
-  onSuccess,
-  onClose,
-}: DeleteTranslationDialogProps) => {
-  const [confirmText, setConfirmText] = useState('');
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [deletePageTranslation] = useDeletePageTranslationMutation();
-
-  // Reset the form whenever the dialog is dismissed.
-  useEffect(() => {
-    if (languageId === null) {
-      setConfirmText('');
-      setDeleteError(null);
-    }
-  }, [languageId]);
-
-  const handleConfirmDelete = async () => {
-    if (!languageId) return;
-    if (url) {
-      try {
-        await deletePageTranslation(url).unwrap();
-        onSuccess(languageId);
-      } catch (error) {
-        console.error('Failed to delete translation:', error);
-        setDeleteError('Failed to delete the translation. Please try again.');
-      }
-    } else {
-      onClose();
-    }
-  };
-
-  return (
-    <Dialog
-      open={!!languageId}
-      onOpenChange={(open) => {
-        if (!open) onClose();
-      }}
-      title="Delete translation"
-      description="You are about to delete this translation. This will permanently delete the translation from this page. This action cannot be undone."
-      error={
-        deleteError
-          ? {
-              title: 'Failed to delete translation',
-              message: deleteError,
-            }
-          : undefined
-      }
-      footer={{
-        cancelText: 'Cancel',
-        confirmText: 'Delete Translation',
-        onConfirm: handleConfirmDelete,
-        onCancel: onClose,
-        isConfirmDisabled: confirmText !== 'DELETE',
-        isDanger: true,
-      }}
-    >
-      <Flex direction="column" gap="2">
-        <Text size="2">
-          To confirm this, type '<Text weight="bold">DELETE</Text>'
-          <Text color="red">*</Text>
-        </Text>
-        <TextField.Root
-          data-testid="delete-translation-confirm-input"
-          value={confirmText}
-          onChange={(e) => setConfirmText(e.target.value)}
-        />
-      </Flex>
-    </Dialog>
-  );
-};
-
+/**
+ * Selects the working language: the language pages are shown and created in.
+ *
+ * Selecting a language only navigates. A page opens in the editor in the
+ * language it was created in, and read-only in any other language.
+ *
+ * @see useWorkingLanguage
+ * @see LanguageBar
+ */
 const LanguageSelect = () => {
   const languages = getLanguages();
   const permissions = getCanvasPermissions();
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [openPopoverId, setOpenPopoverId] = useState<string | null>(null);
-  const [deleteLanguageId, setDeleteLanguageId] = useState<string | null>(null);
-  const [switchError, setSwitchError] = useState<string | null>(null);
-  // Languages whose translation was deleted in-session. Used to hide their
-  // check mark and options trigger without re-fetching the layout.
-  const [removedLanguages, setRemovedLanguages] = useState<string[]>([]);
-  const popoverOffsetsRef = useRef<Record<string, number>>({});
-  const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
-
-  const handlePopoverOpenChange = (languageId: string, open: boolean) => {
-    if (open) {
-      const rowEl = rowRefs.current[languageId];
-      if (rowEl) {
-        const dotsBtn = rowEl.querySelector('button');
-        popoverOffsetsRef.current[languageId] =
-          rowEl.offsetWidth - (dotsBtn?.offsetWidth ?? 0) + 12;
-      }
-    }
-    setOpenPopoverId(open ? languageId : null);
-  };
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { entityType, entityId, width, previewEntityId, bundle, viewMode } =
+  const [, setSearchParams] = useSearchParams();
+  const { entityType, entityId, previewEntityId, bundle, viewMode } =
     useParams();
   const { isTemplateContext, isTemplatePreviewRoute } = useTemplateRef();
-  const translations = useAppSelector(selectTranslations);
   const isTemplateRoute = isTemplateContext || isTemplatePreviewRoute;
-  const templateCaption = useTemplateCaption();
-  const pageData = useAppSelector(selectPageData);
-  const snapshotTitle = useAppSelector(selectSnapshotTitle);
-  const pageTitle =
-    templateCaption ||
-    snapshotTitle ||
-    getEntityTitle(entityType, pageData) ||
-    pageData?.['title[0][value]'];
+  const translations = useAppSelector(selectTranslations);
+  const { workingLanguage, pageLanguage } = useWorkingLanguage();
 
-  const [setLangcode, { isLoading: isPatching }] = useSetLangcodeMutation();
-  const dispatch = useAppDispatch();
-
-  // Derive the active language: prefer the ?language= URL param, falling
-  // back to the entity's primary language, and finally the site default.
-  const entityDefaultLangcode = translations?.available?.[0];
-  const activeLanguageId = searchParams.get('language') ?? '';
-  const { data: fetchedLayout, isFetching: isLayoutFetching } =
-    useGetPageLayoutQuery(
-      !isTemplateRoute && entityId && entityType
-        ? { entityId, entityType, language: activeLanguageId || undefined }
-        : skipToken,
-    );
-  const isNew = Boolean(fetchedLayout?.isNew);
-  // The langcode endpoint only exists for canvas_page; `isNew` is reported for
-  // every entity type.
-  // @see canvas.api.content.langcode.patch in canvas.routing.yml
-  const canSwitchLanguage = isNew && entityType === 'canvas_page';
-  const defaultLanguage = languages.find((lang) => lang.isDefault);
-  const currentLanguage =
-    activeLanguageId ||
-    entityDefaultLangcode ||
-    defaultLanguage?.id ||
-    languages[0]?.id ||
-    '';
-
-  // Switches the draft's primary language server-side and reloads.
-  // Intentionally drops the ?language= param during navigation to prevent
-  // the Drupal backend from 404ing on a non-existent translation.
-  const handleSwitchLanguage = async (languageId: string) => {
-    setDropdownOpen(false);
-    if (!canSwitchLanguage || !entityId || languageId === currentLanguage) {
-      return;
-    }
-    try {
-      await waitForPreviewRequests();
-      await setLangcode({
-        entityId,
-        langcode: languageId,
-      }).unwrap();
-      // Reset isInitialized so LayoutLoader treats the next getPageLayout response
-      // as fresh and re-seeds the form via setInitialLayoutModel (see LayoutLoader.tsx).
-      dispatch(setInitialized(false));
-      dispatch(componentAndLayoutApi.util.invalidateTags([{ type: 'Layout' }]));
-    } catch (error) {
-      console.error('Failed to switch the language:', error);
-      setSwitchError(extractErrorMessageFromApiResponse(error));
-      return;
-    }
-    navigate(`/editor/${entityType}/${entityId}`);
-  };
-
-  const handleLanguageChange = async (languageId: string) => {
-    setDropdownOpen(false);
+  const handleLanguageChange = (languageId: string) => {
     const selectedLang = languages.find((lang) => lang.id === languageId);
-
-    if (!selectedLang || !entityType || (!entityId && !previewEntityId)) {
+    if (!selectedLang || languageId === workingLanguage?.id) {
       return;
     }
-
-    if (selectedLang.isDefault) {
-      if (isTemplateRoute) {
-        navigate(
-          `/template/${entityType}/${bundle}/${viewMode}/${entityId || previewEntityId}`,
-        );
-      } else {
-        navigate(`/editor/${entityType}/${entityId}`);
-      }
-    } else {
-      const currentWidth = width || 'full';
-      if (isTemplateRoute) {
-        navigate(
-          `/preview/template/${entityType}/${bundle}/${entityId || previewEntityId}/${viewMode}/${currentWidth}?language=${languageId}`,
-        );
-      } else {
-        navigate(
-          `/preview/${entityType}/${entityId}/${currentWidth}?language=${languageId}`,
-        );
-      }
+    rememberWorkingLanguage(languageId);
+    // Without an open page or template there is nothing to show in another
+    // language: only the working language changes.
+    if (!entityType || (!entityId && !previewEntityId)) {
+      setSearchParams({ language: languageId });
+      return;
     }
-  };
-
-  const handleTranslate = (languageId: string) => {
-    const url =
-      translations?.links?.[languageId]?.['edit-form'] ??
-      translations?.links?.[languageId]?.['create'];
-    if (url) {
-      window.open(url, '_blank', 'noopener,noreferrer');
+    // Before the layout has loaded, the language of the page or template is
+    // not known yet.
+    const isOwnLanguage = pageLanguage
+      ? languageId === pageLanguage
+      : selectedLang.isDefault;
+    if (isTemplateRoute) {
+      const templateEntityId = entityId || previewEntityId;
+      navigate(
+        isOwnLanguage
+          ? `/template/${entityType}/${bundle}/${viewMode}/${templateEntityId}`
+          : `/preview/template/${entityType}/${bundle}/${templateEntityId}/${viewMode}/full?language=${languageId}`,
+      );
+      return;
     }
-    setOpenPopoverId(null);
-  };
-
-  const handleDeleteTranslation = (languageId: string) => {
-    setDeleteLanguageId(languageId);
-    setOpenPopoverId(null);
-  };
-
-  const handleConfigureLanguages = () => {
-    window.open(
-      '/admin/config/regional/language',
-      '_blank',
-      'noopener,noreferrer',
+    navigate(
+      isOwnLanguage
+        ? `/editor/${entityType}/${entityId}`
+        : `/preview/${entityType}/${entityId}/full?language=${languageId}`,
     );
-    setDropdownOpen(false);
   };
 
-  const currentLangObj = languages.find((lang) => lang.id === currentLanguage);
-
-  // A language counts as translated only if the layout reports it and it has
-  // not been deleted in this session.
-  const hasTranslation = (languageId: string) =>
-    Boolean(translations?.available?.includes(languageId)) &&
-    !removedLanguages.includes(languageId);
+  // How the open page or template relates to a language.
+  const statusOf = (languageId: string) => {
+    if (!entityType || !translations?.available) {
+      return null;
+    }
+    if (languageId === pageLanguage) {
+      return 'Original';
+    }
+    // The translations of a page variant are not reported.
+    if (entityType === PAGE_VARIANT_ENTITY_TYPE) {
+      return null;
+    }
+    return translations.available.includes(languageId)
+      ? 'Translated'
+      : 'Not translated';
+  };
 
   if (languages.length <= 1) {
     return null;
   }
 
+  const label = workingLanguage?.name ?? 'Select language';
+
   return (
-    <>
-      <DropdownMenu.Root
-        open={dropdownOpen}
-        onOpenChange={(open) => {
-          // Keep the dropdown open while the delete-confirmation dialog is showing.
-          if (!open && deleteLanguageId) return;
-          setDropdownOpen(open);
-        }}
-      >
-        <DropdownMenu.Trigger>
-          <Button
-            size="2"
-            variant="soft"
-            data-testid="language-select-trigger"
-            // Stays disabled until the layout re-fetches after a switch.
-            disabled={isPatching || isLayoutFetching}
-          >
-            <GlobeIcon />
-            <Text
-              title={currentLangObj?.id?.toUpperCase() || 'Select Language'}
-            >
-              {currentLangObj?.id?.toUpperCase() || 'Select Language'}
-            </Text>
-            <ChevronDownIcon width="16" height="16" />
-          </Button>
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Content className={styles.dropdown}>
-          {languages.map((language) => (
-            <Flex
-              key={language.id}
-              ref={(el) => {
-                rowRefs.current[language.id] = el;
-              }}
-              align="center"
-              justify="between"
-              className={styles.row}
-            >
-              <DropdownMenu.Item
+    <DropdownMenu.Root open={dropdownOpen} onOpenChange={setDropdownOpen}>
+      <DropdownMenu.Trigger>
+        <Button
+          size="1"
+          variant="soft"
+          data-testid="language-select-trigger"
+          aria-label={`Working language: ${label}`}
+        >
+          <GlobeIcon />
+          <Text className={styles.triggerLabel} title={label}>
+            {label}
+          </Text>
+          <ChevronDownIcon width="16" height="16" />
+        </Button>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Content className={styles.dropdown}>
+        <DropdownMenu.Label>Working language</DropdownMenu.Label>
+        <DropdownMenu.RadioGroup
+          value={workingLanguage?.id ?? ''}
+          onValueChange={handleLanguageChange}
+        >
+          {languages.map((language) => {
+            const status = statusOf(language.id);
+            return (
+              <DropdownMenu.RadioItem
+                key={language.id}
+                value={language.id}
                 data-testid={`language-option-${language.id}`}
-                onSelect={() => handleLanguageChange(language.id)}
               >
-                <Flex align="center" width="100%">
-                  <Box className={styles.checkIconContainer}>
-                    {hasTranslation(language.id) && <CheckIcon />}
-                  </Box>
+                <Flex align="center" justify="between" gap="4" width="100%">
                   <Text
                     className={styles.languageName}
                     data-canvas-has-translation={
-                      hasTranslation(language.id) ? 'true' : undefined
+                      status === 'Original' || status === 'Translated'
+                        ? 'true'
+                        : undefined
                     }
                   >
                     {language.name}
-                    {language.isDefault && ' (Default)'}
                   </Text>
-                </Flex>
-              </DropdownMenu.Item>
-              {(translations?.links?.[language.id] ||
-                (canSwitchLanguage && language.id !== currentLanguage)) &&
-                !removedLanguages.includes(language.id) && (
-                  <Popover.Root
-                    open={openPopoverId === language.id}
-                    onOpenChange={(open) =>
-                      handlePopoverOpenChange(language.id, open)
-                    }
-                  >
-                    <DropdownMenu.Item
-                      onSelect={(e) => {
-                        e.preventDefault();
-                        handlePopoverOpenChange(language.id, true);
-                      }}
+                  {status && (
+                    <Text
+                      size="1"
+                      color="gray"
+                      data-testid={`language-status-${language.id}`}
                     >
-                      <Popover.Trigger>
-                        <button
-                          data-testid="language-options-popover-trigger"
-                          className={styles.dotsButton}
-                          aria-label={`More options for ${language.name}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handlePopoverOpenChange(language.id, true);
-                          }}
-                        >
-                          <DotsVerticalIcon width="14" height="14" />
-                        </button>
-                      </Popover.Trigger>
-                    </DropdownMenu.Item>
-                    <Popover.Content
-                      side="left"
-                      sideOffset={popoverOffsetsRef.current[language.id] ?? 0}
-                      align="start"
-                      className={styles.popover}
-                      data-testid="language-options-popover"
-                      onPointerDownOutside={(e) => {
-                        e.preventDefault();
-                        setOpenPopoverId(null);
-                      }}
-                      onInteractOutside={(e) => {
-                        e.preventDefault();
-                      }}
-                    >
-                      <Flex direction="column" gap="1">
-                        <Text
-                          size="2"
-                          weight="medium"
-                          className={styles.popoverTitle}
-                          data-testid="language-options-popover-title"
-                        >
-                          {pageTitle || 'Untitled'} ({language.name})
-                        </Text>
-                        <Separator size="4" my="1" />
-                        {canSwitchLanguage &&
-                          language.id !== currentLanguage && (
-                            <button
-                              className={styles.popoverItem}
-                              data-testid="language-switch"
-                              onClick={() => {
-                                setOpenPopoverId(null);
-                                handleSwitchLanguage(language.id);
-                              }}
-                            >
-                              <GlobeIcon width="14" height="14" />
-                              <Text size="2">Switch language</Text>
-                            </button>
-                          )}
-                        {!isNew &&
-                          (translations?.links?.[language.id]?.['edit-form'] ||
-                            translations?.links?.[language.id]?.['create']) && (
-                            <button
-                              className={styles.popoverItem}
-                              onClick={() => handleTranslate(language.id)}
-                            >
-                              <ExternalLinkIcon width="14" height="14" />
-                              <Text size="2">
-                                {translations?.links?.[language.id]?.[
-                                  'edit-form'
-                                ]
-                                  ? 'Edit translation'
-                                  : 'Add translation'}
-                              </Text>
-                            </button>
-                          )}
-                        {!isNew &&
-                          translations?.links?.[language.id]?.[
-                            'delete-form'
-                          ] && (
-                            <button
-                              className={clsx(
-                                styles.popoverItem,
-                                styles.popoverItemRed,
-                              )}
-                              data-testid="language-options-delete"
-                              onClick={() =>
-                                handleDeleteTranslation(language.id)
-                              }
-                            >
-                              <TrashIcon width="14" height="14" />
-                              <Text size="2">Delete translation</Text>
-                            </button>
-                          )}
-                      </Flex>
-                    </Popover.Content>
-                  </Popover.Root>
-                )}
-            </Flex>
-          ))}
-          <Separator size="4" my="2" />
-          {permissions?.configureLanguages && (
-            <DropdownMenu.Item onSelect={handleConfigureLanguages}>
-              <button
-                className={styles.configureButton}
-                data-testid="language-configure-button"
-              >
-                <Flex align="center" gap="2">
-                  <ExternalLinkIcon width="14" height="14" />
-                  <Text size="2">Configure languages</Text>
+                      {status}
+                    </Text>
+                  )}
                 </Flex>
-              </button>
+              </DropdownMenu.RadioItem>
+            );
+          })}
+        </DropdownMenu.RadioGroup>
+        {permissions?.configureLanguages && (
+          <>
+            <DropdownMenu.Separator />
+            <DropdownMenu.Item
+              data-testid="language-configure-button"
+              onSelect={() =>
+                window.open(
+                  '/admin/config/regional/language',
+                  '_blank',
+                  'noopener,noreferrer',
+                )
+              }
+            >
+              <ExternalLinkIcon width="14" height="14" />
+              Configure languages
             </DropdownMenu.Item>
-          )}
-        </DropdownMenu.Content>
-      </DropdownMenu.Root>
-      <DeleteTranslationDialog
-        languageId={deleteLanguageId}
-        url={
-          deleteLanguageId
-            ? translations?.links?.[deleteLanguageId]?.['delete-form']
-            : undefined
-        }
-        onSuccess={(languageId) => {
-          setRemovedLanguages((prev) => [...prev, languageId]);
-          setDeleteLanguageId(null);
-        }}
-        onClose={() => setDeleteLanguageId(null)}
-      />
-      <Dialog
-        open={switchError !== null}
-        onOpenChange={(open) => {
-          if (!open) setSwitchError(null);
-        }}
-        title="Switch language"
-        error={
-          switchError
-            ? { title: 'Failed to switch language', message: switchError }
-            : undefined
-        }
-        footer={{ hidden: true }}
-      />
-    </>
+          </>
+        )}
+      </DropdownMenu.Content>
+    </DropdownMenu.Root>
   );
 };
 

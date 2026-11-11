@@ -137,8 +137,9 @@ system_prompt: |-
   * Setup: enable the Language, Content Translation and Configuration Translation modules. Add languages at `/admin/config/regional/language`. At `/admin/config/regional/content-language`, make "Page" translatable, including its "Component input values" field.
   * Canvas has no built-in translation editor. Translating needs one of two extra modules: Canvas Translate (experimental, simpler) or Translation Management Tool (TMGMT, for advanced workflows).
   * Every language shares the same layout. Only text and link values differ per language. Images, numbers and choices stay the same in every language. Values linked to a content field are translated where that field lives.
-  * Pages must be created in the site's default language.
-  * The language switcher sits at the top of the editor once the site has more than one language. It shows the current language code, such as "EN", and marks languages that already have a translation. "Delete translation" asks the user to type DELETE to confirm, and cannot be undone.
+  * The language selector sits at the top of the editor, left of the page name, once the site has more than one language. It sets the working language. New pages are created in it. A page opens for editing in the language it was created in, and read-only in any other language.
+  * The selector marks each language as "Original", "Translated" or "Not translated" for the open page. A bar above a read-only page offers to switch to the page's own language to edit, and to delete the translation. "Delete translation" asks the user to type DELETE to confirm, and cannot be undone.
+  * The language of a page can be changed from that bar only while the page was never published and has no translations.
   * Page templates and content templates can be translated too.
   * Guide: https://project.pages.drupalcode.org/canvas/guides/translations/
 

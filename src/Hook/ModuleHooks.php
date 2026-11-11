@@ -123,9 +123,10 @@ class ModuleHooks {
    * Implements hook_form_language_content_settings_form_alter().
    *
    * Disables and unchecks the "Show language selector" option for Canvas pages
-   * in the content language settings admin form. Canvas pages must always be
-   * created in the site's default language; translated content is managed
-   * through the translation workflow.
+   * in the content language settings admin form. The default language of a
+   * Canvas page is the site's default language; the Canvas editor creates pages
+   * in its working language. Translated content is managed through the
+   * translation workflow.
    */
   #[Hook('form_language_content_settings_form_alter', order: Order::Last)]
   public static function formLanguageContentSettingsFormAlter(array &$form, FormStateInterface $form_state): void {
@@ -171,7 +172,7 @@ class ModuleHooks {
       $element[$bundle]['settings']['language']['langcode']['#value'] = 'site_default';
       $element[$bundle]['settings']['language']['langcode']['#attributes']['disabled'] = TRUE;
       $element[$bundle]['settings']['language']['langcode']['#description'] = t(
-        "All Canvas pages must be created in the site's default language. Creating pages in other languages is not supported."
+        "The Canvas editor creates pages in its working language. Pages created in another way are created in the site's default language."
       ) . $translation_tip;
     }
     // Hide the option and force the value to make sure the UI to change

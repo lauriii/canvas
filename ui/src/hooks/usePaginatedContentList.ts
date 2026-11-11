@@ -6,6 +6,8 @@ import { useGetContentListQuery } from '@/services/content';
 export const usePaginatedContentList = (
   entityType: string,
   searchTerm: string,
+  // A language: the content that exists in it is listed first.
+  langcode?: string,
 ) => {
   const [offset, setOffset] = useState(0);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
@@ -14,14 +16,15 @@ export const usePaginatedContentList = (
     entityType,
     search: debouncedSearchTerm,
     offset,
+    langcode,
   });
   const items = data?.items;
   const totalCount = data?.totalCount;
 
-  // Reset offset when search changes.
+  // Reset offset when the search or the language changes.
   useEffect(() => {
     setOffset(0);
-  }, [debouncedSearchTerm]);
+  }, [debouncedSearchTerm, langcode]);
 
   const hasMore =
     !debouncedSearchTerm &&

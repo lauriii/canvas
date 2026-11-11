@@ -1,4 +1,10 @@
-import { createBrowserRouter, Navigate, Outlet, useParams } from 'react-router';
+import {
+  createBrowserRouter,
+  Navigate,
+  Outlet,
+  useParams,
+  useSearchParams,
+} from 'react-router';
 import { RouterProvider } from 'react-router/dom';
 import { Flex } from '@radix-ui/themes';
 
@@ -44,6 +50,19 @@ const UiShell = ({ children }: { children: React.ReactNode }) => (
     <Dialogs />
   </>
 );
+
+// A page or template shown read-only in another language than its own keeps
+// the side menu and its panels, unlike the preview.
+const PreviewRoute = () => {
+  const [searchParams] = useSearchParams();
+  return searchParams.has('language') ? (
+    <UiShell>
+      <PagePreview />
+    </UiShell>
+  ) : (
+    <PagePreview />
+  );
+};
 
 const CodeEditorUi = (
   <PermissionCheck
@@ -173,19 +192,19 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
           },
           {
             path: '/preview/:entityType/:entityId/',
-            element: <PagePreview />,
+            element: <PreviewRoute />,
           },
           {
             path: 'preview/:entityType/:entityId/:width',
-            element: <PagePreview />,
+            element: <PreviewRoute />,
           },
           {
             path: '/preview/template/:entityType/:bundle/:entityId/:viewMode',
-            element: <PagePreview />,
+            element: <PreviewRoute />,
           },
           {
             path: 'preview/template/:entityType/:bundle/:entityId/:viewMode/:width',
-            element: <PagePreview />,
+            element: <PreviewRoute />,
           },
           {
             path: '/version-preview/:entityType/:entityId',
