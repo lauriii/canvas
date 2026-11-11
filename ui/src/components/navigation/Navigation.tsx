@@ -225,6 +225,7 @@ const NavigationItem = ({
   onPublish,
   onDelete,
   titleOf,
+  pathOf,
   urlForPage,
 }: {
   item: ContentStub;
@@ -236,6 +237,7 @@ const NavigationItem = ({
   onPublish?: (page: ContentStub) => void;
   onDelete?: (page: ContentStub) => void;
   titleOf: (page: ContentStub) => string;
+  pathOf: (page: ContentStub) => string;
   urlForPage: (page: ContentStub) => string;
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -271,10 +273,7 @@ const NavigationItem = ({
         </Box>
         <Flex flexGrow="1" align="center">
           <Text as="span" size="1">
-            {titleOf(item)}{' '}
-            <span className={styles.path}>
-              {item.autoSavePath || item.path}
-            </span>
+            {titleOf(item)} <span className={styles.path}>{pathOf(item)}</span>
           </Text>
         </Flex>
       </Link>
@@ -342,7 +341,7 @@ const ContentGroup = ({
   onDelete?: (page: ContentStub) => void;
 }) => {
   const homepagePath = useAppSelector(selectHomepagePath);
-  const { workingLanguage, isMissing, titleOf, urlForPage } =
+  const { workingLanguage, isMissing, titleOf, pathOf, urlForPage } =
     useWorkingLanguage();
   if (items.length === 0) {
     return (
@@ -385,6 +384,7 @@ const ContentGroup = ({
               onPublish={onPublish}
               onDelete={onDelete}
               titleOf={titleOf}
+              pathOf={pathOf}
               urlForPage={urlForPage}
             />
           </Fragment>

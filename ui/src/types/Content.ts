@@ -10,8 +10,8 @@ export interface ContentStub {
   autoSavePath: string;
   // The language the page was created in.
   langcode?: string;
-  // The titles of the page's translations, keyed by langcode.
-  translations?: Record<string, string>;
+  // The title and path of each of the page's translations, keyed by langcode.
+  translations?: Record<string, { title: string; path: string }>;
   links: {
     'delete-form'?: string;
     'edit-form'?: string;

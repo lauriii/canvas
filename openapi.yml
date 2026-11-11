@@ -2093,11 +2093,23 @@ paths:
                           description: The language the page was created in.
                         translations:
                           type: object
-                          description: The titles of the page's translations, keyed by langcode. Does not include the language the page was created in.
+                          description: The title and path of each of the page's translations, keyed by langcode. Does not include the language the page was created in.
                           additionalProperties:
-                            type: string
+                            type: object
+                            required:
+                              - title
+                              - path
+                            additionalProperties: false
+                            properties:
+                              title:
+                                type: string
+                              path:
+                                type: string
+                                description: The processed path of the translation, as for the page.
                           example:
-                            de: About us in German
+                            de:
+                              title: About us in German
+                              path: /de/about-us
                         uuid:
                           type: string
                           format: uuid

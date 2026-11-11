@@ -13,7 +13,13 @@ import type { Language } from '@/utils/drupal-globals';
 
 type PageStub = Pick<
   ContentStub,
-  'id' | 'title' | 'autoSaveLabel' | 'langcode' | 'translations'
+  | 'id'
+  | 'title'
+  | 'autoSaveLabel'
+  | 'path'
+  | 'autoSavePath'
+  | 'langcode'
+  | 'translations'
 >;
 
 const STORAGE_KEY = 'Canvas.workingLanguage';
@@ -138,9 +144,18 @@ export function useWorkingLanguage() {
 
   const titleOf = useCallback(
     (page: PageStub) =>
-      (isInOtherLanguage(page) && page.translations?.[id!]) ||
+      (isInOtherLanguage(page) && page.translations?.[id!]?.title) ||
       page.autoSaveLabel ||
       page.title,
+    [isInOtherLanguage, id],
+  );
+
+  // The path of the page in the working language, with its language prefix.
+  const pathOf = useCallback(
+    (page: PageStub) =>
+      (isInOtherLanguage(page) && page.translations?.[id!]?.path) ||
+      page.autoSavePath ||
+      page.path,
     [isInOtherLanguage, id],
   );
 
@@ -165,6 +180,7 @@ export function useWorkingLanguage() {
     isMultilingual,
     isMissing,
     titleOf,
+    pathOf,
     urlForPage,
   };
 }

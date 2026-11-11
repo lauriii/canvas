@@ -223,7 +223,7 @@ const PageListItem = ({
   workingLanguage?: PageListWorkingLanguage;
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const title = `${workingLanguage?.titleOf(item) ?? (item.autoSaveLabel || item.title)} ${item.autoSavePath || item.path}`;
+  const title = `${workingLanguage?.titleOf(item) ?? (item.autoSaveLabel || item.title)} ${workingLanguage?.pathOf(item) ?? (item.autoSavePath || item.path)}`;
   const dropdownMenuContent = createPageMenuContent(
     item,
     onDuplicate,
@@ -367,6 +367,7 @@ const ContentGroup = ({
 export interface PageListWorkingLanguage {
   name: string;
   titleOf: (item: ContentStub) => string;
+  pathOf: (item: ContentStub) => string;
   isMissing: (item: ContentStub) => boolean;
 }
 

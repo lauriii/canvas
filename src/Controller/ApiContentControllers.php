@@ -430,11 +430,19 @@ final class ApiContentControllers extends ApiControllerBase {
     $data_in_other_languages = [];
     foreach ($content_entities as $content_entity) {
       \assert($content_entity instanceof ContentEntityInterface);
-      // The titles of the translations, keyed by langcode: lets a client list
-      // content in another language than the one it was created in.
+      // The title and path of each translation, keyed by langcode: lets a
+      // client list content in another language than the one it was created
+      // in.
       $translations = [];
       foreach (\array_keys($content_entity->getTranslationLanguages(FALSE)) as $translation_langcode) {
-        $translations[$translation_langcode] = (string) $content_entity->getTranslation($translation_langcode)->label();
+        $translation = $content_entity->getTranslation($translation_langcode);
+        $translation_url = $translation->toUrl()->toString(TRUE);
+        $query_cacheability->addCacheableDependency($translation_url);
+        $translations[$translation_langcode] = [
+          'title' => (string) $translation->label(),
+          // Processed like the path of the page: with its language prefix.
+          'path' => $translation_url->getGeneratedUrl(),
+        ];
       }
       $item = $this->normalize($content_entity, $query_cacheability) + [
         'langcode' => $content_entity->getUntranslated()->language()->getId(),

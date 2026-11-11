@@ -248,6 +248,8 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
     $this->enableModules(['language']);
     $this->installConfig(['language']);
     ConfigurableLanguage::createFromLangcode('de')->save();
+    // Paths get a language prefix once the site is multilingual.
+    $this->container->get('kernel')->rebuildContainer();
     $this->apiContentController = $this->container->get(ApiContentControllers::class);
 
     // The instance from setUp() does not know the language added since.
@@ -259,7 +261,12 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
 
     $data = $this->executeListRequest();
     self::assertSame('en', $data[$translated->id()]['langcode']);
-    self::assertSame(['de' => 'Published Canvas Page in German'], $data[$translated->id()]['translations']);
+    self::assertSame([
+      'de' => [
+        'title' => 'Published Canvas Page in German',
+        'path' => \sprintf('/de/page/%d', $translated->id()),
+      ],
+    ], $data[$translated->id()]['translations']);
     self::assertSame('de', $data[$german->id()]['langcode']);
     self::assertSame([], $data[$german->id()]['translations']);
     self::assertSame('German Canvas Page', $data[$german->id()]['title']);

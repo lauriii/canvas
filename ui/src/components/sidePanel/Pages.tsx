@@ -43,6 +43,7 @@ const Pages = () => {
     isMultilingual,
     isMissing,
     titleOf,
+    pathOf,
     urlForPage,
   } = useWorkingLanguage();
 
@@ -227,7 +228,7 @@ const Pages = () => {
       selectedPageId={selectedPageId}
       workingLanguage={
         isMultilingual && workingLanguage
-          ? { name: workingLanguage.name, isMissing, titleOf }
+          ? { name: workingLanguage.name, isMissing, titleOf, pathOf }
           : undefined
       }
       canCreatePages={canCreatePages}
