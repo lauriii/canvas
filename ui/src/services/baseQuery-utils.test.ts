@@ -125,18 +125,21 @@ describe('baseQuery', () => {
 
 describe('getEditorLanguage', () => {
   it('reads the language of the entity editor route', () => {
-    expect(getEditorLanguage('/canvas/editor/canvas_page/1?language=fr')).toBe(
-      'fr',
-    );
+    expect(
+      getEditorLanguage('/canvas/editor/canvas_page/1?translation=fr'),
+    ).toBe('fr');
     expect(
       getEditorLanguage(
-        '/canvas/editor/canvas_page/1/component/abc?language=fr',
+        '/canvas/editor/canvas_page/1/component/abc?translation=fr',
       ),
     ).toBe('fr');
   });
 
-  it('ignores the default translation and the preview route', () => {
+  it('ignores the default translation, a translation shown, and the preview route', () => {
     expect(getEditorLanguage('/canvas/editor/canvas_page/1')).toBe('');
+    expect(getEditorLanguage('/canvas/editor/canvas_page/1?language=fr')).toBe(
+      '',
+    );
     expect(
       getEditorLanguage('/canvas/preview/canvas_page/1/full?language=fr'),
     ).toBe('');
@@ -246,7 +249,7 @@ describe('getRequestTranslation', () => {
     window.history.pushState(
       {},
       '',
-      '/canvas/editor/canvas_page/1?language=fr',
+      '/canvas/editor/canvas_page/1?translation=fr',
     );
     expect(getRequestTranslation(api('mutation', null))).toEqual({
       language: 'fr',

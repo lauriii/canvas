@@ -323,18 +323,27 @@ const ContentGroup = ({
     );
   }
 
+  // The pages that exist in the working language come first. The server
+  // sorts by stored translations: a page whose translation exists only as a
+  // draft with its own layout is moved up here.
+  const pages = workingLanguage
+    ? [
+        ...items.filter((item) => !workingLanguage.isMissing(item)),
+        ...items.filter((item) => workingLanguage.isMissing(item)),
+      ]
+    : items;
+
   return (
     <Flex data-testid="canvas-page-list" direction="column" gap="1">
-      {items.map((item, index) => {
+      {pages.map((item, index) => {
         const isSelected =
           selectedPageId !== undefined &&
           String(selectedPageId) === String(item.id);
         const isHomepage = item.internalPath === homepagePath;
 
-        // The pages that exist in the working language come first.
         const startsOtherLanguages =
           !!workingLanguage?.isMissing(item) &&
-          (index === 0 || !workingLanguage.isMissing(items[index - 1]));
+          (index === 0 || !workingLanguage.isMissing(pages[index - 1]));
 
         return (
           <Fragment key={`${item.id}-${item.status}`}>

@@ -1,8 +1,9 @@
-import { useNavigate } from 'react-router';
-
 import { useAppSelector } from '@/app/hooks';
 import { selectHomepagePath } from '@/features/configuration/configurationSlice';
-import { useWorkingLanguage } from '@/hooks/useWorkingLanguage';
+import {
+  useNavigateToTranslation,
+  useWorkingLanguage,
+} from '@/hooks/useWorkingLanguage';
 import { useGetContentListQuery } from '@/services/content';
 
 /**
@@ -10,7 +11,8 @@ import { useGetContentListQuery } from '@/services/content';
  * Follows the hierarchy: homepage → first available page → /editor
  */
 export const useSmartRedirect = () => {
-  const navigate = useNavigate();
+  // Another translation to edit loads the app afresh.
+  const navigate = useNavigateToTranslation();
   const homepagePath = useAppSelector(selectHomepagePath);
 
   // In the working language, the request is the one the page lists make, and

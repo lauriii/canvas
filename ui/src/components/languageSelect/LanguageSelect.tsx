@@ -16,6 +16,10 @@ import { Button, DropdownMenu, Flex, Text, TextField } from '@radix-ui/themes';
 
 import { useAppDispatch } from '@/app/hooks';
 import Dialog from '@/components/Dialog';
+import CustomizeLayoutDialog, {
+  FORK_LINK_REL,
+  UNFORK_LINK_REL,
+} from '@/components/languageSelect/CustomizeLayoutDialog';
 import { isLanguageViewPath } from '@/components/topbar/topbarPreviewMode';
 import { extractErrorMessageFromApiResponse } from '@/features/error-handling/error-handling';
 import {
@@ -24,12 +28,19 @@ import {
 } from '@/features/layout/layoutModelSlice';
 import {
   rememberWorkingLanguage,
+  useNavigateToTranslation,
   useTranslateAction,
   useWorkingLanguage,
 } from '@/hooks/useWorkingLanguage';
 import {
+  EDITED_TRANSLATION_PARAM,
+  getEditorLanguage,
+} from '@/services/baseQuery';
+import {
   componentAndLayoutApi,
   useDeletePageTranslationMutation,
+  useForkPageTranslationMutation,
+  useUnforkPageTranslationMutation,
 } from '@/services/componentAndLayout';
 import { contentApi, useSetLangcodeMutation } from '@/services/content';
 import { waitForPreviewRequests } from '@/services/preview';
@@ -46,7 +57,11 @@ import styles from './LanguageSelect.module.css';
  *
  * Each other language of the open page or template also has its options in
  * the menu: its translation, added and edited with a translation module, or
- * deleted. The Canvas editor edits a page in its own language.
+ * deleted. The Canvas editor edits a page in its own language, and in a
+ * language in which the page has its own layout: a forked translation, which
+ * the menu can also give the page, and remove.
+ *
+ * @see \Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork
  *
  * @see useWorkingLanguage
  */
@@ -64,14 +79,25 @@ const LanguageSelect = () => {
   const isTemplateRoute =
     pathname.startsWith('/template/') ||
     pathname.startsWith('/preview/template/');
-  const { workingLanguage, pageLanguage, translations, isNew, statusOf } =
-    useWorkingLanguage();
+  const {
+    workingLanguage,
+    pageLanguage,
+    translations,
+    isNew,
+    statusOf,
+    layoutStateOf,
+    hasOwnLayout,
+  } = useWorkingLanguage();
   const translateActionFor = useTranslateAction();
+  const navigateToTranslation = useNavigateToTranslation();
+  const [forkPageTranslation] = useForkPageTranslationMutation();
+  const [unforkPageTranslation, { isLoading: isUnforking }] =
+    useUnforkPageTranslationMutation();
   const [setLangcode, { isLoading: isChanging }] = useSetLangcodeMutation();
   const [deletePageTranslation, { isLoading: isDeleting }] =
     useDeletePageTranslationMutation();
   const [dialog, setDialog] = useState<{
-    type: 'change' | 'delete';
+    type: 'change' | 'delete' | 'fork' | 'unfork' | 'keep';
     languageId: string;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +110,12 @@ const LanguageSelect = () => {
     const isOwnLanguage = pageLanguage
       ? languageId === pageLanguage
       : languages.find((language) => language.id === languageId)?.isDefault;
-    const query = isOwnLanguage ? '' : `?language=${languageId}`;
+    // The editor edits a page in a language in which it has its own layout.
+    const query = isOwnLanguage
+      ? ''
+      : !isPreviewRoute && !isTemplateRoute && hasOwnLayout(languageId)
+        ? `?${EDITED_TRANSLATION_PARAM}=${languageId}`
+        : `?language=${languageId}`;
     const templateEntityId = entityId || previewEntityId;
     // The preview shows the page the way visitors see it, in any language.
     if (isPreviewRoute) {
@@ -93,7 +124,7 @@ const LanguageSelect = () => {
         : `/preview/${entityType}/${entityId}/${width || 'full'}${query}`;
     }
     // The editor edits a page or template in its own language, and shows it
-    // in any other.
+    // in any other but one in which a page has its own layout.
     return isTemplateRoute
       ? `/template/${entityType}/${bundle}/${viewMode}/${templateEntityId}${query}`
       : `/editor/${entityType}/${entityId}${query}`;
@@ -117,7 +148,7 @@ const LanguageSelect = () => {
       );
       return;
     }
-    navigate(urlFor(languageId));
+    navigateToTranslation(urlFor(languageId));
   };
 
   if (languages.length <= 1) {
@@ -135,22 +166,49 @@ const LanguageSelect = () => {
       return null;
     }
     const translate = translateActionFor(languageId);
+    const status = statusOf(languageId);
+    const links = translations?.links?.[languageId] ?? {};
+    // A translation that has its own layout only in a draft is deleted, which
+    // discards the draft.
     const deleteUrl: string | undefined =
-      statusOf(languageId) === 'Translated' &&
+      (status === 'Translated' || status === 'Custom layout') &&
       !isNew &&
       (isPage || isTemplateRoute)
-        ? translations?.links?.[languageId]?.['delete-form']
+        ? links['delete-form']
         : undefined;
     // The language of a page can change while nothing depends on it.
     // @see canvas.api.content.langcode.patch in canvas.routing.yml
     const canChange =
       isPage && Boolean(isNew) && translations?.available?.length === 1;
-    return translate || deleteUrl || canChange
-      ? { translate, deleteUrl, canChange }
+    // While the removal of its own layout is not published, giving it one
+    // keeps the one it has.
+    // @see \Drupal\canvas\Controller\ApiTranslationControllers::fork()
+    const forkUrl: string | undefined = isPage
+      ? links[FORK_LINK_REL]
+      : undefined;
+    const isPendingUnfork = layoutStateOf(languageId) === 'pending_unfork';
+    const giveOwnLayoutUrl = isPendingUnfork ? undefined : forkUrl;
+    const keepOwnLayoutUrl = isPendingUnfork ? forkUrl : undefined;
+    const removeOwnLayoutUrl: string | undefined = isPage
+      ? links[UNFORK_LINK_REL]
+      : undefined;
+    return translate || deleteUrl || canChange || forkUrl || removeOwnLayoutUrl
+      ? {
+          translate,
+          deleteUrl,
+          canChange,
+          giveOwnLayoutUrl,
+          keepOwnLayoutUrl,
+          removeOwnLayoutUrl,
+        }
       : null;
   };
   const hasActions = languages.some(({ id }) => actionsFor(id));
   const dialogLanguage = languages.find(({ id }) => id === dialog?.languageId);
+  const originalName =
+    languages.find(({ id }) => id === pageLanguage)?.name ?? pageLanguage;
+  // The language the editor edits a forked translation in, if any.
+  const editedLanguage = getEditorLanguage(window.location.href);
 
   const closeDialog = () => {
     setDialog(null);
@@ -162,10 +220,60 @@ const LanguageSelect = () => {
   // LayoutLoader treat the next layout response as fresh.
   const reloadInEditor = () => {
     dispatch(setInitialized(false));
-    dispatch(componentAndLayoutApi.util.invalidateTags([{ type: 'Layout' }]));
+    // The editor's request for a translation that is gone would fail: the
+    // app loads afresh in the original instead.
+    if (!editedLanguage) {
+      dispatch(componentAndLayoutApi.util.invalidateTags([{ type: 'Layout' }]));
+    }
     dispatch(contentApi.util.invalidateTags([{ type: 'Content', id: 'LIST' }]));
     closeDialog();
-    navigate(urlFor(pageLanguage!));
+    navigateToTranslation(urlFor(pageLanguage!));
+  };
+
+  // Undoes the removal of the own layout of a language, before it is
+  // published.
+  const handleKeepOwnLayout = async (languageId: string) => {
+    const url = actionsFor(languageId)?.keepOwnLayoutUrl;
+    if (!url) {
+      return;
+    }
+    try {
+      await waitForPreviewRequests();
+      await forkPageTranslation(url).unwrap();
+    } catch (e) {
+      console.error('Failed to keep the custom layout:', e);
+      setDialog({ type: 'keep', languageId });
+      setError(extractErrorMessageFromApiResponse(e));
+      return;
+    }
+    dispatch(contentApi.util.invalidateTags([{ type: 'Content', id: 'LIST' }]));
+  };
+
+  // Makes a language follow the layout of the original again. When it is the
+  // one edited, the page is then shown in it: it is no longer edited there.
+  const handleUnfork = async () => {
+    const languageId = dialog!.languageId;
+    const url = actionsFor(languageId)?.removeOwnLayoutUrl;
+    if (!url) {
+      return;
+    }
+    try {
+      // The editor may still be saving the layout of this language.
+      await waitForPreviewRequests();
+      await unforkPageTranslation({ url, langcode: languageId }).unwrap();
+    } catch (e) {
+      console.error('Failed to reset the layout:', e);
+      setError(extractErrorMessageFromApiResponse(e));
+      return;
+    }
+    closeDialog();
+    dispatch(contentApi.util.invalidateTags([{ type: 'Content', id: 'LIST' }]));
+    if (editedLanguage === languageId) {
+      navigateToTranslation(
+        `/editor/${entityType}/${entityId}?language=${languageId}`,
+        { replace: true },
+      );
+    }
   };
 
   const handleChange = async () => {
@@ -212,8 +320,8 @@ const LanguageSelect = () => {
         links: remainingLinks,
       }),
     );
-    if (languageId === workingLanguage?.id) {
-      // The translation shown is gone.
+    if (languageId === workingLanguage?.id || languageId === editedLanguage) {
+      // The translation shown or edited is gone.
       reloadInEditor();
       return;
     }
@@ -273,7 +381,9 @@ const LanguageSelect = () => {
                       <Text
                         className={styles.languageName}
                         data-canvas-has-translation={
-                          status === 'Original' || status === 'Translated'
+                          status === 'Original' ||
+                          status === 'Translated' ||
+                          status === 'Custom layout'
                             ? 'true'
                             : undefined
                         }
@@ -337,7 +447,42 @@ const LanguageSelect = () => {
                               })
                             }
                           >
-                            Change page language to {language.name}…
+                            Change page language…
+                          </DropdownMenu.Item>
+                        )}
+                        {actions.giveOwnLayoutUrl && (
+                          <DropdownMenu.Item
+                            data-testid={`language-fork-${language.id}`}
+                            onSelect={() =>
+                              setDialog({
+                                type: 'fork',
+                                languageId: language.id,
+                              })
+                            }
+                          >
+                            Customize layout…
+                          </DropdownMenu.Item>
+                        )}
+                        {actions.keepOwnLayoutUrl && (
+                          <DropdownMenu.Item
+                            data-testid={`language-keep-${language.id}`}
+                            onSelect={() => handleKeepOwnLayout(language.id)}
+                          >
+                            Keep custom layout
+                          </DropdownMenu.Item>
+                        )}
+                        {actions.removeOwnLayoutUrl && (
+                          <DropdownMenu.Item
+                            color="red"
+                            data-testid={`language-unfork-${language.id}`}
+                            onSelect={() =>
+                              setDialog({
+                                type: 'unfork',
+                                languageId: language.id,
+                              })
+                            }
+                          >
+                            Reset layout…
                           </DropdownMenu.Item>
                         )}
                         {actions.deleteUrl && (
@@ -351,7 +496,7 @@ const LanguageSelect = () => {
                               })
                             }
                           >
-                            Delete {language.name} translation…
+                            Delete translation…
                           </DropdownMenu.Item>
                         )}
                       </DropdownMenu.SubContent>
@@ -402,6 +547,59 @@ const LanguageSelect = () => {
           isConfirmLoading: isChanging,
         }}
       />
+      <CustomizeLayoutDialog
+        languageId={dialog?.type === 'fork' ? dialog.languageId : undefined}
+        url={
+          dialog?.type === 'fork'
+            ? actionsFor(dialog.languageId)?.giveOwnLayoutUrl
+            : undefined
+        }
+        onClose={closeDialog}
+      />
+      <Dialog
+        open={dialog?.type === 'keep'}
+        onOpenChange={(open) => !open && closeDialog()}
+        title="Keep custom layout"
+        error={
+          error
+            ? { title: 'Failed to keep the custom layout', message: error }
+            : undefined
+        }
+        footer={{ hidden: true }}
+      />
+      <Dialog
+        open={dialog?.type === 'unfork'}
+        onOpenChange={(open) => !open && closeDialog()}
+        title={`Reset the ${dialogLanguage?.name} layout to ${originalName}?`}
+        description={`${dialogLanguage?.name} follows the ${originalName} layout again. Its text is kept for the components that are also in ${originalName}; the components only in ${dialogLanguage?.name} are removed. Nothing changes for visitors until you publish.`}
+        error={
+          error
+            ? { title: 'Failed to reset the layout', message: error }
+            : undefined
+        }
+        footer={{
+          cancelText: 'Cancel',
+          confirmText: 'Reset layout',
+          onConfirm: handleUnfork,
+          onCancel: closeDialog,
+          isConfirmDisabled: confirmText !== 'RESET',
+          isConfirmLoading: isUnforking,
+          isDanger: true,
+        }}
+      >
+        <Flex direction="column" gap="2">
+          <Text size="2">
+            To confirm this, type '<Text weight="bold">RESET</Text>'
+            <Text color="red">*</Text>
+          </Text>
+          <TextField.Root
+            aria-label="Type RESET to confirm"
+            data-testid="unfork-translation-confirm-input"
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+          />
+        </Flex>
+      </Dialog>
       <Dialog
         open={dialog?.type === 'delete'}
         onOpenChange={(open) => !open && closeDialog()}

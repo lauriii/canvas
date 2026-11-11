@@ -142,18 +142,23 @@ export const replaceEntityParamsInUrl = (
   return newUrl;
 };
 
+// The query parameter of the editor route that names the forked translation
+// being edited. A page shown in another language without being edited there
+// has the `language` one instead.
+export const EDITED_TRANSLATION_PARAM = 'translation';
+
 /**
  * The language of the forked translation open in the entity editor, if any.
  *
  * Forked translations own their layout, so the entity editor edits them like
- * the default translation, with the language in the `?language=` query of the
- * editor route. Symmetric translations are only previewed, on the preview
- * route, so they never yield an editor language.
+ * the default translation, with the language in the `?translation=` query of
+ * the editor route. Other translations are only shown, with `?language=`, so
+ * they never yield an editor language.
  */
 export const getEditorLanguage = (href: string): string => {
   const url = new URL(href, 'http://localhost');
   return /\/canvas\/editor\//.test(url.pathname)
-    ? (url.searchParams.get('language') ?? '')
+    ? (url.searchParams.get(EDITED_TRANSLATION_PARAM) ?? '')
     : '';
 };
 

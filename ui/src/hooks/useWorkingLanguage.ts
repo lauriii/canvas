@@ -11,8 +11,13 @@ import { skipToken } from '@reduxjs/toolkit/query';
 import { useAppSelector } from '@/app/hooks';
 import { selectTranslations } from '@/features/layout/layoutModelSlice';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
+import {
+  EDITED_TRANSLATION_PARAM,
+  getEditorLanguage,
+} from '@/services/baseQuery';
 import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
 import { PAGE_VARIANT_ENTITY_TYPE } from '@/services/pageVariants';
+import { waitForPreviewRequests } from '@/services/preview';
 import { getCanvasSettings, getLanguages } from '@/utils/drupal-globals';
 
 import type { ContentStub } from '@/types/Content';
@@ -28,6 +33,11 @@ type PageStub = Pick<
   | 'langcode'
   | 'translations'
 >;
+
+// The state of the layout of a page in one of its languages.
+// @see \Drupal\canvas\ContentTranslation\TranslationForkState
+export type LayoutState =
+  'symmetric' | 'forked' | 'pending_fork' | 'pending_unfork';
 
 const STORAGE_KEY = 'Canvas.workingLanguage';
 
@@ -110,6 +120,8 @@ export function useWorkingLanguage() {
   // not, such as "Not specified".
   const workingLanguage =
     findLanguage(searchParams.get('language')) ??
+    // A translation with its own layout, edited in the editor.
+    findLanguage(searchParams.get(EDITED_TRANSLATION_PARAM)) ??
     findLanguage(pageLanguage) ??
     (isPageLanguageLoading ? findLanguage(lastWorkingLanguage) : undefined) ??
     (isMultilingual && !entityType
@@ -143,10 +155,32 @@ export function useWorkingLanguage() {
     if (entityType === PAGE_VARIANT_ENTITY_TYPE) {
       return null;
     }
+    // Before "Translated": a translation that has its own layout only in a
+    // draft is not stored yet.
+    if (hasOwnLayout(languageId)) {
+      return 'Custom layout';
+    }
     return translations.available.includes(languageId)
       ? 'Translated'
       : 'Not translated';
   };
+
+  // The state of the layout of the open page in a language: whether the
+  // language has its own layout (a forked translation), in its draft, in
+  // storage, or both.
+  // @see \Drupal\canvas\ContentTranslation\TranslationForkState
+  const layoutStateOf = (languageId?: string): LayoutState | undefined =>
+    languageId ? translations?.states?.[languageId] : undefined;
+
+  // Whether the open page has its own layout in a language: it is edited in
+  // the editor in that language. Draft-aware, like the server's access check.
+  // @see \Drupal\canvas\Access\ForkedTranslationEditAccessCheck
+  function hasOwnLayout(languageId?: string) {
+    return (
+      !!languageId &&
+      !!(translations?.forked as string[] | undefined)?.includes(languageId)
+    );
+  }
 
   // Whether the page was created in another language of the site.
   const isInOtherLanguage = useCallback(
@@ -185,10 +219,12 @@ export function useWorkingLanguage() {
 
   // A page in the working language opens in the editor. Any other page opens
   // read-only, in the working language when it is translated.
+  // A page with its own layout in the working language opens in the editor
+  // in that language.
   const urlForPage = useCallback(
     (page: PageStub) =>
       isInOtherLanguage(page)
-        ? `${urlForEditor('canvas_page', page.id)}?language=${id}`
+        ? `${urlForEditor('canvas_page', page.id)}?${page.translations?.[id!]?.forked ? EDITED_TRANSLATION_PARAM : 'language'}=${id}`
         : urlForEditor('canvas_page', page.id),
     [isInOtherLanguage, id, urlForEditor],
   );
@@ -200,6 +236,8 @@ export function useWorkingLanguage() {
     // The translations of the open page or template.
     translations,
     statusOf,
+    layoutStateOf,
+    hasOwnLayout,
     // Whether the open page was never published.
     isNew: isTemplateRoute ? undefined : (layout?.isNew as boolean | undefined),
     isMultilingual,
@@ -219,7 +257,8 @@ export function useTranslateAction() {
   // Where Canvas is: a translation module can be a page extension in it.
   const canvasBase = useHref('/').replace(/\/$/, '');
   const { pathname } = useLocation();
-  const { pageLanguage, translations, isNew, statusOf } = useWorkingLanguage();
+  const { pageLanguage, translations, isNew, statusOf, layoutStateOf } =
+    useWorkingLanguage();
   return (languageId?: string) => {
     const language = getLanguages().find(({ id }) => id === languageId);
     if (
@@ -230,6 +269,15 @@ export function useTranslateAction() {
       // A page that was never published is not translated yet: all its
       // content is in its auto-save entry.
       isNew
+    ) {
+      return undefined;
+    }
+    // A translation module translates the text of a page that follows the
+    // layout of the original: one with its own layout is edited in Canvas.
+    // A pending return to the original layout is not published yet.
+    if (
+      statusOf(language.id) === 'Custom layout' ||
+      layoutStateOf(language.id) === 'pending_unfork'
     ) {
       return undefined;
     }
@@ -244,7 +292,7 @@ export function useTranslateAction() {
       ? url.slice(canvasBase.length)
       : undefined;
     return {
-      label: `${statusOf(language.id) === 'Translated' ? 'Edit' : 'Add'} ${language.name} translation`,
+      label: `${statusOf(language.id) === 'Translated' ? 'Edit' : 'Add'} translation`,
       opensNewTab: !inCanvasPath,
       run: () => {
         if (inCanvasPath) {
@@ -257,4 +305,40 @@ export function useTranslateAction() {
       },
     };
   };
+}
+
+/**
+ * Navigates within Canvas, loading the app afresh when the address names
+ * another forked translation to edit than the current one.
+ *
+ * In-app navigation would keep the previous translation's layout in the
+ * store while the address already names another translation, and the editor
+ * could write it there before LayoutLoader reloads.
+ *
+ * @see LayoutLoader
+ */
+export function useNavigateToTranslation() {
+  const navigate = useNavigate();
+  const canvasBase = useHref('/').replace(/\/$/, '');
+  return useCallback(
+    (path: string, options?: { replace?: boolean }) => {
+      if (
+        getEditorLanguage(window.location.href) ===
+        getEditorLanguage(`/canvas${path}`)
+      ) {
+        navigate(path, options);
+        return;
+      }
+      const href = `${canvasBase}${path}`;
+      // The last change of the layout may still be on its way.
+      void waitForPreviewRequests().finally(() => {
+        if (options?.replace) {
+          window.location.replace(href);
+        } else {
+          window.location.assign(href);
+        }
+      });
+    },
+    [navigate, canvasBase],
+  );
 }

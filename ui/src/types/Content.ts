@@ -10,8 +10,13 @@ export interface ContentStub {
   autoSavePath: string;
   // The language the page was created in.
   langcode?: string;
-  // The title and path of each of the page's translations, keyed by langcode.
-  translations?: Record<string, { title: string; path: string }>;
+  // The title and path of each of the page's translations, keyed by langcode,
+  // and whether the translation has its own layout (a forked translation),
+  // which is edited in the Canvas editor.
+  translations?: Record<
+    string,
+    { title: string; path: string; forked?: boolean }
+  >;
   links: {
     'delete-form'?: string;
     'edit-form'?: string;

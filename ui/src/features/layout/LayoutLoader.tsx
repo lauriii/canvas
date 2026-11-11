@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { selectPageDataOwner } from '@/features/pageData/pageDataSlice';
 import { clearSelection } from '@/features/ui/uiSlice';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
+import { EDITED_TRANSLATION_PARAM } from '@/services/baseQuery';
 import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
 
 import {
@@ -23,7 +24,7 @@ const LayoutLoader = () => {
   // every layout request, so switching it loads a different layout.
   // @see \Drupal\canvas\Routing\NamedTranslationConverter
   const [searchParams] = useSearchParams();
-  const editorLanguage = searchParams.get('language') ?? '';
+  const editorLanguage = searchParams.get(EDITED_TRANSLATION_PARAM) ?? '';
   const pageDataOwner = useAppSelector(selectPageDataOwner);
 
   // Switching the translation of the entity open in the editor reloads the

@@ -18,6 +18,7 @@ import { useDrupalBehaviors } from '@/hooks/useDrupalBehaviors';
 import { useEditorNavigation } from '@/hooks/useEditorNavigation';
 import hyperscriptify from '@/local_packages/hyperscriptify';
 import propsify from '@/local_packages/hyperscriptify/propsify/standard/index.js';
+import { EDITED_TRANSLATION_PARAM } from '@/services/baseQuery';
 import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
 import { useGetPageDataFormQuery } from '@/services/pageDataForm';
 import {
@@ -45,7 +46,7 @@ const PageDataFormRenderer = () => {
   // The forked translation being edited, if any: its form differs from the
   // default translation's.
   const [searchParams] = useSearchParams();
-  const editorLanguage = searchParams.get('language') ?? '';
+  const editorLanguage = searchParams.get(EDITED_TRANSLATION_PARAM) ?? '';
   const {
     currentData: formTemplate,
     error,

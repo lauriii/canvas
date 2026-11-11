@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
-import { useNavigate, useParams } from 'react-router';
+import { useParams } from 'react-router';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import PageList from '@/components/pageInfo/PageList';
@@ -13,7 +13,10 @@ import {
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { usePaginatedContentList } from '@/hooks/usePaginatedContentList';
 import { useSmartRedirect } from '@/hooks/useSmartRedirect';
-import { useWorkingLanguage } from '@/hooks/useWorkingLanguage';
+import {
+  useNavigateToTranslation,
+  useWorkingLanguage,
+} from '@/hooks/useWorkingLanguage';
 import { componentAndLayoutApi } from '@/services/componentAndLayout';
 import {
   useCreateContentMutation,
@@ -36,7 +39,7 @@ const Pages = () => {
   const dispatch = useAppDispatch();
   const { entityType, entityId } = useParams();
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const navigate = useNavigate();
+  const navigateToTranslation = useNavigateToTranslation();
   const {
     workingLanguage,
     isResolved,
@@ -123,7 +126,7 @@ const Pages = () => {
   }
 
   function handleOnSelect(item: ContentStub) {
-    navigate(urlForPage(item));
+    navigateToTranslation(urlForPage(item));
   }
 
   async function handleUnpublishPage(item: ContentStub) {

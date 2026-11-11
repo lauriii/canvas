@@ -15,6 +15,7 @@ import { RouteErrorBoundary } from '@/components/error/ErrorBoundary';
 import ErrorCard from '@/components/error/ErrorCard';
 import ExtensionDialog from '@/components/extensions/ExtensionDialog';
 import ExtensionPage from '@/components/extensions/ExtensionPage';
+import TranslationRouteGuard from '@/components/languageSelect/TranslationRouteGuard';
 import PermissionCheck from '@/components/PermissionCheck';
 import SideMenu from '@/components/sideMenu/SideMenu';
 import PrimaryPanel from '@/components/sidePanel/PrimaryPanel';
@@ -55,10 +56,13 @@ const UiShell = ({ children }: { children: React.ReactNode }) => (
 // it shows the page or template in that language instead, inside the same
 // side menu and panels: the Canvas editor edits a page in its own language.
 // That is not the preview, which shows a page the way visitors see it.
+// A page also has its own layout in a language when that translation is
+// forked: the editor edits that translation, named by `?translation=`.
 const EditorRoute = ({ context }: { context: EditorFrameContext }) => {
   const [searchParams] = useSearchParams();
   return (
     <UiShell>
+      {context === EditorFrameContext.ENTITY && <TranslationRouteGuard />}
       {searchParams.has('language') ? (
         <PagePreview />
       ) : (
