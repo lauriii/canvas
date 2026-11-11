@@ -4,7 +4,6 @@ include:
   - local: .gitlab/ci/test.yml
 
 stages:
-  - cache
   - validate
   - test
   - report
@@ -15,15 +14,11 @@ variables:
   # (Useful when early in an MR and/or developing low-level functionality that is unlikely to affect E2E tests.)
   E2E_TESTS_ENABLED: "true"
 
-  PLAYWRIGHT_BROWSERS_PATH: $CI_PROJECT_DIR/.cache/ms-playwright
-  CYPRESS_CACHE_FOLDER: $CI_PROJECT_DIR/.cache/cypress
-  COMPOSER_CACHE_DIR: $CI_PROJECT_DIR/.cache/composer
-  npm_config_cache: $CI_PROJECT_DIR/.cache/npm
-  # Persist Turborepo's task cache between jobs and pipelines.
-  TURBO_CACHE_DIR: $CI_PROJECT_DIR/.cache/turbo
-  # The `.cache` directories that issue forks seed from the protected branch
-  # their merge request targets. See `.fork-cache`.
-  FORK_CACHES: composer npm turbo
+  # Composer, npm, Turborepo, Playwright and Cypress caches come warm in the
+  # Canvas testing image, which sets COMPOSER_CACHE_DIR, npm_config_cache,
+  # TURBO_CACHE_DIR, PLAYWRIGHT_BROWSERS_PATH and CYPRESS_CACHE_FOLDER to
+  # $CANVAS_CACHE_DIR. Don't set them here, or the image's caches go unused.
+  # @see https://github.com/drupal-canvas/drupal-testing#canvas-image
 
   # Disable npm lifecycle scripts.
   npm_config_ignore_scripts: "true"
@@ -172,6 +167,11 @@ variables:
 # Jobs #
 ########
 .image-node: &image-node node:24-alpine
+# Rebuilt nightly against 1.x with warm dependency caches, so forks start with
+# the same caches as the main project. drupal.org's runners don't allow setting
+# pull_policy, so whether a runner re-pulls `nightly` is up to its own config.
+.image-canvas: &image-canvas
+  name: ghcr.io/drupal-canvas/drupal-testing/canvas:nightly
 
 workflow:
   auto_cancel:
@@ -194,70 +194,8 @@ workflow:
     - if: $CI_PIPELINE_SOURCE == "web"
 
 default:
-  image: ghcr.io/drupal-canvas/drupal-testing:2.1.1
+  image: *image-canvas
   interruptible: true
-  cache:
-    key: ${CI_PARENT_PROJECT_NAME}-default-${CI_COMMIT_REF_NAME}
-    fallback_keys:
-      - ${CI_PARENT_PROJECT_NAME}-default-${CI_DEFAULT_BRANCH}
-    paths:
-      - .cache/composer
-      - .cache/npm
-      - .cache/astro
-      - .cache/tsc
-      - .cache/turbo
-    policy: pull
-
-cache dependencies:
-  stage: cache
-  allow_failure: true
-  needs: []
-  rules:
-    - *changeset-release-skip-rule
-    - *push-rule
-    - <<: *mr-rule
-      changes:
-        paths:
-          - composer.lock
-          - package-lock.json
-        compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
-  cache:
-    - key: ${CI_PARENT_PROJECT_NAME}-default-${CI_COMMIT_REF_NAME}
-      paths:
-        - .cache/composer
-        - .cache/npm
-        - .cache/astro
-        - .cache/tsc
-        - .cache/turbo
-    - key: ${CI_PARENT_PROJECT_NAME}-playwright-${CI_COMMIT_REF_NAME}
-      fallback_keys:
-        - ${CI_PARENT_PROJECT_NAME}-playwright-${CI_DEFAULT_BRANCH}
-      paths:
-        - .cache/ms-playwright
-    - key: ${CI_PARENT_PROJECT_NAME}-cypress-${CI_COMMIT_REF_NAME}
-      fallback_keys:
-        - ${CI_PARENT_PROJECT_NAME}-cypress-${CI_DEFAULT_BRANCH}
-      paths:
-        - .cache/cypress
-  before_script:
-    - !reference [ .drupal-with-dev-dependencies ]
-    - !reference [ .canvas-ui ]
-  script:
-    - npx playwright install
-    - npx cypress install
-    # Forks can't read the CI cache. See `.fork-cache`.
-    - |
-      if [ "$CI_PROJECT_PATH" = "project/$CI_PARENT_PROJECT_NAME" ] && [ "$CI_COMMIT_BRANCH" = "$CI_DEFAULT_BRANCH" ]; then
-        mkdir -p "$CI_PROJECT_DIR/fork-cache"
-        for name in $FORK_CACHES; do
-          [ -d "$CI_PROJECT_DIR/.cache/$name" ] || continue
-          tar -czf "$CI_PROJECT_DIR/fork-cache/$name.tar.gz" -C "$CI_PROJECT_DIR/.cache/$name" .
-        done
-      fi
-  artifacts:
-    paths:
-      - fork-cache/
-    expire_in: 30 days
 
 renovate:
   stage: validate
@@ -365,18 +303,8 @@ lint (php):
     - *mr-rule
   variables:
     COMPOSER_ROOT_VERSION: 0.0.0
-    FORK_CACHES: composer
+  # The image has no PHPCS or PHPStan caches; these depend on the code itself.
   cache:
-    - key: ${CI_PARENT_PROJECT_NAME}-default-${CI_COMMIT_REF_NAME}
-      fallback_keys:
-        - ${CI_PARENT_PROJECT_NAME}-default-${CI_DEFAULT_BRANCH}
-      paths:
-        - .cache/composer
-        - .cache/npm
-        - .cache/astro
-        - .cache/tsc
-        - .cache/turbo
-      policy: pull
     - key: ${CI_PARENT_PROJECT_NAME}-phplint-${CI_COMMIT_REF_NAME}
       fallback_keys:
         - ${CI_PARENT_PROJECT_NAME}-phplint-${CI_DEFAULT_BRANCH}
@@ -417,15 +345,12 @@ lint (php):
 
 lint (node):
   stage: validate
-  image: *image-node
   needs: []
-  variables:
-    FORK_CACHES: npm turbo
   rules:
     - *push-rule
     - *mr-rule
   script:
-    - !reference [ .fork-cache ]
+    - !reference [ .canvas-cache ]
     - npm ci
     # Runs every lint:* script across the whole repository, plus type-check
     # in every workspace. Turborepo builds workspace dependencies first where
@@ -444,14 +369,13 @@ lint (node):
 # change private packages pass without one.
 changesets:
   stage: validate
-  # Runs git commands, so it uses the default drupal-testing image; the node
+  # Runs git commands, so it uses the default Canvas testing image; the node
   # images do not contain git.
   needs: []
   variables:
     # `changeset status` diffs against the target branch, which requires
     # history beyond the default shallow clone.
     GIT_DEPTH: "0"
-    FORK_CACHES: npm
   rules:
     # The version MR consumes changesets and bumps versions; it is exempt.
     - *changeset-release-skip-rule
@@ -462,7 +386,6 @@ changesets:
         compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
   script:
     - git fetch origin $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
-    - !reference [ .fork-cache ]
     - npm ci
     - |
       if ! npx changeset status --since="origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"; then
@@ -616,9 +539,6 @@ phpunit (11.4 mysql):
 
 vitest:
   stage: test
-  image: *image-node
-  variables:
-    FORK_CACHES: npm turbo
   rules:
     - *version-merge-skip-rule
     - *changeset-release-skip-rule
@@ -629,7 +549,7 @@ vitest:
         compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
     - *manual-rule
   script:
-    - !reference [ .fork-cache ]
+    - !reference [ .canvas-cache ]
     - npm ci
     - npm run test --workspace=@drupal-canvas/ui -- --reporter=junit --outputFile=$CI_PROJECT_DIR/ui-vitest-junit.xml
   artifacts:
@@ -644,28 +564,12 @@ vitest:
 
 .cypress-base:
   stage: test
-  cache:
-    - key: ${CI_PARENT_PROJECT_NAME}-default-${CI_COMMIT_REF_NAME}
-      fallback_keys:
-        - ${CI_PARENT_PROJECT_NAME}-default-${CI_DEFAULT_BRANCH}
-      paths:
-        - .cache/composer
-        - .cache/npm
-        - .cache/astro
-        - .cache/tsc
-        - .cache/turbo
-      policy: pull
-    - key: ${CI_PARENT_PROJECT_NAME}-cypress-${CI_COMMIT_REF_NAME}
-      fallback_keys:
-        - ${CI_PARENT_PROJECT_NAME}-cypress-${CI_DEFAULT_BRANCH}
-      paths:
-        - .cache/cypress
-      policy: pull
   before_script:
     - !reference [ .drupal-with-dev-dependencies ]
     - !reference [ .drupal-enable-test-modules ]
     - !reference [ .canvas-ui ]
     - cd ui
+    # A no-op when the image already has this Cypress version.
     - npx cypress install
     - cp .env.example .env
     - echo "BASE_URL='${SIMPLETEST_BASE_URL}'" >> .env
@@ -765,23 +669,6 @@ playwright:
           - tests/src/Playwright/**/*
         compare_to: 'refs/heads/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
     - *manual-rule
-  cache:
-    - key: ${CI_PARENT_PROJECT_NAME}-default-${CI_COMMIT_REF_NAME}
-      fallback_keys:
-        - ${CI_PARENT_PROJECT_NAME}-default-${CI_DEFAULT_BRANCH}
-      paths:
-        - .cache/composer
-        - .cache/npm
-        - .cache/astro
-        - .cache/tsc
-        - .cache/turbo
-      policy: pull
-    - key: ${CI_PARENT_PROJECT_NAME}-playwright-${CI_COMMIT_REF_NAME}
-      fallback_keys:
-        - ${CI_PARENT_PROJECT_NAME}-playwright-${CI_DEFAULT_BRANCH}
-      paths:
-        - .cache/ms-playwright
-      policy: pull
   variables:
     _TARGET_DB_TYPE: sqlite
     DRUPAL_TEST_BASE_URL: http://localhost
@@ -789,6 +676,9 @@ playwright:
   before_script:
     - !reference [ .drupal-with-dev-dependencies ]
     - !reference [ .canvas-ui ]
+    # Tests only run in headless Chromium, so the headless shell is all that's
+    # needed. A no-op when the image already has this Playwright version's.
+    - npx playwright install --only-shell chromium
   script:
     - npm ci
     - npm run test:playwright -- --shard=$SHARD
@@ -905,7 +795,6 @@ test (packages):
 # must not make releasing impossible.
 audit (packages):
   stage: validate
-  image: *image-node
   needs: []
   allow_failure: true
   rules:
@@ -919,7 +808,7 @@ audit (packages):
 # `publish packages`. Requires GITLAB_CI_RELEASE_TOKEN with api scope.
 version packages:
   stage: publish
-  # Runs git commands, so it uses the default drupal-testing image; the node
+  # Runs git commands, so it uses the default Canvas testing image; the node
   # images do not contain git.
   interruptible: false
   needs: []
@@ -982,7 +871,7 @@ version packages:
 # published versions are skipped, so a failed job can be retried safely.
 publish packages:
   stage: publish
-  # Runs git commands, so it uses the default drupal-testing image; the node
+  # Runs git commands, so it uses the default Canvas testing image; the node
   # images do not contain git.
   interruptible: false
   # Serialize publishes across pipelines; `changeset publish` skips versions
@@ -1022,7 +911,6 @@ publish packages:
 # User facing documentation.
 pages-mr:
   stage: publish
-  image: *image-node
   needs: []
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -1030,9 +918,8 @@ pages-mr:
   variables:
     ASTRO_SITE: https://project.pages.drupalcode.org
     ASTRO_BASE: /$CI_PARENT_PROJECT_NAME/mr-$CI_MERGE_REQUEST_IID/
-    FORK_CACHES: npm turbo
   script:
-    - !reference [ .fork-cache ]
+    - !reference [ .canvas-cache ]
     - npm ci
     - npm run build --workspace=docs
   pages:
@@ -1065,7 +952,6 @@ stop-pages-mr:
 pages-publish:
   stage: publish
   interruptible: false
-  image: *image-node
   needs: []
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "schedule"
@@ -1074,6 +960,7 @@ pages-publish:
     ASTRO_SITE: https://$CI_PAGES_HOSTNAME
     ASTRO_BASE: /$CI_PROJECT_NAME/
   script:
+    - !reference [ .canvas-cache ]
     - npm ci
     - npm run build --workspace=docs
   pages:
