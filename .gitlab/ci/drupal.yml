@@ -10,7 +10,7 @@
 # run in a lot of cases, so this is an alternative job.
 
 .drupal-setup-composer-install: &drupal-setup-composer-install
-  - !reference [ .fork-cache ]
+  - !reference [ .canvas-cache ]
   # Move everything into a subdirectory
   - mkdir tmp
   - find . -maxdepth 1 -type f -not -path "./tmp*" -exec mv {} tmp/ \;
