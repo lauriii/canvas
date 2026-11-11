@@ -13,6 +13,7 @@ use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\Core\Cache\CacheableJsonResponse;
+use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\RequestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -347,6 +348,40 @@ class ApiContentControllersPostTest extends CanvasKernelTestBase {
         ], JSON_THROW_ON_ERROR),
       ),
     );
+  }
+
+  /**
+   * Tests creating a page in an explicit language.
+   */
+  public function testPostWithLangcode(): void {
+    $this->enableModules(['language']);
+    $this->installConfig(['language']);
+    ConfigurableLanguage::createFromLangcode('de')->save();
+
+    $post = fn (array $body): Response => $this->request(
+      Request::create(
+        self::URL,
+        'POST',
+        server: ['CONTENT_TYPE' => 'application/json'],
+        content: \json_encode($body + ['clientInstanceId' => 'test'], JSON_THROW_ON_ERROR),
+      ),
+    );
+
+    $response = $post(['langcode' => 'de']);
+    $this->assertSame(Response::HTTP_CREATED, $response->getStatusCode());
+    $page = Page::load($this->decodeResponse($response)['id']);
+    \assert($page instanceof Page);
+    $this->assertSame('de', $page->language()->getId());
+
+    // Without a langcode, the default language for Canvas pages applies.
+    $response = $post([]);
+    $page = Page::load($this->decodeResponse($response)['id']);
+    \assert($page instanceof Page);
+    $this->assertSame('en', $page->language()->getId());
+
+    $response = $post(['langcode' => 'xx']);
+    $this->assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
+    $this->assertSame('Unknown language: xx.', $this->decodeResponse($response)['errors'][0]['detail']);
   }
 
   public function testPostWithEmptyContentRequest(): void {

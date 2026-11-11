@@ -12,12 +12,14 @@ use Drupal\canvas\Entity\Page;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Url;
+use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
  * Tests the ApiContentControllers::list() method.
@@ -228,12 +230,56 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
 
     $expected_cache_contexts = [
       'url.query_args:search',
+      'url.query_args:langcode',
       'url.query_args:page',
       'user.permissions',
     ];
     $actual_cache_contexts = $cache_metadata->getCacheContexts();
     self::assertEquals($expected_cache_tags, $actual_cache_tags, 'All expected cache tags should be present');
     self::assertEquals($expected_cache_contexts, $actual_cache_contexts, 'All expected cache contexts should be present');
+  }
+
+  /**
+   * Tests that the list reports each page's language and its translations.
+   *
+   * @legacy-covers ::list
+   */
+  public function testListLanguages(): void {
+    $this->enableModules(['language']);
+    $this->installConfig(['language']);
+    ConfigurableLanguage::createFromLangcode('de')->save();
+    $this->apiContentController = $this->container->get(ApiContentControllers::class);
+
+    // The instance from setUp() does not know the language added since.
+    $translated = Page::load($this->pages['published']->id());
+    \assert($translated instanceof Page);
+    $translated->addTranslation('de', ['title' => 'Published Canvas Page in German'])->save();
+    $german = Page::create(['title' => 'German Canvas Page', 'langcode' => 'de', 'status' => TRUE]);
+    $german->save();
+
+    $data = $this->executeListRequest();
+    self::assertSame('en', $data[$translated->id()]['langcode']);
+    self::assertSame(['de' => 'Published Canvas Page in German'], $data[$translated->id()]['translations']);
+    self::assertSame('de', $data[$german->id()]['langcode']);
+    self::assertSame([], $data[$german->id()]['translations']);
+    self::assertSame('German Canvas Page', $data[$german->id()]['title']);
+
+    // Given a language, the pages that exist in it are listed first: the
+    // German page and the translated page, then the others.
+    $data = $this->executeListRequest(['langcode' => 'de']);
+    self::assertCount(5, $data);
+    self::assertEqualsCanonicalizing(
+      [(int) $german->id(), (int) $translated->id()],
+      \array_slice(\array_keys($data), 0, 2),
+    );
+    // The page size applies to both groups together.
+    $data = $this->executeListRequest(['langcode' => 'de', 'page' => ['offset' => 1, 'limit' => 2]]);
+    self::assertCount(2, $data);
+    self::assertContains(\array_key_first($data), [(int) $german->id(), (int) $translated->id()]);
+    self::assertNotContains(\array_key_last($data), [(int) $german->id(), (int) $translated->id()]);
+
+    $this->expectException(BadRequestHttpException::class);
+    $this->executeListRequest(['langcode' => 'xx']);
   }
 
   /**
@@ -459,6 +505,7 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
     $cache_metadata = $response->getCacheableMetadata();
     $expected_cache_contexts = [
       'url.query_args:search',
+      'url.query_args:langcode',
       'url.query_args:page',
       'user.permissions',
     ];
@@ -505,6 +552,7 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
     $cache_metadata = $response->getCacheableMetadata();
     $expected_cache_contexts = [
       'url.query_args:search',
+      'url.query_args:langcode',
       'url.query_args:page',
       'user.permissions',
     ];
@@ -578,6 +626,7 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
     $cache_metadata = $response->getCacheableMetadata();
     $expected_cache_contexts = [
       'url.query_args:search',
+      'url.query_args:langcode',
       'url.query_args:page',
       'user.permissions',
     ];
@@ -614,6 +663,7 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
 
     self::assertEqualsCanonicalizing([
       'url.query_args:search',
+      'url.query_args:langcode',
       'url.query_args:page',
       'user.permissions',
       'languages:language_interface',

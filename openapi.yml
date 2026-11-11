@@ -2018,6 +2018,13 @@ paths:
       summary: Provides api for page listing.
       parameters:
         - in: query
+          name: langcode
+          required: false
+          description: A language. The pages that exist in it, as the original or as a translation, are listed first.
+          schema:
+            type: string
+          example: de
+        - in: query
           name: search
           required: false
           description: Search term to filter content by title. When present, pagination parameters are ignored.
@@ -2074,11 +2081,23 @@ paths:
                         - isNew
                         - hasUnsavedStatusChange
                         - links
+                        - langcode
+                        - translations
                       additionalProperties: false
                       properties:
                         id:
                           type: integer
                           description: The page ID.
+                        langcode:
+                          type: string
+                          description: The language the page was created in.
+                        translations:
+                          type: object
+                          description: The titles of the page's translations, keyed by langcode. Does not include the language the page was created in.
+                          additionalProperties:
+                            type: string
+                          example:
+                            de: About us in German
                         uuid:
                           type: string
                           format: uuid
@@ -2241,6 +2260,20 @@ paths:
                       label: null
 
       responses:
+        '400':
+          description: Unknown langcode.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Error'
+                additionalProperties: false
         '201':
           description: Created entity successfully
           content:
@@ -5936,6 +5969,9 @@ components:
         clientInstanceId:
           type: string
           description: Client instance ID for the layout preview
+        langcode:
+          type: string
+          description: The language to create the new page in. Defaults to the default language configured for Canvas pages. Ignored when duplicating, because a duplicate keeps the language of its source.
     NewContentRequestBody:
       type: object
       additionalProperties: false
@@ -5952,6 +5988,9 @@ components:
         title:
           type: string
           description: The page title.
+        langcode:
+          type: string
+          description: The language to create the page in. Defaults to the default language configured for Canvas pages. Only used when creating a page.
         status:
           type: boolean
           description: The page status.
