@@ -33,7 +33,9 @@ async function lintRules(code, file) {
   return (await lint(code, file)).map((message) => message.ruleId);
 }
 
-describe('drupal-canvas runtime portability lint', () => {
+// The first lint loads the ESLint config and the TypeScript parser, which can
+// take longer than the default 5 second timeout on CI runners.
+describe('drupal-canvas runtime portability lint', { timeout: 30_000 }, () => {
   it('reports a portable helper that imports the settings adapter', async () => {
     const messages = await lint(
       "import { readCanvasDataV0 } from './drupal-settings.js';",

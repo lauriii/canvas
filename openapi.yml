@@ -2013,6 +2013,42 @@ paths:
           description: Translation deleted successfully.
         '400':
           description: Cannot delete the default translation. Use the entity delete endpoint to remove the whole entity.
+        '404':
+          description: The page has no translation in the negotiated language, stored or draft-only.
+  '/canvas/api/v0/content/canvas_page/{entityId}/translations/fork':
+    description: Endpoint for forking or unforking a specific translation of a Page content entity, so it owns an independent component tree. The `canvas_langcode` query parameter names the translation. The change lives in the translation's auto-save draft until published.
+    parameters:
+      - in: query
+        name: canvas_langcode
+        required: true
+        description: The langcode of the translation to fork or unfork. It need not have a stored translation.
+        schema:
+          type: string
+        example: fr
+    delete:
+      summary: Unforks a translation, re-synchronizing its component tree from the default translation.
+      description: For a translation that exists only as a forked draft, the draft is discarded.
+      parameters:
+        - $ref: '#/components/parameters/entityId'
+      responses:
+        '204':
+          description: Translation unforked (idempotent).
+        '400':
+          description: The default translation cannot be unforked.
+        '404':
+          description: The `canvas_langcode` query parameter is missing or names an unknown language.
+    post:
+      summary: Forks a translation, so it owns an independent component tree.
+      description: A language without a stored translation can be forked too; the new translation starts as a copy of the default translation.
+      parameters:
+        - $ref: '#/components/parameters/entityId'
+      responses:
+        '204':
+          description: Translation forked (idempotent).
+        '400':
+          description: The default translation cannot be forked.
+        '404':
+          description: The `canvas_langcode` query parameter is missing or names an unknown language.
   '/canvas/api/v0/content/{entity_type}':
     get:
       summary: Provides api for page listing.

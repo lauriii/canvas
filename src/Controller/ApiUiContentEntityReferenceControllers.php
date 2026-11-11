@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\canvas\Controller;
 
 use Drupal\canvas\CanvasUriDefinitions;
+use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
 use Drupal\canvas\Entity\JavaScriptComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Field\FieldTypeOverride\ImageItemOverride;
@@ -365,6 +366,8 @@ final class ApiUiContentEntityReferenceControllers extends ApiControllerBase {
     // @see \Drupal\content_translation\ContentTranslationHandler::fieldStorageDefinitions()
     $irrelevant[] = 'content_translation_source';
     $irrelevant[] = 'content_translation_outdated';
+    // Canvas's own per-translation fork state is editor metadata, not content.
+    $irrelevant[] = ComponentTreeTranslationFork::FIELD_NAME;
     return \in_array($field_name, \array_filter($irrelevant), TRUE);
   }
 

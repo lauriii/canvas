@@ -22,6 +22,7 @@ canvas.api.auto-save.delete:
     parameters:
       entity:
         type: entity:{entity_type}
+        canvas_translation: optional
     _format: 'json'
 
 canvas.api.auto-save.get:
@@ -297,10 +298,12 @@ canvas.api.content.auto-save.patch:
   requirements:
     _canvas_authentication_required: TRUE
     _entity_access: 'canvas_page.update'
+    _canvas_forked_translation_edit_access: 'TRUE'
   options:
     parameters:
       canvas_page:
         type: entity:canvas_page
+        canvas_translation: optional
     _format: 'json'
   methods: [PATCH]
 
@@ -426,6 +429,45 @@ canvas.api.content.translation.delete:
     parameters:
       canvas_page:
         type: entity:canvas_page
+        canvas_translation: optional
+    _format: 'json'
+  methods: [DELETE]
+
+# The target translation is named by the `?canvas_langcode=` query parameter.
+# @see \Drupal\canvas\Routing\NamedTranslationConverter
+# The `canvas.api.` route-name prefix is load-bearing: it is what grants
+# these POST/DELETE routes the `_csrf_request_header_token` requirement.
+# @see \Drupal\canvas\EventSubscriber\CanvasRouteOptionsEventSubscriber::addCsrfToken()
+# @see https://git.drupalcode.org/project/canvas/-/work_items/3571130
+canvas.api.content.translation.fork:
+  path: '/canvas/api/v0/content/canvas_page/{canvas_page}/translations/fork'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiTranslationControllers::fork'
+  requirements:
+    _canvas_authentication_required: TRUE
+    # Forking changes how the translation's layout is edited and stored, so
+    # entity update access is the correct check.
+    _entity_access: 'canvas_page.update'
+  options:
+    parameters:
+      canvas_page:
+        type: entity:canvas_page
+        canvas_translation: required
+    _format: 'json'
+  methods: [POST]
+
+canvas.api.content.translation.unfork:
+  path: '/canvas/api/v0/content/canvas_page/{canvas_page}/translations/fork'
+  defaults:
+    _controller: 'Drupal\canvas\Controller\ApiTranslationControllers::unfork'
+  requirements:
+    _canvas_authentication_required: TRUE
+    _entity_access: 'canvas_page.update'
+  options:
+    parameters:
+      canvas_page:
+        type: entity:canvas_page
+        canvas_translation: required
     _format: 'json'
   methods: [DELETE]
 
@@ -451,6 +493,7 @@ canvas.api.form.component_instance: &component_instance_form_route
     _canvas_authentication_required: TRUE
     _canvas_component_tree_edit_access: TRUE
     _entity_access: 'entity.update'
+    _canvas_forked_translation_edit_access: 'TRUE'
   options: &component_instance_form_route_options
     # The Canvas equivalent of requesting an AJAX response using `?_wrapper_format`.
     # @see Drupal.Ajax.AJAX_REQUEST_PARAMETER
@@ -460,6 +503,7 @@ canvas.api.form.component_instance: &component_instance_form_route
     parameters:
       entity:
         type: entity:{entity_type}
+        canvas_translation: optional
     _format: 'json'
   methods:
     # Used by Canvas UI to generate this form.
@@ -509,6 +553,7 @@ canvas.api.form.content_entity:
     _canvas_authentication_required: TRUE
     _canvas_component_tree_edit_access: TRUE
     _entity_access: 'entity.update'
+    _canvas_forked_translation_edit_access: 'TRUE'
   options:
     # The Canvas equivalent of requesting an AJAX response using `?_wrapper_format`.
     # @see Drupal.Ajax.AJAX_REQUEST_PARAMETER
@@ -518,6 +563,7 @@ canvas.api.form.content_entity:
     parameters:
       entity:
         type: entity:{entity_type}
+        canvas_translation: optional
     _format: 'json'
   methods:
     # Used by Canvas UI to generate this form.
@@ -551,12 +597,14 @@ canvas.api.layout.get: &layout_get_route
     _canvas_authentication_required: TRUE
     _canvas_component_tree_edit_access: TRUE
     _entity_access: 'entity.update'
+    _canvas_forked_translation_edit_access: 'TRUE'
     _format: 'json'
   options: &layout_get_route_options
     _canvas_use_template_draft: TRUE
     parameters:
       entity:
         type: entity:{entity_type}
+        canvas_translation: optional
   methods: [GET]
 
 # Specialized version of the `canvas.api.layout.get` route, with one additional route parameter.
@@ -602,6 +650,7 @@ canvas.api.layout.patch: &layout_patch_route
     parameters:
       entity:
         type: entity:{entity_type}
+        canvas_translation: optional
   methods: [PATCH]
 
 # Specialized version of the `canvas.api.layout.patch` route, with one additional route parameter.
@@ -638,12 +687,14 @@ canvas.api.layout.post: &layout_post_route
     _canvas_authentication_required: TRUE
     _canvas_component_tree_edit_access: TRUE
     _entity_access: 'entity.update'
+    _canvas_forked_translation_edit_access: 'TRUE'
     _format: 'json'
   options:
     _canvas_use_template_draft: TRUE
     parameters:
       entity:
         type: entity:{entity_type}
+        canvas_translation: optional
   methods: [POST]
 
 # Specialized version of the `canvas.api.layout.post` route, with one additional route parameter.

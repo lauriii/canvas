@@ -190,7 +190,10 @@ const LanguageSelect = () => {
       return;
     }
     try {
-      await deletePageTranslation(deleteUrl).unwrap();
+      await deletePageTranslation({
+        url: deleteUrl,
+        langcode: languageId,
+      }).unwrap();
     } catch (e) {
       console.error('Failed to delete translation:', e);
       setError('Failed to delete the translation. Please try again.');

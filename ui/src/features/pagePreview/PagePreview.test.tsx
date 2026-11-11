@@ -8,7 +8,7 @@ import type React from 'react';
 
 const mocks = vi.hoisted(() => ({
   session: vi.fn(() => ({ statusText: 'Preview active' })),
-  snapshot: vi.fn(() => ({})),
+  snapshot: vi.fn((): object => ({})),
   dispatch: vi.fn(),
   headless: vi.fn((): object | undefined => ({
     frontendUrl: 'https://app.example',

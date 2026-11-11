@@ -84,6 +84,7 @@ services:
       # converter buildable when it is not installed (argument is then NULL).
       $translationSynchronizer: '@?content_translation.synchronizer'
   Drupal\canvas\AutoSave\AutoSaveManager: {}
+  Drupal\canvas\ContentTranslation\TranslationForkStateResolver: {}
   # Non-serializing in-memory cache for AutoSaveManager's reconstructed entities.
   # Bounded (LRU) like core's entity.memory_cache so it cannot grow without
   # limit in long-running processes (e.g. FrankenPHP/RoadRunner worker mode).
@@ -188,6 +189,13 @@ services:
   Drupal\canvas\Routing\ParametrizedImageStyleConverter:
     tags:
       - { name: paramconverter }
+  Drupal\canvas\Routing\NamedTranslationConverter:
+    arguments:
+      $entityConverter: '@paramconverter.entity'
+      $adminPathConfigEntityConverter: '@paramconverter.configentity_admin'
+    tags:
+      # Before the entity converters it wraps.
+      - { name: paramconverter, priority: 10 }
 
   # Access.
   Drupal\canvas\Access\CanvasHttpApiEligibleConfigEntityAccessCheck:
@@ -199,6 +207,9 @@ services:
   Drupal\canvas\Access\ComponentTreeEditAccessCheck:
     tags:
       - { name: access_check, applies_to: _canvas_component_tree_edit_access }
+  Drupal\canvas\Access\ForkedTranslationEditAccessCheck:
+    tags:
+      - { name: access_check, applies_to: _canvas_forked_translation_edit_access }
   Drupal\canvas\Access\PreviewEntityViewAccessCheck:
     tags:
       - { name: access_check, applies_to: _canvas_preview_entity_view_access }

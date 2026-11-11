@@ -8,6 +8,8 @@ use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CanvasUriDefinitions;
 use Drupal\canvas\ClientDataToEntityConverter;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
+use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
+use Drupal\canvas\ContentTranslation\TranslationForkStateResolver;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
@@ -21,6 +23,7 @@ use Drupal\canvas\Plugin\DisplayVariant\CanvasPageVariant;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
 use Drupal\canvas\Render\PreviewEnvelope;
+use Drupal\canvas\Routing\NamedTranslationConverter;
 use Drupal\canvas\Storage\ComponentTreeLoader;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\ContentEntityInterface;
@@ -72,6 +75,7 @@ final class ApiLayoutController {
     private readonly LanguageManagerInterface $languageManager,
     private readonly AccountProxyInterface $currentUser,
     private readonly PageVariantResolver $pageVariantResolver,
+    private readonly TranslationForkStateResolver $forkStateResolver,
   ) {
     $theme = $this->themeManager->getActiveTheme()->getName();
     $theme_regions = system_region_list($theme);
@@ -153,6 +157,7 @@ final class ApiLayoutController {
       )),
     ];
     $available_translations = [];
+    $forked_translations = [];
     $links = [];
     if ($entity instanceof ContentEntityInterface) {
       $available_translations = \array_keys($entity->getTranslationLanguages(FALSE));
@@ -170,6 +175,44 @@ final class ApiLayoutController {
                 ['language' => $translation->language()],
               )->toString(),
             ];
+          }
+        }
+        // Fork state and fork/unfork links, for every language: one without a
+        // stored translation can be forked before one exists, and until
+        // published such a translation exists only in its auto-save draft.
+        // A new entity is not translated yet; the editor offers no fork
+        // actions for it.
+        // @see \Drupal\canvas\Controller\ApiTranslationControllers::fork()
+        if ($entity->hasField(ComponentTreeTranslationFork::FIELD_NAME)) {
+          $default_langcode = $entity->getUntranslated()->language()->getId();
+          foreach (\array_keys($this->languageManager->getLanguages()) as $langcode) {
+            if ($langcode === $default_langcode) {
+              continue;
+            }
+            $is_stored = \in_array($langcode, $available_translations, TRUE) && !$entity->getTranslation($langcode)->isNewTranslation();
+            $is_forked = $this->forkStateResolver->resolve($entity, $langcode)->isForked();
+            if ($is_forked) {
+              $forked_translations[] = $langcode;
+            }
+            // The fork routes only exist for canvas_page.
+            // @todo Generalize to all eligible content entity types, like the delete route, in https://www.drupal.org/i/3498525.
+            if ($is_new || $entity->getEntityTypeId() !== Page::ENTITY_TYPE_ID
+              || !($is_stored ? $entity->getTranslation($langcode) : $entity)->access('update')) {
+              continue;
+            }
+            // A translation that only exists as a forked draft has no synced
+            // layout to revert to: it is deleted instead, which discards its
+            // draft.
+            [$rel, $route] = match (TRUE) {
+              !$is_forked => [CanvasUriDefinitions::LINK_REL_FORK, 'canvas.api.content.translation.fork'],
+              $is_stored => [CanvasUriDefinitions::LINK_REL_UNFORK, 'canvas.api.content.translation.unfork'],
+              default => [CanvasUriDefinitions::LINK_REL_DELETE, 'canvas.api.content.translation.delete'],
+            };
+            $links[$langcode][$rel] = Url::fromRoute(
+              $route,
+              ['canvas_page' => $entity->id()],
+              ['query' => [NamedTranslationConverter::QUERY_KEY => $langcode]],
+            )->toString();
           }
         }
       }
@@ -210,6 +253,9 @@ final class ApiLayoutController {
     array_unshift($available_translations, $default_langcode);
     $data['translations'] = [
       'available' => $available_translations,
+      // Langcodes whose translation owns an independent (forked) component
+      // tree, draft-aware.
+      'forked' => $forked_translations,
       'links' => $links,
     ];
     if ($entity instanceof ContentEntityInterface && $entity instanceof EntityPublishedInterface) {
@@ -290,8 +336,20 @@ final class ApiLayoutController {
           : $entity
         );
         if ($entity instanceof ContentEntityInterface) {
+          $host_langcode = $entity->language()->getId();
           foreach ($entity->getTranslationLanguages(include_default: FALSE) as $language) {
-            $this->autoSaveManager->saveEntity($entity->getTranslation($language->getId()));
+            $translation = $entity->getTranslation($language->getId());
+            // Forked sibling translations were not updated (their trees are
+            // independent), so they must not receive spurious auto-save
+            // entries. The previewed translation itself is always saved: when
+            // it is forked, its own tree is exactly what was reconciled in
+            // place.
+            // @see \Drupal\canvas\ComponentSource\ComponentSourceManager::updateComponentInstances()
+            if ($language->getId() !== $host_langcode
+              && ComponentTreeTranslationFork::isForkedTranslation($translation)) {
+              continue;
+            }
+            $this->autoSaveManager->saveEntity($translation);
           }
         }
         foreach ($configTranslationsToSave as $stagedOverride) {

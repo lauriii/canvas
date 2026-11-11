@@ -348,6 +348,7 @@ describe('ConflictResolutionPage', () => {
         entityType: 'canvas_page',
         entityId: '1',
         conflictToResolve: 'revision-2',
+        langcode: 'en',
       });
     });
     expect(mocks.discardChange).not.toHaveBeenCalled();
@@ -423,6 +424,7 @@ describe('ConflictResolutionPage', () => {
         entityType: 'canvas_page',
         entityId: '1',
         conflictToResolve: 'revision-2',
+        langcode: 'en',
       });
     });
   });

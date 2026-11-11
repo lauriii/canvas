@@ -14,6 +14,11 @@ const initialState: PageDataState = {};
 export interface PageDataOwner {
   entityType: string;
   entityId: string;
+  // The forked translation the data was loaded for; empty for the default
+  // translation. Writes name this translation, so they always target the
+  // translation their data came from.
+  // @see \Drupal\canvas\Routing\NamedTranslationConverter
+  langcode?: string;
 }
 
 interface InitialPageData {

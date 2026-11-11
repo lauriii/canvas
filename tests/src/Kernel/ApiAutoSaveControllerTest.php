@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas\Kernel;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\ComponentSource\ComponentSourceManager;
+use Drupal\canvas\ContentTranslation\TranslationForkStateResolver;
 use Drupal\canvas\Controller\ApiAutoSaveController;
 use Drupal\canvas\Controller\ErrorCodesEnum;
 use Drupal\canvas\Entity\AssetLibrary;
@@ -1525,6 +1526,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
         $this->container->get(ComponentSourceManager::class),
         $this->container->get(ComponentTreeLoader::class),
         $this->container->get(ModuleHandlerInterface::class),
+        new TranslationForkStateResolver($this->container->get(EntityTypeManagerInterface::class), $mockedAutoSave),
     ));
 
     $response = $this->makePublishAllRequest([
