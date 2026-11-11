@@ -456,18 +456,29 @@ describe('findPreviewDropZoneId', () => {
     t.getBoundingClientRect = () => new DOMRect(0, 100, 400, 400);
     // On the first half of s, where t was when the drag started.
     expect(at(200, 30)).toBeNull();
-    // The preview scrolls by 40 pixels to keep what is under the pointer in
+    endDropTargets();
+
+    const [a, b] = [item('a', [0, 0, 400, 100]), item('b', [0, 100, 400, 100])];
+    const page = slot('page', [0, 0, 400, 200], [a, b]);
+    const pane = el({}, [0, 0, 400, 200], [page]);
+    const scrollTo = (y: number) =>
+      [pane, page, a, b].forEach((node, i) => {
+        const top = (i === 3 ? 100 : 0) - y;
+        const height = i < 2 ? 200 : 100;
+        node.getBoundingClientRect = () => new DOMRect(0, top, 400, height);
+      });
+    startDropTargets(pane);
+    const over = (x: number, y: number) =>
+      findPreviewDropZoneId(page, { x, y }, 'new');
+    expect(over(200, 45)).toBe('a_top');
+    // The preview scrolls by 10 pixels to keep what is under the pointer in
     // place: the pointer hasn't moved from where the drop target changed.
-    s.getBoundingClientRect = () => new DOMRect(0, -40, 400, 100);
-    t.getBoundingClientRect = () => new DOMRect(0, 60, 400, 400);
-    viewport.getBoundingClientRect = () => new DOMRect(0, -40, 400, 500);
-    holdDropTargets(40);
-    expect(at(200, 34)).toBeNull();
+    scrollTo(10);
+    holdDropTargets(10);
+    expect(over(200, 45)).toBe('a_top');
     // Other scrolling moves another drop target under the pointer.
-    viewport.getBoundingClientRect = () => new DOMRect(0, -56, 400, 500);
-    s.getBoundingClientRect = () => new DOMRect(0, -56, 400, 100);
-    t.getBoundingClientRect = () => new DOMRect(0, 44, 400, 400);
-    expect(at(200, 34)).toBe('s_bottom');
+    scrollTo(26);
+    expect(over(200, 45)).toBe('a_bottom');
     endDropTargets();
   });
 
@@ -707,6 +718,233 @@ describe('findPreviewDropZoneId', () => {
       expect(seen.size).toBe(5);
       endDropTargets();
     }
+  });
+
+  it('keeps the drop target in an empty slot that moves with the component that has it', () => {
+    // page
+    // ├── d     y 0–20, dragged
+    // ├── box   y 20–68, its empty slot y 20–60
+    // └── z     y 68–268
+    const [d, box, held, z] = [
+      item('d', [0, 0, 400, 20]),
+      item('box', [0, 20, 400, 48]),
+      slot('box-slot', [0, 20, 400, 40]),
+      item('z', [0, 68, 400, 200]),
+    ];
+    box.append(held);
+    const page = slot('page', [0, 0, 400, 600], [d, box, z]);
+    const viewport = el({}, [0, 0, 400, 600], [page]);
+    startDropTargets(viewport);
+    // How far the preview has scrolled.
+    let scrolled = 0;
+    const put = (node: HTMLElement, top: number, height: number) => {
+      node.getBoundingClientRect = () =>
+        new DOMRect(0, top - scrolled, 400, height);
+      return top + height;
+    };
+    // Lays the page out as the preview does with d shown at a drop target:
+    // the slot is as tall as d while it holds d, and 40px tall while empty.
+    const show = (id: string | null) => {
+      const inSlot = id === 'box-slot';
+      let y = id === null ? put(d, 0, 20) : 0;
+      put(held, y, inSlot ? 20 : 40);
+      if (inSlot) put(d, y, 20);
+      y = put(box, y, inSlot ? 28 : 48);
+      if (id === 'box_bottom') y = put(d, y, 20);
+      put(z, y, 200);
+      viewport.getBoundingClientRect = () =>
+        new DOMRect(0, -scrolled, 400, 600);
+    };
+    // The pointer moves straight down from d, one pixel at a time.
+    const seen: (string | null)[] = [];
+    for (let y = 10; y <= 80; y++) {
+      const id = findPreviewDropZoneId(page, { x: 200, y }, 'd');
+      if (id !== seen[seen.length - 1]) {
+        seen.push(id);
+        // The preview scrolls to keep the box where it is in the editor (see
+        // keepInPlace() in livePreview.ts).
+        const top = box.getBoundingClientRect().top;
+        show(id);
+        const moved = box.getBoundingClientRect().top - top;
+        scrolled += moved;
+        holdDropTargets(moved);
+        show(id);
+      }
+    }
+    expect(seen).toEqual([null, 'box-slot', 'box_bottom']);
+  });
+
+  it('keeps the pointer on a page that the drop target makes shorter', () => {
+    // The last component of the page has two columns: x in the left one,
+    // c (dragged) above y in the right one. The page ends where they end.
+    const [x, c, y] = [
+      item('x', [0, 0, 200, 50]),
+      item('c', [200, 0, 200, 100]),
+      item('y', [200, 100, 200, 300]),
+    ];
+    const [left, right] = [
+      slot('left', [0, 0, 200, 50], [x]),
+      slot('right', [200, 0, 200, 400], [c, y]),
+    ];
+    const columns = item('columns', [0, 0, 400, 400], [left, right]);
+    const viewport = el(
+      { class: 'canvas--viewport-overlay' },
+      [0, 0, 400, 400],
+      [slot('page', [0, 0, 400, 400], [columns])],
+    );
+    const pane = el(
+      { 'data-canvas-editor-pane': 'true' },
+      [0, 0, 600, 800],
+      [viewport],
+    );
+    document.body.append(pane);
+    startDropTargets(viewport);
+    // Below the short column.
+    expect(previewDropZoneAt({ x: 100, y: 350 }, 'c')).toBe('x_bottom');
+    // Shown below x, c leaves the right column 300px tall: the columns and
+    // the page end 100px higher, above the pointer.
+    c.getBoundingClientRect = () => new DOMRect(0, 50, 200, 100);
+    left.getBoundingClientRect = () => new DOMRect(0, 0, 200, 150);
+    y.getBoundingClientRect = () => new DOMRect(200, 0, 200, 300);
+    right.getBoundingClientRect = () => new DOMRect(200, 0, 200, 300);
+    columns.getBoundingClientRect = () => new DOMRect(0, 0, 400, 300);
+    viewport.getBoundingClientRect = () => new DOMRect(0, 0, 400, 300);
+    expect(previewDropZoneAt({ x: 100, y: 350 }, 'c')).toBe('x_bottom');
+    // Below where the page ended: outside it.
+    expect(previewDropZoneAt({ x: 100, y: 420 }, 'c')).toBeNull();
+    pane.remove();
+  });
+
+  it('settles on the drop target that shows the dragged component nearest to the pointer', () => {
+    // A row that wraps, 400px wide. a and b leave 100px free at the end of
+    // the first row; t and the dragged d, 80px wide, are in the second.
+    const d = item('d', [300, 40, 80, 40]);
+    const row = slot(
+      'row',
+      [0, 0, 400, 80],
+      [
+        item('a', [0, 0, 100, 40]),
+        item('b', [100, 0, 200, 40]),
+        item('t', [0, 40, 300, 40]),
+        d,
+      ],
+      'horizontal-flex',
+    );
+    startDropTargets(el({}, [0, 0, 400, 80], [row]));
+    // From d, along t, a pixel at a time.
+    const seen: Array<string | null> = [];
+    for (let x = 340; x >= 150; x--) {
+      const id = findPreviewDropZoneId(row, { x, y: 60 }, 'd');
+      // Before t, d fits at the end of the first row: t stays where it is.
+      const box = new DOMRect(300, id === 'b_right' ? 0 : 40, 80, 40);
+      d.getBoundingClientRect = () => box;
+      if (id !== seen[seen.length - 1]) {
+        seen.push(id);
+      }
+    }
+    // Each of the two puts the other under the pointer. Where it was, d is
+    // nearer to the pointer: it goes back there once, and stays.
+    expect(seen).toEqual([null, 'b_right', null]);
+  });
+
+  it('holds the drop target against a hand held still at the edge of a short component', () => {
+    // top 0-100 / header 100-124: branding [logo], navigation [nav] / bottom.
+    const logo = item('logo', [0, 100, 60, 24]);
+    const bottom = item('bottom', [0, 124, 400, 100]);
+    const page = slot(
+      'page',
+      [0, 0, 400, 224],
+      [
+        item('top', [0, 0, 400, 100]),
+        item(
+          'header',
+          [0, 100, 400, 24],
+          [
+            // Keeps its size while the logo is shown elsewhere.
+            slot('branding', [0, 100, 60, 24], [logo], 'horizontal-flex'),
+            slot(
+              'navigation',
+              [280, 100, 120, 24],
+              [item('nav', [280, 100, 120, 24])],
+              'horizontal-flex',
+            ),
+          ],
+        ),
+        bottom,
+      ],
+    );
+    startDropTargets(el({}, [0, 0, 400, 224], [page]));
+    // Lays out as the preview does: after the header, the logo is below it.
+    const at = (x: number, y: number) => {
+      const id = findPreviewDropZoneId(page, { x, y }, 'logo');
+      const after = id === 'header_bottom';
+      logo.getBoundingClientRect = () =>
+        new DOMRect(0, after ? 124 : 100, 60, 24);
+      bottom.getBoundingClientRect = () =>
+        new DOMRect(0, after ? 148 : 124, 400, 100);
+      return id;
+    };
+    expect(at(30, 112)).toBeNull();
+    // The bottom edge band of the header starts at y 120.
+    expect(at(30, 122)).toBe('header_bottom');
+    // A hand held still, 1.5px either side of it: back in the header once.
+    expect([119, 122, 119, 122].map((y) => at(30, y))).toEqual(
+      Array(4).fill(null),
+    );
+    // From below the header.
+    expect(at(30, 130)).toBe('header_bottom');
+    endDropTargets();
+  });
+
+  it('reaches the gap before a container from its edge wherever the dragged component was shown', () => {
+    const [first, second, moved] = [
+      item('first', [0, 0, 400, 100]),
+      item('second', [0, 100, 400, 100]),
+      item('moved', [0, 200, 400, 100]),
+    ];
+    const filled = item(
+      'filled',
+      [0, 0, 400, 200],
+      [slot('filled-slot', [0, 0, 400, 200], [first, second])],
+    );
+    const rows = slot('rows', [0, 0, 400, 300], [filled, moved]);
+    startDropTargets(el({}, [0, 0, 400, 300], [rows]));
+    const drop = (y: number) =>
+      findPreviewDropZoneId(rows, { x: 200, y }, 'moved');
+    expect(drop(5)).toBe('filled_top');
+    // Shown before filled.
+    moved.getBoundingClientRect = () => new DOMRect(0, 0, 400, 100);
+    filled.getBoundingClientRect = () => new DOMRect(0, 100, 400, 200);
+    first.getBoundingClientRect = () => new DOMRect(0, 100, 400, 100);
+    second.getBoundingClientRect = () => new DOMRect(0, 200, 400, 100);
+    expect(drop(130)).toBe('first_top');
+    // Shown first in filled, where it was shown before filled.
+    filled.getBoundingClientRect = () => new DOMRect(0, 0, 400, 300);
+    expect([5, 6, 4, 8].map(drop)).toEqual(Array(4).fill('filled_top'));
+  });
+
+  it('keeps the drop target in an empty slot near the slot as it is now', () => {
+    // h is 80px tall whatever its slot holds.
+    const [t, h, hs, z] = [
+      item('t', [0, 0, 400, 400]),
+      item('h', [0, 400, 400, 80]),
+      slot('h-slot', [16, 416, 368, 40]),
+      item('z', [0, 480, 400, 600]),
+    ];
+    h.append(hs);
+    const page = slot('page', [0, 0, 400, 1080], [t, h, z]);
+    startDropTargets(el({}, [0, 0, 400, 1080], [page]));
+    const at = (y: number) => findPreviewDropZoneId(page, { x: 40, y }, 't');
+    expect(at(200)).toBeNull();
+    expect(at(413)).toBe('h-slot');
+    // t, in the slot, reaches far below h.
+    t.getBoundingClientRect = () => new DOMRect(16, 16, 368, 400);
+    h.getBoundingClientRect = () => new DOMRect(0, 0, 400, 80);
+    hs.getBoundingClientRect = () => new DOMRect(16, 16, 368, 400);
+    z.getBoundingClientRect = () => new DOMRect(0, 96, 400, 600);
+    expect(at(422)).toBe('h-slot');
+    expect(at(440)).toBe('h-slot');
+    expect(at(460)).toBe('z_bottom');
   });
 
   it('changes the drop target only once the pointer has clearly moved', () => {

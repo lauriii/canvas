@@ -63,6 +63,66 @@ describe('live preview of a moved component', () => {
     expect(doc.querySelector('.canvas--slot-empty-placeholder')).toBeNull();
   });
 
+  it('scrolls the preview to keep under the pointer what the drop position is in', () => {
+    const pane = document.createElement('div');
+    pane.dataset.canvasEditorPane = 'true';
+    const frame = pane.appendChild(document.createElement('iframe'));
+    document.body.append(pane);
+    Object.defineProperty(frame, 'offsetWidth', { value: 1000 });
+    frame.getBoundingClientRect = () => new DOMRect(0, 0, 1000, 1000);
+    const doc = frame.contentDocument!;
+    doc.body.innerHTML = preview().body.innerHTML;
+    // The pointer is followed where markup can be animated.
+    (
+      doc.defaultView as unknown as typeof globalThis
+    ).Element.prototype.animate = () =>
+      ({
+        cancel() {},
+        finish() {},
+        reverse() {},
+        effect: { getKeyframes: () => [{}], setKeyframes() {} },
+        finished: Promise.resolve(),
+      }) as unknown as Animation;
+    // Components are 100px tall and stacked, c is 300px tall whatever it holds.
+    const rect = (el: Element) => {
+      let y = 0;
+      for (const node of Array.from(doc.body.children)) {
+        const index = Array.from(node.children).indexOf(el);
+        if (node === el || index !== -1) {
+          const height = el.id === 'c' ? 300 : 100;
+          return new DOMRect(0, y + Math.max(index, 0) * 100, 300, height);
+        }
+        y += node.id === 'c' ? 300 : 100;
+      }
+      return new DOMRect();
+    };
+    doc.querySelectorAll('p, div').forEach((el) => {
+      el.getBoundingClientRect = () => rect(el);
+    });
+    const pointTo = (clientX: number, clientY: number) =>
+      window.dispatchEvent(new MouseEvent('pointermove', { clientX, clientY }));
+    pane.scrollTop = 500;
+
+    // Into c from above it, with the pointer in c: c would move up, away
+    // from the pointer.
+    startMovePreview(doc, 'a', region, { x: 50, y: 450 });
+    showLivePreviewAt('d_bottom');
+    expect(doc.querySelector('#c')!.textContent).toBe('DA');
+    expect(pane.scrollTop).toBe(400);
+    // Within c.
+    pointTo(50, 250);
+    showLivePreviewAt('d_top');
+    expect(doc.querySelector('#c')!.textContent).toBe('AD');
+    expect(pane.scrollTop).toBe(400);
+    // After c from over d: d moves back up, but c is still under the
+    // pointer. Keeping d in place would take c along with the pointer.
+    showLivePreviewAt('c_bottom');
+    expect(doc.querySelector('#c')!.textContent).toBe('D');
+    expect(pane.scrollTop).toBe(400);
+    endLivePreview();
+    pane.remove();
+  });
+
   it('hides the placeholder of an empty slot it is shown in', () => {
     const doc = preview();
     doc.querySelector('#c')!.innerHTML =

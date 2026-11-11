@@ -377,36 +377,46 @@ const hasSize = (node: Node) =>
     return width > 0 && height > 0;
   });
 
-/**
- * Shows the dragged component at a drop position.
- *
- * @param dropZoneId
- *   The drop zone id of the position, or NULL to show the component where it
- *   was when the drag started (or not at all if it is new).
- */
-// The innermost component under the pointer, other than the dragged one, and
-// where it is in the editor viewport.
-function anchorAt({ document, nodes, pointer }: Session) {
+const isOn = (el: Element, point: Point) => {
+  const r = el.getBoundingClientRect();
+  return (
+    point.x >= r.left &&
+    point.x <= r.right &&
+    point.y >= r.top &&
+    point.y <= r.bottom
+  );
+};
+
+// What the pointer picked a drop position by, and where it is in the editor
+// viewport: the innermost element under the pointer that is, or has in it,
+// the component the position is next to, the empty slot or region, or the
+// position the dragged component was at.
+function anchorFor(
+  { document, home, pointer }: Session,
+  dropZoneId: string | null,
+) {
   const point = pointer && toPreview(document, pointer);
   if (!point) {
     return null;
   }
-  const under = componentElements(discoverCanvasBoundaries(document)).filter(
-    (el) => {
-      const r = el.getBoundingClientRect();
-      return (
-        !nodes.some((node) => node.contains(el)) &&
-        point.x >= r.left &&
-        point.x <= r.right &&
-        point.y >= r.top &&
-        point.y <= r.bottom
-      );
-    },
-  );
-  const el = under.find(
-    (one) => !under.some((other) => other !== one && one.contains(other)),
-  );
-  return el ? { el, top: viewportTop(el) } : null;
+  const boundaries = discoverCanvasBoundaries(document);
+  const [, uuid] = dropZoneId?.match(/^(.+)_(top|left|bottom|right)$/) ?? [];
+  const beside = uuid && findBoundary(boundaries, 'component', uuid);
+  const nearest: Node | undefined = beside
+    ? siblingsBetween(beside.start, beside.end)
+        .filter(isElement)
+        .flatMap(boxes)[0]
+    : ((dropZoneId && resolve(boundaries, dropZoneId)) || home)?.parent;
+  for (let node = nearest; node; node = node.parentNode ?? undefined) {
+    if (isElement(node) && isOn(node, point)) {
+      // An empty slot or region is what the pointer picked: the element that
+      // has it can stay under the pointer while the slot moves away.
+      const on =
+        dropZoneId && !beside && nearest && isElement(nearest) ? nearest : node;
+      return { el: node, on, top: viewportTop(node) };
+    }
+  }
+  return null;
 }
 
 const viewportTop = (el: HTMLElement) => {
@@ -416,14 +426,17 @@ const viewportTop = (el: HTMLElement) => {
 };
 
 /**
- * Scrolls the preview so that a component stays where it was in the viewport.
+ * Scrolls the preview so that an element stays where it was in the viewport.
  *
  * Showing the dragged component in another slot or region moves the
- * components after where it was and after where it is shown. The component
- * under the pointer stays under the pointer, instead of moving away from the
- * pointer as the pointer moves toward it: a large component moved into a slot
- * below it would move that slot up by its own height. The drop target doesn't
- * change for it (see holdDropTargets()).
+ * components after where it was and after where it is shown. What the pointer
+ * picked the drop position by stays under the pointer, instead of moving away
+ * from it: a large component moved into a slot below it would move that slot
+ * up by its own height. Nothing else is kept in place, and nothing that is
+ * still under the pointer: a component that only moved because the dragged
+ * component was shown before it would take the preview along with the pointer
+ * as it moves on, drop position after drop position. The drop target doesn't
+ * change for the scroll (see holdDropTargets()).
  *
  * @return
  *   How far the preview was scrolled, in pixels of the preview.
@@ -454,6 +467,13 @@ function keepInPlace(anchor: { el: HTMLElement; top: number }): number {
   return (scrolled * frame.offsetWidth) / frame.getBoundingClientRect().width;
 }
 
+/**
+ * Shows the dragged component at a drop position.
+ *
+ * @param dropZoneId
+ *   The drop zone id of the position, or NULL to show the component where it
+ *   was when the drag started (or not at all if it is new).
+ */
 export function showLivePreviewAt(dropZoneId: string | null): void {
   // Showing the markup where it is shown would only move it in place.
   if (!session || session.shown === dropZoneId) {
@@ -475,7 +495,7 @@ export function showLivePreviewAt(dropZoneId: string | null): void {
   }
   session.slide.forEach((animation) => animation.cancel());
   session.slide = [];
-  const anchor = anchorAt(session);
+  const anchor = anchorFor(session, dropZoneId);
   // Where the markup is shown, if anywhere.
   const from = nodes[0].isConnected ? nodes[0].parentNode : null;
   let scrolled = 0;
@@ -494,7 +514,14 @@ export function showLivePreviewAt(dropZoneId: string | null): void {
       pointer.x <= session.shownAt.right &&
       pointer.y >= session.shownAt.top &&
       pointer.y <= session.shownAt.bottom;
-    if (anchor && !under && from && nodes[0].parentNode !== from) {
+    if (
+      anchor &&
+      pointer &&
+      !under &&
+      !isOn(anchor.on, pointer) &&
+      from &&
+      nodes[0].parentNode !== from
+    ) {
       scrolled = keepInPlace(anchor);
       session.shownAt = bounds(nodes);
     }

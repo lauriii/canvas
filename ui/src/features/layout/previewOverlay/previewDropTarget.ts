@@ -12,7 +12,8 @@ const EDGE_THRESHOLD = 12;
 // never quite still, moves the dragged component back and forth: showing it
 // at a drop position moves the other components, which can put another drop
 // position under the pointer. In small components, a larger margin would
-// leave no room for the drop targets inside them.
+// leave no room for the drop targets inside them. The gap next to a
+// component, targeted from the edge of the component, needs no such room.
 const HYSTERESIS = 8;
 
 // Within this many pixels of an empty slot, in the component that has the
@@ -37,9 +38,18 @@ let drag: {
   // the pointer was when it changed.
   last?: string | null;
   changedAt?: Point;
-  // Where in the previewed page the empty slot was that is the drop target.
-  // Shown in it, the dragged component can be smaller than its placeholder.
+  // The drop target before that one, and where in the previewed page the
+  // dragged component was shown at it.
+  from?: { id: string | null; shown: DOMRect };
+  // Where the empty slot was that is the drop target, from the corner of the
+  // component that has the slot. Shown in it, the dragged component can be
+  // smaller than its placeholder.
   heldIn?: DOMRect;
+  heldBy?: Element;
+  // The empty slot.
+  heldSlot?: Element;
+  // How tall the previewed page was at its tallest with the pointer on it.
+  height?: number;
 } | null = null;
 
 /**
@@ -111,19 +121,35 @@ export function previewDropZoneAt(
   if (!root || !pane || !contains(pane.getBoundingClientRect(), point)) {
     // Something else decides where the dragged component is shown.
     if (drag) {
-      drag.last = drag.changedAt = drag.heldIn = undefined;
+      drag.last = drag.changedAt = drag.from = undefined;
+      drag.heldIn = drag.heldBy = drag.heldSlot = drag.height = undefined;
     }
     return undefined;
   }
-  const page = viewport!.getBoundingClientRect();
+  // Showing the dragged component at a drop position can make the page
+  // shorter, which would leave the pointer below the page: off the page, the
+  // component is shown where it was, the page is as tall as it was, and the
+  // pointer is on it again. The pointer is on the page for as far as the page
+  // reached while the pointer was on it.
+  const now = viewport!.getBoundingClientRect();
+  const page = new DOMRect(
+    now.left,
+    now.top,
+    now.width,
+    Math.max(now.height, drag?.height ?? 0),
+  );
   if (!contains(page, point)) {
     // The dragged component is shown where it was.
     if (drag) {
       drag.last = null;
       drag.changedAt = { x: point.x - page.left, y: point.y - page.top };
-      drag.heldIn = undefined;
+      drag.from = drag.heldIn = drag.heldBy = drag.heldSlot = undefined;
+      drag.height = undefined;
     }
     return null;
+  }
+  if (drag) {
+    drag.height = page.height;
   }
   return findPreviewDropZoneId(root, point, activeId);
 }
@@ -241,7 +267,9 @@ const isHorizontal = (container: HTMLElement) =>
  * The slots of the dragged component are not drop targets. During a drag
  * (see startDropTargets()), the drop target stays what it is while the
  * pointer is on the dragged component where it is shown, and changes only
- * once the pointer has moved clearly from where it last changed.
+ * once the pointer has moved clearly from where it last changed. It doesn't
+ * change back to what it was before while that would show the dragged
+ * component farther from the pointer.
  *
  * @param root
  *   The overlay element of the root region (marked data-canvas-drop-container).
@@ -267,7 +295,7 @@ export function findPreviewDropZoneId(
     const { id } = resolveDropZoneId(root, point, activeId, rect, { active });
     return id === KEEP ? null : id;
   }
-  const { last, changedAt, heldIn, viewport } = drag;
+  const { last, changedAt, from, heldIn, heldBy, heldSlot, viewport } = drag;
   // The dragged component where it is shown: for one from the library, its
   // outline.
   const shown =
@@ -284,46 +312,91 @@ export function findPreviewDropZoneId(
   // In the previewed page, which can scroll under the pointer.
   const origin = viewport.getBoundingClientRect();
   const at = { x: point.x - origin.left, y: point.y - origin.top };
+  // Picked up, the dragged component is where it was until the pointer has
+  // moved, also when it was picked up by the edge of the component it is in.
+  if (last === undefined && active && contains(rect(active), point)) {
+    drag.last = null;
+    drag.changedAt = at;
+    return null;
+  }
+  // The component that has the empty slot moves with what the dragged
+  // component is shown in or taken out of, and the slot with it.
+  const by = heldBy && rect(heldBy);
   // The drop target stays what it is while the pointer is where the empty
-  // slot was that the dragged component is shown in. It also does while the
-  // pointer is on the dragged component where it is shown, or nearer to it
-  // than to the components beside it, except near the edge of a component:
-  // there, the pointer targets the gap next to that component all the same.
+  // slot was that the dragged component is shown in, or near the slot as it
+  // is now, holding the dragged component. It also does while the pointer is
+  // on the dragged component where it is shown, or nearer to it than to the
+  // components beside it, except near the edge of a component: there, the
+  // pointer targets the gap next to that component all the same.
   if (
     last !== undefined &&
-    ((heldIn && contains(heldIn, at)) ||
+    ((heldIn &&
+      by &&
+      contains(heldIn, { x: point.x - by.left, y: point.y - by.top })) ||
+      (heldSlot && distance(rect(heldSlot), point) <= EMPTY_SLOT_REACH) ||
       (!edge && (id === KEEP || (shown && contains(rect(shown), point)))))
   ) {
+    drag.from = undefined;
     return last;
   }
   if (id === KEEP || id === last) {
+    drag.from = undefined;
+    return last ?? null;
+  }
+  // Where the dragged component is shown can put the drop target it was
+  // shown at before under the pointer again, and shown there, this one: it
+  // stays at the one of the two that shows it nearer to the pointer, instead
+  // of going back and forth as the pointer moves on.
+  if (
+    shown &&
+    from &&
+    id === from.id &&
+    distance(rect(shown), point) < distance(from.shown, at)
+  ) {
     return last ?? null;
   }
   if (last !== undefined && changedAt) {
+    const margin = (size = Infinity) =>
+      edge ? HYSTERESIS : Math.min(HYSTERESIS, size / 10);
     const moved = Math.max(
-      Math.abs(at.x - changedAt.x) /
-        Math.min(HYSTERESIS, (hit?.width ?? Infinity) / 10),
-      Math.abs(at.y - changedAt.y) /
-        Math.min(HYSTERESIS, (hit?.height ?? Infinity) / 10),
+      Math.abs(at.x - changedAt.x) / margin(hit?.width),
+      Math.abs(at.y - changedAt.y) / margin(hit?.height),
     );
     if (moved < 1) {
       return last;
     }
   }
+  drag.from = undefined;
+  if (shown && last !== undefined) {
+    const { left, top, width, height } = rect(shown);
+    drag.from = {
+      id: last,
+      shown: new DOMRect(left - origin.left, top - origin.top, width, height),
+    };
+  }
   drag.last = id;
   drag.changedAt = at;
-  drag.heldIn = undefined;
-  if (inner && id !== null && id === container.dataset.canvasDropContainer) {
+  drag.heldIn = drag.heldBy = drag.heldSlot = undefined;
+  const holder = container.parentElement?.closest('[data-canvas-drop-item]');
+  if (
+    inner &&
+    holder &&
+    id !== null &&
+    id === container.dataset.canvasDropContainer
+  ) {
     // The empty slot and what is within reach of it in its component, which
     // is where the pointer targets the slot.
     const slot = rect(container);
-    const left = Math.max(slot.left - EMPTY_SLOT_REACH, inner.left);
-    const top = Math.max(slot.top - EMPTY_SLOT_REACH, inner.top);
+    const corner = rect(holder);
+    const x = Math.max(slot.left - EMPTY_SLOT_REACH, inner.left);
+    const y = Math.max(slot.top - EMPTY_SLOT_REACH, inner.top);
+    drag.heldBy = holder;
+    drag.heldSlot = container;
     drag.heldIn = new DOMRect(
-      left - origin.left,
-      top - origin.top,
-      Math.min(slot.right + EMPTY_SLOT_REACH, inner.right) - left,
-      Math.min(slot.bottom + EMPTY_SLOT_REACH, inner.bottom) - top,
+      x - corner.left,
+      y - corner.top,
+      Math.min(slot.right + EMPTY_SLOT_REACH, inner.right) - x,
+      Math.min(slot.bottom + EMPTY_SLOT_REACH, inner.bottom) - y,
     );
   }
   return id;
