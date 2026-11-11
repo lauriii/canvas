@@ -133,7 +133,7 @@ test.describe('Templates - General', () => {
     });
     await expect(
       page
-        .locator('iframe[class^="_PagePreviewIframe"]')
+        .locator('iframe[data-canvas-swap-active="true"]')
         .contentFrame()
         .locator('[data-component-id="canvas_test_sdc:my-hero"] h1'),
     ).toHaveText('Hero in french');
@@ -191,7 +191,7 @@ test.describe('Templates - General', () => {
     });
     await expect(
       page
-        .locator('iframe[class^="_PagePreviewIframe"]')
+        .locator('iframe[data-canvas-swap-active="true"]')
         .contentFrame()
         .locator('[data-component-id="canvas_test_sdc:my-hero"] h1'),
     ).toHaveText('There goes my hero');

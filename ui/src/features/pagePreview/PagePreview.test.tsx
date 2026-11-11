@@ -4,10 +4,15 @@ import { render, screen } from '@testing-library/react';
 
 import PagePreview from './PagePreview';
 
+import type React from 'react';
+
 const mocks = vi.hoisted(() => ({
   session: vi.fn(() => ({ statusText: 'Preview active' })),
   snapshot: vi.fn(() => ({})),
   dispatch: vi.fn(),
+  headless: vi.fn((): object | undefined => ({
+    frontendUrl: 'https://app.example',
+  })),
 }));
 vi.mock('@/app/hooks', () => ({
   useAppDispatch: () => mocks.dispatch,
@@ -17,7 +22,17 @@ vi.mock('react-error-boundary', () => ({
   useErrorBoundary: () => ({ showBoundary: vi.fn() }),
 }));
 vi.mock('@/hooks/useCanvasHeadlessSettings', () => ({
-  useCanvasHeadlessSettings: () => ({ frontendUrl: 'https://app.example' }),
+  useCanvasHeadlessSettings: mocks.headless,
+}));
+vi.mock('@/features/editorFrame/EditorFrame', () => ({
+  default: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="editor-frame">{children}</div>
+  ),
+}));
+vi.mock('@/features/layout/preview/Viewport', () => ({
+  default: ({ editable }: { editable?: boolean }) => (
+    <div data-testid="viewport" data-editable={String(editable)} />
+  ),
 }));
 vi.mock('@/features/layout/preview/useHeadlessDraftSession', () => ({
   useHeadlessDraftSession: mocks.session,
@@ -40,6 +55,33 @@ vi.stubGlobal(
     disconnect() {}
   },
 );
+
+describe('Page in another language, in the editor', () => {
+  it('is shown on the canvas of the editor, where it cannot be edited', () => {
+    mocks.headless.mockReturnValue(undefined);
+    const view = render(
+      <MemoryRouter initialEntries={['/editor/canvas_page/7?language=fr']}>
+        <Routes>
+          <Route
+            path="/editor/:entityType/:entityId"
+            element={<PagePreview />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByTestId('editor-frame')).toContainElement(
+      screen.getByTestId('viewport'),
+    );
+    expect(screen.getByTestId('viewport')).toHaveAttribute(
+      'data-editable',
+      'false',
+    );
+    // Not the frame of the preview.
+    expect(screen.queryByTitle('Page preview')).toBeNull();
+    view.unmount();
+    mocks.headless.mockReturnValue({ frontendUrl: 'https://app.example' });
+  });
+});
 
 describe('Headless page in another language, in the editor', () => {
   it('embeds the frontend in that language, at a viewport', () => {

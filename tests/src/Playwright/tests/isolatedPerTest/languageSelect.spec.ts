@@ -69,8 +69,10 @@ const login = async ({ username, password, drupal }) => {
   expect(userId).toBeGreaterThan(1);
 };
 
-// The less common actions on a page in another language are in the language
-// menu.
+// A page in another language is shown on the canvas of the editor.
+const languageViewFrame = 'iframe[data-canvas-swap-active="true"]';
+
+// The actions on a page in another language are in the language menu.
 const openLanguageMenu = async (page) => {
   await page.getByTestId('language-select-trigger').click();
 };
@@ -115,7 +117,7 @@ test.describe('Language Select', () => {
 
     // Verify the URL contains the French language query parameter.
     expect(page.url()).toMatch(/\/editor\/canvas_page\/\d+\?language=fr/);
-    const previewFrame = page.frameLocator('iframe[title="Page preview"]');
+    const previewFrame = page.frameLocator(languageViewFrame);
     // Preview text appearing in French confirms UI is in a state to proceed.
     await expect(previewFrame.locator('text=Bonjour de la')).toBeVisible({
       timeout: 5000,
@@ -214,7 +216,7 @@ test.describe('Language Select', () => {
 
     expect(page.url()).toMatch(/\/editor\/canvas_page\/\d+\?language=fr/);
 
-    let previewFrame = page.frameLocator('iframe[title="Page preview"]');
+    let previewFrame = page.frameLocator(languageViewFrame);
     await expect(previewFrame.locator('body')).not.toBeEmpty();
 
     // The page is shown in French: the language menu says so. The editor
@@ -271,7 +273,7 @@ test.describe('Language Select', () => {
     await page.reload();
 
     // French content must still render after the reload.
-    previewFrame = page.frameLocator('iframe[title="Page preview"]');
+    previewFrame = page.frameLocator(languageViewFrame);
     await expect(previewFrame.locator('text=Bonjour, Canvas!')).toBeVisible({
       timeout: 10000,
     });
@@ -304,7 +306,7 @@ test.describe('Language Select', () => {
 
     expect(page.url()).toMatch(/\/editor\/canvas_page\/\d+\?language=es/);
 
-    previewFrame = page.frameLocator('iframe[title="Page preview"]');
+    previewFrame = page.frameLocator(languageViewFrame);
     await expect(previewFrame.locator('body')).not.toBeEmpty();
 
     // There is no Spanish translation: the top bar says so, and there is
@@ -634,7 +636,7 @@ test.describe('Language Select', () => {
     });
 
     // Verify French content is visible.
-    const previewFrame = page.frameLocator('iframe[title="Page preview"]');
+    const previewFrame = page.frameLocator(languageViewFrame);
     await expect(previewFrame.locator('text=Bonjour, Canvas!')).toBeVisible({
       timeout: 5000,
     });

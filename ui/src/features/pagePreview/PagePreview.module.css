@@ -30,8 +30,20 @@
 
 /*
  * A page shown in another language than its own, in the editor: it takes the
- * space next to the side menu and panels instead of the whole window.
+ * space next to the side menu and panels instead of the whole window, on the
+ * canvas of the editor.
  */
+.languageCanvas {
+  display: flex;
+  overflow: hidden;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+}
+
+/* The same for a headless frontend, which is not on the canvas. */
 .languageView {
   position: relative;
   flex: 1;

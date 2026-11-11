@@ -13,13 +13,17 @@ import { AlertDialog, Button, Flex } from '@radix-ui/themes';
 import { skipToken } from '@reduxjs/toolkit/query';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import EditorFrame from '@/features/editorFrame/EditorFrame';
 import {
   selectLayout,
   selectModel,
   selectUpdatePreview,
   setUpdatePreview,
 } from '@/features/layout/layoutModelSlice';
+import { PreviewDomProvider } from '@/features/layout/preview/PreviewDomContext';
+import { PreviewGeometryProvider } from '@/features/layout/preview/PreviewGeometryContext';
 import { useHeadlessDraftSession } from '@/features/layout/preview/useHeadlessDraftSession';
+import Viewport from '@/features/layout/preview/Viewport';
 import ViewportSelector from '@/features/layout/preview/ViewportSelector';
 import { selectPageData } from '@/features/pageData/pageDataSlice';
 import {
@@ -27,7 +31,10 @@ import {
   setSnapshotHTML,
   setSnapshotTitle,
 } from '@/features/pagePreview/previewSlice';
-import { selectViewportWidth } from '@/features/ui/uiSlice';
+import {
+  selectViewportWidth,
+  setFirstLoadComplete,
+} from '@/features/ui/uiSlice';
 import { useCanvasHeadlessSettings } from '@/hooks/useCanvasHeadlessSettings';
 import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
 import {
@@ -43,11 +50,13 @@ import toolbarStyles from '@/features/layout/preview/ViewportToolbar.module.css'
 import styles from './PagePreview.module.css';
 
 /**
- * Shows a page in another language at a viewport width, scaled down to fit
- * the space when it is wider, as the editor does.
+ * Shows a page of a headless frontend in another language at a viewport
+ * width, scaled down to fit the space when it is wider.
  *
  * The viewport is the editor's own: it stays the same when the language
  * changes, and in the editor after it.
+ *
+ * @todo Show it on the canvas of the editor, as a page that Drupal renders is, once the frontend reports its height to this view.
  */
 const LanguageViewport = ({ children }: { children: React.ReactNode }) => {
   const viewportWidth = useAppSelector(selectViewportWidth);
@@ -215,6 +224,7 @@ const PagePreview = () => {
   // Language preview: auto-fetch whenever language/entity changes.
   const {
     error: languagePreviewError,
+    isFetching: isSnapshotFetching,
     isUninitialized: isSnapshotSkipped,
     refetch: refetchSnapshot,
   } = useGetSnapshotPreviewQuery(
@@ -244,6 +254,17 @@ const PagePreview = () => {
       dispatch(setUpdatePreview(false));
     }
   }, [isLanguageView, dispatch]);
+
+  // The canvas centers the page once it has loaded, for every page shown.
+  useEffect(() => {
+    if (!isLanguageView) {
+      return;
+    }
+    dispatch(setFirstLoadComplete(false));
+    return () => {
+      dispatch(setFirstLoadComplete(false));
+    };
+  }, [isLanguageView, entityId, entityType, dispatch]);
 
   // The translations of the page change in a translation module, often in
   // another tab: load them again whenever the view shows another language.
@@ -381,30 +402,33 @@ const PagePreview = () => {
 
   return (
     <>
-      <div
-        className={clsx(
-          styles.PagePreviewContainer,
-          isLanguageView && styles.languageView,
-        )}
-      >
-        <div className={styles.controls}></div>
-        {isLanguageView ? (
-          <LanguageViewport>
-            <iframe
-              title="Page preview"
-              srcDoc={frameSrcDoc}
-              className={styles.PagePreviewIframe}
-            ></iframe>
-          </LanguageViewport>
-        ) : (
+      {isLanguageView ? (
+        // The canvas of the editor, with its viewports, panning and zooming,
+        // without the controls that edit a page.
+        <div className={styles.languageCanvas}>
+          <EditorFrame>
+            <PreviewGeometryProvider>
+              <PreviewDomProvider>
+                <Viewport
+                  frameSrcDoc={frameSrcDoc}
+                  isFetching={isSnapshotFetching}
+                  editable={false}
+                />
+              </PreviewDomProvider>
+            </PreviewGeometryProvider>
+          </EditorFrame>
+        </div>
+      ) : (
+        <div className={styles.PagePreviewContainer}>
+          <div className={styles.controls}></div>
           <iframe
             title="Page preview"
             style={{ width: widthVal }}
             srcDoc={frameSrcDoc}
             className={styles.PagePreviewIframe}
           ></iframe>
-        )}
-      </div>
+        </div>
+      )}
       <AlertDialog.Root
         open={!!linkIntercepted || submissionIntercepted}
         defaultOpen={false}
