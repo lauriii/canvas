@@ -372,6 +372,51 @@ describe('findPreviewDropZoneId', () => {
     );
   });
 
+  it('targets content laid out outside the component that has it', () => {
+    // A header 80px tall whose slot holds more than fits: the logo is laid
+    // out over the section below the header.
+    const header = item(
+      'header',
+      [0, 0, 400, 80],
+      [
+        slot(
+          'branding',
+          [0, 10, 100, 96],
+          [item('nav', [0, 10, 100, 48]), item('logo', [0, 58, 100, 48])],
+        ),
+      ],
+    );
+    header.dataset.canvasOverflows = 'true';
+    const page = el(
+      { 'data-canvas-drop-container': 'page' },
+      [0, 0, 400, 300],
+      [
+        header,
+        item(
+          'section',
+          [0, 80, 400, 200],
+          [
+            slot(
+              'content',
+              [20, 100, 360, 160],
+              [item('p', [20, 100, 360, 40])],
+            ),
+          ],
+        ),
+      ],
+    );
+    const over = (x: number, y: number) =>
+      findPreviewDropZoneId(page, { x, y }, 'new');
+    // On the logo, over the section.
+    expect(over(50, 95)).toBe('logo_bottom');
+    // Beside the logo, on the section.
+    expect(over(300, 110)).toBe('p_top');
+    // Only the components the overlay marks are laid out outside: in the
+    // padding of the section, before it.
+    delete header.dataset.canvasOverflows;
+    expect(over(50, 95)).toBe('header_bottom');
+  });
+
   it('follows the horizontal stack direction', () => {
     expect(find(50, 550)).toBe('f_left');
     expect(find(150, 550)).toBe('f_right');

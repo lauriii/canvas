@@ -424,16 +424,36 @@ function containerUnder(
 ): { container: HTMLElement; hit?: DOMRect; inner?: DOMRect; edge: boolean } {
   // The component that holds the dragged component.
   const home = active?.parentElement?.closest('[data-canvas-drop-item]');
+  // Whether a component in a component or slot, laid out outside the
+  // component that has it, is under the pointer. Such content is shown over
+  // what follows, as its outline is (see ComponentOverlay, which marks the
+  // components it is laid out outside of).
+  const overflowsTo = (el: HTMLElement): boolean =>
+    Array.from(
+      el.querySelectorAll<HTMLElement>('[data-canvas-drop-item]'),
+    ).some(
+      (one) =>
+        !isActive(one, activeId) &&
+        !active?.contains(one) &&
+        contains(rect(one), point),
+    );
   let container = root;
   let r: DOMRect | undefined;
   // The component under the pointer without its edges.
   let inner: DOMRect | undefined;
   for (;;) {
-    const hit = childItems(container).find(
-      (el) => !isActive(el, activeId) && contains(rect(el), point),
-    );
+    const items = childItems(container).filter((el) => !isActive(el, activeId));
+    const hit =
+      items.find(
+        (el) =>
+          el.dataset.canvasOverflows !== undefined &&
+          !contains(rect(el), point) &&
+          overflowsTo(el),
+      ) ?? items.find((el) => contains(rect(el), point));
     if (!hit) return { container, hit: r, inner, edge: false };
     r = rect(hit);
+    // Only content laid out outside the component is under the pointer.
+    const outside = !contains(r, point);
     const horizontal = isHorizontal(container);
     const [start, size, pos] = horizontal
       ? [r.left, r.width, point.x]
@@ -442,7 +462,7 @@ function containerUnder(
     inner = horizontal
       ? new DOMRect(r.left + edge, r.top, r.width - 2 * edge, r.height)
       : new DOMRect(r.left, r.top + edge, r.width, r.height - 2 * edge);
-    if (pos - start < edge || start + size - pos < edge) {
+    if (!outside && (pos - start < edge || start + size - pos < edge)) {
       return { container, hit: r, inner, edge: true };
     }
     // Slots collapsed to no width or no height are not drop targets.
@@ -452,24 +472,27 @@ function containerUnder(
     if (!slots.length) return { container, hit: r, inner, edge: false };
     const rects = slots.map(rect);
     const distanceTo = slotDistance(rects, point);
-    const under =
+    const slot =
       slots.find((el) => contains(rect(el), point)) ??
+      (outside ? slots.find(overflowsTo) : undefined) ??
       nearest(slots, (el) => distanceTo(rect(el)));
     // Outside the bounding box of its slots, the pointer targets the gap next
     // to the component, unless an empty slot is near or the component holds
     // the dragged component. Between its slots, that gap is across the
     // component from the pointer.
     if (
-      !within(rects, point) &&
-      hit !== home &&
-      !(
-        !childItems(under).length &&
-        distance(rect(under), point) <= EMPTY_SLOT_REACH
-      )
+      outside
+        ? !contains(rect(slot), point) && !overflowsTo(slot)
+        : !within(rects, point) &&
+          hit !== home &&
+          !(
+            !childItems(slot).length &&
+            distance(rect(slot), point) <= EMPTY_SLOT_REACH
+          )
     ) {
       return { container, hit: r, inner, edge: false };
     }
-    container = under;
+    container = slot;
   }
 }
 
