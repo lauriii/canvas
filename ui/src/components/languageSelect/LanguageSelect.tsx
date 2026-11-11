@@ -23,6 +23,7 @@ import {
 } from '@/features/layout/layoutModelSlice';
 import {
   rememberWorkingLanguage,
+  useTranslateAction,
   useWorkingLanguage,
 } from '@/hooks/useWorkingLanguage';
 import {
@@ -64,6 +65,7 @@ const LanguageSelect = () => {
     pathname.startsWith('/preview/template/');
   const { workingLanguage, pageLanguage, translations, isNew, statusOf } =
     useWorkingLanguage();
+  const translate = useTranslateAction();
   const [setLangcode, { isLoading: isChanging }] = useSetLangcodeMutation();
   const [deletePageTranslation, { isLoading: isDeleting }] =
     useDeletePageTranslationMutation();
@@ -130,20 +132,9 @@ const LanguageSelect = () => {
   const isPage = entityType === 'canvas_page' && !isTemplateRoute;
   const isTranslated =
     isLanguageView && statusOf(workingLanguage.id) === 'Translated';
-  const links =
-    (isLanguageView && translations?.links?.[workingLanguage.id]) || {};
-  // A page that was never published is not translated yet: all its content
-  // is in its auto-save entry.
-  const translateUrl: string | undefined = isNew
-    ? undefined
-    : (links['edit-form'] ?? links['create']);
-  // A page extension opens in Canvas, any other translation form in a new tab.
-  const inCanvasTranslatePath = translateUrl?.startsWith(`${canvasBase}/`)
-    ? translateUrl.slice(canvasBase.length)
-    : undefined;
   const deleteUrl: string | undefined =
     isTranslated && !isNew && (isPage || isTemplateRoute)
-      ? links['delete-form']
+      ? translations?.links?.[workingLanguage.id]?.['delete-form']
       : undefined;
   // The language of a page can change while nothing depends on it.
   // @see canvas.api.content.langcode.patch in canvas.routing.yml
@@ -277,30 +268,18 @@ const LanguageSelect = () => {
               );
             })}
           </DropdownMenu.RadioGroup>
-          {(translateUrl || canChange || deleteUrl) && (
+          {(translate || canChange || deleteUrl) && (
             <>
               <DropdownMenu.Separator />
-              {translateUrl && (
+              {translate && (
                 <DropdownMenu.Item
                   data-testid="canvas-language-translate"
-                  onSelect={() => {
-                    if (inCanvasTranslatePath) {
-                      // The extension shows the working language too.
-                      rememberWorkingLanguage(workingLanguage!.id);
-                      navigate(inCanvasTranslatePath);
-                    } else {
-                      window.open(
-                        translateUrl,
-                        '_blank',
-                        'noopener,noreferrer',
-                      );
-                    }
-                  }}
+                  onSelect={translate.run}
                 >
-                  {!inCanvasTranslatePath && (
+                  {translate.opensNewTab && (
                     <ExternalLinkIcon width="14" height="14" />
                   )}
-                  {isTranslated ? 'Edit' : 'Add'} {label} translation
+                  {translate.label}
                 </DropdownMenu.Item>
               )}
               {canChange && (

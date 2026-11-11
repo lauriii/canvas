@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router';
-import { Badge } from '@radix-ui/themes';
+import { PlusIcon } from '@radix-ui/react-icons';
+import { Badge, Button, Tooltip } from '@radix-ui/themes';
 import { skipToken } from '@reduxjs/toolkit/query';
 
 import { useAppDispatch } from '@/app/hooks';
 import { HOMEPAGE_CONFIG_ID } from '@/components/pageInfo/PageInfo';
 import { setHomepageStagedConfigExists } from '@/features/configuration/configurationSlice';
 import { useTemplateRef } from '@/hooks/useTemplateRef';
-import { useWorkingLanguage } from '@/hooks/useWorkingLanguage';
+import {
+  useTranslateAction,
+  useWorkingLanguage,
+} from '@/hooks/useWorkingLanguage';
 import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
 import { useGetAllPendingChangesQuery } from '@/services/pendingChangesApi';
 import { findInChanges } from '@/utils/function-utils';
@@ -81,6 +85,7 @@ const PageStatus = () => {
   );
   const dispatch = useAppDispatch();
   const { workingLanguage, statusOf } = useWorkingLanguage();
+  const translate = useTranslateAction();
 
   useEffect(() => {
     if (changes) {
@@ -102,7 +107,22 @@ const PageStatus = () => {
 
   // The page has no status of its own in a language it is not translated into.
   if (statusOf(workingLanguage?.id) === 'Not translated') {
-    return (
+    // It adds the translation, when a translation module provides the way.
+    return translate ? (
+      <Tooltip content={translate.label}>
+        <Button
+          size="1"
+          variant="soft"
+          color="gray"
+          data-testid="canvas-language-status"
+          aria-label={`Not translated. ${translate.label}`}
+          onClick={translate.run}
+        >
+          Not translated
+          <PlusIcon />
+        </Button>
+      </Tooltip>
+    ) : (
       <Badge
         size="1"
         variant="soft"
