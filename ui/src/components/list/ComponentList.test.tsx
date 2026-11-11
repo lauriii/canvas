@@ -65,7 +65,6 @@ const components: ComponentsList = {
     source: 'Code component',
     type: 'external',
     hasFallbackImplementation: false,
-    transforms: [],
   },
   convertedExternal: {
     ...baseComponent,
@@ -75,7 +74,6 @@ const components: ComponentsList = {
     source: 'Code component',
     type: 'external',
     hasFallbackImplementation: true,
-    transforms: [],
   },
   react: {
     ...baseComponent,
@@ -84,7 +82,6 @@ const components: ComponentsList = {
     library: 'primary_components',
     source: 'Code component',
     type: 'react',
-    transforms: [],
   },
   sdc: {
     ...baseComponent,
@@ -94,7 +91,6 @@ const components: ComponentsList = {
     source: 'SDC',
     propSources: {},
     metadata: {},
-    transforms: {},
   },
   block: {
     ...baseComponent,
@@ -111,7 +107,6 @@ const components: ComponentsList = {
     source: 'Extension',
     propSources: {},
     metadata: {},
-    transforms: {},
   },
 };
 

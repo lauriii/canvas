@@ -126,8 +126,7 @@ const getAccept = (
   variant: 'image' | 'file',
 ): string | undefined => {
   const instance = context.sourceTypeSettings.instance as
-    | { file_extensions?: string }
-    | undefined;
+    { file_extensions?: string } | undefined;
   const extensions = instance?.file_extensions?.trim();
   if (extensions) {
     return extensions

@@ -6,6 +6,7 @@ namespace Drupal\canvas\Controller;
 
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\editor\Plugin\EditorManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -52,7 +53,7 @@ final class ApiTextEditorSettingsController implements ContainerInjectionInterfa
   public static function create(ContainerInterface $container): self {
     $editor_manager = $container->get('plugin.manager.editor');
     \assert($editor_manager instanceof EditorManager);
-    $current_user = $container->get('current_user');
+    $current_user = $container->get(AccountProxyInterface::class);
     \assert($current_user instanceof AccountInterface);
     return new self($editor_manager, $current_user);
   }

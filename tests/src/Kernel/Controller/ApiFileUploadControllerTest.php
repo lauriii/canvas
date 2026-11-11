@@ -9,6 +9,7 @@ use Drupal\canvas\ComponentSource\ComponentSourceManager;
 use Drupal\canvas\Controller\ApiFileUploadController;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\file\Entity\File;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
 use Drupal\Tests\canvas\Kernel\Traits\MockFileUploadTrait;
@@ -87,7 +88,7 @@ final class ApiFileUploadControllerTest extends CanvasKernelTestBase {
     // Copy a test image into the temporary directory so FileUploadHandler can
     // move it to the public:// destination.
     $source = \dirname(__DIR__, 3) . '/fixtures/images/gracie-big.jpg';
-    $temp_dir = $this->container->get('file_system')->getTempDirectory();
+    $temp_dir = $this->container->get(FileSystemInterface::class)->getTempDirectory();
     $this->testImagePath = $temp_dir . '/canvas-test-upload-' . \uniqid() . '.jpg';
     \copy($source, $this->testImagePath);
   }

@@ -88,8 +88,7 @@ const allowedFormats = (context: ClientWidgetContext): TextFormatSummary[] => {
   const permitted = getTextFormats();
   const allowed = (
     context.sourceTypeSettings.instance as
-      | { allowed_formats?: string[] }
-      | undefined
+      { allowed_formats?: string[] } | undefined
   )?.allowed_formats;
   if (!Array.isArray(allowed) || allowed.length === 0) {
     return permitted;

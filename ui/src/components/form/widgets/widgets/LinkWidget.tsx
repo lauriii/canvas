@@ -37,8 +37,7 @@ interface LinkWidgetValue {
  */
 const getTitleMode = (context: ClientWidgetContext): 0 | 1 | 2 => {
   const instance = context.sourceTypeSettings.instance as
-    | { title?: 0 | 1 | 2 }
-    | undefined;
+    { title?: 0 | 1 | 2 } | undefined;
   return instance?.title ?? 0;
 };
 

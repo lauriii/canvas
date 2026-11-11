@@ -291,14 +291,12 @@ export const mediaLibraryWidget: ClientWidgetDefinition = {
     fromModel(sourceValue) {
       // Only ids are known synchronously; the widget hydrates labels and
       // thumbnails from the browse endpoint after mount.
-      return extractTargetIds(sourceValue).map(
-        (id): MediaSelectionItem => ({
-          id,
-          label: '',
-          thumbnailUrl: null,
-          inputsResolved: null,
-        }),
-      );
+      return extractTargetIds(sourceValue).map((id): MediaSelectionItem => ({
+        id,
+        label: '',
+        thumbnailUrl: null,
+        inputsResolved: null,
+      }));
     },
   },
   handlesMultipleValues: true,

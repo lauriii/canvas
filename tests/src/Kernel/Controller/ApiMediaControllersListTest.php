@@ -6,6 +6,7 @@ namespace Drupal\Tests\canvas\Kernel\Controller;
 
 use Drupal\canvas\Controller\ApiMediaControllers;
 use Drupal\Core\File\FileExists;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\file\Entity\File;
 use Drupal\media\Entity\Media;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
@@ -89,7 +90,7 @@ final class ApiMediaControllersListTest extends CanvasKernelTestBase {
 
     // A single image file backing all media entities.
     $source = \dirname(__DIR__, 3) . '/fixtures/images/gracie-big.jpg';
-    $this->container->get('file_system')->copy($source, 'public://gracie-big.jpg', FileExists::Replace);
+    $this->container->get(FileSystemInterface::class)->copy($source, 'public://gracie-big.jpg', FileExists::Replace);
     $file = File::create(['uri' => 'public://gracie-big.jpg']);
     $file->setPermanent();
     $file->save();

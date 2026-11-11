@@ -53,7 +53,7 @@ final class PropStatesTest extends CanvasKernelTestBase {
     // `x-canvas-states` key.
     $component = Component::load(self::COMPONENT_ID);
     self::assertInstanceOf(Component::class, $component);
-    self::assertSame([], self::violationsToArray($component->getTypedData()->validate()));
+    self::assertEntityIsValid($component);
     self::assertSame('string_textfield', $component->getSettings()['prop_field_definitions']['text']['field_widget']);
 
     // The delivered client-side JSON schema still carries the key: the schema
@@ -61,6 +61,7 @@ final class PropStatesTest extends CanvasKernelTestBase {
     // `id`, and `$id`.
     // @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase::simplifySchemaForAjvClient()
     $client_side_info = $component->getComponentSource()->getClientSideInfo($component);
+    self::assertArrayHasKey('propSources', $client_side_info);
     $text_schema = $client_side_info['propSources']['text']['jsonSchema'];
     self::assertSame([
       [

@@ -13,7 +13,6 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import EmptyStateCallout from '@/components/EmptyStateCallout';
 import { getPropsValues } from '@/components/form/react-hook-form/fields/componentFormData';
 import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map';
-import FormSkeleton from '@/components/FormSkeleton';
 import NativePropSlot from '@/components/form/widgets/NativePropSlot';
 import {
   compilePropStates,
@@ -26,6 +25,7 @@ import {
   resolveNativeWidgetForProp,
 } from '@/components/form/widgets/registry';
 import { clearPendingWrites } from '@/components/form/widgets/useNativePropWrite';
+import FormSkeleton from '@/components/FormSkeleton';
 import { FORM_TYPES } from '@/features/form/constants';
 import {
   clearFieldValues,
@@ -483,9 +483,9 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
   const selectedNode = selectedComponent
     ? findComponentByUuid(layout, selectedComponent)
     : null;
-  const [selectedTypeId, selectedTypeVersion] = (
-    selectedNode ? (selectedNode.type as string) : ''
-  ).split('@');
+  // String() gives the React Compiler a primitive it knows is immutable.
+  const selectedNodeType = String(selectedNode?.type ?? '');
+  const [selectedTypeId] = selectedNodeType.split('@');
   const selectedTypeComponent = selectedTypeId
     ? components?.[selectedTypeId]
     : undefined;
@@ -507,12 +507,13 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
       return null;
     }
     const propSources = selectedTypeComponent.propSources;
+    const [typeId, typeVersion = ''] = selectedNodeType.split('@');
     const slots = Object.entries(propSources).map(
       ([propName, fieldData]): CompositionSlot => {
         const context = buildClientWidgetContext(
           propName,
-          selectedTypeId,
-          selectedTypeVersion ?? '',
+          typeId,
+          typeVersion,
           fieldData,
         );
         return {
@@ -529,8 +530,7 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
     propFormsSettings,
     editorFrameContext,
     selectedTypeComponent,
-    selectedTypeId,
-    selectedTypeVersion,
+    selectedNodeType,
   ]);
 
   // Declarative prop states: compile once per component version, evaluate

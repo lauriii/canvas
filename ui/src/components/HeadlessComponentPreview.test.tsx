@@ -33,7 +33,6 @@ const component: JSComponent = {
   js_footer: '',
   version: '1',
   broken: false,
-  transforms: [],
 };
 
 describe('HeadlessComponentPreview', () => {

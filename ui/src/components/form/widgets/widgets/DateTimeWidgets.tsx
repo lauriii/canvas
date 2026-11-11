@@ -36,8 +36,7 @@ interface DateRangeWidgetValue {
  */
 const getDatetimeType = (context: ClientWidgetContext): 'date' | 'datetime' => {
   const storage = context.sourceTypeSettings.storage as
-    | { datetime_type?: 'date' | 'datetime' }
-    | undefined;
+    { datetime_type?: 'date' | 'datetime' } | undefined;
   return storage?.datetime_type === 'date' ? 'date' : 'datetime';
 };
 
