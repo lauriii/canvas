@@ -106,7 +106,7 @@ const PageInfo = () => {
   });
 
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const { workingLanguage, isMultilingual } = useWorkingLanguage();
+  const { workingLanguage, isResolved, isMultilingual } = useWorkingLanguage();
   // @todo: https://www.drupal.org/i/3513566 this needs to be generalized to check all content entity types.
   const canCreatePages =
     !!canvasSettings.contentEntityCreateOperations?.canvas_page?.canvas_page;
@@ -122,6 +122,7 @@ const PageInfo = () => {
     'canvas_page',
     searchTerm,
     isMultilingual ? workingLanguage?.id : undefined,
+    isMultilingual && !isResolved,
   );
 
   const [

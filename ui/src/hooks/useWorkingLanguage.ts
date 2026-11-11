@@ -1,9 +1,11 @@
-import { useCallback } from 'react';
-import { useParams, useSearchParams } from 'react-router';
+import { useCallback, useEffect } from 'react';
+import { useLocation, useParams, useSearchParams } from 'react-router';
+import { skipToken } from '@reduxjs/toolkit/query';
 
 import { useAppSelector } from '@/app/hooks';
 import { selectTranslations } from '@/features/layout/layoutModelSlice';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
+import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
 import { getCanvasSettings, getLanguages } from '@/utils/drupal-globals';
 
 import type { ContentStub } from '@/types/Content';
@@ -27,6 +29,11 @@ export const rememberWorkingLanguage = (id: string) => {
   }
 };
 
+// The working language last known while a page or template was open. It
+// stands in while the language of the next page loads, so the page lists do
+// not switch to another language and back.
+let lastWorkingLanguage: string | null = null;
+
 const getRememberedWorkingLanguage = () => {
   try {
     return window.localStorage.getItem(STORAGE_KEY);
@@ -47,9 +54,10 @@ const getRememberedWorkingLanguage = () => {
  */
 export function useWorkingLanguage() {
   const [searchParams] = useSearchParams();
-  const { entityType } = useParams();
+  const { pathname } = useLocation();
+  const { entityType, entityId } = useParams();
   const { urlForEditor } = useEditorNavigation();
-  const translations = useAppSelector(selectTranslations);
+  const storeTranslations = useAppSelector(selectTranslations);
   const languages = getLanguages();
   const settings = getCanvasSettings();
   // The same condition as for showing the language selector in the top bar.
@@ -61,23 +69,54 @@ export function useWorkingLanguage() {
   const findLanguage = (id?: string | null): Language | undefined =>
     languages.find((language) => language.id === id);
 
-  // The language the open page was created in. The translations in the store
-  // are those of the last loaded layout, so they only say something on a
-  // route that has an entity.
-  const pageLanguage: string | undefined = entityType
-    ? translations?.available?.[0]
-    : undefined;
+  // The route of a template names the entity it previews, not the template:
+  // its translations are those the template editor or preview stored.
+  const isTemplateRoute =
+    pathname.startsWith('/template/') ||
+    pathname.startsWith('/preview/template/');
+  // The layout of the open page: the same query the editor and the preview
+  // make, so no request of its own. The translations in the store can still
+  // be those of the page opened before.
+  const { currentData: layout } = useGetPageLayoutQuery(
+    entityType && entityId && !isTemplateRoute
+      ? { entityId, entityType }
+      : skipToken,
+  );
+  const translations: Record<string, any> | undefined = isTemplateRoute
+    ? entityType
+      ? storeTranslations
+      : undefined
+    : layout?.translations;
+  // The language the open page or template was created in.
+  const pageLanguage: string | undefined = translations?.available?.[0];
+  // A page is open, but its language has not loaded yet.
+  const isPageLanguageLoading =
+    !!entityType && !!entityId && !isTemplateRoute && !layout;
+
   // Always one of the site's languages: a page can be in a language that is
   // not, such as "Not specified".
   const workingLanguage =
     findLanguage(searchParams.get('language')) ??
     findLanguage(pageLanguage) ??
+    (isPageLanguageLoading ? findLanguage(lastWorkingLanguage) : undefined) ??
     (isMultilingual && !entityType
       ? findLanguage(getRememberedWorkingLanguage())
       : undefined) ??
     languages.find((language) => language.isDefault) ??
     languages[0];
   const id = workingLanguage?.id;
+  // The working language is a guess until the language of the open page has
+  // loaded, unless an earlier page made it known.
+  const isResolved =
+    !isPageLanguageLoading ||
+    searchParams.has('language') ||
+    !!findLanguage(lastWorkingLanguage);
+
+  useEffect(() => {
+    if (id && !isPageLanguageLoading) {
+      lastWorkingLanguage = id;
+    }
+  }, [id, isPageLanguageLoading]);
 
   // Whether the page was created in another language of the site.
   const isInOtherLanguage = useCallback(
@@ -117,7 +156,10 @@ export function useWorkingLanguage() {
 
   return {
     workingLanguage,
+    isResolved,
     pageLanguage,
+    // The translations of the open page or template.
+    translations,
     isMultilingual,
     isMissing,
     titleOf,

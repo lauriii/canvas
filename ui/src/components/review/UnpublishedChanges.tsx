@@ -31,6 +31,7 @@ import {
   clearSelection,
   selectSelectedComponentUuid,
 } from '@/features/ui/uiSlice';
+import { useWorkingLanguage } from '@/hooks/useWorkingLanguage';
 import { brandKitApi } from '@/services/brandKit';
 import { componentAndLayoutApi } from '@/services/componentAndLayout';
 import { contentApi, useGetContentListQuery } from '@/services/content';
@@ -85,10 +86,17 @@ const UnpublishedChanges = () => {
       currentEntityType: entityType,
       entityFormFields: entity_form_fields,
     });
-  // Fetch content list to get status information for all pages
-  const { data: contentListData } = useGetContentListQuery({
-    entityType: 'canvas_page',
-  });
+  // Fetch content list to get status information for all pages. In the
+  // working language, the request is the one the page lists make.
+  const { workingLanguage, isResolved, isMultilingual } = useWorkingLanguage();
+  const { data: contentListData } = useGetContentListQuery(
+    {
+      entityType: 'canvas_page',
+      search: '',
+      langcode: isMultilingual ? workingLanguage?.id : undefined,
+    },
+    { skip: isMultilingual && !isResolved },
+  );
   const pageItems = contentListData?.items;
   const conflictUxEnabled = isConflictUxEnabled();
 

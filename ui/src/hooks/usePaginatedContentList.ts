@@ -8,16 +8,21 @@ export const usePaginatedContentList = (
   searchTerm: string,
   // A language: the content that exists in it is listed first.
   langcode?: string,
+  // Waits, for example until the language is known.
+  skip = false,
 ) => {
   const [offset, setOffset] = useState(0);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
-  const { data, isLoading, error, isSuccess } = useGetContentListQuery({
-    entityType,
-    search: debouncedSearchTerm,
-    offset,
-    langcode,
-  });
+  const { data, isLoading, error, isSuccess } = useGetContentListQuery(
+    {
+      entityType,
+      search: debouncedSearchTerm,
+      offset,
+      langcode,
+    },
+    { skip },
+  );
   const items = data?.items;
   const totalCount = data?.totalCount;
 
@@ -38,7 +43,8 @@ export const usePaginatedContentList = (
   return {
     items,
     totalCount,
-    isLoading,
+    // Waiting counts as loading.
+    isLoading: isLoading || skip,
     error,
     isSuccess,
     hasMore,

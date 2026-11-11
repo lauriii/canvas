@@ -37,8 +37,14 @@ const Pages = () => {
   const { entityType, entityId } = useParams();
   const [searchTerm, setSearchTerm] = useState<string>('');
   const navigate = useNavigate();
-  const { workingLanguage, isMultilingual, isMissing, titleOf, urlForPage } =
-    useWorkingLanguage();
+  const {
+    workingLanguage,
+    isResolved,
+    isMultilingual,
+    isMissing,
+    titleOf,
+    urlForPage,
+  } = useWorkingLanguage();
 
   const canCreatePages =
     !!canvasSettings.contentEntityCreateOperations?.canvas_page?.canvas_page;
@@ -53,6 +59,7 @@ const Pages = () => {
     'canvas_page',
     searchTerm,
     isMultilingual ? workingLanguage?.id : undefined,
+    isMultilingual && !isResolved,
   );
 
   const [

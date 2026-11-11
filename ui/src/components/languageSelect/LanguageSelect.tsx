@@ -7,8 +7,6 @@ import {
 } from '@radix-ui/react-icons';
 import { Button, DropdownMenu, Flex, Text } from '@radix-ui/themes';
 
-import { useAppSelector } from '@/app/hooks';
-import { selectTranslations } from '@/features/layout/layoutModelSlice';
 import { useTemplateRef } from '@/hooks/useTemplateRef';
 import {
   rememberWorkingLanguage,
@@ -38,8 +36,7 @@ const LanguageSelect = () => {
     useParams();
   const { isTemplateContext, isTemplatePreviewRoute } = useTemplateRef();
   const isTemplateRoute = isTemplateContext || isTemplatePreviewRoute;
-  const translations = useAppSelector(selectTranslations);
-  const { workingLanguage, pageLanguage } = useWorkingLanguage();
+  const { workingLanguage, pageLanguage, translations } = useWorkingLanguage();
 
   const handleLanguageChange = (languageId: string) => {
     const selectedLang = languages.find((lang) => lang.id === languageId);

@@ -224,6 +224,8 @@ const NavigationItem = ({
   onUnpublish,
   onPublish,
   onDelete,
+  titleOf,
+  urlForPage,
 }: {
   item: ContentStub;
   homepagePath?: string;
@@ -233,9 +235,10 @@ const NavigationItem = ({
   onUnpublish?: (page: ContentStub) => void;
   onPublish?: (page: ContentStub) => void;
   onDelete?: (page: ContentStub) => void;
+  titleOf: (page: ContentStub) => string;
+  urlForPage: (page: ContentStub) => string;
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { titleOf, urlForPage } = useWorkingLanguage();
 
   // Determine unpublished status:
   // - Show "Clock icon + Unpublish" if there's an unsaved status change to unpublished
@@ -339,7 +342,8 @@ const ContentGroup = ({
   onDelete?: (page: ContentStub) => void;
 }) => {
   const homepagePath = useAppSelector(selectHomepagePath);
-  const { workingLanguage, isMissing } = useWorkingLanguage();
+  const { workingLanguage, isMissing, titleOf, urlForPage } =
+    useWorkingLanguage();
   if (items.length === 0) {
     return (
       <EmptyStateCallout
@@ -380,6 +384,8 @@ const ContentGroup = ({
               onUnpublish={onUnpublish}
               onPublish={onPublish}
               onDelete={onDelete}
+              titleOf={titleOf}
+              urlForPage={urlForPage}
             />
           </Fragment>
         ))}

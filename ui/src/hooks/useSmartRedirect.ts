@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router';
 
 import { useAppSelector } from '@/app/hooks';
 import { selectHomepagePath } from '@/features/configuration/configurationSlice';
-import useEditorNavigation from '@/hooks/useEditorNavigation';
+import { useWorkingLanguage } from '@/hooks/useWorkingLanguage';
 import { useGetContentListQuery } from '@/services/content';
 
 /**
@@ -11,13 +11,20 @@ import { useGetContentListQuery } from '@/services/content';
  */
 export const useSmartRedirect = () => {
   const navigate = useNavigate();
-  const { navigateToEditor } = useEditorNavigation();
   const homepagePath = useAppSelector(selectHomepagePath);
 
-  const { data } = useGetContentListQuery({
-    entityType: 'canvas_page',
-    search: '',
-  });
+  // In the working language, the request is the one the page lists make, and
+  // the first page is one in the working language.
+  const { workingLanguage, isResolved, isMultilingual, urlForPage } =
+    useWorkingLanguage();
+  const { data } = useGetContentListQuery(
+    {
+      entityType: 'canvas_page',
+      search: '',
+      langcode: isMultilingual ? workingLanguage?.id : undefined,
+    },
+    { skip: isMultilingual && !isResolved },
+  );
   const pageItems = data?.items ?? [];
 
   const redirectToNextBestPage = (excludePageId?: string) => {
@@ -34,12 +41,13 @@ export const useSmartRedirect = () => {
     const isHomepageAvailable =
       homepage && (!excludePageId || String(homepage.id) !== excludePageId);
 
+    // Opens a page in the working language, like the page lists.
     if (isHomepageAvailable) {
       // Redirect to the canvas_page that is set as the homepage
-      navigateToEditor('canvas_page', String(homepage.id));
+      navigate(urlForPage(homepage));
     } else if (availablePages.length > 0) {
       // Redirect to the first available canvas_page
-      navigateToEditor('canvas_page', String(availablePages[0].id));
+      navigate(urlForPage(availablePages[0]));
     } else {
       // Redirect to /editor if there are no canvas_pages (last resort)
       navigate('/editor');
