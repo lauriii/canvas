@@ -1,10 +1,5 @@
 import { useState } from 'react';
-import {
-  useLocation,
-  useNavigate,
-  useParams,
-  useSearchParams,
-} from 'react-router';
+import { useHref, useLocation, useNavigate, useParams } from 'react-router';
 import {
   ChevronDownIcon,
   ExternalLinkIcon,
@@ -36,7 +31,7 @@ const LanguageSelect = () => {
   const permissions = getCanvasPermissions();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const navigate = useNavigate();
-  const [, setSearchParams] = useSearchParams();
+  const canvasBase = useHref('/').replace(/\/$/, '');
   const { entityType, entityId, previewEntityId, bundle, viewMode, width } =
     useParams();
   const { pathname } = useLocation();
@@ -55,7 +50,11 @@ const LanguageSelect = () => {
     // Without an open page or template there is nothing to show in another
     // language: only the working language changes.
     if (!entityType || (!entityId && !previewEntityId)) {
-      setSearchParams({ language: languageId });
+      // Not the router's path: a page extension changes the address without
+      // it.
+      navigate(
+        `${window.location.pathname.slice(canvasBase.length)}?language=${languageId}`,
+      );
       return;
     }
     // Before the layout has loaded, the language of the page or template is

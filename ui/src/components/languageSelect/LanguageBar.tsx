@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { Navigate, useLocation, useNavigate, useParams } from 'react-router';
+import {
+  Navigate,
+  useHref,
+  useLocation,
+  useNavigate,
+  useParams,
+} from 'react-router';
 import {
   DotsHorizontalIcon,
   ExternalLinkIcon,
@@ -63,6 +69,8 @@ const LanguageBar = () => {
   const { pathname } = useLocation();
   const isTemplateRoute = pathname.startsWith('/template/');
   const { urlForEditor, urlForTemplateEditor } = useEditorNavigation();
+  // Where Canvas is: a translation module can be a page extension in it.
+  const canvasBase = useHref('/').replace(/\/$/, '');
   // The translations of the page or template in the route, already loaded
   // with it: the bar does not wait for the page in the working language.
   const {
@@ -178,6 +186,11 @@ const LanguageBar = () => {
     reloadInEditor();
   };
 
+  // A page extension opens in Canvas, any other translation form in a new tab.
+  const inCanvasTranslatePath = translateUrl?.startsWith(`${canvasBase}/`)
+    ? translateUrl.slice(canvasBase.length)
+    : undefined;
+
   const translateLabel = isTranslated
     ? 'Edit translation'
     : `Translate into ${view}`;
@@ -245,13 +258,23 @@ const LanguageBar = () => {
               size="1"
               variant="soft"
               data-testid="canvas-language-bar-translate"
-              onClick={() =>
-                window.open(translateUrl, '_blank', 'noopener,noreferrer')
-              }
+              onClick={() => {
+                if (inCanvasTranslatePath) {
+                  // The extension shows the working language too.
+                  rememberWorkingLanguage(workingLanguage.id);
+                  navigate(inCanvasTranslatePath);
+                } else {
+                  window.open(translateUrl, '_blank', 'noopener,noreferrer');
+                }
+              }}
             >
               {translateLabel}
-              <ExternalLinkIcon width="12" height="12" aria-hidden />
-              <span className="visually-hidden">(opens in a new tab)</span>
+              {!inCanvasTranslatePath && (
+                <>
+                  <ExternalLinkIcon width="12" height="12" aria-hidden />
+                  <span className="visually-hidden">(opens in a new tab)</span>
+                </>
+              )}
             </Button>
           )}
           {hasMoreActions && (
