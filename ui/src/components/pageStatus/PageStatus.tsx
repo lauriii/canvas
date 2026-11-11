@@ -7,6 +7,7 @@ import { useAppDispatch } from '@/app/hooks';
 import { HOMEPAGE_CONFIG_ID } from '@/components/pageInfo/PageInfo';
 import { setHomepageStagedConfigExists } from '@/features/configuration/configurationSlice';
 import { useTemplateRef } from '@/hooks/useTemplateRef';
+import { useWorkingLanguage } from '@/hooks/useWorkingLanguage';
 import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
 import { useGetAllPendingChangesQuery } from '@/services/pendingChangesApi';
 import { findInChanges } from '@/utils/function-utils';
@@ -79,6 +80,7 @@ const PageStatus = () => {
       : skipToken,
   );
   const dispatch = useAppDispatch();
+  const { workingLanguage, statusOf } = useWorkingLanguage();
 
   useEffect(() => {
     if (changes) {
@@ -97,6 +99,20 @@ const PageStatus = () => {
       dispatch(setHomepageStagedConfigExists(containsHomepageConfig));
     }
   }, [changes, dispatch, isGetPendingChangesSuccess]);
+
+  // The page has no status of its own in a language it is not translated into.
+  if (statusOf(workingLanguage?.id) === 'Not translated') {
+    return (
+      <Badge
+        size="1"
+        variant="soft"
+        color="gray"
+        data-testid="canvas-language-status"
+      >
+        Not translated
+      </Badge>
+    );
+  }
 
   if (fetchedLayout && !isError) {
     const { isNew, isPublished, hasUnsavedStatusChange } = fetchedLayout;

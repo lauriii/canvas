@@ -52,17 +52,18 @@ language Canvas shows pages in, and creates new pages in.
 - Canvas remembers the language selected last in the browser, and starts in it
   when no page is open.
 
-When a page is shown in another language than its own, a bar above it states
-whether the page is translated into that language, and the language of the
-original. From the bar you can:
+When a page is shown in another language than its own, the top bar marks a
+page without a translation as "Not translated". The language selector then
+also lists what you can do with the page in that language:
 
-- switch to that language to edit the page;
-- translate the page or edit its translation, when a translation module
+- add a translation or edit the translation, when a translation module
   provides it;
-- from its "More" menu, delete the translation;
-- from its "More" menu, change the language of the page to the working
-  language. This is only possible for a page that was never published and has
-  no translations. The text of the page stays the same.
+- delete the translation;
+- change the language of the page to the working language. This is only
+  possible for a page that was never published and has no translations. The
+  text of the page stays the same.
+
+To edit the page itself, select the language marked "Original".
 
 ## Translating with TMGMT
 
@@ -104,7 +105,7 @@ capabilities are very basic.
 11. Return to the Canvas editor for the page.
 12. Use the language selector at the top of the editor to verify that the
     translation exists. The translated language is marked "Translated".
-13. A translation can also be deleted from the bar above the page, after
+13. A translation can also be deleted from the language selector, after
     selecting its language.
 
 ### Translating a content template
@@ -128,7 +129,7 @@ capabilities are very basic.
 13. Return to the Canvas editor for the content template.
 14. Use the language selector at the top of the editor to verify that the
     translation exists. The translated language is marked "Translated".
-15. A translation can also be deleted from the bar above the template, after
+15. A translation can also be deleted from the language selector, after
     selecting its language.
 
 ## Translating with Canvas Translate (experimental)
@@ -141,6 +142,6 @@ not require TMGMT.
 3. Clear caches.
 4. Canvas Translate now appears in the left sidebar in Canvas.
 
-When a page is shown in another language, the bar above it links to Canvas
-Translate: "Translate into" a language, or "Edit translation". It opens in
-Canvas, and its back button returns to the page.
+When a page is shown in another language, the language selector links to
+Canvas Translate: "Add" or "Edit" the translation. It opens in Canvas, and its
+back button returns to the page.

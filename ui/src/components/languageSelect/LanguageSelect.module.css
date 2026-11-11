@@ -10,12 +10,3 @@
 .dropdown.dropdown {
   min-width: 220px;
 }
-
-.bar {
-  flex-shrink: 0;
-  width: 100%;
-  min-height: 44px;
-  padding: var(--space-2) var(--space-4);
-  border-bottom: 1px solid var(--gray-5);
-  background: var(--gray-2);
-}

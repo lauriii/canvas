@@ -30,9 +30,6 @@ vi.mock('@/services/preview', () => ({
   useQueuedPostPreviewMutation: () => [vi.fn()],
 }));
 vi.mock('@/utils/viewports', () => ({ getViewportSizes: () => [] }));
-vi.mock('@/components/languageSelect/LanguageBar', () => ({
-  default: () => <div data-testid="language-bar" />,
-}));
 vi.mock('@/features/layout/preview/ViewportSelector', () => ({
   default: () => <div data-testid="viewport-selector" />,
 }));
@@ -45,7 +42,7 @@ vi.stubGlobal(
 );
 
 describe('Headless page in another language, in the editor', () => {
-  it('embeds the frontend in that language under the language bar', () => {
+  it('embeds the frontend in that language, at a viewport', () => {
     const view = render(
       <MemoryRouter initialEntries={['/editor/canvas_page/7?language=fr']}>
         <Routes>
@@ -56,7 +53,6 @@ describe('Headless page in another language, in the editor', () => {
         </Routes>
       </MemoryRouter>,
     );
-    expect(screen.getByTestId('language-bar')).toBeInTheDocument();
     // At a viewport, and rendered before its size is known.
     expect(screen.getByTestId('canvas-language-viewport')).toContainElement(
       screen.getByTitle('Page preview'),
@@ -87,8 +83,6 @@ describe('Headless page in another language, in the editor', () => {
         </Routes>
       </MemoryRouter>,
     );
-    // Nothing loads the translations of a template in headless mode.
-    expect(screen.queryByTestId('language-bar')).toBeNull();
     expect(mocks.session).toHaveBeenLastCalledWith(
       expect.any(Object),
       expect.any(Object),
@@ -130,9 +124,8 @@ describe('read-only Headless preview', () => {
         </MemoryRouter>,
       );
       expect(screen.getByTitle('Page preview')).not.toHaveAttribute('srcdoc');
-      // The preview shows the page the way visitors see it: no language bar,
-      // and its own width selector.
-      expect(screen.queryByTestId('language-bar')).toBeNull();
+      // The preview shows the page the way visitors see it, with its own
+      // width selector.
       expect(screen.queryByTestId('canvas-language-viewport')).toBeNull();
       expect(mocks.session).toHaveBeenLastCalledWith(
         expect.any(Object),

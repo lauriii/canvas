@@ -69,9 +69,10 @@ const login = async ({ username, password, drupal }) => {
   expect(userId).toBeGreaterThan(1);
 };
 
-// The less common actions of the language bar are in its "More" menu.
-const openLanguageBarMenu = async (page) => {
-  await page.getByTestId('canvas-language-bar-more').click();
+// The less common actions on a page in another language are in the language
+// menu.
+const openLanguageMenu = async (page) => {
+  await page.getByTestId('language-select-trigger').click();
 };
 
 test.describe('Language Select', () => {
@@ -216,17 +217,15 @@ test.describe('Language Select', () => {
     let previewFrame = page.frameLocator('iframe[title="Page preview"]');
     await expect(previewFrame.locator('body')).not.toBeEmpty();
 
-    // The page is shown in French: the language bar says why. The editor
+    // The page is shown in French: the language menu says so. The editor
     // role has edit (update) access, so deleting the translation is offered.
-    const languageBar = page.getByTestId('canvas-language-bar');
-    await expect(languageBar).toContainText(
-      'French translation. The original is in English.',
+    await openLanguageMenu(page);
+    await expect(page.getByTestId('language-status-fr')).toHaveText(
+      'Translated',
     );
-    await expect(page.getByTestId('canvas-language-bar-edit')).toHaveText(
-      'Switch to English to edit',
+    await expect(page.getByTestId('canvas-language-delete')).toHaveText(
+      'Delete French translation…',
     );
-    await openLanguageBarMenu(page);
-    await expect(page.getByTestId('canvas-language-bar-delete')).toBeVisible();
     await page.keyboard.press('Escape');
 
     // The page in another language keeps the side menu and the top bar of the
@@ -241,14 +240,13 @@ test.describe('Language Select', () => {
     ).toBeDisabled();
 
     // The preview is a separate thing: it shows the page the way visitors see
-    // it, in the same language, without the bar.
+    // it, in the same language, without the side menu.
     await page.getByRole('button', { name: 'Preview', exact: true }).click();
     await page.waitForURL(/\/preview\/canvas_page\/\d+\/full\?language=fr/);
-    await expect(languageBar).toHaveCount(0);
     await expect(sideMenu).toHaveCount(0);
     await page.getByRole('button', { name: 'Exit Preview' }).click();
     await page.waitForURL(/\/editor\/canvas_page\/\d+\?language=fr/);
-    await expect(languageBar).toContainText('French translation.');
+    await expect(sideMenu).toBeVisible();
 
     // Verify French page content "Bonjour, Canvas!" is displayed.
     await expect(previewFrame.locator('text=Bonjour, Canvas!')).toBeVisible({
@@ -286,18 +284,14 @@ test.describe('Language Select', () => {
     await expect(languageButton).toBeVisible();
     await languageButton.click();
 
-    // French has a translation: its status and the language bar must still be
-    // present after reload.
+    // French has a translation: its status and the action to delete it must
+    // still be present after reload.
     await expect(
       page.locator(
         '[data-testid="language-option-fr"] [data-canvas-has-translation="true"]',
       ),
     ).toHaveAttribute('data-canvas-has-translation', 'true');
-    await page.keyboard.press('Escape');
-    await openLanguageBarMenu(page);
-    await expect(page.getByTestId('canvas-language-bar-delete')).toBeVisible();
-    await page.keyboard.press('Escape');
-    await languageButton.click();
+    await expect(page.getByTestId('canvas-language-delete')).toBeVisible();
 
     // Switch to Spanish language (which has no translation).
     const spanishOption = page.locator('[data-testid="language-option-es"]');
@@ -313,11 +307,14 @@ test.describe('Language Select', () => {
     previewFrame = page.frameLocator('iframe[title="Page preview"]');
     await expect(previewFrame.locator('body')).not.toBeEmpty();
 
-    // There is no Spanish translation: the bar says so, and has none to delete.
-    await expect(languageBar).toContainText(
-      'Not translated into Spanish. Showing the English original.',
+    // There is no Spanish translation: the top bar says so, and there is
+    // none to delete.
+    await expect(page.getByTestId('canvas-language-status')).toHaveText(
+      'Not translated',
     );
-    await expect(page.getByTestId('canvas-language-bar-more')).toHaveCount(0);
+    await openLanguageMenu(page);
+    await expect(page.getByTestId('canvas-language-delete')).toHaveCount(0);
+    await page.keyboard.press('Escape');
 
     // Verify English page content "Hello, Canvas!" is displayed (fallback).
     await expect(previewFrame.locator('text=Hello, Canvas!')).toBeVisible({
@@ -434,7 +431,7 @@ test.describe('Language Select', () => {
     ).toBeVisible();
   });
 
-  test('The language bar deletes an existing translation in-app and offers no delete for missing translations', async ({
+  test('The language menu deletes an existing translation in-app and offers no delete for missing translations', async ({
     page,
     canvas,
     drupal,
@@ -481,14 +478,14 @@ test.describe('Language Select', () => {
       page.locator('[data-testid="language-configure-button"]'),
     ).not.toBeAttached();
 
-    // French has a translation: opening it shows the language bar, which
-    // offers to delete the translation.
+    // French has a translation: opening it offers to delete the translation,
+    // in the language menu.
     await page.locator('[data-testid="language-option-fr"]').click();
     await page.waitForURL(/\/editor\/canvas_page\/\d+\?language=fr/, {
       timeout: 10000,
     });
-    const deleteButton = page.getByTestId('canvas-language-bar-delete');
-    await openLanguageBarMenu(page);
+    const deleteButton = page.getByTestId('canvas-language-delete');
+    await openLanguageMenu(page);
     await expect(deleteButton).toBeVisible();
 
     // Deleting the French translation happens in-app: no new browser tab
@@ -516,12 +513,12 @@ test.describe('Language Select', () => {
     await expect(deleteDialog).toBeHidden();
 
     // The French translation is still intact.
-    await expect(page.getByTestId('canvas-language-bar')).toContainText(
-      'French translation.',
+    await openLanguageMenu(page);
+    await expect(page.getByTestId('language-status-fr')).toHaveText(
+      'Translated',
     );
 
     // Proceed with actual deletion.
-    await openLanguageBarMenu(page);
     await deleteButton.click();
     await expect(deleteDialog).toBeVisible();
 
@@ -569,8 +566,11 @@ test.describe('Language Select', () => {
     await page.waitForURL(/\/editor\/canvas_page\/\d+\?language=es/, {
       timeout: 10000,
     });
-    await expect(page.getByTestId('canvas-language-bar')).toBeVisible();
-    await expect(page.getByTestId('canvas-language-bar-more')).toHaveCount(0);
+    await expect(page.getByTestId('canvas-language-status')).toHaveText(
+      'Not translated',
+    );
+    await openLanguageMenu(page);
+    await expect(page.getByTestId('canvas-language-delete')).toHaveCount(0);
   });
 
   test('Unpublishing a page and previewing a translation does not corrupt the default language title', async ({
@@ -672,7 +672,7 @@ test.describe('Language Select', () => {
       '[data-testid="language-select-trigger"]',
     );
     await expect(languageButton).toContainText('English');
-    const changeButton = page.getByTestId('canvas-language-bar-change');
+    const changeButton = page.getByTestId('canvas-language-change');
 
     // Opens the draft in another language, where it cannot be edited, and changes
     // the language of the draft to that language.
@@ -686,10 +686,8 @@ test.describe('Language Select', () => {
         { timeout: 10000 },
       );
       // A never-published draft has no translation to delete.
-      await openLanguageBarMenu(page);
-      await expect(page.getByTestId('canvas-language-bar-delete')).toHaveCount(
-        0,
-      );
+      await openLanguageMenu(page);
+      await expect(page.getByTestId('canvas-language-delete')).toHaveCount(0);
       await expect(changeButton).toHaveText(`Change page language to ${name}…`);
       await changeButton.click();
       await page.getByRole('button', { name: 'Change language' }).click();
@@ -717,7 +715,7 @@ test.describe('Language Select', () => {
       page.locator('[data-drupal-selector="edit-title-0-value"]'),
     ).toHaveValue('Brouillon');
 
-    // Changing back to the site default language is offered too: the bar
+    // Changing back to the site default language is offered too: the menu
     // gates on the draft's current language, not the site default.
     await changeLanguageTo('en', 'English');
 
@@ -733,13 +731,15 @@ test.describe('Language Select', () => {
       new RegExp(`/editor/canvas_page/${canvasPage.entity_id}\\?language=en$`),
       { timeout: 10000 },
     );
-    await expect(page.getByTestId('canvas-language-bar')).toContainText(
-      'Not translated into English. Showing the French original.',
+    await expect(page.getByTestId('canvas-language-status')).toHaveText(
+      'Not translated',
     );
-    await expect(page.getByTestId('canvas-language-bar-more')).toHaveCount(0);
+    await openLanguageMenu(page);
+    await expect(changeButton).toHaveCount(0);
 
-    // The bar leads back to the editor, in the language of the page.
-    await page.getByTestId('canvas-language-bar-edit').click();
+    // The language of the page leads back to the editor.
+    await expect(page.getByTestId('language-status-fr')).toHaveText('Original');
+    await page.locator('[data-testid="language-option-fr"]').click();
     await page.waitForURL(
       new RegExp(`/editor/canvas_page/${canvasPage.entity_id}$`),
       { timeout: 10000 },
@@ -823,9 +823,8 @@ test.describe('Language Select', () => {
     await topbar.locator('[data-testid="language-select-trigger"]').click();
     await page.locator('[data-testid="language-option-fr"]').click();
     await page.waitForURL(/\/editor\/page_variant\/marketing\?language=fr/);
-    await expect(page.getByTestId('canvas-language-bar')).toContainText(
-      'The original is in English.',
-    );
-    await expect(page.getByTestId('canvas-language-bar-more')).toHaveCount(0);
+    await topbar.locator('[data-testid="language-select-trigger"]').click();
+    await expect(page.getByTestId('language-status-en')).toHaveText('Original');
+    await expect(page.getByTestId('canvas-language-delete')).toHaveCount(0);
   });
 });

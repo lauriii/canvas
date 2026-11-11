@@ -6,6 +6,7 @@ import { useAppSelector } from '@/app/hooks';
 import { selectTranslations } from '@/features/layout/layoutModelSlice';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
+import { PAGE_VARIANT_ENTITY_TYPE } from '@/services/pageVariants';
 import { getCanvasSettings, getLanguages } from '@/utils/drupal-globals';
 
 import type { ContentStub } from '@/types/Content';
@@ -124,6 +125,23 @@ export function useWorkingLanguage() {
     }
   }, [id, isPageLanguageLoading]);
 
+  // How the open page or template relates to a language.
+  const statusOf = (languageId?: string) => {
+    if (!entityType || !languageId || !translations?.available) {
+      return null;
+    }
+    if (languageId === pageLanguage) {
+      return 'Original';
+    }
+    // The translations of a page variant are not reported.
+    if (entityType === PAGE_VARIANT_ENTITY_TYPE) {
+      return null;
+    }
+    return translations.available.includes(languageId)
+      ? 'Translated'
+      : 'Not translated';
+  };
+
   // Whether the page was created in another language of the site.
   const isInOtherLanguage = useCallback(
     (page: PageStub) =>
@@ -175,6 +193,7 @@ export function useWorkingLanguage() {
     pageLanguage,
     // The translations of the open page or template.
     translations,
+    statusOf,
     // Whether the open page was never published.
     isNew: isTemplateRoute ? undefined : (layout?.isNew as boolean | undefined),
     isMultilingual,

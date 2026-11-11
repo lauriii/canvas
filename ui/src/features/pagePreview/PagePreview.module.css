@@ -30,8 +30,7 @@
 
 /*
  * A page shown in another language than its own, in the editor: it takes the
- * space next to the side menu and panels instead of the whole window, with
- * the language bar above it.
+ * space next to the side menu and panels instead of the whole window.
  */
 .languageView {
   position: relative;
@@ -72,7 +71,7 @@
   margin-top: 0;
 }
 
-/* The status line follows the bar instead of covering it. */
+/* The status line sits above the page instead of covering it. */
 .languageView .headlessStatus {
   position: static;
 }

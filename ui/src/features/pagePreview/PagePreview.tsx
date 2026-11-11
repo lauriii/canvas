@@ -13,7 +13,6 @@ import { AlertDialog, Button, Flex } from '@radix-ui/themes';
 import { skipToken } from '@reduxjs/toolkit/query';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import LanguageBar from '@/components/languageSelect/LanguageBar';
 import {
   selectLayout,
   selectModel,
@@ -112,16 +111,7 @@ const HeadlessPagePreview: React.FC<{
   language?: string;
   entityId?: string;
   isLanguageView?: boolean;
-  showLanguageBar?: boolean;
-}> = ({
-  settings,
-  width,
-  viewMode,
-  language,
-  entityId,
-  isLanguageView,
-  showLanguageBar,
-}) => {
+}> = ({ settings, width, viewMode, language, entityId, isLanguageView }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const { entityType } = useParams();
   const { statusText } = useHeadlessDraftSession(
@@ -149,7 +139,6 @@ const HeadlessPagePreview: React.FC<{
         isLanguageView && styles.languageView,
       )}
     >
-      {showLanguageBar && <LanguageBar />}
       <p
         data-testid="canvas-headless-status"
         aria-live="polite"
@@ -202,9 +191,6 @@ const PagePreview = () => {
   const isContentTemplate =
     location.pathname.startsWith('/preview/template/') ||
     location.pathname.startsWith('/template/');
-
-  // Says why the page or template cannot be edited here.
-  const showLanguageBar = isLanguageView;
 
   const headlessSettings = useCanvasHeadlessSettings();
 
@@ -389,8 +375,6 @@ const PagePreview = () => {
         language={language || undefined}
         entityId={entityId}
         isLanguageView={isLanguageView}
-        // Nothing loads the translations of a template in headless mode.
-        showLanguageBar={showLanguageBar && !isContentTemplate}
       />
     );
   }
@@ -403,7 +387,6 @@ const PagePreview = () => {
           isLanguageView && styles.languageView,
         )}
       >
-        {showLanguageBar && <LanguageBar />}
         <div className={styles.controls}></div>
         {isLanguageView ? (
           <LanguageViewport>

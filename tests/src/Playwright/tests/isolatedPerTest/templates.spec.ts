@@ -138,13 +138,13 @@ test.describe('Templates - General', () => {
         .locator('[data-component-id="canvas_test_sdc:my-hero"] h1'),
     ).toHaveText('Hero in french');
 
-    // The template is shown in French: the language bar says why, and
-    // offers to delete the French config translation.
-    await expect(page.getByTestId('canvas-language-bar')).toContainText(
-      'French translation. The original is in English.',
+    // The template is shown in French: the language menu offers to delete
+    // the French config translation.
+    const deleteButton = page.getByTestId('canvas-language-delete');
+    await languageButton.click();
+    await expect(page.getByTestId('language-status-fr')).toHaveText(
+      'Translated',
     );
-    const deleteButton = page.getByTestId('canvas-language-bar-delete');
-    await page.getByTestId('canvas-language-bar-more').click();
     await expect(deleteButton).toBeVisible();
 
     // Deleting opens a confirmation dialog – no new tab should open.
@@ -197,10 +197,8 @@ test.describe('Templates - General', () => {
     ).toHaveText('There goes my hero');
 
     // Return to English editor to continue building the template.
-    await expect(page.getByTestId('canvas-language-bar-edit')).toHaveText(
-      'Switch to English to edit',
-    );
-    await page.getByTestId('canvas-language-bar-edit').click();
+    await languageButton.click();
+    await page.locator('[data-testid="language-option-en"]').click();
     await page.waitForURL(/\/canvas\/template\/node\/article\/full\/\d+/, {
       timeout: 10000,
     });
