@@ -47,12 +47,17 @@ describe('live preview of a moved component', () => {
 
   it('keeps a slot it leaves empty targetable with a placeholder', () => {
     const doc = preview();
+    doc.querySelector('#c p')!.getBoundingClientRect = () =>
+      new DOMRect(0, 0, 190, 48);
     startMovePreview(doc, 'd', slot);
     showLivePreviewAt('a_top');
     expect(text(doc)).toBe('D,A,B');
-    expect(
-      doc.querySelector('#c .canvas--slot-empty-placeholder'),
-    ).not.toBeNull();
+    // As large as the component was, so the slot stays where it was.
+    const placeholder = doc.querySelector<HTMLElement>(
+      '#c .canvas--slot-empty-placeholder',
+    )!;
+    expect(placeholder.style.width).toBe('190px');
+    expect(placeholder.style.minHeight).toBe('48px');
     // Moving it back in removes the placeholder again.
     showLivePreviewAt(null);
     expect(doc.querySelector('.canvas--slot-empty-placeholder')).toBeNull();

@@ -568,14 +568,16 @@ function place(current: Session, dropZoneId: string | null) {
     placeholder.className = PLACEHOLDER[homeContainer.type];
     left.end.parentNode!.insertBefore(placeholder, left.end);
     current.undo.push(() => placeholder.remove());
-    // No larger than the component was: a container that grows when the
-    // component leaves it would put itself back under the pointer.
-    const size = placeholder.getBoundingClientRect();
+    // As large as the component was, so the container stays where the
+    // component was dragged from: the pointer can take it back there. A
+    // container that grows would put itself back under the pointer, and one
+    // that shrinks would leave the place the component came from to the
+    // containers beside it.
     const { width = 0, height = 0 } = current.homeSize ?? {};
-    if (width && width < size.width) {
+    if (width) {
       placeholder.style.width = placeholder.style.minWidth = `${width}px`;
     }
-    if (height && height < size.height) {
+    if (height) {
       placeholder.style.height = placeholder.style.minHeight = `${height}px`;
     }
   }
