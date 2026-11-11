@@ -281,9 +281,9 @@ test.describe('AI dev chat', () => {
 
     // The user approves. The turn hops three times: the first hop narrates,
     // the second carries the first `operations` batch (hero, heading, CTA) and
-    // the third the batch below it (heading, CTA) plus the answer. Each batch
-    // is applied with the exact uuid, nodePath and fieldValues the fixture
-    // specifies.
+    // the third the batch below it (heading, CTA, multi-value props component)
+    // plus the answer. Each batch is applied with the exact uuid, nodePath and
+    // fieldValues the fixture specifies.
     // @see modules/canvas_ai/tests/modules/canvas_ai_test/fixtures/approved.json
     // @see modules/canvas_ai/tests/modules/canvas_ai_test/fixtures/approved-2.json
     // @see modules/canvas_ai/tests/modules/canvas_ai_test/fixtures/approved-3.json
@@ -340,7 +340,9 @@ test.describe('AI dev chat', () => {
     await removeButton.click();
     await expect(pill).toBeHidden();
 
-    // Both batches landed on the canvas in the fixtures' order.
+    // Both batches landed on the canvas in the fixtures' order. The template of
+    // the multi-value props component does not print its attributes, so that
+    // component has no data-component-id and is not among these.
     await canvas.testInPreviewFrame(
       '[data-component-id^="canvas_test_sdc:"]',
       async (components) => {
@@ -371,6 +373,7 @@ test.describe('AI dev chat', () => {
       /Call to Absolute Action/,
       /Heading/,
       /Call to Absolute Action/,
+      /Multivalue Props Component/,
     ]);
 
     // The turn left nothing selected, so the chip is hidden. Selecting a
@@ -480,6 +483,124 @@ test.describe('AI dev chat', () => {
     await expect(
       page.getByRole('textbox', { name: 'Meta description' }),
     ).toHaveValue('Visit the Canvas campus and see the builder in action.');
+
+    // The "Approved" turn placed the multi-value props component, and the
+    // fixture gives each of its multi-value props a list of values. The
+    // preview, and the props form once the component is selected, show those
+    // values in that order. The preview lists a prop's values in
+    // `#<prop>-list` and the form in the `.field--name-<prop>` field, with the
+    // prop name's underscores turned into dashes. The form shows a date in the
+    // browser's locale, which playwright.config.ts sets, and an enum value by
+    // its label.
+    // @see modules/canvas_ai/tests/modules/canvas_ai_test/fixtures/approved-3.json
+    // @see tests/modules/canvas_test_sdc/components/multivalue-props/multivalue-props.twig
+    const multiValueProps: Record<
+      string,
+      { preview: string[]; form?: string[] }
+    > = {
+      text: { preview: ['Plan the page', 'Place the sections', 'Publish it'] },
+      text_limited: { preview: ['Fast', 'Flexible', 'Open'] },
+      text_required: { preview: ['Pages', 'Templates', 'Components'] },
+      link: {
+        preview: [
+          'https://example.com/docs',
+          'https://example.com/blog',
+          'https://example.com/forum',
+        ],
+      },
+      link_limited: {
+        preview: [
+          'https://example.com/one',
+          'https://example.com/two',
+          'https://example.com/three',
+        ],
+      },
+      relative_link: { preview: ['/pricing', '/docs', '/blog'] },
+      relative_link_limited: { preview: ['/team', '/careers', '/press'] },
+      number: { preview: ['2.5', '0', '1000'] },
+      number_limited: { preview: ['0.5', '1.5', '3'] },
+      integer: { preview: ['3', '5', '8'] },
+      integer_limited: { preview: ['1', '2', '3'] },
+      datetime: {
+        preview: [
+          '2026-11-06T09:00:00Z',
+          '2026-11-07T17:30:00Z',
+          '2026-11-08T12:15:00Z',
+        ],
+        form: [
+          '11/6/2026, 9:00 AM',
+          '11/7/2026, 5:30 PM',
+          '11/8/2026, 12:15 PM',
+        ],
+      },
+      datetime_limited: {
+        preview: [
+          '2026-12-24T08:00:00Z',
+          '2026-12-25T10:00:00Z',
+          '2026-12-26T14:45:00Z',
+        ],
+        form: [
+          '12/24/2026, 8:00 AM',
+          '12/25/2026, 10:00 AM',
+          '12/26/2026, 2:45 PM',
+        ],
+      },
+      date: {
+        preview: ['2026-11-06', '2026-12-24', '2027-01-01'],
+        form: ['11/6/2026', '12/24/2026', '1/1/2027'],
+      },
+      date_limited: {
+        preview: ['2026-05-01', '2026-06-15', '2026-07-04'],
+        form: ['5/1/2026', '6/15/2026', '7/4/2026'],
+      },
+      list_text: {
+        preview: ['option_two', 'option_three', 'option_four'],
+        form: ['Option Two', 'Option Three', 'Option Four'],
+      },
+      list_text_limited: {
+        preview: ['option_one', 'option_three', 'option_four'],
+        form: ['Option One', 'Option Three', 'Option Four'],
+      },
+      list_int: {
+        preview: ['20', '30', '40'],
+        form: ['Twenty', 'Thirty', 'Forty'],
+      },
+      list_int_limited: {
+        preview: ['10', '30', '40'],
+        form: ['Ten', 'Thirty', 'Forty'],
+      },
+    };
+    await canvas.testInPreviewFrame(
+      '[data-testid="multivalue-props-component"]',
+      async (component) => {
+        for (const [prop, { preview }] of Object.entries(multiValueProps)) {
+          await expect(
+            component.locator(`#${prop.replace(/_/g, '-')}-list li`),
+          ).toHaveText(preview);
+        }
+      },
+    );
+    await canvas.clickPreviewComponent('sdc.canvas_test_sdc.multivalue-props');
+    await expect(page).toHaveURL(
+      /\/component\/00000000-0000-4000-8000-000000000006/,
+    );
+    const propsForm = page.locator(
+      '[data-testid="canvas-contextual-panel"] [data-drupal-selector="component-instance-form"]',
+    );
+    for (const [prop, { preview, form = preview }] of Object.entries(
+      multiValueProps,
+    )) {
+      const field = propsForm.locator(
+        `.field--name-${prop.replace(/_/g, '-')}`,
+      );
+      // An enum prop is a multi-select that shows each value as a chip. The
+      // other props list each value on a row of their own.
+      await expect(
+        field.locator(
+          '[data-canvas-multivalue-label="true"], .canvas-select__multi-value__label',
+        ),
+      ).toHaveText(form);
+    }
   });
 
   test('Stopping a running turn', async ({ page, drupal, canvas, ai }) => {
@@ -599,8 +720,8 @@ test.describe('AI dev chat', () => {
     canvas,
     ai,
   }) => {
-    // "Approved" runs three hops. The first places nothing, the second places
-    // three components and the third places two, one second apart.
+    // "Approved" runs three hops. The first places nothing, and the second and
+    // the third place three components each, one second apart.
     // @see modules/canvas_ai/tests/modules/canvas_ai_test/fixtures/approved.json
     // @see modules/canvas_ai/tests/modules/canvas_ai_test/fixtures/approved-2.json
     // @see modules/canvas_ai/tests/modules/canvas_ai_test/fixtures/approved-3.json
@@ -650,8 +771,8 @@ test.describe('AI dev chat', () => {
     // The stop button hides once the turn has ended.
     await expect(stopButton).toBeHidden();
     // The turn was stopped, so the page holds only the three components from
-    // the second hop and the first from the third. The third hop's second
-    // component is not placed.
+    // the second hop and the first from the third. The third hop's other
+    // components are not placed.
     await expect(layers).toHaveCount(4);
     // The turn closes on the stopped notice, not on the answer the third hop
     // carried, and its status row reports stopped.
