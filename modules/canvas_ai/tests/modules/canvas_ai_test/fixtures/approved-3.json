@@ -25,6 +25,48 @@
             "text": "Contact the Canvas team",
             "href": "https://example.com/contact"
           }
+        },
+        {
+          "id": "sdc.canvas_test_sdc.multivalue-props",
+          "uuid": "00000000-0000-4000-8000-000000000006",
+          "nodePath": [0, 5],
+          "fieldValues": {
+            "text": ["Plan the page", "Place the sections", "Publish it"],
+            "text_limited": ["Fast", "Flexible", "Open"],
+            "text_required": ["Pages", "Templates", "Components"],
+            "link": [
+              "https://example.com/docs",
+              "https://example.com/blog",
+              "https://example.com/forum"
+            ],
+            "link_limited": [
+              "https://example.com/one",
+              "https://example.com/two",
+              "https://example.com/three"
+            ],
+            "relative_link": ["/pricing", "/docs", "/blog"],
+            "relative_link_limited": ["/team", "/careers", "/press"],
+            "number": [2.5, 0, 1000],
+            "number_limited": [0.5, 1.5, 3],
+            "integer": [3, 5, 8],
+            "integer_limited": [1, 2, 3],
+            "datetime": [
+              "2026-11-06T09:00:00Z",
+              "2026-11-07T17:30:00Z",
+              "2026-11-08T12:15:00Z"
+            ],
+            "datetime_limited": [
+              "2026-12-24T08:00:00Z",
+              "2026-12-25T10:00:00Z",
+              "2026-12-26T14:45:00Z"
+            ],
+            "date": ["2026-11-06", "2026-12-24", "2027-01-01"],
+            "date_limited": ["2026-05-01", "2026-06-15", "2026-07-04"],
+            "list_text": ["option_two", "option_three", "option_four"],
+            "list_text_limited": ["option_one", "option_three", "option_four"],
+            "list_int": [20, 30, 40],
+            "list_int_limited": [10, 30, 40]
+          }
         }
       ]
     }
