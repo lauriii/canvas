@@ -11,7 +11,10 @@ import { Text } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import EmptyStateCallout from '@/components/EmptyStateCallout';
-import { getPropsValues } from '@/components/form/react-hook-form/fields/componentFormData';
+import {
+  formStateToObject,
+  getPropsValues,
+} from '@/components/form/react-hook-form/fields/componentFormData';
 import twigToJSXComponentMap from '@/components/form/twig-to-jsx-component-map';
 import NativePropSlot from '@/components/form/widgets/NativePropSlot';
 import {
@@ -334,6 +337,15 @@ const ComponentInstanceFormRenderer: React.FC<
               selectedModel.source,
               component,
               resolved,
+              // Only the props in the form state. In an escape-hatch island
+              // the other props are edited by native widgets and never enter
+              // the form state.
+              Object.keys(
+                formStateToObject(
+                  { ...formState, ...updates },
+                  selectedComponentId,
+                ),
+              ),
             ),
             resolved,
           });

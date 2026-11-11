@@ -11,6 +11,7 @@ import {
   setLayoutModel,
   shiftNode,
   sortNode,
+  syncPropSourcesToResolvedValues,
 } from '@/features/layout/layoutModelSlice';
 import { setPageData } from '@/features/pageData/pageDataSlice';
 import {
@@ -398,5 +399,48 @@ describe('Add new component to layout', () => {
     expect(selectLayout(store.getState())).to.deep.equal(layoutBefore);
 
     consoleErrorSpy.mockRestore();
+  });
+});
+
+describe('Sync prop sources to resolved values', () => {
+  const component = {
+    propSources: {
+      image: { sourceType: 'static:field_item:entity_reference' },
+      title: { sourceType: 'static:field_item:string' },
+      subtitle: { sourceType: 'static:field_item:string' },
+    },
+  };
+  const sources = {
+    image: { sourceType: 'static:field_item:entity_reference', value: 3 },
+    title: { sourceType: 'static:field_item:string' },
+  };
+  const resolved = {
+    image: { src: '/files/photo.jpg' },
+    title: 'New title',
+    subtitle: 'New subtitle',
+  };
+
+  it('Should sync every prop when no props are listed', () => {
+    expect(
+      syncPropSourcesToResolvedValues(sources, component, resolved),
+    ).toEqual({
+      image: { ...sources.image, value: resolved.image },
+      title: { ...sources.title, value: 'New title' },
+      subtitle: component.propSources.subtitle,
+    });
+  });
+
+  it('Should leave the sources of unlisted props untouched', () => {
+    expect(
+      syncPropSourcesToResolvedValues(sources, component, resolved, ['title']),
+    ).toEqual({
+      image: sources.image,
+      title: { ...sources.title, value: 'New title' },
+    });
+    // An unlisted prop without a resolved value keeps its source, a listed
+    // one loses it.
+    expect(
+      syncPropSourcesToResolvedValues(sources, component, {}, ['title']),
+    ).toEqual({ image: sources.image });
   });
 });
