@@ -54,6 +54,17 @@ interface EntityFieldBasedPropExpressionInterface extends StructuredDataPropExpr
   public function getDelta(): ?int;
 
   /**
+   * Gets this expression for a single field item.
+   *
+   * @param int $delta
+   *   The delta of the field item.
+   *
+   * @return static
+   *   The same expression, targeting the field item with the given delta.
+   */
+  public function withDelta(int $delta): static;
+
+  /**
    * Returns a stable identity for the expression's starting point.
    *
    * When comparing entity field-based prop expressions, it is important to know

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Unit;
 
+use Drupal\canvas\PropExpressions\StructuredData\EntityFieldBasedPropExpressionInterface;
 use Drupal\canvas\PropExpressions\StructuredData\FieldObjectPropsExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
 use Drupal\canvas\PropExpressions\StructuredData\FieldTypeObjectPropsExpression;
@@ -154,6 +155,42 @@ class PropExpressionTest extends UnitTestCase {
     self::assertSame($string_representation, (string) $expression);
     self::assertEquals($expression, FieldObjectPropsExpression::fromString($string_representation));
     self::assertEquals($expression, StructuredDataPropExpression::fromString($string_representation));
+  }
+
+  /**
+   * Tests the expression for a single field item.
+   */
+  #[DataProvider('providerWithDelta')]
+  public function testWithDelta(string $string_representation, int $delta, string $expected_string_representation): void {
+    $expression = StructuredDataPropExpression::fromString($string_representation);
+    \assert($expression instanceof EntityFieldBasedPropExpressionInterface);
+    $expression_for_delta = $expression->withDelta($delta);
+    self::assertSame($expected_string_representation, (string) $expression_for_delta);
+    self::assertSame($delta, $expression_for_delta->getDelta());
+    self::assertSame($expression::class, $expression_for_delta::class);
+  }
+
+  /**
+   * @return iterable<string, array{string, int, string}>
+   */
+  public static function providerWithDelta(): iterable {
+    yield 'FieldPropExpression' => [
+      'ℹ︎␜entity:node:article␝field_tags␞␟target_id',
+      1,
+      'ℹ︎␜entity:node:article␝field_tags␞1␟target_id',
+    ];
+    // Only the referencer gets the delta: the referenced field is a field of
+    // another entity.
+    yield 'ReferenceFieldPropExpression' => [
+      'ℹ︎␜entity:node:article␝uid␞␟entity␜␜entity:user␝user_picture␞␟alt',
+      1,
+      'ℹ︎␜entity:node:article␝uid␞1␟entity␜␜entity:user␝user_picture␞␟alt',
+    ];
+    yield 'FieldObjectPropsExpression' => [
+      'ℹ︎␜entity:node:article␝uid␞␟{target_id↠target_id,user_picture↝entity␜␜entity:user␝user_picture␞␟{alt↠alt,width↠width}}',
+      1,
+      'ℹ︎␜entity:node:article␝uid␞1␟{target_id↠target_id,user_picture↝entity␜␜entity:user␝user_picture␞␟{alt↠alt,width↠width}}',
+    ];
   }
 
   /**
