@@ -23,7 +23,7 @@ import styles from './LanguageSelect.module.css';
  * Selects the working language: the language pages are shown and created in.
  *
  * Selecting a language only navigates. A page opens in the editor in the
- * language it was created in, and read-only in any other language.
+ * language it was created in, and as a preview in any other language.
  *
  * @see useWorkingLanguage
  * @see LanguageBar

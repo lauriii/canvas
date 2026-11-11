@@ -220,7 +220,7 @@ test.describe('Language Select', () => {
     let previewFrame = page.frameLocator('iframe[title="Page preview"]');
     await expect(previewFrame.locator('body')).not.toBeEmpty();
 
-    // The page is read-only in French: the language bar says why. The editor
+    // The page is a preview in French: the language bar says why. The editor
     // role has edit (update) access, so deleting the translation is offered.
     const languageBar = page.getByTestId('canvas-language-bar');
     await expect(languageBar).toContainText(
@@ -233,7 +233,7 @@ test.describe('Language Select', () => {
     await expect(page.getByTestId('canvas-language-bar-delete')).toBeVisible();
     await page.keyboard.press('Escape');
 
-    // The read-only view keeps the side menu and the top bar of the editor,
+    // The preview keeps the side menu and the top bar of the editor,
     // without the controls that need an editable page.
     const sideMenu = page.getByTestId('canvas-side-menu');
     await expect(sideMenu.getByRole('button', { name: 'Pages' })).toBeEnabled();
@@ -673,7 +673,7 @@ test.describe('Language Select', () => {
     await expect(languageButton).toContainText('English');
     const changeButton = page.getByTestId('canvas-language-bar-change');
 
-    // Opens the draft in another language, where it is read-only, and changes
+    // Opens the draft in another language, where it is a preview, and changes
     // the language of the draft to that language.
     const changeLanguageTo = async (langcode: string, name: string) => {
       await languageButton.click();

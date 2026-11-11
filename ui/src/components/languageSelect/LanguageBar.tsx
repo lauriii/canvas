@@ -3,7 +3,7 @@ import { Navigate, useNavigate, useParams } from 'react-router';
 import {
   DotsHorizontalIcon,
   ExternalLinkIcon,
-  LockClosedIcon,
+  EyeOpenIcon,
 } from '@radix-ui/react-icons';
 import {
   Badge,
@@ -42,11 +42,13 @@ import { getLanguages } from '@/utils/drupal-globals';
 import styles from './LanguageSelect.module.css';
 
 /**
- * Explains why a page or template is read-only, and offers the ways forward.
+ * Explains a preview of a page or template in another language, and offers
+ * the ways to edit it.
  *
  * Shown when it is open in a working language other than the language it was
  * created in: either its translation, or the original when it has no
- * translation in the working language.
+ * translation in the working language. The Canvas editor edits a page in its
+ * own language; a translation module edits its translations.
  *
  * @see useWorkingLanguage
  */
@@ -209,8 +211,8 @@ const LanguageBar = () => {
       >
         <Flex align="center" gap="3" minWidth="0">
           <Badge size="1" color="gray" variant="soft" highContrast>
-            <LockClosedIcon width="12" height="12" aria-hidden />
-            Read-only
+            <EyeOpenIcon width="12" height="12" aria-hidden />
+            Preview
           </Badge>
           <Text size="2" color="gray" data-testid="canvas-language-bar-message">
             {isTranslated ? (

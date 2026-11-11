@@ -139,7 +139,7 @@ test.describe('Templates - General', () => {
         .locator('[data-component-id="canvas_test_sdc:my-hero"] h1'),
     ).toHaveText('Hero in french');
 
-    // The template is read-only in French: the language bar says why, and
+    // The template is a preview in French: the language bar says why, and
     // offers to delete the French config translation.
     await expect(page.getByTestId('canvas-language-bar')).toContainText(
       'French translation. This template is written in English.',
