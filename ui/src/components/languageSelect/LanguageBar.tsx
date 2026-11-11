@@ -242,9 +242,8 @@ const LanguageBar = () => {
         <Flex align="center" gap="2" wrap="wrap">
           <Button
             size="1"
-            variant={translateUrl ? 'outline' : 'soft'}
+            variant="soft"
             color={translateUrl ? 'gray' : undefined}
-            highContrast={!!translateUrl}
             data-testid="canvas-language-bar-edit"
             onClick={() => {
               rememberWorkingLanguage(pageLanguage);
