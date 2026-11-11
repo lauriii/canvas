@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel;
 
 use ColinODell\PsrTestLogger\TestLogger;
+use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\EntityHandlers\ContentTemplateAwareViewBuilder;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
@@ -12,16 +13,21 @@ use Drupal\canvas\PropSource\PropSource;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\Entity\EntityViewMode;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\Core\Logger\RfcLogLevel;
+use Drupal\file\Entity\File;
 use Drupal\filter\Entity\FilterFormat;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\canvas\Traits\CanvasFieldCreationTrait;
 use Drupal\Tests\canvas\Traits\CrawlerTrait;
 use Drupal\Tests\canvas\Traits\GenerateComponentConfigTrait;
 use Drupal\Tests\canvas\Traits\SingleDirectoryComponentTreeTestTrait;
+use Drupal\Tests\image\Kernel\ImageFieldCreationTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use Drupal\Tests\node\Traits\NodeCreationTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\Attributes\TestWith;
@@ -41,6 +47,7 @@ final class NodeTemplatesTest extends CanvasKernelTestBase {
   use CanvasFieldCreationTrait;
   use NodeCreationTrait;
   use CrawlerTrait;
+  use ImageFieldCreationTrait;
   use UserCreationTrait;
 
   /**
@@ -453,6 +460,100 @@ HTML;
     // If we delete the field item, all good!
     $node->get('field_component_tree')->removeItem(1);
     self::assertEntityIsValid($node);
+  }
+
+  /**
+   * Tests a multiple-cardinality image field that populates a list of images.
+   *
+   * @param array<string, string> $screenshots
+   *   The image field items to create: alternative texts, keyed by file name.
+   * @param string|null $expected_error
+   *   The error that rendering the component logs, if any.
+   *
+   * @legacy-covers \Drupal\canvas\Entity\ContentTemplate::build
+   * @legacy-covers \Drupal\canvas\PropExpressions\StructuredData\Evaluator
+   *
+   * @see tests/modules/canvas_test_sdc/components/image-gallery/image-gallery.component.yml
+   * @see \Drupal\canvas\Element\RenderSafeComponentContainer
+   */
+  #[DataProvider('providerMultipleCardinalityImageFieldPopulatesListOfImages')]
+  public function testMultipleCardinalityImageFieldPopulatesListOfImages(array $screenshots, ?string $expected_error): void {
+    $this->installEntitySchema('file');
+    $this->installSchema('file', ['file_usage']);
+    $this->createImageField('field_screenshots', 'node', 'article', ['cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED]);
+
+    $component = Component::load('sdc.canvas_test_sdc.image-gallery');
+    self::assertInstanceOf(Component::class, $component);
+    $template = ContentTemplate::create([
+      'content_entity_type_id' => 'node',
+      'content_entity_type_bundle' => 'article',
+      'content_entity_type_view_mode' => 'full',
+      'component_tree' => [
+        [
+          'uuid' => '2842cc6f-9e2b-42a5-8400-e7d6363e08bf',
+          'component_id' => 'sdc.canvas_test_sdc.image-gallery',
+          'component_version' => $component->getActiveVersion(),
+          'inputs' => [
+            'images' => [
+              'sourceType' => PropSource::EntityField->value,
+              'expression' => 'ℹ︎␜entity:node:article␝field_screenshots␞␟{src↠src_with_alternate_widths,alt↠alt,width↠width,height↠height}',
+            ],
+          ],
+        ],
+      ],
+    ])->setStatus(TRUE);
+    self::assertEntityIsValid($template);
+    $template->save();
+
+    $field_items = [];
+    $file_ids = [];
+    foreach ($screenshots as $filename => $alt) {
+      $file = File::create(['uri' => 'public://' . $filename, 'filename' => $filename]);
+      $file->save();
+      $file_ids[$filename] = $file->id();
+      $field_items[] = ['target_id' => $file->id(), 'alt' => $alt, 'width' => 10, 'height' => 11];
+    }
+    $node = $this->createNode([
+      'type' => 'article',
+      'title' => 'Screenshots',
+      'field_screenshots' => $field_items,
+    ]);
+
+    $logger = new TestLogger();
+    $this->container->get(LoggerChannelFactoryInterface::class)
+      ->get('canvas')
+      ->addLogger($logger);
+    $build = $this->container->get(EntityTypeManagerInterface::class)->getViewBuilder('node')->view($node);
+    $crawler = $this->crawlerForRenderArray($build);
+    self::assertCount(\count($screenshots), $crawler->filter('figure img'));
+    foreach ($screenshots as $filename => $alt) {
+      self::assertCount(1, $crawler->filter(\sprintf('figure img[alt="%s"][src*="%s"]', $alt, $filename)));
+      // The `src` of every image depends on its file entity.
+      self::assertContains('file:' . $file_ids[$filename], $build['#cache']['tags']);
+    }
+
+    if ($expected_error === NULL) {
+      self::assertFalse($logger->hasRecords(RfcLogLevel::ERROR));
+      return;
+    }
+    // Only this component instance fails to render.
+    self::assertCount(1, $crawler->filter('[data-component-uuid="2842cc6f-9e2b-42a5-8400-e7d6363e08bf"]:contains("Oops, something went wrong!")'));
+    self::assertTrue($logger->hasRecordThatContains($expected_error, RfcLogLevel::ERROR));
+  }
+
+  /**
+   * @return iterable<string, array{array<string, string>, string|null}>
+   */
+  public static function providerMultipleCardinalityImageFieldPopulatesListOfImages(): iterable {
+    yield 'two images' => [
+      ['a.png' => 'Screenshot A', 'b.png' => 'Screenshot B'],
+      NULL,
+    ];
+    // The `images` prop is required, so it requires at least 1 image.
+    yield 'no images' => [
+      [],
+      '[canvas_test_sdc:image-gallery/images] There must be a minimum of 1 items in the array, 0 found.',
+    ];
   }
 
 }

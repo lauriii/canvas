@@ -239,6 +239,18 @@ final class FieldObjectPropsExpression implements EntityFieldBasedPropExpression
   }
 
   /**
+   * {@inheritdoc}
+   *
+   * Every object expression targets the field item with the given delta.
+   */
+  public function withDelta(int $delta): static {
+    return new static($this->entityType, $this->fieldName, $delta, \array_map(
+      static fn ($expr) => $expr->withDelta($delta),
+      $this->objectPropsToFieldProps,
+    ));
+  }
+
+  /**
    * Whether every object expression is a reference.
    *
    * (In string representation terms: only `↝`, no `↠`.)

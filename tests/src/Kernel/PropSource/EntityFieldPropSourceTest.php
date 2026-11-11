@@ -87,6 +87,18 @@ class EntityFieldPropSourceTest extends PropSourceTestBase {
     NodeType::create(['type' => 'page', 'name' => 'page'])->save();
     $this->createImageField('field_image', 'node', 'page');
     FieldStorageConfig::create([
+      'field_name' => 'field_date_ranges',
+      'entity_type' => 'node',
+      'type' => 'daterange',
+      'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+    ])->save();
+    FieldConfig::create([
+      'field_name' => 'field_date_ranges',
+      'label' => 'Date ranges',
+      'entity_type' => 'node',
+      'bundle' => 'page',
+    ])->save();
+    FieldStorageConfig::create([
       'field_name' => 'a_timestamp_maybe',
       'entity_type' => 'node',
       'type' => 'timestamp',
@@ -163,6 +175,10 @@ class EntityFieldPropSourceTest extends PropSourceTestBase {
       'type' => 'page',
       'uid' => $user->id(),
       'field_image' => ['target_id' => 1],
+      'field_date_ranges' => [
+        ['value' => '2020-04-16T00:00:00', 'end_value' => '2024-07-10T10:24:00'],
+        ['value' => '2020-04-16T00:00:00', 'end_value' => '2024-09-26T11:31:00'],
+      ],
       'field_photos' => [['target_id' => 2], ['target_id' => 1], ['target_id' => 3]],
       'one_from_an_string_list' => ['value' => 'sanitization_required'],
       'one_country' => ['value' => 'BE'],
@@ -745,6 +761,55 @@ class EntityFieldPropSourceTest extends PropSourceTestBase {
       ],
     ];
 
+    $expression = 'ℹ︎␜entity:node:page␝field_date_ranges␞␟{start↠value,stop↠end_value}';
+    yield "complex object: FieldObjectPropsExpression for all deltas of a multiple-cardinality field" => [
+      'permissions' => ['access content'],
+      'expression' => $expression,
+      'adapter_plugin_id' => NULL,
+      'is_required' => TRUE,
+      'expected_array_representation' => [
+        'sourceType' => PropSource::EntityField->value,
+        'expression' => $expression,
+      ],
+      'expected_expression_class' => FieldObjectPropsExpression::class,
+      'expected_evaluation_with_user_host_entity' => NULL,
+      'expected_user_access_denied_message' => NULL,
+      // One object per field item, as for the same field type, values and
+      // object keys in a StaticPropSource.
+      // @see \Drupal\canvas\PropExpressions\StructuredData\ObjectPropExpressionInterface
+      // @see \Drupal\Tests\canvas\Kernel\PropSource\StaticPropSourceTest::providerTest()
+      'expected_evaluation_with_node_host_entity' => new EvaluationResult(
+        [
+          ['start' => '2020-04-16T00:00:00Z', 'stop' => '2024-07-10T10:24:00Z'],
+          ['start' => '2020-04-16T00:00:00Z', 'stop' => '2024-09-26T11:31:00Z'],
+        ],
+        (new CacheableMetadata())
+          ->setCacheTags(['node:1'])
+          ->setCacheContexts(['user.permissions']),
+      ),
+      'expected_node_access_denied_message' => [
+        "Access denied to entity while evaluating expression, $expression, reason: The 'access content' permission is required.",
+      ],
+      'expected_dependencies_expression_only' => [
+        'module' => ['node', 'node'],
+        'config' => [
+          'node.type.page',
+          'field.field.node.page.field_date_ranges',
+          'node.type.page',
+          'field.field.node.page.field_date_ranges',
+        ],
+      ],
+      'expected_dependencies_with_host_entity' => [
+        'module' => ['node', 'node'],
+        'config' => [
+          'node.type.page',
+          'field.field.node.page.field_date_ranges',
+          'node.type.page',
+          'field.field.node.page.field_date_ranges',
+        ],
+      ],
+    ];
+
     $expected_dependencies_expression = [
       'module' => [
         'node',
@@ -1177,10 +1242,15 @@ class EntityFieldPropSourceTest extends PropSourceTestBase {
   /**
    * Creates a node referencing a user that is then deleted.
    *
-   * @return array{\Drupal\node\NodeInterface, int}
-   *   The node, and the deleted user's ID.
+   * @param int $cardinality
+   *   The cardinality of the reference field. If it is not 1, the field first
+   *   references a user that is not deleted.
+   *
+   * @return array{\Drupal\node\NodeInterface, int, int|null}
+   *   The node, the deleted user's ID, and the ID of the user that is not
+   *   deleted (NULL for cardinality 1).
    */
-  private function createNodeReferencingDeletedUser(): array {
+  private function createNodeReferencingDeletedUser(int $cardinality = 1): array {
     $this->installEntitySchema('node');
     $this->installEntitySchema('user');
     NodeType::create(['type' => 'page', 'name' => 'Page'])->save();
@@ -1189,7 +1259,7 @@ class EntityFieldPropSourceTest extends PropSourceTestBase {
       'entity_type' => 'node',
       'type' => 'entity_reference',
       'settings' => ['target_type' => 'user'],
-      'cardinality' => 1,
+      'cardinality' => $cardinality,
     ])->save();
     FieldConfig::create([
       'field_name' => 'field_ref',
@@ -1198,14 +1268,20 @@ class EntityFieldPropSourceTest extends PropSourceTestBase {
       'label' => 'Ref',
       'settings' => ['handler' => 'default:user', 'handler_settings' => []],
     ])->save();
+    $kept_uid = NULL;
+    if ($cardinality !== 1) {
+      $kept_user = User::create(['name' => 'Still here', 'status' => 1]);
+      $kept_user->save();
+      $kept_uid = (int) $kept_user->id();
+    }
     $target_user = User::create(['name' => 'Soon deleted', 'status' => 1]);
     $target_user->save();
     $target_uid = (int) $target_user->id();
-    $node = $this->createNode(['type' => 'page', 'field_ref' => $target_uid]);
+    $node = $this->createNode(['type' => 'page', 'field_ref' => \array_filter([$kept_uid, $target_uid])]);
     // Delete the target; the node still stores the ID.
     $target_user->delete();
     $this->setUpCurrentUser(permissions: ['access content', 'access user profiles']);
-    return [$node, $target_uid];
+    return [$node, $target_uid, $kept_uid];
   }
 
   /**
@@ -1229,30 +1305,87 @@ class EntityFieldPropSourceTest extends PropSourceTestBase {
    * A broken reference (deleted target entity) contributes the target's tag.
    *
    * When a referenced entity is deleted, the field still stores its ID but
-   * EntityReference::getValue() returns NULL. The cached NULL result must
-   * carry the former target's cache tag so that a new entity written at the
-   * same ID correctly busts any cached output.
+   * EntityReference::getValue() returns NULL. The cached result must carry the
+   * former target's cache tag so that a new entity written at the same ID
+   * correctly busts any cached output.
+   *
+   * @param int $cardinality
+   *   The cardinality of the reference field.
+   * @param string $expression
+   *   The expression to evaluate.
+   * @param mixed $expected_value
+   *   The expected evaluation result. `::KEPT_UID::` and `::DELETED_UID::`
+   *   stand for the IDs of the user that is not deleted and of the deleted
+   *   user.
    *
    * @see \Drupal\canvas\PropExpressions\StructuredData\Evaluator::doEvaluate()
    */
-  public function testBrokenReferenceContributesCacheTag(): void {
-    [$node, $target_uid] = $this->createNodeReferencingDeletedUser();
+  #[DataProvider('providerBrokenReferenceContributesCacheTag')]
+  public function testBrokenReferenceContributesCacheTag(int $cardinality, string $expression, mixed $expected_value): void {
+    [$node, $target_uid, $kept_uid] = $this->createNodeReferencingDeletedUser($cardinality);
 
     $this->setUpCurrentUser(permissions: ['access content', 'access user profiles']);
 
     $prop_source = EntityFieldPropSource::parse([
       'sourceType' => PropSource::EntityField->value,
-      'expression' => 'ℹ︎␜entity:node:page␝field_ref␞␟entity␜␜entity:user␝name␞␟value',
+      'expression' => $expression,
     ]);
 
     $result = $prop_source->evaluate($node, is_required: FALSE);
 
-    // The referenced entity is gone; the result is NULL.
-    self::assertNull($result->value);
+    if (\is_array($expected_value)) {
+      \array_walk_recursive($expected_value, function (mixed &$value) use ($target_uid, $kept_uid): void {
+        $value = match ($value) {
+          '::KEPT_UID::' => $kept_uid,
+          '::DELETED_UID::' => $target_uid,
+          default => $value,
+        };
+      });
+    }
+    self::assertSame($expected_value, $result->value);
 
     // The deleted entity's cache tag must be present so that if the entity is
-    // recreated (or otherwise written at that ID), the cached NULL invalidates.
+    // recreated (or otherwise written at that ID), the cached result
+    // invalidates.
     self::assertContains('user:' . $target_uid, $result->getCacheTags());
+  }
+
+  /**
+   * @return iterable<string, array{int, string, mixed}>
+   */
+  public static function providerBrokenReferenceContributesCacheTag(): iterable {
+    // The referenced entity is deleted: the result is NULL.
+    yield 'single-cardinality: reference' => [
+      1,
+      'ℹ︎␜entity:node:page␝field_ref␞␟entity␜␜entity:user␝name␞␟value',
+      NULL,
+    ];
+    // Every object prop needs the deleted entity: the object is empty.
+    // @todo Expect NULL in https://git.drupalcode.org/project/canvas/-/work_items/3592323
+    yield 'single-cardinality: object with only a reference' => [
+      1,
+      'ℹ︎␜entity:node:page␝field_ref␞␟{name↝entity␜␜entity:user␝name␞␟value}',
+      [],
+    ];
+
+    // An empty object is omitted from the list.
+    yield 'multiple-cardinality: object with only a reference' => [
+      FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+      'ℹ︎␜entity:node:page␝field_ref␞␟{name↝entity␜␜entity:user␝name␞␟value}',
+      [
+        ['name' => 'Still here'],
+      ],
+    ];
+    // One object per field item. The object for the deleted entity has only
+    // the object props that do not need that entity.
+    yield 'multiple-cardinality: object with a field property and a reference' => [
+      FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+      'ℹ︎␜entity:node:page␝field_ref␞␟{id↠target_id,name↝entity␜␜entity:user␝name␞␟value}',
+      [
+        ['id' => '::KEPT_UID::', 'name' => 'Still here'],
+        ['id' => '::DELETED_UID::'],
+      ],
+    ];
   }
 
   /**

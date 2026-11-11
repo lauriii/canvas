@@ -270,6 +270,16 @@ final class ReferenceFieldPropExpression implements EntityFieldBasedPropExpressi
 
   /**
    * {@inheritdoc}
+   *
+   * Only the referencer targets the field item: the referenced expression
+   * targets a field of the referenced entity.
+   */
+  public function withDelta(int $delta): static {
+    return new static($this->referencer->withDelta($delta), $this->referenced);
+  }
+
+  /**
+   * {@inheritdoc}
    */
   public function getTargetExpression(FieldableEntityInterface|EntityDataDefinitionInterface|null $referenced = NULL) : EntityFieldBasedPropExpressionInterface {
     if ($this->targetsMultipleBundles() && $referenced === NULL) {

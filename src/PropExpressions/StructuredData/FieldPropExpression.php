@@ -350,4 +350,11 @@ final class FieldPropExpression implements EntityFieldBasedPropExpressionInterfa
     return $this->delta;
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function withDelta(int $delta): static {
+    return new static($this->entityType, $this->fieldName, $delta, $this->propName);
+  }
+
 }

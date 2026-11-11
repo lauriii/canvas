@@ -341,6 +341,31 @@ final class Evaluator {
 
       $field_access = self::validateAccess($field_item_list, $expr);
 
+      // An object expression for all field items of a multiple-cardinality
+      // field: evaluate each field item individually, like for a list of field
+      // items above. The result is a list of objects.
+      // 💡 This subbranch handles multiple-cardinality object expressions.
+      // @see \Drupal\canvas\PropExpressions\StructuredData\ObjectPropExpressionInterface
+      if ($expr instanceof FieldObjectPropsExpression && $cardinality !== 1 && $expr->getDelta() === NULL) {
+        $objects = [];
+        foreach ($field_item_list as $delta => $field_item) {
+          $objects[] = self::evaluate($entity, $expr->withDelta($delta), $is_required, $language);
+        }
+        // Hoisting merges the cacheability and attachments of every object,
+        // including the ones omitted below.
+        // @see ::omitEmptyObjectProps()
+        $all = new EvaluationResult($objects, CacheableMetadata::createFromObject($entity_access)->addCacheableDependency($field_access));
+        \assert(\is_array($all->value));
+        return new EvaluationResult(
+          // Omit empty objects (every object prop needs a referenced entity,
+          // and that entity is deleted) and reindex: a `type: array` prop shape
+          // must not be handed gaps.
+          \array_values(\array_filter($all->value, static fn (mixed $object): bool => $object !== [])),
+          $all,
+          $all->attachments,
+        );
+      }
+
       $result = match ($expr::class) {
         FieldPropExpression::class => (function () use ($expr, $field_item_list, $field_definition, $is_required, $cardinality) {
           $result = [];
