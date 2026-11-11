@@ -110,15 +110,46 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
    * @todo Move this into a normalizer at https://www.drupal.org/i/3499632
    */
   public function getClientSideRepresentation(?FieldableEntityInterface $host_entity = NULL): array {
-    return $this->buildLayoutAndModel($this->componentTreeItemsIterator(self::inRootLevel()), $host_entity);
+    // Group the flat item list by parent slot once, so that building the tree
+    // is O(N) instead of rescanning every item for every slot.
+    $items_by_slot = [];
+    foreach ($this as $item) {
+      \assert($item instanceof ComponentTreeItem);
+      $items_by_slot[self::slotKey($item->getParentUuid(), $item->getSlot())][] = $item;
+    }
+    $model = [];
+    $layout = $this->buildLayoutAndModel($items_by_slot[self::slotKey(NULL, NULL)] ?? [], $items_by_slot, $model, $host_entity);
+    return ['layout' => $layout, 'model' => $model];
   }
 
   /**
+   * Keys the items of one slot, or of the root level when there is no parent.
+   */
+  private static function slotKey(?string $parent_uuid, ?string $slot_name): string {
+    return $parent_uuid === NULL ? '' : $parent_uuid . '/' . $slot_name;
+  }
+
+  /**
+   * Builds the client-side layout and model of one tier of the tree.
+   *
+   * @param list<\Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem> $tree_tier
+   *   The items of one slot (or of the root level), in delta order.
+   * @param array<string, list<\Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem>> $items_by_slot
+   *   All items of this list, keyed by ::slotKey().
+   * @param array<string, mixed> $model
+   *   The `model` being built, keyed by component instance UUID. The model of
+   *   this tier and of all its descendants is added to it, so that each
+   *   instance's model is written once regardless of tree depth.
+   * @param \Drupal\Core\Entity\FieldableEntityInterface|null $host_entity
+   *   The host entity, if any.
+   *
+   * @return list<array<string, mixed>>
+   *   The `layout` nodes of this tier.
+   *
    * @todo Move this into a normalizer at https://www.drupal.org/i/3499632
    */
-  private function buildLayoutAndModel(iterable $tree_tier, ?FieldableEntityInterface $host_entity = NULL): array {
-    $built = ['layout' => [], 'model' => []];
-    /** @var \Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem $item */
+  private function buildLayoutAndModel(array $tree_tier, array $items_by_slot, array &$model, ?FieldableEntityInterface $host_entity = NULL): array {
+    $layout = [];
     foreach ($tree_tier as $item) {
       $item_layout_node = $item->getClientSideRepresentation();
       $component_instance_uuid = $item->getUuid();
@@ -134,7 +165,7 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
       $source = $item->getComponent()?->getComponentSource();
       \assert($source instanceof ComponentSourceInterface);
       if ($source->requiresExplicitInput()) {
-        $built['model'][$component_instance_uuid] = $source->inputToClientModel($source->getExplicitInput($component_instance_uuid, $item, $host_entity));
+        $model[$component_instance_uuid] = $source->inputToClientModel($source->getExplicitInput($component_instance_uuid, $item, $host_entity));
       }
 
       // TRICKY: the server-side implementation (for storage efficiency) forbids
@@ -159,18 +190,12 @@ final class ComponentTreeItemList extends FieldItemList implements RenderableInt
           'name' => $slot_name,
           'nodeType' => 'slot',
         ];
-        $child_build = self::buildLayoutAndModel($this->componentTreeItemsIterator(self::isChildOfComponentTreeItemSlot($component_instance_uuid, (string) $slot_name)), $host_entity);
-        $built['model'] += $child_build['model'];
-        $component_instance_slot['components'] = $child_build['layout'];
+        $component_instance_slot['components'] = $this->buildLayoutAndModel($items_by_slot[self::slotKey($component_instance_uuid, (string) $slot_name)] ?? [], $items_by_slot, $model, $host_entity);
         $item_layout_node['slots'][] = $component_instance_slot;
       }
-      $built['layout'][] = $item_layout_node;
+      $layout[] = $item_layout_node;
     }
-    return $built;
-  }
-
-  public static function inRootLevel(): callable {
-    return static fn (ComponentTreeItem $item) => $item->getParentUuid() === NULL;
+    return $layout;
   }
 
   public static function isChildOfComponentTreeItemSlot(string $parent_uuid, string $slot_name): callable {
