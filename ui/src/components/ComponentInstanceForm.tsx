@@ -81,6 +81,8 @@ import type {
 import type { InputUIData } from '@/types/Form';
 import type { TransformConfig } from '@/utils/transforms';
 
+import formStyles from '@/components/form/components/Form.module.css';
+
 // Client widgets must be registered before the first form render; render-time
 // resolution is a synchronous map lookup.
 registerDefaultWidgets();
@@ -699,11 +701,12 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
 
   if (composition && selectedComponent) {
     return (
-      // A <form> with the same data-form-id and data-drupal-selector as the
-      // server-rendered form, so existing tests and styling hooks keep
+      // A <form> with the same class, data-form-id and data-drupal-selector as
+      // the server-rendered form, so existing tests and styling hooks keep
       // addressing the prop form the same way on both paths. It never
       // submits; native widgets write straight to the model.
       <form
+        className={formStyles.root}
         data-testid={`canvas-component-form-${selectedComponent}`}
         data-drupal-selector="component-instance-form"
         data-form-id="component_instance_form"
