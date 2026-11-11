@@ -84,10 +84,12 @@ services:
       # converter buildable when it is not installed (argument is then NULL).
       $translationSynchronizer: '@?content_translation.synchronizer'
   Drupal\canvas\AutoSave\AutoSaveManager: {}
-  # Non-serializing in-memory cache for AutoSaveManager's reconstructed entities.
+  # Non-serializing in-memory cache for AutoSaveManager's reconstructed entities,
+  # and for ComponentAudit's list of components used by auto-saves.
   # Bounded (LRU) like core's entity.memory_cache so it cannot grow without
   # limit in long-running processes (e.g. FrankenPHP/RoadRunner worker mode).
   # @see \Drupal\canvas\AutoSave\AutoSaveManager::getAutoSaveEntity()
+  # @see \Drupal\canvas\Audit\ComponentAudit::hasAutoSaveUsages()
   canvas.auto_save.entity_memory_cache:
     class: Drupal\Core\Cache\MemoryCache\LruMemoryCache
     arguments: ['@datetime.time', 100]

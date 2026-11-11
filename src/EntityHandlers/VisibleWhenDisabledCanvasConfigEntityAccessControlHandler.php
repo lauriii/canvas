@@ -70,20 +70,30 @@ final class VisibleWhenDisabledCanvasConfigEntityAccessControlHandler extends Ca
       if (!$parent_result->isAllowed()) {
         return $parent_result;
       }
+      // TRICKY: run one audit at a time and return on the first hit. Chaining
+      // ::orIf(AccessResult::forbiddenIf(…)) would evaluate every audit, even
+      // once the answer is known.
+      //
       // *First* check usages in auto-save, because that tends to require far
       // less I/O. A forward (pending, non-default) revision counts as a usage
       // too: publishing it (for example from a workspace) must not end up
       // rendering the fallback for a deleted code component.
-      return $parent_result->orIf(AccessResult::forbiddenIf(
-        $this->componentAudit->hasUsages($component, RevisionAuditEnum::AutoSave),
-        'This code component is in use in a Canvas auto-save and cannot be deleted.'
-      ))->orIf(AccessResult::forbiddenIf(
-        $this->componentAudit->hasUsages($component, RevisionAuditEnum::Default),
-        'This code component is in use in a default revision and cannot be deleted.'
-      ))->orIf(AccessResult::forbiddenIf(
-        $this->componentAudit->hasUsages($component, RevisionAuditEnum::Latest),
-        'This code component is in use in the latest revision and cannot be deleted.'
-      ));
+      $blocking_usages = [
+        [RevisionAuditEnum::AutoSave, 'This code component is in use in a Canvas auto-save and cannot be deleted.'],
+        [RevisionAuditEnum::Default, 'This code component is in use in a default revision and cannot be deleted.'],
+        [RevisionAuditEnum::Latest, 'This code component is in use in the latest revision and cannot be deleted.'],
+      ];
+      foreach ($blocking_usages as [$which_revisions, $reason]) {
+        // Config usage is already covered by the parent implementation: a
+        // config entity using the Component depends on it, and hence on this
+        // code component. So only content and auto-save usages remain.
+        $in_use = $which_revisions === RevisionAuditEnum::AutoSave
+          ? $this->componentAudit->hasAutoSaveUsages($component)
+          : $this->componentAudit->hasContentUsages($component, $which_revisions);
+        if ($in_use) {
+          return $parent_result->orIf(AccessResult::forbidden($reason));
+        }
+      }
     }
 
     return $parent_result;

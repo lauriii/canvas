@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace Drupal\Tests\canvas\Kernel\Audit;
 
 use Drupal\canvas\Audit\ComponentAudit;
+use Drupal\canvas\Audit\RevisionAuditEnum;
+use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\Entity\Component;
 use Drupal\canvas\Entity\ComponentInterface;
 use Drupal\canvas\Entity\ContentTemplate;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Entity\PageRegion;
 use Drupal\canvas\Entity\Pattern;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\Entity\EntityViewMode;
@@ -81,6 +84,47 @@ class ComponentAuditTest extends ComponentAuditTestBase {
     $content = $audit->getContentRevisionsUsingAuditTarget($component, [$old_version]);
     self::assertEquals([$page->uuid()], \array_map(static fn(ContentEntityInterface $page): string|null => $page->uuid(), $content));
     self::assertEquals([$revisionId1], \array_map(static fn(ContentEntityInterface $page): int|null|string => $page->getRevisionId(), $content));
+  }
+
+  /**
+   * Tests auto-save usages are computed once, until an auto-save is written.
+   *
+   * @legacy-covers ::hasAutoSaveUsages
+   */
+  public function testHasAutoSaveUsages(): void {
+    $audit = $this->container->get(ComponentAudit::class);
+    $auto_save_manager = $this->container->get(AutoSaveManager::class);
+    $this->installEntitySchema('path_alias');
+    $used = Component::load('sdc.canvas_test_sdc.my-cta');
+    $unused = Component::load('sdc.canvas_test_sdc.druplicon');
+    \assert($used instanceof ComponentInterface);
+    \assert($unused instanceof ComponentInterface);
+    $page = Page::create([
+      'title' => $this->randomMachineName(),
+      'components' => [],
+    ]);
+    $page->save();
+    self::assertFalse($audit->hasAutoSaveUsages($used));
+
+    // Saving an auto-save invalidates the computed usages.
+    $page->set('components', $this->tree);
+    $auto_save_manager->saveEntity($page);
+    self::assertTrue($audit->hasAutoSaveUsages($used));
+    self::assertFalse($audit->hasAutoSaveUsages($unused));
+    self::assertTrue($audit->hasUsages($used, RevisionAuditEnum::AutoSave));
+
+    // The usages are computed once: a change to the auto-save store that does
+    // not invalidate the auto-save cache tag goes unnoticed.
+    $this->container->get('keyvalue')->get(AutoSaveManager::AUTO_SAVE_STORE)->deleteAll();
+    self::assertTrue($audit->hasAutoSaveUsages($used));
+    Cache::invalidateTags([AutoSaveManager::CACHE_TAG]);
+    self::assertFalse($audit->hasAutoSaveUsages($used));
+
+    // Deleting an auto-save invalidates the computed usages.
+    $auto_save_manager->saveEntity($page);
+    self::assertTrue($audit->hasAutoSaveUsages($used));
+    $auto_save_manager->delete($page);
+    self::assertFalse($audit->hasAutoSaveUsages($used));
   }
 
   protected static function createTestPattern(array $tree): Pattern {
