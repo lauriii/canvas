@@ -59,6 +59,17 @@ export type MeasureCanvasGeometryOptions = DiscoverCanvasBoundariesOptions;
 export interface CanvasGeometryObserverOptions extends MeasureCanvasGeometryOptions {
   root: CanvasGeometryRoot;
   onChange: (geometry: CanvasGeometry[]) => void;
+  /**
+   * Emits snapshots of added, moved or removed markup before the browser
+   * paints it, instead of in the next animation frame. A function decides
+   * for each change.
+   */
+  synchronous?: boolean | (() => boolean);
+  /**
+   * Waits for matching animations, which move elements without changing the
+   * markup, to finish before emitting a snapshot.
+   */
+  awaitAnimation?: (animation: Animation) => boolean;
 }
 
 export interface CanvasGeometryObserver {

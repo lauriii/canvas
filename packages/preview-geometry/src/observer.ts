@@ -17,7 +17,13 @@ import type {
 export function createCanvasGeometryObserver(
   options: CanvasGeometryObserverOptions,
 ): CanvasGeometryObserver {
-  const { root, onChange, ...measurementOptions } = options;
+  const {
+    root,
+    onChange,
+    synchronous = false,
+    awaitAnimation,
+    ...measurementOptions
+  } = options;
   const document = getOwnerDocument(root);
   const view = document.defaultView;
   if (!view) {
@@ -28,11 +34,28 @@ export function createCanvasGeometryObserver(
   let scheduledFrame: number | null = null;
   let previousSnapshot: string | null = null;
   let forceNextSnapshot = false;
+  let settling = false;
 
   const measure = () => measureCanvasGeometry(root, measurementOptions);
   const emit = () => {
     scheduledFrame = null;
     if (disconnected) {
+      return;
+    }
+    // Elements that are animated to new positions are measured once there.
+    const running = awaitAnimation
+      ? (document.getAnimations?.() ?? []).filter(
+          (a) => a.playState === 'running' && awaitAnimation(a),
+        )
+      : [];
+    if (running.length) {
+      if (!settling) {
+        settling = true;
+        Promise.allSettled(running.map((a) => a.finished)).then(() => {
+          settling = false;
+          scheduleRefresh();
+        });
+      }
       return;
     }
     const forceSnapshot = forceNextSnapshot;
@@ -70,12 +93,30 @@ export function createCanvasGeometryObserver(
   refreshResizeTargets();
 
   const mutationObserver = new view.MutationObserver((mutations) => {
-    if (mutations.some((mutation) => mutation.type === 'childList')) {
+    const childList = mutations.some(
+      (mutation) => mutation.type === 'childList',
+    );
+    if (childList) {
       refreshResizeTargets();
     }
     // A content refresh can leave every rectangle unchanged. Emit a fresh
     // snapshot so consumers can still treat the mutation as completion.
-    scheduleRefresh(true);
+    if (
+      childList &&
+      (typeof synchronous === 'function' ? synchronous() : synchronous)
+    ) {
+      if (scheduledFrame !== null) {
+        view.cancelAnimationFrame(scheduledFrame);
+      }
+      forceNextSnapshot = true;
+      emit();
+    } else {
+      // Changed attributes report only changed geometry: a snapshot that is
+      // the same doesn't need to be emitted again.
+      scheduleRefresh(
+        mutations.some((mutation) => mutation.type !== 'attributes'),
+      );
+    }
   });
   mutationObserver.observe(root, {
     attributes: true,

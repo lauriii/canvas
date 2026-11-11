@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import clsx from 'clsx';
 import { useDraggable } from '@dnd-kit/core';
 
@@ -25,12 +25,16 @@ import useGetComponentName from '@/hooks/useGetComponentName';
 import { isMarkerComponentType } from '@/services/pageVariants';
 
 import type React from 'react';
-import type { CanvasStackDirection } from '@drupal-canvas/preview-geometry';
+import type {
+  CanvasRect,
+  CanvasStackDirection,
+} from '@drupal-canvas/preview-geometry';
 import type {
   ComponentNode,
   RegionNode,
   SlotNode,
 } from '@/features/layout/layoutModelSlice';
+import type { CanvasGeometryMap } from '@/features/layout/preview/PreviewGeometryContext';
 
 import styles from './PreviewOverlay.module.css';
 
@@ -42,6 +46,28 @@ export interface ComponentOverlayProps {
   parentRegion?: RegionNode;
   index: number;
   disableDrop?: boolean;
+}
+
+// Whether components in the slots of a component are laid out outside it, as
+// in a header of a fixed height that holds more than fits.
+function overflows(
+  component: ComponentNode,
+  rect: CanvasRect,
+  geometry: CanvasGeometryMap['component'],
+): boolean {
+  return component.slots.some((slot) =>
+    slot.components.some((child) => {
+      const r = geometry[child.uuid]?.rect;
+      return (
+        (!!r &&
+          (r.left < rect.left - 0.5 ||
+            r.top < rect.top - 0.5 ||
+            r.right > rect.right + 0.5 ||
+            r.bottom > rect.bottom + 0.5)) ||
+        overflows(child, rect, geometry)
+      );
+    }),
+  );
 }
 
 const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
@@ -120,6 +146,12 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
 
   function handleItemMouseOut(event: React.MouseEvent<HTMLDivElement>) {
     event.stopPropagation();
+    // The pointer is still over the component when it moves onto the name of
+    // the component. Removing the name then would put the pointer over the
+    // component again, which shows the name again, and so on.
+    if (event.currentTarget.contains(event.relatedTarget as Node | null)) {
+      return;
+    }
     dispatch(unsetHoveredComponent());
   }
 
@@ -135,12 +167,18 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
     }
   }
 
+  // Content laid out outside the component is shown over what follows it,
+  // and so is its outline: it can be picked up there.
+  const raised =
+    !!componentGeometry &&
+    overflows(component, componentGeometry.rect, geometryMap.component);
   const style: React.CSSProperties = useMemo(
     () => ({
       height: (componentGeometry?.rect.height ?? 0) * editorViewPortScale,
       width: (componentGeometry?.rect.width ?? 0) * editorViewPortScale,
       top: offsetTop * editorViewPortScale,
       left: offsetLeft * editorViewPortScale,
+      zIndex: raised ? 1 : undefined,
     }),
     [
       componentGeometry?.rect.height,
@@ -148,6 +186,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
       editorViewPortScale,
       offsetLeft,
       offsetTop,
+      raised,
     ],
   );
 
@@ -176,6 +215,7 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
       onKeyDown={handleKeyDown}
       data-canvas-selected={isSelected}
       data-canvas-drop-item={component.uuid}
+      data-canvas-overflows={raised || undefined}
       className={clsx('componentOverlay', styles.componentOverlay, {
         [styles.selected]: isSelected,
         [styles.hovered]: isHovered,
@@ -253,4 +293,4 @@ const ComponentOverlay: React.FC<ComponentOverlayProps> = (props) => {
   );
 };
 
-export default ComponentOverlay;
+export default memo(ComponentOverlay);

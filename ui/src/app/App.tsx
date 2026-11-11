@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router';
 import {
   DndContext,
+  getClientRect,
   PointerSensor,
   pointerWithin,
   rectIntersection,
@@ -18,7 +19,7 @@ import Toast from '@/components/Toast';
 import Topbar from '@/components/topbar/Topbar';
 import useExtensions from '@/features/extensions/useExtensions';
 import DragEventsHandler from '@/features/layout/previewOverlay/DragEventsHandler';
-import { findPreviewDropZoneId } from '@/features/layout/previewOverlay/previewDropTarget';
+import { previewDropZoneAt } from '@/features/layout/previewOverlay/previewDropTarget';
 import NotificationToastManager from '@/features/notifications/NotificationToastManager';
 import useNavigationListener from '@/hooks/useNavigationListener';
 import useRouteSync from '@/hooks/useRouteSync';
@@ -43,32 +44,17 @@ function customCollisionDetectionAlgorithm(
 
   // Over the editor pane, resolve the drop target from the pointer position
   // alone, so it doesn't depend on the drag preview's offset rect or on
-  // hitting a thin drop zone band. See findPreviewDropZoneId(). Over the pane
-  // but outside the previewed page there is no target, so dropping cancels.
+  // hitting a thin drop zone band. See previewDropZoneAt(). Over the pane but
+  // outside the previewed page there is no target, so dropping cancels.
   const pointer = args.pointerCoordinates;
-  const pane = document.querySelector('[data-canvas-editor-pane="true"]');
-  const root = document.querySelector<HTMLElement>(
-    '.canvas--viewport-overlay [data-canvas-drop-container]',
-  );
-  const within = (el: Element, p: { x: number; y: number }) => {
-    const r = el.getBoundingClientRect();
-    return p.x >= r.left && p.x <= r.right && p.y >= r.top && p.y <= r.bottom;
-  };
-  if (
-    (origin === 'overlay' || origin === 'library') &&
-    pointer &&
-    pane &&
-    root &&
-    within(pane, pointer)
-  ) {
-    if (within(root.closest('.canvas--viewport-overlay')!, pointer)) {
-      const id = findPreviewDropZoneId(root, pointer, args.active.id);
+  if ((origin === 'overlay' || origin === 'library') && pointer) {
+    const id = previewDropZoneAt(pointer, args.active.id);
+    if (id !== undefined) {
       const droppable = args.droppableContainers.find((d) => d.id === id);
       return droppable
         ? [{ id: droppable.id, data: { droppableContainer: droppable } }]
         : [];
     }
-    return [];
   }
 
   // First, let's see if there are any collisions with the pointer
@@ -95,6 +81,35 @@ function canAutoScroll(element: Element): boolean {
     element.dataset.canvasEditorPane === 'true'
   );
 }
+
+// A component dragged in the preview is measured once, when the drag starts.
+// Its outline changes size as it is shown at drop positions, and each new size
+// would otherwise render every draggable and droppable again. Nothing measures
+// it during the drag: drop targets are resolved from the pointer, and the copy
+// that follows the pointer is not dnd-kit's.
+let dragged: {
+  node: HTMLElement;
+  rect: ReturnType<typeof getClientRect>;
+} | null = null;
+const measuring = {
+  draggable: {
+    measure: (node: HTMLElement) => {
+      if (!node.matches('[data-canvas-overlay="true"]')) {
+        return getClientRect(node, { ignoreTransform: true });
+      }
+      if (dragged?.node !== node) {
+        dragged = {
+          node,
+          rect: getClientRect(node, { ignoreTransform: true }),
+        };
+      }
+      return dragged.rect;
+    },
+  },
+};
+const forgetDragged = () => {
+  dragged = null;
+};
 
 const App: React.FC = () => {
   useRouteSync();
@@ -138,6 +153,10 @@ const App: React.FC = () => {
             // The editor pane auto-scrolls itself (see EditorFrame); keep dnd-kit
             // from also scrolling it. See #3534972 and canAutoScroll above.
             autoScroll={{ canScroll: canAutoScroll }}
+            measuring={measuring}
+            onDragStart={forgetDragged}
+            onDragEnd={forgetDragged}
+            onDragCancel={forgetDragged}
           >
             <Flex className={styles.canvasContainer} gap="0">
               <ErrorBoundary variant="page">

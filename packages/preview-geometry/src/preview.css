@@ -10,6 +10,9 @@
 .canvas--region-empty-placeholder {
   grid-column: 1 / -1;
   width: 100%;
+  /* At least as wide as it is tall, so an empty slot in a row doesn't shrink
+   * away when the components beside it grow, e.g. while one is dragged. */
+  min-width: var(--canvas--sortable-empty-slot-height);
   height: 100%;
   min-height: var(--canvas--sortable-empty-slot-height);
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ContextMenu } from '@radix-ui/themes';
 
 import { useAppSelector } from '@/app/hooks';
@@ -144,10 +144,13 @@ const ComponentContextMenu: React.FC<ComponentContextMenuProps> = ({
   children,
   component,
 }) => {
+  // The content is rendered only while the menu is open: every component in
+  // the preview has a menu, and the content subscribes to a lot of state.
+  const [open, setOpen] = useState(false);
   return (
-    <ContextMenu.Root>
+    <ContextMenu.Root onOpenChange={setOpen}>
       <ContextMenu.Trigger>{children}</ContextMenu.Trigger>
-      <ComponentContextMenuContent component={component} />
+      {open && <ComponentContextMenuContent component={component} />}
     </ContextMenu.Root>
   );
 };

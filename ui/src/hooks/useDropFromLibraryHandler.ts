@@ -6,9 +6,11 @@ import {
   addNewPatternToLayout,
   selectLayout,
 } from '@/features/layout/layoutModelSlice';
+import { commitLivePreview } from '@/features/layout/preview/livePreview';
 import {
   getPreviewDocument,
   insertPreviewComponent,
+  movePreviewComponent,
 } from '@/features/layout/preview/optimisticPreview';
 import useComponentSelection from '@/hooks/useComponentSelection';
 
@@ -41,17 +43,21 @@ export function useDropFromLibraryHandler() {
         ),
       );
       // Show the component right away instead of after the new preview is
-      // rendered.
-      const previewDocument = getPreviewDocument();
-      if (previewDocument && newItem.default_markup) {
-        insertPreviewComponent(
-          previewDocument,
-          selectLayout(store.getState()),
-          uuid,
-          newItem,
-        );
+      // rendered: keep the markup the live preview shows, or insert it.
+      const layout = selectLayout(store.getState());
+      const livePreviewDocument = commitLivePreview(uuid);
+      if (livePreviewDocument) {
+        // The live preview added the CSS when the drag started.
+        movePreviewComponent(livePreviewDocument, layout, uuid);
+      } else {
+        const previewDocument = getPreviewDocument();
+        if (previewDocument && newItem.default_markup) {
+          insertPreviewComponent(previewDocument, layout, uuid, newItem);
+        }
       }
     } else if (type === 'pattern') {
+      // The markup of a pattern isn't kept: its markers aren't those of the
+      // components the pattern adds. The new preview shows them.
       dispatch(
         addNewPatternToLayout(
           {
