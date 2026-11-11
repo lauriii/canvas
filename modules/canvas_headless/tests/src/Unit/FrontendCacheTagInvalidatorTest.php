@@ -610,6 +610,11 @@ final class FrontendCacheTagInvalidatorTest extends UnitTestCase {
     self::assertSame(['http_response'], end($read));
     self::assertNull($this->state()['missed_at']);
     self::assertSame('ok', $invalidator->getStatus()[self::FRONTEND]['state']);
+
+    // On request, a frontend that missed nothing expires everything too.
+    $responses->append($respond);
+    self::assertSame($expected, $invalidator->test(self::FRONTEND, TRUE));
+    self::assertSame(['http_response'], end($read));
   }
 
   /**

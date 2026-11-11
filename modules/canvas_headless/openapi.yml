@@ -464,7 +464,8 @@ paths:
         for the frontend to read the cache tags from Drupal. The announced tag
         is one that no response carries, so nothing expires, unless the
         frontend missed an earlier announcement or never read one: then the
-        tag is `http_response`, and the frontend expires everything.
+        tag is `http_response`, and the frontend expires everything. With
+        `expireAll`, the tag is always `http_response`.
         Cookie authentication and an X-CSRF-Token request header are required.
       parameters:
         - $ref: '#/components/parameters/CsrfToken'
@@ -481,6 +482,10 @@ paths:
                   type: string
                   format: uri
                   description: The URL of a configured frontend.
+                expireAll:
+                  type: boolean
+                  default: false
+                  description: Whether the frontend is told to expire everything.
       responses:
         '200':
           description: The outcome of the test.

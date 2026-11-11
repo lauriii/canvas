@@ -121,8 +121,9 @@ final class FrontendsController implements ContainerInjectionInterface {
   public function testCacheInvalidation(Request $request): JsonResponse {
     $payload = json_decode($request->getContent(), TRUE);
     $url = \is_array($payload) ? ($payload['url'] ?? NULL) : NULL;
-    if (!\is_string($url)) {
-      return new JsonResponse(['error' => 'The request body must contain a "url" string.'], Response::HTTP_BAD_REQUEST);
+    $expire_all = \is_array($payload) ? ($payload['expireAll'] ?? FALSE) : NULL;
+    if (!\is_string($url) || !\is_bool($expire_all)) {
+      return new JsonResponse(['error' => 'The request body must contain a "url" string, and "expireAll" must be a boolean.'], Response::HTTP_BAD_REQUEST);
     }
     // Only configured frontends are contacted.
     $base_url = FrontendUrl::fromConfig($url)?->baseUrl;
@@ -130,7 +131,7 @@ final class FrontendsController implements ContainerInjectionInterface {
     if ($base_url === NULL || !\in_array($base_url, $configured, TRUE)) {
       return new JsonResponse(['error' => \sprintf('"%s" is not a configured frontend.', $url)], Response::HTTP_UNPROCESSABLE_ENTITY);
     }
-    return new JsonResponse($this->frontendCacheTagInvalidator->test($base_url));
+    return new JsonResponse($this->frontendCacheTagInvalidator->test($base_url, $expire_all));
   }
 
   /**

@@ -29,6 +29,8 @@ const renderList = (
   const props = {
     onOpenSetupGuide: vi.fn(),
     onRetryCacheInvalidation: vi.fn(),
+    onExpireCachedPages: vi.fn(),
+    onRemove: vi.fn(),
   };
   render(
     <Theme>
@@ -46,7 +48,6 @@ const renderList = (
           ]}
           onAdd={vi.fn()}
           onReorder={vi.fn()}
-          onRemove={vi.fn()}
           onStatusChange={vi.fn()}
           retryingCacheInvalidation={retryingCacheInvalidation}
           disabled={false}
@@ -132,6 +133,36 @@ describe('FrontendsList', () => {
 
     const tooltip = await screen.findByRole('tooltip');
     expect(tooltip).toHaveTextContent(/Last failure: 5 minutes ago\.$/);
+  });
+
+  it('offers to expire the cached pages of a frontend that receives content updates', async () => {
+    const user = userEvent.setup();
+    const { onExpireCachedPages, onRemove } = renderList({
+      cacheInvalidationStatus: { ...FAILING, state: 'ok' },
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Frontend actions' }));
+    await user.click(
+      await screen.findByRole('menuitem', { name: 'Expire cached pages' }),
+    );
+    expect(onExpireCachedPages).toHaveBeenCalledExactlyOnceWith(
+      'https://frontend.example',
+    );
+    expect(onRemove).not.toHaveBeenCalled();
+  });
+
+  it('only offers to remove a frontend that never received a content update', async () => {
+    const user = userEvent.setup();
+    const { onRemove } = renderList({});
+
+    await user.click(screen.getByRole('button', { name: 'Frontend actions' }));
+    expect(
+      (await screen.findAllByRole('menuitem')).map((item) => item.textContent),
+    ).toEqual(['Remove']);
+    await user.click(screen.getByRole('menuitem', { name: 'Remove' }));
+    expect(onRemove).toHaveBeenCalledExactlyOnceWith(
+      'https://frontend.example',
+    );
   });
 
   it('retries one frontend at a time', () => {

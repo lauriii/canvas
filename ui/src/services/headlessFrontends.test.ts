@@ -204,6 +204,7 @@ describe('headlessFrontendsApi', () => {
       .dispatch(
         headlessFrontendsApi.endpoints.testCacheInvalidation.initiate({
           url: 'https://one.example.com',
+          expireAll: false,
         }),
       )
       .unwrap();
@@ -213,7 +214,7 @@ describe('headlessFrontendsApi', () => {
       {
         method: 'POST',
         path: '/canvas/api/v0/headless/frontends/cache-invalidation/test',
-        body: { url: 'https://one.example.com' },
+        body: { url: 'https://one.example.com', expireAll: false },
       },
     ]);
     expect(result).toEqual({

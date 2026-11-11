@@ -101,8 +101,14 @@ status in two cases:
   read. A failing frontend has a miss on record, so the announced tag is
   `http_response`. The result is shown as a message, and the list is fetched again.
   A test the frontend does not read is recorded as a failure at once.
+- **Expire cached pages.** The menu at the end of a connected frontend's row has this
+  action, next to **Remove**. It calls the test route with `expireAll`, so the
+  announced tag is `http_response`. The message says that the frontend was told to
+  expire its cached pages: Drupal knows that the frontend read the tags, not what
+  the frontend did with them.
 - **The test route.** It accepts every frontend in the list. To a frontend without a
-  miss on record, it announces `canvas_headless:test`, which no response carries.
+  miss on record, it announces `canvas_headless:test`, which no response carries,
+  unless `expireAll` is set.
 - **The status report.** The site's status report shows a warning while a connected
   frontend is failing, with each failing frontend's URL, last error and time.
 - **The log.** A failed request to a connected frontend, and an announcement it
@@ -112,7 +118,7 @@ The status holds `state`, `lastSuccess`, `lastFailure` and `lastError`. Users wh
 only preview get the frontend list with `null` for every status: errors can name hosts
 of the site's network.
 
-To expire everything by hand, an administrator rebuilds Drupal's caches, which
+To expire every frontend at once, an administrator rebuilds Drupal's caches, which
 announces `http_response`. The messages and their causes are listed in the
 [module README](../README.md#troubleshooting).
 

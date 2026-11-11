@@ -368,6 +368,12 @@ and waits up to five seconds for the frontend to read the tags. A frontend
 with a failure on record is sent `http_response`. The result is shown as a
 message; see [Troubleshooting](#troubleshooting).
 
+The menu at the end of a connected frontend's row has **Expire cached pages**.
+It announces `http_response` to that frontend at once, and waits up to five
+seconds for the read. The message `The frontend was told to expire its cached
+pages.` means that the frontend read the announcement. Use it after a change
+that invalidates no cache tags, such as a database import.
+
 The site's status report shows the warning **Drupal Canvas Headless cache
 invalidation** while a connected frontend has a failure on record. The warning
 lists each such frontend with its last error and time. A failed request to a
@@ -483,8 +489,12 @@ cache tags.` has the same causes as the message about `CANVAS_SITE_URL` above.
   answering.
 - A frontend that never connected is not reported. A route that never worked
   shows nothing: no status, no status report warning, and no log message.
-- The screen has no action that expires everything. To expire everything by
-  hand, rebuild Drupal's caches, which announces `http_response`.
+- **Expire cached pages** confirms that the frontend read the announcement,
+  not that its cache is empty. An app-supplied purge, other instances of the
+  frontend without a shared cache, and a CDN in front of the frontend are
+  outside what Drupal sees. Every page is then rendered again from Drupal. To
+  expire every frontend at once, rebuild Drupal's caches, which announces
+  `http_response`.
 - A missed invalidation is repaired by the next request that invalidates tags,
   or by cron, once the wait after the failure has passed. The frontend serves
   the stale pages until then, so run cron often.

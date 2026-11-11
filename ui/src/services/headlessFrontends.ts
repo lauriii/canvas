@@ -75,11 +75,12 @@ export const headlessFrontendsApi = createApi({
       },
       invalidatesTags: [{ type: 'HeadlessFrontends', id: 'LIST' }],
     }),
-    // Announces to one frontend and waits for it to read the cache tags. The
-    // list is refetched afterwards because the test changes the status.
+    // Announces to one frontend and waits for it to read the cache tags. With
+    // `expireAll`, the frontend is told to expire everything. The list is
+    // refetched afterwards because the test changes the status.
     testCacheInvalidation: builder.mutation<
       CacheInvalidationTestResult,
-      { url: string }
+      { url: string; expireAll: boolean }
     >({
       query: (body) => ({
         url: '/canvas/api/v0/headless/frontends/cache-invalidation/test',

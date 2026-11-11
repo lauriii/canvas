@@ -91,10 +91,37 @@ describe('HeadlessFrontendsPage', () => {
 
     expect(mocks.testCacheInvalidation).toHaveBeenCalledExactlyOnceWith({
       url: 'https://one.example.com',
+      expireAll: false,
     });
     await waitFor(() =>
       expect(toast.success).toHaveBeenCalledExactlyOnceWith(
         'The frontend receives content updates again.',
+        expect.anything(),
+      ),
+    );
+  });
+
+  it('tells a frontend to expire its cached pages', async () => {
+    const user = userEvent.setup();
+    mocks.testCacheInvalidation.mockReturnValue({
+      unwrap: () => Promise.resolve({ ok: true, message: 'Read.' }),
+    });
+    renderPage();
+
+    await user.click(
+      (await screen.findAllByRole('button', { name: 'Frontend actions' }))[0],
+    );
+    await user.click(
+      await screen.findByRole('menuitem', { name: 'Expire cached pages' }),
+    );
+
+    expect(mocks.testCacheInvalidation).toHaveBeenCalledExactlyOnceWith({
+      url: 'https://one.example.com',
+      expireAll: true,
+    });
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledExactlyOnceWith(
+        'The frontend was told to expire its cached pages.',
         expect.anything(),
       ),
     );
@@ -143,8 +170,9 @@ describe('HeadlessFrontendsPage', () => {
     renderPage();
 
     await user.click(
-      screen.getAllByRole('button', { name: 'Remove frontend' })[1],
+      screen.getAllByRole('button', { name: 'Frontend actions' })[1],
     );
+    await user.click(await screen.findByRole('menuitem', { name: 'Remove' }));
     await user.click(await screen.findByRole('button', { name: 'Remove' }));
 
     await waitFor(() =>

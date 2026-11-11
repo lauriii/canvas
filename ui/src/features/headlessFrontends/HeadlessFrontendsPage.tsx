@@ -127,13 +127,17 @@ const HeadlessFrontendsPage = () => {
   };
 
   // Drupal announces to the frontend at once, and waits for it to read the
-  // cache tags. The list is refetched afterwards, with the new status.
-  const handleRetryCacheInvalidation = async (url: string) => {
+  // cache tags. The list is refetched afterwards, with the new status. With
+  // `expireAll`, the frontend is told to expire everything: Drupal knows that
+  // the frontend read that, not that its cache is empty.
+  const handleAnnounce = async (url: string, expireAll: boolean) => {
     try {
-      const result = await testCacheInvalidation({ url }).unwrap();
+      const result = await testCacheInvalidation({ url, expireAll }).unwrap();
       if (result.ok) {
         toast.success(
-          'The frontend receives content updates again.',
+          expireAll
+            ? 'The frontend was told to expire its cached pages.'
+            : 'The frontend receives content updates again.',
           MESSAGE_TOAST,
         );
       } else {
@@ -210,8 +214,9 @@ const HeadlessFrontendsPage = () => {
                 }
                 onStatusChange={handleStatusChange}
                 onRetryCacheInvalidation={(id) =>
-                  void handleRetryCacheInvalidation(id)
+                  void handleAnnounce(id, false)
                 }
+                onExpireCachedPages={(id) => void handleAnnounce(id, true)}
                 retryingCacheInvalidation={
                   retry.isLoading ? (retry.originalArgs?.url ?? null) : null
                 }

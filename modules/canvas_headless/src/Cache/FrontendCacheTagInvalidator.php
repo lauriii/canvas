@@ -287,6 +287,8 @@ final class FrontendCacheTagInvalidator implements CacheTagsInvalidatorInterface
    *
    * @param string $baseUrl
    *   The canonical base URL of a configured frontend.
+   * @param bool $expire_all
+   *   Whether to announce `http_response`, so the frontend expires everything.
    *
    * @return array{ok: bool, announced: bool, read: bool, message: string}
    *   Whether the frontend accepted the announcement and read the tags, and a
@@ -294,8 +296,8 @@ final class FrontendCacheTagInvalidator implements CacheTagsInvalidatorInterface
    *
    * @phpstan-impure
    */
-  public function test(string $baseUrl): array {
-    $id = $this->prepare($baseUrl, [self::TEST_TAG], ignore_backoff: TRUE);
+  public function test(string $baseUrl, bool $expire_all = FALSE): array {
+    $id = $this->prepare($baseUrl, [$expire_all ? 'http_response' : self::TEST_TAG], ignore_backoff: TRUE);
     \assert(\is_string($id));
     $error = $this->send([$baseUrl => $id])[$baseUrl];
     if ($error !== NULL) {

@@ -174,12 +174,12 @@ final class FrontendsControllerTest extends CanvasKernelTestBase {
       return new FrontendResponse(204);
     };
     $history = [];
-    $handler = HandlerStack::create(new MockHandler([$respond, $respond, new FrontendResponse(404), $respond]));
+    $handler = HandlerStack::create(new MockHandler([$respond, $respond, new FrontendResponse(404), $respond, $respond, $respond]));
     $handler->push(Middleware::history($history));
     $this->container->set('http_client', new Client(['handler' => $handler]));
     $controller = FrontendsController::create($this->container);
 
-    foreach (['not JSON', '[]', '{"url": 1}'] as $malformed) {
+    foreach (['not JSON', '[]', '{"url": 1}', '{"url": "https://first.example/app", "expireAll": 1}'] as $malformed) {
       $response = $controller->testCacheInvalidation(Request::create('/canvas/api/v0/headless/frontends/cache-invalidation/test', 'POST', content: $malformed));
       self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode(), $malformed);
     }
@@ -219,8 +219,12 @@ final class FrontendsControllerTest extends CanvasKernelTestBase {
     // After a failure, the frontend expires everything again.
     self::assertSame($read_message, self::decode($controller->testCacheInvalidation(self::request(['url' => 'https://first.example/app']))));
 
-    self::assertSame([['http_response'], [FrontendCacheTagInvalidator::TEST_TAG], ['http_response']], $read);
-    self::assertCount(4, $history);
+    // On request, a frontend that missed nothing expires everything too.
+    self::assertSame($read_message, self::decode($controller->testCacheInvalidation(self::request(['url' => 'https://first.example/app', 'expireAll' => FALSE]))));
+    self::assertSame($read_message, self::decode($controller->testCacheInvalidation(self::request(['url' => 'https://first.example/app', 'expireAll' => TRUE]))));
+
+    self::assertSame([['http_response'], [FrontendCacheTagInvalidator::TEST_TAG], ['http_response'], [FrontendCacheTagInvalidator::TEST_TAG], ['http_response']], $read);
+    self::assertCount(6, $history);
     self::assertSame('https://first.example/app/api/canvas/revalidate', (string) $history[0]['request']->getUri());
   }
 

@@ -19,14 +19,15 @@ import { CSS } from '@dnd-kit/utilities';
 import {
   CheckCircledIcon,
   CrossCircledIcon,
+  DotsHorizontalIcon,
   DragHandleDots2Icon,
   ExclamationTriangleIcon,
   PlusIcon,
-  TrashIcon,
 } from '@radix-ui/react-icons';
 import {
   Badge,
   Button,
+  DropdownMenu,
   Flex,
   Link,
   Spinner,
@@ -55,7 +56,8 @@ interface FrontendsListProps {
   onRemove: (id: string) => void;
   onStatusChange: (id: string, status: ConnectionStatus) => void;
   onRetryCacheInvalidation: (id: string) => void;
-  // The frontend a retry is running for, if any.
+  onExpireCachedPages: (id: string) => void;
+  // The frontend a retry or an expiry is running for, if any.
   retryingCacheInvalidation: string | null;
   onOpenSetupGuide: () => void;
   disabled: boolean;
@@ -68,6 +70,7 @@ const FrontendsList = ({
   onRemove,
   onStatusChange,
   onRetryCacheInvalidation,
+  onExpireCachedPages,
   retryingCacheInvalidation,
   onOpenSetupGuide,
   disabled,
@@ -108,6 +111,7 @@ const FrontendsList = ({
               onRetryCacheInvalidation={() =>
                 onRetryCacheInvalidation(frontend.id)
               }
+              onExpireCachedPages={() => onExpireCachedPages(frontend.id)}
               retryingCacheInvalidation={retryingCacheInvalidation}
               onOpenSetupGuide={onOpenSetupGuide}
               disabled={disabled}
@@ -136,6 +140,7 @@ interface FrontendRowProps {
   onRemove: () => void;
   onStatusChange: (status: ConnectionStatus) => void;
   onRetryCacheInvalidation: () => void;
+  onExpireCachedPages: () => void;
   retryingCacheInvalidation: string | null;
   onOpenSetupGuide: () => void;
   disabled: boolean;
@@ -147,12 +152,18 @@ const FrontendRow = ({
   onRemove,
   onStatusChange,
   onRetryCacheInvalidation,
+  onExpireCachedPages,
   retryingCacheInvalidation,
   onOpenSetupGuide,
   disabled,
   'data-testid': dataTestId,
 }: FrontendRowProps) => {
   const { cacheInvalidationStatus } = frontend;
+  const isRetrying = retryingCacheInvalidation === frontend.id;
+  // A frontend the browser reaches, but that stopped receiving content
+  // updates, says so instead of "Ready".
+  const isFailing =
+    cacheInvalidationStatus?.state === 'failing' && frontend.status === 'ready';
   const {
     attributes,
     listeners,
@@ -236,14 +247,12 @@ const FrontendRow = ({
         {frontend.url}
       </Text>
       <Flex align="center" gap="3" ml="auto" flexShrink="0">
-        {/* One status per row. A frontend the browser reaches, but that
-            stopped receiving content updates, says so instead of "Ready". */}
-        {cacheInvalidationStatus?.state === 'failing' &&
-        frontend.status === 'ready' ? (
+        {/* One status per row. */}
+        {isFailing ? (
           <ContentUpdatesFailing
             status={cacheInvalidationStatus}
             onRetry={onRetryCacheInvalidation}
-            isRetrying={retryingCacheInvalidation === frontend.id}
+            isRetrying={isRetrying}
             disabled={retryingCacheInvalidation !== null}
           />
         ) : (
@@ -253,16 +262,35 @@ const FrontendRow = ({
             onOpenSetupGuide={onOpenSetupGuide}
           />
         )}
-        <Button
-          onClick={onRemove}
-          aria-label="Remove frontend"
-          disabled={disabled}
-          variant="ghost"
-          color="red"
-          className={styles.rowControl}
-        >
-          <TrashIcon />
-        </Button>
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger>
+            <Button
+              aria-label="Frontend actions"
+              disabled={disabled}
+              loading={isRetrying && !isFailing}
+              variant="ghost"
+              color="gray"
+              className={styles.rowControl}
+            >
+              <DotsHorizontalIcon />
+            </Button>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Content size="1" align="end">
+            {/* Only a frontend that read announced cache tags caches pages
+                Drupal can expire. */}
+            {cacheInvalidationStatus && (
+              <DropdownMenu.Item
+                onSelect={onExpireCachedPages}
+                disabled={retryingCacheInvalidation !== null}
+              >
+                Expire cached pages
+              </DropdownMenu.Item>
+            )}
+            <DropdownMenu.Item color="red" onSelect={onRemove}>
+              Remove
+            </DropdownMenu.Item>
+          </DropdownMenu.Content>
+        </DropdownMenu.Root>
       </Flex>
     </Flex>
   );
