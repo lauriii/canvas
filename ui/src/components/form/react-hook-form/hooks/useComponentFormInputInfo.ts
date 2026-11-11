@@ -1,8 +1,10 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { useAppDispatch, useAppSelector, useAppStore } from '@/app/hooks';
 import { useComponentTransforms } from '@/components/ComponentInstanceForm';
 import { toPropName } from '@/components/form/react-hook-form/fields/componentFormData';
+import { flushBackendUpdate } from '@/components/form/react-hook-form/fields/componentFormHandlers';
+import { selectModel } from '@/features/layout/layoutModelSlice';
 import { selectEditorFrameContext } from '@/features/ui/uiSlice';
 import useInputUIData from '@/hooks/useInputUIData';
 import { useGetComponentsQuery } from '@/services/componentAndLayout';
@@ -20,13 +22,27 @@ import type { PropSourceComponent } from '@/types/Component';
 export const useComponentFormInputInfo = (fieldName: string) => {
   const editorFrameContext = useAppSelector(selectEditorFrameContext);
   const dispatch = useAppDispatch();
-  const polledBackgroundUpdate = useRef<number | null>(null);
+  const store = useAppStore();
   const { data: components } = useGetComponentsQuery();
   const transforms = useComponentTransforms();
   const inputAndUiData = useInputUIData();
   const { selectedComponentType, version, selectedComponent } = inputAndUiData;
   const component = components?.[selectedComponentType] as PropSourceComponent;
   const patchComponent = usePatchComponent();
+
+  // A PATCH still waiting when the form goes away, for example when another
+  // component is selected, is sent at once, unless its component was deleted.
+  const selectedComponentRef = useRef(selectedComponent);
+  selectedComponentRef.current = selectedComponent;
+  useEffect(
+    () => () => {
+      void flushBackendUpdate(
+        selectedComponentRef.current,
+        () => !!selectModel(store.getState())[selectedComponentRef.current],
+      );
+    },
+    [store],
+  );
 
   const propName = toPropName(fieldName, selectedComponent);
   // Scalar prop-types might be able to perform real-time updates.
@@ -37,7 +53,6 @@ export const useComponentFormInputInfo = (fieldName: string) => {
   return {
     editorFrameContext,
     dispatch,
-    polledBackgroundUpdate,
     components,
     transforms,
     inputAndUiData,
