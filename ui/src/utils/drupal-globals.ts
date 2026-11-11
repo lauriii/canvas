@@ -13,6 +13,11 @@ export const getDrupal = () => Drupal;
 export const getDrupalSettings = (): DrupalSettings => drupalSettings;
 export const getCanvasSettings = () => drupalSettings?.canvas;
 export const getBaseUrl = () => drupalSettings?.path?.baseUrl;
+// Drupal core's user module adds `user.uid` to drupalSettings on every page.
+export const getCurrentUserId = (): number | undefined => {
+  const uid = drupalSettings?.user?.uid;
+  return uid === undefined ? undefined : Number(uid);
+};
 export const getLanguages = (): Language[] =>
   drupalSettings?.canvas?.languages ?? [];
 

@@ -2,7 +2,7 @@ export type AutoSavesHash = Record<
   string,
   {
     autoSaveStartingPoint: string;
-    hash: string;
+    hash: string | null;
   }
 >;
 
