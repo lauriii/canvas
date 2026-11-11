@@ -6,6 +6,8 @@ namespace Drupal\Tests\canvas\Kernel\Tmgmt;
 
 // cspell:ignore Traduit Gitane
 
+use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItemList;
@@ -16,6 +18,7 @@ use Drupal\content_translation\BundleTranslationSettingsInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Tests\canvas\Kernel\Translation\ContentComponentTreeSymmetricalTranslationTestBase;
+use Drupal\tmgmt\TMGMTException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -174,6 +177,106 @@ final class ComponentTreeFieldProcessorTest extends ContentComponentTreeSymmetri
   }
 
   /**
+   * Tests that a forked tree is never a translation source nor a target.
+   *
+   * @see docs/adr/0022-per-translation-component-tree-forks.md
+   */
+  public function testForkedTranslationRefused(): void {
+    $field_name = 'components';
+    $this->setUpSymmetricalContentTranslation(Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID, $field_name);
+    $storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage(Page::ENTITY_TYPE_ID);
+    $entity = $this->createEntityWithDefaultTranslation(Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID, $field_name, $storage, [
+      [
+        'uuid' => self::UUID_BANNER,
+        'component_id' => 'sdc.canvas_test_sdc.banner',
+        'component_version' => '::ACTIVE_VERSION_IN_SUT::',
+        'inputs' => [
+          'heading' => 'A heading element! :)',
+          'text' => [
+            'value' => '<p>In a curious work, published in <em>Paris</em> in 1863.</p>',
+            'format' => 'canvas_html_block',
+          ],
+        ],
+      ],
+    ]);
+    $entity->save();
+    $translation = $entity->addTranslation('fr', $entity->toArray());
+    \assert($translation instanceof ContentEntityInterface);
+    $this->container->get(BundleTranslationSettingsInterface::class)
+      ->getTranslationMetadata($translation)
+      ->setSource($entity->language()->getId());
+    $translation->save();
+    $id = $entity->id();
+    \assert($id !== NULL);
+
+    $processor = ComponentTreeFieldProcessor::create($this->container);
+    // Mirror tmgmt_content: extract from the job's source (the default
+    // translation), write onto the target translation.
+    $set_heading = function (ContentEntityInterface $target) use ($processor, $field_name): void {
+      $extracted = $processor->extractTranslatableData($target->getUntranslated()->get($field_name));
+      $processor->setTranslations([
+        0 => ['heading' => self::translated($extracted[0]['heading'], 'fr: A heading element! :)')],
+      ], $target->get($field_name));
+    };
+    $expected_message = \sprintf('The French (fr) translation of canvas_page %s owns an independent (forked) component tree: string translations cannot be applied to it.', $entity->id());
+    $auto_save = $this->container->get(AutoSaveManager::class);
+    \assert($auto_save instanceof AutoSaveManager);
+
+    // Forked in the auto-save draft only.
+    $loaded = $storage->loadUnchanged($id);
+    \assert($loaded instanceof ContentEntityInterface);
+    $draft = (clone $loaded)->getTranslation('fr');
+    $draft->set(ComponentTreeTranslationFork::FIELD_NAME, TRUE);
+    $auto_save->saveEntity($draft);
+    $stored = $storage->loadUnchanged($id);
+    \assert($stored instanceof ContentEntityInterface);
+    try {
+      $set_heading($stored->getTranslation('fr'));
+      $this->fail('Expected a forked draft to refuse string translations.');
+    }
+    catch (TMGMTException $e) {
+      self::assertSame($expected_message, $e->getMessage());
+    }
+    self::assertSame('A heading element! :)', self::inputs(self::componentTree($stored->getTranslation('fr'), $field_name), self::UUID_BANNER)['heading']);
+
+    // Forked in storage, also with a pending unfork in the draft.
+    $auto_save->delete($draft);
+    $stored->getTranslation('fr')->set(ComponentTreeTranslationFork::FIELD_NAME, TRUE)->save();
+    $draft->set(ComponentTreeTranslationFork::FIELD_NAME, FALSE);
+    $auto_save->saveEntity($draft);
+    $stored = $storage->loadUnchanged($id);
+    \assert($stored instanceof ContentEntityInterface);
+    try {
+      $set_heading($stored->getTranslation('fr'));
+      $this->fail('Expected a forked translation to refuse string translations.');
+    }
+    catch (TMGMTException $e) {
+      self::assertSame($expected_message, $e->getMessage());
+    }
+
+    // A translation forked in storage is never a source: its deltas do not map
+    // onto any other translation's tree.
+    // @see \Drupal\tmgmt_content\Plugin\tmgmt\Source\ContentEntitySource::getData()
+    try {
+      $processor->extractTranslatableData($stored->getTranslation('fr')->get($field_name));
+      $this->fail('Expected a forked translation to refuse being a translation source.');
+    }
+    catch (TMGMTException $e) {
+      self::assertSame(\sprintf('The French (fr) translation of canvas_page %s owns an independent (forked) component tree: it cannot be the source of a translation job.', $entity->id()), $e->getMessage());
+    }
+
+    // Symmetric translations still accept them.
+    $auto_save->delete($draft);
+    $stored->getTranslation('fr')->set(ComponentTreeTranslationFork::FIELD_NAME, FALSE)->save();
+    $stored = $storage->loadUnchanged($id);
+    \assert($stored instanceof ContentEntityInterface);
+    $set_heading($stored->getTranslation('fr'));
+    self::assertSame('fr: A heading element! :)', self::inputs(self::componentTree($stored->getTranslation('fr'), $field_name), self::UUID_BANNER)['heading']);
+    // … and are a translation source again.
+    self::assertSame('fr: A heading element! :)', $processor->extractTranslatableData($stored->getTranslation('fr')->get($field_name))[0]['heading']['#text']);
+  }
+
+  /**
    * Marks an extracted translatable as translated, as a translator plugin does.
    *
    * @param array<string, mixed> $translatable
@@ -188,6 +291,15 @@ final class ComponentTreeFieldProcessorTest extends ContentComponentTreeSymmetri
     self::assertTrue($translatable['#translate'] ?? FALSE);
     $translatable['#translation'] = ['#text' => $text];
     return $translatable;
+  }
+
+  /**
+   * Gets a component tree field of a translation.
+   */
+  private static function componentTree(ContentEntityInterface $translation, string $field_name): ComponentTreeItemList {
+    $field = $translation->get($field_name);
+    \assert($field instanceof ComponentTreeItemList);
+    return $field;
   }
 
   /**

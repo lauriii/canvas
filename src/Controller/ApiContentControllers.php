@@ -6,6 +6,8 @@ namespace Drupal\canvas\Controller;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\CanvasUriDefinitions;
+use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
+use Drupal\canvas\ContentTranslation\TranslationForkStateResolver;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
@@ -74,6 +76,7 @@ final class ApiContentControllers extends ApiControllerBase {
     private readonly TransliterationInterface $transliteration,
     private readonly HomePageHelper $homePageHelper,
     private readonly ModuleHandlerInterface $moduleHandler,
+    private readonly TranslationForkStateResolver $forkStateResolver,
   ) {}
 
   /**
@@ -425,6 +428,19 @@ final class ApiContentControllers extends ApiControllerBase {
 
     /** @var \Drupal\Core\Entity\EntityPublishedInterface[] $content_entities */
     $content_entities = $storage->loadMultiple($ids);
+    // The languages of each entity's translation auto-save drafts, keyed by
+    // entity ID: one read of the auto-save store for the whole list, so the
+    // fork state of a translation is resolved only when it has a draft.
+    $translation_drafts = [];
+    $forks_enabled = $this->moduleHandler->moduleExists('content_translation');
+    if ($forks_enabled) {
+      foreach ($this->autoSaveManager->getAllAutoSaveList(with_entities: FALSE, with_conflicts: FALSE) as $entry) {
+        if ($entry['entity_type'] === $entity_type && \is_string($entry['langcode'] ?? NULL)) {
+          $translation_drafts[$entry['entity_id']][$entry['langcode']] = TRUE;
+        }
+      }
+      $query_cacheability->addCacheTags([AutoSaveManager::CACHE_TAG]);
+    }
     $data = [];
     // Search results are not ordered by language yet.
     $data_in_other_languages = [];
@@ -432,24 +448,39 @@ final class ApiContentControllers extends ApiControllerBase {
       \assert($content_entity instanceof ContentEntityInterface);
       // The title and path of each translation, keyed by langcode: lets a
       // client list content in another language than the one it was created
-      // in.
+      // in. With translation forks, also whether each translation is forked,
+      // draft-aware, and the translations that exist only as a forked
+      // auto-save draft.
+      $has_forks = $forks_enabled && $content_entity->hasField(ComponentTreeTranslationFork::FIELD_NAME);
+      $draft_langcodes = $has_forks ? ($translation_drafts[$content_entity->id()] ?? []) : [];
       $translations = [];
       foreach (\array_keys($content_entity->getTranslationLanguages(FALSE)) as $translation_langcode) {
         $translation = $content_entity->getTranslation($translation_langcode);
-        $translation_url = $translation->toUrl()->toString(TRUE);
-        $query_cacheability->addCacheableDependency($translation_url);
-        $translations[$translation_langcode] = [
-          'title' => (string) $translation->label(),
-          // Processed like the path of the page: with its language prefix.
-          'path' => $translation_url->getGeneratedUrl(),
-        ];
+        $translations[$translation_langcode] = self::normalizeTranslation($translation, $query_cacheability);
+        if ($has_forks) {
+          $translations[$translation_langcode]['forked'] = isset($draft_langcodes[$translation_langcode])
+            ? $this->forkStateResolver->resolve($content_entity, $translation_langcode)->isForked()
+            : ComponentTreeTranslationFork::isForkedTranslation($translation);
+        }
+      }
+      $default_langcode = $content_entity->getUntranslated()->language()->getId();
+      foreach (\array_keys($draft_langcodes) as $draft_langcode) {
+        if ($draft_langcode === $default_langcode || isset($translations[$draft_langcode])) {
+          continue;
+        }
+        $draft = $this->autoSaveManager->getTranslationAutoSaveEntity($content_entity, $draft_langcode)->entity;
+        if ($draft instanceof ContentEntityInterface && $this->forkStateResolver->resolveDraft($draft)->isForked()) {
+          $translations[$draft_langcode] = self::normalizeTranslation($draft, $query_cacheability) + ['forked' => TRUE];
+        }
       }
       $item = $this->normalize($content_entity, $query_cacheability) + [
         'langcode' => $content_entity->getUntranslated()->language()->getId(),
         // An empty object rather than an empty array, to match the schema.
         'translations' => $translations === [] ? new \stdClass() : $translations,
       ];
-      if ($langcode === NULL || $content_entity->hasTranslation($langcode)) {
+      // A translation that exists only as a forked draft counts too, within the
+      // page of results: the query that pages them only knows stored ones.
+      if ($langcode === NULL || $content_entity->hasTranslation($langcode) || isset($translations[$langcode])) {
         $data[] = $item;
       }
       else {
@@ -468,6 +499,27 @@ final class ApiContentControllers extends ApiControllerBase {
     $json_response->addCacheableDependency($query_cacheability);
 
     return $json_response;
+  }
+
+  /**
+   * Normalizes one translation of a content entity for the list.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityInterface $translation
+   *   A stored translation, or one reconstructed from its auto-save draft.
+   * @param \Drupal\Core\Cache\CacheableMetadata $url_cacheability
+   *   The cacheability metadata object to add URL dependencies to.
+   *
+   * @return array{title: string, path: string}
+   *   The translation's title, and its path processed like the path of the
+   *   page: with its language prefix.
+   */
+  private static function normalizeTranslation(ContentEntityInterface $translation, CacheableMetadata $url_cacheability): array {
+    $translation_url = $translation->toUrl()->toString(TRUE);
+    $url_cacheability->addCacheableDependency($translation_url);
+    return [
+      'title' => (string) $translation->label(),
+      'path' => $translation_url->getGeneratedUrl(),
+    ];
   }
 
   /**

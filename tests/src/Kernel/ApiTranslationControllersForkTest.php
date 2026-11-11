@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Kernel;
 
-// cspell:ignore Hola Título nuevo Otro título
+// cspell:ignore Hola Título nuevo Otro título editado editada
 
 use Drupal\canvas\Access\ForkedTranslationEditAccessCheck;
 use Drupal\canvas\AutoSave\AutoSaveManager;
@@ -238,6 +238,7 @@ final class ApiTranslationControllersForkTest extends CanvasKernelTestBase {
     // fork-related link for the default language.
     $layout = $this->getLayoutData($page);
     self::assertSame([], $layout['translations']['forked']);
+    self::assertSame(['es' => 'symmetric'], $layout['translations']['states']);
     self::assertArrayHasKey(CanvasUriDefinitions::LINK_REL_FORK, $layout['translations']['links']['es'] ?? []);
     self::assertArrayNotHasKey(CanvasUriDefinitions::LINK_REL_UNFORK, $layout['translations']['links']['es'] ?? []);
 
@@ -279,6 +280,7 @@ final class ApiTranslationControllersForkTest extends CanvasKernelTestBase {
     // link.
     $layout = $this->getLayoutData($page);
     self::assertSame(['es'], $layout['translations']['forked']);
+    self::assertSame(['es' => 'pending_fork'], $layout['translations']['states']);
     self::assertArrayHasKey(CanvasUriDefinitions::LINK_REL_UNFORK, $layout['translations']['links']['es'] ?? []);
     self::assertArrayNotHasKey(CanvasUriDefinitions::LINK_REL_FORK, $layout['translations']['links']['es'] ?? []);
 
@@ -307,6 +309,7 @@ final class ApiTranslationControllersForkTest extends CanvasKernelTestBase {
     $stored = Page::load($page->id());
     \assert($stored instanceof Page);
     self::assertTrue(ComponentTreeTranslationFork::isForkedTranslation($stored->getTranslation('es')));
+    self::assertSame(['es' => 'forked'], $this->getLayoutData($page)['translations']['states']);
 
     // Diverge the forked Spanish tree in storage: add a component only there.
     $es = $stored->getTranslation('es');
@@ -341,6 +344,83 @@ final class ApiTranslationControllersForkTest extends CanvasKernelTestBase {
     self::assertFalse(ComponentTreeTranslationFork::isForkedTranslation($draft_es));
     self::assertNull($draft_es->getComponentTree()->getComponentTreeItemByUuid(self::UUID_B));
     self::assertSame('Hola A (es)', $draft_es->getComponentTree()->getComponentTreeItemByUuid(self::UUID_A)?->getInputs()['text'] ?? NULL);
+    $layout = $this->getLayoutData($page);
+    self::assertSame('pending_unfork', $layout['translations']['states']['es']);
+    self::assertSame([], $layout['translations']['forked']);
+
+    // Forking the pending unfork undoes it: the re-synced draft is discarded,
+    // so the stored fork, with its fork-only component, is in effect again.
+    $response = $this->request(Request::create(self::forkUrl($page, 'es'), 'POST'));
+    self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode(), (string) $response->getContent());
+    self::assertTrue($auto_save->getAutoSaveEntityForPreview($stored->getTranslation('es'))->isEmpty());
+    $layout = $this->getLayoutData($page);
+    self::assertSame('forked', $layout['translations']['states']['es']);
+    self::assertSame(['es'], $layout['translations']['forked']);
+    $response = $this->request(Request::create(self::editorLayoutUrl($page, 'es')));
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+    $editor_layout = \json_decode((string) $response->getContent(), TRUE);
+    \assert(\is_array($editor_layout));
+    self::assertSame(
+      [self::UUID_A, self::UUID_B],
+      \array_column($editor_layout['layout'][0]['components'], 'uuid'),
+    );
+    self::assertSame('Solo B (es)', $editor_layout['model'][self::UUID_B]['resolved']['text'] ?? NULL);
+    $stored = Page::load($page->id());
+    \assert($stored instanceof Page);
+    self::assertTrue(ComponentTreeTranslationFork::isForkedTranslation($stored->getTranslation('es')));
+    self::assertNotNull($stored->getTranslation('es')->getComponentTree()->getComponentTreeItemByUuid(self::UUID_B));
+
+    // Forking a pending unfork keeps the draft's other unpublished edits: an
+    // edited title, and an edited translatable input of a component that is
+    // in both the stored fork and the re-synced draft.
+    $storage = $this->container->get(EntityTypeManagerInterface::class)->getStorage(Page::ENTITY_TYPE_ID);
+    $edited = $storage->loadUnchanged((int) $page->id());
+    \assert($edited instanceof Page);
+    $edited = $edited->getTranslation('es');
+    \assert($edited instanceof Page);
+    $edited->set('title', 'Título editado');
+    $edited->getComponentTree()->getComponentTreeItemByUuid(self::UUID_A)?->setInput(['text' => 'Hola A editada (es)', 'element' => 'h1']);
+    $auto_save->saveEntity($edited);
+    self::assertSame('forked', $this->getLayoutData($page)['translations']['states']['es']);
+    $response = $this->request(Request::create(self::forkUrl($page, 'es', unfork: TRUE), 'DELETE'));
+    self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode(), (string) $response->getContent());
+    self::assertSame('pending_unfork', $this->getLayoutData($page)['translations']['states']['es']);
+    $response = $this->request(Request::create(self::forkUrl($page, 'es'), 'POST'));
+    self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode(), (string) $response->getContent());
+    $layout = $this->getLayoutData($page);
+    self::assertSame('forked', $layout['translations']['states']['es']);
+    self::assertSame(['es'], $layout['translations']['forked']);
+    $stored = Page::load($page->id());
+    \assert($stored instanceof Page);
+    $draft = $auto_save->getAutoSaveEntityForPreview($stored->getTranslation('es'));
+    self::assertFalse($draft->isEmpty());
+    $draft_es = $draft->entity;
+    \assert($draft_es instanceof Page);
+    self::assertTrue(ComponentTreeTranslationFork::isForkedTranslation($draft_es));
+    self::assertSame('Título editado', $draft_es->label());
+    self::assertSame(
+      [self::UUID_A, self::UUID_B],
+      \array_column($draft_es->get('components')->getValue(), 'uuid'),
+    );
+    self::assertSame('Hola A editada (es)', $draft_es->getComponentTree()->getComponentTreeItemByUuid(self::UUID_A)?->getInputs()['text'] ?? NULL);
+    self::assertSame('Solo B (es)', $draft_es->getComponentTree()->getComponentTreeItemByUuid(self::UUID_B)?->getInputs()['text'] ?? NULL);
+    $response = $this->request(Request::create(self::editorLayoutUrl($page, 'es')));
+    self::assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
+    $editor_layout = \json_decode((string) $response->getContent(), TRUE);
+    \assert(\is_array($editor_layout));
+    self::assertSame('Título editado', $editor_layout['entity_form_fields']['title[0][value]']);
+    self::assertSame(
+      [self::UUID_A, self::UUID_B],
+      \array_column($editor_layout['layout'][0]['components'], 'uuid'),
+    );
+    self::assertSame('Hola A editada (es)', $editor_layout['model'][self::UUID_A]['resolved']['text'] ?? NULL);
+    // Storage is untouched. Discard the edits for the steps below.
+    self::assertSame('Spanish title', $stored->getTranslation('es')->label());
+    $auto_save->delete($stored->getTranslation('es'));
+
+    // Unfork again, to publish the unfork below.
+    $response = $this->request(Request::create(self::forkUrl($page, 'es', unfork: TRUE), 'DELETE'));
+    self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode(), (string) $response->getContent());
 
     // Unforking a not-forked translation is an idempotent no-op resync: 204,
     // and the draft still matches the default translation's tree.
@@ -402,7 +482,8 @@ final class ApiTranslationControllersForkTest extends CanvasKernelTestBase {
 
     // The layout offers forking German, which has no translation.
     $layout = $this->getLayoutData($page);
-    self::assertNotContains('de', $layout['translations']['available']);
+    self::assertSame(['en', 'es'], $layout['translations']['available']);
+    self::assertSame(['de' => 'symmetric', 'es' => 'symmetric'], $layout['translations']['states']);
     self::assertArrayHasKey(CanvasUriDefinitions::LINK_REL_FORK, $layout['translations']['links']['de'] ?? []);
 
     // Editing German is impossible before it is forked.
@@ -429,6 +510,10 @@ final class ApiTranslationControllersForkTest extends CanvasKernelTestBase {
     $layout = $this->getLayoutData($page);
     // It has no synced layout to revert to, so it is deleted instead.
     self::assertSame(['de'], $layout['translations']['forked']);
+    // Only stored translations are available: the draft-only one is a pending
+    // fork.
+    self::assertSame(['en', 'es'], $layout['translations']['available']);
+    self::assertSame('pending_fork', $layout['translations']['states']['de']);
     self::assertArrayHasKey(CanvasUriDefinitions::LINK_REL_DELETE, $layout['translations']['links']['de'] ?? []);
     self::assertArrayNotHasKey(CanvasUriDefinitions::LINK_REL_UNFORK, $layout['translations']['links']['de'] ?? []);
 
@@ -439,6 +524,8 @@ final class ApiTranslationControllersForkTest extends CanvasKernelTestBase {
     \assert(\is_array($json));
     self::assertSame('English title', $json['entity_form_fields']['title[0][value]']);
     self::assertStringContainsString('Hello A (en)', \json_encode($json['model'], JSON_THROW_ON_ERROR));
+    // Naming the draft-only translation does not make it available either.
+    self::assertSame($layout['translations'], $json['translations']);
 
     // Deleting it before publishing discards the draft translation; deleting
     // it again finds nothing.

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\canvas\Hook;
 
+use Drupal\canvas\ContentTranslation\TranslationForkState;
+use Drupal\canvas\ContentTranslation\TranslationForkStateResolver;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsonSchemaPropsComponentSourceBase;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\canvas\Storage\ComponentTreeLoader;
@@ -12,6 +14,7 @@ use Drupal\canvas\Tmgmt\ComponentInputsTranslatablesExtractor;
 use Drupal\canvas\Tmgmt\ComponentTreeFieldProcessor;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\ContentEntityFormInterface;
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityFormInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -34,6 +37,7 @@ final readonly class TmgmtHooks {
     private ModuleHandlerInterface $moduleHandler,
     private EntityTypeManagerInterface $entityTypeManager,
     private ComponentTreeLoader $componentTreeLoader,
+    private TranslationForkStateResolver $forkStateResolver,
     // TMGMT is an optional dependency: NULL when the module is not installed.
     #[Autowire(service: 'tmgmt.data')]
     private ?Data $tmgmtData = NULL,
@@ -149,6 +153,10 @@ final readonly class TmgmtHooks {
    *   does not fire for them: an empty translation of an optional input is
    *   valid and is stored as an explicitly empty string. Required inputs keep
    *   TMGMT's error — Canvas rejects an empty required prop in any language.
+   * - Refuses to accept ("Save as completed") the job item while its target
+   *   translation is forked, with a form error instead of the exception
+   *   ComponentTreeFieldProcessor::setTranslations() throws, which TMGMT does
+   *   not catch.
    *
    * @param array<string, mixed> $form
    *   The form array.
@@ -176,6 +184,15 @@ final readonly class TmgmtHooks {
     $field_name = $this->getCanvasFieldName($entity);
     if ($field_name === NULL) {
       return;
+    }
+
+    // ComponentTreeFieldProcessor::setTranslations() refuses to write onto a
+    // forked target translation; refuse acceptance before it is attempted.
+    // @see \Drupal\tmgmt\Form\JobItemForm::save()
+    if (isset($form['actions']['accept']['#validate']) && isset($item->getData()[$field_name])) {
+      // A service callback, not [$this, …]: the form may be cached, and so
+      // serialized, between requests.
+      $form['actions']['accept']['#validate'][] = self::class . ':validateTargetTranslationNotForked';
     }
 
     $row_paths = self::getComponentTreeRowPaths($form, $field_name);
@@ -226,6 +243,38 @@ final readonly class TmgmtHooks {
         $form['actions'][$button]['#validate'][] = [self::class, 'unmaskEmptyComponentTreeTranslations'];
       }
     }
+  }
+
+  /**
+   * Form validate callback: refuses accepting onto a forked target translation.
+   *
+   * Applies to forked translations and pending (un)forks alike: anything but a
+   * symmetric translation, the same as the processor's check.
+   *
+   * @param array<string, mixed> $form
+   *   The form array.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The form state.
+   *
+   * @see \Drupal\canvas\Tmgmt\ComponentTreeFieldProcessor::setTranslations()
+   * @see docs/adr/0022-per-translation-component-tree-forks.md
+   */
+  public function validateTargetTranslationNotForked(array &$form, FormStateInterface $form_state): void {
+    $form_object = $form_state->getFormObject();
+    \assert($form_object instanceof EntityFormInterface);
+    $item = $form_object->getEntity();
+    \assert($item instanceof JobItemInterface);
+    $entity = $this->getContentJobItemEntity($item);
+    if (!$entity instanceof ContentEntityInterface) {
+      return;
+    }
+    $langcode = $item->getJob()->getTargetLangcode();
+    if ($this->forkStateResolver->resolve($entity, $langcode) === TranslationForkState::Symmetric) {
+      return;
+    }
+    $form_state->setError($form['actions']['accept'], new TranslatableMarkup('The %language translation has a custom layout. Translated texts can only be accepted for a translation that uses the layout of the original.', [
+      '%language' => $item->getJob()->getTargetLanguage()?->getName() ?? $langcode,
+    ]));
   }
 
   /**

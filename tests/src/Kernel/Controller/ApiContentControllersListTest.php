@@ -7,13 +7,16 @@ namespace Drupal\Tests\canvas\Kernel\Controller;
 // cspell:ignore Gábor Hojtsy uniquesearchterm gàbor autosave searchterm
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
+use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
 use Drupal\canvas\Controller\ApiContentControllers;
 use Drupal\canvas\Entity\Page;
+use Drupal\canvas\Hook\ContentTranslationHooks;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Url;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\Tests\canvas\Kernel\CanvasKernelTestBase;
+use Drupal\Tests\content_translation\Traits\ContentTranslationTestTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
@@ -29,6 +32,7 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 #[Group('canvas')]
 class ApiContentControllersListTest extends CanvasKernelTestBase {
 
+  use ContentTranslationTestTrait;
   use UserCreationTrait;
 
   /**
@@ -284,6 +288,85 @@ class ApiContentControllersListTest extends CanvasKernelTestBase {
     self::assertCount(2, $data);
     self::assertContains(\array_key_first($data), [(int) $german->id(), (int) $translated->id()]);
     self::assertNotContains(\array_key_last($data), [(int) $german->id(), (int) $translated->id()]);
+
+    // With translation forks, each translation says whether it is forked,
+    // draft-aware, and a translation that exists only as a forked auto-save
+    // draft is listed too.
+    $this->enableModules(['content_translation']);
+    ContentTranslationHooks::installForkFieldStorageDefinitions();
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+    $this->container->get('kernel')->rebuildContainer();
+    $this->enableContentTranslation(Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID);
+    $this->apiContentController = $this->container->get(ApiContentControllers::class);
+    $auto_save = $this->container->get(AutoSaveManager::class);
+    \assert($auto_save instanceof AutoSaveManager);
+    $translated = Page::load($translated->id());
+    \assert($translated instanceof Page);
+    self::assertTrue($translated->hasField(ComponentTreeTranslationFork::FIELD_NAME));
+    $data = $this->executeListRequest();
+    self::assertSame([
+      'de' => [
+        'title' => 'Published Canvas Page in German',
+        'path' => \sprintf('/de/page/%d', $translated->id()),
+        'forked' => FALSE,
+      ],
+    ], $data[$translated->id()]['translations']);
+    self::assertSame([], $data[$german->id()]['translations']);
+
+    // German is forked in its draft only, French exists only as a forked
+    // draft.
+    $de = $translated->getTranslation('de');
+    $de->set(ComponentTreeTranslationFork::FIELD_NAME, TRUE);
+    $auto_save->saveEntity($de);
+    $fr = ComponentTreeTranslationFork::initializeTranslation($translated, 'fr');
+    $fr->set(ComponentTreeTranslationFork::FIELD_NAME, TRUE);
+    $fr->set('title', 'Published Canvas Page in French');
+    $auto_save->saveEntity($fr);
+    $request = Request::create(self::API_BASE_PATH);
+    $response = $this->apiContentController->list(Page::ENTITY_TYPE_ID, $request);
+    self::assertContains(AutoSaveManager::CACHE_TAG, $response->getCacheableMetadata()->getCacheTags());
+    $data = $this->executeListRequest();
+    self::assertSame([
+      'de' => [
+        'title' => 'Published Canvas Page in German',
+        'path' => \sprintf('/de/page/%d', $translated->id()),
+        'forked' => TRUE,
+      ],
+      'fr' => [
+        'title' => 'Published Canvas Page in French',
+        'path' => \sprintf('/fr/page/%d', $translated->id()),
+        'forked' => TRUE,
+      ],
+    ], $data[$translated->id()]['translations']);
+    self::assertSame([], $data[$german->id()]['translations']);
+
+    // A symmetric draft of a stored translation is not forked.
+    $de->set(ComponentTreeTranslationFork::FIELD_NAME, FALSE);
+    $de->set('title', 'Changed title in German');
+    $auto_save->saveEntity($de);
+    $data = $this->executeListRequest();
+    self::assertFalse($data[$translated->id()]['translations']['de']['forked']);
+
+    // Given a language, a page whose only translation in it is a forked
+    // auto-save draft is listed with the pages that exist in it: before the
+    // pages that do not, however they are sorted otherwise.
+    $german = Page::load($german->id());
+    \assert($german instanceof Page);
+    $german_fr = ComponentTreeTranslationFork::initializeTranslation($german, 'fr');
+    $german_fr->set(ComponentTreeTranslationFork::FIELD_NAME, TRUE);
+    $auto_save->saveEntity($german_fr);
+    $unfiltered_ids = \array_keys($this->executeListRequest());
+    self::assertGreaterThan(1, \array_search((int) $german->id(), $unfiltered_ids, TRUE));
+    $data = $this->executeListRequest(['langcode' => 'fr']);
+    self::assertCount(5, $data);
+    $in_french = [(int) $translated->id(), (int) $german->id()];
+    self::assertEqualsCanonicalizing($in_french, \array_slice(\array_keys($data), 0, 2));
+    self::assertSame(
+      \array_values(\array_diff($unfiltered_ids, $in_french)),
+      \array_slice(\array_keys($data), 2),
+    );
+    self::assertFalse($german->hasTranslation('fr'));
+    self::assertTrue($data[$german->id()]['translations']['fr']['forked']);
 
     $this->expectException(BadRequestHttpException::class);
     $this->executeListRequest(['langcode' => 'xx']);

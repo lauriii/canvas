@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace Drupal\canvas\Tmgmt;
 
 use Drupal\canvas\Config\Schema\ComponentInputsMapping;
+use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
+use Drupal\canvas\ContentTranslation\TranslationForkStateResolver;
 use Drupal\canvas\Plugin\Field\FieldType\ComponentTreeItem;
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Render\Element;
+use Drupal\tmgmt\TMGMTException;
 use Drupal\tmgmt_content\DefaultFieldProcessor;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -21,6 +24,13 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * translatable string in TMGMT by converting to a ComponentInputsMapping typed
  * config object and then making use of ComponentInputsTranslatablesExtractor.
  *
+ * Translations are never written onto a forked translation, nor extracted
+ * from one: string translations map by delta onto the default translation's
+ * component tree, which a forked translation does not share.
+ *
+ * @see docs/adr/0022-per-translation-component-tree-forks.md
+ *
+ * @drupalOptionalDependency tmgmt
  * @see \Drupal\canvas\Tmgmt\ComponentInputsTranslatablesExtractor
  * @see \Drupal\canvas\Config\Schema\ComponentInputsMapping
  */
@@ -29,6 +39,7 @@ final class ComponentTreeFieldProcessor extends DefaultFieldProcessor implements
   public function __construct(
     private readonly TypedConfigManagerInterface $typedConfigManager,
     private readonly ComponentInputsTranslatablesExtractor $componentInputsTranslatablesExtractor,
+    private readonly TranslationForkStateResolver $forkStateResolver,
   ) {}
 
   /**
@@ -38,6 +49,7 @@ final class ComponentTreeFieldProcessor extends DefaultFieldProcessor implements
     return new static(
       $container->get(TypedConfigManagerInterface::class),
       $container->get(ComponentInputsTranslatablesExtractor::class),
+      $container->get(TranslationForkStateResolver::class),
     );
   }
 
@@ -89,8 +101,22 @@ final class ComponentTreeFieldProcessor extends DefaultFieldProcessor implements
 
   /**
    * {@inheritdoc}
+   *
+   * @throws \Drupal\tmgmt\TMGMTException
+   *   When the source translation is forked in storage: its component tree is
+   *   independent of the default translation's, so its deltas do not map onto
+   *   any other translation's tree.
    */
   public function extractTranslatableData(FieldItemListInterface $field): array {
+    $translation = $field->getEntity();
+    if ($translation instanceof ContentEntityInterface && ComponentTreeTranslationFork::isForkedTranslation($translation)) {
+      throw new TMGMTException('The %language (%langcode) translation of %type %id owns an independent (forked) component tree: it cannot be the source of a translation job.', [
+        '%language' => $translation->language()->getName(),
+        '%langcode' => $translation->language()->getId(),
+        '%type' => $translation->getEntityTypeId(),
+        '%id' => $translation->id(),
+      ]);
+    }
     $items = [];
 
     foreach ($field as $delta => $item) {
@@ -104,8 +130,23 @@ final class ComponentTreeFieldProcessor extends DefaultFieldProcessor implements
 
   /**
    * {@inheritdoc}
+   *
+   * @throws \Drupal\tmgmt\TMGMTException
+   *   When the target translation is forked: in storage, in memory, or in its
+   *   auto-save draft.
    */
   public function setTranslations($field_data, FieldItemListInterface $field): void {
+    $translation = $field->getEntity();
+    if ($translation instanceof ContentEntityInterface
+      && (ComponentTreeTranslationFork::isForkedTranslation($translation)
+        || $this->forkStateResolver->resolve($translation, $translation->language()->getId())->isForked())) {
+      throw new TMGMTException('The %language (%langcode) translation of %type %id owns an independent (forked) component tree: string translations cannot be applied to it.', [
+        '%language' => $translation->language()->getName(),
+        '%langcode' => $translation->language()->getId(),
+        '%type' => $translation->getEntityTypeId(),
+        '%id' => $translation->id(),
+      ]);
+    }
     foreach (Element::children($field_data) as $delta) {
       $item_data = $field_data[$delta];
       if (!$field->offsetExists($delta)) {

@@ -6,6 +6,8 @@ namespace Drupal\canvas\Controller;
 
 use Drupal\canvas\AutoSave\AutoSaveManager;
 use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
+use Drupal\canvas\ContentTranslation\TranslationForkState;
+use Drupal\canvas\ContentTranslation\TranslationForkStateResolver;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
@@ -24,6 +26,7 @@ final class ApiTranslationControllers extends ApiControllerBase {
   public function __construct(
     private readonly LanguageManagerInterface $languageManager,
     private readonly AutoSaveManager $autoSaveManager,
+    private readonly TranslationForkStateResolver $forkStateResolver,
   ) {}
 
   /**
@@ -38,6 +41,11 @@ final class ApiTranslationControllers extends ApiControllerBase {
    * A language without a stored translation can be forked too: the new
    * translation starts as a copy of the default one and exists only in its
    * auto-save draft until published.
+   *
+   * Forking a pending unfork undoes it: the draft gets the stored fork's
+   * component trees back, including its fork-only components, with the
+   * draft's translatable input values for the components in both. Other
+   * unpublished edits in the draft, such as its title, are kept.
    *
    * @param \Drupal\Core\Entity\ContentEntityInterface $canvas_page
    *   The translation to fork, named by the `?canvas_langcode=` query
@@ -94,6 +102,26 @@ final class ApiTranslationControllers extends ApiControllerBase {
     // the translation would only ever have existed as a forked draft.
     if (!$forked && $canvas_page->isNewTranslation()) {
       $this->autoSaveManager->delete($canvas_page);
+      return new JsonResponse(status: Response::HTTP_NO_CONTENT);
+    }
+    // Flagging the re-synced draft as forked would publish it over the stored
+    // fork, losing the fork-only components the unfork discarded: restore the
+    // stored fork's trees first.
+    if ($forked && $this->forkStateResolver->resolve($canvas_page, $canvas_page->language()->getId()) === TranslationForkState::PendingUnfork) {
+      $draft = $this->autoSaveManager->getAutoSaveEntityForPreview($canvas_page);
+      if (!$draft->isEmpty()) {
+        $translation = $draft->entity;
+        \assert($translation instanceof ContentEntityInterface);
+        ComponentTreeTranslationFork::resyncFrom($translation, $canvas_page);
+        $translation->set(ComponentTreeTranslationFork::FIELD_NAME, TRUE);
+        // Without other edits, nothing is left to publish.
+        if ($this->autoSaveManager->matchesStoredTranslation($translation)) {
+          $this->autoSaveManager->delete($canvas_page);
+        }
+        else {
+          $this->autoSaveManager->saveEntity($translation);
+        }
+      }
       return new JsonResponse(status: Response::HTTP_NO_CONTENT);
     }
     $draft = $this->autoSaveManager->getAutoSaveEntityForPreview($canvas_page);

@@ -447,6 +447,28 @@ class AutoSaveManager implements EventSubscriberInterface {
     return self::generateHash(self::normalizeEntity($original));
   }
 
+  /**
+   * Whether a translation has the values of the stored translation.
+   *
+   * ::saveEntity() compares with the stored default translation, so a draft of
+   * another translation set back to its stored values is not cleared there.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityInterface $translation
+   *   A translation of a stored entity.
+   */
+  public function matchesStoredTranslation(ContentEntityInterface $translation): bool {
+    \assert(!\is_null($translation->id()));
+    $original = $this->entityTypeManager->getStorage($translation->getEntityTypeId())->loadUnchanged($translation->id());
+    $langcode = $translation->language()->getId();
+    if (!$original instanceof ContentEntityInterface || !$original->hasTranslation($langcode)) {
+      return FALSE;
+    }
+    return \hash_equals(
+      self::generateHash(self::normalizeEntity($original->getTranslation($langcode))),
+      self::generateHash(self::normalizeEntity($translation)),
+    );
+  }
+
   public function getAutoSaveEntity(EntityInterface $entity, bool $bypass_cache = FALSE): AutoSaveEntity {
     return $this->getAutoSaveEntityByKey(self::getAutoSaveKey($entity), $bypass_cache);
   }

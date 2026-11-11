@@ -89,6 +89,25 @@ final class ComponentTreeTranslationFork {
     if ($translation === $default_translation) {
       return;
     }
+    self::resyncFrom($translation, $default_translation);
+  }
+
+  /**
+   * Replaces a translation's component trees by those of another entity.
+   *
+   * The translation's translatable input values are re-applied for component
+   * instances that exist in both trees; other inputs come from the source.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityInterface $translation
+   *   The translation to change.
+   * @param \Drupal\Core\Entity\ContentEntityInterface $source
+   *   The entity whose component trees the translation gets: the default
+   *   translation, or the stored version of the same translation.
+   *
+   * @see self::resyncFromDefaultTranslation()
+   * @see \Drupal\canvas\Controller\ApiTranslationControllers::fork()
+   */
+  public static function resyncFrom(ContentEntityInterface $translation, ContentEntityInterface $source): void {
     foreach ($translation->getFieldDefinitions() as $field_name => $field_definition) {
       if ($field_definition->getType() !== ComponentTreeItem::PLUGIN_ID) {
         continue;
@@ -103,12 +122,12 @@ final class ComponentTreeTranslationFork {
         $translated_inputs[$item->getUuid()] = self::getInputsSafely($item);
       }
 
-      $default_tree = $default_translation->get($field_name);
-      \assert($default_tree instanceof ComponentTreeItemList);
-      $target_tree->setValue($default_tree->getValue());
+      $source_tree = $source->get($field_name);
+      \assert($source_tree instanceof ComponentTreeItemList);
+      $target_tree->setValue($source_tree->getValue());
 
       // Re-apply the translation's translatable input values for surviving
-      // component instances; non-translatable keys come from the default.
+      // component instances; non-translatable keys come from the source.
       foreach ($target_tree as $item) {
         \assert($item instanceof ComponentTreeItem);
         $uuid = $item->getUuid();

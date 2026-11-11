@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\canvas\Functional;
 
-// cspell:ignore Bienvenue savoir Découvrez Identité visuelle Charte graphique Bonjour Traduit Gitane tjid tuid
+// cspell:ignore Bienvenue savoir Découvrez Identité visuelle Charte graphique Bonjour Traduit Gitane tjid tuid bifurquée
 
 use Behat\Mink\Element\NodeElement;
+use Drupal\canvas\ContentTranslation\ComponentTreeTranslationFork;
 use Drupal\canvas\Entity\Page;
 use Drupal\canvas\Hook\TmgmtHooks;
 use Drupal\canvas\Tmgmt\ComponentTreeFieldProcessor;
 use Drupal\canvas_test_block\Plugin\Block\CanvasTestBlockInputTranslatability;
+use Drupal\content_translation\BundleTranslationSettingsInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
 use Drupal\language\Entity\ConfigurableLanguage;
@@ -51,6 +53,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[CoversMethod(TmgmtHooks::class, 'fieldInfoAlter')]
 #[CoversMethod(TmgmtHooks::class, 'tmgmtDataItemTextOutputAlter')]
 #[CoversMethod(TmgmtHooks::class, 'formTmgmtLocalTaskItemEditFormAlter')]
+#[CoversMethod(TmgmtHooks::class, 'validateTargetTranslationNotForked')]
 class ContentWithComponentTreeTmgmtUiTest extends FunctionalTestBase {
 
   use ComponentTreeWithAllSymmetricalTranslationEdgeCasesTrait;
@@ -271,6 +274,74 @@ class ContentWithComponentTreeTmgmtUiTest extends FunctionalTestBase {
       $fr_inputs = $fr_item->getInputs();
       self::assertSame($inputs, $fr_inputs);
     }
+  }
+
+  /**
+   * Tests that accepting onto a forked target translation shows a form error.
+   *
+   * TMGMT's JobItemForm::save() does not catch the exception
+   * ComponentTreeFieldProcessor::setTranslations() throws for a forked target.
+   *
+   * @see \Drupal\canvas\Hook\TmgmtHooks::validateTargetTranslationNotForked()
+   * @see docs/adr/0022-per-translation-component-tree-forks.md
+   */
+  public function testAcceptOntoForkedTranslationRefused(): void {
+    $module_installer = $this->container->get(ModuleInstallerInterface::class);
+    $module_installer->install(['tmgmt', 'tmgmt_content', 'tmgmt_test']);
+    $this->rebuildContainer();
+    $this->enableContentTranslation(Page::ENTITY_TYPE_ID, Page::ENTITY_TYPE_ID);
+
+    $canvas_page = Page::create([
+      'title' => 'TMGMT forked page',
+      'components' => self::populateActiveComponentVersionPlaceholders(
+        self::componentTreeItems(
+          cta1: 'View here',
+          cta1href: ['uri' => 'https://example.com', 'options' => []],
+        )
+      ),
+    ]);
+    $canvas_page->save();
+    $page_id = $canvas_page->id();
+    self::assertNotNull($page_id);
+    // A French translation with a custom layout (a forked component tree).
+    $fr_translation = $canvas_page->addTranslation('fr', ['title' => 'Page bifurquée'] + $canvas_page->toArray());
+    $this->container->get(BundleTranslationSettingsInterface::class)
+      ->getTranslationMetadata($fr_translation)
+      ->setSource('en');
+    $fr_translation->set(ComponentTreeTranslationFork::FIELD_NAME, TRUE)->save();
+
+    $translator = $this->createTranslator([
+      'name' => 'test_tmgmt_forked',
+      'label' => 'Test TMGMT forked',
+      'plugin' => 'test_translator',
+      'remote_languages_mappings' => [],
+      'settings' => ['key' => 'test', 'another_key' => 'test'],
+    ]);
+    $job = $this->createJob('en', 'fr', $this->rootUser->id(), ['translator' => $translator->id()]);
+    $job_item = $job->addItem('content', Page::ENTITY_TYPE_ID, (string) $page_id);
+    $job->setState(Job::STATE_ACTIVE);
+    $translator->getPlugin()->requestTranslation($job);
+
+    $this->drupalGet('admin/tmgmt/items/' . $job_item->id());
+    $assert = $this->assertSession();
+    $assert->statusCodeEquals(200);
+    $this->submitForm([], 'Save as completed');
+    $assert->statusCodeEquals(200);
+    $assert->pageTextContains('The French translation has a custom layout. Translated texts can only be accepted for a translation that uses the layout of the original.');
+    $assert->pageTextNotContains('has been accepted');
+
+    $job_item_id = $job_item->id();
+    self::assertNotNull($job_item_id);
+    $reloaded_job_item = $this->container->get(EntityTypeManagerInterface::class)
+      ->getStorage('tmgmt_job_item')
+      ->loadUnchanged($job_item_id);
+    self::assertInstanceOf(JobItemInterface::class, $reloaded_job_item);
+    self::assertTrue($reloaded_job_item->isNeedsReview());
+    $fr_page = $this->container->get(EntityTypeManagerInterface::class)
+      ->getStorage(Page::ENTITY_TYPE_ID)
+      ->loadUnchanged($page_id);
+    self::assertInstanceOf(Page::class, $fr_page);
+    self::assertSame('Page bifurquée', $fr_page->getTranslation('fr')->label());
   }
 
   /**

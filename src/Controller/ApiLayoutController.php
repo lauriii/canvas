@@ -158,9 +158,19 @@ final class ApiLayoutController {
     ];
     $available_translations = [];
     $forked_translations = [];
+    $fork_states = [];
     $links = [];
     if ($entity instanceof ContentEntityInterface) {
-      $available_translations = \array_keys($entity->getTranslationLanguages(FALSE));
+      // Stored translations only: the draft may hold a translation that exists
+      // only as a forked auto-save draft, and the `?canvas_langcode=`
+      // converter initializes one in memory for a language without a stored
+      // translation. Both are new translations, reported in `states` instead.
+      // @see \Drupal\canvas\Routing\NamedTranslationConverter::convert()
+      // @see \Drupal\canvas\AutoSave\AutoSaveManager::getAutoSaveEntityForPreview()
+      $available_translations = \array_values(\array_filter(
+        \array_keys($entity->getTranslationLanguages(FALSE)),
+        static fn (string $langcode): bool => !$entity->getTranslation($langcode)->isNewTranslation(),
+      ));
       if ($this->moduleHandler->moduleExists('content_translation')) {
         foreach ($available_translations as $langcode) {
           $translation = $entity->getTranslation($langcode);
@@ -189,8 +199,10 @@ final class ApiLayoutController {
             if ($langcode === $default_langcode) {
               continue;
             }
-            $is_stored = \in_array($langcode, $available_translations, TRUE) && !$entity->getTranslation($langcode)->isNewTranslation();
-            $is_forked = $this->forkStateResolver->resolve($entity, $langcode)->isForked();
+            $is_stored = \in_array($langcode, $available_translations, TRUE);
+            $fork_state = $this->forkStateResolver->resolve($entity, $langcode);
+            $fork_states[$langcode] = $fork_state->value;
+            $is_forked = $fork_state->isForked();
             if ($is_forked) {
               $forked_translations[] = $langcode;
             }
@@ -256,7 +268,13 @@ final class ApiLayoutController {
       // Langcodes whose translation owns an independent (forked) component
       // tree, draft-aware.
       'forked' => $forked_translations,
-      'links' => $links,
+      // The fork state of every non-default language, keyed by langcode, when
+      // the entity supports forks. A translation that exists only as a forked
+      // auto-save draft is not `available`, and is `pending_fork` here. Empty
+      // objects rather than empty arrays, to match the schema.
+      // @see \Drupal\canvas\ContentTranslation\TranslationForkState
+      'states' => $fork_states === [] ? new \stdClass() : $fork_states,
+      'links' => $links === [] ? new \stdClass() : $links,
     ];
     if ($entity instanceof ContentEntityInterface && $entity instanceof EntityPublishedInterface) {
       $data['isPublished'] = $entity->isPublished();
