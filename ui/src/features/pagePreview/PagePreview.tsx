@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import clsx from 'clsx';
 import { useErrorBoundary } from 'react-error-boundary';
 import { useLocation, useParams, useSearchParams } from 'react-router';
@@ -14,12 +21,14 @@ import {
   setUpdatePreview,
 } from '@/features/layout/layoutModelSlice';
 import { useHeadlessDraftSession } from '@/features/layout/preview/useHeadlessDraftSession';
+import ViewportSelector from '@/features/layout/preview/ViewportSelector';
 import { selectPageData } from '@/features/pageData/pageDataSlice';
 import {
   selectPreviewHtml,
   setSnapshotHTML,
   setSnapshotTitle,
 } from '@/features/pagePreview/previewSlice';
+import { selectViewportWidth } from '@/features/ui/uiSlice';
 import { useCanvasHeadlessSettings } from '@/hooks/useCanvasHeadlessSettings';
 import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
 import {
@@ -31,7 +40,62 @@ import { getViewportSizes } from '@/utils/viewports';
 import type React from 'react';
 import type { HeadlessSettings } from '@drupal-canvas/types';
 
+import toolbarStyles from '@/features/layout/preview/ViewportToolbar.module.css';
 import styles from './PagePreview.module.css';
+
+/**
+ * Shows a page in another language at a viewport width, scaled down to fit
+ * the space when it is wider, as the editor does.
+ *
+ * The viewport is the editor's own: it stays the same when the language
+ * changes, and in the editor after it.
+ */
+const LanguageViewport = ({ children }: { children: React.ReactNode }) => {
+  const viewportWidth = useAppSelector(selectViewportWidth);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [stage, setStage] = useState({ width: 0, height: 0 });
+
+  useLayoutEffect(() => {
+    if (!stageRef.current) {
+      return;
+    }
+    const observer = new ResizeObserver(([entry]) =>
+      setStage({
+        width: entry.contentRect.width,
+        height: entry.contentRect.height,
+      }),
+    );
+    observer.observe(stageRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const scale =
+    viewportWidth && stage.width ? Math.min(1, stage.width / viewportWidth) : 1;
+
+  return (
+    <div className={styles.viewportPane} data-testid="canvas-language-viewport">
+      <div className={toolbarStyles.toolbar}>
+        <ViewportSelector buttonClassName={toolbarStyles.toolbarButton} />
+      </div>
+      <div ref={stageRef} className={styles.viewportStage}>
+        {/* Always rendered: a headless frontend connects to the frame on
+            mount. Hidden until the space for it is known. */}
+        <div
+          className={styles.viewportFrame}
+          style={{
+            left: (stage.width - viewportWidth * scale) / 2,
+            width: viewportWidth,
+            height: stage.height / scale,
+            transform: `scale(${scale})`,
+            visibility: viewportWidth && stage.width ? undefined : 'hidden',
+          }}
+        >
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 /**
  * Embeds the configured frontend app in the standalone page preview.
@@ -69,6 +133,14 @@ const HeadlessPagePreview: React.FC<{
     undefined,
     { viewMode, language },
   );
+  const iframe = (
+    <iframe
+      ref={iframeRef}
+      title="Page preview"
+      style={isLanguageView ? undefined : { width }}
+      className={styles.PagePreviewIframe}
+    ></iframe>
+  );
 
   return (
     <div
@@ -85,12 +157,7 @@ const HeadlessPagePreview: React.FC<{
       >
         {statusText}
       </p>
-      <iframe
-        ref={iframeRef}
-        title="Page preview"
-        style={{ width }}
-        className={styles.PagePreviewIframe}
-      ></iframe>
+      {isLanguageView ? <LanguageViewport>{iframe}</LanguageViewport> : iframe}
     </div>
   );
 };
@@ -338,12 +405,22 @@ const PagePreview = () => {
       >
         {showLanguageBar && <LanguageBar />}
         <div className={styles.controls}></div>
-        <iframe
-          title="Page preview"
-          style={{ width: widthVal }}
-          srcDoc={frameSrcDoc}
-          className={styles.PagePreviewIframe}
-        ></iframe>
+        {isLanguageView ? (
+          <LanguageViewport>
+            <iframe
+              title="Page preview"
+              srcDoc={frameSrcDoc}
+              className={styles.PagePreviewIframe}
+            ></iframe>
+          </LanguageViewport>
+        ) : (
+          <iframe
+            title="Page preview"
+            style={{ width: widthVal }}
+            srcDoc={frameSrcDoc}
+            className={styles.PagePreviewIframe}
+          ></iframe>
+        )}
       </div>
       <AlertDialog.Root
         open={!!linkIntercepted || submissionIntercepted}

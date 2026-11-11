@@ -43,10 +43,32 @@
   inset: auto;
 }
 
-.languageView .PagePreviewIframe {
+/* The space for the page, with the viewport selector above it. */
+.viewportPane {
+  position: relative;
+  overflow: hidden;
   flex: 1;
-  height: auto;
+  width: 100%;
   min-height: 0;
+  background: var(--gray-4);
+}
+
+.viewportStage {
+  position: absolute;
+  inset: 48px 16px 0;
+}
+
+.viewportFrame {
+  position: absolute;
+  top: 0;
+  transform-origin: top left;
+  background: white;
+  box-shadow: var(--shadow-3);
+}
+
+.viewportFrame .PagePreviewIframe {
+  width: 100%;
+  height: 100%;
   margin-top: 0;
 }
 

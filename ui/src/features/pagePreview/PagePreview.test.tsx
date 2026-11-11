@@ -33,6 +33,16 @@ vi.mock('@/utils/viewports', () => ({ getViewportSizes: () => [] }));
 vi.mock('@/components/languageSelect/LanguageBar', () => ({
   default: () => <div data-testid="language-bar" />,
 }));
+vi.mock('@/features/layout/preview/ViewportSelector', () => ({
+  default: () => <div data-testid="viewport-selector" />,
+}));
+vi.stubGlobal(
+  'ResizeObserver',
+  class {
+    observe() {}
+    disconnect() {}
+  },
+);
 
 describe('Headless page in another language, in the editor', () => {
   it('embeds the frontend in that language under the language bar', () => {
@@ -47,6 +57,11 @@ describe('Headless page in another language, in the editor', () => {
       </MemoryRouter>,
     );
     expect(screen.getByTestId('language-bar')).toBeInTheDocument();
+    // At a viewport, and rendered before its size is known.
+    expect(screen.getByTestId('canvas-language-viewport')).toContainElement(
+      screen.getByTitle('Page preview'),
+    );
+    expect(screen.getByTestId('viewport-selector')).toBeInTheDocument();
     expect(mocks.session).toHaveBeenLastCalledWith(
       expect.any(Object),
       expect.any(Object),
@@ -115,8 +130,10 @@ describe('read-only Headless preview', () => {
         </MemoryRouter>,
       );
       expect(screen.getByTitle('Page preview')).not.toHaveAttribute('srcdoc');
-      // The preview shows the page the way visitors see it: no language bar.
+      // The preview shows the page the way visitors see it: no language bar,
+      // and its own width selector.
       expect(screen.queryByTestId('language-bar')).toBeNull();
+      expect(screen.queryByTestId('canvas-language-viewport')).toBeNull();
       expect(mocks.session).toHaveBeenLastCalledWith(
         expect.any(Object),
         expect.any(Object),
