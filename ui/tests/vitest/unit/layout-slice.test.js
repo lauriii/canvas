@@ -8,6 +8,7 @@ import {
   moveNode,
   selectLayout,
   selectLayoutHistory,
+  selectNodePaths,
   setLayoutModel,
   shiftNode,
   sortNode,
@@ -123,6 +124,27 @@ describe('Move node', () => {
       '6f3224e2-cb61-46e4-a9e4-35b4d18f0a82',
       'static-static-card1ab',
     ]);
+  });
+});
+
+describe('Select node paths', () => {
+  it('Should reuse the paths map until the layout changes', () => {
+    const store = makeStore({
+      layoutModel: { present: layout, past: [], future: [] },
+      ui: uiInitialState,
+    });
+    const before = selectNodePaths(store.getState());
+    expect(before.get('static-static-card1ab')).to.deep.equal([0, 0, 0, 0]);
+
+    store.dispatch(setPageData({ title: [{ value: 'Title' }] }));
+    expect(selectNodePaths(store.getState())).to.equal(before);
+
+    store.dispatch(
+      moveNode({ uuid: 'static-static-card1ab', to: [0, 4, 0, 1] }),
+    );
+    const after = selectNodePaths(store.getState());
+    expect(after).not.to.equal(before);
+    expect(after.get('static-static-card1ab')).to.deep.equal([0, 4, 0, 1]);
   });
 });
 
