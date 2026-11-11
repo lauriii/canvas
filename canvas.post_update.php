@@ -816,3 +816,22 @@ function canvas_post_update_0030_page_variant_selection_options(): void {
   $storage_definitions = \Drupal::service(EntityFieldManagerInterface::class)->getFieldStorageDefinitions('canvas_page');
   $update_manager->updateFieldStorageDefinition($storage_definitions['page_variant']);
 }
+
+/**
+ * Add the prop form settings, with native prop forms off for existing sites.
+ *
+ * Existing sites keep server-built component instance forms, so
+ * `hook_form_alter()` implementations and media library integrations keep
+ * applying. Native prop forms are opt-in: `canvas.settings:prop_forms.native`.
+ */
+function canvas_post_update_0031_add_prop_forms_settings(): void {
+  $settings = \Drupal::configFactory()->getEditable('canvas.settings');
+  // Fill in each key separately: a site may already have set one of them.
+  if ($settings->get('prop_forms.native') === NULL) {
+    $settings->set('prop_forms.native', FALSE);
+  }
+  if ($settings->get('prop_forms.disabled_widgets') === NULL) {
+    $settings->set('prop_forms.disabled_widgets', []);
+  }
+  $settings->save();
+}

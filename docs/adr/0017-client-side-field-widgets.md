@@ -32,8 +32,9 @@ selection-to-form path must never regress when custom code is absent, late, or b
 
 ## Decision
 
-Render component prop forms natively in the editor by default, prop by prop, from cached metadata — with the
-server-built Drupal widget as a per-prop escape hatch.
+Render component prop forms natively in the editor, prop by prop, from cached metadata — with the
+server-built Drupal widget as a per-prop escape hatch. Native rendering is opt-in per site (see
+[Kill switch and per-widget disable](#kill-switch-and-per-widget-disable)).
 
 ### Key client widgets by Drupal field widget plugin id
 
@@ -136,8 +137,10 @@ form.
 Two keys in the `canvas.settings` simple configuration, delivered to the editor as
 `drupalSettings.canvas.propForms`:
 
-- `prop_forms.native` — when `FALSE`, every component prop form is server-built site-wide, restoring
-  `hook_form_alter()` effects and media library contrib integrations in full.
+- `prop_forms.native` — the site-wide switch. It ships `FALSE`, for new and existing sites: native rendering is
+  opt-in, because it changes behavior that existing sites and the existing end-to-end tests rely on. When `FALSE`,
+  every component prop form is server-built, with `hook_form_alter()` effects and media library contrib
+  integrations in full.
 - `prop_forms.disabled_widgets` — widget plugin ids whose props render through the hatch while all other props stay
   native (for example, `media_library_widget` on sites whose DAM integration alters the media library).
 
@@ -187,7 +190,7 @@ never waits on registration.
   300 ms server-form baseline, with a target under 100 ms p95 warm. The deterministic CI guard is the
   zero-form-request assertion for standard-widget components; latency itself is a monitored metric, not a
   per-commit gate.
-- **Breaking on the native path:** `hook_form_alter()` implementations targeting the component instance form, and
+- **Behavior change on the native path (opt-in):** `hook_form_alter()` implementations targeting the component instance form, and
   media library contrib integrations (DAM connectors, `media_library_edit`), no longer apply to natively rendered
   props. They still apply to escape-hatch props and to whole-form sources. The kill switch restores prior behavior
   site-wide; `prop_forms.disabled_widgets` restores it per widget.

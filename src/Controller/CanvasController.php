@@ -119,13 +119,14 @@ HTML;
     // ⚠️ This is highly experimental and *will* be refactored.
     $personalization_extension_available = $this->moduleHandler->moduleExists('canvas_personalization');
     $system_site_config = $this->configFactory->get('system.site');
-    // Native prop form settings: the site-wide kill switch and the per-widget
-    // native disable list. Absent config (sites installed before this setting
-    // existed) means native rendering is enabled with no widgets disabled.
+    // Native prop form settings: the site-wide opt-in and the per-widget
+    // native disable list. Absent config (a site that has not yet run
+    // canvas_post_update_0031_add_prop_forms_settings()) means server-built
+    // forms, which is what such a site rendered before.
     // @see docs/adr/0017-client-side-field-widgets.md
     $canvas_settings = $this->configFactory->get('canvas.settings');
     $prop_forms_settings = [
-      'native' => $canvas_settings->get('prop_forms.native') ?? TRUE,
+      'native' => $canvas_settings->get('prop_forms.native') ?? FALSE,
       'disabledWidgets' => \array_values($canvas_settings->get('prop_forms.disabled_widgets') ?? []),
       'textFormats' => [],
     ];

@@ -3,7 +3,8 @@
 This guide explains how to author, register, and test client-side widgets for the Canvas component prop form: the
 native render path introduced by [ADR-0017](adr/0017-client-side-field-widgets.md).
 
-By default, each prop of a selected component renders as a typed React widget resolved from the prop's configured
+When native prop forms are on (`canvas.settings` `prop_forms.native`, off by default), each prop of a selected
+component renders as a typed React widget resolved from the prop's configured
 Drupal field widget plugin id — no server form request involved. Props whose widget id has no registered client
 counterpart render via the server-built Drupal widget instead (the escape hatch, documented in
 [Redux-integrated field widgets](redux-integrated-field-widgets.md)). See
@@ -146,10 +147,10 @@ particular:
 
 For every native widget, verify the persisted model matches the Drupal widget baseline:
 
-1. With the native path on (the default), select a component instance and edit the prop through the native widget.
+1. With the native path on (`drush config-set canvas.settings prop_forms.native 1`), select a component instance and edit the prop through the native widget.
    Capture the auto-saved model — the `source` and `resolved` values sent in the layout `PATCH` request (visible in
    the browser's network panel), or the stored auto-save data.
-2. Turn on the kill switch: `drush config-set canvas.settings prop_forms.native 0`. Reload the editor and make the
+2. Turn the native path off: `drush config-set canvas.settings prop_forms.native 0`. Reload the editor and make the
    same edit through the server-built form.
 3. Diff the two captured models. `source` and `resolved` must be identical.
 4. Re-enable the native path: `drush config-set canvas.settings prop_forms.native 1`.
@@ -214,7 +215,9 @@ from the text format configuration — nothing about the editor is hardcoded cli
 ## Conditional prop states (`x-canvas-states`)
 
 Props can declare conditional visibility and enablement directly in the component schema, evaluated client-side for
-native and escape-hatch props alike. See
+native and escape-hatch props alike. The rules are not evaluated on the whole server-built form, so they have no
+effect while native prop forms are off (the default), in content templates, or for a component with no natively
+rendered prop. See
 [`ui/src/components/form/widgets/propStates.ts`](../ui/src/components/form/widgets/propStates.ts).
 
 Each rule is `{effect, when}`: `effect` is `visible` or `enabled`, and `when` is a JSON Schema evaluated (with ajv)

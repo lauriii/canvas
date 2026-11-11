@@ -503,8 +503,8 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
     self::assertEquals("/canvas", $canvas_url);
 
     // CanvasKernelTestBase::setUp() imports the module's default config, so
-    // the shipped canvas.settings defaults apply: native prop forms enabled,
-    // no widgets disabled.
+    // the shipped canvas.settings defaults apply: native prop forms off, no
+    // widgets disabled.
     // The text formats the current user may use, with their editor plugin
     // ids, ship with the boot settings so formatted text props resolve to a
     // native widget (or the escape hatch) without a request.
@@ -523,20 +523,20 @@ final class CanvasControllerTest extends CanvasKernelTestBase {
     ];
     $this->request(Request::create($canvas_url));
     $this->assertSame([
-      'native' => TRUE,
+      'native' => FALSE,
       'disabledWidgets' => [],
       'textFormats' => $expected_text_formats,
     ], $this->drupalSettings['canvas']['propForms']);
 
-    // Flipping the kill switch and disabling a widget must be reflected in the
-    // exposed settings.
+    // Opting in and disabling a widget must be reflected in the exposed
+    // settings.
     $this->config('canvas.settings')
-      ->set('prop_forms.native', FALSE)
+      ->set('prop_forms.native', TRUE)
       ->set('prop_forms.disabled_widgets', ['string_textfield'])
       ->save();
     $this->request(Request::create($canvas_url));
     $this->assertSame([
-      'native' => FALSE,
+      'native' => TRUE,
       'disabledWidgets' => ['string_textfield'],
       'textFormats' => $expected_text_formats,
     ], $this->drupalSettings['canvas']['propForms']);

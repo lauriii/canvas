@@ -14,7 +14,11 @@ import { isolatedPerTest as test } from '../../fixtures/test.js';
  * monitored metric, not a per-commit gate.
  */
 
-test.use({ modules: ['canvas_test_sdc'], enableTestExtensions: true });
+// Native prop forms are opt-in: canvas_test_native_prop_forms turns them on.
+test.use({
+  modules: ['canvas_test_sdc', 'canvas_test_native_prop_forms'],
+  enableTestExtensions: true,
+});
 
 const FORM_ENDPOINT_PATTERN = /\/canvas\/api\/v0\/form\/component-instance\//;
 

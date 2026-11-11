@@ -6,9 +6,10 @@ Drupal.org at release time — source them from here.
 
 ## Summary
 
-Component prop forms now render natively in the editor by default: each prop's configured Drupal field widget id is
-resolved against a client widget registry and renders instantly as a typed React widget from cached metadata,
-instead of waiting on a server-built Form API form (previously a roughly 300 ms round trip per selection). Props
+Component prop forms can now render natively in the editor. This is opt-in and off by default, on new and existing
+sites: enable it with `drush config-set canvas.settings prop_forms.native 1`. When on, each prop's configured Drupal
+field widget id is resolved against a client widget registry and renders instantly as a typed React widget from
+cached metadata, instead of waiting on a server-built Form API form (a roughly 300 ms round trip per selection). Props
 whose widget id has no registered client counterpart render via a server-built form island scoped to exactly those
 props (the escape hatch), and whole server-built forms remain for Blocks, Personalization, Fallback sources, and
 content templates.
@@ -19,7 +20,9 @@ Documentation: [Client-side widgets](../client-side-widgets.md),
 [Component instance and page data forms](../component-and-entity-forms.md), and
 [ADR-0017](../adr/0017-client-side-field-widgets.md).
 
-## Breaking changes (native path only)
+## Behavior changes when native prop forms are on
+
+Nothing changes for a site that does not opt in. With `prop_forms.native` on:
 
 - `hook_form_alter()` implementations targeting the component instance form no longer apply to natively rendered
   props. They still apply to escape-hatch props and to whole-form sources.
@@ -34,16 +37,19 @@ Documentation: [Client-side widgets](../client-side-widgets.md),
 The `canvas.transforms` metadata requirement on field widget plugins is unchanged and still required: it keeps the
 escape hatch and the kill switch working for every configured widget.
 
-## Bridges: kill switch and per-widget disable
+## Settings: opt-in and per-widget disable
 
 Two new keys in the `canvas.settings` simple configuration, delivered to the editor as
-`drupalSettings.canvas.propForms`:
+`drupalSettings.canvas.propForms`. Existing sites get both keys from
+`canvas_post_update_0031_add_prop_forms_settings()`, with native prop forms off.
 
-- Site-wide kill switch — force the previous server-built form path for all props, restoring `hook_form_alter()`
-  effects and media library contrib integrations in full:
+- Site-wide switch — `prop_forms.native`. Off by default. Turning it off again (the kill switch) restores the
+  server-built form path for all props, with `hook_form_alter()` effects and media library contrib integrations in
+  full:
 
   ```sh
-  drush config-set canvas.settings prop_forms.native 0
+  drush config-set canvas.settings prop_forms.native 1   # opt in
+  drush config-set canvas.settings prop_forms.native 0   # back to server-built forms
   ```
 
 - Per-widget disable — send specific widget ids to the escape hatch while all other props stay native (for

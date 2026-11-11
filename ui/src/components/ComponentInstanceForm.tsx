@@ -505,10 +505,10 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
     : undefined;
 
   // Decide how each prop renders: a native client widget resolved from the
-  // registry, or an escape-hatch island. The whole-form server path remains
-  // for form-API-dependent sources (Blocks, Personalization, Fallback),
-  // content templates (prop linking UX), fully hatch-rendered components, and
-  // when the kill switch is on.
+  // registry, or an escape-hatch island. The whole-form server path is used
+  // while native prop forms are off (the default), and remains for
+  // form-API-dependent sources (Blocks, Personalization, Fallback), content
+  // templates (prop linking UX) and fully hatch-rendered components.
   const propFormsSettings = useMemo(() => getPropFormsSettings(), []);
   const composition: CompositionSlot[] | null = useMemo(() => {
     if (

@@ -10,6 +10,7 @@ use Drupal\canvas\Entity\PageVariant;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\Marker;
 use Drupal\Core\Config\StorageCacheInterface;
 use Drupal\Core\Config\StorageInterface;
+use Drupal\Core\Config\TypedConfigManagerInterface;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -20,6 +21,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 #[CoversFunction('canvas_post_update_0028_install_page_variants')]
 #[CoversFunction('canvas_post_update_0029_migrate_page_regions_to_variants')]
 #[CoversFunction('canvas_post_update_0030_page_variant_selection_options')]
+#[CoversFunction('canvas_post_update_0031_add_prop_forms_settings')]
 #[RunTestsInSeparateProcesses]
 #[Group('canvas')]
 final class PageVariantsInstallAndMigrateUpdateTest extends CanvasUpdatePathTestBase {
@@ -99,6 +101,13 @@ final class PageVariantsInstallAndMigrateUpdateTest extends CanvasUpdatePathTest
     // `theme_claro` variant is created, and the site default stays `theme_stark`.
     $this->assertNull(PageVariant::load('theme_claro'));
     $this->assertSame('theme_stark', \Drupal::config('canvas.settings')->get(PageVariant::DEFAULT_SETTING));
+
+    // 0031: the prop form settings were added with native prop forms off, so
+    // an existing site keeps its server-built forms, and the settings object
+    // is valid.
+    $settings = \Drupal::config('canvas.settings');
+    $this->assertSame(['native' => FALSE, 'disabled_widgets' => []], $settings->get('prop_forms'));
+    $this->assertCount(0, \Drupal::service(TypedConfigManagerInterface::class)->createFromNameAndData('canvas.settings', $settings->get())->validate());
 
     // The pending `stark.sidebar_first` draft was converted into one
     // auto-saved draft on the variant: the same slot placement, applied to the

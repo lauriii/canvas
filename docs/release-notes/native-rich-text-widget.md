@@ -6,7 +6,8 @@ Draft release note and change record material for the native rich text widget ch
 ## Summary
 
 Formatted text props (`contentMediaType: text/html`; the `text_textfield`, `text_textarea`, and
-`text_textarea_with_summary` widgets) now render natively in the editor: CKEditor 5 mounts client-side with the
+`text_textarea_with_summary` widgets) render natively in the editor when native prop forms are on
+(`canvas.settings` `prop_forms.native`, off by default): CKEditor 5 mounts client-side with the
 toolbar, plugins, and settings configured on the prop's text format, with no component-instance form request. The
 editor settings and asset libraries for the formats the current user may use are fetched once per session from a
 new endpoint (`GET /canvas/api/v0/text-editor-settings`); formats the user cannot use are never exposed. Formats
@@ -25,5 +26,5 @@ Documentation: [Client-side widgets](../client-side-widgets.md) (formatted text 
   editor configuration is computed server-side by the editor module.
 - Non-CKEditor-5 editor plugins (for example markdown editors) automatically use the escape hatch.
 - Sites can send the text widgets back to the escape hatch via `prop_forms.disabled_widgets` (ids `text_textarea`,
-  `text_textarea_with_summary`, `text_textfield`), or restore the full server-form path with the
-  `prop_forms.native` kill switch.
+  `text_textarea_with_summary`, `text_textfield`), or return to the full server-form path by turning
+  `prop_forms.native` off again.
