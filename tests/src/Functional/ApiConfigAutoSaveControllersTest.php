@@ -348,6 +348,13 @@ final class ApiConfigAutoSaveControllersTest extends HttpApiTestBase {
     $this->assertSession()->statusCodeEquals(200);
     $this->assertSession()->responseHeaderEquals('Content-Type', 'text/javascript; charset=utf-8');
     self::assertEquals(NestedArray::getValue($updated_entity, $compiled_js_path_in_normalization), $this->getSession()->getPage()->getContent());
+    // Browsers may keep the response only for a URL with the current version.
+    // @see \Drupal\canvas\AutoSave\AutoSaveManager::getDraftAsset()
+    $this->assertSession()->responseHeaderContains('Cache-Control', 'no-store');
+    $this->drupalGet(clone $js_auto_save_url, ['query' => ['v' => 'outdated']]);
+    $this->assertSession()->responseHeaderContains('Cache-Control', 'no-store');
+    $this->drupalGet(clone $js_auto_save_url, ['query' => ['v' => \hash('xxh64', NestedArray::getValue($updated_entity, $compiled_js_path_in_normalization))]]);
+    $this->assertSession()->responseHeaderContains('Cache-Control', 'immutable');
 
     $this->drupalGet($css_auto_save_url);
     $this->assertSession()->statusCodeEquals(200);

@@ -252,6 +252,16 @@ services:
   Drupal\canvas\Controller\SiteDataController: {}
 
   # Decorators.
+  canvas.asset.css.collection_renderer.draft:
+    class: Drupal\canvas\Asset\DraftAssetCollectionRenderer
+    public: false
+    decorates: asset.css.collection_renderer
+    arguments: ['@.inner', '@Drupal\canvas\AutoSave\AutoSaveManager', '@entity_type.manager']
+  canvas.asset.js.collection_renderer.draft:
+    class: Drupal\canvas\Asset\DraftAssetCollectionRenderer
+    public: false
+    decorates: asset.js.collection_renderer
+    arguments: ['@.inner', '@Drupal\canvas\AutoSave\AutoSaveManager', '@entity_type.manager']
   Drupal\canvas\Render\ImportMapResponseAttachmentsProcessor:
     public: false
     decorates: html_response.attachments_processor

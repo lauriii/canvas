@@ -8,6 +8,7 @@ use Drupal\canvas\AutoSaveEntity;
 use Drupal\canvas\Controller\ApiContentControllers;
 use Drupal\canvas\Controller\ConflictResolutionOutcomeEnum;
 use Drupal\canvas\Entity\BrandKit;
+use Drupal\canvas\Entity\CanvasAssetInterface;
 use Drupal\canvas\Entity\CanvasHttpApiEligibleConfigEntityInterface;
 use Drupal\canvas\Entity\ComponentTreeConfigEntityBase;
 use Drupal\canvas\Entity\ComponentTreeEntityInterface;
@@ -481,6 +482,29 @@ class AutoSaveManager implements EventSubscriberInterface {
     // backend; see the $cache constructor parameter for why.
     $this->cache->set($key, $auto_save_entity, tags: [self::CACHE_TAG]);
     return $auto_save_entity;
+  }
+
+  /**
+   * Gets the CSS or JS that the auto-save asset routes serve for an entity.
+   *
+   * That is the auto-saved version if there is one, else the saved one.
+   *
+   * @param \Drupal\canvas\Entity\CanvasAssetInterface $entity
+   *   A code component, asset library or brand kit.
+   * @param 'css'|'js' $kind
+   *   Which of the two assets.
+   *
+   * @return array{0: string, 1: string}
+   *   The asset, and a version that changes when the asset does.
+   *
+   * @see \Drupal\canvas\Controller\ApiConfigAutoSaveControllers::getCss()
+   * @see \Drupal\canvas\Asset\DraftAssetCollectionRenderer
+   */
+  public function getDraftAsset(CanvasAssetInterface $entity, string $kind): array {
+    $draft = $this->getAutoSaveEntity($entity)->entity ?? $entity;
+    \assert($draft instanceof CanvasAssetInterface);
+    $asset = $kind === 'css' ? $draft->getCss() : $draft->getJs();
+    return [$asset, \hash('xxh64', $asset)];
   }
 
   /**

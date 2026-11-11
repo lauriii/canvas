@@ -450,6 +450,9 @@ class ComponentTreeItemListTest extends CanvasKernelTestBase {
   }
 
   public static function hostEntityAgnosticProvider(string $expected_host_entity_cache_tag): \Generator {
+    // The test code components' JS is empty.
+    // @see \Drupal\canvas\Entity\JavaScriptComponent::getComponentUrl()
+    $empty_js_version = \hash('xxh64', '');
     $generate_static_prop_source = function (string $label): string {
       return "Hello, $label!";
     };
@@ -1613,7 +1616,7 @@ HTML,
               ...$path_to_auto_saved_js_component,
               '#component_url',
             ],
-            'value' => '/canvas/api/v0/auto-saves/js/js_component/my-cta-with-auto-save',
+            'value' => '/canvas/api/v0/auto-saves/js/js_component/my-cta-with-auto-save?v=' . $empty_js_version,
           ],
           [
             'parents' => [...$path_to_auto_saved_js_component, '#cache'],
@@ -1632,7 +1635,7 @@ HTML,
           // that its title does not get a "draft" suffix.
           [
             'parents' => [...$path_to_js_component, '#component_url'],
-            'value' => '/canvas/api/v0/auto-saves/js/js_component/my-cta',
+            'value' => '/canvas/api/v0/auto-saves/js/js_component/my-cta?v=' . $empty_js_version,
           ],
           [
             'parents' => [...$path_to_js_component, '#cache'],
@@ -1668,7 +1671,7 @@ HTML,
               <a href="/" rel="home">Canvas Test Site</a>
         Drupal Canvas Test Site
      </div>
-     <!-- canvas-end-68167e4a-9245-41be-b564-f1e1dcad1dec --><!-- canvas-start-2f57ba57-f32a-4a7b-9896-9d1104b446f1 --><canvas-island uid="2f57ba57-f32a-4a7b-9896-9d1104b446f1" component-url="/canvas/api/v0/auto-saves/js/js_component/my-cta" component-export="default" renderer-url="::CANVAS_DIR_BASE_URL::/packages/astro-hydration/dist/canvas-client.js?2.1.0-alpha3" props="{&quot;text&quot;:&quot;\\&quot;Hello, from a \\\\\\&quot;code component\\\\\\&quot;!\\&quot;&quot;,&quot;href&quot;:&quot;\\&quot;https:\\\\\\/\\\\\\/example.com\\&quot;&quot;}" ssr="" client="only" opts="{&quot;name&quot;:&quot;My First Code Component&quot;,&quot;value&quot;:&quot;preact&quot;}" data-canvas-preview="true"><script type="module" src="::CANVAS_DIR_BASE_URL::/packages/astro-hydration/dist/canvas-client.js?2.1.0-alpha3" blocking="render"></script><script type="module" src="/canvas/api/v0/auto-saves/js/js_component/my-cta" blocking="render"></script></canvas-island><!-- canvas-end-2f57ba57-f32a-4a7b-9896-9d1104b446f1 --><!-- canvas-start-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 --><canvas-island uid="b4bc6c8f-66f7-458a-99a9-41c29b2801e7" component-url="/canvas/api/v0/auto-saves/js/js_component/my-cta-with-auto-save" component-export="default" renderer-url="::CANVAS_DIR_BASE_URL::/packages/astro-hydration/dist/canvas-client.js?2.1.0-alpha3" props="{&quot;text&quot;:&quot;\\&quot;Hello, from a \\\\\\&quot;auto-save code component\\\\\\&quot;!\\&quot;&quot;,&quot;href&quot;:&quot;\\&quot;https:\\\\\\/\\\\\\/example.com\\&quot;&quot;}" ssr="" client="only" opts="{&quot;name&quot;:&quot;My Code Component with Auto-Save - Draft&quot;,&quot;value&quot;:&quot;preact&quot;}" data-canvas-preview="true"><script type="module" src="::CANVAS_DIR_BASE_URL::/packages/astro-hydration/dist/canvas-client.js?2.1.0-alpha3" blocking="render"></script><script type="module" src="/canvas/api/v0/auto-saves/js/js_component/my-cta-with-auto-save" blocking="render"></script></canvas-island><!-- canvas-end-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 --><!-- canvas-start-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97 --><div  data-component-id="canvas_test_entity_reference_shape_alter:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
+     <!-- canvas-end-68167e4a-9245-41be-b564-f1e1dcad1dec --><!-- canvas-start-2f57ba57-f32a-4a7b-9896-9d1104b446f1 --><canvas-island uid="2f57ba57-f32a-4a7b-9896-9d1104b446f1" component-url="/canvas/api/v0/auto-saves/js/js_component/my-cta?v={$empty_js_version}" component-export="default" renderer-url="::CANVAS_DIR_BASE_URL::/packages/astro-hydration/dist/canvas-client.js?2.1.0-alpha3" props="{&quot;text&quot;:&quot;\\&quot;Hello, from a \\\\\\&quot;code component\\\\\\&quot;!\\&quot;&quot;,&quot;href&quot;:&quot;\\&quot;https:\\\\\\/\\\\\\/example.com\\&quot;&quot;}" ssr="" client="only" opts="{&quot;name&quot;:&quot;My First Code Component&quot;,&quot;value&quot;:&quot;preact&quot;}" data-canvas-preview="true"><script type="module" src="::CANVAS_DIR_BASE_URL::/packages/astro-hydration/dist/canvas-client.js?2.1.0-alpha3" blocking="render"></script><script type="module" src="/canvas/api/v0/auto-saves/js/js_component/my-cta?v={$empty_js_version}" blocking="render"></script></canvas-island><!-- canvas-end-2f57ba57-f32a-4a7b-9896-9d1104b446f1 --><!-- canvas-start-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 --><canvas-island uid="b4bc6c8f-66f7-458a-99a9-41c29b2801e7" component-url="/canvas/api/v0/auto-saves/js/js_component/my-cta-with-auto-save?v={$empty_js_version}" component-export="default" renderer-url="::CANVAS_DIR_BASE_URL::/packages/astro-hydration/dist/canvas-client.js?2.1.0-alpha3" props="{&quot;text&quot;:&quot;\\&quot;Hello, from a \\\\\\&quot;auto-save code component\\\\\\&quot;!\\&quot;&quot;,&quot;href&quot;:&quot;\\&quot;https:\\\\\\/\\\\\\/example.com\\&quot;&quot;}" ssr="" client="only" opts="{&quot;name&quot;:&quot;My Code Component with Auto-Save - Draft&quot;,&quot;value&quot;:&quot;preact&quot;}" data-canvas-preview="true"><script type="module" src="::CANVAS_DIR_BASE_URL::/packages/astro-hydration/dist/canvas-client.js?2.1.0-alpha3" blocking="render"></script><script type="module" src="/canvas/api/v0/auto-saves/js/js_component/my-cta-with-auto-save?v={$empty_js_version}" blocking="render"></script></canvas-island><!-- canvas-end-b4bc6c8f-66f7-458a-99a9-41c29b2801e7 --><!-- canvas-start-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97 --><div  data-component-id="canvas_test_entity_reference_shape_alter:props-no-slots" style="font-family: Helvetica, Arial, sans-serif; width: 100%; height: 100vh; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; padding: 20px; box-sizing: border-box;">
       <h1 style="font-size: 3em; margin: 0.5em 0; color: #333;"><!-- canvas-prop-start-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97/heading -->Clurichaun<!-- canvas-prop-end-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97/heading --></h1>
      </div>
      <!-- canvas-end-9f09ecd8-ec65-408c-b5c8-ef036e6aeb97 --><!-- canvas-slot-end-e0b92f23-c177-4196-8fa4-3e837f99a357/the_body -->

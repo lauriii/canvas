@@ -1142,7 +1142,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     // @phpstan-ignore-next-line
     $expected_js_filename = match ($expected_result) {
       'live' => \sprintf('/%s/astro-island/%s.js', $directory_path, $js_hash),
-      'draft' => \sprintf('/canvas/api/v0/auto-saves/js/%s/%s', JavaScriptComponent::ENTITY_TYPE_ID, $js_component_id),
+      'draft' => \sprintf('/canvas/api/v0/auto-saves/js/%s/%s?v=%s', JavaScriptComponent::ENTITY_TYPE_ID, $js_component_id, \hash('xxh64', $expected_component_compiled_js)),
     };
     $element_js_script = $element->attr('component-url');
     self::assertEquals($expected_js_filename, $element_js_script);
@@ -1759,7 +1759,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       self::assertContains('canvas/astro_island.dependency_component_no_css', $attached_libraries);
     }
     if ($dependencies_expected_result === 'draft') {
-      $nested_dependency_js_path = base_path() . 'canvas/api/v0/auto-saves/js/js_component/nested_dependency_component';
+      $nested_dependency_js_path = base_path() . 'canvas/api/v0/auto-saves/js/js_component/nested_dependency_component?v=' . \hash('xxh64', $nested_dependency_js_component->getJs());
       self::assertContains('canvas/astro_island.dependency_component.draft', $attached_libraries);
       self::assertContains('canvas/astro_island.nested_dependency_component.draft', $attached_libraries);
       self::assertNotContains('canvas/astro_island.dependency_component', $attached_libraries);
