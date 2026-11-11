@@ -25,7 +25,7 @@ import { useGetPreviewContentEntitiesQuery } from '@/services/componentAndLayout
 import { getCanvasSettings } from '@/utils/drupal-globals';
 
 import PageInfo from '../pageInfo/PageInfo';
-import { isPreviewPath } from './topbarPreviewMode';
+import { isLanguageViewPath, isPreviewPath } from './topbarPreviewMode';
 
 import styles from './Topbar.module.css';
 
@@ -35,13 +35,9 @@ const Topbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { entityType, bundle, previewEntityId } = useParams();
-  // A page or template shown read-only in another language than its own is
-  // on a preview route, but keeps the top bar of the editor: it holds the
-  // working language and the page list.
-  const isLanguageView =
-    isPreviewPath(location.pathname) &&
-    new URLSearchParams(location.search).has('language');
-  const isPreview = isPreviewPath(location.pathname) && !isLanguageView;
+  const isPreview = isPreviewPath(location.pathname);
+  // A page or template shown in another language than its own, in the editor.
+  const isLanguageView = isLanguageViewPath(location.pathname, location.search);
   const isEditor = location.pathname.includes('/editor');
   const isSegments = location.pathname.includes('/segments');
   const isHeadlessFrontends = location.pathname.startsWith('/headless');
@@ -61,7 +57,11 @@ const Topbar = () => {
   const isFrontendEmbedded =
     headlessSettings !== undefined &&
     Boolean(entityType) &&
-    (isEditor || isTemplateEditorContext || isPagePreview);
+    (isEditor ||
+      isTemplateEditorContext ||
+      isPagePreview ||
+      // The template editor, also while it shows another language.
+      location.pathname.startsWith('/template/'));
 
   const isTranslationEnabled =
     canvasSettings?.contentTranslationEnabled ||
@@ -198,7 +198,7 @@ const Topbar = () => {
             </Flex>
             <Flex align="center" justify="end" gap="2">
               <NotificationBell />
-              {!isLanguageView && <PreviewControls isPreview={isPreview} />}
+              <PreviewControls isPreview={isPreview} />
               <UnpublishedChanges />
             </Flex>
           </Grid>

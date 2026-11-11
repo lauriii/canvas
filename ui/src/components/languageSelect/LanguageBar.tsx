@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router';
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router';
 import {
   DotsHorizontalIcon,
   ExternalLinkIcon,
-  EyeOpenIcon,
+  GlobeIcon,
 } from '@radix-ui/react-icons';
 import {
-  Badge,
   Button,
   DropdownMenu,
   Flex,
@@ -15,16 +14,14 @@ import {
   TextField,
 } from '@radix-ui/themes';
 
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { useAppDispatch } from '@/app/hooks';
 import Dialog from '@/components/Dialog';
 import { extractErrorMessageFromApiResponse } from '@/features/error-handling/error-handling';
 import {
-  selectTranslations,
   setInitialized,
   setTranslations,
 } from '@/features/layout/layoutModelSlice';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
-import { useTemplateRef } from '@/hooks/useTemplateRef';
 import {
   rememberWorkingLanguage,
   useWorkingLanguage,
@@ -32,7 +29,6 @@ import {
 import {
   componentAndLayoutApi,
   useDeletePageTranslationMutation,
-  useGetPageLayoutQuery,
 } from '@/services/componentAndLayout';
 import { contentApi, useSetLangcodeMutation } from '@/services/content';
 import { PAGE_VARIANT_ENTITY_TYPE } from '@/services/pageVariants';
@@ -42,8 +38,8 @@ import { getLanguages } from '@/utils/drupal-globals';
 import styles from './LanguageSelect.module.css';
 
 /**
- * Explains a preview of a page or template in another language, and offers
- * the ways to edit it.
+ * Explains a page or template shown in another language than its own, and
+ * offers the ways to edit it.
  *
  * Shown when it is open in a working language other than the language it was
  * created in: either its translation, or the original when it has no
@@ -55,35 +51,27 @@ import styles from './LanguageSelect.module.css';
 const LanguageBar = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { entityType, entityId, bundle, viewMode } = useParams();
-  const { isTemplatePreviewRoute } = useTemplateRef();
+  const {
+    entityType,
+    entityId: routeEntityId,
+    previewEntityId,
+    bundle,
+    viewMode,
+  } = useParams();
+  // The template editor names the entity it previews differently.
+  const entityId = routeEntityId ?? previewEntityId;
+  const { pathname } = useLocation();
+  const isTemplateRoute = pathname.startsWith('/template/');
   const { urlForEditor, urlForTemplateEditor } = useEditorNavigation();
-  const { workingLanguage } = useWorkingLanguage();
-  // The translations in the store are those of the last loaded layout, which
-  // can be another page: take them from the layout of the page in the route.
-  // Asking for it in the working language leaves the page data and the
-  // preview in the store alone. A template has no such layout; the preview
-  // stores its translations.
-  const templateTranslations = useAppSelector(selectTranslations);
-  // `currentData` is empty while the layout of another page loads, where
-  // `data` would still be that of the previous page.
-  const { currentData: layout } = useGetPageLayoutQuery(
-    {
-      entityId: entityId!,
-      entityType: entityType!,
-      language: workingLanguage?.id,
-    },
-    {
-      skip:
-        isTemplatePreviewRoute || !entityId || !entityType || !workingLanguage,
-      refetchOnMountOrArgChange: true,
-    },
-  );
-  const translations = isTemplatePreviewRoute
-    ? templateTranslations
-    : layout?.translations;
+  // The translations of the page or template in the route, already loaded
+  // with it: the bar does not wait for the page in the working language.
+  const {
+    workingLanguage,
+    translations,
+    isNew: isDraft,
+  } = useWorkingLanguage();
   // Only a Canvas page can change its language.
-  const isPage = entityType === 'canvas_page' && !isTemplatePreviewRoute;
+  const isPage = entityType === 'canvas_page' && !isTemplateRoute;
   const [setLangcode, { isLoading: isChanging }] = useSetLangcodeMutation();
   const [deletePageTranslation, { isLoading: isDeleting }] =
     useDeletePageTranslationMutation();
@@ -97,7 +85,7 @@ const LanguageBar = () => {
   if (!entityType || !entityId || !workingLanguage || !pageLanguage) {
     return null;
   }
-  const editorUrl = isTemplatePreviewRoute
+  const editorUrl = isTemplateRoute
     ? urlForTemplateEditor({
         entityType,
         bundle: bundle!,
@@ -110,7 +98,7 @@ const LanguageBar = () => {
     // It is reached with the browser's Back button after the language of the
     // page changed. The translations of a template can be those of another
     // one, so only a page is sent to the editor.
-    return isTemplatePreviewRoute ? null : <Navigate to={editorUrl} replace />;
+    return isTemplateRoute ? null : <Navigate to={editorUrl} replace />;
   }
 
   const view = workingLanguage.name;
@@ -120,7 +108,7 @@ const LanguageBar = () => {
   const isTranslated = available.includes(workingLanguage.id);
   // The translations of a page variant are not reported.
   const knowsTranslations = entityType !== PAGE_VARIANT_ENTITY_TYPE;
-  const isNew = Boolean(layout?.isNew);
+  const isNew = Boolean(isDraft);
   const links = translations?.links?.[workingLanguage.id] ?? {};
   // A page that was never published is not translated yet: all its content
   // is in its auto-save entry.
@@ -128,14 +116,13 @@ const LanguageBar = () => {
     ? undefined
     : (links['edit-form'] ?? links['create']);
   const deleteUrl: string | undefined =
-    isTranslated && !isNew && (isPage || isTemplatePreviewRoute)
+    isTranslated && !isNew && (isPage || isTemplateRoute)
       ? links['delete-form']
       : undefined;
   // The language of a page can change while nothing depends on it.
   // @see canvas.api.content.langcode.patch in canvas.routing.yml
   const canChange = isPage && isNew && available.length === 1;
-  const isTemplate =
-    isTemplatePreviewRoute || entityType === PAGE_VARIANT_ENTITY_TYPE;
+  const isTemplate = isTemplateRoute || entityType === PAGE_VARIANT_ENTITY_TYPE;
   const noun = isTemplate ? 'template' : 'page';
 
   const closeDialog = () => {
@@ -210,25 +197,32 @@ const LanguageBar = () => {
         wrap="wrap"
       >
         <Flex align="center" gap="3" minWidth="0">
-          <Badge size="1" color="gray" variant="soft" highContrast>
-            <EyeOpenIcon width="12" height="12" aria-hidden />
-            Preview
-          </Badge>
+          <GlobeIcon
+            width="16"
+            height="16"
+            color="var(--gray-11)"
+            aria-hidden
+          />
           <Text size="2" color="gray" data-testid="canvas-language-bar-message">
+            {/* "Original" is the word the language selector uses too. */}
             {isTranslated ? (
               <>
                 <Text weight="medium" highContrast>
                   {view} translation.
                 </Text>{' '}
-                This {noun} is written in {page}.
+                The original is in {page}.
               </>
-            ) : (
+            ) : knowsTranslations ? (
               <>
                 <Text weight="medium" highContrast>
-                  This {noun} is written in {page}.
-                </Text>
-                {knowsTranslations && ` It is not translated into ${view}.`}
+                  Not translated into {view}.
+                </Text>{' '}
+                Showing the {page} original.
               </>
+            ) : (
+              <Text weight="medium" highContrast>
+                The original is in {page}.
+              </Text>
             )}
           </Text>
         </Flex>

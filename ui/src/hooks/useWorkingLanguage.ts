@@ -48,8 +48,8 @@ const getRememberedWorkingLanguage = () => {
  *
  * It is the `language` query parameter when there is one, and the language of
  * the open page otherwise. So the editor route always edits a page in its own
- * language, a page in another language opens on the read-only preview route,
- * and the working language stays the same while moving between pages. Without
+ * language, shows a page in another language in the working language, and the
+ * working language stays the same while moving between pages. Without
  * an open page, it is the language the user selected last.
  */
 export function useWorkingLanguage() {
@@ -149,7 +149,7 @@ export function useWorkingLanguage() {
   const urlForPage = useCallback(
     (page: PageStub) =>
       isInOtherLanguage(page)
-        ? `/preview/canvas_page/${page.id}/full?language=${id}`
+        ? `${urlForEditor('canvas_page', page.id)}?language=${id}`
         : urlForEditor('canvas_page', page.id),
     [isInOtherLanguage, id, urlForEditor],
   );
@@ -160,6 +160,8 @@ export function useWorkingLanguage() {
     pageLanguage,
     // The translations of the open page or template.
     translations,
+    // Whether the open page was never published.
+    isNew: isTemplateRoute ? undefined : (layout?.isNew as boolean | undefined),
     isMultilingual,
     isMissing,
     titleOf,

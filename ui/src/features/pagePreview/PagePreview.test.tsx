@@ -23,7 +23,7 @@ vi.mock('@/features/layout/preview/useHeadlessDraftSession', () => ({
   useHeadlessDraftSession: mocks.session,
 }));
 vi.mock('@/services/componentAndLayout', () => ({
-  useGetPageLayoutQuery: vi.fn(() => ({})),
+  useGetPageLayoutQuery: vi.fn(() => ({ refetch: vi.fn() })),
 }));
 vi.mock('@/services/preview', () => ({
   useGetSnapshotPreviewQuery: mocks.snapshot,
@@ -33,6 +33,59 @@ vi.mock('@/utils/viewports', () => ({ getViewportSizes: () => [] }));
 vi.mock('@/components/languageSelect/LanguageBar', () => ({
   default: () => <div data-testid="language-bar" />,
 }));
+
+describe('Headless page in another language, in the editor', () => {
+  it('embeds the frontend in that language under the language bar', () => {
+    const view = render(
+      <MemoryRouter initialEntries={['/editor/canvas_page/7?language=fr']}>
+        <Routes>
+          <Route
+            path="/editor/:entityType/:entityId"
+            element={<PagePreview />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByTestId('language-bar')).toBeInTheDocument();
+    expect(mocks.session).toHaveBeenLastCalledWith(
+      expect.any(Object),
+      expect.any(Object),
+      'canvas_page',
+      '7',
+      undefined,
+      undefined,
+      { viewMode: undefined, language: 'fr' },
+    );
+    view.unmount();
+  });
+
+  it('embeds a template in that language, in the template editor', () => {
+    const view = render(
+      <MemoryRouter
+        initialEntries={['/template/node/article/teaser/7?language=fr']}
+      >
+        <Routes>
+          <Route
+            path="/template/:entityType/:bundle/:viewMode/:previewEntityId"
+            element={<PagePreview />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+    // Nothing loads the translations of a template in headless mode.
+    expect(screen.queryByTestId('language-bar')).toBeNull();
+    expect(mocks.session).toHaveBeenLastCalledWith(
+      expect.any(Object),
+      expect.any(Object),
+      'node',
+      '7',
+      undefined,
+      undefined,
+      { viewMode: 'teaser', language: 'fr' },
+    );
+    view.unmount();
+  });
+});
 
 describe('read-only Headless preview', () => {
   it.each([
@@ -62,11 +115,8 @@ describe('read-only Headless preview', () => {
         </MemoryRouter>,
       );
       expect(screen.getByTitle('Page preview')).not.toHaveAttribute('srcdoc');
-      // The bar explains a read-only view. Nothing loads the translations of
-      // a template in headless mode, so it has none.
-      expect(screen.queryAllByTestId('language-bar')).toHaveLength(
-        path.includes('/template/') ? 0 : 1,
-      );
+      // The preview shows the page the way visitors see it: no language bar.
+      expect(screen.queryByTestId('language-bar')).toBeNull();
       expect(mocks.session).toHaveBeenLastCalledWith(
         expect.any(Object),
         expect.any(Object),

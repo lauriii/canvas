@@ -51,16 +51,20 @@ const UiShell = ({ children }: { children: React.ReactNode }) => (
   </>
 );
 
-// A page or template shown read-only in another language than its own keeps
-// the side menu and its panels, unlike the preview.
-const PreviewRoute = () => {
+// The editor of a page or template. With a `language` that is not its own,
+// it shows the page or template in that language instead, inside the same
+// side menu and panels: the Canvas editor edits a page in its own language.
+// That is not the preview, which shows a page the way visitors see it.
+const EditorRoute = ({ context }: { context: EditorFrameContext }) => {
   const [searchParams] = useSearchParams();
-  return searchParams.has('language') ? (
+  return (
     <UiShell>
-      <PagePreview />
+      {searchParams.has('language') ? (
+        <PagePreview />
+      ) : (
+        <EditorLayout context={context} />
+      )}
     </UiShell>
-  ) : (
-    <PagePreview />
   );
 };
 
@@ -142,11 +146,7 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
           },
           {
             path: '/editor/:entityType/:entityId',
-            element: (
-              <UiShell>
-                <EditorLayout context={EditorFrameContext.ENTITY} />
-              </UiShell>
-            ),
+            element: <EditorRoute context={EditorFrameContext.ENTITY} />,
             children: [
               {
                 path: '/editor/:entityType/:entityId/component/:componentId',
@@ -164,11 +164,7 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
           },
           {
             path: '/template/:entityType/:bundle/:viewMode/:previewEntityId',
-            element: (
-              <UiShell>
-                <EditorLayout context={EditorFrameContext.TEMPLATE} />
-              </UiShell>
-            ),
+            element: <EditorRoute context={EditorFrameContext.TEMPLATE} />,
             children: [
               {
                 path: '/template/:entityType/:bundle/:viewMode/:previewEntityId/component/:componentId',
@@ -192,19 +188,19 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
           },
           {
             path: '/preview/:entityType/:entityId/',
-            element: <PreviewRoute />,
+            element: <PagePreview />,
           },
           {
             path: 'preview/:entityType/:entityId/:width',
-            element: <PreviewRoute />,
+            element: <PagePreview />,
           },
           {
             path: '/preview/template/:entityType/:bundle/:entityId/:viewMode',
-            element: <PreviewRoute />,
+            element: <PagePreview />,
           },
           {
             path: 'preview/template/:entityType/:bundle/:entityId/:viewMode/:width',
-            element: <PreviewRoute />,
+            element: <PagePreview />,
           },
           {
             path: '/version-preview/:entityType/:entityId',

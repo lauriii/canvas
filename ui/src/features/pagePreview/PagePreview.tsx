@@ -11,6 +11,7 @@ import {
   selectLayout,
   selectModel,
   selectUpdatePreview,
+  setUpdatePreview,
 } from '@/features/layout/layoutModelSlice';
 import { useHeadlessDraftSession } from '@/features/layout/preview/useHeadlessDraftSession';
 import { selectPageData } from '@/features/pageData/pageDataSlice';
@@ -45,12 +46,20 @@ const HeadlessPagePreview: React.FC<{
   width: string;
   viewMode?: string;
   language?: string;
+  entityId?: string;
+  isLanguageView?: boolean;
   showLanguageBar?: boolean;
-}> = ({ settings, width, viewMode, language, showLanguageBar }) => {
-  // A view in another language is inside the editor's shell.
-  const inShell = !!language;
+}> = ({
+  settings,
+  width,
+  viewMode,
+  language,
+  entityId,
+  isLanguageView,
+  showLanguageBar,
+}) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const { entityId, entityType } = useParams();
+  const { entityType } = useParams();
   const { statusText } = useHeadlessDraftSession(
     iframeRef,
     settings,
@@ -65,7 +74,7 @@ const HeadlessPagePreview: React.FC<{
     <div
       className={clsx(
         styles.PagePreviewContainer,
-        inShell && styles.withLanguageBar,
+        isLanguageView && styles.languageView,
       )}
     >
       {showLanguageBar && <LanguageBar />}
@@ -95,7 +104,16 @@ const PagePreview = () => {
   const entity_form_fields = useAppSelector(selectPageData);
   const frameSrcDoc = useAppSelector(selectPreviewHtml);
   const [postPreview] = useQueuedPostPreviewMutation();
-  const { entityId, entityType, bundle, viewMode, width } = useParams();
+  const {
+    entityId: routeEntityId,
+    previewEntityId,
+    entityType,
+    bundle,
+    viewMode,
+    width,
+  } = useParams();
+  // The template editor names the entity it previews differently.
+  const entityId = routeEntityId ?? previewEntityId;
   const [searchParams] = useSearchParams();
   const { showBoundary } = useErrorBoundary();
   const [widthVal, setWidthVal] = useState('100%');
@@ -107,24 +125,35 @@ const PagePreview = () => {
   // Derive the active language directly from the URL search params.
   const language = searchParams.get('language') ?? '';
 
-  // Determine template context from the URL path.
-  const isContentTemplate = location.pathname.includes('/preview/template');
+  // The preview shows a page the way visitors see it, in any language. Outside
+  // of it, this shows a page or template in another language than its own,
+  // inside the editor.
+  const isPreviewRoute = location.pathname.startsWith('/preview/');
+  const isLanguageView = !isPreviewRoute && !!language;
 
-  // A page or template shown in another language than its own is read-only:
-  // say why.
-  const showLanguageBar = !!language;
+  // Determine template context from the URL path.
+  const isContentTemplate =
+    location.pathname.startsWith('/preview/template/') ||
+    location.pathname.startsWith('/template/');
+
+  // Says why the page or template cannot be edited here.
+  const showLanguageBar = isLanguageView;
 
   const headlessSettings = useCanvasHeadlessSettings();
 
   // Only fetch the language preview when we are on a preview route.
-  const isPreview = isContentTemplate || location.pathname.includes('/preview');
+  const isPreview = isContentTemplate || isPreviewRoute || isLanguageView;
 
   // Always fetch the default-language layout so page data (title etc.) is
   // seeded correctly on a fresh page load at a language preview URL. This hits
   // the generic /layout route, which only supports canvas_page entities, so it
   // is skipped for templates (their preview entity is rendered via the
   // snapshot query below).
-  const { fulfilledTimeStamp: layoutFetchedAt } = useGetPageLayoutQuery(
+  const {
+    fulfilledTimeStamp: layoutFetchedAt,
+    isUninitialized: isLayoutSkipped,
+    refetch: refetchLayout,
+  } = useGetPageLayoutQuery(
     entityId && entityType && !isContentTemplate
       ? { entityId, entityType }
       : skipToken,
@@ -153,6 +182,25 @@ const PagePreview = () => {
       refetchOnMountOrArgChange: true,
     },
   );
+
+  // The layout in the store can be that of another page: the page lists link
+  // straight to this view. Nothing may post it to this page, also not the
+  // preview this view opens.
+  useEffect(() => {
+    if (isLanguageView) {
+      dispatch(setUpdatePreview(false));
+    }
+  }, [isLanguageView, dispatch]);
+
+  // The translations of the page change in a translation module, often in
+  // another tab: load them again whenever the view shows another language.
+  useEffect(() => {
+    if (isLanguageView && !isLayoutSkipped) {
+      refetchLayout();
+    }
+    // Only when the language changes, not when the query state does.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLanguageView, language]);
 
   // The default-language layout clears the snapshot whenever it arrives, also
   // when it is fetched again while this view is open: fetch the snapshot again.
@@ -272,6 +320,8 @@ const PagePreview = () => {
         width={widthVal}
         viewMode={isContentTemplate ? viewMode : undefined}
         language={language || undefined}
+        entityId={entityId}
+        isLanguageView={isLanguageView}
         // Nothing loads the translations of a template in headless mode.
         showLanguageBar={showLanguageBar && !isContentTemplate}
       />
@@ -283,7 +333,7 @@ const PagePreview = () => {
       <div
         className={clsx(
           styles.PagePreviewContainer,
-          showLanguageBar && styles.withLanguageBar,
+          isLanguageView && styles.languageView,
         )}
       >
         {showLanguageBar && <LanguageBar />}

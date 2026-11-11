@@ -12,7 +12,11 @@ import {
 export const useTemplateRef = () => {
   const { pathname } = useLocation();
   const editorFrameContext = useAppSelector(selectEditorFrameContext);
-  const isTemplateContext = editorFrameContext === EditorFrameContext.TEMPLATE;
+  // Also while the template editor shows a template in another language than
+  // its own, which sets no editor frame context.
+  const isTemplateContext =
+    editorFrameContext === EditorFrameContext.TEMPLATE ||
+    pathname.startsWith('/template/');
   const isTemplatePreviewRoute = pathname.startsWith('/preview/template');
 
   return { isTemplateContext, isTemplatePreviewRoute };

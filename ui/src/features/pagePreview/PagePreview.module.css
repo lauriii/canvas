@@ -29,11 +29,11 @@
 }
 
 /*
- * A page shown in another language than its own keeps the editor's side menu
- * and panels: it takes the space next to them instead of the whole window,
- * with the language bar above it.
+ * A page shown in another language than its own, in the editor: it takes the
+ * space next to the side menu and panels instead of the whole window, with
+ * the language bar above it.
  */
-.withLanguageBar {
+.languageView {
   position: relative;
   flex: 1;
   flex-direction: column;
@@ -43,7 +43,7 @@
   inset: auto;
 }
 
-.withLanguageBar .PagePreviewIframe {
+.languageView .PagePreviewIframe {
   flex: 1;
   height: auto;
   min-height: 0;
@@ -51,7 +51,7 @@
 }
 
 /* The status line follows the bar instead of covering it. */
-.withLanguageBar .headlessStatus {
+.languageView .headlessStatus {
   position: static;
 }
 

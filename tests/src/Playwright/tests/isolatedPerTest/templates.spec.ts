@@ -128,10 +128,9 @@ test.describe('Templates - General', () => {
 
     const frenchOption = page.locator('[data-testid="language-option-fr"]');
     await frenchOption.click();
-    await page.waitForURL(
-      /\/preview\/template\/node\/article\/\d+\/full\/full\?language=fr/,
-      { timeout: 10000 },
-    );
+    await page.waitForURL(/\/template\/node\/article\/full\/\d+\?language=fr/, {
+      timeout: 10000,
+    });
     await expect(
       page
         .locator('iframe[class^="_PagePreviewIframe"]')
@@ -139,10 +138,10 @@ test.describe('Templates - General', () => {
         .locator('[data-component-id="canvas_test_sdc:my-hero"] h1'),
     ).toHaveText('Hero in french');
 
-    // The template is a preview in French: the language bar says why, and
+    // The template is shown in French: the language bar says why, and
     // offers to delete the French config translation.
     await expect(page.getByTestId('canvas-language-bar')).toContainText(
-      'French translation. This template is written in English.',
+      'French translation. The original is in English.',
     );
     const deleteButton = page.getByTestId('canvas-language-bar-delete');
     await page.getByTestId('canvas-language-bar-more').click();
@@ -187,10 +186,9 @@ test.describe('Templates - General', () => {
       ),
     ).toHaveCount(0);
     await frenchOption.click();
-    await page.waitForURL(
-      /\/preview\/template\/node\/article\/\d+\/full\/full\?language=fr/,
-      { timeout: 10000 },
-    );
+    await page.waitForURL(/\/template\/node\/article\/full\/\d+\?language=fr/, {
+      timeout: 10000,
+    });
     await expect(
       page
         .locator('iframe[class^="_PagePreviewIframe"]')
@@ -291,17 +289,13 @@ test.describe('Templates - General', () => {
     await expect(spanishOption).toBeVisible();
     await spanishOption.click();
 
+    // The preview stays the preview: it shows the template in Spanish.
     await page.waitForURL(
       /\/preview\/template\/node\/article\/\d+\/full\/full\?language=es/,
-      {
-        timeout: 10000,
-      },
-    );
-    expect(page.url()).toMatch(
-      /\/preview\/template\/node\/article\/\d+\/full\/full\?language=es/,
+      { timeout: 10000 },
     );
 
-    // Verify the Spanish translation title is shown in the preview.
+    // Verify the Spanish translation title is shown.
     await expect(
       page
         .locator('iframe[class^="_PagePreviewIframe"]')
@@ -309,7 +303,7 @@ test.describe('Templates - General', () => {
         .locator('[data-component-id="canvas_test_sdc:my-hero"] h1'),
     ).toHaveText('Artículo Uno');
 
-    // Verify the template caption is shown in navigation on preview routes.
+    // Verify the template caption is shown in navigation in the preview.
     await expect(
       page.locator('[data-testid="canvas-navigation-button"]'),
     ).toHaveText('Article - Full content template');
@@ -349,9 +343,17 @@ test.describe('Templates - General', () => {
       ),
     ).toHaveCount(0);
 
-    // Switch back to English (default) which returns to the editor.
+    // Switch back to English (default) in the preview, then leave it.
     await page.locator('[data-testid="language-option-en"]').click();
-    await page.waitForURL(/\/canvas\/template\/node\/article\/full\/\d+/, {
+    await page.waitForURL(
+      /\/preview\/template\/node\/article\/\d+\/full\/full$/,
+      { timeout: 10000 },
+    );
+    await page
+      .locator('[data-testid="canvas-topbar"]')
+      .getByRole('button', { name: 'Exit Preview' })
+      .click();
+    await page.waitForURL(/\/canvas\/template\/node\/article\/full\/\d+$/, {
       timeout: 10000,
     });
     await expect(

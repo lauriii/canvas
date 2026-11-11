@@ -1,5 +1,10 @@
 import { useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router';
+import {
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router';
 import {
   ChevronDownIcon,
   ExternalLinkIcon,
@@ -7,7 +12,6 @@ import {
 } from '@radix-ui/react-icons';
 import { Button, DropdownMenu, Flex, Text } from '@radix-ui/themes';
 
-import { useTemplateRef } from '@/hooks/useTemplateRef';
 import {
   rememberWorkingLanguage,
   useWorkingLanguage,
@@ -20,8 +24,9 @@ import styles from './LanguageSelect.module.css';
 /**
  * Selects the working language: the language pages are shown and created in.
  *
- * Selecting a language only navigates. A page opens in the editor in the
- * language it was created in, and as a preview in any other language.
+ * Selecting a language only navigates. The editor edits a page in the
+ * language it was created in, and shows it in any other. The preview shows it
+ * the way visitors see it, in the selected language.
  *
  * @see useWorkingLanguage
  * @see LanguageBar
@@ -32,10 +37,13 @@ const LanguageSelect = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const navigate = useNavigate();
   const [, setSearchParams] = useSearchParams();
-  const { entityType, entityId, previewEntityId, bundle, viewMode } =
+  const { entityType, entityId, previewEntityId, bundle, viewMode, width } =
     useParams();
-  const { isTemplateContext, isTemplatePreviewRoute } = useTemplateRef();
-  const isTemplateRoute = isTemplateContext || isTemplatePreviewRoute;
+  const { pathname } = useLocation();
+  const isPreviewRoute = pathname.startsWith('/preview/');
+  const isTemplateRoute =
+    pathname.startsWith('/template/') ||
+    pathname.startsWith('/preview/template/');
   const { workingLanguage, pageLanguage, translations } = useWorkingLanguage();
 
   const handleLanguageChange = (languageId: string) => {
@@ -55,19 +63,23 @@ const LanguageSelect = () => {
     const isOwnLanguage = pageLanguage
       ? languageId === pageLanguage
       : selectedLang.isDefault;
-    if (isTemplateRoute) {
-      const templateEntityId = entityId || previewEntityId;
+    const query = isOwnLanguage ? '' : `?language=${languageId}`;
+    const templateEntityId = entityId || previewEntityId;
+    // The preview shows the page the way visitors see it, in any language.
+    if (isPreviewRoute) {
       navigate(
-        isOwnLanguage
-          ? `/template/${entityType}/${bundle}/${viewMode}/${templateEntityId}`
-          : `/preview/template/${entityType}/${bundle}/${templateEntityId}/${viewMode}/full?language=${languageId}`,
+        isTemplateRoute
+          ? `/preview/template/${entityType}/${bundle}/${templateEntityId}/${viewMode}/${width || 'full'}${query}`
+          : `/preview/${entityType}/${entityId}/${width || 'full'}${query}`,
       );
       return;
     }
+    // The editor edits a page or template in its own language, and shows it
+    // in any other.
     navigate(
-      isOwnLanguage
-        ? `/editor/${entityType}/${entityId}`
-        : `/preview/${entityType}/${entityId}/full?language=${languageId}`,
+      isTemplateRoute
+        ? `/template/${entityType}/${bundle}/${viewMode}/${templateEntityId}${query}`
+        : `/editor/${entityType}/${entityId}${query}`,
     );
   };
 
