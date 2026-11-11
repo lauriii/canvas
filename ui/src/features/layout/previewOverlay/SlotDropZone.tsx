@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import clsx from 'clsx';
 import { useDroppable } from '@dnd-kit/core';
 
 import { useAppSelector } from '@/app/hooks';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
+import { selectDragging } from '@/features/ui/uiSlice';
 
 import type React from 'react';
 import type {
@@ -22,23 +23,24 @@ export interface SlotDropZoneProps {
 const SlotDropZone: React.FC<SlotDropZoneProps> = (props) => {
   const { slot, position, parentComponent } = props;
   const layout = useAppSelector(selectLayout);
-  const [activeOrigin, setActiveOrigin] = useState('');
+  // Only components from the preview or the library can be dropped here.
+  const { previewDragging, listDragging } = useAppSelector(selectDragging);
+  const acceptsActive = previewDragging || listDragging;
   const accepts = ['overlay', 'library'];
 
-  const slotPath = findNodePathByUuid(layout, slot.id);
-  if (!slotPath) {
-    throw new Error(`Unable to ascertain 'path' to component ${slot.id}`);
-  }
-  // We want to drop into the first (0th) space in the empty slot.
-  slotPath.push(0);
+  const slotPath = useMemo(() => {
+    const path = findNodePathByUuid(layout, slot.id);
+    if (!path) {
+      throw new Error(`Unable to ascertain 'path' to component ${slot.id}`);
+    }
+    // We want to drop into the first (0th) space in the empty slot.
+    path.push(0);
+    return path;
+  }, [layout, slot.id]);
 
-  const {
-    setNodeRef: setDropRef,
-    isOver,
-    active,
-  } = useDroppable({
+  const { setNodeRef: setDropRef, isOver } = useDroppable({
     id: `${slot.id}_${position}`,
-    disabled: !accepts.includes(activeOrigin),
+    disabled: !acceptsActive,
     data: {
       slot: slot,
       component: parentComponent,
@@ -47,14 +49,6 @@ const SlotDropZone: React.FC<SlotDropZoneProps> = (props) => {
       accepts,
     },
   });
-
-  useEffect(() => {
-    if (active) {
-      setActiveOrigin(active.data?.current?.origin);
-    } else {
-      setActiveOrigin('');
-    }
-  }, [active]);
 
   const dropzoneStyle = styles[position];
 

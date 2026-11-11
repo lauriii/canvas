@@ -43,6 +43,10 @@ import {
   componentSubtreeMatchesType,
   findComponentByUuid,
 } from '../layout/layoutUtils';
+import {
+  getPreviewDocument,
+  removePreviewComponent,
+} from '../layout/preview/optimisticPreview';
 
 import type React from 'react';
 
@@ -172,6 +176,12 @@ const EditorFrame: React.FC = () => {
     if (selectedComponent && !selectedComponentIsMarker) {
       dispatch(deleteNode(selectedComponent));
       unsetSelectedComponent();
+      // Show the deletion right away instead of after the new preview is
+      // rendered.
+      const previewDocument = getPreviewDocument();
+      if (previewDocument) {
+        removePreviewComponent(previewDocument, selectedComponent);
+      }
     }
   });
   useHotkeys('mod+c', () => {

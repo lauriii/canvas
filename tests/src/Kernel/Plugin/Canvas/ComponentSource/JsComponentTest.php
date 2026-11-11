@@ -2033,6 +2033,8 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       'js.canvas_test_code_components_interactive' => [
         'expected_output_selectors' => [
           'canvas-island[opts*="Interactive"][props*="name"][props*="Count"]',
+          // Slots are empty, as in a component added to a component tree.
+          'canvas-island[opts*="Interactive"] > template[data-astro-template]',
           'script[blocking="render"][src*="/packages/astro-hydration/dist/canvas-client.js"]',
         ],
         'source' => 'Code component',

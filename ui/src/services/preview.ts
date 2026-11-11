@@ -6,6 +6,7 @@ import {
   setLayoutModel,
   setTranslations,
 } from '@/features/layout/layoutModelSlice';
+import { previewEditCount } from '@/features/layout/preview/previewEdits';
 import {
   setHtml,
   setSnapshotHTML,
@@ -68,6 +69,7 @@ export const previewApi = createApi({
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         pushCanvasLayoutRequest();
+        const editsAtRequest = previewEditCount();
         try {
           const { data, meta } = await queryFulfilled;
           const { html, autoSaves } = data;
@@ -76,7 +78,15 @@ export const previewApi = createApi({
               { type: 'PendingChanges', id: 'LIST' },
             ]),
           );
-          dispatch(setHtml(html));
+          // The preview was edited since this was requested, and a newer
+          // layout has been requested: it shows the edit, which this would
+          // flash away.
+          if (
+            arg === latestPreviewArg ||
+            previewEditCount() === editsAtRequest
+          ) {
+            dispatch(setHtml(html));
+          }
           handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
           previewSuccessCount++;
           dispatch(setPostPreviewCompleted(true));
@@ -333,6 +343,8 @@ type PostPreviewArg = {
 // queued request executes when the active one completes.
 let activePreviewRequest: Promise<PostPreviewResult> | null = null;
 let pendingPreviewArg: PostPreviewArg | null = null;
+// The most recently requested preview; responses to earlier ones are stale.
+let latestPreviewArg: PostPreviewArg | null = null;
 
 // Incremented each time a postPreview request completes successfully.
 // Used to detect whether an error has been superseded by a later success.
@@ -371,6 +383,7 @@ export function useQueuedPostPreviewMutation(
   const queuedPostPreview = async (
     arg: PostPreviewArg,
   ): Promise<PostPreviewResult> => {
+    latestPreviewArg = arg;
     if (activePreviewRequest) {
       pendingPreviewArg = arg;
       await activePreviewRequest.catch(() => {});

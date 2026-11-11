@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import clsx from 'clsx';
 import { kebabCase } from 'lodash';
 import { useDroppable } from '@dnd-kit/core';
@@ -6,6 +6,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { useAppSelector } from '@/app/hooks';
 import { selectLayout } from '@/features/layout/layoutModelSlice';
 import { findNodePathByUuid } from '@/features/layout/layoutUtils';
+import { selectDragging } from '@/features/ui/uiSlice';
 import useGetComponentName from '@/hooks/useGetComponentName';
 
 import type React from 'react';
@@ -24,34 +25,33 @@ export interface ComponentDropZoneProps {
 const ComponentDropZone: React.FC<ComponentDropZoneProps> = (props) => {
   const { component, position, parentSlot } = props;
   const layout = useAppSelector(selectLayout);
-  const [draggedItem, setDraggedItem] = useState('');
   const componentName = useGetComponentName(component);
-  const [activeOrigin, setActiveOrigin] = useState('');
+  // Only components from the preview or the library can be dropped here.
+  const { previewDragging, listDragging } = useAppSelector(selectDragging);
+  const acceptsActive = previewDragging || listDragging;
   const accepts = ['overlay', 'library'];
 
   function getPositionRelation(position: ComponentDropZoneProps['position']) {
     return position === 'top' || position === 'left' ? 'before' : 'after';
   }
 
-  const dropPath = findNodePathByUuid(layout, component.uuid);
-  if (!dropPath) {
-    throw new Error(
-      `Unable to ascertain 'path' to component ${component.uuid}`,
-    );
-  }
-  if (dropPath) {
-    if (position === 'bottom' || position === 'right') {
-      dropPath[dropPath.length - 1] += 1;
+  const dropPath = useMemo(() => {
+    const path = findNodePathByUuid(layout, component.uuid);
+    if (!path) {
+      throw new Error(
+        `Unable to ascertain 'path' to component ${component.uuid}`,
+      );
     }
-  }
+    if (position === 'bottom' || position === 'right') {
+      path[path.length - 1] += 1;
+    }
+    return path;
+  }, [layout, component.uuid, position]);
 
-  const {
-    setNodeRef: setDropRef,
-    isOver,
-    active,
-  } = useDroppable({
+  // ComponentOverlay doesn't render the drop zones of the dragged component.
+  const { setNodeRef: setDropRef, isOver } = useDroppable({
     id: `${component.uuid}_${position}`,
-    disabled: draggedItem === component.uuid || !accepts.includes(activeOrigin),
+    disabled: !acceptsActive,
     data: {
       component: component,
       parentSlot: parentSlot,
@@ -59,19 +59,6 @@ const ComponentDropZone: React.FC<ComponentDropZoneProps> = (props) => {
       accepts,
     },
   });
-
-  useEffect(() => {
-    if (active) {
-      setActiveOrigin(active.data?.current?.origin);
-    } else {
-      setActiveOrigin('');
-    }
-  }, [active]);
-
-  useEffect(() => {
-    // use the id of the dragged to disable it's dropzone so you can't drop it inside itself.
-    setDraggedItem((active?.id as string) || '');
-  }, [active]);
 
   const dropzoneStyle = styles[position];
 
