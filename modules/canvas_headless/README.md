@@ -406,8 +406,8 @@ The flow, failure behavior, and per-framework support are described in
 
 To check a new setup, change published content in Drupal. Then open the
 **Headless frontends** screen and hover **Ready** in the frontend's row. The
-screen reads the status again each time it is opened or returned to. A
-tooltip with the time of the last update means that the frontend read the
+screen reads the status again each time it is opened or returned to, and
+every ten seconds while it is in view. A tooltip with the time of the last update means that the frontend read the
 announcement: it is connected.
 
 **Ready** without a tooltip means that the frontend has not read an

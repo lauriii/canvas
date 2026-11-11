@@ -42,7 +42,8 @@ const MESSAGE_TOAST = {
 
 const HeadlessFrontendsPage = () => {
   // The status Drupal reports changes without this screen: read it again
-  // when the screen is opened or returned to.
+  // when the screen is opened or returned to, and while it is looked at. A
+  // frontend that was just added connects after the save has answered.
   const {
     data: storedFrontends,
     isLoading,
@@ -50,6 +51,8 @@ const HeadlessFrontendsPage = () => {
   } = useGetFrontendsQuery(undefined, {
     refetchOnFocus: true,
     refetchOnMountOrArgChange: true,
+    pollingInterval: 10_000,
+    skipPollingIfUnfocused: true,
   });
   const [setFrontends, { isLoading: isSaving }] = useSetFrontendsMutation();
   const [testCacheInvalidation, retry] = useTestCacheInvalidationMutation();

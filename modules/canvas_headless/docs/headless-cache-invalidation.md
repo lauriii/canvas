@@ -95,7 +95,7 @@ status in two cases:
   button is shown when that check finds the frontend ready. While the check runs,
   the row shows **Checking…**. When the check fails, the row shows **Unreachable**
   or **Setup needed**. The screen reads the status again each time it is opened or
-  returned to.
+  returned to, and every ten seconds while it is in view.
 - **The button.** A click calls the test route. Drupal announces to the frontend at
   once, also during the wait after a failure, and waits up to five seconds for the
   read. A failing frontend has a miss on record, so the announced tag is
