@@ -8,7 +8,7 @@ import {
 } from 'react-router';
 import {
   ChevronDownIcon,
-  DotsHorizontalIcon,
+  DotsVerticalIcon,
   ExternalLinkIcon,
   GlobeIcon,
 } from '@radix-ui/react-icons';
@@ -44,7 +44,7 @@ import styles from './LanguageSelect.module.css';
  * language it was created in, and shows it in any other. The preview shows it
  * the way visitors see it, in the selected language.
  *
- * Each other language of the open page or template also has its actions in
+ * Each other language of the open page or template also has its options in
  * the menu: its translation, added and edited with a translation module, or
  * deleted. The Canvas editor edits a page in its own language.
  *
@@ -239,7 +239,7 @@ const LanguageSelect = () => {
             size="1"
             variant="soft"
             data-testid="language-select-trigger"
-            aria-label={`Working language: ${label}`}
+            aria-label={`Language: ${label}`}
           >
             <GlobeIcon />
             <Text className={styles.triggerLabel} title={label}>
@@ -249,7 +249,6 @@ const LanguageSelect = () => {
           </Button>
         </DropdownMenu.Trigger>
         <DropdownMenu.Content className={styles.dropdown}>
-          <DropdownMenu.Label>Working language</DropdownMenu.Label>
           <DropdownMenu.RadioGroup
             value={workingLanguage?.id ?? ''}
             onValueChange={handleLanguageChange}
@@ -258,9 +257,12 @@ const LanguageSelect = () => {
               const status = statusOf(language.id);
               const actions = actionsFor(language.id);
               return (
-                <Flex key={language.id} align="center">
+                <Flex key={language.id} align="center" className={styles.row}>
                   <DropdownMenu.RadioItem
                     value={language.id}
+                    color={
+                      language.id === workingLanguage?.id ? 'blue' : undefined
+                    }
                     className={styles.option}
                     data-testid={`language-option-${language.id}`}
                   >
@@ -278,7 +280,7 @@ const LanguageSelect = () => {
                       {status && (
                         <Text
                           size="1"
-                          color="gray"
+                          className={styles.status}
                           data-testid={`language-status-${language.id}`}
                         >
                           {status}
@@ -290,10 +292,25 @@ const LanguageSelect = () => {
                     <DropdownMenu.Sub>
                       <DropdownMenu.SubTrigger
                         className={styles.actions}
-                        aria-label={`${language.name}: more actions`}
+                        aria-label={`Language options for ${language.name}`}
                         data-testid={`language-actions-${language.id}`}
+                        // Opens on a click, like the options of a page: not
+                        // when the pointer passes over it. The pointer
+                        // highlights the language the options belong to.
+                        onPointerMove={(event) => {
+                          event.preventDefault();
+                          const { currentTarget, pointerType } = event;
+                          if (
+                            pointerType === 'mouse' &&
+                            currentTarget.dataset.state !== 'open'
+                          ) {
+                            (
+                              currentTarget.previousElementSibling as HTMLElement | null
+                            )?.focus({ preventScroll: true });
+                          }
+                        }}
                       >
-                        <DotsHorizontalIcon />
+                        <DotsVerticalIcon />
                       </DropdownMenu.SubTrigger>
                       <DropdownMenu.SubContent>
                         {actions.translate && (

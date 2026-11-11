@@ -145,6 +145,7 @@ test.describe('Templates - General', () => {
     await expect(page.getByTestId('language-status-fr')).toHaveText(
       'Translated',
     );
+    await page.getByTestId('language-option-fr').hover();
     await page.getByTestId('language-actions-fr').click();
     await expect(deleteButton).toBeVisible();
 

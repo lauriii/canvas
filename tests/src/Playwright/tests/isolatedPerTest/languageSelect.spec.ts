@@ -72,13 +72,14 @@ const login = async ({ username, password, drupal }) => {
 // A page in another language is shown on the canvas of the editor.
 const languageViewFrame = 'iframe[data-canvas-swap-active="true"]';
 
-// The actions on a page in a language are in the language menu, behind the
-// "more actions" of that language.
+// The actions on a page in a language are in the language list, in the
+// options menu of that language. Its button shows when its row is hovered.
 const openLanguageMenu = async (page) => {
   await page.getByTestId('language-select-trigger').click();
 };
 const openLanguageActions = async (page, langcode: string) => {
   await openLanguageMenu(page);
+  await page.getByTestId(`language-option-${langcode}`).hover();
   await page.getByTestId(`language-actions-${langcode}`).click();
 };
 
@@ -299,7 +300,7 @@ test.describe('Language Select', () => {
         '[data-testid="language-option-fr"] [data-canvas-has-translation="true"]',
       ),
     ).toHaveAttribute('data-canvas-has-translation', 'true');
-    await expect(page.getByTestId('language-actions-fr')).toBeVisible();
+    await expect(page.getByTestId('language-actions-fr')).toBeAttached();
 
     // Switch to Spanish language (which has no translation).
     const spanishOption = page.locator('[data-testid="language-option-es"]');
@@ -488,7 +489,7 @@ test.describe('Language Select', () => {
 
     // French has a translation: it can be deleted from the language menu, in
     // any working language.
-    await expect(page.getByTestId('language-actions-fr')).toBeVisible();
+    await expect(page.getByTestId('language-actions-fr')).toBeAttached();
     await page.locator('[data-testid="language-option-fr"]').click();
     await page.waitForURL(/\/editor\/canvas_page\/\d+\?language=fr/, {
       timeout: 10000,

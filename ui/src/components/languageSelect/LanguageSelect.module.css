@@ -16,12 +16,48 @@
   min-width: 0;
 }
 
-/* The actions of a language: a submenu behind a compact trigger. */
+/*
+ * A language and its options are one row. The row is highlighted as a whole,
+ * as an item of the menu is, so the options stay with their language.
+ */
+.row {
+  border-radius: var(--radius-2);
+}
+
+.row:has([data-highlighted]) {
+  color: var(--accent-contrast);
+  background-color: var(--accent-9);
+}
+
+/* While its options are open: as the item of an open submenu. */
+.row:has(.actions[data-state="open"]):not(:has([data-highlighted])) {
+  background-color: var(--gray-a3);
+}
+
+.dropdown .row [data-highlighted],
+.dropdown .row .actions[data-state="open"] {
+  color: inherit;
+  background-color: transparent;
+}
+
+.row:has([data-highlighted]) .option {
+  color: inherit;
+}
+
+/* The status of a language reads like the shortcut of a menu item. */
+.status {
+  color: var(--gray-a11);
+}
+
+.row:has([data-highlighted]) .status {
+  color: inherit;
+}
+
+/* The options of a language: a submenu behind a compact button. */
 .dropdown .actions.actions,
 .noActions {
   flex-shrink: 0;
   width: var(--space-5);
-  margin-left: var(--space-1);
 }
 
 .dropdown .actions.actions {
@@ -30,7 +66,20 @@
   color: var(--gray-11);
 }
 
-/* The trigger shows its own icon, not the arrow of a submenu. */
+.dropdown .row:has([data-highlighted]) .actions.actions {
+  color: inherit;
+}
+
+/* It does not take the focus under the pointer, so it marks itself. */
+.dropdown .actions.actions:hover {
+  background-color: var(--gray-a3);
+}
+
+.dropdown .row:has([data-highlighted]) .actions.actions:hover {
+  background-color: var(--white-a4);
+}
+
+/* The button shows its own icon, not the arrow of a submenu. */
 .actions :global(.rt-BaseMenuShortcut) {
   display: none;
 }
