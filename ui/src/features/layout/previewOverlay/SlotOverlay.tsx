@@ -79,6 +79,24 @@ const SlotOverlay: React.FC<SlotOverlayProps> = ({
     return null;
   }
 
+  // The only component of the slot is shown outside it while it is dragged
+  // (see livePreview.ts). The slot then shows as empty, as it does once the
+  // component is dropped there.
+  const only =
+    slot.components.length === 1
+      ? geometryMap.component[slot.components[0].uuid]?.rect
+      : undefined;
+  const at = slotGeometry.rect;
+  const isEmpty =
+    !slot.components.length ||
+    (!!only &&
+      only.width > 0 &&
+      only.height > 0 &&
+      (only.left >= at.right ||
+        only.right <= at.left ||
+        only.top >= at.bottom ||
+        only.bottom <= at.top));
+
   return (
     <div
       aria-label={`${slotName} (${parentComponentName})`}
@@ -101,7 +119,7 @@ const SlotOverlay: React.FC<SlotOverlayProps> = ({
           />
         </div>
       )}
-      {!slot.components.length && !disableDrop && (
+      {isEmpty && !disableDrop && (
         <EmptySlotDropZone
           slot={slot}
           slotName={slotName}
