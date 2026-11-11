@@ -85,7 +85,7 @@ const PageStatus = () => {
   );
   const dispatch = useAppDispatch();
   const { workingLanguage, statusOf } = useWorkingLanguage();
-  const translate = useTranslateAction();
+  const translate = useTranslateAction()(workingLanguage?.id);
 
   useEffect(() => {
     if (changes) {

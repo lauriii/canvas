@@ -10,3 +10,27 @@
 .dropdown.dropdown {
   min-width: 220px;
 }
+
+.option {
+  flex: 1;
+  min-width: 0;
+}
+
+/* The actions of a language: a submenu behind a compact trigger. */
+.dropdown .actions.actions,
+.noActions {
+  flex-shrink: 0;
+  width: var(--space-5);
+  margin-left: var(--space-1);
+}
+
+.dropdown .actions.actions {
+  justify-content: center;
+  padding: 0;
+  color: var(--gray-11);
+}
+
+/* The trigger shows its own icon, not the arrow of a submenu. */
+.actions :global(.rt-BaseMenuShortcut) {
+  display: none;
+}

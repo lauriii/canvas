@@ -8,6 +8,7 @@ import {
 } from 'react-router';
 import {
   ChevronDownIcon,
+  DotsHorizontalIcon,
   ExternalLinkIcon,
   GlobeIcon,
 } from '@radix-ui/react-icons';
@@ -43,9 +44,9 @@ import styles from './LanguageSelect.module.css';
  * language it was created in, and shows it in any other. The preview shows it
  * the way visitors see it, in the selected language.
  *
- * While a page or template is shown in another language than its own, the
- * menu also holds the actions on it in that language. The Canvas editor edits
- * a page in its own language; a translation module edits its translations.
+ * Each other language of the open page or template also has its actions in
+ * the menu: its translation, added and edited with a translation module, or
+ * deleted. The Canvas editor edits a page in its own language.
  *
  * @see useWorkingLanguage
  */
@@ -65,11 +66,14 @@ const LanguageSelect = () => {
     pathname.startsWith('/preview/template/');
   const { workingLanguage, pageLanguage, translations, isNew, statusOf } =
     useWorkingLanguage();
-  const translate = useTranslateAction();
+  const translateActionFor = useTranslateAction();
   const [setLangcode, { isLoading: isChanging }] = useSetLangcodeMutation();
   const [deletePageTranslation, { isLoading: isDeleting }] =
     useDeletePageTranslationMutation();
-  const [dialog, setDialog] = useState<'change' | 'delete' | null>(null);
+  const [dialog, setDialog] = useState<{
+    type: 'change' | 'delete';
+    languageId: string;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmText, setConfirmText] = useState('');
 
@@ -122,27 +126,31 @@ const LanguageSelect = () => {
 
   const label = workingLanguage?.name ?? 'Select language';
 
-  // The open page or template, shown in another language than its own.
-  const isLanguageView =
-    isLanguageViewPath(pathname, search) &&
-    !!workingLanguage &&
-    !!pageLanguage &&
-    workingLanguage.id !== pageLanguage;
   // Only a Canvas page can change its language.
   const isPage = entityType === 'canvas_page' && !isTemplateRoute;
-  const isTranslated =
-    isLanguageView && statusOf(workingLanguage.id) === 'Translated';
-  const deleteUrl: string | undefined =
-    isTranslated && !isNew && (isPage || isTemplateRoute)
-      ? translations?.links?.[workingLanguage.id]?.['delete-form']
-      : undefined;
-  // The language of a page can change while nothing depends on it.
-  // @see canvas.api.content.langcode.patch in canvas.routing.yml
-  const canChange =
-    isLanguageView &&
-    isPage &&
-    Boolean(isNew) &&
-    translations?.available?.length === 1;
+  // What can be done with the open page or template in a language. Not in
+  // the preview, which only shows it.
+  const actionsFor = (languageId: string) => {
+    if (isPreviewRoute || !pageLanguage || languageId === pageLanguage) {
+      return null;
+    }
+    const translate = translateActionFor(languageId);
+    const deleteUrl: string | undefined =
+      statusOf(languageId) === 'Translated' &&
+      !isNew &&
+      (isPage || isTemplateRoute)
+        ? translations?.links?.[languageId]?.['delete-form']
+        : undefined;
+    // The language of a page can change while nothing depends on it.
+    // @see canvas.api.content.langcode.patch in canvas.routing.yml
+    const canChange =
+      isPage && Boolean(isNew) && translations?.available?.length === 1;
+    return translate || deleteUrl || canChange
+      ? { translate, deleteUrl, canChange }
+      : null;
+  };
+  const hasActions = languages.some(({ id }) => actionsFor(id));
+  const dialogLanguage = languages.find(({ id }) => id === dialog?.languageId);
 
   const closeDialog = () => {
     setDialog(null);
@@ -165,7 +173,7 @@ const LanguageSelect = () => {
       await waitForPreviewRequests();
       await setLangcode({
         entityId: entityId!,
-        langcode: workingLanguage!.id,
+        langcode: dialog!.languageId,
       }).unwrap();
     } catch (e) {
       console.error('Failed to change the page language:', e);
@@ -176,6 +184,8 @@ const LanguageSelect = () => {
   };
 
   const handleDelete = async () => {
+    const languageId = dialog!.languageId;
+    const deleteUrl = actionsFor(languageId)?.deleteUrl;
     if (!deleteUrl) {
       return;
     }
@@ -186,20 +196,29 @@ const LanguageSelect = () => {
       setError('Failed to delete the translation. Please try again.');
       return;
     }
-    // Not every layout is re-fetched on return to the editor: drop the
-    // translation from the state as well.
+    // The translations of a template are only in the state: drop the
+    // translation from it as well.
     const remainingLinks = { ...translations?.links };
-    delete remainingLinks[workingLanguage!.id];
+    delete remainingLinks[languageId];
     dispatch(
       setTranslations({
         ...translations,
         available: translations?.available.filter(
-          (id: string) => id !== workingLanguage!.id,
+          (id: string) => id !== languageId,
         ),
         links: remainingLinks,
       }),
     );
-    reloadInEditor();
+    if (languageId === workingLanguage?.id) {
+      // The translation shown is gone.
+      reloadInEditor();
+      return;
+    }
+    // The page or template stays open as it is: only its translations load
+    // again.
+    dispatch(componentAndLayoutApi.util.invalidateTags([{ type: 'Layout' }]));
+    dispatch(contentApi.util.invalidateTags([{ type: 'Content', id: 'LIST' }]));
+    closeDialog();
   };
 
   return (
@@ -237,70 +256,94 @@ const LanguageSelect = () => {
           >
             {languages.map((language) => {
               const status = statusOf(language.id);
+              const actions = actionsFor(language.id);
               return (
-                <DropdownMenu.RadioItem
-                  key={language.id}
-                  value={language.id}
-                  data-testid={`language-option-${language.id}`}
-                >
-                  <Flex align="center" justify="between" gap="4" width="100%">
-                    <Text
-                      className={styles.languageName}
-                      data-canvas-has-translation={
-                        status === 'Original' || status === 'Translated'
-                          ? 'true'
-                          : undefined
-                      }
-                    >
-                      {language.name}
-                    </Text>
-                    {status && (
+                <Flex key={language.id} align="center">
+                  <DropdownMenu.RadioItem
+                    value={language.id}
+                    className={styles.option}
+                    data-testid={`language-option-${language.id}`}
+                  >
+                    <Flex align="center" justify="between" gap="4" width="100%">
                       <Text
-                        size="1"
-                        color="gray"
-                        data-testid={`language-status-${language.id}`}
+                        className={styles.languageName}
+                        data-canvas-has-translation={
+                          status === 'Original' || status === 'Translated'
+                            ? 'true'
+                            : undefined
+                        }
                       >
-                        {status}
+                        {language.name}
                       </Text>
-                    )}
-                  </Flex>
-                </DropdownMenu.RadioItem>
+                      {status && (
+                        <Text
+                          size="1"
+                          color="gray"
+                          data-testid={`language-status-${language.id}`}
+                        >
+                          {status}
+                        </Text>
+                      )}
+                    </Flex>
+                  </DropdownMenu.RadioItem>
+                  {actions ? (
+                    <DropdownMenu.Sub>
+                      <DropdownMenu.SubTrigger
+                        className={styles.actions}
+                        aria-label={`${language.name}: more actions`}
+                        data-testid={`language-actions-${language.id}`}
+                      >
+                        <DotsHorizontalIcon />
+                      </DropdownMenu.SubTrigger>
+                      <DropdownMenu.SubContent>
+                        {actions.translate && (
+                          <DropdownMenu.Item
+                            data-testid={`language-translate-${language.id}`}
+                            onSelect={actions.translate.run}
+                          >
+                            {actions.translate.opensNewTab && (
+                              <ExternalLinkIcon width="14" height="14" />
+                            )}
+                            {actions.translate.label}
+                          </DropdownMenu.Item>
+                        )}
+                        {actions.canChange && (
+                          <DropdownMenu.Item
+                            data-testid={`language-change-${language.id}`}
+                            onSelect={() =>
+                              setDialog({
+                                type: 'change',
+                                languageId: language.id,
+                              })
+                            }
+                          >
+                            Change page language to {language.name}…
+                          </DropdownMenu.Item>
+                        )}
+                        {actions.deleteUrl && (
+                          <DropdownMenu.Item
+                            color="red"
+                            data-testid={`language-delete-${language.id}`}
+                            onSelect={() =>
+                              setDialog({
+                                type: 'delete',
+                                languageId: language.id,
+                              })
+                            }
+                          >
+                            Delete {language.name} translation…
+                          </DropdownMenu.Item>
+                        )}
+                      </DropdownMenu.SubContent>
+                    </DropdownMenu.Sub>
+                  ) : (
+                    // Keeps the statuses in one column.
+                    hasActions && <span className={styles.noActions} />
+                  )}
+                </Flex>
               );
             })}
           </DropdownMenu.RadioGroup>
-          {(translate || canChange || deleteUrl) && (
-            <>
-              <DropdownMenu.Separator />
-              {translate && (
-                <DropdownMenu.Item
-                  data-testid="canvas-language-translate"
-                  onSelect={translate.run}
-                >
-                  {translate.opensNewTab && (
-                    <ExternalLinkIcon width="14" height="14" />
-                  )}
-                  {translate.label}
-                </DropdownMenu.Item>
-              )}
-              {canChange && (
-                <DropdownMenu.Item
-                  data-testid="canvas-language-change"
-                  onSelect={() => setDialog('change')}
-                >
-                  Change page language to {label}…
-                </DropdownMenu.Item>
-              )}
-              {deleteUrl && (
-                <DropdownMenu.Item
-                  color="red"
-                  data-testid="canvas-language-delete"
-                  onSelect={() => setDialog('delete')}
-                >
-                  Delete {label} translation…
-                </DropdownMenu.Item>
-              )}
-            </>
-          )}
           {permissions?.configureLanguages && (
             <>
               <DropdownMenu.Separator />
@@ -322,9 +365,9 @@ const LanguageSelect = () => {
         </DropdownMenu.Content>
       </DropdownMenu.Root>
       <Dialog
-        open={dialog === 'change'}
+        open={dialog?.type === 'change'}
         onOpenChange={(open) => !open && closeDialog()}
-        title={`Change page language to ${label}?`}
+        title={`Change page language to ${dialogLanguage?.name}?`}
         description="The text on the page stays the same. Nothing is translated."
         error={
           error
@@ -340,7 +383,7 @@ const LanguageSelect = () => {
         }}
       />
       <Dialog
-        open={dialog === 'delete'}
+        open={dialog?.type === 'delete'}
         onOpenChange={(open) => !open && closeDialog()}
         title="Delete translation"
         description={`You are about to delete this translation. This will permanently delete the translation from this ${isTemplateRoute ? 'template' : 'page'}. This action cannot be undone.`}

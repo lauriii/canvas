@@ -140,11 +140,12 @@ test.describe('Templates - General', () => {
 
     // The template is shown in French: the language menu offers to delete
     // the French config translation.
-    const deleteButton = page.getByTestId('canvas-language-delete');
+    const deleteButton = page.getByTestId('language-delete-fr');
     await languageButton.click();
     await expect(page.getByTestId('language-status-fr')).toHaveText(
       'Translated',
     );
+    await page.getByTestId('language-actions-fr').click();
     await expect(deleteButton).toBeVisible();
 
     // Deleting opens a confirmation dialog – no new tab should open.

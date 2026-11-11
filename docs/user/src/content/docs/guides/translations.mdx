@@ -54,15 +54,17 @@ language Canvas shows pages in, and creates new pages in.
 
 When a page is shown in another language than its own, the top bar marks a
 page without a translation as "Not translated". When a translation module
-provides it, selecting that mark adds the translation. The language selector
-then also lists what you can do with the page in that language:
+provides it, selecting that mark adds the translation.
+
+In the language selector, each language other than the original has a "more
+actions" menu for the open page, whatever the working language is:
 
 - add a translation or edit the translation, when a translation module
   provides it;
 - delete the translation;
-- change the language of the page to the working language. This is only
-  possible for a page that was never published and has no translations. The
-  text of the page stays the same.
+- change the language of the page to that language. This is only possible for
+  a page that was never published and has no translations. The text of the
+  page stays the same.
 
 To edit the page itself, select the language marked "Original".
 
@@ -106,8 +108,7 @@ capabilities are very basic.
 11. Return to the Canvas editor for the page.
 12. Use the language selector at the top of the editor to verify that the
     translation exists. The translated language is marked "Translated".
-13. A translation can also be deleted from the language selector, after
-    selecting its language.
+13. A translation can also be deleted from the language selector.
 
 ### Translating a content template
 
@@ -130,8 +131,7 @@ capabilities are very basic.
 13. Return to the Canvas editor for the content template.
 14. Use the language selector at the top of the editor to verify that the
     translation exists. The translated language is marked "Translated".
-15. A translation can also be deleted from the language selector, after
-    selecting its language.
+15. A translation can also be deleted from the language selector.
 
 ## Translating with Canvas Translate (experimental)
 
@@ -143,6 +143,6 @@ not require TMGMT.
 3. Clear caches.
 4. Canvas Translate now appears in the left sidebar in Canvas.
 
-When a page is shown in another language, the language selector links to
-Canvas Translate: "Add" or "Edit" the translation. It opens in Canvas, and its
-back button returns to the page.
+The language selector links to Canvas Translate from the "more actions" of a
+language: "Add" or "Edit" the translation. It opens in Canvas, and its back
+button returns to the page.

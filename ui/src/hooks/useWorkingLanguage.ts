@@ -9,7 +9,6 @@ import {
 import { skipToken } from '@reduxjs/toolkit/query';
 
 import { useAppSelector } from '@/app/hooks';
-import { isLanguageViewPath } from '@/components/topbar/topbarPreviewMode';
 import { selectTranslations } from '@/features/layout/layoutModelSlice';
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
@@ -212,47 +211,50 @@ export function useWorkingLanguage() {
 }
 
 /**
- * The way to translate the open page or template into the working language,
- * while it is shown in that language: the form of a translation module.
+ * The way to translate the open page or template into a language: the form of
+ * a translation module. Not in the preview, which only shows a page.
  */
 export function useTranslateAction() {
   const navigate = useNavigate();
   // Where Canvas is: a translation module can be a page extension in it.
   const canvasBase = useHref('/').replace(/\/$/, '');
-  const { pathname, search } = useLocation();
-  const { workingLanguage, pageLanguage, translations, isNew, statusOf } =
-    useWorkingLanguage();
-  if (
-    !isLanguageViewPath(pathname, search) ||
-    !workingLanguage ||
-    !pageLanguage ||
-    workingLanguage.id === pageLanguage ||
-    // A page that was never published is not translated yet: all its content
-    // is in its auto-save entry.
-    isNew
-  ) {
-    return undefined;
-  }
-  const links = translations?.links?.[workingLanguage.id] ?? {};
-  const url: string | undefined = links['edit-form'] ?? links['create'];
-  if (!url) {
-    return undefined;
-  }
-  // A page extension opens in Canvas, any other translation form in a new tab.
-  const inCanvasPath = url.startsWith(`${canvasBase}/`)
-    ? url.slice(canvasBase.length)
-    : undefined;
-  return {
-    label: `${statusOf(workingLanguage.id) === 'Translated' ? 'Edit' : 'Add'} ${workingLanguage.name} translation`,
-    opensNewTab: !inCanvasPath,
-    run: () => {
-      if (inCanvasPath) {
-        // The extension shows the working language too.
-        rememberWorkingLanguage(workingLanguage.id);
-        navigate(inCanvasPath);
-      } else {
-        window.open(url, '_blank', 'noopener,noreferrer');
-      }
-    },
+  const { pathname } = useLocation();
+  const { pageLanguage, translations, isNew, statusOf } = useWorkingLanguage();
+  return (languageId?: string) => {
+    const language = getLanguages().find(({ id }) => id === languageId);
+    if (
+      !language ||
+      !pageLanguage ||
+      language.id === pageLanguage ||
+      pathname.startsWith('/preview/') ||
+      // A page that was never published is not translated yet: all its
+      // content is in its auto-save entry.
+      isNew
+    ) {
+      return undefined;
+    }
+    const links = translations?.links?.[language.id] ?? {};
+    const url: string | undefined = links['edit-form'] ?? links['create'];
+    if (!url) {
+      return undefined;
+    }
+    // A page extension opens in Canvas, any other translation form in a new
+    // tab.
+    const inCanvasPath = url.startsWith(`${canvasBase}/`)
+      ? url.slice(canvasBase.length)
+      : undefined;
+    return {
+      label: `${statusOf(language.id) === 'Translated' ? 'Edit' : 'Add'} ${language.name} translation`,
+      opensNewTab: !inCanvasPath,
+      run: () => {
+        if (inCanvasPath) {
+          // The extension shows the language it translates into.
+          rememberWorkingLanguage(language.id);
+          navigate(inCanvasPath);
+        } else {
+          window.open(url, '_blank', 'noopener,noreferrer');
+        }
+      },
+    };
   };
 }
