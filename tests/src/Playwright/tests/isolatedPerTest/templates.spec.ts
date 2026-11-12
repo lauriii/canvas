@@ -118,73 +118,43 @@ test.describe('Templates - General', () => {
       ),
     ).toHaveCount(0);
 
-    // The three-dots trigger appears only for French (the only config translation).
-    await expect(
-      page.locator('[aria-label="More options for French"]'),
-    ).toBeVisible();
-    await expect(
-      page.locator('[data-testid="language-options-popover-trigger"]'),
-    ).toHaveCount(1);
+    // Only French is marked as a translation of the template.
+    await expect(page.getByTestId('language-status-fr')).toHaveText(
+      'Translated',
+    );
+    await expect(page.getByTestId('language-status-es')).toHaveText(
+      'Not translated',
+    );
 
     const frenchOption = page.locator('[data-testid="language-option-fr"]');
     await frenchOption.click();
-    await page.waitForURL(
-      /\/preview\/template\/node\/article\/\d+\/full\/full\?language=fr/,
-      { timeout: 10000 },
-    );
+    await page.waitForURL(/\/template\/node\/article\/full\/\d+\?language=fr/, {
+      timeout: 10000,
+    });
     await expect(
       page
-        .locator('iframe[class^="_PagePreviewIframe"]')
+        .locator('iframe[data-canvas-swap-active="true"]')
         .contentFrame()
         .locator('[data-component-id="canvas_test_sdc:my-hero"] h1'),
     ).toHaveText('Hero in french');
 
+    // The template is shown in French: the language menu offers to delete
+    // the French config translation.
+    const deleteButton = page.getByTestId('language-delete-fr');
     await languageButton.click();
-    await page.locator('[data-testid="language-option-en"]').click();
-    await page.waitForURL(/\/canvas\/template\/node\/article\/full\/\d+/, {
-      timeout: 10000,
-    });
-    await canvas.waitForEditorFrame();
-
-    // Delete the French config translation via the in-app three-dots popover.
-    await page.keyboard.press('Escape');
-    await expect(
-      page.locator('[data-state="open"][role="menu"]'),
-    ).not.toBeAttached();
-    const closedLanguageButton = page.locator(
-      '[data-testid="canvas-topbar"] [data-testid="language-select-trigger"][data-state="closed"]',
+    await expect(page.getByTestId('language-status-fr')).toHaveText(
+      'Translated',
     );
-    await closedLanguageButton.click();
-    await page
-      .locator('[aria-label="More options for French"]')
-      .first()
-      .click();
-
-    const frenchPopover = page
-      .locator('[data-testid="language-options-popover"]')
-      .first();
-    await expect(frenchPopover).toBeVisible();
-    await expect(
-      page.locator('[data-testid="language-options-popover-title"]').first(),
-    ).toContainText('French');
-    // The popover title must show the template caption (e.g.
-    // "Article - Full content template").
-    await expect(
-      page.locator('[data-testid="language-options-popover-title"]').first(),
-    ).toContainText('Article - Full content template');
-    await expect(
-      page.locator('[data-testid="language-options-delete"]').first(),
-    ).toBeVisible();
+    await page.getByTestId('language-option-fr').hover();
+    await page.getByTestId('language-actions-fr').click();
+    await expect(deleteButton).toBeVisible();
 
     // Deleting opens a confirmation dialog – no new tab should open.
     let popupOpened = false;
     page.on('popup', () => {
       popupOpened = true;
     });
-    await page
-      .locator('[data-testid="language-options-delete"]')
-      .first()
-      .click();
+    await deleteButton.click();
     expect(popupOpened).toBe(false);
 
     const deleteDialog = page
@@ -203,40 +173,34 @@ test.describe('Templates - General', () => {
     await expect(confirmButton).toBeEnabled();
     await confirmButton.click();
     await expect(deleteDialog).toBeHidden();
-    // Before confirming elements in the dialog do not exist, confirm the dialog
-    // itself is still open by asserting an element it contains.
-    await expect(
-      page.locator('[data-testid="language-option-en"]'),
-    ).toBeAttached();
-    // After deletion the three-dots trigger disappears for French.
-    await expect(
-      page.locator('[aria-label="More options for French"]'),
-    ).toHaveCount(0);
+
+    // Deleting returns to the template editor.
+    await page.waitForURL(/\/canvas\/template\/node\/article\/full\/\d+/, {
+      timeout: 10000,
+    });
+    await canvas.waitForEditorFrame();
+
+    // After deletion French is no longer marked as translated.
+    await languageButton.click();
     await expect(
       page.locator(
         '[data-testid="language-option-fr"] [data-canvas-has-translation="true"]',
       ),
     ).toHaveCount(0);
-    await expect(
-      page.locator('[data-testid="language-options-popover-trigger"]'),
-    ).toHaveCount(0);
     await frenchOption.click();
-    await page.waitForURL(
-      /\/preview\/template\/node\/article\/\d+\/full\/full\?language=fr/,
-      { timeout: 10000 },
-    );
+    await page.waitForURL(/\/template\/node\/article\/full\/\d+\?language=fr/, {
+      timeout: 10000,
+    });
     await expect(
       page
-        .locator('iframe[class^="_PagePreviewIframe"]')
+        .locator('iframe[data-canvas-swap-active="true"]')
         .contentFrame()
         .locator('[data-component-id="canvas_test_sdc:my-hero"] h1'),
     ).toHaveText('There goes my hero');
 
     // Return to English editor to continue building the template.
-    await page
-      .locator('[data-testid="canvas-topbar"]')
-      .getByRole('button', { name: 'Exit Preview' })
-      .click();
+    await languageButton.click();
+    await page.locator('[data-testid="language-option-en"]').click();
     await page.waitForURL(/\/canvas\/template\/node\/article\/full\/\d+/, {
       timeout: 10000,
     });
@@ -325,17 +289,13 @@ test.describe('Templates - General', () => {
     await expect(spanishOption).toBeVisible();
     await spanishOption.click();
 
+    // The preview stays the preview: it shows the template in Spanish.
     await page.waitForURL(
       /\/preview\/template\/node\/article\/\d+\/full\/full\?language=es/,
-      {
-        timeout: 10000,
-      },
-    );
-    expect(page.url()).toMatch(
-      /\/preview\/template\/node\/article\/\d+\/full\/full\?language=es/,
+      { timeout: 10000 },
     );
 
-    // Verify the Spanish translation title is shown in the preview.
+    // Verify the Spanish translation title is shown.
     await expect(
       page
         .locator('iframe[class^="_PagePreviewIframe"]')
@@ -343,7 +303,7 @@ test.describe('Templates - General', () => {
         .locator('[data-component-id="canvas_test_sdc:my-hero"] h1'),
     ).toHaveText('Artículo Uno');
 
-    // Verify the template caption is shown in navigation on preview routes.
+    // Verify the template caption is shown in navigation in the preview.
     await expect(
       page.locator('[data-testid="canvas-navigation-button"]'),
     ).toHaveText('Article - Full content template');
@@ -382,13 +342,18 @@ test.describe('Templates - General', () => {
         '[data-testid="language-option-es"] [data-canvas-has-translation="true"]',
       ),
     ).toHaveCount(0);
-    await expect(
-      page.locator('[data-testid="language-options-popover-trigger"]'),
-    ).toHaveCount(0);
 
-    // Switch back to English (default) which returns to the editor.
+    // Switch back to English (default) in the preview, then leave it.
     await page.locator('[data-testid="language-option-en"]').click();
-    await page.waitForURL(/\/canvas\/template\/node\/article\/full\/\d+/, {
+    await page.waitForURL(
+      /\/preview\/template\/node\/article\/\d+\/full\/full$/,
+      { timeout: 10000 },
+    );
+    await page
+      .locator('[data-testid="canvas-topbar"]')
+      .getByRole('button', { name: 'Exit Preview' })
+      .click();
+    await page.waitForURL(/\/canvas\/template\/node\/article\/full\/\d+$/, {
       timeout: 10000,
     });
     await expect(

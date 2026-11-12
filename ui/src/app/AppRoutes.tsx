@@ -1,4 +1,10 @@
-import { createBrowserRouter, Navigate, Outlet, useParams } from 'react-router';
+import {
+  createBrowserRouter,
+  Navigate,
+  Outlet,
+  useParams,
+  useSearchParams,
+} from 'react-router';
 import { RouterProvider } from 'react-router/dom';
 import { Flex } from '@radix-ui/themes';
 
@@ -9,6 +15,7 @@ import { RouteErrorBoundary } from '@/components/error/ErrorBoundary';
 import ErrorCard from '@/components/error/ErrorCard';
 import ExtensionDialog from '@/components/extensions/ExtensionDialog';
 import ExtensionPage from '@/components/extensions/ExtensionPage';
+import TranslationRouteGuard from '@/components/languageSelect/TranslationRouteGuard';
 import PermissionCheck from '@/components/PermissionCheck';
 import SideMenu from '@/components/sideMenu/SideMenu';
 import PrimaryPanel from '@/components/sidePanel/PrimaryPanel';
@@ -44,6 +51,26 @@ const UiShell = ({ children }: { children: React.ReactNode }) => (
     <Dialogs />
   </>
 );
+
+// The editor of a page or template. With a `language` that is not its own,
+// it shows the page or template in that language instead, inside the same
+// side menu and panels: the Canvas editor edits a page in its own language.
+// That is not the preview, which shows a page the way visitors see it.
+// A page also has its own layout in a language when that translation is
+// forked: the editor edits that translation, named by `?translation=`.
+const EditorRoute = ({ context }: { context: EditorFrameContext }) => {
+  const [searchParams] = useSearchParams();
+  return (
+    <UiShell>
+      {context === EditorFrameContext.ENTITY && <TranslationRouteGuard />}
+      {searchParams.has('language') ? (
+        <PagePreview />
+      ) : (
+        <EditorLayout context={context} />
+      )}
+    </UiShell>
+  );
+};
 
 const CodeEditorUi = (
   <PermissionCheck
@@ -123,11 +150,7 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
           },
           {
             path: '/editor/:entityType/:entityId',
-            element: (
-              <UiShell>
-                <EditorLayout context={EditorFrameContext.ENTITY} />
-              </UiShell>
-            ),
+            element: <EditorRoute context={EditorFrameContext.ENTITY} />,
             children: [
               {
                 path: '/editor/:entityType/:entityId/component/:componentId',
@@ -145,11 +168,7 @@ const AppRoutes: React.FC<AppRoutesInterface> = ({ basePath }) => {
           },
           {
             path: '/template/:entityType/:bundle/:viewMode/:previewEntityId',
-            element: (
-              <UiShell>
-                <EditorLayout context={EditorFrameContext.TEMPLATE} />
-              </UiShell>
-            ),
+            element: <EditorRoute context={EditorFrameContext.TEMPLATE} />,
             children: [
               {
                 path: '/template/:entityType/:bundle/:viewMode/:previewEntityId/component/:componentId',

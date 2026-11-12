@@ -31,10 +31,12 @@ const NON_FULL_VIEW_MODE_MIN_HEIGHT = 0;
 export interface ViewportProps {
   isFetching: boolean;
   frameSrcDoc: string; // HTML as a string to be rendered in the iFrame
+  // False to only show the HTML: its components cannot be selected.
+  editable?: boolean;
 }
 
 const Viewport: React.FC<ViewportProps> = (props) => {
-  const { frameSrcDoc, isFetching } = props;
+  const { frameSrcDoc, isFetching, editable = true } = props;
   const [isReloading, setIsReloading] = useState(true);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
@@ -98,7 +100,7 @@ const Viewport: React.FC<ViewportProps> = (props) => {
         setIsReloading={setIsReloading}
         interactive={editorFrameMode === EditorFrameMode.INTERACTIVE}
       />
-      {editorFrameMode === EditorFrameMode.EDIT && (
+      {editable && editorFrameMode === EditorFrameMode.EDIT && (
         <ViewportOverlay previewContainerRef={previewContainerRef} />
       )}
     </div>

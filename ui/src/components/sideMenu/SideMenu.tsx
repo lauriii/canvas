@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import clsx from 'clsx';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import BrandKitIcon from '@assets/icons/brand-kit.svg?react';
@@ -14,11 +14,13 @@ import {
 import { Button, Flex, Tooltip } from '@radix-ui/themes';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
+import { isLanguageViewPath } from '@/components/topbar/topbarPreviewMode';
 import { unsetActiveExtension } from '@/features/extensions/extensionsSlice';
 import { selectDialogOpen, setDialogClosed } from '@/features/ui/dialogSlice';
 import {
   selectActivePanel,
   setActivePanel,
+  setAiPanelClosed,
   unsetActivePanel,
 } from '@/features/ui/primaryPanelSlice';
 import { useCanvasHeadlessSettings } from '@/hooks/useCanvasHeadlessSettings';
@@ -71,13 +73,28 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const params = useParams();
   const segments = pathname.split('/').filter(Boolean); // removes empty strings
+  // A page or template shown in another language than its own: nothing can
+  // be added to it, and its layers are not loaded.
+  const isLanguageView = isLanguageViewPath(pathname, search);
   const hasActiveEditorFrame =
-    (segments.includes('editor') && params.entityId !== undefined) ||
-    (segments.includes('template') && params.previewEntityId !== undefined);
+    !isLanguageView &&
+    ((segments.includes('editor') && params.entityId !== undefined) ||
+      (segments.includes('template') && params.previewEntityId !== undefined));
   const isOnExtensionPage = segments[0] === 'app';
+
+  useEffect(() => {
+    if (!isLanguageView) {
+      return;
+    }
+    if (activePanel === 'library' || activePanel === 'layers') {
+      dispatch(unsetActivePanel());
+    }
+    // Its toggle is not in the top bar of a language view.
+    dispatch(setAiPanelClosed());
+  }, [isLanguageView, activePanel, dispatch]);
 
   const closeExtension = useCallback(() => {
     if (extensionDialogOpen) {
@@ -114,7 +131,7 @@ export const SideMenu: React.FC<SideMenuProps> = () => {
       id: 'library',
       icon: <PlusIcon />,
       label: 'Library',
-      enabled: true,
+      enabled: !isLanguageView,
       hidden: false,
     },
     {

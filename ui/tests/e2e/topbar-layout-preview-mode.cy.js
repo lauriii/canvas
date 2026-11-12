@@ -186,7 +186,7 @@ describe('Canvas Topbar Layout - Preview Mode', () => {
   );
 
   it(
-    'language selector displays code format (EN) not full name (English)',
+    'language selector displays the language name (English), not its code (EN)',
     { retries: { openMode: 0, runMode: 2 } },
     () => {
       cy.loadURLandWaitForCanvasLoaded({
@@ -204,9 +204,7 @@ describe('Canvas Topbar Layout - Preview Mode', () => {
         cy.wrap(trigger)
           .invoke('text')
           .then((text) => {
-            expect(text.trim()).to.match(/^[A-Z]{2}(?:\s|$)/);
-            expect(text).not.to.include('English');
-            expect(text).not.to.include('Français');
+            expect(text.trim()).to.equal('English');
           });
       });
     },

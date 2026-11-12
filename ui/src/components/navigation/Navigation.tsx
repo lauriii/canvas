@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import {
   ChevronDownIcon,
@@ -28,7 +28,10 @@ import { useAppSelector } from '@/app/hooks';
 import EmptyStateCallout from '@/components/EmptyStateCallout';
 import InfiniteScrollObserver from '@/components/InfiniteScrollObserver';
 import { selectHomepagePath } from '@/features/configuration/configurationSlice';
-import useEditorNavigation from '@/hooks/useEditorNavigation';
+import {
+  useNavigateToTranslation,
+  useWorkingLanguage,
+} from '@/hooks/useWorkingLanguage';
 import { getModuleOperations } from '@/utils/contentOperations';
 
 import type { FormEvent } from 'react';
@@ -224,6 +227,9 @@ const NavigationItem = ({
   onUnpublish,
   onPublish,
   onDelete,
+  titleOf,
+  pathOf,
+  urlForPage,
 }: {
   item: ContentStub;
   homepagePath?: string;
@@ -233,9 +239,13 @@ const NavigationItem = ({
   onUnpublish?: (page: ContentStub) => void;
   onPublish?: (page: ContentStub) => void;
   onDelete?: (page: ContentStub) => void;
+  titleOf: (page: ContentStub) => string;
+  pathOf: (page: ContentStub) => string;
+  urlForPage: (page: ContentStub) => string;
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { urlForEditor } = useEditorNavigation();
+  // Another translation to edit loads the app afresh.
+  const navigateToTranslation = useNavigateToTranslation();
 
   // Determine unpublished status:
   // - Show "Clock icon + Unpublish" if there's an unsaved status change to unpublished
@@ -258,20 +268,30 @@ const NavigationItem = ({
       data-canvas-page-id={item.id}
     >
       <Link
-        to={urlForEditor('canvas_page', item.id)}
+        to={urlForPage(item)}
         role={'listitem'}
         className={styles.pageLink}
-        onClick={onSelect ? () => onSelect(item) : undefined}
+        onClick={(event) => {
+          onSelect?.(item);
+          // A link opened in a new tab or window is left to the browser.
+          if (
+            event.button === 0 &&
+            !event.metaKey &&
+            !event.ctrlKey &&
+            !event.shiftKey &&
+            !event.altKey
+          ) {
+            event.preventDefault();
+            navigateToTranslation(urlForPage(item));
+          }
+        }}
       >
         <Box px="3" pt="1">
           {item.internalPath === homepagePath ? <HomeIcon /> : <FileTextIcon />}
         </Box>
         <Flex flexGrow="1" align="center">
           <Text as="span" size="1">
-            {item.autoSaveLabel || item.title}{' '}
-            <span className={styles.path}>
-              {item.autoSavePath || item.path}
-            </span>
+            {titleOf(item)} <span className={styles.path}>{pathOf(item)}</span>
           </Text>
         </Flex>
       </Link>
@@ -339,6 +359,17 @@ const ContentGroup = ({
   onDelete?: (page: ContentStub) => void;
 }) => {
   const homepagePath = useAppSelector(selectHomepagePath);
+  const { workingLanguage, isMissing, titleOf, pathOf, urlForPage } =
+    useWorkingLanguage();
+  // The pages that exist in the working language come first. The server
+  // sorts by stored translations: a page whose translation exists only as a
+  // draft with its own layout is moved up here.
+  const pages = workingLanguage
+    ? [
+        ...items.filter((item) => !isMissing(item)),
+        ...items.filter((item) => isMissing(item)),
+      ]
+    : items;
   if (items.length === 0) {
     return (
       <EmptyStateCallout
@@ -360,18 +391,29 @@ const ContentGroup = ({
         gap="2"
         mt="2"
       >
-        {items.map((item) => (
-          <NavigationItem
-            key={`${item.id}-${item.status}`}
-            item={item}
-            homepagePath={homepagePath}
-            onSelect={onSelect}
-            onDuplicate={onDuplicate}
-            onSetHomepage={onSetHomepage}
-            onUnpublish={onUnpublish}
-            onPublish={onPublish}
-            onDelete={onDelete}
-          />
+        {pages.map((item, index) => (
+          <Fragment key={`${item.id}-${item.status}`}>
+            {workingLanguage &&
+              isMissing(item) &&
+              (index === 0 || !isMissing(pages[index - 1])) && (
+                <Heading as="h5" size="1" color="gray" mt="2">
+                  Not in {workingLanguage.name}
+                </Heading>
+              )}
+            <NavigationItem
+              item={item}
+              homepagePath={homepagePath}
+              onSelect={onSelect}
+              onDuplicate={onDuplicate}
+              onSetHomepage={onSetHomepage}
+              onUnpublish={onUnpublish}
+              onPublish={onPublish}
+              onDelete={onDelete}
+              titleOf={titleOf}
+              pathOf={pathOf}
+              urlForPage={urlForPage}
+            />
+          </Fragment>
         ))}
       </Flex>
     </div>

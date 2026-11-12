@@ -1222,6 +1222,11 @@ class TranslationTest extends FunctionalTestBase {
     // Drupal's entity translation negotiation will load the default translation.
     $response = $this->makeApiRequest('DELETE', $fr_delete_url, $request_options);
     self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
+    // Naming the translation exactly, as the editor's links do, returns 404.
+    // @see \Drupal\canvas\Routing\NamedTranslationConverter
+    $named_delete_url = Url::fromUserInput("/canvas/api/v0/content/canvas_page/{$page_id}/translations", ['query' => ['canvas_langcode' => 'fr']]);
+    $response = $this->makeApiRequest('DELETE', $named_delete_url, $request_options);
+    self::assertSame(Response::HTTP_NOT_FOUND, $response->getStatusCode());
   }
 
   /**

@@ -3,6 +3,8 @@ import { useNavigate, useParams } from 'react-router';
 import { ArrowLeftIcon } from '@radix-ui/react-icons';
 import { IconButton } from '@radix-ui/themes';
 
+import { useAppDispatch } from '@/app/hooks';
+import { contentApi } from '@/services/content';
 import { getCanvasSettings } from '@/utils/drupal-globals';
 
 import type React from 'react';
@@ -16,6 +18,7 @@ const ExtensionPage: React.FC = () => {
     '*': string;
   }>();
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const pageExtensions: PageExtension[] =
     getCanvasSettings()?.pageExtensions ?? [];
 
@@ -28,6 +31,17 @@ const ExtensionPage: React.FC = () => {
     return subPath ? `${ext.extension_url}#/${subPath}` : ext.extension_url;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [extensionId]);
+
+  // An extension can change content, such as add a translation of a page: the
+  // page lists load again after it.
+  useEffect(
+    () => () => {
+      dispatch(
+        contentApi.util.invalidateTags([{ type: 'Content', id: 'LIST' }]),
+      );
+    },
+    [dispatch],
+  );
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
 

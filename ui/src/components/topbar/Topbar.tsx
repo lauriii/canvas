@@ -25,7 +25,7 @@ import { useGetPreviewContentEntitiesQuery } from '@/services/componentAndLayout
 import { getCanvasSettings } from '@/utils/drupal-globals';
 
 import PageInfo from '../pageInfo/PageInfo';
-import { isPreviewPath } from './topbarPreviewMode';
+import { isLanguageViewPath, isPreviewPath } from './topbarPreviewMode';
 
 import styles from './Topbar.module.css';
 
@@ -36,6 +36,8 @@ const Topbar = () => {
   const location = useLocation();
   const { entityType, bundle, previewEntityId } = useParams();
   const isPreview = isPreviewPath(location.pathname);
+  // A page or template shown in another language than its own, in the editor.
+  const isLanguageView = isLanguageViewPath(location.pathname, location.search);
   const isEditor = location.pathname.includes('/editor');
   const isSegments = location.pathname.includes('/segments');
   const isHeadlessFrontends = location.pathname.startsWith('/headless');
@@ -55,7 +57,11 @@ const Topbar = () => {
   const isFrontendEmbedded =
     headlessSettings !== undefined &&
     Boolean(entityType) &&
-    (isEditor || isTemplateEditorContext || isPagePreview);
+    (isEditor ||
+      isTemplateEditorContext ||
+      isPagePreview ||
+      // The template editor, also while it shows another language.
+      location.pathname.startsWith('/template/'));
 
   const isTranslationEnabled =
     canvasSettings?.contentTranslationEnabled ||
@@ -105,6 +111,12 @@ const Topbar = () => {
     </Tooltip>
   );
 
+  // The working language sits left of the page name: it decides which
+  // language the page list shows, and which language new pages are created in.
+  const languageSelect = isTranslationEnabled && !isPatternEditorContext && (
+    <LanguageSelect />
+  );
+
   return (
     <Menubar.Root data-testid="canvas-topbar" asChild>
       <Box
@@ -124,13 +136,11 @@ const Topbar = () => {
               )}
             </div>
             <div className={styles.previewCenter}>
+              {languageSelect}
               <PageInfo />
             </div>
             <div className={styles.previewRight}>
               <NotificationBell />
-              {isTranslationEnabled && !isPatternEditorContext && (
-                <LanguageSelect />
-              )}
               <PreviewControls isPreview={isPreview} />
               <UnpublishedChanges />
             </div>
@@ -139,7 +149,7 @@ const Topbar = () => {
           <Grid columns="1fr 1fr 1fr" gap="0" width="100%" height="100%">
             <Flex align="center" gap="2">
               {exitButton}
-              {hasAiExtensionAvailable && (
+              {hasAiExtensionAvailable && !isLanguageView && (
                 <>
                   <div className={clsx(styles.verticalDivider)}></div>
                   <AIToggleButton />
@@ -170,12 +180,13 @@ const Topbar = () => {
                 </>
               )}
               <div className={clsx(styles.verticalDivider)}></div>
-              {!isHeadlessFrontends && <UndoRedo />}
+              {!isHeadlessFrontends && !isLanguageView && <UndoRedo />}
               {isFrontendEmbedded && (
                 <FrontendSelect settings={headlessSettings} />
               )}
             </Flex>
             <Flex align="center" justify="center" gap="2">
+              {languageSelect}
               <PageInfo />
               {isTemplateEditorContext && (
                 <ContentPreviewSelector
@@ -187,9 +198,6 @@ const Topbar = () => {
             </Flex>
             <Flex align="center" justify="end" gap="2">
               <NotificationBell />
-              {isTranslationEnabled && !isPatternEditorContext && (
-                <LanguageSelect />
-              )}
               <PreviewControls isPreview={isPreview} />
               <UnpublishedChanges />
             </Flex>

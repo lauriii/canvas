@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useErrorBoundary } from 'react-error-boundary';
-import { useParams } from 'react-router';
+import { useParams, useSearchParams } from 'react-router';
 import { skipToken } from '@reduxjs/toolkit/query';
 
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
@@ -18,6 +18,7 @@ import { useDrupalBehaviors } from '@/hooks/useDrupalBehaviors';
 import { useEditorNavigation } from '@/hooks/useEditorNavigation';
 import hyperscriptify from '@/local_packages/hyperscriptify';
 import propsify from '@/local_packages/hyperscriptify/propsify/standard/index.js';
+import { EDITED_TRANSLATION_PARAM } from '@/services/baseQuery';
 import { useGetPageLayoutQuery } from '@/services/componentAndLayout';
 import { useGetPageDataFormQuery } from '@/services/pageDataForm';
 import {
@@ -42,6 +43,10 @@ const PageDataFormRenderer = () => {
     selectFormValues(state, FORM_TYPES.ENTITY_FORM),
   );
   const { entityId, entityType } = useParams();
+  // The forked translation being edited, if any: its form differs from the
+  // default translation's.
+  const [searchParams] = useSearchParams();
+  const editorLanguage = searchParams.get(EDITED_TRANSLATION_PARAM) ?? '';
   const {
     currentData: formTemplate,
     error,
@@ -113,7 +118,7 @@ const PageDataFormRenderer = () => {
     if (entityId && entityType) {
       refetch();
     }
-  }, [refetch, entityId, entityType]);
+  }, [refetch, entityId, entityType, editorLanguage]);
 
   useEffect(() => {
     // If the HTML for the form has not yet loaded OR the JSON for the current
@@ -132,7 +137,7 @@ const PageDataFormRenderer = () => {
 
     setJsxFormContent(
       <div
-        key={`${entityType}:${entityId}:${fulfilledTimeStamp}`}
+        key={`${entityType}:${entityId}:${editorLanguage}:${fulfilledTimeStamp}`}
         data-testid="canvas-page-data-form"
         className={styles.pageDataForm}
         onClick={interceptEditTemplateLink}
@@ -147,6 +152,7 @@ const PageDataFormRenderer = () => {
       </div>,
     );
   }, [
+    editorLanguage,
     entityId,
     entityType,
     formTemplate,

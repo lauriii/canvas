@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import {
   ChevronDownIcon,
   ClockIcon,
@@ -14,6 +14,7 @@ import {
   ContextMenu,
   DropdownMenu,
   Flex,
+  Heading,
   Skeleton,
   TextField,
   Tooltip,
@@ -207,6 +208,7 @@ const PageListItem = ({
   onUnpublish,
   onPublish,
   onDelete,
+  workingLanguage,
 }: {
   item: ContentStub;
   isSelected: boolean;
@@ -218,9 +220,10 @@ const PageListItem = ({
   onUnpublish?: (page: ContentStub) => void;
   onPublish?: (page: ContentStub) => void;
   onDelete?: (page: ContentStub) => void;
+  workingLanguage?: PageListWorkingLanguage;
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const title = `${item.autoSaveLabel || item.title} ${item.autoSavePath || item.path}`;
+  const title = `${workingLanguage?.titleOf(item) ?? (item.autoSaveLabel || item.title)} ${workingLanguage?.pathOf(item) ?? (item.autoSavePath || item.path)}`;
   const dropdownMenuContent = createPageMenuContent(
     item,
     onDuplicate,
@@ -240,6 +243,22 @@ const PageListItem = ({
   const willBeUnpublished =
     !item.status && !item.isNew && item.hasUnsavedStatusChange;
 
+  const badgeColor = isSelected ? 'blue' : 'gray';
+  const statusBadge = willBeUnpublished ? (
+    <Tooltip content="Applies on next publish">
+      <Badge size="1" variant="solid" color={badgeColor}>
+        <Flex align="center" gap="1">
+          <ClockIcon width="11" height="11" />
+          Unpublish
+        </Flex>
+      </Badge>
+    </Tooltip>
+  ) : isUnpublished ? (
+    <Badge size="1" variant="solid" color={badgeColor}>
+      Unpublished
+    </Badge>
+  ) : null;
+
   return (
     <ContextMenu.Root>
       <ContextMenu.Trigger>
@@ -249,30 +268,7 @@ const PageListItem = ({
             variant={isHomepage ? 'homepage' : 'page'}
             selected={isSelected}
             trailingContent={
-              !isMenuOpen && (isUnpublished || willBeUnpublished) ? (
-                willBeUnpublished ? (
-                  <Tooltip content="Applies on next publish">
-                    <Badge
-                      size="1"
-                      variant="solid"
-                      color={isSelected ? 'blue' : 'gray'}
-                    >
-                      <Flex align="center" gap="1">
-                        <ClockIcon width="11" height="11" />
-                        Unpublish
-                      </Flex>
-                    </Badge>
-                  </Tooltip>
-                ) : (
-                  <Badge
-                    size="1"
-                    variant="solid"
-                    color={isSelected ? 'blue' : 'gray'}
-                  >
-                    Unpublished
-                  </Badge>
-                )
-              ) : undefined
+              !isMenuOpen && statusBadge ? statusBadge : undefined
             }
             dropdownMenuContent={
               dropdownMenuContent ? (
@@ -304,10 +300,12 @@ const ContentGroup = ({
   onUnpublish,
   onPublish,
   onDelete,
+  workingLanguage,
 }: {
   items: ContentStub[];
   homepagePath?: string;
   selectedPageId?: string | number;
+  workingLanguage?: PageListWorkingLanguage;
   onSelect?: (value: ContentStub) => void;
   onDuplicate?: (page: ContentStub) => void;
   onSetHomepage?: (page: ContentStub) => void;
@@ -325,37 +323,67 @@ const ContentGroup = ({
     );
   }
 
+  // The pages that exist in the working language come first. The server
+  // sorts by stored translations: a page whose translation exists only as a
+  // draft with its own layout is moved up here.
+  const pages = workingLanguage
+    ? [
+        ...items.filter((item) => !workingLanguage.isMissing(item)),
+        ...items.filter((item) => workingLanguage.isMissing(item)),
+      ]
+    : items;
+
   return (
     <Flex data-testid="canvas-page-list" direction="column" gap="1">
-      {items.map((item) => {
+      {pages.map((item, index) => {
         const isSelected =
           selectedPageId !== undefined &&
           String(selectedPageId) === String(item.id);
         const isHomepage = item.internalPath === homepagePath;
 
+        const startsOtherLanguages =
+          !!workingLanguage?.isMissing(item) &&
+          (index === 0 || !workingLanguage.isMissing(pages[index - 1]));
+
         return (
-          <PageListItem
-            key={`${item.id}-${item.status}`}
-            item={item}
-            isSelected={isSelected}
-            isHomepage={isHomepage}
-            homepagePath={homepagePath}
-            onSelect={onSelect}
-            onDuplicate={onDuplicate}
-            onSetHomepage={onSetHomepage}
-            onUnpublish={onUnpublish}
-            onPublish={onPublish}
-            onDelete={onDelete}
-          />
+          <Fragment key={`${item.id}-${item.status}`}>
+            {startsOtherLanguages && (
+              <Heading as="h5" size="1" color="gray" mt="2" mb="1" ml="2">
+                Not in {workingLanguage?.name}
+              </Heading>
+            )}
+            <PageListItem
+              item={item}
+              isSelected={isSelected}
+              isHomepage={isHomepage}
+              homepagePath={homepagePath}
+              onSelect={onSelect}
+              onDuplicate={onDuplicate}
+              onSetHomepage={onSetHomepage}
+              onUnpublish={onUnpublish}
+              onPublish={onPublish}
+              onDelete={onDelete}
+              workingLanguage={workingLanguage}
+            />
+          </Fragment>
         );
       })}
     </Flex>
   );
 };
 
+// How to show the list in the working language, on a multilingual site.
+export interface PageListWorkingLanguage {
+  name: string;
+  titleOf: (item: ContentStub) => string;
+  pathOf: (item: ContentStub) => string;
+  isMissing: (item: ContentStub) => boolean;
+}
+
 interface PageListProps {
   // Data
   pageItems?: ContentStub[];
+  workingLanguage?: PageListWorkingLanguage;
   isPageItemsLoading?: boolean;
   pageItemsError?: string | null;
   homepagePath?: string;
@@ -382,6 +410,7 @@ const PageList = ({
   pageItemsError = null,
   homepagePath,
   selectedPageId,
+  workingLanguage,
   canCreatePages = false,
   hasMore = false,
   onLoadMore,
@@ -476,6 +505,7 @@ const PageList = ({
               onUnpublish={onUnpublishPage}
               onPublish={onPublishPage}
               onDelete={onDeletePage}
+              workingLanguage={workingLanguage}
             />
           )}
           {pageItemsError && (

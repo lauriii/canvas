@@ -92,6 +92,11 @@ vi.mock('@/app/hooks', async () => {
   };
 });
 
+// A single-language site: the page list is requested without a language.
+vi.mock('@/hooks/useWorkingLanguage', () => ({
+  useWorkingLanguage: () => ({ isMultilingual: false, isResolved: true }),
+}));
+
 vi.mock('@/components/review/PublishReview', () => ({
   default: (props: any) => {
     mocks.publishReviewProps = props;

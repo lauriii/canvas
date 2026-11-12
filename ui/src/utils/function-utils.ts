@@ -96,10 +96,19 @@ function getBoundaryElements(start: Node, end: Node): HTMLElement[] {
   return elements;
 }
 
+/**
+ * Whether the pending changes include one of an entity.
+ *
+ * @param isOfTranslation
+ *   Optionally, whether a change of the entity is one of the translation
+ *   asked about, given the change's langcode. A translation with its own
+ *   layout has its own changes.
+ */
 export function findInChanges(
   changeList: PendingChanges,
   entityId: string | undefined,
   entityType: string | undefined,
+  isOfTranslation?: (langcode: string | null) => boolean,
 ) {
   if (!entityId || !entityType || !changeList) {
     return false;
@@ -109,7 +118,8 @@ export function findInChanges(
       const obj = changeList[key];
       if (
         String(obj.entity_id) === entityId &&
-        obj.entity_type === entityType
+        obj.entity_type === entityType &&
+        (!isOfTranslation || isOfTranslation(obj.langcode ?? null))
       ) {
         return true;
       }

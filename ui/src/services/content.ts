@@ -26,6 +26,9 @@ export interface CreateContentResponse {
 export interface CreateContentRequest {
   entity_id?: string;
   entity_type: string;
+  // The language to create a new page in. A duplicate keeps the language of
+  // its source.
+  langcode?: string;
 }
 
 export interface SetLangcodeRequest {
@@ -42,6 +45,8 @@ export interface UpdateContentRequest {
   entityId: string;
   status?: boolean;
   conflictToResolve?: string;
+  // The translation to act on, when not the default one.
+  langcode?: string | null;
 }
 
 export interface ContentListResult {
@@ -53,6 +58,8 @@ export interface ContentListParams {
   entityType: string;
   search?: string;
   offset?: number;
+  // A language: the content that exists in it is listed first.
+  langcode?: string;
 }
 
 const buildUpdateContentBody = ({
@@ -74,8 +81,11 @@ export const contentApi = createApi({
   tagTypes: ['Content', 'StagedConfig', 'PendingChanges'],
   endpoints: (builder) => ({
     getContentList: builder.query<ContentListResult, ContentListParams>({
-      query: ({ entityType, search, offset }) => {
+      query: ({ entityType, search, offset, langcode }) => {
         const params = new URLSearchParams();
+        if (langcode) {
+          params.append('langcode', langcode);
+        }
         if (search) {
           const normalizedSearch = search.toLowerCase().trim();
           params.append('search', normalizedSearch);
@@ -96,7 +106,7 @@ export const contentApi = createApi({
         totalCount: response.meta?.count ?? null,
       }),
       serializeQueryArgs: ({ queryArgs }) => {
-        return `${queryArgs.entityType}-${queryArgs.search || ''}`;
+        return `${queryArgs.entityType}-${queryArgs.search || ''}-${queryArgs.langcode || ''}`;
       },
       merge: (currentCache, newItems, { arg }) => {
         if (arg.offset && arg.offset > 0) {
@@ -168,24 +178,43 @@ export const contentApi = createApi({
       CreateContentResponse,
       CreateContentRequest
     >({
-      query: ({ entity_type, entity_id }) => ({
+      query: ({ entity_type, entity_id, langcode }) => ({
         url: `/canvas/api/v0/content/${entity_type}`,
         method: 'POST',
-        body: entity_id ? { entity_id } : {},
+        body: entity_id ? { entity_id } : langcode ? { langcode } : {},
       }),
       // Instead of invalidating the cache tag { type: 'Content', id: 'LIST' }, we manually refetch the first 50 items after creation.
       // The newly added page is ensured to be the first item of the pages due to the sort order used by the backend.
       // Since we are using pagination queries with offset for pages, if the last subscribed argument in RTK was with offset=50,
       // then invalidating the cache tag would re-fetch with offset=50 without that newly added item.
-      async onQueryStarted({ entity_type }, { dispatch, queryFulfilled }) {
+      async onQueryStarted(
+        { entity_type },
+        { dispatch, queryFulfilled, getState },
+      ) {
         try {
           await queryFulfilled;
-          // Force refetch from offset 0 to get fresh data including the new item.
-          dispatch(
-            contentApi.endpoints.getContentList.initiate(
-              { entityType: entity_type, offset: 0 },
-              { forceRefetch: true },
-            ),
+          // Force refetch from offset 0 to get fresh data including the new
+          // item, for every list of this entity type: there is one per search
+          // term and language.
+          const state = getState() as any;
+          const queries = Object.values(
+            state[contentApi.reducerPath]?.queries ?? {},
+          ) as any[];
+          const lists = queries
+            .filter(
+              (query) =>
+                query?.endpointName === 'getContentList' &&
+                query?.originalArgs?.entityType === entity_type,
+            )
+            .map((query) => query.originalArgs as ContentListParams);
+          (lists.length ? lists : [{ entityType: entity_type }]).forEach(
+            (args) =>
+              dispatch(
+                contentApi.endpoints.getContentList.initiate(
+                  { ...args, offset: 0 },
+                  { forceRefetch: true },
+                ),
+              ),
           );
         } catch {
           // If creation fails, no refetch needed
@@ -193,8 +222,14 @@ export const contentApi = createApi({
       },
     }),
     updateContent: builder.mutation<void, UpdateContentRequest>({
-      query: ({ entityType, entityId, status, conflictToResolve }) => ({
-        url: `/canvas/api/v0/content/auto-save/${entityType}/${entityId}`,
+      query: ({
+        entityType,
+        entityId,
+        status,
+        conflictToResolve,
+        langcode,
+      }) => ({
+        url: `/canvas/api/v0/content/auto-save/${entityType}/${entityId}${langcode ? `?canvas_langcode=${encodeURIComponent(langcode)}` : ''}`,
         method: 'PATCH',
         body: buildUpdateContentBody({ status, conflictToResolve }),
       }),

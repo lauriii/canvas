@@ -447,8 +447,49 @@ class AutoSaveManager implements EventSubscriberInterface {
     return self::generateHash(self::normalizeEntity($original));
   }
 
+  /**
+   * Whether a translation has the values of the stored translation.
+   *
+   * ::saveEntity() compares with the stored default translation, so a draft of
+   * another translation set back to its stored values is not cleared there.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityInterface $translation
+   *   A translation of a stored entity.
+   */
+  public function matchesStoredTranslation(ContentEntityInterface $translation): bool {
+    \assert(!\is_null($translation->id()));
+    $original = $this->entityTypeManager->getStorage($translation->getEntityTypeId())->loadUnchanged($translation->id());
+    $langcode = $translation->language()->getId();
+    if (!$original instanceof ContentEntityInterface || !$original->hasTranslation($langcode)) {
+      return FALSE;
+    }
+    return \hash_equals(
+      self::generateHash(self::normalizeEntity($original->getTranslation($langcode))),
+      self::generateHash(self::normalizeEntity($translation)),
+    );
+  }
+
   public function getAutoSaveEntity(EntityInterface $entity, bool $bypass_cache = FALSE): AutoSaveEntity {
-    $key = $this->getAutoSaveKey($entity);
+    return $this->getAutoSaveEntityByKey(self::getAutoSaveKey($entity), $bypass_cache);
+  }
+
+  /**
+   * Gets a translation's auto-save, also for one that is not stored yet.
+   *
+   * A translation forked before it was first published exists only in its
+   * auto-save draft, so there is no translation object to pass to
+   * ::getAutoSaveEntity() for it.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+   *   Any translation of the entity.
+   * @param string $langcode
+   *   The language of the translation whose auto-save to get.
+   */
+  public function getTranslationAutoSaveEntity(ContentEntityInterface $entity, string $langcode): AutoSaveEntity {
+    return $this->getAutoSaveEntityByKey($entity->getEntityTypeId() . ':' . $entity->id() . ':' . $langcode);
+  }
+
+  private function getAutoSaveEntityByKey(string $key, bool $bypass_cache = FALSE): AutoSaveEntity {
     if (!$bypass_cache) {
       $cached = $this->cache->get($key);
       if ($cached) {
@@ -506,11 +547,12 @@ class AutoSaveManager implements EventSubscriberInterface {
     // translation — and, for a non-default translation, ::create() even treats
     // it as the default. Overlay the snapshot onto a fresh copy of the stored
     // entity so the reconstructed entity is aware of every translation that
-    // exists and keeps the real default translation. Config entities have no
-    // content translations, an entity deleted since the auto-save was written
-    // has nothing to overlay onto, and a snapshot for a translation that does
-    // not (yet) exist in storage cannot be merged onto it: all keep the
-    // snapshot-only reconstruction.
+    // exists and keeps the real default translation. A snapshot for a
+    // translation that does not exist in storage yet (one forked before it was
+    // first published) is overlaid onto that translation, added to the copy.
+    // Config entities have no content translations, and an entity deleted
+    // since the auto-save was written has nothing to overlay onto: both keep
+    // the snapshot-only reconstruction.
     // Clone the loaded entity before overlaying: loadUnchanged() repopulates
     // the static cache, so mutating its return value (via $target below) would
     // leak the snapshot's values into the stored entity that later loads —
@@ -518,6 +560,14 @@ class AutoSaveManager implements EventSubscriberInterface {
     $loaded = $entity instanceof ContentEntityInterface ? $storage->loadUnchanged($entry['entity_id']) : NULL;
     $stored = $loaded instanceof ContentEntityInterface ? clone $loaded : NULL;
     $langcode = $entity->language()->getId();
+    if ($stored instanceof ContentEntityInterface && !$stored->hasTranslation($langcode) && $stored->isTranslatable()) {
+      try {
+        $stored->addTranslation($langcode);
+      }
+      catch (\InvalidArgumentException) {
+        // The language was deleted since the auto-save was written.
+      }
+    }
     if (!$stored instanceof ContentEntityInterface || !$stored->hasTranslation($langcode)) {
       // @todo Also check \Drupal\content_translation\ContentTranslationManager::isEnabled() for content entities in https://git.drupalcode.org/project/canvas/-/work_items/3571130
       if ($entity instanceof ContentEntityBase && $entity->isTranslatable()) {
@@ -634,30 +684,35 @@ class AutoSaveManager implements EventSubscriberInterface {
     $storage = $this->entityTypeManager->getStorage($entity_type_id);
     $loaded = $storage->loadUnchanged($entity->id());
     $requested_langcode = $entity->language()->getId();
-    // When the stored entity is gone, or the requested translation does not yet
-    // exist in storage (a draft for a not-yet-saved translation), there is no
-    // stored translation to overlay siblings onto. Reconstruct the requested
-    // translation's own snapshot in isolation, matching single-translation
-    // behavior; ::createEntityFromAutoSaveEntry() handles both edges.
-    if (!$loaded instanceof ContentEntityInterface || !$loaded->hasTranslation($requested_langcode)) {
+    // When the stored entity is gone, there is nothing to overlay siblings
+    // onto. Reconstruct the requested translation's own snapshot in isolation,
+    // matching single-translation behavior.
+    if (!$loaded instanceof ContentEntityInterface) {
       if (!isset($group[$requested_key])) {
         return AutoSaveEntity::empty();
       }
       $reconstructed = $this->createEntityFromAutoSaveEntry($group[$requested_key]);
       return new AutoSaveEntity($reconstructed, $representative['data_hash'], $representative['client_id'], $representative['updated']);
     }
+    // A requested translation that does not exist in storage yet (one forked
+    // before it was first published) exists only in its own draft.
+    if (!$loaded->hasTranslation($requested_langcode) && !isset($group[$requested_key])) {
+      return AutoSaveEntity::empty();
+    }
     // Clone before overlaying: loadUnchanged() repopulates the static cache, so
     // mutating its return value would leak the draft into later loads.
     $stored = clone $loaded;
     $stored->enforceIsNew(FALSE);
+    if (!$stored->hasTranslation($requested_langcode)) {
+      $stored->addTranslation($requested_langcode);
+    }
     foreach ($group as $entry) {
       \assert(\is_array($entry['data']));
       $snapshot = $storage->create($entry['data']);
       \assert($snapshot instanceof ContentEntityInterface);
       $langcode = $snapshot->language()->getId();
-      // A snapshot for a translation that does not exist in storage cannot be
-      // overlaid onto it (the isolated-reconstruction branch above covers that
-      // snapshot when it is the requested one).
+      // A sibling snapshot for a translation that does not exist in storage is
+      // not part of the requested translation's draft.
       if (!$stored->hasTranslation($langcode)) {
         continue;
       }

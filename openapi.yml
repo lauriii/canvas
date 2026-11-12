@@ -2013,10 +2013,53 @@ paths:
           description: Translation deleted successfully.
         '400':
           description: Cannot delete the default translation. Use the entity delete endpoint to remove the whole entity.
+        '404':
+          description: The page has no translation in the negotiated language, stored or draft-only.
+  '/canvas/api/v0/content/canvas_page/{entityId}/translations/fork':
+    description: Endpoint for forking or unforking a specific translation of a Page content entity, so it owns an independent component tree. The `canvas_langcode` query parameter names the translation. The change lives in the translation's auto-save draft until published.
+    parameters:
+      - in: query
+        name: canvas_langcode
+        required: true
+        description: The langcode of the translation to fork or unfork. It need not have a stored translation.
+        schema:
+          type: string
+        example: fr
+    delete:
+      summary: Unforks a translation, re-synchronizing its component tree from the default translation.
+      description: For a translation that exists only as a forked draft, the draft is discarded.
+      parameters:
+        - $ref: '#/components/parameters/entityId'
+      responses:
+        '204':
+          description: Translation unforked (idempotent).
+        '400':
+          description: The default translation cannot be unforked.
+        '404':
+          description: The `canvas_langcode` query parameter is missing or names an unknown language.
+    post:
+      summary: Forks a translation, so it owns an independent component tree.
+      description: A language without a stored translation can be forked too; the new translation starts as a copy of the default translation. Forking a translation with a pending unfork undoes the unfork, so the draft gets the stored fork's component trees back, with its translatable input values for the components in both, and keeps its other edits.
+      parameters:
+        - $ref: '#/components/parameters/entityId'
+      responses:
+        '204':
+          description: Translation forked (idempotent).
+        '400':
+          description: The default translation cannot be forked.
+        '404':
+          description: The `canvas_langcode` query parameter is missing or names an unknown language.
   '/canvas/api/v0/content/{entity_type}':
     get:
       summary: Provides api for page listing.
       parameters:
+        - in: query
+          name: langcode
+          required: false
+          description: A language. The pages that exist in it, as the original or as a translation, are listed first. A translation that exists only as a forked auto-save draft counts within a page of results, not in the order across pages.
+          schema:
+            type: string
+          example: de
         - in: query
           name: search
           required: false
@@ -2074,11 +2117,39 @@ paths:
                         - isNew
                         - hasUnsavedStatusChange
                         - links
+                        - langcode
+                        - translations
                       additionalProperties: false
                       properties:
                         id:
                           type: integer
                           description: The page ID.
+                        langcode:
+                          type: string
+                          description: The language the page was created in.
+                        translations:
+                          type: object
+                          description: The title and path of each of the page's translations, keyed by langcode. Does not include the language the page was created in. With translation forks (content_translation installed), also includes translations that exist only as a forked auto-save draft, with the draft's title and path.
+                          additionalProperties:
+                            type: object
+                            required:
+                              - title
+                              - path
+                            additionalProperties: false
+                            properties:
+                              title:
+                                type: string
+                              path:
+                                type: string
+                                description: The processed path of the translation, as for the page.
+                              forked:
+                                type: boolean
+                                description: Whether the translation owns an independent (forked) component tree, draft-aware. Present only with translation forks (content_translation installed).
+                          example:
+                            de:
+                              title: About us in German
+                              path: /de/about-us
+                              forked: false
                         uuid:
                           type: string
                           format: uuid
@@ -2241,6 +2312,20 @@ paths:
                       label: null
 
       responses:
+        '400':
+          description: Unknown langcode.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Error'
+                additionalProperties: false
         '201':
           description: Created entity successfully
           content:
@@ -2855,6 +2940,10 @@ paths:
                       'revision_log[0][value]': ''
                     translations:
                       available: [en, fr]
+                      forked: []
+                      states:
+                        fr: symmetric
+                      links: {}
                     isNew: false
                     isPublished: true
               schema:
@@ -2891,9 +2980,36 @@ paths:
                     properties:
                       available:
                         type: array
-                        description: Language codes the entity exists in. The first entry is always the entity's own (primary) language, followed by its translations.
+                        description: Language codes the entity exists in. The first entry is always the entity's own (primary) language, followed by its stored translations. A translation that exists only as a forked auto-save draft is not listed; see `states`. The same with and without the `canvas_langcode` query parameter.
                         items:
                           type: string
+                      forked:
+                        type: array
+                        description: Language codes whose translation owns an independent (forked) component tree, draft-aware. Includes translations that exist only as a forked auto-save draft. Content entities only.
+                        items:
+                          type: string
+                      states:
+                        # No type: an empty array when empty, like `links`.
+                        description: The component tree fork state of every configured non-default language, keyed by langcode. Only for content entities that support translation forks (content_translation installed); otherwise empty (an empty array).
+                        additionalProperties:
+                          type: string
+                          enum: [symmetric, forked, pending_fork, pending_unfork]
+                          description: >
+                            `symmetric`: not forked in storage, nor in the auto-save draft.
+                            `forked`: forked in storage, and in the draft if there is one.
+                            `pending_fork`: forked in the draft only, including a translation that exists only in its draft.
+                            `pending_unfork`: forked in storage, while the draft reverts it to symmetric.
+                        example:
+                          es: forked
+                          de: pending_fork
+                          fr: symmetric
+                      links:
+                        # No type: an empty array when there are no links.
+                        description: Translation operation links, keyed by langcode, then by link relation type. An empty array when there are none. `delete-form` deletes the translation (or discards a translation that exists only as a forked draft). `https://drupal.org/project/canvas#link-rel-fork` and `https://drupal.org/project/canvas#link-rel-unfork` fork or unfork it. Only links the current user may follow are present.
+                        additionalProperties:
+                          type: object
+                          additionalProperties:
+                            type: string
                   isNew:
                     type: boolean
                     # @see \Drupal\canvas\AutoSave\AutoSaveManager::entityIsConsideredNew()
@@ -5936,6 +6052,9 @@ components:
         clientInstanceId:
           type: string
           description: Client instance ID for the layout preview
+        langcode:
+          type: string
+          description: The language to create the new page in. Defaults to the default language configured for Canvas pages. Ignored when duplicating, because a duplicate keeps the language of its source.
     NewContentRequestBody:
       type: object
       additionalProperties: false
@@ -5952,6 +6071,9 @@ components:
         title:
           type: string
           description: The page title.
+        langcode:
+          type: string
+          description: The language to create the page in. Defaults to the default language configured for Canvas pages. Only used when creating a page.
         status:
           type: boolean
           description: The page status.

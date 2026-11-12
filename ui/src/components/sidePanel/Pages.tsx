@@ -13,6 +13,10 @@ import {
 import useEditorNavigation from '@/hooks/useEditorNavigation';
 import { usePaginatedContentList } from '@/hooks/usePaginatedContentList';
 import { useSmartRedirect } from '@/hooks/useSmartRedirect';
+import {
+  useNavigateToTranslation,
+  useWorkingLanguage,
+} from '@/hooks/useWorkingLanguage';
 import { componentAndLayoutApi } from '@/services/componentAndLayout';
 import {
   useCreateContentMutation,
@@ -35,6 +39,16 @@ const Pages = () => {
   const dispatch = useAppDispatch();
   const { entityType, entityId } = useParams();
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const navigateToTranslation = useNavigateToTranslation();
+  const {
+    workingLanguage,
+    isResolved,
+    isMultilingual,
+    isMissing,
+    titleOf,
+    pathOf,
+    urlForPage,
+  } = useWorkingLanguage();
 
   const canCreatePages =
     !!canvasSettings.contentEntityCreateOperations?.canvas_page?.canvas_page;
@@ -45,7 +59,12 @@ const Pages = () => {
     error: pageItemsError,
     hasMore,
     handleLoadMore,
-  } = usePaginatedContentList('canvas_page', searchTerm);
+  } = usePaginatedContentList(
+    'canvas_page',
+    searchTerm,
+    isMultilingual ? workingLanguage?.id : undefined,
+    isMultilingual && !isResolved,
+  );
 
   const [
     createContent,
@@ -76,6 +95,8 @@ const Pages = () => {
   function handleNewPage() {
     createContent({
       entity_type: 'canvas_page',
+      // New pages are created in the working language.
+      langcode: isMultilingual ? workingLanguage?.id : undefined,
     });
   }
 
@@ -105,7 +126,7 @@ const Pages = () => {
   }
 
   function handleOnSelect(item: ContentStub) {
-    navigateToEditor('canvas_page', item.id);
+    navigateToTranslation(urlForPage(item));
   }
 
   async function handleUnpublishPage(item: ContentStub) {
@@ -208,6 +229,11 @@ const Pages = () => {
       pageItemsError={pageItemsError ? String(pageItemsError) : null}
       homepagePath={homepagePath}
       selectedPageId={selectedPageId}
+      workingLanguage={
+        isMultilingual && workingLanguage
+          ? { name: workingLanguage.name, isMissing, titleOf, pathOf }
+          : undefined
+      }
       canCreatePages={canCreatePages}
       onNewPage={handleNewPage}
       onDeletePage={handleDeletePage}

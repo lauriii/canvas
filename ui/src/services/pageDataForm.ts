@@ -2,7 +2,7 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 
 import addAjaxPageState from '@/services/addAjaxPageState';
-import { baseQuery } from '@/services/baseQuery';
+import { baseQuery, serializeEditorQueryArgs } from '@/services/baseQuery';
 import processResponseAssets from '@/services/processResponseAssets';
 
 export const pageDataFormApi = createApi({
@@ -19,6 +19,7 @@ export const pageDataFormApi = createApi({
           url: `/canvas/api/v0/form/content-entity/${entityType}/${entityId}/default?${addAjaxPageState('')}`,
         };
       },
+      serializeQueryArgs: serializeEditorQueryArgs,
       transformResponse: processResponseAssets(),
       providesTags: [{ type: 'PageDataForm', id: 'FORM' }],
     }),

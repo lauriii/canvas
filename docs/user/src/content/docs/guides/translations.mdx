@@ -4,8 +4,9 @@ title: Translations
 
 Canvas supports symmetric translations: every translation shares the same
 component tree, and only the translatable inputs of each component instance
-differ per language. This guide walks through enabling translations on
-Drupal CMS.
+differ per language. A translation of a page can also have a custom layout:
+its own component tree, edited in Canvas. This guide walks through enabling
+translations on Drupal CMS.
 
 ## Enable translation support
 
@@ -28,6 +29,74 @@ content, because the UI provided by the core Content Translation module does
 not currently support translating Canvas content. You can use either
 [TMGMT](https://www.drupal.org/project/tmgmt) or the experimental
 [Canvas Translate](https://www.drupal.org/project/canvas_translate) module.
+
+## The working language
+
+Once the site has more than one language, the language selector sits at the
+top of the editor, left of the page name. It sets the working language: the
+language Canvas shows pages in, and creates new pages in.
+
+- A page opens for editing in the language it was created in. Opening a page
+  from Drupal always does this.
+- Selecting another language shows the open page in that language. The Canvas
+  editor edits a page in the language it is written in, and in a language in
+  which it has a custom layout; its other translations are edited with a
+  translation module, such as Canvas Translate or TMGMT. The
+  selector states, per language, whether the open page is the original, is
+  translated, has a custom layout, or is not translated.
+  The page is shown on the editor's canvas: it pans and zooms as in the
+  editor, at the same viewport, such as Mobile or Desktop.
+- Preview shows the page the way visitors see it, in the working language.
+- The page list shows the pages that exist in the working language first,
+  with their titles in it. The pages that do not exist in it follow under
+  their own heading. Opening one of them shows it in the working language.
+- "New page" creates the page in the working language.
+- Canvas remembers the language selected last in the browser, and starts in it
+  when no page is open.
+
+When a page is shown in another language than its own, the top bar marks a
+page without a translation as "Not translated". Selecting that mark adds the
+translation, with a translation module, or with a custom layout (see below).
+
+In the language selector, each language other than the original has an options
+menu for the open page, whatever the working language is:
+
+- add a translation or edit the translation, when a translation module
+  provides it;
+- customize the layout of the page in that language, or reset it (see
+  below);
+- delete the translation;
+- change the language of the page to that language. This is only possible for
+  a page that was never published and has no translations. The text of the
+  page stays the same.
+
+To edit the page itself, select the language marked "Original".
+
+### A language with a custom layout
+
+By default, every translation of a page shares the layout of the original:
+the same components in the same places. Only the text is translated, and a
+change to the layout of the original applies to every translation.
+
+A page can instead have a custom layout in a language. That translation is a
+copy of the page that is edited in Canvas like the original: components can
+be added, moved or removed in it alone. Changes to the layout of the original
+no longer apply to it. The language selector marks such a language "Custom
+layout", and selecting it opens the page for editing in that language.
+
+- "Customize layout…", in the options of a language, starts it. It is offered
+  for a Canvas page that has been published, in the editor. A language
+  without a translation starts as a copy of the original, text included.
+- It is a change like any other: it is listed in the changes to review, as the
+  page title followed by the language, and visitors see it once it is
+  published. Until then, discarding that change undoes it.
+- "Reset layout…" makes the language follow the layout of the original again.
+  Its text is kept for the components that are also in the original; the
+  components only in that language are removed. Until that is published,
+  "Keep custom layout" undoes it. A language that had no translation before
+  its layout was customized is removed with "Delete translation…" instead.
+- A translation module does not translate a language with a custom layout:
+  its text is edited in Canvas.
 
 ## Translating with TMGMT
 
@@ -67,9 +136,9 @@ capabilities are very basic.
 10. Review the finished translation at `/admin/tmgmt` and click
     **Save as completed** to accept it.
 11. Return to the Canvas editor for the page.
-12. Use the language switcher at the top of the editor to verify that the
-    translation exists. A check mark appears next to the translated language.
-13. Translations can also be deleted from the language switcher if needed.
+12. Use the language selector at the top of the editor to verify that the
+    translation exists. The translated language is marked "Translated".
+13. A translation can also be deleted from the language selector.
 
 ### Translating a content template
 
@@ -90,9 +159,9 @@ capabilities are very basic.
 12. Review the finished translation at `/admin/tmgmt` and click
     **Save as completed** to accept it.
 13. Return to the Canvas editor for the content template.
-14. Use the language switcher at the top of the editor to verify that the
-    translation exists. A check mark appears next to the translated language.
-15. Translations can also be deleted from the language switcher if needed.
+14. Use the language selector at the top of the editor to verify that the
+    translation exists. The translated language is marked "Translated".
+15. A translation can also be deleted from the language selector.
 
 ## Translating with Canvas Translate (experimental)
 
@@ -103,3 +172,7 @@ not require TMGMT.
 2. Enable the Canvas Translate module.
 3. Clear caches.
 4. Canvas Translate now appears in the left sidebar in Canvas.
+
+The language selector links to Canvas Translate from the options menu of a
+language: "Add" or "Edit" the translation. It opens in Canvas, and its back
+button returns to the page.

@@ -71,7 +71,16 @@ const DRAG_AUTOSCROLL_RAMP_MS = 250;
 // reached at the very edge; it tapers to zero at the strip's inner boundary.
 const DRAG_AUTOSCROLL_MAX_SPEED_PX = 8;
 
-const EditorFrame: React.FC = () => {
+/**
+ * The canvas of the editor: the preview, with panning and zooming.
+ *
+ * With children, it shows them in place of the editable preview, and only
+ * pans and zooms. A page in another language than its own is shown so.
+ */
+const EditorFrame: React.FC<{ children?: React.ReactNode }> = ({
+  children,
+}) => {
+  const isEditable = !children;
   const dispatch = useAppDispatch();
   useSyncParamsToState();
   const editorFrameRef = useRef<HTMLDivElement | null>(null);
@@ -168,20 +177,32 @@ const EditorFrame: React.FC = () => {
     keydown: false,
     keyup: true,
   });
-  useHotkeys(['Backspace', 'Delete'], () => {
-    if (selectedComponent && !selectedComponentIsMarker) {
-      dispatch(deleteNode(selectedComponent));
-      unsetSelectedComponent();
-    }
-  });
-  useHotkeys('mod+c', () => {
-    if (!selectedComponentIsMarker) {
-      copySelectedComponent();
-    }
-  });
-  useHotkeys('mod+v', () => {
-    pasteAfterSelectedComponent();
-  });
+  useHotkeys(
+    ['Backspace', 'Delete'],
+    () => {
+      if (selectedComponent && !selectedComponentIsMarker) {
+        dispatch(deleteNode(selectedComponent));
+        unsetSelectedComponent();
+      }
+    },
+    { enabled: isEditable },
+  );
+  useHotkeys(
+    'mod+c',
+    () => {
+      if (!selectedComponentIsMarker) {
+        copySelectedComponent();
+      }
+    },
+    { enabled: isEditable },
+  );
+  useHotkeys(
+    'mod+v',
+    () => {
+      pasteAfterSelectedComponent();
+    },
+    { enabled: isEditable },
+  );
 
   // Update the width/height of the editorFrame to accommodate the scaled viewport.
   // CSS transforms don't affect layout, so we manually sync the parent's dimensions.
@@ -635,17 +656,19 @@ const EditorFrame: React.FC = () => {
               data-testid="canvas-editor-frame-scaling"
               ref={scalingContainerRef}
             >
-              <ErrorBoundary
-                title="An unexpected error has occurred while rendering preview."
-                variant="alert"
-                onReset={isUndoable ? dispatchUndo : undefined}
-                resetButtonText={isUndoable ? 'Undo last action' : undefined}
-              >
-                <Preview />
-              </ErrorBoundary>
+              {children ?? (
+                <ErrorBoundary
+                  title="An unexpected error has occurred while rendering preview."
+                  variant="alert"
+                  onReset={isUndoable ? dispatchUndo : undefined}
+                  resetButtonText={isUndoable ? 'Undo last action' : undefined}
+                >
+                  <Preview />
+                </ErrorBoundary>
+              )}
             </div>
 
-            <PreviewOverlay />
+            {isEditable && <PreviewOverlay />}
           </div>
         </div>
       </div>

@@ -15,7 +15,10 @@ import HeadlessPreview from '@/features/layout/preview/HeadlessPreview';
 import { PreviewDomProvider } from '@/features/layout/preview/PreviewDomContext';
 import { PreviewGeometryProvider } from '@/features/layout/preview/PreviewGeometryContext';
 import Viewport from '@/features/layout/preview/Viewport';
-import { selectPageData } from '@/features/pageData/pageDataSlice';
+import {
+  selectPageData,
+  selectPageDataOwner,
+} from '@/features/pageData/pageDataSlice';
 import {
   selectPreviewBackgroundUpdate,
   selectPreviewHtml,
@@ -29,6 +32,7 @@ import {
 import { useCanvasHeadlessSettings } from '@/hooks/useCanvasHeadlessSettings';
 import { useStableCallback } from '@/hooks/useStableCallback';
 import useSyncTitle from '@/hooks/useSyncTitle';
+import { getEditorLanguage } from '@/services/baseQuery';
 import {
   useGetPageLayoutQuery,
   usePostPatternLayoutMutation,
@@ -68,6 +72,12 @@ const Preview: React.FC = () => {
   const isInitialized = useAppSelector(selectIsInitialized);
   const isInitializedRef = useRef(isInitialized);
   isInitializedRef.current = isInitialized;
+  // The translation the page data in the store was loaded for. Another query
+  // of the same entity can replace it, e.g. on a route that shows another
+  // translation, while the layout in the store still is the one loaded here.
+  const pageDataOwner = useAppSelector(selectPageDataOwner);
+  const pageDataOwnerRef = useRef(pageDataOwner);
+  pageDataOwnerRef.current = pageDataOwner;
 
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
     null,
@@ -110,6 +120,20 @@ const Preview: React.FC = () => {
       // to. Skip until the current entity is initialized. This also cancels any
       // request that was parked (behind an in-flight AJAX) before navigation.
       if (!isInitializedRef.current) {
+        return;
+      }
+      // Nor while the page data was loaded for another translation of the
+      // entity than the one the route edits: the layout and the page data
+      // would be written to different translations.
+      // @see \Drupal\canvas\Routing\NamedTranslationConverter
+      const owner = pageDataOwnerRef.current;
+      if (
+        context === 'entity' &&
+        owner &&
+        owner.entityType === entityType &&
+        String(owner.entityId) === String(entityId) &&
+        (owner.langcode ?? '') !== getEditorLanguage(window.location.href)
+      ) {
         return;
       }
       try {
