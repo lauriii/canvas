@@ -1217,14 +1217,14 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
       'name' => 'Test Code Component',
       'props' => [],
       'slots' => [
-        'test-slot' => [
+        'test_slot' => [
           'description' => 'Title',
           'examples' => [
             'Test 1',
             'Test 2',
           ],
         ],
-        'test-slot-only-required' => [
+        'test_slot_only_required' => [
           'title' => 'test',
         ],
       ],
@@ -1238,12 +1238,12 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
     $request_options[RequestOptions::JSON] = $code_component_to_send;
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 500, NULL, NULL, NULL, NULL);
     $this->assertSame([
-      'message' => 'Body does not match schema for content-type "application/json" for Request [post /canvas/api/v0/config/js_component]. [Keyword validation failed: Required property \'title\' must be present in the object in slots->test-slot->title]',
+      'message' => 'Body does not match schema for content-type "application/json" for Request [post /canvas/api/v0/config/js_component]. [Keyword validation failed: Required property \'title\' must be present in the object in slots->test_slot->title]',
     ], $body, 'Fails with invalid shape.');
 
     // Create a Code Component via the Canvas HTTP API, but forget
     // 'importedJsComponents' while sending JS source code: 422.
-    $code_component_to_send['slots']['test-slot']['title'] = 'Test';
+    $code_component_to_send['slots']['test_slot']['title'] = 'Test';
     unset($code_component_to_send['importedJsComponents']);
     $request_options[RequestOptions::JSON] = $code_component_to_send;
     $body = $this->assertExpectedResponse('POST', $list_url, $request_options, 422, NULL, NULL, NULL, NULL);
@@ -1395,7 +1395,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
         ],
       ],
       'slots' => [
-        'test-slot' => [
+        'test_slot' => [
           'title' => 'test',
           'description' => 'Title',
           'examples' => [
@@ -1403,7 +1403,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
             'Test 2',
           ],
         ],
-        'test-slot-only-required' => [
+        'test_slot_only_required' => [
           'title' => 'test',
         ],
       ],
@@ -1458,7 +1458,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
         'integer',
       ],
       'slots' => [
-        'test-slot' => [
+        'test_slot' => [
           'title' => 'test',
           'description' => 'Title',
           'examples' => [
@@ -1466,7 +1466,7 @@ class CanvasConfigEntityHttpApiTest extends HttpApiTestBase {
             'Test 2',
           ],
         ],
-        'test-slot-only-required' => [
+        'test_slot_only_required' => [
           'title' => 'test',
         ],
       ],

@@ -176,7 +176,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
           ],
         ],
         'slots' => [
-          'test-slot' => [
+          'test_slot' => [
             'title' => 'test',
             'description' => 'Title',
             'examples' => [
@@ -638,7 +638,7 @@ final class ApiAutoSaveControllerTest extends KernelTestBase {
           ],
         ],
         'slots' => [
-          'test-slot' => [
+          'test_slot' => [
             'title' => 'test',
             'description' => 'Title',
             'examples' => [

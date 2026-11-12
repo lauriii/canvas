@@ -458,7 +458,7 @@ final class ContentEntityTranslationPropagationTest extends TranslationPropagati
 
     // Add a new slot to the component.
     $slots = $this->jsComponent->get('slots');
-    $slots['new-slot'] = [
+    $slots['new_slot'] = [
       'title' => 'new',
       'description' => 'A new slot',
       'examples' => ['New slot content'],

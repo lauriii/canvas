@@ -96,7 +96,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
         ],
       ],
       'slots' => [
-        'test-slot' => [
+        'test_slot' => [
           'title' => 'test',
           'description' => 'Title',
           'examples' => [
@@ -1052,12 +1052,12 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
       ],
       'Valid: slots (one with description+examples, one without), no props' => [
         [
-          'machineName' => 'test-slots',
+          'machineName' => 'test_slots',
           'status' => TRUE,
           'name' => 'Test',
           'props' => [],
           'slots' => [
-            'test-slot' => [
+            'test_slot' => [
               'title' => 'test',
               'description' => 'Title',
               'examples' => [
@@ -1065,7 +1065,7 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
                 'Test 2',
               ],
             ],
-            'test-slot-only-required' => [
+            'test_slot_only_required' => [
               'title' => 'test',
             ],
           ],
@@ -1391,28 +1391,40 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
   }
 
   public function testInvalidSlotIdentifiedByConfigSchema(): void {
-    $original_test_slot = $this->entity->get('slots')['test-slot'];
+    $original_test_slot = $this->entity->get('slots')['test_slot'];
     $this->entity->set('slots', [
       '0-slot' => $original_test_slot,
     ]);
-    // @todo This test case should have validation errors because '0-slot' is not a valid slot name.
-    //   But currently we can not use the 'patternProperties' until
-    //   https://www.drupal.org/i/3471064 is fixed.
-    $this->assertValidationErrors([]);
+    // Twig can't use this slot name: it reads `{{ 0-slot }}` as `0` minus
+    // `slot`. Core's component metadata schema accepts it before Drupal 11.5,
+    // and rejects it since Drupal 11.5. The test reads core's slot name pattern
+    // instead of \Drupal::VERSION, because version_compare() sorts development
+    // versions like 11.5-dev before 11.5.
+    // @see https://www.drupal.org/i/3465228
+    $metadata_schema = json_decode((string) file_get_contents($this->root . '/core/assets/schemas/v1/metadata.schema.json'), TRUE, flags: JSON_THROW_ON_ERROR);
+    $core_allows_slot_name = FALSE;
+    foreach (\array_keys($metadata_schema['$defs']['slotDefinition']['patternProperties']) as $slot_name_pattern) {
+      if (preg_match('/' . $slot_name_pattern . '/', '0-slot') === 1) {
+        $core_allows_slot_name = TRUE;
+      }
+    }
+    $this->assertValidationErrors($core_allows_slot_name ? [] : [
+      '' => "In component canvas:test:\n[slots] The property 0-slot is not defined and the definition does not allow additional properties",
+    ]);
 
     unset($original_test_slot['title']);
     $this->entity->set('slots', [
-      'test-slot' => $original_test_slot,
+      'test_slot' => $original_test_slot,
     ]);
     $this->assertValidationErrors([
-      '' => 'Slot "test-slot" must have title',
-      'slots.test-slot' => "'title' is a required key.",
+      '' => 'Slot "test_slot" must have title',
+      'slots.test_slot' => "'title' is a required key.",
     ]);
   }
 
   public function testCollisionBetweenPropsAndSlots(): void {
     $prop_colliding_with_slot = [
-      'test-slot' => [
+      'test_slot' => [
         'title' => 'contrived example',
         'type' => 'string',
         'examples' => ['foo'],
@@ -1420,15 +1432,15 @@ class JavaScriptComponentValidationTest extends BetterConfigEntityValidationTest
     ];
     $this->entity->set('props', $prop_colliding_with_slot);
     $this->assertValidationErrors([
-      '' => 'The component "canvas:test" declared [test-slot] both as a prop and as a slot. Make sure to use different names.',
+      '' => 'The component "canvas:test" declared [test_slot] both as a prop and as a slot. Make sure to use different names.',
     ]);
 
     // Verify that if there's a lower-level problem, that both the low-level and
     // this high-level consistency validation error appear.
-    unset($prop_colliding_with_slot['test-slot']['examples']);
+    unset($prop_colliding_with_slot['test_slot']['examples']);
     $this->entity->set('props', $prop_colliding_with_slot);
     $this->assertValidationErrors([
-      '' => 'The component "canvas:test" declared [test-slot] both as a prop and as a slot. Make sure to use different names.',
+      '' => 'The component "canvas:test" declared [test_slot] both as a prop and as a slot. Make sure to use different names.',
     ]);
   }
 
