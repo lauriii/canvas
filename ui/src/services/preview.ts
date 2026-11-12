@@ -47,6 +47,20 @@ export type UpdateComponentQueryArg = {
   model: Omit<ComponentModel, 'name'> | Omit<EvaluatedComponentModel, 'name'>;
 };
 
+// Counts client-side preview updates, which show edits ahead of the server.
+let clientSidePreviewUpdates = 0;
+
+/**
+ * Records that the preview was updated client-side, ahead of the server.
+ *
+ * PATCH responses to requests made before this update then do not replace
+ * the preview HTML: their markup predates the update and would revert it
+ * until the next PATCH, which includes it, responds.
+ */
+export const registerClientSidePreviewUpdate = () => {
+  clientSidePreviewUpdates++;
+};
+
 export const previewApi = createApi({
   reducerPath: 'previewApi',
   baseQuery: baseQueryWithAutoSaves,
@@ -167,6 +181,7 @@ export const previewApi = createApi({
         };
       },
       async onQueryStarted(body, { dispatch, queryFulfilled }) {
+        const clientSideUpdatesAtStart = clientSidePreviewUpdates;
         // Force any ajax calls to wait.
         pushCanvasLayoutRequest();
         let data: any;
@@ -189,12 +204,17 @@ export const previewApi = createApi({
             { type: 'PendingChanges', id: 'LIST' },
           ]),
         );
-        // Clear any stale snapshot (e.g. from a prior language/template preview)
-        // so selectPreviewHtml returns this fresh editor html instead of the
-        // preview snapshot, which selectPreviewHtml prefers while set.
-        dispatch(setSnapshotHTML(''));
-        dispatch(setSnapshotTitle(''));
-        dispatch(setHtml(html));
+        // Skip HTML that predates a client-side preview update.
+        // @see registerClientSidePreviewUpdate()
+        if (clientSidePreviewUpdates === clientSideUpdatesAtStart) {
+          // Clear any stale snapshot (e.g. from a prior language/template
+          // preview) so selectPreviewHtml returns this fresh editor html
+          // instead of the preview snapshot, which selectPreviewHtml prefers
+          // while set.
+          dispatch(setSnapshotHTML(''));
+          dispatch(setSnapshotTitle(''));
+          dispatch(setHtml(html));
+        }
         handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         // Pass update preview false to prevent a subsequent preview update,
         // we have the data here.
