@@ -436,6 +436,9 @@ const LanguageSelect = () => {
                         // highlights the language the options belong to,
                         // unless the options of a language are open: the
                         // pointer can pass over this on its way to them.
+                        // Nor do they close when the pointer leaves it in
+                        // another direction than theirs.
+                        onPointerLeave={(event) => event.preventDefault()}
                         onPointerMove={(event) => {
                           event.preventDefault();
                           const { currentTarget, pointerType } = event;
