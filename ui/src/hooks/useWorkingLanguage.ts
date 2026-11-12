@@ -57,7 +57,10 @@ export const rememberWorkingLanguage = (id: string) => {
 // not switch to another language and back.
 let lastWorkingLanguage: string | null = null;
 
-const getRememberedWorkingLanguage = () => {
+/**
+ * The language the user selected last.
+ */
+export const getRememberedWorkingLanguage = () => {
   try {
     return window.localStorage.getItem(STORAGE_KEY);
   } catch {

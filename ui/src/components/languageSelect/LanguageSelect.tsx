@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Navigate,
   useHref,
@@ -6,6 +6,7 @@ import {
   useNavigate,
   useParams,
 } from 'react-router';
+import { toast } from 'sonner';
 import {
   ChevronDownIcon,
   DotsVerticalIcon,
@@ -27,6 +28,7 @@ import {
   setTranslations,
 } from '@/features/layout/layoutModelSlice';
 import {
+  getRememberedWorkingLanguage,
   rememberWorkingLanguage,
   useNavigateToTranslation,
   useTranslateAction,
@@ -43,6 +45,7 @@ import {
   useUnforkPageTranslationMutation,
 } from '@/services/componentAndLayout';
 import { contentApi, useSetLangcodeMutation } from '@/services/content';
+import { PAGE_VARIANT_ENTITY_TYPE } from '@/services/pageVariants';
 import { waitForPreviewRequests } from '@/services/preview';
 import { getCanvasPermissions, getLanguages } from '@/utils/drupal-globals';
 
@@ -87,7 +90,28 @@ const LanguageSelect = () => {
     statusOf,
     layoutStateOf,
     hasOwnLayout,
+    isResolved,
   } = useWorkingLanguage();
+  // The working language follows the open page or template. Say so when that
+  // takes it away from the language the user selected.
+  const shownLanguageId = useRef<string>(undefined);
+  useEffect(() => {
+    if (!isResolved || !workingLanguage) {
+      return;
+    }
+    const previousId = shownLanguageId.current;
+    shownLanguageId.current = workingLanguage.id;
+    if (
+      previousId &&
+      previousId !== workingLanguage.id &&
+      workingLanguage.id !== getRememberedWorkingLanguage()
+    ) {
+      toast(
+        `Switched to ${workingLanguage.name}, the language of this ${isTemplateRoute ? 'template' : entityType === PAGE_VARIANT_ENTITY_TYPE ? 'page template' : 'page'}`,
+        { style: { width: 'auto', padding: '5px 12px' } },
+      );
+    }
+  }, [isResolved, workingLanguage, isTemplateRoute, entityType]);
   const translateActionFor = useTranslateAction();
   const navigateToTranslation = useNavigateToTranslation();
   const [forkPageTranslation] = useForkPageTranslationMutation();
