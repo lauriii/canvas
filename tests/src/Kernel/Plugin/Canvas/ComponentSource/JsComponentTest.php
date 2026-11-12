@@ -20,6 +20,7 @@ use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent;
 use Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponentDiscovery;
 use Drupal\canvas\PropExpressions\StructuredData\EvaluationResult;
 use Drupal\canvas\PropExpressions\StructuredData\FieldPropExpression;
+use Drupal\canvas\PropExpressions\StructuredData\NegotiatedLanguage;
 use Drupal\canvas\PropExpressions\StructuredData\ReferenceFieldPropExpression;
 use Drupal\canvas\PropSource\PropSource;
 use Drupal\canvas\PropSource\StaticPropSource;
@@ -3108,6 +3109,19 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       $inputs[$prop_name]['value'] = $value_entity->id();
     }
 
+    // User IDs depend on the database driver (e.g. MySQL and SQLite allocate
+    // them differently), so expected user URLs carry fixture tokens that are
+    // resolved to the actual IDs here.
+    $user_id_tokens = [
+      '::host_news_owner::' => (string) $fixtures['host_news']->getOwnerId(),
+      '::referenced_user::' => (string) $fixtures['referenced_user']->id(),
+    ];
+    \array_walk_recursive($expected_resolved, static function (mixed &$value) use ($user_id_tokens): void {
+      if (\is_string($value)) {
+        $value = \strtr($value, $user_id_tokens);
+      }
+    });
+
     $item = $this->buildComponentTreeItem($fixtures['component_id'], $inputs);
     $uuid = $this->container->get('uuid')->generate();
     $result = $fixtures['source']->getExplicitInput($uuid, $item, $pass_host ? $fixtures['host_news'] : NULL);
@@ -3176,7 +3190,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
         'value_fixtures' => ['news_item_reference' => 'referenced_news'],
         'pass_host' => FALSE,
         'expected_resolved' => [
-          'news_item_reference' => ['__type' => 'news_item', 'label' => 'The referenced news item'],
+          'news_item_reference' => ['__type' => 'news_item', '__url' => '/node/1', 'label' => 'The referenced news item'],
         ],
         'expected_cache_tag_fixtures' => ['referenced_news'],
         'expected_cache_contexts' => ['user.permissions'],
@@ -3192,7 +3206,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
         'value_fixtures' => [],
         'pass_host' => TRUE,
         'expected_resolved' => [
-          'news_item_reference' => ['__type' => 'news_item', 'label' => 'The referenced news item'],
+          'news_item_reference' => ['__type' => 'news_item', '__url' => '/node/1', 'label' => 'The referenced news item'],
         ],
         'expected_cache_tag_fixtures' => ['referenced_news', 'host_news'],
         'expected_cache_contexts' => ['user.permissions'],
@@ -3208,7 +3222,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
         'value_fixtures' => [],
         'pass_host' => TRUE,
         'expected_resolved' => [
-          'user_reference' => ['__type' => 'user', 'name' => 'Owner Of Host Node'],
+          'user_reference' => ['__type' => 'user', '__url' => '/user/::host_news_owner::', 'name' => 'Owner Of Host Node'],
         ],
         'expected_cache_tag_fixtures' => ['host_news_owner', 'host_news'],
         'expected_cache_contexts' => ['user.permissions'],
@@ -3227,7 +3241,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
         'value_fixtures' => ['user_reference' => 'referenced_user'],
         'pass_host' => FALSE,
         'expected_resolved' => [
-          'user_reference' => ['__type' => 'user', 'name' => 'Some Fan'],
+          'user_reference' => ['__type' => 'user', '__url' => '/user/::referenced_user::', 'name' => 'Some Fan'],
         ],
         'expected_cache_tag_fixtures' => ['referenced_user'],
         'expected_cache_contexts' => ['user.permissions'],
@@ -3247,8 +3261,8 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
         'value_fixtures' => [],
         'pass_host' => TRUE,
         'expected_resolved' => [
-          'news_item_reference' => ['__type' => 'news_item', 'label' => 'The referenced news item'],
-          'user_reference' => ['__type' => 'user', 'name' => 'Owner Of Host Node'],
+          'news_item_reference' => ['__type' => 'news_item', '__url' => '/node/1', 'label' => 'The referenced news item'],
+          'user_reference' => ['__type' => 'user', '__url' => '/user/::host_news_owner::', 'name' => 'Owner Of Host Node'],
         ],
         'expected_cache_tag_fixtures' => ['referenced_news', 'host_news', 'host_news_owner'],
         'expected_cache_contexts' => ['user.permissions'],
@@ -3627,9 +3641,11 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     self::assertSame(
       [
         '__type' => 'news_item',
+        '__url' => '/node/1',
         'label' => 'The referenced news item',
         'field_related_news' => [
           '__type' => 'news_item',
+          '__url' => '/node/3',
           'created' => 1700000000,
           'label' => 'The deeply referenced news item',
         ],
@@ -3698,8 +3714,10 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     self::assertSame(
       [
         '__type' => 'news_item',
+        '__url' => '/node/1',
         'field_related_news' => [
           '__type' => 'news_item',
+          '__url' => '/node/3',
           'label' => 'The deeply referenced news item',
         ],
       ],
@@ -3785,6 +3803,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     self::assertEquals(
       [
         '__type' => 'news_item',
+        '__url' => '/node/1',
         'field_related_news' => [
           'label' => 'The deeply referenced news item',
           'target_id' => $deep_news->id(),
@@ -3792,6 +3811,28 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
       ],
       $result['resolved']['news_item_reference']->value,
     );
+  }
+
+  /**
+   * The `__url` is NULL for entity types without a `canonical` link template.
+   *
+   * File entities only have a `delete-form` link template. Their URL must not
+   * fall back to another link template.
+   *
+   * @see \Drupal\canvas\Plugin\Canvas\ComponentSource\JsComponent::buildReferencePayload()
+   */
+  public function testContentEntityReferencePayloadUrlWithoutCanonicalLinkTemplate(): void {
+    $file = File::create([
+      'uri' => 'public://example.txt',
+      'filename' => 'example.txt',
+    ]);
+    $file->save();
+    self::assertFalse($file->hasLinkTemplate('canonical'));
+    self::assertTrue($file->hasLinkTemplate('delete-form'));
+
+    $payload = JsComponent::buildReferencePayload(new EvaluationResult($file), [], NegotiatedLanguage::matchEntity($file));
+    self::assertSame(['__type' => 'file', '__url' => NULL], $payload->value);
+    self::assertContains('file:' . $file->id(), $payload->getCacheTags());
   }
 
   /**
@@ -3849,8 +3890,10 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     self::assertSame(
       [
         '__type' => 'news_item',
+        '__url' => '/node/1',
         'field_related_news' => [
           '__type' => 'news_item',
+          '__url' => '/node/3',
           'label' => 'A related news item',
         ],
       ],
@@ -3872,8 +3915,10 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     self::assertSame(
       [
         '__type' => 'news_item',
+        '__url' => '/node/1',
         'field_related_news' => [
           '__type' => 'blog_post',
+          '__url' => '/node/4',
           'label' => 'A related blog post',
         ],
       ],
@@ -3931,7 +3976,8 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     self::assertSame(
       [
         '__type' => 'news_item',
-        'field_related_news' => ['__type' => 'press_release'],
+        '__url' => '/node/1',
+        'field_related_news' => ['__type' => 'press_release', '__url' => '/node/3'],
       ],
       $resolved->value,
     );
@@ -3964,6 +4010,7 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     self::assertSame(
       [
         '__type' => 'news_item',
+        '__url' => '/node/1',
         'field_related_news' => NULL,
       ],
       $this->resolveNewsItemReference($fixtures)->value,
@@ -4045,8 +4092,10 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     self::assertSame(
       [
         '__type' => 'news_item',
+        '__url' => '/node/1',
         'field_related_news' => [
           '__type' => 'news_item',
+          '__url' => '/node/3',
           'label' => 'Only-this-branch news item',
         ],
       ],
@@ -4070,8 +4119,10 @@ final class JsComponentTest extends JsonSchemaPropsComponentSourceBaseTestBase {
     self::assertSame(
       [
         '__type' => 'news_item',
+        '__url' => '/node/1',
         'field_related_news' => [
           '__type' => 'blog_post',
+          '__url' => '/node/4',
           'field_blog_subtitle' => 'Only-this-branch subtitle',
         ],
       ],

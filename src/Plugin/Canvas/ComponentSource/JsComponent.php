@@ -299,7 +299,10 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
    * - every entity object carries a `__type` set to the resolved entity's
    *   bundle, so code components can branch on it (including for
    *   multi-target-bundle references, where the bundle is only known at
-   *   runtime).
+   *   runtime);
+   * - every entity object carries a `__url` set to the resolved entity's
+   *   `canonical` URL (NULL when its entity type has no `canonical` link
+   *   template), so code components can link to it without a pick.
    *
    * @param \Drupal\canvas\PropExpressions\StructuredData\EvaluationResult $resolved_entity
    *   The resolved entity to evaluate the expressions against, wrapped in an
@@ -312,8 +315,9 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
    *   references in turn) and read its field values in.
    *
    * @return \Drupal\canvas\PropExpressions\StructuredData\EvaluationResult
-   *   The payload object (always containing a `__type` key), wrapped in an
-   *   EvaluationResult that carries the cacheability of every traversed entity.
+   *   The payload object (always containing `__type` and `__url` keys),
+   *   wrapped in an EvaluationResult that carries the cacheability of every
+   *   traversed entity (and of every generated `__url`).
    *
    * @see ::getExplicitInput()
    * @see \Drupal\canvas\PropExpressions\StructuredData\EvaluationResult
@@ -337,7 +341,6 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
     // are read in the negotiated language rather than the entity's own default.
     $entity = Evaluator::resolveTranslationForReference($entity, $language);
 
-    $payload = ['__type' => $entity->bundle()];
     // The resulting payload must still describe the cacheability of how
     // $resolved_entity was loaded, the negotiated language it was resolved to,
     // plus the traversed entity itself: a `__type`-only payload (a bundle with
@@ -347,6 +350,21 @@ final class JsComponent extends JsonSchemaPropsComponentSourceBase implements Ur
     $payload_cacheability = CacheableMetadata::createFromObject($resolved_entity)
       ->addCacheableDependency($entity)
       ->addCacheableDependency($language);
+
+    // Only the `canonical` link template: EntityBase::toUrl() without an
+    // explicit relationship falls back to `edit-form`, which must never be
+    // exposed as the link to a referenced entity.
+    $url = NULL;
+    if (!$entity->isNew() && $entity->hasLinkTemplate('canonical')) {
+      $generated_url = $entity->toUrl('canonical')->toString(TRUE);
+      $url = $generated_url->getGeneratedUrl();
+      $payload_cacheability->addCacheableDependency($generated_url);
+    }
+
+    $payload = [
+      '__type' => $entity->bundle(),
+      '__url' => $url,
+    ];
 
     // References sharing a referencer field are descended into once, with
     // their target sub-expressions merged into a single nested object.

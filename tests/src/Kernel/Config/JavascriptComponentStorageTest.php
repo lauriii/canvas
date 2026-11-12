@@ -408,7 +408,7 @@ final class JavascriptComponentStorageTest extends AssetLibraryStorageTest {
       $result['source']['host_node'],
     );
     self::assertInstanceOf(EvaluationResult::class, $result['resolved']['host_node']);
-    self::assertSame(['__type' => 'news_item', 'label' => 'The host news item'], $result['resolved']['host_node']->value);
+    self::assertSame(['__type' => 'news_item', '__url' => '/node/1', 'label' => 'The host news item'], $result['resolved']['host_node']->value);
   }
 
   /**
