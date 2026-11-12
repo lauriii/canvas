@@ -82,8 +82,14 @@ const PageStatus = () => {
   // "Pass skipToken to a query selector to have that selector return an uninitialized state."
   // Pass current language to match the displayed page.
   const { isTemplatePreviewRoute } = useTemplateRef();
-  const isPreviewRoute = useLocation().pathname.startsWith('/preview/');
-  const { data: fetchedLayout, isError } = useGetPageLayoutQuery(
+  const { pathname } = useLocation();
+  const isPreviewRoute = pathname.startsWith('/preview/');
+  // A template's translations come from the template, not this query.
+  const isTemplateRoute =
+    isTemplatePreviewRoute || pathname.startsWith('/template/');
+  // The layout of this page in this language only: the status of the page
+  // opened before is not shown while this one loads.
+  const { currentData: fetchedLayout, isError } = useGetPageLayoutQuery(
     !isTemplatePreviewRoute && entityId && entityType
       ? { entityId, entityType, language }
       : skipToken,
@@ -95,6 +101,7 @@ const PageStatus = () => {
     translations,
     layoutStateOf,
     hasOwnLayout,
+    isMultilingual,
   } = useWorkingLanguage();
   const translate = useTranslateAction()(workingLanguage?.id);
   const [isForkDialogOpen, setIsForkDialogOpen] = useState(false);
@@ -139,6 +146,12 @@ const PageStatus = () => {
       dispatch(setHomepageStagedConfigExists(containsHomepageConfig));
     }
   }, [changes, dispatch, isGetPendingChangesSuccess]);
+
+  // Whether the page is translated into the working language is not known
+  // yet: no status, rather than one that changes once it is.
+  if (isMultilingual && !translations && !isTemplateRoute) {
+    return null;
+  }
 
   // The page has no status of its own in a language it is not translated into.
   if (statusOf(workingLanguage?.id) === 'Not translated') {
