@@ -15,6 +15,7 @@ use Drupal\canvas_headless\PreviewUrlGeneratorInterface;
 use Drupal\canvas_headless\StackMiddleware\CanvasContentApiRequest;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\EntityViewBuilder;
 use Drupal\Core\Extension\ModuleInstallerInterface;
@@ -25,6 +26,7 @@ use Drupal\Core\Render\RenderEvents;
 use Drupal\Core\Routing\RouteMatch;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Session\AnonymousUserSession;
+use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\node\Entity\Node;
 use Drupal\taxonomy\Entity\Term;
 use Drupal\taxonomy\Entity\Vocabulary;
@@ -34,11 +36,13 @@ use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\Role;
 use Drupal\user\RoleInterface;
+use Drupal\user\UserInterface;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\Routing\Route;
 
 /**
@@ -344,14 +348,11 @@ final class EmbeddedPreviewSubscriberTest extends CanvasKernelTestBase {
    */
   public function testIneligibleRequestsAreNotReplaced(): void {
     $page = Page::create([
-      'title' => 'Unpublished Canvas page',
-      'status' => FALSE,
+      'title' => 'Canvas page',
+      'status' => TRUE,
       'components' => [],
     ]);
     $page->save();
-    self::assertSame('simple_page', $this->selectVariant($page)->getPluginId());
-
-    $page->setPublished()->save();
     $subrequest = $this->selectVariant($page, is_main_request: FALSE);
     self::assertSame('simple_page', $subrequest->getPluginId());
     self::assertSame([], $subrequest->getPluginConfiguration());
@@ -405,6 +406,177 @@ final class EmbeddedPreviewSubscriberTest extends CanvasKernelTestBase {
     $this->container->get(AccountProxyInterface::class)->setAccount($anonymous_account);
     foreach (['canonical', 'preview', 'revision', 'latest_version'] as $operation) {
       self::assertSame('simple_page', $this->selectVariant($node, 'entity.node.' . $operation)->getPluginId());
+    }
+  }
+
+  /**
+   * Tests that saved unpublished canonical routes embed the frontend.
+   *
+   * Route access decides whether the user may view the saved content. The
+   * embedded frontend then renders that same default revision, so unpublished
+   * canonical routes need no additional exclusion.
+   */
+  public function testUnpublishedCanonicalRoutesSelectPreview(): void {
+    $page = Page::create([
+      'title' => 'Unpublished Canvas page',
+      'status' => FALSE,
+      'components' => [],
+    ]);
+    $page->save();
+    $this->installSchema('node', ['node_access']);
+    $this->enableModules(['language']);
+    $this->installConfig(['language']);
+    ConfigurableLanguage::createFromLangcode('fr')->save();
+    ContentTemplate::create([
+      'id' => 'node.article.full',
+      'content_entity_type_id' => 'node',
+      'content_entity_type_bundle' => 'article',
+      'content_entity_type_view_mode' => 'full',
+      'component_tree' => [],
+      'status' => TRUE,
+    ])->save();
+    $node = Node::create(['type' => 'article', 'title' => 'Draft article', 'status' => FALSE]);
+    $node->save();
+    $translated = self::createPublishedNode();
+    $translated->addTranslation('fr', ['title' => 'French draft', 'status' => FALSE])->save();
+    $translation = $translated->getTranslation('fr');
+    self::assertFalse($translation->isPublished());
+
+    foreach ([
+      [$page, '/page/' . $page->id()],
+      [$node, '/node/' . $node->id()],
+      [$translation, '/node/' . $translated->id()],
+    ] as [$entity, $path]) {
+      self::assertInstanceOf(EntityPublishedInterface::class, $entity);
+      self::assertFalse($entity->isPublished());
+      $event = $this->selectVariant($entity);
+      self::assertSame(EmbeddedHeadlessPreviewPageVariant::PLUGIN_ID, $event->getPluginId());
+      self::assertTrue($event->isPropagationStopped());
+      self::assertSame('https://frontend.example/app' . $path, $event->getPluginConfiguration()['preview_url']);
+      // A canonical route is not a preview route: its response varies by
+      // permissions and path and is invalidated with the entity, but it is not
+      // made uncacheable.
+      self::assertSame(Cache::PERMANENT, $event->getCacheMaxAge());
+      foreach (['user.permissions', 'user.roles:authenticated', 'url.path', 'url.query_args'] as $context) {
+        self::assertContains($context, $event->getCacheContexts());
+      }
+      foreach ([
+        ...$entity->getCacheTags(),
+        'config:canvas.settings',
+        'config:canvas_headless.settings',
+        'config:content_template_list',
+        'config:page_variant_list',
+      ] as $tag) {
+        self::assertContains($tag, $event->getCacheTags());
+      }
+    }
+    self::assertContains('config:canvas.content_template.node.article.full', $this->selectVariant($node)->getCacheTags());
+
+    // Preview credentials still require an authenticated user with the
+    // preview permission.
+    $without_permission = $this->setUpCurrentUser(permissions: ['access content']);
+    foreach ([$without_permission, new AnonymousUserSession()] as $account) {
+      $this->container->get(AccountProxyInterface::class)->setAccount($account);
+      foreach ([$page, $node, $translation] as $entity) {
+        $event = $this->selectVariant($entity);
+        self::assertSame('simple_page', $event->getPluginId());
+        self::assertFalse($event->isPropagationStopped());
+        self::assertContains('user.permissions', $event->getCacheContexts());
+        self::assertContains('user.roles:authenticated', $event->getCacheContexts());
+      }
+    }
+  }
+
+  /**
+   * Tests unpublished canonical requests through the HTTP kernel.
+   *
+   * Embedding happens only after Drupal's route access allows the request.
+   */
+  public function testUnpublishedCanonicalRequestAccess(): void {
+    $this->installEntitySchema('consumer');
+    $this->installSchema('node', ['node_access']);
+    // Aggregation hashes the contents of attached asset files, but kernel
+    // tests run without the embedded preview's built frontend assets.
+    $this->config('system.performance')
+      ->set('css.preprocess', FALSE)
+      ->set('js.preprocess', FALSE)
+      ->save();
+    ContentTemplate::create([
+      'id' => 'node.article.full',
+      'content_entity_type_id' => 'node',
+      'content_entity_type_bundle' => 'article',
+      'content_entity_type_view_mode' => 'full',
+      'component_tree' => [],
+      'status' => TRUE,
+    ])->save();
+    $preview_permissions = ['access content', PreviewUrlGeneratorInterface::PREVIEW_PERMISSION];
+    $author = $this->createUser([...$preview_permissions, 'view own unpublished content']);
+    $other_editor = $this->createUser([...$preview_permissions, 'view own unpublished content']);
+    $reader = $this->createUser(['access content', 'view own unpublished content', Page::EDIT_PERMISSION]);
+    $page_editor = $this->createUser([...$preview_permissions, Page::EDIT_PERMISSION]);
+    self::assertInstanceOf(UserInterface::class, $author);
+    self::assertInstanceOf(UserInterface::class, $other_editor);
+    self::assertInstanceOf(UserInterface::class, $reader);
+    self::assertInstanceOf(UserInterface::class, $page_editor);
+    $author_draft = Node::create([
+      'type' => 'article',
+      'title' => 'Never published draft',
+      'uid' => $author->id(),
+      'status' => FALSE,
+    ]);
+    $author_draft->save();
+    $reader_draft = Node::create([
+      'type' => 'article',
+      'title' => 'Draft without preview permission',
+      'uid' => $reader->id(),
+      'status' => FALSE,
+    ]);
+    $reader_draft->save();
+    $page = Page::create([
+      'title' => 'Never published Canvas page',
+      'status' => FALSE,
+      'components' => [],
+    ]);
+    $page->save();
+
+    $request_stack = $this->container->get(RequestStack::class);
+    foreach ([
+      'node author with preview permission' => [$author, $author_draft, 200, TRUE],
+      'page editor with preview permission' => [$page_editor, $page, 200, TRUE],
+      'editor without access to the node' => [$other_editor, $author_draft, 403, FALSE],
+      'editor without access to the page' => [$author, $page, 403, FALSE],
+      'node author without preview permission' => [$reader, $reader_draft, 200, FALSE],
+      'page editor without preview permission' => [$reader, $page, 200, FALSE],
+      'anonymous node request' => [new AnonymousUserSession(), $author_draft, 403, FALSE],
+      'anonymous page request' => [new AnonymousUserSession(), $page, 403, FALSE],
+    ] as $case => [$account, $entity, $status, $embedded]) {
+      $this->container->get(AccountProxyInterface::class)->setAccount($account);
+      $path = $entity->toUrl()->toString();
+      // Empty the kernel test's request stack so the handled request is the
+      // main request, as it is for a browser request.
+      $previous_requests = [];
+      while ($previous_request = $request_stack->pop()) {
+        $previous_requests[] = $previous_request;
+      }
+      try {
+        $response = $this->container->get(HttpKernelInterface::class)->handle(Request::create($path));
+      }
+      finally {
+        // DrupalKernel::preHandle() also pushes the handled request.
+        while ($request_stack->pop()) {
+          continue;
+        }
+        foreach (array_reverse($previous_requests) as $previous_request) {
+          $request_stack->push($previous_request);
+        }
+      }
+      self::assertSame($status, $response->getStatusCode(), $case);
+      $html = (string) $response->getContent();
+      self::assertSame($embedded, str_contains($html, 'class="canvas-headless-preview"'), $case);
+      self::assertSame($embedded, str_contains($html, 'https:\/\/frontend.example\/app' . str_replace('/', '\/', $path)), $case);
+      if ($status === 403) {
+        self::assertStringNotContainsString((string) $entity->label(), $html, $case);
+      }
     }
   }
 

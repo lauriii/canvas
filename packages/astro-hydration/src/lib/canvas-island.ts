@@ -1,7 +1,4 @@
-// @cspell:ignore vnode
 import { decodeSerializedProps } from './decode-serialized-props';
-
-import type { VNode } from 'preact';
 
 interface AstroIslandElement extends HTMLElement {
   attributeChangedCallback(): void;
@@ -52,11 +49,16 @@ interface CanvasIslandElement extends AstroIslandElement {
     throw new Error();
   }
 
-  const isVnode = (element: any): element is VNode => {
-    // Expected keys are 'type', 'key' and 'props'.
-    const expected = ['type', 'key', 'props'];
-    const keys = Object.keys(element);
-    return expected.filter((key) => keys.includes(key)).length === 3;
+  // Unmounts a removed island now. Astro defers this to the next view
+  // transition, whose astro:after-swap event a Drupal page never fires, and
+  // the deferred listener would keep the island referenced from the document.
+  // @see node_modules/astro/dist/runtime/server/astro-island.js
+  const unmountRemovedIsland = (island: Element) => {
+    const { unmount } = island as Element & { unmount?: () => void };
+    if (unmount) {
+      document.removeEventListener('astro:after-swap', unmount);
+      unmount();
+    }
   };
 
   class CanvasIsland extends AstroIsland {
@@ -140,9 +142,28 @@ interface CanvasIslandElement extends AstroIslandElement {
           throw error;
         }
 
-        await element.hydrator(element)(element.Component, props, slots, {
-          client: element.getAttribute('client'),
-        });
+        // The renderer only renders an island marked ssr: first, and again from
+        // scratch after a props change, replacing its content. Unmount the
+        // previous render first, or its components stay mounted on removed
+        // markup. Without the mark, as when a moved island reconnects, the
+        // renderer keeps the mounted island, and so must this.
+        const rendering = element.hasAttribute('ssr');
+        const nestedIslands = rendering
+          ? [...element.querySelectorAll(element.tagName)]
+          : [];
+        if (rendering) {
+          element.dispatchEvent(new CustomEvent('astro:unmount'));
+        }
+
+        try {
+          await element.hydrator(element)(element.Component, props, slots, {
+            client: element.getAttribute('client'),
+          });
+        } finally {
+          // The render replaced the islands nested in its slots with new ones,
+          // made from the slots read above, even if it then failed.
+          nestedIslands.forEach(unmountRemovedIsland);
+        }
         // Restore Astro's normal post-hydration markers for re-hydration.
         element.removeAttribute('ssr');
         element.dispatchEvent(new CustomEvent('astro:hydrate'));
@@ -151,20 +172,6 @@ interface CanvasIslandElement extends AstroIslandElement {
     attributeChangedCallback() {
       // Add the ssr attribute back so we can re-hydrate when props change.
       this.setAttribute('ssr', '');
-      // Astro hydration's preact renderer clears the innerHTML of the element
-      // before rendering. During rendering preact sets a _children property on
-      // the element that it uses for diffing the virtual-dom during rendering.
-      // When the innerHTML has been removed, the presence of this property
-      // means re-rendering doesn't work. The property is named _children in
-      // development but in production the property name is minified. The type
-      // of the property is a Preact VNode. We find this property by filtering
-      // all properties of this element and then removing those that are VNodes.
-      Object.entries(this)
-        .filter(([key]) => key.startsWith('_'))
-        .filter(([, value]) => isVnode(value))
-        .forEach(([key]) => {
-          delete this[key as keyof this];
-        });
       super.attributeChangedCallback();
     }
   }
