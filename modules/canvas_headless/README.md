@@ -31,19 +31,26 @@ Opening an entity in the Canvas editor then loads the first frontend in the list
 In cloned environments, regenerate the Simple OAuth keypair per environment; with shared keys, preview credentials
 minted on one clone would redeem on another.
 
-## Published route previews
+## Canonical route previews
 
-The module embeds the first configured frontend on published canonical entity
-pages rendered by a Canvas component tree or an enabled `full` content template.
-Any selected page variant must also be headless-compatible.
+The module embeds the first configured frontend on canonical entity pages
+rendered by a Canvas component tree or an enabled `full` content template,
+whether the entity is published or not. Any selected page variant must also be
+headless-compatible.
 
 Embedding requires a logged-in user with `access canvas headless preview` and
-access to the Drupal route. Other visitors and unsupported routes keep Drupal's
-normal rendering.
+access to the Drupal route. An unpublished entity embeds only for users whom
+Drupal already allows to view it. Other visitors and unsupported routes keep
+Drupal's normal rendering.
 
 Previews render saved content, templates, and page variants with the current
-user's permissions. Drupal's toolbar, administration navigation, and status
-messages remain visible around the iframe.
+user's permissions. A canonical route renders the saved default revision,
+without Canvas auto-saves. Drupal's toolbar, administration navigation, and
+status messages remain visible around the iframe.
+
+The iframe replaces Drupal's rendered entity, including controls that modules
+render as part of it, such as Content Moderation's state form. Change the
+moderation state from the entity's edit form instead.
 
 Custom frontend Content Security Policies must allow the Drupal origin in
 `frame-ancestors`.

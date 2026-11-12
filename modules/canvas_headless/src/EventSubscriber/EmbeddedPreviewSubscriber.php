@@ -17,7 +17,6 @@ use Drupal\canvas_headless\Routing\CanvasContentRoute;
 use Drupal\canvas_headless\StackMiddleware\CanvasContentApiRequest;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\ConfigFactoryInterface;
-use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Render\PageDisplayVariantSelectionEvent;
 use Drupal\Core\Render\RenderEvents;
@@ -88,8 +87,10 @@ final class EmbeddedPreviewSubscriber implements EventSubscriberInterface {
       );
     $event->addCacheableDependency($cacheability);
 
+    // Route access has already allowed this user to view the entity, whether
+    // it is published or not. The preview session renders the same saved
+    // revision with this user's own permissions.
     if (
-      (!$content_route->isPreview && $entity instanceof EntityPublishedInterface && !$entity->isPublished()) ||
       !$this->currentUser->isAuthenticated() ||
       !$this->currentUser->hasPermission(PreviewUrlGeneratorInterface::PREVIEW_PERMISSION)
     ) {
