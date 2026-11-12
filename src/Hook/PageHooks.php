@@ -11,6 +11,7 @@ use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
@@ -34,7 +35,45 @@ final class PageHooks {
   public function __construct(
     private readonly ModuleHandlerInterface $moduleHandler,
     private readonly ConfigFactoryInterface $configFactory,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
   ) {
+  }
+
+  /**
+   * Implements hook_modules_installed().
+   *
+   * Provides the canvas_page metatag defaults in code, not as optional config:
+   * recipes that import all of Canvas' config do not check optional config's
+   * dependencies, so they would fail on sites without metatag.
+   */
+  #[Hook('modules_installed')]
+  public function modulesInstalled(array $modules, bool $is_syncing): void {
+    if (!$is_syncing && \array_intersect(['canvas', 'metatag'], $modules)) {
+      self::ensureMetatagDefaults($this->moduleHandler, $this->entityTypeManager);
+    }
+  }
+
+  /**
+   * Creates the canvas_page metatag defaults if metatag is installed.
+   *
+   * The canonical URL is a config default instead of a field default, so
+   * metatag's front page defaults can override it for the homepage.
+   *
+   * @see \canvas_post_update_0031_canvas_page_canonical_url_metatag_default()
+   */
+  public static function ensureMetatagDefaults(ModuleHandlerInterface $module_handler, EntityTypeManagerInterface $entity_type_manager): void {
+    if (!$module_handler->moduleExists('metatag')) {
+      return;
+    }
+    $storage = $entity_type_manager->getStorage('metatag_defaults');
+    if ($storage->load(Page::ENTITY_TYPE_ID) === NULL) {
+      $storage->create([
+        'id' => Page::ENTITY_TYPE_ID,
+        'label' => 'Canvas page',
+        'tags' => ['canonical_url' => '[canvas_page:url]'],
+        'dependencies' => ['enforced' => ['module' => ['canvas']]],
+      ])->save();
+    }
   }
 
   /**
@@ -68,7 +107,6 @@ final class PageHooks {
           ->setDefaultValue(Json::encode([
             'title' => '[canvas_page:title] | [site:name]',
             'description' => '[canvas_page:description]',
-            'canonical_url' => '[canvas_page:url]',
             // @see https://stackoverflow.com/a/19274942
             'image_src' => '[canvas_page:image:entity:field_media_image:entity:url]',
           ]))
