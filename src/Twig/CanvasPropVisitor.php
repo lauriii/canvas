@@ -8,9 +8,11 @@ use Drupal\Core\Template\TwigNodeTrans;
 use Masterminds\HTML5;
 use Twig\Environment;
 use Twig\Error\SyntaxError;
+use Twig\Node\Expression\ConditionalExpression;
 use Twig\Node\Expression\ConstantExpression;
 use Twig\Node\Expression\FilterExpression;
 use Twig\Node\Expression\NameExpression;
+use Twig\Node\Expression\Ternary\ConditionalTernary;
 use Twig\Node\ModuleNode;
 use Twig\Node\Node;
 use Twig\Node\Nodes;
@@ -110,9 +112,13 @@ final class CanvasPropVisitor implements NodeVisitorInterface {
       // We have access to the HTML buffer for the parent template.
       $node->getSourceContext()) {
       $expr = $node->getNode('expr');
+      // A variable passed only through filters that leave the printed value
+      // unchanged, such as `{{ text|default('') }}`, still prints that
+      // variable, so it gets prop boundaries too.
+      $printed = self::unwrapValuePreservingFilters($expr);
       // We are printing the outcome of another expression rather than a
       // variable.
-      if (!$expr instanceof NameExpression || !$expr->hasAttribute('name')) {
+      if (!$printed instanceof NameExpression || !$printed->hasAttribute('name')) {
         return $node;
       }
 
@@ -120,7 +126,8 @@ final class CanvasPropVisitor implements NodeVisitorInterface {
 
       // Check if we're in an attribute value of a Canvas custom element.
       // This will determine if the element is to ultimately be rendered by JSX.
-      if (self::isInCustomElementAttribute($buffer)) {
+      // Only bare variables get the jsx_attributes treatment.
+      if ($expr instanceof NameExpression && self::isInCustomElementAttribute($buffer)) {
         // Check if there's a 'children' attribute within the custom element.
         if (self::hasChildrenAttribute($buffer)) {
           throw new SyntaxError(
@@ -156,7 +163,7 @@ final class CanvasPropVisitor implements NodeVisitorInterface {
       $html5->loadHTMLFragment($buffer);
       if (!$html5->hasErrors()) {
         // We have valid HTML5 in the buffer.
-        $name = $expr->getAttribute('name');
+        $name = $printed->getAttribute('name');
         $line_number = $node->getTemplateLine();
         // Prevent recursive replacement when Twig traverses into the replaced
         // node.
@@ -171,6 +178,50 @@ final class CanvasPropVisitor implements NodeVisitorInterface {
       }
     }
     return $node;
+  }
+
+  /**
+   * Strips filters that do not change what a variable prints.
+   *
+   * @param \Twig\Node\Node $expr
+   *   A print node's expression.
+   *
+   * @return \Twig\Node\Node
+   *   The innermost expression below those filters.
+   */
+  private static function unwrapValuePreservingFilters(Node $expr): Node {
+    while ($expr instanceof FilterExpression && self::isValuePreservingFilter($expr)) {
+      $expr = $expr->getNode('node');
+      // `default` on a variable compiles to `defined ? var|default : fallback`.
+      // @see \Twig\Node\Expression\Filter\DefaultFilter::__construct()
+      if ($expr instanceof ConditionalTernary || $expr instanceof ConditionalExpression) {
+        $expr = $expr->getNode($expr->hasNode('left') ? 'left' : 'expr2');
+      }
+    }
+    return $expr;
+  }
+
+  /**
+   * Whether a filter prints the same text as its input.
+   *
+   * `default` only substitutes a value when the variable is empty, and HTML
+   * escaping only changes how the same text is encoded. Escaping for other
+   * contexts, such as `|e('js')`, changes the text.
+   */
+  private static function isValuePreservingFilter(FilterExpression $filter): bool {
+    $name = $filter->getAttribute('name');
+    if ($name === 'default' || $name === 'raw') {
+      return TRUE;
+    }
+    if ($name !== 'escape' && $name !== 'e') {
+      return FALSE;
+    }
+    $arguments = $filter->getNode('arguments');
+    if (\count($arguments) === 0) {
+      return TRUE;
+    }
+    $strategy = \array_values(\iterator_to_array($arguments))[0];
+    return $strategy instanceof ConstantExpression && $strategy->getAttribute('value') === 'html';
   }
 
   /**

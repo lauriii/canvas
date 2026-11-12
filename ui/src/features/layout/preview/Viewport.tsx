@@ -6,13 +6,17 @@ import { buildColorStyles } from '@/features/brandKit/colorCss';
 import { BRAND_KIT_ID } from '@/features/brandKit/constants';
 import IframeSwapper from '@/features/layout/preview/IframeSwapper';
 import PreviewProgress from '@/features/layout/preview/PreviewProgress';
+import InlineTextEditing from '@/features/layout/previewOverlay/inlineText/InlineTextEditing';
 import ViewportOverlay from '@/features/layout/previewOverlay/ViewportOverlay';
 import {
   EditorFrameMode,
   selectEditorFrameMode,
+  selectIsInlineTextBusy,
+  selectTextEditSession,
   selectViewportMinHeight,
   selectViewportWidth,
   setFirstLoadComplete,
+  setPreviewLoading,
   unsetUpdatingComponent,
 } from '@/features/ui/uiSlice';
 import { useComponentHtmlMap } from '@/hooks/useComponentHtmlMap';
@@ -40,6 +44,8 @@ const Viewport: React.FC<ViewportProps> = (props) => {
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const dispatch = useAppDispatch();
   const editorFrameMode = useAppSelector(selectEditorFrameMode);
+  const textEditSession = useAppSelector(selectTextEditSession);
+  const isInlineTextBusy = useAppSelector(selectIsInlineTextBusy);
   const viewportWidth = useAppSelector(selectViewportWidth);
   const viewportMinHeight = useAppSelector(selectViewportMinHeight);
   const { viewMode } = useParams();
@@ -69,6 +75,12 @@ const Viewport: React.FC<ViewportProps> = (props) => {
     }
   }, [dispatch, isFetching, isReloading]);
 
+  // Text edited in place waits for a loading document: the current one is
+  // about to be swapped out.
+  useEffect(() => {
+    dispatch(setPreviewLoading(isReloading));
+  }, [dispatch, isReloading]);
+
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe?.srcdoc || isReloading) {
@@ -96,8 +108,12 @@ const Viewport: React.FC<ViewportProps> = (props) => {
         srcDocument={frameSrcDoc}
         headStyles={brandKitColorStyles}
         setIsReloading={setIsReloading}
-        interactive={editorFrameMode === EditorFrameMode.INTERACTIVE}
+        interactive={
+          editorFrameMode === EditorFrameMode.INTERACTIVE || !!textEditSession
+        }
+        holdUpdates={isInlineTextBusy}
       />
+      <InlineTextEditing />
       {editorFrameMode === EditorFrameMode.EDIT && (
         <ViewportOverlay previewContainerRef={previewContainerRef} />
       )}

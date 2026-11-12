@@ -26,6 +26,7 @@ import {
 } from '@/features/layout/layoutModelSlice';
 import { findComponentByUuid } from '@/features/layout/layoutUtils';
 import {
+  selectComponentFormRevision,
   selectLatestUndoRedoActionId,
   selectSelectedComponentUuid,
 } from '@/features/ui/uiSlice';
@@ -152,6 +153,7 @@ const ComponentInstanceFormRenderer: React.FC<
     const latestUndoRedoActionId = originalUrlSearchParams.get(
       'latestUndoRedoActionId',
     );
+    const formRevision = originalUrlSearchParams.get('formRevision');
     setCurrentComponentId(componentId);
 
     setJsxFormContent(
@@ -163,7 +165,7 @@ const ComponentInstanceFormRenderer: React.FC<
       // causing the form to lose focus.
       // A `<div>` is used instead of `React.Fragment` so a test ID can be added.
       <div
-        key={`${componentId}-${latestUndoRedoActionId}`}
+        key={`${componentId}-${latestUndoRedoActionId}-${formRevision}`}
         data-testid={`canvas-component-form-${componentId}`}
       >
         {hyperscriptify(
@@ -290,6 +292,9 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
   const { showBoundary } = useErrorBoundary();
   const selectedComponent = useAppSelector(selectSelectedComponentUuid);
   const latestUndoRedoActionId = useAppSelector(selectLatestUndoRedoActionId);
+  // Bumped when values change outside the form, such as inline text editing.
+  const formRevision = useAppSelector(selectComponentFormRevision);
+  const previousFormRevisionRef = useRef(formRevision);
 
   const [formQueryString, setFormQueryString] = useState('');
   const [emptyProp, setEmptyProp] = useState(false);
@@ -417,6 +422,7 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
       prevSelectedComponent !== selectedComponent ||
       prevSelectedComponentType !== node.type ||
       prevLatestUndoRedoActionId !== latestUndoRedoActionId ||
+      previousFormRevisionRef.current !== formRevision ||
       sourceChanged;
 
     if (shouldUpdate) {
@@ -427,6 +433,7 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
         form_canvas_props: JSON.stringify(builtPreparedModel),
         form_canvas_selected: selectedComponent,
         latestUndoRedoActionId,
+        formRevision: String(formRevision),
       });
       const queryString = `?${query.toString()}`;
       setFormQueryString(queryString);
@@ -439,6 +446,7 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
     previousSelectedComponentRef.current = selectedComponent;
     previousSelectedComponentTypeRef.current = node.type;
     previousLatestUndoRedoActionIdRef.current = latestUndoRedoActionId;
+    previousFormRevisionRef.current = formRevision;
 
     setComponentSource(components?.[selectedComponentType]?.source || '');
   }, [
@@ -447,6 +455,7 @@ const ComponentInstanceForm: React.FC<ComponentInstanceFormProps> = () => {
     showBoundary,
     selectedComponent,
     latestUndoRedoActionId,
+    formRevision,
     layout,
     model,
   ]);

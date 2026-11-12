@@ -78,5 +78,35 @@ test.describe('Basic accessibility', () => {
       propsScan.violations,
       'Component instance form to pass a11y check',
     ).toEqual([]);
+
+    // Inline text editing, with the formatting toolbar open.
+    await canvas.addComponent({
+      id: 'sdc.canvas_test_sdc.required-formatted-body',
+    });
+    await expect(
+      page.locator(
+        '[data-testid="canvas-contextual-panel"] .field--name-body .ck-editor__editable',
+      ),
+    ).toBeVisible();
+    const frame = await canvas.getActivePreviewFrame();
+    const text = await frame.locator('text=Example').first().boundingBox();
+    await page.mouse.dblclick(
+      text!.x + text!.width / 2,
+      text!.y + text!.height / 2,
+    );
+    await expect(
+      page.locator('[data-canvas-inline-text-toolbar]'),
+    ).toBeVisible();
+    const inlineScan = await new AxeBuilder({ page })
+      .disableRules(baseline)
+      .analyze();
+    await testInfo.attach('a11y-inline-text-editing-scan', {
+      body: JSON.stringify(inlineScan, null, 2),
+      contentType: 'application/json',
+    });
+    expect(
+      inlineScan.violations,
+      'Inline text editing to pass a11y check',
+    ).toEqual([]);
   });
 });
