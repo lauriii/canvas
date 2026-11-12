@@ -59,7 +59,7 @@ class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
   private JavaScriptComponent $jsComponent;
 
   protected const string COMPONENT_INSTANCE_UUID = '2c6e91ae-23ac-433d-9bb8-687144464b34';
-  protected const string ORIGINAL_VERSION_HASH = '542cc17c549ba2bc';
+  protected const string ORIGINAL_VERSION_HASH = '9dbd79a0980c5136';
   private const array IS_NO_BC_BREAK = [];
   private const null EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED = NULL;
 
@@ -120,7 +120,7 @@ class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
       'props' => $props,
       'required' => ['required_text'],
       'slots' => [
-        'test-slot' => [
+        'test_slot' => [
           'title' => 'test',
           'description' => 'Title',
           'examples' => [
@@ -176,13 +176,13 @@ class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
           'favorite_animals' => ['cat', 'dog'],
         ],
       ],
-      // The component in `test-slot` slot.
+      // The component in `test_slot` slot.
       [
         'uuid' => 'b1f6e1d4-b3c4-4d5e-8f6a-1234567890ab',
         'component_id' => 'js.test',
         'component_version' => self::ORIGINAL_VERSION_HASH,
         'parent_uuid' => self::COMPONENT_INSTANCE_UUID,
-        'slot' => 'test-slot',
+        'slot' => 'test_slot',
         'inputs' => [
           'required_text' => 'Slot instance text',
         ],
@@ -230,7 +230,7 @@ class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
     ];
     // If a new optional prop was added, the component instance can be updated.
     yield "Component added a new optional prop" => [
-      '5e26faade9f74aee',
+      '0768822ab321d9bf',
       [self::class, 'addOptionalProp'],
       ComponentInstanceUpdateAttemptResult::Latest,
       self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
@@ -238,7 +238,7 @@ class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
     ];
     // If an optional prop was removed, the component instance can be updated.
     yield "Component removed an optional prop" => [
-      'df06df1e8e27d0cc',
+      'b3d9b3ac5dd6b039',
       [self::class, 'removeOptionalProp'],
       ComponentInstanceUpdateAttemptResult::Latest,
       [self::class, 'assertOptionalPropRemoved'],
@@ -247,7 +247,7 @@ class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
     // If a new required prop was added, the component instance can be updated
     // with the default value from prop_field_definitions.
     yield "Component added a new required prop" => [
-      '1732f7e210c17c56',
+      '8bbd21e80e883038',
       [self::class, 'addRequiredProp'],
       ComponentInstanceUpdateAttemptResult::Latest,
       [self::class, 'assertRequiredPropRequired'],
@@ -255,7 +255,7 @@ class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
     ];
     // If a required prop was removed, the component instance can be updated.
     yield "Component removed a required prop" => [
-      'ca80c7484141dff2',
+      'c4e9ba43094738f7',
       [self::class, 'removeRequiredProp'],
       ComponentInstanceUpdateAttemptResult::Latest,
       [self::class, 'assertRequiredPropRemoved'],
@@ -263,7 +263,7 @@ class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
     ];
     // If a required prop became optional, the component instance can be updated.
     yield "Component required prop became optional" => [
-      '1351af380133200d',
+      'c809b968783074b6',
       [self::class, 'makeRequiredPropOptional'],
       ComponentInstanceUpdateAttemptResult::Latest,
       self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
@@ -272,7 +272,7 @@ class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
     // If an optional prop became required and the value was already set,
     // the existing value should be preserved.
     yield "Component optional prop became required" => [
-      'f3bacf880bc7978c',
+      '6cd567896a237c80',
       [self::class, 'makeOptionalPropRequired'],
       ComponentInstanceUpdateAttemptResult::Latest,
       [self::class, 'assertOptionalBecameRequiredValuePreserved'],
@@ -281,7 +281,7 @@ class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
     // If an optional prop became required and the value was not set,
     // the default value from prop_field_definitions should be populated.
     yield "Component optional prop became required (default value populated)" => [
-      'f3bacf880bc7978c',
+      '6cd567896a237c80',
       [self::class, 'makeOptionalPropRequiredWithMissingInput'],
       ComponentInstanceUpdateAttemptResult::Latest,
       [self::class, 'assertOptionalBecameRequiredWithDefault'],
@@ -289,7 +289,7 @@ class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
     ];
     // If examples for a prop changed, the component instance can be updated.
     yield "Component prop examples changed" => [
-      '017896997c0e8fdf',
+      'b88ce5decd02651e',
       [self::class, 'changeExamplesFromProp'],
       ComponentInstanceUpdateAttemptResult::Latest,
       self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
@@ -305,7 +305,7 @@ class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
     ];
     // If the widget for a prop changed, the component instance can be updated.
     yield "Component prop shape changed its widget" => [
-      '480f9bf58812a2a4',
+      'b44231b1038d7ffc',
       [self::class, 'changePropShapeWidget'],
       ComponentInstanceUpdateAttemptResult::Latest,
       self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
@@ -314,7 +314,7 @@ class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
     // If the expression for a prop changed but the field data is compatible,
     // the component instance can be updated.
     yield "Component prop shape changed its expression" => [
-      '944d52a17f79b7dc',
+      '6e5a23ae020a54c8',
       [self::class, 'changeExpression'],
       ComponentInstanceUpdateAttemptResult::Latest,
       self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
@@ -325,7 +325,7 @@ class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
     // prevents from happening.
     // @see \Drupal\canvas\Entity\Component::onDependencyRemoval()
     yield "Component prop shape changed its expression AND instance settings for an entity_reference field type" => [
-      'd22bf943bb8f6865',
+      'a46a1041b6a0f6cf',
       [self::class, 'createNewImageMediaType'],
       ComponentInstanceUpdateAttemptResult::Latest,
       self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
@@ -333,7 +333,7 @@ class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
     ];
     // If a new slot was added, the component instance can be updated.
     yield "Component added a new slot" => [
-      '2a684221e1ed6a3d',
+      'e0f7d9885604d724',
       [self::class, 'addSlot'],
       ComponentInstanceUpdateAttemptResult::Latest,
       self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
@@ -349,7 +349,7 @@ class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
     ];
     // If examples for a prop changed, the component instance can be updated.
     yield "Component slot examples changed" => [
-      '07f28141f941d47a',
+      'c8a1eb7578408ab8',
       [self::class, 'changeExamplesFromSlot'],
       ComponentInstanceUpdateAttemptResult::Latest,
       self::EXPECT_NO_POST_UPDATE_ASSERTIONS_NEEDED,
@@ -358,7 +358,7 @@ class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
     // If a required prop stays required while something else changes, the
     // existing input must be preserved unchanged.
     yield "Required prop stays required while a new optional prop is added" => [
-      '5e26faade9f74aee',
+      '0768822ab321d9bf',
       [self::class, 'addOptionalProp'],
       ComponentInstanceUpdateAttemptResult::Latest,
       [self::class, 'assertRequiredPropInputPreserved'],
@@ -367,7 +367,7 @@ class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
     // If the maxItems on an array prop is decreased, the update is accepted as
     // safe (acceptable data loss).
     yield "Component array prop maxItems/cardinality decreased; # of stored values > than new cardinality" => [
-      'ccd0eda77a693730',
+      '2958b31aff7ad847',
       [self::class, 'decreaseArrayPropCardinality'],
       ComponentInstanceUpdateAttemptResult::Latest,
       [self::class, 'assertFeaturesArrayPropHasThreeValues'],
@@ -381,7 +381,7 @@ class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
     // contains at most that number of maxItems, there is no BC break for such
     // component instances.
     yield "Component array prop maxItems/cardinality decreased; # of stored values <= than new cardinality" => [
-      'ccd0eda77a693730',
+      '2958b31aff7ad847',
       [self::class, 'decreaseArrayPropCardinalityAndRemoveOneStoredValue'],
       ComponentInstanceUpdateAttemptResult::Latest,
       [self::class, 'assertFeaturesArrayPropHasThreeValues'],
@@ -393,7 +393,7 @@ class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
     // If the maxItems on an array prop is increased to a specific number, the
     // component instance can be updated.
     yield "Component array prop maxItems/cardinality increased by one" => [
-      '8073c4cc6570d599',
+      'a0b18c69de2f89f6',
       [self::class, 'increaseArrayPropCardinalityByOne'],
       ComponentInstanceUpdateAttemptResult::Latest,
       [self::class, 'assertFavoriteAnimalsArrayPropUnchanged'],
@@ -403,7 +403,7 @@ class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
     // If the maxItems on an array prop is increased to "unlimited", the
     // component instance can be updated.
     yield "Component array prop maxItems/cardinality increased to unlimited" => [
-      '232b912588909cd6',
+      'd97131ecf88fc9ef',
       [self::class, 'increaseArrayPropCardinalityToUnlimited'],
       ComponentInstanceUpdateAttemptResult::Latest,
       [self::class, 'assertFavoriteAnimalsArrayPropUnchanged'],
@@ -447,7 +447,7 @@ class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
     // independently of the flat list's descendant order.
     $tree[] = $wrapper_item($sibling_uuid, $parent_uuid, $parent_slot);
     $marker_parent_uuid = self::COMPONENT_INSTANCE_UUID;
-    $marker_slot = 'test-slot';
+    $marker_slot = 'test_slot';
     for ($depth = 0; $depth < $marker_depth; $depth++) {
       $inner_uuid = $uuid->generate();
       $inner_uuids[] = $inner_uuid;
@@ -1097,7 +1097,7 @@ class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
 
   protected function addSlot(): void {
     $slots = $this->jsComponent->get('slots');
-    $slots['new-slot'] = [
+    $slots['new_slot'] = [
       'title' => 'New Slot',
       'description' => 'New Slot Description',
       'examples' => [
@@ -1115,7 +1115,7 @@ class JsonSchemaPropsComponentInstanceUpdaterTest extends CanvasKernelTestBase {
 
   protected function changeExamplesFromSlot(): void {
     $slots = $this->jsComponent->get('slots');
-    $slots['test-slot']['examples'] = [
+    $slots['test_slot']['examples'] = [
       'A brand new example for a slot',
     ];
     $this->jsComponent->set('slots', $slots)

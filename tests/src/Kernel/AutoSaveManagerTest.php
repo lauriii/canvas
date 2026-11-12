@@ -473,7 +473,7 @@ class AutoSaveManagerTest extends CanvasKernelTestBase {
         ],
       ],
       'slots' => [
-        'test-slot' => [
+        'test_slot' => [
           'title' => 'test',
           'description' => 'Title',
           'examples' => [
