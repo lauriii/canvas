@@ -433,13 +433,19 @@ const LanguageSelect = () => {
                         data-testid={`language-actions-${language.id}`}
                         // Opens on a click, like the options of a page: not
                         // when the pointer passes over it. The pointer
-                        // highlights the language the options belong to.
+                        // highlights the language the options belong to,
+                        // unless the options of a language are open: the
+                        // pointer can pass over this on its way to them.
                         onPointerMove={(event) => {
                           event.preventDefault();
                           const { currentTarget, pointerType } = event;
                           if (
                             pointerType === 'mouse' &&
-                            currentTarget.dataset.state !== 'open'
+                            !currentTarget
+                              .closest('[role="menu"]')
+                              ?.querySelector(
+                                '[aria-haspopup][data-state="open"]',
+                              )
                           ) {
                             (
                               currentTarget.previousElementSibling as HTMLElement | null
