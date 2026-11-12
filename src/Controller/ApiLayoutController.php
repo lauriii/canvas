@@ -270,11 +270,11 @@ final class ApiLayoutController {
       'forked' => $forked_translations,
       // The fork state of every non-default language, keyed by langcode, when
       // the entity supports forks. A translation that exists only as a forked
-      // auto-save draft is not `available`, and is `pending_fork` here. Empty
-      // objects rather than empty arrays, to match the schema.
+      // auto-save draft is not `available`, and is `pending_fork` here.
+      // Arrays, also when empty: decorators of this controller add to them.
       // @see \Drupal\canvas\ContentTranslation\TranslationForkState
-      'states' => $fork_states === [] ? new \stdClass() : $fork_states,
-      'links' => $links === [] ? new \stdClass() : $links,
+      'states' => $fork_states,
+      'links' => $links,
     ];
     if ($entity instanceof ContentEntityInterface && $entity instanceof EntityPublishedInterface) {
       $data['isPublished'] = $entity->isPublished();

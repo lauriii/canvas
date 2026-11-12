@@ -2989,8 +2989,8 @@ paths:
                         items:
                           type: string
                       states:
-                        type: object
-                        description: The component tree fork state of every configured non-default language, keyed by langcode. Only for content entities that support translation forks (content_translation installed); otherwise an empty object.
+                        # No type: an empty array when empty, like `links`.
+                        description: The component tree fork state of every configured non-default language, keyed by langcode. Only for content entities that support translation forks (content_translation installed); otherwise empty (an empty array).
                         additionalProperties:
                           type: string
                           enum: [symmetric, forked, pending_fork, pending_unfork]
@@ -3004,8 +3004,8 @@ paths:
                           de: pending_fork
                           fr: symmetric
                       links:
-                        type: object
-                        description: Translation operation links, keyed by langcode, then by link relation type. `delete-form` deletes the translation (or discards a translation that exists only as a forked draft). `https://drupal.org/project/canvas#link-rel-fork` and `https://drupal.org/project/canvas#link-rel-unfork` fork or unfork it. Only links the current user may follow are present.
+                        # No type: an empty array when there are no links.
+                        description: Translation operation links, keyed by langcode, then by link relation type. An empty array when there are none. `delete-form` deletes the translation (or discards a translation that exists only as a forked draft). `https://drupal.org/project/canvas#link-rel-fork` and `https://drupal.org/project/canvas#link-rel-unfork` fork or unfork it. Only links the current user may follow are present.
                         additionalProperties:
                           type: object
                           additionalProperties:
