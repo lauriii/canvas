@@ -5,6 +5,7 @@ import {
   setLayoutModel,
   setTranslations,
 } from '@/features/layout/layoutModelSlice';
+import { previewEditCount } from '@/features/layout/preview/previewEdits';
 import {
   resetPageData,
   setInitialPageData,
@@ -212,6 +213,7 @@ export const componentAndLayoutApi = createApi({
       },
       providesTags: () => [{ type: 'Layout' }],
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        const editsAtRequest = previewEditCount();
         try {
           const {
             data: { entity_form_fields, html, autoSaves, translations },
@@ -235,7 +237,7 @@ export const componentAndLayoutApi = createApi({
             // selectPreviewHtml returns the fresh html.
             dispatch(setSnapshotHTML(''));
             dispatch(setSnapshotTitle(''));
-            dispatch(setHtml(html));
+            dispatch(setHtml(html, editsAtRequest));
           }
           handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
           dispatch(setTranslations(translations || {}));
@@ -285,6 +287,7 @@ export const componentAndLayoutApi = createApi({
         { type: 'Layout', id: `${entityType}.${bundle}.${viewMode}` },
       ],
       async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        const editsAtRequest = previewEditCount();
         try {
           const {
             data: { entity_form_fields, html, autoSaves },
@@ -302,7 +305,7 @@ export const componentAndLayoutApi = createApi({
           // the template editor frame.
           dispatch(setSnapshotHTML(''));
           dispatch(setSnapshotTitle(''));
-          dispatch(setHtml(html));
+          dispatch(setHtml(html, editsAtRequest));
           handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         } catch (err) {
           dispatch(resetPageData());
@@ -313,6 +316,7 @@ export const componentAndLayoutApi = createApi({
       query: (patternId) => `canvas/api/v0/layout-pattern/${patternId}`,
       providesTags: () => [{ type: 'Layout' }],
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        const editsAtRequest = previewEditCount();
         try {
           const {
             data: { entity_form_fields, html, autoSaves },
@@ -329,7 +333,7 @@ export const componentAndLayoutApi = createApi({
           // Mirrors getTemplateLayout; without it a leftover preview snapshot
           // masks the pattern editor frame.
           dispatch(setSnapshotHTML(''));
-          dispatch(setHtml(html));
+          dispatch(setHtml(html, editsAtRequest));
           handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         } catch (err) {
           dispatch(resetPageData());
@@ -352,6 +356,7 @@ export const componentAndLayoutApi = createApi({
         body,
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        const editsAtRequest = previewEditCount();
         const { data, meta } = await queryFulfilled;
         const { html, autoSaves } = data;
         dispatch(
@@ -361,7 +366,7 @@ export const componentAndLayoutApi = createApi({
         );
         dispatch(brandKitApi.util.invalidateTags(['ColorUsageDetails']));
         // Update our template preview slice.
-        dispatch(setHtml(html));
+        dispatch(setHtml(html, editsAtRequest));
         handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         dispatch(setPostPreviewCompleted(true));
       },
@@ -376,6 +381,7 @@ export const componentAndLayoutApi = createApi({
         body,
       }),
       async onQueryStarted(body, { dispatch, queryFulfilled }) {
+        const editsAtRequest = previewEditCount();
         const { data, meta } = await queryFulfilled;
         const { html, layout, model, autoSaves } = data;
         dispatch(
@@ -384,7 +390,7 @@ export const componentAndLayoutApi = createApi({
           ]),
         );
         dispatch(brandKitApi.util.invalidateTags(['ColorUsageDetails']));
-        dispatch(setHtml(html));
+        dispatch(setHtml(html, editsAtRequest, true));
         handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         // Pass update preview false to prevent a subsequent preview update,
         // we have the data here.
@@ -402,6 +408,7 @@ export const componentAndLayoutApi = createApi({
         body,
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        const editsAtRequest = previewEditCount();
         const { data, meta } = await queryFulfilled;
         const { html, autoSaves } = data;
         dispatch(
@@ -411,7 +418,7 @@ export const componentAndLayoutApi = createApi({
         );
         dispatch(brandKitApi.util.invalidateTags(['ColorUsageDetails']));
         // Update our pattern preview slice.
-        dispatch(setHtml(html));
+        dispatch(setHtml(html, editsAtRequest));
         handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         dispatch(setPostPreviewCompleted(true));
       },
@@ -426,6 +433,7 @@ export const componentAndLayoutApi = createApi({
         body,
       }),
       async onQueryStarted(body, { dispatch, queryFulfilled }) {
+        const editsAtRequest = previewEditCount();
         const { data, meta } = await queryFulfilled;
         const { html, layout, model, autoSaves } = data;
         dispatch(
@@ -434,7 +442,7 @@ export const componentAndLayoutApi = createApi({
           ]),
         );
         dispatch(brandKitApi.util.invalidateTags(['ColorUsageDetails']));
-        dispatch(setHtml(html));
+        dispatch(setHtml(html, editsAtRequest, true));
         handleAutoSavesHashUpdate(dispatch, autoSaves, meta);
         // Pass update preview false to prevent a subsequent preview update,
         // we have the data here.

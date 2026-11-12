@@ -2,6 +2,7 @@ import {
   isEvaluatedComponentModel,
   syncPropSourcesToResolvedValues,
 } from '@/features/layout/layoutModelSlice';
+import { notePreviewEdit } from '@/features/layout/preview/previewEdits';
 import { setPreviewBackgroundUpdate } from '@/features/pagePreview/previewSlice';
 
 import { getPropsValues } from './componentFormData';
@@ -78,6 +79,9 @@ export const createComponentFormStateHandler = (
         ),
       );
       backgroundPreviewUpdate = PreviewUpdateEvent.getPreviewBackgroundUpdate();
+      if (backgroundPreviewUpdate) {
+        notePreviewEdit();
+      }
     }
 
     if (isEvaluatedComponentModel(selectedModel) && deps.component) {

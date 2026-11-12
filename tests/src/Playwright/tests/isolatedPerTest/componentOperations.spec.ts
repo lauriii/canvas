@@ -415,10 +415,13 @@ test.describe('Perform CRUD operations on components', () => {
 
     await canvas.deleteComponent('sdc.canvas_test_sdc.my-hero');
 
-    const head2 = await canvas.getIframeHead();
-    expect(head2).not.toBeUndefined();
-    const head2HTML = await page.evaluate((el) => el.innerHTML, head2);
-    expect(head2HTML).not.toContain('components/my-hero/my-hero.css');
+    // The preview shows the deletion before the server renders it, and the
+    // CSS goes once that render is swapped in.
+    await expect
+      .poll(async () =>
+        page.evaluate((el) => el.innerHTML, await canvas.getIframeHead()),
+      )
+      .not.toContain('components/my-hero/my-hero.css');
   });
 
   test('Should be able to blur autocomplete without problems. See #3519734', async ({

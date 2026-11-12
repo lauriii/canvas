@@ -16,6 +16,7 @@ import {
   setTranslations,
   setUpdatePreview,
 } from '@/features/layout/layoutModelSlice';
+import { optimisticPreviewListener } from '@/features/layout/preview/optimisticPreviewListener';
 import { notificationsSlice } from '@/features/notifications/notificationsSlice';
 import {
   pageDataOwnerReducer,
@@ -264,6 +265,7 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
         extensionsApi.middleware,
         notificationsApi.middleware,
         undoRedoActionIdMiddleware,
+        optimisticPreviewListener.middleware,
         pendingChangesApi.middleware,
         contentApi.middleware,
         contentEntityReferenceApi.middleware,
